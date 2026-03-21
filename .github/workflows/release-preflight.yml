@@ -1,0 +1,29 @@
+name: Release Preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version candidate (e.g. 0.1.0)"
+        required: true
+        type: string
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: cargo fmt --all --check
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+      - run: cargo test --workspace
+      - run: python3 scripts/release_artifacts.py validate-manifest --manifest release/publish-artifacts.toml --workspace-toml Cargo.toml
+      - run: bash scripts/ci/validate_publish_order.sh
+      - run: |
+          set -euo pipefail
+          while IFS='|' read -r package _; do
+            cargo package -p "$package" --locked --allow-dirty
+          done < <(python3 scripts/release_artifacts.py list-publish-plan --manifest release/publish-artifacts.toml)

@@ -1,0 +1,40 @@
+agents:
+  quality-mgr:
+    version: 1.0.0
+    path: .claude/agents/quality-mgr.md
+  rust-architect:
+    version: 1.0.0
+    path: .claude/agents/rust-architect.md
+  rust-code-reviewer:
+    version: 1.0.0
+    path: .claude/agents/rust-code-reviewer.md
+  rust-code-explorer:
+    version: 1.0.0
+    path: .claude/agents/rust-code-explorer.md
+  rust-developer:
+    version: 1.0.0
+    path: .claude/agents/rust-developer.md
+  rust-qa-agent:
+    version: 1.0.0
+    path: .claude/agents/rust-qa-agent.md
+  req-qa:
+    version: 1.0.0
+    path: .claude/agents/req-qa.md
+  arch-qa:
+    version: 1.0.0
+    path: .claude/agents/arch-qa.md
+  flaky-test-qa:
+    version: 1.0.0
+    path: .claude/agents/flaky-test-qa.md
+  test-stability-auditor:
+    version: 1.0.0
+    path: .claude/agents/test-stability-auditor.md
+
+skills:
+  rust-development:
+    depends_on:
+      rust-architect: "1.x"
+      rust-code-reviewer: "1.x"
+      rust-code-explorer: "1.x"
+      rust-developer: "1.x"
+      rust-qa-agent: "1.x"
