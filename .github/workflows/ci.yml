@@ -2,30 +2,78 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [develop, main, "integrate/*"]
   push:
-    branches: [main]
+    branches: [develop, main]
 
 jobs:
   fmt:
+    name: Format check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
-      - run: cargo fmt --all --check
+
+      - name: Check formatting
+        run: cargo fmt --check --all
 
   clippy:
     needs: [fmt]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ubuntu-clippy-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ubuntu-clippy-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ubuntu-clippy-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+  manifest-validation:
+    name: manifest-validation (ubuntu)
+    needs: [clippy]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Validate manifest completeness
+        run: |
+          python3 scripts/release_artifacts.py validate-manifest \
+            --manifest release/publish-artifacts.toml \
+            --workspace-toml Cargo.toml
+
+      - name: Validate publish_order dependency graph
+        run: bash scripts/ci/validate_publish_order.sh
 
   test:
-    needs: [clippy]
+    needs: [clippy, manifest-validation]
     strategy:
       fail-fast: false
       matrix:
@@ -33,16 +81,27 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test --workspace
 
-  manifest-validation:
-    needs: [clippy]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
         with:
-          python-version: "3.x"
-      - run: python3 scripts/release_artifacts.py validate-manifest --manifest release/publish-artifacts.toml --workspace-toml Cargo.toml
-      - run: bash scripts/ci/validate_publish_order.sh
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-test-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-test-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-test-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run workspace tests
+        run: cargo test --workspace
