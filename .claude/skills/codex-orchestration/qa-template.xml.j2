@@ -1,0 +1,81 @@
+---
+name: qa-task
+version: 1.0.0
+description: quality-mgr QA assignment template for codex-orchestration phases.
+format: xml
+required_variables:
+  - task_id
+  - sprint
+  - description
+  - pr_number
+  - branch
+  - worktree_path
+  - commits
+  - deliverables
+  - references
+---
+<repo-qa-task id="{{ task_id }}" sprint="{{ sprint }}" assignee="quality-mgr">
+  <description>{{ description }}</description>
+
+  <pr-number>{{ pr_number }}</pr-number>
+  <branch>{{ branch }}</branch>
+  <worktree>{{ worktree_path }}</worktree>
+  <commits>{{ commits }}</commits>
+
+  <deliverables>
+{{ deliverables }}
+  </deliverables>
+
+  <references>
+{{ references }}
+  </references>
+
+  <workflow>
+    <step id="a">ACK this message immediately.</step>
+    <step id="b">
+      Spawn THREE background QA agents against the worktree.
+      MANDATORY: run_in_background=true on ALL agents. NO exceptions.
+      PROHIBITED: running cargo, clippy, or any analysis yourself in the foreground.
+      PROHIBITED: spawning agents without run_in_background=true.
+      Use TaskOutput to retrieve results after agents complete.
+
+      Agent 1 — rust-qa-agent:
+        subagent_type: rust-qa-agent
+        run_in_background: true
+        prompt: Run full cargo test and cargo clippy on the worktree at {{ worktree_path }}.
+                Report: test results (pass/fail counts), clippy warnings, any failing test names and errors.
+
+      Agent 2 — req-qa:
+        subagent_type: req-qa
+        run_in_background: true
+        prompt: Validate sprint {{ sprint }} implementation against requirements, architecture, and sprint spec.
+                Worktree: {{ worktree_path }}. Deliverables: {{ deliverables }}.
+                Reference docs: {{ references }}.
+                Report findings as BLOCKING or NON-BLOCKING with file:line references.
+      Agent 3 — arch-qa:
+        subagent_type: arch-qa
+        run_in_background: true
+        prompt: Evaluate structural compliance for sprint {{ sprint }} in {{ worktree_path }}.
+                Report blocking architectural violations with file:line references.
+    </step>
+    <step id="c">
+      Collect both agent reports. Send consolidated findings to team-lead:
+      - Overall verdict: PASS or FAIL
+      - Blocking findings (if any) with finding IDs
+      - Non-blocking findings
+      - rust-qa result summary
+      - req-qa result summary
+      - arch-qa result summary
+    </step>
+    <step id="d">
+      If CI is NOT yet green on the PR: use `gh pr checks {{ pr_number }} --watch`
+      or spawn rust-qa-agent for targeted follow-up testing. Do NOT run cargo yourself.
+      Skip this step if CI is already green.
+    </step>
+    <step id="e">
+      Send final QA report to team-lead:
+      PASS → "PR #{{ pr_number }} ready to merge"
+      FAIL → list blocking findings with recommended fixes for arch-ctm
+    </step>
+  </workflow>
+</repo-qa-task>
