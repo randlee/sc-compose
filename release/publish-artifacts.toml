@@ -1,0 +1,19 @@
+schema_version = 1
+
+[[crates]]
+artifact = "sc-composer"
+package = "sc-composer"
+cargo_toml = "crates/sc-composer/Cargo.toml"
+publish_order = 1
+wait_after_publish_seconds = 30
+
+[[crates]]
+artifact = "sc-compose"
+package = "sc-compose"
+cargo_toml = "crates/sc-compose/Cargo.toml"
+publish_order = 2
+wait_after_publish_seconds = 0
+
+[[release_binaries]]
+name = "sc-compose"
+

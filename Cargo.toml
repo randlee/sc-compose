@@ -1,0 +1,18 @@
+[workspace]
+members = ["crates/sc-composer", "crates/sc-compose"]
+resolver = "2"
+
+[workspace.package]
+version = "0.46.2"
+edition = "2024"
+license = "MIT"
+rust-version = "1.85"
+repository = "https://github.com/randlee/sc-compose"
+homepage = "https://github.com/randlee/sc-compose"
+
+[workspace.dependencies]
+anyhow = "1"
+clap = { version = "4.5", features = ["derive"] }
+minijinja = "2.12"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
