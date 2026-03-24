@@ -10,8 +10,8 @@ This skill defines a lightweight phase workflow for standalone repos like
 
 ## Model
 
-- `team-lead` coordinates
-- `arch-ctm` is the sole developer
+- `arch-comp` coordinates (repo lead)
+- `ccomp` is the sole developer
 - `quality-mgr` runs QA after each sprint delivery
 
 The repo may use either:
@@ -31,16 +31,16 @@ Before starting:
 
 ## Sprint Flow
 
-1. Team-lead sends a sprint assignment to `arch-ctm` using `dev-template.xml.j2`.
-2. `arch-ctm` ACKs, implements, commits, pushes, and reports the branch + SHA.
-3. Team-lead opens/updates the PR.
-4. Team-lead assigns QA to `quality-mgr` using `qa-template.xml.j2`.
+1. `arch-comp` sends a sprint assignment to `ccomp` using `dev-template.xml.j2`.
+2. `ccomp` ACKs, implements, commits, pushes, and reports the branch + SHA.
+3. `arch-comp` opens/updates the PR.
+4. `arch-comp` assigns QA to `quality-mgr` using `qa-template.xml.j2`.
 5. `quality-mgr` runs:
    - `rust-qa-agent`
    - `req-qa`
    - `arch-qa`
 6. If QA passes and CI is green, merge proceeds.
-7. If QA fails, team-lead routes the fixes back to `arch-ctm`.
+7. If QA fails, `arch-comp` routes the fixes back to `ccomp`.
 
 ## CI
 
