@@ -21,8 +21,12 @@ Perform a critical review of the code against these guidelines and identify:
 - Missing patterns that the guidelines require for reliability, safety, or maintainability
 - **Cross-platform violations** — especially:
   - Hardcoded `/tmp/` paths (use `std::env::temp_dir()` instead) — **Blocking**
-  - `.env("HOME", ...)` or `.env("USERPROFILE", ...)` in tests (use `ATM_HOME`) — **Blocking**
+  - `.env("HOME", ...)` or `.env("USERPROFILE", ...)` in tests (use a scoped `TempDir` instead) — **Blocking**
   - String path concatenation instead of `PathBuf::join()` — **Blocking**
+- **ATM boundary violations** — this repo is fully independent from ATM; any of the following is **Blocking**:
+  - `ATM_HOME` env var read, set, or referenced anywhere in the codebase
+  - `agent-team-mail` crate listed in any `Cargo.toml`
+  - Any import from ATM crates (`use agent_team_mail::`, `use atm_*::`, etc.)
 
 Treat guideline violations as QA findings and include them in the final report with severity and concrete remediation steps.
 

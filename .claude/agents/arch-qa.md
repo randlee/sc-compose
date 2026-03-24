@@ -37,10 +37,13 @@ Severity: BLOCKING
 `crates/sc-composer` must not own CLI parsing, local state resolution, ATM
 compatibility code, or observability wiring.
 
-### RULE-003: `sc-compose` must not read `ATM_HOME`
+### RULE-003: No ATM runtime assumptions anywhere in this repo
 Severity: BLOCKING
 
-Any ATM path/runtime fallback in this repo is a boundary violation.
+This repo is fully independent from ATM. Any of the following is a boundary violation:
+- Reading or referencing `ATM_HOME` env var
+- Using ATM spool, socket, or runtime path conventions
+- Any reference to ATM-specific config naming or path structures
 
 ### RULE-004: No file over 1000 lines of non-test code
 Severity: BLOCKING

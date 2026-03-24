@@ -56,7 +56,7 @@ Examples of especially risky patterns:
    - `wait(`
    - `TempDir`
    - `std::env::set_var`
-   - `ATM_HOME`
+   - `ATM_HOME` (any occurrence is a boundary violation — sc-compose must not reference ATM)
    - hardcoded `/tmp/`
    - `TcpListener`
    - `UnixListener`
