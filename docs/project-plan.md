@@ -223,11 +223,12 @@ FRs addressed:
 
 Deliverables:
 
-- `crates/sc-composer/src/context.rs` implementing precedence merge:
-  - explicit input
-  - environment-derived input
-  - frontmatter defaults
-- `crates/sc-composer/src/tokens.rs` for referenced-token discovery
+- `crates/sc-composer/src/validation.rs` implementing context merge and token
+  discovery (originally planned as separate `context.rs` and `tokens.rs` files;
+  consolidated into `validation.rs` — see architecture.md §4 for rationale):
+  - precedence merge (explicit input > environment-derived > frontmatter defaults)
+  - variable origin tracking and unknown-variable policy
+  - referenced-token discovery (declared, undeclared, missing, extra)
 - `crates/sc-composer/src/validate.rs` implementing:
   - missing required variable checks
   - undeclared token handling
