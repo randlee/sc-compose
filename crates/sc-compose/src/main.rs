@@ -781,12 +781,10 @@ impl CommandError {
 
     fn compose(error: ComposeError) -> Self {
         let exit_code = match &error {
-            ComposeError::Validation(_) | ComposeError::Render(_) => {
+            ComposeError::Validation(_) | ComposeError::Render(_) | ComposeError::Include(_) => {
                 exit_codes::VALIDATION_OR_RENDER_FAIL
             }
-            ComposeError::Resolve(_) | ComposeError::Include(_) | ComposeError::Config(_) => {
-                exit_codes::USAGE_FAIL
-            }
+            ComposeError::Resolve(_) | ComposeError::Config(_) => exit_codes::USAGE_FAIL,
         };
         Self {
             exit_code,
@@ -810,10 +808,16 @@ impl CommandError {
     }
 
     fn stdin_double_read() -> Self {
-        Self::usage_with_code(
-            anyhow!("guidance and prompt cannot both read from stdin"),
-            DiagnosticCode::ErrRenderStdinDoubleRead,
-        )
+        Self {
+            exit_code: exit_codes::VALIDATION_OR_RENDER_FAIL,
+            diagnostic_code: Some(DiagnosticCode::ErrRenderStdinDoubleRead),
+            diagnostics: vec![Diagnostic::new(
+                DiagnosticSeverity::Error,
+                DiagnosticCode::ErrRenderStdinDoubleRead,
+                "guidance and prompt cannot both read from stdin",
+            )],
+            error: anyhow!("guidance and prompt cannot both read from stdin"),
+        }
     }
 }
 

@@ -272,7 +272,7 @@ fn stdin_double_read_reports_structured_error_code() {
         .output()
         .unwrap();
 
-    assert_eq!(output.status.code(), Some(3));
+    assert_eq!(output.status.code(), Some(2));
     let stderr = String::from_utf8(output.stderr).unwrap();
     assert!(stderr.contains("ERR_RENDER_STDIN_DOUBLE_READ"));
 }
