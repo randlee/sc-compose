@@ -15,6 +15,8 @@ Use unit tests for:
 - strong-type constructors and invariants
 - resolver precedence
 - include confinement, cycles, and depth
+- unknown-variable policy handling (`error`, `warn`, and `ignore` modes, FR-2b)
+- include-driven defaults and required-variable propagation (FR-3a)
 - variable precedence and validation behavior
 - `Renderer`, `compose()`, and `validate()` edge cases
 - observer/sink no-op and injected behavior
@@ -25,6 +27,7 @@ Use integration tests for:
 
 - CLI command behavior
 - JSON output and dry-run schemas
+- `--dry-run` no-write filesystem guarantee
 - var-file and environment-prefix inputs
 - output-path derivation
 - `frontmatter-init` and `init`

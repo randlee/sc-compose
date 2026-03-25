@@ -214,6 +214,7 @@ FRs addressed:
 - FR-2
 - FR-2a
 - FR-2b
+- FR-1b
 - FR-3a
 - FR-6
 - FR-7c
@@ -382,7 +383,7 @@ Implementation order is constrained by the architecture typestate pipeline and
 crate dependency direction.
 
 1. `sc-composer` foundational types and diagnostics:
-   - `types`
+   - `types.rs` or the equivalent foundational type modules
    - `error`
    - `diagnostics`
    - `frontmatter`
@@ -407,9 +408,10 @@ crate dependency direction.
 
 Modules that can be parallelized once the shared types exist:
 
-- `resolver` and `frontmatter` may proceed in parallel after Sprint 2 types land
-- `include` and `tokens` may proceed in parallel once path and document types
-  stabilize
+- `resolver` and `frontmatter` may proceed in parallel after Sprint 2
+  foundational type modules land
+- `include` and `tokens` may proceed in parallel once path and document
+  representations stabilize
 - `observability` and `workspace` can proceed in parallel with late Sprint 4
   or early Sprint 5 CLI work
 - CLI JSON shaping and output-path handling can proceed in parallel once
@@ -422,10 +424,12 @@ Parallel work must not violate ownership:
 
 ## FR Coverage Matrix
 
-- FR-1, FR-1a, FR-1b: S2
+- FR-1, FR-1a: S2
+- FR-1b: S2 and S4
 - FR-1c: S3
 - FR-2, FR-2a, FR-2b: S2 and S4
-- FR-3, FR-3a: S3 and S4
+- FR-3: S3
+- FR-3a: S4
 - FR-4: S3 and S6
 - FR-5: S3
 - FR-6: S4 and S5
