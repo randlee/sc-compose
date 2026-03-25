@@ -26,6 +26,7 @@ by `sc-composer` and `sc-compose`.
 | `ERR_VAL_TYPE` | `ValidationError` | error | invalid scalar type or variable type mismatch | validation pipeline |
 | `ERR_VAL_DUPLICATE` | `ValidationError` | error | duplicate frontmatter variable declaration | frontmatter normalization, validation pipeline |
 | `ERR_VAL_EMPTY` | `ValidationError` | error | template body is empty where composition requires content | validation pipeline |
+| `ERR_VAL_MISSING_FRONTMATTER` | `ValidationError` | warning | root template has no frontmatter block | validation pipeline |
 | `ERR_VAL_MISSING_REQUIRED` | `ValidationError` | error | required variable remains unresolved after merge | validation pipeline |
 | `ERR_VAL_UNDECLARED_TOKEN` | `ValidationError` | warning/error | referenced token is not declared in frontmatter | validation pipeline |
 | `ERR_VAL_EXTRA_INPUT` | `ValidationError` | warning/error | caller provided a variable that is neither declared nor referenced | validation pipeline |

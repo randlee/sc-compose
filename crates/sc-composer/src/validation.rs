@@ -161,7 +161,7 @@ fn missing_frontmatter_warning(
         .then(|| {
             Diagnostic::new(
                 DiagnosticSeverity::Warning,
-                DiagnosticCode::ErrValEmpty,
+                DiagnosticCode::ErrValMissingFrontmatter,
                 format!(
                     "root template has no frontmatter; run `sc-compose frontmatter-init {}`",
                     resolve_result.resolved_path.display()
@@ -457,7 +457,7 @@ mod tests {
 
         assert!(
             report.warnings.iter().any(|diagnostic| {
-                diagnostic.code == DiagnosticCode::ErrValEmpty
+                diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
                     && diagnostic.message.contains("sc-compose frontmatter-init")
             }),
             "expected missing-frontmatter warning with fix command"
