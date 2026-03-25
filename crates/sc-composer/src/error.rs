@@ -63,7 +63,8 @@ pub struct ResolveError {
 impl ResolveError {
     /// Create a new resolver error without an underlying source.
     #[must_use]
-    pub fn new(
+    #[allow(dead_code, reason = "Sprint 2 seeds constructors that later pipeline modules call.")]
+    pub(crate) fn new(
         code: DiagnosticCode,
         message: impl Into<String>,
         attempted_paths: Vec<PathBuf>,
@@ -79,7 +80,8 @@ impl ResolveError {
 
     /// Attach an underlying source error.
     #[must_use]
-    pub fn with_source(
+    #[allow(dead_code, reason = "Sprint 2 seeds constructors that later pipeline modules call.")]
+    pub(crate) fn with_source(
         mut self,
         source: impl StdError + Send + Sync + 'static,
     ) -> Self {
@@ -130,7 +132,8 @@ pub struct IncludeError {
 impl IncludeError {
     /// Create a new include error.
     #[must_use]
-    pub fn new(
+    #[allow(dead_code, reason = "Sprint 2 seeds constructors that later pipeline modules call.")]
+    pub(crate) fn new(
         code: DiagnosticCode,
         message: impl Into<String>,
         include_chain: Vec<PathBuf>,
@@ -146,7 +149,8 @@ impl IncludeError {
 
     /// Attach an underlying source error.
     #[must_use]
-    pub fn with_source(
+    #[allow(dead_code, reason = "Sprint 2 seeds constructors that later pipeline modules call.")]
+    pub(crate) fn with_source(
         mut self,
         source: impl StdError + Send + Sync + 'static,
     ) -> Self {
@@ -197,7 +201,7 @@ pub struct ValidationError {
 impl ValidationError {
     /// Create a new validation error.
     #[must_use]
-    pub fn new(code: DiagnosticCode, message: impl Into<String>) -> Self {
+    pub(crate) fn new(code: DiagnosticCode, message: impl Into<String>) -> Self {
         Self {
             code,
             message: message.into(),
@@ -209,7 +213,7 @@ impl ValidationError {
 
     /// Create a duplicate-frontmatter validation error.
     #[must_use]
-    pub fn duplicate_variable(variable: &VariableName) -> Self {
+    pub(crate) fn duplicate_variable(variable: &VariableName) -> Self {
         Self::new(
             DiagnosticCode::ErrValDuplicate,
             format!("duplicate frontmatter variable declaration: {variable}"),
@@ -218,20 +222,25 @@ impl ValidationError {
 
     /// Create a scalar-type validation error.
     #[must_use]
-    pub fn invalid_scalar(message: impl Into<String>) -> Self {
+    pub(crate) fn invalid_scalar(message: impl Into<String>) -> Self {
         Self::new(DiagnosticCode::ErrValType, message)
     }
 
     /// Attach structured recovery hints.
     #[must_use]
-    pub fn with_recovery_hints(mut self, recovery_hints: Vec<RecoveryHint>) -> Self {
+    #[allow(dead_code, reason = "Sprint 2 seeds constructors that later pipeline modules call.")]
+    pub(crate) fn with_recovery_hints(
+        mut self,
+        recovery_hints: Vec<RecoveryHint>,
+    ) -> Self {
         self.recovery_hints = recovery_hints;
         self
     }
 
     /// Attach an underlying source error.
     #[must_use]
-    pub fn with_source(
+    #[allow(dead_code, reason = "Sprint 2 seeds constructors that later pipeline modules call.")]
+    pub(crate) fn with_source(
         mut self,
         source: impl StdError + Send + Sync + 'static,
     ) -> Self {
@@ -275,6 +284,7 @@ impl StdError for ValidationError {
 /// opaque error value by design.
 #[derive(Debug)]
 pub struct RenderError {
+    code: Option<DiagnosticCode>,
     source: BoxedError,
     backtrace: Backtrace,
 }
@@ -285,11 +295,20 @@ impl RenderError {
     /// This constructor exists so the library can erase engine-specific error
     /// types at the public API boundary.
     #[must_use]
-    pub fn render(source: impl StdError + Send + Sync + 'static) -> Self {
+    pub(crate) fn render(source: impl StdError + Send + Sync + 'static) -> Self {
         Self {
+            code: None,
             source: Box::new(source),
             backtrace: Backtrace::capture(),
         }
+    }
+
+    /// Attach a stable render code when the calling layer knows one.
+    #[must_use]
+    #[allow(dead_code, reason = "Sprint 2 seeds constructors that later pipeline modules call.")]
+    pub(crate) fn with_code(mut self, code: DiagnosticCode) -> Self {
+        self.code = Some(code);
+        self
     }
 
     /// Return the captured backtrace for the render failure.
@@ -297,11 +316,10 @@ impl RenderError {
         &self.backtrace
     }
 
-    /// Render failures produced directly from the template engine do not have a
-    /// stable `ERR_*` code in Sprint 2.
+    /// Return the stable diagnostic code when one was attached by the caller.
     #[must_use]
     pub const fn code(&self) -> Option<DiagnosticCode> {
-        None
+        self.code
     }
 }
 
@@ -330,7 +348,7 @@ pub struct ConfigError {
 impl ConfigError {
     /// Create a new configuration error.
     #[must_use]
-    pub fn new(code: DiagnosticCode, message: impl Into<String>) -> Self {
+    pub(crate) fn new(code: DiagnosticCode, message: impl Into<String>) -> Self {
         Self {
             code,
             message: message.into(),
@@ -342,14 +360,18 @@ impl ConfigError {
 
     /// Attach structured recovery hints.
     #[must_use]
-    pub fn with_recovery_hints(mut self, recovery_hints: Vec<RecoveryHint>) -> Self {
+    #[allow(dead_code, reason = "Sprint 2 seeds constructors that later pipeline modules call.")]
+    pub(crate) fn with_recovery_hints(
+        mut self,
+        recovery_hints: Vec<RecoveryHint>,
+    ) -> Self {
         self.recovery_hints = recovery_hints;
         self
     }
 
     /// Attach an underlying source error.
     #[must_use]
-    pub fn with_source(
+    pub(crate) fn with_source(
         mut self,
         source: impl StdError + Send + Sync + 'static,
     ) -> Self {
@@ -467,5 +489,124 @@ impl From<RenderError> for ComposeError {
 impl From<ConfigError> for ComposeError {
     fn from(value: ConfigError) -> Self {
         Self::Config(value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error as _;
+
+    use super::{
+        ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind,
+        RenderError, ResolveError, ValidationError,
+    };
+    use crate::diagnostics::DiagnosticCode;
+    use crate::types::VariableName;
+
+    #[test]
+    fn resolve_error_constructor_roundtrip_and_display() {
+        let error = ResolveError::new(
+            DiagnosticCode::ErrResolveNotFound,
+            "template not found",
+            vec![std::path::PathBuf::from("a.md.j2")],
+        )
+        .with_source(std::io::Error::other("missing"));
+
+        assert_eq!(error.code(), Some(DiagnosticCode::ErrResolveNotFound));
+        assert_eq!(error.attempted_paths().len(), 1);
+        assert_eq!(error.to_string(), "template not found");
+        assert!(error.source().is_some());
+    }
+
+    #[test]
+    fn include_error_constructor_roundtrip_and_display() {
+        let error = IncludeError::new(
+            DiagnosticCode::ErrIncludeEscape,
+            "include escaped root",
+            vec![std::path::PathBuf::from("parent.md.j2")],
+        )
+        .with_source(std::io::Error::other("escape"));
+
+        assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeEscape));
+        assert_eq!(error.include_chain().len(), 1);
+        assert_eq!(error.to_string(), "include escaped root");
+        assert!(error.source().is_some());
+    }
+
+    #[test]
+    fn validation_error_constructor_roundtrip_and_display() {
+        let variable = VariableName::new("name").unwrap();
+        let error = ValidationError::duplicate_variable(&variable)
+            .with_recovery_hints(vec![RecoveryHint::new(RecoveryHintKind::ProvideVariable {
+                variable: variable.clone(),
+            })])
+            .with_source(std::io::Error::other("duplicate"));
+
+        assert_eq!(error.code(), Some(DiagnosticCode::ErrValDuplicate));
+        assert_eq!(error.recovery_hints().len(), 1);
+        assert!(error.to_string().contains("duplicate frontmatter variable"));
+        assert!(error.source().is_some());
+    }
+
+    #[test]
+    fn render_error_constructor_roundtrip_and_display() {
+        let error = RenderError::render(std::io::Error::other("render failed"));
+        assert_eq!(error.code(), None);
+        assert!(error.to_string().contains("template rendering failed"));
+        assert!(error.source().is_some());
+    }
+
+    #[test]
+    fn render_error_code_can_be_set_or_left_unset() {
+        let without_code = RenderError::render(std::io::Error::other("render failed"));
+        let with_code = RenderError::render(std::io::Error::other("write failed"))
+            .with_code(DiagnosticCode::ErrRenderWrite);
+
+        assert_eq!(without_code.code(), None);
+        assert_eq!(with_code.code(), Some(DiagnosticCode::ErrRenderWrite));
+    }
+
+    #[test]
+    fn config_error_constructor_roundtrip_and_display() {
+        let error = ConfigError::new(DiagnosticCode::ErrConfigParse, "config parse failed")
+            .with_recovery_hints(vec![RecoveryHint::new(
+                RecoveryHintKind::ReviewConfiguration {
+                    key: "frontmatter".to_owned(),
+                },
+            )])
+            .with_source(std::io::Error::other("parse"));
+
+        assert_eq!(error.code(), Some(DiagnosticCode::ErrConfigParse));
+        assert_eq!(error.recovery_hints().len(), 1);
+        assert_eq!(error.to_string(), "config parse failed");
+        assert!(error.source().is_some());
+    }
+
+    #[test]
+    fn compose_error_from_conversions_cover_all_variants() {
+        let resolve = ComposeError::from(ResolveError::new(
+            DiagnosticCode::ErrResolveNotFound,
+            "resolve",
+            Vec::new(),
+        ));
+        let include = ComposeError::from(IncludeError::new(
+            DiagnosticCode::ErrIncludeEscape,
+            "include",
+            Vec::new(),
+        ));
+        let validation =
+            ComposeError::from(ValidationError::new(DiagnosticCode::ErrValEmpty, "validation"));
+        let render = ComposeError::from(
+            RenderError::render(std::io::Error::other("render"))
+                .with_code(DiagnosticCode::ErrRenderWrite),
+        );
+        let config =
+            ComposeError::from(ConfigError::new(DiagnosticCode::ErrConfigParse, "config"));
+
+        assert!(matches!(resolve, ComposeError::Resolve(_)));
+        assert!(matches!(include, ComposeError::Include(_)));
+        assert!(matches!(validation, ComposeError::Validation(_)));
+        assert!(matches!(render, ComposeError::Render(_)));
+        assert!(matches!(config, ComposeError::Config(_)));
     }
 }

@@ -66,10 +66,27 @@ impl TryFrom<serde_json::Value> for ScalarValue {
     }
 }
 
-/// Arbitrary YAML metadata value used only for descriptive frontmatter fields.
+/// Arbitrary metadata value used only for descriptive frontmatter fields.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct MetadataValue(pub serde_yaml::Value);
+pub struct MetadataValue(serde_yaml::Value);
+
+impl MetadataValue {
+    /// Create a metadata value from an internal YAML representation.
+    pub(crate) fn new(value: serde_yaml::Value) -> Self {
+        Self(value)
+    }
+
+    /// Serialize the metadata value into a JSON-compatible representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`serde_json::Error`] when the metadata value cannot be
+    /// represented as JSON.
+    pub fn to_json_value(&self) -> Result<serde_json::Value, serde_json::Error> {
+        serde_json::to_value(&self.0)
+    }
+}
 
 /// Validated variable identifier used in the public API.
 #[derive(
@@ -406,5 +423,35 @@ impl InvalidVariableNameError {
     #[must_use]
     pub fn name(&self) -> &str {
         &self.name
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::VariableName;
+
+    #[test]
+    fn variable_name_round_trips_for_valid_identifier() {
+        let variable = VariableName::new("profile.name_1").unwrap();
+        assert_eq!(variable.as_str(), "profile.name_1");
+        assert_eq!(variable.to_string(), "profile.name_1");
+    }
+
+    #[test]
+    fn variable_name_rejects_empty_string() {
+        let error = VariableName::new("").unwrap_err();
+        assert_eq!(error.name(), "");
+    }
+
+    #[test]
+    fn variable_name_rejects_invalid_characters() {
+        let error = VariableName::new("bad name!").unwrap_err();
+        assert_eq!(error.name(), "bad name!");
+    }
+
+    #[test]
+    fn variable_name_display_matches_inner_string() {
+        let variable = VariableName::new("agent.name").unwrap();
+        assert_eq!(format!("{variable}"), "agent.name");
     }
 }

@@ -144,8 +144,12 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
     let mut required_variables = Vec::with_capacity(raw.required_variables.len());
     let mut seen = BTreeSet::new();
     for variable in raw.required_variables {
-        let variable = VariableName::new(variable)
-            .map_err(|error| ValidationError::invalid_scalar(error.to_string()))?;
+        let variable = VariableName::new(variable).map_err(|error| {
+            ConfigError::new(
+                DiagnosticCode::ErrConfigParse,
+                format!("invalid frontmatter variable name: {error}"),
+            )
+        })?;
         if !seen.insert(variable.clone()) {
             return Err(ValidationError::duplicate_variable(&variable).into());
         }
@@ -154,8 +158,12 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
 
     let mut defaults = BTreeMap::new();
     for (name, value) in raw.defaults {
-        let variable = VariableName::new(name)
-            .map_err(|error| ValidationError::invalid_scalar(error.to_string()))?;
+        let variable = VariableName::new(name).map_err(|error| {
+            ConfigError::new(
+                DiagnosticCode::ErrConfigParse,
+                format!("invalid frontmatter default variable name: {error}"),
+            )
+        })?;
         let scalar = ScalarValue::from_yaml(value)
             .map_err(|error| ValidationError::invalid_scalar(error.to_string()))?;
         defaults.insert(variable, scalar);
@@ -164,7 +172,7 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
     let metadata = raw
         .metadata
         .into_iter()
-        .map(|(key, value)| (key, MetadataValue(value)))
+        .map(|(key, value)| (key, MetadataValue::new(value)))
         .collect();
 
     Ok(Frontmatter {
