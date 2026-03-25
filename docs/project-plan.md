@@ -435,6 +435,12 @@ Acceptance criteria:
 - observer emission points are covered by focused integration tests
 - every `ERR_*` code in the failure-mode matrix appears in at least one test's
   diagnostics output
+- `fail_if_invalid()` preserves all diagnostics rather than reducing to the
+  first failure only
+- resolver mode-mismatch errors do not emit `ERR_CONFIG_PARSE`
+- `Display` output for `ResolveError`, `IncludeError`, `ValidationError`, and
+  `ConfigError` emits source chain and backtrace information
+- `render --json` reports `bytes_written` using actual bytes written to disk
 - standalone boundaries remain intact with no ATM-specific assumptions in code
   or manifests
 - migration and cutover notes document the `agent-team-mail` replacement
