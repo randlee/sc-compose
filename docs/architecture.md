@@ -4,6 +4,9 @@
 > Product: `sc-composer` (library) and `sc-compose` (CLI)
 > Document role: Normative target architecture for the redesign of both crates
 
+This document supersedes the prior high-level placeholder. It is the normative
+architecture baseline for `sc-compose` v0.x.
+
 ## 1. Architectural Intent
 
 This document describes the intended architecture of the redesigned
@@ -18,9 +21,45 @@ The goals are:
 - a thin CLI over library APIs,
 - clear separation between reusable core logic and integration-specific edges.
 
-## 2. Crate Layout
+## 2. Boundary Diagram
 
-### 2.1 `sc-composer`
+```text
+                    outside this repo
+   +-----------------------------------------------+
+   | ATM adapter / other host integration          |
+   | - builds ComposeRequest                       |
+   | - calls render_template() or Renderer         |
+   | - injects observer implementation if needed   |
+   +-------------------------+---------------------+
+                             |
+                             v
+                  +-----------------------+
+                  |      sc-compose       |
+                  | CLI / UX / exit codes |
+                  +-----------+-----------+
+                              |
+                              v
+                  +-----------------------+
+                  |     sc-composer       |
+                  | core composition API  |
+                  | observer traits only  |
+                  +-----------+-----------+
+                              ^
+                              |
+                  +-----------+-----------+
+                  |   sc-observability    |
+                  | concrete sink/binding |
+                  | injected via traits   |
+                  +-----------------------+
+```
+
+ATM-specific integration attaches above the two-crate boundary. `sc-composer`
+never imports ATM types, and `sc-observability` integration occurs through
+trait injection rather than a direct library dependency.
+
+## 3. Crate Layout
+
+### 3.1 `sc-composer`
 
 `sc-composer` is the core library crate. It owns:
 
@@ -34,7 +73,7 @@ The goals are:
 - diagnostics production,
 - reusable workspace helpers for initialization tasks.
 
-### 2.2 `sc-compose`
+### 3.2 `sc-compose`
 
 `sc-compose` is the CLI binary crate. It owns:
 
@@ -45,26 +84,43 @@ The goals are:
 - file-writing UX,
 - CLI-facing observability wiring.
 
-### 2.3 Dependency Direction
+### 3.3 Dependency Direction
 
 Required dependency direction:
 
 - `sc-compose` -> `sc-composer`
-- `sc-compose` -> `sc-observability`
+- `sc-compose` -> `sc-observability` as the intended concrete observability
+  binding during implementation
 
-Allowed library dependency:
+Design-ahead note:
 
-- `sc-composer` may depend on `sc-observability` only through a stable
-  observability integration boundary appropriate for embedded consumers.
+- `sc-observability` is the intended observability integration target for the
+  CLI architecture, even if the dependency is not yet present in `Cargo.toml`
+  at the time this document is written.
 
 Forbidden dependency direction:
 
 - `sc-composer` -> `sc-compose`
+- `sc-composer` -> `sc-observability`
 - `sc-composer` -> orchestration-specific runtime crates
 - `sc-composer` -> mailbox helpers, daemon helpers, team-state helpers, or
   runtime-specific home-resolution helpers
 
-## 3. Module Architecture
+### 3.4 ATM Integration Model
+
+ATM integration is an adapter concern outside this repository.
+
+- An ATM adapter depends on `sc-composer` or `sc-compose`; this repository does
+  not depend on ATM crates.
+- The adapter constructs `ComposeRequest` values and calls either
+  `render_template()` for one-shot usage or the planned `Renderer` API for
+  repeated rendering.
+- If ATM needs telemetry, the adapter or CLI injects an observer implementation
+  through the library's trait-based observability hooks.
+- `sc-composer` never imports ATM types, mailbox abstractions, spool paths, or
+  runtime-management helpers.
+
+## 4. Module Architecture
 
 `sc-composer` should be organized around these modules:
 
@@ -90,12 +146,19 @@ Forbidden dependency direction:
   - distinguishes declared, undeclared, missing, and extra variables.
 - `render`
   - configures the template engine,
+  - exposes the planned long-lived `Renderer` session type as the primary API
+    for repeated rendering,
+  - keeps `render_template()` as a one-shot convenience wrapper,
   - renders template content under normal or strict undeclared-token policy.
 - `validate`
   - produces validation reports and diagnostics without writing output.
 - `pipeline`
   - concatenates resolved profile, guidance, and user prompt blocks in fixed
-    order.
+    order,
+  - models internal stage transitions as typestate markers.
+- `error`
+  - defines crate-owned error types and shared recovery-hint structures,
+  - maps lower-level failures into stable public categories.
 - `diagnostics`
   - defines diagnostic types,
   - defines the JSON diagnostic schema contract.
@@ -103,10 +166,11 @@ Forbidden dependency direction:
   - implements `frontmatter-init` and `init` logic for reuse by the CLI and any
     future embedded callers.
 - `observability`
-  - exposes event types and integration points,
-  - delegates implementation to `sc-observability`.
+  - defines event payloads and observer traits,
+  - never binds directly to `sc-observability`,
+  - allows the CLI or embedded hosts to inject concrete implementations.
 
-## 4. Resolver Path Policy
+## 5. Resolver Path Policy (FR-5)
 
 Resolver policy must be data-driven and not embedded in CLI-only conditionals.
 
@@ -163,7 +227,7 @@ For skills, candidate probe order within a directory is:
 - If exactly one candidate matches, it may be selected without an explicit
   runtime.
 
-## 5. Frontmatter Model
+## 6. Frontmatter Model (FR-1, FR-2)
 
 Frontmatter is a first-class typed structure.
 
@@ -207,7 +271,19 @@ the initial release.
 - sequence
 - mapping
 
-## 6. Variable and Token Semantics
+Supporting public newtypes:
+
+- `VariableName`
+  - validated variable identifier used by `required_variables`, `defaults`,
+    diagnostics, and variable-source maps,
+  - prevents accidental use of arbitrary strings in the public API.
+- `IncludeDepth`
+  - non-negative bounded include-depth value used by include policy and errors.
+- `ConfiningRoot`
+  - canonicalized root path newtype used by path-confinement checks and
+    configuration validation.
+
+## 7. Variable and Token Semantics (FR-2)
 
 The architecture must distinguish these cases:
 
@@ -240,7 +316,7 @@ Missing required variables remain a separate diagnostic class:
 - they are reported with file, line and column when available, and include
   chain.
 
-## 7. Public API Shape
+## 8. Public API Shape (FR-6, FR-7)
 
 The library API should expose explicit request and result types.
 
@@ -251,32 +327,55 @@ Required library surface:
 - `validate(request) -> ValidationReport`
 - `init_workspace(root, options) -> InitResult`
 - `frontmatter_init(path, options) -> FrontmatterInitResult`
+- `Renderer::render(compiled, context) -> Result<String, RenderError>` as the
+  planned primary repeated-render API
 
-### 7.1 Core Request Types
+Primary render-entrypoint decision:
+
+- `Renderer` is the primary long-lived rendering API because it can retain a
+  pre-built `minijinja::Environment` across multiple render operations.
+- `render_template()` remains a stable convenience API for one-shot rendering
+  and simple callers.
+- Callers rendering the same template or environment repeatedly should use
+  `Renderer` once implemented rather than paying per-call environment setup and
+  AST re-parse cost.
+
+### 8.1 Core Request Types
 
 `ComposeRequest`
 
-- `runtime: RuntimeKind`
+- `runtime: Option<RuntimeKind>`
 - `mode: ComposeMode`
-- `kind: Option<ProfileKind>`
-- `agent: Option<String>`
-- `root: PathBuf`
-- `template_path: Option<PathBuf>`
-- `vars_input: Map<String, ScalarValue>`
-- `vars_env: Map<String, ScalarValue>`
+- `root: ConfiningRoot`
+- `vars_input: Map<VariableName, ScalarValue>`
+- `vars_env: Map<VariableName, ScalarValue>`
 - `guidance_block: Option<String>`
 - `user_prompt: Option<String>`
 - `policy: ComposePolicy`
+
+`ComposeMode`
+
+- `Profile { kind: ProfileKind, name: String }`
+- `File { template_path: PathBuf }`
+
+Semantics:
+
+- `runtime = None` is valid and enables the omit-runtime search behavior
+  defined in the requirements.
+- `ComposeMode` is variant-specific and must not be represented as a bag of
+  unrelated optional fields.
+- In `File` mode, `runtime` may be `None` and is ignored unless a caller wants
+  to attach runtime context for logging or policy selection.
 
 `ComposePolicy`
 
 - `strict_undeclared_variables: bool`
 - `unknown_variable_policy: UnknownVariablePolicy`
-- `max_include_depth: usize`
-- `allowed_roots: Vec<PathBuf>`
+- `max_include_depth: IncludeDepth`
+- `allowed_roots: Vec<ConfiningRoot>`
 - `resolver_policy: ResolverPolicy`
 
-### 7.2 Core Result Types
+### 8.2 Core Result Types
 
 `ResolveResult`
 
@@ -288,8 +387,8 @@ Required library surface:
 
 - `rendered_text: String`
 - `resolved_files: Vec<PathBuf>`
-- `search_trace: Vec<PathBuf>`
-- `variable_sources: Map<String, VariableSource>`
+- `resolve_result: ResolveResult`
+- `variable_sources: Map<VariableName, VariableSource>`
 - `warnings: Vec<Diagnostic>`
 
 `ValidationReport`
@@ -297,7 +396,15 @@ Required library surface:
 - `ok: bool`
 - `warnings: Vec<Diagnostic>`
 - `errors: Vec<Diagnostic>`
-- `search_trace: Vec<PathBuf>`
+- `resolve_result: ResolveResult`
+
+`ComposeError`
+
+- `Resolve(ResolveError)`
+- `Include(IncludeError)`
+- `Validation(ValidationError)`
+- `Render(RenderError)`
+- `Config(ConfigError)`
 
 `FrontmatterInitResult`
 
@@ -314,7 +421,16 @@ Required library surface:
 - `recommendations: Vec<Diagnostic>`
 - `validation_passed: bool`
 
-## 8. Include and Frontmatter Merge Rules
+Entrypoint contract:
+
+- `compose(request) -> Result<ComposeResult, ComposeError>`
+- `validate(request) -> Result<ValidationReport, ComposeError>`
+- `resolve_profile(request) -> Result<ResolveResult, ComposeError>`
+- `Diagnostic` is not a failure type. Diagnostics describe warnings and
+  user-actionable validation findings; `ComposeError` describes operation
+  failure.
+
+## 9. Include and Frontmatter Merge Rules (FR-3)
 
 The include graph is evaluated deterministically.
 
@@ -333,7 +449,7 @@ Metadata behavior:
 - metadata may be retained in trace structures in a future API, but metadata is
   not part of current render semantics.
 
-## 9. Diagnostics Model
+## 10. Diagnostics Model (FR-8)
 
 Diagnostics are structured records used by both the library and CLI.
 
@@ -350,7 +466,49 @@ Required fields:
 The JSON representation must be versioned. The version belongs to the schema
 contract, not to any single CLI command.
 
-## 10. Request Lifecycle
+Minimal diagnostic envelope:
+
+```json
+{
+  "schema_version": "sc-compose-diagnostics/v1",
+  "ok": true,
+  "errors": [],
+  "warnings": [],
+  "context": {
+    "command": "validate",
+    "mode": "profile"
+  }
+}
+```
+
+## 11. Error Model
+
+`sc-composer` must expose crate-owned canonical public error types.
+
+Required error structs:
+
+- `ResolveError`
+- `IncludeError`
+- `ValidationError`
+- `RenderError`
+- `ConfigError`
+
+Error requirements:
+
+- every canonical error carries an underlying `source()` cause chain when one
+  exists,
+- include-related errors carry the include chain when applicable,
+- configuration and validation failures may carry structured recovery hints,
+- recovery hints must remain structured data rather than prose-only strings.
+
+CLI boundary rule:
+
+- `sc-compose` may wrap library errors with `anyhow` or `eyre` at the command
+  boundary,
+- `sc-composer` public APIs must return the canonical error types defined in
+  this document, not `anyhow::Error` or third-party engine error types.
+
+## 12. Request Lifecycle (FR-2, FR-3, FR-6)
 
 For `compose` and `validate`, the target lifecycle is:
 
@@ -372,7 +530,17 @@ For `compose` and `validate`, the target lifecycle is:
 10. Assemble final output blocks.
 11. Return composed output or validation report with diagnostics and trace data.
 
-## 11. CLI Command Architecture
+Typestate encoding:
+
+- the pipeline should be modeled as state transitions over
+  `Document<Parsed>`, `Document<Expanded>`, `Document<Validated>`, and
+  `Document<Rendered>`,
+- each transition consumes the previous state and returns the next state or a
+  canonical error,
+- the typestate design exists to make ordering violations unrepresentable in
+  internal code, not to force callers to manipulate state markers directly.
+
+## 13. CLI Command Architecture (FR-6, FR-7)
 
 `sc-compose` should be a command router over library operations.
 
@@ -412,7 +580,13 @@ Guidance and prompt input model:
 - The CLI rejects ambiguous attempts to read both blocks from the same stdin
   stream in one invocation.
 
-## 12. Output Path Policy
+CLI alias model:
+
+- `--agent-type` is a CLI alias for `--agent`.
+- `--ai` is a CLI alias for `--runtime`.
+- Aliases are normalized in the CLI before constructing `ComposeRequest`.
+
+## 14. Output Path Policy (FR-7)
 
 File-writing behavior should be centralized rather than duplicated per command.
 
@@ -423,7 +597,7 @@ Policy requirements:
 - explicit `--output` overrides derived behavior,
 - dry-run returns the same derived target information without writing files.
 
-## 13. `init` Command Behavior
+## 15. `init` Command Behavior (FR-7)
 
 `init_workspace` and the CLI `init` command must:
 
@@ -444,7 +618,7 @@ Variable-file behavior:
 - values are `ScalarValue`,
 - nested arrays and objects are invalid in the initial release.
 
-## 14. Safety Model
+## 16. Safety Model (FR-4)
 
 - Default deny for out-of-root file access
 - No shell execution inside the composition pipeline
@@ -453,7 +627,7 @@ Variable-file behavior:
 - Deterministic failure semantics for path escape, missing include, cycle, and
   depth overflow
 
-## 15. Error and Exit Semantics
+## 17. Error and Exit Semantics (FR-7, FR-8)
 
 The library should expose typed errors with stable categories. Validation
 results should remain structured and not collapse into string-only errors.
@@ -464,11 +638,15 @@ Target CLI exit semantics:
 - `2` validation or render failure
 - `3` usage, configuration, or contract error
 
-## 16. Observability Integration
+## 18. Observability Integration (FR-9)
 
 Architecture rules:
 
-- `sc-observability` is the canonical implementation.
+- `sc-composer` exposes observer traits or sink traits and emits events through
+  that abstraction only.
+- `sc-compose` provides the canonical concrete binding to `sc-observability`.
+- If no observer is provided, library and CLI behavior degrade to a no-op
+  observability path rather than failing.
 - Event emission points should cover:
   - command start and end,
   - resolve attempts and outcomes,
@@ -477,8 +655,11 @@ Architecture rules:
   - render outcomes.
 - Library observability hooks must remain usable by embedded consumers.
 - Default sink paths for standalone CLI behavior must be tool-scoped.
+- Observer and sink traits must be object-safe and `dyn`-compatible.
+- Observer and sink traits are sealed in the initial design so the library can
+  evolve event payloads without breaking downstream implementations.
 
-## 17. Extensibility
+## 19. Extensibility
 
 The redesign should keep room for future extensions without destabilizing the
 core behavior.
@@ -490,3 +671,11 @@ Expected extension points:
 - template caching,
 - custom resolver policies,
 - richer frontmatter metadata consumers.
+
+Trait openness decisions:
+
+- observer and sink traits are sealed,
+- `ResolverPolicy` is open because caller-specific path policy is an explicit
+  product requirement,
+- value-model and metadata extension points remain closed until a future
+  requirement broadens the v1 scalar contract.

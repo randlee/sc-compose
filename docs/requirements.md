@@ -4,6 +4,9 @@
 > Product: `sc-composer` (library) and `sc-compose` (CLI)
 > Document role: Normative product requirements for the redesign of both crates
 
+This document supersedes the prior high-level placeholder. It is the normative
+requirements baseline for `sc-compose` v0.x.
+
 ## 1. Intent
 
 This document defines the required behavior of `sc-composer` and `sc-compose`.
@@ -37,7 +40,20 @@ The product has two deliverables:
 The library is the semantic source of truth. The CLI is a thin interface over
 the library.
 
-### 3.1 Boundary Rules
+### 3.1 ATM Independence
+
+This repository is intentionally independent from ATM and any other orchestration
+runtime.
+
+- No `ATM_HOME` environment variable may be referenced anywhere in this repo.
+- No `agent-team-mail-*` crate may appear in any `Cargo.toml` in this repo.
+- No ATM spool, socket, mailbox, or runtime path convention may be assumed.
+- No `use atm_*::...` or `use agent_team_mail::...` imports may appear in the
+  library or CLI crates.
+- Any ATM integration belongs in adapters outside this repository rather than
+  in `sc-composer` or `sc-compose`.
+
+### 3.2 Boundary Rules
 
 - `sc-composer` must remain runtime-agnostic.
 - `sc-composer` must not depend on mailbox formats, daemon lifecycle behavior,
@@ -47,6 +63,16 @@ the library.
 - If an external system needs integration-specific behavior, that adaptation
   must live outside this repository rather than inside the core composition
   semantics.
+
+### 3.3 Non-Goals
+
+The initial product explicitly does not provide:
+
+- daemon control or process management,
+- mailbox handling or message routing,
+- team configuration or ATM runtime management,
+- network I/O or remote template fetching,
+- ATM-specific file path conventions or runtime lookup behavior.
 
 ## 4. Functional Requirements
 
@@ -222,7 +248,8 @@ In `file` mode:
 
 In `profile` mode:
 
-- the caller provides a runtime, profile kind, and name,
+- the caller provides a profile kind and name,
+- the caller may provide a runtime or omit it,
 - the resolver searches runtime-specific and shared locations according to a
   configured path policy.
 
@@ -310,7 +337,7 @@ The CLI must support:
 - `--kind <agent|command|skill>`
 - `--agent <name>`
 - `--agent-type <name>` as an alias for `--agent`
-- `--runtime <claude|codex|gemini|opencode>`
+- `--runtime <claude|codex|gemini|opencode>` as an optional runtime selector
 - `--ai <claude|codex|gemini|opencode>` as an alias for `--runtime`
 - `--var key=value` repeatably
 - `--var-file <path|->`
@@ -377,6 +404,8 @@ Guidance and prompt input rules:
   composed.
 - The CLI must reject attempts to read both guidance and prompt from the same
   stdin stream in a single invocation.
+- CLI-only aliases such as `--agent-type` and `--ai` must be resolved before
+  library request construction. The library API does not expose alias concepts.
 
 Default output path policy:
 
@@ -392,7 +421,15 @@ Default output path policy:
 - Nested objects and arrays in variable files are invalid in the initial
   release.
 
-### FR-7b: Template Whitespace Control
+### FR-7b: Exit Codes
+
+CLI exit codes must be:
+
+- `0` for success
+- `2` for validation or render failure
+- `3` for usage, configuration, or contract error
+
+### FR-7c: Template Whitespace Control
 
 The template engine must enable `trim_blocks` and `lstrip_blocks` by default.
 Authors may opt out for a specific block with the standard Jinja `+` modifier.
@@ -407,29 +444,53 @@ Authors may opt out for a specific block with the standard Jinja `+` modifier.
   - line and column when available,
   - include stack when applicable,
   - severity.
+- JSON diagnostics must use this minimal envelope:
+  - `schema_version`
+  - `ok`
+  - `errors`
+  - `warnings`
+  - `context`
 - JSON diagnostics must use a stable, versioned schema suitable for machine
   consumers.
 
 ### FR-9: Observability
 
-- `sc-compose` and `sc-composer` must use `sc-observability` as the canonical
-  logging implementation.
-- Both crates must emit command lifecycle and composition diagnostics events.
+- `sc-composer` must not depend directly on `sc-observability`.
+- `sc-composer` must define observer hooks or sink traits that allow a host to
+  receive structured events without coupling the library to a concrete logging
+  crate.
+- `sc-compose` should use `sc-observability` as the canonical concrete
+  observability binding for CLI execution.
+- The `sc-observability` dependency is a design-ahead expectation for the
+  implementation phase and may not yet appear in `Cargo.toml`.
+- Both crates must emit command lifecycle and composition diagnostics events
+  through the trait-hook model.
 - Standalone defaults must keep `sc-compose` sink paths tool-scoped.
 - Embedded use must permit host-supplied sink and path configuration.
+- If no observer is injected, both crates must remain fully functional with
+  observability reduced to a no-op.
 - OTel support remains optional and feature-gated.
 
 ## 5. Non-Functional Requirements
 
 - Cross-platform support is required for macOS, Linux, and Windows.
 - The product must not rely on shell-specific behavior.
-- Performance must be acceptable for interactive CLI usage.
+- Single-template `render`, `resolve`, and `validate` operations must be fast
+  enough for interactive terminal use on local repositories.
 - The public library API must be stable enough for downstream integration and
   semver-governed once released.
 - The library and CLI must remain separable: `sc-compose` may depend on
   `sc-composer`, but `sc-composer` must not depend on the CLI crate.
 
-## 6. Testing Requirements
+## 6. Stability Policy
+
+- The `sc-composer` public API is semver-governed.
+- Until `1.0`, breaking API changes require a minor version bump.
+- `render_template()` is a stable convenience API for one-shot rendering.
+- The planned `Renderer` type, once implemented, is the primary stable API for
+  repeated rendering and long-lived library use.
+
+## 7. Testing Requirements
 
 Required unit coverage includes:
 
@@ -455,7 +516,7 @@ Required integration coverage includes:
 - JSON diagnostics contract,
 - cross-platform path behavior.
 
-## 7. Out of Scope for the Initial Release
+## 8. Out of Scope for the Initial Release
 
 - Remote includes such as `http` or `https`
 - Arbitrary plugin execution from templates
