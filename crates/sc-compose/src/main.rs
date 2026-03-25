@@ -209,20 +209,23 @@ fn run_render(
                 anyhow!(error).context(format!("failed to write {}", output.display())),
             )
         })?;
-        Some(usize::try_from(
-            std::fs::metadata(output)
-                .map_err(|error| {
-                    CommandError::render_write(
-                        anyhow!(error).context(format!("failed to stat {}", output.display())),
-                    )
-                })?
-                .len(),
-        )
-        .map_err(|error| {
-            CommandError::render_write(
-                anyhow!(error).context(format!("output too large to report {}", output.display())),
+        Some(
+            usize::try_from(
+                std::fs::metadata(output)
+                    .map_err(|error| {
+                        CommandError::render_write(
+                            anyhow!(error).context(format!("failed to stat {}", output.display())),
+                        )
+                    })?
+                    .len(),
             )
-        })?)
+            .map_err(|error| {
+                CommandError::render_write(
+                    anyhow!(error)
+                        .context(format!("output too large to report {}", output.display())),
+                )
+            })?,
+        )
     } else {
         Some(result.rendered_text.len())
     };

@@ -241,7 +241,12 @@ fn init_dry_run_does_not_create_workspace_and_reports_would_create_files() {
     assert!(!root.join(".prompts").exists());
     let value = parse_stdout_json(&output);
     assert_eq!(value["payload"]["action"], "init");
-    assert!(!value["payload"]["would_affect"].as_array().unwrap().is_empty());
+    assert!(
+        !value["payload"]["would_affect"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
 }
 
 #[test]

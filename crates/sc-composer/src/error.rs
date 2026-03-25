@@ -621,8 +621,8 @@ mod tests {
         ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind, RenderError,
         ResolveError, ValidationError,
     };
-    use crate::diagnostics::{DiagnosticCode, DiagnosticSeverity};
     use crate::Diagnostic;
+    use crate::diagnostics::{DiagnosticCode, DiagnosticSeverity};
     use crate::types::VariableName;
 
     #[test]
