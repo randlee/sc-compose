@@ -759,6 +759,7 @@ Canonical failures must map to stable error families and stable codes.
 | Variable type mismatch or invalid scalar | `ValidationError` | `ERR_VAL_TYPE` |
 | Duplicate frontmatter variable | `ValidationError` | `ERR_VAL_DUPLICATE` |
 | Empty template body | `ValidationError` | `ERR_VAL_EMPTY` |
+| Required variable not satisfied after context merge | `ValidationError` | `ERR_VAL_MISSING_REQUIRED` |
 | Stdin read attempted twice | `RenderError` | `ERR_RENDER_STDIN_DOUBLE_READ` |
 | Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
 | Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |
