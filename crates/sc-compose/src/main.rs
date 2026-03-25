@@ -1,5 +1,6 @@
 mod exit_codes;
 mod json_output;
+mod observer_impl;
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -9,8 +10,9 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, anyhow};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use sc_composer::{
-    ComposeError, ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, FrontmatterInitResult,
-    ProfileKind, RuntimeKind, ScalarValue, UnknownVariablePolicy,
+    CommandEndEvent, CommandStartEvent, ComposeError, ComposeMode, ComposePolicy, ComposeRequest,
+    CompositionObserver, ConfiningRoot, FrontmatterInitResult, ProfileKind, RuntimeKind,
+    ScalarValue, UnknownVariablePolicy,
 };
 
 #[derive(Debug, Parser)]
@@ -159,21 +161,36 @@ fn main() {
 }
 
 fn run() -> Result<i32, CommandError> {
+    let mut observer = observer_impl::CliObserver::from_env();
     match Cli::parse().command {
-        Command::Render(args) => run_render(&args),
-        Command::Resolve(args) => run_resolve(&args),
-        Command::Validate(args) => run_validate(&args),
-        Command::FrontmatterInit(args) => run_frontmatter_init(&args),
-        Command::Init(args) => run_init(&args),
+        Command::Render(args) => observe_command(&mut observer, "render", |observer| {
+            run_render(&args, observer)
+        }),
+        Command::Resolve(args) => observe_command(&mut observer, "resolve", |observer| {
+            run_resolve(&args, observer)
+        }),
+        Command::Validate(args) => observe_command(&mut observer, "validate", |observer| {
+            run_validate(&args, observer)
+        }),
+        Command::FrontmatterInit(args) => {
+            observe_command(&mut observer, "frontmatter-init", |_observer| {
+                run_frontmatter_init(&args)
+            })
+        }
+        Command::Init(args) => observe_command(&mut observer, "init", |_observer| run_init(&args)),
     }
 }
 
-fn run_render(args: &RenderArgs) -> Result<i32, CommandError> {
+fn run_render(
+    args: &RenderArgs,
+    observer: &mut dyn CompositionObserver,
+) -> Result<i32, CommandError> {
     let request = build_request(
         &args.common,
         read_block_pair(args).map_err(CommandError::usage)?,
     )?;
-    let result = sc_composer::compose(&request).map_err(CommandError::compose)?;
+    let result =
+        sc_composer::compose_with_observer(&request, observer).map_err(CommandError::compose)?;
     let output_path = args.output.clone();
     let derived_path = derived_output_path(&request, output_path.as_deref());
 
@@ -213,14 +230,18 @@ fn run_render(args: &RenderArgs) -> Result<i32, CommandError> {
     Ok(exit_codes::SUCCESS)
 }
 
-fn run_resolve(args: &ResolveArgs) -> Result<i32, CommandError> {
+fn run_resolve(
+    args: &ResolveArgs,
+    observer: &mut dyn CompositionObserver,
+) -> Result<i32, CommandError> {
     if matches!(args.common.mode, Mode::File) {
         return Err(CommandError::usage(anyhow!(
             "resolve is only supported in profile mode"
         )));
     }
     let request = build_request(&args.common, (None, None))?;
-    let result = sc_composer::resolve_profile(&request).map_err(CommandError::compose)?;
+    let result = sc_composer::resolve_profile_with_observer(&request, observer)
+        .map_err(CommandError::compose)?;
     if args.json {
         let payload = serde_json::json!({
             "resolved_path": result.resolved_path.display().to_string(),
@@ -237,9 +258,13 @@ fn run_resolve(args: &ResolveArgs) -> Result<i32, CommandError> {
     Ok(exit_codes::SUCCESS)
 }
 
-fn run_validate(args: &ValidateArgs) -> Result<i32, CommandError> {
+fn run_validate(
+    args: &ValidateArgs,
+    observer: &mut dyn CompositionObserver,
+) -> Result<i32, CommandError> {
     let request = build_request(&args.common, (None, None))?;
-    let report = sc_composer::validate(&request).map_err(CommandError::compose)?;
+    let report =
+        sc_composer::validate_with_observer(&request, observer).map_err(CommandError::compose)?;
     let diagnostics = report
         .warnings
         .iter()
@@ -359,6 +384,11 @@ fn build_request(
                 .or_else(|| args.agent_type.clone())
                 .ok_or_else(|| {
                     CommandError::usage(anyhow!("--agent/--agent-type is required in profile mode"))
+                })
+                .and_then(|name| {
+                    sc_composer::ProfileName::new(name).map_err(|error| {
+                        CommandError::usage(anyhow!("invalid profile name: {error}"))
+                    })
                 })?,
         },
     };
@@ -599,6 +629,22 @@ fn print_json(payload: serde_json::Value, diagnostics: Vec<sc_composer::Diagnost
         serde_json::to_string_pretty(&json_output::envelope(payload, diagnostics))?
     );
     Ok(())
+}
+
+fn observe_command(
+    observer: &mut dyn CompositionObserver,
+    command_name: &str,
+    action: impl FnOnce(&mut dyn CompositionObserver) -> Result<i32, CommandError>,
+) -> Result<i32, CommandError> {
+    observer.on_command_start(&CommandStartEvent {
+        command_name: command_name.to_owned(),
+    });
+    let result = action(observer);
+    observer.on_command_end(&CommandEndEvent {
+        command_name: command_name.to_owned(),
+        success: matches!(result, Ok(exit_codes::SUCCESS)),
+    });
+    result
 }
 
 fn planned_init_changes(root: &Path) -> Vec<PathBuf> {

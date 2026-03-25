@@ -5,6 +5,10 @@ use std::collections::BTreeMap;
 use crate::ComposeError;
 use crate::error::ValidationError;
 use crate::include::expand_includes;
+use crate::observer::{
+    CompositionObserver, IncludeOutcomeEvent, NoopObserver, RenderOutcomeEvent,
+    ResolveOutcomeEvent, ValidationOutcomeEvent,
+};
 use crate::renderer::Renderer;
 use crate::resolver::resolve_template_path;
 use crate::types::{ComposeRequest, ComposeResult, ScalarValue, ValidationReport};
@@ -17,17 +21,69 @@ use crate::types::{ComposeRequest, ComposeResult, ScalarValue, ValidationReport}
 /// Returns [`ComposeError`] for operational failures and fatal validation or
 /// render failures.
 pub fn compose(request: &ComposeRequest) -> Result<ComposeResult, ComposeError> {
-    let resolve_result = resolve_template_path(request)?;
+    let mut observer = NoopObserver;
+    compose_with_observer(request, &mut observer)
+}
+
+/// Compose a request end to end while emitting observer callbacks.
+///
+/// # Errors
+///
+/// Returns [`ComposeError`] for operational failures and fatal validation or
+/// render failures.
+pub fn compose_with_observer(
+    request: &ComposeRequest,
+    observer: &mut dyn CompositionObserver,
+) -> Result<ComposeResult, ComposeError> {
+    let resolve_result = match resolve_template_path(request) {
+        Ok(result) => {
+            observer.on_resolve_outcome(&ResolveOutcomeEvent {
+                resolved_path: Some(result.resolved_path.clone()),
+                attempted_paths: result.attempted_paths.clone(),
+                code: None,
+            });
+            result
+        }
+        Err(error) => {
+            emit_resolve_error(observer, &error);
+            return Err(error);
+        }
+    };
     let expanded = expand_includes(
         &resolve_result.resolved_path,
         &request.root,
         &request.policy,
-    )?;
-    let validation_report = crate::validate::validate(request)?;
+    )
+    .inspect_err(|error| {
+        emit_include_error(observer, error);
+    })?;
+    observer.on_include_outcome(&IncludeOutcomeEvent {
+        resolved_files: expanded.resolved_files.clone(),
+        include_chain: Vec::new(),
+        code: None,
+    });
+
+    let validation_report =
+        crate::validation::validate_expanded(request, &expanded, resolve_result.clone());
+    observer.on_validation_outcome(&ValidationOutcomeEvent {
+        warnings: validation_report.warnings.clone(),
+        errors: validation_report.errors.clone(),
+    });
     fail_if_invalid(&validation_report)?;
     let validation_state = crate::validation::collect_validation_state(request, &expanded);
 
-    let rendered_text = Renderer.render(&expanded.text, build_render_context(&validation_state))?;
+    let rendered_text = Renderer
+        .render(&expanded.text, build_render_context(&validation_state))
+        .inspect_err(|error| {
+            observer.on_render_outcome(&RenderOutcomeEvent {
+                rendered_bytes: None,
+                code: error.code(),
+            });
+        })?;
+    observer.on_render_outcome(&RenderOutcomeEvent {
+        rendered_bytes: Some(rendered_text.len()),
+        code: None,
+    });
     let rendered_text = assemble_output(
         &rendered_text,
         request.guidance_block.as_deref(),
@@ -41,6 +97,26 @@ pub fn compose(request: &ComposeRequest) -> Result<ComposeResult, ComposeError> 
         variable_sources: validation_state.variable_sources,
         warnings: validation_report.warnings,
     })
+}
+
+fn emit_resolve_error(observer: &mut dyn CompositionObserver, error: &ComposeError) {
+    if let ComposeError::Resolve(resolve_error) = error {
+        observer.on_resolve_outcome(&ResolveOutcomeEvent {
+            resolved_path: None,
+            attempted_paths: resolve_error.attempted_paths().to_vec(),
+            code: resolve_error.code(),
+        });
+    }
+}
+
+fn emit_include_error(observer: &mut dyn CompositionObserver, error: &ComposeError) {
+    if let ComposeError::Include(include_error) = error {
+        observer.on_include_outcome(&IncludeOutcomeEvent {
+            resolved_files: Vec::new(),
+            include_chain: include_error.include_chain().to_vec(),
+            code: include_error.code(),
+        });
+    }
 }
 
 fn fail_if_invalid(report: &ValidationReport) -> Result<(), ComposeError> {

@@ -1,4 +1,4 @@
-#![warn(missing_docs)]
+#![deny(missing_docs)]
 //! Core rendering and composition primitives for the `sc-compose` workspace.
 //!
 //! Sprint 2 establishes the foundational public types, canonical error
@@ -17,10 +17,10 @@ pub mod frontmatter;
 pub mod frontmatter_init;
 /// Recursive include expansion and confinement enforcement.
 pub mod include;
-/// Backwards-compatible alias for the include engine surface.
-pub mod include_engine;
 /// Workspace bootstrap helper.
 pub mod init_workspace;
+/// Observer traits and event payloads.
+pub mod observer;
 /// Template renderer wrapper.
 pub mod renderer;
 /// Runtime-aware profile resolution and search tracing.
@@ -32,27 +32,44 @@ pub mod validate;
 /// Variable discovery and validation semantics.
 pub mod validation;
 
-pub use composer::compose;
+#[doc(inline)]
+pub use composer::{compose, compose_with_observer};
+#[doc(inline)]
 pub use diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope, DiagnosticSeverity,
 };
+#[doc(inline)]
 pub use error::{
     ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind, RenderError,
     ResolveError, ValidationError,
 };
+#[doc(inline)]
 pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};
+#[doc(inline)]
 pub use frontmatter_init::frontmatter_init;
+#[doc(inline)]
 pub use include::{ExpandedTemplate, expand_includes};
+#[doc(inline)]
 pub use init_workspace::init_workspace;
+#[doc(inline)]
+pub use observer::{
+    CommandEndEvent, CommandStartEvent, CompositionObserver, IncludeOutcomeEvent, NoopObserver,
+    ObservationEvent, ObservationSink, RenderOutcomeEvent, ResolveOutcomeEvent,
+    ValidationOutcomeEvent,
+};
+#[doc(inline)]
 pub use renderer::{Renderer, render_template};
-pub use resolver::{resolve_profile, resolve_template_path};
+#[doc(inline)]
+pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_template_path};
+#[doc(inline)]
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
-    FrontmatterInitResult, IncludeDepth, InitResult, MetadataValue, ProfileKind, ResolveResult,
-    ResolverPolicy, RuntimeKind, ScalarValue, UnknownVariablePolicy, ValidationReport,
-    VariableName, VariableSource,
+    FrontmatterInitResult, IncludeDepth, InitResult, MetadataValue, ProfileKind, ProfileName,
+    ResolveResult, ResolverPolicy, RuntimeKind, ScalarValue, UnknownVariablePolicy,
+    ValidationReport, VariableName, VariableSource,
 };
-pub use validate::validate;
+#[doc(inline)]
+pub use validate::{validate, validate_with_observer};
 
 #[cfg(test)]
 mod tests {
