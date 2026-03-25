@@ -39,6 +39,10 @@ fn assert_envelope(value: &Value) {
     assert!(value["diagnostics"].is_array());
 }
 
+fn assert_first_code(value: &Value, code: &str) {
+    assert_eq!(value["diagnostics"][0]["code"], code);
+}
+
 #[test]
 fn render_json_uses_diagnostic_envelope() {
     let root = temp_root("render-json");
@@ -271,4 +275,261 @@ fn stdin_double_read_reports_structured_error_code() {
     assert_eq!(output.status.code(), Some(3));
     let stderr = String::from_utf8(output.stderr).unwrap();
     assert!(stderr.contains("ERR_RENDER_STDIN_DOUBLE_READ"));
+}
+
+#[test]
+fn render_failure_json_uses_diagnostic_envelope() {
+    let root = temp_root("render-failure-json");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_VAL_MISSING_REQUIRED");
+}
+
+#[test]
+fn render_failure_json_preserves_all_validation_diagnostics() {
+    let root = temp_root("render-failure-multi-json");
+    write_file(
+        &root.join("template.md.j2"),
+        concat!(
+            "---\nrequired_variables:\n  - first\n  - second\n---\n",
+            "{{ first }} {{ second }}\n"
+        ),
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    let diagnostics = value["diagnostics"].as_array().unwrap();
+    assert_eq!(diagnostics.len(), 2);
+    assert_eq!(diagnostics[0]["code"], "ERR_VAL_MISSING_REQUIRED");
+    assert_eq!(diagnostics[1]["code"], "ERR_VAL_MISSING_REQUIRED");
+}
+
+#[test]
+fn render_json_reports_actual_bytes_written_for_output_file() {
+    let root = temp_root("render-bytes-written-json");
+    let output_path = root.join("out.txt");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\ndefaults:\n  name: café\n---\nhello {{ name }}\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--output")
+        .arg(&output_path)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["bytes_written"].as_u64().unwrap(),
+        fs::metadata(&output_path).unwrap().len()
+    );
+}
+
+#[test]
+fn resolve_failure_json_uses_diagnostic_envelope() {
+    let root = temp_root("resolve-failure-json");
+
+    let output = sc_compose()
+        .arg("resolve")
+        .arg("--mode")
+        .arg("profile")
+        .arg("--root")
+        .arg(&root)
+        .arg("--kind")
+        .arg("agent")
+        .arg("--agent")
+        .arg("missing")
+        .arg("--runtime")
+        .arg("claude")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_RESOLVE_NOT_FOUND");
+}
+
+#[test]
+fn frontmatter_init_failure_json_uses_diagnostic_envelope() {
+    let root = temp_root("frontmatter-init-failure-json");
+    let path = root.join("template.md.j2");
+    write_file(
+        &path,
+        "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
+    );
+
+    let output = sc_compose()
+        .arg("frontmatter-init")
+        .arg("--file")
+        .arg(&path)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_CONFIG_READONLY");
+}
+
+#[test]
+fn init_failure_json_uses_diagnostic_envelope() {
+    let root = temp_root("init-failure-json");
+    fs::create_dir_all(root.join(".prompts")).unwrap();
+    write_file(&root.join(".gitignore"), ".prompts/\n");
+
+    let output = sc_compose()
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_CONFIG_READONLY");
+}
+
+#[test]
+fn render_write_failure_json_reports_render_write_code() {
+    let root = temp_root("render-write-failure-json");
+    let out_dir = root.join("out");
+    fs::create_dir_all(&out_dir).unwrap();
+    write_file(
+        &root.join("template.md.j2"),
+        "---\ndefaults:\n  name: world\n---\nhello {{ name }}\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--output")
+        .arg(&out_dir)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_RENDER_WRITE");
+}
+
+#[test]
+fn invalid_var_file_json_reports_config_varfile() {
+    let root = temp_root("var-file-invalid-json");
+    let vars_file = root.join("vars.json");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+    write_file(&vars_file, "[1, 2, 3]\n");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_CONFIG_VARFILE");
+}
+
+#[test]
+fn resolve_mode_mismatch_json_reports_config_mode() {
+    let root = temp_root("resolve-mode-mismatch-json");
+    write_file(&root.join("template.md.j2"), "hello\n");
+
+    let output = sc_compose()
+        .arg("resolve")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_CONFIG_MODE");
+}
+
+#[test]
+fn init_missing_root_json_reports_config_parse() {
+    let root = temp_root("init-missing-root-json").join("missing");
+
+    let output = sc_compose()
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_CONFIG_PARSE");
 }

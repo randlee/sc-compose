@@ -499,6 +499,27 @@ mod tests {
         );
     }
 
+    #[test]
+    fn empty_template_body_emits_empty_code() {
+        let root = temp_root("validation_empty_body");
+        write_file(&root.join("template.md.j2"), "   \n");
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert!(!report.ok);
+        assert!(
+            report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValEmpty)
+        );
+    }
+
     fn request_for_file(root: &Path, file: &str, policy: ComposePolicy) -> ComposeRequest {
         ComposeRequest {
             runtime: None,

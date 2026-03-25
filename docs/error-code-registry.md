@@ -33,6 +33,7 @@ by `sc-composer` and `sc-compose`.
 | `ERR_RENDER_STDIN_DOUBLE_READ` | `RenderError` | error | CLI attempts to consume stdin twice for guidance/prompt inputs | CLI input layer |
 | `ERR_RENDER_WRITE` | `RenderError` | error | output write or output-target materialization failure | CLI output layer |
 | `ERR_CONFIG_READONLY` | `ConfigError` | error | frontmatter rewrite or workspace update refused on read-only target | `frontmatter_init()`, `init_workspace()` |
+| `ERR_CONFIG_MODE` | `ConfigError` | error | command or helper invoked in an incompatible mode | CLI argument validation, `resolve_profile()` |
 | `ERR_CONFIG_PARSE` | `ConfigError` | error | malformed or unreadable configuration input | var-file/config parsing |
 | `ERR_CONFIG_VARFILE` | `ConfigError` | error | invalid var-file shape or unsupported structure | var-file parsing |
 

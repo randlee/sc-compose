@@ -5,10 +5,53 @@ use std::error::Error as StdError;
 use std::fmt;
 use std::path::PathBuf;
 
+use crate::Diagnostic;
 use crate::diagnostics::DiagnosticCode;
 use crate::types::VariableName;
 
 type BoxedError = Box<dyn StdError + Send + Sync + 'static>;
+
+fn write_error_display(
+    f: &mut fmt::Formatter<'_>,
+    message: &str,
+    source: Option<&(dyn StdError + 'static)>,
+    backtrace: &Backtrace,
+) -> fmt::Result {
+    write!(f, "{message}")?;
+    if let Some(source) = source {
+        writeln!(f)?;
+        write!(f, "caused by:")?;
+        let mut current = Some(source);
+        while let Some(error) = current {
+            write!(f, "\n- {error}")?;
+            current = error.source();
+        }
+    }
+    write!(f, "\nbacktrace:\n{backtrace}")
+}
+
+fn format_diagnostic_message(diagnostic: &Diagnostic) -> String {
+    let mut parts = vec![format!("{}: {}", diagnostic.code.as_str(), diagnostic.message)];
+    if let Some(path) = &diagnostic.path {
+        let location = match (diagnostic.line, diagnostic.column) {
+            (Some(line), Some(column)) => format!("{}:{line}:{column}", path.display()),
+            _ => path.display().to_string(),
+        };
+        parts.push(format!("location={location}"));
+    }
+    if !diagnostic.include_chain.is_empty() {
+        parts.push(format!(
+            "include_chain={}",
+            diagnostic
+                .include_chain
+                .iter()
+                .map(|path| path.display().to_string())
+                .collect::<Vec<_>>()
+                .join(" -> ")
+        ));
+    }
+    parts.join(" | ")
+}
 
 /// Structured recovery hint attached to configuration or validation failures.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -104,6 +147,12 @@ impl ResolveError {
         &self.attempted_paths
     }
 
+    /// Return the human-readable message.
+    #[must_use]
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
     /// Return the captured backtrace.
     pub const fn backtrace(&self) -> &Backtrace {
         &self.backtrace
@@ -112,7 +161,7 @@ impl ResolveError {
 
 impl fmt::Display for ResolveError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.message)
+        write_error_display(f, &self.message, self.source(), &self.backtrace)
     }
 }
 
@@ -178,6 +227,12 @@ impl IncludeError {
         &self.include_chain
     }
 
+    /// Return the human-readable message.
+    #[must_use]
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
     /// Return the captured backtrace.
     pub const fn backtrace(&self) -> &Backtrace {
         &self.backtrace
@@ -186,7 +241,7 @@ impl IncludeError {
 
 impl fmt::Display for IncludeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.message)
+        write_error_display(f, &self.message, self.source(), &self.backtrace)
     }
 }
 
@@ -203,6 +258,7 @@ impl StdError for IncludeError {
 pub struct ValidationError {
     code: DiagnosticCode,
     message: String,
+    diagnostics: Vec<Diagnostic>,
     recovery_hints: Vec<RecoveryHint>,
     source: Option<BoxedError>,
     backtrace: Backtrace,
@@ -215,6 +271,29 @@ impl ValidationError {
         Self {
             code,
             message: message.into(),
+            diagnostics: Vec::new(),
+            recovery_hints: Vec::new(),
+            source: None,
+            backtrace: Backtrace::capture(),
+        }
+    }
+
+    /// Create a validation error from a full diagnostics set.
+    #[must_use]
+    pub(crate) fn from_diagnostics(diagnostics: Vec<Diagnostic>) -> Self {
+        let code = diagnostics
+            .first()
+            .map(|diagnostic| diagnostic.code)
+            .unwrap_or(DiagnosticCode::ErrValEmpty);
+        let message = diagnostics
+            .iter()
+            .map(format_diagnostic_message)
+            .collect::<Vec<_>>()
+            .join("\n");
+        Self {
+            code,
+            message,
+            diagnostics,
             recovery_hints: Vec::new(),
             source: None,
             backtrace: Backtrace::capture(),
@@ -270,6 +349,18 @@ impl ValidationError {
         &self.recovery_hints
     }
 
+    /// Return the diagnostics preserved for this validation failure.
+    #[must_use]
+    pub fn diagnostics(&self) -> &[Diagnostic] {
+        &self.diagnostics
+    }
+
+    /// Return the human-readable message.
+    #[must_use]
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
     /// Return the captured backtrace.
     pub const fn backtrace(&self) -> &Backtrace {
         &self.backtrace
@@ -278,7 +369,7 @@ impl ValidationError {
 
 impl fmt::Display for ValidationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.message)
+        write_error_display(f, &self.message, self.source(), &self.backtrace)
     }
 }
 
@@ -335,6 +426,12 @@ impl RenderError {
     #[must_use]
     pub const fn code(&self) -> Option<DiagnosticCode> {
         self.code
+    }
+
+    /// Return the render-failure message.
+    #[must_use]
+    pub fn message(&self) -> String {
+        self.source.to_string()
     }
 }
 
@@ -403,6 +500,12 @@ impl ConfigError {
         &self.recovery_hints
     }
 
+    /// Return the human-readable message.
+    #[must_use]
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
     /// Return the captured backtrace.
     pub const fn backtrace(&self) -> &Backtrace {
         &self.backtrace
@@ -411,7 +514,7 @@ impl ConfigError {
 
 impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.message)
+        write_error_display(f, &self.message, self.source(), &self.backtrace)
     }
 }
 
@@ -528,7 +631,10 @@ mod tests {
 
         assert_eq!(error.code(), Some(DiagnosticCode::ErrResolveNotFound));
         assert_eq!(error.attempted_paths().len(), 1);
-        assert_eq!(error.to_string(), "template not found");
+        assert!(error.to_string().contains("template not found"));
+        assert!(error.to_string().contains("caused by:"));
+        assert!(error.to_string().contains("missing"));
+        assert!(error.to_string().contains("backtrace"));
         assert!(error.source().is_some());
     }
 
@@ -543,7 +649,10 @@ mod tests {
 
         assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeEscape));
         assert_eq!(error.include_chain().len(), 1);
-        assert_eq!(error.to_string(), "include escaped root");
+        assert!(error.to_string().contains("include escaped root"));
+        assert!(error.to_string().contains("caused by:"));
+        assert!(error.to_string().contains("escape"));
+        assert!(error.to_string().contains("backtrace"));
         assert!(error.source().is_some());
     }
 
@@ -559,6 +668,9 @@ mod tests {
         assert_eq!(error.code(), Some(DiagnosticCode::ErrValDuplicate));
         assert_eq!(error.recovery_hints().len(), 1);
         assert!(error.to_string().contains("duplicate frontmatter variable"));
+        assert!(error.to_string().contains("caused by:"));
+        assert!(error.to_string().contains("duplicate"));
+        assert!(error.to_string().contains("backtrace"));
         assert!(error.source().is_some());
     }
 
@@ -592,8 +704,38 @@ mod tests {
 
         assert_eq!(error.code(), Some(DiagnosticCode::ErrConfigParse));
         assert_eq!(error.recovery_hints().len(), 1);
-        assert_eq!(error.to_string(), "config parse failed");
+        assert!(error.to_string().contains("config parse failed"));
+        assert!(error.to_string().contains("caused by:"));
+        assert!(error.to_string().contains("parse"));
+        assert!(error.to_string().contains("backtrace"));
         assert!(error.source().is_some());
+    }
+
+    #[test]
+    fn validation_error_from_diagnostics_preserves_all_diagnostics() {
+        let diagnostics = vec![
+            Diagnostic::new(
+                crate::diagnostics::DiagnosticSeverity::Error,
+                DiagnosticCode::ErrValMissingRequired,
+                "missing required variable: name",
+            )
+            .with_path("templates/root.md.j2")
+            .with_location(12, 4),
+            Diagnostic::new(
+                crate::diagnostics::DiagnosticSeverity::Error,
+                DiagnosticCode::ErrValUndeclaredToken,
+                "undeclared referenced token: role",
+            )
+            .with_include_chain(vec![PathBuf::from("partials/child.md.j2")]),
+        ];
+
+        let error = ValidationError::from_diagnostics(diagnostics.clone());
+
+        assert_eq!(error.code(), Some(DiagnosticCode::ErrValMissingRequired));
+        assert_eq!(error.diagnostics(), diagnostics.as_slice());
+        assert!(error.to_string().contains("templates/root.md.j2:12:4"));
+        assert!(error.to_string().contains("include_chain=partials/child.md.j2"));
+        assert!(error.to_string().contains("backtrace"));
     }
 
     #[test]

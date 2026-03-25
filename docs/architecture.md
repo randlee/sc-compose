@@ -797,6 +797,7 @@ Canonical failures must map to stable error families and stable codes.
 | Stdin read attempted twice | `RenderError` | `ERR_RENDER_STDIN_DOUBLE_READ` |
 | Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
 | Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |
+| Command or helper invoked in incompatible mode | `ConfigError` | `ERR_CONFIG_MODE` |
 | Config file missing or malformed | `ConfigError` | `ERR_CONFIG_PARSE` |
 | Invalid var-file shape | `ConfigError` | `ERR_CONFIG_VARFILE` |
 

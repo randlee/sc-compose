@@ -480,7 +480,8 @@ envelope.
 Schema rules:
 
 - `output_path` is a string and uses `"stdout"` when no file is written.
-- `bytes_written` is the byte length of the rendered output.
+- `bytes_written` is the actual byte count written to the selected output
+  target; when writing to stdout it is the UTF-8 byte length emitted to stdout.
 - `template` is the resolved template path as a string.
 
 `render --dry-run --json`
@@ -562,6 +563,7 @@ Schema rules:
   "payload": {
     "template_path": "templates/example.md.j2",
     "frontmatter_added": true,
+    "would_change": true,
     "vars": [
       "name",
       "role"
@@ -571,7 +573,7 @@ Schema rules:
 }
 ```
 
-`--dry-run --json` for non-render commands must use this schema:
+`frontmatter-init --dry-run --json`
 
 ```json
 {
@@ -580,6 +582,29 @@ Schema rules:
     "action": "frontmatter-init",
     "would_affect": [
       "templates/example.md.j2"
+    ],
+    "changed": false,
+    "would_change": true,
+    "skipped": false,
+    "vars": [
+      "name",
+      "role"
+    ]
+  },
+  "diagnostics": []
+}
+```
+
+`init --dry-run --json`
+
+```json
+{
+  "schema_version": "1",
+  "payload": {
+    "action": "init",
+    "would_affect": [
+      ".prompts/",
+      ".gitignore"
     ],
     "skipped": false
   },
@@ -592,6 +617,9 @@ Schema rules:
 - `action` names the command.
 - `would_affect` lists the filesystem paths or logical targets that would
   change.
+- `changed` remains `false` for dry-run operations because no write occurs.
+- `would_change` records whether the command would modify its target if writes
+  were enabled.
 - `skipped` is `true` when the command decides no change is needed.
 
 ### FR-9: Observability
