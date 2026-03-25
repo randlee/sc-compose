@@ -182,7 +182,7 @@ The policy model must express:
 - ordered filename probes,
 - ambiguity rules when runtime is omitted.
 
-### 4.1 Runtime-Specific Directories
+### 5.1 Runtime-Specific Directories
 
 - `.claude/agents/`
 - `.claude/commands/`
@@ -197,7 +197,7 @@ The policy model must express:
 - `.opencode/commands/`
 - `.opencode/skills/`
 
-### 4.2 Shared Directories
+### 5.2 Shared Directories
 
 - `.agents/agents/`
 - `.agents/commands/`
@@ -205,7 +205,7 @@ The policy model must express:
 
 There is no flat shared fallback such as `.agents/<name>`.
 
-### 4.3 Probe Rules
+### 5.3 Probe Rules
 
 For agent and command prompts, candidate probe order within a directory is:
 
@@ -219,7 +219,7 @@ For skills, candidate probe order within a directory is:
 2. `<name>/SKILL.md`
 3. `<name>/SKILL.j2`
 
-### 4.4 Ambiguity Rules
+### 5.4 Ambiguity Rules
 
 - If a runtime is explicitly provided, only that runtime chain is evaluated.
 - If a runtime is omitted, all runtime and shared roots are evaluated.
@@ -292,7 +292,7 @@ The architecture must distinguish these cases:
 - undeclared referenced token,
 - extra provided input variable.
 
-### 6.1 Default Mode
+### 7.1 Default Mode
 
 In default mode:
 
@@ -301,14 +301,14 @@ In default mode:
 - undeclared referenced tokens are not implicitly promoted to required
   variables.
 
-### 6.2 Strict Mode
+### 7.2 Strict Mode
 
 In strict mode:
 
 - undeclared referenced tokens are fatal during validation,
 - undeclared referenced tokens are fatal during rendering.
 
-### 6.3 Missing Required Variables
+### 7.3 Missing Required Variables
 
 Missing required variables remain a separate diagnostic class:
 
@@ -340,7 +340,20 @@ Primary render-entrypoint decision:
   `Renderer` once implemented rather than paying per-call environment setup and
   AST re-parse cost.
 
-### 8.1 Core Request Types
+### 8.1 API Ownership Matrix
+
+The rendering and composition surfaces have distinct responsibilities.
+
+| Surface | Owns | Does not own |
+| --- | --- | --- |
+| `Renderer` | template loading, include resolution, variable expansion, validation, rendering | CLI argument parsing, output formatting, repository bootstrap |
+| `compose()` | top-level convenience orchestration; calls `Renderer` internally for end-to-end composition and block assembly | direct CLI UX decisions |
+| `render_template()` | lower-level rendering entry point for callers that pre-supply resolved template content | profile resolution, repository scanning, workspace bootstrap |
+| `validate()` | validation phase only; returns structured diagnostics without writing output | output generation or file writing |
+| `frontmatter_init()` | frontmatter discovery and rewrite helper | template composition pipeline execution |
+| `init_workspace()` | repository bootstrap helper | template composition pipeline execution |
+
+### 8.2 Core Request Types
 
 `ComposeRequest`
 
@@ -375,7 +388,7 @@ Semantics:
 - `allowed_roots: Vec<ConfiningRoot>`
 - `resolver_policy: ResolverPolicy`
 
-### 8.2 Core Result Types
+### 8.3 Core Result Types
 
 `ResolveResult`
 
@@ -466,22 +479,18 @@ Required fields:
 The JSON representation must be versioned. The version belongs to the schema
 contract, not to any single CLI command.
 
-Minimal diagnostic envelope:
+Minimal diagnostic record:
 
 ```json
 {
-  "schema_version": "sc-compose-diagnostics/v1",
-  "ok": true,
-  "errors": [],
-  "warnings": [],
-  "context": {
-    "command": "validate",
-    "mode": "profile"
-  }
+  "severity": "error",
+  "code": "ERR_VAL_MISSING_REQUIRED",
+  "message": "missing required variable: name",
+  "location": "templates/example.md.j2:12:4"
 }
 ```
 
-## 11. Error Model
+## 11. Error Model (FR-7, FR-8)
 
 `sc-composer` must expose crate-owned canonical public error types.
 
@@ -586,6 +595,105 @@ CLI alias model:
 - `--ai` is a CLI alias for `--runtime`.
 - Aliases are normalized in the CLI before constructing `ComposeRequest`.
 
+### 13.1 Command Output Schemas
+
+The CLI owns final output shaping. Library result types may be richer than the
+command-facing JSON contract.
+
+`render --json`
+
+```json
+{
+  "output_path": "stdout",
+  "bytes_written": 123,
+  "template": "path/to/template.md.j2"
+}
+```
+
+`render --dry-run --json`
+
+```json
+{
+  "would_write": ".prompts/example-01HXYZ.md",
+  "template": "path/to/template.md.j2",
+  "rendered_preview": "preview text"
+}
+```
+
+`resolve --json`
+
+```json
+{
+  "resolved_path": ".claude/agents/example.md.j2",
+  "search_trace": [
+    ".claude/agents/example.md.j2",
+    ".agents/agents/example.md.j2"
+  ],
+  "found": true
+}
+```
+
+`validate --json`
+
+```json
+{
+  "valid": false,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "ERR_VAL_MISSING_REQUIRED",
+      "message": "missing required variable: name",
+      "location": "templates/example.md.j2:12:4"
+    }
+  ]
+}
+```
+
+`init --json`
+
+```json
+{
+  "workspace_root": "/repo",
+  "created_files": [
+    ".prompts/",
+    ".gitignore"
+  ]
+}
+```
+
+`frontmatter-init --json`
+
+```json
+{
+  "template_path": "templates/example.md.j2",
+  "frontmatter_added": true,
+  "vars": [
+    "name",
+    "role"
+  ]
+}
+```
+
+Non-render `--dry-run --json`
+
+```json
+{
+  "action": "frontmatter-init",
+  "would_affect": [
+    "templates/example.md.j2"
+  ],
+  "skipped": false
+}
+```
+
+Schema notes:
+
+- `search_trace` is the CLI serialization of the library resolver search path
+  trace.
+- `location` is a single string field in CLI JSON even when the library tracks
+  path, line, and column separately.
+- `rendered_preview` may be `null` when preview emission is suppressed.
+
 ## 14. Output Path Policy (FR-7)
 
 File-writing behavior should be centralized rather than duplicated per command.
@@ -638,6 +746,25 @@ Target CLI exit semantics:
 - `2` validation or render failure
 - `3` usage, configuration, or contract error
 
+### 17.1 Failure Mode Matrix
+
+Canonical failures must map to stable error families and stable codes.
+
+| Failure condition | Error type | Stable code |
+| --- | --- | --- |
+| Template not found | `ResolveError` | `ERR_RESOLVE_NOT_FOUND` |
+| Ambiguous template match | `ResolveError` | `ERR_RESOLVE_AMBIGUOUS` |
+| Include path escapes confinement root | `IncludeError` | `ERR_INCLUDE_ESCAPE` |
+| Include depth exceeds limit | `IncludeError` | `ERR_INCLUDE_DEPTH` |
+| Variable type mismatch or invalid scalar | `ValidationError` | `ERR_VAL_TYPE` |
+| Duplicate frontmatter variable | `ValidationError` | `ERR_VAL_DUPLICATE` |
+| Empty template body | `ValidationError` | `ERR_VAL_EMPTY` |
+| Stdin read attempted twice | `RenderError` | `ERR_RENDER_STDIN_DOUBLE_READ` |
+| Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
+| Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |
+| Config file missing or malformed | `ConfigError` | `ERR_CONFIG_PARSE` |
+| Invalid var-file shape | `ConfigError` | `ERR_CONFIG_VARFILE` |
+
 ## 18. Observability Integration (FR-9)
 
 Architecture rules:
@@ -656,8 +783,19 @@ Architecture rules:
 - Library observability hooks must remain usable by embedded consumers.
 - Default sink paths for standalone CLI behavior must be tool-scoped.
 - Observer and sink traits must be object-safe and `dyn`-compatible.
-- Observer and sink traits are sealed in the initial design so the library can
-  evolve event payloads without breaking downstream implementations.
+- Observer and sink traits are intentionally public and unsealed so embedded
+  hosts can provide their own implementations.
+
+### 18.1 Host Injection Pattern
+
+Embedded hosts integrate by implementing the public observer or sink traits and
+passing those implementations into `sc-composer` or `sc-compose`.
+
+- ATM and other hosts are expected to provide their own concrete observer or
+  sink implementations when they need custom telemetry projection.
+- A built-in no-op observer remains the default behavior when no host-provided
+  implementation is supplied.
+- Host injection is an intentional extension point, not a temporary exception.
 
 ## 19. Extensibility
 
@@ -674,7 +812,7 @@ Expected extension points:
 
 Trait openness decisions:
 
-- observer and sink traits are sealed,
+- observer and sink traits are open extension points for embedded hosts,
 - `ResolverPolicy` is open because caller-specific path policy is an explicit
   product requirement,
 - value-model and metadata extension points remain closed until a future

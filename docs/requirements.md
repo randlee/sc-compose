@@ -444,14 +444,116 @@ Authors may opt out for a specific block with the standard Jinja `+` modifier.
   - line and column when available,
   - include stack when applicable,
   - severity.
-- JSON diagnostics must use this minimal envelope:
-  - `schema_version`
-  - `ok`
-  - `errors`
-  - `warnings`
-  - `context`
 - JSON diagnostics must use a stable, versioned schema suitable for machine
   consumers.
+
+### FR-8a: Command JSON and Dry-Run Schemas
+
+CLI `--json` output must follow stable per-command schemas.
+
+`render --json`
+
+```json
+{
+  "output_path": "stdout",
+  "bytes_written": 123,
+  "template": "path/to/template.md.j2"
+}
+```
+
+Schema rules:
+
+- `output_path` is a string and uses `"stdout"` when no file is written.
+- `bytes_written` is the byte length of the rendered output.
+- `template` is the resolved template path as a string.
+
+`render --dry-run --json`
+
+```json
+{
+  "would_write": ".prompts/example-01HXYZ.md",
+  "template": "path/to/template.md.j2",
+  "rendered_preview": "preview text"
+}
+```
+
+Schema rules:
+
+- `would_write` is the derived output target as a string.
+- `rendered_preview` is either a preview string or `null`.
+
+`resolve --json`
+
+```json
+{
+  "resolved_path": ".claude/agents/example.md.j2",
+  "search_trace": [
+    ".claude/agents/example.md.j2",
+    ".agents/agents/example.md.j2"
+  ],
+  "found": true
+}
+```
+
+`validate --json`
+
+```json
+{
+  "valid": false,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "ERR_VAL_MISSING_REQUIRED",
+      "message": "missing required variable: name",
+      "location": "templates/example.md.j2:12:4"
+    }
+  ]
+}
+```
+
+`init --json`
+
+```json
+{
+  "workspace_root": "/repo",
+  "created_files": [
+    ".prompts/",
+    ".gitignore"
+  ]
+}
+```
+
+`frontmatter-init --json`
+
+```json
+{
+  "template_path": "templates/example.md.j2",
+  "frontmatter_added": true,
+  "vars": [
+    "name",
+    "role"
+  ]
+}
+```
+
+`--dry-run --json` for non-render commands must use this schema:
+
+```json
+{
+  "action": "frontmatter-init",
+  "would_affect": [
+    "templates/example.md.j2"
+  ],
+  "skipped": false
+}
+```
+
+Schema rules:
+
+- `action` names the command.
+- `would_affect` lists the filesystem paths or logical targets that would
+  change.
+- `skipped` is `true` when the command decides no change is needed.
 
 ### FR-9: Observability
 
