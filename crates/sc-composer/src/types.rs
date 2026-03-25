@@ -273,7 +273,6 @@ impl TryFrom<&str> for ProfileName {
         Self::new(value)
     }
 }
-
 /// Variant-specific composition mode.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ComposeMode {

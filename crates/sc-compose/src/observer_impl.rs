@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use sc_composer::{
     CommandEndEvent, CommandStartEvent, CompositionObserver, IncludeOutcomeEvent, ObservationEvent,
-    RenderOutcomeEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
+    ObservationSink, RenderOutcomeEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
 
 pub struct CliObserver {
@@ -30,7 +30,7 @@ impl CliObserver {
         }
     }
 
-    fn emit(&mut self, event: &ObservationEvent) {
+    fn emit_event(&mut self, event: &ObservationEvent) {
         let Ok(line) = serde_json::to_string(event) else {
             return;
         };
@@ -50,27 +50,33 @@ impl CliObserver {
 
 impl CompositionObserver for CliObserver {
     fn on_command_start(&mut self, event: &CommandStartEvent) {
-        self.emit(&ObservationEvent::CommandStart(event.clone()));
+        ObservationSink::emit(self, &ObservationEvent::CommandStart(event.clone()));
     }
 
     fn on_command_end(&mut self, event: &CommandEndEvent) {
-        self.emit(&ObservationEvent::CommandEnd(event.clone()));
+        ObservationSink::emit(self, &ObservationEvent::CommandEnd(event.clone()));
     }
 
     fn on_resolve_outcome(&mut self, event: &ResolveOutcomeEvent) {
-        self.emit(&ObservationEvent::ResolveOutcome(event.clone()));
+        ObservationSink::emit(self, &ObservationEvent::ResolveOutcome(event.clone()));
     }
 
     fn on_include_outcome(&mut self, event: &IncludeOutcomeEvent) {
-        self.emit(&ObservationEvent::IncludeOutcome(event.clone()));
+        ObservationSink::emit(self, &ObservationEvent::IncludeOutcome(event.clone()));
     }
 
     fn on_validation_outcome(&mut self, event: &ValidationOutcomeEvent) {
-        self.emit(&ObservationEvent::ValidationOutcome(event.clone()));
+        ObservationSink::emit(self, &ObservationEvent::ValidationOutcome(event.clone()));
     }
 
     fn on_render_outcome(&mut self, event: &RenderOutcomeEvent) {
-        self.emit(&ObservationEvent::RenderOutcome(event.clone()));
+        ObservationSink::emit(self, &ObservationEvent::RenderOutcome(event.clone()));
+    }
+}
+
+impl ObservationSink for CliObserver {
+    fn emit(&mut self, event: &ObservationEvent) {
+        self.emit_event(event);
     }
 }
 
