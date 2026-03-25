@@ -160,23 +160,22 @@ fn main() {
 
 fn run() -> Result<i32, CommandError> {
     match Cli::parse().command {
-        Command::Render(args) => run_render(args),
-        Command::Resolve(args) => run_resolve(args),
-        Command::Validate(args) => run_validate(args),
-        Command::FrontmatterInit(args) => run_frontmatter_init(args),
-        Command::Init(args) => run_init(args),
+        Command::Render(args) => run_render(&args),
+        Command::Resolve(args) => run_resolve(&args),
+        Command::Validate(args) => run_validate(&args),
+        Command::FrontmatterInit(args) => run_frontmatter_init(&args),
+        Command::Init(args) => run_init(&args),
     }
 }
 
-fn run_render(args: RenderArgs) -> Result<i32, CommandError> {
+fn run_render(args: &RenderArgs) -> Result<i32, CommandError> {
     let request = build_request(
         &args.common,
-        read_block_pair(&args).map_err(CommandError::usage)?,
+        read_block_pair(args).map_err(CommandError::usage)?,
     )?;
     let result = sc_composer::compose(&request).map_err(CommandError::compose)?;
     let output_path = args.output.clone();
-    let derived_path =
-        derived_output_path(&request, output_path.as_deref()).map_err(CommandError::usage)?;
+    let derived_path = derived_output_path(&request, output_path.as_deref());
 
     if args.json {
         let payload = if args.dry_run {
@@ -214,7 +213,7 @@ fn run_render(args: RenderArgs) -> Result<i32, CommandError> {
     Ok(exit_codes::SUCCESS)
 }
 
-fn run_resolve(args: ResolveArgs) -> Result<i32, CommandError> {
+fn run_resolve(args: &ResolveArgs) -> Result<i32, CommandError> {
     if matches!(args.common.mode, Mode::File) {
         return Err(CommandError::usage(anyhow!(
             "resolve is only supported in profile mode"
@@ -238,7 +237,7 @@ fn run_resolve(args: ResolveArgs) -> Result<i32, CommandError> {
     Ok(exit_codes::SUCCESS)
 }
 
-fn run_validate(args: ValidateArgs) -> Result<i32, CommandError> {
+fn run_validate(args: &ValidateArgs) -> Result<i32, CommandError> {
     let request = build_request(&args.common, (None, None))?;
     let report = sc_composer::validate(&request).map_err(CommandError::compose)?;
     let diagnostics = report
@@ -270,7 +269,7 @@ fn run_validate(args: ValidateArgs) -> Result<i32, CommandError> {
     })
 }
 
-fn run_frontmatter_init(args: FrontmatterInitArgs) -> Result<i32, CommandError> {
+fn run_frontmatter_init(args: &FrontmatterInitArgs) -> Result<i32, CommandError> {
     let result = sc_composer::frontmatter_init(&args.file, args.force, args.dry_run)
         .map_err(CommandError::compose)?;
     if args.json && args.dry_run {
@@ -291,7 +290,7 @@ fn run_frontmatter_init(args: FrontmatterInitArgs) -> Result<i32, CommandError> 
     Ok(exit_codes::SUCCESS)
 }
 
-fn run_init(args: InitArgs) -> Result<i32, CommandError> {
+fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
     let canonical_root = std::fs::canonicalize(&args.root).map_err(|error| {
         CommandError::usage(anyhow!(error).context(format!(
             "failed to canonicalize workspace root {}",
@@ -444,7 +443,7 @@ fn load_vars(
         } else {
             std::fs::read_to_string(path).map_err(|error| {
                 CommandError::usage(
-                    anyhow!(error).context(format!("failed to read var-file {}", path)),
+                    anyhow!(error).context(format!("failed to read var-file {path}")),
                 )
             })?
         };
@@ -481,18 +480,15 @@ fn parse_var_file(
     contents: &str,
 ) -> Result<BTreeMap<sc_composer::VariableName, ScalarValue>, CommandError> {
     if let Ok(value) = serde_json::from_str::<serde_json::Value>(contents) {
-        return parse_object_value(value);
+        return parse_object_value(&value);
     }
     let value = serde_yaml::from_str::<serde_yaml::Value>(contents).map_err(|error| {
         CommandError::usage(anyhow!(error).context("var-file must be valid JSON or YAML"))
     })?;
-    let object = match value {
-        serde_yaml::Value::Mapping(map) => map,
-        _ => {
-            return Err(CommandError::usage(anyhow!(
-                "var-file must be a JSON or YAML object"
-            )));
-        }
+    let serde_yaml::Value::Mapping(object) = value else {
+        return Err(CommandError::usage(anyhow!(
+            "var-file must be a JSON or YAML object"
+        )));
     };
     let mut vars = BTreeMap::default();
     for (key, value) in object {
@@ -512,7 +508,7 @@ fn parse_var_file(
 }
 
 fn parse_object_value(
-    value: serde_json::Value,
+    value: &serde_json::Value,
 ) -> Result<BTreeMap<sc_composer::VariableName, ScalarValue>, CommandError> {
     let object = value
         .as_object()
@@ -531,17 +527,17 @@ fn parse_object_value(
     Ok(vars)
 }
 
-fn derived_output_path(request: &ComposeRequest, explicit: Option<&Path>) -> Result<PathBuf> {
+fn derived_output_path(request: &ComposeRequest, explicit: Option<&Path>) -> PathBuf {
     if let Some(path) = explicit {
-        return Ok(path.to_path_buf());
+        return path.to_path_buf();
     }
     match &request.mode {
-        ComposeMode::File { template_path } => Ok(strip_j2_suffix(template_path)),
-        ComposeMode::Profile { name, .. } => Ok(request
-            .root
-            .as_path()
-            .join(".prompts")
-            .join(format!("{}-{}.md", name, ulid::Ulid::new()))),
+        ComposeMode::File { template_path } => strip_j2_suffix(template_path),
+        ComposeMode::Profile { name, .. } => request.root.as_path().join(".prompts").join(format!(
+            "{}-{}.md",
+            name,
+            ulid::Ulid::new()
+        )),
     }
 }
 

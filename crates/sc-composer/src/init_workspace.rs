@@ -1,5 +1,6 @@
 //! Workspace bootstrap helper.
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use crate::types::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot};
@@ -65,8 +66,8 @@ pub fn init_workspace(root: impl AsRef<Path>, dry_run: bool) -> Result<InitResul
                     .to_path_buf(),
             },
             root: ConfiningRoot::from_path_buf(canonical_root.clone()),
-            vars_input: Default::default(),
-            vars_env: Default::default(),
+            vars_input: BTreeMap::default(),
+            vars_env: BTreeMap::default(),
             guidance_block: None,
             user_prompt: None,
             policy: ComposePolicy::default(),
@@ -130,7 +131,11 @@ fn scan_templates_recursive(
         } else if path
             .file_name()
             .and_then(|name| name.to_str())
-            .is_some_and(|name| name.ends_with(".j2"))
+            .is_some_and(|name| {
+                Path::new(name)
+                    .extension()
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case("j2"))
+            })
         {
             templates.push(path);
         }
