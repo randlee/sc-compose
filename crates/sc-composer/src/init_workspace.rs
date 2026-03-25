@@ -30,6 +30,14 @@ pub fn init_workspace(root: impl AsRef<Path>, dry_run: bool) -> Result<InitResul
         .lines()
         .any(|line| line.trim() == ".prompts/");
 
+    if !dry_run && !prompts_dir_missing && !gitignore_updated {
+        return Err(ConfigError::new(
+            DiagnosticCode::ErrConfigReadonly,
+            "workspace already initialized; rerun with --dry-run to inspect planned changes",
+        )
+        .into());
+    }
+
     if !dry_run && prompts_dir_missing {
         std::fs::create_dir_all(&prompts_dir).map_err(|error| {
             ConfigError::new(
@@ -150,6 +158,7 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use crate::init_workspace;
+    use crate::{ComposeError, DiagnosticCode};
 
     #[test]
     fn dry_run_scans_templates_without_modifying_workspace() {
@@ -177,6 +186,22 @@ mod tests {
                 .unwrap()
                 .contains(".prompts/")
         );
+    }
+
+    #[test]
+    fn reinit_without_changes_reports_readonly_error() {
+        let root = temp_root("init_workspace_reinit");
+        fs::create_dir_all(root.join(".prompts")).unwrap();
+        write_file(&root.join(".gitignore"), ".prompts/\n");
+
+        let error = init_workspace(&root, false).unwrap_err();
+
+        match error {
+            ComposeError::Config(error) => {
+                assert_eq!(error.code(), Some(DiagnosticCode::ErrConfigReadonly));
+            }
+            other => panic!("unexpected error: {other}"),
+        }
     }
 
     fn temp_root(label: &str) -> PathBuf {

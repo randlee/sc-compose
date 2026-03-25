@@ -55,6 +55,8 @@ pub enum DiagnosticCode {
     ErrRenderWrite,
     /// A write was refused because the target was read-only.
     ErrConfigReadonly,
+    /// A command or helper was invoked in an incompatible mode.
+    ErrConfigMode,
     /// Configuration or YAML parsing failed.
     ErrConfigParse,
     /// A var-file contained an unsupported structure.
@@ -82,6 +84,7 @@ impl DiagnosticCode {
             Self::ErrRenderStdinDoubleRead => "ERR_RENDER_STDIN_DOUBLE_READ",
             Self::ErrRenderWrite => "ERR_RENDER_WRITE",
             Self::ErrConfigReadonly => "ERR_CONFIG_READONLY",
+            Self::ErrConfigMode => "ERR_CONFIG_MODE",
             Self::ErrConfigParse => "ERR_CONFIG_PARSE",
             Self::ErrConfigVarfile => "ERR_CONFIG_VARFILE",
         }

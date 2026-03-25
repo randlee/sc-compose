@@ -438,6 +438,32 @@ mod tests {
         }
     }
 
+    #[test]
+    fn symlink_escape_attempts_are_rejected_when_supported() {
+        let root = temp_root("include_symlink_escape");
+        let outside = root.parent().unwrap().join("symlink-outside.md");
+        write_file(&outside, "outside\n");
+        let symlink_path = root.join("linked-outside.md");
+        if !create_symlink_if_supported(&outside, &symlink_path) {
+            return;
+        }
+        write_file(&root.join("root.md.j2"), "@<linked-outside.md>\n");
+
+        let error = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap_err();
+
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeEscape));
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
     fn temp_root(label: &str) -> PathBuf {
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -454,5 +480,19 @@ mod tests {
             fs::create_dir_all(parent).unwrap();
         }
         fs::write(path, contents).unwrap();
+    }
+
+    #[cfg(unix)]
+    fn create_symlink_if_supported(target: &Path, link: &Path) -> bool {
+        std::os::unix::fs::symlink(target, link).is_ok()
+    }
+
+    #[cfg(windows)]
+    fn create_symlink_if_supported(target: &Path, link: &Path) -> bool {
+        match std::os::windows::fs::symlink_file(target, link) {
+            Ok(()) => true,
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => false,
+            Err(error) => panic!("failed to create symlink: {error}"),
+        }
     }
 }
