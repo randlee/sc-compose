@@ -1,5 +1,6 @@
 mod exit_codes;
 mod json_output;
+mod observer_impl;
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -9,8 +10,9 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, anyhow};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use sc_composer::{
-    ComposeError, ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, FrontmatterInitResult,
-    ProfileKind, ProfileName, RuntimeKind, ScalarValue, UnknownVariablePolicy,
+    CommandEndEvent, CommandStartEvent, ComposeError, ComposeMode, ComposePolicy, ComposeRequest,
+    CompositionObserver, ConfiningRoot, DiagnosticCode, FrontmatterInitResult, ProfileKind,
+    RuntimeKind, ScalarValue, UnknownVariablePolicy,
 };
 
 #[derive(Debug, Parser)]
@@ -159,21 +161,33 @@ fn main() {
 }
 
 fn run() -> Result<i32, CommandError> {
+    let mut observer = observer_impl::CliObserver::from_env();
     match Cli::parse().command {
-        Command::Render(args) => run_render(&args),
-        Command::Resolve(args) => run_resolve(&args),
-        Command::Validate(args) => run_validate(&args),
-        Command::FrontmatterInit(args) => run_frontmatter_init(&args),
-        Command::Init(args) => run_init(&args),
+        Command::Render(args) => observe_command(&mut observer, "render", |observer| {
+            run_render(&args, observer)
+        }),
+        Command::Resolve(args) => observe_command(&mut observer, "resolve", |observer| {
+            run_resolve(&args, observer)
+        }),
+        Command::Validate(args) => observe_command(&mut observer, "validate", |observer| {
+            run_validate(&args, observer)
+        }),
+        Command::FrontmatterInit(args) => {
+            observe_command(&mut observer, "frontmatter-init", |_observer| {
+                run_frontmatter_init(&args)
+            })
+        }
+        Command::Init(args) => observe_command(&mut observer, "init", |_observer| run_init(&args)),
     }
 }
 
-fn run_render(args: &RenderArgs) -> Result<i32, CommandError> {
-    let request = build_request(
-        &args.common,
-        read_block_pair(args).map_err(CommandError::usage)?,
-    )?;
-    let result = sc_composer::compose(&request).map_err(CommandError::compose)?;
+fn run_render(
+    args: &RenderArgs,
+    observer: &mut dyn CompositionObserver,
+) -> Result<i32, CommandError> {
+    let request = build_request(&args.common, read_block_pair(args)?)?;
+    let result =
+        sc_composer::compose_with_observer(&request, observer).map_err(CommandError::compose)?;
     let output_path = args.output.clone();
     let derived_path = derived_output_path(&request, output_path.as_deref());
 
@@ -213,14 +227,18 @@ fn run_render(args: &RenderArgs) -> Result<i32, CommandError> {
     Ok(exit_codes::SUCCESS)
 }
 
-fn run_resolve(args: &ResolveArgs) -> Result<i32, CommandError> {
+fn run_resolve(
+    args: &ResolveArgs,
+    observer: &mut dyn CompositionObserver,
+) -> Result<i32, CommandError> {
     if matches!(args.common.mode, Mode::File) {
         return Err(CommandError::usage(anyhow!(
             "resolve is only supported in profile mode"
         )));
     }
     let request = build_request(&args.common, (None, None))?;
-    let result = sc_composer::resolve_profile(&request).map_err(CommandError::compose)?;
+    let result = sc_composer::resolve_profile_with_observer(&request, observer)
+        .map_err(CommandError::compose)?;
     if args.json {
         let payload = serde_json::json!({
             "resolved_path": result.resolved_path.display().to_string(),
@@ -237,9 +255,13 @@ fn run_resolve(args: &ResolveArgs) -> Result<i32, CommandError> {
     Ok(exit_codes::SUCCESS)
 }
 
-fn run_validate(args: &ValidateArgs) -> Result<i32, CommandError> {
+fn run_validate(
+    args: &ValidateArgs,
+    observer: &mut dyn CompositionObserver,
+) -> Result<i32, CommandError> {
     let request = build_request(&args.common, (None, None))?;
-    let report = sc_composer::validate(&request).map_err(CommandError::compose)?;
+    let report =
+        sc_composer::validate_with_observer(&request, observer).map_err(CommandError::compose)?;
     let diagnostics = report
         .warnings
         .iter()
@@ -361,7 +383,7 @@ fn build_request(
                     CommandError::usage(anyhow!("--agent/--agent-type is required in profile mode"))
                 })
                 .and_then(|name| {
-                    ProfileName::new(name).map_err(|error| {
+                    sc_composer::ProfileName::new(name).map_err(|error| {
                         CommandError::usage(anyhow!("invalid profile name: {error}"))
                     })
                 })?,
@@ -393,17 +415,19 @@ fn build_request(
     })
 }
 
-fn read_block_pair(args: &RenderArgs) -> Result<(Option<String>, Option<String>)> {
+fn read_block_pair(args: &RenderArgs) -> Result<(Option<String>, Option<String>), CommandError> {
     if args.guidance.is_some() && args.guidance_file.is_some() {
-        return Err(anyhow!(
+        return Err(CommandError::usage(anyhow!(
             "--guidance and --guidance-file are mutually exclusive"
-        ));
+        )));
     }
     if args.prompt.is_some() && args.prompt_file.is_some() {
-        return Err(anyhow!("--prompt and --prompt-file are mutually exclusive"));
+        return Err(CommandError::usage(anyhow!(
+            "--prompt and --prompt-file are mutually exclusive"
+        )));
     }
     if args.guidance_file.as_deref() == Some("-") && args.prompt_file.as_deref() == Some("-") {
-        return Err(anyhow!("guidance and prompt cannot both read from stdin"));
+        return Err(CommandError::stdin_double_read());
     }
 
     let guidance = read_block(args.guidance.clone(), args.guidance_file.as_deref())?;
@@ -411,17 +435,21 @@ fn read_block_pair(args: &RenderArgs) -> Result<(Option<String>, Option<String>)
     Ok((guidance, prompt))
 }
 
-fn read_block(inline: Option<String>, file: Option<&str>) -> Result<Option<String>> {
+fn read_block(inline: Option<String>, file: Option<&str>) -> Result<Option<String>, CommandError> {
     if let Some(inline) = inline {
         return Ok(Some(inline));
     }
     match file {
         Some("-") => {
             let mut input = String::new();
-            std::io::stdin().read_to_string(&mut input)?;
+            std::io::stdin()
+                .read_to_string(&mut input)
+                .map_err(|error| CommandError::usage(anyhow!(error)))?;
             Ok(Some(input))
         }
-        Some(path) => Ok(Some(std::fs::read_to_string(path)?)),
+        Some(path) => std::fs::read_to_string(path)
+            .map(Some)
+            .map_err(|error| CommandError::usage(anyhow!(error))),
         None => Ok(None),
     }
 }
@@ -606,6 +634,22 @@ fn print_json(payload: serde_json::Value, diagnostics: Vec<sc_composer::Diagnost
     Ok(())
 }
 
+fn observe_command(
+    observer: &mut dyn CompositionObserver,
+    command_name: &str,
+    action: impl FnOnce(&mut dyn CompositionObserver) -> Result<i32, CommandError>,
+) -> Result<i32, CommandError> {
+    observer.on_command_start(&CommandStartEvent {
+        command_name: command_name.to_owned(),
+    });
+    let result = action(observer);
+    observer.on_command_end(&CommandEndEvent {
+        command_name: command_name.to_owned(),
+        success: matches!(result, Ok(exit_codes::SUCCESS)),
+    });
+    result
+}
+
 fn planned_init_changes(root: &Path) -> Vec<PathBuf> {
     let mut changes = Vec::new();
     let prompts_dir = root.join(".prompts");
@@ -649,6 +693,7 @@ fn format_diagnostic(diagnostic: &sc_composer::Diagnostic) -> String {
 #[derive(Debug)]
 struct CommandError {
     exit_code: i32,
+    diagnostic_code: Option<DiagnosticCode>,
     error: anyhow::Error,
 }
 
@@ -656,6 +701,15 @@ impl CommandError {
     fn usage(error: anyhow::Error) -> Self {
         Self {
             exit_code: exit_codes::USAGE_FAIL,
+            diagnostic_code: None,
+            error,
+        }
+    }
+
+    fn usage_with_code(error: anyhow::Error, diagnostic_code: DiagnosticCode) -> Self {
+        Self {
+            exit_code: exit_codes::USAGE_FAIL,
+            diagnostic_code: Some(diagnostic_code),
             error,
         }
     }
@@ -671,6 +725,7 @@ impl CommandError {
         };
         Self {
             exit_code,
+            diagnostic_code: error.code(),
             error: anyhow!(error),
         }
     }
@@ -678,13 +733,24 @@ impl CommandError {
     fn render_write(error: anyhow::Error) -> Self {
         Self {
             exit_code: exit_codes::VALIDATION_OR_RENDER_FAIL,
+            diagnostic_code: Some(DiagnosticCode::ErrRenderWrite),
             error,
         }
+    }
+
+    fn stdin_double_read() -> Self {
+        Self::usage_with_code(
+            anyhow!("guidance and prompt cannot both read from stdin"),
+            DiagnosticCode::ErrRenderStdinDoubleRead,
+        )
     }
 }
 
 impl fmt::Display for CommandError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(code) = self.diagnostic_code {
+            return write!(f, "{}: {:#}", code.as_str(), self.error);
+        }
         write!(f, "{:#}", self.error)
     }
 }

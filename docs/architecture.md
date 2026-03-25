@@ -622,6 +622,18 @@ CLI alias model:
 The CLI owns final output shaping. Library result types may be richer than the
 command-facing JSON contract.
 
+All `--json` command output uses the versioned `DiagnosticEnvelope` transport:
+
+```json
+{
+  "schema_version": "1",
+  "payload": {},
+  "diagnostics": []
+}
+```
+
+The schemas below define the `payload` shape for each command.
+
 `render --json`
 
 ```json
@@ -659,15 +671,7 @@ command-facing JSON contract.
 
 ```json
 {
-  "valid": false,
-  "diagnostics": [
-    {
-      "severity": "error",
-      "code": "ERR_VAL_MISSING_REQUIRED",
-      "message": "missing required variable: name",
-      "location": "templates/example.md.j2:12:4"
-    }
-  ]
+  "valid": false
 }
 ```
 
