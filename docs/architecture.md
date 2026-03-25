@@ -479,6 +479,28 @@ Required fields:
 The JSON representation must be versioned. The version belongs to the schema
 contract, not to any single CLI command.
 
+Top-level diagnostics envelope:
+
+```json
+{
+  "schema_version": "1",
+  "payload": {
+    "ok": false
+  },
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "ERR_VAL_MISSING_REQUIRED",
+      "message": "missing required variable: name",
+      "path": "templates/example.md.j2",
+      "line": 12,
+      "column": 4,
+      "include_chain": []
+    }
+  ]
+}
+```
+
 Minimal diagnostic record:
 
 ```json
