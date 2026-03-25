@@ -424,8 +424,9 @@ Semantics:
 
 - `target_path: PathBuf`
 - `frontmatter_text: String`
-- `discovered_variables: Vec<String>`
+- `discovered_variables: Vec<VariableName>`
 - `changed: bool`
+- `would_change: bool`
 
 `InitResult`
 
