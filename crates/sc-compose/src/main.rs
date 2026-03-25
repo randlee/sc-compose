@@ -156,7 +156,8 @@ fn main() {
         Ok(code) => code,
         Err(error) => {
             if wants_json {
-                if let Err(print_error) = print_json(serde_json::json!({}), error.diagnostics.clone())
+                if let Err(print_error) =
+                    print_json(serde_json::json!({}), error.diagnostics.clone())
                 {
                     eprintln!("{error}");
                     eprintln!("{print_error:#}");
@@ -212,8 +213,7 @@ fn run_render(
             std::fs::metadata(output)
                 .map_err(|error| {
                     CommandError::render_write(
-                        anyhow!(error)
-                            .context(format!("failed to stat {}", output.display())),
+                        anyhow!(error).context(format!("failed to stat {}", output.display())),
                     )
                 })?
                 .len() as usize,
@@ -480,11 +480,9 @@ fn read_block(inline: Option<String>, file: Option<&str>) -> Result<Option<Strin
                 })?;
             Ok(Some(input))
         }
-        Some(path) => std::fs::read_to_string(path)
-            .map(Some)
-            .map_err(|error| {
-                CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-            }),
+        Some(path) => std::fs::read_to_string(path).map(Some).map_err(|error| {
+            CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
+        }),
         None => Ok(None),
     }
 }
@@ -567,14 +565,12 @@ fn parse_var_file(
     };
     let mut vars = BTreeMap::default();
     for (key, value) in object {
-        let key = key
-            .as_str()
-            .ok_or_else(|| {
-                CommandError::usage_with_code(
-                    anyhow!("var-file keys must be strings"),
-                    DiagnosticCode::ErrConfigVarfile,
-                )
-            })?;
+        let key = key.as_str().ok_or_else(|| {
+            CommandError::usage_with_code(
+                anyhow!("var-file keys must be strings"),
+                DiagnosticCode::ErrConfigVarfile,
+            )
+        })?;
         vars.insert(
             sc_composer::VariableName::new(key.to_owned()).map_err(|error| {
                 CommandError::usage_with_code(
@@ -596,14 +592,12 @@ fn parse_var_file(
 fn parse_object_value(
     value: &serde_json::Value,
 ) -> Result<BTreeMap<sc_composer::VariableName, ScalarValue>, CommandError> {
-    let object = value
-        .as_object()
-        .ok_or_else(|| {
-            CommandError::usage_with_code(
-                anyhow!("var-file must be a JSON object"),
-                DiagnosticCode::ErrConfigVarfile,
-            )
-        })?;
+    let object = value.as_object().ok_or_else(|| {
+        CommandError::usage_with_code(
+            anyhow!("var-file must be a JSON object"),
+            DiagnosticCode::ErrConfigVarfile,
+        )
+    })?;
     let mut vars = BTreeMap::default();
     for (key, value) in object {
         vars.insert(
@@ -836,12 +830,14 @@ fn compose_error_diagnostics(error: &ComposeError) -> Vec<Diagnostic> {
             resolve.code().unwrap_or(DiagnosticCode::ErrResolveNotFound),
             resolve.message(),
         )],
-        ComposeError::Include(include) => vec![Diagnostic::new(
-            DiagnosticSeverity::Error,
-            include.code().unwrap_or(DiagnosticCode::ErrIncludeNotFound),
-            include.message(),
-        )
-        .with_include_chain(include.include_chain().to_vec())],
+        ComposeError::Include(include) => vec![
+            Diagnostic::new(
+                DiagnosticSeverity::Error,
+                include.code().unwrap_or(DiagnosticCode::ErrIncludeNotFound),
+                include.message(),
+            )
+            .with_include_chain(include.include_chain().to_vec()),
+        ],
         ComposeError::Validation(validation) => vec![Diagnostic::new(
             DiagnosticSeverity::Error,
             validation.code().unwrap_or(DiagnosticCode::ErrValEmpty),
@@ -864,9 +860,7 @@ fn compose_error_diagnostics(error: &ComposeError) -> Vec<Diagnostic> {
 mod tests {
     use super::{CommandError, observe_command};
     use anyhow::anyhow;
-    use sc_composer::{
-        CommandEndEvent, CommandStartEvent, CompositionObserver, DiagnosticCode,
-    };
+    use sc_composer::{CommandEndEvent, CommandStartEvent, CompositionObserver, DiagnosticCode};
 
     #[derive(Default)]
     struct CapturingObserver {

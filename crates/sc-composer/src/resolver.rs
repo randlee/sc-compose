@@ -101,10 +101,11 @@ pub fn resolve_profile_with_observer(
             }
             result
         }
-        ComposeMode::File { .. } => Err(
-            ConfigError::new(DiagnosticCode::ErrConfigMode, "resolve_profile requires profile mode")
-                .into(),
-        ),
+        ComposeMode::File { .. } => Err(ConfigError::new(
+            DiagnosticCode::ErrConfigMode,
+            "resolve_profile requires profile mode",
+        )
+        .into()),
     }
 }
 
@@ -325,8 +326,8 @@ mod tests {
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use crate::observer::{CompositionObserver, ResolveOutcomeEvent};
     use super::resolve_profile_impl;
+    use crate::observer::{CompositionObserver, ResolveOutcomeEvent};
     use crate::types::{
         ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, ProfileKind, ProfileName,
     };

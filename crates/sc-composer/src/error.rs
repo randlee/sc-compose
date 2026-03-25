@@ -31,7 +31,11 @@ fn write_error_display(
 }
 
 fn format_diagnostic_message(diagnostic: &Diagnostic) -> String {
-    let mut parts = vec![format!("{}: {}", diagnostic.code.as_str(), diagnostic.message)];
+    let mut parts = vec![format!(
+        "{}: {}",
+        diagnostic.code.as_str(),
+        diagnostic.message
+    )];
     if let Some(path) = &diagnostic.path {
         let location = match (diagnostic.line, diagnostic.column) {
             (Some(line), Some(column)) => format!("{}:{line}:{column}", path.display()),
@@ -734,7 +738,11 @@ mod tests {
         assert_eq!(error.code(), Some(DiagnosticCode::ErrValMissingRequired));
         assert_eq!(error.diagnostics(), diagnostics.as_slice());
         assert!(error.to_string().contains("templates/root.md.j2:12:4"));
-        assert!(error.to_string().contains("include_chain=partials/child.md.j2"));
+        assert!(
+            error
+                .to_string()
+                .contains("include_chain=partials/child.md.j2")
+        );
         assert!(error.to_string().contains("backtrace"));
     }
 
