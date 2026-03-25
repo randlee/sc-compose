@@ -174,6 +174,9 @@ fn frontmatter_init_json_uses_diagnostic_envelope() {
         value["payload"]["template_path"],
         fs::canonicalize(&path).unwrap().display().to_string()
     );
+    assert_eq!(value["payload"]["frontmatter_added"], true);
+    assert_eq!(value["payload"]["would_change"], true);
+    assert_eq!(value["payload"]["vars"][0], "name");
 }
 
 #[test]
@@ -195,6 +198,10 @@ fn frontmatter_init_dry_run_json_uses_diagnostic_envelope() {
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_eq!(value["payload"]["action"], "frontmatter-init");
+    assert_eq!(value["payload"]["changed"], false);
+    assert_eq!(value["payload"]["would_change"], true);
+    assert_eq!(value["payload"]["skipped"], false);
+    assert_eq!(value["payload"]["vars"][0], "name");
 }
 
 #[test]
