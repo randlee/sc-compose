@@ -272,7 +272,6 @@ fn run_validate(
         print_json(
             serde_json::json!({
                 "valid": report.ok,
-                "diagnostics": diagnostics_to_json(&diagnostics),
             }),
             diagnostics,
         )
@@ -585,25 +584,6 @@ fn strip_j2_suffix(path: &Path) -> PathBuf {
     let mut rebuilt = path.to_path_buf();
     rebuilt.set_file_name(stripped);
     rebuilt
-}
-
-fn diagnostics_to_json(diagnostics: &[sc_composer::Diagnostic]) -> Vec<serde_json::Value> {
-    diagnostics
-        .iter()
-        .map(|diagnostic| {
-            serde_json::json!({
-                "severity": format!("{:?}", diagnostic.severity).to_lowercase(),
-                "code": diagnostic.code.as_str(),
-                "message": diagnostic.message,
-                "location": diagnostic.path.as_ref().map(|path| {
-                    match (diagnostic.line, diagnostic.column) {
-                        (Some(line), Some(column)) => format!("{}:{line}:{column}", path.display()),
-                        _ => path.display().to_string(),
-                    }
-                }),
-            })
-        })
-        .collect()
 }
 
 fn print_json_frontmatter_init(result: &FrontmatterInitResult) -> Result<()> {

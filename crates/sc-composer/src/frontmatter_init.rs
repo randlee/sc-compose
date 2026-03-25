@@ -31,7 +31,7 @@ pub fn frontmatter_init(
     let parsed = parse_template_document(&contents)?;
     if parsed.frontmatter().is_some() && !force {
         return Err(ConfigError::new(
-            DiagnosticCode::ErrConfigParse,
+            DiagnosticCode::ErrConfigReadonly,
             "frontmatter already exists; rerun with --force to rewrite it",
         )
         .into());
@@ -57,7 +57,7 @@ pub fn frontmatter_init(
         target_path: canonical,
         frontmatter_text,
         discovered_variables: discovered,
-        changed: true,
+        changed: !dry_run,
     })
 }
 
