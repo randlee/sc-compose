@@ -59,6 +59,10 @@ pub(crate) fn validate_expanded(
         );
     }
 
+    if let Some(diagnostic) = missing_frontmatter_warning(&resolve_result, expanded) {
+        warnings.push(diagnostic);
+    }
+
     for (variable, origin) in &state.required_origins {
         if !state.context.contains_key(variable) {
             errors.push(
@@ -145,6 +149,28 @@ pub(crate) fn validate_expanded(
     }
 }
 
+fn missing_frontmatter_warning(
+    resolve_result: &crate::ResolveResult,
+    expanded: &ExpandedTemplate,
+) -> Option<Diagnostic> {
+    expanded
+        .frontmatters
+        .iter()
+        .find(|(path, _)| *path == resolve_result.resolved_path)
+        .is_some_and(|(_, frontmatter)| frontmatter.is_none())
+        .then(|| {
+            Diagnostic::new(
+                DiagnosticSeverity::Warning,
+                DiagnosticCode::ErrValMissingFrontmatter,
+                format!(
+                    "root template has no frontmatter; run `sc-compose frontmatter-init {}`",
+                    resolve_result.resolved_path.display()
+                ),
+            )
+            .with_path(resolve_result.resolved_path.clone())
+        })
+}
+
 pub(crate) fn collect_validation_state(
     request: &ComposeRequest,
     expanded: &ExpandedTemplate,
@@ -159,21 +185,17 @@ pub(crate) fn collect_validation_state(
         }
     }
 
+    for (name, value) in &request.vars_env {
+        state.context.insert(name.clone(), value.clone());
+        state
+            .variable_sources
+            .insert(name.clone(), VariableSource::Environment);
+    }
     for (name, value) in &request.vars_input {
         state.context.insert(name.clone(), value.clone());
         state
             .variable_sources
             .insert(name.clone(), VariableSource::ExplicitInput);
-    }
-    for (name, value) in &request.vars_env {
-        state
-            .context
-            .entry(name.clone())
-            .or_insert_with(|| value.clone());
-        state
-            .variable_sources
-            .entry(name.clone())
-            .or_insert(VariableSource::Environment);
     }
 
     state.referenced_variables = discover_tokens(&expanded.text);
@@ -311,9 +333,12 @@ mod tests {
 
         assert!(report.ok);
         assert!(report.errors.is_empty());
-        assert_eq!(
-            report.warnings[0].code,
-            DiagnosticCode::ErrValUndeclaredToken
+        assert!(
+            report
+                .warnings
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValUndeclaredToken),
+            "expected undeclared-token warning"
         );
     }
 
@@ -374,6 +399,68 @@ mod tests {
                 .context
                 .get(&crate::VariableName::new("child_only").unwrap()),
             Some(&ScalarValue::String("present".to_owned()))
+        );
+    }
+
+    #[test]
+    fn environment_overrides_defaults_and_explicit_input_overrides_environment() {
+        let root = temp_root("validation_precedence");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\ndefaults:\n  name: default\n---\nhello {{ name }}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_env.insert(
+            crate::VariableName::new("name").unwrap(),
+            ScalarValue::String("env".to_owned()),
+        );
+        request.vars_input.insert(
+            crate::VariableName::new("name").unwrap(),
+            ScalarValue::String("input".to_owned()),
+        );
+
+        let resolve_result = crate::resolve_template_path(&request).unwrap();
+        let expanded = crate::expand_includes(
+            &resolve_result.resolved_path,
+            &request.root,
+            &request.policy,
+        )
+        .unwrap();
+        let state = collect_validation_state(&request, &expanded);
+
+        assert_eq!(
+            state
+                .context
+                .get(&crate::VariableName::new("name").unwrap()),
+            Some(&ScalarValue::String("input".to_owned()))
+        );
+        assert_eq!(
+            state
+                .variable_sources
+                .get(&crate::VariableName::new("name").unwrap()),
+            Some(&crate::VariableSource::ExplicitInput)
+        );
+    }
+
+    #[test]
+    fn missing_root_frontmatter_emits_fixup_warning() {
+        let root = temp_root("validation_missing_frontmatter");
+        write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert!(
+            report.warnings.iter().any(|diagnostic| {
+                diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
+                    && diagnostic.message.contains("sc-compose frontmatter-init")
+            }),
+            "expected missing-frontmatter warning with fix command"
         );
     }
 

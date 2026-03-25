@@ -115,3 +115,83 @@ fn exit_code_three_for_resolve_failure() {
 
     assert_eq!(status.code(), Some(3));
 }
+
+#[test]
+fn render_uses_json_var_file_inputs() {
+    let root = temp_root("var-file-json");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+    let vars_file = root.join("vars.json");
+    write_file(&vars_file, "{ \"name\": \"json-world\" }\n");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "hello json-world"
+    );
+}
+
+#[test]
+fn render_uses_yaml_var_file_inputs() {
+    let root = temp_root("var-file-yaml");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+    let vars_file = root.join("vars.yaml");
+    write_file(&vars_file, "name: yaml-world\n");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "hello yaml-world"
+    );
+}
+
+#[test]
+fn render_uses_env_prefix_inputs() {
+    let root = temp_root("env-prefix");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--env-prefix")
+        .arg("SC_")
+        .env("SC_NAME", "env-world")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "hello env-world"
+    );
+}

@@ -41,6 +41,8 @@ pub enum DiagnosticCode {
     ErrValDuplicate,
     /// A template body was empty when content was required.
     ErrValEmpty,
+    /// The root template omitted a frontmatter block.
+    ErrValMissingFrontmatter,
     /// A required variable was still missing after context merge.
     ErrValMissingRequired,
     /// A referenced token was not declared in frontmatter.
@@ -73,6 +75,7 @@ impl DiagnosticCode {
             Self::ErrValType => "ERR_VAL_TYPE",
             Self::ErrValDuplicate => "ERR_VAL_DUPLICATE",
             Self::ErrValEmpty => "ERR_VAL_EMPTY",
+            Self::ErrValMissingFrontmatter => "ERR_VAL_MISSING_FRONTMATTER",
             Self::ErrValMissingRequired => "ERR_VAL_MISSING_REQUIRED",
             Self::ErrValUndeclaredToken => "ERR_VAL_UNDECLARED_TOKEN",
             Self::ErrValExtraInput => "ERR_VAL_EXTRA_INPUT",
