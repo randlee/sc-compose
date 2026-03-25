@@ -18,7 +18,7 @@ pub(crate) struct ValidationState {
     pub(crate) context: BTreeMap<VariableName, ScalarValue>,
     pub(crate) variable_sources: BTreeMap<VariableName, VariableSource>,
     pub(crate) required_origins: BTreeMap<VariableName, PathBuf>,
-    pub(crate) required_include_chains: BTreeMap<VariableName, Vec<PathBuf>>,
+    required_include_chains: BTreeMap<VariableName, Vec<PathBuf>>,
     pub(crate) declared_variables: BTreeSet<VariableName>,
     pub(crate) referenced_variables: BTreeSet<VariableName>,
 }
@@ -35,13 +35,13 @@ pub fn validate(request: &ComposeRequest) -> Result<ValidationReport, ComposeErr
         &request.root,
         &request.policy,
     )?;
-    Ok(validate_expanded(request, &resolve_result, &expanded))
+    Ok(validate_expanded(request, &expanded, resolve_result))
 }
 
 pub(crate) fn validate_expanded(
     request: &ComposeRequest,
-    resolve_result: &crate::ResolveResult,
     expanded: &ExpandedTemplate,
+    resolve_result: crate::ResolveResult,
 ) -> ValidationReport {
     let state = collect_validation_state(request, expanded);
 
@@ -141,7 +141,7 @@ pub(crate) fn validate_expanded(
         ok: errors.is_empty(),
         warnings,
         errors,
-        resolve_result: resolve_result.clone(),
+        resolve_result,
     }
 }
 

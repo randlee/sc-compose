@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 
 use crate::DiagnosticCode;
 use crate::error::{ComposeError, ConfigError, ResolveError};
+use crate::observer::{CompositionObserver, NoopObserver, ResolveOutcomeEvent};
 use crate::types::{
     ComposeMode, ComposeRequest, ConfiningRoot, ProfileKind, ProfileName, ResolveResult,
     ResolverPolicy, RuntimeKind,
@@ -59,14 +60,47 @@ pub fn resolve_template_path(request: &ComposeRequest) -> Result<ResolveResult, 
 /// template is found, or when multiple candidates match an omitted-runtime
 /// lookup.
 pub fn resolve_profile(request: &ComposeRequest) -> Result<ResolveResult, ComposeError> {
+    let mut observer = NoopObserver;
+    resolve_profile_with_observer(request, &mut observer)
+}
+
+/// Resolve a profile-mode request while emitting observer callbacks.
+///
+/// # Errors
+///
+/// Returns [`ComposeError`] when the request is not in profile mode, when no
+/// template is found, or when multiple candidates match an omitted-runtime
+/// lookup.
+pub fn resolve_profile_with_observer(
+    request: &ComposeRequest,
+    observer: &mut dyn CompositionObserver,
+) -> Result<ResolveResult, ComposeError> {
     match &request.mode {
-        ComposeMode::Profile { kind, name } => resolve_profile_impl(
-            request.root.as_path(),
-            *kind,
-            name,
-            request.runtime,
-            &request.policy.resolver_policy,
-        ),
+        ComposeMode::Profile { kind, name } => {
+            let result = resolve_profile_impl(
+                request.root.as_path(),
+                *kind,
+                name,
+                request.runtime,
+                &request.policy.resolver_policy,
+            );
+            match &result {
+                Ok(resolve_result) => observer.on_resolve_outcome(&ResolveOutcomeEvent {
+                    resolved_path: Some(resolve_result.resolved_path.clone()),
+                    attempted_paths: resolve_result.attempted_paths.clone(),
+                    code: None,
+                }),
+                Err(ComposeError::Resolve(error)) => {
+                    observer.on_resolve_outcome(&ResolveOutcomeEvent {
+                        resolved_path: None,
+                        attempted_paths: error.attempted_paths().to_vec(),
+                        code: error.code(),
+                    });
+                }
+                Err(_) => {}
+            }
+            result
+        }
         ComposeMode::File { .. } => Err(ConfigError::new(
             DiagnosticCode::ErrConfigParse,
             "resolve_profile requires profile mode",
