@@ -449,15 +449,31 @@ Authors may opt out for a specific block with the standard Jinja `+` modifier.
 
 ### FR-8a: Command JSON and Dry-Run Schemas
 
-CLI `--json` output must follow stable per-command schemas.
+CLI `--json` output must use the versioned `DiagnosticEnvelope` as the
+canonical transport format:
+
+```json
+{
+  "schema_version": "1",
+  "payload": {},
+  "diagnostics": []
+}
+```
+
+Per-command schemas below describe the shape of the `payload` field within that
+envelope.
 
 `render --json`
 
 ```json
 {
-  "output_path": "stdout",
-  "bytes_written": 123,
-  "template": "path/to/template.md.j2"
+  "schema_version": "1",
+  "payload": {
+    "output_path": "stdout",
+    "bytes_written": 123,
+    "template": "path/to/template.md.j2"
+  },
+  "diagnostics": []
 }
 ```
 
@@ -471,9 +487,13 @@ Schema rules:
 
 ```json
 {
-  "would_write": ".prompts/example-01HXYZ.md",
-  "template": "path/to/template.md.j2",
-  "rendered_preview": "preview text"
+  "schema_version": "1",
+  "payload": {
+    "would_write": ".prompts/example-01HXYZ.md",
+    "template": "path/to/template.md.j2",
+    "rendered_preview": "preview text"
+  },
+  "diagnostics": []
 }
 ```
 
@@ -486,12 +506,16 @@ Schema rules:
 
 ```json
 {
-  "resolved_path": ".claude/agents/example.md.j2",
-  "search_trace": [
-    ".claude/agents/example.md.j2",
-    ".agents/agents/example.md.j2"
-  ],
-  "found": true
+  "schema_version": "1",
+  "payload": {
+    "resolved_path": ".claude/agents/example.md.j2",
+    "search_trace": [
+      ".claude/agents/example.md.j2",
+      ".agents/agents/example.md.j2"
+    ],
+    "found": true
+  },
+  "diagnostics": []
 }
 ```
 
@@ -499,7 +523,10 @@ Schema rules:
 
 ```json
 {
-  "valid": false,
+  "schema_version": "1",
+  "payload": {
+    "valid": false
+  },
   "diagnostics": [
     {
       "severity": "error",
@@ -515,11 +542,15 @@ Schema rules:
 
 ```json
 {
-  "workspace_root": "/repo",
-  "created_files": [
-    ".prompts/",
-    ".gitignore"
-  ]
+  "schema_version": "1",
+  "payload": {
+    "workspace_root": "/repo",
+    "created_files": [
+      ".prompts/",
+      ".gitignore"
+    ]
+  },
+  "diagnostics": []
 }
 ```
 
@@ -527,12 +558,16 @@ Schema rules:
 
 ```json
 {
-  "template_path": "templates/example.md.j2",
-  "frontmatter_added": true,
-  "vars": [
-    "name",
-    "role"
-  ]
+  "schema_version": "1",
+  "payload": {
+    "template_path": "templates/example.md.j2",
+    "frontmatter_added": true,
+    "vars": [
+      "name",
+      "role"
+    ]
+  },
+  "diagnostics": []
 }
 ```
 
@@ -540,11 +575,15 @@ Schema rules:
 
 ```json
 {
-  "action": "frontmatter-init",
-  "would_affect": [
-    "templates/example.md.j2"
-  ],
-  "skipped": false
+  "schema_version": "1",
+  "payload": {
+    "action": "frontmatter-init",
+    "would_affect": [
+      "templates/example.md.j2"
+    ],
+    "skipped": false
+  },
+  "diagnostics": []
 }
 ```
 
