@@ -279,6 +279,7 @@ FRs addressed:
 - FR-7
 - FR-7a
 - FR-7b
+- FR-7c
 - FR-8a
 - FR-8
 - FR-9 at the CLI integration level
@@ -457,6 +458,15 @@ following:
 
 If implementation is re-sliced, the replacement plan must preserve the
 dependency order, FR coverage, and exit gates defined above.
+
+## Companion Planning Docs
+
+The following documents reduce execution ambiguity for implementation agents and
+reviewers:
+
+- `docs/traceability-matrix.md`
+- `docs/error-code-registry.md`
+- `docs/test-strategy.md`
 
 ## Rule
 
