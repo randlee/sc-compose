@@ -92,7 +92,10 @@ fn render_dry_run_json_uses_diagnostic_envelope() {
     assert!(value["payload"]["would_write"].is_string());
     assert_eq!(
         value["payload"]["template"],
-        root.join("template.md.j2").display().to_string()
+        fs::canonicalize(root.join("template.md.j2"))
+            .unwrap()
+            .display()
+            .to_string()
     );
 }
 
@@ -169,7 +172,7 @@ fn frontmatter_init_json_uses_diagnostic_envelope() {
     assert_envelope(&value);
     assert_eq!(
         value["payload"]["template_path"],
-        path.display().to_string()
+        fs::canonicalize(&path).unwrap().display().to_string()
     );
 }
 
@@ -211,7 +214,7 @@ fn init_json_uses_diagnostic_envelope() {
     assert_envelope(&value);
     assert_eq!(
         value["payload"]["workspace_root"],
-        root.display().to_string()
+        fs::canonicalize(&root).unwrap().display().to_string()
     );
 }
 
