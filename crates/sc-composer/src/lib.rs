@@ -13,8 +13,12 @@ pub mod error;
 pub mod frontmatter;
 /// Recursive include expansion and confinement enforcement.
 pub mod include;
+/// Backwards-compatible alias for the include engine surface.
+pub mod include_engine;
 /// Runtime-aware profile resolution and search tracing.
 pub mod resolver;
+/// Variable discovery and validation semantics.
+pub mod validation;
 /// Foundational request, result, and value-model types.
 pub mod types;
 
@@ -29,6 +33,7 @@ pub use error::{
 pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};
 pub use include::{ExpandedTemplate, expand_includes};
 pub use resolver::{resolve_profile, resolve_template_path};
+pub use validation::validate;
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
     FrontmatterInitResult, IncludeDepth, InitResult, MetadataValue,
