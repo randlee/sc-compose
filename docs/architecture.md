@@ -322,7 +322,7 @@ Semantics:
 - `rendered_text: String`
 - `resolved_files: Vec<PathBuf>`
 - `resolve_result: ResolveResult`
-- `variable_sources: Map<String, VariableSource>`
+- `variable_sources: Map<VariableName, VariableSource>`
 - `warnings: Vec<Diagnostic>`
 
 `ValidationReport`

@@ -7,6 +7,9 @@ rust-version.workspace = true
 repository.workspace = true
 homepage.workspace = true
 description = "Standalone CLI for template composition."
+readme = "../../README.md"
+keywords = ["prompt", "template", "compose", "cli"]
+categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
 anyhow.workspace = true

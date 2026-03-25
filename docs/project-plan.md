@@ -50,6 +50,10 @@ FR-1 through FR-9 redesign defined in:
 The implementation phase is split into four ordered sprints. A later sprint may
 start only after the prior sprint exit gate passes.
 
+For sprint exit gates in this document, `qm-comp` is the QA/review agent
+responsible for validating that implementation matches the normative docs and
+the active quality gates.
+
 ### Sprint 1: Core Type Model and Error Boundaries
 
 Deliverables:

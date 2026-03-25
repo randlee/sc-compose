@@ -1,25 +1,58 @@
 //! Core rendering and composition primitives for the `sc-compose` workspace.
 
+use std::backtrace::Backtrace;
+use std::error::Error as StdError;
+use std::fmt;
+
 use minijinja::Environment;
-use thiserror::Error;
 
 /// Canonical render error for template compilation and rendering failures.
-#[derive(Debug, Error)]
-pub enum RenderError {
-    /// The template engine failed while parsing, loading, or rendering.
-    #[error("template render failed: {0}")]
-    Render(#[from] minijinja::Error),
+#[derive(Debug)]
+pub struct RenderError {
+    source: Box<dyn StdError + Send + Sync + 'static>,
+    backtrace: Backtrace,
+}
+
+impl RenderError {
+    pub(crate) fn render(source: impl StdError + Send + Sync + 'static) -> Self {
+        Self {
+            source: Box::new(source),
+            backtrace: Backtrace::capture(),
+        }
+    }
+
+    pub fn backtrace(&self) -> &Backtrace {
+        &self.backtrace
+    }
+}
+
+impl fmt::Display for RenderError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "template rendering failed: {}", self.source)
+    }
+}
+
+impl StdError for RenderError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        Some(self.source.as_ref())
+    }
 }
 
 /// Render a template string with the provided serializable context.
+///
+/// # Errors
+///
+/// Returns [`RenderError`] when the template cannot be parsed, loaded, or
+/// rendered by the underlying template engine.
 pub fn render_template<T: serde::Serialize>(
     template: &str,
     context: T,
 ) -> Result<String, RenderError> {
     let mut env = Environment::new();
-    env.add_template("inline", template)?;
-    let template = env.get_template("inline")?;
-    Ok(template.render(context)?)
+    env.add_template("inline", template)
+        .map_err(RenderError::render)?;
+    let template = env.get_template("inline").map_err(RenderError::render)?;
+    template.render(context).map_err(RenderError::render)
 }
 
 #[cfg(test)]

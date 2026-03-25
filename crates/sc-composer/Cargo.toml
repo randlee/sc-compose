@@ -7,12 +7,14 @@ rust-version.workspace = true
 repository.workspace = true
 homepage.workspace = true
 description = "Standalone template composition library."
+readme = "../../README.md"
+keywords = ["prompt", "template", "jinja", "compose"]
+categories = ["template-engine", "development-tools"]
 
 [dependencies]
 minijinja.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-thiserror = "2"
 
 [lints]
 workspace = true
