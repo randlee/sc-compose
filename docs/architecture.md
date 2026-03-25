@@ -102,6 +102,9 @@ Forbidden dependency direction:
 - `pipeline`
   - concatenates resolved profile, guidance, and user prompt blocks in fixed
     order.
+- `error`
+  - defines crate-owned error types and shared recovery-hint structures,
+  - maps lower-level failures into stable public categories.
 - `diagnostics`
   - defines diagnostic types,
   - defines the JSON diagnostic schema contract.
@@ -214,6 +217,18 @@ the initial release.
 - sequence
 - mapping
 
+Supporting public newtypes:
+
+- `VariableName`
+  - validated variable identifier used by `required_variables`, `defaults`,
+    diagnostics, and variable-source maps,
+  - prevents accidental use of arbitrary strings in the public API.
+- `IncludeDepth`
+  - non-negative bounded include-depth value used by include policy and errors.
+- `ConfiningRoot`
+  - canonicalized root path newtype used by path-confinement checks and
+    configuration validation.
+
 ## 6. Variable and Token Semantics
 
 The architecture must distinguish these cases:
@@ -265,29 +280,33 @@ Required library surface:
 
 - `runtime: Option<RuntimeKind>`
 - `mode: ComposeMode`
-- `kind: Option<ProfileKind>`
-- `agent: Option<String>`
-- `root: PathBuf`
-- `template_path: Option<PathBuf>`
-- `vars_input: Map<String, ScalarValue>`
-- `vars_env: Map<String, ScalarValue>`
+- `root: ConfiningRoot`
+- `vars_input: Map<VariableName, ScalarValue>`
+- `vars_env: Map<VariableName, ScalarValue>`
 - `guidance_block: Option<String>`
 - `user_prompt: Option<String>`
 - `policy: ComposePolicy`
+
+`ComposeMode`
+
+- `Profile { kind: ProfileKind, name: String }`
+- `File { template_path: PathBuf }`
 
 Semantics:
 
 - `runtime = None` is valid and enables the omit-runtime search behavior
   defined in the requirements.
-- In `file` mode, `runtime` may be `None` and is ignored unless a caller wants
+- `ComposeMode` is variant-specific and must not be represented as a bag of
+  unrelated optional fields.
+- In `File` mode, `runtime` may be `None` and is ignored unless a caller wants
   to attach runtime context for logging or policy selection.
 
 `ComposePolicy`
 
 - `strict_undeclared_variables: bool`
 - `unknown_variable_policy: UnknownVariablePolicy`
-- `max_include_depth: usize`
-- `allowed_roots: Vec<PathBuf>`
+- `max_include_depth: IncludeDepth`
+- `allowed_roots: Vec<ConfiningRoot>`
 - `resolver_policy: ResolverPolicy`
 
 ### 7.2 Core Result Types
@@ -313,6 +332,14 @@ Semantics:
 - `errors: Vec<Diagnostic>`
 - `resolve_result: ResolveResult`
 
+`ComposeError`
+
+- `Resolve(ResolveError)`
+- `Include(IncludeError)`
+- `Validation(ValidationError)`
+- `Render(RenderError)`
+- `Config(ConfigError)`
+
 `FrontmatterInitResult`
 
 - `target_path: PathBuf`
@@ -327,6 +354,15 @@ Semantics:
 - `scanned_templates: Vec<PathBuf>`
 - `recommendations: Vec<Diagnostic>`
 - `validation_passed: bool`
+
+Entrypoint contract:
+
+- `compose(request) -> Result<ComposeResult, ComposeError>`
+- `validate(request) -> Result<ValidationReport, ComposeError>`
+- `resolve_profile(request) -> Result<ResolveResult, ComposeError>`
+- `Diagnostic` is not a failure type. Diagnostics describe warnings and
+  user-actionable validation findings; `ComposeError` describes operation
+  failure.
 
 ## 8. Include and Frontmatter Merge Rules
 
@@ -379,7 +415,34 @@ Minimal diagnostic envelope:
 }
 ```
 
-## 10. Request Lifecycle
+## 10. Error Model
+
+`sc-composer` must expose crate-owned canonical public error types.
+
+Required error structs:
+
+- `ResolveError`
+- `IncludeError`
+- `ValidationError`
+- `RenderError`
+- `ConfigError`
+
+Error requirements:
+
+- every canonical error carries an underlying `source()` cause chain when one
+  exists,
+- include-related errors carry the include chain when applicable,
+- configuration and validation failures may carry structured recovery hints,
+- recovery hints must remain structured data rather than prose-only strings.
+
+CLI boundary rule:
+
+- `sc-compose` may wrap library errors with `anyhow` or `eyre` at the command
+  boundary,
+- `sc-composer` public APIs must return the canonical error types defined in
+  this document, not `anyhow::Error` or third-party engine error types.
+
+## 11. Request Lifecycle
 
 For `compose` and `validate`, the target lifecycle is:
 
@@ -401,7 +464,17 @@ For `compose` and `validate`, the target lifecycle is:
 10. Assemble final output blocks.
 11. Return composed output or validation report with diagnostics and trace data.
 
-## 11. CLI Command Architecture
+Typestate encoding:
+
+- the pipeline should be modeled as state transitions over
+  `Document<Parsed>`, `Document<Expanded>`, `Document<Validated>`, and
+  `Document<Rendered>`,
+- each transition consumes the previous state and returns the next state or a
+  canonical error,
+- the typestate design exists to make ordering violations unrepresentable in
+  internal code, not to force callers to manipulate state markers directly.
+
+## 12. CLI Command Architecture
 
 `sc-compose` should be a command router over library operations.
 
@@ -447,7 +520,7 @@ CLI alias model:
 - `--ai` is a CLI alias for `--runtime`.
 - Aliases are normalized in the CLI before constructing `ComposeRequest`.
 
-## 12. Output Path Policy
+## 13. Output Path Policy
 
 File-writing behavior should be centralized rather than duplicated per command.
 
@@ -458,7 +531,7 @@ Policy requirements:
 - explicit `--output` overrides derived behavior,
 - dry-run returns the same derived target information without writing files.
 
-## 13. `init` Command Behavior
+## 14. `init` Command Behavior
 
 `init_workspace` and the CLI `init` command must:
 
@@ -479,7 +552,7 @@ Variable-file behavior:
 - values are `ScalarValue`,
 - nested arrays and objects are invalid in the initial release.
 
-## 14. Safety Model
+## 15. Safety Model
 
 - Default deny for out-of-root file access
 - No shell execution inside the composition pipeline
@@ -488,7 +561,7 @@ Variable-file behavior:
 - Deterministic failure semantics for path escape, missing include, cycle, and
   depth overflow
 
-## 15. Error and Exit Semantics
+## 16. Error and Exit Semantics
 
 The library should expose typed errors with stable categories. Validation
 results should remain structured and not collapse into string-only errors.
@@ -499,7 +572,7 @@ Target CLI exit semantics:
 - `2` validation or render failure
 - `3` usage, configuration, or contract error
 
-## 16. Observability Integration
+## 17. Observability Integration
 
 Architecture rules:
 
@@ -516,8 +589,11 @@ Architecture rules:
   - render outcomes.
 - Library observability hooks must remain usable by embedded consumers.
 - Default sink paths for standalone CLI behavior must be tool-scoped.
+- Observer and sink traits must be object-safe and `dyn`-compatible.
+- Observer and sink traits are sealed in the initial design so the library can
+  evolve event payloads without breaking downstream implementations.
 
-## 17. Extensibility
+## 18. Extensibility
 
 The redesign should keep room for future extensions without destabilizing the
 core behavior.
@@ -529,3 +605,11 @@ Expected extension points:
 - template caching,
 - custom resolver policies,
 - richer frontmatter metadata consumers.
+
+Trait openness decisions:
+
+- observer and sink traits are sealed,
+- `ResolverPolicy` is open because caller-specific path policy is an explicit
+  product requirement,
+- value-model and metadata extension points remain closed until a future
+  requirement broadens the v1 scalar contract.

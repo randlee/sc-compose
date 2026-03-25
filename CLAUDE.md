@@ -6,7 +6,7 @@ Do not switch the main checkout away from `main` for sprint work.
 
 - Keep the primary repo checkout on `main`
 - Use git worktrees for feature work when parallel branches are needed
-- Prefer short-lived feature branches targeting `main`
+- Prefer short-lived feature branches targeting `develop`
 
 ## Project Overview
 

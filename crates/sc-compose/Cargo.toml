@@ -13,3 +13,6 @@ anyhow.workspace = true
 clap.workspace = true
 serde_json.workspace = true
 sc-composer = { path = "../sc-composer", version = "0.46.2" }
+
+[lints]
+workspace = true
