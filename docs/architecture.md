@@ -671,15 +671,7 @@ The schemas below define the `payload` shape for each command.
 
 ```json
 {
-  "valid": false,
-  "diagnostics": [
-    {
-      "severity": "error",
-      "code": "ERR_VAL_MISSING_REQUIRED",
-      "message": "missing required variable: name",
-      "location": "templates/example.md.j2:12:4"
-    }
-  ]
+  "valid": false
 }
 ```
 

@@ -525,15 +525,7 @@ Schema rules:
 {
   "schema_version": "1",
   "payload": {
-    "valid": false,
-    "diagnostics": [
-      {
-        "severity": "error",
-        "code": "ERR_VAL_MISSING_REQUIRED",
-        "message": "missing required variable: name",
-        "location": "templates/example.md.j2:12:4"
-      }
-    ]
+    "valid": false
   },
   "diagnostics": [
     {
