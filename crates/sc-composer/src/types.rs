@@ -224,7 +224,7 @@ pub enum ProfileKind {
     Skill,
 }
 
-/// Validated profile identifier used for profile-mode resolution.
+/// Validated profile identifier used by profile-mode resolution.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct ProfileName(String);
@@ -234,13 +234,12 @@ impl ProfileName {
     ///
     /// # Errors
     ///
-    /// Returns [`InvalidVariableNameError`] when the name is empty or contains
+    /// Returns [`InvalidProfileNameError`] when the name is empty or contains
     /// path separators.
-    pub fn new(name: impl Into<String>) -> Result<Self, InvalidVariableNameError> {
+    pub fn new(name: impl Into<String>) -> Result<Self, InvalidProfileNameError> {
         let name = name.into();
-        let has_separator = name.contains('/') || name.contains('\\');
-        if name.is_empty() || has_separator {
-            Err(InvalidVariableNameError { name })
+        if name.is_empty() || name.contains('/') || name.contains('\\') {
+            Err(InvalidProfileNameError { name })
         } else {
             Ok(Self(name))
         }
@@ -260,7 +259,7 @@ impl fmt::Display for ProfileName {
 }
 
 impl TryFrom<String> for ProfileName {
-    type Error = InvalidVariableNameError;
+    type Error = InvalidProfileNameError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::new(value)
@@ -268,7 +267,7 @@ impl TryFrom<String> for ProfileName {
 }
 
 impl TryFrom<&str> for ProfileName {
-    type Error = InvalidVariableNameError;
+    type Error = InvalidProfileNameError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         Self::new(value)
@@ -475,6 +474,21 @@ impl InvalidVariableNameError {
     }
 }
 
+/// Error returned when a profile name fails public API validation.
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[error("invalid profile name `{name}`")]
+pub struct InvalidProfileNameError {
+    name: String,
+}
+
+impl InvalidProfileNameError {
+    /// Return the rejected profile name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{ProfileName, VariableName};
@@ -505,6 +519,13 @@ mod tests {
     }
 
     #[test]
+    fn profile_name_round_trips_for_valid_identifier() {
+        let profile = ProfileName::new("agent-name").unwrap();
+        assert_eq!(profile.as_str(), "agent-name");
+        assert_eq!(profile.to_string(), "agent-name");
+    }
+
+    #[test]
     fn profile_name_rejects_empty_string() {
         let error = ProfileName::new("").unwrap_err();
         assert_eq!(error.name(), "");
@@ -512,14 +533,7 @@ mod tests {
 
     #[test]
     fn profile_name_rejects_path_separators() {
-        let error = ProfileName::new("agents/foo").unwrap_err();
-        assert_eq!(error.name(), "agents/foo");
-    }
-
-    #[test]
-    fn profile_name_round_trips_for_valid_name() {
-        let name = ProfileName::new("arch-comp").unwrap();
-        assert_eq!(name.as_str(), "arch-comp");
-        assert_eq!(name.to_string(), "arch-comp");
+        let error = ProfileName::new("agent/name").unwrap_err();
+        assert_eq!(error.name(), "agent/name");
     }
 }

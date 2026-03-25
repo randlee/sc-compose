@@ -18,6 +18,7 @@ pub(crate) struct ValidationState {
     pub(crate) context: BTreeMap<VariableName, ScalarValue>,
     pub(crate) variable_sources: BTreeMap<VariableName, VariableSource>,
     pub(crate) required_origins: BTreeMap<VariableName, PathBuf>,
+    pub(crate) required_include_chains: BTreeMap<VariableName, Vec<PathBuf>>,
     pub(crate) declared_variables: BTreeSet<VariableName>,
     pub(crate) referenced_variables: BTreeSet<VariableName>,
 }
@@ -66,7 +67,14 @@ pub(crate) fn validate_expanded(
                     DiagnosticCode::ErrValMissingRequired,
                     format!("missing required variable: {variable}"),
                 )
-                .with_path(origin.clone()),
+                .with_path(origin.clone())
+                .with_include_chain(
+                    state
+                        .required_include_chains
+                        .get(variable)
+                        .cloned()
+                        .unwrap_or_default(),
+                ),
             );
         }
     }
@@ -147,7 +155,7 @@ pub(crate) fn collect_validation_state(
     for (path, frontmatter) in &expanded.frontmatters {
         if let Some(frontmatter) = frontmatter {
             let is_root = root_path.is_some_and(|root| root == path);
-            merge_frontmatter(path, frontmatter, &mut state, is_root);
+            merge_frontmatter(path, frontmatter, expanded, &mut state, is_root);
         }
     }
 
@@ -175,6 +183,7 @@ pub(crate) fn collect_validation_state(
 fn merge_frontmatter(
     path: &Path,
     frontmatter: &Frontmatter,
+    expanded: &ExpandedTemplate,
     state: &mut ValidationState,
     is_root: bool,
 ) {
@@ -183,6 +192,16 @@ fn merge_frontmatter(
             .required_origins
             .entry(variable.clone())
             .or_insert_with(|| path.to_path_buf());
+        state
+            .required_include_chains
+            .entry(variable.clone())
+            .or_insert_with(|| {
+                expanded
+                    .include_chains
+                    .get(path)
+                    .cloned()
+                    .unwrap_or_default()
+            });
         state.declared_variables.insert(variable.clone());
     }
 

@@ -29,6 +29,10 @@ pub enum DiagnosticCode {
     ErrResolveAmbiguous,
     /// An include path escaped the configured confinement root.
     ErrIncludeEscape,
+    /// An include target could not be resolved.
+    ErrIncludeNotFound,
+    /// The include graph re-entered an active file, forming a cycle.
+    ErrIncludeCycle,
     /// The include graph exceeded the configured maximum depth.
     ErrIncludeDepth,
     /// A variable had an invalid scalar type or shape.
@@ -63,6 +67,8 @@ impl DiagnosticCode {
             Self::ErrResolveNotFound => "ERR_RESOLVE_NOT_FOUND",
             Self::ErrResolveAmbiguous => "ERR_RESOLVE_AMBIGUOUS",
             Self::ErrIncludeEscape => "ERR_INCLUDE_ESCAPE",
+            Self::ErrIncludeNotFound => "ERR_INCLUDE_NOT_FOUND",
+            Self::ErrIncludeCycle => "ERR_INCLUDE_CYCLE",
             Self::ErrIncludeDepth => "ERR_INCLUDE_DEPTH",
             Self::ErrValType => "ERR_VAL_TYPE",
             Self::ErrValDuplicate => "ERR_VAL_DUPLICATE",

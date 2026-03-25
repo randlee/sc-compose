@@ -63,10 +63,6 @@ pub struct ResolveError {
 impl ResolveError {
     /// Create a new resolver error without an underlying source.
     #[must_use]
-    #[allow(
-        dead_code,
-        reason = "Sprint 2 seeds constructors that later pipeline modules call."
-    )]
     pub(crate) fn new(
         code: DiagnosticCode,
         message: impl Into<String>,
@@ -83,10 +79,6 @@ impl ResolveError {
 
     /// Attach an underlying source error.
     #[must_use]
-    #[allow(
-        dead_code,
-        reason = "Sprint 2 seeds constructors that later pipeline modules call."
-    )]
     pub(crate) fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
         self.source = Some(Box::new(source));
         self
@@ -137,10 +129,6 @@ pub struct IncludeError {
 impl IncludeError {
     /// Create a new include error.
     #[must_use]
-    #[allow(
-        dead_code,
-        reason = "Sprint 2 seeds constructors that later pipeline modules call."
-    )]
     pub(crate) fn new(
         code: DiagnosticCode,
         message: impl Into<String>,
@@ -157,10 +145,6 @@ impl IncludeError {
 
     /// Attach an underlying source error.
     #[must_use]
-    #[allow(
-        dead_code,
-        reason = "Sprint 2 seeds constructors that later pipeline modules call."
-    )]
     pub(crate) fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
         self.source = Some(Box::new(source));
         self
@@ -240,7 +224,7 @@ impl ValidationError {
     #[must_use]
     #[allow(
         dead_code,
-        reason = "Sprint 2 seeds constructors that later pipeline modules call."
+        reason = "Builder used in tests and later pipeline modules."
     )]
     pub(crate) fn with_recovery_hints(mut self, recovery_hints: Vec<RecoveryHint>) -> Self {
         self.recovery_hints = recovery_hints;
@@ -249,10 +233,7 @@ impl ValidationError {
 
     /// Attach an underlying source error.
     #[must_use]
-    #[allow(
-        dead_code,
-        reason = "Sprint 2 seeds constructors that later pipeline modules call."
-    )]
+    #[allow(dead_code, reason = "Builder used by later pipeline modules.")]
     pub(crate) fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
         self.source = Some(Box::new(source));
         self
@@ -319,7 +300,7 @@ impl RenderError {
     #[must_use]
     #[allow(
         dead_code,
-        reason = "Sprint 2 seeds constructors that later pipeline modules call."
+        reason = "Builder used in tests and later pipeline modules."
     )]
     pub(crate) fn with_code(mut self, code: DiagnosticCode) -> Self {
         self.code = Some(code);
@@ -377,7 +358,7 @@ impl ConfigError {
     #[must_use]
     #[allow(
         dead_code,
-        reason = "Sprint 2 seeds constructors that later pipeline modules call."
+        reason = "Builder used in tests and later pipeline modules."
     )]
     pub(crate) fn with_recovery_hints(mut self, recovery_hints: Vec<RecoveryHint>) -> Self {
         self.recovery_hints = recovery_hints;

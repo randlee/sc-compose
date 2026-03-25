@@ -135,7 +135,7 @@ fn resolve_profile_impl(
     resolver_policy: &ResolverPolicy,
 ) -> Result<ResolveResult, ComposeError> {
     let candidate_directories = candidate_directories(root, kind, runtime, resolver_policy);
-    let probes = filename_probes(kind, name.as_str(), resolver_policy);
+    let probes = filename_probes(kind, name, resolver_policy);
 
     let mut attempted_paths = Vec::new();
     let mut attempted_seen = BTreeSet::new();
@@ -225,7 +225,7 @@ fn candidate_directories(
 
 fn filename_probes(
     kind: ProfileKind,
-    name: &str,
+    name: &ProfileName,
     resolver_policy: &ResolverPolicy,
 ) -> Vec<PathBuf> {
     if !resolver_policy.filename_probes.is_empty() {
@@ -238,14 +238,14 @@ fn filename_probes(
 
     match kind {
         ProfileKind::Agent | ProfileKind::Command => vec![
-            PathBuf::from(format!("{name}.md.j2")),
-            PathBuf::from(format!("{name}.md")),
-            PathBuf::from(format!("{name}.j2")),
+            PathBuf::from(format!("{}.md.j2", name.as_str())),
+            PathBuf::from(format!("{}.md", name.as_str())),
+            PathBuf::from(format!("{}.j2", name.as_str())),
         ],
         ProfileKind::Skill => vec![
-            PathBuf::from(name).join("SKILL.md.j2"),
-            PathBuf::from(name).join("SKILL.md"),
-            PathBuf::from(name).join("SKILL.j2"),
+            PathBuf::from(name.as_str()).join("SKILL.md.j2"),
+            PathBuf::from(name.as_str()).join("SKILL.md"),
+            PathBuf::from(name.as_str()).join("SKILL.j2"),
         ],
     }
 }
