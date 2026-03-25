@@ -17,10 +17,14 @@ pub mod frontmatter;
 pub mod frontmatter_init;
 /// Recursive include expansion and confinement enforcement.
 pub mod include;
+/// Backwards-compatible alias for the include engine surface.
+pub mod include_engine;
 /// Workspace bootstrap helper.
 pub mod init_workspace;
 /// Observer traits and event payloads.
 pub mod observer;
+/// Pipeline typestates and output assembly helpers.
+pub mod pipeline;
 /// Template renderer wrapper.
 pub mod renderer;
 /// Runtime-aware profile resolution and search tracing.
@@ -57,6 +61,8 @@ pub use observer::{
     ObservationEvent, ObservationSink, RenderOutcomeEvent, ResolveOutcomeEvent,
     ValidationOutcomeEvent,
 };
+#[doc(inline)]
+pub use pipeline::{Document, Expanded, Parsed, Rendered, Validated, assemble_output_blocks};
 #[doc(inline)]
 pub use renderer::{Renderer, render_template};
 #[doc(inline)]
