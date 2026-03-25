@@ -45,8 +45,9 @@ pub struct Rendered;
 impl Document<Parsed> {
     /// Transition a parsed document into the expanded state.
     #[must_use]
-    pub fn into_expanded(self) -> Document<Expanded> {
-        Document::new(self.body)
+    pub fn into_expanded(self, body: String) -> Document<Expanded> {
+        let _ = self;
+        Document::new(body)
     }
 }
 
@@ -70,12 +71,11 @@ impl Document<Validated> {
 /// guidance, then optional user prompt.
 #[must_use]
 pub fn assemble_output_blocks(
-    _document: Document<Validated>,
-    profile_body: &str,
+    document: Document<Rendered>,
     guidance_block: Option<&str>,
     user_prompt: Option<&str>,
 ) -> String {
-    let mut blocks = vec![profile_body.trim_end().to_owned()];
+    let mut blocks = vec![document.body.trim_end().to_owned()];
     if let Some(guidance) = guidance_block.filter(|value| !value.is_empty()) {
         blocks.push(guidance.to_owned());
     }
@@ -92,10 +92,11 @@ mod tests {
     #[test]
     fn output_blocks_follow_profile_guidance_prompt_order() {
         let validated = Document::<Parsed>::new("profile".to_owned())
-            .into_expanded()
+            .into_expanded("profile".to_owned())
             .into_validated();
+        let rendered = validated.into_rendered("profile".to_owned());
 
-        let output = assemble_output_blocks(validated, "profile", Some("guidance"), Some("prompt"));
+        let output = assemble_output_blocks(rendered, Some("guidance"), Some("prompt"));
 
         assert_eq!(output, "profile\n\nguidance\n\nprompt");
     }

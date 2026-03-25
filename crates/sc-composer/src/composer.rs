@@ -3,9 +3,10 @@
 use std::collections::BTreeMap;
 
 use crate::ComposeError;
-use crate::error::ValidationError;
+use crate::DiagnosticCode;
+use crate::error::{ConfigError, ValidationError};
 use crate::include::expand_includes;
-use crate::pipeline::{Document, Expanded, assemble_output_blocks};
+use crate::pipeline::{Document, Parsed, assemble_output_blocks};
 use crate::renderer::Renderer;
 use crate::resolver::resolve_template_path;
 use crate::types::{ComposeRequest, ComposeResult, ScalarValue, ValidationReport};
@@ -19,12 +20,23 @@ use crate::types::{ComposeRequest, ComposeResult, ScalarValue, ValidationReport}
 /// render failures.
 pub fn compose(request: &ComposeRequest) -> Result<ComposeResult, ComposeError> {
     let resolve_result = resolve_template_path(request)?;
+    let raw_text = std::fs::read_to_string(&resolve_result.resolved_path).map_err(|error| {
+        ConfigError::new(
+            DiagnosticCode::ErrConfigParse,
+            format!(
+                "failed to read template source: {}",
+                resolve_result.resolved_path.display()
+            ),
+        )
+        .with_source(error)
+    })?;
+    let parsed_document = Document::<Parsed>::new(raw_text);
     let expanded = expand_includes(
         &resolve_result.resolved_path,
         &request.root,
         &request.policy,
     )?;
-    let expanded_document = Document::<Expanded>::new(expanded.text.clone());
+    let expanded_document = parsed_document.into_expanded(expanded.text.clone());
     let validation_report =
         crate::validation::validate_expanded(request, &resolve_result, &expanded);
     fail_if_invalid(&validation_report)?;
@@ -35,9 +47,9 @@ pub fn compose(request: &ComposeRequest) -> Result<ComposeResult, ComposeError> 
         validated_document.body(),
         build_render_context(&validation_state),
     )?;
+    let rendered_document = validated_document.into_rendered(rendered_text);
     let rendered_text = assemble_output_blocks(
-        validated_document,
-        &rendered_text,
+        rendered_document,
         request.guidance_block.as_deref(),
         request.user_prompt.as_deref(),
     );
