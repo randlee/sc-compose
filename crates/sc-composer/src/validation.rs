@@ -8,8 +8,7 @@ use crate::frontmatter::Frontmatter;
 use crate::include::expand_includes;
 use crate::resolver::resolve_template_path;
 use crate::types::{
-    ComposeRequest, ScalarValue, UnknownVariablePolicy, ValidationReport,
-    VariableName,
+    ComposeRequest, ScalarValue, UnknownVariablePolicy, ValidationReport, VariableName,
 };
 use crate::{ComposeError, ExpandedTemplate};
 
@@ -17,6 +16,7 @@ use crate::{ComposeError, ExpandedTemplate};
 struct ValidationState {
     context: BTreeMap<VariableName, ScalarValue>,
     required_origins: BTreeMap<VariableName, PathBuf>,
+    required_include_chains: BTreeMap<VariableName, Vec<PathBuf>>,
     declared_variables: BTreeSet<VariableName>,
     referenced_variables: BTreeSet<VariableName>,
 }
@@ -57,7 +57,14 @@ pub fn validate(request: &ComposeRequest) -> Result<ValidationReport, ComposeErr
                     DiagnosticCode::ErrValMissingRequired,
                     format!("missing required variable: {variable}"),
                 )
-                .with_path(origin.clone()),
+                .with_path(origin.clone())
+                .with_include_chain(
+                    state
+                        .required_include_chains
+                        .get(variable)
+                        .cloned()
+                        .unwrap_or_default(),
+                ),
             );
         }
     }
@@ -136,7 +143,7 @@ fn collect_validation_state(
 
     for (path, frontmatter) in &expanded.frontmatters {
         if let Some(frontmatter) = frontmatter {
-            merge_frontmatter(path, frontmatter, &mut state);
+            merge_frontmatter(path, frontmatter, expanded, &mut state);
         }
     }
 
@@ -157,6 +164,7 @@ fn collect_validation_state(
 fn merge_frontmatter(
     path: &Path,
     frontmatter: &Frontmatter,
+    expanded: &ExpandedTemplate,
     state: &mut ValidationState,
 ) {
     for variable in frontmatter.required_variables() {
@@ -164,6 +172,16 @@ fn merge_frontmatter(
             .required_origins
             .entry(variable.clone())
             .or_insert_with(|| path.to_path_buf());
+        state
+            .required_include_chains
+            .entry(variable.clone())
+            .or_insert_with(|| {
+                expanded
+                    .include_chains
+                    .get(path)
+                    .cloned()
+                    .unwrap_or_default()
+            });
         state.declared_variables.insert(variable.clone());
     }
 
@@ -245,8 +263,7 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use crate::types::{
-        ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot,
-        UnknownVariablePolicy,
+        ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, UnknownVariablePolicy,
     };
     use crate::{DiagnosticCode, ScalarValue};
 
@@ -257,12 +274,19 @@ mod tests {
         let root = temp_root("validation_default_undeclared");
         write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
 
-        let report = validate(&request_for_file(&root, "template.md.j2", ComposePolicy::default()))
-            .unwrap();
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
 
         assert!(report.ok);
         assert!(report.errors.is_empty());
-        assert_eq!(report.warnings[0].code, DiagnosticCode::ErrValUndeclaredToken);
+        assert_eq!(
+            report.warnings[0].code,
+            DiagnosticCode::ErrValUndeclaredToken
+        );
     }
 
     #[test]
@@ -298,20 +322,29 @@ mod tests {
 
         let request = request_for_file(&root, "root.md.j2", ComposePolicy::default());
         let resolve_result = crate::resolve_template_path(&request).unwrap();
-        let expanded =
-            crate::expand_includes(&resolve_result.resolved_path, &request.root, &request.policy)
-                .unwrap();
+        let expanded = crate::expand_includes(
+            &resolve_result.resolved_path,
+            &request.root,
+            &request.policy,
+        )
+        .unwrap();
         let state = collect_validation_state(&request, &expanded);
 
         assert_eq!(
-            state.context.get(&crate::VariableName::new("name").unwrap()),
+            state
+                .context
+                .get(&crate::VariableName::new("name").unwrap()),
             Some(&ScalarValue::String("parent".to_owned()))
         );
-        assert!(state
-            .required_origins
-            .contains_key(&crate::VariableName::new("name").unwrap()));
+        assert!(
+            state
+                .required_origins
+                .contains_key(&crate::VariableName::new("name").unwrap())
+        );
         assert_eq!(
-            state.context.get(&crate::VariableName::new("child_only").unwrap()),
+            state
+                .context
+                .get(&crate::VariableName::new("child_only").unwrap()),
             Some(&ScalarValue::String("present".to_owned()))
         );
     }
@@ -332,19 +365,23 @@ mod tests {
                 ..ComposePolicy::default()
             },
         );
-        request
-            .vars_input
-            .insert(crate::VariableName::new("name").unwrap(), ScalarValue::String("world".to_owned()));
-        request
-            .vars_input
-            .insert(crate::VariableName::new("extra").unwrap(), ScalarValue::String("value".to_owned()));
+        request.vars_input.insert(
+            crate::VariableName::new("name").unwrap(),
+            ScalarValue::String("world".to_owned()),
+        );
+        request.vars_input.insert(
+            crate::VariableName::new("extra").unwrap(),
+            ScalarValue::String("value".to_owned()),
+        );
 
         let report = validate(&request).unwrap();
         assert!(!report.ok);
-        assert!(report
-            .errors
-            .iter()
-            .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput));
+        assert!(
+            report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput)
+        );
     }
 
     fn request_for_file(root: &Path, file: &str, policy: ComposePolicy) -> ComposeRequest {
@@ -367,10 +404,8 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let root = std::env::temp_dir().join(format!(
-            "sc-compose-{label}-{}-{nanos}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("sc-compose-{label}-{}-{nanos}", std::process::id()));
         fs::create_dir_all(&root).unwrap();
         root
     }

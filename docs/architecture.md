@@ -776,7 +776,9 @@ Canonical failures must map to stable error families and stable codes.
 | --- | --- | --- |
 | Template not found | `ResolveError` | `ERR_RESOLVE_NOT_FOUND` |
 | Ambiguous template match | `ResolveError` | `ERR_RESOLVE_AMBIGUOUS` |
+| Include target not found | `IncludeError` | `ERR_INCLUDE_NOT_FOUND` |
 | Include path escapes confinement root | `IncludeError` | `ERR_INCLUDE_ESCAPE` |
+| Include cycle detected | `IncludeError` | `ERR_INCLUDE_CYCLE` |
 | Include depth exceeds limit | `IncludeError` | `ERR_INCLUDE_DEPTH` |
 | Variable type mismatch or invalid scalar | `ValidationError` | `ERR_VAL_TYPE` |
 | Duplicate frontmatter variable | `ValidationError` | `ERR_VAL_DUPLICATE` |

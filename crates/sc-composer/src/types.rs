@@ -89,9 +89,7 @@ impl MetadataValue {
 }
 
 /// Validated variable identifier used in the public API.
-#[derive(
-    Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
-)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct VariableName(String);
 
@@ -226,6 +224,56 @@ pub enum ProfileKind {
     Skill,
 }
 
+/// Validated profile identifier used by profile-mode resolution.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct ProfileName(String);
+
+impl ProfileName {
+    /// Create a validated profile name.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`InvalidProfileNameError`] when the name is empty or contains
+    /// path separators.
+    pub fn new(name: impl Into<String>) -> Result<Self, InvalidProfileNameError> {
+        let name = name.into();
+        if name.is_empty() || name.contains('/') || name.contains('\\') {
+            Err(InvalidProfileNameError { name })
+        } else {
+            Ok(Self(name))
+        }
+    }
+
+    /// Borrow the validated profile name as a string slice.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for ProfileName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl TryFrom<String> for ProfileName {
+    type Error = InvalidProfileNameError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
+impl TryFrom<&str> for ProfileName {
+    type Error = InvalidProfileNameError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
 /// Variant-specific composition mode.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ComposeMode {
@@ -234,7 +282,7 @@ pub enum ComposeMode {
         /// The logical profile kind being resolved.
         kind: ProfileKind,
         /// The profile name to resolve.
-        name: String,
+        name: ProfileName,
     },
     /// File-mode composition from an explicit template path.
     File {
@@ -426,9 +474,24 @@ impl InvalidVariableNameError {
     }
 }
 
+/// Error returned when a profile name fails public API validation.
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[error("invalid profile name `{name}`")]
+pub struct InvalidProfileNameError {
+    name: String,
+}
+
+impl InvalidProfileNameError {
+    /// Return the rejected profile name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::VariableName;
+    use super::{ProfileName, VariableName};
 
     #[test]
     fn variable_name_round_trips_for_valid_identifier() {
@@ -453,5 +516,24 @@ mod tests {
     fn variable_name_display_matches_inner_string() {
         let variable = VariableName::new("agent.name").unwrap();
         assert_eq!(format!("{variable}"), "agent.name");
+    }
+
+    #[test]
+    fn profile_name_round_trips_for_valid_identifier() {
+        let profile = ProfileName::new("agent-name").unwrap();
+        assert_eq!(profile.as_str(), "agent-name");
+        assert_eq!(profile.to_string(), "agent-name");
+    }
+
+    #[test]
+    fn profile_name_rejects_empty_string() {
+        let error = ProfileName::new("").unwrap_err();
+        assert_eq!(error.name(), "");
+    }
+
+    #[test]
+    fn profile_name_rejects_path_separators() {
+        let error = ProfileName::new("agent/name").unwrap_err();
+        assert_eq!(error.name(), "agent/name");
     }
 }

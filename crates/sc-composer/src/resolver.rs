@@ -3,12 +3,12 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
+use crate::DiagnosticCode;
 use crate::error::{ComposeError, ConfigError, ResolveError};
 use crate::types::{
-    ComposeMode, ComposeRequest, ConfiningRoot, ProfileKind, ResolveResult,
+    ComposeMode, ComposeRequest, ConfiningRoot, ProfileKind, ProfileName, ResolveResult,
     ResolverPolicy, RuntimeKind,
 };
-use crate::DiagnosticCode;
 
 const DEFAULT_RUNTIME_ORDER: [RuntimeKind; 4] = [
     RuntimeKind::Claude,
@@ -28,15 +28,13 @@ const DEFAULT_RUNTIME_ORDER: [RuntimeKind; 4] = [
 /// configured roots, or when multiple profile candidates are found.
 pub fn resolve_template_path(request: &ComposeRequest) -> Result<ResolveResult, ComposeError> {
     match &request.mode {
-        ComposeMode::Profile { kind, name } => {
-            resolve_profile_impl(
-                request.root.as_path(),
-                *kind,
-                name,
-                request.runtime,
-                &request.policy.resolver_policy,
-            )
-        }
+        ComposeMode::Profile { kind, name } => resolve_profile_impl(
+            request.root.as_path(),
+            *kind,
+            name,
+            request.runtime,
+            &request.policy.resolver_policy,
+        ),
         ComposeMode::File { template_path } => {
             let resolved_path = canonicalize_with_roots(
                 template_path,
@@ -105,9 +103,16 @@ pub(crate) fn canonicalize_with_roots(
         )
         .with_source(error)
     })?);
-    allowed.extend(allowed_roots.iter().map(|root| root.as_path().to_path_buf()));
+    allowed.extend(
+        allowed_roots
+            .iter()
+            .map(|root| root.as_path().to_path_buf()),
+    );
 
-    if allowed.iter().any(|allowed_root| canonical.starts_with(allowed_root)) {
+    if allowed
+        .iter()
+        .any(|allowed_root| canonical.starts_with(allowed_root))
+    {
         Ok(canonical)
     } else {
         Err(ResolveError::new(
@@ -125,7 +130,7 @@ pub(crate) fn canonicalize_with_roots(
 fn resolve_profile_impl(
     root: &Path,
     kind: ProfileKind,
-    name: &str,
+    name: &ProfileName,
     runtime: Option<RuntimeKind>,
     resolver_policy: &ResolverPolicy,
 ) -> Result<ResolveResult, ComposeError> {
@@ -173,9 +178,7 @@ fn resolve_profile_impl(
         .into()),
         _ => Err(ResolveError::new(
             DiagnosticCode::ErrResolveAmbiguous,
-            format!(
-                "multiple {kind:?} profiles named `{name}` matched; specify a runtime"
-            ),
+            format!("multiple {kind:?} profiles named `{name}` matched; specify a runtime"),
             attempted_paths,
         )
         .into()),
@@ -205,8 +208,8 @@ fn candidate_directories(
     let mut directories = Vec::new();
     let mut seen = BTreeSet::new();
 
-    let runtimes: Vec<RuntimeKind> = runtime
-        .map_or_else(|| DEFAULT_RUNTIME_ORDER.to_vec(), |runtime| vec![runtime]);
+    let runtimes: Vec<RuntimeKind> =
+        runtime.map_or_else(|| DEFAULT_RUNTIME_ORDER.to_vec(), |runtime| vec![runtime]);
 
     for runtime in runtimes {
         for relative in runtime_chain(runtime, kind) {
@@ -222,7 +225,7 @@ fn candidate_directories(
 
 fn filename_probes(
     kind: ProfileKind,
-    name: &str,
+    name: &ProfileName,
     resolver_policy: &ResolverPolicy,
 ) -> Vec<PathBuf> {
     if !resolver_policy.filename_probes.is_empty() {
@@ -235,14 +238,14 @@ fn filename_probes(
 
     match kind {
         ProfileKind::Agent | ProfileKind::Command => vec![
-            PathBuf::from(format!("{name}.md.j2")),
-            PathBuf::from(format!("{name}.md")),
-            PathBuf::from(format!("{name}.j2")),
+            PathBuf::from(format!("{}.md.j2", name.as_str())),
+            PathBuf::from(format!("{}.md", name.as_str())),
+            PathBuf::from(format!("{}.j2", name.as_str())),
         ],
         ProfileKind::Skill => vec![
-            PathBuf::from(name).join("SKILL.md.j2"),
-            PathBuf::from(name).join("SKILL.md"),
-            PathBuf::from(name).join("SKILL.j2"),
+            PathBuf::from(name.as_str()).join("SKILL.md.j2"),
+            PathBuf::from(name.as_str()).join("SKILL.md"),
+            PathBuf::from(name.as_str()).join("SKILL.j2"),
         ],
     }
 }
@@ -259,9 +262,7 @@ fn runtime_chain(runtime: RuntimeKind, kind: ProfileKind) -> &'static [&'static 
         (RuntimeKind::Opencode, ProfileKind::Agent) => {
             &[".opencode/agents", ".agents/agents", ".claude/agents"]
         }
-        (RuntimeKind::Claude, ProfileKind::Command) => {
-            &[".claude/commands", ".agents/commands"]
-        }
+        (RuntimeKind::Claude, ProfileKind::Command) => &[".claude/commands", ".agents/commands"],
         (RuntimeKind::Codex, ProfileKind::Command) => {
             &[".codex/commands", ".agents/commands", ".claude/commands"]
         }
@@ -292,7 +293,9 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::resolve_profile_impl;
-    use crate::types::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, ProfileKind};
+    use crate::types::{
+        ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, ProfileKind, ProfileName,
+    };
     use crate::{ComposeError, DiagnosticCode};
 
     #[test]
@@ -305,7 +308,7 @@ mod tests {
         let agent = resolve_profile_impl(
             &root,
             ProfileKind::Agent,
-            "agent",
+            &ProfileName::new("agent").unwrap(),
             None,
             &crate::types::ResolverPolicy::default(),
         )
@@ -313,7 +316,7 @@ mod tests {
         let command = resolve_profile_impl(
             &root,
             ProfileKind::Command,
-            "command",
+            &ProfileName::new("command").unwrap(),
             Some(crate::types::RuntimeKind::Claude),
             &crate::types::ResolverPolicy::default(),
         )
@@ -321,7 +324,7 @@ mod tests {
         let skill = resolve_profile_impl(
             &root,
             ProfileKind::Skill,
-            "skill",
+            &ProfileName::new("skill").unwrap(),
             Some(crate::types::RuntimeKind::Codex),
             &crate::types::ResolverPolicy::default(),
         )
@@ -342,7 +345,7 @@ mod tests {
         let error = resolve_profile_impl(
             &root,
             ProfileKind::Agent,
-            "name",
+            &ProfileName::new("name").unwrap(),
             None,
             &crate::types::ResolverPolicy::default(),
         )
@@ -385,10 +388,8 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let root = std::env::temp_dir().join(format!(
-            "sc-compose-{label}-{}-{nanos}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("sc-compose-{label}-{}-{nanos}", std::process::id()));
         fs::create_dir_all(&root).unwrap();
         root
     }

@@ -13,33 +13,37 @@ pub mod error;
 pub mod frontmatter;
 /// Recursive include expansion and confinement enforcement.
 pub mod include;
-/// Backwards-compatible alias for the include engine surface.
-pub mod include_engine;
 /// Runtime-aware profile resolution and search tracing.
 pub mod resolver;
-/// Variable discovery and validation semantics.
-pub mod validation;
 /// Foundational request, result, and value-model types.
 pub mod types;
+/// Variable discovery and validation semantics.
+pub mod validation;
 
+#[doc(inline)]
 pub use diagnostics::{
-    DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope,
-    DiagnosticSeverity,
+    DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope, DiagnosticSeverity,
 };
+#[doc(inline)]
 pub use error::{
-    ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind,
-    RenderError, ResolveError, ValidationError,
+    ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind, RenderError,
+    ResolveError, ValidationError,
 };
+#[doc(inline)]
 pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};
+#[doc(inline)]
 pub use include::{ExpandedTemplate, expand_includes};
+#[doc(inline)]
 pub use resolver::{resolve_profile, resolve_template_path};
-pub use validation::validate;
+#[doc(inline)]
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
-    FrontmatterInitResult, IncludeDepth, InitResult, MetadataValue,
-    ProfileKind, ResolveResult, ResolverPolicy, RuntimeKind, ScalarValue,
-    UnknownVariablePolicy, ValidationReport, VariableName, VariableSource,
+    FrontmatterInitResult, IncludeDepth, InitResult, MetadataValue, ProfileKind, ProfileName,
+    ResolveResult, ResolverPolicy, RuntimeKind, ScalarValue, UnknownVariablePolicy,
+    ValidationReport, VariableName, VariableSource,
 };
+#[doc(inline)]
+pub use validation::validate;
 
 use minijinja::Environment;
 
@@ -90,10 +94,9 @@ mod tests {
 
     #[test]
     fn frontmatter_defaults_to_empty_maps_when_omitted() {
-        let parsed = parse_template_document(
-            "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
-        )
-        .unwrap();
+        let parsed =
+            parse_template_document("---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n")
+                .unwrap();
         let frontmatter = parsed.frontmatter().unwrap();
 
         assert_eq!(frontmatter.required_variables().len(), 1);

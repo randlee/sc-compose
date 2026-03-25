@@ -1,13 +1,12 @@
 //! Recursive include expansion and confinement enforcement.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
+use crate::DiagnosticCode;
 use crate::error::{ComposeError, IncludeError};
 use crate::frontmatter::{Frontmatter, parse_template_document};
-use crate::resolver::canonicalize_with_roots;
 use crate::types::{ComposePolicy, ConfiningRoot};
-use crate::DiagnosticCode;
 
 /// Expanded include graph returned from the include engine.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -18,6 +17,8 @@ pub struct ExpandedTemplate {
     pub resolved_files: Vec<PathBuf>,
     /// Parsed frontmatter values keyed by the file they came from.
     pub frontmatters: Vec<(PathBuf, Option<Frontmatter>)>,
+    /// Include chain recorded for each resolved file.
+    pub include_chains: BTreeMap<PathBuf, Vec<PathBuf>>,
 }
 
 /// Expand `@<path>` directives starting from the provided template path.
@@ -32,18 +33,12 @@ pub fn expand_includes(
     root: &ConfiningRoot,
     policy: &ComposePolicy,
 ) -> Result<ExpandedTemplate, ComposeError> {
-    let template_path =
-        canonicalize_with_roots(template_path, root.as_path(), &policy.allowed_roots).map_err(
-            |error| match error {
-                ComposeError::Resolve(error) => IncludeError::new(
-                    DiagnosticCode::ErrResolveNotFound,
-                    error.to_string(),
-                    vec![root.as_path().to_path_buf()],
-                )
-                .into(),
-                other => other,
-            },
-        )?;
+    let template_path = canonicalize_include(
+        template_path.as_ref(),
+        root.as_path(),
+        &policy.allowed_roots,
+        &[],
+    )?;
 
     let mut state = ExpansionState::default();
     let text = expand_file(
@@ -60,6 +55,7 @@ pub fn expand_includes(
         text,
         resolved_files: state.resolved_files,
         frontmatters: state.frontmatters,
+        include_chains: state.include_chains,
     })
 }
 
@@ -68,6 +64,7 @@ struct ExpansionState {
     resolved_files: Vec<PathBuf>,
     resolved_seen: BTreeSet<PathBuf>,
     frontmatters: Vec<(PathBuf, Option<Frontmatter>)>,
+    include_chains: BTreeMap<PathBuf, Vec<PathBuf>>,
 }
 
 fn expand_file(
@@ -91,7 +88,7 @@ fn expand_file(
         let mut cycle_stack = stack.clone();
         cycle_stack.push(path.to_path_buf());
         return Err(IncludeError::new(
-            DiagnosticCode::ErrIncludeDepth,
+            DiagnosticCode::ErrIncludeCycle,
             format!("include cycle detected at {}", path.display()),
             cycle_stack,
         )
@@ -103,22 +100,25 @@ fn expand_file(
     if state.resolved_seen.insert(path.to_path_buf()) {
         state.resolved_files.push(path.to_path_buf());
     }
+    state
+        .include_chains
+        .entry(path.to_path_buf())
+        .or_insert_with(|| {
+            let mut chain = stack.clone();
+            chain.push(path.to_path_buf());
+            chain
+        });
 
     let raw = std::fs::read_to_string(path).map_err(|error| {
         IncludeError::new(
-            DiagnosticCode::ErrResolveNotFound,
+            DiagnosticCode::ErrIncludeNotFound,
             format!("include file not found: {}", path.display()),
             stack.clone(),
         )
         .with_source(error)
     })?;
     let parsed = parse_template_document(&raw).map_err(|error| match error {
-        ComposeError::Config(error) => IncludeError::new(
-            DiagnosticCode::ErrResolveNotFound,
-            error.to_string(),
-            stack.clone(),
-        )
-        .into(),
+        ComposeError::Config(error) => error.into(),
         other => other,
     })?;
     state
@@ -142,22 +142,6 @@ fn expand_file(
             expanded.push_str(&nested);
         } else {
             expanded.push_str(line);
-        }
-    }
-
-    if !parsed.body().contains('\n') {
-        if let Some(include_target) = parse_include_directive(parsed.body()) {
-            let resolved_include =
-                resolve_include_path(include_target, path, root, allowed_roots, stack)?;
-            expanded = expand_file(
-                &resolved_include,
-                root,
-                allowed_roots,
-                max_depth,
-                depth + 1,
-                stack,
-                state,
-            )?;
         }
     }
 
@@ -190,25 +174,38 @@ fn canonicalize_include(
     allowed_roots: &[ConfiningRoot],
     stack: &[PathBuf],
 ) -> Result<PathBuf, ComposeError> {
-    let is_escape_attempt = candidate.components().any(|component| {
-        matches!(component, std::path::Component::ParentDir)
-    });
-
-    let error = canonicalize_with_roots(candidate, root, allowed_roots);
-    match error {
-        Ok(path) => Ok(path),
-        Err(_) if is_escape_attempt => Err(IncludeError::new(
-            DiagnosticCode::ErrIncludeEscape,
-            format!("include path escapes confinement root: {}", candidate.display()),
-            stack.to_vec(),
-        )
-        .into()),
-        Err(_) => Err(IncludeError::new(
-            DiagnosticCode::ErrResolveNotFound,
+    let canonical = std::fs::canonicalize(candidate).map_err(|error| {
+        IncludeError::new(
+            DiagnosticCode::ErrIncludeNotFound,
             format!("include file not found: {}", candidate.display()),
             stack.to_vec(),
         )
-        .into()),
+        .with_source(error)
+    })?;
+
+    let mut allowed = Vec::with_capacity(allowed_roots.len() + 1);
+    allowed.push(root.to_path_buf());
+    allowed.extend(
+        allowed_roots
+            .iter()
+            .map(|root| root.as_path().to_path_buf()),
+    );
+
+    if allowed
+        .iter()
+        .any(|allowed_root| canonical.starts_with(allowed_root))
+    {
+        Ok(canonical)
+    } else {
+        Err(IncludeError::new(
+            DiagnosticCode::ErrIncludeEscape,
+            format!(
+                "include path escapes confinement root: {}",
+                candidate.display()
+            ),
+            stack.to_vec(),
+        )
+        .into())
     }
 }
 
@@ -263,7 +260,7 @@ mod tests {
 
         match error {
             ComposeError::Include(error) => {
-                assert_eq!(error.code(), Some(DiagnosticCode::ErrResolveNotFound));
+                assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeNotFound));
             }
             other => panic!("unexpected error: {other}"),
         }
@@ -284,8 +281,7 @@ mod tests {
 
         match error {
             ComposeError::Include(error) => {
-                assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeDepth));
-                assert!(error.to_string().contains("cycle"));
+                assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeCycle));
             }
             other => panic!("unexpected error: {other}"),
         }
@@ -341,15 +337,54 @@ mod tests {
         }
     }
 
+    #[test]
+    fn single_line_include_expands_exactly_once() {
+        let root = temp_root("include_single_line");
+        write_file(&root.join("root.md.j2"), "@<child.md>");
+        write_file(&root.join("child.md"), "child body");
+
+        let expanded = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap();
+
+        assert_eq!(expanded.text, "child body");
+    }
+
+    #[test]
+    fn absolute_escape_attempts_are_rejected() {
+        let root = temp_root("include_absolute_escape");
+        let outside = root.parent().unwrap().join("absolute-outside.md");
+        write_file(
+            &root.join("root.md.j2"),
+            &format!("@<{}>\n", outside.display()),
+        );
+        write_file(&outside, "outside\n");
+
+        let error = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap_err();
+
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeEscape));
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
     fn temp_root(label: &str) -> PathBuf {
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let root = std::env::temp_dir().join(format!(
-            "sc-compose-{label}-{}-{nanos}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("sc-compose-{label}-{}-{nanos}", std::process::id()));
         fs::create_dir_all(&root).unwrap();
         root
     }
