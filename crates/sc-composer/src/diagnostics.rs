@@ -29,6 +29,10 @@ pub enum DiagnosticCode {
     ErrResolveAmbiguous,
     /// An include path escaped the configured confinement root.
     ErrIncludeEscape,
+    /// An include target could not be resolved.
+    ErrIncludeNotFound,
+    /// The include graph re-entered an active file, forming a cycle.
+    ErrIncludeCycle,
     /// The include graph exceeded the configured maximum depth.
     ErrIncludeDepth,
     /// A variable had an invalid scalar type or shape.
@@ -39,6 +43,10 @@ pub enum DiagnosticCode {
     ErrValEmpty,
     /// A required variable was still missing after context merge.
     ErrValMissingRequired,
+    /// A referenced token was not declared in frontmatter.
+    ErrValUndeclaredToken,
+    /// A caller-provided variable was not declared or referenced.
+    ErrValExtraInput,
     /// The CLI attempted to read stdin twice for incompatible inputs.
     ErrRenderStdinDoubleRead,
     /// Output writing or materialization failed.
@@ -59,11 +67,15 @@ impl DiagnosticCode {
             Self::ErrResolveNotFound => "ERR_RESOLVE_NOT_FOUND",
             Self::ErrResolveAmbiguous => "ERR_RESOLVE_AMBIGUOUS",
             Self::ErrIncludeEscape => "ERR_INCLUDE_ESCAPE",
+            Self::ErrIncludeNotFound => "ERR_INCLUDE_NOT_FOUND",
+            Self::ErrIncludeCycle => "ERR_INCLUDE_CYCLE",
             Self::ErrIncludeDepth => "ERR_INCLUDE_DEPTH",
             Self::ErrValType => "ERR_VAL_TYPE",
             Self::ErrValDuplicate => "ERR_VAL_DUPLICATE",
             Self::ErrValEmpty => "ERR_VAL_EMPTY",
             Self::ErrValMissingRequired => "ERR_VAL_MISSING_REQUIRED",
+            Self::ErrValUndeclaredToken => "ERR_VAL_UNDECLARED_TOKEN",
+            Self::ErrValExtraInput => "ERR_VAL_EXTRA_INPUT",
             Self::ErrRenderStdinDoubleRead => "ERR_RENDER_STDIN_DOUBLE_READ",
             Self::ErrRenderWrite => "ERR_RENDER_WRITE",
             Self::ErrConfigReadonly => "ERR_CONFIG_READONLY",
