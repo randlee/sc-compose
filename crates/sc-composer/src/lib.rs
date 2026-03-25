@@ -5,21 +5,37 @@
 //! families, diagnostics envelope, and typed frontmatter parsing surface used
 //! by later sprints.
 
+/// End-to-end composition orchestration.
+pub mod composer;
 /// Structured diagnostics and the stable `ERR_*` code registry.
 pub mod diagnostics;
 /// Canonical crate-owned error types.
 pub mod error;
 /// Typed frontmatter parsing and normalization.
 pub mod frontmatter;
+/// Frontmatter initialization helper.
+pub mod frontmatter_init;
 /// Recursive include expansion and confinement enforcement.
 pub mod include;
+/// Backwards-compatible alias for the include engine surface.
+pub mod include_engine;
+/// Workspace bootstrap helper.
+pub mod init_workspace;
+/// Pipeline typestates and output assembly helpers.
+pub mod pipeline;
+/// Template renderer wrapper.
+pub mod renderer;
 /// Runtime-aware profile resolution and search tracing.
 pub mod resolver;
 /// Foundational request, result, and value-model types.
 pub mod types;
+/// Public validation entrypoint.
+pub mod validate;
 /// Variable discovery and validation semantics.
 pub mod validation;
 
+#[doc(inline)]
+pub use composer::compose;
 #[doc(inline)]
 pub use diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope, DiagnosticSeverity,
@@ -32,7 +48,15 @@ pub use error::{
 #[doc(inline)]
 pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};
 #[doc(inline)]
+pub use frontmatter_init::frontmatter_init;
+#[doc(inline)]
 pub use include::{ExpandedTemplate, expand_includes};
+#[doc(inline)]
+pub use init_workspace::init_workspace;
+#[doc(inline)]
+pub use pipeline::{Document, Expanded, Parsed, Rendered, Validated, assemble_output_blocks};
+#[doc(inline)]
+pub use renderer::{Renderer, render_template};
 #[doc(inline)]
 pub use resolver::{resolve_profile, resolve_template_path};
 #[doc(inline)]
@@ -43,30 +67,7 @@ pub use types::{
     ValidationReport, VariableName, VariableSource,
 };
 #[doc(inline)]
-pub use validation::validate;
-
-use minijinja::Environment;
-
-/// Render a template string with the provided serializable context.
-///
-/// This is the stable one-shot convenience API. Callers that render repeatedly
-/// should use the future long-lived `Renderer` session API described in the
-/// architecture document.
-///
-/// # Errors
-///
-/// Returns [`RenderError`] when the template cannot be parsed, loaded, or
-/// rendered by the underlying template engine.
-pub fn render_template<T: serde::Serialize>(
-    template: &str,
-    context: T,
-) -> Result<String, RenderError> {
-    let mut env = Environment::new();
-    env.add_template("inline", template)
-        .map_err(RenderError::render)?;
-    let template = env.get_template("inline").map_err(RenderError::render)?;
-    template.render(context).map_err(RenderError::render)
-}
+pub use validate::validate;
 
 #[cfg(test)]
 mod tests {

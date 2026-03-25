@@ -103,11 +103,7 @@ fn expand_file(
     state
         .include_chains
         .entry(path.to_path_buf())
-        .or_insert_with(|| {
-            let mut chain = stack.clone();
-            chain.push(path.to_path_buf());
-            chain
-        });
+        .or_insert_with(|| stack.clone());
 
     let raw = std::fs::read_to_string(path).map_err(|error| {
         IncludeError::new(
@@ -174,39 +170,83 @@ fn canonicalize_include(
     allowed_roots: &[ConfiningRoot],
     stack: &[PathBuf],
 ) -> Result<PathBuf, ComposeError> {
-    let canonical = std::fs::canonicalize(candidate).map_err(|error| {
-        IncludeError::new(
-            DiagnosticCode::ErrIncludeNotFound,
-            format!("include file not found: {}", candidate.display()),
-            stack.to_vec(),
-        )
-        .with_source(error)
-    })?;
-
-    let mut allowed = Vec::with_capacity(allowed_roots.len() + 1);
-    allowed.push(root.to_path_buf());
-    allowed.extend(
+    let mut allowed_canonical = Vec::with_capacity(allowed_roots.len() + 1);
+    allowed_canonical.push(root.to_path_buf());
+    allowed_canonical.extend(
         allowed_roots
             .iter()
-            .map(|root| root.as_path().to_path_buf()),
+            .map(|allowed_root| allowed_root.as_path().to_path_buf()),
     );
 
-    if allowed
-        .iter()
-        .any(|allowed_root| canonical.starts_with(allowed_root))
-    {
-        Ok(canonical)
-    } else {
-        Err(IncludeError::new(
-            DiagnosticCode::ErrIncludeEscape,
-            format!(
-                "include path escapes confinement root: {}",
-                candidate.display()
-            ),
-            stack.to_vec(),
-        )
-        .into())
+    match std::fs::canonicalize(candidate) {
+        Ok(canonical) => {
+            if allowed_canonical
+                .iter()
+                .any(|allowed_root| canonical.starts_with(allowed_root))
+            {
+                Ok(canonical)
+            } else {
+                Err(IncludeError::new(
+                    DiagnosticCode::ErrIncludeEscape,
+                    format!(
+                        "include path escapes confinement root: {}",
+                        candidate.display()
+                    ),
+                    stack.to_vec(),
+                )
+                .into())
+            }
+        }
+        Err(error) => {
+            let normalized_candidate = normalize_path(candidate);
+            let allowed_normalized = allowed_canonical
+                .iter()
+                .map(|allowed_root| normalize_path(allowed_root))
+                .collect::<Vec<_>>();
+
+            if !allowed_normalized
+                .iter()
+                .any(|allowed_root| normalized_candidate.starts_with(allowed_root))
+            {
+                return Err(IncludeError::new(
+                    DiagnosticCode::ErrIncludeEscape,
+                    format!(
+                        "include path escapes confinement root: {}",
+                        candidate.display()
+                    ),
+                    stack.to_vec(),
+                )
+                .into());
+            }
+
+            Err(IncludeError::new(
+                DiagnosticCode::ErrIncludeNotFound,
+                format!("include file not found: {}", candidate.display()),
+                stack.to_vec(),
+            )
+            .with_source(error)
+            .into())
+        }
     }
+}
+
+fn normalize_path(path: &Path) -> PathBuf {
+    use std::path::Component;
+
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::Prefix(prefix) => normalized.push(prefix.as_os_str()),
+            Component::RootDir => normalized.push(component.as_os_str()),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            Component::Normal(part) => normalized.push(part),
+        }
+    }
+
+    normalized
 }
 
 fn parse_include_directive(line: &str) -> Option<&str> {
@@ -321,6 +361,26 @@ mod tests {
         write_file(&root.join("root.md.j2"), "@<../outside.md>\n");
         let outside = root.parent().unwrap().join("outside.md");
         write_file(&outside, "nope\n");
+
+        let error = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap_err();
+
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeEscape));
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[test]
+    fn nonexistent_escape_attempts_are_rejected_before_not_found() {
+        let root = temp_root("include_escape_missing");
+        write_file(&root.join("root.md.j2"), "@<../outside-missing.md>\n");
 
         let error = expand_includes(
             root.join("root.md.j2"),

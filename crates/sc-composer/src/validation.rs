@@ -9,16 +9,18 @@ use crate::include::expand_includes;
 use crate::resolver::resolve_template_path;
 use crate::types::{
     ComposeRequest, ScalarValue, UnknownVariablePolicy, ValidationReport, VariableName,
+    VariableSource,
 };
 use crate::{ComposeError, ExpandedTemplate};
 
 #[derive(Debug, Default)]
-struct ValidationState {
-    context: BTreeMap<VariableName, ScalarValue>,
-    required_origins: BTreeMap<VariableName, PathBuf>,
-    required_include_chains: BTreeMap<VariableName, Vec<PathBuf>>,
-    declared_variables: BTreeSet<VariableName>,
-    referenced_variables: BTreeSet<VariableName>,
+pub(crate) struct ValidationState {
+    pub(crate) context: BTreeMap<VariableName, ScalarValue>,
+    pub(crate) variable_sources: BTreeMap<VariableName, VariableSource>,
+    pub(crate) required_origins: BTreeMap<VariableName, PathBuf>,
+    pub(crate) required_include_chains: BTreeMap<VariableName, Vec<PathBuf>>,
+    pub(crate) declared_variables: BTreeSet<VariableName>,
+    pub(crate) referenced_variables: BTreeSet<VariableName>,
 }
 
 /// Validate a compose request without rendering output.
@@ -33,7 +35,15 @@ pub fn validate(request: &ComposeRequest) -> Result<ValidationReport, ComposeErr
         &request.root,
         &request.policy,
     )?;
-    let state = collect_validation_state(request, &expanded);
+    Ok(validate_expanded(request, &resolve_result, &expanded))
+}
+
+pub(crate) fn validate_expanded(
+    request: &ComposeRequest,
+    resolve_result: &crate::ResolveResult,
+    expanded: &ExpandedTemplate,
+) -> ValidationReport {
+    let state = collect_validation_state(request, expanded);
 
     let mut warnings = Vec::new();
     let mut errors = Vec::new();
@@ -127,34 +137,43 @@ pub fn validate(request: &ComposeRequest) -> Result<ValidationReport, ComposeErr
         }
     }
 
-    Ok(ValidationReport {
+    ValidationReport {
         ok: errors.is_empty(),
         warnings,
         errors,
-        resolve_result,
-    })
+        resolve_result: resolve_result.clone(),
+    }
 }
 
-fn collect_validation_state(
+pub(crate) fn collect_validation_state(
     request: &ComposeRequest,
     expanded: &ExpandedTemplate,
 ) -> ValidationState {
     let mut state = ValidationState::default();
+    let root_path = expanded.resolved_files.first();
 
     for (path, frontmatter) in &expanded.frontmatters {
         if let Some(frontmatter) = frontmatter {
-            merge_frontmatter(path, frontmatter, expanded, &mut state);
+            let is_root = root_path.is_some_and(|root| root == path);
+            merge_frontmatter(path, frontmatter, expanded, &mut state, is_root);
         }
     }
 
     for (name, value) in &request.vars_input {
         state.context.insert(name.clone(), value.clone());
+        state
+            .variable_sources
+            .insert(name.clone(), VariableSource::ExplicitInput);
     }
     for (name, value) in &request.vars_env {
         state
             .context
             .entry(name.clone())
             .or_insert_with(|| value.clone());
+        state
+            .variable_sources
+            .entry(name.clone())
+            .or_insert(VariableSource::Environment);
     }
 
     state.referenced_variables = discover_tokens(&expanded.text);
@@ -166,6 +185,7 @@ fn merge_frontmatter(
     frontmatter: &Frontmatter,
     expanded: &ExpandedTemplate,
     state: &mut ValidationState,
+    is_root: bool,
 ) {
     for variable in frontmatter.required_variables() {
         state
@@ -191,10 +211,18 @@ fn merge_frontmatter(
             .context
             .entry(variable.clone())
             .or_insert_with(|| value.clone());
+        state
+            .variable_sources
+            .entry(variable.clone())
+            .or_insert(if is_root {
+                VariableSource::FrontmatterDefault
+            } else {
+                VariableSource::IncludedDefault
+            });
     }
 }
 
-fn discover_tokens(text: &str) -> BTreeSet<VariableName> {
+pub(crate) fn discover_tokens(text: &str) -> BTreeSet<VariableName> {
     let mut tokens = BTreeSet::new();
     collect_tokens_from_delimiters(text, "{{", "}}", &mut tokens);
     collect_tokens_from_delimiters(text, "{%", "%}", &mut tokens);
