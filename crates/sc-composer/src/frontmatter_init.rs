@@ -5,7 +5,7 @@ use std::path::Path;
 use crate::frontmatter::parse_template_document;
 use crate::resolver::canonicalize_with_roots;
 use crate::validation::discover_tokens;
-use crate::{ComposeError, ConfigError, DiagnosticCode, FrontmatterInitResult};
+use crate::{ComposeError, ConfigError, DiagnosticCode, FrontmatterInitResult, VariableName};
 
 /// Insert or rewrite normalized frontmatter for a single template.
 ///
@@ -31,15 +31,15 @@ pub fn frontmatter_init(
     let parsed = parse_template_document(&contents)?;
     if parsed.frontmatter().is_some() && !force {
         return Err(ConfigError::new(
-            DiagnosticCode::ErrConfigParse,
+            DiagnosticCode::ErrConfigReadonly,
             "frontmatter already exists; rerun with --force to rewrite it",
         )
         .into());
     }
 
+    let would_change = parsed.frontmatter().is_none() || force;
     let discovered = discover_tokens(parsed.body())
         .into_iter()
-        .map(|name| name.to_string())
         .collect::<Vec<_>>();
     let frontmatter_text = build_frontmatter(&discovered);
     if !dry_run {
@@ -57,15 +57,16 @@ pub fn frontmatter_init(
         target_path: canonical,
         frontmatter_text,
         discovered_variables: discovered,
-        changed: true,
+        changed: !dry_run && would_change,
+        would_change,
     })
 }
 
-fn build_frontmatter(discovered: &[String]) -> String {
+fn build_frontmatter(discovered: &[VariableName]) -> String {
     let mut text = String::from("---\nrequired_variables:\n");
     for variable in discovered {
         text.push_str("  - ");
-        text.push_str(variable);
+        text.push_str(variable.as_str());
         text.push('\n');
     }
     text.push_str("defaults: {}\nmetadata: {}\n---\n");
@@ -78,7 +79,7 @@ mod tests {
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use crate::{ComposeError, frontmatter_init};
+    use crate::{ComposeError, VariableName, frontmatter_init};
 
     #[test]
     fn dry_run_reports_frontmatter_without_writing_file() {
@@ -89,6 +90,12 @@ mod tests {
         let result = frontmatter_init(&template, false, true).unwrap();
 
         assert!(result.frontmatter_text.contains("required_variables"));
+        assert!(!result.changed);
+        assert!(result.would_change);
+        assert_eq!(
+            result.discovered_variables,
+            vec![VariableName::new("name").unwrap()]
+        );
         assert_eq!(fs::read_to_string(&template).unwrap(), "hello {{ name }}\n");
     }
 

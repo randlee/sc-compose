@@ -72,7 +72,8 @@ pub fn compose_with_observer(
     fail_if_invalid(&validation_report)?;
     let validation_state = crate::validation::collect_validation_state(request, &expanded);
 
-    let rendered_text = Renderer
+    let renderer = Renderer::new();
+    let rendered_text = renderer
         .render(&expanded.text, build_render_context(&validation_state))
         .inspect_err(|error| {
             observer.on_render_outcome(&RenderOutcomeEvent {
@@ -123,9 +124,7 @@ fn fail_if_invalid(report: &ValidationReport) -> Result<(), ComposeError> {
     if report.errors.is_empty() {
         Ok(())
     } else {
-        let first = &report.errors[0];
-        let code = first.code;
-        Err(ValidationError::new(code, first.message.clone()).into())
+        Err(ValidationError::from_diagnostics(report.errors.clone()).into())
     }
 }
 
@@ -170,8 +169,51 @@ mod tests {
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    use crate::observer::{
+        CommandEndEvent, CommandStartEvent, CompositionObserver, IncludeOutcomeEvent,
+        RenderOutcomeEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
+    };
     use crate::types::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot};
-    use crate::{ScalarValue, VariableName, VariableSource, compose};
+    use crate::{
+        ComposeError, DiagnosticCode, ScalarValue, VariableName, VariableSource, compose,
+        compose_with_observer,
+    };
+
+    #[derive(Default)]
+    struct CapturingObserver {
+        command_start: Vec<CommandStartEvent>,
+        command_end: Vec<CommandEndEvent>,
+        resolve: Vec<ResolveOutcomeEvent>,
+        include: Vec<IncludeOutcomeEvent>,
+        validation: Vec<ValidationOutcomeEvent>,
+        render: Vec<RenderOutcomeEvent>,
+    }
+
+    impl CompositionObserver for CapturingObserver {
+        fn on_command_start(&mut self, event: &CommandStartEvent) {
+            self.command_start.push(event.clone());
+        }
+
+        fn on_command_end(&mut self, event: &CommandEndEvent) {
+            self.command_end.push(event.clone());
+        }
+
+        fn on_resolve_outcome(&mut self, event: &ResolveOutcomeEvent) {
+            self.resolve.push(event.clone());
+        }
+
+        fn on_include_outcome(&mut self, event: &IncludeOutcomeEvent) {
+            self.include.push(event.clone());
+        }
+
+        fn on_validation_outcome(&mut self, event: &ValidationOutcomeEvent) {
+            self.validation.push(event.clone());
+        }
+
+        fn on_render_outcome(&mut self, event: &RenderOutcomeEvent) {
+            self.render.push(event.clone());
+        }
+    }
 
     #[test]
     fn compose_renders_and_appends_guidance_and_prompt() {
@@ -239,6 +281,108 @@ mod tests {
                 .get(&VariableName::new("name").unwrap()),
             Some(&VariableSource::ExplicitInput)
         );
+    }
+
+    #[test]
+    fn compose_with_observer_emits_success_outcomes() {
+        let root = temp_root("compose_observer_success");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\ndefaults:\n  name: world\n---\nhello {{ name }}",
+        );
+        let mut observer = CapturingObserver::default();
+
+        let result = compose_with_observer(
+            &ComposeRequest {
+                runtime: None,
+                mode: ComposeMode::File {
+                    template_path: PathBuf::from("template.md.j2"),
+                },
+                root: ConfiningRoot::new(&root).unwrap(),
+                vars_input: BTreeMap::default(),
+                vars_env: BTreeMap::default(),
+                guidance_block: None,
+                user_prompt: None,
+                policy: ComposePolicy::default(),
+            },
+            &mut observer,
+        )
+        .unwrap();
+
+        assert_eq!(result.rendered_text, "hello world");
+        assert_eq!(observer.resolve.len(), 1);
+        assert_eq!(observer.include.len(), 1);
+        assert_eq!(observer.validation.len(), 1);
+        assert_eq!(observer.render.len(), 1);
+        assert_eq!(observer.render[0].rendered_bytes, Some("hello world".len()));
+    }
+
+    #[test]
+    fn compose_with_observer_emits_include_failure() {
+        let root = temp_root("compose_observer_include_failure");
+        write_file(&root.join("template.md.j2"), "@<missing.md>\n");
+        let mut observer = CapturingObserver::default();
+
+        let error = compose_with_observer(
+            &ComposeRequest {
+                runtime: None,
+                mode: ComposeMode::File {
+                    template_path: PathBuf::from("template.md.j2"),
+                },
+                root: ConfiningRoot::new(&root).unwrap(),
+                vars_input: BTreeMap::default(),
+                vars_env: BTreeMap::default(),
+                guidance_block: None,
+                user_prompt: None,
+                policy: ComposePolicy::default(),
+            },
+            &mut observer,
+        )
+        .unwrap_err();
+
+        assert!(matches!(error, ComposeError::Include(_)));
+        assert_eq!(observer.resolve.len(), 1);
+        assert_eq!(observer.include.len(), 1);
+        assert_eq!(
+            observer.include[0].code,
+            Some(DiagnosticCode::ErrIncludeNotFound)
+        );
+        assert!(observer.validation.is_empty());
+        assert!(observer.render.is_empty());
+    }
+
+    #[test]
+    fn compose_with_observer_emits_render_failure() {
+        let root = temp_root("compose_observer_render_failure");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\ndefaults:\n  name: world\n---\n{{ broken",
+        );
+        let mut observer = CapturingObserver::default();
+
+        let error = compose_with_observer(
+            &ComposeRequest {
+                runtime: None,
+                mode: ComposeMode::File {
+                    template_path: PathBuf::from("template.md.j2"),
+                },
+                root: ConfiningRoot::new(&root).unwrap(),
+                vars_input: BTreeMap::default(),
+                vars_env: BTreeMap::default(),
+                guidance_block: None,
+                user_prompt: None,
+                policy: ComposePolicy::default(),
+            },
+            &mut observer,
+        )
+        .unwrap_err();
+
+        assert!(matches!(error, ComposeError::Render(_)));
+        assert_eq!(observer.resolve.len(), 1);
+        assert_eq!(observer.include.len(), 1);
+        assert_eq!(observer.validation.len(), 1);
+        assert_eq!(observer.render.len(), 1);
+        assert_eq!(observer.render[0].rendered_bytes, None);
     }
 
     fn temp_root(label: &str) -> PathBuf {

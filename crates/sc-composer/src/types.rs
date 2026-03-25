@@ -423,9 +423,11 @@ pub struct FrontmatterInitResult {
     /// Frontmatter text that would be written.
     pub frontmatter_text: String,
     /// Variables discovered during analysis.
-    pub discovered_variables: Vec<String>,
-    /// Whether the target file changed.
+    pub discovered_variables: Vec<VariableName>,
+    /// Whether the target file changed on disk.
     pub changed: bool,
+    /// Whether the operation would rewrite the target if allowed to write.
+    pub would_change: bool,
 }
 
 /// Result returned by the future `init` helper.
