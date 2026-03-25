@@ -137,11 +137,12 @@ ATM integration is an adapter concern outside this repository.
   - enforces path confinement,
   - tracks include stack,
   - detects cycles and depth overflow.
-- `context`
-  - merges explicit variables, environment variables, and defaults,
+- `validation` (context merge and token discovery implemented here, not as
+  separate `context.rs`/`tokens.rs` files)
+  - merges explicit variables, environment variables, and defaults
+    in precedence order (explicit > env > frontmatter defaults),
   - tracks variable origin,
-  - applies unknown-variable policy.
-- `tokens`
+  - applies unknown-variable policy,
   - discovers referenced template tokens,
   - distinguishes declared, undeclared, missing, and extra variables.
 - `render`
@@ -423,8 +424,9 @@ Semantics:
 
 - `target_path: PathBuf`
 - `frontmatter_text: String`
-- `discovered_variables: Vec<String>`
+- `discovered_variables: Vec<VariableName>`
 - `changed: bool`
+- `would_change: bool`
 
 `InitResult`
 
@@ -479,13 +481,14 @@ Required fields:
 The JSON representation must be versioned. The version belongs to the schema
 contract, not to any single CLI command.
 
-Top-level diagnostics envelope:
+Top-level diagnostics envelope (payload fields are command-specific; `"valid"`
+shown here matches the `validate` command — see §13.1 for per-command schemas):
 
 ```json
 {
   "schema_version": "1",
   "payload": {
-    "ok": false
+    "valid": false
   },
   "diagnostics": [
     {

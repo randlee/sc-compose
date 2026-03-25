@@ -10,9 +10,9 @@ pub struct Document<State> {
 }
 
 impl<State> Document<State> {
-    /// Create a typestated document body.
+    /// Create a typestated document body internally.
     #[must_use]
-    pub fn new(body: String) -> Self {
+    pub(crate) fn from_body(body: String) -> Self {
         Self {
             body,
             state: PhantomData,
@@ -43,11 +43,20 @@ pub struct Validated;
 pub struct Rendered;
 
 impl Document<Parsed> {
+    /// Create a parsed document at the public pipeline entrypoint.
+    #[must_use]
+    pub fn new(body: String) -> Self {
+        Self {
+            body,
+            state: PhantomData,
+        }
+    }
+
     /// Transition a parsed document into the expanded state.
     #[must_use]
     pub fn into_expanded(self, body: String) -> Document<Expanded> {
         let _ = self;
-        Document::new(body)
+        Document::<Expanded>::from_body(body)
     }
 }
 
@@ -55,7 +64,7 @@ impl Document<Expanded> {
     /// Transition an expanded document into the validated state.
     #[must_use]
     pub fn into_validated(self) -> Document<Validated> {
-        Document::new(self.body)
+        Document::<Validated>::from_body(self.body)
     }
 }
 
@@ -63,7 +72,7 @@ impl Document<Validated> {
     /// Transition a validated document into the rendered state.
     #[must_use]
     pub fn into_rendered(self, body: String) -> Document<Rendered> {
-        Document::new(body)
+        Document::<Rendered>::from_body(body)
     }
 }
 

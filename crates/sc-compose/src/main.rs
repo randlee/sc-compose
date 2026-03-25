@@ -298,7 +298,10 @@ fn run_frontmatter_init(args: &FrontmatterInitArgs) -> Result<i32, CommandError>
             serde_json::json!({
                 "action": "frontmatter-init",
                 "would_affect": [result.target_path.display().to_string()],
-                "skipped": !result.changed,
+                "changed": result.changed,
+                "would_change": result.would_change,
+                "skipped": !result.would_change,
+                "vars": result.discovered_variables,
             }),
             Vec::new(),
         )
@@ -590,6 +593,7 @@ fn print_json_frontmatter_init(result: &FrontmatterInitResult) -> Result<()> {
     let payload = serde_json::json!({
         "template_path": result.target_path.display().to_string(),
         "frontmatter_added": result.changed,
+        "would_change": result.would_change,
         "vars": result.discovered_variables,
     });
     println!(

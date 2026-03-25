@@ -72,7 +72,8 @@ pub fn compose_with_observer(
     fail_if_invalid(&validation_report)?;
     let validation_state = crate::validation::collect_validation_state(request, &expanded);
 
-    let rendered_text = Renderer
+    let renderer = Renderer::new();
+    let rendered_text = renderer
         .render(&expanded.text, build_render_context(&validation_state))
         .inspect_err(|error| {
             observer.on_render_outcome(&RenderOutcomeEvent {
