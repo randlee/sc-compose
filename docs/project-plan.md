@@ -22,14 +22,18 @@ The immediate goal is to establish:
    - GitHub secrets and environments are configured and use the same variable
      names as ATM where the workflows overlap
 3. Verify repository setup end to end:
-   - release preflight validates publish order and version alignment
-   - release workflow is ready to publish `sc-composer` then `sc-compose`
-   - workspace version stays above the source ATM workspace version that last
-     published these crate names
-4. Complete crates.io ownership and release readiness:
+   - release preflight validates publish order and version alignment for the
+     eventual downstream cutover
+   - release workflow remains gated until downstream integration is complete
+   - workspace version `0.46.2` remains intentionally aligned with the
+     agent-team-mail replacement baseline
+4. Prepare deferred publish readiness without treating crates.io publication as
+   an immediate release goal:
    - verify crate ownership/maintainers for `sc-composer` and `sc-compose`
-   - verify publish tokens and first-release permissions
-   - document the handoff from ATM-published crates to this repo
+   - document the replacement handoff from the ATM-published crates to this
+     repo
+   - keep publish-token setup and first-release permissions as deferred release
+     operations, not Sprint 6 exit criteria
 5. Make `sc-composer` fully standalone.
 6. Remove any `ATM_HOME` or ATM path assumptions from `sc-compose`.
 7. Verify ATM cutover readiness:
@@ -353,9 +357,73 @@ Deliverables:
   - profile resolution
   - output-path derivation
 - cross-platform path/confinement verification cases
+- failure-path JSON snapshot coverage for command families:
+  - `render`
+  - `resolve`
+  - `validate`
+  - `frontmatter-init`
+  - `init`
+- focused observer integration test suite covering documented emission points:
+  - command start
+  - command end
+  - resolve outcomes
+  - include outcomes
+  - validation outcomes
+  - render outcomes
+- hardening fixes for phase-end and compatibility findings:
+  - preserve full diagnostics in `fail_if_invalid()` rather than reducing to the
+    first diagnostic only
+  - correct the mode-mismatch error code in `resolver.rs` so usage/config
+    failures do not emit `ERR_CONFIG_PARSE`
+  - include cause chain and backtrace information in `Display`
+    implementations for `ResolveError`, `IncludeError`, `ValidationError`, and
+    `ConfigError`
+  - report `bytes_written` using actual bytes written to disk rather than
+    in-memory string length
+- dry-run integration coverage for:
+  - `frontmatter-init`
+  - `init`
+- `ERR_*` golden tests ensuring every failure-mode matrix code appears in at
+  least one diagnostics array assertion
+- ATM adapter integration notes that explicitly document:
+  - the observer API as the primary ATM extension seam
+  - command lifecycle events as adapter-owned when embedding `sc-composer`
+    directly
+  - config and path translation as adapter-owned because there is no
+    `ComposerConfig` wrapper
 - release-readiness checklist for both crates
-- final migration and cutover notes for downstream consumers
+- migration and cutover notes for downstream consumers covering:
+  - replacement of the already-published `agent-team-mail` crates by this repo
+  - intentional breaking-change expectations during downstream cutover
+  - deferred crates.io publishing until downstream integration is complete
 - issue triage pass for any non-blocking carry-over discovered in S2-S5
+
+ATM adapter use-case coverage updates required in Sprint 6:
+
+- convert the `/tmp/sc_atm_compat_001_report.txt` findings into explicit test or
+  documentation coverage
+- close the current PARTIAL/MISSING gaps around observer integration and
+  failure-path JSON behavior
+- keep typestate positioned as a library-internal sequencing aid rather than
+  the primary adapter seam
+
+Carry-over from S2-S5 QA deferred beyond Sprint 6:
+
+- `ComposerConfig` wrapper:
+  - deferred because adapter-owned config translation is workable today and a
+    wrapper would add new public API surface during integration
+- `ResolverPolicy::filename_probes: Vec<String> -> Vec<PathBuf>`:
+  - deferred because this is a refactor and not a current correctness blocker
+- Cow/allocation cleanup in output assembly, filename probes, and render
+  context building:
+  - deferred as performance optimization rather than correctness or contract
+    work
+- `workspace.rs` module naming deviation:
+  - deferred because it is cosmetic and does not affect the documented API
+- root-relative fix hint for `ERR_VAL_MISSING_FRONTMATTER`:
+  - deferred as minor UX polish
+- `--ai` as a true alias rather than a sibling clap argument:
+  - deferred as minor CLI polish
 
 Acceptance criteria:
 
@@ -363,8 +431,14 @@ Acceptance criteria:
 - `compose()`, `Renderer`, `render_template()`, `validate()`,
   `init_workspace()`, and `frontmatter_init()` behave as documented
 - failure-mode matrix codes are exercised by tests
+- failure-path JSON envelope shape is snapshot-tested for every command family
+- observer emission points are covered by focused integration tests
+- every `ERR_*` code in the failure-mode matrix appears in at least one test's
+  diagnostics output
 - standalone boundaries remain intact with no ATM-specific assumptions in code
   or manifests
+- migration and cutover notes document the `agent-team-mail` replacement
+  contract and breaking-change expectations for downstream consumers
 - no open Priority 1 or Priority 2 QA findings remain
 
 Exit gate:
@@ -392,8 +466,6 @@ crate dependency direction.
    - `resolver`
    - `include`
 3. `sc-composer` semantic pipeline:
-   - `context`
-   - `tokens`
    - `render`
    - `validate`
    - `pipeline`
@@ -411,7 +483,7 @@ Modules that can be parallelized once the shared types exist:
 
 - `resolver` and `frontmatter` may proceed in parallel after Sprint 2
   foundational type modules land
-- `include` and `tokens` may proceed in parallel once path and document
+- `include` and `render` may proceed in parallel once path and document
   representations stabilize
 - `observability` and `workspace` can proceed in parallel with late Sprint 4
   or early Sprint 5 CLI work
