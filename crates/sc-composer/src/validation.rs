@@ -42,7 +42,7 @@ pub(crate) fn validate_expanded(
     resolve_result: &crate::ResolveResult,
     expanded: &ExpandedTemplate,
 ) -> ValidationReport {
-    let state = collect_validation_state(request, &expanded);
+    let state = collect_validation_state(request, expanded);
 
     let mut warnings = Vec::new();
     let mut errors = Vec::new();

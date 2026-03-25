@@ -293,7 +293,9 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::resolve_profile_impl;
-    use crate::types::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, ProfileKind};
+    use crate::types::{
+        ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, ProfileKind, ProfileName,
+    };
     use crate::{ComposeError, DiagnosticCode};
 
     #[test]
@@ -306,7 +308,7 @@ mod tests {
         let agent = resolve_profile_impl(
             &root,
             ProfileKind::Agent,
-            "agent",
+            &ProfileName::new("agent").unwrap(),
             None,
             &crate::types::ResolverPolicy::default(),
         )
@@ -314,7 +316,7 @@ mod tests {
         let command = resolve_profile_impl(
             &root,
             ProfileKind::Command,
-            "command",
+            &ProfileName::new("command").unwrap(),
             Some(crate::types::RuntimeKind::Claude),
             &crate::types::ResolverPolicy::default(),
         )
@@ -322,7 +324,7 @@ mod tests {
         let skill = resolve_profile_impl(
             &root,
             ProfileKind::Skill,
-            "skill",
+            &ProfileName::new("skill").unwrap(),
             Some(crate::types::RuntimeKind::Codex),
             &crate::types::ResolverPolicy::default(),
         )
@@ -343,7 +345,7 @@ mod tests {
         let error = resolve_profile_impl(
             &root,
             ProfileKind::Agent,
-            "name",
+            &ProfileName::new("name").unwrap(),
             None,
             &crate::types::ResolverPolicy::default(),
         )
