@@ -89,9 +89,7 @@ impl MetadataValue {
 }
 
 /// Validated variable identifier used in the public API.
-#[derive(
-    Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
-)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct VariableName(String);
 

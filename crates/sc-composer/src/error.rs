@@ -63,7 +63,10 @@ pub struct ResolveError {
 impl ResolveError {
     /// Create a new resolver error without an underlying source.
     #[must_use]
-    #[allow(dead_code, reason = "Sprint 2 seeds constructors that later pipeline modules call.")]
+    #[allow(
+        dead_code,
+        reason = "Sprint 2 seeds constructors that later pipeline modules call."
+    )]
     pub(crate) fn new(
         code: DiagnosticCode,
         message: impl Into<String>,
@@ -80,11 +83,11 @@ impl ResolveError {
 
     /// Attach an underlying source error.
     #[must_use]
-    #[allow(dead_code, reason = "Sprint 2 seeds constructors that later pipeline modules call.")]
-    pub(crate) fn with_source(
-        mut self,
-        source: impl StdError + Send + Sync + 'static,
-    ) -> Self {
+    #[allow(
+        dead_code,
+        reason = "Sprint 2 seeds constructors that later pipeline modules call."
+    )]
+    pub(crate) fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
         self.source = Some(Box::new(source));
         self
     }
@@ -115,7 +118,9 @@ impl fmt::Display for ResolveError {
 
 impl StdError for ResolveError {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        self.source.as_deref().map(|error| error as &(dyn StdError + 'static))
+        self.source
+            .as_deref()
+            .map(|error| error as &(dyn StdError + 'static))
     }
 }
 
@@ -132,7 +137,10 @@ pub struct IncludeError {
 impl IncludeError {
     /// Create a new include error.
     #[must_use]
-    #[allow(dead_code, reason = "Sprint 2 seeds constructors that later pipeline modules call.")]
+    #[allow(
+        dead_code,
+        reason = "Sprint 2 seeds constructors that later pipeline modules call."
+    )]
     pub(crate) fn new(
         code: DiagnosticCode,
         message: impl Into<String>,
@@ -149,11 +157,11 @@ impl IncludeError {
 
     /// Attach an underlying source error.
     #[must_use]
-    #[allow(dead_code, reason = "Sprint 2 seeds constructors that later pipeline modules call.")]
-    pub(crate) fn with_source(
-        mut self,
-        source: impl StdError + Send + Sync + 'static,
-    ) -> Self {
+    #[allow(
+        dead_code,
+        reason = "Sprint 2 seeds constructors that later pipeline modules call."
+    )]
+    pub(crate) fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
         self.source = Some(Box::new(source));
         self
     }
@@ -184,7 +192,9 @@ impl fmt::Display for IncludeError {
 
 impl StdError for IncludeError {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        self.source.as_deref().map(|error| error as &(dyn StdError + 'static))
+        self.source
+            .as_deref()
+            .map(|error| error as &(dyn StdError + 'static))
     }
 }
 
@@ -228,22 +238,22 @@ impl ValidationError {
 
     /// Attach structured recovery hints.
     #[must_use]
-    #[allow(dead_code, reason = "Sprint 2 seeds constructors that later pipeline modules call.")]
-    pub(crate) fn with_recovery_hints(
-        mut self,
-        recovery_hints: Vec<RecoveryHint>,
-    ) -> Self {
+    #[allow(
+        dead_code,
+        reason = "Sprint 2 seeds constructors that later pipeline modules call."
+    )]
+    pub(crate) fn with_recovery_hints(mut self, recovery_hints: Vec<RecoveryHint>) -> Self {
         self.recovery_hints = recovery_hints;
         self
     }
 
     /// Attach an underlying source error.
     #[must_use]
-    #[allow(dead_code, reason = "Sprint 2 seeds constructors that later pipeline modules call.")]
-    pub(crate) fn with_source(
-        mut self,
-        source: impl StdError + Send + Sync + 'static,
-    ) -> Self {
+    #[allow(
+        dead_code,
+        reason = "Sprint 2 seeds constructors that later pipeline modules call."
+    )]
+    pub(crate) fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
         self.source = Some(Box::new(source));
         self
     }
@@ -274,7 +284,9 @@ impl fmt::Display for ValidationError {
 
 impl StdError for ValidationError {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        self.source.as_deref().map(|error| error as &(dyn StdError + 'static))
+        self.source
+            .as_deref()
+            .map(|error| error as &(dyn StdError + 'static))
     }
 }
 
@@ -305,7 +317,10 @@ impl RenderError {
 
     /// Attach a stable render code when the calling layer knows one.
     #[must_use]
-    #[allow(dead_code, reason = "Sprint 2 seeds constructors that later pipeline modules call.")]
+    #[allow(
+        dead_code,
+        reason = "Sprint 2 seeds constructors that later pipeline modules call."
+    )]
     pub(crate) fn with_code(mut self, code: DiagnosticCode) -> Self {
         self.code = Some(code);
         self
@@ -360,21 +375,18 @@ impl ConfigError {
 
     /// Attach structured recovery hints.
     #[must_use]
-    #[allow(dead_code, reason = "Sprint 2 seeds constructors that later pipeline modules call.")]
-    pub(crate) fn with_recovery_hints(
-        mut self,
-        recovery_hints: Vec<RecoveryHint>,
-    ) -> Self {
+    #[allow(
+        dead_code,
+        reason = "Sprint 2 seeds constructors that later pipeline modules call."
+    )]
+    pub(crate) fn with_recovery_hints(mut self, recovery_hints: Vec<RecoveryHint>) -> Self {
         self.recovery_hints = recovery_hints;
         self
     }
 
     /// Attach an underlying source error.
     #[must_use]
-    pub(crate) fn with_source(
-        mut self,
-        source: impl StdError + Send + Sync + 'static,
-    ) -> Self {
+    pub(crate) fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
         self.source = Some(Box::new(source));
         self
     }
@@ -405,7 +417,9 @@ impl fmt::Display for ConfigError {
 
 impl StdError for ConfigError {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        self.source.as_deref().map(|error| error as &(dyn StdError + 'static))
+        self.source
+            .as_deref()
+            .map(|error| error as &(dyn StdError + 'static))
     }
 }
 
@@ -497,8 +511,8 @@ mod tests {
     use std::error::Error as _;
 
     use super::{
-        ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind,
-        RenderError, ResolveError, ValidationError,
+        ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind, RenderError,
+        ResolveError, ValidationError,
     };
     use crate::diagnostics::DiagnosticCode;
     use crate::types::VariableName;
@@ -594,14 +608,15 @@ mod tests {
             "include",
             Vec::new(),
         ));
-        let validation =
-            ComposeError::from(ValidationError::new(DiagnosticCode::ErrValEmpty, "validation"));
+        let validation = ComposeError::from(ValidationError::new(
+            DiagnosticCode::ErrValEmpty,
+            "validation",
+        ));
         let render = ComposeError::from(
             RenderError::render(std::io::Error::other("render"))
                 .with_code(DiagnosticCode::ErrRenderWrite),
         );
-        let config =
-            ComposeError::from(ConfigError::new(DiagnosticCode::ErrConfigParse, "config"));
+        let config = ComposeError::from(ConfigError::new(DiagnosticCode::ErrConfigParse, "config"));
 
         assert!(matches!(resolve, ComposeError::Resolve(_)));
         assert!(matches!(include, ComposeError::Include(_)));

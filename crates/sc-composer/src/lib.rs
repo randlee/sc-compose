@@ -15,19 +15,18 @@ pub mod frontmatter;
 pub mod types;
 
 pub use diagnostics::{
-    DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope,
-    DiagnosticSeverity,
+    DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope, DiagnosticSeverity,
 };
 pub use error::{
-    ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind,
-    RenderError, ResolveError, ValidationError,
+    ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind, RenderError,
+    ResolveError, ValidationError,
 };
 pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
-    FrontmatterInitResult, IncludeDepth, InitResult, MetadataValue,
-    ProfileKind, ResolveResult, ResolverPolicy, RuntimeKind, ScalarValue,
-    UnknownVariablePolicy, ValidationReport, VariableName, VariableSource,
+    FrontmatterInitResult, IncludeDepth, InitResult, MetadataValue, ProfileKind, ResolveResult,
+    ResolverPolicy, RuntimeKind, ScalarValue, UnknownVariablePolicy, ValidationReport,
+    VariableName, VariableSource,
 };
 
 use minijinja::Environment;
@@ -79,10 +78,9 @@ mod tests {
 
     #[test]
     fn frontmatter_defaults_to_empty_maps_when_omitted() {
-        let parsed = parse_template_document(
-            "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
-        )
-        .unwrap();
+        let parsed =
+            parse_template_document("---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n")
+                .unwrap();
         let frontmatter = parsed.frontmatter().unwrap();
 
         assert_eq!(frontmatter.required_variables().len(), 1);
