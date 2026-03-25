@@ -10,7 +10,7 @@ use anyhow::{Context, Result, anyhow};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use sc_composer::{
     ComposeError, ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, FrontmatterInitResult,
-    ProfileKind, RuntimeKind, ScalarValue, UnknownVariablePolicy,
+    ProfileKind, ProfileName, RuntimeKind, ScalarValue, UnknownVariablePolicy,
 };
 
 #[derive(Debug, Parser)]
@@ -359,6 +359,11 @@ fn build_request(
                 .or_else(|| args.agent_type.clone())
                 .ok_or_else(|| {
                     CommandError::usage(anyhow!("--agent/--agent-type is required in profile mode"))
+                })
+                .and_then(|name| {
+                    ProfileName::new(name).map_err(|error| {
+                        CommandError::usage(anyhow!("invalid profile name: {error}"))
+                    })
                 })?,
         },
     };

@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use crate::ComposeError;
 use crate::error::ValidationError;
 use crate::include::expand_includes;
+use crate::pipeline::{Document, Expanded, assemble_output_blocks};
 use crate::renderer::Renderer;
 use crate::resolver::resolve_template_path;
 use crate::types::{ComposeRequest, ComposeResult, ScalarValue, ValidationReport};
@@ -23,12 +24,19 @@ pub fn compose(request: &ComposeRequest) -> Result<ComposeResult, ComposeError> 
         &request.root,
         &request.policy,
     )?;
-    let validation_report = crate::validate::validate(request)?;
+    let expanded_document = Document::<Expanded>::new(expanded.text.clone());
+    let validation_report =
+        crate::validation::validate_expanded(request, &resolve_result, &expanded);
     fail_if_invalid(&validation_report)?;
     let validation_state = crate::validation::collect_validation_state(request, &expanded);
 
-    let rendered_text = Renderer.render(&expanded.text, build_render_context(&validation_state))?;
-    let rendered_text = assemble_output(
+    let validated_document = expanded_document.into_validated();
+    let rendered_text = Renderer.render(
+        validated_document.body(),
+        build_render_context(&validation_state),
+    )?;
+    let rendered_text = assemble_output_blocks(
+        validated_document,
         &rendered_text,
         request.guidance_block.as_deref(),
         request.user_prompt.as_deref(),
@@ -70,21 +78,6 @@ fn scalar_to_json(value: ScalarValue) -> serde_json::Value {
         ScalarValue::Boolean(value) => serde_json::Value::Bool(value),
         ScalarValue::Null => serde_json::Value::Null,
     }
-}
-
-fn assemble_output(
-    profile_body: &str,
-    guidance_block: Option<&str>,
-    user_prompt: Option<&str>,
-) -> String {
-    let mut blocks = vec![profile_body.trim_end().to_owned()];
-    if let Some(guidance) = guidance_block.filter(|value| !value.is_empty()) {
-        blocks.push(guidance.to_owned());
-    }
-    if let Some(prompt) = user_prompt.filter(|value| !value.is_empty()) {
-        blocks.push(prompt.to_owned());
-    }
-    blocks.join("\n\n")
 }
 
 #[cfg(test)]

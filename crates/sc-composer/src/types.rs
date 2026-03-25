@@ -224,6 +224,57 @@ pub enum ProfileKind {
     Skill,
 }
 
+/// Validated profile identifier used for profile-mode resolution.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct ProfileName(String);
+
+impl ProfileName {
+    /// Create a validated profile name.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`InvalidVariableNameError`] when the name is empty or contains
+    /// path separators.
+    pub fn new(name: impl Into<String>) -> Result<Self, InvalidVariableNameError> {
+        let name = name.into();
+        let has_separator = name.contains('/') || name.contains('\\');
+        if name.is_empty() || has_separator {
+            Err(InvalidVariableNameError { name })
+        } else {
+            Ok(Self(name))
+        }
+    }
+
+    /// Borrow the validated profile name as a string slice.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for ProfileName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl TryFrom<String> for ProfileName {
+    type Error = InvalidVariableNameError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
+impl TryFrom<&str> for ProfileName {
+    type Error = InvalidVariableNameError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
 /// Variant-specific composition mode.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ComposeMode {
@@ -232,7 +283,7 @@ pub enum ComposeMode {
         /// The logical profile kind being resolved.
         kind: ProfileKind,
         /// The profile name to resolve.
-        name: String,
+        name: ProfileName,
     },
     /// File-mode composition from an explicit template path.
     File {
@@ -426,7 +477,7 @@ impl InvalidVariableNameError {
 
 #[cfg(test)]
 mod tests {
-    use super::VariableName;
+    use super::{ProfileName, VariableName};
 
     #[test]
     fn variable_name_round_trips_for_valid_identifier() {
@@ -451,5 +502,24 @@ mod tests {
     fn variable_name_display_matches_inner_string() {
         let variable = VariableName::new("agent.name").unwrap();
         assert_eq!(format!("{variable}"), "agent.name");
+    }
+
+    #[test]
+    fn profile_name_rejects_empty_string() {
+        let error = ProfileName::new("").unwrap_err();
+        assert_eq!(error.name(), "");
+    }
+
+    #[test]
+    fn profile_name_rejects_path_separators() {
+        let error = ProfileName::new("agents/foo").unwrap_err();
+        assert_eq!(error.name(), "agents/foo");
+    }
+
+    #[test]
+    fn profile_name_round_trips_for_valid_name() {
+        let name = ProfileName::new("arch-comp").unwrap();
+        assert_eq!(name.as_str(), "arch-comp");
+        assert_eq!(name.to_string(), "arch-comp");
     }
 }

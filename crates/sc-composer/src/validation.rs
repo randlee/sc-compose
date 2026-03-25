@@ -34,6 +34,14 @@ pub fn validate(request: &ComposeRequest) -> Result<ValidationReport, ComposeErr
         &request.root,
         &request.policy,
     )?;
+    Ok(validate_expanded(request, &resolve_result, &expanded))
+}
+
+pub(crate) fn validate_expanded(
+    request: &ComposeRequest,
+    resolve_result: &crate::ResolveResult,
+    expanded: &ExpandedTemplate,
+) -> ValidationReport {
     let state = collect_validation_state(request, &expanded);
 
     let mut warnings = Vec::new();
@@ -121,12 +129,12 @@ pub fn validate(request: &ComposeRequest) -> Result<ValidationReport, ComposeErr
         }
     }
 
-    Ok(ValidationReport {
+    ValidationReport {
         ok: errors.is_empty(),
         warnings,
         errors,
-        resolve_result,
-    })
+        resolve_result: resolve_result.clone(),
+    }
 }
 
 pub(crate) fn collect_validation_state(

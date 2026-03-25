@@ -190,14 +190,20 @@ fn canonicalize_include(
     allowed_roots: &[ConfiningRoot],
     stack: &[PathBuf],
 ) -> Result<PathBuf, ComposeError> {
-    let is_escape_attempt = candidate
-        .components()
-        .any(|component| matches!(component, std::path::Component::ParentDir));
+    let normalized_candidate = normalize_path(candidate);
+    let mut allowed = Vec::with_capacity(allowed_roots.len() + 1);
+    allowed.push(root.to_path_buf());
+    allowed.extend(
+        allowed_roots
+            .iter()
+            .map(|allowed_root| allowed_root.as_path().to_path_buf()),
+    );
 
-    let error = canonicalize_with_roots(candidate, root, allowed_roots);
-    match error {
-        Ok(path) => Ok(path),
-        Err(_) if is_escape_attempt => Err(IncludeError::new(
+    if !allowed
+        .iter()
+        .any(|allowed_root| normalized_candidate.starts_with(allowed_root))
+    {
+        return Err(IncludeError::new(
             DiagnosticCode::ErrIncludeEscape,
             format!(
                 "include path escapes confinement root: {}",
@@ -205,7 +211,12 @@ fn canonicalize_include(
             ),
             stack.to_vec(),
         )
-        .into()),
+        .into());
+    }
+
+    let error = canonicalize_with_roots(candidate, root, allowed_roots);
+    match error {
+        Ok(path) => Ok(path),
         Err(_) => Err(IncludeError::new(
             DiagnosticCode::ErrResolveNotFound,
             format!("include file not found: {}", candidate.display()),
@@ -213,6 +224,24 @@ fn canonicalize_include(
         )
         .into()),
     }
+}
+
+fn normalize_path(path: &Path) -> PathBuf {
+    use std::path::Component;
+
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::Prefix(prefix) => normalized.push(prefix.as_os_str()),
+            Component::RootDir => normalized.push(component.as_os_str()),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            Component::Normal(part) => normalized.push(part),
+        }
+    }
+    normalized
 }
 
 fn parse_include_directive(line: &str) -> Option<&str> {

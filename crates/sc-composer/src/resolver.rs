@@ -6,8 +6,8 @@ use std::path::{Path, PathBuf};
 use crate::DiagnosticCode;
 use crate::error::{ComposeError, ConfigError, ResolveError};
 use crate::types::{
-    ComposeMode, ComposeRequest, ConfiningRoot, ProfileKind, ResolveResult, ResolverPolicy,
-    RuntimeKind,
+    ComposeMode, ComposeRequest, ConfiningRoot, ProfileKind, ProfileName, ResolveResult,
+    ResolverPolicy, RuntimeKind,
 };
 
 const DEFAULT_RUNTIME_ORDER: [RuntimeKind; 4] = [
@@ -130,12 +130,12 @@ pub(crate) fn canonicalize_with_roots(
 fn resolve_profile_impl(
     root: &Path,
     kind: ProfileKind,
-    name: &str,
+    name: &ProfileName,
     runtime: Option<RuntimeKind>,
     resolver_policy: &ResolverPolicy,
 ) -> Result<ResolveResult, ComposeError> {
     let candidate_directories = candidate_directories(root, kind, runtime, resolver_policy);
-    let probes = filename_probes(kind, name, resolver_policy);
+    let probes = filename_probes(kind, name.as_str(), resolver_policy);
 
     let mut attempted_paths = Vec::new();
     let mut attempted_seen = BTreeSet::new();

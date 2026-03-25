@@ -21,6 +21,8 @@ pub mod include;
 pub mod include_engine;
 /// Workspace bootstrap helper.
 pub mod init_workspace;
+/// Pipeline typestates and output assembly helpers.
+pub mod pipeline;
 /// Template renderer wrapper.
 pub mod renderer;
 /// Runtime-aware profile resolution and search tracing.
@@ -32,26 +34,39 @@ pub mod validate;
 /// Variable discovery and validation semantics.
 pub mod validation;
 
+#[doc(inline)]
 pub use composer::compose;
+#[doc(inline)]
 pub use diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope, DiagnosticSeverity,
 };
+#[doc(inline)]
 pub use error::{
     ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind, RenderError,
     ResolveError, ValidationError,
 };
+#[doc(inline)]
 pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};
+#[doc(inline)]
 pub use frontmatter_init::frontmatter_init;
+#[doc(inline)]
 pub use include::{ExpandedTemplate, expand_includes};
+#[doc(inline)]
 pub use init_workspace::init_workspace;
+#[doc(inline)]
+pub use pipeline::{Document, Expanded, Parsed, Rendered, Validated, assemble_output_blocks};
+#[doc(inline)]
 pub use renderer::{Renderer, render_template};
+#[doc(inline)]
 pub use resolver::{resolve_profile, resolve_template_path};
+#[doc(inline)]
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
-    FrontmatterInitResult, IncludeDepth, InitResult, MetadataValue, ProfileKind, ResolveResult,
-    ResolverPolicy, RuntimeKind, ScalarValue, UnknownVariablePolicy, ValidationReport,
-    VariableName, VariableSource,
+    FrontmatterInitResult, IncludeDepth, InitResult, MetadataValue, ProfileKind, ProfileName,
+    ResolveResult, ResolverPolicy, RuntimeKind, ScalarValue, UnknownVariablePolicy,
+    ValidationReport, VariableName, VariableSource,
 };
+#[doc(inline)]
 pub use validate::validate;
 
 #[cfg(test)]
