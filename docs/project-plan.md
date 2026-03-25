@@ -103,7 +103,6 @@ FRs addressed:
 - FR-1a
 - FR-1b
 - FR-2
-- FR-7b
 - FR-8
 
 Deliverables:
@@ -150,6 +149,8 @@ Acceptance criteria:
 - diagnostics can serialize the FR-8 envelope and concrete diagnostic records
 - RenderError tests cover construction, source propagation, and backtrace
   accessors
+- public doc comments are present on `RenderError::render` and
+  `RenderError::backtrace`
 
 Exit gate:
 
@@ -200,6 +201,7 @@ Exit gate:
   roots
 - include tests cover missing file, cycle, depth overflow, and escape attempts
 - `cargo test -p sc-composer resolver include` equivalent coverage passes
+- `cargo clippy --all-targets --all-features -- -D warnings` passes
 
 ### Sprint 4: Validation and Rendering Core
 
@@ -262,6 +264,7 @@ Exit gate:
 
 - `cargo test -p sc-composer` passes with dedicated suites for context,
   validation, rendering, and observability hooks
+- `cargo clippy --all-targets --all-features -- -D warnings` passes
 - `qm-comp` review confirms API ownership and failure mapping match docs
 
 ### Sprint 5: CLI and Workspace Helpers
@@ -276,6 +279,7 @@ FRs addressed:
 - FR-7
 - FR-7a
 - FR-7b
+- FR-8a
 - FR-8
 - FR-9 at the CLI integration level
 
@@ -322,6 +326,8 @@ Exit gate:
 - CLI integration and golden tests pass for all commands
 - JSON schema snapshots pass for normal and dry-run modes
 - `cargo test -p sc-compose` passes
+- `cargo clippy --all-targets --all-features -- -D warnings` passes
+- `qm-comp` QA finds no blocking mismatch in command behavior or schema output
 
 ### Sprint 6: Integration, Hardening, and Release Gate
 
@@ -385,8 +391,8 @@ crate dependency direction.
 3. `sc-composer` semantic pipeline:
    - `context`
    - `tokens`
-   - `validate`
    - `render`
+   - `validate`
    - `pipeline`
 4. `sc-composer` integration hooks:
    - `observability`
@@ -422,15 +428,23 @@ Parallel work must not violate ownership:
 - FR-4: S3 and S6
 - FR-5: S3
 - FR-6: S4 and S5
-- FR-7, FR-7a, FR-7b, FR-7c: S5
+- FR-7, FR-7a, FR-7b: S5
+- FR-7c: S4 and S5
 - FR-8: S2, S4, S5, and S6
+- FR-8a: S5 and S6
 - FR-9: S4 and S5
+- NFRs:
+  - cross-platform behavior: S3 and S6
+  - interactive performance expectations: S5 and S6
+  - public API stability: S2 and S6
+  - crate separability and boundary enforcement: S2 through S6
 
 ## Phase Exit Gate
 
 The crate-development phase is complete only when Sprint 6 passes all of the
 following:
 
+- all prior sprint exit gates for S2 through S5 have already passed
 - all FR-1 through FR-9 behavior is implemented and covered by automated tests
 - `cargo test --workspace` passes
 - `cargo clippy --all-targets --all-features -- -D warnings` passes
