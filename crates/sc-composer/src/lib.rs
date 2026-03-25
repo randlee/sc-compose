@@ -11,6 +11,10 @@ pub mod diagnostics;
 pub mod error;
 /// Typed frontmatter parsing and normalization.
 pub mod frontmatter;
+/// Recursive include expansion and confinement enforcement.
+pub mod include;
+/// Runtime-aware profile resolution and search tracing.
+pub mod resolver;
 /// Foundational request, result, and value-model types.
 pub mod types;
 
@@ -23,6 +27,8 @@ pub use error::{
     RenderError, ResolveError, ValidationError,
 };
 pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};
+pub use include::{ExpandedTemplate, expand_includes};
+pub use resolver::{resolve_profile, resolve_template_path};
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
     FrontmatterInitResult, IncludeDepth, InitResult, MetadataValue,
