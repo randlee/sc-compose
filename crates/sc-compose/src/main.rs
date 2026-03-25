@@ -209,17 +209,22 @@ fn run_render(
                 anyhow!(error).context(format!("failed to write {}", output.display())),
             )
         })?;
-        Some(
+        Some(usize::try_from(
             std::fs::metadata(output)
                 .map_err(|error| {
                     CommandError::render_write(
                         anyhow!(error).context(format!("failed to stat {}", output.display())),
                     )
                 })?
-                .len() as usize,
+                .len(),
         )
+        .map_err(|error| {
+            CommandError::render_write(
+                anyhow!(error).context(format!("output too large to report {}", output.display())),
+            )
+        })?)
     } else {
-        Some(result.rendered_text.as_bytes().len())
+        Some(result.rendered_text.len())
     };
 
     if args.json {
@@ -901,7 +906,7 @@ mod tests {
             ))
         });
 
-        assert!(result.is_err());
+        let _ = result.unwrap_err();
         assert_eq!(observer.started.len(), 1);
         assert_eq!(observer.ended.len(), 1);
         assert!(!observer.ended[0].success);

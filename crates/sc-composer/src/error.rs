@@ -287,8 +287,7 @@ impl ValidationError {
     pub(crate) fn from_diagnostics(diagnostics: Vec<Diagnostic>) -> Self {
         let code = diagnostics
             .first()
-            .map(|diagnostic| diagnostic.code)
-            .unwrap_or(DiagnosticCode::ErrValEmpty);
+            .map_or(DiagnosticCode::ErrValEmpty, |diagnostic| diagnostic.code);
         let message = diagnostics
             .iter()
             .map(format_diagnostic_message)
@@ -538,7 +537,7 @@ pub enum ComposeError {
     /// Include expansion failed.
     Include(IncludeError),
     /// Validation failed.
-    Validation(ValidationError),
+    Validation(Box<ValidationError>),
     /// Rendering failed.
     Render(RenderError),
     /// Configuration or parsing failed.
@@ -597,7 +596,7 @@ impl From<IncludeError> for ComposeError {
 
 impl From<ValidationError> for ComposeError {
     fn from(value: ValidationError) -> Self {
-        Self::Validation(value)
+        Self::Validation(Box::new(value))
     }
 }
 
@@ -616,12 +615,14 @@ impl From<ConfigError> for ComposeError {
 #[cfg(test)]
 mod tests {
     use std::error::Error as _;
+    use std::path::PathBuf;
 
     use super::{
         ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind, RenderError,
         ResolveError, ValidationError,
     };
-    use crate::diagnostics::DiagnosticCode;
+    use crate::diagnostics::{DiagnosticCode, DiagnosticSeverity};
+    use crate::Diagnostic;
     use crate::types::VariableName;
 
     #[test]
@@ -719,14 +720,14 @@ mod tests {
     fn validation_error_from_diagnostics_preserves_all_diagnostics() {
         let diagnostics = vec![
             Diagnostic::new(
-                crate::diagnostics::DiagnosticSeverity::Error,
+                DiagnosticSeverity::Error,
                 DiagnosticCode::ErrValMissingRequired,
                 "missing required variable: name",
             )
             .with_path("templates/root.md.j2")
             .with_location(12, 4),
             Diagnostic::new(
-                crate::diagnostics::DiagnosticSeverity::Error,
+                DiagnosticSeverity::Error,
                 DiagnosticCode::ErrValUndeclaredToken,
                 "undeclared referenced token: role",
             )
