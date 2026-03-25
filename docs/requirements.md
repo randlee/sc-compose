@@ -40,7 +40,20 @@ The product has two deliverables:
 The library is the semantic source of truth. The CLI is a thin interface over
 the library.
 
-### 3.1 Boundary Rules
+### 3.1 ATM Independence
+
+This repository is intentionally independent from ATM and any other orchestration
+runtime.
+
+- No `ATM_HOME` environment variable may be referenced anywhere in this repo.
+- No `agent-team-mail-*` crate may appear in any `Cargo.toml` in this repo.
+- No ATM spool, socket, mailbox, or runtime path convention may be assumed.
+- No `use atm_*::...` or `use agent_team_mail::...` imports may appear in the
+  library or CLI crates.
+- Any ATM integration belongs in adapters outside this repository rather than
+  in `sc-composer` or `sc-compose`.
+
+### 3.2 Boundary Rules
 
 - `sc-composer` must remain runtime-agnostic.
 - `sc-composer` must not depend on mailbox formats, daemon lifecycle behavior,
@@ -50,6 +63,16 @@ the library.
 - If an external system needs integration-specific behavior, that adaptation
   must live outside this repository rather than inside the core composition
   semantics.
+
+### 3.3 Non-Goals
+
+The initial product explicitly does not provide:
+
+- daemon control or process management,
+- mailbox handling or message routing,
+- team configuration or ATM runtime management,
+- network I/O or remote template fetching,
+- ATM-specific file path conventions or runtime lookup behavior.
 
 ## 4. Functional Requirements
 
@@ -459,7 +482,15 @@ Authors may opt out for a specific block with the standard Jinja `+` modifier.
 - The library and CLI must remain separable: `sc-compose` may depend on
   `sc-composer`, but `sc-composer` must not depend on the CLI crate.
 
-## 6. Testing Requirements
+## 6. Stability Policy
+
+- The `sc-composer` public API is semver-governed.
+- Until `1.0`, breaking API changes require a minor version bump.
+- `render_template()` is a stable convenience API for one-shot rendering.
+- The planned `Renderer` type, once implemented, is the primary stable API for
+  repeated rendering and long-lived library use.
+
+## 7. Testing Requirements
 
 Required unit coverage includes:
 
@@ -485,7 +516,7 @@ Required integration coverage includes:
 - JSON diagnostics contract,
 - cross-platform path behavior.
 
-## 7. Out of Scope for the Initial Release
+## 8. Out of Scope for the Initial Release
 
 - Remote includes such as `http` or `https`
 - Arbitrary plugin execution from templates

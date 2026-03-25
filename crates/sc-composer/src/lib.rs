@@ -7,6 +7,9 @@ use std::fmt;
 use minijinja::Environment;
 
 /// Canonical render error for template compilation and rendering failures.
+///
+/// This type is only constructed by the library; callers receive it as an
+/// opaque error value by design.
 #[derive(Debug)]
 pub struct RenderError {
     source: Box<dyn StdError + Send + Sync + 'static>,
@@ -39,6 +42,10 @@ impl StdError for RenderError {
 }
 
 /// Render a template string with the provided serializable context.
+///
+/// This is the stable one-shot convenience API. Callers that render repeatedly
+/// should use the future long-lived renderer/session API described in the
+/// architecture document.
 ///
 /// # Errors
 ///
