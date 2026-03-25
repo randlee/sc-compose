@@ -38,7 +38,9 @@ pub fn frontmatter_init(
     }
 
     let would_change = parsed.frontmatter().is_none() || force;
-    let discovered = discover_tokens(parsed.body()).into_iter().collect::<Vec<_>>();
+    let discovered = discover_tokens(parsed.body())
+        .into_iter()
+        .collect::<Vec<_>>();
     let frontmatter_text = build_frontmatter(&discovered);
     if !dry_run {
         let rewritten = format!("{frontmatter_text}{}", parsed.body());
