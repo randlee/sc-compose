@@ -4,6 +4,9 @@
 > Product: `sc-composer` (library) and `sc-compose` (CLI)
 > Document role: Normative target architecture for the redesign of both crates
 
+This document supersedes the prior high-level placeholder. It is the normative
+architecture baseline for `sc-compose` v0.x.
+
 ## 1. Architectural Intent
 
 This document describes the intended architecture of the redesigned
@@ -50,16 +53,19 @@ The goals are:
 Required dependency direction:
 
 - `sc-compose` -> `sc-composer`
-- `sc-compose` -> `sc-observability`
+- `sc-compose` -> `sc-observability` as the intended concrete observability
+  binding during implementation
 
-Allowed library dependency:
+Design-ahead note:
 
-- `sc-composer` may depend on `sc-observability` only through a stable
-  observability integration boundary appropriate for embedded consumers.
+- `sc-observability` is the intended observability integration target for the
+  CLI architecture, even if the dependency is not yet present in `Cargo.toml`
+  at the time this document is written.
 
 Forbidden dependency direction:
 
 - `sc-composer` -> `sc-compose`
+- `sc-composer` -> `sc-observability`
 - `sc-composer` -> orchestration-specific runtime crates
 - `sc-composer` -> mailbox helpers, daemon helpers, team-state helpers, or
   runtime-specific home-resolution helpers
@@ -103,8 +109,9 @@ Forbidden dependency direction:
   - implements `frontmatter-init` and `init` logic for reuse by the CLI and any
     future embedded callers.
 - `observability`
-  - exposes event types and integration points,
-  - delegates implementation to `sc-observability`.
+  - defines event payloads and observer traits,
+  - never binds directly to `sc-observability`,
+  - allows the CLI or embedded hosts to inject concrete implementations.
 
 ## 4. Resolver Path Policy
 
@@ -256,7 +263,7 @@ Required library surface:
 
 `ComposeRequest`
 
-- `runtime: RuntimeKind`
+- `runtime: Option<RuntimeKind>`
 - `mode: ComposeMode`
 - `kind: Option<ProfileKind>`
 - `agent: Option<String>`
@@ -267,6 +274,13 @@ Required library surface:
 - `guidance_block: Option<String>`
 - `user_prompt: Option<String>`
 - `policy: ComposePolicy`
+
+Semantics:
+
+- `runtime = None` is valid and enables the omit-runtime search behavior
+  defined in the requirements.
+- In `file` mode, `runtime` may be `None` and is ignored unless a caller wants
+  to attach runtime context for logging or policy selection.
 
 `ComposePolicy`
 
@@ -288,7 +302,7 @@ Required library surface:
 
 - `rendered_text: String`
 - `resolved_files: Vec<PathBuf>`
-- `search_trace: Vec<PathBuf>`
+- `resolve_result: ResolveResult`
 - `variable_sources: Map<String, VariableSource>`
 - `warnings: Vec<Diagnostic>`
 
@@ -297,7 +311,7 @@ Required library surface:
 - `ok: bool`
 - `warnings: Vec<Diagnostic>`
 - `errors: Vec<Diagnostic>`
-- `search_trace: Vec<PathBuf>`
+- `resolve_result: ResolveResult`
 
 `FrontmatterInitResult`
 
@@ -349,6 +363,21 @@ Required fields:
 
 The JSON representation must be versioned. The version belongs to the schema
 contract, not to any single CLI command.
+
+Minimal diagnostic envelope:
+
+```json
+{
+  "schema_version": "sc-compose-diagnostics/v1",
+  "ok": true,
+  "errors": [],
+  "warnings": [],
+  "context": {
+    "command": "validate",
+    "mode": "profile"
+  }
+}
+```
 
 ## 10. Request Lifecycle
 
@@ -412,6 +441,12 @@ Guidance and prompt input model:
 - The CLI rejects ambiguous attempts to read both blocks from the same stdin
   stream in one invocation.
 
+CLI alias model:
+
+- `--agent-type` is a CLI alias for `--agent`.
+- `--ai` is a CLI alias for `--runtime`.
+- Aliases are normalized in the CLI before constructing `ComposeRequest`.
+
 ## 12. Output Path Policy
 
 File-writing behavior should be centralized rather than duplicated per command.
@@ -468,7 +503,11 @@ Target CLI exit semantics:
 
 Architecture rules:
 
-- `sc-observability` is the canonical implementation.
+- `sc-composer` exposes observer traits or sink traits and emits events through
+  that abstraction only.
+- `sc-compose` provides the canonical concrete binding to `sc-observability`.
+- If no observer is provided, library and CLI behavior degrade to a no-op
+  observability path rather than failing.
 - Event emission points should cover:
   - command start and end,
   - resolve attempts and outcomes,
