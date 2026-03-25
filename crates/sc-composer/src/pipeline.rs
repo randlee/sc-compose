@@ -75,7 +75,8 @@ pub fn assemble_output_blocks(
     guidance_block: Option<&str>,
     user_prompt: Option<&str>,
 ) -> String {
-    let mut blocks = vec![document.body.trim_end().to_owned()];
+    let Document { body, .. } = document;
+    let mut blocks = vec![body.trim_end().to_owned()];
     if let Some(guidance) = guidance_block.filter(|value| !value.is_empty()) {
         blocks.push(guidance.to_owned());
     }
