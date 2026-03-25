@@ -5,64 +5,54 @@
 //! families, diagnostics envelope, and typed frontmatter parsing surface used
 //! by later sprints.
 
+/// End-to-end composition orchestration.
+pub mod composer;
 /// Structured diagnostics and the stable `ERR_*` code registry.
 pub mod diagnostics;
 /// Canonical crate-owned error types.
 pub mod error;
 /// Typed frontmatter parsing and normalization.
 pub mod frontmatter;
+/// Frontmatter initialization helper.
+pub mod frontmatter_init;
 /// Recursive include expansion and confinement enforcement.
 pub mod include;
 /// Backwards-compatible alias for the include engine surface.
 pub mod include_engine;
+/// Workspace bootstrap helper.
+pub mod init_workspace;
+/// Template renderer wrapper.
+pub mod renderer;
 /// Runtime-aware profile resolution and search tracing.
 pub mod resolver;
-/// Variable discovery and validation semantics.
-pub mod validation;
 /// Foundational request, result, and value-model types.
 pub mod types;
+/// Public validation entrypoint.
+pub mod validate;
+/// Variable discovery and validation semantics.
+pub mod validation;
 
+pub use composer::compose;
 pub use diagnostics::{
-    DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope,
-    DiagnosticSeverity,
+    DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope, DiagnosticSeverity,
 };
 pub use error::{
-    ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind,
-    RenderError, ResolveError, ValidationError,
+    ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind, RenderError,
+    ResolveError, ValidationError,
 };
 pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};
+pub use frontmatter_init::frontmatter_init;
 pub use include::{ExpandedTemplate, expand_includes};
+pub use init_workspace::init_workspace;
+pub use renderer::{Renderer, render_template};
 pub use resolver::{resolve_profile, resolve_template_path};
-pub use validation::validate;
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
-    FrontmatterInitResult, IncludeDepth, InitResult, MetadataValue,
-    ProfileKind, ResolveResult, ResolverPolicy, RuntimeKind, ScalarValue,
-    UnknownVariablePolicy, ValidationReport, VariableName, VariableSource,
+    FrontmatterInitResult, IncludeDepth, InitResult, MetadataValue, ProfileKind, ResolveResult,
+    ResolverPolicy, RuntimeKind, ScalarValue, UnknownVariablePolicy, ValidationReport,
+    VariableName, VariableSource,
 };
-
-use minijinja::Environment;
-
-/// Render a template string with the provided serializable context.
-///
-/// This is the stable one-shot convenience API. Callers that render repeatedly
-/// should use the future long-lived `Renderer` session API described in the
-/// architecture document.
-///
-/// # Errors
-///
-/// Returns [`RenderError`] when the template cannot be parsed, loaded, or
-/// rendered by the underlying template engine.
-pub fn render_template<T: serde::Serialize>(
-    template: &str,
-    context: T,
-) -> Result<String, RenderError> {
-    let mut env = Environment::new();
-    env.add_template("inline", template)
-        .map_err(RenderError::render)?;
-    let template = env.get_template("inline").map_err(RenderError::render)?;
-    template.render(context).map_err(RenderError::render)
-}
+pub use validate::validate;
 
 #[cfg(test)]
 mod tests {
@@ -90,10 +80,9 @@ mod tests {
 
     #[test]
     fn frontmatter_defaults_to_empty_maps_when_omitted() {
-        let parsed = parse_template_document(
-            "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
-        )
-        .unwrap();
+        let parsed =
+            parse_template_document("---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n")
+                .unwrap();
         let frontmatter = parsed.frontmatter().unwrap();
 
         assert_eq!(frontmatter.required_variables().len(), 1);

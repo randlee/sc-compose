@@ -3,11 +3,11 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
+use crate::DiagnosticCode;
 use crate::error::{ComposeError, IncludeError};
 use crate::frontmatter::{Frontmatter, parse_template_document};
 use crate::resolver::canonicalize_with_roots;
 use crate::types::{ComposePolicy, ConfiningRoot};
-use crate::DiagnosticCode;
 
 /// Expanded include graph returned from the include engine.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -190,16 +190,19 @@ fn canonicalize_include(
     allowed_roots: &[ConfiningRoot],
     stack: &[PathBuf],
 ) -> Result<PathBuf, ComposeError> {
-    let is_escape_attempt = candidate.components().any(|component| {
-        matches!(component, std::path::Component::ParentDir)
-    });
+    let is_escape_attempt = candidate
+        .components()
+        .any(|component| matches!(component, std::path::Component::ParentDir));
 
     let error = canonicalize_with_roots(candidate, root, allowed_roots);
     match error {
         Ok(path) => Ok(path),
         Err(_) if is_escape_attempt => Err(IncludeError::new(
             DiagnosticCode::ErrIncludeEscape,
-            format!("include path escapes confinement root: {}", candidate.display()),
+            format!(
+                "include path escapes confinement root: {}",
+                candidate.display()
+            ),
             stack.to_vec(),
         )
         .into()),
@@ -346,10 +349,8 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let root = std::env::temp_dir().join(format!(
-            "sc-compose-{label}-{}-{nanos}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("sc-compose-{label}-{}-{nanos}", std::process::id()));
         fs::create_dir_all(&root).unwrap();
         root
     }

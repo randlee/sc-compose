@@ -8,17 +8,18 @@ use crate::frontmatter::Frontmatter;
 use crate::include::expand_includes;
 use crate::resolver::resolve_template_path;
 use crate::types::{
-    ComposeRequest, ScalarValue, UnknownVariablePolicy, ValidationReport,
-    VariableName,
+    ComposeRequest, ScalarValue, UnknownVariablePolicy, ValidationReport, VariableName,
+    VariableSource,
 };
 use crate::{ComposeError, ExpandedTemplate};
 
 #[derive(Debug, Default)]
-struct ValidationState {
-    context: BTreeMap<VariableName, ScalarValue>,
-    required_origins: BTreeMap<VariableName, PathBuf>,
-    declared_variables: BTreeSet<VariableName>,
-    referenced_variables: BTreeSet<VariableName>,
+pub(crate) struct ValidationState {
+    pub(crate) context: BTreeMap<VariableName, ScalarValue>,
+    pub(crate) variable_sources: BTreeMap<VariableName, VariableSource>,
+    pub(crate) required_origins: BTreeMap<VariableName, PathBuf>,
+    pub(crate) declared_variables: BTreeSet<VariableName>,
+    pub(crate) referenced_variables: BTreeSet<VariableName>,
 }
 
 /// Validate a compose request without rendering output.
@@ -128,26 +129,35 @@ pub fn validate(request: &ComposeRequest) -> Result<ValidationReport, ComposeErr
     })
 }
 
-fn collect_validation_state(
+pub(crate) fn collect_validation_state(
     request: &ComposeRequest,
     expanded: &ExpandedTemplate,
 ) -> ValidationState {
     let mut state = ValidationState::default();
+    let root_path = expanded.resolved_files.first();
 
     for (path, frontmatter) in &expanded.frontmatters {
         if let Some(frontmatter) = frontmatter {
-            merge_frontmatter(path, frontmatter, &mut state);
+            let is_root = root_path.is_some_and(|root| root == path);
+            merge_frontmatter(path, frontmatter, &mut state, is_root);
         }
     }
 
     for (name, value) in &request.vars_input {
         state.context.insert(name.clone(), value.clone());
+        state
+            .variable_sources
+            .insert(name.clone(), VariableSource::ExplicitInput);
     }
     for (name, value) in &request.vars_env {
         state
             .context
             .entry(name.clone())
             .or_insert_with(|| value.clone());
+        state
+            .variable_sources
+            .entry(name.clone())
+            .or_insert(VariableSource::Environment);
     }
 
     state.referenced_variables = discover_tokens(&expanded.text);
@@ -158,6 +168,7 @@ fn merge_frontmatter(
     path: &Path,
     frontmatter: &Frontmatter,
     state: &mut ValidationState,
+    is_root: bool,
 ) {
     for variable in frontmatter.required_variables() {
         state
@@ -173,10 +184,18 @@ fn merge_frontmatter(
             .context
             .entry(variable.clone())
             .or_insert_with(|| value.clone());
+        state
+            .variable_sources
+            .entry(variable.clone())
+            .or_insert(if is_root {
+                VariableSource::FrontmatterDefault
+            } else {
+                VariableSource::IncludedDefault
+            });
     }
 }
 
-fn discover_tokens(text: &str) -> BTreeSet<VariableName> {
+pub(crate) fn discover_tokens(text: &str) -> BTreeSet<VariableName> {
     let mut tokens = BTreeSet::new();
     collect_tokens_from_delimiters(text, "{{", "}}", &mut tokens);
     collect_tokens_from_delimiters(text, "{%", "%}", &mut tokens);
@@ -245,8 +264,7 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use crate::types::{
-        ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot,
-        UnknownVariablePolicy,
+        ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, UnknownVariablePolicy,
     };
     use crate::{DiagnosticCode, ScalarValue};
 
@@ -257,12 +275,19 @@ mod tests {
         let root = temp_root("validation_default_undeclared");
         write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
 
-        let report = validate(&request_for_file(&root, "template.md.j2", ComposePolicy::default()))
-            .unwrap();
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
 
         assert!(report.ok);
         assert!(report.errors.is_empty());
-        assert_eq!(report.warnings[0].code, DiagnosticCode::ErrValUndeclaredToken);
+        assert_eq!(
+            report.warnings[0].code,
+            DiagnosticCode::ErrValUndeclaredToken
+        );
     }
 
     #[test]
@@ -298,20 +323,29 @@ mod tests {
 
         let request = request_for_file(&root, "root.md.j2", ComposePolicy::default());
         let resolve_result = crate::resolve_template_path(&request).unwrap();
-        let expanded =
-            crate::expand_includes(&resolve_result.resolved_path, &request.root, &request.policy)
-                .unwrap();
+        let expanded = crate::expand_includes(
+            &resolve_result.resolved_path,
+            &request.root,
+            &request.policy,
+        )
+        .unwrap();
         let state = collect_validation_state(&request, &expanded);
 
         assert_eq!(
-            state.context.get(&crate::VariableName::new("name").unwrap()),
+            state
+                .context
+                .get(&crate::VariableName::new("name").unwrap()),
             Some(&ScalarValue::String("parent".to_owned()))
         );
-        assert!(state
-            .required_origins
-            .contains_key(&crate::VariableName::new("name").unwrap()));
+        assert!(
+            state
+                .required_origins
+                .contains_key(&crate::VariableName::new("name").unwrap())
+        );
         assert_eq!(
-            state.context.get(&crate::VariableName::new("child_only").unwrap()),
+            state
+                .context
+                .get(&crate::VariableName::new("child_only").unwrap()),
             Some(&ScalarValue::String("present".to_owned()))
         );
     }
@@ -332,19 +366,23 @@ mod tests {
                 ..ComposePolicy::default()
             },
         );
-        request
-            .vars_input
-            .insert(crate::VariableName::new("name").unwrap(), ScalarValue::String("world".to_owned()));
-        request
-            .vars_input
-            .insert(crate::VariableName::new("extra").unwrap(), ScalarValue::String("value".to_owned()));
+        request.vars_input.insert(
+            crate::VariableName::new("name").unwrap(),
+            ScalarValue::String("world".to_owned()),
+        );
+        request.vars_input.insert(
+            crate::VariableName::new("extra").unwrap(),
+            ScalarValue::String("value".to_owned()),
+        );
 
         let report = validate(&request).unwrap();
         assert!(!report.ok);
-        assert!(report
-            .errors
-            .iter()
-            .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput));
+        assert!(
+            report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput)
+        );
     }
 
     fn request_for_file(root: &Path, file: &str, policy: ComposePolicy) -> ComposeRequest {
@@ -367,10 +405,8 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let root = std::env::temp_dir().join(format!(
-            "sc-compose-{label}-{}-{nanos}",
-            std::process::id()
-        ));
+        let root =
+            std::env::temp_dir().join(format!("sc-compose-{label}-{}-{nanos}", std::process::id()));
         fs::create_dir_all(&root).unwrap();
         root
     }
