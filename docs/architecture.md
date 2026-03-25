@@ -479,6 +479,28 @@ Required fields:
 The JSON representation must be versioned. The version belongs to the schema
 contract, not to any single CLI command.
 
+Top-level diagnostics envelope:
+
+```json
+{
+  "schema_version": "1",
+  "payload": {
+    "ok": false
+  },
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "ERR_VAL_MISSING_REQUIRED",
+      "message": "missing required variable: name",
+      "path": "templates/example.md.j2",
+      "line": 12,
+      "column": 4,
+      "include_chain": []
+    }
+  ]
+}
+```
+
 Minimal diagnostic record:
 
 ```json
@@ -754,11 +776,16 @@ Canonical failures must map to stable error families and stable codes.
 | --- | --- | --- |
 | Template not found | `ResolveError` | `ERR_RESOLVE_NOT_FOUND` |
 | Ambiguous template match | `ResolveError` | `ERR_RESOLVE_AMBIGUOUS` |
+| Include target not found | `IncludeError` | `ERR_INCLUDE_NOT_FOUND` |
 | Include path escapes confinement root | `IncludeError` | `ERR_INCLUDE_ESCAPE` |
+| Include cycle detected | `IncludeError` | `ERR_INCLUDE_CYCLE` |
 | Include depth exceeds limit | `IncludeError` | `ERR_INCLUDE_DEPTH` |
 | Variable type mismatch or invalid scalar | `ValidationError` | `ERR_VAL_TYPE` |
 | Duplicate frontmatter variable | `ValidationError` | `ERR_VAL_DUPLICATE` |
 | Empty template body | `ValidationError` | `ERR_VAL_EMPTY` |
+| Required variable not satisfied after context merge | `ValidationError` | `ERR_VAL_MISSING_REQUIRED` |
+| Undeclared referenced token in strict validation or render mode | `ValidationError` | `ERR_VAL_UNDECLARED_TOKEN` |
+| Extra provided variable when policy is `error` | `ValidationError` | `ERR_VAL_EXTRA_INPUT` |
 | Stdin read attempted twice | `RenderError` | `ERR_RENDER_STDIN_DOUBLE_READ` |
 | Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
 | Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |
