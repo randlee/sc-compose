@@ -68,3 +68,92 @@ pub fn validate_with_observer(
 
     Ok(report)
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use crate::observer::{
+        CompositionObserver, IncludeOutcomeEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
+    };
+    use crate::types::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot};
+    use crate::{DiagnosticCode, validate_with_observer};
+
+    #[derive(Default)]
+    struct CapturingObserver {
+        resolve: Vec<ResolveOutcomeEvent>,
+        include: Vec<IncludeOutcomeEvent>,
+        validation: Vec<ValidationOutcomeEvent>,
+    }
+
+    impl CompositionObserver for CapturingObserver {
+        fn on_resolve_outcome(&mut self, event: &ResolveOutcomeEvent) {
+            self.resolve.push(event.clone());
+        }
+
+        fn on_include_outcome(&mut self, event: &IncludeOutcomeEvent) {
+            self.include.push(event.clone());
+        }
+
+        fn on_validation_outcome(&mut self, event: &ValidationOutcomeEvent) {
+            self.validation.push(event.clone());
+        }
+    }
+
+    #[test]
+    fn validate_with_observer_emits_failed_validation_outcome() {
+        let root = temp_root("validate_observer_failure");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
+        );
+        let mut observer = CapturingObserver::default();
+
+        let report = validate_with_observer(
+            &ComposeRequest {
+                runtime: None,
+                mode: ComposeMode::File {
+                    template_path: PathBuf::from("template.md.j2"),
+                },
+                root: ConfiningRoot::new(&root).unwrap(),
+                vars_input: BTreeMap::default(),
+                vars_env: BTreeMap::default(),
+                guidance_block: None,
+                user_prompt: None,
+                policy: ComposePolicy::default(),
+            },
+            &mut observer,
+        )
+        .unwrap();
+
+        assert!(!report.ok);
+        assert_eq!(observer.resolve.len(), 1);
+        assert_eq!(observer.include.len(), 1);
+        assert_eq!(observer.validation.len(), 1);
+        assert_eq!(
+            observer.validation[0].errors[0].code,
+            DiagnosticCode::ErrValMissingRequired
+        );
+    }
+
+    fn temp_root(label: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("sc-compose-{label}-{}-{nanos}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        root
+    }
+
+    fn write_file(path: &Path, contents: &str) {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+        fs::write(path, contents).unwrap();
+    }
+}

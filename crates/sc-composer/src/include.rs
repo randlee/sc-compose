@@ -170,39 +170,83 @@ fn canonicalize_include(
     allowed_roots: &[ConfiningRoot],
     stack: &[PathBuf],
 ) -> Result<PathBuf, ComposeError> {
-    let canonical = std::fs::canonicalize(candidate).map_err(|error| {
-        IncludeError::new(
-            DiagnosticCode::ErrIncludeNotFound,
-            format!("include file not found: {}", candidate.display()),
-            stack.to_vec(),
-        )
-        .with_source(error)
-    })?;
-
-    let mut allowed = Vec::with_capacity(allowed_roots.len() + 1);
-    allowed.push(root.to_path_buf());
-    allowed.extend(
+    let mut allowed_canonical = Vec::with_capacity(allowed_roots.len() + 1);
+    allowed_canonical.push(root.to_path_buf());
+    allowed_canonical.extend(
         allowed_roots
             .iter()
-            .map(|root| root.as_path().to_path_buf()),
+            .map(|allowed_root| allowed_root.as_path().to_path_buf()),
     );
 
-    if allowed
-        .iter()
-        .any(|allowed_root| canonical.starts_with(allowed_root))
-    {
-        Ok(canonical)
-    } else {
-        Err(IncludeError::new(
-            DiagnosticCode::ErrIncludeEscape,
-            format!(
-                "include path escapes confinement root: {}",
-                candidate.display()
-            ),
-            stack.to_vec(),
-        )
-        .into())
+    match std::fs::canonicalize(candidate) {
+        Ok(canonical) => {
+            if allowed_canonical
+                .iter()
+                .any(|allowed_root| canonical.starts_with(allowed_root))
+            {
+                Ok(canonical)
+            } else {
+                Err(IncludeError::new(
+                    DiagnosticCode::ErrIncludeEscape,
+                    format!(
+                        "include path escapes confinement root: {}",
+                        candidate.display()
+                    ),
+                    stack.to_vec(),
+                )
+                .into())
+            }
+        }
+        Err(error) => {
+            let normalized_candidate = normalize_path(candidate);
+            let allowed_normalized = allowed_canonical
+                .iter()
+                .map(|allowed_root| normalize_path(allowed_root))
+                .collect::<Vec<_>>();
+
+            if !allowed_normalized
+                .iter()
+                .any(|allowed_root| normalized_candidate.starts_with(allowed_root))
+            {
+                return Err(IncludeError::new(
+                    DiagnosticCode::ErrIncludeEscape,
+                    format!(
+                        "include path escapes confinement root: {}",
+                        candidate.display()
+                    ),
+                    stack.to_vec(),
+                )
+                .into());
+            }
+
+            Err(IncludeError::new(
+                DiagnosticCode::ErrIncludeNotFound,
+                format!("include file not found: {}", candidate.display()),
+                stack.to_vec(),
+            )
+            .with_source(error)
+            .into())
+        }
     }
+}
+
+fn normalize_path(path: &Path) -> PathBuf {
+    use std::path::Component;
+
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::Prefix(prefix) => normalized.push(prefix.as_os_str()),
+            Component::RootDir => normalized.push(component.as_os_str()),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            Component::Normal(part) => normalized.push(part),
+        }
+    }
+
+    normalized
 }
 
 fn parse_include_directive(line: &str) -> Option<&str> {
@@ -334,6 +378,26 @@ mod tests {
     }
 
     #[test]
+    fn nonexistent_escape_attempts_are_rejected_before_not_found() {
+        let root = temp_root("include_escape_missing");
+        write_file(&root.join("root.md.j2"), "@<../outside-missing.md>\n");
+
+        let error = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap_err();
+
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeEscape));
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[test]
     fn single_line_include_expands_exactly_once() {
         let root = temp_root("include_single_line");
         write_file(&root.join("root.md.j2"), "@<child.md>");
@@ -374,6 +438,32 @@ mod tests {
         }
     }
 
+    #[test]
+    fn symlink_escape_attempts_are_rejected_when_supported() {
+        let root = temp_root("include_symlink_escape");
+        let outside = root.parent().unwrap().join("symlink-outside.md");
+        write_file(&outside, "outside\n");
+        let symlink_path = root.join("linked-outside.md");
+        if !create_symlink_if_supported(&outside, &symlink_path) {
+            return;
+        }
+        write_file(&root.join("root.md.j2"), "@<linked-outside.md>\n");
+
+        let error = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap_err();
+
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeEscape));
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
     fn temp_root(label: &str) -> PathBuf {
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -390,5 +480,19 @@ mod tests {
             fs::create_dir_all(parent).unwrap();
         }
         fs::write(path, contents).unwrap();
+    }
+
+    #[cfg(unix)]
+    fn create_symlink_if_supported(target: &Path, link: &Path) -> bool {
+        std::os::unix::fs::symlink(target, link).is_ok()
+    }
+
+    #[cfg(windows)]
+    fn create_symlink_if_supported(target: &Path, link: &Path) -> bool {
+        match std::os::windows::fs::symlink_file(target, link) {
+            Ok(()) => true,
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => false,
+            Err(error) => panic!("failed to create symlink: {error}"),
+        }
     }
 }
