@@ -51,6 +51,13 @@ Severity: BLOCKING
 ### RULE-005: No hardcoded `/tmp/` paths in production code
 Severity: IMPORTANT
 
+## Zero Tolerance for Pre-Existing Issues
+
+- Do NOT dismiss violations as "pre-existing" or "not worsened."
+- Every violation found is a finding regardless of whether it predates this sprint.
+- List each finding with file:line and a remediation note.
+- The pre-existing/new distinction is informational only. It does not change severity or blocking status.
+
 ## Output Contract
 
 Return fenced JSON only.
@@ -70,7 +77,8 @@ Return fenced JSON only.
       "severity": "BLOCKING|IMPORTANT|MINOR",
       "file": "crates/sc-compose/src/main.rs",
       "line": 1,
-      "description": "description"
+      "description": "description",
+      "remediation": "specific corrective action"
     }
   ],
   "merge_ready": true,
