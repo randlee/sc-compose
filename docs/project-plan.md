@@ -401,8 +401,6 @@ Deliverables:
 
 ATM adapter use-case coverage updates required in Sprint 6:
 
-- convert the `/tmp/sc_atm_compat_001_report.txt` findings into explicit test or
-  documentation coverage
 - close the current PARTIAL/MISSING gaps around observability integration and
   failure-path JSON behavior
 - keep typestate positioned as a library-internal sequencing aid rather than
@@ -467,6 +465,7 @@ Branch:
 
 FRs addressed:
 
+- FR-9
 - FR-7
 - FR-8a
 - FR-10
@@ -507,8 +506,9 @@ Acceptance criteria:
 
 - `sc-composer` depends on `sc-observability-types` only, not on
   `sc-observability`
-- `Renderer::with_log_sink(...)` and `compose_with_log_sink(...)` both exist
-  and match the documented sink injection path
+- `Renderer::new(config).with_log_sink(...)` and
+  `compose_with_log_sink(...)` both exist and match the documented sink
+  injection path
 - the no-op default keeps library and CLI behavior functional when no sink is
   injected
 - CLI startup constructs `sc-observability::Logger` and adapts it into the
@@ -587,7 +587,7 @@ Parallel work must not violate ownership:
 - FR-7c: S4 and S5
 - FR-8: S2, S4, S5, and S6
 - FR-8a: S5, S6, and S7
-- FR-9: S4 and S5
+- FR-9: S4, S5, and S7
 - FR-10: S7
 - FR-11: S7
 - NFRs:

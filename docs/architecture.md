@@ -705,7 +705,7 @@ The schemas below define the `payload` shape for each command.
 ```json
 {
   "logging": {
-    "state": "healthy",
+    "state": "Healthy",
     "dropped_events_total": 0,
     "flush_errors_total": 0,
     "active_log_path": "/repo/.logs/sc-compose.log.jsonl",
@@ -736,6 +736,8 @@ Non-render `--dry-run --json`
   "would_affect": [
     "templates/example.md.j2"
   ],
+  "changed": false,
+  "would_change": true,
   "skipped": false
 }
 ```
@@ -878,8 +880,8 @@ pub trait CompositionLogSink: Send + Sync {
 }
 
 impl Renderer {
-    pub fn new() -> Self;
-    pub fn with_log_sink(log_sink: Arc<dyn CompositionLogSink>) -> Self;
+    pub fn new(config: RendererConfig) -> Self;
+    pub fn with_log_sink(self, log_sink: Arc<dyn CompositionLogSink>) -> Self;
 }
 
 pub fn compose(request: &ComposeRequest) -> Result<ComposeResult, ComposeError>;
@@ -891,8 +893,9 @@ pub fn compose_with_log_sink(
 
 Required library behavior:
 
-- `Renderer::new()` and `compose()` install the built-in no-op sink.
-- `Renderer::with_log_sink(...)` and `compose_with_log_sink(...)` are the only
+- `Renderer::new(config)` and `compose()` install the built-in no-op sink.
+- `Renderer::new(config).with_log_sink(...)` and `compose_with_log_sink(...)`
+  are the only
   public sink injection entry points.
 - The no-op sink remains the default for embedded hosts that do not opt into
   logging.
@@ -907,7 +910,7 @@ Required library behavior:
 `sc-compose` constructs `sc-observability::Logger` during CLI startup, wraps it
 in a `LoggerBackedSink` adapter that implements
 `sc_composer::CompositionLogSink`, then passes that adapter into
-`Renderer::with_log_sink(...)` or `compose_with_log_sink(...)`.
+`Renderer::new(config).with_log_sink(...)` or `compose_with_log_sink(...)`.
 
 CLI wiring rules:
 
@@ -919,7 +922,16 @@ CLI wiring rules:
 - CLI shutdown calls the logger's `shutdown()` path so registered sinks flush
   before process exit.
 
-### 18.4 Log Event Shape and Emission Points
+### 18.4 Public API Paths
+
+The normative public API paths for this design are:
+
+- `sc_composer::compose`
+- `sc_composer::compose_with_log_sink`
+- `sc_composer::Renderer`
+- `sc_composer::observability::CompositionLogSink`
+
+### 18.5 Log Event Shape and Emission Points
 
 The composition pipeline emits `LogEvent` records with stable `target` and
 `action` naming that describe:

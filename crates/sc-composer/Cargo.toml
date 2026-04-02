@@ -13,6 +13,7 @@ categories = ["template-engine", "development-tools"]
 
 [dependencies]
 minijinja.workspace = true
+sc-observability-types = { path = "../../sc-observability/crates/sc-observability-types" }
 serde.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true

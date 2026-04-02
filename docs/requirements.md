@@ -568,7 +568,7 @@ Schema rules:
   "schema_version": "1",
   "payload": {
     "logging": {
-      "state": "healthy",
+      "state": "Healthy",
       "dropped_events_total": 0,
       "flush_errors_total": 0,
       "active_log_path": "/repo/.logs/sc-compose.log.jsonl",
@@ -680,9 +680,10 @@ Schema rules:
   payload type is `sc_observability_types::LogEvent`.
 - `CompositionLogSink` shall expose exactly one required method:
   `emit(&self, event: &LogEvent)`.
-- `Renderer::new()` and `compose()` shall preserve no-op behavior when the
+- `Renderer::new(config)` and `compose()` shall preserve no-op behavior when the
   caller does not provide a sink.
-- `Renderer::with_log_sink(Arc<dyn CompositionLogSink>)` and
+- `Renderer::new(config).with_log_sink(Arc<dyn CompositionLogSink>) -> Renderer`
+  and
   `compose_with_log_sink(request, Arc<dyn CompositionLogSink>)` shall be the
   required injection surfaces for host-provided logging.
 - Injected sinks shall receive structured events for the resolve,
