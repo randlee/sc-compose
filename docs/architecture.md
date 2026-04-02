@@ -137,11 +137,12 @@ ATM integration is an adapter concern outside this repository.
   - enforces path confinement,
   - tracks include stack,
   - detects cycles and depth overflow.
-- `context`
-  - merges explicit variables, environment variables, and defaults,
+- `validation` (context merge and token discovery implemented here, not as
+  separate `context.rs`/`tokens.rs` files)
+  - merges explicit variables, environment variables, and defaults
+    in precedence order (explicit > env > frontmatter defaults),
   - tracks variable origin,
-  - applies unknown-variable policy.
-- `tokens`
+  - applies unknown-variable policy,
   - discovers referenced template tokens,
   - distinguishes declared, undeclared, missing, and extra variables.
 - `render`
@@ -423,8 +424,9 @@ Semantics:
 
 - `target_path: PathBuf`
 - `frontmatter_text: String`
-- `discovered_variables: Vec<String>`
+- `discovered_variables: Vec<VariableName>`
 - `changed: bool`
+- `would_change: bool`
 
 `InitResult`
 
@@ -479,13 +481,14 @@ Required fields:
 The JSON representation must be versioned. The version belongs to the schema
 contract, not to any single CLI command.
 
-Top-level diagnostics envelope:
+Top-level diagnostics envelope (payload fields are command-specific; `"valid"`
+shown here matches the `validate` command — see §13.1 for per-command schemas):
 
 ```json
 {
   "schema_version": "1",
   "payload": {
-    "ok": false
+    "valid": false
   },
   "diagnostics": [
     {
@@ -622,6 +625,18 @@ CLI alias model:
 The CLI owns final output shaping. Library result types may be richer than the
 command-facing JSON contract.
 
+All `--json` command output uses the versioned `DiagnosticEnvelope` transport:
+
+```json
+{
+  "schema_version": "1",
+  "payload": {},
+  "diagnostics": []
+}
+```
+
+The schemas below define the `payload` shape for each command.
+
 `render --json`
 
 ```json
@@ -659,15 +674,7 @@ command-facing JSON contract.
 
 ```json
 {
-  "valid": false,
-  "diagnostics": [
-    {
-      "severity": "error",
-      "code": "ERR_VAL_MISSING_REQUIRED",
-      "message": "missing required variable: name",
-      "location": "templates/example.md.j2:12:4"
-    }
-  ]
+  "valid": false
 }
 ```
 
@@ -783,12 +790,14 @@ Canonical failures must map to stable error families and stable codes.
 | Variable type mismatch or invalid scalar | `ValidationError` | `ERR_VAL_TYPE` |
 | Duplicate frontmatter variable | `ValidationError` | `ERR_VAL_DUPLICATE` |
 | Empty template body | `ValidationError` | `ERR_VAL_EMPTY` |
+| Root template has no frontmatter block | `ValidationError` | `ERR_VAL_MISSING_FRONTMATTER` |
 | Required variable not satisfied after context merge | `ValidationError` | `ERR_VAL_MISSING_REQUIRED` |
 | Undeclared referenced token in strict validation or render mode | `ValidationError` | `ERR_VAL_UNDECLARED_TOKEN` |
 | Extra provided variable when policy is `error` | `ValidationError` | `ERR_VAL_EXTRA_INPUT` |
 | Stdin read attempted twice | `RenderError` | `ERR_RENDER_STDIN_DOUBLE_READ` |
 | Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
 | Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |
+| Command or helper invoked in incompatible mode | `ConfigError` | `ERR_CONFIG_MODE` |
 | Config file missing or malformed | `ConfigError` | `ERR_CONFIG_PARSE` |
 | Invalid var-file shape | `ConfigError` | `ERR_CONFIG_VARFILE` |
 

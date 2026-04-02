@@ -1,4 +1,4 @@
-#![warn(missing_docs)]
+#![deny(missing_docs)]
 //! Core rendering and composition primitives for the `sc-compose` workspace.
 //!
 //! Sprint 2 establishes the foundational public types, canonical error
@@ -21,6 +21,8 @@ pub mod include;
 pub mod include_engine;
 /// Workspace bootstrap helper.
 pub mod init_workspace;
+/// Observer traits and event payloads.
+pub mod observer;
 /// Pipeline typestates and output assembly helpers.
 pub mod pipeline;
 /// Template renderer wrapper.
@@ -35,7 +37,7 @@ pub mod validate;
 pub mod validation;
 
 #[doc(inline)]
-pub use composer::compose;
+pub use composer::{compose, compose_with_observer};
 #[doc(inline)]
 pub use diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope, DiagnosticSeverity,
@@ -54,11 +56,17 @@ pub use include::{ExpandedTemplate, expand_includes};
 #[doc(inline)]
 pub use init_workspace::init_workspace;
 #[doc(inline)]
+pub use observer::{
+    CommandEndEvent, CommandStartEvent, CompositionObserver, IncludeOutcomeEvent, NoopObserver,
+    ObservationEvent, ObservationSink, RenderOutcomeEvent, ResolveOutcomeEvent,
+    ValidationOutcomeEvent,
+};
+#[doc(inline)]
 pub use pipeline::{Document, Expanded, Parsed, Rendered, Validated, assemble_output_blocks};
 #[doc(inline)]
 pub use renderer::{Renderer, render_template};
 #[doc(inline)]
-pub use resolver::{resolve_profile, resolve_template_path};
+pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_template_path};
 #[doc(inline)]
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
@@ -67,7 +75,7 @@ pub use types::{
     ValidationReport, VariableName, VariableSource,
 };
 #[doc(inline)]
-pub use validate::validate;
+pub use validate::{validate, validate_with_observer};
 
 #[cfg(test)]
 mod tests {

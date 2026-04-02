@@ -41,6 +41,8 @@ pub enum DiagnosticCode {
     ErrValDuplicate,
     /// A template body was empty when content was required.
     ErrValEmpty,
+    /// The root template omitted a frontmatter block.
+    ErrValMissingFrontmatter,
     /// A required variable was still missing after context merge.
     ErrValMissingRequired,
     /// A referenced token was not declared in frontmatter.
@@ -53,6 +55,8 @@ pub enum DiagnosticCode {
     ErrRenderWrite,
     /// A write was refused because the target was read-only.
     ErrConfigReadonly,
+    /// A command or helper was invoked in an incompatible mode.
+    ErrConfigMode,
     /// Configuration or YAML parsing failed.
     ErrConfigParse,
     /// A var-file contained an unsupported structure.
@@ -73,12 +77,14 @@ impl DiagnosticCode {
             Self::ErrValType => "ERR_VAL_TYPE",
             Self::ErrValDuplicate => "ERR_VAL_DUPLICATE",
             Self::ErrValEmpty => "ERR_VAL_EMPTY",
+            Self::ErrValMissingFrontmatter => "ERR_VAL_MISSING_FRONTMATTER",
             Self::ErrValMissingRequired => "ERR_VAL_MISSING_REQUIRED",
             Self::ErrValUndeclaredToken => "ERR_VAL_UNDECLARED_TOKEN",
             Self::ErrValExtraInput => "ERR_VAL_EXTRA_INPUT",
             Self::ErrRenderStdinDoubleRead => "ERR_RENDER_STDIN_DOUBLE_READ",
             Self::ErrRenderWrite => "ERR_RENDER_WRITE",
             Self::ErrConfigReadonly => "ERR_CONFIG_READONLY",
+            Self::ErrConfigMode => "ERR_CONFIG_MODE",
             Self::ErrConfigParse => "ERR_CONFIG_PARSE",
             Self::ErrConfigVarfile => "ERR_CONFIG_VARFILE",
         }

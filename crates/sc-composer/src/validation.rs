@@ -18,7 +18,7 @@ pub(crate) struct ValidationState {
     pub(crate) context: BTreeMap<VariableName, ScalarValue>,
     pub(crate) variable_sources: BTreeMap<VariableName, VariableSource>,
     pub(crate) required_origins: BTreeMap<VariableName, PathBuf>,
-    pub(crate) required_include_chains: BTreeMap<VariableName, Vec<PathBuf>>,
+    required_include_chains: BTreeMap<VariableName, Vec<PathBuf>>,
     pub(crate) declared_variables: BTreeSet<VariableName>,
     pub(crate) referenced_variables: BTreeSet<VariableName>,
 }
@@ -35,13 +35,13 @@ pub fn validate(request: &ComposeRequest) -> Result<ValidationReport, ComposeErr
         &request.root,
         &request.policy,
     )?;
-    Ok(validate_expanded(request, &resolve_result, &expanded))
+    Ok(validate_expanded(request, &expanded, resolve_result))
 }
 
 pub(crate) fn validate_expanded(
     request: &ComposeRequest,
-    resolve_result: &crate::ResolveResult,
     expanded: &ExpandedTemplate,
+    resolve_result: crate::ResolveResult,
 ) -> ValidationReport {
     let state = collect_validation_state(request, expanded);
 
@@ -57,6 +57,10 @@ pub(crate) fn validate_expanded(
             )
             .with_path(resolve_result.resolved_path.clone()),
         );
+    }
+
+    if let Some(diagnostic) = missing_frontmatter_warning(&resolve_result, expanded) {
+        warnings.push(diagnostic);
     }
 
     for (variable, origin) in &state.required_origins {
@@ -141,8 +145,30 @@ pub(crate) fn validate_expanded(
         ok: errors.is_empty(),
         warnings,
         errors,
-        resolve_result: resolve_result.clone(),
+        resolve_result,
     }
+}
+
+fn missing_frontmatter_warning(
+    resolve_result: &crate::ResolveResult,
+    expanded: &ExpandedTemplate,
+) -> Option<Diagnostic> {
+    expanded
+        .frontmatters
+        .iter()
+        .find(|(path, _)| *path == resolve_result.resolved_path)
+        .is_some_and(|(_, frontmatter)| frontmatter.is_none())
+        .then(|| {
+            Diagnostic::new(
+                DiagnosticSeverity::Warning,
+                DiagnosticCode::ErrValMissingFrontmatter,
+                format!(
+                    "root template has no frontmatter; run `sc-compose frontmatter-init {}`",
+                    resolve_result.resolved_path.display()
+                ),
+            )
+            .with_path(resolve_result.resolved_path.clone())
+        })
 }
 
 pub(crate) fn collect_validation_state(
@@ -159,21 +185,17 @@ pub(crate) fn collect_validation_state(
         }
     }
 
+    for (name, value) in &request.vars_env {
+        state.context.insert(name.clone(), value.clone());
+        state
+            .variable_sources
+            .insert(name.clone(), VariableSource::Environment);
+    }
     for (name, value) in &request.vars_input {
         state.context.insert(name.clone(), value.clone());
         state
             .variable_sources
             .insert(name.clone(), VariableSource::ExplicitInput);
-    }
-    for (name, value) in &request.vars_env {
-        state
-            .context
-            .entry(name.clone())
-            .or_insert_with(|| value.clone());
-        state
-            .variable_sources
-            .entry(name.clone())
-            .or_insert(VariableSource::Environment);
     }
 
     state.referenced_variables = discover_tokens(&expanded.text);
@@ -311,9 +333,12 @@ mod tests {
 
         assert!(report.ok);
         assert!(report.errors.is_empty());
-        assert_eq!(
-            report.warnings[0].code,
-            DiagnosticCode::ErrValUndeclaredToken
+        assert!(
+            report
+                .warnings
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValUndeclaredToken),
+            "expected undeclared-token warning"
         );
     }
 
@@ -378,6 +403,68 @@ mod tests {
     }
 
     #[test]
+    fn environment_overrides_defaults_and_explicit_input_overrides_environment() {
+        let root = temp_root("validation_precedence");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\ndefaults:\n  name: default\n---\nhello {{ name }}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_env.insert(
+            crate::VariableName::new("name").unwrap(),
+            ScalarValue::String("env".to_owned()),
+        );
+        request.vars_input.insert(
+            crate::VariableName::new("name").unwrap(),
+            ScalarValue::String("input".to_owned()),
+        );
+
+        let resolve_result = crate::resolve_template_path(&request).unwrap();
+        let expanded = crate::expand_includes(
+            &resolve_result.resolved_path,
+            &request.root,
+            &request.policy,
+        )
+        .unwrap();
+        let state = collect_validation_state(&request, &expanded);
+
+        assert_eq!(
+            state
+                .context
+                .get(&crate::VariableName::new("name").unwrap()),
+            Some(&ScalarValue::String("input".to_owned()))
+        );
+        assert_eq!(
+            state
+                .variable_sources
+                .get(&crate::VariableName::new("name").unwrap()),
+            Some(&crate::VariableSource::ExplicitInput)
+        );
+    }
+
+    #[test]
+    fn missing_root_frontmatter_emits_fixup_warning() {
+        let root = temp_root("validation_missing_frontmatter");
+        write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert!(
+            report.warnings.iter().any(|diagnostic| {
+                diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
+                    && diagnostic.message.contains("sc-compose frontmatter-init")
+            }),
+            "expected missing-frontmatter warning with fix command"
+        );
+    }
+
+    #[test]
     fn extra_input_policy_can_error() {
         let root = temp_root("validation_extra_input");
         write_file(
@@ -409,6 +496,27 @@ mod tests {
                 .errors
                 .iter()
                 .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput)
+        );
+    }
+
+    #[test]
+    fn empty_template_body_emits_empty_code() {
+        let root = temp_root("validation_empty_body");
+        write_file(&root.join("template.md.j2"), "   \n");
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert!(!report.ok);
+        assert!(
+            report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValEmpty)
         );
     }
 

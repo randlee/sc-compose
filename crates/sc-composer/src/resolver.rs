@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 
 use crate::DiagnosticCode;
 use crate::error::{ComposeError, ConfigError, ResolveError};
+use crate::observer::{CompositionObserver, NoopObserver, ResolveOutcomeEvent};
 use crate::types::{
     ComposeMode, ComposeRequest, ConfiningRoot, ProfileKind, ProfileName, ResolveResult,
     ResolverPolicy, RuntimeKind,
@@ -59,16 +60,49 @@ pub fn resolve_template_path(request: &ComposeRequest) -> Result<ResolveResult, 
 /// template is found, or when multiple candidates match an omitted-runtime
 /// lookup.
 pub fn resolve_profile(request: &ComposeRequest) -> Result<ResolveResult, ComposeError> {
+    let mut observer = NoopObserver;
+    resolve_profile_with_observer(request, &mut observer)
+}
+
+/// Resolve a profile-mode request while emitting observer callbacks.
+///
+/// # Errors
+///
+/// Returns [`ComposeError`] when the request is not in profile mode, when no
+/// template is found, or when multiple candidates match an omitted-runtime
+/// lookup.
+pub fn resolve_profile_with_observer(
+    request: &ComposeRequest,
+    observer: &mut dyn CompositionObserver,
+) -> Result<ResolveResult, ComposeError> {
     match &request.mode {
-        ComposeMode::Profile { kind, name } => resolve_profile_impl(
-            request.root.as_path(),
-            *kind,
-            name,
-            request.runtime,
-            &request.policy.resolver_policy,
-        ),
+        ComposeMode::Profile { kind, name } => {
+            let result = resolve_profile_impl(
+                request.root.as_path(),
+                *kind,
+                name,
+                request.runtime,
+                &request.policy.resolver_policy,
+            );
+            match &result {
+                Ok(resolve_result) => observer.on_resolve_outcome(&ResolveOutcomeEvent {
+                    resolved_path: Some(resolve_result.resolved_path.clone()),
+                    attempted_paths: resolve_result.attempted_paths.clone(),
+                    code: None,
+                }),
+                Err(ComposeError::Resolve(error)) => {
+                    observer.on_resolve_outcome(&ResolveOutcomeEvent {
+                        resolved_path: None,
+                        attempted_paths: error.attempted_paths().to_vec(),
+                        code: error.code(),
+                    });
+                }
+                Err(_) => {}
+            }
+            result
+        }
         ComposeMode::File { .. } => Err(ConfigError::new(
-            DiagnosticCode::ErrConfigParse,
+            DiagnosticCode::ErrConfigMode,
             "resolve_profile requires profile mode",
         )
         .into()),
@@ -293,10 +327,22 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::resolve_profile_impl;
+    use crate::observer::{CompositionObserver, ResolveOutcomeEvent};
     use crate::types::{
         ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, ProfileKind, ProfileName,
     };
     use crate::{ComposeError, DiagnosticCode};
+
+    #[derive(Default)]
+    struct CapturingObserver {
+        resolve: Vec<ResolveOutcomeEvent>,
+    }
+
+    impl CompositionObserver for CapturingObserver {
+        fn on_resolve_outcome(&mut self, event: &ResolveOutcomeEvent) {
+            self.resolve.push(event.clone());
+        }
+    }
 
     #[test]
     fn resolves_agent_command_and_skill_profiles_across_runtime_and_shared_roots() {
@@ -381,6 +427,62 @@ mod tests {
 
         let result = super::resolve_template_path(&request).unwrap();
         assert!(result.resolved_path.ends_with("nested/template.md.j2"));
+    }
+
+    #[test]
+    fn resolve_profile_rejects_file_mode_with_mode_code() {
+        let root = temp_root("resolver_mode_mismatch");
+        write_file(&root.join("template.md.j2"), "hello");
+        let request = ComposeRequest {
+            runtime: None,
+            mode: ComposeMode::File {
+                template_path: PathBuf::from("template.md.j2"),
+            },
+            root: ConfiningRoot::new(&root).unwrap(),
+            vars_input: BTreeMap::default(),
+            vars_env: BTreeMap::default(),
+            guidance_block: None,
+            user_prompt: None,
+            policy: ComposePolicy::default(),
+        };
+
+        let error = super::resolve_profile(&request).unwrap_err();
+
+        match error {
+            ComposeError::Config(error) => {
+                assert_eq!(error.code(), Some(DiagnosticCode::ErrConfigMode));
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[test]
+    fn resolve_profile_with_observer_emits_failure_outcome() {
+        let root = temp_root("resolver_observer_failure");
+        let mut observer = CapturingObserver::default();
+        let request = ComposeRequest {
+            runtime: Some(crate::types::RuntimeKind::Claude),
+            mode: ComposeMode::Profile {
+                kind: ProfileKind::Agent,
+                name: ProfileName::new("missing").unwrap(),
+            },
+            root: ConfiningRoot::new(&root).unwrap(),
+            vars_input: BTreeMap::default(),
+            vars_env: BTreeMap::default(),
+            guidance_block: None,
+            user_prompt: None,
+            policy: ComposePolicy::default(),
+        };
+
+        let error = super::resolve_profile_with_observer(&request, &mut observer).unwrap_err();
+
+        assert!(matches!(error, ComposeError::Resolve(_)));
+        assert_eq!(observer.resolve.len(), 1);
+        assert_eq!(
+            observer.resolve[0].code,
+            Some(DiagnosticCode::ErrResolveNotFound)
+        );
+        assert!(observer.resolve[0].resolved_path.is_none());
     }
 
     fn temp_root(label: &str) -> PathBuf {

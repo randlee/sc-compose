@@ -449,31 +449,52 @@ Authors may opt out for a specific block with the standard Jinja `+` modifier.
 
 ### FR-8a: Command JSON and Dry-Run Schemas
 
-CLI `--json` output must follow stable per-command schemas.
+CLI `--json` output must use the versioned `DiagnosticEnvelope` as the
+canonical transport format:
+
+```json
+{
+  "schema_version": "1",
+  "payload": {},
+  "diagnostics": []
+}
+```
+
+Per-command schemas below describe the shape of the `payload` field within that
+envelope.
 
 `render --json`
 
 ```json
 {
-  "output_path": "stdout",
-  "bytes_written": 123,
-  "template": "path/to/template.md.j2"
+  "schema_version": "1",
+  "payload": {
+    "output_path": "stdout",
+    "bytes_written": 123,
+    "template": "path/to/template.md.j2"
+  },
+  "diagnostics": []
 }
 ```
 
 Schema rules:
 
 - `output_path` is a string and uses `"stdout"` when no file is written.
-- `bytes_written` is the byte length of the rendered output.
+- `bytes_written` is the actual byte count written to the selected output
+  target; when writing to stdout it is the UTF-8 byte length emitted to stdout.
 - `template` is the resolved template path as a string.
 
 `render --dry-run --json`
 
 ```json
 {
-  "would_write": ".prompts/example-01HXYZ.md",
-  "template": "path/to/template.md.j2",
-  "rendered_preview": "preview text"
+  "schema_version": "1",
+  "payload": {
+    "would_write": ".prompts/example-01HXYZ.md",
+    "template": "path/to/template.md.j2",
+    "rendered_preview": "preview text"
+  },
+  "diagnostics": []
 }
 ```
 
@@ -486,12 +507,16 @@ Schema rules:
 
 ```json
 {
-  "resolved_path": ".claude/agents/example.md.j2",
-  "search_trace": [
-    ".claude/agents/example.md.j2",
-    ".agents/agents/example.md.j2"
-  ],
-  "found": true
+  "schema_version": "1",
+  "payload": {
+    "resolved_path": ".claude/agents/example.md.j2",
+    "search_trace": [
+      ".claude/agents/example.md.j2",
+      ".agents/agents/example.md.j2"
+    ],
+    "found": true
+  },
+  "diagnostics": []
 }
 ```
 
@@ -499,7 +524,10 @@ Schema rules:
 
 ```json
 {
-  "valid": false,
+  "schema_version": "1",
+  "payload": {
+    "valid": false
+  },
   "diagnostics": [
     {
       "severity": "error",
@@ -515,11 +543,15 @@ Schema rules:
 
 ```json
 {
-  "workspace_root": "/repo",
-  "created_files": [
-    ".prompts/",
-    ".gitignore"
-  ]
+  "schema_version": "1",
+  "payload": {
+    "workspace_root": "/repo",
+    "created_files": [
+      ".prompts/",
+      ".gitignore"
+    ]
+  },
+  "diagnostics": []
 }
 ```
 
@@ -527,24 +559,56 @@ Schema rules:
 
 ```json
 {
-  "template_path": "templates/example.md.j2",
-  "frontmatter_added": true,
-  "vars": [
-    "name",
-    "role"
-  ]
+  "schema_version": "1",
+  "payload": {
+    "template_path": "templates/example.md.j2",
+    "frontmatter_added": true,
+    "would_change": true,
+    "vars": [
+      "name",
+      "role"
+    ]
+  },
+  "diagnostics": []
 }
 ```
 
-`--dry-run --json` for non-render commands must use this schema:
+`frontmatter-init --dry-run --json`
 
 ```json
 {
-  "action": "frontmatter-init",
-  "would_affect": [
-    "templates/example.md.j2"
-  ],
-  "skipped": false
+  "schema_version": "1",
+  "payload": {
+    "action": "frontmatter-init",
+    "would_affect": [
+      "templates/example.md.j2"
+    ],
+    "changed": false,
+    "would_change": true,
+    "skipped": false,
+    "vars": [
+      "name",
+      "role"
+    ]
+  },
+  "diagnostics": []
+}
+```
+
+`init --dry-run --json`
+
+```json
+{
+  "schema_version": "1",
+  "payload": {
+    "action": "init",
+    "would_affect": [
+      ".prompts/",
+      ".gitignore"
+    ],
+    "skipped": false
+  },
+  "diagnostics": []
 }
 ```
 
@@ -553,6 +617,9 @@ Schema rules:
 - `action` names the command.
 - `would_affect` lists the filesystem paths or logical targets that would
   change.
+- `changed` remains `false` for dry-run operations because no write occurs.
+- `would_change` records whether the command would modify its target if writes
+  were enabled.
 - `skipped` is `true` when the command decides no change is needed.
 
 ### FR-9: Observability
