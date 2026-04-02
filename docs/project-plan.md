@@ -248,8 +248,8 @@ Deliverables:
   - `Document<Expanded>`
   - `Document<Validated>`
   - `Document<Rendered>`
-- `crates/sc-composer/src/observability.rs` implementing open observer/sink
-  traits and a built-in no-op implementation
+- `crates/sc-composer/src/observability.rs` implementing observability hooks
+  and a built-in no-op implementation
 - `compose()` wiring over resolver, include, validation, render, and block
   assembly
 
@@ -263,7 +263,7 @@ Acceptance criteria:
 - default mode preserves undeclared tokens; strict mode fails on them
 - include-derived defaults and required variables merge per FR-3a
 - stable diagnostics and `ERR_*` mappings are emitted for all failure classes
-- observer injection works with a host-supplied implementation and with the
+- observability hooks work with a host-supplied implementation and with the
   no-op default
 
 Exit gate:
@@ -316,7 +316,7 @@ Deliverables:
   - `init_workspace()`
 - CLI JSON-output shapers matching the requirements and architecture schemas
 - output-path derivation for file mode and profile mode
-- CLI-side `sc-observability` binding over the open observer/sink traits
+- CLI-side initial observability binding over the pre-S7 hook layer
 
 Acceptance criteria:
 
@@ -363,7 +363,8 @@ Deliverables:
   - `validate`
   - `frontmatter-init`
   - `init`
-- focused observer integration test suite covering documented emission points:
+- focused observability integration test suite covering documented emission
+  points:
   - command start
   - command end
   - resolve outcomes
@@ -386,7 +387,7 @@ Deliverables:
 - `ERR_*` golden tests ensuring every failure-mode matrix code appears in at
   least one diagnostics array assertion
 - ATM adapter integration notes that explicitly document:
-  - the observer API as the primary ATM extension seam
+  - the observability API as the primary ATM extension seam
   - command lifecycle events as adapter-owned when embedding `sc-composer`
     directly
   - config and path translation as adapter-owned because there is no
@@ -402,7 +403,7 @@ ATM adapter use-case coverage updates required in Sprint 6:
 
 - convert the `/tmp/sc_atm_compat_001_report.txt` findings into explicit test or
   documentation coverage
-- close the current PARTIAL/MISSING gaps around observer integration and
+- close the current PARTIAL/MISSING gaps around observability integration and
   failure-path JSON behavior
 - keep typestate positioned as a library-internal sequencing aid rather than
   the primary adapter seam
@@ -432,7 +433,7 @@ Acceptance criteria:
   `init_workspace()`, and `frontmatter_init()` behave as documented
 - failure-mode matrix codes are exercised by tests
 - failure-path JSON envelope shape is snapshot-tested for every command family
-- observer emission points are covered by focused integration tests
+- observability emission points are covered by focused integration tests
 - every `ERR_*` code in the failure-mode matrix appears in at least one test's
   diagnostics output
 - `fail_if_invalid()` preserves all diagnostics rather than reducing to the
@@ -466,24 +467,29 @@ Branch:
 
 FRs addressed:
 
+- FR-7
+- FR-8a
 - FR-10
 - FR-11
 
 Deliverables:
 
 - `sc-composer` sink-injection update:
-  - replace the current generic observer-only design with the documented
-    sink-based injection contract over `sc-observability-types`
+  - replace the current generic hook design with the documented
+    `CompositionLogSink` API over `sc_observability_types::LogEvent`
   - provide a built-in no-op sink for default operation
-  - allow injection at `Renderer` and `compose()` construction time
+  - implement `Renderer::with_log_sink(...)` and
+    `compose_with_log_sink(...)`
   - emit `LogEvent` records for resolve, include-expand, validate, and render
     stages
 - `sc-compose` CLI logging integration:
   - add `sc-observability` logger construction at CLI startup
+  - add `LoggerBackedSink` adapter from `sc-observability::Logger` to
+    `sc_composer::CompositionLogSink`
   - register file and console sinks for normal terminal execution
   - suppress the console sink when `--json` is active
   - call logger `shutdown()` on process exit
-  - expose logger `health()` results through a CLI-facing health/reporting path
+  - add `observability-health` command that reports `Logger::health()`
 - workspace dependency updates:
   - add `sc-observability-types` as the only observability dependency allowed
     in `sc-composer`
@@ -493,6 +499,7 @@ Deliverables:
 - focused tests and QA coverage:
   - library tests for sink injection and no-op defaults
   - CLI tests for `--json` console suppression
+  - CLI tests for `observability-health` text and JSON output
   - event coverage assertions for resolve, include-expand, validate, and render
   - health and graceful-shutdown behavior checks
 
@@ -500,14 +507,16 @@ Acceptance criteria:
 
 - `sc-composer` depends on `sc-observability-types` only, not on
   `sc-observability`
-- `Renderer` and `compose()` both support the documented sink injection path
+- `Renderer::with_log_sink(...)` and `compose_with_log_sink(...)` both exist
+  and match the documented sink injection path
 - the no-op default keeps library and CLI behavior functional when no sink is
   injected
 - CLI startup constructs `sc-observability::Logger` and adapts it into the
   library injection point
 - `--json` mode does not emit console log lines that corrupt machine-readable
   stdout
-- logger health is available through a documented CLI-accessible reporting path
+- `observability-health` returns the documented `LoggingHealthReport` payload
+  and does not mutate logger state
 - shutdown flushes sinks on exit and degrades gracefully on flush/reporting
   errors
 - `qm-comp` review confirms the implementation matches FR-10 and FR-11
@@ -574,10 +583,10 @@ Parallel work must not violate ownership:
 - FR-4: S3 and S6
 - FR-5: S3
 - FR-6: S4 and S5
-- FR-7, FR-7a, FR-7b: S5
+- FR-7, FR-7a, FR-7b: S5 and S7
 - FR-7c: S4 and S5
 - FR-8: S2, S4, S5, and S6
-- FR-8a: S5 and S6
+- FR-8a: S5, S6, and S7
 - FR-9: S4 and S5
 - FR-10: S7
 - FR-11: S7

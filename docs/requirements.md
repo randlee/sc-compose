@@ -330,6 +330,7 @@ Each block may be empty. Ordering is never caller-defined.
 - `validate`
 - `frontmatter-init`
 - `init`
+- `observability-health`
 
 The CLI must support:
 
@@ -381,6 +382,11 @@ Command behavior:
   - validates discovered templates,
   - fails if invalid templates are found,
   - prints recommendations for missing or weak frontmatter.
+- `observability-health`
+  - reads the current CLI logger health state without mutating composition or
+    log configuration,
+  - prints a human-readable health summary by default,
+  - emits the documented JSON schema when `--json` is provided.
 
 `--dry-run` behavior:
 
@@ -555,6 +561,32 @@ Schema rules:
 }
 ```
 
+`observability-health --json`
+
+```json
+{
+  "schema_version": "1",
+  "payload": {
+    "logging": {
+      "state": "healthy",
+      "dropped_events_total": 0,
+      "flush_errors_total": 0,
+      "active_log_path": "/repo/.logs/sc-compose.log.jsonl",
+      "sink_statuses": [],
+      "last_error": null
+    }
+  },
+  "diagnostics": []
+}
+```
+
+Schema rules:
+
+- `payload.logging` is the JSON serialization of
+  `sc_observability_types::LoggingHealthReport`.
+- `observability-health --json` must not emit console log lines that corrupt
+  the JSON envelope written to stdout.
+
 `frontmatter-init --json`
 
 ```json
@@ -626,16 +658,16 @@ Schema rules:
 
 - `sc-composer` must not depend directly on `sc-observability`.
 - `sc-composer` may depend on `sc-observability-types` for shared
-  observability contracts, but it must keep that dependency limited to the
-  neutral value types and sink traits exposed by that crate.
+  observability contracts, but it must keep that dependency limited to neutral
+  value types such as `LogEvent` and health-report payloads.
 - `sc-composer` must define host-injectable observability hooks without
   coupling the library to a concrete logging runtime.
 - `sc-compose` should use `sc-observability` as the canonical concrete
   observability binding for CLI execution.
 - The `sc-observability` dependency is a design-ahead expectation for the CLI
   implementation phase and may not yet appear in `Cargo.toml`.
-- Both crates must emit command lifecycle and composition diagnostics events
-  through the trait-hook model.
+- `sc-composer` must emit composition pipeline events through a sink model.
+- `sc-compose` must emit command lifecycle events through the same sink model.
 - Standalone defaults must keep `sc-compose` sink paths tool-scoped.
 - Embedded use must permit host-supplied sink and path configuration.
 - If no sink is injected, both crates must remain fully functional with
@@ -644,13 +676,15 @@ Schema rules:
 
 ### FR-10: Library Log-Sink Injection
 
-- `sc-composer` shall expose an injectable log-sink interface for composition
-  telemetry at `Renderer` and `compose()` construction time.
-- The injection contract shall be a trait abstraction over
-  `sc-observability-types` `LogSink`, rather than a dependency on the full
-  `sc-observability` logger facade.
-- The library injection path shall default to a built-in no-op sink when the
-  caller does not provide an implementation.
+- `sc-composer` shall define a library-owned `CompositionLogSink` trait whose
+  payload type is `sc_observability_types::LogEvent`.
+- `CompositionLogSink` shall expose exactly one required method:
+  `emit(&self, event: &LogEvent)`.
+- `Renderer::new()` and `compose()` shall preserve no-op behavior when the
+  caller does not provide a sink.
+- `Renderer::with_log_sink(Arc<dyn CompositionLogSink>)` and
+  `compose_with_log_sink(request, Arc<dyn CompositionLogSink>)` shall be the
+  required injection surfaces for host-provided logging.
 - Injected sinks shall receive structured events for the resolve,
   include-expand, validate, and render pipeline stages.
 - The library sink contract shall remain usable by embedded hosts that do not
@@ -664,9 +698,9 @@ Schema rules:
   normal terminal execution.
 - The console sink shall be suppressed whenever the active command uses the
   `--json` output mode so machine-readable command output remains clean.
-- The CLI shall expose an accessible health report for the active logger so
-  operators can inspect sink state, dropped-event counts, and the active log
-  path.
+- The CLI shall expose logger health through a dedicated
+  `observability-health` command so operators can inspect sink state,
+  dropped-event counts, and the active log path.
 - The CLI shall perform graceful logger shutdown on process exit so pending
   events flush before termination.
 
@@ -693,8 +727,8 @@ Schema rules:
 - The `sc-composer` public API is semver-governed.
 - Until `1.0`, breaking API changes require a minor version bump.
 - `render_template()` is a stable convenience API for one-shot rendering.
-- The planned `Renderer` type, once implemented, is the primary stable API for
-  repeated rendering and long-lived library use.
+- `Renderer` is the primary stable API for repeated rendering and long-lived
+  library use.
 
 ## 7. Testing Requirements
 
@@ -718,6 +752,7 @@ Required integration coverage includes:
 - CLI `validate`,
 - CLI `frontmatter-init`,
 - CLI `init`,
+- CLI `observability-health`,
 - `--dry-run` no-write guarantees,
 - JSON diagnostics contract,
 - cross-platform path behavior.

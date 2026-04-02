@@ -55,7 +55,7 @@ The goals are:
                               v
                   +-------------------------------+
                   |   sc-observability-types      |
-                  |   LogSink + LogEvent contracts|
+                  | LogEvent + health-report types|
                   +-------------------------------+
 ```
 
@@ -121,7 +121,7 @@ ATM integration is an adapter concern outside this repository.
 - An ATM adapter depends on `sc-composer` or `sc-compose`; this repository does
   not depend on ATM crates.
 - The adapter constructs `ComposeRequest` values and calls either
-  `render_template()` for one-shot usage or the planned `Renderer` API for
+  `render_template()` for one-shot usage or the `Renderer` API for
   repeated rendering.
 - If ATM needs telemetry, the adapter or CLI injects a sink implementation
   through the library's trait-based observability hooks.
@@ -175,8 +175,8 @@ ATM integration is an adapter concern outside this repository.
   - implements `frontmatter-init` and `init` logic for reuse by the CLI and any
     future embedded callers.
 - `observability`
-  - defines the `sc-composer` sink adapter over
-    `sc_observability_types::LogSink`,
+  - defines the `sc-composer` `CompositionLogSink` trait over
+    `sc_observability_types::LogEvent`,
   - owns the no-op sink used when no caller injects a concrete implementation,
   - emits `LogEvent` values for composition pipeline stages,
   - never binds directly to `sc-observability`.
@@ -339,7 +339,7 @@ Required library surface:
 - `init_workspace(root, options) -> InitResult`
 - `frontmatter_init(path, options) -> FrontmatterInitResult`
 - `Renderer::render(compiled, context) -> Result<String, RenderError>` as the
-  planned primary repeated-render API
+  primary repeated-render API
 
 Primary render-entrypoint decision:
 
@@ -700,6 +700,21 @@ The schemas below define the `payload` shape for each command.
 }
 ```
 
+`observability-health --json`
+
+```json
+{
+  "logging": {
+    "state": "healthy",
+    "dropped_events_total": 0,
+    "flush_errors_total": 0,
+    "active_log_path": "/repo/.logs/sc-compose.log.jsonl",
+    "sink_statuses": [],
+    "last_error": null
+  }
+}
+```
+
 `frontmatter-init --json`
 
 ```json
@@ -815,8 +830,8 @@ Canonical failures must map to stable error families and stable codes.
 
 Architecture rules:
 
-- `sc-composer` emits composition telemetry through a sink abstraction backed
-  by `sc-observability-types` only.
+- `sc-composer` emits composition telemetry through a library-owned sink
+  abstraction whose payload type is `sc-observability-types` `LogEvent`.
 - `sc-compose` provides the canonical concrete binding to the full
   `sc-observability` `Logger`.
 - If no sink is provided, library and CLI behavior degrade to a no-op
@@ -833,40 +848,54 @@ The observability dependency chain is intentionally split so the library stays
 runtime-agnostic:
 
 ```text
-sc-observability-types -> sc-composer -> sc-compose -> sc-observability
-                 ^                              |
-                 +------------------------------+
-                      shared LogSink/LogEvent contracts
+sc-observability-types
+  |               \
+  v                v
+sc-composer      sc-observability
+      \           /
+       v         v
+         sc-compose
 ```
 
-- `sc-observability-types` owns `LogSink`, `LogEvent`, and health-report value
-  types.
-- `sc-composer` depends only on those neutral contracts.
-- `sc-compose` owns logger construction and lifecycle.
-- `sc-observability` remains a CLI-level dependency rather than a library one.
+- `sc-observability-types` owns `LogEvent` and health-report value types.
+- `sc-composer` depends on `sc-observability-types` and defines the
+  `CompositionLogSink` trait locally.
+- `sc-observability` depends on `sc-observability-types` and owns `Logger`,
+  `LogSink`, file sinks, and console sinks.
+- `sc-compose` depends on both `sc-composer` and `sc-observability`.
 
 ### 18.2 Library Injection Pattern
 
 `sc-composer` exposes a renderer-time and compose-time injection point for a
-caller-provided sink. The intent is a narrow adapter surface over
-`sc_observability_types::LogSink`, for example:
+caller-provided sink. The API shape is intentionally fixed:
 
 ```rust
+use std::sync::Arc;
+use sc_observability_types::LogEvent;
+
 pub trait CompositionLogSink: Send + Sync {
     fn emit(&self, event: &LogEvent);
 }
-```
 
-Equivalent wrappers over `dyn LogSink` are acceptable as long as the adapter
-stays inside `sc-composer` and the library does not depend on
-`sc-observability`.
+impl Renderer {
+    pub fn new() -> Self;
+    pub fn with_log_sink(log_sink: Arc<dyn CompositionLogSink>) -> Self;
+}
+
+pub fn compose(request: &ComposeRequest) -> Result<ComposeResult, ComposeError>;
+pub fn compose_with_log_sink(
+    request: &ComposeRequest,
+    log_sink: Arc<dyn CompositionLogSink>,
+) -> Result<ComposeResult, ComposeError>;
+```
 
 Required library behavior:
 
-- `Renderer` construction accepts an optional sink or sink adapter.
-- `compose()` accepts the same injection path, either directly or through a
-  builder/config object used to construct `Renderer`.
-- A built-in no-op sink is installed when the caller provides none.
+- `Renderer::new()` and `compose()` install the built-in no-op sink.
+- `Renderer::with_log_sink(...)` and `compose_with_log_sink(...)` are the only
+  public sink injection entry points.
+- The no-op sink remains the default for embedded hosts that do not opt into
+  logging.
 - Emission points cover:
   - resolve success and failure,
   - include expansion success and failure,
@@ -875,16 +904,18 @@ Required library behavior:
 
 ### 18.3 CLI Wiring
 
-`sc-compose` constructs `sc-observability::Logger` during CLI startup, then
-adapts that logger to the `sc-composer` sink injection point.
+`sc-compose` constructs `sc-observability::Logger` during CLI startup, wraps it
+in a `LoggerBackedSink` adapter that implements
+`sc_composer::CompositionLogSink`, then passes that adapter into
+`Renderer::with_log_sink(...)` or `compose_with_log_sink(...)`.
 
 CLI wiring rules:
 
 - normal terminal execution enables both file and console sinks,
 - `--json` execution disables the console sink so command stdout remains valid
   machine-readable output,
-- logger health is exposed through the logger's `health()` report and remains
-  accessible to CLI status/reporting surfaces,
+- `observability-health` reads `Logger::health()` and serializes the returned
+  `LoggingHealthReport` as command output,
 - CLI shutdown calls the logger's `shutdown()` path so registered sinks flush
   before process exit.
 
