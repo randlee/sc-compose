@@ -625,20 +625,50 @@ Schema rules:
 ### FR-9: Observability
 
 - `sc-composer` must not depend directly on `sc-observability`.
-- `sc-composer` must define observer hooks or sink traits that allow a host to
-  receive structured events without coupling the library to a concrete logging
-  crate.
+- `sc-composer` may depend on `sc-observability-types` for shared
+  observability contracts, but it must keep that dependency limited to the
+  neutral value types and sink traits exposed by that crate.
+- `sc-composer` must define host-injectable observability hooks without
+  coupling the library to a concrete logging runtime.
 - `sc-compose` should use `sc-observability` as the canonical concrete
   observability binding for CLI execution.
-- The `sc-observability` dependency is a design-ahead expectation for the
+- The `sc-observability` dependency is a design-ahead expectation for the CLI
   implementation phase and may not yet appear in `Cargo.toml`.
 - Both crates must emit command lifecycle and composition diagnostics events
   through the trait-hook model.
 - Standalone defaults must keep `sc-compose` sink paths tool-scoped.
 - Embedded use must permit host-supplied sink and path configuration.
-- If no observer is injected, both crates must remain fully functional with
+- If no sink is injected, both crates must remain fully functional with
   observability reduced to a no-op.
 - OTel support remains optional and feature-gated.
+
+### FR-10: Library Log-Sink Injection
+
+- `sc-composer` shall expose an injectable log-sink interface for composition
+  telemetry at `Renderer` and `compose()` construction time.
+- The injection contract shall be a trait abstraction over
+  `sc-observability-types` `LogSink`, rather than a dependency on the full
+  `sc-observability` logger facade.
+- The library injection path shall default to a built-in no-op sink when the
+  caller does not provide an implementation.
+- Injected sinks shall receive structured events for the resolve,
+  include-expand, validate, and render pipeline stages.
+- The library sink contract shall remain usable by embedded hosts that do not
+  use the CLI.
+
+### FR-11: CLI Observability Wiring
+
+- `sc-compose` shall construct the concrete `sc-observability` `Logger` during
+  CLI startup and wire it into the `sc-composer` injection point.
+- The CLI logger wiring shall register both file and console sinks during
+  normal terminal execution.
+- The console sink shall be suppressed whenever the active command uses the
+  `--json` output mode so machine-readable command output remains clean.
+- The CLI shall expose an accessible health report for the active logger so
+  operators can inspect sink state, dropped-event counts, and the active log
+  path.
+- The CLI shall perform graceful logger shutdown on process exit so pending
+  events flush before termination.
 
 ## 5. Non-Functional Requirements
 
@@ -650,6 +680,13 @@ Schema rules:
   semver-governed once released.
 - The library and CLI must remain separable: `sc-compose` may depend on
   `sc-composer`, but `sc-composer` must not depend on the CLI crate.
+- Observability integration must emit structured log events at the resolve,
+  include-expand, validate, and render pipeline stages with stable target and
+  action naming.
+- Observability health state must be queryable without mutating composition
+  behavior so operators and embedded hosts can inspect runtime health safely.
+- Process shutdown must flush pending observability output and degrade
+  gracefully when sink flushing reports errors.
 
 ## 6. Stability Policy
 

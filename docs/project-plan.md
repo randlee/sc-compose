@@ -46,15 +46,15 @@ The immediate goal is to establish:
 ## Implementation Phase
 
 After repository extraction is stable, the next implementation phase is the
-FR-1 through FR-9 redesign defined in:
+FR-1 through FR-11 redesign defined in:
 
 - `docs/requirements.md`
 - `docs/architecture.md`
 
-The crate-development phase is a six-sprint program:
+The crate-development phase is a seven-sprint program:
 
 - `S1` completed the normative documentation and review baseline.
-- `S2` through `S6` implement and harden `sc-composer` and `sc-compose`.
+- `S2` through `S7` implement and harden `sc-composer` and `sc-compose`.
 
 A later sprint may start only after the prior sprint exit gate passes.
 
@@ -458,6 +458,68 @@ Exit gate:
 - `arch-ctm` final design review
 - branch approved for merge to `develop`
 
+### Sprint 7: Observability Integration Tightening
+
+Branch:
+
+- `feature/s7-observability-integration` -> `develop`
+
+FRs addressed:
+
+- FR-10
+- FR-11
+
+Deliverables:
+
+- `sc-composer` sink-injection update:
+  - replace the current generic observer-only design with the documented
+    sink-based injection contract over `sc-observability-types`
+  - provide a built-in no-op sink for default operation
+  - allow injection at `Renderer` and `compose()` construction time
+  - emit `LogEvent` records for resolve, include-expand, validate, and render
+    stages
+- `sc-compose` CLI logging integration:
+  - add `sc-observability` logger construction at CLI startup
+  - register file and console sinks for normal terminal execution
+  - suppress the console sink when `--json` is active
+  - call logger `shutdown()` on process exit
+  - expose logger `health()` results through a CLI-facing health/reporting path
+- workspace dependency updates:
+  - add `sc-observability-types` as the only observability dependency allowed
+    in `sc-composer`
+  - add `sc-observability` to `sc-compose`
+  - keep `sc-composer` free of any direct dependency on the full
+    `sc-observability` facade
+- focused tests and QA coverage:
+  - library tests for sink injection and no-op defaults
+  - CLI tests for `--json` console suppression
+  - event coverage assertions for resolve, include-expand, validate, and render
+  - health and graceful-shutdown behavior checks
+
+Acceptance criteria:
+
+- `sc-composer` depends on `sc-observability-types` only, not on
+  `sc-observability`
+- `Renderer` and `compose()` both support the documented sink injection path
+- the no-op default keeps library and CLI behavior functional when no sink is
+  injected
+- CLI startup constructs `sc-observability::Logger` and adapts it into the
+  library injection point
+- `--json` mode does not emit console log lines that corrupt machine-readable
+  stdout
+- logger health is available through a documented CLI-accessible reporting path
+- shutdown flushes sinks on exit and degrades gracefully on flush/reporting
+  errors
+- `qm-comp` review confirms the implementation matches FR-10 and FR-11
+
+Exit gate:
+
+- `cargo test --workspace` passes
+- `cargo clippy --all-targets --all-features -- -D warnings` passes
+- `cargo fmt --all --check` passes
+- `qm-comp` review passes
+- branch approved for merge to `develop`
+
 ## Crate Build Sequence
 
 Implementation order is constrained by the architecture typestate pipeline and
@@ -517,19 +579,22 @@ Parallel work must not violate ownership:
 - FR-8: S2, S4, S5, and S6
 - FR-8a: S5 and S6
 - FR-9: S4 and S5
+- FR-10: S7
+- FR-11: S7
 - NFRs:
   - cross-platform behavior: S3 and S6
   - interactive performance expectations: S5 and S6
   - public API stability: S2 and S6
-  - crate separability and boundary enforcement: S2 through S6
+  - crate separability and boundary enforcement: S2 through S7
+  - observability health and graceful shutdown: S7
 
 ## Phase Exit Gate
 
-The crate-development phase is complete only when Sprint 6 passes all of the
+The crate-development phase is complete only when Sprint 7 passes all of the
 following:
 
-- all prior sprint exit gates for S2 through S5 have already passed
-- all FR-1 through FR-9 behavior is implemented and covered by automated tests
+- all prior sprint exit gates for S2 through S6 have already passed
+- all FR-1 through FR-11 behavior is implemented and covered by automated tests
 - `cargo test --workspace` passes
 - `cargo clippy --all-targets --all-features -- -D warnings` passes
 - `cargo fmt --all --check` passes
