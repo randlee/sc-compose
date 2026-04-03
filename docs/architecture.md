@@ -588,6 +588,7 @@ Command mapping:
 - `validate` -> `validate`
 - `frontmatter-init` -> `frontmatter_init`
 - `init` -> `init_workspace`
+- `observability-health` -> `Logger::health()`
 
 The CLI must not reimplement core composition semantics. If a command requires
 logic useful to non-CLI callers, that logic belongs in the library.
@@ -735,6 +736,10 @@ Non-render `--dry-run --json`
   ],
   "changed": false,
   "would_change": true,
+  "vars": [
+    "name",
+    "role"
+  ],
   "skipped": false
 }
 ```
