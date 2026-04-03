@@ -29,7 +29,7 @@ The goals are:
    | ATM adapter / other host integration          |
    | - builds ComposeRequest                       |
    | - calls render_template() or Renderer         |
-   | - may inject a sink implementation            |
+   | - may inject an observer implementation       |
    +-------------------------+---------------------+
                              |
                              v
@@ -44,25 +44,19 @@ The goals are:
                   |   Logger + file/console sinks |
                   +-------------------------------+
                               ^
-                              | injects LogSink-backed adapter
+                              | injects CLI-owned observer adapter
                               |
                   +-----------+-------------------+
                   |         sc-composer           |
                   | core composition API +        |
-                  | sink injection at Renderer    |
+                  | local observer hook layer     |
                   +-----------+-------------------+
-                              |
-                              v
-                  +-------------------------------+
-                  |   sc-observability-types      |
-                  | LogEvent + health-report types|
-                  +-------------------------------+
 ```
 
 ATM-specific integration attaches above the two-crate boundary. `sc-composer`
-never imports ATM types, depends only on `sc-observability-types` for
-observability contracts, and receives concrete logging behavior through trait
-injection rather than a direct dependency on `sc-observability`.
+never imports ATM types, defines its observability hooks locally, and receives
+concrete logging behavior through trait injection rather than a direct
+dependency on `sc-observability`.
 
 ## 3. Crate Layout
 
@@ -95,7 +89,6 @@ injection rather than a direct dependency on `sc-observability`.
 
 Required dependency direction:
 
-- `sc-composer` -> `sc-observability-types`
 - `sc-compose` -> `sc-composer`
 - `sc-compose` -> `sc-observability`
 - `sc-observability` -> `sc-observability-types`
@@ -103,8 +96,7 @@ Required dependency direction:
 Design-ahead note:
 
 - `sc-observability` is the intended observability integration target for the
-  CLI architecture, while `sc-observability-types` is the only observability
-  dependency allowed in `sc-composer`.
+  CLI architecture, while `sc-composer` keeps its observer interfaces local.
 
 Forbidden dependency direction:
 
@@ -175,10 +167,11 @@ ATM integration is an adapter concern outside this repository.
   - implements `frontmatter-init` and `init` logic for reuse by the CLI and any
     future embedded callers.
 - `observability`
-  - defines the `sc-composer` `CompositionLogSink` trait over
-    `sc_observability_types::LogEvent`,
-  - owns the no-op sink used when no caller injects a concrete implementation,
-  - emits `LogEvent` values for composition pipeline stages,
+  - defines the local observer and sink traits used by embedded hosts and the
+    CLI,
+  - owns the no-op observer used when no caller injects a concrete
+    implementation,
+  - emits structured composition-stage events,
   - never binds directly to `sc-observability`.
 
 ## 5. Resolver Path Policy (FR-5)
@@ -616,6 +609,9 @@ Command-specific rules:
   - uses token discovery but does not render the file.
 - `init`
   - performs repository bootstrap and validation-oriented scanning.
+- `observability-health`
+  - reads logger health state without mutating composition behavior,
+  - emits `LoggingHealthReport` under `--json` as defined in section 18.3.
 
 Guidance and prompt input model:
 
@@ -721,6 +717,7 @@ The schemas below define the `payload` shape for each command.
 {
   "template_path": "templates/example.md.j2",
   "frontmatter_added": true,
+  "would_change": true,
   "vars": [
     "name",
     "role"
@@ -832,16 +829,17 @@ Canonical failures must map to stable error families and stable codes.
 
 Architecture rules:
 
-- `sc-composer` emits composition telemetry through a library-owned sink
-  abstraction whose payload type is `sc-observability-types` `LogEvent`.
+- `sc-composer` emits composition telemetry through its local
+  `sc_composer::observer` hook layer.
 - `sc-compose` provides the canonical concrete binding to the full
   `sc-observability` `Logger`.
-- If no sink is provided, library and CLI behavior degrade to a no-op
+- If no observer is provided, library and CLI behavior degrade to a no-op
   observability path rather than failing.
 - Library observability hooks must remain usable by embedded consumers.
 - Default sink paths for standalone CLI behavior must be tool-scoped.
-- Sink traits must be object-safe and `dyn`-compatible.
-- Sink adapters are intentionally public and unsealed so embedded hosts can
+- Observer and sink traits must be object-safe and `dyn`-compatible.
+- Observer and sink adapters are intentionally public and unsealed so embedded
+  hosts can
   provide their own implementations.
 
 ### 18.1 Dependency Graph
@@ -850,55 +848,51 @@ The observability dependency chain is intentionally split so the library stays
 runtime-agnostic:
 
 ```text
-sc-observability-types
-  |               \
-  v                v
-sc-composer      sc-observability
-      \           /
-       v         v
-         sc-compose
+sc-composer        sc-observability
+       \           /
+        v         v
+          sc-compose
+               |
+               v
+      sc-observability-types
 ```
 
-- `sc-observability-types` owns `LogEvent` and health-report value types.
-- `sc-composer` depends on `sc-observability-types` and defines the
-  `CompositionLogSink` trait locally.
+- `sc-composer` defines its own `ObservationEvent`, `ObservationSink`, and
+  `CompositionObserver` hook types locally.
 - `sc-observability` depends on `sc-observability-types` and owns `Logger`,
-  `LogSink`, file sinks, and console sinks.
+  `LogSink`, file sinks, console sinks, and health-report payload types.
 - `sc-compose` depends on both `sc-composer` and `sc-observability`.
 
 ### 18.2 Library Injection Pattern
 
-`sc-composer` exposes a renderer-time and compose-time injection point for a
-caller-provided sink. The API shape is intentionally fixed:
+`sc-composer` exposes a caller-provided observer/sink injection path through
+its local `observer` module:
 
 ```rust
-use std::sync::Arc;
-use sc_observability_types::LogEvent;
+use sc_composer::observer::{
+    CompositionObserver, ObservationEvent, ObservationSink,
+};
 
-pub trait CompositionLogSink: Send + Sync {
-    fn emit(&self, event: &LogEvent);
+pub trait ObservationSink {
+    fn emit(&mut self, event: &ObservationEvent);
 }
 
-impl Renderer {
-    pub fn new(config: RendererConfig) -> Self;
-    pub fn with_log_sink(self, log_sink: Arc<dyn CompositionLogSink>) -> Self;
-}
+pub trait CompositionObserver { /* callbacks omitted */ }
 
 pub fn compose(request: &ComposeRequest) -> Result<ComposeResult, ComposeError>;
-pub fn compose_with_log_sink(
+pub fn compose_with_observer(
     request: &ComposeRequest,
-    log_sink: Arc<dyn CompositionLogSink>,
+    observer: &mut dyn CompositionObserver,
 ) -> Result<ComposeResult, ComposeError>;
 ```
 
 Required library behavior:
 
-- `Renderer::new(config)` and `compose()` install the built-in no-op sink.
-- `Renderer::new(config).with_log_sink(...)` and `compose_with_log_sink(...)`
-  are the only
-  public sink injection entry points.
-- The no-op sink remains the default for embedded hosts that do not opt into
-  logging.
+- `compose()` installs the built-in no-op observer.
+- `compose_with_observer(...)` is the public end-to-end observability
+  injection entry point.
+- `ObservationSink` and `CompositionObserver` remain the local extension points
+  for embedded hosts that do not opt into the CLI.
 - Emission points cover:
   - resolve success and failure,
   - include expansion success and failure,
@@ -908,9 +902,9 @@ Required library behavior:
 ### 18.3 CLI Wiring
 
 `sc-compose` constructs `sc-observability::Logger` during CLI startup, wraps it
-in a `LoggerBackedSink` adapter that implements
-`sc_composer::CompositionLogSink`, then passes that adapter into
-`Renderer::new(config).with_log_sink(...)` or `compose_with_log_sink(...)`.
+in a CLI-owned adapter that implements `sc_composer::observer::ObservationSink`
+or `sc_composer::observer::CompositionObserver`, then passes that adapter into
+`compose_with_observer(...)`.
 
 CLI wiring rules:
 
@@ -927,9 +921,10 @@ CLI wiring rules:
 The normative public API paths for this design are:
 
 - `sc_composer::compose`
-- `sc_composer::compose_with_log_sink`
+- `sc_composer::compose_with_observer`
 - `sc_composer::Renderer`
-- `sc_composer::observability::CompositionLogSink`
+- `sc_composer::observer::CompositionObserver`
+- `sc_composer::observer::ObservationSink`
 
 ### 18.5 Log Event Shape and Emission Points
 

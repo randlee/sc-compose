@@ -657,17 +657,17 @@ Schema rules:
 ### FR-9: Observability
 
 - `sc-composer` must not depend directly on `sc-observability`.
-- `sc-composer` may depend on `sc-observability-types` for shared
-  observability contracts, but it must keep that dependency limited to neutral
-  value types such as `LogEvent` and health-report payloads.
-- `sc-composer` must define host-injectable observability hooks without
+- `sc-composer` must not depend on `sc-observability-types`.
+- `sc-composer` must define host-injectable observability hooks locally without
   coupling the library to a concrete logging runtime.
 - `sc-compose` should use `sc-observability` as the canonical concrete
   observability binding for CLI execution.
 - The `sc-observability` dependency is a design-ahead expectation for the CLI
   implementation phase and may not yet appear in `Cargo.toml`.
-- `sc-composer` must emit composition pipeline events through a sink model.
-- `sc-compose` must emit command lifecycle events through the same sink model.
+- `sc-composer` must emit composition pipeline events through its local
+  observer/sink hook model.
+- `sc-compose` must emit command lifecycle events through the same local hook
+  model.
 - Standalone defaults must keep `sc-compose` sink paths tool-scoped.
 - Embedded use must permit host-supplied sink and path configuration.
 - If no sink is injected, both crates must remain fully functional with
@@ -676,20 +676,19 @@ Schema rules:
 
 ### FR-10: Library Log-Sink Injection
 
-- `sc-composer` shall define a library-owned `CompositionLogSink` trait whose
-  payload type is `sc_observability_types::LogEvent`.
-- `CompositionLogSink` shall expose exactly one required method:
-  `emit(&self, event: &LogEvent)`.
+- `sc-composer` shall define its minimal observability hook layer locally in
+  `sc_composer::observer`.
+- The library hook surface shall remain a local sink/observer abstraction over
+  `ObservationEvent` rather than importing observability contracts from
+  `sc-observability-types`.
 - `Renderer::new(config)` and `compose()` shall preserve no-op behavior when the
-  caller does not provide a sink.
-- `Renderer::new(config).with_log_sink(Arc<dyn CompositionLogSink>) -> Renderer`
-  and
-  `compose_with_log_sink(request, Arc<dyn CompositionLogSink>)` shall be the
-  required injection surfaces for host-provided logging.
-- Injected sinks shall receive structured events for the resolve,
+  caller does not provide an observer implementation.
+- `compose_with_observer(request, &mut dyn CompositionObserver)` shall remain
+  the required end-to-end injection surface for host-provided observability.
+- Injected hooks shall receive structured events for the resolve,
   include-expand, validate, and render pipeline stages.
-- The library sink contract shall remain usable by embedded hosts that do not
-  use the CLI.
+- The local observer/sink contracts shall remain usable by embedded hosts that
+  do not use the CLI.
 
 ### FR-11: CLI Observability Wiring
 

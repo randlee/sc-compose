@@ -474,29 +474,27 @@ FRs addressed:
 Deliverables:
 
 - `sc-composer` sink-injection update:
-  - replace the current generic hook design with the documented
-    `CompositionLogSink` API over `sc_observability_types::LogEvent`
-  - provide a built-in no-op sink for default operation
-  - implement `Renderer::with_log_sink(...)` and
-    `compose_with_log_sink(...)`
-  - emit `LogEvent` records for resolve, include-expand, validate, and render
-    stages
+  - keep the observability hook layer local to `sc-composer`
+  - align the normative docs with the local `observer` module API rather than
+    an external sink contract
+  - provide a built-in no-op observer for default operation
+  - continue to use `compose_with_observer(...)` as the end-to-end injection
+    surface
+  - emit structured resolve, include-expand, validate, and render stage events
 - `sc-compose` CLI logging integration:
   - add `sc-observability` logger construction at CLI startup
-  - add `LoggerBackedSink` adapter from `sc-observability::Logger` to
-    `sc_composer::CompositionLogSink`
+  - add a CLI-owned adapter from `sc-observability::Logger` to
+    `sc_composer::observer` hooks
   - register file and console sinks for normal terminal execution
   - suppress the console sink when `--json` is active
   - call logger `shutdown()` on process exit
   - add `observability-health` command that reports `Logger::health()`
 - workspace dependency updates:
-  - add `sc-observability-types` as the only observability dependency allowed
-    in `sc-composer`
   - add `sc-observability` to `sc-compose`
   - keep `sc-composer` free of any direct dependency on the full
     `sc-observability` facade
 - focused tests and QA coverage:
-  - library tests for sink injection and no-op defaults
+  - library tests for observer injection and no-op defaults
   - CLI tests for `--json` console suppression
   - CLI tests for `observability-health` text and JSON output
   - event coverage assertions for resolve, include-expand, validate, and render
@@ -504,13 +502,12 @@ Deliverables:
 
 Acceptance criteria:
 
-- `sc-composer` depends on `sc-observability-types` only, not on
-  `sc-observability`
-- `Renderer::new(config).with_log_sink(...)` and
-  `compose_with_log_sink(...)` both exist and match the documented sink
-  injection path
-- the no-op default keeps library and CLI behavior functional when no sink is
-  injected
+- `sc-composer` does not depend on `sc-observability-types`
+- `sc-composer` does not depend on `sc-observability`
+- `compose_with_observer(...)` remains the documented observability injection
+  path
+- the no-op default keeps library and CLI behavior functional when no observer
+  is injected
 - CLI startup constructs `sc-observability::Logger` and adapts it into the
   library injection point
 - `--json` mode does not emit console log lines that corrupt machine-readable
