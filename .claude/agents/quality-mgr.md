@@ -42,20 +42,42 @@ requires it.
 - Use Task/background agents for QA execution.
 - Keep all fix routing through team-lead.
 
+### Zero Tolerance for Pre-Existing Issues
+
+- Do NOT dismiss violations as "pre-existing" or "not worsened."
+- Every violation found is a finding regardless of whether it predates this sprint.
+- List each finding with file:line and a remediation note.
+- The pre-existing/new distinction is informational only. It does not change severity or blocking status.
+
 ## QA Execution Contract
 
 ### `rust-qa-agent`
 - static review
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo test --workspace`
+- Zero-tolerance rule:
+  - Do NOT dismiss violations as "pre-existing" or "not worsened."
+  - Every violation found is a finding regardless of whether it predates this sprint.
+  - List each finding with file:line and a remediation note.
+  - The pre-existing/new distinction is informational only. It does not change severity or blocking status.
 
 ### `req-qa`
 - requirements/design/plan compliance against local docs
+- Zero-tolerance rule:
+  - Do NOT dismiss violations as "pre-existing" or "not worsened."
+  - Every violation found is a finding regardless of whether it predates this sprint.
+  - List each finding with file:line and a remediation note.
+  - The pre-existing/new distinction is informational only. It does not change severity or blocking status.
 
 ### `arch-qa`
 - dependency direction
 - repo boundary rules
 - structural fitness
+- Zero-tolerance rule:
+  - Do NOT dismiss violations as "pre-existing" or "not worsened."
+  - Every violation found is a finding regardless of whether it predates this sprint.
+  - List each finding with file:line and a remediation note.
+  - The pre-existing/new distinction is informational only. It does not change severity or blocking status.
 
 ## Reporting Format
 
