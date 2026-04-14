@@ -19,7 +19,7 @@ pub struct CommandEndEvent {
     pub success: bool,
 }
 
-pub trait CommandLifecycleObserver {
+pub(crate) trait CommandLifecycleObserver {
     fn on_command_start(&mut self, event: &CommandStartEvent);
     fn on_command_end(&mut self, event: &CommandEndEvent);
 }
@@ -29,6 +29,8 @@ pub struct CliObserver {
 }
 
 impl CliObserver {
+    // TODO(Sprint 2 / RB-03): replace bespoke env-var sink with
+    // sc-observability::Logger construction; wire --json mode console suppression.
     pub fn from_env() -> Self {
         if let Ok(path) = std::env::var("SC_COMPOSE_OBSERVER_LOG") {
             return Self {
@@ -54,6 +56,7 @@ impl CliObserver {
         match &self.sink {
             SinkMode::Disabled => {}
             SinkMode::Stderr => {
+                // TODO(Sprint 2 / RB-03): suppress console sink when --json is active.
                 let _ignored = writeln!(std::io::stderr(), "{line}");
             }
             SinkMode::File(path) => {

@@ -179,6 +179,7 @@ fn main() {
             error.exit_code
         }
     };
+    // TODO(Sprint 2 / RB-03): call logger.shutdown() here for graceful flush before exit.
     std::process::exit(code);
 }
 
@@ -382,6 +383,8 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
             serde_json::json!({
                 "action": "init",
                 "would_affect": planned_changes.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+                "changed": false,
+                "would_change": !planned_changes.is_empty(),
                 "skipped": planned_changes.is_empty(),
             })
         } else {
