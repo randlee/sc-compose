@@ -10,10 +10,12 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result, anyhow};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use sc_composer::{
-    CommandEndEvent, CommandStartEvent, ComposeError, ComposeMode, ComposePolicy, ComposeRequest,
-    CompositionObserver, ConfiningRoot, Diagnostic, DiagnosticCode, DiagnosticSeverity,
-    FrontmatterInitResult, ProfileKind, RuntimeKind, ScalarValue, UnknownVariablePolicy,
+    ComposeError, ComposeMode, ComposePolicy, ComposeRequest, CompositionObserver, ConfiningRoot,
+    Diagnostic, DiagnosticCode, DiagnosticSeverity, FrontmatterInitResult, ProfileKind,
+    RuntimeKind, ScalarValue, UnknownVariablePolicy,
 };
+
+use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
 
 #[derive(Debug, Parser)]
 #[command(name = "sc-compose")]
@@ -31,6 +33,9 @@ enum Command {
     #[command(name = "frontmatter-init")]
     FrontmatterInit(FrontmatterInitArgs),
     Init(InitArgs),
+    #[command(name = "observability-health")]
+    // TODO(Sprint 2 / RB-03)
+    ObservabilityHealth(ObservabilityHealthArgs),
 }
 
 #[derive(Debug, Clone, Args)]
@@ -121,6 +126,12 @@ struct InitArgs {
     dry_run: bool,
 }
 
+#[derive(Debug, Clone, Args)]
+struct ObservabilityHealthArgs {
+    #[arg(long)]
+    json: bool,
+}
+
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum Mode {
     Profile,
@@ -189,6 +200,11 @@ fn run(cli: Cli) -> Result<i32, CommandError> {
             })
         }
         Command::Init(args) => observe_command(&mut observer, "init", |_observer| run_init(&args)),
+        Command::ObservabilityHealth(args) => {
+            observe_command(&mut observer, "observability-health", |_observer| {
+                run_observability_health(&args)
+            })
+        }
     }
 }
 
@@ -392,6 +408,13 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
     } else {
         exit_codes::VALIDATION_OR_RENDER_FAIL
     })
+}
+
+fn run_observability_health(_args: &ObservabilityHealthArgs) -> Result<i32, CommandError> {
+    Err(CommandError::usage_with_code(
+        anyhow!("observability-health is planned for Sprint 2 / RB-03 and is not implemented yet"),
+        DiagnosticCode::ErrConfigMode,
+    ))
 }
 
 fn build_request(
@@ -689,14 +712,18 @@ fn command_wants_json(command: &Command) -> bool {
         Command::Validate(args) => args.json,
         Command::FrontmatterInit(args) => args.json,
         Command::Init(args) => args.json,
+        Command::ObservabilityHealth(args) => args.json,
     }
 }
 
-fn observe_command(
-    observer: &mut dyn CompositionObserver,
+fn observe_command<O>(
+    observer: &mut O,
     command_name: &str,
     action: impl FnOnce(&mut dyn CompositionObserver) -> Result<i32, CommandError>,
-) -> Result<i32, CommandError> {
+) -> Result<i32, CommandError>
+where
+    O: CompositionObserver + CommandLifecycleObserver,
+{
     observer.on_command_start(&CommandStartEvent {
         command_name: command_name.to_owned(),
     });
@@ -872,7 +899,9 @@ fn compose_error_diagnostics(error: &ComposeError) -> Vec<Diagnostic> {
 mod tests {
     use super::{CommandError, observe_command};
     use anyhow::anyhow;
-    use sc_composer::{CommandEndEvent, CommandStartEvent, CompositionObserver, DiagnosticCode};
+    use sc_composer::{CompositionObserver, DiagnosticCode};
+
+    use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
 
     #[derive(Default)]
     struct CapturingObserver {
@@ -880,7 +909,9 @@ mod tests {
         ended: Vec<CommandEndEvent>,
     }
 
-    impl CompositionObserver for CapturingObserver {
+    impl CompositionObserver for CapturingObserver {}
+
+    impl CommandLifecycleObserver for CapturingObserver {
         fn on_command_start(&mut self, event: &CommandStartEvent) {
             self.started.push(event.clone());
         }

@@ -571,9 +571,10 @@ Schema rules:
       "state": "Healthy",
       "dropped_events_total": 0,
       "flush_errors_total": 0,
-      "active_log_path": "/repo/.logs/sc-compose.log.jsonl",
+      "active_log_path": "<log_root>/logs/sc-compose.log.jsonl",
       "sink_statuses": [],
-      "last_error": null
+      "last_error": null,
+      "query": null
     }
   },
   "diagnostics": []
@@ -583,7 +584,14 @@ Schema rules:
 Schema rules:
 
 - `payload.logging` is the JSON serialization of
-  `sc_observability_types::LoggingHealthReport`.
+  `sc_observability::LoggingHealthReport`.
+- `LoggingHealthReport` is accessed through the `sc-observability` re-export
+  surface for logging-only consumers, per DOC-007 and LOG-038.
+- `payload.logging.query` is `null` when query/follow health is unavailable and
+  otherwise contains a `QueryHealthReport`.
+- `active_log_path` is derived from the configured log root and service name
+  using the `LOG-008` layout `<log_root>/logs/<service>.log.jsonl`.
+- The concrete path is platform-dependent; on Windows it may be drive-qualified.
 - `observability-health --json` must not emit console log lines that corrupt
   the JSON envelope written to stdout.
 
@@ -638,6 +646,8 @@ Schema rules:
       ".prompts/",
       ".gitignore"
     ],
+    "changed": false,
+    "would_change": true,
     "skipped": false
   },
   "diagnostics": []

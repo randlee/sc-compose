@@ -706,9 +706,10 @@ The schemas below define the `payload` shape for each command.
     "state": "Healthy",
     "dropped_events_total": 0,
     "flush_errors_total": 0,
-    "active_log_path": "/repo/.logs/sc-compose.log.jsonl",
+    "active_log_path": "<log_root>/logs/sc-compose.log.jsonl",
     "sink_statuses": [],
-    "last_error": null
+    "last_error": null,
+    "query": null
   }
 }
 ```
@@ -752,6 +753,11 @@ Schema notes:
 - `location` is a single string field in CLI JSON even when the library tracks
   path, line, and column separately.
 - `rendered_preview` may be `null` when preview emission is suppressed.
+- `payload.logging.query` is `null` when query/follow health is unavailable and
+  otherwise contains a `QueryHealthReport`.
+- `active_log_path` is derived from the configured log root and service name
+  using the `LOG-008` layout `<log_root>/logs/<service>.log.jsonl`.
+- The concrete path is platform-dependent; on Windows it may be drive-qualified.
 
 ## 14. Output Path Policy (FR-7)
 
@@ -870,7 +876,9 @@ sc-observability -----> sc-observability-types
 - `sc-composer` defines its own `ObservationEvent`, `ObservationSink`, and
   `CompositionObserver` hook types locally.
 - `sc-observability` depends on `sc-observability-types` and owns `Logger`,
-  `LogSink`, file sinks, console sinks, and health-report payload types.
+  `LogSink`, file sinks, console sinks, `LoggingHealthReport`,
+  `QueryHealthReport`, and `QueryHealthState` through its public re-export
+  surface.
 - `sc-compose` depends on both `sc-composer` and `sc-observability`.
 
 ### 18.2 Library Injection Pattern
@@ -883,11 +891,25 @@ use sc_composer::observer::{
     CompositionObserver, ObservationEvent, ObservationSink,
 };
 
+pub enum ObservationEvent {
+    ResolveAttempt(ResolveAttemptEvent),
+    ResolveOutcome(ResolveOutcomeEvent),
+    IncludeExpandOutcome(IncludeOutcomeEvent),
+    ValidationOutcome(ValidationOutcomeEvent),
+    RenderOutcome(RenderOutcomeEvent),
+}
+
 pub trait ObservationSink {
     fn emit(&mut self, event: &ObservationEvent);
 }
 
-pub trait CompositionObserver { /* callbacks omitted */ }
+pub trait CompositionObserver {
+    fn on_resolve_attempt(&mut self, event: &ResolveAttemptEvent) {}
+    fn on_resolve_outcome(&mut self, event: &ResolveOutcomeEvent) {}
+    fn on_include_outcome(&mut self, event: &IncludeOutcomeEvent) {}
+    fn on_validation_outcome(&mut self, event: &ValidationOutcomeEvent) {}
+    fn on_render_outcome(&mut self, event: &RenderOutcomeEvent) {}
+}
 
 pub fn compose(request: &ComposeRequest) -> Result<ComposeResult, ComposeError>;
 pub fn compose_with_observer(
@@ -904,11 +926,16 @@ Required library behavior:
   injection entry point.
 - `ObservationSink` and `CompositionObserver` remain the local extension points
   for embedded hosts that do not opt into the CLI.
-- Emission points cover:
-  - resolve success and failure,
-  - include expansion success and failure,
-  - validation outcomes,
-  - render success and failure.
+- The approved minimum library-owned variant set is:
+  - `ResolveAttempt`
+  - `ResolveOutcome`
+  - `IncludeExpandOutcome`
+  - `ValidationOutcome`
+  - `RenderOutcome`
+- The observer surface remains object-safe and callable through
+  `&mut dyn CompositionObserver`.
+- Command lifecycle events remain CLI-owned and must not be defined in
+  `sc-composer`.
 
 ### 18.3 CLI Wiring
 
@@ -952,11 +979,6 @@ The composition pipeline emits `ObservationEvent` values through the local
 observer hook layer. The CLI adapter maps those events into concrete logger
 records with stable `target`, `action`, and `message` fields that describe:
 
-- resolve attempts and outcomes,
-- include expansion outcomes,
-- validation outcomes,
-- render outcomes.
-
 Message rules:
 
 - `message` is a short human-readable summary of the event outcome.
@@ -971,8 +993,20 @@ and `message` fields for:
 - command completion,
 - command failure.
 
-The four composition pipeline stages above are the minimum required library
-emission points. Command lifecycle events remain CLI-owned.
+The adapter-owned mapping is:
+
+| `sc-compose` event source | `LogEvent.target` | `LogEvent.action` | `LogEvent.message` | Other `LogEvent` fields |
+| --- | --- | --- | --- | --- |
+| command start | `compose.command` | `started` | human-readable summary such as `render started` | `fields` include command name and relevant mode flags |
+| command end, success | `compose.command` | `completed` | human-readable summary such as `render completed` | `fields` include command name, elapsed time, and output mode; `outcome` is success |
+| command end, failure | `compose.command` | `failed` | human-readable summary such as `render failed` | `fields` include command name, exit code, elapsed time, and output mode; `outcome` is failure; `diagnostic` is attached when available |
+| resolve attempt or outcome | `compose.resolve` | phase-specific action such as `attempt`, `resolved`, or `failed` | concise resolver summary sentence | `outcome` reflects success/failure; `diagnostic` is attached for failures; resolver traces or selected paths live in `fields` |
+| include-expand outcome | `compose.include_expand` | phase-specific action such as `expanded` or `failed` | concise include-expansion summary sentence | include stack and path details live in `fields`; failures attach `diagnostic` |
+| validation outcome | `compose.validate` | phase-specific action such as `completed` or `failed` | concise validation summary sentence | validation counts and policy decisions live in `fields`; failures attach `diagnostic` |
+| render outcome | `compose.render` | phase-specific action such as `completed` or `failed` | concise render summary sentence | render metadata lives in `fields`; `outcome` and `diagnostic` reflect success/failure |
+
+This mapping is intentionally adapter-owned so `sc-observability` preserves a
+generic logging contract and command lifecycle events remain CLI-owned.
 
 ## 19. Extensibility
 

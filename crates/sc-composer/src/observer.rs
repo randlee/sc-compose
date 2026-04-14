@@ -9,14 +9,12 @@ use crate::{Diagnostic, DiagnosticCode};
 /// Structured event emitted through an [`ObservationSink`].
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum ObservationEvent {
-    /// Command start notification.
-    CommandStart(CommandStartEvent),
-    /// Command end notification.
-    CommandEnd(CommandEndEvent),
+    /// Resolver attempt notification.
+    ResolveAttempt(ResolveAttemptEvent),
     /// Resolver outcome notification.
     ResolveOutcome(ResolveOutcomeEvent),
     /// Include expansion outcome notification.
-    IncludeOutcome(IncludeOutcomeEvent),
+    IncludeExpandOutcome(IncludeOutcomeEvent),
     /// Validation outcome notification.
     ValidationOutcome(ValidationOutcomeEvent),
     /// Render outcome notification.
@@ -31,11 +29,8 @@ pub trait ObservationSink {
 
 /// Open observer trait used by embedded hosts and the CLI.
 pub trait CompositionObserver {
-    /// Called when a command begins execution.
-    fn on_command_start(&mut self, _event: &CommandStartEvent) {}
-
-    /// Called when a command completes.
-    fn on_command_end(&mut self, _event: &CommandEndEvent) {}
+    /// Called when resolution starts.
+    fn on_resolve_attempt(&mut self, _event: &ResolveAttemptEvent) {}
 
     /// Called when resolution completes or fails.
     fn on_resolve_outcome(&mut self, _event: &ResolveOutcomeEvent) {}
@@ -56,20 +51,11 @@ pub struct NoopObserver;
 
 impl CompositionObserver for NoopObserver {}
 
-/// Event emitted when a command starts.
+/// Event emitted when resolution starts.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-pub struct CommandStartEvent {
-    /// Command name as surfaced by the CLI or host.
-    pub command_name: String,
-}
-
-/// Event emitted when a command ends.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-pub struct CommandEndEvent {
-    /// Command name as surfaced by the CLI or host.
-    pub command_name: String,
-    /// Whether the command ended successfully.
-    pub success: bool,
+pub struct ResolveAttemptEvent {
+    /// Template or profile identifier targeted for resolution.
+    pub template: String,
 }
 
 /// Event emitted after resolution succeeds or fails.

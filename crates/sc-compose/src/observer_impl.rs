@@ -3,9 +3,26 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use sc_composer::{
-    CommandEndEvent, CommandStartEvent, CompositionObserver, IncludeOutcomeEvent, ObservationEvent,
-    ObservationSink, RenderOutcomeEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
+    CompositionObserver, IncludeOutcomeEvent, ObservationEvent, ObservationSink,
+    RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
+use serde::Serialize;
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct CommandStartEvent {
+    pub command_name: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct CommandEndEvent {
+    pub command_name: String,
+    pub success: bool,
+}
+
+pub trait CommandLifecycleObserver {
+    fn on_command_start(&mut self, event: &CommandStartEvent);
+    fn on_command_end(&mut self, event: &CommandEndEvent);
+}
 
 pub struct CliObserver {
     sink: SinkMode,
@@ -30,7 +47,7 @@ impl CliObserver {
         }
     }
 
-    fn emit_event(&mut self, event: &ObservationEvent) {
+    fn emit_record<T: Serialize>(&mut self, event: &T) {
         let Ok(line) = serde_json::to_string(event) else {
             return;
         };
@@ -49,12 +66,8 @@ impl CliObserver {
 }
 
 impl CompositionObserver for CliObserver {
-    fn on_command_start(&mut self, event: &CommandStartEvent) {
-        ObservationSink::emit(self, &ObservationEvent::CommandStart(event.clone()));
-    }
-
-    fn on_command_end(&mut self, event: &CommandEndEvent) {
-        ObservationSink::emit(self, &ObservationEvent::CommandEnd(event.clone()));
+    fn on_resolve_attempt(&mut self, event: &ResolveAttemptEvent) {
+        ObservationSink::emit(self, &ObservationEvent::ResolveAttempt(event.clone()));
     }
 
     fn on_resolve_outcome(&mut self, event: &ResolveOutcomeEvent) {
@@ -62,7 +75,7 @@ impl CompositionObserver for CliObserver {
     }
 
     fn on_include_outcome(&mut self, event: &IncludeOutcomeEvent) {
-        ObservationSink::emit(self, &ObservationEvent::IncludeOutcome(event.clone()));
+        ObservationSink::emit(self, &ObservationEvent::IncludeExpandOutcome(event.clone()));
     }
 
     fn on_validation_outcome(&mut self, event: &ValidationOutcomeEvent) {
@@ -76,7 +89,17 @@ impl CompositionObserver for CliObserver {
 
 impl ObservationSink for CliObserver {
     fn emit(&mut self, event: &ObservationEvent) {
-        self.emit_event(event);
+        self.emit_record(event);
+    }
+}
+
+impl CommandLifecycleObserver for CliObserver {
+    fn on_command_start(&mut self, event: &CommandStartEvent) {
+        self.emit_record(event);
+    }
+
+    fn on_command_end(&mut self, event: &CommandEndEvent) {
+        self.emit_record(event);
     }
 }
 

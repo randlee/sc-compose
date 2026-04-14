@@ -5,7 +5,9 @@ use std::path::{Path, PathBuf};
 
 use crate::DiagnosticCode;
 use crate::error::{ComposeError, ConfigError, ResolveError};
-use crate::observer::{CompositionObserver, NoopObserver, ResolveOutcomeEvent};
+use crate::observer::{
+    CompositionObserver, NoopObserver, ResolveAttemptEvent, ResolveOutcomeEvent,
+};
 use crate::types::{
     ComposeMode, ComposeRequest, ConfiningRoot, ProfileKind, ProfileName, ResolveResult,
     ResolverPolicy, RuntimeKind,
@@ -77,6 +79,9 @@ pub fn resolve_profile_with_observer(
 ) -> Result<ResolveResult, ComposeError> {
     match &request.mode {
         ComposeMode::Profile { kind, name } => {
+            observer.on_resolve_attempt(&ResolveAttemptEvent {
+                template: format!("{kind:?}:{name}"),
+            });
             let result = resolve_profile_impl(
                 request.root.as_path(),
                 *kind,
@@ -327,7 +332,7 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::resolve_profile_impl;
-    use crate::observer::{CompositionObserver, ResolveOutcomeEvent};
+    use crate::observer::{CompositionObserver, ResolveAttemptEvent, ResolveOutcomeEvent};
     use crate::types::{
         ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, ProfileKind, ProfileName,
     };
@@ -335,10 +340,15 @@ mod tests {
 
     #[derive(Default)]
     struct CapturingObserver {
+        attempts: Vec<ResolveAttemptEvent>,
         resolve: Vec<ResolveOutcomeEvent>,
     }
 
     impl CompositionObserver for CapturingObserver {
+        fn on_resolve_attempt(&mut self, event: &ResolveAttemptEvent) {
+            self.attempts.push(event.clone());
+        }
+
         fn on_resolve_outcome(&mut self, event: &ResolveOutcomeEvent) {
             self.resolve.push(event.clone());
         }
