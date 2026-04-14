@@ -367,8 +367,8 @@ mod tests {
             template: "agent:writer".to_owned(),
         });
         observer.on_resolve_outcome(&ResolveOutcomeEvent {
-            resolved_path: Some(PathBuf::from("/tmp/template.md.j2")),
-            attempted_paths: vec![PathBuf::from("/tmp/template.md.j2")],
+            resolved_path: Some(PathBuf::from("fixtures/template.md.j2")),
+            attempted_paths: vec![PathBuf::from("fixtures/template.md.j2")],
             code: None,
         });
         observer.on_validation_outcome(&ValidationOutcomeEvent {

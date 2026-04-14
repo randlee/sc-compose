@@ -1,12 +1,12 @@
 mod exit_codes;
 mod json_output;
+mod observability;
 mod observer_impl;
 
 use std::collections::BTreeMap;
 use std::fmt;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::time::Instant;
 
 use anyhow::{Context, Result, anyhow};
@@ -16,14 +16,8 @@ use sc_composer::{
     Diagnostic, DiagnosticCode, DiagnosticSeverity, FrontmatterInitResult, ProfileKind,
     RuntimeKind, ScalarValue, UnknownVariablePolicy,
 };
-use sc_observability::{
-    ConsoleSink, Logger, LoggerConfig, LoggingHealthReport, ServiceName, SinkRegistration,
-};
 
 use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
-
-const DEFAULT_LOG_ROOT_DIR: &str = ".sc-compose";
-const LOG_SERVICE_NAME: &str = "sc-compose";
 
 #[derive(Debug, Parser)]
 #[command(name = "sc-compose")]
@@ -170,22 +164,23 @@ enum UnknownVarMode {
 fn main() {
     let cli = Cli::parse();
     let wants_json = command_wants_json(&cli.command);
-    let mut observer = match build_logger(wants_json).map(observer_impl::CliObserver::new) {
-        Ok(observer) => observer,
-        Err(error) => {
-            if wants_json {
-                if let Err(print_error) =
-                    print_json(serde_json::json!({}), error.diagnostics.clone())
-                {
+    let mut observer =
+        match observability::build_logger(wants_json).map(observer_impl::CliObserver::new) {
+            Ok(observer) => observer,
+            Err(error) => {
+                if wants_json {
+                    if let Err(print_error) =
+                        print_json(serde_json::json!({}), error.diagnostics.clone())
+                    {
+                        eprintln!("{error}");
+                        eprintln!("{print_error:#}");
+                    }
+                } else {
                     eprintln!("{error}");
-                    eprintln!("{print_error:#}");
                 }
-            } else {
-                eprintln!("{error}");
+                std::process::exit(error.exit_code);
             }
-            std::process::exit(error.exit_code);
-        }
-    };
+        };
     let code = match run(cli, &mut observer) {
         Ok(code) => code,
         Err(error) => {
@@ -446,66 +441,9 @@ fn run_observability_health(
         print_json(serde_json::json!({ "logging": health }), Vec::new())
             .map_err(CommandError::usage)?;
     } else {
-        print_observability_health(&health);
+        observability::print_observability_health(&health);
     }
     Ok(exit_codes::SUCCESS)
-}
-
-fn build_logger(wants_json: bool) -> Result<Logger, CommandError> {
-    build_logger_for_root(default_log_root()?, wants_json)
-}
-
-fn build_logger_for_root(log_root: PathBuf, wants_json: bool) -> Result<Logger, CommandError> {
-    let service_name = ServiceName::new(LOG_SERVICE_NAME).map_err(|error| {
-        CommandError::usage(anyhow!("invalid observability service name: {error}"))
-    })?;
-    let mut config = LoggerConfig::default_for(service_name, log_root);
-    config.enable_console_sink = false;
-    let mut builder = Logger::builder(config).map_err(|error| {
-        CommandError::usage(anyhow!(error).context("failed to initialize observability logger"))
-    })?;
-    if !wants_json {
-        builder.register_sink(SinkRegistration::new(Arc::new(ConsoleSink::stderr())));
-    }
-    Ok(builder.build())
-}
-
-fn default_log_root() -> Result<PathBuf, CommandError> {
-    if let Ok(path) = std::env::var("SC_LOG_ROOT")
-        && !path.is_empty()
-    {
-        return Ok(PathBuf::from(path));
-    }
-
-    Ok(std::env::current_dir()
-        .map_err(|error| {
-            CommandError::usage(anyhow!(error).context("failed to determine current directory"))
-        })?
-        .join(DEFAULT_LOG_ROOT_DIR))
-}
-
-fn print_observability_health(health: &LoggingHealthReport) {
-    println!("state: {:?}", health.state);
-    println!("active_log_path: {}", health.active_log_path.display());
-    println!("dropped_events_total: {}", health.dropped_events_total);
-    println!("flush_errors_total: {}", health.flush_errors_total);
-
-    match &health.query {
-        Some(query) => println!("query_state: {:?}", query.state),
-        None => println!("query_state: unavailable"),
-    }
-
-    if health.sink_statuses.is_empty() {
-        println!("sinks: none");
-    } else {
-        for sink in &health.sink_statuses {
-            println!("sink {}: {:?}", sink.name, sink.state);
-        }
-    }
-
-    if let Some(last_error) = &health.last_error {
-        println!("last_error: {}", last_error.message);
-    }
 }
 
 fn build_request(
@@ -1011,11 +949,12 @@ mod tests {
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use super::{CommandError, build_logger_for_root, observe_command};
+    use super::{CommandError, observe_command};
     use anyhow::anyhow;
     use sc_composer::{CompositionObserver, DiagnosticCode};
 
     use crate::exit_codes;
+    use crate::observability::build_logger_for_root;
     use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
 
     #[derive(Default)]

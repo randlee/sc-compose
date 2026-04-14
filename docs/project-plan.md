@@ -30,17 +30,17 @@ required to ship.
 
 Current known release blockers:
 
-| ID | Blocker | Sprint | Closure condition |
-| --- | --- | --- | --- |
-| RB-01 | Final release command surface and JSON contracts are not yet locked as an implementation baseline. | Sprint 1 | `requirements.md`, `architecture.md`, and `project-plan.md` define one consistent command and schema contract. |
-| RB-02 | The local observer contract and event conventions are not yet fully implemented in `sc-composer`. | Sprint 2 | Observer API, event fields, and no-op behavior are fixed in docs and then implemented in code. |
-| RB-03 | `sc-compose` does not yet wire the concrete `sc-observability::Logger` integration path. | Sprint 2 | CLI startup constructs the logger, adapts it into the observer path, and exposes `observability-health`. |
-| RB-03a | `CliObserver` still uses a bespoke sink path instead of `sc-observability::Logger`. | Sprint 2 | Replace the bespoke observer sink with `sc-observability::Logger` construction and adapter wiring. |
-| RB-03b | `--json` console sink suppression is not yet wired through the observer/logger path. | Sprint 2 | Console sink suppression is enforced through the `sc-observability::Logger` construction path whenever `--json` is active. |
-| RB-03c | Graceful logger shutdown is not yet called before `process::exit()`. | Sprint 2 | The CLI calls `logger.shutdown()` before process exit so pending events flush cleanly. |
-| RB-04 | Production logging safeguards are not yet proven. | Sprint 3 | Tests prove `--json` cleanliness, shutdown/flush behavior, sink degradation behavior, and event coverage. |
-| RB-05 | Any non-observability release blocker found during audit must be closed before release. | Sprint 3 | Every audit finding is either closed or explicitly moved to a later sprint in this plan before Sprint 1 exit. |
-| RB-06 | Final release validation, QA approval, and cutover readiness are not yet complete. | Sprint 4 | End-to-end smoke tests, QA review, design review, and release approval all pass. |
+| ID | Blocker | Status | Sprint | Closure condition |
+| --- | --- | --- | --- | --- |
+| RB-01 | Final release command surface and JSON contracts are not yet locked as an implementation baseline. | Closed | Sprint 1 | `requirements.md`, `architecture.md`, and `project-plan.md` define one consistent command and schema contract. |
+| RB-02 | The local observer contract and event conventions are not yet fully implemented in `sc-composer`. | Closed | Sprint 2 | Observer API, event fields, and no-op behavior are fixed in docs and then implemented in code. |
+| RB-03 | `sc-compose` does not yet wire the concrete `sc-observability::Logger` integration path. | Closed | Sprint 2 | CLI startup constructs the logger, adapts it into the observer path, and exposes `observability-health`. |
+| RB-03a | `CliObserver` still uses a bespoke sink path instead of `sc-observability::Logger`. | Closed | Sprint 2 | Replace the bespoke observer sink with `sc-observability::Logger` construction and adapter wiring. |
+| RB-03b | `--json` console sink suppression is not yet wired through the observer/logger path. | Closed | Sprint 2 | Console sink suppression is enforced through the `sc-observability::Logger` construction path whenever `--json` is active. |
+| RB-03c | Graceful logger shutdown is not yet called before `process::exit()`. | Closed | Sprint 2 | The CLI calls `logger.shutdown()` before process exit so pending events flush cleanly. |
+| RB-04 | Production logging safeguards are not yet proven. | Open | Sprint 3 | Tests prove `--json` cleanliness, shutdown/flush behavior, sink degradation behavior, and event coverage. |
+| RB-05 | Any non-observability release blocker found during audit must be closed before release. | Open | Sprint 3 | Every audit finding is either closed or explicitly moved to a later sprint in this plan before Sprint 1 exit. |
+| RB-06 | Final release validation, QA approval, and cutover readiness are not yet complete. | Open | Sprint 4 | End-to-end smoke tests, QA review, design review, and release approval all pass. |
 
 Inventory rules:
 
