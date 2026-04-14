@@ -11,6 +11,7 @@ use std::time::Instant;
 
 use anyhow::{Context, Result, anyhow};
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use mimalloc::MiMalloc;
 use sc_composer::{
     ComposeError, ComposeMode, ComposePolicy, ComposeRequest, CompositionObserver, ConfiningRoot,
     Diagnostic, DiagnosticCode, DiagnosticSeverity, FrontmatterInitResult, ProfileKind,
@@ -18,6 +19,9 @@ use sc_composer::{
 };
 
 use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 #[derive(Debug, Parser)]
 #[command(name = "sc-compose")]

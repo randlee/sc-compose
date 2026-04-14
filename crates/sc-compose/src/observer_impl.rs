@@ -92,7 +92,7 @@ impl CompositionObserver for CliObserver {
             Level::Info,
             "compose.resolve",
             "attempt",
-            format!("resolve attempt for {}", event.template),
+            "resolve attempt",
             None,
             fields,
         );
@@ -282,7 +282,7 @@ impl CommandLifecycleObserver for CliObserver {
             Level::Info,
             "compose.command",
             "started",
-            format!("{} started", event.command_name),
+            "command started",
             None,
             fields,
         );
@@ -305,11 +305,11 @@ impl CommandLifecycleObserver for CliObserver {
             if success { Level::Info } else { Level::Error },
             "compose.command",
             if success { "completed" } else { "failed" },
-            format!(
-                "{} {}",
-                event.command_name,
-                if success { "completed" } else { "failed" }
-            ),
+            if success {
+                "command completed"
+            } else {
+                "command failed"
+            },
             Some(if success { "success" } else { "failure" }),
             fields,
         );
@@ -325,15 +325,15 @@ fn service_name() -> ServiceName {
 }
 
 fn target_category(value: &str) -> TargetCategory {
-    TargetCategory::new(value).expect("target category constant is valid")
+    TargetCategory::new(value).expect("target category must be a valid sc-observability target")
 }
 
 fn action_name(value: &str) -> ActionName {
-    ActionName::new(value).expect("action constant is valid")
+    ActionName::new(value).expect("action must be a valid sc-observability action")
 }
 
 fn outcome_label(value: &str) -> OutcomeLabel {
-    OutcomeLabel::new(value).expect("outcome label constant is valid")
+    OutcomeLabel::new(value).expect("outcome label must be a valid sc-observability outcome")
 }
 
 #[cfg(test)]
