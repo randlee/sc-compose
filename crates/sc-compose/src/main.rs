@@ -1,14 +1,17 @@
 mod exit_codes;
 mod json_output;
+mod observability;
 mod observer_impl;
 
 use std::collections::BTreeMap;
 use std::fmt;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 use anyhow::{Context, Result, anyhow};
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use mimalloc::MiMalloc;
 use sc_composer::{
     ComposeError, ComposeMode, ComposePolicy, ComposeRequest, CompositionObserver, ConfiningRoot,
     Diagnostic, DiagnosticCode, DiagnosticSeverity, FrontmatterInitResult, ProfileKind,
@@ -16,6 +19,9 @@ use sc_composer::{
 };
 
 use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 #[derive(Debug, Parser)]
 #[command(name = "sc-compose")]
@@ -34,7 +40,6 @@ enum Command {
     FrontmatterInit(FrontmatterInitArgs),
     Init(InitArgs),
     #[command(name = "observability-health")]
-    // TODO(Sprint 2 / RB-03)
     ObservabilityHealth(ObservabilityHealthArgs),
 }
 
@@ -163,7 +168,24 @@ enum UnknownVarMode {
 fn main() {
     let cli = Cli::parse();
     let wants_json = command_wants_json(&cli.command);
-    let code = match run(cli) {
+    let mut observer =
+        match observability::build_logger(wants_json).map(observer_impl::CliObserver::new) {
+            Ok(observer) => observer,
+            Err(error) => {
+                if wants_json {
+                    if let Err(print_error) =
+                        print_json(serde_json::json!({}), error.diagnostics.clone())
+                    {
+                        eprintln!("{error}");
+                        eprintln!("{print_error:#}");
+                    }
+                } else {
+                    eprintln!("{error}");
+                }
+                std::process::exit(error.exit_code);
+            }
+        };
+    let code = match run(cli, &mut observer) {
         Ok(code) => code,
         Err(error) => {
             if wants_json {
@@ -179,30 +201,32 @@ fn main() {
             error.exit_code
         }
     };
+    observer.shutdown();
     std::process::exit(code);
 }
 
-fn run(cli: Cli) -> Result<i32, CommandError> {
-    let mut observer = observer_impl::CliObserver::from_env();
+fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, CommandError> {
     match cli.command {
-        Command::Render(args) => observe_command(&mut observer, "render", |observer| {
+        Command::Render(args) => observe_command(observer, "render", args.json, |observer| {
             run_render(&args, observer)
         }),
-        Command::Resolve(args) => observe_command(&mut observer, "resolve", |observer| {
+        Command::Resolve(args) => observe_command(observer, "resolve", args.json, |observer| {
             run_resolve(&args, observer)
         }),
-        Command::Validate(args) => observe_command(&mut observer, "validate", |observer| {
+        Command::Validate(args) => observe_command(observer, "validate", args.json, |observer| {
             run_validate(&args, observer)
         }),
         Command::FrontmatterInit(args) => {
-            observe_command(&mut observer, "frontmatter-init", |_observer| {
+            observe_command(observer, "frontmatter-init", args.json, |_observer| {
                 run_frontmatter_init(&args)
             })
         }
-        Command::Init(args) => observe_command(&mut observer, "init", |_observer| run_init(&args)),
+        Command::Init(args) => {
+            observe_command(observer, "init", args.json, |_observer| run_init(&args))
+        }
         Command::ObservabilityHealth(args) => {
-            observe_command(&mut observer, "observability-health", |_observer| {
-                run_observability_health(&args)
+            observe_command(observer, "observability-health", args.json, |observer| {
+                run_observability_health(&args, observer)
             })
         }
     }
@@ -382,6 +406,8 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
             serde_json::json!({
                 "action": "init",
                 "would_affect": planned_changes.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+                "changed": false,
+                "would_change": !planned_changes.is_empty(),
                 "skipped": planned_changes.is_empty(),
             })
         } else {
@@ -410,11 +436,18 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
     })
 }
 
-fn run_observability_health(_args: &ObservabilityHealthArgs) -> Result<i32, CommandError> {
-    Err(CommandError::usage_with_code(
-        anyhow!("observability-health is planned for Sprint 2 / RB-03 and is not implemented yet"),
-        DiagnosticCode::ErrConfigMode,
-    ))
+fn run_observability_health(
+    args: &ObservabilityHealthArgs,
+    observer: &observer_impl::CliObserver,
+) -> Result<i32, CommandError> {
+    let health = observer.health();
+    if args.json {
+        print_json(serde_json::json!({ "logging": health }), Vec::new())
+            .map_err(CommandError::usage)?;
+    } else {
+        observability::print_observability_health(&health);
+    }
+    Ok(exit_codes::SUCCESS)
 }
 
 fn build_request(
@@ -719,18 +752,37 @@ fn command_wants_json(command: &Command) -> bool {
 fn observe_command<O>(
     observer: &mut O,
     command_name: &str,
-    action: impl FnOnce(&mut dyn CompositionObserver) -> Result<i32, CommandError>,
+    json_output: bool,
+    action: impl FnOnce(&mut O) -> Result<i32, CommandError>,
 ) -> Result<i32, CommandError>
 where
     O: CompositionObserver + CommandLifecycleObserver,
 {
+    let started = Instant::now();
     observer.on_command_start(&CommandStartEvent {
         command_name: command_name.to_owned(),
+        json_output,
     });
     let result = action(observer);
+    let exit_code = match &result {
+        Ok(code) => *code,
+        Err(error) => error.exit_code,
+    };
     observer.on_command_end(&CommandEndEvent {
         command_name: command_name.to_owned(),
-        success: matches!(result, Ok(exit_codes::SUCCESS)),
+        exit_code,
+        elapsed_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+        json_output,
+        diagnostic_code: result
+            .as_ref()
+            .err()
+            .and_then(|error| error.diagnostic_code.map(|code| code.as_str().to_owned())),
+        diagnostic_message: result.as_ref().err().and_then(|error| {
+            error
+                .diagnostics
+                .first()
+                .map(|diagnostic| diagnostic.message.clone())
+        }),
     });
     result
 }
@@ -897,10 +949,16 @@ fn compose_error_diagnostics(error: &ComposeError) -> Vec<Diagnostic> {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
     use super::{CommandError, observe_command};
     use anyhow::anyhow;
     use sc_composer::{CompositionObserver, DiagnosticCode};
 
+    use crate::exit_codes;
+    use crate::observability::build_logger_for_root;
     use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
 
     #[derive(Default)]
@@ -925,19 +983,21 @@ mod tests {
     fn observe_command_emits_start_and_end_for_success() {
         let mut observer = CapturingObserver::default();
 
-        let result = observe_command(&mut observer, "render", |_observer| Ok(0));
+        let result = observe_command(&mut observer, "render", false, |_observer| Ok(0));
 
         assert_eq!(result.unwrap(), 0);
         assert_eq!(observer.started.len(), 1);
         assert_eq!(observer.ended.len(), 1);
-        assert!(observer.ended[0].success);
+        assert_eq!(observer.started[0].command_name, "render");
+        assert!(!observer.started[0].json_output);
+        assert_eq!(observer.ended[0].exit_code, 0);
     }
 
     #[test]
     fn observe_command_emits_start_and_end_for_failure() {
         let mut observer = CapturingObserver::default();
 
-        let result = observe_command(&mut observer, "render", |_observer| {
+        let result = observe_command(&mut observer, "render", true, |_observer| {
             Err(CommandError::usage_with_code(
                 anyhow!("boom"),
                 DiagnosticCode::ErrRenderStdinDoubleRead,
@@ -947,6 +1007,45 @@ mod tests {
         let _ = result.unwrap_err();
         assert_eq!(observer.started.len(), 1);
         assert_eq!(observer.ended.len(), 1);
-        assert!(!observer.ended[0].success);
+        assert!(observer.started[0].json_output);
+        assert_eq!(observer.ended[0].exit_code, exit_codes::USAGE_FAIL);
+        assert_eq!(
+            observer.ended[0].diagnostic_code.as_deref(),
+            Some(DiagnosticCode::ErrRenderStdinDoubleRead.as_str())
+        );
+    }
+
+    #[test]
+    fn build_logger_disables_console_sink_for_json_output() {
+        let logger = build_logger_for_root(temp_root("logger-json"), true).expect("logger");
+        let health = logger.health();
+
+        assert_eq!(health.sink_statuses.len(), 1);
+        assert_eq!(health.sink_statuses[0].name.as_str(), "jsonl-file");
+    }
+
+    #[test]
+    fn build_logger_enables_console_sink_for_text_output() {
+        let logger = build_logger_for_root(temp_root("logger-text"), false).expect("logger");
+        let health = logger.health();
+
+        assert_eq!(health.sink_statuses.len(), 2);
+        assert!(
+            health
+                .sink_statuses
+                .iter()
+                .any(|sink| sink.name.as_str() == "console")
+        );
+    }
+
+    fn temp_root(label: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("sc-compose-{label}-{}-{nanos}", std::process::id()));
+        fs::create_dir_all(&root).expect("create temp root");
+        root
     }
 }

@@ -698,6 +698,21 @@ The schemas below define the `payload` shape for each command.
 }
 ```
 
+`init --dry-run --json`
+
+```json
+{
+  "action": "init",
+  "would_affect": [
+    ".prompts/",
+    ".gitignore"
+  ],
+  "changed": false,
+  "would_change": true,
+  "skipped": false
+}
+```
+
 `observability-health --json`
 
 ```json
