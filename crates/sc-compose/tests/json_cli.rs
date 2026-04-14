@@ -26,7 +26,15 @@ fn write_file(path: &Path, contents: &str) {
 }
 
 fn sc_compose() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    let mut command = Command::new(env!("CARGO_BIN_EXE_sc-compose"));
+    command.env("SC_LOG_ROOT", test_log_root());
+    command
+}
+
+fn test_log_root() -> PathBuf {
+    let root = std::env::temp_dir().join(format!("sc-compose-json-logs-{}", std::process::id()));
+    fs::create_dir_all(&root).unwrap();
+    root
 }
 
 fn parse_stdout(output: &std::process::Output) -> Value {
@@ -314,7 +322,6 @@ fn observability_health_json_uses_diagnostic_envelope_and_stays_stdout_clean() {
         .arg("observability-health")
         .arg("--json")
         .env("SC_LOG_ROOT", &root)
-        .env("ATM_HOME", root.join("missing-atm-home"))
         .output()
         .unwrap();
 

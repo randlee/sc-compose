@@ -27,6 +27,5 @@
   for the integration guide.
 - CLI users now have file-backed structured logging plus the `observability-health`
   command for local logger health inspection.
-- Publish is deferred until downstream product integration is complete. This template will be
-  filled in at the time of the actual release. See `docs/release-checklist.md` for the
-  pre-release gate checklist.
+- This template is finalized when the Sprint 4 release gate clears. See
+  `docs/release-checklist.md` for the pre-release and post-publish checklist.

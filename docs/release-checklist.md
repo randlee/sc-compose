@@ -63,9 +63,8 @@ triggered by a release tag.
 - [ ] Tag the release commit: `git tag v<version> && git push origin v<version>`
 - [ ] Create a GitHub release pointing at the tag with the filled-in release notes
 
-## Deferred: First Standalone Release
+## Release Authorization
 
-The initial standalone release from this repo is deferred until downstream product integration
-is complete. See `docs/migration-notes.md` for the cutover plan and blocking conditions.
-
-Do NOT publish until the downstream integration gate is cleared.
+- [ ] Sprint 4 exit gate is cleared on the release branch
+- [ ] standalone boundary verification passes with no forbidden ATM references in source
+- [ ] downstream cutover notes are published alongside the release notes

@@ -78,18 +78,17 @@ Downstream consumers that shell out to `sc-compose` should expect:
 - file-backed logging under `SC_LOG_ROOT` when the environment variable is set, or
   `.sc-compose/logs/` under the current working directory otherwise.
 
-## Deferred Publish: Blocking Conditions
+## Release And Cutover Order
 
-The first standalone crates.io release is **deferred** until both conditions are met:
+The first standalone crates.io release happens when the Sprint 4 release gate is
+cleared in this repo.
 
-1. **Downstream integration is complete**: at least one downstream consumer (ATM or another
-   product) has been updated to use the new API and the integration has been verified in a
-   non-production environment.
-2. **Integration gate is cleared**: `qm-comp` and `arch-ctm` have signed off on the
-   integration test results.
+Recommended downstream cutover order:
 
-Do NOT publish before these conditions are met, even if the sprint exit gates are all passing.
-The version number `0.46.2` is intentionally held until integration is ready.
+1. Publish `sc-composer` and `sc-compose` from this repo.
+2. Verify crates.io resolution and installation using the release checklist.
+3. Update downstream consumers such as ATM to the published versions.
+4. Run downstream integration validation after the published release is live.
 
 ## Post-Cutover Ownership
 

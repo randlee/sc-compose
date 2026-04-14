@@ -26,7 +26,15 @@ fn write_file(path: &Path, contents: &str) {
 }
 
 fn sc_compose() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    let mut command = Command::new(env!("CARGO_BIN_EXE_sc-compose"));
+    command.env("SC_LOG_ROOT", test_log_root());
+    command
+}
+
+fn test_log_root() -> PathBuf {
+    let root = std::env::temp_dir().join(format!("sc-compose-cli-logs-{}", std::process::id()));
+    fs::create_dir_all(&root).unwrap();
+    root
 }
 
 fn parse_stdout_json(output: &std::process::Output) -> Value {
@@ -356,7 +364,6 @@ fn observability_health_text_reports_process_local_status() {
     let output = sc_compose()
         .arg("observability-health")
         .env("SC_LOG_ROOT", &root)
-        .env("ATM_HOME", root.join("missing-atm-home"))
         .output()
         .unwrap();
 
@@ -369,6 +376,72 @@ fn observability_health_text_reports_process_local_status() {
         "active_log_path: {}",
         root.join("logs/sc-compose.log.jsonl").display()
     )));
+}
+
+#[test]
+fn release_smoke_covers_render_pipeline_and_observability_health() {
+    let root = temp_root("release-smoke-observability");
+    let logs_root = root.join("telemetry");
+    let output = root.join("out.md");
+    let vars_file = root.join("vars.yaml");
+    write_file(
+        &root.join("template.md.j2"),
+        concat!(
+            "---\nrequired_variables:\n  - name\n  - title\n  - mood\n---\n",
+            "@<partials/body.md>\n"
+        ),
+    );
+    write_file(
+        &root.join("partials/body.md"),
+        "Name: {{ name }}\nTitle: {{ title }}\nMood: {{ mood }}\n",
+    );
+    write_file(&vars_file, "title: Engineer\n");
+
+    let render = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("name=Casey")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .arg("--env-prefix")
+        .arg("SC_")
+        .arg("--output")
+        .arg(&output)
+        .env("SC_MOOD", "focused")
+        .env("SC_LOG_ROOT", &logs_root)
+        .output()
+        .unwrap();
+
+    assert!(render.status.success());
+    assert_eq!(
+        fs::read_to_string(&output).unwrap(),
+        "Name: Casey\nTitle: Engineer\nMood: focused"
+    );
+    assert!(logs_root.join("logs/sc-compose.log.jsonl").exists());
+
+    let health = sc_compose()
+        .arg("observability-health")
+        .arg("--json")
+        .env("SC_LOG_ROOT", &logs_root)
+        .output()
+        .unwrap();
+
+    assert!(health.status.success());
+    let value = parse_stdout_json(&health);
+    assert_eq!(value["payload"]["logging"]["state"], "Healthy");
+    assert_eq!(
+        value["payload"]["logging"]["active_log_path"],
+        logs_root
+            .join("logs/sc-compose.log.jsonl")
+            .display()
+            .to_string()
+    );
 }
 
 #[cfg(unix)]
