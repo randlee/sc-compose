@@ -1083,9 +1083,8 @@ mod tests {
 
         std::env::set_current_dir(&original_dir).expect("restore current dir");
 
-        let error = match result {
-            Ok(_) => panic!("logger build should fail"),
-            Err(error) => error,
+        let Err(error) = result else {
+            panic!("logger build should fail");
         };
         assert_eq!(error.exit_code, exit_codes::USAGE_FAIL);
         assert!(format!("{error}").contains("failed to determine current directory"));
