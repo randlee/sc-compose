@@ -6,6 +6,8 @@ resolver = "2"
 version = "0.46.2"
 edition = "2024"
 license = "MIT"
+# Rust 1.94.1 is the effective workspace floor because the Sprint 2
+# observability integration depends on sc-observability 1.0.0.
 rust-version = "1.94.1"
 repository = "https://github.com/randlee/sc-compose"
 homepage = "https://github.com/randlee/sc-compose"
