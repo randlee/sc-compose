@@ -708,6 +708,9 @@ Schema rules:
 - The CLI shall expose logger health through a dedicated
   `observability-health` command so operators can inspect sink state,
   dropped-event counts, and the active log path.
+- The `observability-health` command shall initialize logger configuration the
+  same way as a normal CLI process, query health from that process-local
+  logger instance, and must not depend on any daemon or background runtime.
 - The CLI shall perform graceful logger shutdown on process exit so pending
   events flush before termination.
 

@@ -26,6 +26,26 @@ required to ship.
   only.
 - No ATM-specific runtime assumptions may enter code or manifests.
 
+## Release Blocker Inventory
+
+Current known release blockers:
+
+| ID | Blocker | Sprint | Closure condition |
+| --- | --- | --- | --- |
+| RB-01 | Final release command surface and JSON contracts are not yet locked as an implementation baseline. | Sprint 1 | `requirements.md`, `architecture.md`, and `project-plan.md` define one consistent command and schema contract. |
+| RB-02 | The local observer contract and event conventions are not yet fully implemented in `sc-composer`. | Sprint 2 | Observer API, event fields, and no-op behavior are fixed in docs and then implemented in code. |
+| RB-03 | `sc-compose` does not yet wire the concrete `sc-observability::Logger` integration path. | Sprint 2 | CLI startup constructs the logger, adapts it into the observer path, and exposes `observability-health`. |
+| RB-04 | Production logging safeguards are not yet proven. | Sprint 3 | Tests prove `--json` cleanliness, shutdown/flush behavior, sink degradation behavior, and event coverage. |
+| RB-05 | Any non-observability release blocker found during audit must be closed before release. | Sprint 3 | Every audit finding is either closed or explicitly moved to a later sprint in this plan before Sprint 1 exit. |
+| RB-06 | Final release validation, QA approval, and cutover readiness are not yet complete. | Sprint 4 | End-to-end smoke tests, QA review, design review, and release approval all pass. |
+
+Inventory rules:
+
+- Sprint 1 owns this inventory.
+- Any blocker discovered during Sprint 1 must be added to this table with an
+  assigned sprint before Sprint 1 can exit.
+- No blocker may be removed from this table until its closure condition is met.
+
 ## Release Plan
 
 ### Sprint 1: Release Blocker Audit and Contract Closure
@@ -44,12 +64,8 @@ FRs addressed:
 
 Deliverables:
 
-- one complete release-blocker inventory covering:
-  - logging gaps
-  - non-observability gaps
-  - documentation gaps
-  - test gaps
-  - release-process gaps
+- update the `Release Blocker Inventory` section in this document so it lists
+  every known release blocker and its assigned sprint
 - final normative updates in:
   - `docs/requirements.md`
   - `docs/architecture.md`
@@ -76,8 +92,8 @@ Deliverables:
 
 Acceptance criteria:
 
-- the blocker inventory lists every known release blocker and assigns each one
-  to a sprint in this plan
+- the `Release Blocker Inventory` section lists every known release blocker and
+  assigns each one to a sprint in this plan
 - `requirements.md`, `architecture.md`, and `project-plan.md` are mutually
   consistent
 - the logging contract is precise enough to implement without inventing new
@@ -93,7 +109,7 @@ Exit gate:
 
 - `qm-comp` cross-document consistency review passes
 - req-qa and arch-qa find no blocking document mismatch
-- release-blocker inventory is accepted as complete
+- the `Release Blocker Inventory` section is accepted as complete
 
 ### Sprint 2: Logging Integration Implementation
 
@@ -172,6 +188,7 @@ Deliverables:
   - event `message` guidance and stable target/action naming
   - `observability-health` text output
   - `observability-health --json`
+  - `observability-health` process-local behavior without daemon dependency
   - `--json` console suppression and stdout cleanliness
   - graceful shutdown and flush behavior
   - sink failure degradation behavior

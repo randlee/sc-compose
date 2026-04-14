@@ -588,7 +588,7 @@ Command mapping:
 - `validate` -> `validate`
 - `frontmatter-init` -> `frontmatter_init`
 - `init` -> `init_workspace`
-- `observability-health` -> `Logger::health()`
+- `observability-health` -> CLI logger initialization, then `Logger::health()`
 
 The CLI must not reimplement core composition semantics. If a command requires
 logic useful to non-CLI callers, that logic belongs in the library.
@@ -612,6 +612,7 @@ Command-specific rules:
   - performs repository bootstrap and validation-oriented scanning.
 - `observability-health`
   - reads logger health state without mutating composition behavior,
+  - prints a human-readable health summary by default,
   - emits `LoggingHealthReport` under `--json` as defined in section 18.3.
 
 Guidance and prompt input model:
@@ -897,7 +898,8 @@ pub fn compose_with_observer(
 
 Required library behavior:
 
-- `compose()` installs the built-in no-op observer.
+- `Renderer::new(...)` and `compose()` install the built-in no-op observer
+  unless a caller supplies an explicit observer.
 - `compose_with_observer(...)` is the public end-to-end observability
   injection entry point.
 - `ObservationSink` and `CompositionObserver` remain the local extension points
@@ -924,8 +926,12 @@ CLI wiring rules:
   - command start
   - command completion
   - command failure
-- `observability-health` reads `Logger::health()` and serializes the returned
-  `LoggingHealthReport` as command output,
+- `observability-health` initializes the logger using the same configuration
+  path as a normal CLI process, reads `Logger::health()`, prints a
+  human-readable summary by default, and serializes the returned
+  `LoggingHealthReport` under `--json`,
+- `observability-health` reports process-local logger state only and does not
+  depend on any daemon or background runtime,
 - CLI shutdown calls the logger's `shutdown()` path so registered sinks flush
   before process exit.
 
@@ -936,6 +942,7 @@ The normative public API paths for this design are:
 - `sc_composer::compose`
 - `sc_composer::compose_with_observer`
 - `sc_composer::Renderer`
+- `sc_composer::observer::ObservationEvent`
 - `sc_composer::observer::CompositionObserver`
 - `sc_composer::observer::ObservationSink`
 
