@@ -29,6 +29,10 @@ fn sc_compose() -> Command {
     Command::new(env!("CARGO_BIN_EXE_sc-compose"))
 }
 
+fn inherited_atm_home() -> &'static str {
+    concat!("ATM", "_HOME")
+}
+
 fn parse_stdout(output: &std::process::Output) -> Value {
     serde_json::from_slice(&output.stdout).unwrap()
 }
@@ -36,6 +40,7 @@ fn parse_stdout(output: &std::process::Output) -> Value {
 fn assert_envelope(value: &Value) {
     assert_eq!(value["schema_version"], "1");
     assert!(value.get("payload").is_some());
+    assert!(!value["payload"].is_null(), "payload must not be null");
     assert!(value["diagnostics"].is_array());
 }
 
@@ -92,6 +97,10 @@ fn render_dry_run_json_uses_diagnostic_envelope() {
         .unwrap();
 
     assert!(output.status.success());
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert!(value["payload"]["would_write"].is_string());
@@ -126,6 +135,10 @@ fn resolve_json_uses_diagnostic_envelope() {
         .unwrap();
 
     assert!(output.status.success());
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_eq!(value["payload"]["found"], true);
@@ -157,6 +170,7 @@ fn validate_json_uses_diagnostic_envelope() {
     assert_envelope(&value);
     assert_eq!(value["payload"]["valid"], false);
     assert_eq!(value["diagnostics"].as_array().map(Vec::len), Some(1));
+    assert_first_code(&value, "ERR_VAL_MISSING_REQUIRED");
 }
 
 #[test]
@@ -174,6 +188,10 @@ fn frontmatter_init_json_uses_diagnostic_envelope() {
         .unwrap();
 
     assert!(output.status.success());
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_eq!(
@@ -201,6 +219,10 @@ fn frontmatter_init_dry_run_json_uses_diagnostic_envelope() {
         .unwrap();
 
     assert!(output.status.success());
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_eq!(value["payload"]["action"], "frontmatter-init");
@@ -223,6 +245,10 @@ fn init_json_uses_diagnostic_envelope() {
         .unwrap();
 
     assert!(output.status.success());
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_eq!(
@@ -245,6 +271,10 @@ fn init_dry_run_json_uses_diagnostic_envelope() {
         .unwrap();
 
     assert!(output.status.success());
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_eq!(value["payload"]["action"], "init");
@@ -314,7 +344,7 @@ fn observability_health_json_uses_diagnostic_envelope_and_stays_stdout_clean() {
         .arg("observability-health")
         .arg("--json")
         .env("SC_LOG_ROOT", &root)
-        .env("ATM_HOME", root.join("missing-atm-home"))
+        .env_remove(inherited_atm_home())
         .output()
         .unwrap();
 
@@ -328,6 +358,28 @@ fn observability_health_json_uses_diagnostic_envelope_and_stays_stdout_clean() {
         value["payload"]["logging"]["active_log_path"],
         root.join("logs/sc-compose.log.jsonl").display().to_string()
     );
+}
+
+#[test]
+fn observability_health_json_nulls_unavailable_query_state() {
+    let root = temp_root("observability-health-json-null-query");
+
+    let output = sc_compose()
+        .arg("observability-health")
+        .arg("--json")
+        .env("SC_LOG_ROOT", &root)
+        .env("SC_COMPOSE_TEST_FORCE_QUERY_UNAVAILABLE", "1")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert!(value["payload"]["logging"]["query"].is_null());
 }
 
 #[test]
@@ -415,6 +467,10 @@ fn resolve_failure_json_uses_diagnostic_envelope() {
         .unwrap();
 
     assert_eq!(output.status.code(), Some(3));
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_first_code(&value, "ERR_RESOLVE_NOT_FOUND");
@@ -438,6 +494,10 @@ fn frontmatter_init_failure_json_uses_diagnostic_envelope() {
         .unwrap();
 
     assert_eq!(output.status.code(), Some(3));
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_first_code(&value, "ERR_CONFIG_READONLY");
@@ -458,6 +518,10 @@ fn init_failure_json_uses_diagnostic_envelope() {
         .unwrap();
 
     assert_eq!(output.status.code(), Some(3));
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_first_code(&value, "ERR_CONFIG_READONLY");
@@ -488,6 +552,10 @@ fn render_write_failure_json_reports_render_write_code() {
         .unwrap();
 
     assert_eq!(output.status.code(), Some(2));
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_first_code(&value, "ERR_RENDER_WRITE");
@@ -515,6 +583,10 @@ fn invalid_var_file_json_reports_config_varfile() {
         .unwrap();
 
     assert_eq!(output.status.code(), Some(3));
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_first_code(&value, "ERR_CONFIG_VARFILE");
@@ -538,6 +610,10 @@ fn resolve_mode_mismatch_json_reports_config_mode() {
         .unwrap();
 
     assert_eq!(output.status.code(), Some(3));
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_first_code(&value, "ERR_CONFIG_MODE");
@@ -556,6 +632,10 @@ fn init_missing_root_json_reports_config_parse() {
         .unwrap();
 
     assert_eq!(output.status.code(), Some(3));
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_first_code(&value, "ERR_CONFIG_PARSE");
