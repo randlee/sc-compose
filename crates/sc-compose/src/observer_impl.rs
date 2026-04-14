@@ -325,15 +325,18 @@ fn service_name() -> ServiceName {
 }
 
 fn target_category(value: &str) -> TargetCategory {
-    TargetCategory::new(value).expect("target category must be a valid sc-observability target")
+    TargetCategory::new(value)
+        .unwrap_or_else(|error| panic!("invalid sc-observability target {value:?}: {error}"))
 }
 
 fn action_name(value: &str) -> ActionName {
-    ActionName::new(value).expect("action must be a valid sc-observability action")
+    ActionName::new(value)
+        .unwrap_or_else(|error| panic!("invalid sc-observability action {value:?}: {error}"))
 }
 
 fn outcome_label(value: &str) -> OutcomeLabel {
-    OutcomeLabel::new(value).expect("outcome label must be a valid sc-observability outcome")
+    OutcomeLabel::new(value)
+        .unwrap_or_else(|error| panic!("invalid sc-observability outcome {value:?}: {error}"))
 }
 
 #[cfg(test)]
