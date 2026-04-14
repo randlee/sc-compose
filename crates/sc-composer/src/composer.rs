@@ -284,6 +284,31 @@ mod tests {
     }
 
     #[test]
+    fn compose_without_observer_remains_fully_functional() {
+        let root = temp_root("compose_no_observer");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\ndefaults:\n  name: world\n---\nhello {{ name }}",
+        );
+
+        let result = compose(&ComposeRequest {
+            runtime: None,
+            mode: ComposeMode::File {
+                template_path: PathBuf::from("template.md.j2"),
+            },
+            root: ConfiningRoot::new(&root).unwrap(),
+            vars_input: BTreeMap::default(),
+            vars_env: BTreeMap::default(),
+            guidance_block: None,
+            user_prompt: None,
+            policy: ComposePolicy::default(),
+        })
+        .unwrap();
+
+        assert_eq!(result.rendered_text, "hello world");
+    }
+
+    #[test]
     fn compose_with_observer_emits_success_outcomes() {
         let root = temp_root("compose_observer_success");
         write_file(

@@ -406,6 +406,10 @@ fn render_failure_json_preserves_all_validation_diagnostics() {
         .unwrap();
 
     assert_eq!(output.status.code(), Some(2));
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
     let value = parse_stdout(&output);
     assert_envelope(&value);
     let diagnostics = value["diagnostics"].as_array().unwrap();
@@ -438,6 +442,10 @@ fn render_json_reports_actual_bytes_written_for_output_file() {
         .unwrap();
 
     assert!(output.status.success());
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_eq!(
