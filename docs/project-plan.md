@@ -2,621 +2,292 @@
 
 ## Status
 
-This repo is in initial extraction/setup.
+This repo is in release execution.
 
-The immediate goal is to establish:
-- correct standalone crate boundaries
-- zero `agent-team-mail-*` dependencies
-- a clean publishable workspace structure
+The goal is production-ready release of:
 
-## Near-Term Work
+- `sc-composer`
+- `sc-compose`
 
-1. Set up repository git flow:
-   - use `main` and `develop`
-   - feature branches target `develop`
-   - release tags and release publication come from `main`
-   - keep repo workflow and review discipline aligned with ATM
-2. Match GitHub automation and protection to ATM:
-   - CI triggers match the ATM repo pattern for `pull_request` and `push`
-   - branch protection and rulesets match ATM for `main` and `develop`
-   - GitHub secrets and environments are configured and use the same variable
-     names as ATM where the workflows overlap
-3. Verify repository setup end to end:
-   - release preflight validates publish order and version alignment for the
-     eventual downstream cutover
-   - release workflow remains gated until downstream integration is complete
-   - workspace version `0.46.2` remains intentionally aligned with the
-     agent-team-mail replacement baseline
-4. Prepare deferred publish readiness without treating crates.io publication as
-   an immediate release goal:
-   - verify crate ownership/maintainers for `sc-composer` and `sc-compose`
-   - document the replacement handoff from the ATM-published crates to this
-     repo
-   - keep publish-token setup and first-release permissions as deferred release
-     operations, not Sprint 6 exit criteria
-5. Make `sc-composer` fully standalone.
-6. Remove any `ATM_HOME` or ATM path assumptions from `sc-compose`.
-7. Verify ATM cutover readiness:
-   - published crate names match the existing names used in ATM
-   - replacement instructions are documented
-   - no `agent-team-mail-*` dependencies remain
-8. Write the migration plan after the agents are live and operating on the new
-   repos.
+This document is the authoritative release plan. It replaces the earlier
+implementation-history view with one sprint sequence that contains all work
+required to ship.
 
-## Implementation Phase
+## Release Rules
 
-After repository extraction is stable, the next implementation phase is the
-FR-1 through FR-11 redesign defined in:
+- `requirements.md`, `architecture.md`, and this plan are the release source of
+  truth.
+- No sprint may leave a known release blocker unassigned.
+- A later sprint may start only after the prior sprint exit gate passes.
+- Deferred work is allowed only when it is explicitly out of scope for the
+  initial release and does not reduce production readiness.
+- `sc-composer` remains a pure library.
+- `sc-compose` may depend on `sc-composer` and standalone observability crates
+  only.
+- No ATM-specific runtime assumptions may enter code or manifests.
 
-- `docs/requirements.md`
-- `docs/architecture.md`
+## Release Plan
 
-The crate-development phase is a seven-sprint program:
-
-- `S1` completed the normative documentation and review baseline.
-- `S2` through `S7` implement and harden `sc-composer` and `sc-compose`.
-
-A later sprint may start only after the prior sprint exit gate passes.
-
-For sprint exit gates in this document, `qm-comp` is the QA/review agent
-responsible for validating that implementation matches the normative docs and
-the active quality gates.
-
-### Sprint 1: Spec and Planning Baseline
-
-Status:
-
-- complete
+### Sprint 1: Release Blocker Audit and Contract Closure
 
 Branch:
 
-- `fix/docs-*` and `fix/atm-review-findings` branches into `develop`
+- `feature/release-contract-closure` -> `develop`
 
 FRs addressed:
 
-- FR-1 through FR-9 at the specification level
-
-Deliverables:
-
-- normative `docs/requirements.md`
-- normative `docs/architecture.md`
-- initial project-plan baseline
-- failure-mode matrix and per-command JSON schema definitions
-
-Acceptance criteria:
-
-- requirements and architecture are internally consistent
-- ATM independence and host-injection boundaries are explicit
-- `qm-comp` design/doc QA passes
-- `arch-ctm` review findings are resolved or assigned forward
-
-Exit gate:
-
-- docs merged to `develop`
-- planning may proceed against a stable spec baseline
-
-### Sprint 2: Core Types, Errors, and Diagnostics
-
-Branch:
-
-- `feature/s2-core-types` -> `develop`
-
-FRs addressed:
-
-- FR-1
-- FR-1a
-- FR-1b
-- FR-2
-- FR-8
-
-Deliverables:
-
-- `crates/sc-composer/src/types.rs` or equivalent modules for:
-  - `ScalarValue`
-  - `MetadataValue`
-  - `VariableName`
-  - `IncludeDepth`
-  - `ConfiningRoot`
-  - `ComposeMode`
-  - `ComposeRequest`
-  - `ComposePolicy`
-  - `ComposeResult`
-  - `ValidationReport`
-- `crates/sc-composer/src/error.rs` implementing:
-  - `ResolveError`
-  - `IncludeError`
-  - `ValidationError`
-  - `RenderError`
-  - `ConfigError`
-  - `ComposeError`
-- `crates/sc-composer/src/diagnostics.rs` implementing:
-  - concrete `Diagnostic`
-  - stable diagnostic code registry aligned with the `ERR_*` matrix
-  - top-level FR-8 JSON envelope model mirrored in architecture section 10
-- `crates/sc-composer/src/frontmatter.rs` for typed frontmatter parsing and
-  normalization
-- crate docs and public-item docs for the new API surface
-
-Carry-forward QA backlog assigned to Sprint 2:
-
-- RenderError path test coverage
-- doc comments on `RenderError::render` and `RenderError::backtrace`
-- mirror the FR-8 top-level JSON envelope into `docs/architecture.md` section
-  10 when the diagnostics implementation lands
-
-Acceptance criteria:
-
-- public APIs do not leak template-engine or third-party error types
-- frontmatter normalization matches FR-1a exactly
-- `ComposeMode` uses variant-specific fields rather than option soup
-- `ComposeError` and the failure-mode matrix codes align one-to-one
-- diagnostics can serialize the FR-8 envelope and concrete diagnostic records
-- RenderError tests cover construction, source propagation, and backtrace
-  accessors
-- public doc comments are present on `RenderError::render` and
-  `RenderError::backtrace`
-
-Exit gate:
-
-- `cargo test -p sc-composer` passes
-- `cargo clippy --all-targets --all-features -- -D warnings` passes
-- `qm-comp` API/diagnostics review finds no blocking mismatch
-
-### Sprint 3: Resolver and Include Engine
-
-Branch:
-
-- `feature/s3-resolver-include` -> `develop`
-
-FRs addressed:
-
-- FR-1c
-- FR-3
-- FR-4
-- FR-5
-
-Deliverables:
-
-- `crates/sc-composer/src/resolver.rs` implementing:
-  - runtime-aware path policy
-  - profile-kind directory search
-  - search trace capture
-  - ambiguity detection and `ResolveResult`
-- `crates/sc-composer/src/include.rs` implementing:
-  - `@<path>` expansion
-  - include cycle detection
-  - include depth enforcement
-  - confinement-root enforcement
-  - include stack capture for diagnostics
-- path normalization and confinement helpers respecting `ConfiningRoot`
-- unit tests for resolver precedence and include failure modes
-
-Acceptance criteria:
-
-- omitted-runtime search and ambiguity behavior matches FR-5
-- include resolution order matches FR-3
-- path escape attempts fail with `ERR_INCLUDE_ESCAPE`
-- include depth overflow fails with `ERR_INCLUDE_DEPTH`
-- search traces are captured for `resolve --json`
-
-Exit gate:
-
-- resolver tests cover agent, command, and skill lookup across runtime/shared
-  roots
-- include tests cover missing file, cycle, depth overflow, and escape attempts
-- `cargo test -p sc-composer resolver include` equivalent coverage passes
-- `cargo clippy --all-targets --all-features -- -D warnings` passes
-
-### Sprint 4: Validation and Rendering Core
-
-Branch:
-
-- `feature/s4-validation-renderer` -> `develop`
-
-FRs addressed:
-
-- FR-2
-- FR-2a
-- FR-2b
-- FR-1b
-- FR-3a
-- FR-6
-- FR-7c
-- FR-8
-- FR-9 at the library-hook level
-
-Deliverables:
-
-- `crates/sc-composer/src/validation.rs` implementing context merge and token
-  discovery (originally planned as separate `context.rs` and `tokens.rs` files;
-  consolidated into `validation.rs` — see architecture.md §4 for rationale):
-  - precedence merge (explicit input > environment-derived > frontmatter defaults)
-  - variable origin tracking and unknown-variable policy
-  - referenced-token discovery (declared, undeclared, missing, extra)
-- `crates/sc-composer/src/validate.rs` implementing:
-  - missing required variable checks
-  - undeclared token handling
-  - extra-variable policy handling
-  - `validate() -> Result<ValidationReport, ComposeError>`
-- `crates/sc-composer/src/render.rs` implementing:
-  - `Renderer`
-  - `render_template()`
-  - trim/lstrip default behavior
-  - strict and default undeclared-token behavior
-- `crates/sc-composer/src/pipeline.rs` implementing typestate transitions:
-  - `Document<Parsed>`
-  - `Document<Expanded>`
-  - `Document<Validated>`
-  - `Document<Rendered>`
-- `crates/sc-composer/src/observability.rs` implementing observability hooks
-  and a built-in no-op implementation
-- `compose()` wiring over resolver, include, validation, render, and block
-  assembly
-
-Acceptance criteria:
-
-- `Renderer` owns template loading, include resolution, variable expansion,
-  validation, and rendering as documented
-- `compose()` is the end-to-end convenience function over `Renderer`
-- `render_template()` works as the lower-level entry point for resolved
-  template content
-- default mode preserves undeclared tokens; strict mode fails on them
-- include-derived defaults and required variables merge per FR-3a
-- stable diagnostics and `ERR_*` mappings are emitted for all failure classes
-- observability hooks work with a host-supplied implementation and with the
-  no-op default
-
-Exit gate:
-
-- `cargo test -p sc-composer` passes with dedicated suites for context,
-  validation, rendering, and observability hooks
-- `cargo clippy --all-targets --all-features -- -D warnings` passes
-- `qm-comp` review confirms API ownership and failure mapping match docs
-
-### Sprint 5: CLI and Workspace Helpers
-
-Branch:
-
-- `feature/s5-cli-workspace` -> `develop`
-
-FRs addressed:
-
-- FR-6
 - FR-7
-- FR-7a
-- FR-7b
-- FR-7c
 - FR-8a
-- FR-8
-- FR-9 at the CLI integration level
-
-Deliverables:
-
-- `crates/sc-compose/src/main.rs` or subcommand modules for:
-  - `render`
-  - `resolve`
-  - `validate`
-  - `frontmatter-init`
-  - `init`
-- CLI argument parsing for:
-  - `--mode`
-  - `--kind`
-  - `--agent` and alias normalization
-  - `--runtime` and alias normalization
-  - `--var`
-  - `--var-file`
-  - `--env-prefix`
-  - `--guidance` and `--guidance-file`
-  - `--prompt` and `--prompt-file`
-  - `--json`
-  - `--dry-run`
-  - `--output`
-- `crates/sc-composer/src/workspace.rs` implementing:
-  - `frontmatter_init()`
-  - `init_workspace()`
-- CLI JSON-output shapers matching the requirements and architecture schemas
-- output-path derivation for file mode and profile mode
-- CLI-side initial observability binding over the pre-S7 hook layer
-
-Acceptance criteria:
-
-- `render`, `resolve`, `validate`, `frontmatter-init`, and `init` all delegate
-  core semantics to `sc-composer`
-- command JSON outputs match the documented schemas exactly
-- dry-run outputs match the documented schemas exactly
-- `resolve` is rejected in file mode
-- stdin double-read conflicts fail with `ERR_RENDER_STDIN_DOUBLE_READ`
-- output write failures map to `ERR_RENDER_WRITE`
-
-Exit gate:
-
-- CLI integration and golden tests pass for all commands
-- JSON schema snapshots pass for normal and dry-run modes
-- `cargo test -p sc-compose` passes
-- `cargo clippy --all-targets --all-features -- -D warnings` passes
-- `qm-comp` QA finds no blocking mismatch in command behavior or schema output
-
-### Sprint 6: Integration, Hardening, and Release Gate
-
-Branch:
-
-- `feature/s6-integration-gate` -> `develop`
-
-FRs addressed:
-
-- FR-1 through FR-9 end-to-end
-
-Deliverables:
-
-- end-to-end smoke-test assets covering:
-  - frontmatter
-  - includes
-  - explicit vars
-  - env vars
-  - var-files
-  - profile resolution
-  - output-path derivation
-- cross-platform path/confinement verification cases
-- failure-path JSON snapshot coverage for command families:
-  - `render`
-  - `resolve`
-  - `validate`
-  - `frontmatter-init`
-  - `init`
-- focused observability integration test suite covering documented emission
-  points:
-  - command start
-  - command end
-  - resolve outcomes
-  - include outcomes
-  - validation outcomes
-  - render outcomes
-- hardening fixes for phase-end and compatibility findings:
-  - preserve full diagnostics in `fail_if_invalid()` rather than reducing to the
-    first diagnostic only
-  - correct the mode-mismatch error code in `resolver.rs` so usage/config
-    failures do not emit `ERR_CONFIG_PARSE`
-  - include cause chain and backtrace information in `Display`
-    implementations for `ResolveError`, `IncludeError`, `ValidationError`, and
-    `ConfigError`
-  - report `bytes_written` using actual bytes written to disk rather than
-    in-memory string length
-- dry-run integration coverage for:
-  - `frontmatter-init`
-  - `init`
-- `ERR_*` golden tests ensuring every failure-mode matrix code appears in at
-  least one diagnostics array assertion
-- ATM adapter integration notes that explicitly document:
-  - the observability API as the primary ATM extension seam
-  - command lifecycle events as adapter-owned when embedding `sc-composer`
-    directly
-  - config and path translation as adapter-owned because there is no
-    `ComposerConfig` wrapper
-- release-readiness checklist for both crates
-- migration and cutover notes for downstream consumers covering:
-  - replacement of the already-published `agent-team-mail` crates by this repo
-  - intentional breaking-change expectations during downstream cutover
-  - deferred crates.io publishing until downstream integration is complete
-- issue triage pass for any non-blocking carry-over discovered in S2-S5
-
-ATM adapter use-case coverage updates required in Sprint 6:
-
-- close the current PARTIAL/MISSING gaps around observability integration and
-  failure-path JSON behavior
-- keep typestate positioned as a library-internal sequencing aid rather than
-  the primary adapter seam
-
-Carry-over from S2-S5 QA deferred beyond Sprint 6:
-
-- `ComposerConfig` wrapper:
-  - deferred because adapter-owned config translation is workable today and a
-    wrapper would add new public API surface during integration
-- `ResolverPolicy::filename_probes: Vec<String> -> Vec<PathBuf>`:
-  - deferred because this is a refactor and not a current correctness blocker
-- Cow/allocation cleanup in output assembly, filename probes, and render
-  context building:
-  - deferred as performance optimization rather than correctness or contract
-    work
-- `workspace.rs` module naming deviation:
-  - deferred because it is cosmetic and does not affect the documented API
-- root-relative fix hint for `ERR_VAL_MISSING_FRONTMATTER`:
-  - deferred as minor UX polish
-- `--ai` as a true alias rather than a sibling clap argument:
-  - deferred as minor CLI polish
-
-Acceptance criteria:
-
-- all FRs are implemented and mapped to passing tests
-- `compose()`, `Renderer`, `render_template()`, `validate()`,
-  `init_workspace()`, and `frontmatter_init()` behave as documented
-- failure-mode matrix codes are exercised by tests
-- failure-path JSON envelope shape is snapshot-tested for every command family
-- observability emission points are covered by focused integration tests
-- every `ERR_*` code in the failure-mode matrix appears in at least one test's
-  diagnostics output
-- `fail_if_invalid()` preserves all diagnostics rather than reducing to the
-  first failure only
-- resolver mode-mismatch errors do not emit `ERR_CONFIG_PARSE`
-- `Display` output for `ResolveError`, `IncludeError`, `ValidationError`, and
-  `ConfigError` emits source chain and backtrace information
-- `render --json` reports `bytes_written` using actual bytes written to disk
-- standalone boundaries remain intact with no ATM-specific assumptions in code
-  or manifests
-- migration and cutover notes document the `agent-team-mail` replacement
-  contract and breaking-change expectations for downstream consumers
-- no open Priority 1 or Priority 2 QA findings remain
-
-Exit gate:
-
-- `cargo test --workspace` passes
-- `cargo clippy --all-targets --all-features -- -D warnings` passes
-- `cargo fmt --all --check` passes
-- full end-to-end smoke test passes: render a template with includes, vars, and
-  frontmatter
-- `qm-comp` full QA pass
-- `arch-ctm` final design review
-- branch approved for merge to `develop`
-
-### Sprint 7: Observability Integration Tightening
-
-Branch:
-
-- `feature/s7-observability-integration` -> `develop`
-
-FRs addressed:
-
 - FR-9
-- FR-7
-- FR-8a
 - FR-10
 - FR-11
 
 Deliverables:
 
-- `sc-composer` sink-injection update:
-  - keep the observability hook layer local to `sc-composer`
-  - align the normative docs with the local `observer` module API rather than
-    an external sink contract
-  - provide a built-in no-op observer for default operation
-  - continue to use `compose_with_observer(...)` as the end-to-end injection
-    surface
-  - emit structured resolve, include-expand, validate, and render stage events
-- `sc-compose` CLI logging integration:
-  - add `sc-observability` logger construction at CLI startup
-  - add a CLI-owned adapter from `sc-observability::Logger` to
-    `sc_composer::observer` hooks
-  - register file and console sinks for normal terminal execution
-  - suppress the console sink when `--json` is active
-  - call logger `shutdown()` on process exit
-  - add `observability-health` command that reports `Logger::health()`
-- workspace dependency updates:
-  - add `sc-observability` to `sc-compose`
-  - keep `sc-composer` free of any direct dependency on the full
-    `sc-observability` facade
-- focused tests and QA coverage:
-  - library tests for observer injection and no-op defaults
-  - CLI tests for `--json` console suppression
-  - CLI tests for `observability-health` text and JSON output
-  - event coverage assertions for resolve, include-expand, validate, and render
-  - health and graceful-shutdown behavior checks
+- one complete release-blocker inventory covering:
+  - logging gaps
+  - non-observability gaps
+  - documentation gaps
+  - test gaps
+  - release-process gaps
+- final normative updates in:
+  - `docs/requirements.md`
+  - `docs/architecture.md`
+  - `docs/project-plan.md`
+- final command surface for the initial release, including:
+  - `render`
+  - `resolve`
+  - `validate`
+  - `frontmatter-init`
+  - `init`
+  - `observability-health`
+- final logging-only observability contract, including:
+  - `sc-composer` local observer hook model
+  - CLI-owned command lifecycle events
+  - pipeline event emission points
+  - stable event `message` conventions
+  - no-op fallback behavior
+  - `--json` console suppression
+  - `observability-health` command behavior
+  - graceful shutdown behavior
+- explicit initial-release scope statement that keeps:
+  - structured logging and health reporting in scope
+  - `sc-observe` and `sc-observability-otlp` out of scope
+
+Acceptance criteria:
+
+- the blocker inventory lists every known release blocker and assigns each one
+  to a sprint in this plan
+- `requirements.md`, `architecture.md`, and `project-plan.md` are mutually
+  consistent
+- the logging contract is precise enough to implement without inventing new
+  behavior during coding
+- the initial-release command surface is final
+- `observability-health` is fully specified as a release command rather than a
+  placeholder
+- no unresolved contradiction remains around the local observer model, logger
+  wiring, command lifecycle events, event `message` conventions, or no-op
+  behavior
+
+Exit gate:
+
+- `qm-comp` cross-document consistency review passes
+- req-qa and arch-qa find no blocking document mismatch
+- release-blocker inventory is accepted as complete
+
+### Sprint 2: Logging Integration Implementation
+
+Branch:
+
+- `feature/release-logging-integration` -> `develop`
+
+FRs addressed:
+
+- FR-9
+- FR-10
+- FR-11
+
+Deliverables:
+
+- `crates/sc-composer/src/observer.rs` implementing the local observer
+  contract, including:
+  - `ObservationEvent`
+  - `ObservationSink`
+  - `CompositionObserver`
+  - built-in no-op observer path
+- `compose_with_observer(...)` as the end-to-end library injection entry point
+- `compose()` and `Renderer` default behavior that remains functional when no
+  observer is injected
+- `sc-observability` dependency and logger construction in `sc-compose`
+- CLI-owned adapter from the local `sc-composer` observer model to
+  `sc-observability::Logger`
+- command lifecycle logging for:
+  - command start
+  - command completion
+  - command failure
+- pipeline-stage logging for:
+  - resolve
+  - include-expand
+  - validate
+  - render
+- `observability-health` command implementation
+- console sink suppression in `--json` mode
+- logger shutdown wiring on process exit
 
 Acceptance criteria:
 
 - `sc-composer` does not depend on `sc-observability-types`
 - `sc-composer` does not depend on `sc-observability`
-- `compose_with_observer(...)` remains the documented observability injection
+- `sc-compose` constructs `Logger` and adapts it into the library observer
   path
-- the no-op default keeps library and CLI behavior functional when no observer
-  is injected
-- CLI startup constructs `sc-observability::Logger` and adapts it into the
-  library injection point
-- `--json` mode does not emit console log lines that corrupt machine-readable
-  stdout
-- `observability-health` returns the documented `LoggingHealthReport` payload
-  and does not mutate logger state
-- shutdown flushes sinks on exit and degrades gracefully on flush/reporting
-  errors
-- `qm-comp` review confirms the implementation matches FR-10 and FR-11
+- command lifecycle events and composition-stage events are emitted through the
+  documented mapping
+- `observability-health` returns the documented `LoggingHealthReport`
+- `--json` mode remains machine-readable
+- shutdown flushes sinks on exit and does not break command behavior
 
 Exit gate:
 
 - `cargo test --workspace` passes
 - `cargo clippy --all-targets --all-features -- -D warnings` passes
 - `cargo fmt --all --check` passes
-- `qm-comp` review passes
+- `qm-comp` implementation review finds no blocking contract mismatch
+
+### Sprint 3: Production Hardening and Gap Closure
+
+Branch:
+
+- `feature/release-production-hardening` -> `develop`
+
+FRs addressed:
+
+- FR-1 through FR-11 where production behavior requires hardening
+
+Deliverables:
+
+- focused tests for:
+  - observer injection and no-op defaults
+  - command lifecycle logging
+  - resolve/include-expand/validate/render event coverage
+  - event `message` guidance and stable target/action naming
+  - `observability-health` text output
+  - `observability-health --json`
+  - `--json` console suppression and stdout cleanliness
+  - graceful shutdown and flush behavior
+  - sink failure degradation behavior
+- failure-path coverage for logging integration
+- closure of every non-observability release blocker identified in Sprint 1
+- updates to release notes, migration notes, and cutover notes where changed
+  behavior affects downstream consumers
+
+Acceptance criteria:
+
+- no release blocker from Sprint 1 remains open
+- logging support is production-ready for:
+  - CLI use
+  - consuming applications that extend logging through the documented observer
+    hook model
+- all documented logging behaviors are covered by automated tests
+- no command emits console log noise that corrupts machine-readable stdout
+- health reporting and shutdown behavior are proven by tests rather than by
+  documentation alone
+
+Exit gate:
+
+- `cargo test --workspace` passes with the full logging and hardening suites
+- `cargo clippy --all-targets --all-features -- -D warnings` passes
+- `cargo fmt --all --check` passes
+- no Priority 1 or Priority 2 QA finding remains open
+
+### Sprint 4: Release Readiness and Cutover
+
+Branch:
+
+- `feature/release-gate` -> `develop`
+
+FRs addressed:
+
+- FR-1 through FR-11 release validation
+
+Deliverables:
+
+- final release-readiness checklist for both crates
+- final migration and cutover notes for downstream consumers
+- final verification of standalone boundary rules
+- final end-to-end smoke tests
+- final QA and design review pass
+- branch prepared for merge to `develop`, then release merge to `main`
+
+Acceptance criteria:
+
+- all FR-1 through FR-11 behavior is implemented and covered by automated tests
+- all release blockers are closed
+- all required docs match shipped behavior
+- downstream cutover notes are accurate
+- release workflow prerequisites are satisfied
+
+Exit gate:
+
+- `cargo test --workspace` passes
+- `cargo clippy --all-targets --all-features -- -D warnings` passes
+- `cargo fmt --all --check` passes
+- full end-to-end smoke test passes using includes, vars, frontmatter, and
+  observability-health
+- `qm-comp` full QA pass
+- `arch-ctm` final design review pass
 - branch approved for merge to `develop`
-
-## Crate Build Sequence
-
-Implementation order is constrained by the architecture typestate pipeline and
-crate dependency direction.
-
-1. `sc-composer` foundational types and diagnostics:
-   - `types.rs` or the equivalent foundational type modules
-   - `error`
-   - `diagnostics`
-   - `frontmatter`
-2. `sc-composer` path and graph mechanics:
-   - `resolver`
-   - `include`
-3. `sc-composer` semantic pipeline:
-   - `render`
-   - `validate`
-   - `pipeline`
-4. `sc-composer` integration hooks:
-   - `observability`
-   - `workspace`
-5. `sc-compose` CLI wiring:
-   - argument parsing
-   - command routing
-   - JSON shaping
-   - output writing
-   - concrete observability binding
-
-Modules that can be parallelized once the shared types exist:
-
-- `resolver` and `frontmatter` may proceed in parallel after Sprint 2
-  foundational type modules land
-- `include` and `render` may proceed in parallel once path and document
-  representations stabilize
-- `observability` and `workspace` can proceed in parallel with late Sprint 4
-  or early Sprint 5 CLI work
-- CLI JSON shaping and output-path handling can proceed in parallel once
-  `ComposeResult`, `ValidationReport`, and command schema contracts stabilize
-
-Parallel work must not violate ownership:
-
-- `sc-composer` remains the only crate that defines composition semantics
-- `sc-compose` implements UX and transport only
+- release approved for merge to `main`
 
 ## FR Coverage Matrix
 
-- FR-1, FR-1a: S2
-- FR-1b: S2 and S4
-- FR-1c: S3
-- FR-2, FR-2a, FR-2b: S2 and S4
-- FR-3: S3
-- FR-3a: S4
-- FR-4: S3 and S6
-- FR-5: S3
-- FR-6: S4 and S5
-- FR-7, FR-7a, FR-7b: S5 and S7
-- FR-7c: S4 and S5
-- FR-8: S2, S4, S5, and S6
-- FR-8a: S5, S6, and S7
-- FR-9: S4, S5, and S7
-- FR-10: S7
-- FR-11: S7
-- NFRs:
-  - cross-platform behavior: S3 and S6
-  - interactive performance expectations: S5 and S6
-  - public API stability: S2 and S6
-  - crate separability and boundary enforcement: S2 through S7
-  - observability health and graceful shutdown: S7
+- FR-1 through FR-6:
+  - already specified in the normative docs
+  - revalidated in Sprint 3 and Sprint 4 where release blockers or integration
+    changes touch them
+- FR-7:
+  - Sprint 1 finalizes the command surface
+  - Sprint 2 implements `observability-health`
+  - Sprint 3 hardens command behavior
+  - Sprint 4 validates release behavior
+- FR-8 and FR-8a:
+  - Sprint 1 finalizes command and health schemas
+  - Sprint 2 implements the logger-facing command output
+  - Sprint 3 hardens JSON and failure-path behavior
+  - Sprint 4 validates release behavior
+- FR-9:
+  - Sprint 1 finalizes the logging-only integration contract
+  - Sprint 2 implements the logging path
+  - Sprint 3 hardens and validates it
+  - Sprint 4 validates release behavior
+- FR-10:
+  - Sprint 1 finalizes the local observer contract
+  - Sprint 2 implements it
+  - Sprint 3 hardens and validates it
+  - Sprint 4 validates release behavior
+- FR-11:
+  - Sprint 1 finalizes CLI logger behavior
+  - Sprint 2 implements it
+  - Sprint 3 hardens and validates it
+  - Sprint 4 validates release behavior
 
-## Phase Exit Gate
+## Production Readiness Gate
 
-The crate-development phase is complete only when Sprint 7 passes all of the
-following:
+Release is complete only when all four sprints have passed and all of the
+following are true:
 
-- all prior sprint exit gates for S2 through S6 have already passed
+- no release blocker remains open
+- `requirements.md`, `architecture.md`, and `project-plan.md` match the shipped
+  behavior
 - all FR-1 through FR-11 behavior is implemented and covered by automated tests
 - `cargo test --workspace` passes
 - `cargo clippy --all-targets --all-features -- -D warnings` passes
 - `cargo fmt --all --check` passes
-- the failure-mode matrix `ERR_*` codes are reflected in the emitted
-  diagnostics and covered by tests
-- a full end-to-end smoke test passes using includes, vars, and frontmatter
+- full end-to-end smoke coverage passes
 - `qm-comp` completes a full QA pass
 - `arch-ctm` completes a final design review
-
-If implementation is re-sliced, the replacement plan must preserve the
-dependency order, FR coverage, and exit gates defined above.
+- release is approved for merge to `main`
 
 ## Companion Planning Docs
-
-The following documents reduce execution ambiguity for implementation agents and
-reviewers:
 
 - `docs/traceability-matrix.md`
 - `docs/error-code-registry.md`
@@ -624,7 +295,9 @@ reviewers:
 
 ## Rule
 
-Any sprint plan added here must preserve the standalone boundary defined by:
+Any follow-on sprint added after this plan must preserve the standalone
+boundary defined by:
+
 - `docs/requirements.md`
 - `docs/architecture.md`
 - `docs/git-workflows.md`

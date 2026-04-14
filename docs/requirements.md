@@ -1,17 +1,17 @@
 # SC-Compose Requirements
 
-> Status: Draft
+> Status: Active Release Baseline
 > Product: `sc-composer` (library) and `sc-compose` (CLI)
-> Document role: Normative product requirements for the redesign of both crates
+> Document role: Normative release requirements for both crates
 
 This document supersedes the prior high-level placeholder. It is the normative
-requirements baseline for `sc-compose` v0.x.
+release requirements baseline for `sc-compose` v0.x.
 
 ## 1. Intent
 
 This document defines the required behavior of `sc-composer` and `sc-compose`.
-It is the design authority for the redesign effort. If the implementation
-diverges from this document, the implementation is wrong unless the document is
+It is the design authority for release work. If the implementation diverges
+from this document, the implementation is wrong unless the document is
 explicitly amended.
 
 ## 2. Problem Statement
@@ -660,10 +660,11 @@ Schema rules:
 - `sc-composer` must not depend on `sc-observability-types`.
 - `sc-composer` must define host-injectable observability hooks locally without
   coupling the library to a concrete logging runtime.
-- `sc-compose` should use `sc-observability` as the canonical concrete
+- The initial release observability scope is limited to structured logging,
+  health reporting, and downstream extension through the local observer hook
+  model.
+- `sc-compose` shall use `sc-observability` as the canonical concrete
   observability binding for CLI execution.
-- The `sc-observability` dependency is a design-ahead expectation for the CLI
-  implementation phase and may not yet appear in `Cargo.toml`.
 - `sc-composer` must emit composition pipeline events through its local
   observer/sink hook model.
 - `sc-compose` must emit command lifecycle events through the same local hook
@@ -672,7 +673,8 @@ Schema rules:
 - Embedded use must permit host-supplied sink and path configuration.
 - If no sink is injected, both crates must remain fully functional with
   observability reduced to a no-op.
-- OTel support remains optional and feature-gated.
+- `sc-observe` and `sc-observability-otlp` remain out of scope for the initial
+  release.
 
 ### FR-10: Library Log-Sink Injection
 
@@ -685,6 +687,9 @@ Schema rules:
   caller does not provide an observer implementation.
 - `compose_with_observer(request, &mut dyn CompositionObserver)` shall remain
   the required end-to-end injection surface for host-provided observability.
+- The local observer hook surface shall remain object-safe and `dyn`-compatible
+  so consuming applications can provide their own logging extensions without
+  depending on CLI-specific code.
 - Injected hooks shall receive structured events for the resolve,
   include-expand, validate, and render pipeline stages.
 - The local observer/sink contracts shall remain usable by embedded hosts that
@@ -698,6 +703,8 @@ Schema rules:
   normal terminal execution.
 - The console sink shall be suppressed whenever the active command uses the
   `--json` output mode so machine-readable command output remains clean.
+- The CLI shall emit structured command lifecycle events for command start,
+  command completion, and command failure.
 - The CLI shall expose logger health through a dedicated
   `observability-health` command so operators can inspect sink state,
   dropped-event counts, and the active log path.
@@ -714,9 +721,9 @@ Schema rules:
   semver-governed once released.
 - The library and CLI must remain separable: `sc-compose` may depend on
   `sc-composer`, but `sc-composer` must not depend on the CLI crate.
-- Observability integration must emit structured log events at the resolve,
-  include-expand, validate, and render pipeline stages with stable target and
-  action naming.
+- Observability integration must emit structured events at the resolve,
+  include-expand, validate, and render pipeline stages with stable target,
+  action, and message conventions.
 - Observability health state must be queryable without mutating composition
   behavior so operators and embedded hosts can inspect runtime health safely.
 - Process shutdown must flush pending observability output and degrade
@@ -753,6 +760,8 @@ Required integration coverage includes:
 - CLI `frontmatter-init`,
 - CLI `init`,
 - CLI `observability-health`,
+- command lifecycle logging,
+- resolve/include-expand/validate/render event emission,
 - `--dry-run` no-write guarantees,
 - JSON diagnostics contract,
 - cross-platform path behavior.

@@ -1,16 +1,16 @@
 # SC-Compose Architecture
 
-> Status: Draft
+> Status: Active Release Baseline
 > Product: `sc-composer` (library) and `sc-compose` (CLI)
-> Document role: Normative target architecture for the redesign of both crates
+> Document role: Normative release architecture for both crates
 
 This document supersedes the prior high-level placeholder. It is the normative
-architecture baseline for `sc-compose` v0.x.
+release architecture baseline for `sc-compose` v0.x.
 
 ## 1. Architectural Intent
 
-This document describes the intended architecture of the redesigned
-`sc-composer` and `sc-compose` crates. It is not a description of the current
+This document defines the required architecture of `sc-composer` and
+`sc-compose` for release work. It is not a description of the current
 implementation.
 
 The goals are:
@@ -54,7 +54,7 @@ The goals are:
 ```
 
 ATM-specific integration attaches above the two-crate boundary. `sc-composer`
-never imports ATM types, defines its observability hooks locally, and receives
+never imports ATM types, defines its observer hooks locally, and receives
 concrete logging behavior through trait injection rather than a direct
 dependency on `sc-observability`.
 
@@ -93,10 +93,10 @@ Required dependency direction:
 - `sc-compose` -> `sc-observability`
 - `sc-observability` -> `sc-observability-types`
 
-Design-ahead note:
+Required observability split:
 
-- `sc-observability` is the intended observability integration target for the
-  CLI architecture, while `sc-composer` keeps its observer interfaces local.
+- `sc-observability` is the concrete logging integration target for the CLI.
+- `sc-composer` keeps its observer interfaces local.
 
 Forbidden dependency direction:
 
@@ -166,7 +166,7 @@ ATM integration is an adapter concern outside this repository.
 - `workspace`
   - implements `frontmatter-init` and `init` logic for reuse by the CLI and any
     future embedded callers.
-- `observability`
+- `observer`
   - defines the local observer and sink traits used by embedded hosts and the
     CLI,
   - owns the no-op observer used when no caller injects a concrete
@@ -838,6 +838,11 @@ Architecture rules:
   `sc_composer::observer` hook layer.
 - `sc-compose` provides the canonical concrete binding to the full
   `sc-observability` `Logger`.
+- The initial release scope is logging-only:
+  - structured log events
+  - logger health reporting
+  - graceful shutdown
+  - downstream extension through the local observer hook model
 - If no observer is provided, library and CLI behavior degrade to a no-op
   observability path rather than failing.
 - Library observability hooks must remain usable by embedded consumers.
@@ -846,6 +851,8 @@ Architecture rules:
 - Observer and sink adapters are intentionally public and unsealed so embedded
   hosts can
   provide their own implementations.
+- `sc-observe` and `sc-observability-otlp` are not part of this initial
+  release architecture.
 
 ### 18.1 Dependency Graph
 
@@ -853,13 +860,10 @@ The observability dependency chain is intentionally split so the library stays
 runtime-agnostic:
 
 ```text
-sc-composer        sc-observability
-       \           /
-        v         v
-          sc-compose
-               |
-               v
-      sc-observability-types
+sc-compose -----> sc-composer
+     |
+     v
+sc-observability -----> sc-observability-types
 ```
 
 - `sc-composer` defines its own `ObservationEvent`, `ObservationSink`, and
@@ -901,7 +905,7 @@ Required library behavior:
 - Emission points cover:
   - resolve success and failure,
   - include expansion success and failure,
-  - validation completion,
+  - validation outcomes,
   - render success and failure.
 
 ### 18.3 CLI Wiring
@@ -916,6 +920,10 @@ CLI wiring rules:
 - normal terminal execution enables both file and console sinks,
 - `--json` execution disables the console sink so command stdout remains valid
   machine-readable output,
+- command lifecycle logging remains CLI-owned and emits:
+  - command start
+  - command completion
+  - command failure
 - `observability-health` reads `Logger::health()` and serializes the returned
   `LoggingHealthReport` as command output,
 - CLI shutdown calls the logger's `shutdown()` path so registered sinks flush
@@ -931,23 +939,38 @@ The normative public API paths for this design are:
 - `sc_composer::observer::CompositionObserver`
 - `sc_composer::observer::ObservationSink`
 
-### 18.5 Log Event Shape and Emission Points
+### 18.5 Event Shape and Emission Points
 
-The composition pipeline emits `LogEvent` records with stable `target` and
-`action` naming that describe:
+The composition pipeline emits `ObservationEvent` values through the local
+observer hook layer. The CLI adapter maps those events into concrete logger
+records with stable `target`, `action`, and `message` fields that describe:
 
 - resolve attempts and outcomes,
 - include expansion outcomes,
 - validation outcomes,
 - render outcomes.
 
-Command start and end events may remain CLI-owned, but the four composition
-pipeline stages above are the minimum required library emission points.
+Message rules:
+
+- `message` is a short human-readable summary of the event outcome.
+- Structured fields, not `message`, carry schema-relevant details.
+- `message` wording must remain stable enough for operator-facing logs and test
+  assertions.
+
+The CLI also emits command lifecycle events with stable `target`, `action`,
+and `message` fields for:
+
+- command start,
+- command completion,
+- command failure.
+
+The four composition pipeline stages above are the minimum required library
+emission points. Command lifecycle events remain CLI-owned.
 
 ## 19. Extensibility
 
-The redesign should keep room for future extensions without destabilizing the
-core behavior.
+The release architecture keeps room for future extensions without destabilizing
+the core behavior.
 
 Expected extension points:
 
