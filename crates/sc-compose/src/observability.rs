@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use anyhow::{Context, anyhow};
+use anyhow::anyhow;
 use sc_observability::{
     ConsoleSink, Logger, LoggerConfig, LoggingHealthReport, ServiceName, SinkRegistration,
 };
