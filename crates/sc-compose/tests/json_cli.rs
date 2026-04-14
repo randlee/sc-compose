@@ -64,6 +64,7 @@ fn render_json_uses_diagnostic_envelope() {
         .unwrap();
 
     assert!(output.status.success());
+    assert!(output.stderr.is_empty());
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_eq!(value["payload"]["output_path"], "stdout");
@@ -151,6 +152,7 @@ fn validate_json_uses_diagnostic_envelope() {
         .unwrap();
 
     assert_eq!(output.status.code(), Some(2));
+    assert!(output.stderr.is_empty());
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_eq!(value["payload"]["valid"], false);
@@ -298,9 +300,34 @@ fn render_failure_json_uses_diagnostic_envelope() {
         .unwrap();
 
     assert_eq!(output.status.code(), Some(2));
+    assert!(output.stderr.is_empty());
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_first_code(&value, "ERR_VAL_MISSING_REQUIRED");
+}
+
+#[test]
+fn observability_health_json_uses_diagnostic_envelope_and_stays_stdout_clean() {
+    let root = temp_root("observability-health-json");
+
+    let output = sc_compose()
+        .arg("observability-health")
+        .arg("--json")
+        .env("SC_LOG_ROOT", &root)
+        .env("ATM_HOME", root.join("missing-atm-home"))
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["logging"]["state"], "Healthy");
+    assert_eq!(value["payload"]["logging"]["query"]["state"], "Healthy");
+    assert_eq!(
+        value["payload"]["logging"]["active_log_path"],
+        root.join("logs/sc-compose.log.jsonl").display().to_string()
+    );
 }
 
 #[test]

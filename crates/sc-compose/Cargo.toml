@@ -24,3 +24,6 @@ ulid.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+sc-observability-types = "1"

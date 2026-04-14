@@ -350,6 +350,27 @@ fn render_smoke_pipeline_handles_includes_vars_var_file_env_and_output() {
     );
 }
 
+#[test]
+fn observability_health_text_reports_process_local_status() {
+    let root = temp_root("observability-health-text");
+    let output = sc_compose()
+        .arg("observability-health")
+        .env("SC_LOG_ROOT", &root)
+        .env("ATM_HOME", root.join("missing-atm-home"))
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("state: Healthy"));
+    assert!(stdout.contains("query_state: Healthy"));
+    assert!(stdout.contains("sink jsonl-file: Healthy"));
+    assert!(stdout.contains(&format!(
+        "active_log_path: {}",
+        root.join("logs/sc-compose.log.jsonl").display()
+    )));
+}
+
 #[cfg(unix)]
 fn create_symlink_if_supported(target: &Path, link: &Path) -> bool {
     std::os::unix::fs::symlink(target, link).is_ok()

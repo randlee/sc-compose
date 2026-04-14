@@ -16,10 +16,11 @@ Use this checklist before every crates.io release of `sc-composer` and `sc-compo
 - [ ] `cargo test --workspace` passes with zero failures on the release tag commit
 - [ ] `cargo clippy --all-targets --all-features -- -D warnings` passes
 - [ ] `cargo fmt --all --check` passes
-- [ ] Sprint 6 exit gate is fully cleared:
-  - all FR-1 through FR-9 requirements implemented and covered by tests
+- [ ] Sprint 4 exit gate is fully cleared:
+  - all FR-1 through FR-11 requirements implemented and covered by tests
   - failure-mode matrix ERR_* codes exercised by tests
-  - full end-to-end smoke test passes
+  - full end-to-end smoke test passes, including `observability-health`
+  - `--json` commands are verified to keep stdout machine-readable
   - `qm-comp` full QA pass on the release branch
   - `arch-ctm` final design review complete
 

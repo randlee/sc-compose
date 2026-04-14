@@ -48,7 +48,8 @@ Cutover steps for the ATM workspace maintainer:
 This is a breaking-change release relative to the last ATM-published version. Consumers
 should expect:
 
-- **API surface changes**: The public API has been redesigned through sprints S2-S6.
+- **API surface changes**: The public API has been redesigned across the current
+  four-sprint release plan.
   Type names, module paths, and function signatures may differ from the ATM-workspace versions.
   Review `docs/requirements.md` and `docs/architecture.md` for the authoritative API contract.
 - **Error type redesign**: `ComposeError`, `ResolveError`, `IncludeError`, `ValidationError`,
@@ -56,8 +57,26 @@ should expect:
   now stable; error variant names are not guaranteed to match the prior version.
 - **Observer API**: The observer/sink trait surface is new in this release. ATM adapters
   must implement the new traits. See `docs/atm-adapter-notes.md` for the integration guide.
+- **Logging integration**: `sc-compose` now owns concrete structured logging through
+  `sc-observability`. The CLI creates the logger, keeps file logging enabled for every
+  command, suppresses the console sink whenever `--json` is active, and exposes
+  `observability-health` for process-local sink/query health inspection.
 - **CLI flags**: Some CLI flags have been renamed or added. See `docs/requirements.md` FR-7
   for the complete current flag specification.
+
+## Observability Cutover Notes
+
+Downstream consumers that embed `sc-composer` keep using the local observer hooks.
+They do not need to adopt `sc-observability` unless they want the same structured
+logging behavior as the CLI.
+
+Downstream consumers that shell out to `sc-compose` should expect:
+
+- a new `observability-health` command for process-local logger health,
+- structured JSON command output to remain clean when `--json` is active because the
+  console sink is disabled in that mode,
+- file-backed logging under `SC_LOG_ROOT` when the environment variable is set, or
+  `.sc-compose/logs/` under the current working directory otherwise.
 
 ## Deferred Publish: Blocking Conditions
 

@@ -956,6 +956,7 @@ mod tests {
     use super::{CommandError, observe_command};
     use anyhow::anyhow;
     use sc_composer::{CompositionObserver, DiagnosticCode};
+    use sc_observability_types::QueryHealthState;
 
     use crate::exit_codes;
     use crate::observability::build_logger_for_root;
@@ -1035,6 +1036,24 @@ mod tests {
                 .sink_statuses
                 .iter()
                 .any(|sink| sink.name.as_str() == "console")
+        );
+    }
+
+    #[test]
+    fn shutdown_marks_query_health_unavailable() {
+        let logger = build_logger_for_root(temp_root("logger-shutdown"), false).expect("logger");
+        let observer = crate::observer_impl::CliObserver::new(logger);
+
+        assert_eq!(
+            observer.health().query.expect("query health present").state,
+            QueryHealthState::Healthy
+        );
+
+        observer.shutdown();
+
+        assert_eq!(
+            observer.health().query.expect("query health present").state,
+            QueryHealthState::Unavailable
         );
     }
 

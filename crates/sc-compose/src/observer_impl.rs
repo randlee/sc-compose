@@ -340,9 +340,16 @@ fn outcome_label(value: &str) -> OutcomeLabel {
 mod tests {
     use std::fs;
     use std::path::{Path, PathBuf};
+    use std::sync::Arc;
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use sc_observability::{Logger, LoggerConfig};
+    use sc_observability::{
+        LogSink, Logger, LoggerConfig, LoggingHealthState, SinkHealth, SinkHealthState,
+        SinkRegistration, error_codes,
+    };
+    use sc_observability_types::{
+        ErrorContext, LogSinkError, QueryHealthState, Remediation, SinkName,
+    };
 
     use super::{
         CliObserver, CommandEndEvent, CommandLifecycleObserver, CommandStartEvent,
@@ -396,8 +403,10 @@ mod tests {
         assert_eq!(lines.len(), 6);
         assert_eq!(lines[0]["target"], "compose.command");
         assert_eq!(lines[0]["action"], "started");
+        assert_eq!(lines[0]["message"], "command started");
         assert_eq!(lines[1]["target"], "compose.resolve");
         assert_eq!(lines[1]["action"], "attempt");
+        assert_eq!(lines[1]["message"], "resolve attempt");
         assert_eq!(lines[2]["target"], "compose.resolve");
         assert_eq!(lines[2]["action"], "resolved");
         assert_eq!(lines[3]["target"], "compose.validate");
@@ -429,9 +438,95 @@ mod tests {
         let lines = read_log_lines(&observer.health().active_log_path);
         assert_eq!(lines.len(), 1);
         assert_eq!(lines[0]["action"], "failed");
+        assert_eq!(lines[0]["message"], "command failed");
         assert_eq!(lines[0]["fields"]["exit_code"], 2);
         assert_eq!(lines[0]["fields"]["json_output"], true);
         assert_eq!(lines[0]["fields"]["diagnostic_code"], "ERR_VAL");
+    }
+
+    #[test]
+    fn write_failures_degrade_health_without_breaking_observer_calls() {
+        struct WriteFailSink;
+
+        impl LogSink for WriteFailSink {
+            fn write(&self, _event: &sc_observability::LogEvent) -> Result<(), LogSinkError> {
+                Err(LogSinkError(Box::new(ErrorContext::new(
+                    error_codes::LOGGER_SINK_WRITE_FAILED,
+                    "test sink write failed",
+                    Remediation::not_recoverable("test sink intentionally fails writes"),
+                ))))
+            }
+
+            fn health(&self) -> SinkHealth {
+                SinkHealth {
+                    name: SinkName::new("write-fail").expect("valid sink name"),
+                    state: SinkHealthState::DegradedDropping,
+                    last_error: None,
+                }
+            }
+        }
+
+        let root = temp_root("observer-write-failure");
+        let mut config = LoggerConfig::default_for(service_name(), root);
+        config.enable_file_sink = false;
+        let mut builder = Logger::builder(config).expect("logger builder");
+        builder.register_sink(SinkRegistration::new(Arc::new(WriteFailSink)));
+        let logger = builder.build();
+        let mut observer = CliObserver::new(logger);
+
+        observer.on_command_start(&CommandStartEvent {
+            command_name: "render".to_owned(),
+            json_output: true,
+        });
+
+        let health = observer.health();
+        assert_eq!(health.state, LoggingHealthState::DegradedDropping);
+        assert_eq!(health.dropped_events_total, 1);
+        assert!(health.last_error.is_some());
+    }
+
+    #[test]
+    fn shutdown_flush_failures_are_counted_and_mark_query_unavailable() {
+        struct FlushFailSink;
+
+        impl LogSink for FlushFailSink {
+            fn write(&self, _event: &sc_observability::LogEvent) -> Result<(), LogSinkError> {
+                Ok(())
+            }
+
+            fn flush(&self) -> Result<(), LogSinkError> {
+                Err(LogSinkError(Box::new(ErrorContext::new(
+                    error_codes::LOGGER_FLUSH_FAILED,
+                    "test sink flush failed",
+                    Remediation::not_recoverable("test sink intentionally fails flush"),
+                ))))
+            }
+
+            fn health(&self) -> SinkHealth {
+                SinkHealth {
+                    name: SinkName::new("flush-fail").expect("valid sink name"),
+                    state: SinkHealthState::DegradedDropping,
+                    last_error: None,
+                }
+            }
+        }
+
+        let root = temp_root("observer-shutdown-failure");
+        let mut config = LoggerConfig::default_for(service_name(), root);
+        config.enable_file_sink = false;
+        let mut builder = Logger::builder(config).expect("logger builder");
+        builder.register_sink(SinkRegistration::new(Arc::new(FlushFailSink)));
+        let observer = CliObserver::new(builder.build());
+
+        observer.shutdown();
+
+        let health = observer.health();
+        assert_eq!(health.flush_errors_total, 1);
+        assert!(health.last_error.is_some());
+        assert_eq!(
+            health.query.expect("query health present").state,
+            QueryHealthState::Unavailable
+        );
     }
 
     fn temp_root(label: &str) -> PathBuf {

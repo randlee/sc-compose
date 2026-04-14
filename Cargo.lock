@@ -358,6 +358,7 @@ dependencies = [
  "mimalloc",
  "sc-composer",
  "sc-observability",
+ "sc-observability-types",
  "serde",
  "serde_json",
  "serde_yaml",
