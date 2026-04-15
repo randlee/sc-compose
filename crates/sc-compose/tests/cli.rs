@@ -311,11 +311,28 @@ fn render_reports_include_escape_for_symlink_escape_at_cli_layer() {
 
 #[cfg(windows)]
 #[test]
-#[ignore = "placeholder — implement when windows backslash behavior is specified"]
 fn windows_backslash_escape_requires_cli_confinement_coverage() {
-    // Windows CI should verify that a backslash-separated include escape attempt
-    // like `@<..\\outside.md>` is rejected at the CLI layer with exit 2 and
-    // `ERR_INCLUDE_ESCAPE`.
+    let root = temp_root("render-backslash-escape-cli");
+    let outside = root.parent().unwrap().join("outside-backslash-include.md");
+    write_file(&outside, "outside\n");
+    write_file(
+        &root.join("template.md.j2"),
+        "@<..\\outside-backslash-include.md>\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_INCLUDE_ESCAPE"));
 }
 
 #[test]

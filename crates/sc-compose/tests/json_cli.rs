@@ -49,7 +49,11 @@ fn assert_envelope(value: &Value) {
     assert_eq!(value["schema_version"], "1");
     assert!(value.get("payload").is_some());
     assert!(!value["payload"].is_null(), "payload must not be null");
-    assert!(value["diagnostics"].is_array());
+    assert!(
+        value["diagnostics"].is_array(),
+        "diagnostics must be a JSON array, got: {:?}",
+        value["diagnostics"]
+    );
 }
 
 fn assert_first_code(value: &Value, code: &str) {
