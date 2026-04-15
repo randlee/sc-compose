@@ -356,7 +356,10 @@ fn observability_health_json_uses_diagnostic_envelope_and_stays_stdout_clean() {
     assert_eq!(value["payload"]["logging"]["query"]["state"], "Healthy");
     assert_eq!(
         value["payload"]["logging"]["active_log_path"],
-        root.join("logs/sc-compose.log.jsonl").display().to_string()
+        root.join("logs")
+            .join("sc-compose.log.jsonl")
+            .display()
+            .to_string()
     );
 }
 

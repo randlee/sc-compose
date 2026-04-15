@@ -373,7 +373,7 @@ fn observability_health_text_reports_process_local_status() {
     #[cfg(not(windows))]
     assert!(stdout.contains(&format!(
         "active_log_path: {}",
-        root.join("logs/sc-compose.log.jsonl").display()
+        root.join("logs").join("sc-compose.log.jsonl").display()
     )));
     #[cfg(windows)]
     assert!(stdout.contains("active_log_path:") && stdout.contains("sc-compose.log.jsonl"));
