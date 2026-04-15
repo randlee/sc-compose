@@ -26,7 +26,15 @@ fn write_file(path: &Path, contents: &str) {
 }
 
 fn sc_compose() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    let mut command = Command::new(env!("CARGO_BIN_EXE_sc-compose"));
+    command.env("SC_LOG_ROOT", test_log_root());
+    command
+}
+
+fn test_log_root() -> PathBuf {
+    let root = std::env::temp_dir().join(format!("sc-compose-json-logs-{}", std::process::id()));
+    fs::create_dir_all(&root).unwrap();
+    root
 }
 
 fn inherited_atm_home() -> &'static str {
@@ -41,7 +49,11 @@ fn assert_envelope(value: &Value) {
     assert_eq!(value["schema_version"], "1");
     assert!(value.get("payload").is_some());
     assert!(!value["payload"].is_null(), "payload must not be null");
-    assert!(value["diagnostics"].is_array());
+    assert!(
+        value["diagnostics"].is_array(),
+        "diagnostics must be a JSON array, got: {:?}",
+        value["diagnostics"]
+    );
 }
 
 fn assert_first_code(value: &Value, code: &str) {
@@ -116,7 +128,10 @@ fn render_dry_run_json_uses_diagnostic_envelope() {
 #[test]
 fn resolve_json_uses_diagnostic_envelope() {
     let root = temp_root("resolve-json");
-    write_file(&root.join(".claude/agents/example.md"), "agent");
+    write_file(
+        &root.join(".claude").join("agents").join("example.md"),
+        "agent",
+    );
 
     let output = sc_compose()
         .arg("resolve")

@@ -85,7 +85,7 @@ Create a reusable fixture tree under a test fixture directory containing:
 | Sprint 1 | blocker audit, contract closure, and schema/document consistency |
 | Sprint 2 | logger wiring, command/event mapping, and observability command scaffolding |
 | Sprint 3 | production hardening for `observability-health`, `--json` cleanliness, sink degradation, shutdown, and downstream notes |
-| Sprint 4 | full smoke tests, release checklist closure, and final gate suite |
+| Sprint 4 | full smoke tests, standalone boundary verification, release checklist closure, and final gate suite |
 
 ## Mandatory Gates
 
@@ -99,6 +99,7 @@ For the final gate, additionally require:
 
 - `cargo fmt --all --check`
 - full end-to-end smoke test
+- standalone boundary verification test
 - QA approval on JSON schemas and diagnostics
 
 ## Guidance for Dev Agents

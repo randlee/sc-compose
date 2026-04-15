@@ -234,6 +234,8 @@ Deliverables:
 - final release-readiness checklist for both crates
 - final migration and cutover notes for downstream consumers
 - final verification of standalone boundary rules
+- automated repo-boundary verification covering forbidden ATM env/import/manifest
+  references
 - final end-to-end smoke tests
 - final QA and design review pass
 - branch prepared for merge to `develop`, then release merge to `main`
@@ -244,6 +246,8 @@ Acceptance criteria:
 - all release blockers are closed
 - all required docs match shipped behavior
 - downstream cutover notes are accurate
+- standalone boundary verification passes with no forbidden ATM runtime
+  references or dependencies in source/manifests
 - release workflow prerequisites are satisfied
 
 Exit gate:

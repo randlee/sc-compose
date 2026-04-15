@@ -55,10 +55,11 @@ minimum logical structure:
 
 - `ResolveError` codes are owned by resolver work in Sprint 3.
 - `IncludeError` and most `ValidationError` codes are owned by include and
-  validation work across S3-S4.
-- `RenderError` CLI-facing codes are owned by Sprint 5 command/output work.
-- `ConfigError` codes are shared between Sprint 2 type/error work and Sprint 5
-  workspace-helper work.
+  validation work across Sprint 3 and Sprint 4.
+- `RenderError` CLI-facing codes are owned by the Sprint 4 release-gate
+  command/output verification work.
+- `ConfigError` codes are shared between Sprint 2 type/error work and Sprint 4
+  workspace-helper and release-gate verification work.
 
 ## Change Control
 

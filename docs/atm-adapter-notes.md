@@ -27,6 +27,7 @@ integration code.
   previously lived in `agent-team-mail`.
 - This is an intentional breaking change and migration step, not a temporary
   compatibility layer.
-- The crate version remains `0.46.2` during downstream integration.
-- A crates.io publish checklist is deferred until downstream ATM integration and
-  cutover are complete.
+- The crate version remains `0.46.2` for the first standalone release from this
+  repo.
+- The standalone release checklist lives in `docs/release-checklist.md`; ATM
+  cutover follows that published release.

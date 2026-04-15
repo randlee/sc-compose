@@ -37,7 +37,7 @@ verification layers.
 | Cross-platform correctness | Sprint 3, Sprint 4 | resolver/include/confinement behavior | cross-platform and path tests |
 | Interactive performance | Sprint 4 | `Renderer`, command hot paths, output shaping | smoke tests, benchmark sanity checks |
 | Public API stability | Sprint 1, Sprint 4 | typed API surface and semver review | API review, final design review |
-| Crate separability | Sprint 1 through Sprint 4 | dependency direction and boundary rules | CI, manifest review, QA |
+| Crate separability | Sprint 1 through Sprint 4 | dependency direction and boundary rules | CI, repo-boundary tests, manifest review, QA |
 
 ## API Surface Ownership
 
