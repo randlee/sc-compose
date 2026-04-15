@@ -12,15 +12,16 @@ use sc_observability::{
 const SERVICE_NAME: &str = "sc-compose";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CommandStartEvent {
+pub(crate) struct CommandStartEvent {
     pub command_name: String,
     pub json_output: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CommandEndEvent {
+pub(crate) struct CommandEndEvent {
     pub command_name: String,
     pub exit_code: i32,
+    pub success: bool,
     pub elapsed_ms: u64,
     pub json_output: bool,
     pub diagnostic_code: Option<String>,
@@ -32,7 +33,7 @@ pub(crate) trait CommandLifecycleObserver {
     fn on_command_end(&mut self, event: &CommandEndEvent);
 }
 
-pub struct CliObserver {
+pub(crate) struct CliObserver {
     logger: Logger,
     service: ServiceName,
 }
@@ -289,7 +290,7 @@ impl CommandLifecycleObserver for CliObserver {
     }
 
     fn on_command_end(&mut self, event: &CommandEndEvent) {
-        let success = event.exit_code == 0;
+        let success = event.success;
         let mut fields = Map::new();
         fields.insert("command".to_owned(), json!(event.command_name));
         fields.insert("exit_code".to_owned(), json!(event.exit_code));
@@ -396,6 +397,7 @@ mod tests {
         observer.on_command_end(&CommandEndEvent {
             command_name: "render".to_owned(),
             exit_code: 0,
+            success: true,
             elapsed_ms: 12,
             json_output: false,
             diagnostic_code: None,
@@ -432,6 +434,7 @@ mod tests {
         observer.on_command_end(&CommandEndEvent {
             command_name: "validate".to_owned(),
             exit_code: 2,
+            success: false,
             elapsed_ms: 7,
             json_output: true,
             diagnostic_code: Some("ERR_VAL".to_owned()),

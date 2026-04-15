@@ -777,6 +777,7 @@ where
     observer.on_command_end(&CommandEndEvent {
         command_name: command_name.to_owned(),
         exit_code,
+        success: result.is_ok(),
         elapsed_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
         json_output,
         diagnostic_code: result

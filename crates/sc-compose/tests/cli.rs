@@ -37,10 +37,6 @@ fn test_log_root() -> PathBuf {
     root
 }
 
-fn inherited_atm_home() -> &'static str {
-    concat!("ATM", "_HOME")
-}
-
 fn parse_stdout_json(output: &std::process::Output) -> Value {
     serde_json::from_slice(&output.stdout).unwrap()
 }
@@ -386,7 +382,6 @@ fn observability_health_text_reports_process_local_status() {
     let output = sc_compose()
         .arg("observability-health")
         .env("SC_LOG_ROOT", &root)
-        .env_remove(inherited_atm_home())
         .output()
         .unwrap();
 

@@ -61,6 +61,11 @@ should expect:
   `sc-observability`. The CLI creates the logger, keeps file logging enabled for every
   command, suppresses the console sink whenever `--json` is active, and exposes
   `observability-health` for process-local sink/query health inspection.
+- **Template whitespace behavior**: `trim_blocks` and `lstrip_blocks` are enabled by
+  default. Block tags now strip the trailing newline after the block and the leading
+  indentation before the next rendered content. Templates that need the previous
+  whitespace-preserving behavior must opt out with the Jinja `+` modifier, for
+  example `{%+ if condition %}`.
 - **Binary allocator**: `sc-compose` now installs `mimalloc` as the global allocator.
   This changes the standalone binary's allocation profile without changing the
   `sc-composer` library API.
