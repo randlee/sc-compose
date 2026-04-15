@@ -348,7 +348,7 @@ fn render_smoke_pipeline_handles_includes_vars_var_file_env_and_output() {
         ),
     );
     write_file(
-        &root.join("partials/body.md"),
+        &root.join("partials").join("body.md"),
         "Name: {{ name }}\nTitle: {{ title }}\nMood: {{ mood }}\n",
     );
     write_file(&vars_file, "title: Engineer\n");
@@ -418,7 +418,7 @@ fn release_smoke_covers_render_pipeline_and_observability_health() {
         ),
     );
     write_file(
-        &root.join("partials/body.md"),
+        &root.join("partials").join("body.md"),
         "Name: {{ name }}\nTitle: {{ title }}\nMood: {{ mood }}\n",
     );
     write_file(&vars_file, "title: Engineer\n");
@@ -449,7 +449,7 @@ fn release_smoke_covers_render_pipeline_and_observability_health() {
         fs::read_to_string(&output).unwrap(),
         "Name: Casey\nTitle: Engineer\nMood: focused"
     );
-    assert!(logs_root.join("logs/sc-compose.log.jsonl").exists());
+    assert!(logs_root.join("logs").join("sc-compose.log.jsonl").exists());
 
     let health = sc_compose()
         .arg("observability-health")
@@ -464,7 +464,8 @@ fn release_smoke_covers_render_pipeline_and_observability_health() {
     assert_eq!(
         value["payload"]["logging"]["active_log_path"],
         logs_root
-            .join("logs/sc-compose.log.jsonl")
+            .join("logs")
+            .join("sc-compose.log.jsonl")
             .display()
             .to_string()
     );

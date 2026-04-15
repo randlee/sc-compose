@@ -128,7 +128,10 @@ fn render_dry_run_json_uses_diagnostic_envelope() {
 #[test]
 fn resolve_json_uses_diagnostic_envelope() {
     let root = temp_root("resolve-json");
-    write_file(&root.join(".claude/agents/example.md"), "agent");
+    write_file(
+        &root.join(".claude").join("agents").join("example.md"),
+        "agent",
+    );
 
     let output = sc_compose()
         .arg("resolve")
