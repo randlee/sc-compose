@@ -5,6 +5,7 @@ use anyhow::anyhow;
 use sc_observability::{
     ConsoleSink, Logger, LoggerConfig, LoggingHealthReport, ServiceName, SinkRegistration,
 };
+use serde_json::Value;
 
 use crate::CommandError;
 
@@ -55,6 +56,14 @@ pub(crate) fn print_observability_health(health: &LoggingHealthReport) {
     if let Some(last_error) = &health.last_error {
         println!("last_error: {}", last_error.message);
     }
+}
+
+pub(crate) fn health_json_value(health: &LoggingHealthReport) -> Value {
+    let mut value = serde_json::to_value(health).expect("logging health serializes");
+    if value["query"]["state"] == Value::String("Unavailable".to_owned()) {
+        value["query"] = Value::Null;
+    }
+    value
 }
 
 fn default_log_root() -> Result<PathBuf, CommandError> {

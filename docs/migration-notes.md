@@ -61,6 +61,9 @@ should expect:
   `sc-observability`. The CLI creates the logger, keeps file logging enabled for every
   command, suppresses the console sink whenever `--json` is active, and exposes
   `observability-health` for process-local sink/query health inspection.
+- **Binary allocator**: `sc-compose` now installs `mimalloc` as the global allocator.
+  This changes the standalone binary's allocation profile without changing the
+  `sc-composer` library API.
 - **CLI flags**: Some CLI flags have been renamed or added. See `docs/requirements.md` FR-7
   for the complete current flag specification.
 
@@ -75,8 +78,12 @@ Downstream consumers that shell out to `sc-compose` should expect:
 - a new `observability-health` command for process-local logger health,
 - structured JSON command output to remain clean when `--json` is active because the
   console sink is disabled in that mode,
+- `observability-health --json` to serialize `logging.query` as `null` whenever
+  query/follow is unavailable in the process-local logger,
 - file-backed logging under `SC_LOG_ROOT` when the environment variable is set, or
   `.sc-compose/logs/` under the current working directory otherwise.
+- graceful shutdown to flush logger sinks before process exit while recording sink
+  degradation in health counters instead of aborting command completion.
 
 ## Release And Cutover Order
 
