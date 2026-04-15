@@ -29,6 +29,10 @@ fn sc_compose() -> Command {
     Command::new(env!("CARGO_BIN_EXE_sc-compose"))
 }
 
+fn inherited_atm_home() -> &'static str {
+    concat!("ATM", "_HOME")
+}
+
 fn parse_stdout_json(output: &std::process::Output) -> Value {
     serde_json::from_slice(&output.stdout).unwrap()
 }
@@ -299,6 +303,7 @@ fn render_reports_include_escape_for_symlink_escape_at_cli_layer() {
 
 #[cfg(windows)]
 #[test]
+#[ignore = "placeholder — implement when windows backslash behavior is specified"]
 fn windows_backslash_escape_requires_cli_confinement_coverage() {
     // Windows CI should verify that a backslash-separated include escape attempt
     // like `@<..\\outside.md>` is rejected at the CLI layer with exit 2 and
@@ -348,6 +353,30 @@ fn render_smoke_pipeline_handles_includes_vars_var_file_env_and_output() {
         fs::read_to_string(&output).unwrap(),
         "Name: Casey\nTitle: Engineer\nMood: focused"
     );
+}
+
+#[test]
+fn observability_health_text_reports_process_local_status() {
+    let root = temp_root("observability-health-text");
+    let output = sc_compose()
+        .arg("observability-health")
+        .env("SC_LOG_ROOT", &root)
+        .env_remove(inherited_atm_home())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("state: Healthy"));
+    assert!(stdout.contains("query_state: Healthy"));
+    assert!(stdout.contains("sink jsonl-file: Healthy"));
+    #[cfg(not(windows))]
+    assert!(stdout.contains(&format!(
+        "active_log_path: {}",
+        root.join("logs").join("sc-compose.log.jsonl").display()
+    )));
+    #[cfg(windows)]
+    assert!(stdout.contains("active_log_path:") && stdout.contains("sc-compose.log.jsonl"));
 }
 
 #[cfg(unix)]

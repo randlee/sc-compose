@@ -440,10 +440,16 @@ fn run_observability_health(
     args: &ObservabilityHealthArgs,
     observer: &observer_impl::CliObserver,
 ) -> Result<i32, CommandError> {
+    if std::env::var_os("SC_COMPOSE_TEST_FORCE_QUERY_UNAVAILABLE").is_some() {
+        observer.shutdown();
+    }
     let health = observer.health();
     if args.json {
-        print_json(serde_json::json!({ "logging": health }), Vec::new())
-            .map_err(CommandError::usage)?;
+        print_json(
+            serde_json::json!({ "logging": observability::health_json_value(&health) }),
+            Vec::new(),
+        )
+        .map_err(CommandError::usage)?;
     } else {
         observability::print_observability_health(&health);
     }
@@ -951,11 +957,13 @@ fn compose_error_diagnostics(error: &ComposeError) -> Vec<Diagnostic> {
 mod tests {
     use std::fs;
     use std::path::PathBuf;
+    use std::sync::{Mutex, OnceLock};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::{CommandError, observe_command};
     use anyhow::anyhow;
     use sc_composer::{CompositionObserver, DiagnosticCode};
+    use sc_observability_types::QueryHealthState;
 
     use crate::exit_codes;
     use crate::observability::build_logger_for_root;
@@ -1036,6 +1044,50 @@ mod tests {
                 .iter()
                 .any(|sink| sink.name.as_str() == "console")
         );
+    }
+
+    #[test]
+    fn shutdown_marks_query_health_unavailable() {
+        let logger = build_logger_for_root(temp_root("logger-shutdown"), false).expect("logger");
+        let observer = crate::observer_impl::CliObserver::new(logger);
+
+        assert_eq!(
+            observer.health().query.expect("query health present").state,
+            QueryHealthState::Healthy
+        );
+
+        observer.shutdown();
+
+        assert_eq!(
+            observer.health().query.expect("query health present").state,
+            QueryHealthState::Unavailable
+        );
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn build_logger_reports_usage_error_when_current_directory_is_unavailable() {
+        static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+
+        let _guard = ENV_LOCK
+            .get_or_init(|| Mutex::new(()))
+            .lock()
+            .expect("lock current-dir guard");
+        let original_dir = std::env::current_dir().expect("current dir");
+        let missing_dir = temp_root("logger-missing-cwd").join("gone");
+        fs::create_dir_all(&missing_dir).expect("create missing dir");
+        std::env::set_current_dir(&missing_dir).expect("enter missing dir");
+        fs::remove_dir_all(&missing_dir).expect("remove current dir");
+
+        let result = crate::observability::build_logger(false);
+
+        std::env::set_current_dir(&original_dir).expect("restore current dir");
+
+        let Err(error) = result else {
+            panic!("logger build should fail");
+        };
+        assert_eq!(error.exit_code, exit_codes::USAGE_FAIL);
+        assert!(format!("{error}").contains("failed to determine current directory"));
     }
 
     fn temp_root(label: &str) -> PathBuf {
