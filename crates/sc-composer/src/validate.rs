@@ -1,8 +1,8 @@
 //! Public validation entrypoint.
 
 use crate::observer::{
-    CompositionObserver, IncludeOutcomeEvent, NoopObserver, ResolveOutcomeEvent,
-    ValidationOutcomeEvent,
+    CompositionObserver, IncludeOutcomeEvent, NoopObserver, ResolveAttemptEvent,
+    ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
 use crate::{ComposeError, ComposeRequest, ValidationReport};
 
@@ -25,6 +25,14 @@ pub fn validate_with_observer(
     request: &ComposeRequest,
     observer: &mut dyn CompositionObserver,
 ) -> Result<ValidationReport, ComposeError> {
+    observer.on_resolve_attempt(&ResolveAttemptEvent {
+        template: match &request.mode {
+            crate::types::ComposeMode::Profile { kind, name } => format!("{kind:?}:{name}"),
+            crate::types::ComposeMode::File { template_path } => {
+                template_path.display().to_string()
+            }
+        },
+    });
     let resolve_result = crate::resolve_template_path(request).inspect_err(|error| {
         if let ComposeError::Resolve(resolve_error) = &error {
             observer.on_resolve_outcome(&ResolveOutcomeEvent {
@@ -77,19 +85,25 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use crate::observer::{
-        CompositionObserver, IncludeOutcomeEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
+        CompositionObserver, IncludeOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent,
+        ValidationOutcomeEvent,
     };
     use crate::types::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot};
     use crate::{DiagnosticCode, validate_with_observer};
 
     #[derive(Default)]
     struct CapturingObserver {
+        attempts: Vec<ResolveAttemptEvent>,
         resolve: Vec<ResolveOutcomeEvent>,
         include: Vec<IncludeOutcomeEvent>,
         validation: Vec<ValidationOutcomeEvent>,
     }
 
     impl CompositionObserver for CapturingObserver {
+        fn on_resolve_attempt(&mut self, event: &ResolveAttemptEvent) {
+            self.attempts.push(event.clone());
+        }
+
         fn on_resolve_outcome(&mut self, event: &ResolveOutcomeEvent) {
             self.resolve.push(event.clone());
         }
@@ -130,6 +144,7 @@ mod tests {
         .unwrap();
 
         assert!(!report.ok);
+        assert_eq!(observer.attempts.len(), 1);
         assert_eq!(observer.resolve.len(), 1);
         assert_eq!(observer.include.len(), 1);
         assert_eq!(observer.validation.len(), 1);

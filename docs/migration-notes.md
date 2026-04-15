@@ -48,7 +48,8 @@ Cutover steps for the ATM workspace maintainer:
 This is a breaking-change release relative to the last ATM-published version. Consumers
 should expect:
 
-- **API surface changes**: The public API has been redesigned through sprints S2-S6.
+- **API surface changes**: The public API has been redesigned across the current
+  four-sprint release plan.
   Type names, module paths, and function signatures may differ from the ATM-workspace versions.
   Review `docs/requirements.md` and `docs/architecture.md` for the authoritative API contract.
 - **Error type redesign**: `ComposeError`, `ResolveError`, `IncludeError`, `ValidationError`,
@@ -56,21 +57,50 @@ should expect:
   now stable; error variant names are not guaranteed to match the prior version.
 - **Observer API**: The observer/sink trait surface is new in this release. ATM adapters
   must implement the new traits. See `docs/atm-adapter-notes.md` for the integration guide.
+- **Logging integration**: `sc-compose` now owns concrete structured logging through
+  `sc-observability`. The CLI creates the logger, keeps file logging enabled for every
+  command, suppresses the console sink whenever `--json` is active, and exposes
+  `observability-health` for process-local sink/query health inspection.
+- **Template whitespace behavior**: `trim_blocks` and `lstrip_blocks` are enabled by
+  default. Block tags now strip the trailing newline after the block and the leading
+  indentation before the next rendered content. Templates that need the previous
+  whitespace-preserving behavior must opt out with the Jinja `+` modifier, for
+  example `{%+ if condition %}`.
+- **Binary allocator**: `sc-compose` now installs `mimalloc` as the global allocator.
+  This changes the standalone binary's allocation profile without changing the
+  `sc-composer` library API.
 - **CLI flags**: Some CLI flags have been renamed or added. See `docs/requirements.md` FR-7
   for the complete current flag specification.
 
-## Deferred Publish: Blocking Conditions
+## Observability Cutover Notes
 
-The first standalone crates.io release is **deferred** until both conditions are met:
+Downstream consumers that embed `sc-composer` keep using the local observer hooks.
+They do not need to adopt `sc-observability` unless they want the same structured
+logging behavior as the CLI.
 
-1. **Downstream integration is complete**: at least one downstream consumer (ATM or another
-   product) has been updated to use the new API and the integration has been verified in a
-   non-production environment.
-2. **Integration gate is cleared**: `qm-comp` and `arch-ctm` have signed off on the
-   integration test results.
+Downstream consumers that shell out to `sc-compose` should expect:
 
-Do NOT publish before these conditions are met, even if the sprint exit gates are all passing.
-The version number `0.46.2` is intentionally held until integration is ready.
+- a new `observability-health` command for process-local logger health,
+- structured JSON command output to remain clean when `--json` is active because the
+  console sink is disabled in that mode,
+- `observability-health --json` to serialize `logging.query` as `null` whenever
+  query/follow is unavailable in the process-local logger,
+- file-backed logging under `SC_LOG_ROOT` when the environment variable is set, or
+  `.sc-compose/logs/` under the current working directory otherwise.
+- graceful shutdown to flush logger sinks before process exit while recording sink
+  degradation in health counters instead of aborting command completion.
+
+## Release And Cutover Order
+
+The first standalone crates.io release happens when the Sprint 4 release gate is
+cleared in this repo.
+
+Recommended downstream cutover order:
+
+1. Publish `sc-composer` and `sc-compose` from this repo.
+2. Verify crates.io resolution and installation using the release checklist.
+3. Update downstream consumers such as ATM to the published versions.
+4. Run downstream integration validation after the published release is live.
 
 ## Post-Cutover Ownership
 

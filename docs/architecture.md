@@ -1,16 +1,16 @@
 # SC-Compose Architecture
 
-> Status: Draft
+> Status: Active Release Baseline
 > Product: `sc-composer` (library) and `sc-compose` (CLI)
-> Document role: Normative target architecture for the redesign of both crates
+> Document role: Normative release architecture for both crates
 
 This document supersedes the prior high-level placeholder. It is the normative
-architecture baseline for `sc-compose` v0.x.
+release architecture baseline for `sc-compose` v0.x.
 
 ## 1. Architectural Intent
 
-This document describes the intended architecture of the redesigned
-`sc-composer` and `sc-compose` crates. It is not a description of the current
+This document defines the required architecture of `sc-composer` and
+`sc-compose` for release work. It is not a description of the current
 implementation.
 
 The goals are:
@@ -29,33 +29,34 @@ The goals are:
    | ATM adapter / other host integration          |
    | - builds ComposeRequest                       |
    | - calls render_template() or Renderer         |
-   | - injects observer implementation if needed   |
+   | - may inject an observer implementation       |
    +-------------------------+---------------------+
                              |
                              v
-                  +-----------------------+
-                  |      sc-compose       |
-                  | CLI / UX / exit codes |
-                  +-----------+-----------+
-                              |
+                  +-------------------------------+
+                  |          sc-compose           |
+                  |   CLI / UX / logger wiring    |
+                  +-----------+-------------------+
+                              | uses concrete logger
                               v
-                  +-----------------------+
-                  |     sc-composer       |
-                  | core composition API  |
-                  | observer traits only  |
-                  +-----------+-----------+
+                  +-------------------------------+
+                  |       sc-observability        |
+                  |   Logger + file/console sinks |
+                  +-------------------------------+
                               ^
+                              | injects CLI-owned observer adapter
                               |
-                  +-----------+-----------+
-                  |   sc-observability    |
-                  | concrete sink/binding |
-                  | injected via traits   |
-                  +-----------------------+
+                  +-----------+-------------------+
+                  |         sc-composer           |
+                  | core composition API +        |
+                  | local observer hook layer     |
+                  +-----------+-------------------+
 ```
 
 ATM-specific integration attaches above the two-crate boundary. `sc-composer`
-never imports ATM types, and `sc-observability` integration occurs through
-trait injection rather than a direct library dependency.
+never imports ATM types, defines its observer hooks locally, and receives
+concrete logging behavior through trait injection rather than a direct
+dependency on `sc-observability`.
 
 ## 3. Crate Layout
 
@@ -89,14 +90,13 @@ trait injection rather than a direct library dependency.
 Required dependency direction:
 
 - `sc-compose` -> `sc-composer`
-- `sc-compose` -> `sc-observability` as the intended concrete observability
-  binding during implementation
+- `sc-compose` -> `sc-observability`
+- `sc-observability` -> `sc-observability-types`
 
-Design-ahead note:
+Required observability split:
 
-- `sc-observability` is the intended observability integration target for the
-  CLI architecture, even if the dependency is not yet present in `Cargo.toml`
-  at the time this document is written.
+- `sc-observability` is the concrete logging integration target for the CLI.
+- `sc-composer` keeps its observer interfaces local.
 
 Forbidden dependency direction:
 
@@ -113,9 +113,9 @@ ATM integration is an adapter concern outside this repository.
 - An ATM adapter depends on `sc-composer` or `sc-compose`; this repository does
   not depend on ATM crates.
 - The adapter constructs `ComposeRequest` values and calls either
-  `render_template()` for one-shot usage or the planned `Renderer` API for
+  `render_template()` for one-shot usage or the `Renderer` API for
   repeated rendering.
-- If ATM needs telemetry, the adapter or CLI injects an observer implementation
+- If ATM needs telemetry, the adapter or CLI injects a sink implementation
   through the library's trait-based observability hooks.
 - `sc-composer` never imports ATM types, mailbox abstractions, spool paths, or
   runtime-management helpers.
@@ -147,8 +147,8 @@ ATM integration is an adapter concern outside this repository.
   - distinguishes declared, undeclared, missing, and extra variables.
 - `render`
   - configures the template engine,
-  - exposes the planned long-lived `Renderer` session type as the primary API
-    for repeated rendering,
+  - exposes the long-lived `Renderer` session type as the primary API for
+    repeated rendering,
   - keeps `render_template()` as a one-shot convenience wrapper,
   - renders template content under normal or strict undeclared-token policy.
 - `validate`
@@ -166,10 +166,13 @@ ATM integration is an adapter concern outside this repository.
 - `workspace`
   - implements `frontmatter-init` and `init` logic for reuse by the CLI and any
     future embedded callers.
-- `observability`
-  - defines event payloads and observer traits,
-  - never binds directly to `sc-observability`,
-  - allows the CLI or embedded hosts to inject concrete implementations.
+- `observer`
+  - defines the local observer and sink traits used by embedded hosts and the
+    CLI,
+  - owns the no-op observer used when no caller injects a concrete
+    implementation,
+  - emits structured composition-stage events,
+  - never binds directly to `sc-observability`.
 
 ## 5. Resolver Path Policy (FR-5)
 
@@ -329,7 +332,7 @@ Required library surface:
 - `init_workspace(root, options) -> InitResult`
 - `frontmatter_init(path, options) -> FrontmatterInitResult`
 - `Renderer::render(compiled, context) -> Result<String, RenderError>` as the
-  planned primary repeated-render API
+  primary repeated-render API
 
 Primary render-entrypoint decision:
 
@@ -585,6 +588,7 @@ Command mapping:
 - `validate` -> `validate`
 - `frontmatter-init` -> `frontmatter_init`
 - `init` -> `init_workspace`
+- `observability-health` -> CLI logger initialization, then `Logger::health()`
 
 The CLI must not reimplement core composition semantics. If a command requires
 logic useful to non-CLI callers, that logic belongs in the library.
@@ -606,6 +610,10 @@ Command-specific rules:
   - uses token discovery but does not render the file.
 - `init`
   - performs repository bootstrap and validation-oriented scanning.
+- `observability-health`
+  - reads logger health state without mutating composition behavior,
+  - prints a human-readable health summary by default,
+  - emits `LoggingHealthReport` under `--json` as defined in section 18.3.
 
 Guidance and prompt input model:
 
@@ -690,12 +698,44 @@ The schemas below define the `payload` shape for each command.
 }
 ```
 
+`init --dry-run --json`
+
+```json
+{
+  "action": "init",
+  "would_affect": [
+    ".prompts/",
+    ".gitignore"
+  ],
+  "changed": false,
+  "would_change": true,
+  "skipped": false
+}
+```
+
+`observability-health --json`
+
+```json
+{
+  "logging": {
+    "state": "Healthy",
+    "dropped_events_total": 0,
+    "flush_errors_total": 0,
+    "active_log_path": "<log_root>/logs/sc-compose.log.jsonl",
+    "sink_statuses": [],
+    "last_error": null,
+    "query": null
+  }
+}
+```
+
 `frontmatter-init --json`
 
 ```json
 {
   "template_path": "templates/example.md.j2",
   "frontmatter_added": true,
+  "would_change": true,
   "vars": [
     "name",
     "role"
@@ -711,6 +751,12 @@ Non-render `--dry-run --json`
   "would_affect": [
     "templates/example.md.j2"
   ],
+  "changed": false,
+  "would_change": true,
+  "vars": [
+    "name",
+    "role"
+  ],
   "skipped": false
 }
 ```
@@ -722,6 +768,11 @@ Schema notes:
 - `location` is a single string field in CLI JSON even when the library tracks
   path, line, and column separately.
 - `rendered_preview` may be `null` when preview emission is suppressed.
+- `payload.logging.query` is `null` when query/follow health is unavailable and
+  otherwise contains a `QueryHealthReport`.
+- `active_log_path` is derived from the configured log root and service name
+  using the `LOG-008` layout `<log_root>/logs/<service>.log.jsonl`.
+- The concrete path is platform-dependent; on Windows it may be drive-qualified.
 
 ## 14. Output Path Policy (FR-7)
 
@@ -801,42 +852,181 @@ Canonical failures must map to stable error families and stable codes.
 | Config file missing or malformed | `ConfigError` | `ERR_CONFIG_PARSE` |
 | Invalid var-file shape | `ConfigError` | `ERR_CONFIG_VARFILE` |
 
-## 18. Observability Integration (FR-9)
+## 18. Observability Integration (FR-9, FR-10, FR-11)
 
 Architecture rules:
 
-- `sc-composer` exposes observer traits or sink traits and emits events through
-  that abstraction only.
-- `sc-compose` provides the canonical concrete binding to `sc-observability`.
+- `sc-composer` emits composition telemetry through its local
+  `sc_composer::observer` hook layer.
+- `sc-compose` provides the canonical concrete binding to the full
+  `sc-observability` `Logger`.
+- The initial release scope is logging-only:
+  - structured log events
+  - logger health reporting
+  - graceful shutdown
+  - downstream extension through the local observer hook model
 - If no observer is provided, library and CLI behavior degrade to a no-op
   observability path rather than failing.
-- Event emission points should cover:
-  - command start and end,
-  - resolve attempts and outcomes,
-  - include expansion outcomes,
-  - validation outcomes,
-  - render outcomes.
 - Library observability hooks must remain usable by embedded consumers.
 - Default sink paths for standalone CLI behavior must be tool-scoped.
 - Observer and sink traits must be object-safe and `dyn`-compatible.
-- Observer and sink traits are intentionally public and unsealed so embedded
-  hosts can provide their own implementations.
+- Observer and sink adapters are intentionally public and unsealed so embedded
+  hosts can
+  provide their own implementations.
+- `sc-observe` and `sc-observability-otlp` are not part of this initial
+  release architecture.
 
-### 18.1 Host Injection Pattern
+### 18.1 Dependency Graph
 
-Embedded hosts integrate by implementing the public observer or sink traits and
-passing those implementations into `sc-composer` or `sc-compose`.
+The observability dependency chain is intentionally split so the library stays
+runtime-agnostic:
 
-- ATM and other hosts are expected to provide their own concrete observer or
-  sink implementations when they need custom telemetry projection.
-- A built-in no-op observer remains the default behavior when no host-provided
-  implementation is supplied.
-- Host injection is an intentional extension point, not a temporary exception.
+```text
+sc-compose -----> sc-composer
+     |
+     v
+sc-observability -----> sc-observability-types
+```
+
+- `sc-composer` defines its own `ObservationEvent`, `ObservationSink`, and
+  `CompositionObserver` hook types locally.
+- `sc-observability` depends on `sc-observability-types` and owns `Logger`,
+  `LogSink`, file sinks, console sinks, `LoggingHealthReport`,
+  `QueryHealthReport`, and `QueryHealthState` through its public re-export
+  surface.
+- `sc-compose` depends on both `sc-composer` and `sc-observability`.
+
+### 18.2 Library Injection Pattern
+
+`sc-composer` exposes a caller-provided observer/sink injection path through
+its local `observer` module:
+
+```rust
+use sc_composer::observer::{
+    CompositionObserver, ObservationEvent, ObservationSink,
+};
+
+pub enum ObservationEvent {
+    ResolveAttempt(ResolveAttemptEvent),
+    ResolveOutcome(ResolveOutcomeEvent),
+    IncludeExpandOutcome(IncludeOutcomeEvent),
+    ValidationOutcome(ValidationOutcomeEvent),
+    RenderOutcome(RenderOutcomeEvent),
+}
+
+pub trait ObservationSink {
+    fn emit(&mut self, event: &ObservationEvent);
+}
+
+pub trait CompositionObserver {
+    fn on_resolve_attempt(&mut self, event: &ResolveAttemptEvent) {}
+    fn on_resolve_outcome(&mut self, event: &ResolveOutcomeEvent) {}
+    fn on_include_outcome(&mut self, event: &IncludeOutcomeEvent) {}
+    fn on_validation_outcome(&mut self, event: &ValidationOutcomeEvent) {}
+    fn on_render_outcome(&mut self, event: &RenderOutcomeEvent) {}
+}
+
+pub fn compose(request: &ComposeRequest) -> Result<ComposeResult, ComposeError>;
+pub fn compose_with_observer(
+    request: &ComposeRequest,
+    observer: &mut dyn CompositionObserver,
+) -> Result<ComposeResult, ComposeError>;
+```
+
+Required library behavior:
+
+- `Renderer::new(...)` and `compose()` install the built-in no-op observer
+  unless a caller supplies an explicit observer.
+- `compose_with_observer(...)` is the public end-to-end observability
+  injection entry point.
+- `ObservationSink` and `CompositionObserver` remain the local extension points
+  for embedded hosts that do not opt into the CLI.
+- The approved minimum library-owned variant set is:
+  - `ResolveAttempt`
+  - `ResolveOutcome`
+  - `IncludeExpandOutcome`
+  - `ValidationOutcome`
+  - `RenderOutcome`
+- The observer surface remains object-safe and callable through
+  `&mut dyn CompositionObserver`.
+- Command lifecycle events remain CLI-owned and must not be defined in
+  `sc-composer`.
+
+### 18.3 CLI Wiring
+
+`sc-compose` constructs `sc-observability::Logger` during CLI startup, wraps it
+in a CLI-owned adapter that implements `sc_composer::observer::ObservationSink`
+or `sc_composer::observer::CompositionObserver`, then passes that adapter into
+`compose_with_observer(...)`.
+
+CLI wiring rules:
+
+- normal terminal execution enables both file and console sinks,
+- `--json` execution disables the console sink so command stdout remains valid
+  machine-readable output,
+- command lifecycle logging remains CLI-owned and emits:
+  - command start
+  - command completion
+  - command failure
+- `observability-health` initializes the logger using the same configuration
+  path as a normal CLI process, reads `Logger::health()`, prints a
+  human-readable summary by default, and serializes the returned
+  `LoggingHealthReport` under `--json`,
+- `observability-health` reports process-local logger state only and does not
+  depend on any daemon or background runtime,
+- CLI shutdown calls the logger's `shutdown()` path so registered sinks flush
+  before process exit.
+
+### 18.4 Public API Paths
+
+The normative public API paths for this design are:
+
+- `sc_composer::compose`
+- `sc_composer::compose_with_observer`
+- `sc_composer::Renderer`
+- `sc_composer::observer::ObservationEvent`
+- `sc_composer::observer::CompositionObserver`
+- `sc_composer::observer::ObservationSink`
+
+### 18.5 Event Shape and Emission Points
+
+The composition pipeline emits `ObservationEvent` values through the local
+observer hook layer. The CLI adapter maps those events into concrete logger
+records with stable `target`, `action`, and `message` fields that describe:
+
+Message rules:
+
+- `message` is a short human-readable summary of the event outcome.
+- Structured fields, not `message`, carry schema-relevant details.
+- `message` wording must remain stable enough for operator-facing logs and test
+  assertions.
+
+The CLI also emits command lifecycle events with stable `target`, `action`,
+and `message` fields for:
+
+- command start,
+- command completion,
+- command failure.
+
+The adapter-owned mapping is:
+
+| `sc-compose` event source | `LogEvent.target` | `LogEvent.action` | `LogEvent.message` | Other `LogEvent` fields |
+| --- | --- | --- | --- | --- |
+| command start | `compose.command` | `started` | human-readable summary such as `render started` | `fields` include command name and relevant mode flags |
+| command end, success | `compose.command` | `completed` | human-readable summary such as `render completed` | `fields` include command name, elapsed time, and output mode; `outcome` is success |
+| command end, failure | `compose.command` | `failed` | human-readable summary such as `render failed` | `fields` include command name, exit code, elapsed time, and output mode; `outcome` is failure; `diagnostic` is attached when available |
+| resolve attempt or outcome | `compose.resolve` | phase-specific action such as `attempt`, `resolved`, or `failed` | concise resolver summary sentence | `outcome` reflects success/failure; `diagnostic` is attached for failures; resolver traces or selected paths live in `fields` |
+| include-expand outcome | `compose.include_expand` | phase-specific action such as `expanded` or `failed` | concise include-expansion summary sentence | include stack and path details live in `fields`; failures attach `diagnostic` |
+| validation outcome | `compose.validate` | phase-specific action such as `completed` or `failed` | concise validation summary sentence | validation counts and policy decisions live in `fields`; failures attach `diagnostic` |
+| render outcome | `compose.render` | phase-specific action such as `completed` or `failed` | concise render summary sentence | render metadata lives in `fields`; `outcome` and `diagnostic` reflect success/failure |
+
+This mapping is intentionally adapter-owned so `sc-observability` preserves a
+generic logging contract and command lifecycle events remain CLI-owned.
 
 ## 19. Extensibility
 
-The redesign should keep room for future extensions without destabilizing the
-core behavior.
+The release architecture keeps room for future extensions without destabilizing
+the core behavior.
 
 Expected extension points:
 
@@ -848,7 +1038,7 @@ Expected extension points:
 
 Trait openness decisions:
 
-- observer and sink traits are open extension points for embedded hosts,
+- sink traits are open extension points for embedded hosts,
 - `ResolverPolicy` is open because caller-specific path policy is an explicit
   product requirement,
 - value-model and metadata extension points remain closed until a future

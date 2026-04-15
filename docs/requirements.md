@@ -1,17 +1,17 @@
 # SC-Compose Requirements
 
-> Status: Draft
+> Status: Active Release Baseline
 > Product: `sc-composer` (library) and `sc-compose` (CLI)
-> Document role: Normative product requirements for the redesign of both crates
+> Document role: Normative release requirements for both crates
 
 This document supersedes the prior high-level placeholder. It is the normative
-requirements baseline for `sc-compose` v0.x.
+release requirements baseline for `sc-compose` v0.x.
 
 ## 1. Intent
 
 This document defines the required behavior of `sc-composer` and `sc-compose`.
-It is the design authority for the redesign effort. If the implementation
-diverges from this document, the implementation is wrong unless the document is
+It is the design authority for release work. If the implementation diverges
+from this document, the implementation is wrong unless the document is
 explicitly amended.
 
 ## 2. Problem Statement
@@ -330,6 +330,7 @@ Each block may be empty. Ordering is never caller-defined.
 - `validate`
 - `frontmatter-init`
 - `init`
+- `observability-health`
 
 The CLI must support:
 
@@ -381,6 +382,11 @@ Command behavior:
   - validates discovered templates,
   - fails if invalid templates are found,
   - prints recommendations for missing or weak frontmatter.
+- `observability-health`
+  - reads the current CLI logger health state without mutating composition or
+    log configuration,
+  - prints a human-readable health summary by default,
+  - emits the documented JSON schema when `--json` is provided.
 
 `--dry-run` behavior:
 
@@ -555,6 +561,40 @@ Schema rules:
 }
 ```
 
+`observability-health --json`
+
+```json
+{
+  "schema_version": "1",
+  "payload": {
+    "logging": {
+      "state": "Healthy",
+      "dropped_events_total": 0,
+      "flush_errors_total": 0,
+      "active_log_path": "<log_root>/logs/sc-compose.log.jsonl",
+      "sink_statuses": [],
+      "last_error": null,
+      "query": null
+    }
+  },
+  "diagnostics": []
+}
+```
+
+Schema rules:
+
+- `payload.logging` is the JSON serialization of
+  `sc_observability::LoggingHealthReport`.
+- `LoggingHealthReport` is accessed through the `sc-observability` re-export
+  surface for logging-only consumers, per DOC-007 and LOG-038.
+- `payload.logging.query` is `null` when query/follow health is unavailable and
+  otherwise contains a `QueryHealthReport`.
+- `active_log_path` is derived from the configured log root and service name
+  using the `LOG-008` layout `<log_root>/logs/<service>.log.jsonl`.
+- The concrete path is platform-dependent; on Windows it may be drive-qualified.
+- `observability-health --json` must not emit console log lines that corrupt
+  the JSON envelope written to stdout.
+
 `frontmatter-init --json`
 
 ```json
@@ -606,6 +646,8 @@ Schema rules:
       ".prompts/",
       ".gitignore"
     ],
+    "changed": false,
+    "would_change": true,
     "skipped": false
   },
   "diagnostics": []
@@ -625,20 +667,62 @@ Schema rules:
 ### FR-9: Observability
 
 - `sc-composer` must not depend directly on `sc-observability`.
-- `sc-composer` must define observer hooks or sink traits that allow a host to
-  receive structured events without coupling the library to a concrete logging
-  crate.
-- `sc-compose` should use `sc-observability` as the canonical concrete
+- `sc-composer` must not depend on `sc-observability-types`.
+- `sc-composer` must define host-injectable observability hooks locally without
+  coupling the library to a concrete logging runtime.
+- The initial release observability scope is limited to structured logging,
+  health reporting, and downstream extension through the local observer hook
+  model.
+- `sc-compose` shall use `sc-observability` as the canonical concrete
   observability binding for CLI execution.
-- The `sc-observability` dependency is a design-ahead expectation for the
-  implementation phase and may not yet appear in `Cargo.toml`.
-- Both crates must emit command lifecycle and composition diagnostics events
-  through the trait-hook model.
+- `sc-composer` must emit composition pipeline events through its local
+  observer/sink hook model.
+- `sc-compose` must emit command lifecycle events through the same local hook
+  model.
 - Standalone defaults must keep `sc-compose` sink paths tool-scoped.
 - Embedded use must permit host-supplied sink and path configuration.
-- If no observer is injected, both crates must remain fully functional with
+- If no sink is injected, both crates must remain fully functional with
   observability reduced to a no-op.
-- OTel support remains optional and feature-gated.
+- `sc-observe` and `sc-observability-otlp` remain out of scope for the initial
+  release.
+
+### FR-10: Library Log-Sink Injection
+
+- `sc-composer` shall define its minimal observability hook layer locally in
+  `sc_composer::observer`.
+- The library hook surface shall remain a local sink/observer abstraction over
+  `ObservationEvent` rather than importing observability contracts from
+  `sc-observability-types`.
+- `Renderer::new(config)` and `compose()` shall preserve no-op behavior when the
+  caller does not provide an observer implementation.
+- `compose_with_observer(request, &mut dyn CompositionObserver)` shall remain
+  the required end-to-end injection surface for host-provided observability.
+- The local observer hook surface shall remain object-safe and `dyn`-compatible
+  so consuming applications can provide their own logging extensions without
+  depending on CLI-specific code.
+- Injected hooks shall receive structured events for the resolve,
+  include-expand, validate, and render pipeline stages.
+- The local observer/sink contracts shall remain usable by embedded hosts that
+  do not use the CLI.
+
+### FR-11: CLI Observability Wiring
+
+- `sc-compose` shall construct the concrete `sc-observability` `Logger` during
+  CLI startup and wire it into the `sc-composer` injection point.
+- The CLI logger wiring shall register both file and console sinks during
+  normal terminal execution.
+- The console sink shall be suppressed whenever the active command uses the
+  `--json` output mode so machine-readable command output remains clean.
+- The CLI shall emit structured command lifecycle events for command start,
+  command completion, and command failure.
+- The CLI shall expose logger health through a dedicated
+  `observability-health` command so operators can inspect sink state,
+  dropped-event counts, and the active log path.
+- The `observability-health` command shall initialize logger configuration the
+  same way as a normal CLI process, query health from that process-local
+  logger instance, and must not depend on any daemon or background runtime.
+- The CLI shall perform graceful logger shutdown on process exit so pending
+  events flush before termination.
 
 ## 5. Non-Functional Requirements
 
@@ -650,14 +734,21 @@ Schema rules:
   semver-governed once released.
 - The library and CLI must remain separable: `sc-compose` may depend on
   `sc-composer`, but `sc-composer` must not depend on the CLI crate.
+- Observability integration must emit structured events at the resolve,
+  include-expand, validate, and render pipeline stages with stable target,
+  action, and message conventions.
+- Observability health state must be queryable without mutating composition
+  behavior so operators and embedded hosts can inspect runtime health safely.
+- Process shutdown must flush pending observability output and degrade
+  gracefully when sink flushing reports errors.
 
 ## 6. Stability Policy
 
 - The `sc-composer` public API is semver-governed.
 - Until `1.0`, breaking API changes require a minor version bump.
 - `render_template()` is a stable convenience API for one-shot rendering.
-- The planned `Renderer` type, once implemented, is the primary stable API for
-  repeated rendering and long-lived library use.
+- `Renderer` is the primary stable API for repeated rendering and long-lived
+  library use.
 
 ## 7. Testing Requirements
 
@@ -681,6 +772,9 @@ Required integration coverage includes:
 - CLI `validate`,
 - CLI `frontmatter-init`,
 - CLI `init`,
+- CLI `observability-health`,
+- command lifecycle logging,
+- resolve/include-expand/validate/render event emission,
 - `--dry-run` no-write guarantees,
 - JSON diagnostics contract,
 - cross-platform path behavior.

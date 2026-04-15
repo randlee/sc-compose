@@ -57,9 +57,8 @@ pub use include::{ExpandedTemplate, expand_includes};
 pub use init_workspace::init_workspace;
 #[doc(inline)]
 pub use observer::{
-    CommandEndEvent, CommandStartEvent, CompositionObserver, IncludeOutcomeEvent, NoopObserver,
-    ObservationEvent, ObservationSink, RenderOutcomeEvent, ResolveOutcomeEvent,
-    ValidationOutcomeEvent,
+    CompositionObserver, IncludeOutcomeEvent, NoopObserver, ObservationEvent, ObservationSink,
+    RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
 #[doc(inline)]
 pub use pipeline::{Document, Expanded, Parsed, Rendered, Validated, assemble_output_blocks};

@@ -7,7 +7,7 @@ use crate::error::ValidationError;
 use crate::include::expand_includes;
 use crate::observer::{
     CompositionObserver, IncludeOutcomeEvent, NoopObserver, RenderOutcomeEvent,
-    ResolveOutcomeEvent, ValidationOutcomeEvent,
+    ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
 use crate::renderer::Renderer;
 use crate::resolver::resolve_template_path;
@@ -35,6 +35,9 @@ pub fn compose_with_observer(
     request: &ComposeRequest,
     observer: &mut dyn CompositionObserver,
 ) -> Result<ComposeResult, ComposeError> {
+    observer.on_resolve_attempt(&ResolveAttemptEvent {
+        template: resolve_attempt_label(request),
+    });
     let resolve_result = match resolve_template_path(request) {
         Ok(result) => {
             observer.on_resolve_outcome(&ResolveOutcomeEvent {
@@ -98,6 +101,13 @@ pub fn compose_with_observer(
         variable_sources: validation_state.variable_sources,
         warnings: validation_report.warnings,
     })
+}
+
+fn resolve_attempt_label(request: &ComposeRequest) -> String {
+    match &request.mode {
+        crate::types::ComposeMode::Profile { kind, name } => format!("{kind:?}:{name}"),
+        crate::types::ComposeMode::File { template_path } => template_path.display().to_string(),
+    }
 }
 
 fn emit_resolve_error(observer: &mut dyn CompositionObserver, error: &ComposeError) {
@@ -170,8 +180,8 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use crate::observer::{
-        CommandEndEvent, CommandStartEvent, CompositionObserver, IncludeOutcomeEvent,
-        RenderOutcomeEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
+        CompositionObserver, IncludeOutcomeEvent, RenderOutcomeEvent, ResolveOutcomeEvent,
+        ValidationOutcomeEvent,
     };
     use crate::types::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot};
     use crate::{
@@ -181,8 +191,6 @@ mod tests {
 
     #[derive(Default)]
     struct CapturingObserver {
-        command_start: Vec<CommandStartEvent>,
-        command_end: Vec<CommandEndEvent>,
         resolve: Vec<ResolveOutcomeEvent>,
         include: Vec<IncludeOutcomeEvent>,
         validation: Vec<ValidationOutcomeEvent>,
@@ -190,14 +198,6 @@ mod tests {
     }
 
     impl CompositionObserver for CapturingObserver {
-        fn on_command_start(&mut self, event: &CommandStartEvent) {
-            self.command_start.push(event.clone());
-        }
-
-        fn on_command_end(&mut self, event: &CommandEndEvent) {
-            self.command_end.push(event.clone());
-        }
-
         fn on_resolve_outcome(&mut self, event: &ResolveOutcomeEvent) {
             self.resolve.push(event.clone());
         }
@@ -281,6 +281,31 @@ mod tests {
                 .get(&VariableName::new("name").unwrap()),
             Some(&VariableSource::ExplicitInput)
         );
+    }
+
+    #[test]
+    fn compose_without_observer_remains_fully_functional() {
+        let root = temp_root("compose_no_observer");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\ndefaults:\n  name: world\n---\nhello {{ name }}",
+        );
+
+        let result = compose(&ComposeRequest {
+            runtime: None,
+            mode: ComposeMode::File {
+                template_path: PathBuf::from("template.md.j2"),
+            },
+            root: ConfiningRoot::new(&root).unwrap(),
+            vars_input: BTreeMap::default(),
+            vars_env: BTreeMap::default(),
+            guidance_block: None,
+            user_prompt: None,
+            policy: ComposePolicy::default(),
+        })
+        .unwrap();
+
+        assert_eq!(result.rendered_text, "hello world");
     }
 
     #[test]

@@ -26,7 +26,15 @@ fn write_file(path: &Path, contents: &str) {
 }
 
 fn sc_compose() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    let mut command = Command::new(env!("CARGO_BIN_EXE_sc-compose"));
+    command.env("SC_LOG_ROOT", test_log_root());
+    command
+}
+
+fn test_log_root() -> PathBuf {
+    let root = std::env::temp_dir().join(format!("sc-compose-cli-logs-{}", std::process::id()));
+    fs::create_dir_all(&root).unwrap();
+    root
 }
 
 fn parse_stdout_json(output: &std::process::Output) -> Value {
@@ -300,9 +308,27 @@ fn render_reports_include_escape_for_symlink_escape_at_cli_layer() {
 #[cfg(windows)]
 #[test]
 fn windows_backslash_escape_requires_cli_confinement_coverage() {
-    // Windows CI should verify that a backslash-separated include escape attempt
-    // like `@<..\\outside.md>` is rejected at the CLI layer with exit 2 and
-    // `ERR_INCLUDE_ESCAPE`.
+    let root = temp_root("render-backslash-escape-cli");
+    let outside = root.parent().unwrap().join("outside-backslash-include.md");
+    write_file(&outside, "outside\n");
+    write_file(
+        &root.join("template.md.j2"),
+        "@<..\\outside-backslash-include.md>\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_INCLUDE_ESCAPE"));
 }
 
 #[test]
@@ -318,7 +344,7 @@ fn render_smoke_pipeline_handles_includes_vars_var_file_env_and_output() {
         ),
     );
     write_file(
-        &root.join("partials/body.md"),
+        &root.join("partials").join("body.md"),
         "Name: {{ name }}\nTitle: {{ title }}\nMood: {{ mood }}\n",
     );
     write_file(&vars_file, "title: Engineer\n");
@@ -347,6 +373,96 @@ fn render_smoke_pipeline_handles_includes_vars_var_file_env_and_output() {
     assert_eq!(
         fs::read_to_string(&output).unwrap(),
         "Name: Casey\nTitle: Engineer\nMood: focused"
+    );
+}
+
+#[test]
+fn observability_health_text_reports_process_local_status() {
+    let root = temp_root("observability-health-text");
+    let output = sc_compose()
+        .arg("observability-health")
+        .env("SC_LOG_ROOT", &root)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("state: Healthy"));
+    assert!(stdout.contains("query_state: Healthy"));
+    assert!(stdout.contains("sink jsonl-file: Healthy"));
+    #[cfg(not(windows))]
+    assert!(stdout.contains(&format!(
+        "active_log_path: {}",
+        root.join("logs").join("sc-compose.log.jsonl").display()
+    )));
+    #[cfg(windows)]
+    assert!(stdout.contains("active_log_path:") && stdout.contains("sc-compose.log.jsonl"));
+}
+
+#[test]
+fn release_smoke_covers_render_pipeline_and_observability_health() {
+    let root = temp_root("release-smoke-observability");
+    let logs_root = root.join("telemetry");
+    let output = root.join("out.md");
+    let vars_file = root.join("vars.yaml");
+    write_file(
+        &root.join("template.md.j2"),
+        concat!(
+            "---\nrequired_variables:\n  - name\n  - title\n  - mood\n---\n",
+            "@<partials/body.md>\n"
+        ),
+    );
+    write_file(
+        &root.join("partials").join("body.md"),
+        "Name: {{ name }}\nTitle: {{ title }}\nMood: {{ mood }}\n",
+    );
+    write_file(&vars_file, "title: Engineer\n");
+
+    let render = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("name=Casey")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .arg("--env-prefix")
+        .arg("SC_")
+        .arg("--output")
+        .arg(&output)
+        .env("SC_MOOD", "focused")
+        .env("SC_LOG_ROOT", &logs_root)
+        .output()
+        .unwrap();
+
+    assert!(render.status.success());
+    assert_eq!(
+        fs::read_to_string(&output).unwrap(),
+        "Name: Casey\nTitle: Engineer\nMood: focused"
+    );
+    assert!(logs_root.join("logs").join("sc-compose.log.jsonl").exists());
+
+    let health = sc_compose()
+        .arg("observability-health")
+        .arg("--json")
+        .env("SC_LOG_ROOT", &logs_root)
+        .output()
+        .unwrap();
+
+    assert!(health.status.success());
+    let value = parse_stdout_json(&health);
+    assert_eq!(value["payload"]["logging"]["state"], "Healthy");
+    assert_eq!(
+        value["payload"]["logging"]["active_log_path"],
+        logs_root
+            .join("logs")
+            .join("sc-compose.log.jsonl")
+            .display()
+            .to_string()
     );
 }
 
