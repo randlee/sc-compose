@@ -497,6 +497,7 @@ Schema rules:
   "schema_version": "1",
   "payload": {
     "would_write": ".prompts/example-01HXYZ.md",
+    "would_change": true,
     "template": "path/to/template.md.j2",
     "rendered_preview": "preview text"
   },
@@ -507,6 +508,9 @@ Schema rules:
 Schema rules:
 
 - `would_write` is the derived output target as a string.
+- `would_change` records whether the dry-run output differs from the current
+  file content at the derived output path; missing output files count as
+  `true`.
 - `rendered_preview` is either a preview string or `null`.
 
 `resolve --json`
