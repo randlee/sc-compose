@@ -235,6 +235,7 @@ fn frontmatter_init_dry_run_reports_changed_and_would_change_without_writing() {
 #[test]
 fn init_dry_run_does_not_create_workspace_and_reports_would_create_files() {
     let root = temp_root("init-dry-run-cli");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
 
     let output = sc_compose()
         .arg("init")
@@ -255,6 +256,72 @@ fn init_dry_run_does_not_create_workspace_and_reports_would_create_files() {
             .unwrap()
             .is_empty()
     );
+}
+
+#[test]
+fn render_dry_run_text_reports_would_change() {
+    let root = temp_root("render-dry-run-text");
+    let output_path = root.join("out.md");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\ndefaults:\n  name: world\n---\nhello {{ name }}\n",
+    );
+    write_file(&output_path, "hello world");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--output")
+        .arg(&output_path)
+        .arg("--dry-run")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("would_change: false"));
+}
+
+#[test]
+fn init_text_reports_recommendations() {
+    let root = temp_root("init-text-recommendations");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+
+    let output = sc_compose()
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("workspace_root:"));
+    assert!(stdout.contains("root template has no frontmatter"));
+}
+
+#[test]
+fn init_dry_run_text_reports_recommendations() {
+    let root = temp_root("init-dry-run-text-recommendations");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+
+    let output = sc_compose()
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .arg("--dry-run")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("would_affect:"));
+    assert!(stdout.contains("root template has no frontmatter"));
 }
 
 #[test]

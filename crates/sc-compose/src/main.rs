@@ -241,6 +241,7 @@ fn run_render(
         sc_composer::compose_with_observer(&request, observer).map_err(CommandError::compose)?;
     let output_path = args.output.clone();
     let derived_path = derived_output_path(&request, output_path.as_deref());
+    let would_change = render_would_change(&derived_path, &result.rendered_text);
     let bytes_written = if args.dry_run {
         None
     } else if let Some(output) = output_path.as_ref() {
@@ -274,6 +275,7 @@ fn run_render(
         let payload = if args.dry_run {
             serde_json::json!({
                 "would_write": derived_path.display().to_string(),
+                "would_change": would_change,
                 "template": result.resolve_result.resolved_path.display().to_string(),
                 "rendered_preview": result.rendered_text,
             })
@@ -291,6 +293,7 @@ fn run_render(
             result.resolve_result.resolved_path.display()
         );
         println!("would_write: {}", derived_path.display());
+        println!("would_change: {would_change}");
         println!();
         println!("{}", result.rendered_text);
     } else {
@@ -426,8 +429,10 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
         for path in &planned_changes {
             println!("would_affect: {}", path.display());
         }
+        print_diagnostic_messages(&result.recommendations);
     } else {
         println!("workspace_root: {}", canonical_root.display());
+        print_diagnostic_messages(&result.recommendations);
     }
     Ok(if result.validation_passed {
         exit_codes::SUCCESS
@@ -702,6 +707,13 @@ fn derived_output_path(request: &ComposeRequest, explicit: Option<&Path>) -> Pat
     }
 }
 
+fn render_would_change(output_path: &Path, rendered_text: &str) -> bool {
+    match std::fs::read(output_path) {
+        Ok(existing) => existing != rendered_text.as_bytes(),
+        Err(_) => true,
+    }
+}
+
 fn strip_j2_suffix(path: &Path) -> PathBuf {
     let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
         return path.to_path_buf();
@@ -713,6 +725,12 @@ fn strip_j2_suffix(path: &Path) -> PathBuf {
     let mut rebuilt = path.to_path_buf();
     rebuilt.set_file_name(stripped);
     rebuilt
+}
+
+fn print_diagnostic_messages(diagnostics: &[Diagnostic]) {
+    for diagnostic in diagnostics {
+        println!("{}", diagnostic.message);
+    }
 }
 
 fn print_json_frontmatter_init(result: &FrontmatterInitResult) -> Result<()> {
@@ -1000,6 +1018,20 @@ mod tests {
         assert_eq!(observer.started[0].command_name, "render");
         assert!(!observer.started[0].json_output);
         assert_eq!(observer.ended[0].exit_code, 0);
+        assert!(observer.ended[0].success);
+    }
+
+    #[test]
+    fn observe_command_treats_successful_nonzero_exit_as_success() {
+        let mut observer = CapturingObserver::default();
+
+        let result = observe_command(&mut observer, "validate", true, |_observer| Ok(2));
+
+        assert_eq!(result.unwrap(), 2);
+        assert_eq!(observer.started.len(), 1);
+        assert_eq!(observer.ended.len(), 1);
+        assert_eq!(observer.ended[0].exit_code, 2);
+        assert!(observer.ended[0].success);
     }
 
     #[test]
@@ -1018,6 +1050,7 @@ mod tests {
         assert_eq!(observer.ended.len(), 1);
         assert!(observer.started[0].json_output);
         assert_eq!(observer.ended[0].exit_code, exit_codes::USAGE_FAIL);
+        assert!(!observer.ended[0].success);
         assert_eq!(
             observer.ended[0].diagnostic_code.as_deref(),
             Some(DiagnosticCode::ErrRenderStdinDoubleRead.as_str())

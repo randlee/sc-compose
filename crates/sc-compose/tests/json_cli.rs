@@ -119,6 +119,42 @@ fn render_dry_run_json_uses_diagnostic_envelope() {
             .display()
             .to_string()
     );
+    assert_eq!(value["payload"]["would_change"], true);
+}
+
+#[test]
+fn render_dry_run_json_reports_no_change_when_output_matches() {
+    let root = temp_root("render-dry-run-json-no-change");
+    let output_path = root.join("out.md");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\ndefaults:\n  name: world\n---\nhello {{ name }}\n",
+    );
+    write_file(&output_path, "hello world");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--output")
+        .arg(&output_path)
+        .arg("--json")
+        .arg("--dry-run")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["would_change"], false);
 }
 
 #[test]
