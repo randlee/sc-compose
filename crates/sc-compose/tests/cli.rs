@@ -41,6 +41,14 @@ fn parse_stdout_json(output: &std::process::Output) -> Value {
     serde_json::from_slice(&output.stdout).unwrap()
 }
 
+fn repo_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .canonicalize()
+        .unwrap()
+}
+
 #[test]
 fn render_dry_run_does_not_create_output_file() {
     let root = temp_root("dry-run");
@@ -182,6 +190,165 @@ fn render_uses_yaml_var_file_inputs() {
         String::from_utf8_lossy(&output.stdout).trim(),
         "hello yaml-world"
     );
+}
+
+#[test]
+fn examples_list_uses_data_dir_override() {
+    let output = sc_compose()
+        .arg("examples")
+        .arg("list")
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("hello"));
+    assert!(stdout.contains("pytest-fixture"));
+}
+
+#[test]
+fn examples_named_render_uses_data_dir_override() {
+    let output = sc_compose()
+        .arg("examples")
+        .arg("hello")
+        .arg("--var")
+        .arg("name=Casey")
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "Hello Casey!"
+    );
+}
+
+#[test]
+fn examples_named_render_accepts_array_values_from_var_file() {
+    let root = temp_root("examples-array");
+    let vars_file = root.join("vars.json");
+    write_file(
+        &vars_file,
+        r#"{ "module_name": "auth", "fixture_name": "fixture_state", "test_names": ["login", "logout"] }"#,
+    );
+
+    let output = sc_compose()
+        .arg("examples")
+        .arg("pytest-fixture")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("def test_login(fixture_state):"));
+    assert!(stdout.contains("def test_logout(fixture_state):"));
+}
+
+#[test]
+fn templates_add_directory_creates_pack_and_readme_and_named_render_uses_input_defaults() {
+    let root = temp_root("templates-add-dir");
+    let templates_root = root.join("user-templates");
+    let source_dir = root.join("report-pack");
+    write_file(
+        &source_dir.join("template.json"),
+        r#"{ "description": "Report template", "version": "1.0.0", "input_defaults": { "name": "world" } }"#,
+    );
+    write_file(&source_dir.join("report.md.j2"), "Hello {{ name }}!\n");
+    write_file(&source_dir.join("README.txt"), "asset");
+
+    let add_output = sc_compose()
+        .arg("templates")
+        .arg("add")
+        .arg(&source_dir)
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(add_output.status.success());
+    assert!(templates_root.join("README.md").exists());
+    assert!(
+        templates_root
+            .join("report-pack")
+            .join("README.txt")
+            .exists()
+    );
+
+    let list_output = sc_compose()
+        .arg("templates")
+        .arg("list")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(list_output.status.success());
+    assert!(
+        String::from_utf8(list_output.stdout)
+            .unwrap()
+            .contains("report-pack")
+    );
+
+    let render_output = sc_compose()
+        .arg("templates")
+        .arg("report-pack")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(render_output.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&render_output.stdout).trim(),
+        "Hello world!"
+    );
+}
+
+#[test]
+fn templates_add_file_creates_pack_named_from_template_file() {
+    let root = temp_root("templates-add-file");
+    let templates_root = root.join("user-templates");
+    let source = root.join("service-config.yaml.j2");
+    write_file(&source, "name: {{ service_name }}\n");
+
+    let output = sc_compose()
+        .arg("templates")
+        .arg("add")
+        .arg(&source)
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(templates_root.join("service-config").is_dir());
+    assert!(
+        templates_root
+            .join("service-config")
+            .join("service-config.yaml.j2")
+            .exists()
+    );
+}
+
+#[test]
+fn templates_named_render_reports_not_renderable_when_multiple_root_templates_exist() {
+    let root = temp_root("templates-not-renderable");
+    let templates_root = root.join("user-templates");
+    let pack = templates_root.join("ambiguous");
+    write_file(&pack.join("one.md.j2"), "one");
+    write_file(&pack.join("two.md.j2"), "two");
+
+    let output = sc_compose()
+        .arg("templates")
+        .arg("ambiguous")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("ERR_CONFIG_PACK_NOT_RENDERABLE"));
 }
 
 #[test]

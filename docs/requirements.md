@@ -153,7 +153,11 @@ narrow even after template-pack support is added.
 - Bundled examples and user templates use different on-disk layouts.
 - Bundled examples are flat `*.j2` files stored directly under the examples
   root.
-- Example names are file stems with the trailing `.j2` removed.
+- Example names are derived from the template filename by removing the trailing
+  `.j2` suffix and then one remaining source extension when present.
+  Examples:
+  - `hello.md.j2` -> `hello`
+  - `service-config.yaml.j2` -> `service-config`
 - User templates are stored as one subdirectory per template under the user
   templates root.
 - A user template directory name is the template name.

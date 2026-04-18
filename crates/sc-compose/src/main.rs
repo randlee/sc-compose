@@ -2,6 +2,7 @@ mod exit_codes;
 mod json_output;
 mod observability;
 mod observer_impl;
+mod template_store;
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -14,11 +15,12 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use mimalloc::MiMalloc;
 use sc_composer::{
     ComposeError, ComposeMode, ComposePolicy, ComposeRequest, CompositionObserver, ConfiningRoot,
-    Diagnostic, DiagnosticCode, DiagnosticSeverity, FrontmatterInitResult, ProfileKind,
-    RuntimeKind, ScalarValue, UnknownVariablePolicy,
+    Diagnostic, DiagnosticCode, DiagnosticSeverity, FrontmatterInitResult, InputValue, ProfileKind,
+    RuntimeKind, UnknownVariablePolicy, input_value_from_yaml, validate_input_value,
 };
 
 use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
+use crate::template_store::{TemplateMeta, TemplatePack, TemplateStore};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -41,6 +43,22 @@ enum Command {
     Init(InitArgs),
     #[command(name = "observability-health")]
     ObservabilityHealth(ObservabilityHealthArgs),
+    Examples(ExamplesArgs),
+    Templates(TemplatesArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+struct InputArgs {
+    #[arg(long = "var", value_parser = parse_var, action = clap::ArgAction::Append)]
+    vars: Vec<(String, String)>,
+    #[arg(long = "var-file")]
+    var_file: Option<String>,
+    #[arg(long)]
+    env_prefix: Option<String>,
+    #[arg(long)]
+    strict: bool,
+    #[arg(long, value_enum, default_value = "ignore")]
+    unknown_var_mode: UnknownVarMode,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -57,20 +75,30 @@ struct CommonArgs {
     runtime: Option<Ai>,
     #[arg(long, alias = "ai", value_enum)]
     ai: Option<Ai>,
-    #[arg(long = "var", value_parser = parse_var, action = clap::ArgAction::Append)]
-    vars: Vec<(String, String)>,
-    #[arg(long = "var-file")]
-    var_file: Option<String>,
-    #[arg(long)]
-    env_prefix: Option<String>,
-    #[arg(long)]
-    strict: bool,
-    #[arg(long, value_enum, default_value = "ignore")]
-    unknown_var_mode: UnknownVarMode,
+    #[command(flatten)]
+    input: InputArgs,
     #[arg(long, default_value = ".")]
     root: PathBuf,
     #[arg(long)]
     file: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, Args, Default)]
+struct RenderBehaviorArgs {
+    #[arg(long)]
+    output: Option<PathBuf>,
+    #[arg(long)]
+    guidance: Option<String>,
+    #[arg(long)]
+    guidance_file: Option<String>,
+    #[arg(long)]
+    prompt: Option<String>,
+    #[arg(long)]
+    prompt_file: Option<String>,
+    #[arg(long)]
+    json: bool,
+    #[arg(long)]
+    dry_run: bool,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -93,20 +121,8 @@ struct ValidateArgs {
 struct RenderArgs {
     #[command(flatten)]
     common: CommonArgs,
-    #[arg(long)]
-    output: Option<PathBuf>,
-    #[arg(long)]
-    guidance: Option<String>,
-    #[arg(long)]
-    guidance_file: Option<String>,
-    #[arg(long)]
-    prompt: Option<String>,
-    #[arg(long)]
-    prompt_file: Option<String>,
-    #[arg(long)]
-    json: bool,
-    #[arg(long)]
-    dry_run: bool,
+    #[command(flatten)]
+    render: RenderBehaviorArgs,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -133,6 +149,57 @@ struct InitArgs {
 
 #[derive(Debug, Clone, Args)]
 struct ObservabilityHealthArgs {
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+#[command(args_conflicts_with_subcommands = true)]
+struct ExamplesArgs {
+    #[command(subcommand)]
+    command: Option<ExamplesSubcommand>,
+    #[arg(index = 1)]
+    name: Option<String>,
+    #[command(flatten)]
+    input: InputArgs,
+    #[command(flatten)]
+    render: RenderBehaviorArgs,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+enum ExamplesSubcommand {
+    List(ListArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+#[command(args_conflicts_with_subcommands = true)]
+struct TemplatesArgs {
+    #[command(subcommand)]
+    command: Option<TemplatesSubcommand>,
+    #[arg(index = 1)]
+    name: Option<String>,
+    #[command(flatten)]
+    input: InputArgs,
+    #[command(flatten)]
+    render: RenderBehaviorArgs,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+enum TemplatesSubcommand {
+    List(ListArgs),
+    Add(TemplatesAddArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+struct ListArgs {
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+struct TemplatesAddArgs {
+    src: PathBuf,
+    name: Option<String>,
     #[arg(long)]
     json: bool,
 }
@@ -207,9 +274,11 @@ fn main() {
 
 fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, CommandError> {
     match cli.command {
-        Command::Render(args) => observe_command(observer, "render", args.json, |observer| {
-            run_render(&args, observer)
-        }),
+        Command::Render(args) => {
+            observe_command(observer, "render", args.render.json, |observer| {
+                run_render(&args, observer)
+            })
+        }
         Command::Resolve(args) => observe_command(observer, "resolve", args.json, |observer| {
             run_resolve(&args, observer)
         }),
@@ -229,6 +298,31 @@ fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, Comma
                 run_observability_health(&args, observer)
             })
         }
+        Command::Examples(args) => match &args.command {
+            Some(ExamplesSubcommand::List(list_args)) => {
+                observe_command(observer, "examples", list_args.json, |_observer| {
+                    run_examples_list(list_args)
+                })
+            }
+            None => observe_command(observer, "examples", args.render.json, |observer| {
+                run_examples_render(&args, observer)
+            }),
+        },
+        Command::Templates(args) => match &args.command {
+            Some(TemplatesSubcommand::List(list_args)) => {
+                observe_command(observer, "templates", list_args.json, |_observer| {
+                    run_templates_list(list_args)
+                })
+            }
+            Some(TemplatesSubcommand::Add(add_args)) => {
+                observe_command(observer, "templates", add_args.json, |_observer| {
+                    run_templates_add(add_args)
+                })
+            }
+            None => observe_command(observer, "templates", args.render.json, |observer| {
+                run_templates_render(&args, observer)
+            }),
+        },
     }
 }
 
@@ -236,11 +330,130 @@ fn run_render(
     args: &RenderArgs,
     observer: &mut dyn CompositionObserver,
 ) -> Result<i32, CommandError> {
-    let request = build_request(&args.common, read_block_pair(args)?)?;
+    let request = build_request(
+        &args.common,
+        read_block_pair(&args.common.input, &args.render)?,
+        BTreeMap::default(),
+    )?;
+    execute_render(&request, &args.render, observer)
+}
+
+fn run_examples_list(args: &ListArgs) -> Result<i32, CommandError> {
+    let store = TemplateStore::examples()
+        .map_err(|error| CommandError::usage_with_code(error, DiagnosticCode::ErrConfigParse))?;
+    let packs = store
+        .list()
+        .map_err(|error| CommandError::usage_with_code(error, DiagnosticCode::ErrConfigParse))?;
+    print_pack_list(&packs, args.json).map_err(CommandError::usage)?;
+    Ok(exit_codes::SUCCESS)
+}
+
+fn run_templates_list(args: &ListArgs) -> Result<i32, CommandError> {
+    let store = TemplateStore::templates()
+        .map_err(|error| CommandError::usage_with_code(error, DiagnosticCode::ErrConfigParse))?;
+    let packs = store
+        .list()
+        .map_err(|error| CommandError::usage_with_code(error, DiagnosticCode::ErrConfigParse))?;
+    print_pack_list(&packs, args.json).map_err(CommandError::usage)?;
+    Ok(exit_codes::SUCCESS)
+}
+
+fn run_examples_render(
+    args: &ExamplesArgs,
+    observer: &mut dyn CompositionObserver,
+) -> Result<i32, CommandError> {
+    let name = args
+        .name
+        .as_deref()
+        .ok_or_else(|| CommandError::usage(anyhow!("missing example pack name")))?;
+    let store = TemplateStore::examples()
+        .map_err(|error| CommandError::usage_with_code(error, DiagnosticCode::ErrConfigParse))?;
+    let pack = store
+        .get_example(name)
+        .map_err(|error| CommandError::usage_with_code(error, DiagnosticCode::ErrConfigParse))?
+        .ok_or_else(|| {
+            CommandError::usage_with_code(
+                anyhow!("example pack `{name}` was not found"),
+                DiagnosticCode::ErrConfigPackNotFound,
+            )
+        })?;
+    let request = build_named_request(
+        &pack,
+        &args.input,
+        read_block_pair(&args.input, &args.render)?,
+    )?;
+    execute_render(&request, &args.render, observer)
+}
+
+fn run_templates_render(
+    args: &TemplatesArgs,
+    observer: &mut dyn CompositionObserver,
+) -> Result<i32, CommandError> {
+    let name = args
+        .name
+        .as_deref()
+        .ok_or_else(|| CommandError::usage(anyhow!("missing template pack name")))?;
+    let store = TemplateStore::templates()
+        .map_err(|error| CommandError::usage_with_code(error, DiagnosticCode::ErrConfigParse))?;
+    let pack = store
+        .get_template(name)
+        .map_err(|error| {
+            CommandError::usage_with_code(error, DiagnosticCode::ErrConfigPackNotRenderable)
+        })?
+        .ok_or_else(|| {
+            CommandError::usage_with_code(
+                anyhow!("template pack `{name}` was not found"),
+                DiagnosticCode::ErrConfigPackNotFound,
+            )
+        })?;
+    let request = build_named_request(
+        &pack,
+        &args.input,
+        read_block_pair(&args.input, &args.render)?,
+    )?;
+    execute_render(&request, &args.render, observer)
+}
+
+fn run_templates_add(args: &TemplatesAddArgs) -> Result<i32, CommandError> {
+    let store = TemplateStore::templates()
+        .map_err(|error| CommandError::usage_with_code(error, DiagnosticCode::ErrConfigParse))?;
+    let result = store
+        .add(&args.src, args.name.as_deref())
+        .map_err(|error| {
+            let message = format!("{error:#}");
+            let code = if message.contains("already exists") {
+                DiagnosticCode::ErrConfigTemplateExists
+            } else {
+                DiagnosticCode::ErrConfigParse
+            };
+            CommandError::usage_with_code(anyhow!(message), code)
+        })?;
+    if args.json {
+        print_json(
+            serde_json::json!({
+                "name": result.name,
+                "source": result.source.display().to_string(),
+                "destination": result.destination.display().to_string(),
+                "changed": result.changed,
+            }),
+            Vec::new(),
+        )
+        .map_err(CommandError::usage)?;
+    } else {
+        println!("{}", result.destination.display());
+    }
+    Ok(exit_codes::SUCCESS)
+}
+
+fn execute_render(
+    request: &ComposeRequest,
+    args: &RenderBehaviorArgs,
+    observer: &mut dyn CompositionObserver,
+) -> Result<i32, CommandError> {
     let result =
-        sc_composer::compose_with_observer(&request, observer).map_err(CommandError::compose)?;
+        sc_composer::compose_with_observer(request, observer).map_err(CommandError::compose)?;
     let output_path = args.output.clone();
-    let derived_path = derived_output_path(&request, output_path.as_deref());
+    let derived_path = derived_output_path(request, output_path.as_deref());
     let would_change = render_would_change(&derived_path, &result.rendered_text);
     let bytes_written = if args.dry_run {
         None
@@ -313,7 +526,7 @@ fn run_resolve(
             DiagnosticCode::ErrConfigMode,
         ));
     }
-    let request = build_request(&args.common, (None, None))?;
+    let request = build_request(&args.common, (None, None), BTreeMap::default())?;
     let result = sc_composer::resolve_profile_with_observer(&request, observer)
         .map_err(CommandError::compose)?;
     if args.json {
@@ -336,7 +549,7 @@ fn run_validate(
     args: &ValidateArgs,
     observer: &mut dyn CompositionObserver,
 ) -> Result<i32, CommandError> {
-    let request = build_request(&args.common, (None, None))?;
+    let request = build_request(&args.common, (None, None), BTreeMap::default())?;
     let report =
         sc_composer::validate_with_observer(&request, observer).map_err(CommandError::compose)?;
     let diagnostics = report
@@ -464,6 +677,7 @@ fn run_observability_health(
 fn build_request(
     args: &CommonArgs,
     blocks: (Option<String>, Option<String>),
+    vars_defaults: BTreeMap<sc_composer::VariableName, InputValue>,
 ) -> Result<ComposeRequest, CommandError> {
     let root = ConfiningRoot::new(&args.root)
         .with_context(|| format!("failed to canonicalize root {}", args.root.display()))
@@ -505,13 +719,14 @@ fn build_request(
         }),
         mode,
         root,
-        vars_input: load_vars(args)?,
-        vars_env: load_env(args)?,
+        vars_input: load_vars(&args.input)?,
+        vars_env: load_env(&args.input)?,
+        vars_defaults,
         guidance_block: blocks.0,
         user_prompt: blocks.1,
         policy: ComposePolicy {
-            strict_undeclared_variables: args.strict,
-            unknown_variable_policy: match args.unknown_var_mode {
+            strict_undeclared_variables: args.input.strict,
+            unknown_variable_policy: match args.input.unknown_var_mode {
                 UnknownVarMode::Error => UnknownVariablePolicy::Error,
                 UnknownVarMode::Warn => UnknownVariablePolicy::Warn,
                 UnknownVarMode::Ignore => UnknownVariablePolicy::Ignore,
@@ -521,23 +736,67 @@ fn build_request(
     })
 }
 
-fn read_block_pair(args: &RenderArgs) -> Result<(Option<String>, Option<String>), CommandError> {
-    if args.guidance.is_some() && args.guidance_file.is_some() {
+fn build_named_request(
+    pack: &TemplatePack,
+    input: &InputArgs,
+    blocks: (Option<String>, Option<String>),
+) -> Result<ComposeRequest, CommandError> {
+    let root = ConfiningRoot::new(&pack.root).map_err(|error| {
+        CommandError::usage_with_code(
+            anyhow!(error).context(format!(
+                "failed to canonicalize root {}",
+                pack.root.display()
+            )),
+            DiagnosticCode::ErrConfigParse,
+        )
+    })?;
+
+    Ok(ComposeRequest {
+        runtime: None,
+        mode: ComposeMode::File {
+            template_path: pack.template_path.clone(),
+        },
+        root,
+        vars_input: load_vars(input)?,
+        vars_env: load_env(input)?,
+        vars_defaults: pack.input_defaults.clone(),
+        guidance_block: blocks.0,
+        user_prompt: blocks.1,
+        policy: ComposePolicy {
+            strict_undeclared_variables: input.strict,
+            unknown_variable_policy: match input.unknown_var_mode {
+                UnknownVarMode::Error => UnknownVariablePolicy::Error,
+                UnknownVarMode::Warn => UnknownVariablePolicy::Warn,
+                UnknownVarMode::Ignore => UnknownVariablePolicy::Ignore,
+            },
+            ..ComposePolicy::default()
+        },
+    })
+}
+
+fn read_block_pair(
+    input: &InputArgs,
+    render: &RenderBehaviorArgs,
+) -> Result<(Option<String>, Option<String>), CommandError> {
+    if render.guidance.is_some() && render.guidance_file.is_some() {
         return Err(CommandError::usage(anyhow!(
             "--guidance and --guidance-file are mutually exclusive"
         )));
     }
-    if args.prompt.is_some() && args.prompt_file.is_some() {
+    if render.prompt.is_some() && render.prompt_file.is_some() {
         return Err(CommandError::usage(anyhow!(
             "--prompt and --prompt-file are mutually exclusive"
         )));
     }
-    if args.guidance_file.as_deref() == Some("-") && args.prompt_file.as_deref() == Some("-") {
+    let stdin_reads = usize::from(input.var_file.as_deref() == Some("-"))
+        + usize::from(render.guidance_file.as_deref() == Some("-"))
+        + usize::from(render.prompt_file.as_deref() == Some("-"));
+    if stdin_reads > 1 {
         return Err(CommandError::stdin_double_read());
     }
 
-    let guidance = read_block(args.guidance.clone(), args.guidance_file.as_deref())?;
-    let prompt = read_block(args.prompt.clone(), args.prompt_file.as_deref())?;
+    let guidance = read_block(render.guidance.clone(), render.guidance_file.as_deref())?;
+    let prompt = read_block(render.prompt.clone(), render.prompt_file.as_deref())?;
     Ok((guidance, prompt))
 }
 
@@ -563,15 +822,15 @@ fn read_block(inline: Option<String>, file: Option<&str>) -> Result<Option<Strin
 }
 
 fn load_vars(
-    args: &CommonArgs,
-) -> Result<BTreeMap<sc_composer::VariableName, ScalarValue>, CommandError> {
+    args: &InputArgs,
+) -> Result<BTreeMap<sc_composer::VariableName, InputValue>, CommandError> {
     let mut vars = BTreeMap::default();
     for (key, value) in &args.vars {
         vars.insert(
             sc_composer::VariableName::new(key.clone()).map_err(|error| {
                 CommandError::usage(anyhow!("invalid `--var` name `{key}`: {error}"))
             })?,
-            ScalarValue::String(value.clone()),
+            serde_json::Value::String(value.clone()),
         );
     }
     if let Some(path) = &args.var_file {
@@ -598,8 +857,8 @@ fn load_vars(
 }
 
 fn load_env(
-    args: &CommonArgs,
-) -> Result<BTreeMap<sc_composer::VariableName, ScalarValue>, CommandError> {
+    args: &InputArgs,
+) -> Result<BTreeMap<sc_composer::VariableName, InputValue>, CommandError> {
     let mut vars = BTreeMap::default();
     if let Some(prefix) = &args.env_prefix {
         for (key, value) in std::env::vars() {
@@ -612,7 +871,7 @@ fn load_env(
                             ))
                         },
                     )?,
-                    ScalarValue::String(value),
+                    serde_json::Value::String(value),
                 );
             }
         }
@@ -622,7 +881,7 @@ fn load_env(
 
 fn parse_var_file(
     contents: &str,
-) -> Result<BTreeMap<sc_composer::VariableName, ScalarValue>, CommandError> {
+) -> Result<BTreeMap<sc_composer::VariableName, InputValue>, CommandError> {
     if let Ok(value) = serde_json::from_str::<serde_json::Value>(contents) {
         return parse_object_value(&value);
     }
@@ -653,7 +912,7 @@ fn parse_var_file(
                     DiagnosticCode::ErrConfigVarfile,
                 )
             })?,
-            ScalarValue::from_yaml(value).map_err(|error| {
+            input_value_from_yaml(value).map_err(|error| {
                 CommandError::usage_with_code(
                     anyhow!("invalid var-file value for `{key}`: {error}"),
                     DiagnosticCode::ErrConfigVarfile,
@@ -666,7 +925,7 @@ fn parse_var_file(
 
 fn parse_object_value(
     value: &serde_json::Value,
-) -> Result<BTreeMap<sc_composer::VariableName, ScalarValue>, CommandError> {
+) -> Result<BTreeMap<sc_composer::VariableName, InputValue>, CommandError> {
     let object = value.as_object().ok_or_else(|| {
         CommandError::usage_with_code(
             anyhow!("var-file must be a JSON object"),
@@ -682,12 +941,15 @@ fn parse_object_value(
                     DiagnosticCode::ErrConfigVarfile,
                 )
             })?,
-            ScalarValue::try_from(value.clone()).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!("invalid var-file value for `{key}`: {error}"),
-                    DiagnosticCode::ErrConfigVarfile,
-                )
-            })?,
+            {
+                validate_input_value(value).map_err(|error| {
+                    CommandError::usage_with_code(
+                        anyhow!("invalid var-file value for `{key}`: {error}"),
+                        DiagnosticCode::ErrConfigVarfile,
+                    )
+                })?;
+                value.clone()
+            },
         );
     }
     Ok(vars)
@@ -764,13 +1026,51 @@ fn print_json(payload: serde_json::Value, diagnostics: Vec<sc_composer::Diagnost
 
 fn command_wants_json(command: &Command) -> bool {
     match command {
-        Command::Render(args) => args.json,
+        Command::Render(args) => args.render.json,
         Command::Resolve(args) => args.json,
         Command::Validate(args) => args.json,
         Command::FrontmatterInit(args) => args.json,
         Command::Init(args) => args.json,
         Command::ObservabilityHealth(args) => args.json,
+        Command::Examples(args) => match &args.command {
+            Some(ExamplesSubcommand::List(list_args)) => list_args.json,
+            None => args.render.json,
+        },
+        Command::Templates(args) => match &args.command {
+            Some(TemplatesSubcommand::List(list_args)) => list_args.json,
+            Some(TemplatesSubcommand::Add(add_args)) => add_args.json,
+            None => args.render.json,
+        },
     }
+}
+
+fn print_pack_list(packs: &[TemplateMeta], json: bool) -> Result<()> {
+    if json {
+        print_json(
+            serde_json::json!({
+                "packs": packs
+                    .iter()
+                    .map(|pack| serde_json::json!({
+                        "name": pack.name,
+                        "path": pack.path.display().to_string(),
+                    }))
+                    .collect::<Vec<_>>(),
+            }),
+            Vec::new(),
+        )?;
+    } else {
+        for pack in packs {
+            match (&pack.description, &pack.version) {
+                (Some(description), Some(version)) => {
+                    println!("{} - {} ({version})", pack.name, description);
+                }
+                (Some(description), None) => println!("{} - {}", pack.name, description),
+                (None, Some(version)) => println!("{} ({version})", pack.name),
+                (None, None) => println!("{}", pack.name),
+            }
+        }
+    }
+    Ok(())
 }
 
 fn observe_command<O>(

@@ -642,7 +642,7 @@ Command-specific rules:
   - emits `LoggingHealthReport` under `--json` as defined in section 19.3.
 - `examples list` and `templates list`
   - enumerate entries under their respective roots,
-  - surface example file stems or template directory names as pack names,
+  - surface normalized example names or template directory names as pack names,
   - emit stable JSON payloads containing `name` and absolute `path`,
   - may append `template.json` `description` and `version` in human-readable
     text output for templates when present.
@@ -650,8 +650,8 @@ Command-specific rules:
   - accepts a single file or directory source,
   - creates one pack directory in the user template root,
   - uses the explicit `[name]` when provided,
-  - otherwise uses the source stem for file input or the source directory name
-    for directory input,
+  - otherwise uses the source directory name for directory input or the
+    normalized template filename for file input,
   - fails if the target pack name already exists,
   - does not merge into an existing pack in the initial release.
 - `examples <name>` and `templates <name>`
@@ -876,7 +876,8 @@ Layout rules:
 
 - examples are flat `*.j2` files stored directly under the bundled examples
   root,
-- example names are file stems with the trailing `.j2` removed,
+- example names are derived from the filename by removing the trailing `.j2`
+  suffix and then one remaining source extension when present,
 - templates are one subdirectory per template under the user templates root,
 - template names are directory names,
 - template directories may contain one or more files,

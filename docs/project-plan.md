@@ -375,8 +375,8 @@ Deliverables:
 - `sc-compose templates add <src> [name]`
   - adds a user template pack from either a single file or a directory source
   - uses `[name]` when provided
-  - otherwise uses the source stem for file input or source directory name for
-    directory input
+  - otherwise uses the source directory name for directory input or the
+    normalized template filename for file input
   - fails if the destination pack name already exists
 - `sc-compose templates <name>`
   - implicitly renders the single root-level `*.j2` file in the named user
@@ -410,7 +410,9 @@ Deliverables:
 Example design rules:
 
 - examples should be immediately understandable without reading the source code
-- each example carries a brief in-file comment header explaining its purpose
+- each example should remain understandable from frontmatter, filename, and
+  minimal inline guidance when needed, without polluting the primary rendered
+  output
 - the starter set should cover:
   - minimal rendering
   - frontmatter/defaults/validation behavior

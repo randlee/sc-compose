@@ -132,6 +132,7 @@ mod tests {
             },
             vars_input: BTreeMap::default(),
             vars_env: BTreeMap::default(),
+            vars_defaults: BTreeMap::default(),
             guidance_block: None,
             user_prompt: None,
             policy: ComposePolicy::default(),

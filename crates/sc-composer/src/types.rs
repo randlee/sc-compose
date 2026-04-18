@@ -8,6 +8,86 @@ use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::Diagnostic;
 
+/// Caller-provided render input value.
+pub type InputValue = serde_json::Value;
+
+/// Validate a caller-provided input value against the supported render-context
+/// model.
+///
+/// # Errors
+///
+/// Returns [`InvalidInputValueError`] when the value is an object, a nested
+/// sequence, or contains unsupported element types.
+pub fn validate_input_value(value: &InputValue) -> Result<(), InvalidInputValueError> {
+    match value {
+        serde_json::Value::Null
+        | serde_json::Value::Bool(_)
+        | serde_json::Value::Number(_)
+        | serde_json::Value::String(_) => Ok(()),
+        serde_json::Value::Array(values) => {
+            for element in values {
+                match element {
+                    serde_json::Value::Null
+                    | serde_json::Value::Bool(_)
+                    | serde_json::Value::Number(_)
+                    | serde_json::Value::String(_) => {}
+                    serde_json::Value::Array(_) => {
+                        return Err(InvalidInputValueError::new(
+                            "expected a scalar value or array of scalars, found nested array",
+                        ));
+                    }
+                    serde_json::Value::Object(_) => {
+                        return Err(InvalidInputValueError::new(
+                            "expected a scalar value or array of scalars, found object",
+                        ));
+                    }
+                }
+            }
+            Ok(())
+        }
+        serde_json::Value::Object(_) => Err(InvalidInputValueError::new(
+            "expected a scalar value or array of scalars, found object",
+        )),
+    }
+}
+
+/// Convert a YAML value into a supported caller-provided input value.
+///
+/// # Errors
+///
+/// Returns [`InvalidInputValueError`] when the YAML value is a mapping, nested
+/// sequence, or tagged non-scalar sequence element.
+pub fn input_value_from_yaml(
+    value: serde_yaml::Value,
+) -> Result<InputValue, InvalidInputValueError> {
+    match value {
+        serde_yaml::Value::Null => Ok(serde_json::Value::Null),
+        serde_yaml::Value::Bool(value) => Ok(serde_json::Value::Bool(value)),
+        serde_yaml::Value::Number(value) => {
+            match serde_json::from_str::<serde_json::Value>(&value.to_string()) {
+                Ok(serde_json::Value::Number(number)) => Ok(serde_json::Value::Number(number)),
+                _ => Err(InvalidInputValueError::new(
+                    "expected a scalar value or array of scalars, found unsupported number",
+                )),
+            }
+        }
+        serde_yaml::Value::String(value) => Ok(serde_json::Value::String(value)),
+        serde_yaml::Value::Sequence(values) => values
+            .into_iter()
+            .map(input_value_from_yaml)
+            .collect::<Result<Vec<_>, _>>()
+            .map(serde_json::Value::Array)
+            .and_then(|value| {
+                validate_input_value(&value)?;
+                Ok(value)
+            }),
+        serde_yaml::Value::Tagged(tagged) => input_value_from_yaml(tagged.value),
+        serde_yaml::Value::Mapping(_) => Err(InvalidInputValueError::new(
+            "expected a scalar value or array of scalars, found mapping",
+        )),
+    }
+}
+
 /// Scalar value supported by the initial render-context model.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -351,9 +431,11 @@ pub struct ComposeRequest {
     /// Confinement root for template resolution and include checks.
     pub root: ConfiningRoot,
     /// Explicit caller-provided variables.
-    pub vars_input: BTreeMap<VariableName, ScalarValue>,
+    pub vars_input: BTreeMap<VariableName, InputValue>,
     /// Environment-derived variables.
-    pub vars_env: BTreeMap<VariableName, ScalarValue>,
+    pub vars_env: BTreeMap<VariableName, InputValue>,
+    /// Pack-level default variables supplied by the CLI layer.
+    pub vars_defaults: BTreeMap<VariableName, InputValue>,
     /// Optional guidance block appended by higher-level callers.
     pub guidance_block: Option<String>,
     /// Optional user prompt block appended by higher-level callers.
@@ -370,6 +452,8 @@ pub enum VariableSource {
     ExplicitInput,
     /// Environment-derived input.
     Environment,
+    /// Default supplied by a user template pack.
+    TemplateInputDefault,
     /// Default declared in the root document frontmatter.
     FrontmatterDefault,
     /// Default declared in an included document frontmatter.
@@ -457,6 +541,29 @@ impl InvalidScalarValueError {
     #[must_use]
     pub fn value(&self) -> &serde_yaml::Value {
         &self.value
+    }
+}
+
+/// Error returned when a render-context value uses an unsupported input shape.
+#[derive(Clone, Debug, thiserror::Error)]
+#[error("{message}")]
+pub struct InvalidInputValueError {
+    message: String,
+}
+
+impl InvalidInputValueError {
+    /// Create a new input-value validation error.
+    #[must_use]
+    pub fn new(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+        }
+    }
+
+    /// Return the human-readable error message.
+    #[must_use]
+    pub fn message(&self) -> &str {
+        &self.message
     }
 }
 

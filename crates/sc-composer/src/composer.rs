@@ -11,7 +11,7 @@ use crate::observer::{
 };
 use crate::renderer::Renderer;
 use crate::resolver::resolve_template_path;
-use crate::types::{ComposeRequest, ComposeResult, ScalarValue, ValidationReport};
+use crate::types::{ComposeRequest, ComposeResult, ValidationReport};
 
 /// Compose a request end to end: resolve, expand includes, validate, render,
 /// and assemble output blocks.
@@ -144,17 +144,8 @@ fn build_render_context(
     state
         .context
         .iter()
-        .map(|(key, value)| (key.to_string(), scalar_to_json(value.clone())))
+        .map(|(key, value)| (key.to_string(), value.clone()))
         .collect()
-}
-
-fn scalar_to_json(value: ScalarValue) -> serde_json::Value {
-    match value {
-        ScalarValue::String(value) => serde_json::Value::String(value),
-        ScalarValue::Number(value) => serde_json::Value::Number(value),
-        ScalarValue::Boolean(value) => serde_json::Value::Bool(value),
-        ScalarValue::Null => serde_json::Value::Null,
-    }
 }
 
 fn assemble_output(
@@ -179,14 +170,15 @@ mod tests {
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    use serde_json::json;
+
     use crate::observer::{
         CompositionObserver, IncludeOutcomeEvent, RenderOutcomeEvent, ResolveOutcomeEvent,
         ValidationOutcomeEvent,
     };
     use crate::types::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot};
     use crate::{
-        ComposeError, DiagnosticCode, ScalarValue, VariableName, VariableSource, compose,
-        compose_with_observer,
+        ComposeError, DiagnosticCode, VariableName, VariableSource, compose, compose_with_observer,
     };
 
     #[derive(Default)]
@@ -231,6 +223,7 @@ mod tests {
             root: ConfiningRoot::new(&root).unwrap(),
             vars_input: BTreeMap::default(),
             vars_env: BTreeMap::default(),
+            vars_defaults: BTreeMap::default(),
             guidance_block: Some("guidance".to_owned()),
             user_prompt: Some("prompt".to_owned()),
             policy: ComposePolicy::default(),
@@ -255,10 +248,7 @@ mod tests {
         );
 
         let mut vars_input = BTreeMap::default();
-        vars_input.insert(
-            VariableName::new("name").unwrap(),
-            ScalarValue::String("explicit".to_owned()),
-        );
+        vars_input.insert(VariableName::new("name").unwrap(), json!("explicit"));
 
         let result = compose(&ComposeRequest {
             runtime: None,
@@ -268,6 +258,7 @@ mod tests {
             root: ConfiningRoot::new(&root).unwrap(),
             vars_input,
             vars_env: BTreeMap::default(),
+            vars_defaults: BTreeMap::default(),
             guidance_block: None,
             user_prompt: None,
             policy: ComposePolicy::default(),
@@ -299,6 +290,7 @@ mod tests {
             root: ConfiningRoot::new(&root).unwrap(),
             vars_input: BTreeMap::default(),
             vars_env: BTreeMap::default(),
+            vars_defaults: BTreeMap::default(),
             guidance_block: None,
             user_prompt: None,
             policy: ComposePolicy::default(),
@@ -326,6 +318,7 @@ mod tests {
                 root: ConfiningRoot::new(&root).unwrap(),
                 vars_input: BTreeMap::default(),
                 vars_env: BTreeMap::default(),
+                vars_defaults: BTreeMap::default(),
                 guidance_block: None,
                 user_prompt: None,
                 policy: ComposePolicy::default(),
@@ -357,6 +350,7 @@ mod tests {
                 root: ConfiningRoot::new(&root).unwrap(),
                 vars_input: BTreeMap::default(),
                 vars_env: BTreeMap::default(),
+                vars_defaults: BTreeMap::default(),
                 guidance_block: None,
                 user_prompt: None,
                 policy: ComposePolicy::default(),
@@ -394,6 +388,7 @@ mod tests {
                 root: ConfiningRoot::new(&root).unwrap(),
                 vars_input: BTreeMap::default(),
                 vars_env: BTreeMap::default(),
+                vars_defaults: BTreeMap::default(),
                 guidance_block: None,
                 user_prompt: None,
                 policy: ComposePolicy::default(),
