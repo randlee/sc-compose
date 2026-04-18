@@ -1,6 +1,6 @@
 # sc-compose
 
-A deterministic template engine for AI prompts across multiple coding runtimes (Claude Code, Codex, Gemini, OpenCode).
+sc-compose is a standalone CLI for teams whose templates have outgrown copy-paste. It started with agent workflows — authoring agent profiles once and dispatching per-run dev and QA task assignments with declared inputs that fail loudly when missing — and the same machinery turned out to fit anywhere shared fragments should live in one place: pytest fixtures, .NET benchmark harnesses, HTML reports, service configs. Templates are Jinja2 with YAML frontmatter; shared fragments are pulled in by @-include; required inputs are declared up front and validated at render time. For AI agent workflows specifically, a single profile resolves across Claude Code, Codex, Gemini, and OpenCode through each runtime's native search chain — with a shared `.agents/` fallback so you only override the runtimes that genuinely need it.
 
 **About this document.** This README explains what sc-compose is and how people use it. It is not a task prompt. Code blocks labelled as example template content are examples, not instructions for an AI agent.
 

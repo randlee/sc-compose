@@ -157,7 +157,10 @@ impl TemplateStore {
     }
 
     pub(crate) fn get_example(&self, name: &str) -> Result<Option<TemplatePack>> {
-        debug_assert_eq!(self.kind, StoreKind::Examples);
+        assert!(
+            self.kind == StoreKind::Examples,
+            "TemplateStore::get_example requires StoreKind::Examples"
+        );
         if !self.source_dir.exists() {
             return Ok(None);
         }
@@ -196,7 +199,10 @@ impl TemplateStore {
         &self,
         name: &str,
     ) -> std::result::Result<Option<TemplatePack>, GetTemplateError> {
-        debug_assert_eq!(self.kind, StoreKind::Templates);
+        assert!(
+            self.kind == StoreKind::Templates,
+            "TemplateStore::get_template requires StoreKind::Templates"
+        );
         self.find_template_dir(name)
             .map(|path| Self::load_template_pack(&path))
             .transpose()
@@ -207,7 +213,10 @@ impl TemplateStore {
         source: &Path,
         requested_name: Option<&str>,
     ) -> std::result::Result<TemplateAddResult, AddError> {
-        debug_assert_eq!(self.kind, StoreKind::Templates);
+        assert!(
+            self.kind == StoreKind::Templates,
+            "TemplateStore::add requires StoreKind::Templates"
+        );
         self.ensure_templates_root().map_err(AddError::Other)?;
 
         let source = fs::canonicalize(source)

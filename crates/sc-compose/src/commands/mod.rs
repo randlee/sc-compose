@@ -48,6 +48,16 @@ fn pack_not_found_error(kind: &str, name: &str, list_command: &str) -> CommandEr
     )
 }
 
+fn store_root_error(error: anyhow::Error, env_var: &'static str) -> CommandError {
+    CommandError::usage_with_code_and_hints(
+        error,
+        DiagnosticCode::ErrConfigParse,
+        vec![RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
+            key: format!("set {env_var}"),
+        })],
+    )
+}
+
 fn pack_not_renderable_error(error: anyhow::Error) -> CommandError {
     CommandError::usage_with_code_and_hints(
         error,

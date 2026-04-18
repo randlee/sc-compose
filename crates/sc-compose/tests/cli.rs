@@ -208,6 +208,20 @@ fn examples_list_uses_data_dir_override() {
 }
 
 #[test]
+fn examples_list_with_nonexistent_data_dir_exits_zero_and_prints_nothing() {
+    let root = temp_root("examples-list-missing-data-dir");
+    let output = sc_compose()
+        .arg("examples")
+        .arg("list")
+        .env("SC_COMPOSE_DATA_DIR", root.join("missing-data-root"))
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "");
+}
+
+#[test]
 fn examples_named_render_uses_data_dir_override() {
     let output = sc_compose()
         .arg("examples")
@@ -349,6 +363,23 @@ fn templates_add_directory_creates_pack_and_readme_and_named_render_uses_input_d
 }
 
 #[test]
+fn templates_list_with_nonexistent_template_dir_exits_zero_and_prints_nothing() {
+    let root = temp_root("templates-list-missing-root");
+    let output = sc_compose()
+        .arg("templates")
+        .arg("list")
+        .env(
+            "SC_COMPOSE_TEMPLATE_DIR",
+            root.join("missing-templates-root"),
+        )
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "");
+}
+
+#[test]
 fn templates_add_duplicate_name_reports_template_exists() {
     let root = temp_root("templates-add-duplicate");
     let templates_root = root.join("user-templates");
@@ -422,6 +453,24 @@ fn templates_named_render_reports_not_renderable_when_multiple_root_templates_ex
     let stderr = String::from_utf8(output.stderr).unwrap();
     assert!(stderr.contains("ERR_CONFIG_PACK_NOT_RENDERABLE"));
     assert!(stderr.contains("add a .j2 file to the template pack directory"));
+}
+
+#[test]
+fn templates_named_render_missing_pack_reports_list_recovery_hint() {
+    let root = temp_root("templates-missing-pack");
+    let templates_root = root.join("user-templates");
+
+    let output = sc_compose()
+        .arg("templates")
+        .arg("missing-pack")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("ERR_CONFIG_PACK_NOT_FOUND"));
+    assert!(stderr.contains("sc-compose templates list"));
 }
 
 #[test]
