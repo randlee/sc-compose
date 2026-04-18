@@ -268,16 +268,30 @@ Exit gate:
   - already specified in the normative docs
   - revalidated in Sprint 3 and Sprint 4 where release blockers or integration
     changes touch them
+- FR-1b:
+  - Sprint S7 broadens render inputs from scalar-only to scalar values plus
+    arrays of scalars
+  - Sprint S7 validates empty-array acceptance and list iteration support
+- FR-1d:
+  - Sprint S7 defines flat bundled examples, per-template user directories,
+    and the `TemplateStore`-based lookup model
+- FR-2:
+  - Sprint S7 extends precedence handling to include template
+    `input_defaults`
 - FR-7:
   - Sprint 1 finalizes the command surface
   - Sprint 2 implements `observability-health`
   - Sprint 3 hardens command behavior
   - Sprint 4 validates release behavior
+  - Sprint S7 adds `examples list`, `examples <name>`, `templates list`,
+    `templates add`, and `templates <name>`
 - FR-8 and FR-8a:
   - Sprint 1 finalizes command and health schemas
   - Sprint 2 implements the logger-facing command output
   - Sprint 3 hardens JSON and failure-path behavior
   - Sprint 4 validates release behavior
+  - Sprint S7 adds `examples list --json`, `templates list --json`, and
+    `templates add --json`
 - FR-9:
   - Sprint 1 finalizes the logging-only integration contract
   - Sprint 2 implements the logging path
@@ -325,9 +339,9 @@ Branch:
 
 Goals:
 
-- ship a small, reviewable starter set of bundled example packs with the tool
-- add a user-managed templates surface in the same sprint so copied or custom
-  packs are immediately usable
+- ship a small, reviewable starter set of bundled example files with the tool
+- add a user-managed templates surface in the same sprint so created or custom
+  templates are immediately usable
 - support short named-render UX through command namespaces rather than a longer
   explicit render subcommand
 - broaden the input model enough to support array/list-driven examples without
@@ -335,25 +349,25 @@ Goals:
 
 Deliverables:
 
-- repo-root `examples/` directory organized as starter packs:
-  - `hello/`
-  - `frontmatter-demo/`
-  - `service-config/`
-  - `agent-task-branching/`
-  - `pytest-fixture/`
-- each starter pack contains:
-  - one root-level renderable `*.j2` template for v1 named render
-  - an optional `template.json` carrying only:
-    - `description`
-    - `version`
-    - `input_defaults`
+- repo-root `examples/` directory with flat starter example files:
+  - `hello.md.j2`
+  - `frontmatter-demo.md.j2`
+  - `service-config.yaml.j2`
+  - `agent-task-branching.xml.j2`
+  - `pytest-fixture.py.j2`
+- user templates stored as one subdirectory per template under the user
+  templates root
+- optional `template.json` for user template directories carrying only:
+  - `description`
+  - `version`
+  - `input_defaults`
 - `sc-compose examples list`
-  - discovers bundled packs through `SC_COMPOSE_DATA_DIR/examples` first
+  - discovers bundled example files through `SC_COMPOSE_DATA_DIR/examples`
+    first
   - falls back to install-relative `../share/sc-compose/examples/`
-  - lists bundled packs in text or JSON form
+  - lists bundled example files in text or JSON form
 - `sc-compose examples <name>`
-  - implicitly renders the single root-level `*.j2` file in the named bundled
-    pack
+  - implicitly renders the flat example file matching the requested name
   - uses the same render flags and output behavior as `render`
 - `sc-compose templates list`
   - lists user template packs from `SC_COMPOSE_TEMPLATE_DIR` or the platform
@@ -377,7 +391,7 @@ Deliverables:
 - precedence updates so named-render pack defaults merge as:
   1. explicit input variables
   2. environment-derived variables
-  3. `template.json` `input_defaults`
+  3. user-template `template.json` `input_defaults`
   4. frontmatter defaults
 - packaging/install documentation for:
   - Homebrew `#{prefix}/share/sc-compose/examples/`
@@ -390,8 +404,8 @@ Deliverables:
   - examples/templates listing
   - templates add
   - named render for single-template packs
-  - array/list inputs through frontmatter defaults, `template.json`
-    `input_defaults`, and `--var-file`
+  - array/list inputs through frontmatter defaults, user-template
+    `template.json` `input_defaults`, and `--var-file`
 
 Example design rules:
 
@@ -405,8 +419,8 @@ Example design rules:
   - code-generation scaffolding for pytest
 - the pytest example should exercise real array/list inputs rather than a
   scalar text-block workaround
-- v1 named render is defined only for packs with exactly one root-level `*.j2`
-  file
+- v1 named render resolves flat example files by stem and user templates by
+  the single root-level `*.j2` file inside the named template directory
 
 Explicit deferral:
 
@@ -420,9 +434,9 @@ Explicit deferral:
 
 Acceptance criteria:
 
-- all five starter example packs exist and are review-ready
-- `sc-compose examples` auto-finds bundled packs from install-relative share
-  layout or `SC_COMPOSE_DATA_DIR/examples`
+- all five starter example files exist and are review-ready
+- `sc-compose examples` auto-finds bundled example files from install-relative
+  share layout or `SC_COMPOSE_DATA_DIR/examples`
 - `sc-compose templates` auto-finds the user template root from
   `SC_COMPOSE_TEMPLATE_DIR` or the platform user-data directory joined with
   `sc-compose/templates/`
@@ -431,7 +445,7 @@ Acceptance criteria:
 - the user templates root includes a concise `README.md` describing the
   supported workflow and directory convention
 - array/list inputs work through `--var-file`, frontmatter defaults, and
-  `template.json` `input_defaults`
+  user-template `template.json` `input_defaults`
 - `template.json` remains a user-facing metadata/defaults file rather than a
   manifest that drives alternate execution logic
 - `templates add` stores file sources as

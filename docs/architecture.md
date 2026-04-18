@@ -273,6 +273,14 @@ Semantic rules:
 - null
 - sequence of scalar values
 
+Rust type contract:
+
+- `InputValue` is represented as `serde_json::Value`,
+- object values are rejected at parse time,
+- nested sequences are rejected at parse time,
+- only scalar values and arrays of scalar values may cross the CLI-to-library
+  boundary.
+
 Sequence values remain narrow in the initial release:
 
 - sequence members may contain only scalar values,
@@ -633,10 +641,11 @@ Command-specific rules:
   - prints a human-readable health summary by default,
   - emits `LoggingHealthReport` under `--json` as defined in section 19.3.
 - `examples list` and `templates list`
-  - enumerate pack directories under their respective roots,
-  - surface directory name as pack name,
-  - include `template.json` `description` and `version` in human and JSON
-    listing output when present.
+  - enumerate entries under their respective roots,
+  - surface example file stems or template directory names as pack names,
+  - emit stable JSON payloads containing `name` and absolute `path`,
+  - may append `template.json` `description` and `version` in human-readable
+    text output for templates when present.
 - `templates add`
   - accepts a single file or directory source,
   - creates one pack directory in the user template root,
@@ -757,8 +766,7 @@ The schemas below define the `payload` shape for each command.
   "packs": [
     {
       "name": "hello",
-      "description": "Minimal greeting example",
-      "version": "1.0.0"
+      "path": "/path/to/share/sc-compose/examples/hello.md.j2"
     }
   ]
 }
@@ -864,13 +872,35 @@ Root resolution:
   1. `SC_COMPOSE_TEMPLATE_DIR`
   2. platform user-data directory joined with `sc-compose/templates/`
 
-Pack rules:
+Layout rules:
 
-- pack name is the directory name under the selected root,
-- packs may contain one or more files,
-- packs may contain non-template assets retained verbatim when a directory
-  source is imported with `templates add`,
-- packs may contain an optional `template.json`.
+- examples are flat `*.j2` files stored directly under the bundled examples
+  root,
+- example names are file stems with the trailing `.j2` removed,
+- templates are one subdirectory per template under the user templates root,
+- template names are directory names,
+- template directories may contain one or more files,
+- template directories may contain non-template assets retained verbatim when a
+  directory source is imported with `templates add`,
+- template directories may contain an optional `template.json`.
+
+`TemplateStore`
+
+- `TemplateStore` is a `sc-compose` CLI-layer abstraction and does not exist in
+  `sc-composer`,
+- it owns discovery and named lookup for one source root,
+- minimum field shape:
+  - `source_dir: PathBuf`
+- required methods:
+  - `list() -> Vec<TemplateMeta>`
+  - `get(name: &str) -> Option<PathBuf>`
+- `TemplateMeta` carries:
+  - `name: String`
+  - `path: PathBuf`
+- examples and templates use the same abstraction with different layout rules:
+  - examples list/get operate on flat `*.j2` files,
+  - templates list/get operate on subdirectories and resolve the single
+    root-level `*.j2` entry file when renderable.
 
 `template.json` is intentionally narrow and user-facing:
 
@@ -889,8 +919,8 @@ Manifest rules:
 - `description` is for list and help output,
 - `version` is pack metadata only,
 - `input_defaults` contributes pack-level default inputs,
-- pack input defaults merge with request inputs using the precedence defined in
-  the requirements:
+- user-template input defaults merge with request inputs using the precedence
+  defined in the requirements:
   1. explicit input variables
   2. environment-derived variables
   3. `template.json` `input_defaults`
@@ -900,10 +930,11 @@ Manifest rules:
 
 Implicit named render convention:
 
-- if a pack contains exactly one root-level `*.j2` file, that file is the
-  implicit entry template for `examples <name>` or `templates <name>`
-- if a pack contains zero or multiple root-level `*.j2` files, it remains
-  listable but is not implicitly renderable by name
+- `examples <name>` resolves the flat example file with matching stem,
+- `templates <name>` resolves the single root-level `*.j2` file in the named
+  template directory,
+- if a template directory contains zero or multiple root-level `*.j2` files,
+  it remains listable but is not implicitly renderable by name,
 - supporting assets remain available for directory-import workflows and future
   expansion, but they do not change the initial render resolution rules.
 
@@ -975,6 +1006,9 @@ Canonical failures must map to stable error families and stable codes.
 | Command or helper invoked in incompatible mode | `ConfigError` | `ERR_CONFIG_MODE` |
 | Config file missing or malformed | `ConfigError` | `ERR_CONFIG_PARSE` |
 | Invalid var-file shape | `ConfigError` | `ERR_CONFIG_VARFILE` |
+| Example or template pack name not found | `ConfigError` | `ERR_CONFIG_PACK_NOT_FOUND` |
+| Named template pack is not renderable because it has zero or multiple root-level `*.j2` files | `ConfigError` | `ERR_CONFIG_PACK_NOT_RENDERABLE` |
+| `templates add` target name already exists | `ConfigError` | `ERR_CONFIG_TEMPLATE_EXISTS` |
 
 ## 19. Observability Integration (FR-9, FR-10, FR-11)
 

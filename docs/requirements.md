@@ -129,7 +129,7 @@ narrow even after template-pack support is added.
   - a sequence of scalar values
 - Sequence values may contain only supported scalar value types.
 - Nested sequences and mapping values are out of scope for template variables,
-  `defaults`, and template-pack `input_defaults` in the initial release.
+  `defaults`, and user-template `input_defaults` in the initial release.
 - `metadata` may contain arbitrary YAML values because it is descriptive only
   and does not participate in rendering semantics.
 
@@ -150,12 +150,17 @@ narrow even after template-pack support is added.
 
 ### FR-1d: Template Pack Layout
 
-- Bundled examples and user templates must be stored as pack directories.
-- A pack name is the directory name under its command-specific root.
-- A pack may contain one or more files, including one or more `.j2` templates
-  and supporting assets.
-- `template.json` is optional. If present, it is user-facing metadata and may
-  contain only:
+- Bundled examples and user templates use different on-disk layouts.
+- Bundled examples are flat `*.j2` files stored directly under the examples
+  root.
+- Example names are file stems with the trailing `.j2` removed.
+- User templates are stored as one subdirectory per template under the user
+  templates root.
+- A user template directory name is the template name.
+- A user template directory may contain one or more files, including one or
+  more `.j2` templates and supporting assets.
+- `template.json` is optional for user template directories. If present, it is
+  user-facing metadata and may contain only:
   - `description`
   - `version`
   - `input_defaults`
@@ -163,19 +168,20 @@ narrow even after template-pack support is added.
   render-context value types.
 - `template.json` must not introduce alternate render semantics, hook
   execution, or manifest-owned entrypoint selection in the initial release.
-- Named render from `sc-compose examples <name>` or
-  `sc-compose templates <name>` is defined only when the pack contains exactly
-  one root-level `*.j2` file.
-- Packs with zero or multiple root-level `*.j2` files remain listable and
-  addable as user-managed content, but they are not implicitly renderable by
-  name in the initial release.
+- Named render from `sc-compose examples <name>` resolves the matching flat
+  example file under the examples root.
+- Named render from `sc-compose templates <name>` is defined only when the
+  template directory contains exactly one root-level `*.j2` file.
+- Template directories with zero or multiple root-level `*.j2` files remain
+  listable and addable, but they are not implicitly renderable by name in the
+  initial release.
 
 ### FR-2: Variable Resolution and Precedence
 
 - Final render context precedence must be:
   1. explicit input variables,
   2. environment-derived variables,
-  3. template-pack `input_defaults`,
+  3. user-template `input_defaults`,
   4. frontmatter defaults.
 - Frontmatter-declared `required_variables` must be evaluated after the merge.
 - Variables present only in `defaults` are optional by default.
@@ -736,8 +742,24 @@ Schema rules:
     "packs": [
       {
         "name": "hello",
-        "description": "Minimal greeting example",
-        "version": "1.0.0"
+        "path": "/path/to/share/sc-compose/examples/hello.md.j2"
+      }
+    ]
+  },
+  "diagnostics": []
+}
+```
+
+`templates list --json`
+
+```json
+{
+  "schema_version": "1",
+  "payload": {
+    "packs": [
+      {
+        "name": "pytest-fixture",
+        "path": "/path/to/user-data/sc-compose/templates/pytest-fixture"
       }
     ]
   },
@@ -752,8 +774,8 @@ Schema rules:
   "schema_version": "1",
   "payload": {
     "name": "pytest-fixture",
-    "source": "/tmp/pytest-fixture",
-    "destination": "/user-data/sc-compose/templates/pytest-fixture",
+    "source": "/path/to/source/pytest-fixture.py.j2",
+    "destination": "/path/to/user-data/sc-compose/templates/pytest-fixture",
     "changed": true
   },
   "diagnostics": []
@@ -884,7 +906,7 @@ Required integration coverage includes:
 - cross-platform path behavior,
 - template-pack discovery and add semantics,
 - list/array input behavior through frontmatter defaults, `template.json`
-  `input_defaults`, and `--var-file`.
+  `input_defaults` for user templates, and `--var-file`.
 
 ## 8. Out of Scope for the Initial Release
 
