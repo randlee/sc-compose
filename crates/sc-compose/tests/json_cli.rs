@@ -750,6 +750,39 @@ fn templates_add_json_uses_diagnostic_envelope() {
 }
 
 #[test]
+fn templates_add_duplicate_json_reports_template_exists_code() {
+    let root = temp_root("templates-add-duplicate-json");
+    let templates_root = root.join("user-templates");
+    let source = root.join("hello.md.j2");
+    write_file(&source, "Hello {{ name }}!");
+
+    let first = sc_compose()
+        .arg("templates")
+        .arg("add")
+        .arg(&source)
+        .arg("--json")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+    assert!(first.status.success());
+
+    let output = sc_compose()
+        .arg("templates")
+        .arg("add")
+        .arg(&source)
+        .arg("--json")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_CONFIG_TEMPLATE_EXISTS");
+}
+
+#[test]
 fn templates_render_json_reports_pack_not_renderable_code() {
     let root = temp_root("templates-render-json-not-renderable");
     let templates_root = root.join("user-templates");

@@ -49,7 +49,7 @@ cargo build --release -p sc-compose
 | `examples list` | List bundled starter templates shipped with sc-compose. |
 | `examples <name>` | Render a bundled example with optional `--var` / `--var-file`. |
 | `templates list` | List your saved personal templates. |
-| `templates add <file>` | Save a template to your local template store. |
+| `templates add <src> [name]` | Save a file or directory to your local template store. |
 | `templates <name>` | Render a saved template with optional `--var` / `--var-file`. |
 
 ---
@@ -311,8 +311,9 @@ The examples directory is located automatically from the binary path (`../share/
 Save and reuse your own templates:
 
 ```bash
-sc-compose templates add my-template.md.j2          # save to local store
-sc-compose templates list                            # list saved templates
+sc-compose templates add my-template.md.j2             # save a single file pack
+sc-compose templates add my-pack-dir my-pack           # import a directory pack
+sc-compose templates list                              # list saved templates
 sc-compose templates my-template --var-file data.json  # render
 ```
 
@@ -354,7 +355,7 @@ Three ways to get variables into a render, highest precedence first:
 2. `--var-file path.yaml` or `path.json`. Use `-` to read from stdin; useful for piping. Arrays of scalars are accepted.
 3. `--env-prefix TASK_` to absorb any environment variables matching the prefix (e.g. `TASK_TICKET=ENG-4712` becomes variable `ticket`).
 
-Frontmatter defaults fill in behind all three. `--strict` turns any referenced-but-undeclared variable into a hard error. `--unknown-var-mode error|warn|ignore` controls what happens to caller-provided variables the template does not reference.
+For named template renders, optional user-template `template.json` `input_defaults` fill in behind those three sources. Frontmatter defaults fill in behind `input_defaults`. `--strict` turns any referenced-but-undeclared variable into a hard error. `--unknown-var-mode error|warn|ignore` controls what happens to caller-provided variables the template does not reference.
 
 ---
 
@@ -384,8 +385,9 @@ From highest to lowest:
 
 1. `--var key=value` and entries loaded via `--var-file`.
 2. Environment-derived variables via `--env-prefix PREFIX_`.
-3. Parent-file frontmatter defaults.
-4. Included-file frontmatter defaults, in include order.
+3. User-template `template.json` `input_defaults` for `sc-compose templates <name>`.
+4. Parent-file frontmatter defaults.
+5. Included-file frontmatter defaults, in include order.
 
 For full semantics (including diagnostic codes, exit codes, and JSON schemas), see `docs/requirements.md`.
 

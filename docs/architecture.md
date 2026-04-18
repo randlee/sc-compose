@@ -889,19 +889,47 @@ Layout rules:
 
 - `TemplateStore` is a `sc-compose` CLI-layer abstraction and does not exist in
   `sc-composer`,
-- it owns discovery and named lookup for one source root,
+- it owns discovery, named lookup, and user-template import for one source
+  root,
+- concrete store roots are selected by `StoreKind::{Examples, Templates}`,
 - minimum field shape:
   - `source_dir: PathBuf`
-- required methods:
-  - `list() -> Vec<TemplateMeta>`
-  - `get(name: &str) -> Option<PathBuf>`
+  - `kind: StoreKind`
 - `TemplateMeta` carries:
   - `name: String`
   - `path: PathBuf`
+  - `description: Option<String>`
+  - `version: Option<String>`
+- `TemplatePack` carries:
+  - `root: PathBuf`
+  - `template_path: PathBuf`
+  - `input_defaults: Map<VariableName, InputValue>`
+- `TemplateAddResult` carries:
+  - `name: String`
+  - `source: PathBuf`
+  - `destination: PathBuf`
+  - `changed: bool`
+- required methods:
+  - `list() -> Result<Vec<TemplateMeta>>`
+  - `get_example(name: &str) -> Result<Option<TemplatePack>>`
+  - `get_template(name: &str) -> Result<Option<TemplatePack>, GetTemplateError>`
+  - `add(source: &Path, requested_name: Option<&str>) -> Result<TemplateAddResult, AddError>`
 - examples and templates use the same abstraction with different layout rules:
-  - examples list/get operate on flat `*.j2` files,
-  - templates list/get operate on subdirectories and resolve the single
-    root-level `*.j2` entry file when renderable.
+  - examples list and named lookup operate on flat `*.j2` files,
+  - templates list and named lookup operate on subdirectories and resolve the
+    single root-level `*.j2` entry file when renderable,
+  - `AddError::AlreadyExists` is the structured duplicate-import path,
+  - `GetTemplateError::NotRenderable` is reserved for zero-or-many root-level
+    `*.j2` files,
+  - `GetTemplateError::Parse` covers manifest and filesystem read failures.
+
+Command extraction:
+
+- `src/commands/examples.rs` owns `run_examples_list` and
+  `run_examples_render`,
+- `src/commands/templates.rs` owns `run_templates_list`, `run_templates_add`,
+  and `run_templates_render`,
+- `main.rs` retains the top-level CLI shape and dispatch only.
 
 `template.json` is intentionally narrow and user-facing:
 
@@ -926,6 +954,12 @@ Manifest rules:
   2. environment-derived variables
   3. `template.json` `input_defaults`
   4. frontmatter defaults
+- `input_defaults` values use the same `InputValue` contract as other caller
+  inputs:
+  - scalars,
+  - arrays of scalars,
+  - empty arrays are valid,
+  - objects and nested arrays are rejected
 - no manifest field selects entrypoints, paths, hooks, or alternate execution
   behavior in the initial release.
 

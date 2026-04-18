@@ -250,6 +250,48 @@ fn examples_named_render_accepts_array_values_from_var_file() {
 }
 
 #[test]
+fn examples_named_render_missing_pack_reports_list_recovery_hint() {
+    let output = sc_compose()
+        .arg("examples")
+        .arg("missing-pack")
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("ERR_CONFIG_PACK_NOT_FOUND"));
+    assert!(stderr.contains("sc-compose examples list"));
+}
+
+#[test]
+fn templates_named_render_uses_array_input_defaults_from_template_json() {
+    let root = temp_root("templates-array-defaults");
+    let templates_root = root.join("user-templates");
+    let pack = templates_root.join("pytest-defaults");
+    write_file(
+        &pack.join("template.json"),
+        r#"{ "description": "Pytest defaults", "version": "1.0.0", "input_defaults": { "fixture_name": "fixture_state", "test_names": ["login", "logout"] } }"#,
+    );
+    write_file(
+        &pack.join("pytest-tests.py.j2"),
+        "{% for test_name in test_names %}def test_{{ test_name }}({{ fixture_name }}):\n    pytest.fail(\"Fail: Not implemented\")\n\n{% endfor %}",
+    );
+
+    let output = sc_compose()
+        .arg("templates")
+        .arg("pytest-defaults")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("def test_login(fixture_state):"));
+    assert!(stdout.contains("def test_logout(fixture_state):"));
+}
+
+#[test]
 fn templates_add_directory_creates_pack_and_readme_and_named_render_uses_input_defaults() {
     let root = temp_root("templates-add-dir");
     let templates_root = root.join("user-templates");
@@ -307,6 +349,36 @@ fn templates_add_directory_creates_pack_and_readme_and_named_render_uses_input_d
 }
 
 #[test]
+fn templates_add_duplicate_name_reports_template_exists() {
+    let root = temp_root("templates-add-duplicate");
+    let templates_root = root.join("user-templates");
+    let source = root.join("hello.md.j2");
+    write_file(&source, "Hello {{ name }}!\n");
+
+    let first = sc_compose()
+        .arg("templates")
+        .arg("add")
+        .arg(&source)
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+    assert!(first.status.success());
+
+    let duplicate = sc_compose()
+        .arg("templates")
+        .arg("add")
+        .arg(&source)
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert_eq!(duplicate.status.code(), Some(3));
+    let stderr = String::from_utf8(duplicate.stderr).unwrap();
+    assert!(stderr.contains("ERR_CONFIG_TEMPLATE_EXISTS"));
+    assert!(stderr.contains("delete the existing template or use a different name"));
+}
+
+#[test]
 fn templates_add_file_creates_pack_named_from_template_file() {
     let root = temp_root("templates-add-file");
     let templates_root = root.join("user-templates");
@@ -349,6 +421,80 @@ fn templates_named_render_reports_not_renderable_when_multiple_root_templates_ex
     assert_eq!(output.status.code(), Some(3));
     let stderr = String::from_utf8(output.stderr).unwrap();
     assert!(stderr.contains("ERR_CONFIG_PACK_NOT_RENDERABLE"));
+    assert!(stderr.contains("add a .j2 file to the template pack directory"));
+}
+
+#[test]
+fn templates_named_render_reports_parse_errors_for_invalid_template_manifest() {
+    let root = temp_root("templates-invalid-manifest");
+    let templates_root = root.join("user-templates");
+    let pack = templates_root.join("broken");
+    write_file(&pack.join("template.json"), "{ invalid json");
+    write_file(&pack.join("broken.md.j2"), "hello");
+
+    let output = sc_compose()
+        .arg("templates")
+        .arg("broken")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("ERR_CONFIG_PARSE"));
+    assert!(!stderr.contains("ERR_CONFIG_PACK_NOT_RENDERABLE"));
+}
+
+#[test]
+fn render_rejects_nested_object_values_in_var_file() {
+    let root = temp_root("nested-object-var-file");
+    let vars_file = root.join("vars.json");
+    write_file(&root.join("template.md.j2"), "hello\n");
+    write_file(&vars_file, r#"{ "service": { "name": "api" } }"#);
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("ERR_CONFIG_VARFILE"));
+    assert!(stderr.contains("found object"));
+}
+
+#[test]
+fn render_rejects_nested_sequence_values_in_var_file() {
+    let root = temp_root("nested-sequence-var-file");
+    let vars_file = root.join("vars.json");
+    write_file(&root.join("template.md.j2"), "hello\n");
+    write_file(&vars_file, r#"{ "test_names": [["login"], ["logout"]] }"#);
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("ERR_CONFIG_VARFILE"));
+    assert!(stderr.contains("nested array"));
 }
 
 #[test]

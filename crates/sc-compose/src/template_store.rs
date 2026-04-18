@@ -49,6 +49,58 @@ pub(crate) struct TemplateAddResult {
     pub(crate) changed: bool,
 }
 
+#[derive(Debug)]
+pub(crate) enum AddError {
+    AlreadyExists { destination: PathBuf },
+    Other(anyhow::Error),
+}
+
+#[derive(Debug)]
+pub(crate) enum GetTemplateError {
+    Parse(anyhow::Error),
+    NotRenderable(anyhow::Error),
+}
+
+impl std::fmt::Display for AddError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::AlreadyExists { destination } => {
+                write!(
+                    f,
+                    "template pack already exists at {}",
+                    destination.display()
+                )
+            }
+            Self::Other(error) => write!(f, "{error:#}"),
+        }
+    }
+}
+
+impl std::error::Error for AddError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::AlreadyExists { .. } => None,
+            Self::Other(error) => Some(error.as_ref()),
+        }
+    }
+}
+
+impl std::fmt::Display for GetTemplateError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Parse(error) | Self::NotRenderable(error) => write!(f, "{error:#}"),
+        }
+    }
+}
+
+impl std::error::Error for GetTemplateError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Parse(error) | Self::NotRenderable(error) => Some(error.as_ref()),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct TemplateManifest {
     description: Option<String>,
@@ -140,7 +192,10 @@ impl TemplateStore {
         Ok(None)
     }
 
-    pub(crate) fn get_template(&self, name: &str) -> Result<Option<TemplatePack>> {
+    pub(crate) fn get_template(
+        &self,
+        name: &str,
+    ) -> std::result::Result<Option<TemplatePack>, GetTemplateError> {
         debug_assert_eq!(self.kind, StoreKind::Templates);
         self.find_template_dir(name)
             .map(|path| Self::load_template_pack(&path))
@@ -151,40 +206,43 @@ impl TemplateStore {
         &self,
         source: &Path,
         requested_name: Option<&str>,
-    ) -> Result<TemplateAddResult> {
+    ) -> std::result::Result<TemplateAddResult, AddError> {
         debug_assert_eq!(self.kind, StoreKind::Templates);
-        self.ensure_templates_root()?;
+        self.ensure_templates_root().map_err(AddError::Other)?;
 
         let source = fs::canonicalize(source)
-            .with_context(|| format!("failed to resolve template source {}", source.display()))?;
+            .with_context(|| format!("failed to resolve template source {}", source.display()))
+            .map_err(AddError::Other)?;
         let pack_name = requested_name.map_or_else(
             || default_pack_name(&source),
             std::borrow::ToOwned::to_owned,
         );
         let destination = self.source_dir.join(&pack_name);
         if destination.exists() {
-            return Err(anyhow!(
-                "template pack already exists at {}",
-                destination.display()
-            ));
+            return Err(AddError::AlreadyExists { destination });
         }
 
         if source.is_dir() {
-            copy_directory_recursive(&source, &destination)?;
+            copy_directory_recursive(&source, &destination).map_err(AddError::Other)?;
         } else {
-            fs::create_dir_all(&destination).with_context(|| {
-                format!("failed to create template pack {}", destination.display())
-            })?;
+            fs::create_dir_all(&destination)
+                .with_context(|| {
+                    format!("failed to create template pack {}", destination.display())
+                })
+                .map_err(AddError::Other)?;
             let file_name = source
                 .file_name()
-                .ok_or_else(|| anyhow!("missing source filename for {}", source.display()))?;
-            fs::copy(&source, destination.join(file_name)).with_context(|| {
-                format!(
-                    "failed to copy {} into {}",
-                    source.display(),
-                    destination.display()
-                )
-            })?;
+                .ok_or_else(|| anyhow!("missing source filename for {}", source.display()))
+                .map_err(AddError::Other)?;
+            fs::copy(&source, destination.join(file_name))
+                .with_context(|| {
+                    format!(
+                        "failed to copy {} into {}",
+                        source.display(),
+                        destination.display()
+                    )
+                })
+                .map_err(AddError::Other)?;
         }
 
         Ok(TemplateAddResult {
@@ -203,7 +261,7 @@ impl TemplateStore {
             let entry = entry
                 .with_context(|| format!("failed to enumerate {}", self.source_dir.display()))?;
             let path = entry.path();
-            if !path.is_file() || path.extension() != Some(OsStr::new("j2")) {
+            if !path.is_file() || !is_j2_template(&path) {
                 continue;
             }
             if let Some(name) = example_name_for_path(&path) {
@@ -257,11 +315,12 @@ impl TemplateStore {
         candidate.is_dir().then_some(candidate)
     }
 
-    fn load_template_pack(path: &Path) -> Result<TemplatePack> {
-        let manifest = load_manifest(path)?;
+    fn load_template_pack(path: &Path) -> std::result::Result<TemplatePack, GetTemplateError> {
+        let manifest = load_manifest(path).map_err(GetTemplateError::Parse)?;
         let input_defaults = manifest
             .map(|manifest| validate_manifest_defaults(path, manifest.input_defaults))
-            .transpose()?
+            .transpose()
+            .map_err(GetTemplateError::Parse)?
             .unwrap_or_default();
         let template_path = resolve_template_entrypoint(path)?;
         Ok(TemplatePack {
@@ -295,16 +354,11 @@ pub(crate) fn user_templates_dir() -> Result<PathBuf> {
 }
 
 fn example_name_for_path(path: &Path) -> Option<String> {
-    if !path
-        .extension()
-        .and_then(OsStr::to_str)
-        .is_some_and(|ext| ext.eq_ignore_ascii_case("j2"))
-    {
+    if !is_j2_template(path) {
         return None;
     }
 
-    let file_name = path.file_name()?.to_str()?;
-    let without_j2 = &file_name[..file_name.len() - 3];
+    let without_j2 = path.file_stem()?.to_str()?;
     let stem = Path::new(without_j2)
         .file_stem()
         .and_then(OsStr::to_str)
@@ -365,37 +419,44 @@ fn validate_manifest_defaults(
     Ok(values)
 }
 
-fn resolve_template_entrypoint(path: &Path) -> Result<PathBuf> {
+fn resolve_template_entrypoint(path: &Path) -> std::result::Result<PathBuf, GetTemplateError> {
     let mut templates = Vec::new();
-    for entry in fs::read_dir(path).with_context(|| format!("failed to read {}", path.display()))? {
-        let entry = entry.with_context(|| format!("failed to enumerate {}", path.display()))?;
+    for entry in fs::read_dir(path)
+        .with_context(|| format!("failed to read {}", path.display()))
+        .map_err(GetTemplateError::Parse)?
+    {
+        let entry = entry
+            .with_context(|| format!("failed to enumerate {}", path.display()))
+            .map_err(GetTemplateError::Parse)?;
         let entry_path = entry.path();
-        if entry_path.is_file()
-            && entry_path
-                .extension()
-                .and_then(OsStr::to_str)
-                .is_some_and(|ext| ext.eq_ignore_ascii_case("j2"))
-        {
+        if entry_path.is_file() && is_j2_template(&entry_path) {
             templates.push(
                 entry_path
                     .file_name()
                     .map(PathBuf::from)
-                    .ok_or_else(|| anyhow!("missing template filename in {}", path.display()))?,
+                    .ok_or_else(|| anyhow!("missing template filename in {}", path.display()))
+                    .map_err(GetTemplateError::Parse)?,
             );
         }
     }
 
     match templates.len() {
         1 => Ok(templates.remove(0)),
-        0 => Err(anyhow!(
+        0 => Err(GetTemplateError::NotRenderable(anyhow!(
             "template pack {} is not renderable because it has no root-level `*.j2` file",
             path.display()
-        )),
-        _ => Err(anyhow!(
+        ))),
+        _ => Err(GetTemplateError::NotRenderable(anyhow!(
             "template pack {} is not renderable because it has multiple root-level `*.j2` files",
             path.display()
-        )),
+        ))),
     }
+}
+
+fn is_j2_template(path: &Path) -> bool {
+    path.extension()
+        .and_then(OsStr::to_str)
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("j2"))
 }
 
 fn copy_directory_recursive(source: &Path, destination: &Path) -> Result<()> {
