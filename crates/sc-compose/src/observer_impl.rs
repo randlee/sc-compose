@@ -317,24 +317,54 @@ impl CommandLifecycleObserver for CliObserver {
     }
 }
 
+/// Return the static observation envelope schema version.
+///
+/// # Panics
+///
+/// Panics only if the crate-owned `OBSERVATION_ENVELOPE_VERSION` constant stops
+/// satisfying `sc-observability` schema-version validation.
 fn schema_version() -> SchemaVersion {
     SchemaVersion::new(OBSERVATION_ENVELOPE_VERSION).expect("schema version constant is valid")
 }
 
+/// Return the static service name used for CLI observations.
+///
+/// # Panics
+///
+/// Panics only if the crate-owned `SERVICE_NAME` constant stops satisfying
+/// `sc-observability` service-name validation.
 fn service_name() -> ServiceName {
     ServiceName::new(SERVICE_NAME).expect("service name constant is valid")
 }
 
+/// Normalize a static event target into the validated observability newtype.
+///
+/// # Panics
+///
+/// Panics only if a crate-owned target constant or hard-coded event label is
+/// invalid for `sc-observability`.
 fn target_category(value: &str) -> TargetCategory {
     TargetCategory::new(value)
         .unwrap_or_else(|error| panic!("invalid sc-observability target {value:?}: {error}"))
 }
 
+/// Normalize a static event action into the validated observability newtype.
+///
+/// # Panics
+///
+/// Panics only if a crate-owned action constant or hard-coded event label is
+/// invalid for `sc-observability`.
 fn action_name(value: &str) -> ActionName {
     ActionName::new(value)
         .unwrap_or_else(|error| panic!("invalid sc-observability action {value:?}: {error}"))
 }
 
+/// Normalize a static event outcome into the validated observability newtype.
+///
+/// # Panics
+///
+/// Panics only if a crate-owned outcome constant or hard-coded event label is
+/// invalid for `sc-observability`.
 fn outcome_label(value: &str) -> OutcomeLabel {
     OutcomeLabel::new(value)
         .unwrap_or_else(|error| panic!("invalid sc-observability outcome {value:?}: {error}"))

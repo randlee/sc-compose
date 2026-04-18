@@ -76,6 +76,7 @@ fn expand_file(
     stack: &mut Vec<PathBuf>,
     state: &mut ExpansionState,
 ) -> Result<String, ComposeError> {
+    let path_buf = path.to_path_buf();
     if depth > max_depth {
         return Err(IncludeError::new(
             DiagnosticCode::ErrIncludeDepth,
@@ -84,9 +85,9 @@ fn expand_file(
         )
         .into());
     }
-    if stack.contains(&path.to_path_buf()) {
+    if stack.iter().any(|existing| existing == &path_buf) {
         let mut cycle_stack = stack.clone();
-        cycle_stack.push(path.to_path_buf());
+        cycle_stack.push(path_buf.clone());
         return Err(IncludeError::new(
             DiagnosticCode::ErrIncludeCycle,
             format!("include cycle detected at {}", path.display()),
@@ -95,14 +96,14 @@ fn expand_file(
         .into());
     }
 
-    stack.push(path.to_path_buf());
+    stack.push(path_buf.clone());
 
-    if state.resolved_seen.insert(path.to_path_buf()) {
-        state.resolved_files.push(path.to_path_buf());
+    if state.resolved_seen.insert(path_buf.clone()) {
+        state.resolved_files.push(path_buf.clone());
     }
     state
         .include_chains
-        .entry(path.to_path_buf())
+        .entry(path_buf.clone())
         .or_insert_with(|| stack.clone());
 
     let raw = std::fs::read_to_string(path).map_err(|error| {
@@ -119,7 +120,7 @@ fn expand_file(
     })?;
     state
         .frontmatters
-        .push((path.to_path_buf(), parsed.frontmatter().cloned()));
+        .push((path_buf, parsed.frontmatter().cloned()));
 
     let mut expanded = String::new();
     for line in parsed.body().split_inclusive('\n') {

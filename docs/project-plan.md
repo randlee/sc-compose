@@ -40,7 +40,7 @@ Current known release blockers:
 | RB-03c | Graceful logger shutdown is not yet called before `process::exit()`. | Closed | Sprint 2 | The CLI calls `logger.shutdown()` before process exit so pending events flush cleanly. |
 | RB-04 | Production logging safeguards are not yet proven. | Closed | Sprint 3 | Tests prove `--json` cleanliness, shutdown/flush behavior, sink degradation behavior, and event coverage. |
 | RB-05 | Any non-observability release blocker found during audit must be closed before release. | Closed | Sprint 3 | Every audit finding is either closed or explicitly moved to a later sprint in this plan before Sprint 1 exit. |
-| RB-06 | Final release validation, QA approval, and cutover readiness are not yet complete. | Open | Sprint 4 | End-to-end smoke tests, QA review, design review, and release approval all pass. |
+| RB-06 | Final release validation, QA approval, and cutover readiness are not yet complete. | Open | Sprint 4 | End-to-end smoke tests, QA review, design review, and release approval all pass; closure evidence includes `crates/sc-compose/tests/cli.rs::release_smoke_covers_render_pipeline_and_observability_health`. |
 
 Inventory rules:
 
@@ -331,7 +331,7 @@ following are true:
 
 Status:
 
-- planned
+- completed
 
 Branch:
 

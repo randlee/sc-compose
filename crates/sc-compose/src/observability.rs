@@ -58,6 +58,12 @@ pub(crate) fn print_observability_health(health: &LoggingHealthReport) {
     }
 }
 
+/// Convert `LoggingHealthReport` into the CLI JSON payload shape.
+///
+/// # Panics
+///
+/// Panics only if `LoggingHealthReport` stops serializing to JSON, which would
+/// indicate a violated invariant in the crate-owned health schema.
 pub(crate) fn health_json_value(health: &LoggingHealthReport) -> Value {
     let mut value = serde_json::to_value(health).expect("logging health serializes");
     if value["query"]["state"] == Value::String("Unavailable".to_owned()) {

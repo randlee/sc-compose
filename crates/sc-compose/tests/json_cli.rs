@@ -226,6 +226,47 @@ fn validate_json_uses_diagnostic_envelope() {
     assert_eq!(value["payload"]["valid"], false);
     assert_eq!(value["diagnostics"].as_array().map(Vec::len), Some(1));
     assert_first_code(&value, "ERR_VAL_MISSING_REQUIRED");
+    assert_eq!(value["diagnostics"][0]["line"], 3);
+    assert_eq!(value["diagnostics"][0]["column"], 5);
+}
+
+#[test]
+fn validate_json_reports_missing_frontmatter_for_included_file() {
+    let root = temp_root("validate-json-included-missing-frontmatter");
+    write_file(
+        &root.join("_includes").join("snippet.md"),
+        "hello {{ name }}\n",
+    );
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\n@<_includes/snippet.md>\n",
+    );
+
+    let output = sc_compose()
+        .arg("validate")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    let diagnostics = value["diagnostics"].as_array().unwrap();
+    assert!(diagnostics.iter().any(|diagnostic| {
+        diagnostic["code"] == "ERR_VAL_MISSING_FRONTMATTER"
+            && diagnostic["path"]
+                == fs::canonicalize(root.join("_includes").join("snippet.md"))
+                    .unwrap()
+                    .display()
+                    .to_string()
+    }));
 }
 
 #[test]
@@ -309,6 +350,29 @@ fn init_json_uses_diagnostic_envelope() {
     assert_eq!(
         value["payload"]["workspace_root"],
         fs::canonicalize(&root).unwrap().display().to_string()
+    );
+}
+
+#[test]
+fn init_json_created_files_reflect_actual_files_written() {
+    let root = temp_root("init-json-created-files");
+    write_file(&root.join(".gitignore"), "target/\n");
+
+    let output = sc_compose()
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["created_files"],
+        serde_json::json!([".prompts/"])
     );
 }
 

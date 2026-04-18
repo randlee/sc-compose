@@ -50,7 +50,7 @@ pub(crate) fn build_request(
     };
 
     Ok(ComposeRequest {
-        runtime: args.runtime.or(args.ai).map(runtime_kind),
+        runtime: args.runtime.map(runtime_kind),
         mode,
         root,
         vars_input: load_vars(&args.input)?,

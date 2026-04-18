@@ -1,7 +1,9 @@
 use anyhow::anyhow;
-use sc_composer::{CompositionObserver, DiagnosticCode};
+use sc_composer::CompositionObserver;
 
-use crate::commands::{pack_not_found_error, print_pack_list, store_root_error};
+use crate::commands::{
+    pack_not_found_error, pack_not_renderable_error, print_pack_list, store_root_error,
+};
 use crate::render_request::{build_named_request, read_block_pair};
 use crate::template_store::TemplateStore;
 use crate::{CommandError, ExamplesArgs, ListArgs, execute_render};
@@ -9,9 +11,7 @@ use crate::{CommandError, ExamplesArgs, ListArgs, execute_render};
 pub(crate) fn run_examples_list(args: &ListArgs) -> Result<i32, CommandError> {
     let store = TemplateStore::examples()
         .map_err(|error| store_root_error(error, "SC_COMPOSE_DATA_DIR"))?;
-    let packs = store
-        .list()
-        .map_err(|error| CommandError::usage_with_code(error, DiagnosticCode::ErrConfigParse))?;
+    let packs = store.list().map_err(pack_not_renderable_error)?;
     print_pack_list(&packs, args.json).map_err(CommandError::usage)?;
     Ok(crate::exit_codes::SUCCESS)
 }
@@ -28,7 +28,7 @@ pub(crate) fn run_examples_render(
         .map_err(|error| store_root_error(error, "SC_COMPOSE_DATA_DIR"))?;
     let pack = store
         .get_example(name)
-        .map_err(|error| CommandError::usage_with_code(error, DiagnosticCode::ErrConfigParse))?
+        .map_err(pack_not_renderable_error)?
         .ok_or_else(|| pack_not_found_error("example", name, "sc-compose examples list"))?;
     let request = build_named_request(
         &pack,

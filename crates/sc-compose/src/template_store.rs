@@ -165,34 +165,21 @@ impl TemplateStore {
             return Ok(None);
         }
 
-        for entry in fs::read_dir(&self.source_dir)
-            .with_context(|| format!("failed to read {}", self.source_dir.display()))?
-        {
-            let entry = entry
-                .with_context(|| format!("failed to enumerate {}", self.source_dir.display()))?;
-            let path = entry.path();
-            if !path.is_file()
-                || !path
-                    .extension()
-                    .and_then(OsStr::to_str)
-                    .is_some_and(|ext| ext.eq_ignore_ascii_case("j2"))
-            {
-                continue;
-            }
-
-            if example_name_for_path(&path).as_deref() == Some(name) {
+        let entries = self.discover_example_entries()?;
+        match entries.get(name).map(Vec::as_slice) {
+            None => Ok(None),
+            Some([path]) => {
                 let file_name = path
                     .file_name()
                     .ok_or_else(|| anyhow!("missing example filename for {}", path.display()))?;
-                return Ok(Some(TemplatePack {
+                Ok(Some(TemplatePack {
                     root: self.source_dir.clone(),
                     template_path: PathBuf::from(file_name),
                     input_defaults: BTreeMap::default(),
-                }));
+                }))
             }
+            Some(paths) => Err(example_name_collision_error(name, paths)),
         }
-
-        Ok(None)
     }
 
     pub(crate) fn get_template(
@@ -263,7 +250,24 @@ impl TemplateStore {
     }
 
     fn list_examples(&self) -> Result<Vec<TemplateMeta>> {
+        let entries = self.discover_example_entries()?;
         let mut packs = Vec::new();
+        for (name, paths) in entries {
+            match paths.as_slice() {
+                [path] => packs.push(TemplateMeta {
+                    name,
+                    path: path.clone(),
+                    description: None,
+                    version: None,
+                }),
+                _ => return Err(example_name_collision_error(&name, &paths)),
+            }
+        }
+        Ok(packs)
+    }
+
+    fn discover_example_entries(&self) -> Result<BTreeMap<String, Vec<PathBuf>>> {
+        let mut entries = BTreeMap::<String, Vec<PathBuf>>::new();
         for entry in fs::read_dir(&self.source_dir)
             .with_context(|| format!("failed to read {}", self.source_dir.display()))?
         {
@@ -274,15 +278,10 @@ impl TemplateStore {
                 continue;
             }
             if let Some(name) = example_name_for_path(&path) {
-                packs.push(TemplateMeta {
-                    name,
-                    path,
-                    description: None,
-                    version: None,
-                });
+                entries.entry(name).or_default().push(path);
             }
         }
-        Ok(packs)
+        Ok(entries)
     }
 
     fn list_templates(&self) -> Result<Vec<TemplateMeta>> {
@@ -349,7 +348,7 @@ pub(crate) fn data_dir() -> Result<PathBuf> {
     let executable_dir = executable
         .parent()
         .ok_or_else(|| anyhow!("failed to determine executable directory"))?;
-    Ok(executable_dir.join("../share/sc-compose"))
+    Ok(executable_dir.join("..").join("share").join("sc-compose"))
 }
 
 pub(crate) fn user_templates_dir() -> Result<PathBuf> {
@@ -391,6 +390,17 @@ fn default_pack_name(source: &Path) -> String {
             .unwrap_or("template")
             .to_owned()
     })
+}
+
+fn example_name_collision_error(name: &str, paths: &[PathBuf]) -> anyhow::Error {
+    anyhow!(
+        "example pack name `{name}` is ambiguous between {}",
+        paths
+            .iter()
+            .map(|path| path.display().to_string())
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
 }
 
 fn load_manifest(path: &Path) -> Result<Option<TemplateManifest>> {
