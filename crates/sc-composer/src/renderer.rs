@@ -81,4 +81,18 @@ mod tests {
         assert_eq!(first.unwrap(), "hello world");
         assert_eq!(second.unwrap(), "bye world");
     }
+
+    #[test]
+    fn renderer_supports_jinja_plus_modifier_opt_out() {
+        let renderer = Renderer::new();
+
+        let output = renderer
+            .render(
+                "before\n    {%+ if true %}\nvalue\n    {% endif %}\nafter\n",
+                json!({}),
+            )
+            .unwrap();
+
+        assert_eq!(output, "before\n    value\nafter");
+    }
 }

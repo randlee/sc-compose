@@ -384,6 +384,7 @@ The rendering and composition surfaces have distinct responsibilities.
 - `root: ConfiningRoot`
 - `vars_input: Map<VariableName, InputValue>`
 - `vars_env: Map<VariableName, InputValue>`
+- `vars_defaults: Map<VariableName, InputValue>`
 - `guidance_block: Option<String>`
 - `user_prompt: Option<String>`
 - `policy: ComposePolicy`
@@ -623,6 +624,7 @@ Command-specific rules:
 
 - `render`
   - accepts `file` mode and `profile` mode,
+  - requires `--file <path>` in file mode,
   - accepts optional guidance and user prompt blocks,
   - writes to stdout by default unless an output path is chosen.
 - `resolve`
@@ -840,7 +842,7 @@ Schema notes:
   trace.
 - `location` is a single string field in CLI JSON even when the library tracks
   path, line, and column separately.
-- `rendered_preview` may be `null` when preview emission is suppressed.
+- `rendered_preview` is the dry-run preview string.
 - `payload.logging.query` is `null` when query/follow health is unavailable and
   otherwise contains a `QueryHealthReport`.
 - `active_log_path` is derived from the configured log root and service name
@@ -878,6 +880,7 @@ Layout rules:
   root,
 - example names are derived from the filename by removing the trailing `.j2`
   suffix and then one remaining source extension when present,
+- normalized example names must remain unique after that derivation step,
 - templates are one subdirectory per template under the user templates root,
 - template names are directory names,
 - template directories may contain one or more files,
@@ -1042,7 +1045,7 @@ Canonical failures must map to stable error families and stable codes.
 | Config file missing or malformed | `ConfigError` | `ERR_CONFIG_PARSE` |
 | Invalid var-file shape | `ConfigError` | `ERR_CONFIG_VARFILE` |
 | Example or template pack name not found | `ConfigError` | `ERR_CONFIG_PACK_NOT_FOUND` |
-| Named template pack is not renderable because it has zero or multiple root-level `*.j2` files | `ConfigError` | `ERR_CONFIG_PACK_NOT_RENDERABLE` |
+| Named pack is not renderable because a bundled example name is ambiguous or a template pack has zero or multiple root-level `*.j2` files | `ConfigError` | `ERR_CONFIG_PACK_NOT_RENDERABLE` |
 | `templates add` target name already exists | `ConfigError` | `ERR_CONFIG_TEMPLATE_EXISTS` |
 
 ## 19. Observability Integration (FR-9, FR-10, FR-11)

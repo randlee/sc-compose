@@ -88,7 +88,7 @@ pub fn parse_template_document(input: &str) -> Result<ParsedTemplate, ComposeErr
         });
     };
 
-    let raw = serde_yaml::from_str::<RawFrontmatter>(&frontmatter_text).map_err(|error| {
+    let raw = serde_yaml::from_str::<RawFrontmatter>(frontmatter_text).map_err(|error| {
         ConfigError::new(
             DiagnosticCode::ErrConfigParse,
             "failed to parse YAML frontmatter",
@@ -104,7 +104,7 @@ pub fn parse_template_document(input: &str) -> Result<ParsedTemplate, ComposeErr
     })
 }
 
-fn split_frontmatter(input: &str) -> Result<Option<(String, &str)>, ComposeError> {
+fn split_frontmatter(input: &str) -> Result<Option<(&str, &str)>, ComposeError> {
     let delimiter_len = if input.starts_with("---\n") {
         4
     } else if input.starts_with("---\r\n") {
@@ -121,7 +121,7 @@ fn split_frontmatter(input: &str) -> Result<Option<(String, &str)>, ComposeError
         if matches!(trimmed, "---" | "...") {
             let frontmatter_text = &rest[..scanned];
             let body = &rest[scanned + line.len()..];
-            return Ok(Some((frontmatter_text.to_owned(), body)));
+            return Ok(Some((frontmatter_text, body)));
         }
         scanned += line.len();
     }
@@ -129,7 +129,7 @@ fn split_frontmatter(input: &str) -> Result<Option<(String, &str)>, ComposeError
     if !rest.is_empty() {
         let trimmed = rest.trim_end_matches(['\n', '\r']);
         if matches!(trimmed, "---" | "...") {
-            return Ok(Some((String::new(), "")));
+            return Ok(Some(("", "")));
         }
     }
 

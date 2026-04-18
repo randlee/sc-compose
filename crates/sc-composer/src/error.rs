@@ -415,6 +415,7 @@ impl StdError for ValidationError {
 #[derive(Debug)]
 pub struct RenderError {
     code: Option<DiagnosticCode>,
+    message: String,
     source: BoxedError,
     backtrace: Backtrace,
 }
@@ -426,8 +427,10 @@ impl RenderError {
     /// types at the public API boundary.
     #[must_use]
     pub(crate) fn render(source: impl StdError + Send + Sync + 'static) -> Self {
+        let message = source.to_string();
         Self {
             code: None,
+            message,
             source: Box::new(source),
             backtrace: Backtrace::capture(),
         }
@@ -461,8 +464,8 @@ impl RenderError {
 
     /// Return the render-failure message.
     #[must_use]
-    pub fn message(&self) -> String {
-        self.source.to_string()
+    pub fn message(&self) -> &str {
+        &self.message
     }
 }
 

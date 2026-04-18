@@ -36,69 +36,116 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    #[command(about = "Render a template or resolved profile")]
     Render(RenderArgs),
+    #[command(about = "Resolve a profile name to a concrete template path")]
     Resolve(ResolveArgs),
+    #[command(about = "Validate templates without rendering output")]
     Validate(ValidateArgs),
     #[command(name = "frontmatter-init")]
+    #[command(about = "Insert minimal frontmatter for referenced variables")]
     FrontmatterInit(FrontmatterInitArgs),
+    #[command(about = "Bootstrap a workspace for composed outputs")]
     Init(InitArgs),
     #[command(name = "observability-health")]
+    #[command(about = "Report process-local logging health")]
     ObservabilityHealth(ObservabilityHealthArgs),
+    #[command(about = "List or render bundled example templates")]
     Examples(ExamplesArgs),
+    #[command(about = "List, add, or render user template packs")]
     Templates(TemplatesArgs),
 }
 
 #[derive(Debug, Clone, Args)]
 struct InputArgs {
-    #[arg(long = "var", value_parser = parse_var, action = clap::ArgAction::Append)]
+    #[arg(
+        long = "var",
+        value_parser = parse_var,
+        action = clap::ArgAction::Append,
+        help = "Provide one explicit input variable as key=value"
+    )]
     vars: Vec<(String, String)>,
-    #[arg(long = "var-file")]
+    #[arg(
+        long = "var-file",
+        help = "Load input variables from a JSON or YAML object file"
+    )]
     var_file: Option<String>,
-    #[arg(long)]
+    #[arg(
+        long,
+        help = "Absorb environment variables that match the given prefix"
+    )]
     env_prefix: Option<String>,
-    #[arg(long)]
+    #[arg(long, help = "Treat undeclared referenced variables as errors")]
     strict: bool,
-    #[arg(long, value_enum, default_value = "ignore")]
+    #[arg(
+        long,
+        value_enum,
+        default_value = "ignore",
+        help = "Control how extra caller-provided variables are reported"
+    )]
     unknown_var_mode: UnknownVarMode,
 }
 
 #[derive(Debug, Clone, Args)]
 struct CommonArgs {
-    #[arg(long, value_enum, default_value = "file")]
+    #[arg(
+        long,
+        value_enum,
+        default_value = "file",
+        help = "Choose file or profile resolution mode"
+    )]
     mode: Mode,
-    #[arg(long, value_enum, default_value = "agent")]
+    #[arg(
+        long,
+        value_enum,
+        default_value = "agent",
+        help = "Choose the profile kind in profile mode"
+    )]
     kind: Kind,
-    #[arg(long)]
+    #[arg(long, help = "Profile name in profile mode")]
     agent: Option<String>,
-    #[arg(long, alias = "agent-type")]
+    #[arg(long, alias = "agent-type", help = "Alias for --agent")]
     agent_type: Option<String>,
-    #[arg(long, value_enum)]
+    #[arg(
+        long,
+        alias = "ai",
+        value_enum,
+        help = "Optional runtime selector in profile mode"
+    )]
     runtime: Option<Ai>,
-    #[arg(long, alias = "ai", value_enum)]
-    ai: Option<Ai>,
     #[command(flatten)]
     input: InputArgs,
-    #[arg(long, default_value = ".")]
+    #[arg(
+        long,
+        default_value = ".",
+        help = "Workspace root for resolution and confinement"
+    )]
     root: PathBuf,
-    #[arg(long)]
+    #[arg(long, help = "Template path in file mode")]
     file: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Args, Default)]
 struct RenderBehaviorArgs {
-    #[arg(long)]
+    #[arg(
+        long,
+        help = "Write rendered output to the given path instead of stdout"
+    )]
     output: Option<PathBuf>,
-    #[arg(long)]
+    #[arg(long, help = "Append a guidance block after the rendered body")]
     guidance: Option<String>,
-    #[arg(long)]
+    #[arg(long, help = "Read the guidance block from a file or stdin")]
     guidance_file: Option<String>,
-    #[arg(long)]
+    #[arg(
+        long,
+        help = "Append a user prompt block after the rendered body and guidance"
+    )]
     prompt: Option<String>,
-    #[arg(long)]
+    #[arg(long, help = "Read the user prompt block from a file or stdin")]
     prompt_file: Option<String>,
-    #[arg(long)]
+    #[arg(long, help = "Emit machine-readable JSON output")]
     json: bool,
-    #[arg(long)]
+    #[arg(long, help = "Report the derived output target without writing files")]
     dry_run: bool,
 }
 
@@ -159,7 +206,7 @@ struct ObservabilityHealthArgs {
 struct ExamplesArgs {
     #[command(subcommand)]
     command: Option<ExamplesSubcommand>,
-    #[arg(index = 1)]
+    #[arg(index = 1, help = "Bundled example pack name to render")]
     name: Option<String>,
     #[command(flatten)]
     input: InputArgs,
@@ -169,6 +216,7 @@ struct ExamplesArgs {
 
 #[derive(Debug, Clone, Subcommand)]
 enum ExamplesSubcommand {
+    #[command(about = "List bundled example packs")]
     List(ListArgs),
 }
 
@@ -177,7 +225,7 @@ enum ExamplesSubcommand {
 struct TemplatesArgs {
     #[command(subcommand)]
     command: Option<TemplatesSubcommand>,
-    #[arg(index = 1)]
+    #[arg(index = 1, help = "User template pack name to render")]
     name: Option<String>,
     #[command(flatten)]
     input: InputArgs,
@@ -187,21 +235,25 @@ struct TemplatesArgs {
 
 #[derive(Debug, Clone, Subcommand)]
 enum TemplatesSubcommand {
+    #[command(about = "List user template packs")]
     List(ListArgs),
+    #[command(about = "Import a file or directory as one user template pack")]
     Add(TemplatesAddArgs),
 }
 
 #[derive(Debug, Clone, Args)]
 struct ListArgs {
-    #[arg(long)]
+    #[arg(long, help = "Emit machine-readable JSON output")]
     json: bool,
 }
 
 #[derive(Debug, Clone, Args)]
 struct TemplatesAddArgs {
+    /// Source file or directory to import as one template pack.
     src: PathBuf,
+    /// Optional pack name override.
     name: Option<String>,
-    #[arg(long)]
+    #[arg(long, help = "Emit machine-readable JSON output")]
     json: bool,
 }
 
@@ -401,6 +453,10 @@ fn execute_render(
         );
         println!("would_write: {}", derived_path.display());
         println!("would_change: {would_change}");
+        if !result.warnings.is_empty() {
+            println!();
+            print_diagnostic_messages(&result.warnings);
+        }
         println!();
         println!("{}", result.rendered_text);
     } else {
@@ -516,6 +572,8 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
             DiagnosticCode::ErrConfigParse,
         )
     })?;
+    let prompts_dir_missing = !canonical_root.join(".prompts").exists();
+    let gitignore_missing = !canonical_root.join(".gitignore").exists();
     let planned_changes = planned_init_changes(&canonical_root);
     let result =
         sc_composer::init_workspace(&args.root, args.dry_run).map_err(CommandError::compose)?;
@@ -531,12 +589,11 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
         } else {
             serde_json::json!({
                 "workspace_root": canonical_root.display().to_string(),
-                "created_files": planned_changes.iter().map(|path| {
-                    path.strip_prefix(&canonical_root)
-                        .unwrap_or(path)
-                        .display()
-                        .to_string()
-                }).collect::<Vec<_>>(),
+                "created_files": actual_init_created_files(
+                    prompts_dir_missing,
+                    gitignore_missing,
+                    result.gitignore_updated,
+                ),
             })
         };
         print_json(payload, result.recommendations).map_err(CommandError::usage)?;
@@ -582,6 +639,8 @@ fn derived_output_path(request: &ComposeRequest, explicit: Option<&Path>) -> Pat
     }
     match &request.mode {
         ComposeMode::File { template_path } => strip_j2_suffix(template_path),
+        // Profile-mode dry-runs intentionally derive a fresh ULID so the reported
+        // target matches the real non-dry-run naming policy and avoids collisions.
         ComposeMode::Profile { name, .. } => request.root.as_path().join(".prompts").join(format!(
             "{}-{}.md",
             name,
@@ -751,8 +810,25 @@ fn format_recovery_hint(hint: &RecoveryHint) -> String {
         RecoveryHintKind::ProvideVariable { variable } => {
             format!("provide variable `{}`", variable.as_str())
         }
-        RecoveryHintKind::ReviewConfiguration { key } => key.clone(),
+        RecoveryHintKind::ReviewConfiguration { key } => {
+            format!("review configuration: {key}")
+        }
     }
+}
+
+fn actual_init_created_files(
+    prompts_dir_missing: bool,
+    gitignore_missing: bool,
+    gitignore_updated: bool,
+) -> Vec<String> {
+    let mut created = Vec::new();
+    if prompts_dir_missing {
+        created.push(".prompts/".to_owned());
+    }
+    if gitignore_missing && gitignore_updated {
+        created.push(".gitignore".to_owned());
+    }
+    created
 }
 
 #[derive(Debug)]
@@ -808,7 +884,7 @@ impl CommandError {
             exit_code,
             diagnostic_code: error.code(),
             diagnostics: compose_error_diagnostics(&error),
-            recovery_hints: Vec::new(),
+            recovery_hints: compose_error_recovery_hints(&error),
             error: anyhow!(error),
         }
     }
@@ -891,6 +967,14 @@ fn compose_error_diagnostics(error: &ComposeError) -> Vec<Diagnostic> {
             config.code().unwrap_or(DiagnosticCode::ErrConfigParse),
             config.message(),
         )],
+    }
+}
+
+fn compose_error_recovery_hints(error: &ComposeError) -> Vec<RecoveryHint> {
+    match error {
+        ComposeError::Validation(error) => error.recovery_hints().to_vec(),
+        ComposeError::Config(error) => error.recovery_hints().to_vec(),
+        ComposeError::Resolve(_) | ComposeError::Include(_) | ComposeError::Render(_) => Vec::new(),
     }
 }
 

@@ -26,7 +26,7 @@ by `sc-composer` and `sc-compose`.
 | `ERR_VAL_TYPE` | `ValidationError` | error | invalid scalar type or variable type mismatch | validation pipeline |
 | `ERR_VAL_DUPLICATE` | `ValidationError` | error | duplicate frontmatter variable declaration | frontmatter normalization, validation pipeline |
 | `ERR_VAL_EMPTY` | `ValidationError` | error | template body is empty where composition requires content | validation pipeline |
-| `ERR_VAL_MISSING_FRONTMATTER` | `ValidationError` | warning | root template has no frontmatter block | validation pipeline |
+| `ERR_VAL_MISSING_FRONTMATTER` | `ValidationError` | warning | a root or included template file references variables but has no frontmatter block | validation pipeline |
 | `ERR_VAL_MISSING_REQUIRED` | `ValidationError` | error | required variable remains unresolved after merge | validation pipeline |
 | `ERR_VAL_UNDECLARED_TOKEN` | `ValidationError` | warning/error | referenced token is not declared in frontmatter | validation pipeline |
 | `ERR_VAL_EXTRA_INPUT` | `ValidationError` | warning/error | caller provided a variable that is neither declared nor referenced | validation pipeline |
@@ -36,6 +36,9 @@ by `sc-composer` and `sc-compose`.
 | `ERR_CONFIG_MODE` | `ConfigError` | error | command or helper invoked in an incompatible mode | CLI argument validation, `resolve_profile()` |
 | `ERR_CONFIG_PARSE` | `ConfigError` | error | malformed or unreadable configuration input | var-file/config parsing |
 | `ERR_CONFIG_VARFILE` | `ConfigError` | error | invalid var-file shape or unsupported structure | var-file parsing |
+| `ERR_CONFIG_PACK_NOT_FOUND` | `ConfigError` | error | named example or template pack does not exist under the selected pack root | CLI `examples`, CLI `templates` |
+| `ERR_CONFIG_PACK_NOT_RENDERABLE` | `ConfigError` | error | named pack cannot be rendered because it is ambiguous or lacks exactly one renderable root template | CLI `examples`, CLI `templates` |
+| `ERR_CONFIG_TEMPLATE_EXISTS` | `ConfigError` | error | `templates add` target pack already exists | CLI `templates add` |
 
 ## Planned Diagnostic Shape
 

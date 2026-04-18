@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
-use crate::frontmatter::Frontmatter;
+use crate::frontmatter::{Frontmatter, parse_template_document};
 use crate::include::expand_includes;
 use crate::resolver::resolve_template_path;
 use crate::types::{
@@ -59,27 +59,19 @@ pub(crate) fn validate_expanded(
         );
     }
 
-    if let Some(diagnostic) = missing_frontmatter_warning(&resolve_result, expanded) {
-        warnings.push(diagnostic);
-    }
+    warnings.extend(missing_frontmatter_warnings(&resolve_result, expanded));
 
     for (variable, origin) in &state.required_origins {
         if !state.context.contains_key(variable) {
-            errors.push(
-                Diagnostic::new(
-                    DiagnosticSeverity::Error,
-                    DiagnosticCode::ErrValMissingRequired,
-                    format!("missing required variable: {variable}"),
-                )
-                .with_path(origin.clone())
-                .with_include_chain(
-                    state
-                        .required_include_chains
-                        .get(variable)
-                        .cloned()
-                        .unwrap_or_default(),
-                ),
-            );
+            errors.push(missing_required_diagnostic(
+                origin,
+                variable,
+                state
+                    .required_include_chains
+                    .get(variable)
+                    .cloned()
+                    .unwrap_or_default(),
+            ));
         }
     }
 
@@ -150,26 +142,102 @@ pub(crate) fn validate_expanded(
     }
 }
 
-fn missing_frontmatter_warning(
+fn missing_frontmatter_warnings(
     resolve_result: &crate::ResolveResult,
     expanded: &ExpandedTemplate,
-) -> Option<Diagnostic> {
+) -> Vec<Diagnostic> {
     expanded
         .frontmatters
         .iter()
-        .find(|(path, _)| *path == resolve_result.resolved_path)
-        .is_some_and(|(_, frontmatter)| frontmatter.is_none())
-        .then(|| {
-            Diagnostic::new(
-                DiagnosticSeverity::Warning,
-                DiagnosticCode::ErrValMissingFrontmatter,
+        .filter_map(|(path, frontmatter)| {
+            if frontmatter.is_some() || !file_references_variables(path) {
+                return None;
+            }
+            let message = if *path == resolve_result.resolved_path {
                 format!(
                     "root template has no frontmatter; run `sc-compose frontmatter-init {}`",
                     resolve_result.resolved_path.display()
-                ),
+                )
+            } else {
+                format!(
+                    "included file has no frontmatter; run `sc-compose frontmatter-init {}`",
+                    path.display()
+                )
+            };
+            Some(
+                Diagnostic::new(
+                    DiagnosticSeverity::Warning,
+                    DiagnosticCode::ErrValMissingFrontmatter,
+                    message,
+                )
+                .with_path(path.clone()),
             )
-            .with_path(resolve_result.resolved_path.clone())
         })
+        .collect()
+}
+
+fn file_references_variables(path: &Path) -> bool {
+    let Ok(raw) = std::fs::read_to_string(path) else {
+        return false;
+    };
+    let Ok(parsed) = parse_template_document(&raw) else {
+        return false;
+    };
+    !discover_tokens(parsed.body()).is_empty()
+}
+
+fn missing_required_diagnostic(
+    origin: &Path,
+    variable: &VariableName,
+    include_chain: Vec<PathBuf>,
+) -> Diagnostic {
+    let diagnostic = Diagnostic::new(
+        DiagnosticSeverity::Error,
+        DiagnosticCode::ErrValMissingRequired,
+        format!("missing required variable: {variable}"),
+    )
+    .with_path(origin.to_path_buf())
+    .with_include_chain(include_chain);
+    match required_variable_location(origin, variable.as_str()) {
+        Some((line, column)) => diagnostic.with_location(line, column),
+        None => diagnostic,
+    }
+}
+
+fn required_variable_location(path: &Path, variable: &str) -> Option<(usize, usize)> {
+    let raw = std::fs::read_to_string(path).ok()?;
+    let mut in_required_variables = false;
+
+    for (index, line) in raw.lines().enumerate() {
+        let line_number = index + 1;
+        let trimmed = line.trim();
+        if index == 0 && trimmed != "---" {
+            return None;
+        }
+        if index > 0 && matches!(trimmed, "---" | "...") {
+            break;
+        }
+        if trimmed == "required_variables:" {
+            in_required_variables = true;
+            continue;
+        }
+        if !in_required_variables {
+            continue;
+        }
+        if trimmed.ends_with(':') && trimmed != "required_variables:" {
+            in_required_variables = false;
+            continue;
+        }
+        let Some(rest) = trimmed.strip_prefix("- ") else {
+            continue;
+        };
+        if rest == variable {
+            let column = line.find(variable).map_or(1, |offset| offset + 1);
+            return Some((line_number, column));
+        }
+    }
+
+    None
 }
 
 pub(crate) fn collect_validation_state(

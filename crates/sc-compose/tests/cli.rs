@@ -279,6 +279,26 @@ fn examples_named_render_missing_pack_reports_list_recovery_hint() {
 }
 
 #[test]
+fn examples_named_render_reports_not_renderable_when_example_names_collide() {
+    let root = temp_root("examples-collision");
+    let examples_root = root.join("examples");
+    write_file(&examples_root.join("hello.md.j2"), "hello");
+    write_file(&examples_root.join("hello.yaml.j2"), "hello");
+
+    let output = sc_compose()
+        .arg("examples")
+        .arg("hello")
+        .env("SC_COMPOSE_DATA_DIR", &root)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("ERR_CONFIG_PACK_NOT_RENDERABLE"));
+    assert!(stderr.contains("ambiguous"));
+}
+
+#[test]
 fn templates_named_render_uses_array_input_defaults_from_template_json() {
     let root = temp_root("templates-array-defaults");
     let templates_root = root.join("user-templates");

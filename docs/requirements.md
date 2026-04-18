@@ -158,6 +158,9 @@ narrow even after template-pack support is added.
   Examples:
   - `hello.md.j2` -> `hello`
   - `service-config.yaml.j2` -> `service-config`
+- Derived bundled example names must be unique. If two flat example files
+  normalize to the same name, the examples root is invalid until the collision
+  is removed.
 - User templates are stored as one subdirectory per template under the user
   templates root.
 - A user template directory name is the template name.
@@ -386,6 +389,7 @@ The CLI must support:
 - `--strict`
 - `--unknown-var-mode <error|warn|ignore>`
 - `--root <path>`
+- `--file <path>`
 - `--output <path>` where applicable
 - `--guidance <text>`
 - `--guidance-file <path|->`
@@ -580,7 +584,7 @@ Schema rules:
 - `would_change` records whether the dry-run output differs from the current
   file content at the derived output path; missing output files count as
   `true`.
-- `rendered_preview` is either a preview string or `null`.
+- `rendered_preview` is a preview string.
 
 `resolve --json`
 
