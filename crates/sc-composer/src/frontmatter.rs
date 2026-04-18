@@ -6,13 +6,13 @@ use serde::Deserialize;
 
 use crate::diagnostics::DiagnosticCode;
 use crate::error::{ComposeError, ConfigError, ValidationError};
-use crate::types::{MetadataValue, ScalarValue, VariableName};
+use crate::types::{InputValue, MetadataValue, VariableName, input_value_from_yaml};
 
 /// Typed frontmatter normalized to explicit empty collections when present.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Frontmatter {
     required_variables: Vec<VariableName>,
-    defaults: BTreeMap<VariableName, ScalarValue>,
+    defaults: BTreeMap<VariableName, InputValue>,
     metadata: BTreeMap<String, MetadataValue>,
 }
 
@@ -31,7 +31,7 @@ impl Frontmatter {
 
     /// Borrow normalized default values.
     #[must_use]
-    pub fn defaults(&self) -> &BTreeMap<VariableName, ScalarValue> {
+    pub fn defaults(&self) -> &BTreeMap<VariableName, InputValue> {
         &self.defaults
     }
 
@@ -164,9 +164,9 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
                 format!("invalid frontmatter default variable name: {error}"),
             )
         })?;
-        let scalar = ScalarValue::from_yaml(value)
+        let input_value = input_value_from_yaml(value)
             .map_err(|error| ValidationError::invalid_scalar(error.to_string()))?;
-        defaults.insert(variable, scalar);
+        defaults.insert(variable, input_value);
     }
 
     let metadata = raw

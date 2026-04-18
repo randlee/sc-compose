@@ -268,16 +268,30 @@ Exit gate:
   - already specified in the normative docs
   - revalidated in Sprint 3 and Sprint 4 where release blockers or integration
     changes touch them
+- FR-1b:
+  - Sprint S7 broadens render inputs from scalar-only to scalar values plus
+    arrays of scalars
+  - Sprint S7 validates empty-array acceptance and list iteration support
+- FR-1d:
+  - Sprint S7 defines flat bundled examples, per-template user directories,
+    and the `TemplateStore`-based lookup model
+- FR-2:
+  - Sprint S7 extends precedence handling to include template
+    `input_defaults`
 - FR-7:
   - Sprint 1 finalizes the command surface
   - Sprint 2 implements `observability-health`
   - Sprint 3 hardens command behavior
   - Sprint 4 validates release behavior
+  - Sprint S7 adds `examples list`, `examples <name>`, `templates list`,
+    `templates add`, and `templates <name>`
 - FR-8 and FR-8a:
   - Sprint 1 finalizes command and health schemas
   - Sprint 2 implements the logger-facing command output
   - Sprint 3 hardens JSON and failure-path behavior
   - Sprint 4 validates release behavior
+  - Sprint S7 adds `examples list --json`, `templates list --json`, and
+    `templates add --json`
 - FR-9:
   - Sprint 1 finalizes the logging-only integration contract
   - Sprint 2 implements the logging path
@@ -310,6 +324,137 @@ following are true:
 - `qm-comp` completes a full QA pass
 - `arch-ctm` completes a final design review
 - release is approved for merge to `main`
+
+## Follow-On Work
+
+### Sprint S7: Examples and Templates Commands
+
+Status:
+
+- planned
+
+Branch:
+
+- `feat/examples-command` -> `develop`
+
+Goals:
+
+- ship a small, reviewable starter set of bundled example files with the tool
+- add a user-managed templates surface in the same sprint so created or custom
+  templates are immediately usable
+- support short named-render UX through command namespaces rather than a longer
+  explicit render subcommand
+- broaden the input model enough to support array/list-driven examples without
+  expanding into hooks or manifest-owned execution logic
+
+Deliverables:
+
+- repo-root `examples/` directory with flat starter example files:
+  - `hello.md.j2`
+  - `frontmatter-demo.md.j2`
+  - `service-config.yaml.j2`
+  - `agent-task-branching.xml.j2`
+  - `pytest-fixture.py.j2`
+- user templates stored as one subdirectory per template under the user
+  templates root
+- optional `template.json` for user template directories carrying only:
+  - `description`
+  - `version`
+  - `input_defaults`
+- `sc-compose examples list`
+  - discovers bundled example files through `SC_COMPOSE_DATA_DIR/examples`
+    first
+  - falls back to install-relative `../share/sc-compose/examples/`
+  - lists bundled example files in text or JSON form
+- `sc-compose examples <name>`
+  - implicitly renders the flat example file matching the requested name
+  - uses the same render flags and output behavior as `render`
+- `sc-compose templates list`
+  - lists user template packs from `SC_COMPOSE_TEMPLATE_DIR` or the platform
+    user-data directory joined with `sc-compose/templates/`
+- `sc-compose templates add <src> [name]`
+  - adds a user template pack from either a single file or a directory source
+  - uses `[name]` when provided
+  - otherwise uses the source directory name for directory input or the
+    normalized template filename for file input
+  - fails if the destination pack name already exists
+- `sc-compose templates <name>`
+  - implicitly renders the single root-level `*.j2` file in the named user
+    pack
+- a lightweight `README.md` in the user templates root documenting:
+  - where user templates live
+  - the one-template-per-directory convention
+  - the `templates add` and `templates <name>` workflow
+- input-model expansion from scalar-only values to:
+  - scalar values
+  - simple arrays/lists of scalar values
+- precedence updates so named-render pack defaults merge as:
+  1. explicit input variables
+  2. environment-derived variables
+  3. user-template `template.json` `input_defaults`
+  4. frontmatter defaults
+- packaging/install documentation for:
+  - Homebrew `#{prefix}/share/sc-compose/examples/`
+  - Windows and other system installs using the same relative share layout
+  - manual `SC_COMPOSE_DATA_DIR` override for CI and custom installs
+  - the default user template root and `SC_COMPOSE_TEMPLATE_DIR` override
+- tests for:
+  - bundled example root resolution
+  - user template root resolution
+  - examples/templates listing
+  - templates add
+  - named render for single-template packs
+  - array/list inputs through frontmatter defaults, user-template
+    `template.json` `input_defaults`, and `--var-file`
+
+Example design rules:
+
+- examples should be immediately understandable without reading the source code
+- each example should remain understandable from frontmatter, filename, and
+  minimal inline guidance when needed, without polluting the primary rendered
+  output
+- the starter set should cover:
+  - minimal rendering
+  - frontmatter/defaults/validation behavior
+  - practical multi-variable configuration generation
+  - branching task/agent prompt generation
+  - code-generation scaffolding for pytest
+- the pytest example should exercise real array/list inputs rather than a
+  scalar text-block workaround
+- v1 named render resolves flat example files by stem and user templates by
+  the single root-level `*.j2` file inside the named template directory
+
+Explicit deferral:
+
+- do not add `prepare-hook`, `post-render-hook`, or any other pack-executed
+  hook model
+- do not add manifest-owned entrypoint selection, hook declarations, or other
+  code-driving fields to `template.json`
+- do not add template deletion, update, sync, or remote registry features
+- do not add implicit named render for packs with multiple root-level `*.j2`
+  candidates
+
+Acceptance criteria:
+
+- all five starter example files exist and are review-ready
+- `sc-compose examples` auto-finds bundled example files from install-relative
+  share layout or `SC_COMPOSE_DATA_DIR/examples`
+- `sc-compose templates` auto-finds the user template root from
+  `SC_COMPOSE_TEMPLATE_DIR` or the platform user-data directory joined with
+  `sc-compose/templates/`
+- `examples list`, `examples <name>`, `templates list`, `templates add`, and
+  `templates <name>` work on macOS, Linux, and Windows path conventions
+- the user templates root includes a concise `README.md` describing the
+  supported workflow and directory convention
+- array/list inputs work through `--var-file`, frontmatter defaults, and
+  user-template `template.json` `input_defaults`
+- `template.json` remains a user-facing metadata/defaults file rather than a
+  manifest that drives alternate execution logic
+- `templates add` stores file sources as
+  `<user-template-root>/<pack-name>/<original-file>` and directory sources as
+  `<user-template-root>/<pack-name>/...`
+- packager instructions are explicit enough for system package installs and
+  user-template discovery
 
 ## Companion Planning Docs
 

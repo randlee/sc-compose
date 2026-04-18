@@ -41,6 +41,14 @@ fn parse_stdout(output: &std::process::Output) -> Value {
     serde_json::from_slice(&output.stdout).unwrap()
 }
 
+fn repo_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .canonicalize()
+        .unwrap()
+}
+
 fn assert_envelope(value: &Value) {
     assert_eq!(value["schema_version"], "1");
     assert!(value.get("payload").is_some());
@@ -647,6 +655,153 @@ fn invalid_var_file_json_reports_config_varfile() {
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_first_code(&value, "ERR_CONFIG_VARFILE");
+}
+
+#[test]
+fn examples_list_json_uses_diagnostic_envelope() {
+    let output = sc_compose()
+        .arg("examples")
+        .arg("list")
+        .arg("--json")
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    let packs = value["payload"]["packs"].as_array().unwrap();
+    assert!(packs.iter().any(|pack| pack["name"] == "hello"));
+}
+
+#[test]
+fn examples_named_render_json_matches_render_schema() {
+    let output = sc_compose()
+        .arg("examples")
+        .arg("hello")
+        .arg("--var")
+        .arg("name=Casey")
+        .arg("--json")
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["output_path"], "stdout");
+    assert_eq!(
+        value["payload"]["template"],
+        repo_root()
+            .join("examples")
+            .join("hello.md.j2")
+            .canonicalize()
+            .unwrap()
+            .display()
+            .to_string()
+    );
+}
+
+#[test]
+fn templates_list_json_uses_diagnostic_envelope() {
+    let root = temp_root("templates-list-json");
+    let templates_root = root.join("user-templates");
+    write_file(&templates_root.join("hello").join("hello.md.j2"), "hello");
+
+    let output = sc_compose()
+        .arg("templates")
+        .arg("list")
+        .arg("--json")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["packs"][0]["name"], "hello");
+}
+
+#[test]
+fn templates_add_json_uses_diagnostic_envelope() {
+    let root = temp_root("templates-add-json");
+    let templates_root = root.join("user-templates");
+    let source = root.join("hello.md.j2");
+    write_file(&source, "Hello {{ name }}!");
+
+    let output = sc_compose()
+        .arg("templates")
+        .arg("add")
+        .arg(&source)
+        .arg("--json")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["name"], "hello");
+    assert_eq!(value["payload"]["changed"], true);
+}
+
+#[test]
+fn templates_add_duplicate_json_reports_template_exists_code() {
+    let root = temp_root("templates-add-duplicate-json");
+    let templates_root = root.join("user-templates");
+    let source = root.join("hello.md.j2");
+    write_file(&source, "Hello {{ name }}!");
+
+    let first = sc_compose()
+        .arg("templates")
+        .arg("add")
+        .arg(&source)
+        .arg("--json")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+    assert!(first.status.success());
+
+    let output = sc_compose()
+        .arg("templates")
+        .arg("add")
+        .arg(&source)
+        .arg("--json")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_CONFIG_TEMPLATE_EXISTS");
+}
+
+#[test]
+fn templates_render_json_reports_pack_not_renderable_code() {
+    let root = temp_root("templates-render-json-not-renderable");
+    let templates_root = root.join("user-templates");
+    write_file(&templates_root.join("ambiguous").join("one.md.j2"), "one");
+    write_file(&templates_root.join("ambiguous").join("two.md.j2"), "two");
+
+    let output = sc_compose()
+        .arg("templates")
+        .arg("ambiguous")
+        .arg("--json")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_CONFIG_PACK_NOT_RENDERABLE");
 }
 
 #[test]

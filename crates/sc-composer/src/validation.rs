@@ -8,14 +8,14 @@ use crate::frontmatter::Frontmatter;
 use crate::include::expand_includes;
 use crate::resolver::resolve_template_path;
 use crate::types::{
-    ComposeRequest, ScalarValue, UnknownVariablePolicy, ValidationReport, VariableName,
+    ComposeRequest, InputValue, UnknownVariablePolicy, ValidationReport, VariableName,
     VariableSource,
 };
 use crate::{ComposeError, ExpandedTemplate};
 
 #[derive(Debug, Default)]
 pub(crate) struct ValidationState {
-    pub(crate) context: BTreeMap<VariableName, ScalarValue>,
+    pub(crate) context: BTreeMap<VariableName, InputValue>,
     pub(crate) variable_sources: BTreeMap<VariableName, VariableSource>,
     pub(crate) required_origins: BTreeMap<VariableName, PathBuf>,
     required_include_chains: BTreeMap<VariableName, Vec<PathBuf>>,
@@ -115,6 +115,7 @@ pub(crate) fn validate_expanded(
     let provided_variables = request
         .vars_input
         .keys()
+        .chain(request.vars_defaults.keys())
         .chain(request.vars_env.keys())
         .cloned()
         .collect::<BTreeSet<_>>();
@@ -185,6 +186,12 @@ pub(crate) fn collect_validation_state(
         }
     }
 
+    for (name, value) in &request.vars_defaults {
+        state.context.insert(name.clone(), value.clone());
+        state
+            .variable_sources
+            .insert(name.clone(), VariableSource::TemplateInputDefault);
+    }
     for (name, value) in &request.vars_env {
         state.context.insert(name.clone(), value.clone());
         state
@@ -312,10 +319,12 @@ mod tests {
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    use serde_json::json;
+
+    use crate::DiagnosticCode;
     use crate::types::{
         ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, UnknownVariablePolicy,
     };
-    use crate::{DiagnosticCode, ScalarValue};
 
     use super::{collect_validation_state, validate};
 
@@ -387,7 +396,7 @@ mod tests {
             state
                 .context
                 .get(&crate::VariableName::new("name").unwrap()),
-            Some(&ScalarValue::String("parent".to_owned()))
+            Some(&json!("parent"))
         );
         assert!(
             state
@@ -398,7 +407,7 @@ mod tests {
             state
                 .context
                 .get(&crate::VariableName::new("child_only").unwrap()),
-            Some(&ScalarValue::String("present".to_owned()))
+            Some(&json!("present"))
         );
     }
 
@@ -411,14 +420,12 @@ mod tests {
         );
 
         let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
-        request.vars_env.insert(
-            crate::VariableName::new("name").unwrap(),
-            ScalarValue::String("env".to_owned()),
-        );
-        request.vars_input.insert(
-            crate::VariableName::new("name").unwrap(),
-            ScalarValue::String("input".to_owned()),
-        );
+        request
+            .vars_env
+            .insert(crate::VariableName::new("name").unwrap(), json!("env"));
+        request
+            .vars_input
+            .insert(crate::VariableName::new("name").unwrap(), json!("input"));
 
         let resolve_result = crate::resolve_template_path(&request).unwrap();
         let expanded = crate::expand_includes(
@@ -433,7 +440,7 @@ mod tests {
             state
                 .context
                 .get(&crate::VariableName::new("name").unwrap()),
-            Some(&ScalarValue::String("input".to_owned()))
+            Some(&json!("input"))
         );
         assert_eq!(
             state
@@ -480,14 +487,12 @@ mod tests {
                 ..ComposePolicy::default()
             },
         );
-        request.vars_input.insert(
-            crate::VariableName::new("name").unwrap(),
-            ScalarValue::String("world".to_owned()),
-        );
-        request.vars_input.insert(
-            crate::VariableName::new("extra").unwrap(),
-            ScalarValue::String("value".to_owned()),
-        );
+        request
+            .vars_input
+            .insert(crate::VariableName::new("name").unwrap(), json!("world"));
+        request
+            .vars_input
+            .insert(crate::VariableName::new("extra").unwrap(), json!("value"));
 
         let report = validate(&request).unwrap();
         assert!(!report.ok);
@@ -529,6 +534,7 @@ mod tests {
             root: ConfiningRoot::new(root).unwrap(),
             vars_input: BTreeMap::default(),
             vars_env: BTreeMap::default(),
+            vars_defaults: BTreeMap::default(),
             guidance_block: None,
             user_prompt: None,
             policy,

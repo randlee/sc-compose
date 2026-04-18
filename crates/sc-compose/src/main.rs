@@ -1,24 +1,27 @@
+mod commands;
 mod exit_codes;
 mod json_output;
 mod observability;
 mod observer_impl;
+mod render_request;
+mod template_store;
 
-use std::collections::BTreeMap;
 use std::fmt;
-use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Result, anyhow};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use mimalloc::MiMalloc;
 use sc_composer::{
-    ComposeError, ComposeMode, ComposePolicy, ComposeRequest, CompositionObserver, ConfiningRoot,
-    Diagnostic, DiagnosticCode, DiagnosticSeverity, FrontmatterInitResult, ProfileKind,
-    RuntimeKind, ScalarValue, UnknownVariablePolicy,
+    ComposeError, ComposeMode, ComposeRequest, CompositionObserver, Diagnostic, DiagnosticCode,
+    DiagnosticSeverity, FrontmatterInitResult, RecoveryHint, RecoveryHintKind,
 };
 
+use crate::commands::examples::{run_examples_list, run_examples_render};
+use crate::commands::templates::{run_templates_add, run_templates_list, run_templates_render};
 use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
+use crate::render_request::{build_request, read_block_pair};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -41,6 +44,22 @@ enum Command {
     Init(InitArgs),
     #[command(name = "observability-health")]
     ObservabilityHealth(ObservabilityHealthArgs),
+    Examples(ExamplesArgs),
+    Templates(TemplatesArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+struct InputArgs {
+    #[arg(long = "var", value_parser = parse_var, action = clap::ArgAction::Append)]
+    vars: Vec<(String, String)>,
+    #[arg(long = "var-file")]
+    var_file: Option<String>,
+    #[arg(long)]
+    env_prefix: Option<String>,
+    #[arg(long)]
+    strict: bool,
+    #[arg(long, value_enum, default_value = "ignore")]
+    unknown_var_mode: UnknownVarMode,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -57,20 +76,30 @@ struct CommonArgs {
     runtime: Option<Ai>,
     #[arg(long, alias = "ai", value_enum)]
     ai: Option<Ai>,
-    #[arg(long = "var", value_parser = parse_var, action = clap::ArgAction::Append)]
-    vars: Vec<(String, String)>,
-    #[arg(long = "var-file")]
-    var_file: Option<String>,
-    #[arg(long)]
-    env_prefix: Option<String>,
-    #[arg(long)]
-    strict: bool,
-    #[arg(long, value_enum, default_value = "ignore")]
-    unknown_var_mode: UnknownVarMode,
+    #[command(flatten)]
+    input: InputArgs,
     #[arg(long, default_value = ".")]
     root: PathBuf,
     #[arg(long)]
     file: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, Args, Default)]
+struct RenderBehaviorArgs {
+    #[arg(long)]
+    output: Option<PathBuf>,
+    #[arg(long)]
+    guidance: Option<String>,
+    #[arg(long)]
+    guidance_file: Option<String>,
+    #[arg(long)]
+    prompt: Option<String>,
+    #[arg(long)]
+    prompt_file: Option<String>,
+    #[arg(long)]
+    json: bool,
+    #[arg(long)]
+    dry_run: bool,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -93,20 +122,8 @@ struct ValidateArgs {
 struct RenderArgs {
     #[command(flatten)]
     common: CommonArgs,
-    #[arg(long)]
-    output: Option<PathBuf>,
-    #[arg(long)]
-    guidance: Option<String>,
-    #[arg(long)]
-    guidance_file: Option<String>,
-    #[arg(long)]
-    prompt: Option<String>,
-    #[arg(long)]
-    prompt_file: Option<String>,
-    #[arg(long)]
-    json: bool,
-    #[arg(long)]
-    dry_run: bool,
+    #[command(flatten)]
+    render: RenderBehaviorArgs,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -133,6 +150,57 @@ struct InitArgs {
 
 #[derive(Debug, Clone, Args)]
 struct ObservabilityHealthArgs {
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+#[command(args_conflicts_with_subcommands = true)]
+struct ExamplesArgs {
+    #[command(subcommand)]
+    command: Option<ExamplesSubcommand>,
+    #[arg(index = 1)]
+    name: Option<String>,
+    #[command(flatten)]
+    input: InputArgs,
+    #[command(flatten)]
+    render: RenderBehaviorArgs,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+enum ExamplesSubcommand {
+    List(ListArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+#[command(args_conflicts_with_subcommands = true)]
+struct TemplatesArgs {
+    #[command(subcommand)]
+    command: Option<TemplatesSubcommand>,
+    #[arg(index = 1)]
+    name: Option<String>,
+    #[command(flatten)]
+    input: InputArgs,
+    #[command(flatten)]
+    render: RenderBehaviorArgs,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+enum TemplatesSubcommand {
+    List(ListArgs),
+    Add(TemplatesAddArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+struct ListArgs {
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+struct TemplatesAddArgs {
+    src: PathBuf,
+    name: Option<String>,
     #[arg(long)]
     json: bool,
 }
@@ -207,9 +275,11 @@ fn main() {
 
 fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, CommandError> {
     match cli.command {
-        Command::Render(args) => observe_command(observer, "render", args.json, |observer| {
-            run_render(&args, observer)
-        }),
+        Command::Render(args) => {
+            observe_command(observer, "render", args.render.json, |observer| {
+                run_render(&args, observer)
+            })
+        }
         Command::Resolve(args) => observe_command(observer, "resolve", args.json, |observer| {
             run_resolve(&args, observer)
         }),
@@ -229,6 +299,31 @@ fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, Comma
                 run_observability_health(&args, observer)
             })
         }
+        Command::Examples(args) => match &args.command {
+            Some(ExamplesSubcommand::List(list_args)) => {
+                observe_command(observer, "examples", list_args.json, |_observer| {
+                    run_examples_list(list_args)
+                })
+            }
+            None => observe_command(observer, "examples", args.render.json, |observer| {
+                run_examples_render(&args, observer)
+            }),
+        },
+        Command::Templates(args) => match &args.command {
+            Some(TemplatesSubcommand::List(list_args)) => {
+                observe_command(observer, "templates", list_args.json, |_observer| {
+                    run_templates_list(list_args)
+                })
+            }
+            Some(TemplatesSubcommand::Add(add_args)) => {
+                observe_command(observer, "templates", add_args.json, |_observer| {
+                    run_templates_add(add_args)
+                })
+            }
+            None => observe_command(observer, "templates", args.render.json, |observer| {
+                run_templates_render(&args, observer)
+            }),
+        },
     }
 }
 
@@ -236,11 +331,23 @@ fn run_render(
     args: &RenderArgs,
     observer: &mut dyn CompositionObserver,
 ) -> Result<i32, CommandError> {
-    let request = build_request(&args.common, read_block_pair(args)?)?;
+    let request = build_request(
+        &args.common,
+        read_block_pair(&args.common.input, &args.render)?,
+        std::collections::BTreeMap::default(),
+    )?;
+    execute_render(&request, &args.render, observer)
+}
+
+fn execute_render(
+    request: &ComposeRequest,
+    args: &RenderBehaviorArgs,
+    observer: &mut dyn CompositionObserver,
+) -> Result<i32, CommandError> {
     let result =
-        sc_composer::compose_with_observer(&request, observer).map_err(CommandError::compose)?;
+        sc_composer::compose_with_observer(request, observer).map_err(CommandError::compose)?;
     let output_path = args.output.clone();
-    let derived_path = derived_output_path(&request, output_path.as_deref());
+    let derived_path = derived_output_path(request, output_path.as_deref());
     let would_change = render_would_change(&derived_path, &result.rendered_text);
     let bytes_written = if args.dry_run {
         None
@@ -313,7 +420,11 @@ fn run_resolve(
             DiagnosticCode::ErrConfigMode,
         ));
     }
-    let request = build_request(&args.common, (None, None))?;
+    let request = build_request(
+        &args.common,
+        (None, None),
+        std::collections::BTreeMap::default(),
+    )?;
     let result = sc_composer::resolve_profile_with_observer(&request, observer)
         .map_err(CommandError::compose)?;
     if args.json {
@@ -336,7 +447,11 @@ fn run_validate(
     args: &ValidateArgs,
     observer: &mut dyn CompositionObserver,
 ) -> Result<i32, CommandError> {
-    let request = build_request(&args.common, (None, None))?;
+    let request = build_request(
+        &args.common,
+        (None, None),
+        std::collections::BTreeMap::default(),
+    )?;
     let report =
         sc_composer::validate_with_observer(&request, observer).map_err(CommandError::compose)?;
     let diagnostics = report
@@ -461,238 +576,6 @@ fn run_observability_health(
     Ok(exit_codes::SUCCESS)
 }
 
-fn build_request(
-    args: &CommonArgs,
-    blocks: (Option<String>, Option<String>),
-) -> Result<ComposeRequest, CommandError> {
-    let root = ConfiningRoot::new(&args.root)
-        .with_context(|| format!("failed to canonicalize root {}", args.root.display()))
-        .map_err(|error| CommandError::usage_with_code(error, DiagnosticCode::ErrConfigParse))?;
-    let mode = match args.mode {
-        Mode::File => ComposeMode::File {
-            template_path: args
-                .file
-                .clone()
-                .ok_or_else(|| CommandError::usage(anyhow!("--file is required in file mode")))?,
-        },
-        Mode::Profile => ComposeMode::Profile {
-            kind: match args.kind {
-                Kind::Agent => ProfileKind::Agent,
-                Kind::Command => ProfileKind::Command,
-                Kind::Skill => ProfileKind::Skill,
-            },
-            name: args
-                .agent
-                .clone()
-                .or_else(|| args.agent_type.clone())
-                .ok_or_else(|| {
-                    CommandError::usage(anyhow!("--agent/--agent-type is required in profile mode"))
-                })
-                .and_then(|name| {
-                    sc_composer::ProfileName::new(name).map_err(|error| {
-                        CommandError::usage(anyhow!("invalid profile name: {error}"))
-                    })
-                })?,
-        },
-    };
-
-    Ok(ComposeRequest {
-        runtime: args.runtime.or(args.ai).map(|runtime| match runtime {
-            Ai::Claude => RuntimeKind::Claude,
-            Ai::Codex => RuntimeKind::Codex,
-            Ai::Gemini => RuntimeKind::Gemini,
-            Ai::Opencode => RuntimeKind::Opencode,
-        }),
-        mode,
-        root,
-        vars_input: load_vars(args)?,
-        vars_env: load_env(args)?,
-        guidance_block: blocks.0,
-        user_prompt: blocks.1,
-        policy: ComposePolicy {
-            strict_undeclared_variables: args.strict,
-            unknown_variable_policy: match args.unknown_var_mode {
-                UnknownVarMode::Error => UnknownVariablePolicy::Error,
-                UnknownVarMode::Warn => UnknownVariablePolicy::Warn,
-                UnknownVarMode::Ignore => UnknownVariablePolicy::Ignore,
-            },
-            ..ComposePolicy::default()
-        },
-    })
-}
-
-fn read_block_pair(args: &RenderArgs) -> Result<(Option<String>, Option<String>), CommandError> {
-    if args.guidance.is_some() && args.guidance_file.is_some() {
-        return Err(CommandError::usage(anyhow!(
-            "--guidance and --guidance-file are mutually exclusive"
-        )));
-    }
-    if args.prompt.is_some() && args.prompt_file.is_some() {
-        return Err(CommandError::usage(anyhow!(
-            "--prompt and --prompt-file are mutually exclusive"
-        )));
-    }
-    if args.guidance_file.as_deref() == Some("-") && args.prompt_file.as_deref() == Some("-") {
-        return Err(CommandError::stdin_double_read());
-    }
-
-    let guidance = read_block(args.guidance.clone(), args.guidance_file.as_deref())?;
-    let prompt = read_block(args.prompt.clone(), args.prompt_file.as_deref())?;
-    Ok((guidance, prompt))
-}
-
-fn read_block(inline: Option<String>, file: Option<&str>) -> Result<Option<String>, CommandError> {
-    if let Some(inline) = inline {
-        return Ok(Some(inline));
-    }
-    match file {
-        Some("-") => {
-            let mut input = String::new();
-            std::io::stdin()
-                .read_to_string(&mut input)
-                .map_err(|error| {
-                    CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-                })?;
-            Ok(Some(input))
-        }
-        Some(path) => std::fs::read_to_string(path).map(Some).map_err(|error| {
-            CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-        }),
-        None => Ok(None),
-    }
-}
-
-fn load_vars(
-    args: &CommonArgs,
-) -> Result<BTreeMap<sc_composer::VariableName, ScalarValue>, CommandError> {
-    let mut vars = BTreeMap::default();
-    for (key, value) in &args.vars {
-        vars.insert(
-            sc_composer::VariableName::new(key.clone()).map_err(|error| {
-                CommandError::usage(anyhow!("invalid `--var` name `{key}`: {error}"))
-            })?,
-            ScalarValue::String(value.clone()),
-        );
-    }
-    if let Some(path) = &args.var_file {
-        let contents = if path == "-" {
-            let mut input = String::new();
-            std::io::stdin()
-                .read_to_string(&mut input)
-                .map_err(|error| {
-                    CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-                })?;
-            input
-        } else {
-            std::fs::read_to_string(path).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!(error).context(format!("failed to read var-file {path}")),
-                    DiagnosticCode::ErrConfigParse,
-                )
-            })?
-        };
-        let object = parse_var_file(&contents)?;
-        vars.extend(object);
-    }
-    Ok(vars)
-}
-
-fn load_env(
-    args: &CommonArgs,
-) -> Result<BTreeMap<sc_composer::VariableName, ScalarValue>, CommandError> {
-    let mut vars = BTreeMap::default();
-    if let Some(prefix) = &args.env_prefix {
-        for (key, value) in std::env::vars() {
-            if let Some(trimmed) = key.strip_prefix(prefix) {
-                vars.insert(
-                    sc_composer::VariableName::new(trimmed.to_ascii_lowercase()).map_err(
-                        |error| {
-                            CommandError::usage(anyhow!(
-                                "invalid environment-derived variable `{trimmed}`: {error}"
-                            ))
-                        },
-                    )?,
-                    ScalarValue::String(value),
-                );
-            }
-        }
-    }
-    Ok(vars)
-}
-
-fn parse_var_file(
-    contents: &str,
-) -> Result<BTreeMap<sc_composer::VariableName, ScalarValue>, CommandError> {
-    if let Ok(value) = serde_json::from_str::<serde_json::Value>(contents) {
-        return parse_object_value(&value);
-    }
-    let value = serde_yaml::from_str::<serde_yaml::Value>(contents).map_err(|error| {
-        CommandError::usage_with_code(
-            anyhow!(error).context("var-file must be valid JSON or YAML"),
-            DiagnosticCode::ErrConfigParse,
-        )
-    })?;
-    let serde_yaml::Value::Mapping(object) = value else {
-        return Err(CommandError::usage_with_code(
-            anyhow!("var-file must be a JSON or YAML object"),
-            DiagnosticCode::ErrConfigVarfile,
-        ));
-    };
-    let mut vars = BTreeMap::default();
-    for (key, value) in object {
-        let key = key.as_str().ok_or_else(|| {
-            CommandError::usage_with_code(
-                anyhow!("var-file keys must be strings"),
-                DiagnosticCode::ErrConfigVarfile,
-            )
-        })?;
-        vars.insert(
-            sc_composer::VariableName::new(key.to_owned()).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!("invalid var-file key `{key}`: {error}"),
-                    DiagnosticCode::ErrConfigVarfile,
-                )
-            })?,
-            ScalarValue::from_yaml(value).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!("invalid var-file value for `{key}`: {error}"),
-                    DiagnosticCode::ErrConfigVarfile,
-                )
-            })?,
-        );
-    }
-    Ok(vars)
-}
-
-fn parse_object_value(
-    value: &serde_json::Value,
-) -> Result<BTreeMap<sc_composer::VariableName, ScalarValue>, CommandError> {
-    let object = value.as_object().ok_or_else(|| {
-        CommandError::usage_with_code(
-            anyhow!("var-file must be a JSON object"),
-            DiagnosticCode::ErrConfigVarfile,
-        )
-    })?;
-    let mut vars = BTreeMap::default();
-    for (key, value) in object {
-        vars.insert(
-            sc_composer::VariableName::new(key.clone()).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!("invalid var-file key `{key}`: {error}"),
-                    DiagnosticCode::ErrConfigVarfile,
-                )
-            })?,
-            ScalarValue::try_from(value.clone()).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!("invalid var-file value for `{key}`: {error}"),
-                    DiagnosticCode::ErrConfigVarfile,
-                )
-            })?,
-        );
-    }
-    Ok(vars)
-}
-
 fn derived_output_path(request: &ComposeRequest, explicit: Option<&Path>) -> PathBuf {
     if let Some(path) = explicit {
         return path.to_path_buf();
@@ -764,12 +647,21 @@ fn print_json(payload: serde_json::Value, diagnostics: Vec<sc_composer::Diagnost
 
 fn command_wants_json(command: &Command) -> bool {
     match command {
-        Command::Render(args) => args.json,
+        Command::Render(args) => args.render.json,
         Command::Resolve(args) => args.json,
         Command::Validate(args) => args.json,
         Command::FrontmatterInit(args) => args.json,
         Command::Init(args) => args.json,
         Command::ObservabilityHealth(args) => args.json,
+        Command::Examples(args) => match &args.command {
+            Some(ExamplesSubcommand::List(list_args)) => list_args.json,
+            None => args.render.json,
+        },
+        Command::Templates(args) => match &args.command {
+            Some(TemplatesSubcommand::List(list_args)) => list_args.json,
+            Some(TemplatesSubcommand::Add(add_args)) => add_args.json,
+            None => args.render.json,
+        },
     }
 }
 
@@ -852,11 +744,23 @@ fn format_diagnostic(diagnostic: &sc_composer::Diagnostic) -> String {
     }
 }
 
+fn format_recovery_hint(hint: &RecoveryHint) -> String {
+    match &hint.kind {
+        RecoveryHintKind::RunCommand { command } => format!("run `{command}`"),
+        RecoveryHintKind::InspectPath { path } => format!("inspect {}", path.display()),
+        RecoveryHintKind::ProvideVariable { variable } => {
+            format!("provide variable `{}`", variable.as_str())
+        }
+        RecoveryHintKind::ReviewConfiguration { key } => key.clone(),
+    }
+}
+
 #[derive(Debug)]
 struct CommandError {
     exit_code: i32,
     diagnostic_code: Option<DiagnosticCode>,
     diagnostics: Vec<Diagnostic>,
+    recovery_hints: Vec<RecoveryHint>,
     error: anyhow::Error,
 }
 
@@ -866,11 +770,20 @@ impl CommandError {
             exit_code: exit_codes::USAGE_FAIL,
             diagnostic_code: None,
             diagnostics: Vec::new(),
+            recovery_hints: Vec::new(),
             error,
         }
     }
 
     fn usage_with_code(error: anyhow::Error, diagnostic_code: DiagnosticCode) -> Self {
+        Self::usage_with_code_and_hints(error, diagnostic_code, Vec::new())
+    }
+
+    fn usage_with_code_and_hints(
+        error: anyhow::Error,
+        diagnostic_code: DiagnosticCode,
+        recovery_hints: Vec<RecoveryHint>,
+    ) -> Self {
         Self {
             exit_code: exit_codes::USAGE_FAIL,
             diagnostic_code: Some(diagnostic_code),
@@ -879,6 +792,7 @@ impl CommandError {
                 diagnostic_code,
                 format!("{error:#}"),
             )],
+            recovery_hints,
             error,
         }
     }
@@ -894,6 +808,7 @@ impl CommandError {
             exit_code,
             diagnostic_code: error.code(),
             diagnostics: compose_error_diagnostics(&error),
+            recovery_hints: Vec::new(),
             error: anyhow!(error),
         }
     }
@@ -907,6 +822,7 @@ impl CommandError {
                 DiagnosticCode::ErrRenderWrite,
                 format!("{error:#}"),
             )],
+            recovery_hints: Vec::new(),
             error,
         }
     }
@@ -920,6 +836,7 @@ impl CommandError {
                 DiagnosticCode::ErrRenderStdinDoubleRead,
                 "guidance and prompt cannot both read from stdin",
             )],
+            recovery_hints: Vec::new(),
             error: anyhow!("guidance and prompt cannot both read from stdin"),
         }
     }
@@ -928,9 +845,14 @@ impl CommandError {
 impl fmt::Display for CommandError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(code) = self.diagnostic_code {
-            return write!(f, "{}: {:#}", code.as_str(), self.error);
+            write!(f, "{}: {:#}", code.as_str(), self.error)?;
+        } else {
+            write!(f, "{:#}", self.error)?;
         }
-        write!(f, "{:#}", self.error)
+        for hint in &self.recovery_hints {
+            write!(f, "\nrecovery: {}", format_recovery_hint(hint))?;
+        }
+        Ok(())
     }
 }
 

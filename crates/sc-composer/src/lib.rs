@@ -69,9 +69,9 @@ pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_templ
 #[doc(inline)]
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
-    FrontmatterInitResult, IncludeDepth, InitResult, MetadataValue, ProfileKind, ProfileName,
-    ResolveResult, ResolverPolicy, RuntimeKind, ScalarValue, UnknownVariablePolicy,
-    ValidationReport, VariableName, VariableSource,
+    FrontmatterInitResult, IncludeDepth, InitResult, InputValue, MetadataValue, ProfileKind,
+    ProfileName, ResolveResult, ResolverPolicy, RuntimeKind, ScalarValue, UnknownVariablePolicy,
+    ValidationReport, VariableName, VariableSource, input_value_from_yaml, validate_input_value,
 };
 #[doc(inline)]
 pub use validate::{validate, validate_with_observer};
@@ -113,7 +113,7 @@ mod tests {
     }
 
     #[test]
-    fn frontmatter_rejects_non_scalar_defaults() {
+    fn frontmatter_rejects_nested_defaults() {
         let error = parse_template_document(
             "---\ndefaults:\n  name:\n    nested: nope\n---\nhello {{ name }}\n",
         )
@@ -132,6 +132,22 @@ mod tests {
         let value = serde_json::json!({ "nested": true });
         let error = ScalarValue::try_from(value).unwrap_err();
         assert!(error.to_string().contains("scalar"));
+    }
+
+    #[test]
+    fn frontmatter_accepts_array_defaults() {
+        let parsed = parse_template_document(
+            "---\ndefaults:\n  test_names:\n    - login\n    - logout\n---\n{{ test_names | length }}\n",
+        )
+        .unwrap();
+        let frontmatter = parsed.frontmatter().unwrap();
+
+        assert_eq!(
+            frontmatter
+                .defaults()
+                .get(&super::VariableName::new("test_names").unwrap()),
+            Some(&json!(["login", "logout"]))
+        );
     }
 
     #[test]
