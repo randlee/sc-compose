@@ -118,16 +118,18 @@ Schema rules:
 
 ### FR-1b: Value Types
 
-For the initial release, the render-context value model is intentionally narrow.
+For the initial release, the render-context value model remains intentionally
+narrow even after template-pack support is added.
 
-- Variables used by template rendering must be scalar values.
-- Supported scalar value types are:
+- Variables used by template rendering must be one of:
   - string
   - number
   - boolean
   - null
-- Sequence and mapping values are out of scope for template variables and
-  `defaults` in the initial release.
+  - a sequence of scalar values
+- Sequence values may contain only supported scalar value types.
+- Nested sequences and mapping values are out of scope for template variables,
+  `defaults`, and template-pack `input_defaults` in the initial release.
 - `metadata` may contain arbitrary YAML values because it is descriptive only
   and does not participate in rendering semantics.
 
@@ -146,18 +148,44 @@ For the initial release, the render-context value model is intentionally narrow.
 - CLI `render` and `validate` must accept explicit template paths anywhere
   under the configured root, including nested skill templates.
 
+### FR-1d: Template Pack Layout
+
+- Bundled examples and user templates must be stored as pack directories.
+- A pack name is the directory name under its command-specific root.
+- A pack may contain one or more files, including one or more `.j2` templates
+  and supporting assets.
+- `template.json` is optional. If present, it is user-facing metadata and may
+  contain only:
+  - `description`
+  - `version`
+  - `input_defaults`
+- `input_defaults` may provide default render inputs using supported
+  render-context value types.
+- `template.json` must not introduce alternate render semantics, hook
+  execution, or manifest-owned entrypoint selection in the initial release.
+- Named render from `sc-compose examples <name>` or
+  `sc-compose templates <name>` is defined only when the pack contains exactly
+  one root-level `*.j2` file.
+- Packs with zero or multiple root-level `*.j2` files remain listable and
+  addable as user-managed content, but they are not implicitly renderable by
+  name in the initial release.
+
 ### FR-2: Variable Resolution and Precedence
 
 - Final render context precedence must be:
   1. explicit input variables,
   2. environment-derived variables,
-  3. frontmatter defaults.
+  3. template-pack `input_defaults`,
+  4. frontmatter defaults.
 - Frontmatter-declared `required_variables` must be evaluated after the merge.
 - Variables present only in `defaults` are optional by default.
 - A variable may appear in both `required_variables` and `defaults`; in that
   case the default value satisfies the requirement unless overridden.
+- An empty sequence value such as `[]` is valid input and satisfies a required
+  variable when provided explicitly or by defaults.
 - Explicit CLI `--var key=value` inputs are always strings.
-- Variables loaded through `--var-file` may be any supported scalar value type.
+- Variables loaded through `--var-file` may be any supported render-context
+  value type.
 - Variables loaded through `--env-prefix` are always strings.
 - If frontmatter is absent:
   - the engine must discover referenced variables from the template and include
@@ -331,6 +359,8 @@ Each block may be empty. Ordering is never caller-defined.
 - `frontmatter-init`
 - `init`
 - `observability-health`
+- `examples`
+- `templates`
 
 The CLI must support:
 
@@ -387,6 +417,24 @@ Command behavior:
     log configuration,
   - prints a human-readable health summary by default,
   - emits the documented JSON schema when `--json` is provided.
+- `examples`
+  - supports:
+    - `examples list`
+    - `examples <name>` for implicit named render
+  - resolves packs from the bundled examples root,
+  - uses the same render flags and output semantics as `render` for implicit
+    named render.
+- `templates`
+  - supports:
+    - `templates list`
+    - `templates add <src> [name]`
+    - `templates <name>` for implicit named render
+  - resolves packs from the user templates root,
+  - uses the same render flags and output semantics as `render` for implicit
+    named render,
+  - allows `add` from either a single file or a directory source,
+  - stores a file source as `<user-template-root>/<pack-name>/<original-file>`,
+  - stores a directory source as `<user-template-root>/<pack-name>/...`.
 
 `--dry-run` behavior:
 
@@ -419,13 +467,24 @@ Default output path policy:
 - Profile mode writes to `.prompts/<name>-<ulid>.md` unless `--output` is
   supplied.
 
+Pack root policy:
+
+- `examples` resolves packs from:
+  1. `SC_COMPOSE_DATA_DIR/examples`
+  2. install-relative `../share/sc-compose/examples/`
+- `templates` resolves packs from:
+  1. `SC_COMPOSE_TEMPLATE_DIR`
+  2. the platform user-data directory joined with `sc-compose/templates/`
+- `templates add` must fail if the destination pack name already exists.
+- `examples` is read-only. It must not mutate the bundled examples root.
+
 ### FR-7a: Variable File Rules
 
 - `--var-file` accepts a JSON or YAML object.
 - Variable-file keys must be strings.
-- Variable-file values must be supported scalar value types.
-- Nested objects and arrays in variable files are invalid in the initial
-  release.
+- Variable-file values must be supported render-context value types.
+- Sequence values in variable files must contain only supported scalar values.
+- Nested objects and nested sequences are invalid in the initial release.
 
 ### FR-7b: Exit Codes
 
@@ -664,6 +723,42 @@ Schema rules:
   were enabled.
 - `skipped` is `true` when the command decides no change is needed.
 
+`examples list --json`
+
+```json
+{
+  "schema_version": "1",
+  "payload": {
+    "packs": [
+      {
+        "name": "hello",
+        "description": "Minimal greeting example",
+        "version": "1.0.0"
+      }
+    ]
+  },
+  "diagnostics": []
+}
+```
+
+`templates add --json`
+
+```json
+{
+  "schema_version": "1",
+  "payload": {
+    "name": "pytest-fixture",
+    "source": "/tmp/pytest-fixture",
+    "destination": "/user-data/sc-compose/templates/pytest-fixture",
+    "changed": true
+  },
+  "diagnostics": []
+}
+```
+
+Named render through `examples <name>` and `templates <name>` must emit the
+same command payloads as `render` and `render --dry-run`.
+
 ### FR-9: Observability
 
 - `sc-composer` must not depend directly on `sc-observability`.
@@ -773,11 +868,19 @@ Required integration coverage includes:
 - CLI `frontmatter-init`,
 - CLI `init`,
 - CLI `observability-health`,
+- CLI `examples list`,
+- CLI `examples <name>`,
+- CLI `templates list`,
+- CLI `templates add`,
+- CLI `templates <name>`,
 - command lifecycle logging,
 - resolve/include-expand/validate/render event emission,
 - `--dry-run` no-write guarantees,
 - JSON diagnostics contract,
-- cross-platform path behavior.
+- cross-platform path behavior,
+- template-pack discovery and add semantics,
+- list/array input behavior through frontmatter defaults, `template.json`
+  `input_defaults`, and `--var-file`.
 
 ## 8. Out of Scope for the Initial Release
 
@@ -785,3 +888,6 @@ Required integration coverage includes:
 - Arbitrary plugin execution from templates
 - Runtime-specific hooks and event integrations inside the core composition
   engine
+- `prepare-hook` and `post-render-hook` execution
+- Named render for packs with multiple root-level `*.j2` entry candidates
+- Template deletion, update, sync, or remote registry features

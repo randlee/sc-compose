@@ -1,0 +1,30 @@
+---
+required_variables:
+  - service_name
+  - database_url
+defaults:
+  environment: dev
+  host: 0.0.0.0
+  port: 8080
+  log_level: info
+  enable_metrics: true
+metadata:
+  purpose: practical multi-variable service configuration example
+---
+# Practical multi-variable config example for a small service.
+service:
+  name: "{{ service_name }}"
+  environment: "{{ environment }}"
+
+server:
+  host: "{{ host }}"
+  port: {{ port }}
+
+logging:
+  level: "{{ log_level }}"
+
+database:
+  url: "{{ database_url }}"
+
+metrics:
+  enabled: {{ enable_metrics }}

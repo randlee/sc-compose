@@ -1,0 +1,51 @@
+---
+required_variables:
+  - task_id
+  - mode
+  - title
+  - description
+  - owner
+defaults:
+  branch_name: develop
+  plan_notes: ""
+  sprint_scope: ""
+  phase_end_checks: ""
+metadata:
+  purpose: branching task/agent prompt example for plan, sprint, and phase-end modes
+---
+<!-- Branching task example. Set `mode` to `plan`, `sprint`, or `phase_end` to select the workflow. -->
+<task id="{{ task_id }}" mode="{{ mode }}" owner="{{ owner }}">
+  <title>{{ title }}</title>
+  <description>{{ description }}</description>
+  <branch>{{ branch_name }}</branch>
+
+  {% if mode == "plan" %}
+  <workflow>
+    <step>Review the problem statement, constraints, and known blockers.</step>
+    <step>Produce a concrete plan with deliverables, risks, and exit criteria.</step>
+    {% if plan_notes %}
+    <step>{{ plan_notes }}</step>
+    {% endif %}
+  </workflow>
+  {% elif mode == "sprint" %}
+  <workflow>
+    <step>ACK the assignment immediately.</step>
+    <step>Implement the scoped work and run the required validation gates.</step>
+    {% if sprint_scope %}
+    <step>{{ sprint_scope }}</step>
+    {% endif %}
+  </workflow>
+  {% elif mode == "phase_end" %}
+  <workflow>
+    <step>Run the final review and production-readiness checks.</step>
+    <step>Summarize blockers, residual risks, and ship or no-ship status.</step>
+    {% if phase_end_checks %}
+    <step>{{ phase_end_checks }}</step>
+    {% endif %}
+  </workflow>
+  {% else %}
+  <workflow>
+    <step>Unknown mode `{{ mode }}`. Update the inputs and rerun.</step>
+  </workflow>
+  {% endif %}
+</task>
