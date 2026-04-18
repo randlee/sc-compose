@@ -696,6 +696,7 @@ The schemas below define the `payload` shape for each command.
 ```json
 {
   "would_write": ".prompts/example-01HXYZ.md",
+  "would_change": true,
   "template": "path/to/template.md.j2",
   "rendered_preview": "preview text"
 }
