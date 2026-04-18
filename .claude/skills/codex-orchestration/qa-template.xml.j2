@@ -1,11 +1,12 @@
 ---
 name: qa-task
-version: 1.0.0
+version: 1.5.0
 description: quality-mgr QA assignment template for codex-orchestration phases.
 format: xml
 required_variables:
   - task_id
   - sprint
+  - review_type
   - description
   - pr_number
   - branch
@@ -13,14 +14,26 @@ required_variables:
   - commits
   - deliverables
   - references
+  - changed_scope
+  - touched_ssot_sections
+optional_variables:
+  - baseline_ref
+  - known_findings_to_check
+  - fixed_findings
+defaults:
+  baseline_ref: ""
+  known_findings_to_check: ""
+  fixed_findings: ""
 ---
-<repo-qa-task id="{{ task_id }}" sprint="{{ sprint }}" assignee="quality-mgr">
+<atm-qa-task id="{{ task_id }}" sprint="{{ sprint }}" assignee="quality-mgr">
+  <review-type>{{ review_type }}</review-type>
   <description>{{ description }}</description>
 
   <pr-number>{{ pr_number }}</pr-number>
   <branch>{{ branch }}</branch>
   <worktree>{{ worktree_path }}</worktree>
   <commits>{{ commits }}</commits>
+  <baseline-ref>{{ baseline_ref }}</baseline-ref>
 
   <deliverables>
 {{ deliverables }}
@@ -30,52 +43,67 @@ required_variables:
 {{ references }}
   </references>
 
+  <changed-scope>
+{{ changed_scope }}
+  </changed-scope>
+
+  <touched-ssot-sections>
+{{ touched_ssot_sections }}
+  </touched-ssot-sections>
+
+  {% if known_findings_to_check %}
+  <known-findings-to-check>
+{{ known_findings_to_check }}
+  </known-findings-to-check>
+  {% endif %}
+
+  {% if fixed_findings %}
+  <fixed-findings>
+{{ fixed_findings }}
+  </fixed-findings>
+  {% endif %}
+
   <workflow>
     <step id="a">ACK this message immediately.</step>
-    <step id="b">
-      Spawn THREE background QA agents against the worktree.
-      MANDATORY: run_in_background=true on ALL agents. NO exceptions.
-      PROHIBITED: running cargo, clippy, or any analysis yourself in the foreground.
-      PROHIBITED: spawning agents without run_in_background=true.
-      Use TaskOutput to retrieve results after agents complete.
-
-      Agent 1 — rust-qa-agent:
-        subagent_type: rust-qa-agent
-        run_in_background: true
-        prompt: Run full cargo test and cargo clippy on the worktree at {{ worktree_path }}.
-                Report: test results (pass/fail counts), clippy warnings, any failing test names and errors.
-
-      Agent 2 — req-qa:
-        subagent_type: req-qa
-        run_in_background: true
-        prompt: Validate sprint {{ sprint }} implementation against requirements, architecture, and sprint spec.
-                Worktree: {{ worktree_path }}. Deliverables: {{ deliverables }}.
-                Reference docs: {{ references }}.
-                Report findings as BLOCKING or NON-BLOCKING with file:line references.
-      Agent 3 — arch-qa:
-        subagent_type: arch-qa
-        run_in_background: true
-        prompt: Evaluate structural compliance for sprint {{ sprint }} in {{ worktree_path }}.
-                Report blocking architectural violations with file:line references.
-    </step>
+    <step id="b">Re-read `.claude/agents/quality-mgr.md` in full before classifying this assignment. Do not rely on memory from previous QA runs.</step>
     <step id="c">
-      Collect both agent reports. Send consolidated findings to team-lead:
-      - Overall verdict: PASS or FAIL
-      - Blocking findings (if any) with finding IDs
-      - Non-blocking findings
-      - rust-qa result summary
-      - req-qa result summary
-      - arch-qa result summary
+      Review type for this assignment: {{ review_type }}.
+      Launch the required reviewers exactly as specified in `.claude/agents/quality-mgr.md` for this review type.
+      Every reviewer must be launched with `run_in_background: true`.
+      Do not perform the review inline.
+
+      {% if review_type == "plan_gate" %}
+      This is a plan/document gate.
+      Launch:
+      - `req-qa`
+      - `arch-qa`
+      {% elif review_type == "sprint_review" %}
+      This is a sprint/fix implementation review.
+      Launch:
+      - `rust-qa-agent`
+      - `req-qa`
+      - `arch-qa`
+      - `simplification-reviewer`
+      {% elif review_type == "phase_ending_review" %}
+      This is a phase-ending review.
+      Launch:
+      - `rust-qa-agent`
+      - `req-qa`
+      - `arch-qa`
+      - `simplification-reviewer`
+      - `test-auditor`
+      Add any Rust best-practices reviewer only when `.claude/agents/quality-mgr.md` says it is required for the changed scope.
+      {% else %}
+      ERROR: unknown review_type `{{ review_type }}`. Fail the assignment back to team-lead instead of guessing.
+      {% endif %}
     </step>
-    <step id="d">
-      If CI is NOT yet green on the PR: use `gh pr checks {{ pr_number }} --watch`
-      or spawn rust-qa-agent for targeted follow-up testing. Do NOT run cargo yourself.
-      Skip this step if CI is already green.
-    </step>
-    <step id="e">
-      Send final QA report to team-lead:
-      PASS → "PR #{{ pr_number }} ready to merge"
-      FAIL → list blocking findings with recommended fixes for arch-ctm
-    </step>
+    {% if known_findings_to_check %}
+    <step id="c1">Pass the `<known-findings-to-check>` block through to the relevant reviewers and require explicit re-check status for each item.</step>
+    {% endif %}
+    {% if fixed_findings %}
+    <step id="c2">Pass the `<fixed-findings>` block through to the relevant reviewers and require explicit confirmation of whether each fix holds.</step>
+    {% endif %}
+    <step id="d">Wait for all required reviewers to complete. Do not summarize partial reviewer output as a final QA result.</step>
+    <step id="e">Send one consolidated report to team-lead using the exact report format specified in `.claude/agents/quality-mgr.md`.</step>
   </workflow>
-</repo-qa-task>
+</atm-qa-task>

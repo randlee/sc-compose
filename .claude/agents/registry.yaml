@@ -1,7 +1,13 @@
 agents:
   quality-mgr:
-    version: 1.0.0
+    version: 1.1.0
     path: .claude/agents/quality-mgr.md
+  simplification-reviewer:
+    version: 1.0.0
+    path: .claude/agents/simplification-reviewer.md
+  test-auditor:
+    version: 1.0.0
+    path: .claude/agents/test-auditor.md
   rust-architect:
     version: 1.0.0
     path: .claude/agents/rust-architect.md
@@ -31,6 +37,9 @@ agents:
     path: .claude/agents/test-stability-auditor.md
 
 skills:
+  codex-orchestration:
+    version: 1.0.0
+    path: .claude/skills/codex-orchestration/SKILL.md
   rust-development:
     depends_on:
       rust-architect: "1.x"
