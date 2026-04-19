@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version candidate (e.g. 0.46.2 or v0.46.2)"
+        description: "Release version candidate (e.g. 1.0.0 or v1.0.0)"
         required: true
         type: string
       run_by_agent:
@@ -77,11 +77,24 @@ jobs:
       - name: Validate publish_order dependency graph
         run: bash scripts/ci/validate_publish_order.sh
 
+      - name: Verify release helper files exist
+        run: |
+          test -f scripts/release_gate.sh
+          test -f docs/WINGET_SETUP.md
+          test -f docs/publishing-agent.md
+          test -f .winget/sc-compose.yaml
+
       - name: Verify requested version matches workspace
         run: |
           python3 scripts/release_artifacts.py verify-version \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --workspace-toml Cargo.toml \
+            --version '${{ steps.meta.outputs.release_version }}'
+
+      - name: Verify release version is unpublished on crates.io
+        run: |
+          python3 scripts/release_artifacts.py check-version-unpublished \
+            --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --version '${{ steps.meta.outputs.release_version }}'
 
       - name: Run dependency-aware package checks

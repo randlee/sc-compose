@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version (e.g. 0.46.2 or v0.46.2)"
+        description: "Release version (e.g. 1.0.0 or v1.0.0)"
         required: true
         type: string
 
@@ -51,6 +51,9 @@ jobs:
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --workspace-toml Cargo.toml \
             --version '${{ steps.meta.outputs.release_version }}'
+
+      - name: Run release gate
+        run: scripts/release_gate.sh origin/main origin/develop '${{ steps.meta.outputs.release_version }}' "${RELEASE_ARTIFACT_MANIFEST}"
 
       - name: Ensure tag is correct or create it
         shell: bash
@@ -126,13 +129,12 @@ jobs:
           set -euo pipefail
           VERSION='${{ needs.gate-and-tag.outputs.release_version }}'
           ARCHIVE="sc-compose_${VERSION}_${{ matrix.target }}.tar.gz"
-          bins=()
-          while IFS= read -r bin; do
-            [[ -n "$bin" ]] && bins+=("$bin")
-          done < <(python3 scripts/release_artifacts.py cargo-build-bin-args --manifest "${RELEASE_ARTIFACT_MANIFEST}" | sed 's/--bin //g')
-          cd target/${{ matrix.target }}/release
-          tar czf "../../../${ARCHIVE}" "${bins[@]}"
-          cd ../../..
+          STAGE="sc-compose_${VERSION}_${{ matrix.target }}"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE/bin" "$STAGE/share/sc-compose"
+          cp "target/${{ matrix.target }}/release/sc-compose" "$STAGE/bin/"
+          cp -R examples "$STAGE/share/sc-compose/examples"
+          tar czf "$ARCHIVE" "$STAGE"
           echo "ARCHIVE=${ARCHIVE}" >> "$GITHUB_ENV"
 
       - name: Package (windows)
@@ -141,18 +143,13 @@ jobs:
         run: |
           $VERSION = '${{ needs.gate-and-tag.outputs.release_version }}'
           $ARCHIVE = "sc-compose_${VERSION}_${{ matrix.target }}.zip"
-          $binArgs = python3 scripts/release_artifacts.py cargo-build-bin-args --manifest "${env:RELEASE_ARTIFACT_MANIFEST}"
-          $bins = @()
-          foreach ($item in $binArgs.Split(" ")) {
-            if ($item -and $item -ne "--bin") {
-              $bins += $item
-            }
-          }
-          $paths = @()
-          foreach ($bin in $bins) {
-            $paths += "target/${{ matrix.target }}/release/$bin.exe"
-          }
-          Compress-Archive -Path $paths -DestinationPath $ARCHIVE
+          $STAGE = "sc-compose_${VERSION}_${{ matrix.target }}"
+          if (Test-Path $STAGE) { Remove-Item -Recurse -Force $STAGE }
+          New-Item -ItemType Directory -Force -Path "$STAGE/bin" | Out-Null
+          New-Item -ItemType Directory -Force -Path "$STAGE/share/sc-compose" | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/sc-compose.exe" "$STAGE/bin/sc-compose.exe"
+          Copy-Item -Recurse "examples" "$STAGE/share/sc-compose/examples"
+          Compress-Archive -Path $STAGE -DestinationPath $ARCHIVE
           echo "ARCHIVE=$ARCHIVE" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Upload artifact
@@ -178,17 +175,35 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Publish crates in order
+      - name: Publish crates in order (idempotent)
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
-          while IFS='|' read -r package wait_secs; do
-            cargo publish -p "$package" --locked
-            if [[ "$wait_secs" != "0" ]]; then
-              sleep "$wait_secs"
+          version='${{ needs.gate-and-tag.outputs.release_version }}'
+
+          crate_exists() {
+            local crate="$1"
+            local version="$2"
+            cargo search "$crate" --limit 1 | grep -F "${crate} = \"${version}\"" >/dev/null
+          }
+
+          publish_if_missing() {
+            local crate="$1"
+            local wait_seconds="${2:-0}"
+            if crate_exists "$crate" "$version"; then
+              echo "${crate} ${version} already published; skipping"
+              return 0
             fi
+            cargo publish -p "$crate" --locked
+            if [[ "$wait_seconds" != "0" ]]; then
+              sleep "$wait_seconds"
+            fi
+          }
+
+          while IFS='|' read -r package wait_secs; do
+            publish_if_missing "$package" "${wait_secs:-0}"
           done < <(python3 scripts/release_artifacts.py list-publish-plan --manifest "${RELEASE_ARTIFACT_MANIFEST}")
 
   release:
@@ -221,3 +236,81 @@ jobs:
           generate_release_notes: true
           files: |
             release/*
+
+  update-homebrew:
+    needs: [gate-and-tag, release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+        with:
+          repository: randlee/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Compute release tarball SHA256
+        id: sha
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='${{ needs.gate-and-tag.outputs.release_tag }}'
+          version='${{ needs.gate-and-tag.outputs.release_version }}'
+          tarball_path="${RUNNER_TEMP:?RUNNER_TEMP is required}/release.tar.gz"
+          tarball_url="https://github.com/randlee/sc-compose/releases/download/${tag}/sc-compose_${version}_aarch64-apple-darwin.tar.gz"
+          echo "tarball_url=${tarball_url}" >> "$GITHUB_OUTPUT"
+          curl -fsSL --retry 5 --retry-delay 30 --retry-all-errors -o "${tarball_path}" "${tarball_url}"
+          sha256=$(sha256sum "${tarball_path}" | awk '{print $1}')
+          echo "sha256=${sha256}" >> "$GITHUB_OUTPUT"
+
+      - name: Write formula
+        shell: bash
+        run: |
+          set -euo pipefail
+          version='${{ needs.gate-and-tag.outputs.release_version }}'
+          sha256='${{ steps.sha.outputs.sha256 }}'
+          tarball_url='${{ steps.sha.outputs.tarball_url }}'
+          formula="homebrew-tap/Formula/sc-compose.rb"
+          cat > "$formula" <<EOF
+          class ScCompose < Formula
+            desc "Standalone CLI for template composition"
+            homepage "https://github.com/randlee/sc-compose"
+            url "${tarball_url}"
+            sha256 "${sha256}"
+            version "${version}"
+            license "MIT"
+
+            def install
+              root = Dir["sc-compose_*"].first
+              bin.install "#{root}/bin/sc-compose"
+              pkgshare.install Dir["#{root}/share/sc-compose/examples/*"]
+            end
+
+            test do
+              assert_match "Standalone template composition CLI", shell_output("#{bin}/sc-compose --help")
+            end
+          end
+          EOF
+
+      - name: Commit and push to homebrew-tap
+        shell: bash
+        run: |
+          set -euo pipefail
+          version='${{ needs.gate-and-tag.outputs.release_version }}'
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/sc-compose.rb
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "chore: bump sc-compose to v${version}"
+          git push
+
+  publish-winget:
+    needs: [gate-and-tag, release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish to winget
+        uses: vedantmgoyal2009/winget-releaser@v2
+        with:
+          identifier: randlee.sc-compose
+          installers-regex: 'sc-compose_.*_x86_64-pc-windows-msvc\.zip$'
+          token: ${{ secrets.GITHUB_TOKEN }}

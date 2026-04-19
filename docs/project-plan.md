@@ -343,6 +343,33 @@ following are true:
   tests, but there is not yet a standalone seam test that asserts every
   command event reaches the final sink file on disk.
 
+### Sprint S8: Release Engineering And Distribution
+
+Status:
+
+- in progress
+
+Goals:
+
+- finalize the first standalone `1.0.0` release path for `sc-composer` and
+  `sc-compose`
+- add release-control infrastructure that prevents accidental duplicate publish
+- make Homebrew, `winget`, and packaged GitHub Release installs match the
+  documented examples-discovery contract
+
+Deliverables:
+
+- workspace and crate manifests updated to `1.0.0`
+- release workflow archives that ship:
+  - `bin/sc-compose`
+  - `share/sc-compose/examples/...`
+- `scripts/release_gate.sh`
+- unpublished-version guard in release preflight
+- idempotent publish-if-missing logic in the release workflow
+- Homebrew automation for `randlee/homebrew-tap`
+- `winget` template and release job for `randlee.sc-compose`
+- publishing docs and operator guide aligned with the first standalone release
+
 ### Sprint S7: Examples and Templates Commands
 
 Status:

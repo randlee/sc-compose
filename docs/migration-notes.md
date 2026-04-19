@@ -7,14 +7,14 @@
 home for both crates. All future development and releases happen here.
 
 The last versions of these crates published from the `agent-team-mail` workspace are the
-baseline. This repo's workspace version (currently `0.46.2`) is set above that baseline to
-ensure crates.io version ordering is correct when the first standalone release occurs.
+baseline. This repo's standalone release version is `1.0.0`, which stays above that
+baseline so crates.io version ordering remains correct through the source-of-truth cutover.
 
 ## What Changes for Downstream Consumers
 
 ### crates.io Consumers
 
-Once the first release from this repo is published:
+With the first standalone `1.0.0` release from this repo:
 
 - Downstream crates that depend on `sc-composer` or `sc-compose` via crates.io will
   automatically resolve to the new source with no manifest change required, as long as
@@ -36,7 +36,7 @@ Cutover steps for the ATM workspace maintainer:
    sc-composer = { path = "../sc-composer" }
 
    # After (crates.io pin):
-   sc-composer = "0.46.2"
+   sc-composer = "1.0.0"
    ```
 3. Run `cargo update` to resolve the dependency graph.
 4. Run `cargo test --workspace` to verify nothing broke.
@@ -92,12 +92,11 @@ Downstream consumers that shell out to `sc-compose` should expect:
 
 ## Release And Cutover Order
 
-The first standalone crates.io release happens when the Sprint 4 release gate is
-cleared in this repo.
+The first standalone crates.io release for this repo is `1.0.0`.
 
 Recommended downstream cutover order:
 
-1. Publish `sc-composer` and `sc-compose` from this repo.
+1. Publish `sc-composer` and `sc-compose` version `1.0.0` from this repo.
 2. Verify crates.io resolution and installation using the release checklist.
 3. Update downstream consumers such as ATM to the published versions.
 4. Run downstream integration validation after the published release is live.

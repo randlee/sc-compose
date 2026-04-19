@@ -1,11 +1,12 @@
-# Release Notes — sc-compose v0.46.2
+# Release Notes — sc-compose v1.0.0
 
 ## Summary
 
-- First standalone release of `sc-composer` and `sc-compose` from the `sc-compose` repo,
-  replacing the previously ATM-workspace-published versions of these crates
-- Full FR-1 through FR-11 implementation: resolver, include engine, validation pipeline,
-  renderer, typestate document model, observer hooks, CLI commands, JSON output, and
+- First standalone `1.0.0` release of `sc-composer` and `sc-compose` from the
+  `sc-compose` repo, replacing the previously ATM-workspace-published versions
+  of these crates
+- Full FR-1 through FR-11 implementation: resolver, include expansion,
+  validation pipeline, renderer, observer hooks, CLI commands, JSON output, and
   structured logging integration
 - Failure-mode matrix (`ERR_*` codes) fully implemented and snapshot-tested across all
   command families
@@ -16,8 +17,8 @@
 
 ## Included Crates
 
-- `sc-composer` v0.46.2 — reusable template-composition library
-- `sc-compose` v0.46.2 — CLI wrapper and observer binding
+- `sc-composer` v1.0.0 — reusable template-composition library
+- `sc-compose` v1.0.0 — CLI wrapper and observer binding
 
 ## Compatibility Notes
 

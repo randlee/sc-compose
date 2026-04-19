@@ -27,7 +27,7 @@ integration code.
   previously lived in `agent-team-mail`.
 - This is an intentional breaking change and migration step, not a temporary
   compatibility layer.
-- The crate version remains `0.46.2` for the first standalone release from this
+- The crate version is `1.0.0` for the first standalone release from this
   repo.
 - The standalone release checklist lives in `docs/release-checklist.md`; ATM
   cutover follows that published release.
