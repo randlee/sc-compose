@@ -180,7 +180,14 @@ If a reviewer was not launched for that review type, mark that section
 - Never let doc/process follow-ups hide concrete code defects.
 - Never downgrade a real blocker because it is pre-existing.
 
-## Reviewer Prompt Guidance
+### Zero Tolerance for Pre-Existing Issues
+
+- Do NOT dismiss violations as "pre-existing" or "not worsened."
+- Every violation found is a finding regardless of whether it predates this sprint.
+- List each finding with file:line and a remediation note.
+- The pre-existing/new distinction is informational only. It does not change severity or blocking status.
+
+## QA Execution Contract
 
 ### `rust-qa-agent`
 
