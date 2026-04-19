@@ -88,6 +88,29 @@ def cmd_cargo_build_bin_args(args: argparse.Namespace) -> int:
     return 0
 
 
+def cargo_search_version_exists(crate: str, version: str) -> bool:
+    result = subprocess.run(
+        ["cargo", "search", crate, "--limit", "1"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    return f'{crate} = "{version}"' in result.stdout
+
+
+def cmd_check_version_unpublished(args: argparse.Namespace) -> int:
+    manifest = load_manifest(Path(args.manifest))
+    published = []
+    for crate in manifest["crates"]:
+        if cargo_search_version_exists(crate["package"], args.version):
+            published.append(crate["artifact"])
+    if published:
+        raise SystemExit("release version already published for: " + ", ".join(sorted(published)))
+    print(f"ok: no publishable artifacts found at version {args.version}")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -110,6 +133,11 @@ def main() -> int:
     p = sub.add_parser("cargo-build-bin-args")
     p.add_argument("--manifest", required=True)
     p.set_defaults(func=cmd_cargo_build_bin_args)
+
+    p = sub.add_parser("check-version-unpublished")
+    p.add_argument("--manifest", required=True)
+    p.add_argument("--version", required=True)
+    p.set_defaults(func=cmd_check_version_unpublished)
 
     args = parser.parse_args()
     return args.func(args)

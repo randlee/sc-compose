@@ -5,7 +5,7 @@
 > Document role: Normative release architecture for both crates
 
 This document supersedes the prior high-level placeholder. It is the normative
-release architecture baseline for `sc-compose` v0.x.
+release architecture baseline for `sc-compose` v1.0.
 
 ## 1. Architectural Intent
 

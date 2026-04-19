@@ -8,7 +8,7 @@ sc-compose is a standalone CLI for teams whose templates have outgrown copy-past
 
 ## Install
 
-### Homebrew (macOS, published release or release candidate)
+### Homebrew (macOS)
 
 ```bash
 brew install randlee/tap/sc-compose
@@ -16,7 +16,7 @@ brew install randlee/tap/sc-compose
 
 Bundled examples are installed to `$(brew --prefix)/share/sc-compose/examples/` and discovered automatically.
 
-### Winget (Windows, published release or release candidate)
+### Winget (Windows)
 
 ```powershell
 winget install randlee.sc-compose
@@ -27,6 +27,11 @@ winget install randlee.sc-compose
 ```bash
 cargo install --path crates/sc-compose
 ```
+
+`cargo install` ships the binary only. Bundled examples are guaranteed in
+Homebrew, `winget`, and GitHub Release installs. `SC_COMPOSE_DATA_DIR` can
+override the examples location for CI, custom installs, and `cargo install`
+users.
 
 Or build without installing:
 
@@ -60,7 +65,7 @@ For embedded hosts and programmatic use, depend on `sc-composer` directly:
 
 ```toml
 [dependencies]
-sc-composer = "0.46.2"
+sc-composer = "1.0.0"
 ```
 
 The crate root re-exports the main entry points — `compose`, `compose_with_observer`, `validate_with_observer`, `resolve_profile_with_observer`, `frontmatter_init`, `init_workspace` — plus request/result types and the diagnostic envelope. See `crates/sc-composer/src/lib.rs` and `docs/architecture.md`.
@@ -71,11 +76,11 @@ The crate root re-exports the main entry points — `compose`, `compose_with_obs
 
 | | |
 |-|-|
-| Version | 0.46.2 |
+| Version | 1.0.0 |
 | MSRV | Rust 1.94.1 |
 | Rust edition | 2024 |
 | Platforms | macOS, Linux, Windows |
-| Stability | pre-1.0 release-candidate track — the public API may change between minor versions. |
+| Stability | stable 1.0 release line |
 
 ## Documentation
 

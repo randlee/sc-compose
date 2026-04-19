@@ -1,0 +1,23 @@
+PackageIdentifier: randlee.sc-compose
+PackageVersion: 1.0.0
+PackageLocale: en-US
+Publisher: Randy Lee
+PublisherUrl: https://github.com/randlee
+PackageName: sc-compose
+PackageUrl: https://github.com/randlee/sc-compose
+License: MIT
+LicenseUrl: https://github.com/randlee/sc-compose/blob/main/LICENSE
+ShortDescription: Standalone CLI for template composition
+Description: |
+  sc-compose is a standalone CLI for rendering reusable Jinja templates with
+  YAML frontmatter, include expansion, validation, bundled examples, and a
+  personal template store.
+Tags:
+  - cli
+  - template
+  - compose
+  - jinja
+  - developer-tools
+# Installer URL and SHA are populated by the release workflow submission step.
+ManifestType: installer
+ManifestVersion: 1.0.0

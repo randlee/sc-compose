@@ -5,7 +5,7 @@
 > Document role: Normative release requirements for both crates
 
 This document supersedes the prior high-level placeholder. It is the normative
-release requirements baseline for `sc-compose` v0.x.
+release requirements baseline for `sc-compose` v1.0.
 
 ## 1. Intent
 
@@ -876,7 +876,10 @@ same command payloads as `render` and `render --dry-run`.
 ## 6. Stability Policy
 
 - The `sc-composer` public API is semver-governed.
-- Until `1.0`, breaking API changes require a minor version bump.
+- Before `1.0`, breaking API changes require a minor version bump.
+- After `1.0`, patch releases contain backward-compatible bug fixes only.
+- After `1.0`, minor releases contain backward-compatible new features.
+- After `1.0`, major releases contain breaking changes.
 - `render_template()` is a stable convenience API for one-shot rendering.
 - `Renderer` is the primary stable API for repeated rendering and long-lived
   library use.

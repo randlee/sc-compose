@@ -33,6 +33,8 @@ Use this checklist before every crates.io release of `sc-composer` and `sc-compo
 - [ ] Confirm that the publish token (CARGO_REGISTRY_TOKEN) is configured in GitHub
       Actions secrets for the `release` environment
 - [ ] Confirm the token has permission to publish both `sc-composer` and `sc-compose`
+- [ ] Confirm `HOMEBREW_TAP_TOKEN` is configured in repo secrets before running the
+      release workflow
 
 ## Pre-Release: Release Preflight
 
@@ -59,6 +61,9 @@ triggered by a release tag.
 - [ ] Verify `sc-compose` is visible on crates.io at the expected version
 - [ ] Run `cargo add sc-composer@<version>` in a scratch workspace to confirm the crate resolves
 - [ ] Run `cargo install sc-compose@<version>` to confirm the binary installs cleanly
+- [ ] Verify the GitHub Release archives include `share/sc-compose/examples/`
+- [ ] Verify the Homebrew formula update completed in `randlee/homebrew-tap`
+- [ ] Verify the `winget` submission/update was dispatched successfully
 - [ ] Update `release/RELEASE-NOTES-TEMPLATE.md` with the actual release summary
 - [ ] Tag the release commit: `git tag v<version> && git push origin v<version>`
 - [ ] Create a GitHub release pointing at the tag with the filled-in release notes
