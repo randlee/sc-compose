@@ -20,7 +20,7 @@ verification layers.
 | FR-3a Frontmatter Across Includes | §9 Include and Frontmatter Merge Rules | Sprint 4, Sprint S7 | `include`, `frontmatter`, `validation` | unit tests, smoke tests |
 | FR-4 Safety Constraints | §17 Safety Model | Sprint 3, Sprint 4 | `include`, confinement helpers, `ConfigError`, `IncludeError` | unit tests, cross-platform tests |
 | FR-5 Prompt Resolution Conventions | §5 Resolver Path Policy | Sprint 4 | `resolver`, `ResolveResult`, `resolve_profile()` | resolver tests, JSON golden tests |
-| FR-6 Composition Pipeline | §8 Public API Shape, §12 Request Lifecycle, §13 CLI Command Architecture | Sprint 4 | `pipeline`, `Renderer`, `compose()`, CLI `render` | unit tests, integration tests |
+| FR-6 Composition Pipeline | §8 Public API Shape, §12 Request Lifecycle, §13 CLI Command Architecture | Sprint 4 | `composer`, `Renderer`, `compose()`, CLI `render` | unit tests, integration tests |
 | FR-7 CLI Surface | §13 CLI Command Architecture, §14 Output Path Policy, §15 Template Pack Architecture, §16 `init` Command Behavior | Sprint 1, Sprint 4, Sprint S7 | `sc-compose` commands, `TemplateStore`, `frontmatter_init()`, `init_workspace()` | CLI integration tests |
 | FR-7a Variable File Rules | §16 `init` Command Behavior, command schema sections | Sprint 4, Sprint S7 | var-file parser, CLI input wiring | integration tests |
 | FR-7b Exit Codes | §18 Error and Exit Semantics | Sprint 4 | CLI command router, exit handling | integration tests |
@@ -55,6 +55,6 @@ verification layers.
 
 ## Review Gates
 
-- `qm-comp` owns QA review on sprint exit gates.
-- `arch-ctm` owns the final design review at the phase exit gate.
-- `arch-comp` owns branch-level coordination and handoff readiness.
+- `quality-mgr` owns QA review on sprint exit gates.
+- `team-lead` owns the final design review at the phase exit gate.
+- `team-lead` owns branch-level coordination and handoff readiness.

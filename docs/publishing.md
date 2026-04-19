@@ -2,12 +2,12 @@
 
 ## Purpose
 
-This repo becomes the publishing source of truth for:
+This repo is the publishing source of truth for:
 - `sc-composer`
 - `sc-compose`
 
-These crates currently exist inside the `agent-team-mail` workspace. After
-cutover, new releases of these crate names must come from this repo instead.
+These crates previously existed inside the `agent-team-mail` workspace. New
+releases of these crate names now come from this repo instead.
 
 ## Versioning
 

@@ -3,15 +3,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
+use crate::ExpandedTemplate;
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
 use crate::frontmatter::{Frontmatter, parse_template_document};
-use crate::include::expand_includes;
-use crate::resolver::resolve_template_path;
 use crate::types::{
     ComposeRequest, InputValue, UnknownVariablePolicy, ValidationReport, VariableName,
     VariableSource,
 };
-use crate::{ComposeError, ExpandedTemplate};
 
 #[derive(Debug, Default)]
 pub(crate) struct ValidationState {
@@ -21,21 +19,6 @@ pub(crate) struct ValidationState {
     required_include_chains: BTreeMap<VariableName, Vec<PathBuf>>,
     pub(crate) declared_variables: BTreeSet<VariableName>,
     pub(crate) referenced_variables: BTreeSet<VariableName>,
-}
-
-/// Validate a compose request without rendering output.
-///
-/// # Errors
-///
-/// Returns [`ComposeError`] when resolution or include expansion fails.
-pub fn validate(request: &ComposeRequest) -> Result<ValidationReport, ComposeError> {
-    let resolve_result = resolve_template_path(request)?;
-    let expanded = expand_includes(
-        &resolve_result.resolved_path,
-        &request.root,
-        &request.policy,
-    )?;
-    Ok(validate_expanded(request, &expanded, resolve_result))
 }
 
 pub(crate) fn validate_expanded(
@@ -389,12 +372,12 @@ mod tests {
 
     use serde_json::json;
 
-    use crate::DiagnosticCode;
     use crate::types::{
         ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, UnknownVariablePolicy,
     };
+    use crate::{DiagnosticCode, validate};
 
-    use super::{collect_validation_state, validate};
+    use super::collect_validation_state;
 
     #[test]
     fn default_mode_preserves_undeclared_tokens_as_warnings() {

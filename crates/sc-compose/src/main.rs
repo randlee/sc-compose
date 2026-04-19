@@ -573,7 +573,6 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
         )
     })?;
     let prompts_dir_missing = !canonical_root.join(".prompts").exists();
-    let gitignore_missing = !canonical_root.join(".gitignore").exists();
     let planned_changes = planned_init_changes(&canonical_root);
     let result =
         sc_composer::init_workspace(&args.root, args.dry_run).map_err(CommandError::compose)?;
@@ -591,7 +590,6 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
                 "workspace_root": canonical_root.display().to_string(),
                 "created_files": actual_init_created_files(
                     prompts_dir_missing,
-                    gitignore_missing,
                     result.gitignore_updated,
                 ),
             })
@@ -816,16 +814,12 @@ fn format_recovery_hint(hint: &RecoveryHint) -> String {
     }
 }
 
-fn actual_init_created_files(
-    prompts_dir_missing: bool,
-    gitignore_missing: bool,
-    gitignore_updated: bool,
-) -> Vec<String> {
+fn actual_init_created_files(prompts_dir_missing: bool, gitignore_updated: bool) -> Vec<String> {
     let mut created = Vec::new();
     if prompts_dir_missing {
         created.push(".prompts/".to_owned());
     }
-    if gitignore_missing && gitignore_updated {
+    if gitignore_updated {
         created.push(".gitignore".to_owned());
     }
     created

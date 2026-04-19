@@ -586,15 +586,14 @@ For `compose` and `validate`, the target lifecycle is:
 10. Assemble final output blocks.
 11. Return composed output or validation report with diagnostics and trace data.
 
-Typestate encoding:
+Internal lifecycle encoding:
 
-- the pipeline should be modeled as state transitions over
-  `Document<Parsed>`, `Document<Expanded>`, `Document<Validated>`, and
-  `Document<Rendered>`,
-- each transition consumes the previous state and returns the next state or a
-  canonical error,
-- the typestate design exists to make ordering violations unrepresentable in
-  internal code, not to force callers to manipulate state markers directly.
+- the composition pipeline must preserve the documented ordering of resolve,
+  parse, include expansion, validation, render, and output assembly,
+- internal helpers may use staged data structures to make ordering violations
+  difficult to represent,
+- the initial release does not expose a public typestate API or a public
+  `pipeline` module.
 
 ## 13. CLI Command Architecture (FR-6, FR-7)
 
@@ -609,12 +608,12 @@ Command mapping:
 - `init` -> `init_workspace`
 - `observability-health` -> CLI logger initialization, then `Logger::health()`
 - `examples list` -> list bundled example packs
-- `examples <name>` -> resolve bundled pack entry template, merge pack
+- `examples <name>` -> resolve the bundled example-pack file, merge pack
   `input_defaults`, then `compose`
 - `templates list` -> list user template packs
 - `templates add` -> copy a source file or directory into the user template
   root as one pack
-- `templates <name>` -> resolve user pack entry template, merge pack
+- `templates <name>` -> resolve the user pack entry template, merge pack
   `input_defaults`, then `compose`
 
 The CLI must not reimplement core composition semantics. If a command requires
@@ -644,7 +643,8 @@ Command-specific rules:
   - emits `LoggingHealthReport` under `--json` as defined in section 19.3.
 - `examples list` and `templates list`
   - enumerate entries under their respective roots,
-  - surface normalized example names or template directory names as pack names,
+  - surface normalized flat example names or template directory names as pack
+    names,
   - emit stable JSON payloads containing `name` and absolute `path`,
   - may append `template.json` `description` and `version` in human-readable
     text output for templates when present.
@@ -1137,6 +1137,9 @@ Required library behavior:
   injection entry point.
 - `ObservationSink` and `CompositionObserver` remain the local extension points
   for embedded hosts that do not opt into the CLI.
+- `ObservationSink::emit()` is the host-facing single-event adapter surface.
+  Internal composition code emits through the typed `CompositionObserver`
+  callbacks rather than routing through `emit()`.
 - The approved minimum library-owned variant set is:
   - `ResolveAttempt`
   - `ResolveOutcome`

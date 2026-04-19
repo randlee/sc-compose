@@ -372,7 +372,7 @@ fn init_json_created_files_reflect_actual_files_written() {
     assert_envelope(&value);
     assert_eq!(
         value["payload"]["created_files"],
-        serde_json::json!([".prompts/"])
+        serde_json::json!([".prompts/", ".gitignore"])
     );
 }
 

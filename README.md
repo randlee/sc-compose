@@ -8,7 +8,7 @@ sc-compose is a standalone CLI for teams whose templates have outgrown copy-past
 
 ## Install
 
-### Homebrew (macOS)
+### Homebrew (macOS, published release or release candidate)
 
 ```bash
 brew install randlee/tap/sc-compose
@@ -16,7 +16,7 @@ brew install randlee/tap/sc-compose
 
 Bundled examples are installed to `$(brew --prefix)/share/sc-compose/examples/` and discovered automatically.
 
-### Winget (Windows)
+### Winget (Windows, published release or release candidate)
 
 ```powershell
 winget install randlee.sc-compose
@@ -75,7 +75,7 @@ The crate root re-exports the main entry points — `compose`, `compose_with_obs
 | MSRV | Rust 1.94.1 |
 | Rust edition | 2024 |
 | Platforms | macOS, Linux, Windows |
-| Stability | pre-1.0 — the public API may change between minor versions. |
+| Stability | pre-1.0 release-candidate track — the public API may change between minor versions. |
 
 ## Documentation
 

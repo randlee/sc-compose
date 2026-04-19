@@ -21,8 +21,8 @@ Use this checklist before every crates.io release of `sc-composer` and `sc-compo
   - failure-mode matrix ERR_* codes exercised by tests
   - full end-to-end smoke test passes, including `observability-health`
   - `--json` commands are verified to keep stdout machine-readable
-  - `qm-comp` full QA pass on the release branch
-  - `arch-ctm` final design review complete
+  - `quality-mgr` full QA pass on the release branch
+  - `team-lead` final design review complete
 
 ## Pre-Release: crates.io Ownership
 
