@@ -262,34 +262,28 @@ jobs:
           sha256=$(sha256sum "${tarball_path}" | awk '{print $1}')
           echo "sha256=${sha256}" >> "$GITHUB_OUTPUT"
 
-      - name: Write formula
+      - name: Write formula from template
         shell: bash
         run: |
           set -euo pipefail
-          version='${{ needs.gate-and-tag.outputs.release_version }}'
-          sha256='${{ steps.sha.outputs.sha256 }}'
-          tarball_url='${{ steps.sha.outputs.tarball_url }}'
-          formula="homebrew-tap/Formula/sc-compose.rb"
-          cat > "$formula" <<EOF
-          class ScCompose < Formula
-            desc "Standalone CLI for template composition"
-            homepage "https://github.com/randlee/sc-compose"
-            url "${tarball_url}"
-            sha256 "${sha256}"
-            version "${version}"
-            license "MIT"
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
 
-            def install
-              root = Dir["sc-compose_*"].first
-              bin.install "#{root}/bin/sc-compose"
-              pkgshare.install Dir["#{root}/share/sc-compose/examples/*"]
-            end
-
-            test do
-              assert_match "Standalone template composition CLI", shell_output("#{bin}/sc-compose --help")
-            end
-          end
-          EOF
+          template = Path("release/homebrew/sc-compose.rb.j2").read_text()
+          rendered = (
+              template
+              .replace("{{ tarball_url }}", os.environ["TARBALL_URL"])
+              .replace("{{ sha256 }}", os.environ["SHA256"])
+              .replace("{{ version }}", os.environ["VERSION"])
+          )
+          Path(os.environ["FORMULA"]).write_text(rendered)
+          PY
+        env:
+          FORMULA: homebrew-tap/Formula/sc-compose.rb
+          SHA256: ${{ steps.sha.outputs.sha256 }}
+          TARBALL_URL: ${{ steps.sha.outputs.tarball_url }}
+          VERSION: ${{ needs.gate-and-tag.outputs.release_version }}
 
       - name: Commit and push to homebrew-tap
         shell: bash

@@ -27,13 +27,8 @@ main_sha="$(git rev-parse "$MAIN_REF")"
 develop_sha="$(git rev-parse "$DEVELOP_REF")"
 info "main=$main_sha develop=$develop_sha version=$VERSION"
 
-ahead_count="$(git rev-list --count "${MAIN_REF}..${DEVELOP_REF}")"
-if [[ "$ahead_count" != "0" ]]; then
-  fail "$DEVELOP_REF has $ahead_count commit(s) not in $MAIN_REF (merge develop->main before release)"
-fi
-
 if ! git merge-base --is-ancestor "$DEVELOP_REF" "$MAIN_REF"; then
-  fail "$DEVELOP_REF is not an ancestor of $MAIN_REF"
+  fail "$DEVELOP_REF has commits not in $MAIN_REF (merge develop->main before release)"
 fi
 
 python3 scripts/release_artifacts.py check-version-unpublished \

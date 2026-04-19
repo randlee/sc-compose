@@ -18,10 +18,6 @@ Tags:
   - compose
   - jinja
   - developer-tools
-Installers:
-  - Architecture: x64
-    InstallerType: zip
-    InstallerUrl: https://github.com/randlee/sc-compose/releases/download/v1.0.0/sc-compose_1.0.0_x86_64-pc-windows-msvc.zip
-    InstallerSha256: <SHA256_HASH_TO_BE_FILLED_AFTER_RELEASE>
+# Installer URL and SHA are populated by the release workflow submission step.
 ManifestType: installer
 ManifestVersion: 1.0.0

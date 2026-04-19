@@ -28,5 +28,3 @@
   for the integration guide.
 - CLI users now have file-backed structured logging plus the `observability-health`
   command for local logger health inspection.
-- This template is finalized when the Sprint 4 release gate clears. See
-  `docs/release-checklist.md` for the pre-release and post-publish checklist.

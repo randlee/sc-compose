@@ -347,7 +347,11 @@ following are true:
 
 Status:
 
-- in progress
+- completed
+
+Branch:
+
+- `chore/version-bump-1.0.0` -> `develop`
 
 Goals:
 
@@ -359,16 +363,26 @@ Goals:
 
 Deliverables:
 
-- workspace and crate manifests updated to `1.0.0`
-- release workflow archives that ship:
-  - `bin/sc-compose`
-  - `share/sc-compose/examples/...`
-- `scripts/release_gate.sh`
-- unpublished-version guard in release preflight
-- idempotent publish-if-missing logic in the release workflow
-- Homebrew automation for `randlee/homebrew-tap`
-- `winget` template and release job for `randlee.sc-compose`
-- publishing docs and operator guide aligned with the first standalone release
+- completed as specified in [docs/publishing.md](docs/publishing.md)
+
+Acceptance Criteria:
+
+- workspace and crate manifests are updated to `1.0.0`
+- release workflow archives ship `bin/sc-compose` and
+  `share/sc-compose/examples/...`
+- `scripts/release_gate.sh` exists and enforces release ancestry plus
+  unpublished-version checks
+- release preflight verifies unpublished crate versions before release
+- release workflow publish steps are idempotent when crates are already live
+- Homebrew automation updates `randlee/homebrew-tap` from the checked-in formula
+  template
+- `winget` automation and supporting docs are present for `randlee.sc-compose`
+- publishing docs and operator guidance are aligned with the first standalone
+  `1.0.0` release path
+
+Exit Gate:
+
+- `SC-RELEASE-ENG-QA-001` passed as the Sprint S8 exit gate
 
 ### Sprint S7: Examples and Templates Commands
 
