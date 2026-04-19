@@ -115,7 +115,7 @@ For the final gate, additionally require:
 
 ## Review Expectations
 
-- `qm-comp` should be able to trace each implemented requirement to automated
+- `quality-mgr` should be able to trace each implemented requirement to automated
   coverage.
 - Failing snapshots or golden tests should be treated as spec regressions until
   proven otherwise.

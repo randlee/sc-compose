@@ -40,7 +40,7 @@ Current known release blockers:
 | RB-03c | Graceful logger shutdown is not yet called before `process::exit()`. | Closed | Sprint 2 | The CLI calls `logger.shutdown()` before process exit so pending events flush cleanly. |
 | RB-04 | Production logging safeguards are not yet proven. | Closed | Sprint 3 | Tests prove `--json` cleanliness, shutdown/flush behavior, sink degradation behavior, and event coverage. |
 | RB-05 | Any non-observability release blocker found during audit must be closed before release. | Closed | Sprint 3 | Every audit finding is either closed or explicitly moved to a later sprint in this plan before Sprint 1 exit. |
-| RB-06 | Final release validation, QA approval, and cutover readiness are not yet complete. | Open | Sprint 4 | End-to-end smoke tests, QA review, design review, and release approval all pass; closure evidence includes `crates/sc-compose/tests/cli.rs::release_smoke_covers_render_pipeline_and_observability_health`. |
+| RB-06 | Final release validation, QA approval, and cutover readiness were incomplete before Sprint 4 closeout. | Closed | Sprint 4 | End-to-end smoke tests, QA review, design review, and release approval all pass; closure evidence includes `crates/sc-compose/tests/cli.rs::release_smoke_covers_render_pipeline_and_observability_health`. |
 
 Inventory rules:
 
@@ -110,7 +110,7 @@ Acceptance criteria:
 
 Exit gate:
 
-- `qm-comp` cross-document consistency review passes
+- `quality-mgr` cross-document consistency review passes
 - req-qa and arch-qa find no blocking document mismatch
 - the `Release Blocker Inventory` section is accepted as complete
 
@@ -170,7 +170,7 @@ Exit gate:
 - `cargo test --workspace` passes
 - `cargo clippy --all-targets --all-features -- -D warnings` passes
 - `cargo fmt --all --check` passes
-- `qm-comp` implementation review finds no blocking contract mismatch
+- `quality-mgr` implementation review finds no blocking contract mismatch
 
 ### Sprint 3: Production Hardening and Gap Closure
 
@@ -257,8 +257,8 @@ Exit gate:
 - `cargo fmt --all --check` passes
 - full end-to-end smoke test passes using includes, vars, frontmatter, and
   observability-health
-- `qm-comp` full QA pass
-- `arch-ctm` final design review pass
+- `quality-mgr` full QA pass
+- `team-lead` final design review pass
 - branch approved for merge to `develop`
 - release approved for merge to `main`
 
@@ -321,11 +321,27 @@ following are true:
 - `cargo clippy --all-targets --all-features -- -D warnings` passes
 - `cargo fmt --all --check` passes
 - full end-to-end smoke coverage passes
-- `qm-comp` completes a full QA pass
-- `arch-ctm` completes a final design review
+- `quality-mgr` completes a full QA pass
+- `team-lead` completes a final design review
 - release is approved for merge to `main`
 
 ## Follow-On Work
+
+### Known Limitations
+
+- Undeclared-token diagnostics currently attribute the warning or error to the
+  resolved root template path. Per-include-file attribution is deferred because
+  it does not block correct render or validation behavior in the initial
+  release.
+- `ObservationSink::emit()` remains an external extension point for host-owned
+  sinks and adapters. Internal composition dispatch uses the typed
+  `CompositionObserver` callbacks directly.
+- Release determinism is covered by the stable rendering pipeline and golden
+  output tests, but the repo does not yet carry a dedicated two-invocation
+  byte-for-byte integration test.
+- CLI-to-log-file emission is covered by command and observer integration
+  tests, but there is not yet a standalone seam test that asserts every
+  command event reaches the final sink file on disk.
 
 ### Sprint S7: Examples and Templates Commands
 

@@ -151,8 +151,8 @@ narrow even after template-pack support is added.
 ### FR-1d: Template Pack Layout
 
 - Bundled examples and user templates use different on-disk layouts.
-- Bundled examples are flat `*.j2` files stored directly under the examples
-  root.
+- Bundled examples are stored on disk as flat `*.j2` files directly under the
+  examples root.
 - Example names are derived from the template filename by removing the trailing
   `.j2` suffix and then one remaining source extension when present.
   Examples:
@@ -175,8 +175,10 @@ narrow even after template-pack support is added.
   render-context value types.
 - `template.json` must not introduce alternate render semantics, hook
   execution, or manifest-owned entrypoint selection in the initial release.
+- The CLI treats each normalized bundled example entry as a single-template
+  example pack even though the on-disk layout is a flat file.
 - Named render from `sc-compose examples <name>` resolves the matching flat
-  example file under the examples root.
+  example-pack file under the examples root.
 - Named render from `sc-compose templates <name>` is defined only when the
   template directory contains exactly one root-level `*.j2` file.
 - Template directories with zero or multiple root-level `*.j2` files remain
@@ -435,7 +437,7 @@ Command behavior:
   - supports:
     - `examples list`
     - `examples <name>` for implicit named render
-  - resolves packs from the bundled examples root,
+  - resolves example packs from the bundled examples root,
   - uses the same render flags and output semantics as `render` for implicit
     named render.
 - `templates`
@@ -443,7 +445,7 @@ Command behavior:
     - `templates list`
     - `templates add <src> [name]`
     - `templates <name>` for implicit named render
-  - resolves packs from the user templates root,
+  - resolves template packs from the user templates root,
   - uses the same render flags and output semantics as `render` for implicit
     named render,
   - allows `add` from either a single file or a directory source,
@@ -483,10 +485,10 @@ Default output path policy:
 
 Pack root policy:
 
-- `examples` resolves packs from:
+- `examples` resolves example packs from:
   1. `SC_COMPOSE_DATA_DIR/examples`
   2. install-relative `../share/sc-compose/examples/`
-- `templates` resolves packs from:
+- `templates` resolves template packs from:
   1. `SC_COMPOSE_TEMPLATE_DIR`
   2. the platform user-data directory joined with `sc-compose/templates/`
 - `templates add` must fail if the destination pack name already exists.
