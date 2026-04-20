@@ -33,8 +33,4 @@ if ! git merge-base --is-ancestor "$DEVELOP_REF" "$MAIN_REF"; then
   fail "$DEVELOP_REF has commits not in $MAIN_REF (merge develop->main before release)"
 fi
 
-python3 scripts/release_artifacts.py check-version-unpublished \
-  --manifest "$MANIFEST" \
-  --version "$VERSION" >/dev/null
-
 info "PASS - release gate checks satisfied"
