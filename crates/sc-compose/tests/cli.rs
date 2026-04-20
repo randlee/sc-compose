@@ -263,6 +263,57 @@ fn examples_named_render_accepts_array_values_from_var_file() {
     assert!(stdout.contains("def test_logout(fixture_state):"));
 }
 
+fn sprint_report_html_sample_vars() -> PathBuf {
+    repo_root()
+        .join("examples")
+        .join("sprint-report-html.sample-vars.json")
+}
+
+#[test]
+fn examples_named_render_sprint_report_html_renders_browser_viewable_html() {
+    let vars_file = sprint_report_html_sample_vars();
+
+    let output = sc_compose()
+        .arg("examples")
+        .arg("sprint-report-html")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("<!DOCTYPE html>"));
+    assert!(stdout.contains("<title>HTML Sprint Report</title>"));
+    assert!(stdout.contains("https://github.com/randlee/sc-compose/pull/47"));
+    assert!(stdout.contains("https://github.com/randlee/sc-compose/actions/runs/118"));
+    assert!(stdout.contains("Plan Doc"));
+    assert!(stdout.contains("Findings Doc"));
+    assert!(stdout.contains("Structured object inputs"));
+    assert!(stdout.contains("Arrays of objects"));
+}
+
+#[test]
+fn examples_named_render_dry_run_derives_html_output_path_from_example_name() {
+    let vars_file = sprint_report_html_sample_vars();
+
+    let output = sc_compose()
+        .arg("examples")
+        .arg("sprint-report-html")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .arg("--dry-run")
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("would_write: sprint-report-html.html"));
+    assert!(stdout.contains("<!DOCTYPE html>"));
+}
+
 #[test]
 fn general_task_template_validate_accepts_optional_input_defaults_without_explicit_values() {
     let vars_file = temp_root("general-task-validate").join("vars.json");
