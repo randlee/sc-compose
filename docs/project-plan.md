@@ -315,6 +315,8 @@ Exit gate:
   - Sprint H3 adds HTML template output as a bundled report example track
 - FR-15:
   - Sprint H3 ships the `sprint-report-html` bundled example
+- FR-12 through FR-15 (H4):
+  - Sprint H4 extends wrapper integration across FR-12–FR-15 and finalizes source-of-truth documentation; introduces no new functional requirements
 
 ## Production Readiness Gate
 
