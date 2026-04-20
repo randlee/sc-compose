@@ -150,21 +150,20 @@ fn split_frontmatter(input: &str) -> Result<Option<(&str, &str)>, ComposeError> 
 }
 
 fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeError> {
-    let parse_default_entry =
-        |section_name: &str,
-         name: String,
-         value: serde_yaml::Value|
-         -> Result<(VariableName, InputValue), ComposeError> {
-            let variable = VariableName::new(name).map_err(|error| {
-                ConfigError::new(
-                    DiagnosticCode::ErrConfigParse,
-                    format!("invalid frontmatter {section_name} variable name: {error}"),
-                )
-            })?;
-            let input_value = input_value_from_yaml(value)
-                .map_err(|error| ValidationError::invalid_scalar(error.to_string()))?;
-            Ok((variable, input_value))
-        };
+    let parse_default_entry = |section_name: &str,
+                               name: String,
+                               value: serde_yaml::Value|
+     -> Result<(VariableName, InputValue), ComposeError> {
+        let variable = VariableName::new(name).map_err(|error| {
+            ConfigError::new(
+                DiagnosticCode::ErrConfigParse,
+                format!("invalid frontmatter {section_name} variable name: {error}"),
+            )
+        })?;
+        let input_value = input_value_from_yaml(value)
+            .map_err(|error| ValidationError::invalid_scalar(error.to_string()))?;
+        Ok((variable, input_value))
+    };
 
     let mut required_variables = Vec::with_capacity(raw.required_variables.len());
     let mut seen = BTreeSet::new();

@@ -680,7 +680,9 @@ mod tests {
             report.warnings.iter().any(|diagnostic| {
                 diagnostic.severity == DiagnosticSeverity::Info
                     && diagnostic.code == DiagnosticCode::InfoValDefaultUsed
-                    && diagnostic.message.contains("variable assignee not provided")
+                    && diagnostic
+                        .message
+                        .contains("variable assignee not provided")
                     && diagnostic.message.contains("\"teammate\"")
             }),
             "{report:?}"

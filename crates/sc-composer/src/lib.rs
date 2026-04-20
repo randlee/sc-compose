@@ -180,15 +180,10 @@ mod tests {
                 .get(&super::VariableName::new("name").unwrap()),
             Some(&json!("new"))
         );
-        assert!(
-            frontmatter
-                .diagnostics()
-                .iter()
-                .any(|diagnostic| {
-                    diagnostic.code == super::DiagnosticCode::WarnValConflictingDefaultSections
-                        && diagnostic.message.contains("input_defaults")
-                })
-        );
+        assert!(frontmatter.diagnostics().iter().any(|diagnostic| {
+            diagnostic.code == super::DiagnosticCode::WarnValConflictingDefaultSections
+                && diagnostic.message.contains("input_defaults")
+        }));
     }
 
     #[test]
