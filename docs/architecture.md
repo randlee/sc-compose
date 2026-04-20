@@ -267,40 +267,40 @@ Semantic rules:
 - When a referenced or required variable is satisfied by a default instead of
   explicit caller input, validation emits `INFO_VAL_DEFAULT_USED`.
 
-`InputValue` for the initial release means one of:
+`InputValue` in H1/H2 means one of:
 
 - string
 - number
 - boolean
 - null
+- object/map with string keys
 - sequence of scalar values
 
 Rust type contract:
 
 - `InputValue` is represented as `serde_json::Value`,
-- object values are rejected at parse time,
+- object values with string keys may cross the CLI-to-library boundary,
 - nested sequences are rejected at parse time,
-- only scalar values and arrays of scalar values may cross the CLI-to-library
-  boundary.
+- top-level arrays of objects are supported in H2,
+- object trees may contain scalar leaves, nested objects, and arrays of
+  scalars.
 
-Sequence values remain narrow in the initial release:
+Sequence values remain narrow in H1/H2:
 
-- sequence members may contain only scalar values,
+- top-level sequence members may contain scalar values or objects,
 - nested sequences are not supported,
-- mapping values are not supported in render-context inputs.
+- object-valued sequence members are only supported at the top-level variable
+  boundary in H2.
 
-Planned post-`1.0` extension:
+Planned H2+ extension:
 
 - The follow-on structured-input design is tracked in
   [docs/html-sprint-report-plan.md](html-sprint-report-plan.md).
-- That design extends `InputValue` beyond the initial-release boundary so
-  templates can consume report-shaped data instead of preflattened strings.
+- That design extends `InputValue` beyond the H1 boundary so templates can
+  consume report-shaped data instead of preflattened strings.
 - Planned allowed shapes:
-  - scalar,
-  - array of scalars,
-  - object/map with string keys,
   - array of objects,
-  - nested object trees whose leaves are scalars or arrays of scalars.
+  - object trees that contain arrays of objects in loop-friendly positions.
 - Planned continued exclusions:
   - arrays of arrays as a first-class input shape,
   - object trees that themselves contain nested arrays,
@@ -982,9 +982,11 @@ Manifest rules:
 - `input_defaults` values use the same `InputValue` contract as other caller
   inputs:
   - scalars,
+  - objects with string keys,
   - arrays of scalars,
   - empty arrays are valid,
-  - objects and nested arrays are rejected
+  - arrays of objects are valid when the array is the variable value itself,
+  - nested arrays are rejected with `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
 - no manifest field selects entrypoints, paths, hooks, or alternate execution
   behavior in the initial release.
 
@@ -1017,8 +1019,9 @@ Variable-file behavior:
 - `--var-file` loads a JSON or YAML object,
 - keys are strings,
 - values are `InputValue`,
-- sequence values may contain only scalar values,
-- nested sequences and objects are invalid in the initial release.
+- object values with string keys are valid in H1,
+- top-level sequence values may contain scalar values or objects in H2,
+- nested sequences remain invalid in H2.
 
 ## 17. Safety Model (FR-4)
 
@@ -1076,9 +1079,9 @@ Canonical failures must map to stable error families and stable codes.
 | Config file missing or malformed | `ConfigError` | `ERR_CONFIG_PARSE` |
 | Invalid var-file shape | `ConfigError` | `ERR_CONFIG_VARFILE` |
 | Malformed object from structured input source | `ValidationError` | `ERR_VAL_OBJECT_SHAPE` |
+| Nested array shape supplied where H2 only allows top-level arrays of scalars or objects | `ValidationError` | `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` |
 | Nested required path expects an object but receives a scalar, or vice versa | `ValidationError` | `ERR_VAL_SHAPE_MISMATCH` |
 | Nested required field absent inside a present object or array member | `ValidationError` | `ERR_VAL_MISSING_NESTED_FIELD` |
-| Nested array supplied where H1/H2 only allow objects and arrays of scalars or objects | `ValidationError` | `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` |
 | Example or template pack name not found | `ConfigError` | `ERR_CONFIG_PACK_NOT_FOUND` |
 | Named pack is not renderable because a bundled example name is ambiguous or a template pack has zero or multiple root-level `*.j2` files | `ConfigError` | `ERR_CONFIG_PACK_NOT_RENDERABLE` |
 | `templates add` target name already exists | `ConfigError` | `ERR_CONFIG_TEMPLATE_EXISTS` |
@@ -1282,14 +1285,15 @@ Trait openness decisions:
   hooks, arbitrary manifest-driven behavior, and nested mappings remain
   deferred.
 
-## 21. Post-`1.0` Structured Input And HTML Report Architecture
+## 21. Structured Input And HTML Report Architecture
 
-This section is a forward design track only. It does not redefine the shipped
-`1.0` implementation.
+This section describes the shipped H1-H4 architecture plus the explicit H5+
+boundary. It must not be read as license to silently expand the delivered
+contract.
 
 ### 21.1 Input Model Expansion
 
-The follow-on structured-input track expands `InputValue` to support:
+The shipped structured-input track expands `InputValue` to support:
 
 - object/map values with string keys,
 - arrays of objects,
@@ -1386,16 +1390,19 @@ Frontmatter defaults
   `sprints`, not to `sprint` or `sprint.id`,
 - requires scope-aware token scanning. A regex identifier sweep without scope
   tracking cannot distinguish loop-bound names from context variables,
-- begins H2 with a spike comparing MiniJinja AST access against a hand-rolled
-  `for`/`endfor` scope tracker. The chosen approach must be documented in this
-  section before the remaining H2 work proceeds,
+- H2 resolves the spike in favor of a hand-rolled `for`/`endfor` scope
+  tracker. MiniJinja does not expose a stable public AST interface for this
+  use case, while the scope tracker covers the required discovery contract
+  without coupling `sc-composer` to parser internals,
+- the scope tracker collects identifiers from loop iterable expressions before
+  binding loop locals, then ignores loop-bound names inside the loop body,
 - must emit understandable generated field paths instead of opaque flattened
   names.
 
-### 21.6 HTML Report Track Boundaries
+### 21.6 H4 Wrapper-Owned Orchestration Pattern
 
 The HTML sprint-report track uses the structured-input expansion for a bundled
-`sprint-report-html` example and later wrapper integration.
+single-panel `sprint-report-html` example and wrapper integration.
 
 Architectural boundaries:
 
@@ -1403,9 +1410,27 @@ Architectural boundaries:
 - the example/template pack owns the HTML structure,
 - H3 keeps the bundled example as a single flat file
   `examples/sprint-report-html.html.j2`,
-- directory-based example layout is deferred to H4 or a later architecture
-  amendment,
+- directory-based example layout is deferred beyond H4,
 - `sc-compose` does not enable MiniJinja auto-escaping for `.html.j2`
   templates; the bundled example documentation must call this out explicitly,
-- wrapper tooling such as `/sprint-report` owns open/display behavior,
+- wrapper tooling such as `/sprint-report` owns open/display behavior and is
+  documented in [`.claude/skills/sprint-report/SKILL.md`](../.claude/skills/sprint-report/SKILL.md),
+- the wrapper-owned orchestration flow is:
+  1. build one structured JSON payload,
+  2. call `sc-compose examples sprint-report-html --var-file ... --output ...`,
+  3. let the wrapper write and optionally open the rendered output file,
+- wrapper-owned orchestration may write one rendered HTML artifact and open it
+  after render, but it does so by calling existing `sc-compose` commands rather
+  than introducing multi-render orchestration, hooks, or browser behavior into
+  the CLI,
 - no hook execution is added to `sc-compose` for this phase.
+
+### 21.7 H5+ Follow-On Boundary
+
+Follow-on work may explore:
+
+- multi-panel HTML/XHTML report composition,
+- wrapper-level `--open` or application-selection behavior,
+- optional post-render hook designs that remain outside `sc-composer` and do
+  not become implicit `sc-compose` behavior without an explicit later
+  architecture amendment.

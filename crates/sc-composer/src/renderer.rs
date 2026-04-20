@@ -19,7 +19,7 @@ impl Renderer {
 
     /// Create a renderer with additional environment configuration.
     #[must_use]
-    pub fn with_options(configure: impl FnOnce(&mut Environment<'static>)) -> Self {
+    pub(crate) fn with_options(configure: impl FnOnce(&mut Environment<'static>)) -> Self {
         let mut env = Environment::new();
         env.set_trim_blocks(true);
         env.set_lstrip_blocks(true);

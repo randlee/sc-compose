@@ -1,0 +1,304 @@
+---
+metadata:
+  name: sprint-report-html
+  description: Self-contained HTML sprint report showing structured PR, CI, and sprint data.
+required_variables:
+  - report.title
+  - report.phase
+  - report.generated_at
+  - report.repository
+  - summary.completed
+  - summary.in_review
+  - summary.blocked
+  - pr.number
+  - pr.url
+  - pr.merge_url
+  - ci.run_name
+  - ci.run_url
+  - ci.status
+  - ci.summary
+  - links.plan_url
+  - links.findings_url
+  - sprints.id
+  - sprints.title
+  - sprints.stage
+  - sprints.qa
+  - sprints.ci
+  - sprints.note
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ report.title }}</title>
+  <!-- Safety note: sc-compose does not auto-escape .html.j2 templates. Escape untrusted values before rendering. -->
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #14213d;
+      --muted: #51617f;
+      --paper: #f7f4ea;
+      --panel: #fffdf8;
+      --line: #dfd8c8;
+      --accent: #b5532f;
+      --accent-soft: #f4d6c9;
+      --good: #1f6b52;
+      --good-soft: #d9f2e8;
+      --warn: #9a6700;
+      --warn-soft: #fff1d0;
+      --block: #8f2d2d;
+      --block-soft: #f9dede;
+      --shadow: 0 14px 40px rgba(20, 33, 61, 0.12);
+      font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 32px;
+      background:
+        radial-gradient(circle at top left, #fff5ea 0, transparent 28rem),
+        linear-gradient(180deg, #fdf8ef 0%, #f4efe4 100%);
+      color: var(--ink);
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    header {
+      padding: 28px 32px 20px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(135deg, #fffdf8 0%, #f7eadf 100%);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 0.82rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 2.15rem;
+      line-height: 1.1;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      padding: 24px 32px 8px;
+    }
+
+    .card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fffdfa;
+    }
+
+    .card strong {
+      display: block;
+      font-size: 1.8rem;
+      line-height: 1;
+      margin-top: 8px;
+    }
+
+    .links,
+    .panel {
+      padding: 24px 32px 28px;
+    }
+
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-top: 8px;
+    }
+
+    .link-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      background: #fff;
+      text-decoration: none;
+      font-size: 0.95rem;
+    }
+
+    .link-chip.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff7f2;
+    }
+
+    .panel {
+      border-top: 1px solid var(--line);
+    }
+
+    .panel h2 {
+      margin: 0 0 14px;
+      font-size: 1.35rem;
+    }
+
+    .panel p {
+      margin: 0 0 16px;
+      color: var(--muted);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th {
+      background: #f8f0e6;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .stage {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .stage.merged { color: var(--good); background: var(--good-soft); }
+    .stage.in-review { color: var(--warn); background: var(--warn-soft); }
+    .stage.blocked { color: var(--block); background: var(--block-soft); }
+    .stage.in-progress { color: var(--ink); background: #e7edf7; }
+
+    .muted {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">Structured Example · HTML Output</p>
+      <h1>{{ report.title }}</h1>
+      <div class="meta">
+        <span>Phase: {{ report.phase }}</span>
+        <span>Repository: {{ report.repository }}</span>
+        <span>Generated: {{ report.generated_at }}</span>
+      </div>
+    </header>
+
+    <section class="summary">
+      <div class="card">
+        Completed
+        <strong>{{ summary.completed }}</strong>
+      </div>
+      <div class="card">
+        In Review
+        <strong>{{ summary.in_review }}</strong>
+      </div>
+      <div class="card">
+        Blocked
+        <strong>{{ summary.blocked }}</strong>
+      </div>
+      <div class="card">
+        CI
+        <strong>{{ ci.status }}</strong>
+      </div>
+    </section>
+
+    <section class="links">
+      <a class="link-chip primary" href="{{ pr.url }}">View PR #{{ pr.number }}</a>
+      <a class="link-chip" href="{{ ci.run_url }}">View {{ ci.run_name }}</a>
+      <a class="link-chip" href="{{ pr.merge_url }}">Merge URL</a>
+      <a class="link-chip" href="{{ links.plan_url }}">Plan Doc</a>
+      <a class="link-chip" href="{{ links.findings_url }}">Findings Doc</a>
+    </section>
+
+    <section class="panel">
+      <h2>Release Snapshot</h2>
+      <p>{{ ci.summary }}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Sprint</th>
+            <th>Stage</th>
+            <th>QA</th>
+            <th>CI</th>
+            <th>Reference</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for sprint in sprints %}
+          <tr>
+            <td>
+              <strong>{{ sprint.id }}</strong><br>
+              <span class="muted">{{ sprint.title }}</span>
+            </td>
+            <td>
+              <span class="stage {% if sprint.stage == "merged" %}merged{% elif sprint.stage == "in-review" %}in-review{% elif sprint.stage == "blocked" %}blocked{% else %}in-progress{% endif %}">
+                {{ sprint.stage }}
+              </span>
+            </td>
+            <td>{{ sprint.qa }}</td>
+            <td>{{ sprint.ci }}</td>
+            <td>
+            {% if sprint.pr_url %}
+              <a href="{{ sprint.pr_url }}">Sprint PR</a>
+            {% else %}
+              <span class="muted">No PR yet</span>
+            {% endif %}
+            </td>
+            <td>{{ sprint.note }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

@@ -842,6 +842,40 @@ fn examples_named_render_json_matches_render_schema() {
 }
 
 #[test]
+fn examples_named_render_html_dry_run_preserves_html_extension() {
+    let vars_file = repo_root()
+        .join("examples")
+        .join("sprint-report-html.sample-vars.json");
+
+    let output = sc_compose()
+        .arg("examples")
+        .arg("sprint-report-html")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .arg("--json")
+        .arg("--dry-run")
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["would_write"], "sprint-report-html.html");
+    assert_eq!(
+        value["payload"]["template"],
+        repo_root()
+            .join("examples")
+            .join("sprint-report-html.html.j2")
+            .canonicalize()
+            .unwrap()
+            .display()
+            .to_string()
+    );
+}
+
+#[test]
 fn templates_list_json_uses_diagnostic_envelope() {
     let root = temp_root("templates-list-json");
     let templates_root = root.join("user-templates");
