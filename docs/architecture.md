@@ -1398,7 +1398,7 @@ Frontmatter defaults
 - must emit understandable generated field paths instead of opaque flattened
   names.
 
-### 21.6 HTML Report Track Boundaries
+### 21.6 H4 Wrapper-Owned Orchestration Pattern
 
 The HTML sprint-report track uses the structured-input expansion for a bundled
 `sprint-report-html` example and later wrapper integration.
@@ -1413,5 +1413,14 @@ Architectural boundaries:
   amendment,
 - `sc-compose` does not enable MiniJinja auto-escaping for `.html.j2`
   templates; the bundled example documentation must call this out explicitly,
-- wrapper tooling such as `/sprint-report` owns open/display behavior,
+- wrapper tooling such as `/sprint-report` owns open/display behavior and is
+  documented in [`.claude/skills/sprint-report/SKILL.md`](../.claude/skills/sprint-report/SKILL.md),
+- the wrapper-owned orchestration flow is:
+  1. build one structured JSON payload,
+  2. call `sc-compose examples sprint-report-html --var-file ... --output ...`,
+  3. let the wrapper write and optionally open the rendered output file,
+- wrapper-owned orchestration may write one rendered HTML artifact and open it
+  after render, but it does so by calling existing `sc-compose` commands rather
+  than introducing multi-render orchestration, hooks, or browser behavior into
+  the CLI,
 - no hook execution is added to `sc-compose` for this phase.
