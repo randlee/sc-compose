@@ -96,9 +96,10 @@ fn expand_file(
         .into());
     }
 
+    let is_new = !state.resolved_seen.contains(&path_buf);
     stack.push(path_buf.clone());
 
-    if state.resolved_seen.insert(path_buf.clone()) {
+    if is_new {
         state.resolved_files.push(path_buf.clone());
         state.include_chains.insert(path_buf.clone(), stack.clone());
     }
@@ -117,7 +118,10 @@ fn expand_file(
     })?;
     state
         .frontmatters
-        .push((path_buf, parsed.frontmatter().cloned()));
+        .push((path.to_path_buf(), parsed.frontmatter().cloned()));
+    if is_new {
+        state.resolved_seen.insert(path_buf);
+    }
 
     let mut expanded = String::new();
     for line in parsed.body().split_inclusive('\n') {
