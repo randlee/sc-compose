@@ -36,5 +36,4 @@ fi
 python3 scripts/release_artifacts.py check-version-unpublished \
   --manifest "$MANIFEST" \
   --version "$VERSION" >/dev/null
-
 info "PASS - release gate checks satisfied"

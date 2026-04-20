@@ -17,6 +17,7 @@ pub(crate) struct ValidationState {
     pub(crate) variable_sources: BTreeMap<VariableName, VariableSource>,
     pub(crate) required_origins: BTreeMap<VariableName, PathBuf>,
     required_include_chains: BTreeMap<VariableName, Vec<PathBuf>>,
+    default_origins: BTreeMap<VariableName, Option<PathBuf>>,
     pub(crate) declared_variables: BTreeSet<VariableName>,
     pub(crate) referenced_variables: BTreeSet<VariableName>,
 }
@@ -43,6 +44,8 @@ pub(crate) fn validate_expanded(
     }
 
     warnings.extend(missing_frontmatter_warnings(&resolve_result, expanded));
+    warnings.extend(frontmatter_diagnostics(expanded));
+    warnings.extend(default_usage_diagnostics(&state));
 
     for (variable, origin) in &state.required_origins {
         if !state.context.contains_key(variable) {
@@ -90,7 +93,6 @@ pub(crate) fn validate_expanded(
     let provided_variables = request
         .vars_input
         .keys()
-        .chain(request.vars_defaults.keys())
         .chain(request.vars_env.keys())
         .cloned()
         .collect::<BTreeSet<_>>();
@@ -169,6 +171,69 @@ fn file_references_variables(path: &Path) -> bool {
     !discover_tokens(parsed.body()).is_empty()
 }
 
+fn frontmatter_diagnostics(expanded: &ExpandedTemplate) -> Vec<Diagnostic> {
+    expanded
+        .frontmatters
+        .iter()
+        .flat_map(|(path, frontmatter)| {
+            frontmatter
+                .iter()
+                .flat_map(|frontmatter| frontmatter.diagnostics().iter())
+                .cloned()
+                .map(|diagnostic| {
+                    if diagnostic.path.is_some() {
+                        diagnostic
+                    } else {
+                        diagnostic.with_path(path.clone())
+                    }
+                })
+        })
+        .collect()
+}
+
+fn default_usage_diagnostics(state: &ValidationState) -> Vec<Diagnostic> {
+    state
+        .variable_sources
+        .iter()
+        .filter_map(|(variable, source)| {
+            if !matches!(
+                source,
+                VariableSource::TemplateInputDefault
+                    | VariableSource::FrontmatterDefault
+                    | VariableSource::IncludedDefault
+            ) {
+                return None;
+            }
+            if !state.referenced_variables.contains(variable)
+                && !state.required_origins.contains_key(variable)
+            {
+                return None;
+            }
+
+            let value = state.context.get(variable)?;
+            let value_json =
+                serde_json::to_string(value).unwrap_or_else(|_| "<unprintable>".to_owned());
+            let diagnostic = Diagnostic::new(
+                DiagnosticSeverity::Info,
+                DiagnosticCode::InfoValDefaultUsed,
+                format!("variable {variable} not provided, using default: {value_json}"),
+            );
+
+            Some(match source {
+                VariableSource::FrontmatterDefault | VariableSource::IncludedDefault => {
+                    if let Some(path) = state.default_origins.get(variable).and_then(Clone::clone) {
+                        diagnostic.with_path(path)
+                    } else {
+                        diagnostic
+                    }
+                }
+                VariableSource::TemplateInputDefault => diagnostic,
+                VariableSource::ExplicitInput | VariableSource::Environment => unreachable!(),
+            })
+        })
+        .collect()
+}
+
 fn missing_required_diagnostic(
     origin: &Path,
     variable: &VariableName,
@@ -239,6 +304,7 @@ pub(crate) fn collect_validation_state(
 
     for (name, value) in &request.vars_defaults {
         state.context.insert(name.clone(), value.clone());
+        state.default_origins.insert(name.clone(), None);
         state
             .variable_sources
             .insert(name.clone(), VariableSource::TemplateInputDefault);
@@ -287,6 +353,10 @@ fn merge_frontmatter(
 
     for (variable, value) in frontmatter.defaults() {
         state.declared_variables.insert(variable.clone());
+        state
+            .default_origins
+            .entry(variable.clone())
+            .or_insert_with(|| Some(path.to_path_buf()));
         state
             .context
             .entry(variable.clone())
@@ -375,7 +445,7 @@ mod tests {
     use crate::types::{
         ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, UnknownVariablePolicy,
     };
-    use crate::{DiagnosticCode, validate};
+    use crate::{DiagnosticCode, DiagnosticSeverity, validate};
 
     use super::collect_validation_state;
 
@@ -552,6 +622,98 @@ mod tests {
                 .errors
                 .iter()
                 .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput)
+        );
+    }
+
+    #[test]
+    fn input_defaults_alias_marks_optional_variable_as_known() {
+        let root = temp_root("validation_input_defaults_known");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - task_id\ninput_defaults:\n  assignee: teammate\n---\nhello {{ task_id }} {{ assignee }}\n",
+        );
+
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unknown_variable_policy: UnknownVariablePolicy::Error,
+                ..ComposePolicy::default()
+            },
+        );
+        request
+            .vars_input
+            .insert(crate::VariableName::new("task_id").unwrap(), json!("SC-1"));
+        request.vars_input.insert(
+            crate::VariableName::new("assignee").unwrap(),
+            json!("architect"),
+        );
+
+        let report = validate(&request).unwrap();
+        assert!(report.ok, "{report:?}");
+        assert!(
+            !report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput)
+        );
+    }
+
+    #[test]
+    fn input_defaults_only_var_uses_default_when_absent_emits_info_diagnostic() {
+        let root = temp_root("validation_input_defaults_only_default");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\ninput_defaults:\n  assignee: teammate\n---\nhello {{ assignee }}\n",
+        );
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty());
+        assert!(
+            report.warnings.iter().any(|diagnostic| {
+                diagnostic.severity == DiagnosticSeverity::Info
+                    && diagnostic.code == DiagnosticCode::InfoValDefaultUsed
+                    && diagnostic
+                        .message
+                        .contains("variable assignee not provided")
+                    && diagnostic.message.contains("\"teammate\"")
+            }),
+            "{report:?}"
+        );
+    }
+
+    #[test]
+    fn required_variable_is_satisfied_by_input_defaults_alias() {
+        let root = temp_root("validation_required_input_defaults");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - name\ninput_defaults:\n  name: world\n---\nhello {{ name }}\n",
+        );
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty());
+        assert!(
+            report.warnings.iter().any(|diagnostic| {
+                diagnostic.severity == DiagnosticSeverity::Info
+                    && diagnostic.code == DiagnosticCode::InfoValDefaultUsed
+                    && diagnostic.message.contains("using default")
+                    && diagnostic.message.contains("\"world\"")
+            }),
+            "{report:?}"
         );
     }
 

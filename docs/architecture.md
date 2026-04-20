@@ -249,8 +249,12 @@ Normalization rules:
 
 - If frontmatter exists but omits `required_variables`, normalize to `[]`.
 - If frontmatter exists but omits `defaults`, normalize to `{}`.
+- If frontmatter uses `input_defaults`, normalize it into `defaults`.
 - If frontmatter exists but omits `metadata`, normalize to `{}`.
 - If no frontmatter exists, the document has no declarations and no defaults.
+- If both `defaults` and `input_defaults` appear, merge both maps, let
+  `input_defaults` override overlapping keys, and emit
+  `WARN_VAL_CONFLICTING_DEFAULT_SECTIONS`.
 
 Semantic rules:
 
@@ -260,6 +264,8 @@ Semantic rules:
   initial design.
 - An empty sequence is a valid `InputValue` and may satisfy a required
   variable.
+- When a referenced or required variable is satisfied by a default instead of
+  explicit caller input, validation emits `INFO_VAL_DEFAULT_USED`.
 
 `InputValue` for the initial release means one of:
 
@@ -546,10 +552,10 @@ Minimal diagnostic record:
 
 ```json
 {
-  "severity": "error",
-  "code": "ERR_VAL_MISSING_REQUIRED",
-  "message": "missing required variable: name",
-  "location": "templates/example.md.j2:12:4"
+  "severity": "info",
+  "code": "INFO_VAL_DEFAULT_USED",
+  "message": "variable name not provided, using default: \"world\"",
+  "location": "templates/example.md.j2"
 }
 ```
 
