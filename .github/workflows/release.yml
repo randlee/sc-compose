@@ -230,7 +230,7 @@ jobs:
 
       - name: Generate checksums
         working-directory: release
-        run: sha256sum * > checksums.txt
+        run: sha256sum *.tar.gz *.zip > checksums.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

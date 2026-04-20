@@ -39,6 +39,8 @@ pub enum DiagnosticCode {
     ErrValType,
     /// Frontmatter declarations contained duplicate variables.
     ErrValDuplicate,
+    /// Frontmatter used both defaults sections and `input_defaults` overrides them.
+    WarnValConflictingDefaultSections,
     /// A template body was empty when content was required.
     ErrValEmpty,
     /// The root template omitted a frontmatter block.
@@ -49,6 +51,8 @@ pub enum DiagnosticCode {
     ErrValUndeclaredToken,
     /// A caller-provided variable was not declared or referenced.
     ErrValExtraInput,
+    /// A variable was not provided explicitly and a default value was used.
+    InfoValDefaultUsed,
     /// The CLI attempted to read stdin twice for incompatible inputs.
     ErrRenderStdinDoubleRead,
     /// Output writing or materialization failed.
@@ -82,11 +86,13 @@ impl DiagnosticCode {
             Self::ErrIncludeDepth => "ERR_INCLUDE_DEPTH",
             Self::ErrValType => "ERR_VAL_TYPE",
             Self::ErrValDuplicate => "ERR_VAL_DUPLICATE",
+            Self::WarnValConflictingDefaultSections => "WARN_VAL_CONFLICTING_DEFAULT_SECTIONS",
             Self::ErrValEmpty => "ERR_VAL_EMPTY",
             Self::ErrValMissingFrontmatter => "ERR_VAL_MISSING_FRONTMATTER",
             Self::ErrValMissingRequired => "ERR_VAL_MISSING_REQUIRED",
             Self::ErrValUndeclaredToken => "ERR_VAL_UNDECLARED_TOKEN",
             Self::ErrValExtraInput => "ERR_VAL_EXTRA_INPUT",
+            Self::InfoValDefaultUsed => "INFO_VAL_DEFAULT_USED",
             Self::ErrRenderStdinDoubleRead => "ERR_RENDER_STDIN_DOUBLE_READ",
             Self::ErrRenderWrite => "ERR_RENDER_WRITE",
             Self::ErrConfigReadonly => "ERR_CONFIG_READONLY",

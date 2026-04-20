@@ -307,6 +307,14 @@ Exit gate:
   - Sprint 2 implements it
   - Sprint 3 hardens and validates it
   - Sprint 4 validates release behavior
+- FR-12:
+  - Sprint H1 adds structured object input support
+- FR-13:
+  - Sprint H2 adds arrays of objects and loop-body discovery support
+- FR-14:
+  - Sprint H3 adds HTML template output as a bundled report example track
+- FR-15:
+  - Sprint H3 ships the `sprint-report-html` bundled example
 
 ## Production Readiness Gate
 
@@ -342,6 +350,51 @@ following are true:
 - CLI-to-log-file emission is covered by command and observer integration
   tests, but there is not yet a standalone seam test that asserts every
   command event reaches the final sink file on disk.
+- Structured object inputs, arrays of objects, and the HTML sprint-report track
+  remain planned follow-on work documented in
+  [docs/html-sprint-report-plan.md](html-sprint-report-plan.md) and the Phase
+  HTML-Report section above.
+
+### Sprint S8: Release Engineering And Distribution
+
+Status:
+
+- completed
+
+Branch:
+
+- `chore/version-bump-1.0.0` -> `develop`
+
+Goals:
+
+- finalize the first standalone `1.0.0` release path for `sc-composer` and
+  `sc-compose`
+- add release-control infrastructure that prevents accidental duplicate publish
+- make Homebrew, `winget`, and packaged GitHub Release installs match the
+  documented examples-discovery contract
+
+Deliverables:
+
+- completed as specified in [docs/publishing.md](docs/publishing.md)
+
+Acceptance Criteria:
+
+- workspace and crate manifests are updated to `1.0.0`
+- release workflow archives ship `bin/sc-compose` and
+  `share/sc-compose/examples/...`
+- `scripts/release_gate.sh` exists and enforces release ancestry plus
+  unpublished-version checks
+- release preflight verifies unpublished crate versions before release
+- release workflow publish steps are idempotent when crates are already live
+- Homebrew automation updates `randlee/homebrew-tap` from the checked-in formula
+  template
+- `winget` automation and supporting docs are present for `randlee.sc-compose`
+- publishing docs and operator guidance are aligned with the first standalone
+  `1.0.0` release path
+
+Exit Gate:
+
+- `SC-RELEASE-ENG-QA-001` passed as the Sprint S8 exit gate
 
 ### Sprint S8: Release Engineering And Distribution
 
@@ -513,11 +566,229 @@ Acceptance criteria:
 - packager instructions are explicit enough for system package installs and
   user-template discovery
 
+### Phase HTML-Report (H1-H4)
+
+Status:
+
+- planned
+
+Phase goal:
+
+- broaden `sc-compose` into a strong structured HTML report generator without
+  moving wrapper-owned browser/display behavior into the core tool.
+
+Release blocker inventory:
+
+| ID | Blocker | Status | Sprint | Closure condition |
+| --- | --- | --- | --- | --- |
+| HRB-01 | The current input model cannot express structured records such as PR objects and nested field access. | Open | H1 | Object/map input values render end-to-end with stable field-path diagnostics. |
+| HRB-02 | The current input model cannot express repeated report sections as arrays of structured records. | Open | H2 | Arrays of objects render, validate, and support loop-body discovery end-to-end. |
+| HRB-03 | There is no bundled HTML report example proving `sc-compose` can generate a useful clickable report artifact. | Open | H3 | `sprint-report-html` renders a self-contained HTML report from realistic structured input. |
+
+#### Sprint H1: Structured Object Input Support
+
+Description:
+
+- expand the value model from scalars and arrays of scalars to include
+  object/map values with string keys.
+
+FRs addressed:
+
+- FR-12
+
+Deliverables:
+
+- object/map values accepted through `--var-file` JSON and YAML input
+- object values accepted in frontmatter defaults
+- object values accepted in `template.json` `input_defaults`
+- nested field access documented for Jinja templates
+- stable diagnostics for malformed objects and missing nested fields:
+  - `ERR_VAL_OBJECT_SHAPE`
+  - `ERR_VAL_SHAPE_MISMATCH`
+  - `ERR_VAL_MISSING_NESTED_FIELD`
+- explicit top-level replacement semantics for structured defaults; no deep
+  merge
+- explicit top-level extra-variable policy for structured inputs
+- invert or replace the three existing negative tests that reject objects:
+  - `crates/sc-compose/tests/cli.rs:render_rejects_nested_object_values_in_var_file` (cli.rs:518)
+  - `crates/sc-compose/tests/cli.rs:render_rejects_nested_sequence_values_in_var_file` (cli.rs:544)
+  - `crates/sc-composer/src/lib.rs:frontmatter_rejects_nested_defaults` (lib.rs:110-122)
+
+Acceptance Criteria:
+
+- object values render end-to-end through `--var-file`
+- object values work through frontmatter defaults and `template.json`
+  `input_defaults`
+- missing nested fields reference stable field paths such as `pr.number`
+- structured defaults are replaced, not merged, at the top-level boundary
+- unit tests (`sc-composer`) cover:
+  - `validate_input_value_accepts_serde_json_object`
+  - `input_value_from_yaml_mapping_becomes_object`
+  - `frontmatter_defaults_accept_object_value`
+  - `required_variable_path_pr_number_is_satisfied_by_object_input`
+  - `missing_nested_field_reports_err_val_missing_nested_field`
+  - `shape_mismatch_reports_err_val_shape_mismatch`
+  - `structured_defaults_replace_without_deep_merge`
+  - `extra_nested_fields_are_ignored_by_top_level_extra_input_policy`
+- integration tests (`sc-compose`) cover:
+  - `render_accepts_object_values_in_json_var_file`
+  - `render_accepts_object_values_in_yaml_var_file`
+  - `template_json_object_input_defaults_obey_precedence`
+
+Exit Gate:
+
+- object-input behavior is specified in `requirements.md` and `architecture.md`
+- automated tests covering object input paths pass
+- no open blocker remains against FR-12
+- `quality-mgr` sprint_review passes with no blocker findings
+
+#### Sprint H2: Arrays Of Objects Input Support
+
+Description:
+
+- extend the structured-input model so repeated report sections can be modeled
+  as arrays of records.
+
+FRs addressed:
+
+- FR-13
+
+Deliverables:
+
+- arrays of objects accepted through `--var-file`
+- arrays of objects accepted in frontmatter defaults
+- arrays of objects accepted in `template.json` `input_defaults`
+- loop-body field access in Jinja templates
+- Spike: loop-body discovery approach (MiniJinja AST vs scope-tracker);
+  document the decision in `architecture.md` section 21.5 before proceeding
+  with the remaining H2 deliverables
+- frontmatter-init discovery for nested references inside loop bodies
+- nested arrays explicitly remain out of scope for H1/H2 and are rejected with
+  `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
+- unit and integration tests for arrays of objects
+
+Acceptance Criteria:
+
+- arrays of objects render end-to-end through Jinja loops
+- frontmatter-init discovers loop-body variable references from array members
+- nested arrays are rejected with `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
+- at least 10 tests cover arrays-of-objects behavior and failure cases
+- the `sprint-report-html` input shape is representable by the implemented value
+  model
+
+Exit Gate:
+
+- all H2 deliverables complete
+- the loop-body discovery spike is documented in `architecture.md` section 21.5
+- automated tests covering arrays of objects pass
+- no open blocker remains against FR-13
+- `quality-mgr` sprint_review passes with no blocker findings
+
+#### Sprint H3: `sprint-report-html` Bundled Example
+
+Description:
+
+- ship a self-contained single-panel HTML sprint report example that produces an
+  immediately useful clickable artifact.
+
+FRs addressed:
+
+- FR-14
+- FR-15
+
+Deliverables:
+
+- H3a (FR-14 implementation): reuse the existing `.j2` suffix-stripping output
+  path behavior already implemented by `strip_j2_suffix`; H3 does not
+  re-implement output-path logic
+- H3a adds:
+  - at least one integration test verifying
+    `sprint-report-html.html.j2 -> sprint-report-html.html`
+  - an explicit safety note that `.html.j2` templates do not use automatic
+    escaping
+- H3b (FR-15 content): bundled example at
+  `examples/sprint-report-html.html.j2`
+- H3b keeps all template content inline in a single flat file; no `_includes/`
+  directory and no directory-based example pack
+- realistic sample vars file with PR and CI data
+- self-contained HTML output with inline CSS and no external dependencies
+- action links for:
+  - view PR
+  - view CI run
+  - merge URL
+
+Acceptance Criteria:
+
+- `sc-compose examples sprint-report-html --var-file sample-vars.json` works
+  end-to-end
+- rendered HTML is self-contained and browser-viewable
+- rendered output includes working PR, CI, and plan/findings links from sample
+  data
+- the example clearly demonstrates why structured inputs are better than
+  flattened prebuilt strings
+
+Exit Gate:
+
+- the bundled example renders successfully from realistic structured input
+- design review confirms the example is a credible showcase artifact
+- H3 remains a single flat example file with no bundled-example layout change
+- no open blocker remains against FR-14 or FR-15 for the single-panel scope
+- `quality-mgr` sprint_review passes with no blocker findings
+
+#### Sprint H4: Multi-Panel Report And Wrapper Integration
+
+Description:
+
+- extend the single-panel example into a fuller report and connect it to the
+  wrapper workflow without moving open/display behavior into `sc-compose`.
+
+H4 introduces no new functional requirements. All H4 work extends FR-12,
+FR-13, FR-14, and FR-15 with wrapper integration and multi-panel example work.
+This is intentional.
+
+Deliverables:
+
+- multi-panel report layout with repeated per-sprint sections
+- stage-sensitive panel sections or variants
+- `/sprint-report` skill update that renders the HTML artifact and opens or
+  writes it from wrapper logic
+- architecture/docs update describing the wrapper-owned orchestration pattern
+
+Acceptance Criteria:
+
+- `/sprint-report --html` produces the HTML report through wrapper-owned render
+  orchestration
+- the wrapper path opens or writes the output without requiring hook execution
+  in `sc-compose`
+- the multi-panel layout remains self-contained and deterministic
+
+Exit Gate:
+
+- wrapper integration works without changing `sc-compose` into a workflow
+  orchestrator
+- quality review confirms the final report flow is usable and maintainable
+- all HTML-Report phase blockers are closed
+- `quality-mgr` sprint_review passes with no blocker findings
+
 ## Companion Planning Docs
 
 - `docs/traceability-matrix.md`
 - `docs/error-code-registry.md`
 - `docs/test-strategy.md`
+- `docs/html-sprint-report-plan.md`
+
+## Follow-on Design Track
+
+The current plan is the authoritative release plan for `1.0`. Additional
+post-`1.0` design exploration must not silently rewrite the shipped contract.
+
+The current follow-on design track is:
+
+- `docs/html-sprint-report-plan.md`
+  - structured input-value expansion for maps/objects and arrays of objects,
+  - XHTML sprint-report example/template design,
+  - wrapper-owned browser-open workflow rather than hook execution in
+    `sc-compose`.
 
 ## Rule
 

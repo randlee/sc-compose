@@ -19,6 +19,8 @@ info() {
 
 info "fetching refs and tags"
 git fetch origin --prune --tags >/dev/null 2>&1 || fail "git fetch failed"
+# actions/checkout only fetches the checked-out branch; explicitly fetch develop
+git fetch origin "${DEVELOP_REF#*/}" >/dev/null 2>&1 || fail "git fetch ${DEVELOP_REF#*/} failed"
 
 git rev-parse --verify "$MAIN_REF" >/dev/null 2>&1 || fail "missing ref: $MAIN_REF"
 git rev-parse --verify "$DEVELOP_REF" >/dev/null 2>&1 || fail "missing ref: $DEVELOP_REF"
@@ -34,5 +36,4 @@ fi
 python3 scripts/release_artifacts.py check-version-unpublished \
   --manifest "$MANIFEST" \
   --version "$VERSION" >/dev/null
-
 info "PASS - release gate checks satisfied"

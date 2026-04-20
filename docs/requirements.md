@@ -103,6 +103,7 @@ Schema rules:
 
 - `required_variables` is optional.
 - `defaults` is optional.
+- `input_defaults` is accepted as an alias for `defaults` in frontmatter.
 - `metadata` is optional.
 - If a frontmatter block exists and a field is omitted, it defaults to:
   - `required_variables: []`
@@ -113,6 +114,9 @@ Schema rules:
 - `required_variables` values must be unique variable names.
 - `defaults` supplies optional values that become part of the render context
   unless overridden by environment-derived or explicit input values.
+- If both `defaults` and `input_defaults` appear in the same frontmatter
+  block, `input_defaults` wins for overlapping keys and validation emits a
+  `WARN_VAL_CONFLICTING_DEFAULT_SECTIONS` warning diagnostic.
 - `metadata` is descriptive only. It must not directly change render semantics
   unless a future requirement explicitly assigns meaning to a metadata key.
 
@@ -132,6 +136,15 @@ narrow even after template-pack support is added.
   `defaults`, and user-template `input_defaults` in the initial release.
 - `metadata` may contain arbitrary YAML values because it is descriptive only
   and does not participate in rendering semantics.
+
+Post-`1.0` design track:
+
+- A follow-on design track proposes structured render inputs for richer report
+  and UI-style template outputs.
+- That design is captured in [docs/html-sprint-report-plan.md](html-sprint-report-plan.md).
+- The detailed follow-on functional requirements are FR-12 through FR-15.
+- This is not part of the shipped `1.0` contract and remains future work until
+  implemented.
 
 ### FR-1c: File Extension and Discovery Conventions
 
@@ -198,6 +211,9 @@ narrow even after template-pack support is added.
   case the default value satisfies the requirement unless overridden.
 - An empty sequence value such as `[]` is valid input and satisfies a required
   variable when provided explicitly or by defaults.
+- `validate` and `render --dry-run` must emit an informational diagnostic when
+  a referenced or required variable is satisfied by a default value rather than
+  explicit caller input.
 - Explicit CLI `--var key=value` inputs are always strings.
 - Variables loaded through `--var-file` may be any supported render-context
   value type.
@@ -501,6 +517,8 @@ Pack root policy:
 - Variable-file values must be supported render-context value types.
 - Sequence values in variable files must contain only supported scalar values.
 - Nested objects and nested sequences are invalid in the initial release.
+- See FR-12 and FR-13 for the post-`1.0` extension that adds object and
+  array-of-object input support.
 
 ### FR-7b: Exit Codes
 
@@ -611,14 +629,14 @@ Schema rules:
 {
   "schema_version": "1",
   "payload": {
-    "valid": false
+    "valid": true
   },
   "diagnostics": [
     {
-      "severity": "error",
-      "code": "ERR_VAL_MISSING_REQUIRED",
-      "message": "missing required variable: name",
-      "location": "templates/example.md.j2:12:4"
+      "severity": "info",
+      "code": "INFO_VAL_DEFAULT_USED",
+      "message": "variable name not provided, using default: \"world\"",
+      "location": "templates/example.md.j2"
     }
   ]
 }
@@ -855,6 +873,103 @@ same command payloads as `render` and `render --dry-run`.
 - The CLI shall perform graceful logger shutdown on process exit so pending
   events flush before termination.
 
+### Post-`1.0` Functional Requirements
+
+### FR-12: Map/Object Variable Inputs
+
+This is a post-`1.0` follow-on requirement. It does not change the shipped
+`1.0` contract until implemented.
+
+- Callers may pass structured object/map values as template variables.
+- Object keys must be strings.
+- Valid object fields must be accessible through normal Jinja field access such
+  as:
+  - `{{ pr.number }}`
+  - `{{ pr.url }}`
+- Bracket access remains valid when a key is not a valid dotted identifier.
+- Structured inputs participate in the same precedence model as existing
+  inputs:
+  1. explicit input variables,
+  2. environment-derived variables,
+  3. user-template `input_defaults`,
+  4. frontmatter defaults.
+- `required_variables` may name nested field paths such as `pr.number` once
+  structured inputs are implemented.
+- Missing nested required fields must report the full field path, for example
+  `pr.number`.
+- Malformed object input must fail with stable diagnostics using
+  `ERR_VAL_OBJECT_SHAPE`.
+- Nested required-path traversal that encounters a scalar where an object is
+  required must fail with `ERR_VAL_SHAPE_MISMATCH`.
+- `--var key=value` remains string-only in this phase. Structured input comes
+  from `--var-file`, frontmatter defaults, or `template.json` `input_defaults`.
+- JSON and YAML var-file documents remain top-level objects. Structured values
+  are carried in object fields within that top-level object.
+
+### FR-13: Arrays Of Objects
+
+This is a post-`1.0` follow-on requirement. It does not change the shipped
+`1.0` contract until implemented.
+
+- Callers may pass arrays whose members are objects.
+- Jinja loops such as `{% for item in list %}` must support field access within
+  each array member object.
+- Arrays of objects are valid through:
+  - `--var-file`,
+  - frontmatter defaults,
+  - user-template `template.json` `input_defaults`.
+- Empty arrays remain valid inputs.
+- Arrays of objects may contain nested object fields. Arrays of arrays remain a
+  separate decision and are not implied by this requirement.
+- Nested arrays are out of scope for H1 and H2. Callers who pass an array that
+  contains another array, or an object that contains an array at a nested
+  field, must receive `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`.
+- Missing nested fields inside array members must report stable field-path
+  diagnostics using `ERR_VAL_MISSING_NESTED_FIELD`.
+- `frontmatter-init` must discover variable references inside `for` loop
+  bodies. References inside a loop body are attributed to the array variable:
+  `{{ sprint.id }}` inside `{% for sprint in sprints %}` means `sprints` is a
+  required variable, not `sprint` or `sprint.id`.
+
+### FR-14: HTML Template Output
+
+This is a post-`1.0` follow-on requirement. It does not change the shipped
+`1.0` contract until implemented.
+
+- `.html.j2` templates render like other file-mode templates.
+- Output path derivation removes only the trailing `.j2` suffix and therefore
+  preserves the `.html` extension.
+- Rendered HTML is treated as a normal template artifact.
+- `sc-compose` does not enable MiniJinja auto-escaping for `.html.j2`
+  templates. Template authors remain responsible for escaping user-supplied
+  values.
+- Self-contained output, XHTML shape, inline CSS, and browser-viewability are
+  template-author responsibilities rather than core-engine enforcement.
+- Dry-run, diagnostics, validation, and output-path rules apply to HTML
+  templates the same way they apply to other file-mode templates.
+
+### FR-15: Bundled HTML Report Example
+
+This is a post-`1.0` follow-on requirement. It does not change the shipped
+`1.0` contract until implemented.
+
+- `sc-compose` shall ship a bundled example named `sprint-report-html`.
+- The example must demonstrate FR-12, FR-13, and FR-14 together using a
+  self-contained HTML sprint status report.
+- The H3 example is a single flat file at
+  `examples/sprint-report-html.html.j2`. Directory-based example-pack layout is
+  deferred to H4 or a later architecture amendment.
+- The example must include realistic structured input data showing:
+  - report metadata,
+  - sprint entries,
+  - PR metadata,
+  - CI status metadata and actionable links,
+  - actionable links such as PR and CI URLs.
+- The example must remain renderable through the standard examples command
+  surface and var-file flow.
+- The example must be a credible showcase for `sc-compose`, not just a
+  hand-written HTML file stored in the repo.
+
 ## 5. Non-Functional Requirements
 
 - Cross-platform support is required for macOS, Linux, and Windows.
@@ -930,3 +1045,6 @@ Required integration coverage includes:
 - `prepare-hook` and `post-render-hook` execution
 - Named render for packs with multiple root-level `*.j2` entry candidates
 - Template deletion, update, sync, or remote registry features
+- Structured map/object render inputs and arrays of objects remain deferred to
+  the follow-on design track in
+  [docs/html-sprint-report-plan.md](html-sprint-report-plan.md)
