@@ -122,24 +122,25 @@ Schema rules:
 
 ### FR-1b: Value Types
 
-For the initial release, the render-context value model remains intentionally
-narrow even after template-pack support is added.
+The render-context value model remains intentionally narrow even after H1
+structured-input support lands.
 
 - Variables used by template rendering must be one of:
   - string
   - number
   - boolean
   - null
+  - an object/map with string keys
   - a sequence of scalar values
 - Sequence values may contain only supported scalar value types.
-- Nested sequences and mapping values are out of scope for template variables,
-  `defaults`, and user-template `input_defaults` in the initial release.
+- Arrays of objects and nested sequences remain out of scope until H2 for
+  template variables, `defaults`, and user-template `input_defaults`.
 - `metadata` may contain arbitrary YAML values because it is descriptive only
   and does not participate in rendering semantics.
 
 Post-`1.0` design track:
 
-- A follow-on design track proposes structured render inputs for richer report
+- A follow-on design track continues structured render inputs for richer report
   and UI-style template outputs.
 - That design is captured in [docs/html-sprint-report-plan.md](html-sprint-report-plan.md).
 - The detailed follow-on functional requirements are FR-12 through FR-15.
@@ -515,10 +516,9 @@ Pack root policy:
 - `--var-file` accepts a JSON or YAML object.
 - Variable-file keys must be strings.
 - Variable-file values must be supported render-context value types.
+- Object/map values with string keys are valid per FR-12.
 - Sequence values in variable files must contain only supported scalar values.
-- Nested objects and nested sequences are invalid in the initial release.
-- See FR-12 and FR-13 for the post-`1.0` extension that adds object and
-  array-of-object input support.
+- Nested arrays and arrays of objects remain invalid until FR-13 / H2.
 
 ### FR-7b: Exit Codes
 

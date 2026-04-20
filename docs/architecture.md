@@ -267,40 +267,40 @@ Semantic rules:
 - When a referenced or required variable is satisfied by a default instead of
   explicit caller input, validation emits `INFO_VAL_DEFAULT_USED`.
 
-`InputValue` for the initial release means one of:
+`InputValue` in H1 means one of:
 
 - string
 - number
 - boolean
 - null
+- object/map with string keys
 - sequence of scalar values
 
 Rust type contract:
 
 - `InputValue` is represented as `serde_json::Value`,
-- object values are rejected at parse time,
+- object values with string keys may cross the CLI-to-library boundary,
 - nested sequences are rejected at parse time,
-- only scalar values and arrays of scalar values may cross the CLI-to-library
-  boundary.
+- arrays of objects remain out of scope until H2,
+- object trees may contain scalar leaves, nested objects, and arrays of
+  scalars.
 
-Sequence values remain narrow in the initial release:
+Sequence values remain narrow in H1:
 
 - sequence members may contain only scalar values,
 - nested sequences are not supported,
-- mapping values are not supported in render-context inputs.
+- mapping values inside sequences are not supported in H1 render-context
+  inputs.
 
-Planned post-`1.0` extension:
+Planned H2+ extension:
 
 - The follow-on structured-input design is tracked in
   [docs/html-sprint-report-plan.md](html-sprint-report-plan.md).
-- That design extends `InputValue` beyond the initial-release boundary so
-  templates can consume report-shaped data instead of preflattened strings.
+- That design extends `InputValue` beyond the H1 boundary so templates can
+  consume report-shaped data instead of preflattened strings.
 - Planned allowed shapes:
-  - scalar,
-  - array of scalars,
-  - object/map with string keys,
   - array of objects,
-  - nested object trees whose leaves are scalars or arrays of scalars.
+  - object trees that contain arrays of objects in loop-friendly positions.
 - Planned continued exclusions:
   - arrays of arrays as a first-class input shape,
   - object trees that themselves contain nested arrays,
@@ -982,9 +982,11 @@ Manifest rules:
 - `input_defaults` values use the same `InputValue` contract as other caller
   inputs:
   - scalars,
+  - objects with string keys,
   - arrays of scalars,
   - empty arrays are valid,
-  - objects and nested arrays are rejected
+  - arrays of objects remain out of scope until H2,
+  - nested arrays are rejected
 - no manifest field selects entrypoints, paths, hooks, or alternate execution
   behavior in the initial release.
 
@@ -1017,8 +1019,9 @@ Variable-file behavior:
 - `--var-file` loads a JSON or YAML object,
 - keys are strings,
 - values are `InputValue`,
+- object values with string keys are valid in H1,
 - sequence values may contain only scalar values,
-- nested sequences and objects are invalid in the initial release.
+- nested sequences and arrays of objects remain invalid until H2.
 
 ## 17. Safety Model (FR-4)
 
@@ -1078,10 +1081,16 @@ Canonical failures must map to stable error families and stable codes.
 | Malformed object from structured input source | `ValidationError` | `ERR_VAL_OBJECT_SHAPE` |
 | Nested required path expects an object but receives a scalar, or vice versa | `ValidationError` | `ERR_VAL_SHAPE_MISMATCH` |
 | Nested required field absent inside a present object or array member | `ValidationError` | `ERR_VAL_MISSING_NESTED_FIELD` |
-| Nested array supplied where H1/H2 only allow objects and arrays of scalars or objects | `ValidationError` | `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` |
 | Example or template pack name not found | `ConfigError` | `ERR_CONFIG_PACK_NOT_FOUND` |
 | Named pack is not renderable because a bundled example name is ambiguous or a template pack has zero or multiple root-level `*.j2` files | `ConfigError` | `ERR_CONFIG_PACK_NOT_RENDERABLE` |
 | `templates add` target name already exists | `ConfigError` | `ERR_CONFIG_TEMPLATE_EXISTS` |
+
+H2-reserved note:
+
+- `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` remains reserved for H2.
+- On the H1 branch, nested arrays and arrays of objects are still rejected
+  during structured-input parsing and currently surface as
+  `ERR_VAL_OBJECT_SHAPE`.
 
 ## 19. Observability Integration (FR-9, FR-10, FR-11)
 
