@@ -28,6 +28,7 @@ static GLOBAL: MiMalloc = MiMalloc;
 
 #[derive(Debug, Parser)]
 #[command(name = "sc-compose")]
+#[command(version)]
 #[command(about = "Standalone template composition CLI")]
 struct Cli {
     #[command(subcommand)]
