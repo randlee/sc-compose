@@ -3,7 +3,7 @@ members = ["crates/sc-composer", "crates/sc-compose"]
 resolver = "2"
 
 [workspace.package]
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
 license = "MIT"
 # Rust 1.94.1 is the effective workspace floor because the Sprint 2
