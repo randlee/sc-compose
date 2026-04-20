@@ -569,9 +569,9 @@ Deliverables:
   merge
 - explicit top-level extra-variable policy for structured inputs
 - invert or replace the three existing negative tests that reject objects:
-  - `crates/sc-compose/tests/cli.rs:render_rejects_nested_object_values_in_var_file`
-  - `crates/sc-compose/tests/cli.rs:render_rejects_nested_sequence_values_in_var_file`
-  - `crates/sc-composer/src/lib.rs:frontmatter_rejects_nested_defaults`
+  - `crates/sc-compose/tests/cli.rs:render_rejects_nested_object_values_in_var_file` (cli.rs:518)
+  - `crates/sc-compose/tests/cli.rs:render_rejects_nested_sequence_values_in_var_file` (cli.rs:544)
+  - `crates/sc-composer/src/lib.rs:frontmatter_rejects_nested_defaults` (lib.rs:110-122)
 
 Acceptance Criteria:
 
