@@ -307,6 +307,14 @@ Exit gate:
   - Sprint 2 implements it
   - Sprint 3 hardens and validates it
   - Sprint 4 validates release behavior
+- FR-12:
+  - Sprint H1 adds structured object input support
+- FR-13:
+  - Sprint H2 adds arrays of objects and loop-body discovery support
+- FR-14:
+  - Sprint H3 adds HTML template output as a bundled report example track
+- FR-15:
+  - Sprint H3 ships the `sprint-report-html` bundled example
 
 ## Production Readiness Gate
 
@@ -342,6 +350,10 @@ following are true:
 - CLI-to-log-file emission is covered by command and observer integration
   tests, but there is not yet a standalone seam test that asserts every
   command event reaches the final sink file on disk.
+- Structured object inputs, arrays of objects, and the HTML sprint-report track
+  remain planned follow-on work documented in
+  [docs/html-sprint-report-plan.md](html-sprint-report-plan.md) and the Phase
+  HTML-Report section above.
 
 ### Sprint S8: Release Engineering And Distribution
 
@@ -383,6 +395,171 @@ Acceptance Criteria:
 Exit Gate:
 
 - `SC-RELEASE-ENG-QA-001` passed as the Sprint S8 exit gate
+
+### Phase HTML-Report (H1-H4)
+
+Status:
+
+- planned
+
+Phase goal:
+
+- broaden `sc-compose` into a strong structured HTML report generator without
+  moving wrapper-owned browser/display behavior into the core tool.
+
+Release blocker inventory:
+
+| ID | Blocker | Status | Sprint | Closure condition |
+| --- | --- | --- | --- | --- |
+| HRB-01 | The current input model cannot express structured records such as PR objects and nested field access. | Open | H1 | Object/map input values render end-to-end with stable field-path diagnostics. |
+| HRB-02 | The current input model cannot express repeated report sections as arrays of structured records. | Open | H2 | Arrays of objects render, validate, and support loop-body discovery end-to-end. |
+| HRB-03 | There is no bundled HTML report example proving `sc-compose` can generate a useful clickable report artifact. | Open | H3 | `sprint-report-html` renders a self-contained HTML report from realistic structured input. |
+
+#### Sprint H1: Structured Object Input Support
+
+Description:
+
+- expand the value model from scalars and arrays of scalars to include
+  object/map values with string keys.
+
+FRs addressed:
+
+- FR-12
+
+Deliverables:
+
+- object/map values accepted through `--var-file` JSON and YAML input
+- object values accepted in frontmatter defaults
+- object values accepted in `template.json` `input_defaults`
+- nested field access documented for Jinja templates
+- stable diagnostics for malformed objects and missing nested fields
+- unit and integration tests for object input paths
+
+Acceptance Criteria:
+
+- object values render end-to-end through `--var-file`
+- object values work through frontmatter defaults and `template.json`
+  `input_defaults`
+- missing nested fields reference stable field paths such as `pr.number`
+- at least 10 tests cover object input behavior and failure cases
+
+Exit Gate:
+
+- object-input behavior is specified in `requirements.md` and `architecture.md`
+- automated tests covering object input paths pass
+- no open blocker remains against FR-12
+
+#### Sprint H2: Arrays Of Objects Input Support
+
+Description:
+
+- extend the structured-input model so repeated report sections can be modeled
+  as arrays of records.
+
+FRs addressed:
+
+- FR-13
+
+Deliverables:
+
+- arrays of objects accepted through `--var-file`
+- arrays of objects accepted in frontmatter defaults
+- arrays of objects accepted in `template.json` `input_defaults`
+- loop-body field access in Jinja templates
+- frontmatter-init discovery for nested references inside loop bodies
+- explicit in-scope/out-of-scope rule for nested arrays
+- unit and integration tests for arrays of objects
+
+Acceptance Criteria:
+
+- arrays of objects render end-to-end through Jinja loops
+- frontmatter-init discovers loop-body variable references from array members
+- nested arrays are either supported with explicit rules or rejected with
+  explicit stable diagnostics
+- at least 10 tests cover arrays-of-objects behavior and failure cases
+- the `sprint-report-html` input shape is representable by the implemented value
+  model
+
+Exit Gate:
+
+- automated tests covering arrays of objects pass
+- no open blocker remains against FR-13
+- quality review confirms the input model is precise enough for H3 example work
+
+#### Sprint H3: `sprint-report-html` Bundled Example
+
+Description:
+
+- ship a self-contained single-panel HTML sprint report example that produces an
+  immediately useful clickable artifact.
+
+FRs addressed:
+
+- FR-14
+- FR-15
+
+Deliverables:
+
+- bundled example at `examples/sprint-report-html/`
+- main template `sprint-report.html.j2`
+- include fragments for:
+  - report head
+  - summary table
+  - PR card
+  - CI check list
+  - stage badge
+- realistic sample vars file with PR and CI data
+- self-contained HTML output with inline CSS and no external dependencies
+- action links for:
+  - view PR
+  - view CI run
+  - merge URL
+
+Acceptance Criteria:
+
+- `sc-compose examples sprint-report-html --var-file sample-vars.json` works
+  end-to-end
+- rendered HTML is self-contained and browser-viewable
+- rendered output includes working PR, CI, and plan/findings links from sample
+  data
+- the example clearly demonstrates why structured inputs are better than
+  flattened prebuilt strings
+
+Exit Gate:
+
+- the bundled example renders successfully from realistic structured input
+- design review confirms the example is a credible showcase artifact
+- no open blocker remains against FR-14 or FR-15 for the single-panel scope
+
+#### Sprint H4: Multi-Panel Report And Wrapper Integration
+
+Description:
+
+- extend the single-panel example into a fuller report and connect it to the
+  wrapper workflow without moving open/display behavior into `sc-compose`.
+
+Deliverables:
+
+- multi-panel report layout with repeated per-sprint sections
+- stage-sensitive panel sections or variants
+- `/sprint-report` skill update that renders the HTML artifact and opens or
+  writes it from wrapper logic
+- architecture/docs update describing the wrapper-owned orchestration pattern
+
+Acceptance Criteria:
+
+- `/sprint-report --html` produces the HTML report through wrapper-owned render
+  orchestration
+- the wrapper path opens or writes the output without requiring hook execution
+  in `sc-compose`
+- the multi-panel layout remains self-contained and deterministic
+
+Exit Gate:
+
+- wrapper integration works without changing `sc-compose` into a workflow
+  orchestrator
+- quality review confirms the final report flow is usable and maintainable
+- all HTML-Report phase blockers are closed
 
 ### Sprint S7: Examples and Templates Commands
 
@@ -518,6 +695,20 @@ Acceptance criteria:
 - `docs/traceability-matrix.md`
 - `docs/error-code-registry.md`
 - `docs/test-strategy.md`
+- `docs/html-sprint-report-plan.md`
+
+## Follow-on Design Track
+
+The current plan is the authoritative release plan for `1.0`. Additional
+post-`1.0` design exploration must not silently rewrite the shipped contract.
+
+The current follow-on design track is:
+
+- `docs/html-sprint-report-plan.md`
+  - structured input-value expansion for maps/objects and arrays of objects,
+  - XHTML sprint-report example/template design,
+  - wrapper-owned browser-open workflow rather than hook execution in
+    `sc-compose`.
 
 ## Rule
 

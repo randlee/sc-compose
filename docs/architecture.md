@@ -283,6 +283,25 @@ Sequence values remain narrow in the initial release:
 - nested sequences are not supported,
 - mapping values are not supported in render-context inputs.
 
+Planned post-`1.0` extension:
+
+- The follow-on structured-input design is tracked in
+  [docs/html-sprint-report-plan.md](html-sprint-report-plan.md).
+- That design extends `InputValue` beyond the initial-release boundary so
+  templates can consume report-shaped data instead of preflattened strings.
+- Planned allowed shapes:
+  - scalar,
+  - array of scalars,
+  - object/map with string keys,
+  - array of objects,
+  - nested object trees whose leaves are scalars or arrays of scalars,
+  - object trees that contain arrays of objects for repeated report sections.
+- Planned continued exclusions:
+  - arrays of arrays as a first-class input shape,
+  - arbitrary mixed recursive data without explicit validation rules.
+- The design motivation is HTML/XHTML report composition where one render input
+  needs repeated structured sections such as `sprints[].prs[].checks[]`.
+
 `MetadataValue` may be any YAML value:
 
 - scalar
@@ -1004,6 +1023,15 @@ Variable-file behavior:
 - Deterministic failure semantics for path escape, missing include, cycle, and
   depth overflow
 
+Follow-on boundary note:
+
+- Browser-open/post-render behavior for HTML report workflows remains outside
+  `sc-compose` itself and belongs in wrapper tooling such as the
+  `/sprint-report` skill.
+- The follow-on HTML report plan intentionally separates structured-input
+  support in `sc-compose` from workflow orchestration around multiple render
+  calls.
+
 ## 18. Error and Exit Semantics (FR-7, FR-8)
 
 The library should expose typed errors with stable categories. Validation
@@ -1242,3 +1270,95 @@ Trait openness decisions:
   scalar values plus simple sequences are open in the initial release, but
   hooks, arbitrary manifest-driven behavior, and nested mappings remain
   deferred.
+
+## 21. Post-`1.0` Structured Input And HTML Report Architecture
+
+This section is a forward design track only. It does not redefine the shipped
+`1.0` implementation.
+
+### 21.1 Input Model Expansion
+
+The follow-on structured-input track expands `InputValue` to support:
+
+- object/map values with string keys,
+- arrays of objects,
+- nested object trees needed for report composition,
+- repeated report sections such as `sprints[].prs[].checks[]`.
+
+### 21.2 Variable Resolver Behavior
+
+Resolver and merge behavior for structured inputs must remain consistent with
+the existing precedence model:
+
+1. explicit input variables
+2. environment-derived variables
+3. `template.json` `input_defaults`
+4. frontmatter defaults
+
+Additional structured-input rules:
+
+- object values are merged according to documented precedence rather than
+  silently flattened,
+- missing nested fields must report stable field paths such as `pr.number`,
+- the resolver must distinguish:
+  - missing top-level variable,
+  - missing nested field,
+  - wrong input shape for a referenced nested path.
+
+### 21.3 Structured Input Sources
+
+`--var-file`
+
+- remains the primary structured-input ingress,
+- parses JSON or YAML objects,
+- carries object values and arrays of objects in this phase.
+
+`--var key=value`
+
+- remains string-only,
+- does not gain ad hoc object parsing or dotted-key assembly in this phase.
+
+Frontmatter defaults
+
+- may carry structured values when the same `InputValue` validation rules are
+  implemented there.
+
+`template.json` `input_defaults`
+
+- may carry structured values under the same rules as other caller inputs.
+
+### 21.4 Validation Impact
+
+`validate`
+
+- must report missing nested field paths,
+- must reject malformed objects and unsupported nesting with stable diagnostics,
+- may validate field presence and supported shape without growing into a full
+  schema language.
+
+### 21.5 Frontmatter And Token Discovery Impact
+
+`required_variables`
+
+- remains the declaration surface for required inputs,
+- must support nested field paths if nested field validation is implemented.
+
+`frontmatter-init`
+
+- must discover nested references such as `{{ pr.number }}`,
+- must discover loop-body references such as
+  `{% for sprint in sprints %}{{ sprint.id }}{% endfor %}`,
+- must emit understandable generated field paths instead of opaque flattened
+  names.
+
+### 21.6 HTML Report Track Boundaries
+
+The HTML sprint-report track uses the structured-input expansion for a bundled
+`sprint-report-html` example and later wrapper integration.
+
+Architectural boundaries:
+
+- `sc-compose` owns rendering,
+- the example/template pack owns the HTML structure,
+- wrapper tooling such as `/sprint-report` owns open/display behavior,
+- no hook execution is added to `sc-compose` for this phase.

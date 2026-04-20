@@ -133,6 +133,15 @@ narrow even after template-pack support is added.
 - `metadata` may contain arbitrary YAML values because it is descriptive only
   and does not participate in rendering semantics.
 
+Post-`1.0` design track:
+
+- A follow-on design track proposes structured render inputs for richer report
+  and UI-style template outputs.
+- That design is captured in [docs/html-sprint-report-plan.md](html-sprint-report-plan.md).
+- The detailed follow-on functional requirements are FR-12 through FR-15.
+- This is not part of the shipped `1.0` contract and remains future work until
+  implemented.
+
 ### FR-1c: File Extension and Discovery Conventions
 
 - Profile and prompt assets must support both plain files and template files.
@@ -855,6 +864,83 @@ same command payloads as `render` and `render --dry-run`.
 - The CLI shall perform graceful logger shutdown on process exit so pending
   events flush before termination.
 
+### FR-12: Map/Object Variable Inputs
+
+This is a post-`1.0` follow-on requirement. It does not change the shipped
+`1.0` contract until implemented.
+
+- Callers may pass structured object/map values as template variables.
+- Object keys must be strings.
+- Valid object fields must be accessible through normal Jinja field access such
+  as:
+  - `{{ pr.number }}`
+  - `{{ pr.url }}`
+- Bracket access remains valid when a key is not a valid dotted identifier.
+- Structured inputs participate in the same precedence model as existing
+  inputs:
+  1. explicit input variables,
+  2. environment-derived variables,
+  3. user-template `input_defaults`,
+  4. frontmatter defaults.
+- Missing nested required fields must report the full field path, for example
+  `pr.number`.
+- Malformed object input must fail with stable configuration or validation
+  diagnostics.
+- `--var key=value` remains string-only in this phase. Structured input comes
+  from `--var-file`, frontmatter defaults, or `template.json` `input_defaults`.
+
+### FR-13: Arrays Of Objects
+
+This is a post-`1.0` follow-on requirement. It does not change the shipped
+`1.0` contract until implemented.
+
+- Callers may pass arrays whose members are objects.
+- Jinja loops such as `{% for item in list %}` must support field access within
+  each array member object.
+- Arrays of objects are valid through:
+  - `--var-file`,
+  - frontmatter defaults,
+  - user-template `template.json` `input_defaults`.
+- Empty arrays remain valid inputs.
+- Nested arrays must either:
+  - remain explicitly out of scope, or
+  - be documented with exact validation rules before implementation.
+- Missing nested fields inside array members must report stable field-path
+  diagnostics.
+
+### FR-14: HTML Template Output
+
+This is a post-`1.0` follow-on requirement. It does not change the shipped
+`1.0` contract until implemented.
+
+- `.html.j2` templates render like other file-mode templates.
+- Output path derivation removes only the trailing `.j2` suffix and therefore
+  preserves the `.html` extension.
+- Rendered HTML is treated as a normal template artifact.
+- Self-contained output, XHTML shape, inline CSS, and browser-viewability are
+  template-author responsibilities rather than core-engine enforcement.
+- Dry-run, diagnostics, validation, and output-path rules apply to HTML
+  templates the same way they apply to other file-mode templates.
+
+### FR-15: Bundled HTML Report Example
+
+This is a post-`1.0` follow-on requirement. It does not change the shipped
+`1.0` contract until implemented.
+
+- `sc-compose` shall ship a bundled example named `sprint-report-html`.
+- The example must demonstrate FR-12, FR-13, and FR-14 together using a
+  self-contained HTML sprint status report.
+- The example must include realistic structured input data showing:
+  - report metadata,
+  - sprint entries,
+  - PR metadata,
+  - CI check arrays,
+  - actionable links such as PR and CI URLs.
+- The example must remain renderable through the standard examples command
+  surface and var-file flow.
+- The example must be a credible showcase for `sc-compose`, not just a
+  hand-written HTML file stored in the repo.
+
 ## 5. Non-Functional Requirements
 
 - Cross-platform support is required for macOS, Linux, and Windows.
@@ -930,3 +1016,6 @@ Required integration coverage includes:
 - `prepare-hook` and `post-render-hook` execution
 - Named render for packs with multiple root-level `*.j2` entry candidates
 - Template deletion, update, sync, or remote registry features
+- Structured map/object render inputs and arrays of objects remain deferred to
+  the follow-on design track in
+  [docs/html-sprint-report-plan.md](html-sprint-report-plan.md)
