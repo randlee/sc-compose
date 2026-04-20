@@ -64,7 +64,7 @@ pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_templ
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
     FrontmatterInitResult, IncludeDepth, InitResult, InputValue, MetadataValue, ProfileKind,
-    ProfileName, ResolveResult, ResolverPolicy, RuntimeKind, ScalarValue, UnknownVariablePolicy,
+    ProfileName, ResolveResult, ResolverPolicy, RuntimeKind, UnknownVariablePolicy,
     ValidationReport, VariableName, VariableSource, input_value_from_yaml, validate_input_value,
 };
 #[doc(inline)]
@@ -76,7 +76,7 @@ mod tests {
 
     use serde_json::json;
 
-    use super::{RenderError, ScalarValue, parse_template_document, render_template};
+    use super::{RenderError, parse_template_document, render_template};
 
     #[test]
     fn renders_inline_template() {
@@ -120,13 +120,6 @@ mod tests {
                 "url": "https://example.test/pr/43"
             }))
         );
-    }
-
-    #[test]
-    fn scalar_value_rejects_object_json_values() {
-        let value = serde_json::json!({ "nested": true });
-        let error = ScalarValue::try_from(value).unwrap_err();
-        assert!(error.to_string().contains("scalar"));
     }
 
     #[test]

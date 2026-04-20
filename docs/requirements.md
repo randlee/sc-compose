@@ -923,7 +923,9 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
   separate decision and are not implied by this requirement.
 - Nested arrays are out of scope for H1 and H2. Callers who pass an array that
   contains another array, or an object that contains an array at a nested
-  field, must receive `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`.
+  field, must receive `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` (in H1 these shapes
+  still surface as `ERR_VAL_OBJECT_SHAPE`; the dedicated nested-array code is
+  implemented in H2).
 - Missing nested fields inside array members must report stable field-path
   diagnostics using `ERR_VAL_MISSING_NESTED_FIELD`.
 - `frontmatter-init` must discover variable references inside `for` loop

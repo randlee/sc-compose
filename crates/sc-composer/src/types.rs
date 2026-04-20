@@ -106,64 +106,6 @@ pub fn input_value_from_yaml(
     }
 }
 
-/// Scalar value supported by the initial render-context model.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum ScalarValue {
-    /// String input.
-    String(String),
-    /// Numeric input preserved as a JSON number.
-    Number(serde_json::Number),
-    /// Boolean input.
-    Boolean(bool),
-    /// Null input.
-    Null,
-}
-
-impl ScalarValue {
-    /// Convert a YAML value into a supported scalar value.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`InvalidScalarValueError`] when the YAML value is a sequence,
-    /// mapping, or tagged non-scalar value.
-    pub fn from_yaml(value: serde_yaml::Value) -> Result<Self, InvalidScalarValueError> {
-        match value {
-            serde_yaml::Value::Null => Ok(Self::Null),
-            serde_yaml::Value::Bool(value) => Ok(Self::Boolean(value)),
-            serde_yaml::Value::Number(value) => {
-                match serde_json::from_str::<serde_json::Value>(&value.to_string()) {
-                    Ok(serde_json::Value::Number(number)) => Ok(Self::Number(number)),
-                    _ => Err(InvalidScalarValueError {
-                        value: serde_yaml::Value::Number(value),
-                    }),
-                }
-            }
-            serde_yaml::Value::String(value) => Ok(Self::String(value)),
-            serde_yaml::Value::Tagged(tagged) => Self::from_yaml(tagged.value),
-            other => Err(InvalidScalarValueError { value: other }),
-        }
-    }
-}
-
-impl TryFrom<serde_json::Value> for ScalarValue {
-    type Error = InvalidScalarValueError;
-
-    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
-        match value {
-            serde_json::Value::Null => Ok(Self::Null),
-            serde_json::Value::Bool(value) => Ok(Self::Boolean(value)),
-            serde_json::Value::Number(value) => Ok(Self::Number(value)),
-            serde_json::Value::String(value) => Ok(Self::String(value)),
-            serde_json::Value::Array(_) | serde_json::Value::Object(_) => {
-                Err(InvalidScalarValueError {
-                    value: serde_yaml::Value::String("non-scalar json value".to_owned()),
-                })
-            }
-        }
-    }
-}
-
 /// Arbitrary metadata value used only for descriptive frontmatter fields.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -545,21 +487,6 @@ pub struct InitResult {
     pub recommendations: Vec<Diagnostic>,
     /// Whether scanned templates passed validation.
     pub validation_passed: bool,
-}
-
-/// Error returned when a scalar-only value model receives a non-scalar value.
-#[derive(Clone, Debug, thiserror::Error)]
-#[error("expected a scalar value, found unsupported YAML structure")]
-pub struct InvalidScalarValueError {
-    value: serde_yaml::Value,
-}
-
-impl InvalidScalarValueError {
-    /// Return the unsupported value that caused the conversion failure.
-    #[must_use]
-    pub fn value(&self) -> &serde_yaml::Value {
-        &self.value
-    }
 }
 
 /// Error returned when a render-context value uses an unsupported input shape.
