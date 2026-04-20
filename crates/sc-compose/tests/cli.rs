@@ -578,6 +578,54 @@ fn templates_named_render_uses_array_input_defaults_from_template_json() {
 }
 
 #[test]
+fn template_json_object_input_defaults_obey_precedence() {
+    let root = temp_root("templates-object-default-precedence");
+    let templates_root = root.join("user-templates");
+    let pack = templates_root.join("report");
+    write_file(
+        &pack.join("template.json"),
+        r#"{ "description": "Report defaults", "version": "1.0.0", "input_defaults": { "pr": { "number": 43, "url": "https://example.test/pr/43" } } }"#,
+    );
+    write_file(
+        &pack.join("report.md.j2"),
+        "---\ndefaults:\n  pr:\n    number: 7\n    url: https://frontmatter.test/pr/7\n---\nPR #{{ pr.number }} -> {{ pr.url }}\n",
+    );
+
+    let default_output = sc_compose()
+        .arg("templates")
+        .arg("report")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(default_output.status.success());
+    assert_eq!(
+        String::from_utf8(default_output.stdout).unwrap().trim(),
+        "PR #43 -> https://example.test/pr/43"
+    );
+
+    let vars_file = root.join("vars.json");
+    write_file(
+        &vars_file,
+        r#"{ "pr": { "number": 99, "url": "https://input.test/pr/99" } }"#,
+    );
+    let explicit_output = sc_compose()
+        .arg("templates")
+        .arg("report")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(explicit_output.status.success());
+    assert_eq!(
+        String::from_utf8(explicit_output.stdout).unwrap().trim(),
+        "PR #99 -> https://input.test/pr/99"
+    );
+}
+
+#[test]
 fn templates_add_directory_creates_pack_and_readme_and_named_render_uses_input_defaults() {
     let root = temp_root("templates-add-dir");
     let templates_root = root.join("user-templates");
@@ -767,11 +815,17 @@ fn templates_named_render_reports_parse_errors_for_invalid_template_manifest() {
 }
 
 #[test]
-fn render_rejects_nested_object_values_in_var_file() {
-    let root = temp_root("nested-object-var-file");
+fn render_accepts_object_values_in_json_var_file() {
+    let root = temp_root("object-json-var-file");
     let vars_file = root.join("vars.json");
-    write_file(&root.join("template.md.j2"), "hello\n");
-    write_file(&vars_file, r#"{ "service": { "name": "api" } }"#);
+    write_file(
+        &root.join("template.md.j2"),
+        "PR #{{ pr.number }} -> {{ pr.url }}\n",
+    );
+    write_file(
+        &vars_file,
+        r#"{ "pr": { "number": 43, "url": "https://example.test/pr/43" } }"#,
+    );
 
     let output = sc_compose()
         .arg("render")
@@ -786,18 +840,25 @@ fn render_rejects_nested_object_values_in_var_file() {
         .output()
         .unwrap();
 
-    assert_eq!(output.status.code(), Some(3));
-    let stderr = String::from_utf8(output.stderr).unwrap();
-    assert!(stderr.contains("ERR_CONFIG_VARFILE"));
-    assert!(stderr.contains("found object"));
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8(output.stdout).unwrap().trim(),
+        "PR #43 -> https://example.test/pr/43"
+    );
 }
 
 #[test]
-fn render_rejects_nested_sequence_values_in_var_file() {
-    let root = temp_root("nested-sequence-var-file");
-    let vars_file = root.join("vars.json");
-    write_file(&root.join("template.md.j2"), "hello\n");
-    write_file(&vars_file, r#"{ "test_names": [["login"], ["logout"]] }"#);
+fn render_accepts_object_values_in_yaml_var_file() {
+    let root = temp_root("object-yaml-var-file");
+    let vars_file = root.join("vars.yaml");
+    write_file(
+        &root.join("template.md.j2"),
+        "PR #{{ pr.number }} -> {{ pr.url }}\n",
+    );
+    write_file(
+        &vars_file,
+        "pr:\n  number: 43\n  url: https://example.test/pr/43\n",
+    );
 
     let output = sc_compose()
         .arg("render")
@@ -812,10 +873,11 @@ fn render_rejects_nested_sequence_values_in_var_file() {
         .output()
         .unwrap();
 
-    assert_eq!(output.status.code(), Some(3));
-    let stderr = String::from_utf8(output.stderr).unwrap();
-    assert!(stderr.contains("ERR_CONFIG_VARFILE"));
-    assert!(stderr.contains("nested array"));
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8(output.stdout).unwrap().trim(),
+        "PR #43 -> https://example.test/pr/43"
+    );
 }
 
 #[test]

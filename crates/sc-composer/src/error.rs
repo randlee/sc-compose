@@ -328,10 +328,10 @@ impl ValidationError {
         )
     }
 
-    /// Create a scalar-type validation error.
+    /// Create a validation error for an invalid input-value shape.
     #[must_use]
-    pub(crate) fn invalid_scalar(message: impl Into<String>) -> Self {
-        Self::new(DiagnosticCode::ErrValType, message)
+    pub(crate) fn invalid_input_value(code: DiagnosticCode, message: impl Into<String>) -> Self {
+        Self::new(code, message)
     }
 
     /// Attach structured recovery hints.

@@ -37,6 +37,8 @@ pub enum DiagnosticCode {
     ErrIncludeDepth,
     /// A variable had an invalid scalar type or shape.
     ErrValType,
+    /// Structured object input used an unsupported shape.
+    ErrValObjectShape,
     /// Frontmatter declarations contained duplicate variables.
     ErrValDuplicate,
     /// Frontmatter used both defaults sections and `input_defaults` overrides them.
@@ -47,6 +49,10 @@ pub enum DiagnosticCode {
     ErrValMissingFrontmatter,
     /// A required variable was still missing after context merge.
     ErrValMissingRequired,
+    /// A required nested field path was missing inside a present object.
+    ErrValMissingNestedField,
+    /// Nested required-path traversal encountered the wrong intermediate shape.
+    ErrValShapeMismatch,
     /// A referenced token was not declared in frontmatter.
     ErrValUndeclaredToken,
     /// A caller-provided variable was not declared or referenced.
@@ -85,11 +91,14 @@ impl DiagnosticCode {
             Self::ErrIncludeCycle => "ERR_INCLUDE_CYCLE",
             Self::ErrIncludeDepth => "ERR_INCLUDE_DEPTH",
             Self::ErrValType => "ERR_VAL_TYPE",
+            Self::ErrValObjectShape => "ERR_VAL_OBJECT_SHAPE",
             Self::ErrValDuplicate => "ERR_VAL_DUPLICATE",
             Self::WarnValConflictingDefaultSections => "WARN_VAL_CONFLICTING_DEFAULT_SECTIONS",
             Self::ErrValEmpty => "ERR_VAL_EMPTY",
             Self::ErrValMissingFrontmatter => "ERR_VAL_MISSING_FRONTMATTER",
             Self::ErrValMissingRequired => "ERR_VAL_MISSING_REQUIRED",
+            Self::ErrValMissingNestedField => "ERR_VAL_MISSING_NESTED_FIELD",
+            Self::ErrValShapeMismatch => "ERR_VAL_SHAPE_MISMATCH",
             Self::ErrValUndeclaredToken => "ERR_VAL_UNDECLARED_TOKEN",
             Self::ErrValExtraInput => "ERR_VAL_EXTRA_INPUT",
             Self::InfoValDefaultUsed => "INFO_VAL_DEFAULT_USED",

@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::Diagnostic;
+use crate::diagnostics::DiagnosticCode;
 
 /// Caller-provided render input value.
 pub type InputValue = serde_json::Value;
@@ -16,8 +17,8 @@ pub type InputValue = serde_json::Value;
 ///
 /// # Errors
 ///
-/// Returns [`InvalidInputValueError`] when the value is an object, a nested
-/// sequence, or contains unsupported element types.
+/// Returns [`InvalidInputValueError`] when the value contains unsupported
+/// nested arrays, non-string object keys, or arrays of objects.
 pub fn validate_input_value(value: &InputValue) -> Result<(), InvalidInputValueError> {
     match value {
         serde_json::Value::Null
@@ -33,21 +34,26 @@ pub fn validate_input_value(value: &InputValue) -> Result<(), InvalidInputValueE
                     | serde_json::Value::String(_) => {}
                     serde_json::Value::Array(_) => {
                         return Err(InvalidInputValueError::new(
+                            DiagnosticCode::ErrValObjectShape,
                             "expected a scalar value or array of scalars, found nested array",
                         ));
                     }
                     serde_json::Value::Object(_) => {
                         return Err(InvalidInputValueError::new(
-                            "expected a scalar value or array of scalars, found object",
+                            DiagnosticCode::ErrValObjectShape,
+                            "expected a scalar value or array of scalars, found object in array",
                         ));
                     }
                 }
             }
             Ok(())
         }
-        serde_json::Value::Object(_) => Err(InvalidInputValueError::new(
-            "expected a scalar value or array of scalars, found object",
-        )),
+        serde_json::Value::Object(object) => {
+            for value in object.values() {
+                validate_input_value(value)?;
+            }
+            Ok(())
+        }
     }
 }
 
@@ -55,8 +61,8 @@ pub fn validate_input_value(value: &InputValue) -> Result<(), InvalidInputValueE
 ///
 /// # Errors
 ///
-/// Returns [`InvalidInputValueError`] when the YAML value is a mapping, nested
-/// sequence, or tagged non-scalar sequence element.
+/// Returns [`InvalidInputValueError`] when the YAML value uses non-string
+/// object keys, nested arrays, or arrays of objects.
 pub fn input_value_from_yaml(
     value: serde_yaml::Value,
 ) -> Result<InputValue, InvalidInputValueError> {
@@ -67,6 +73,7 @@ pub fn input_value_from_yaml(
             match serde_json::from_str::<serde_json::Value>(&value.to_string()) {
                 Ok(serde_json::Value::Number(number)) => Ok(serde_json::Value::Number(number)),
                 _ => Err(InvalidInputValueError::new(
+                    DiagnosticCode::ErrValObjectShape,
                     "expected a scalar value or array of scalars, found unsupported number",
                 )),
             }
@@ -82,9 +89,20 @@ pub fn input_value_from_yaml(
                 Ok(value)
             }),
         serde_yaml::Value::Tagged(tagged) => input_value_from_yaml(tagged.value),
-        serde_yaml::Value::Mapping(_) => Err(InvalidInputValueError::new(
-            "expected a scalar value or array of scalars, found mapping",
-        )),
+        serde_yaml::Value::Mapping(mapping) => mapping
+            .into_iter()
+            .map(|(key, value)| {
+                let serde_yaml::Value::String(key) = key else {
+                    return Err(InvalidInputValueError::new(
+                        DiagnosticCode::ErrValObjectShape,
+                        "expected object/map keys to be strings",
+                    ));
+                };
+                let value = input_value_from_yaml(value)?;
+                Ok((key, value))
+            })
+            .collect::<Result<serde_json::Map<String, serde_json::Value>, _>>()
+            .map(serde_json::Value::Object),
     }
 }
 
@@ -548,16 +566,24 @@ impl InvalidScalarValueError {
 #[derive(Clone, Debug, thiserror::Error)]
 #[error("{message}")]
 pub struct InvalidInputValueError {
+    code: DiagnosticCode,
     message: String,
 }
 
 impl InvalidInputValueError {
     /// Create a new input-value validation error.
     #[must_use]
-    pub fn new(message: impl Into<String>) -> Self {
+    pub fn new(code: DiagnosticCode, message: impl Into<String>) -> Self {
         Self {
+            code,
             message: message.into(),
         }
+    }
+
+    /// Return the stable diagnostic code describing the invalid shape.
+    #[must_use]
+    pub const fn code(&self) -> DiagnosticCode {
+        self.code
     }
 
     /// Return the human-readable error message.
@@ -599,7 +625,10 @@ impl InvalidProfileNameError {
 
 #[cfg(test)]
 mod tests {
-    use super::{ProfileName, VariableName};
+    use serde_json::json;
+    use serde_yaml::from_str;
+
+    use super::{ProfileName, VariableName, input_value_from_yaml, validate_input_value};
 
     #[test]
     fn variable_name_round_trips_for_valid_identifier() {
@@ -624,6 +653,40 @@ mod tests {
     fn variable_name_display_matches_inner_string() {
         let variable = VariableName::new("agent.name").unwrap();
         assert_eq!(format!("{variable}"), "agent.name");
+    }
+
+    #[test]
+    fn validate_input_value_accepts_serde_json_object() {
+        let value = json!({
+            "pr": {
+                "number": 43,
+                "url": "https://example.test/pr/43",
+                "labels": ["bug", "release"]
+            }
+        });
+
+        validate_input_value(&value).unwrap();
+    }
+
+    #[test]
+    fn input_value_from_yaml_mapping_becomes_object() {
+        let yaml = from_str::<serde_yaml::Value>(
+            "pr:\n  number: 43\n  url: https://example.test/pr/43\n  labels:\n    - bug\n    - release\n",
+        )
+        .unwrap();
+
+        let value = input_value_from_yaml(yaml).unwrap();
+
+        assert_eq!(
+            value,
+            json!({
+                "pr": {
+                    "number": 43,
+                    "url": "https://example.test/pr/43",
+                    "labels": ["bug", "release"]
+                }
+            })
+        );
     }
 
     #[test]
