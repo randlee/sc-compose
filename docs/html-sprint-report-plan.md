@@ -66,16 +66,14 @@ Usable outcome:
 
 Objective:
 
-- allow arrays whose members are objects and support nested report structures.
+- allow arrays whose members are objects.
 
 Scope:
 
 - allow arrays of objects in the same input paths as Sprint H1,
 - support loops such as `{% for sprint in sprints %}`,
-- support nested object arrays needed for report details such as
-  `sprint.prs[].checks[]`,
-- continue to reject ambiguous or hard-to-govern shapes such as arrays of
-  arrays.
+- support nested object fields inside each array member,
+- continue to reject nested arrays and other hard-to-govern shapes.
 
 Validation focus:
 
@@ -87,7 +85,7 @@ Validation focus:
 Usable outcome:
 
 - one structured input file can describe a sprint report with repeated sections
-  and nested CI checks.
+  without flattening each sprint row into unrelated scalar variables.
 
 ### Sprint H3: XHTML Sprint Report v1
 
@@ -112,6 +110,8 @@ Scope:
     - findings doc when present,
 - use inline CSS and a palette compatible with the existing
   `xhtml-plugin-expert` guidance,
+- keep H3 as one flat file `examples/sprint-report-html.html.j2` with all
+  markup inline,
 - keep browser opening in the `/sprint-report` skill or wrapper flow rather
   than in `sc-compose` itself.
 
@@ -133,7 +133,8 @@ Scope:
 - repeated per-sprint panels,
 - stage-sensitive panel sections,
 - reusable includes/fragments for headers, summary tables, PR cards, and CI
-  check lists.
+  status callouts if a later architecture amendment expands the example beyond
+  the flat single-file H3 layout.
 
 ### Deferred Next Step: Wrapper-Owned Orchestration
 
@@ -147,15 +148,16 @@ After H1-H4, the next logical extension is a wrapper-owned multi-render flow:
 
 ## Proposed XHTML Template Structure
 
-Initial v1 structure:
+Initial H3 structure:
 
-- `sprint-report.html.j2`
+- `sprint-report-html.html.j2`
   - outer document shell
   - inline CSS
   - top summary panel
-  - optional repeated PR cards
+  - optional repeated sprint summary rows
 
-Follow-on include fragments:
+Follow-on include fragments, deferred until H4 or a later architecture
+amendment:
 
 - `_includes/report-head.html.j2`
 - `_includes/summary-table.html.j2`
@@ -163,11 +165,9 @@ Follow-on include fragments:
 - `_includes/check-list.html.j2`
 - `_includes/stage-badge.html.j2`
 
-The single-panel v1 can keep all markup in one file if that is simpler for the
-starter example. Multi-panel expansion is where `_includes/` adds clear value.
-If H3 uses include fragments in the bundled example, the HTML-report track must
-also define the required bundled example-pack layout change explicitly rather
-than silently reusing the current flat example-file convention.
+H3 intentionally keeps all markup in one flat file. Multi-panel expansion is
+where `_includes/` begins to add clear value, and that layout change must be
+documented explicitly before implementation.
 
 ## Proposed Example Input Shape
 
@@ -192,18 +192,8 @@ Target post-H2 input shape:
         "title": "Add examples and templates support",
         "url": "https://github.com/org/repo/pull/32"
       },
-      "checks": [
-        {
-          "name": "cargo test --workspace",
-          "status": "pass",
-          "url": "https://github.com/org/repo/actions/runs/123"
-        },
-        {
-          "name": "cargo clippy",
-          "status": "pass",
-          "url": "https://github.com/org/repo/actions/runs/124"
-        }
-      ]
+      "ci_status": "pass",
+      "ci_url": "https://github.com/org/repo/actions/runs/123"
     }
   ]
 }

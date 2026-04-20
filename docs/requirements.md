@@ -510,6 +510,8 @@ Pack root policy:
 - Variable-file values must be supported render-context value types.
 - Sequence values in variable files must contain only supported scalar values.
 - Nested objects and nested sequences are invalid in the initial release.
+- See FR-12 and FR-13 for the post-`1.0` extension that adds object and
+  array-of-object input support.
 
 ### FR-7b: Exit Codes
 
@@ -864,6 +866,8 @@ same command payloads as `render` and `render --dry-run`.
 - The CLI shall perform graceful logger shutdown on process exit so pending
   events flush before termination.
 
+### Post-`1.0` Functional Requirements
+
 ### FR-12: Map/Object Variable Inputs
 
 This is a post-`1.0` follow-on requirement. It does not change the shipped
@@ -886,8 +890,10 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
   structured inputs are implemented.
 - Missing nested required fields must report the full field path, for example
   `pr.number`.
-- Malformed object input must fail with stable configuration or validation
-  diagnostics.
+- Malformed object input must fail with stable diagnostics using
+  `ERR_VAL_OBJECT_SHAPE`.
+- Nested required-path traversal that encounters a scalar where an object is
+  required must fail with `ERR_VAL_SHAPE_MISMATCH`.
 - `--var key=value` remains string-only in this phase. Structured input comes
   from `--var-file`, frontmatter defaults, or `template.json` `input_defaults`.
 - JSON and YAML var-file documents remain top-level objects. Structured values
@@ -908,11 +914,15 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
 - Empty arrays remain valid inputs.
 - Arrays of objects may contain nested object fields. Arrays of arrays remain a
   separate decision and are not implied by this requirement.
-- Nested arrays must either:
-  - remain explicitly out of scope, or
-  - be documented with exact validation rules before implementation.
+- Nested arrays are out of scope for H1 and H2. Callers who pass an array that
+  contains another array, or an object that contains an array at a nested
+  field, must receive `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`.
 - Missing nested fields inside array members must report stable field-path
-  diagnostics.
+  diagnostics using `ERR_VAL_MISSING_NESTED_FIELD`.
+- `frontmatter-init` must discover variable references inside `for` loop
+  bodies. References inside a loop body are attributed to the array variable:
+  `{{ sprint.id }}` inside `{% for sprint in sprints %}` means `sprints` is a
+  required variable, not `sprint` or `sprint.id`.
 
 ### FR-14: HTML Template Output
 
@@ -923,6 +933,9 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
 - Output path derivation removes only the trailing `.j2` suffix and therefore
   preserves the `.html` extension.
 - Rendered HTML is treated as a normal template artifact.
+- `sc-compose` does not enable MiniJinja auto-escaping for `.html.j2`
+  templates. Template authors remain responsible for escaping user-supplied
+  values.
 - Self-contained output, XHTML shape, inline CSS, and browser-viewability are
   template-author responsibilities rather than core-engine enforcement.
 - Dry-run, diagnostics, validation, and output-path rules apply to HTML
@@ -936,14 +949,14 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
 - `sc-compose` shall ship a bundled example named `sprint-report-html`.
 - The example must demonstrate FR-12, FR-13, and FR-14 together using a
   self-contained HTML sprint status report.
-- The example may use a bundled example-pack directory layout rather than the
-  current flat example-file layout if that is required for include fragments and
-  sample data files.
+- The H3 example is a single flat file at
+  `examples/sprint-report-html.html.j2`. Directory-based example-pack layout is
+  deferred to H4 or a later architecture amendment.
 - The example must include realistic structured input data showing:
   - report metadata,
   - sprint entries,
   - PR metadata,
-  - CI check arrays,
+  - CI status metadata and actionable links,
   - actionable links such as PR and CI URLs.
 - The example must remain renderable through the standard examples command
   surface and var-file flow.

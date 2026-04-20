@@ -561,8 +561,17 @@ Deliverables:
 - object values accepted in frontmatter defaults
 - object values accepted in `template.json` `input_defaults`
 - nested field access documented for Jinja templates
-- stable diagnostics for malformed objects and missing nested fields
-- unit and integration tests for object input paths
+- stable diagnostics for malformed objects and missing nested fields:
+  - `ERR_VAL_OBJECT_SHAPE`
+  - `ERR_VAL_SHAPE_MISMATCH`
+  - `ERR_VAL_MISSING_NESTED_FIELD`
+- explicit top-level replacement semantics for structured defaults; no deep
+  merge
+- explicit top-level extra-variable policy for structured inputs
+- invert or replace the three existing negative tests that reject objects:
+  - `crates/sc-compose/tests/cli.rs:render_rejects_nested_object_values_in_var_file`
+  - `crates/sc-compose/tests/cli.rs:render_rejects_nested_sequence_values_in_var_file`
+  - `crates/sc-composer/src/lib.rs:frontmatter_rejects_nested_defaults`
 
 Acceptance Criteria:
 
@@ -570,13 +579,27 @@ Acceptance Criteria:
 - object values work through frontmatter defaults and `template.json`
   `input_defaults`
 - missing nested fields reference stable field paths such as `pr.number`
-- at least 10 tests cover object input behavior and failure cases
+- structured defaults are replaced, not merged, at the top-level boundary
+- unit tests (`sc-composer`) cover:
+  - `validate_input_value_accepts_serde_json_object`
+  - `input_value_from_yaml_mapping_becomes_object`
+  - `frontmatter_defaults_accept_object_value`
+  - `required_variable_path_pr_number_is_satisfied_by_object_input`
+  - `missing_nested_field_reports_err_val_missing_nested_field`
+  - `shape_mismatch_reports_err_val_shape_mismatch`
+  - `structured_defaults_replace_without_deep_merge`
+  - `extra_nested_fields_are_ignored_by_top_level_extra_input_policy`
+- integration tests (`sc-compose`) cover:
+  - `render_accepts_object_values_in_json_var_file`
+  - `render_accepts_object_values_in_yaml_var_file`
+  - `template_json_object_input_defaults_obey_precedence`
 
 Exit Gate:
 
 - object-input behavior is specified in `requirements.md` and `architecture.md`
 - automated tests covering object input paths pass
 - no open blocker remains against FR-12
+- `quality-mgr` sprint_review passes with no blocker findings
 
 #### Sprint H2: Arrays Of Objects Input Support
 
@@ -595,25 +618,30 @@ Deliverables:
 - arrays of objects accepted in frontmatter defaults
 - arrays of objects accepted in `template.json` `input_defaults`
 - loop-body field access in Jinja templates
+- Spike: loop-body discovery approach (MiniJinja AST vs scope-tracker);
+  document the decision in `architecture.md` section 21.5 before proceeding
+  with the remaining H2 deliverables
 - frontmatter-init discovery for nested references inside loop bodies
-- explicit in-scope/out-of-scope rule for nested arrays
+- nested arrays explicitly remain out of scope for H1/H2 and are rejected with
+  `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
 - unit and integration tests for arrays of objects
 
 Acceptance Criteria:
 
 - arrays of objects render end-to-end through Jinja loops
 - frontmatter-init discovers loop-body variable references from array members
-- nested arrays are either supported with explicit rules or rejected with
-  explicit stable diagnostics
+- nested arrays are rejected with `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
 - at least 10 tests cover arrays-of-objects behavior and failure cases
 - the `sprint-report-html` input shape is representable by the implemented value
   model
 
 Exit Gate:
 
+- all H2 deliverables complete
+- the loop-body discovery spike is documented in `architecture.md` section 21.5
 - automated tests covering arrays of objects pass
 - no open blocker remains against FR-13
-- quality review confirms the input model is precise enough for H3 example work
+- `quality-mgr` sprint_review passes with no blocker findings
 
 #### Sprint H3: `sprint-report-html` Bundled Example
 
@@ -629,22 +657,24 @@ FRs addressed:
 
 Deliverables:
 
-- bundled example at `examples/sprint-report-html/`
-- main template `sprint-report.html.j2`
-- include fragments for:
-  - report head
-  - summary table
-  - PR card
-  - CI check list
-  - stage badge
+- H3a (FR-14 implementation): reuse the existing `.j2` suffix-stripping output
+  path behavior already implemented by `strip_j2_suffix`; H3 does not
+  re-implement output-path logic
+- H3a adds:
+  - at least one integration test verifying
+    `sprint-report-html.html.j2 -> sprint-report-html.html`
+  - an explicit safety note that `.html.j2` templates do not use automatic
+    escaping
+- H3b (FR-15 content): bundled example at
+  `examples/sprint-report-html.html.j2`
+- H3b keeps all template content inline in a single flat file; no `_includes/`
+  directory and no directory-based example pack
 - realistic sample vars file with PR and CI data
 - self-contained HTML output with inline CSS and no external dependencies
 - action links for:
   - view PR
   - view CI run
   - merge URL
-- bundled example-pack layout documented if H3 expands examples beyond the
-  current flat-file convention
 
 Acceptance Criteria:
 
@@ -660,9 +690,9 @@ Exit Gate:
 
 - the bundled example renders successfully from realistic structured input
 - design review confirms the example is a credible showcase artifact
-- requirements and architecture explicitly describe any bundled-example layout
-  change introduced by H3
+- H3 remains a single flat example file with no bundled-example layout change
 - no open blocker remains against FR-14 or FR-15 for the single-panel scope
+- `quality-mgr` sprint_review passes with no blocker findings
 
 #### Sprint H4: Multi-Panel Report And Wrapper Integration
 
@@ -670,6 +700,10 @@ Description:
 
 - extend the single-panel example into a fuller report and connect it to the
   wrapper workflow without moving open/display behavior into `sc-compose`.
+
+H4 introduces no new functional requirements. All H4 work extends FR-12,
+FR-13, FR-14, and FR-15 with wrapper integration and multi-panel example work.
+This is intentional.
 
 Deliverables:
 
@@ -693,6 +727,7 @@ Exit Gate:
   orchestrator
 - quality review confirms the final report flow is usable and maintainable
 - all HTML-Report phase blockers are closed
+- `quality-mgr` sprint_review passes with no blocker findings
 
 ## Companion Planning Docs
 

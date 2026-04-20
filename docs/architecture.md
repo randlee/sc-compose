@@ -294,13 +294,14 @@ Planned post-`1.0` extension:
   - array of scalars,
   - object/map with string keys,
   - array of objects,
-  - nested object trees whose leaves are scalars or arrays of scalars,
-  - object trees that contain arrays of objects for repeated report sections.
+  - nested object trees whose leaves are scalars or arrays of scalars.
 - Planned continued exclusions:
   - arrays of arrays as a first-class input shape,
+  - object trees that themselves contain nested arrays,
   - arbitrary mixed recursive data without explicit validation rules.
 - The design motivation is HTML/XHTML report composition where one render input
-  needs repeated structured sections such as `sprints[].prs[].checks[]`.
+  needs repeated structured sections such as `sprints` plus nested object
+  fields for report metadata and links.
 
 `MetadataValue` may be any YAML value:
 
@@ -1068,6 +1069,10 @@ Canonical failures must map to stable error families and stable codes.
 | Command or helper invoked in incompatible mode | `ConfigError` | `ERR_CONFIG_MODE` |
 | Config file missing or malformed | `ConfigError` | `ERR_CONFIG_PARSE` |
 | Invalid var-file shape | `ConfigError` | `ERR_CONFIG_VARFILE` |
+| Malformed object from structured input source | `ValidationError` | `ERR_VAL_OBJECT_SHAPE` |
+| Nested required path expects an object but receives a scalar, or vice versa | `ValidationError` | `ERR_VAL_SHAPE_MISMATCH` |
+| Nested required field absent inside a present object or array member | `ValidationError` | `ERR_VAL_MISSING_NESTED_FIELD` |
+| Nested array supplied where H1/H2 only allow objects and arrays of scalars or objects | `ValidationError` | `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` |
 | Example or template pack name not found | `ConfigError` | `ERR_CONFIG_PACK_NOT_FOUND` |
 | Named pack is not renderable because a bundled example name is ambiguous or a template pack has zero or multiple root-level `*.j2` files | `ConfigError` | `ERR_CONFIG_PACK_NOT_RENDERABLE` |
 | `templates add` target name already exists | `ConfigError` | `ERR_CONFIG_TEMPLATE_EXISTS` |
@@ -1283,7 +1288,11 @@ The follow-on structured-input track expands `InputValue` to support:
 - object/map values with string keys,
 - arrays of objects,
 - nested object trees needed for report composition,
-- repeated report sections such as `sprints[].prs[].checks[]`.
+- repeated report sections such as `sprints`.
+
+Nested arrays remain out of scope for H1 and H2. Examples such as
+`sprints[].checks[]` are illustrative prose for later design space, not H1/H2
+input grammar.
 
 ### 21.2 Variable Resolver Behavior
 
@@ -1297,13 +1306,29 @@ the existing precedence model:
 
 Additional structured-input rules:
 
-- object values are merged according to documented precedence rather than
-  silently flattened,
-- missing nested fields must report stable field paths such as `pr.number`,
-- the resolver must distinguish:
-  - missing top-level variable,
-  - missing nested field,
-  - wrong input shape for a referenced nested path.
+- `VariableName` remains a top-level key only. Discovery of `{{ pr.number }}`
+  yields `pr`, not `pr.number`.
+- Required nested references use a separate `VariablePath` concept rather than
+  reusing `VariableName`.
+- `VariablePath` grammar is dotted segments of alphanumeric, underscore, and
+  hyphen characters such as `pr.number` or `report.plan_url`.
+- H1/H2 `VariablePath` does not support bracket notation. Any prose examples
+  using `[]` describe future shape, not the H1/H2 path grammar.
+- Nested required-variable satisfaction walks the `InputValue` tree by path
+  segment.
+- The traversal semantics are:
+  - missing top-level key -> `ERR_VAL_MISSING_REQUIRED`
+  - missing nested segment inside a present object -> `ERR_VAL_MISSING_NESTED_FIELD`
+  - scalar where an object is required for the next segment -> `ERR_VAL_SHAPE_MISMATCH`
+- Structured variable defaults are replaced, not deep-merged, at the top-level
+  variable boundary. When an explicit input and a frontmatter default both
+  provide the same top-level variable key, the explicit input replaces the
+  entire default value.
+- Extra-variable policy from FR-2b applies at the top-level variable boundary
+  only. Fields inside a provided object that the template never accesses are
+  always accepted and do not trigger extra-input diagnostics.
+- Extra-input detection therefore operates on discovered top-level keys such as
+  `pr` and `sprints`, not on nested paths such as `pr.number`.
 
 ### 21.3 Structured Input Sources
 
@@ -1320,12 +1345,15 @@ Additional structured-input rules:
 
 Frontmatter defaults
 
-- may carry structured values when the same `InputValue` validation rules are
-  implemented there.
+- gain structured-value support in H1 using the same `InputValue` type and the
+  same validation gate as `--var-file`,
+- accept objects and arrays of scalars after H1,
+- extend to arrays of objects in H2.
 
 `template.json` `input_defaults`
 
-- may carry structured values under the same rules as other caller inputs.
+- gain structured-value support under the same rules as frontmatter defaults:
+  objects and arrays of scalars in H1, arrays of objects in H2.
 
 ### 21.4 Validation Impact
 
@@ -1341,14 +1369,20 @@ Frontmatter defaults
 `required_variables`
 
 - remains the declaration surface for required inputs,
-- must support nested field paths such as `pr.number` and
-  `sprints[].checks[].status` if nested field validation is implemented.
+- must support nested field paths such as `pr.number` and `report.plan_url`.
 
 `frontmatter-init`
 
 - must discover nested references such as `{{ pr.number }}`,
 - must discover loop-body references such as
   `{% for sprint in sprints %}{{ sprint.id }}{% endfor %}`,
+- must attribute `{{ sprint.id }}` inside that loop to the array variable
+  `sprints`, not to `sprint` or `sprint.id`,
+- requires scope-aware token scanning. A regex identifier sweep without scope
+  tracking cannot distinguish loop-bound names from context variables,
+- begins H2 with a spike comparing MiniJinja AST access against a hand-rolled
+  `for`/`endfor` scope tracker. The chosen approach must be documented in this
+  section before the remaining H2 work proceeds,
 - must emit understandable generated field paths instead of opaque flattened
   names.
 
@@ -1361,8 +1395,11 @@ Architectural boundaries:
 
 - `sc-compose` owns rendering,
 - the example/template pack owns the HTML structure,
-- the HTML example track may extend bundled examples from flat files to
-  directory-based example packs when include fragments and sample assets make
-  that materially clearer than one flat file,
+- H3 keeps the bundled example as a single flat file
+  `examples/sprint-report-html.html.j2`,
+- directory-based example layout is deferred to H4 or a later architecture
+  amendment,
+- `sc-compose` does not enable MiniJinja auto-escaping for `.html.j2`
+  templates; the bundled example documentation must call this out explicitly,
 - wrapper tooling such as `/sprint-report` owns open/display behavior,
 - no hook execution is added to `sc-compose` for this phase.
