@@ -307,9 +307,12 @@ Installed alongside the binary:
 sc-compose examples list           # show available examples
 sc-compose examples pytest-fixture --var-file vars.json --output tests/test_auth.py
 sc-compose examples service-config --var-file svc.json --output deploy/config.yaml
+sc-compose examples sprint-report-html --var-file examples/sprint-report-html.sample-vars.json --output sprint-report.html
 ```
 
 The examples directory is located automatically from the binary path (`../share/sc-compose/examples/` relative to the binary, following Homebrew and FHS conventions). Override with `SC_COMPOSE_DATA_DIR` if needed.
+
+`.html.j2` templates render like any other file-mode template. `sc-compose` does not enable automatic HTML escaping, so template authors remain responsible for escaping untrusted values.
 
 ### Personal templates
 
