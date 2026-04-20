@@ -39,6 +39,9 @@ pub enum DiagnosticCode {
     ErrValType,
     /// Structured object input used an unsupported shape.
     ErrValObjectShape,
+    /// Structured input used either a literal nested array or an array of
+    /// objects at a non-top-level path.
+    ErrValNestedArrayUnsupported,
     /// Frontmatter declarations contained duplicate variables.
     ErrValDuplicate,
     /// Frontmatter used both defaults sections and `input_defaults` overrides them.
@@ -92,6 +95,7 @@ impl DiagnosticCode {
             Self::ErrIncludeDepth => "ERR_INCLUDE_DEPTH",
             Self::ErrValType => "ERR_VAL_TYPE",
             Self::ErrValObjectShape => "ERR_VAL_OBJECT_SHAPE",
+            Self::ErrValNestedArrayUnsupported => "ERR_VAL_NESTED_ARRAY_UNSUPPORTED",
             Self::ErrValDuplicate => "ERR_VAL_DUPLICATE",
             Self::WarnValConflictingDefaultSections => "WARN_VAL_CONFLICTING_DEFAULT_SECTIONS",
             Self::ErrValEmpty => "ERR_VAL_EMPTY",
