@@ -103,6 +103,7 @@ Schema rules:
 
 - `required_variables` is optional.
 - `defaults` is optional.
+- `input_defaults` is accepted as an alias for `defaults` in frontmatter.
 - `metadata` is optional.
 - If a frontmatter block exists and a field is omitted, it defaults to:
   - `required_variables: []`
@@ -113,6 +114,9 @@ Schema rules:
 - `required_variables` values must be unique variable names.
 - `defaults` supplies optional values that become part of the render context
   unless overridden by environment-derived or explicit input values.
+- If both `defaults` and `input_defaults` appear in the same frontmatter
+  block, `input_defaults` wins for overlapping keys and validation emits a
+  `WARN_VAL_CONFLICTING_DEFAULT_SECTIONS` warning diagnostic.
 - `metadata` is descriptive only. It must not directly change render semantics
   unless a future requirement explicitly assigns meaning to a metadata key.
 
@@ -207,6 +211,9 @@ Post-`1.0` design track:
   case the default value satisfies the requirement unless overridden.
 - An empty sequence value such as `[]` is valid input and satisfies a required
   variable when provided explicitly or by defaults.
+- `validate` and `render --dry-run` must emit an informational diagnostic when
+  a referenced or required variable is satisfied by a default value rather than
+  explicit caller input.
 - Explicit CLI `--var key=value` inputs are always strings.
 - Variables loaded through `--var-file` may be any supported render-context
   value type.
@@ -622,14 +629,14 @@ Schema rules:
 {
   "schema_version": "1",
   "payload": {
-    "valid": false
+    "valid": true
   },
   "diagnostics": [
     {
-      "severity": "error",
-      "code": "ERR_VAL_MISSING_REQUIRED",
-      "message": "missing required variable: name",
-      "location": "templates/example.md.j2:12:4"
+      "severity": "info",
+      "code": "INFO_VAL_DEFAULT_USED",
+      "message": "variable name not provided, using default: \"world\"",
+      "location": "templates/example.md.j2"
     }
   ]
 }

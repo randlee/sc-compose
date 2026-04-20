@@ -540,6 +540,79 @@ fn render_failure_json_preserves_all_validation_diagnostics() {
 }
 
 #[test]
+fn validate_json_reports_default_usage_info_for_frontmatter_input_defaults() {
+    let root = temp_root("validate-default-usage-json");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - task_id\ninput_defaults:\n  assignee: teammate\n---\nhello {{ task_id }} {{ assignee }}\n",
+    );
+    let vars_file = root.join("vars.json");
+    write_file(&vars_file, r#"{ "task_id": "SC-1" }"#);
+
+    let output = sc_compose()
+        .arg("validate")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    let diagnostics = value["diagnostics"].as_array().unwrap();
+    assert!(diagnostics.iter().any(|diagnostic| {
+        diagnostic["code"] == "INFO_VAL_DEFAULT_USED"
+            && diagnostic["message"]
+                == r#"variable assignee not provided, using default: "teammate""#
+    }));
+}
+
+#[test]
+fn render_dry_run_json_reports_default_usage_info_for_template_json_defaults() {
+    let root = temp_root("render-dry-run-template-default-json");
+    let templates_root = root.join("templates");
+    let pack_root = templates_root.join("report");
+    write_file(
+        &pack_root.join("template.json"),
+        r#"{ "description": "Report template", "version": "1.0.0", "input_defaults": { "name": "world" } }"#,
+    );
+    write_file(&pack_root.join("report.md.j2"), "hello {{ name }}\n");
+
+    let output = sc_compose()
+        .arg("templates")
+        .arg("report")
+        .arg("--dry-run")
+        .arg("--json")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    let diagnostics = value["diagnostics"].as_array().unwrap();
+    assert!(diagnostics.iter().any(|diagnostic| {
+        diagnostic["code"] == "INFO_VAL_DEFAULT_USED"
+            && diagnostic["message"] == r#"variable name not provided, using default: "world""#
+    }));
+}
+
+#[test]
 fn render_json_reports_actual_bytes_written_for_output_file() {
     let root = temp_root("render-bytes-written-json");
     let output_path = root.join("out.txt");
