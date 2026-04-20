@@ -99,8 +99,9 @@ jobs:
           ref: ${{ needs.gate-and-tag.outputs.release_tag }}
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: 1.94.1
           targets: ${{ matrix.target }}
 
       - name: Ensure cross-compilation target
@@ -168,7 +169,9 @@ jobs:
           ref: ${{ needs.gate-and-tag.outputs.release_tag }}
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
 
       - name: Set up Python
         uses: actions/setup-python@v5

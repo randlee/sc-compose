@@ -7,8 +7,9 @@ class ScCompose < Formula
   license "MIT"
 
   def install
-    bin.install "bin/sc-compose"
-    (pkgshare/"examples").install Dir["share/sc-compose/examples/*"]
+    root = Dir["sc-compose_*"].first
+    bin.install "#{root}/bin/sc-compose"
+    (pkgshare/"examples").install Dir["#{root}/share/sc-compose/examples/*"]
   end
 
   test do
