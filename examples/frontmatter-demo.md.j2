@@ -1,0 +1,18 @@
+---
+required_variables:
+  - service_name
+defaults:
+  owner: platform-team
+  environment: dev
+metadata:
+  purpose: demonstrate required_variables plus defaults
+---
+<!-- Frontmatter demo: service_name is required; owner and environment come from defaults unless overridden. -->
+# {{ service_name }}
+
+- Owner: {{ owner }}
+- Environment: {{ environment }}
+
+Review notes:
+- Omit `service_name` to see validation fail.
+- Override `owner` or `environment` with `--var` or `--var-file` to see precedence.

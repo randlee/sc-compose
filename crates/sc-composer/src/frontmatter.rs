@@ -6,13 +6,13 @@ use serde::Deserialize;
 
 use crate::diagnostics::DiagnosticCode;
 use crate::error::{ComposeError, ConfigError, ValidationError};
-use crate::types::{MetadataValue, ScalarValue, VariableName};
+use crate::types::{InputValue, MetadataValue, VariableName, input_value_from_yaml};
 
 /// Typed frontmatter normalized to explicit empty collections when present.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Frontmatter {
     required_variables: Vec<VariableName>,
-    defaults: BTreeMap<VariableName, ScalarValue>,
+    defaults: BTreeMap<VariableName, InputValue>,
     metadata: BTreeMap<String, MetadataValue>,
 }
 
@@ -31,7 +31,7 @@ impl Frontmatter {
 
     /// Borrow normalized default values.
     #[must_use]
-    pub fn defaults(&self) -> &BTreeMap<VariableName, ScalarValue> {
+    pub fn defaults(&self) -> &BTreeMap<VariableName, InputValue> {
         &self.defaults
     }
 
@@ -88,7 +88,7 @@ pub fn parse_template_document(input: &str) -> Result<ParsedTemplate, ComposeErr
         });
     };
 
-    let raw = serde_yaml::from_str::<RawFrontmatter>(&frontmatter_text).map_err(|error| {
+    let raw = serde_yaml::from_str::<RawFrontmatter>(frontmatter_text).map_err(|error| {
         ConfigError::new(
             DiagnosticCode::ErrConfigParse,
             "failed to parse YAML frontmatter",
@@ -104,7 +104,7 @@ pub fn parse_template_document(input: &str) -> Result<ParsedTemplate, ComposeErr
     })
 }
 
-fn split_frontmatter(input: &str) -> Result<Option<(String, &str)>, ComposeError> {
+fn split_frontmatter(input: &str) -> Result<Option<(&str, &str)>, ComposeError> {
     let delimiter_len = if input.starts_with("---\n") {
         4
     } else if input.starts_with("---\r\n") {
@@ -121,7 +121,7 @@ fn split_frontmatter(input: &str) -> Result<Option<(String, &str)>, ComposeError
         if matches!(trimmed, "---" | "...") {
             let frontmatter_text = &rest[..scanned];
             let body = &rest[scanned + line.len()..];
-            return Ok(Some((frontmatter_text.to_owned(), body)));
+            return Ok(Some((frontmatter_text, body)));
         }
         scanned += line.len();
     }
@@ -129,7 +129,7 @@ fn split_frontmatter(input: &str) -> Result<Option<(String, &str)>, ComposeError
     if !rest.is_empty() {
         let trimmed = rest.trim_end_matches(['\n', '\r']);
         if matches!(trimmed, "---" | "...") {
-            return Ok(Some((String::new(), "")));
+            return Ok(Some(("", "")));
         }
     }
 
@@ -164,9 +164,9 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
                 format!("invalid frontmatter default variable name: {error}"),
             )
         })?;
-        let scalar = ScalarValue::from_yaml(value)
+        let input_value = input_value_from_yaml(value)
             .map_err(|error| ValidationError::invalid_scalar(error.to_string()))?;
-        defaults.insert(variable, scalar);
+        defaults.insert(variable, input_value);
     }
 
     let metadata = raw

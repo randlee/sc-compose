@@ -17,14 +17,10 @@ pub mod frontmatter;
 pub mod frontmatter_init;
 /// Recursive include expansion and confinement enforcement.
 pub mod include;
-/// Backwards-compatible alias for the include engine surface.
-pub mod include_engine;
 /// Workspace bootstrap helper.
 pub mod init_workspace;
 /// Observer traits and event payloads.
 pub mod observer;
-/// Pipeline typestates and output assembly helpers.
-pub mod pipeline;
 /// Template renderer wrapper.
 pub mod renderer;
 /// Runtime-aware profile resolution and search tracing.
@@ -57,12 +53,9 @@ pub use include::{ExpandedTemplate, expand_includes};
 pub use init_workspace::init_workspace;
 #[doc(inline)]
 pub use observer::{
-    CommandEndEvent, CommandStartEvent, CompositionObserver, IncludeOutcomeEvent, NoopObserver,
-    ObservationEvent, ObservationSink, RenderOutcomeEvent, ResolveOutcomeEvent,
-    ValidationOutcomeEvent,
+    CompositionObserver, IncludeOutcomeEvent, NoopObserver, ObservationEvent, ObservationSink,
+    RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
-#[doc(inline)]
-pub use pipeline::{Document, Expanded, Parsed, Rendered, Validated, assemble_output_blocks};
 #[doc(inline)]
 pub use renderer::{Renderer, render_template};
 #[doc(inline)]
@@ -70,9 +63,9 @@ pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_templ
 #[doc(inline)]
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
-    FrontmatterInitResult, IncludeDepth, InitResult, MetadataValue, ProfileKind, ProfileName,
-    ResolveResult, ResolverPolicy, RuntimeKind, ScalarValue, UnknownVariablePolicy,
-    ValidationReport, VariableName, VariableSource,
+    FrontmatterInitResult, IncludeDepth, InitResult, InputValue, MetadataValue, ProfileKind,
+    ProfileName, ResolveResult, ResolverPolicy, RuntimeKind, ScalarValue, UnknownVariablePolicy,
+    ValidationReport, VariableName, VariableSource, input_value_from_yaml, validate_input_value,
 };
 #[doc(inline)]
 pub use validate::{validate, validate_with_observer};
@@ -114,7 +107,7 @@ mod tests {
     }
 
     #[test]
-    fn frontmatter_rejects_non_scalar_defaults() {
+    fn frontmatter_rejects_nested_defaults() {
         let error = parse_template_document(
             "---\ndefaults:\n  name:\n    nested: nope\n---\nhello {{ name }}\n",
         )
@@ -133,6 +126,22 @@ mod tests {
         let value = serde_json::json!({ "nested": true });
         let error = ScalarValue::try_from(value).unwrap_err();
         assert!(error.to_string().contains("scalar"));
+    }
+
+    #[test]
+    fn frontmatter_accepts_array_defaults() {
+        let parsed = parse_template_document(
+            "---\ndefaults:\n  test_names:\n    - login\n    - logout\n---\n{{ test_names | length }}\n",
+        )
+        .unwrap();
+        let frontmatter = parsed.frontmatter().unwrap();
+
+        assert_eq!(
+            frontmatter
+                .defaults()
+                .get(&super::VariableName::new("test_names").unwrap()),
+            Some(&json!(["login", "logout"]))
+        );
     }
 
     #[test]

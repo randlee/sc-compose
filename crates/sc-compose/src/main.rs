@@ -1,19 +1,30 @@
+mod commands;
 mod exit_codes;
 mod json_output;
+mod observability;
 mod observer_impl;
+mod render_request;
+mod template_store;
 
-use std::collections::BTreeMap;
 use std::fmt;
-use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Result, anyhow};
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use mimalloc::MiMalloc;
 use sc_composer::{
-    CommandEndEvent, CommandStartEvent, ComposeError, ComposeMode, ComposePolicy, ComposeRequest,
-    CompositionObserver, ConfiningRoot, Diagnostic, DiagnosticCode, DiagnosticSeverity,
-    FrontmatterInitResult, ProfileKind, RuntimeKind, ScalarValue, UnknownVariablePolicy,
+    ComposeError, ComposeMode, ComposeRequest, CompositionObserver, Diagnostic, DiagnosticCode,
+    DiagnosticSeverity, FrontmatterInitResult, RecoveryHint, RecoveryHintKind,
 };
+
+use crate::commands::examples::{run_examples_list, run_examples_render};
+use crate::commands::templates::{run_templates_add, run_templates_list, run_templates_render};
+use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
+use crate::render_request::{build_request, read_block_pair};
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 #[derive(Debug, Parser)]
 #[command(name = "sc-compose")]
@@ -25,42 +36,117 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    #[command(about = "Render a template or resolved profile")]
     Render(RenderArgs),
+    #[command(about = "Resolve a profile name to a concrete template path")]
     Resolve(ResolveArgs),
+    #[command(about = "Validate templates without rendering output")]
     Validate(ValidateArgs),
     #[command(name = "frontmatter-init")]
+    #[command(about = "Insert minimal frontmatter for referenced variables")]
     FrontmatterInit(FrontmatterInitArgs),
+    #[command(about = "Bootstrap a workspace for composed outputs")]
     Init(InitArgs),
+    #[command(name = "observability-health")]
+    #[command(about = "Report process-local logging health")]
+    ObservabilityHealth(ObservabilityHealthArgs),
+    #[command(about = "List or render bundled example templates")]
+    Examples(ExamplesArgs),
+    #[command(about = "List, add, or render user template packs")]
+    Templates(TemplatesArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+struct InputArgs {
+    #[arg(
+        long = "var",
+        value_parser = parse_var,
+        action = clap::ArgAction::Append,
+        help = "Provide one explicit input variable as key=value"
+    )]
+    vars: Vec<(String, String)>,
+    #[arg(
+        long = "var-file",
+        help = "Load input variables from a JSON or YAML object file"
+    )]
+    var_file: Option<String>,
+    #[arg(
+        long,
+        help = "Absorb environment variables that match the given prefix"
+    )]
+    env_prefix: Option<String>,
+    #[arg(long, help = "Treat undeclared referenced variables as errors")]
+    strict: bool,
+    #[arg(
+        long,
+        value_enum,
+        default_value = "ignore",
+        help = "Control how extra caller-provided variables are reported"
+    )]
+    unknown_var_mode: UnknownVarMode,
 }
 
 #[derive(Debug, Clone, Args)]
 struct CommonArgs {
-    #[arg(long, value_enum, default_value = "file")]
+    #[arg(
+        long,
+        value_enum,
+        default_value = "file",
+        help = "Choose file or profile resolution mode"
+    )]
     mode: Mode,
-    #[arg(long, value_enum, default_value = "agent")]
+    #[arg(
+        long,
+        value_enum,
+        default_value = "agent",
+        help = "Choose the profile kind in profile mode"
+    )]
     kind: Kind,
-    #[arg(long)]
+    #[arg(long, help = "Profile name in profile mode")]
     agent: Option<String>,
-    #[arg(long, alias = "agent-type")]
+    #[arg(long, alias = "agent-type", help = "Alias for --agent")]
     agent_type: Option<String>,
-    #[arg(long, value_enum)]
+    #[arg(
+        long,
+        alias = "ai",
+        value_enum,
+        help = "Optional runtime selector in profile mode"
+    )]
     runtime: Option<Ai>,
-    #[arg(long, alias = "ai", value_enum)]
-    ai: Option<Ai>,
-    #[arg(long = "var", value_parser = parse_var, action = clap::ArgAction::Append)]
-    vars: Vec<(String, String)>,
-    #[arg(long = "var-file")]
-    var_file: Option<String>,
-    #[arg(long)]
-    env_prefix: Option<String>,
-    #[arg(long)]
-    strict: bool,
-    #[arg(long, value_enum, default_value = "ignore")]
-    unknown_var_mode: UnknownVarMode,
-    #[arg(long, default_value = ".")]
+    #[command(flatten)]
+    input: InputArgs,
+    #[arg(
+        long,
+        default_value = ".",
+        help = "Workspace root for resolution and confinement"
+    )]
     root: PathBuf,
-    #[arg(long)]
+    #[arg(long, help = "Template path in file mode")]
     file: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, Args, Default)]
+struct RenderBehaviorArgs {
+    #[arg(
+        long,
+        help = "Write rendered output to the given path instead of stdout"
+    )]
+    output: Option<PathBuf>,
+    #[arg(long, help = "Append a guidance block after the rendered body")]
+    guidance: Option<String>,
+    #[arg(long, help = "Read the guidance block from a file or stdin")]
+    guidance_file: Option<String>,
+    #[arg(
+        long,
+        help = "Append a user prompt block after the rendered body and guidance"
+    )]
+    prompt: Option<String>,
+    #[arg(long, help = "Read the user prompt block from a file or stdin")]
+    prompt_file: Option<String>,
+    #[arg(long, help = "Emit machine-readable JSON output")]
+    json: bool,
+    #[arg(long, help = "Report the derived output target without writing files")]
+    dry_run: bool,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -83,20 +169,8 @@ struct ValidateArgs {
 struct RenderArgs {
     #[command(flatten)]
     common: CommonArgs,
-    #[arg(long)]
-    output: Option<PathBuf>,
-    #[arg(long)]
-    guidance: Option<String>,
-    #[arg(long)]
-    guidance_file: Option<String>,
-    #[arg(long)]
-    prompt: Option<String>,
-    #[arg(long)]
-    prompt_file: Option<String>,
-    #[arg(long)]
-    json: bool,
-    #[arg(long)]
-    dry_run: bool,
+    #[command(flatten)]
+    render: RenderBehaviorArgs,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -119,6 +193,68 @@ struct InitArgs {
     json: bool,
     #[arg(long)]
     dry_run: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+struct ObservabilityHealthArgs {
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+#[command(args_conflicts_with_subcommands = true)]
+struct ExamplesArgs {
+    #[command(subcommand)]
+    command: Option<ExamplesSubcommand>,
+    #[arg(index = 1, help = "Bundled example pack name to render")]
+    name: Option<String>,
+    #[command(flatten)]
+    input: InputArgs,
+    #[command(flatten)]
+    render: RenderBehaviorArgs,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+enum ExamplesSubcommand {
+    #[command(about = "List bundled example packs")]
+    List(ListArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+#[command(args_conflicts_with_subcommands = true)]
+struct TemplatesArgs {
+    #[command(subcommand)]
+    command: Option<TemplatesSubcommand>,
+    #[arg(index = 1, help = "User template pack name to render")]
+    name: Option<String>,
+    #[command(flatten)]
+    input: InputArgs,
+    #[command(flatten)]
+    render: RenderBehaviorArgs,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+enum TemplatesSubcommand {
+    #[command(about = "List user template packs")]
+    List(ListArgs),
+    #[command(about = "Import a file or directory as one user template pack")]
+    Add(TemplatesAddArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+struct ListArgs {
+    #[arg(long, help = "Emit machine-readable JSON output")]
+    json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+struct TemplatesAddArgs {
+    /// Source file or directory to import as one template pack.
+    src: PathBuf,
+    /// Optional pack name override.
+    name: Option<String>,
+    #[arg(long, help = "Emit machine-readable JSON output")]
+    json: bool,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -152,7 +288,24 @@ enum UnknownVarMode {
 fn main() {
     let cli = Cli::parse();
     let wants_json = command_wants_json(&cli.command);
-    let code = match run(cli) {
+    let mut observer =
+        match observability::build_logger(wants_json).map(observer_impl::CliObserver::new) {
+            Ok(observer) => observer,
+            Err(error) => {
+                if wants_json {
+                    if let Err(print_error) =
+                        print_json(serde_json::json!({}), error.diagnostics.clone())
+                    {
+                        eprintln!("{error}");
+                        eprintln!("{print_error:#}");
+                    }
+                } else {
+                    eprintln!("{error}");
+                }
+                std::process::exit(error.exit_code);
+            }
+        };
+    let code = match run(cli, &mut observer) {
         Ok(code) => code,
         Err(error) => {
             if wants_json {
@@ -168,27 +321,61 @@ fn main() {
             error.exit_code
         }
     };
+    observer.shutdown();
     std::process::exit(code);
 }
 
-fn run(cli: Cli) -> Result<i32, CommandError> {
-    let mut observer = observer_impl::CliObserver::from_env();
+fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, CommandError> {
     match cli.command {
-        Command::Render(args) => observe_command(&mut observer, "render", |observer| {
-            run_render(&args, observer)
-        }),
-        Command::Resolve(args) => observe_command(&mut observer, "resolve", |observer| {
+        Command::Render(args) => {
+            observe_command(observer, "render", args.render.json, |observer| {
+                run_render(&args, observer)
+            })
+        }
+        Command::Resolve(args) => observe_command(observer, "resolve", args.json, |observer| {
             run_resolve(&args, observer)
         }),
-        Command::Validate(args) => observe_command(&mut observer, "validate", |observer| {
+        Command::Validate(args) => observe_command(observer, "validate", args.json, |observer| {
             run_validate(&args, observer)
         }),
         Command::FrontmatterInit(args) => {
-            observe_command(&mut observer, "frontmatter-init", |_observer| {
+            observe_command(observer, "frontmatter-init", args.json, |_observer| {
                 run_frontmatter_init(&args)
             })
         }
-        Command::Init(args) => observe_command(&mut observer, "init", |_observer| run_init(&args)),
+        Command::Init(args) => {
+            observe_command(observer, "init", args.json, |_observer| run_init(&args))
+        }
+        Command::ObservabilityHealth(args) => {
+            observe_command(observer, "observability-health", args.json, |observer| {
+                run_observability_health(&args, observer)
+            })
+        }
+        Command::Examples(args) => match &args.command {
+            Some(ExamplesSubcommand::List(list_args)) => {
+                observe_command(observer, "examples", list_args.json, |_observer| {
+                    run_examples_list(list_args)
+                })
+            }
+            None => observe_command(observer, "examples", args.render.json, |observer| {
+                run_examples_render(&args, observer)
+            }),
+        },
+        Command::Templates(args) => match &args.command {
+            Some(TemplatesSubcommand::List(list_args)) => {
+                observe_command(observer, "templates", list_args.json, |_observer| {
+                    run_templates_list(list_args)
+                })
+            }
+            Some(TemplatesSubcommand::Add(add_args)) => {
+                observe_command(observer, "templates", add_args.json, |_observer| {
+                    run_templates_add(add_args)
+                })
+            }
+            None => observe_command(observer, "templates", args.render.json, |observer| {
+                run_templates_render(&args, observer)
+            }),
+        },
     }
 }
 
@@ -196,11 +383,24 @@ fn run_render(
     args: &RenderArgs,
     observer: &mut dyn CompositionObserver,
 ) -> Result<i32, CommandError> {
-    let request = build_request(&args.common, read_block_pair(args)?)?;
+    let request = build_request(
+        &args.common,
+        read_block_pair(&args.common.input, &args.render)?,
+        std::collections::BTreeMap::default(),
+    )?;
+    execute_render(&request, &args.render, observer)
+}
+
+fn execute_render(
+    request: &ComposeRequest,
+    args: &RenderBehaviorArgs,
+    observer: &mut dyn CompositionObserver,
+) -> Result<i32, CommandError> {
     let result =
-        sc_composer::compose_with_observer(&request, observer).map_err(CommandError::compose)?;
+        sc_composer::compose_with_observer(request, observer).map_err(CommandError::compose)?;
     let output_path = args.output.clone();
-    let derived_path = derived_output_path(&request, output_path.as_deref());
+    let derived_path = derived_output_path(request, output_path.as_deref());
+    let would_change = render_would_change(&derived_path, &result.rendered_text);
     let bytes_written = if args.dry_run {
         None
     } else if let Some(output) = output_path.as_ref() {
@@ -234,6 +434,7 @@ fn run_render(
         let payload = if args.dry_run {
             serde_json::json!({
                 "would_write": derived_path.display().to_string(),
+                "would_change": would_change,
                 "template": result.resolve_result.resolved_path.display().to_string(),
                 "rendered_preview": result.rendered_text,
             })
@@ -251,6 +452,11 @@ fn run_render(
             result.resolve_result.resolved_path.display()
         );
         println!("would_write: {}", derived_path.display());
+        println!("would_change: {would_change}");
+        if !result.warnings.is_empty() {
+            println!();
+            print_diagnostic_messages(&result.warnings);
+        }
         println!();
         println!("{}", result.rendered_text);
     } else {
@@ -270,7 +476,11 @@ fn run_resolve(
             DiagnosticCode::ErrConfigMode,
         ));
     }
-    let request = build_request(&args.common, (None, None))?;
+    let request = build_request(
+        &args.common,
+        (None, None),
+        std::collections::BTreeMap::default(),
+    )?;
     let result = sc_composer::resolve_profile_with_observer(&request, observer)
         .map_err(CommandError::compose)?;
     if args.json {
@@ -293,7 +503,11 @@ fn run_validate(
     args: &ValidateArgs,
     observer: &mut dyn CompositionObserver,
 ) -> Result<i32, CommandError> {
-    let request = build_request(&args.common, (None, None))?;
+    let request = build_request(
+        &args.common,
+        (None, None),
+        std::collections::BTreeMap::default(),
+    )?;
     let report =
         sc_composer::validate_with_observer(&request, observer).map_err(CommandError::compose)?;
     let diagnostics = report
@@ -358,6 +572,7 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
             DiagnosticCode::ErrConfigParse,
         )
     })?;
+    let prompts_dir_missing = !canonical_root.join(".prompts").exists();
     let planned_changes = planned_init_changes(&canonical_root);
     let result =
         sc_composer::init_workspace(&args.root, args.dry_run).map_err(CommandError::compose)?;
@@ -366,17 +581,17 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
             serde_json::json!({
                 "action": "init",
                 "would_affect": planned_changes.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+                "changed": false,
+                "would_change": !planned_changes.is_empty(),
                 "skipped": planned_changes.is_empty(),
             })
         } else {
             serde_json::json!({
                 "workspace_root": canonical_root.display().to_string(),
-                "created_files": planned_changes.iter().map(|path| {
-                    path.strip_prefix(&canonical_root)
-                        .unwrap_or(path)
-                        .display()
-                        .to_string()
-                }).collect::<Vec<_>>(),
+                "created_files": actual_init_created_files(
+                    prompts_dir_missing,
+                    result.gitignore_updated,
+                ),
             })
         };
         print_json(payload, result.recommendations).map_err(CommandError::usage)?;
@@ -384,8 +599,10 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
         for path in &planned_changes {
             println!("would_affect: {}", path.display());
         }
+        print_diagnostic_messages(&result.recommendations);
     } else {
         println!("workspace_root: {}", canonical_root.display());
+        print_diagnostic_messages(&result.recommendations);
     }
     Ok(if result.validation_passed {
         exit_codes::SUCCESS
@@ -394,236 +611,24 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
     })
 }
 
-fn build_request(
-    args: &CommonArgs,
-    blocks: (Option<String>, Option<String>),
-) -> Result<ComposeRequest, CommandError> {
-    let root = ConfiningRoot::new(&args.root)
-        .with_context(|| format!("failed to canonicalize root {}", args.root.display()))
-        .map_err(|error| CommandError::usage_with_code(error, DiagnosticCode::ErrConfigParse))?;
-    let mode = match args.mode {
-        Mode::File => ComposeMode::File {
-            template_path: args
-                .file
-                .clone()
-                .ok_or_else(|| CommandError::usage(anyhow!("--file is required in file mode")))?,
-        },
-        Mode::Profile => ComposeMode::Profile {
-            kind: match args.kind {
-                Kind::Agent => ProfileKind::Agent,
-                Kind::Command => ProfileKind::Command,
-                Kind::Skill => ProfileKind::Skill,
-            },
-            name: args
-                .agent
-                .clone()
-                .or_else(|| args.agent_type.clone())
-                .ok_or_else(|| {
-                    CommandError::usage(anyhow!("--agent/--agent-type is required in profile mode"))
-                })
-                .and_then(|name| {
-                    sc_composer::ProfileName::new(name).map_err(|error| {
-                        CommandError::usage(anyhow!("invalid profile name: {error}"))
-                    })
-                })?,
-        },
-    };
-
-    Ok(ComposeRequest {
-        runtime: args.runtime.or(args.ai).map(|runtime| match runtime {
-            Ai::Claude => RuntimeKind::Claude,
-            Ai::Codex => RuntimeKind::Codex,
-            Ai::Gemini => RuntimeKind::Gemini,
-            Ai::Opencode => RuntimeKind::Opencode,
-        }),
-        mode,
-        root,
-        vars_input: load_vars(args)?,
-        vars_env: load_env(args)?,
-        guidance_block: blocks.0,
-        user_prompt: blocks.1,
-        policy: ComposePolicy {
-            strict_undeclared_variables: args.strict,
-            unknown_variable_policy: match args.unknown_var_mode {
-                UnknownVarMode::Error => UnknownVariablePolicy::Error,
-                UnknownVarMode::Warn => UnknownVariablePolicy::Warn,
-                UnknownVarMode::Ignore => UnknownVariablePolicy::Ignore,
-            },
-            ..ComposePolicy::default()
-        },
-    })
-}
-
-fn read_block_pair(args: &RenderArgs) -> Result<(Option<String>, Option<String>), CommandError> {
-    if args.guidance.is_some() && args.guidance_file.is_some() {
-        return Err(CommandError::usage(anyhow!(
-            "--guidance and --guidance-file are mutually exclusive"
-        )));
+fn run_observability_health(
+    args: &ObservabilityHealthArgs,
+    observer: &observer_impl::CliObserver,
+) -> Result<i32, CommandError> {
+    if std::env::var_os("SC_COMPOSE_TEST_FORCE_QUERY_UNAVAILABLE").is_some() {
+        observer.shutdown();
     }
-    if args.prompt.is_some() && args.prompt_file.is_some() {
-        return Err(CommandError::usage(anyhow!(
-            "--prompt and --prompt-file are mutually exclusive"
-        )));
-    }
-    if args.guidance_file.as_deref() == Some("-") && args.prompt_file.as_deref() == Some("-") {
-        return Err(CommandError::stdin_double_read());
-    }
-
-    let guidance = read_block(args.guidance.clone(), args.guidance_file.as_deref())?;
-    let prompt = read_block(args.prompt.clone(), args.prompt_file.as_deref())?;
-    Ok((guidance, prompt))
-}
-
-fn read_block(inline: Option<String>, file: Option<&str>) -> Result<Option<String>, CommandError> {
-    if let Some(inline) = inline {
-        return Ok(Some(inline));
-    }
-    match file {
-        Some("-") => {
-            let mut input = String::new();
-            std::io::stdin()
-                .read_to_string(&mut input)
-                .map_err(|error| {
-                    CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-                })?;
-            Ok(Some(input))
-        }
-        Some(path) => std::fs::read_to_string(path).map(Some).map_err(|error| {
-            CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-        }),
-        None => Ok(None),
-    }
-}
-
-fn load_vars(
-    args: &CommonArgs,
-) -> Result<BTreeMap<sc_composer::VariableName, ScalarValue>, CommandError> {
-    let mut vars = BTreeMap::default();
-    for (key, value) in &args.vars {
-        vars.insert(
-            sc_composer::VariableName::new(key.clone()).map_err(|error| {
-                CommandError::usage(anyhow!("invalid `--var` name `{key}`: {error}"))
-            })?,
-            ScalarValue::String(value.clone()),
-        );
-    }
-    if let Some(path) = &args.var_file {
-        let contents = if path == "-" {
-            let mut input = String::new();
-            std::io::stdin()
-                .read_to_string(&mut input)
-                .map_err(|error| {
-                    CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-                })?;
-            input
-        } else {
-            std::fs::read_to_string(path).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!(error).context(format!("failed to read var-file {path}")),
-                    DiagnosticCode::ErrConfigParse,
-                )
-            })?
-        };
-        let object = parse_var_file(&contents)?;
-        vars.extend(object);
-    }
-    Ok(vars)
-}
-
-fn load_env(
-    args: &CommonArgs,
-) -> Result<BTreeMap<sc_composer::VariableName, ScalarValue>, CommandError> {
-    let mut vars = BTreeMap::default();
-    if let Some(prefix) = &args.env_prefix {
-        for (key, value) in std::env::vars() {
-            if let Some(trimmed) = key.strip_prefix(prefix) {
-                vars.insert(
-                    sc_composer::VariableName::new(trimmed.to_ascii_lowercase()).map_err(
-                        |error| {
-                            CommandError::usage(anyhow!(
-                                "invalid environment-derived variable `{trimmed}`: {error}"
-                            ))
-                        },
-                    )?,
-                    ScalarValue::String(value),
-                );
-            }
-        }
-    }
-    Ok(vars)
-}
-
-fn parse_var_file(
-    contents: &str,
-) -> Result<BTreeMap<sc_composer::VariableName, ScalarValue>, CommandError> {
-    if let Ok(value) = serde_json::from_str::<serde_json::Value>(contents) {
-        return parse_object_value(&value);
-    }
-    let value = serde_yaml::from_str::<serde_yaml::Value>(contents).map_err(|error| {
-        CommandError::usage_with_code(
-            anyhow!(error).context("var-file must be valid JSON or YAML"),
-            DiagnosticCode::ErrConfigParse,
+    let health = observer.health();
+    if args.json {
+        print_json(
+            serde_json::json!({ "logging": observability::health_json_value(&health) }),
+            Vec::new(),
         )
-    })?;
-    let serde_yaml::Value::Mapping(object) = value else {
-        return Err(CommandError::usage_with_code(
-            anyhow!("var-file must be a JSON or YAML object"),
-            DiagnosticCode::ErrConfigVarfile,
-        ));
-    };
-    let mut vars = BTreeMap::default();
-    for (key, value) in object {
-        let key = key.as_str().ok_or_else(|| {
-            CommandError::usage_with_code(
-                anyhow!("var-file keys must be strings"),
-                DiagnosticCode::ErrConfigVarfile,
-            )
-        })?;
-        vars.insert(
-            sc_composer::VariableName::new(key.to_owned()).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!("invalid var-file key `{key}`: {error}"),
-                    DiagnosticCode::ErrConfigVarfile,
-                )
-            })?,
-            ScalarValue::from_yaml(value).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!("invalid var-file value for `{key}`: {error}"),
-                    DiagnosticCode::ErrConfigVarfile,
-                )
-            })?,
-        );
+        .map_err(CommandError::usage)?;
+    } else {
+        observability::print_observability_health(&health);
     }
-    Ok(vars)
-}
-
-fn parse_object_value(
-    value: &serde_json::Value,
-) -> Result<BTreeMap<sc_composer::VariableName, ScalarValue>, CommandError> {
-    let object = value.as_object().ok_or_else(|| {
-        CommandError::usage_with_code(
-            anyhow!("var-file must be a JSON object"),
-            DiagnosticCode::ErrConfigVarfile,
-        )
-    })?;
-    let mut vars = BTreeMap::default();
-    for (key, value) in object {
-        vars.insert(
-            sc_composer::VariableName::new(key.clone()).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!("invalid var-file key `{key}`: {error}"),
-                    DiagnosticCode::ErrConfigVarfile,
-                )
-            })?,
-            ScalarValue::try_from(value.clone()).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!("invalid var-file value for `{key}`: {error}"),
-                    DiagnosticCode::ErrConfigVarfile,
-                )
-            })?,
-        );
-    }
-    Ok(vars)
+    Ok(exit_codes::SUCCESS)
 }
 
 fn derived_output_path(request: &ComposeRequest, explicit: Option<&Path>) -> PathBuf {
@@ -632,11 +637,20 @@ fn derived_output_path(request: &ComposeRequest, explicit: Option<&Path>) -> Pat
     }
     match &request.mode {
         ComposeMode::File { template_path } => strip_j2_suffix(template_path),
+        // Profile-mode dry-runs intentionally derive a fresh ULID so the reported
+        // target matches the real non-dry-run naming policy and avoids collisions.
         ComposeMode::Profile { name, .. } => request.root.as_path().join(".prompts").join(format!(
             "{}-{}.md",
             name,
             ulid::Ulid::new()
         )),
+    }
+}
+
+fn render_would_change(output_path: &Path, rendered_text: &str) -> bool {
+    match std::fs::read(output_path) {
+        Ok(existing) => existing != rendered_text.as_bytes(),
+        Err(_) => true,
     }
 }
 
@@ -651,6 +665,12 @@ fn strip_j2_suffix(path: &Path) -> PathBuf {
     let mut rebuilt = path.to_path_buf();
     rebuilt.set_file_name(stripped);
     rebuilt
+}
+
+fn print_diagnostic_messages(diagnostics: &[Diagnostic]) {
+    for diagnostic in diagnostics {
+        println!("{}", diagnostic.message);
+    }
 }
 
 fn print_json_frontmatter_init(result: &FrontmatterInitResult) -> Result<()> {
@@ -684,26 +704,59 @@ fn print_json(payload: serde_json::Value, diagnostics: Vec<sc_composer::Diagnost
 
 fn command_wants_json(command: &Command) -> bool {
     match command {
-        Command::Render(args) => args.json,
+        Command::Render(args) => args.render.json,
         Command::Resolve(args) => args.json,
         Command::Validate(args) => args.json,
         Command::FrontmatterInit(args) => args.json,
         Command::Init(args) => args.json,
+        Command::ObservabilityHealth(args) => args.json,
+        Command::Examples(args) => match &args.command {
+            Some(ExamplesSubcommand::List(list_args)) => list_args.json,
+            None => args.render.json,
+        },
+        Command::Templates(args) => match &args.command {
+            Some(TemplatesSubcommand::List(list_args)) => list_args.json,
+            Some(TemplatesSubcommand::Add(add_args)) => add_args.json,
+            None => args.render.json,
+        },
     }
 }
 
-fn observe_command(
-    observer: &mut dyn CompositionObserver,
+fn observe_command<O>(
+    observer: &mut O,
     command_name: &str,
-    action: impl FnOnce(&mut dyn CompositionObserver) -> Result<i32, CommandError>,
-) -> Result<i32, CommandError> {
+    json_output: bool,
+    action: impl FnOnce(&mut O) -> Result<i32, CommandError>,
+) -> Result<i32, CommandError>
+where
+    O: CompositionObserver + CommandLifecycleObserver,
+{
+    let started = Instant::now();
     observer.on_command_start(&CommandStartEvent {
         command_name: command_name.to_owned(),
+        json_output,
     });
     let result = action(observer);
+    let exit_code = match &result {
+        Ok(code) => *code,
+        Err(error) => error.exit_code,
+    };
     observer.on_command_end(&CommandEndEvent {
         command_name: command_name.to_owned(),
-        success: matches!(result, Ok(exit_codes::SUCCESS)),
+        exit_code,
+        success: result.is_ok(),
+        elapsed_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+        json_output,
+        diagnostic_code: result
+            .as_ref()
+            .err()
+            .and_then(|error| error.diagnostic_code.map(|code| code.as_str().to_owned())),
+        diagnostic_message: result.as_ref().err().and_then(|error| {
+            error
+                .diagnostics
+                .first()
+                .map(|diagnostic| diagnostic.message.clone())
+        }),
     });
     result
 }
@@ -748,11 +801,36 @@ fn format_diagnostic(diagnostic: &sc_composer::Diagnostic) -> String {
     }
 }
 
+fn format_recovery_hint(hint: &RecoveryHint) -> String {
+    match &hint.kind {
+        RecoveryHintKind::RunCommand { command } => format!("run `{command}`"),
+        RecoveryHintKind::InspectPath { path } => format!("inspect {}", path.display()),
+        RecoveryHintKind::ProvideVariable { variable } => {
+            format!("provide variable `{}`", variable.as_str())
+        }
+        RecoveryHintKind::ReviewConfiguration { key } => {
+            format!("review configuration: {key}")
+        }
+    }
+}
+
+fn actual_init_created_files(prompts_dir_missing: bool, gitignore_updated: bool) -> Vec<String> {
+    let mut created = Vec::new();
+    if prompts_dir_missing {
+        created.push(".prompts/".to_owned());
+    }
+    if gitignore_updated {
+        created.push(".gitignore".to_owned());
+    }
+    created
+}
+
 #[derive(Debug)]
 struct CommandError {
     exit_code: i32,
     diagnostic_code: Option<DiagnosticCode>,
     diagnostics: Vec<Diagnostic>,
+    recovery_hints: Vec<RecoveryHint>,
     error: anyhow::Error,
 }
 
@@ -762,11 +840,20 @@ impl CommandError {
             exit_code: exit_codes::USAGE_FAIL,
             diagnostic_code: None,
             diagnostics: Vec::new(),
+            recovery_hints: Vec::new(),
             error,
         }
     }
 
     fn usage_with_code(error: anyhow::Error, diagnostic_code: DiagnosticCode) -> Self {
+        Self::usage_with_code_and_hints(error, diagnostic_code, Vec::new())
+    }
+
+    fn usage_with_code_and_hints(
+        error: anyhow::Error,
+        diagnostic_code: DiagnosticCode,
+        recovery_hints: Vec<RecoveryHint>,
+    ) -> Self {
         Self {
             exit_code: exit_codes::USAGE_FAIL,
             diagnostic_code: Some(diagnostic_code),
@@ -775,6 +862,7 @@ impl CommandError {
                 diagnostic_code,
                 format!("{error:#}"),
             )],
+            recovery_hints,
             error,
         }
     }
@@ -790,6 +878,7 @@ impl CommandError {
             exit_code,
             diagnostic_code: error.code(),
             diagnostics: compose_error_diagnostics(&error),
+            recovery_hints: compose_error_recovery_hints(&error),
             error: anyhow!(error),
         }
     }
@@ -803,6 +892,7 @@ impl CommandError {
                 DiagnosticCode::ErrRenderWrite,
                 format!("{error:#}"),
             )],
+            recovery_hints: Vec::new(),
             error,
         }
     }
@@ -816,6 +906,7 @@ impl CommandError {
                 DiagnosticCode::ErrRenderStdinDoubleRead,
                 "guidance and prompt cannot both read from stdin",
             )],
+            recovery_hints: Vec::new(),
             error: anyhow!("guidance and prompt cannot both read from stdin"),
         }
     }
@@ -824,9 +915,14 @@ impl CommandError {
 impl fmt::Display for CommandError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(code) = self.diagnostic_code {
-            return write!(f, "{}: {:#}", code.as_str(), self.error);
+            write!(f, "{}: {:#}", code.as_str(), self.error)?;
+        } else {
+            write!(f, "{:#}", self.error)?;
         }
-        write!(f, "{:#}", self.error)
+        for hint in &self.recovery_hints {
+            write!(f, "\nrecovery: {}", format_recovery_hint(hint))?;
+        }
+        Ok(())
     }
 }
 
@@ -868,11 +964,29 @@ fn compose_error_diagnostics(error: &ComposeError) -> Vec<Diagnostic> {
     }
 }
 
+fn compose_error_recovery_hints(error: &ComposeError) -> Vec<RecoveryHint> {
+    match error {
+        ComposeError::Validation(error) => error.recovery_hints().to_vec(),
+        ComposeError::Config(error) => error.recovery_hints().to_vec(),
+        ComposeError::Resolve(_) | ComposeError::Include(_) | ComposeError::Render(_) => Vec::new(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::fs;
+    use std::path::PathBuf;
+    use std::sync::{Mutex, OnceLock};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
     use super::{CommandError, observe_command};
     use anyhow::anyhow;
-    use sc_composer::{CommandEndEvent, CommandStartEvent, CompositionObserver, DiagnosticCode};
+    use sc_composer::{CompositionObserver, DiagnosticCode};
+    use sc_observability_types::QueryHealthState;
+
+    use crate::exit_codes;
+    use crate::observability::build_logger_for_root;
+    use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
 
     #[derive(Default)]
     struct CapturingObserver {
@@ -880,7 +994,9 @@ mod tests {
         ended: Vec<CommandEndEvent>,
     }
 
-    impl CompositionObserver for CapturingObserver {
+    impl CompositionObserver for CapturingObserver {}
+
+    impl CommandLifecycleObserver for CapturingObserver {
         fn on_command_start(&mut self, event: &CommandStartEvent) {
             self.started.push(event.clone());
         }
@@ -894,11 +1010,27 @@ mod tests {
     fn observe_command_emits_start_and_end_for_success() {
         let mut observer = CapturingObserver::default();
 
-        let result = observe_command(&mut observer, "render", |_observer| Ok(0));
+        let result = observe_command(&mut observer, "render", false, |_observer| Ok(0));
 
         assert_eq!(result.unwrap(), 0);
         assert_eq!(observer.started.len(), 1);
         assert_eq!(observer.ended.len(), 1);
+        assert_eq!(observer.started[0].command_name, "render");
+        assert!(!observer.started[0].json_output);
+        assert_eq!(observer.ended[0].exit_code, 0);
+        assert!(observer.ended[0].success);
+    }
+
+    #[test]
+    fn observe_command_treats_successful_nonzero_exit_as_success() {
+        let mut observer = CapturingObserver::default();
+
+        let result = observe_command(&mut observer, "validate", true, |_observer| Ok(2));
+
+        assert_eq!(result.unwrap(), 2);
+        assert_eq!(observer.started.len(), 1);
+        assert_eq!(observer.ended.len(), 1);
+        assert_eq!(observer.ended[0].exit_code, 2);
         assert!(observer.ended[0].success);
     }
 
@@ -906,7 +1038,7 @@ mod tests {
     fn observe_command_emits_start_and_end_for_failure() {
         let mut observer = CapturingObserver::default();
 
-        let result = observe_command(&mut observer, "render", |_observer| {
+        let result = observe_command(&mut observer, "render", true, |_observer| {
             Err(CommandError::usage_with_code(
                 anyhow!("boom"),
                 DiagnosticCode::ErrRenderStdinDoubleRead,
@@ -916,6 +1048,90 @@ mod tests {
         let _ = result.unwrap_err();
         assert_eq!(observer.started.len(), 1);
         assert_eq!(observer.ended.len(), 1);
+        assert!(observer.started[0].json_output);
+        assert_eq!(observer.ended[0].exit_code, exit_codes::USAGE_FAIL);
         assert!(!observer.ended[0].success);
+        assert_eq!(
+            observer.ended[0].diagnostic_code.as_deref(),
+            Some(DiagnosticCode::ErrRenderStdinDoubleRead.as_str())
+        );
+    }
+
+    #[test]
+    fn build_logger_disables_console_sink_for_json_output() {
+        let logger = build_logger_for_root(temp_root("logger-json"), true).expect("logger");
+        let health = logger.health();
+
+        assert_eq!(health.sink_statuses.len(), 1);
+        assert_eq!(health.sink_statuses[0].name.as_str(), "jsonl-file");
+    }
+
+    #[test]
+    fn build_logger_enables_console_sink_for_text_output() {
+        let logger = build_logger_for_root(temp_root("logger-text"), false).expect("logger");
+        let health = logger.health();
+
+        assert_eq!(health.sink_statuses.len(), 2);
+        assert!(
+            health
+                .sink_statuses
+                .iter()
+                .any(|sink| sink.name.as_str() == "console")
+        );
+    }
+
+    #[test]
+    fn shutdown_marks_query_health_unavailable() {
+        let logger = build_logger_for_root(temp_root("logger-shutdown"), false).expect("logger");
+        let observer = crate::observer_impl::CliObserver::new(logger);
+
+        assert_eq!(
+            observer.health().query.expect("query health present").state,
+            QueryHealthState::Healthy
+        );
+
+        observer.shutdown();
+
+        assert_eq!(
+            observer.health().query.expect("query health present").state,
+            QueryHealthState::Unavailable
+        );
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn build_logger_reports_usage_error_when_current_directory_is_unavailable() {
+        static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+
+        let _guard = ENV_LOCK
+            .get_or_init(|| Mutex::new(()))
+            .lock()
+            .expect("lock current-dir guard");
+        let original_dir = std::env::current_dir().expect("current dir");
+        let missing_dir = temp_root("logger-missing-cwd").join("gone");
+        fs::create_dir_all(&missing_dir).expect("create missing dir");
+        std::env::set_current_dir(&missing_dir).expect("enter missing dir");
+        fs::remove_dir_all(&missing_dir).expect("remove current dir");
+
+        let result = crate::observability::build_logger(false);
+
+        std::env::set_current_dir(&original_dir).expect("restore current dir");
+
+        let Err(error) = result else {
+            panic!("logger build should fail");
+        };
+        assert_eq!(error.exit_code, exit_codes::USAGE_FAIL);
+        assert!(format!("{error}").contains("failed to determine current directory"));
+    }
+
+    fn temp_root(label: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("sc-compose-{label}-{}-{nanos}", std::process::id()));
+        fs::create_dir_all(&root).expect("create temp root");
+        root
     }
 }

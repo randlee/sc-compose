@@ -1,0 +1,35 @@
+---
+required_variables:
+  - module_name
+  - fixture_name
+defaults:
+  fixture_scope: module
+  test_names: []
+  setup_body: "pass"
+  teardown_body: "pass"
+metadata:
+  purpose: pytest scaffold with one-time setup, one-time shutdown, and failing tests
+---
+# Pytest scaffold example.
+# Render with a var file containing:
+# { "module_name": "auth", "fixture_name": "fixture_state",
+#   "test_names": ["login", "logout"] }
+
+import pytest
+
+
+@pytest.fixture(scope="{{ fixture_scope }}")
+def {{ fixture_name }}():
+    {{ fixture_name }}_state = {
+        "module": "{{ module_name }}",
+    }
+    {{ setup_body }}
+    yield {{ fixture_name }}_state
+    {{ teardown_body }}
+
+
+{% for test_name in test_names %}
+def test_{{ test_name }}({{ fixture_name }}):
+    pytest.fail("Fail: Not implemented")
+
+{% endfor %}

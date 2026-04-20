@@ -16,12 +16,13 @@ Use this checklist before every crates.io release of `sc-composer` and `sc-compo
 - [ ] `cargo test --workspace` passes with zero failures on the release tag commit
 - [ ] `cargo clippy --all-targets --all-features -- -D warnings` passes
 - [ ] `cargo fmt --all --check` passes
-- [ ] Sprint 6 exit gate is fully cleared:
-  - all FR-1 through FR-9 requirements implemented and covered by tests
+- [ ] Sprint 4 exit gate is fully cleared:
+  - all FR-1 through FR-11 requirements implemented and covered by tests
   - failure-mode matrix ERR_* codes exercised by tests
-  - full end-to-end smoke test passes
-  - `qm-comp` full QA pass on the release branch
-  - `arch-ctm` final design review complete
+  - full end-to-end smoke test passes, including `observability-health`
+  - `--json` commands are verified to keep stdout machine-readable
+  - `quality-mgr` full QA pass on the release branch
+  - `team-lead` final design review complete
 
 ## Pre-Release: crates.io Ownership
 
@@ -32,6 +33,8 @@ Use this checklist before every crates.io release of `sc-composer` and `sc-compo
 - [ ] Confirm that the publish token (CARGO_REGISTRY_TOKEN) is configured in GitHub
       Actions secrets for the `release` environment
 - [ ] Confirm the token has permission to publish both `sc-composer` and `sc-compose`
+- [ ] Confirm `HOMEBREW_TAP_TOKEN` is configured in repo secrets before running the
+      release workflow
 
 ## Pre-Release: Release Preflight
 
@@ -58,13 +61,15 @@ triggered by a release tag.
 - [ ] Verify `sc-compose` is visible on crates.io at the expected version
 - [ ] Run `cargo add sc-composer@<version>` in a scratch workspace to confirm the crate resolves
 - [ ] Run `cargo install sc-compose@<version>` to confirm the binary installs cleanly
+- [ ] Verify the GitHub Release archives include `share/sc-compose/examples/`
+- [ ] Verify the Homebrew formula update completed in `randlee/homebrew-tap`
+- [ ] Verify the `winget` submission/update was dispatched successfully
 - [ ] Update `release/RELEASE-NOTES-TEMPLATE.md` with the actual release summary
 - [ ] Tag the release commit: `git tag v<version> && git push origin v<version>`
 - [ ] Create a GitHub release pointing at the tag with the filled-in release notes
 
-## Deferred: First Standalone Release
+## Release Authorization
 
-The initial standalone release from this repo is deferred until downstream product integration
-is complete. See `docs/migration-notes.md` for the cutover plan and blocking conditions.
-
-Do NOT publish until the downstream integration gate is cleared.
+- [ ] Sprint 4 exit gate is cleared on the release branch
+- [ ] standalone boundary verification passes with no forbidden ATM references in source
+- [ ] downstream cutover notes are published alongside the release notes

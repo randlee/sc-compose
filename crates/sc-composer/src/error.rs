@@ -111,6 +111,10 @@ impl ResolveError {
     /// Create a new resolver error without an underlying source.
     #[must_use]
     #[allow(
+        unfulfilled_lint_expectations,
+        reason = "Constructor is currently used; keep the explicit dead_code expectation tracked."
+    )]
+    #[expect(
         dead_code,
         reason = "Sprint 2 seeds constructors that later pipeline modules call."
     )]
@@ -131,6 +135,10 @@ impl ResolveError {
     /// Attach an underlying source error.
     #[must_use]
     #[allow(
+        unfulfilled_lint_expectations,
+        reason = "Constructor is currently used; keep the explicit dead_code expectation tracked."
+    )]
+    #[expect(
         dead_code,
         reason = "Sprint 2 seeds constructors that later pipeline modules call."
     )]
@@ -191,6 +199,10 @@ impl IncludeError {
     /// Create a new include error.
     #[must_use]
     #[allow(
+        unfulfilled_lint_expectations,
+        reason = "Constructor is currently used; keep the explicit dead_code expectation tracked."
+    )]
+    #[expect(
         dead_code,
         reason = "Sprint 2 seeds constructors that later pipeline modules call."
     )]
@@ -211,6 +223,10 @@ impl IncludeError {
     /// Attach an underlying source error.
     #[must_use]
     #[allow(
+        unfulfilled_lint_expectations,
+        reason = "Constructor is currently used; keep the explicit dead_code expectation tracked."
+    )]
+    #[expect(
         dead_code,
         reason = "Sprint 2 seeds constructors that later pipeline modules call."
     )]
@@ -321,6 +337,10 @@ impl ValidationError {
     /// Attach structured recovery hints.
     #[must_use]
     #[allow(
+        unfulfilled_lint_expectations,
+        reason = "Constructor is currently used; keep the explicit dead_code expectation tracked."
+    )]
+    #[expect(
         dead_code,
         reason = "Sprint 2 seeds constructors that later pipeline modules call."
     )]
@@ -332,6 +352,10 @@ impl ValidationError {
     /// Attach an underlying source error.
     #[must_use]
     #[allow(
+        unfulfilled_lint_expectations,
+        reason = "Constructor is currently used; keep the explicit dead_code expectation tracked."
+    )]
+    #[expect(
         dead_code,
         reason = "Sprint 2 seeds constructors that later pipeline modules call."
     )]
@@ -391,6 +415,7 @@ impl StdError for ValidationError {
 #[derive(Debug)]
 pub struct RenderError {
     code: Option<DiagnosticCode>,
+    message: String,
     source: BoxedError,
     backtrace: Backtrace,
 }
@@ -402,8 +427,10 @@ impl RenderError {
     /// types at the public API boundary.
     #[must_use]
     pub(crate) fn render(source: impl StdError + Send + Sync + 'static) -> Self {
+        let message = source.to_string();
         Self {
             code: None,
+            message,
             source: Box::new(source),
             backtrace: Backtrace::capture(),
         }
@@ -412,6 +439,10 @@ impl RenderError {
     /// Attach a stable render code when the calling layer knows one.
     #[must_use]
     #[allow(
+        unfulfilled_lint_expectations,
+        reason = "Constructor is currently used; keep the explicit dead_code expectation tracked."
+    )]
+    #[expect(
         dead_code,
         reason = "Sprint 2 seeds constructors that later pipeline modules call."
     )]
@@ -433,8 +464,8 @@ impl RenderError {
 
     /// Return the render-failure message.
     #[must_use]
-    pub fn message(&self) -> String {
-        self.source.to_string()
+    pub fn message(&self) -> &str {
+        &self.message
     }
 }
 
@@ -476,6 +507,10 @@ impl ConfigError {
     /// Attach structured recovery hints.
     #[must_use]
     #[allow(
+        unfulfilled_lint_expectations,
+        reason = "Constructor is currently used; keep the explicit dead_code expectation tracked."
+    )]
+    #[expect(
         dead_code,
         reason = "Sprint 2 seeds constructors that later pipeline modules call."
     )]

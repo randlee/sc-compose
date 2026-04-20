@@ -3,10 +3,12 @@ members = ["crates/sc-composer", "crates/sc-compose"]
 resolver = "2"
 
 [workspace.package]
-version = "0.46.2"
+version = "1.0.0"
 edition = "2024"
 license = "MIT"
-rust-version = "1.85"
+# Rust 1.94.1 is the effective workspace floor because the Sprint 2
+# observability integration depends on sc-observability 1.0.0.
+rust-version = "1.94.1"
 repository = "https://github.com/randlee/sc-compose"
 homepage = "https://github.com/randlee/sc-compose"
 
@@ -14,6 +16,7 @@ homepage = "https://github.com/randlee/sc-compose"
 anyhow = "1"
 clap = { version = "4.5", features = ["derive"] }
 minijinja = "2.12"
+sc-observability = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
@@ -50,7 +53,7 @@ map_err_ignore = "warn"
 redundant_type_annotations = "warn"
 renamed_function_params = "warn"
 semicolon_outside_block = "warn"
-string_to_string = "warn"
+implicit_clone = "warn"
 unnecessary_safety_comment = "warn"
 unnecessary_safety_doc = "warn"
 unneeded_field_pattern = "warn"

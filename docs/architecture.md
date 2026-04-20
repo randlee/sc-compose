@@ -1,16 +1,16 @@
 # SC-Compose Architecture
 
-> Status: Draft
+> Status: Active Release Baseline
 > Product: `sc-composer` (library) and `sc-compose` (CLI)
-> Document role: Normative target architecture for the redesign of both crates
+> Document role: Normative release architecture for both crates
 
 This document supersedes the prior high-level placeholder. It is the normative
-architecture baseline for `sc-compose` v0.x.
+release architecture baseline for `sc-compose` v1.0.
 
 ## 1. Architectural Intent
 
-This document describes the intended architecture of the redesigned
-`sc-composer` and `sc-compose` crates. It is not a description of the current
+This document defines the required architecture of `sc-composer` and
+`sc-compose` for release work. It is not a description of the current
 implementation.
 
 The goals are:
@@ -29,33 +29,34 @@ The goals are:
    | ATM adapter / other host integration          |
    | - builds ComposeRequest                       |
    | - calls render_template() or Renderer         |
-   | - injects observer implementation if needed   |
+   | - may inject an observer implementation       |
    +-------------------------+---------------------+
                              |
                              v
-                  +-----------------------+
-                  |      sc-compose       |
-                  | CLI / UX / exit codes |
-                  +-----------+-----------+
-                              |
+                  +-------------------------------+
+                  |          sc-compose           |
+                  |   CLI / UX / logger wiring    |
+                  +-----------+-------------------+
+                              | uses concrete logger
                               v
-                  +-----------------------+
-                  |     sc-composer       |
-                  | core composition API  |
-                  | observer traits only  |
-                  +-----------+-----------+
+                  +-------------------------------+
+                  |       sc-observability        |
+                  |   Logger + file/console sinks |
+                  +-------------------------------+
                               ^
+                              | injects CLI-owned observer adapter
                               |
-                  +-----------+-----------+
-                  |   sc-observability    |
-                  | concrete sink/binding |
-                  | injected via traits   |
-                  +-----------------------+
+                  +-----------+-------------------+
+                  |         sc-composer           |
+                  | core composition API +        |
+                  | local observer hook layer     |
+                  +-----------+-------------------+
 ```
 
 ATM-specific integration attaches above the two-crate boundary. `sc-composer`
-never imports ATM types, and `sc-observability` integration occurs through
-trait injection rather than a direct library dependency.
+never imports ATM types, defines its observer hooks locally, and receives
+concrete logging behavior through trait injection rather than a direct
+dependency on `sc-observability`.
 
 ## 3. Crate Layout
 
@@ -82,21 +83,24 @@ trait injection rather than a direct library dependency.
 - output formatting,
 - exit codes,
 - file-writing UX,
-- CLI-facing observability wiring.
+- CLI-facing observability wiring,
+- bundled example-pack discovery,
+- user template-pack discovery and storage,
+- pack metadata parsing,
+- templates add workflows.
 
 ### 3.3 Dependency Direction
 
 Required dependency direction:
 
 - `sc-compose` -> `sc-composer`
-- `sc-compose` -> `sc-observability` as the intended concrete observability
-  binding during implementation
+- `sc-compose` -> `sc-observability`
+- `sc-observability` -> `sc-observability-types`
 
-Design-ahead note:
+Required observability split:
 
-- `sc-observability` is the intended observability integration target for the
-  CLI architecture, even if the dependency is not yet present in `Cargo.toml`
-  at the time this document is written.
+- `sc-observability` is the concrete logging integration target for the CLI.
+- `sc-composer` keeps its observer interfaces local.
 
 Forbidden dependency direction:
 
@@ -113,9 +117,9 @@ ATM integration is an adapter concern outside this repository.
 - An ATM adapter depends on `sc-composer` or `sc-compose`; this repository does
   not depend on ATM crates.
 - The adapter constructs `ComposeRequest` values and calls either
-  `render_template()` for one-shot usage or the planned `Renderer` API for
+  `render_template()` for one-shot usage or the `Renderer` API for
   repeated rendering.
-- If ATM needs telemetry, the adapter or CLI injects an observer implementation
+- If ATM needs telemetry, the adapter or CLI injects a sink implementation
   through the library's trait-based observability hooks.
 - `sc-composer` never imports ATM types, mailbox abstractions, spool paths, or
   runtime-management helpers.
@@ -147,16 +151,12 @@ ATM integration is an adapter concern outside this repository.
   - distinguishes declared, undeclared, missing, and extra variables.
 - `render`
   - configures the template engine,
-  - exposes the planned long-lived `Renderer` session type as the primary API
-    for repeated rendering,
+  - exposes the long-lived `Renderer` session type as the primary API for
+    repeated rendering,
   - keeps `render_template()` as a one-shot convenience wrapper,
   - renders template content under normal or strict undeclared-token policy.
 - `validate`
   - produces validation reports and diagnostics without writing output.
-- `pipeline`
-  - concatenates resolved profile, guidance, and user prompt blocks in fixed
-    order,
-  - models internal stage transitions as typestate markers.
 - `error`
   - defines crate-owned error types and shared recovery-hint structures,
   - maps lower-level failures into stable public categories.
@@ -166,10 +166,13 @@ ATM integration is an adapter concern outside this repository.
 - `workspace`
   - implements `frontmatter-init` and `init` logic for reuse by the CLI and any
     future embedded callers.
-- `observability`
-  - defines event payloads and observer traits,
-  - never binds directly to `sc-observability`,
-  - allows the CLI or embedded hosts to inject concrete implementations.
+- `observer`
+  - defines the local observer and sink traits used by embedded hosts and the
+    CLI,
+  - owns the no-op observer used when no caller injects a concrete
+    implementation,
+  - emits structured composition-stage events,
+  - never binds directly to `sc-observability`.
 
 ## 5. Resolver Path Policy (FR-5)
 
@@ -237,7 +240,7 @@ Target frontmatter shape:
 ```text
 Frontmatter {
   required_variables: Vec<String>,
-  defaults: Map<String, ScalarValue>,
+  defaults: Map<String, InputValue>,
   metadata: Map<String, MetadataValue>,
 }
 ```
@@ -255,16 +258,30 @@ Semantic rules:
 - `defaults` supplies optional values that may satisfy a required variable.
 - `metadata` is descriptive only and does not affect render semantics in the
   initial design.
+- An empty sequence is a valid `InputValue` and may satisfy a required
+  variable.
 
-`ScalarValue` for the initial release means one of:
+`InputValue` for the initial release means one of:
 
 - string
 - number
 - boolean
 - null
+- sequence of scalar values
 
-Sequence and mapping values are out of scope for render-context variables in
-the initial release.
+Rust type contract:
+
+- `InputValue` is represented as `serde_json::Value`,
+- object values are rejected at parse time,
+- nested sequences are rejected at parse time,
+- only scalar values and arrays of scalar values may cross the CLI-to-library
+  boundary.
+
+Sequence values remain narrow in the initial release:
+
+- sequence members may contain only scalar values,
+- nested sequences are not supported,
+- mapping values are not supported in render-context inputs.
 
 `MetadataValue` may be any YAML value:
 
@@ -329,7 +346,7 @@ Required library surface:
 - `init_workspace(root, options) -> InitResult`
 - `frontmatter_init(path, options) -> FrontmatterInitResult`
 - `Renderer::render(compiled, context) -> Result<String, RenderError>` as the
-  planned primary repeated-render API
+  primary repeated-render API
 
 Primary render-entrypoint decision:
 
@@ -361,8 +378,9 @@ The rendering and composition surfaces have distinct responsibilities.
 - `runtime: Option<RuntimeKind>`
 - `mode: ComposeMode`
 - `root: ConfiningRoot`
-- `vars_input: Map<VariableName, ScalarValue>`
-- `vars_env: Map<VariableName, ScalarValue>`
+- `vars_input: Map<VariableName, InputValue>`
+- `vars_env: Map<VariableName, InputValue>`
+- `vars_defaults: Map<VariableName, InputValue>`
 - `guidance_block: Option<String>`
 - `user_prompt: Option<String>`
 - `policy: ComposePolicy`
@@ -564,15 +582,14 @@ For `compose` and `validate`, the target lifecycle is:
 10. Assemble final output blocks.
 11. Return composed output or validation report with diagnostics and trace data.
 
-Typestate encoding:
+Internal lifecycle encoding:
 
-- the pipeline should be modeled as state transitions over
-  `Document<Parsed>`, `Document<Expanded>`, `Document<Validated>`, and
-  `Document<Rendered>`,
-- each transition consumes the previous state and returns the next state or a
-  canonical error,
-- the typestate design exists to make ordering violations unrepresentable in
-  internal code, not to force callers to manipulate state markers directly.
+- the composition pipeline must preserve the documented ordering of resolve,
+  parse, include expansion, validation, render, and output assembly,
+- internal helpers may use staged data structures to make ordering violations
+  difficult to represent,
+- the initial release does not expose a public typestate API or a public
+  `pipeline` module.
 
 ## 13. CLI Command Architecture (FR-6, FR-7)
 
@@ -585,6 +602,15 @@ Command mapping:
 - `validate` -> `validate`
 - `frontmatter-init` -> `frontmatter_init`
 - `init` -> `init_workspace`
+- `observability-health` -> CLI logger initialization, then `Logger::health()`
+- `examples list` -> list bundled example packs
+- `examples <name>` -> resolve the bundled example-pack file, merge pack
+  `input_defaults`, then `compose`
+- `templates list` -> list user template packs
+- `templates add` -> copy a source file or directory into the user template
+  root as one pack
+- `templates <name>` -> resolve the user pack entry template, merge pack
+  `input_defaults`, then `compose`
 
 The CLI must not reimplement core composition semantics. If a command requires
 logic useful to non-CLI callers, that logic belongs in the library.
@@ -593,6 +619,7 @@ Command-specific rules:
 
 - `render`
   - accepts `file` mode and `profile` mode,
+  - requires `--file <path>` in file mode,
   - accepts optional guidance and user prompt blocks,
   - writes to stdout by default unless an output path is chosen.
 - `resolve`
@@ -606,6 +633,30 @@ Command-specific rules:
   - uses token discovery but does not render the file.
 - `init`
   - performs repository bootstrap and validation-oriented scanning.
+- `observability-health`
+  - reads logger health state without mutating composition behavior,
+  - prints a human-readable health summary by default,
+  - emits `LoggingHealthReport` under `--json` as defined in section 19.3.
+- `examples list` and `templates list`
+  - enumerate entries under their respective roots,
+  - surface normalized flat example names or template directory names as pack
+    names,
+  - emit stable JSON payloads containing `name` and absolute `path`,
+  - may append `template.json` `description` and `version` in human-readable
+    text output for templates when present.
+- `templates add`
+  - accepts a single file or directory source,
+  - creates one pack directory in the user template root,
+  - uses the explicit `[name]` when provided,
+  - otherwise uses the source directory name for directory input or the
+    normalized template filename for file input,
+  - fails if the target pack name already exists,
+  - does not merge into an existing pack in the initial release.
+- `examples <name>` and `templates <name>`
+  - treat the command namespace as the pack root selector,
+  - support the same render flags and output semantics as `render`,
+  - are defined only when the target pack has exactly one root-level `*.j2`
+    file.
 
 Guidance and prompt input model:
 
@@ -652,6 +703,7 @@ The schemas below define the `payload` shape for each command.
 ```json
 {
   "would_write": ".prompts/example-01HXYZ.md",
+  "would_change": true,
   "template": "path/to/template.md.j2",
   "rendered_preview": "preview text"
 }
@@ -690,12 +742,71 @@ The schemas below define the `payload` shape for each command.
 }
 ```
 
+`init --dry-run --json`
+
+```json
+{
+  "action": "init",
+  "would_affect": [
+    ".prompts/",
+    ".gitignore"
+  ],
+  "changed": false,
+  "would_change": true,
+  "skipped": false
+}
+```
+
+`examples list --json` and `templates list --json`
+
+```json
+{
+  "packs": [
+    {
+      "name": "hello",
+      "path": "/path/to/share/sc-compose/examples/hello.md.j2"
+    }
+  ]
+}
+```
+
+`templates add --json`
+
+```json
+{
+  "name": "pytest-fixture",
+  "source": "/path/from",
+  "destination": "/path/to",
+  "changed": true
+}
+```
+
+Named render through `examples <name>` and `templates <name>` reuses the
+`render` and `render --dry-run` payload schemas.
+
+`observability-health --json`
+
+```json
+{
+  "logging": {
+    "state": "Healthy",
+    "dropped_events_total": 0,
+    "flush_errors_total": 0,
+    "active_log_path": "<log_root>/logs/sc-compose.log.jsonl",
+    "sink_statuses": [],
+    "last_error": null,
+    "query": null
+  }
+}
+```
+
 `frontmatter-init --json`
 
 ```json
 {
   "template_path": "templates/example.md.j2",
   "frontmatter_added": true,
+  "would_change": true,
   "vars": [
     "name",
     "role"
@@ -711,6 +822,12 @@ Non-render `--dry-run --json`
   "would_affect": [
     "templates/example.md.j2"
   ],
+  "changed": false,
+  "would_change": true,
+  "vars": [
+    "name",
+    "role"
+  ],
   "skipped": false
 }
 ```
@@ -721,7 +838,12 @@ Schema notes:
   trace.
 - `location` is a single string field in CLI JSON even when the library tracks
   path, line, and column separately.
-- `rendered_preview` may be `null` when preview emission is suppressed.
+- `rendered_preview` is the dry-run preview string.
+- `payload.logging.query` is `null` when query/follow health is unavailable and
+  otherwise contains a `QueryHealthReport`.
+- `active_log_path` is derived from the configured log root and service name
+  using the `LOG-008` layout `<log_root>/logs/<service>.log.jsonl`.
+- The concrete path is platform-dependent; on Windows it may be drive-qualified.
 
 ## 14. Output Path Policy (FR-7)
 
@@ -734,7 +856,123 @@ Policy requirements:
 - explicit `--output` overrides derived behavior,
 - dry-run returns the same derived target information without writing files.
 
-## 15. `init` Command Behavior (FR-7)
+## 15. Template Pack Architecture (FR-1d, FR-2, FR-7)
+
+Template packs are CLI-owned assets. They do not change the core
+`sc-composer` composition semantics.
+
+Root resolution:
+
+- bundled examples root:
+  1. `SC_COMPOSE_DATA_DIR/examples`
+  2. install-relative `../share/sc-compose/examples/`
+- user templates root:
+  1. `SC_COMPOSE_TEMPLATE_DIR`
+  2. platform user-data directory joined with `sc-compose/templates/`
+
+Layout rules:
+
+- examples are flat `*.j2` files stored directly under the bundled examples
+  root,
+- example names are derived from the filename by removing the trailing `.j2`
+  suffix and then one remaining source extension when present,
+- normalized example names must remain unique after that derivation step,
+- templates are one subdirectory per template under the user templates root,
+- template names are directory names,
+- template directories may contain one or more files,
+- template directories may contain non-template assets retained verbatim when a
+  directory source is imported with `templates add`,
+- template directories may contain an optional `template.json`.
+
+`TemplateStore`
+
+- `TemplateStore` is a `sc-compose` CLI-layer abstraction and does not exist in
+  `sc-composer`,
+- it owns discovery, named lookup, and user-template import for one source
+  root,
+- concrete store roots are selected by `StoreKind::{Examples, Templates}`,
+- minimum field shape:
+  - `source_dir: PathBuf`
+  - `kind: StoreKind`
+- `TemplateMeta` carries:
+  - `name: String`
+  - `path: PathBuf`
+  - `description: Option<String>`
+  - `version: Option<String>`
+- `TemplatePack` carries:
+  - `root: PathBuf`
+  - `template_path: PathBuf`
+  - `input_defaults: Map<VariableName, InputValue>`
+- `TemplateAddResult` carries:
+  - `name: String`
+  - `source: PathBuf`
+  - `destination: PathBuf`
+  - `changed: bool`
+- required methods:
+  - `list() -> Result<Vec<TemplateMeta>>`
+  - `get_example(name: &str) -> Result<Option<TemplatePack>>`
+  - `get_template(name: &str) -> Result<Option<TemplatePack>, GetTemplateError>`
+  - `add(source: &Path, requested_name: Option<&str>) -> Result<TemplateAddResult, AddError>`
+- examples and templates use the same abstraction with different layout rules:
+  - examples list and named lookup operate on flat `*.j2` files,
+  - templates list and named lookup operate on subdirectories and resolve the
+    single root-level `*.j2` entry file when renderable,
+  - `AddError::AlreadyExists` is the structured duplicate-import path,
+  - `GetTemplateError::NotRenderable` is reserved for zero-or-many root-level
+    `*.j2` files,
+  - `GetTemplateError::Parse` covers manifest and filesystem read failures.
+
+Command extraction:
+
+- `src/commands/examples.rs` owns `run_examples_list` and
+  `run_examples_render`,
+- `src/commands/templates.rs` owns `run_templates_list`, `run_templates_add`,
+  and `run_templates_render`,
+- `main.rs` retains the top-level CLI shape and dispatch only.
+
+`template.json` is intentionally narrow and user-facing:
+
+```json
+{
+  "description": "Minimal greeting example",
+  "version": "1.0.0",
+  "input_defaults": {
+    "name": "world"
+  }
+}
+```
+
+Manifest rules:
+
+- `description` is for list and help output,
+- `version` is pack metadata only,
+- `input_defaults` contributes pack-level default inputs,
+- user-template input defaults merge with request inputs using the precedence
+  defined in the requirements:
+  1. explicit input variables
+  2. environment-derived variables
+  3. `template.json` `input_defaults`
+  4. frontmatter defaults
+- `input_defaults` values use the same `InputValue` contract as other caller
+  inputs:
+  - scalars,
+  - arrays of scalars,
+  - empty arrays are valid,
+  - objects and nested arrays are rejected
+- no manifest field selects entrypoints, paths, hooks, or alternate execution
+  behavior in the initial release.
+
+Implicit named render convention:
+
+- `examples <name>` resolves the flat example file with matching stem,
+- `templates <name>` resolves the single root-level `*.j2` file in the named
+  template directory,
+- if a template directory contains zero or multiple root-level `*.j2` files,
+  it remains listable but is not implicitly renderable by name,
+- supporting assets remain available for directory-import workflows and future
+  expansion, but they do not change the initial render resolution rules.
+
+## 16. `init` Command Behavior (FR-7)
 
 `init_workspace` and the CLI `init` command must:
 
@@ -752,19 +990,21 @@ Variable-file behavior:
 
 - `--var-file` loads a JSON or YAML object,
 - keys are strings,
-- values are `ScalarValue`,
-- nested arrays and objects are invalid in the initial release.
+- values are `InputValue`,
+- sequence values may contain only scalar values,
+- nested sequences and objects are invalid in the initial release.
 
-## 16. Safety Model (FR-4)
+## 17. Safety Model (FR-4)
 
 - Default deny for out-of-root file access
 - No shell execution inside the composition pipeline
 - No evaluation of arbitrary host code from templates
+- No hook execution from template packs or `template.json`
 - Include stack tracked for all include-related diagnostics
 - Deterministic failure semantics for path escape, missing include, cycle, and
   depth overflow
 
-## 17. Error and Exit Semantics (FR-7, FR-8)
+## 18. Error and Exit Semantics (FR-7, FR-8)
 
 The library should expose typed errors with stable categories. Validation
 results should remain structured and not collapse into string-only errors.
@@ -775,7 +1015,7 @@ Target CLI exit semantics:
 - `2` validation or render failure
 - `3` usage, configuration, or contract error
 
-### 17.1 Failure Mode Matrix
+### 18.1 Failure Mode Matrix
 
 Canonical failures must map to stable error families and stable codes.
 
@@ -787,7 +1027,7 @@ Canonical failures must map to stable error families and stable codes.
 | Include path escapes confinement root | `IncludeError` | `ERR_INCLUDE_ESCAPE` |
 | Include cycle detected | `IncludeError` | `ERR_INCLUDE_CYCLE` |
 | Include depth exceeds limit | `IncludeError` | `ERR_INCLUDE_DEPTH` |
-| Variable type mismatch or invalid scalar | `ValidationError` | `ERR_VAL_TYPE` |
+| Variable type mismatch or invalid render-context value | `ValidationError` | `ERR_VAL_TYPE` |
 | Duplicate frontmatter variable | `ValidationError` | `ERR_VAL_DUPLICATE` |
 | Empty template body | `ValidationError` | `ERR_VAL_EMPTY` |
 | Root template has no frontmatter block | `ValidationError` | `ERR_VAL_MISSING_FRONTMATTER` |
@@ -800,43 +1040,188 @@ Canonical failures must map to stable error families and stable codes.
 | Command or helper invoked in incompatible mode | `ConfigError` | `ERR_CONFIG_MODE` |
 | Config file missing or malformed | `ConfigError` | `ERR_CONFIG_PARSE` |
 | Invalid var-file shape | `ConfigError` | `ERR_CONFIG_VARFILE` |
+| Example or template pack name not found | `ConfigError` | `ERR_CONFIG_PACK_NOT_FOUND` |
+| Named pack is not renderable because a bundled example name is ambiguous or a template pack has zero or multiple root-level `*.j2` files | `ConfigError` | `ERR_CONFIG_PACK_NOT_RENDERABLE` |
+| `templates add` target name already exists | `ConfigError` | `ERR_CONFIG_TEMPLATE_EXISTS` |
 
-## 18. Observability Integration (FR-9)
+## 19. Observability Integration (FR-9, FR-10, FR-11)
 
 Architecture rules:
 
-- `sc-composer` exposes observer traits or sink traits and emits events through
-  that abstraction only.
-- `sc-compose` provides the canonical concrete binding to `sc-observability`.
+- `sc-composer` emits composition telemetry through its local
+  `sc_composer::observer` hook layer.
+- `sc-compose` provides the canonical concrete binding to the full
+  `sc-observability` `Logger`.
+- The initial release scope is logging-only:
+  - structured log events
+  - logger health reporting
+  - graceful shutdown
+  - downstream extension through the local observer hook model
 - If no observer is provided, library and CLI behavior degrade to a no-op
   observability path rather than failing.
-- Event emission points should cover:
-  - command start and end,
-  - resolve attempts and outcomes,
-  - include expansion outcomes,
-  - validation outcomes,
-  - render outcomes.
 - Library observability hooks must remain usable by embedded consumers.
 - Default sink paths for standalone CLI behavior must be tool-scoped.
 - Observer and sink traits must be object-safe and `dyn`-compatible.
-- Observer and sink traits are intentionally public and unsealed so embedded
-  hosts can provide their own implementations.
+- Observer and sink adapters are intentionally public and unsealed so embedded
+  hosts can
+  provide their own implementations.
+- `sc-observe` and `sc-observability-otlp` are not part of this initial
+  release architecture.
 
-### 18.1 Host Injection Pattern
+### 19.1 Dependency Graph
 
-Embedded hosts integrate by implementing the public observer or sink traits and
-passing those implementations into `sc-composer` or `sc-compose`.
+The observability dependency chain is intentionally split so the library stays
+runtime-agnostic:
 
-- ATM and other hosts are expected to provide their own concrete observer or
-  sink implementations when they need custom telemetry projection.
-- A built-in no-op observer remains the default behavior when no host-provided
-  implementation is supplied.
-- Host injection is an intentional extension point, not a temporary exception.
+```text
+sc-compose -----> sc-composer
+     |
+     v
+sc-observability -----> sc-observability-types
+```
 
-## 19. Extensibility
+- `sc-composer` defines its own `ObservationEvent`, `ObservationSink`, and
+  `CompositionObserver` hook types locally.
+- `sc-observability` depends on `sc-observability-types` and owns `Logger`,
+  `LogSink`, file sinks, console sinks, `LoggingHealthReport`,
+  `QueryHealthReport`, and `QueryHealthState` through its public re-export
+  surface.
+- `sc-compose` depends on both `sc-composer` and `sc-observability`.
 
-The redesign should keep room for future extensions without destabilizing the
-core behavior.
+### 19.2 Library Injection Pattern
+
+`sc-composer` exposes a caller-provided observer/sink injection path through
+its local `observer` module:
+
+```rust
+use sc_composer::observer::{
+    CompositionObserver, ObservationEvent, ObservationSink,
+};
+
+pub enum ObservationEvent {
+    ResolveAttempt(ResolveAttemptEvent),
+    ResolveOutcome(ResolveOutcomeEvent),
+    IncludeExpandOutcome(IncludeOutcomeEvent),
+    ValidationOutcome(ValidationOutcomeEvent),
+    RenderOutcome(RenderOutcomeEvent),
+}
+
+pub trait ObservationSink {
+    fn emit(&mut self, event: &ObservationEvent);
+}
+
+pub trait CompositionObserver {
+    fn on_resolve_attempt(&mut self, event: &ResolveAttemptEvent) {}
+    fn on_resolve_outcome(&mut self, event: &ResolveOutcomeEvent) {}
+    fn on_include_outcome(&mut self, event: &IncludeOutcomeEvent) {}
+    fn on_validation_outcome(&mut self, event: &ValidationOutcomeEvent) {}
+    fn on_render_outcome(&mut self, event: &RenderOutcomeEvent) {}
+}
+
+pub fn compose(request: &ComposeRequest) -> Result<ComposeResult, ComposeError>;
+pub fn compose_with_observer(
+    request: &ComposeRequest,
+    observer: &mut dyn CompositionObserver,
+) -> Result<ComposeResult, ComposeError>;
+```
+
+Required library behavior:
+
+- `Renderer::new(...)` and `compose()` install the built-in no-op observer
+  unless a caller supplies an explicit observer.
+- `compose_with_observer(...)` is the public end-to-end observability
+  injection entry point.
+- `ObservationSink` and `CompositionObserver` remain the local extension points
+  for embedded hosts that do not opt into the CLI.
+- `ObservationSink::emit()` is the host-facing single-event adapter surface.
+  Internal composition code emits through the typed `CompositionObserver`
+  callbacks rather than routing through `emit()`.
+- The approved minimum library-owned variant set is:
+  - `ResolveAttempt`
+  - `ResolveOutcome`
+  - `IncludeExpandOutcome`
+  - `ValidationOutcome`
+  - `RenderOutcome`
+- The observer surface remains object-safe and callable through
+  `&mut dyn CompositionObserver`.
+- Command lifecycle events remain CLI-owned and must not be defined in
+  `sc-composer`.
+
+### 19.3 CLI Wiring
+
+`sc-compose` constructs `sc-observability::Logger` during CLI startup, wraps it
+in a CLI-owned adapter that implements `sc_composer::observer::ObservationSink`
+or `sc_composer::observer::CompositionObserver`, then passes that adapter into
+`compose_with_observer(...)`.
+
+CLI wiring rules:
+
+- normal terminal execution enables both file and console sinks,
+- `--json` execution disables the console sink so command stdout remains valid
+  machine-readable output,
+- command lifecycle logging remains CLI-owned and emits:
+  - command start
+  - command completion
+  - command failure
+- `observability-health` initializes the logger using the same configuration
+  path as a normal CLI process, reads `Logger::health()`, prints a
+  human-readable summary by default, and serializes the returned
+  `LoggingHealthReport` under `--json`,
+- `observability-health` reports process-local logger state only and does not
+  depend on any daemon or background runtime,
+- CLI shutdown calls the logger's `shutdown()` path so registered sinks flush
+  before process exit.
+
+### 19.4 Public API Paths
+
+The normative public API paths for this design are:
+
+- `sc_composer::compose`
+- `sc_composer::compose_with_observer`
+- `sc_composer::Renderer`
+- `sc_composer::observer::ObservationEvent`
+- `sc_composer::observer::CompositionObserver`
+- `sc_composer::observer::ObservationSink`
+
+### 19.5 Event Shape and Emission Points
+
+The composition pipeline emits `ObservationEvent` values through the local
+observer hook layer. The CLI adapter maps those events into concrete logger
+records with stable `target`, `action`, and `message` fields that describe:
+
+Message rules:
+
+- `message` is a short human-readable summary of the event outcome.
+- Structured fields, not `message`, carry schema-relevant details.
+- `message` wording must remain stable enough for operator-facing logs and test
+  assertions.
+
+The CLI also emits command lifecycle events with stable `target`, `action`,
+and `message` fields for:
+
+- command start,
+- command completion,
+- command failure.
+
+The adapter-owned mapping is:
+
+| `sc-compose` event source | `LogEvent.target` | `LogEvent.action` | `LogEvent.message` | Other `LogEvent` fields |
+| --- | --- | --- | --- | --- |
+| command start | `compose.command` | `started` | human-readable summary such as `render started` | `fields` include command name and relevant mode flags |
+| command end, success | `compose.command` | `completed` | human-readable summary such as `render completed` | `fields` include command name, elapsed time, and output mode; `outcome` is success |
+| command end, failure | `compose.command` | `failed` | human-readable summary such as `render failed` | `fields` include command name, exit code, elapsed time, and output mode; `outcome` is failure; `diagnostic` is attached when available |
+| resolve attempt or outcome | `compose.resolve` | phase-specific action such as `attempt`, `resolved`, or `failed` | concise resolver summary sentence | `outcome` reflects success/failure; `diagnostic` is attached for failures; resolver traces or selected paths live in `fields` |
+| include-expand outcome | `compose.include_expand` | phase-specific action such as `expanded` or `failed` | concise include-expansion summary sentence | include stack and path details live in `fields`; failures attach `diagnostic` |
+| validation outcome | `compose.validate` | phase-specific action such as `completed` or `failed` | concise validation summary sentence | validation counts and policy decisions live in `fields`; failures attach `diagnostic` |
+| render outcome | `compose.render` | phase-specific action such as `completed` or `failed` | concise render summary sentence | render metadata lives in `fields`; `outcome` and `diagnostic` reflect success/failure |
+
+This mapping is intentionally adapter-owned so `sc-observability` preserves a
+generic logging contract and command lifecycle events remain CLI-owned.
+
+## 20. Extensibility
+
+The release architecture keeps room for future extensions without destabilizing
+the core behavior.
 
 Expected extension points:
 
@@ -844,12 +1229,16 @@ Expected extension points:
 - remote include providers,
 - template caching,
 - custom resolver policies,
-- richer frontmatter metadata consumers.
+- richer frontmatter metadata consumers,
+- template-pack lifecycle commands beyond `add`,
+- named render for multi-template packs.
 
 Trait openness decisions:
 
-- observer and sink traits are open extension points for embedded hosts,
+- sink traits are open extension points for embedded hosts,
 - `ResolverPolicy` is open because caller-specific path policy is an explicit
   product requirement,
-- value-model and metadata extension points remain closed until a future
-  requirement broadens the v1 scalar contract.
+- value-model and metadata extension points remain narrow by design:
+  scalar values plus simple sequences are open in the initial release, but
+  hooks, arbitrary manifest-driven behavior, and nested mappings remain
+  deferred.

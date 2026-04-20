@@ -7,14 +7,14 @@
 home for both crates. All future development and releases happen here.
 
 The last versions of these crates published from the `agent-team-mail` workspace are the
-baseline. This repo's workspace version (currently `0.46.2`) is set above that baseline to
-ensure crates.io version ordering is correct when the first standalone release occurs.
+baseline. This repo's standalone release version is `1.0.0`, which stays above that
+baseline so crates.io version ordering remains correct through the source-of-truth cutover.
 
 ## What Changes for Downstream Consumers
 
 ### crates.io Consumers
 
-Once the first release from this repo is published:
+With the first standalone `1.0.0` release from this repo:
 
 - Downstream crates that depend on `sc-composer` or `sc-compose` via crates.io will
   automatically resolve to the new source with no manifest change required, as long as
@@ -36,7 +36,7 @@ Cutover steps for the ATM workspace maintainer:
    sc-composer = { path = "../sc-composer" }
 
    # After (crates.io pin):
-   sc-composer = "0.46.2"
+   sc-composer = "1.0.0"
    ```
 3. Run `cargo update` to resolve the dependency graph.
 4. Run `cargo test --workspace` to verify nothing broke.
@@ -48,7 +48,8 @@ Cutover steps for the ATM workspace maintainer:
 This is a breaking-change release relative to the last ATM-published version. Consumers
 should expect:
 
-- **API surface changes**: The public API has been redesigned through sprints S2-S6.
+- **API surface changes**: The public API has been redesigned across the current
+  four-sprint release plan.
   Type names, module paths, and function signatures may differ from the ATM-workspace versions.
   Review `docs/requirements.md` and `docs/architecture.md` for the authoritative API contract.
 - **Error type redesign**: `ComposeError`, `ResolveError`, `IncludeError`, `ValidationError`,
@@ -56,21 +57,49 @@ should expect:
   now stable; error variant names are not guaranteed to match the prior version.
 - **Observer API**: The observer/sink trait surface is new in this release. ATM adapters
   must implement the new traits. See `docs/atm-adapter-notes.md` for the integration guide.
+- **Logging integration**: `sc-compose` now owns concrete structured logging through
+  `sc-observability`. The CLI creates the logger, keeps file logging enabled for every
+  command, suppresses the console sink whenever `--json` is active, and exposes
+  `observability-health` for process-local sink/query health inspection.
+- **Template whitespace behavior**: `trim_blocks` and `lstrip_blocks` are enabled by
+  default. Block tags now strip the trailing newline after the block and the leading
+  indentation before the next rendered content. Templates that need the previous
+  whitespace-preserving behavior must opt out with the Jinja `+` modifier, for
+  example `{%+ if condition %}`.
+- **Binary allocator**: `sc-compose` now installs `mimalloc` as the global allocator.
+  This changes the standalone binary's allocation profile without changing the
+  `sc-composer` library API.
 - **CLI flags**: Some CLI flags have been renamed or added. See `docs/requirements.md` FR-7
   for the complete current flag specification.
 
-## Deferred Publish: Blocking Conditions
+## Observability Cutover Notes
 
-The first standalone crates.io release is **deferred** until both conditions are met:
+Downstream consumers that embed `sc-composer` keep using the local observer hooks.
+They do not need to adopt `sc-observability` unless they want the same structured
+logging behavior as the CLI.
 
-1. **Downstream integration is complete**: at least one downstream consumer (ATM or another
-   product) has been updated to use the new API and the integration has been verified in a
-   non-production environment.
-2. **Integration gate is cleared**: `qm-comp` and `arch-ctm` have signed off on the
-   integration test results.
+Downstream consumers that shell out to `sc-compose` should expect:
 
-Do NOT publish before these conditions are met, even if the sprint exit gates are all passing.
-The version number `0.46.2` is intentionally held until integration is ready.
+- a new `observability-health` command for process-local logger health,
+- structured JSON command output to remain clean when `--json` is active because the
+  console sink is disabled in that mode,
+- `observability-health --json` to serialize `logging.query` as `null` whenever
+  query/follow is unavailable in the process-local logger,
+- file-backed logging under `SC_LOG_ROOT` when the environment variable is set, or
+  `.sc-compose/logs/` under the current working directory otherwise.
+- graceful shutdown to flush logger sinks before process exit while recording sink
+  degradation in health counters instead of aborting command completion.
+
+## Release And Cutover Order
+
+The first standalone crates.io release for this repo is `1.0.0`.
+
+Recommended downstream cutover order:
+
+1. Publish `sc-composer` and `sc-compose` version `1.0.0` from this repo.
+2. Verify crates.io resolution and installation using the release checklist.
+3. Update downstream consumers such as ATM to the published versions.
+4. Run downstream integration validation after the published release is live.
 
 ## Post-Cutover Ownership
 

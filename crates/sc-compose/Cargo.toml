@@ -14,11 +14,16 @@ categories = ["command-line-utilities", "development-tools"]
 [dependencies]
 anyhow.workspace = true
 clap.workspace = true
+mimalloc = { version = "0.1" }
 serde.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true
-sc-composer = { path = "../sc-composer", version = "0.46.2" }
+sc-composer = { path = "../sc-composer", version = "1.0.0" }
+sc-observability.workspace = true
 ulid.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+sc-observability-types = "1"

@@ -61,6 +61,12 @@ pub enum DiagnosticCode {
     ErrConfigParse,
     /// A var-file contained an unsupported structure.
     ErrConfigVarfile,
+    /// A named example or template pack could not be found.
+    ErrConfigPackNotFound,
+    /// A named template pack was not renderable by name.
+    ErrConfigPackNotRenderable,
+    /// A template import target already exists.
+    ErrConfigTemplateExists,
 }
 
 impl DiagnosticCode {
@@ -87,6 +93,9 @@ impl DiagnosticCode {
             Self::ErrConfigMode => "ERR_CONFIG_MODE",
             Self::ErrConfigParse => "ERR_CONFIG_PARSE",
             Self::ErrConfigVarfile => "ERR_CONFIG_VARFILE",
+            Self::ErrConfigPackNotFound => "ERR_CONFIG_PACK_NOT_FOUND",
+            Self::ErrConfigPackNotRenderable => "ERR_CONFIG_PACK_NOT_RENDERABLE",
+            Self::ErrConfigTemplateExists => "ERR_CONFIG_TEMPLATE_EXISTS",
         }
     }
 }
