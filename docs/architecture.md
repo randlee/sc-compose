@@ -267,7 +267,7 @@ Semantic rules:
 - When a referenced or required variable is satisfied by a default instead of
   explicit caller input, validation emits `INFO_VAL_DEFAULT_USED`.
 
-`InputValue` in H1 means one of:
+`InputValue` in H1/H2 means one of:
 
 - string
 - number
@@ -281,16 +281,16 @@ Rust type contract:
 - `InputValue` is represented as `serde_json::Value`,
 - object values with string keys may cross the CLI-to-library boundary,
 - nested sequences are rejected at parse time,
-- arrays of objects remain out of scope until H2,
+- top-level arrays of objects are supported in H2,
 - object trees may contain scalar leaves, nested objects, and arrays of
   scalars.
 
-Sequence values remain narrow in H1:
+Sequence values remain narrow in H1/H2:
 
-- sequence members may contain only scalar values,
+- top-level sequence members may contain scalar values or objects,
 - nested sequences are not supported,
-- mapping values inside sequences are not supported in H1 render-context
-  inputs.
+- object-valued sequence members are only supported at the top-level variable
+  boundary in H2.
 
 Planned H2+ extension:
 
@@ -985,8 +985,8 @@ Manifest rules:
   - objects with string keys,
   - arrays of scalars,
   - empty arrays are valid,
-  - arrays of objects remain out of scope until H2,
-  - nested arrays are rejected
+  - arrays of objects are valid when the array is the variable value itself,
+  - nested arrays are rejected with `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
 - no manifest field selects entrypoints, paths, hooks, or alternate execution
   behavior in the initial release.
 
@@ -1020,8 +1020,8 @@ Variable-file behavior:
 - keys are strings,
 - values are `InputValue`,
 - object values with string keys are valid in H1,
-- sequence values may contain only scalar values,
-- nested sequences and arrays of objects remain invalid until H2.
+- top-level sequence values may contain scalar values or objects in H2,
+- nested sequences remain invalid in H2.
 
 ## 17. Safety Model (FR-4)
 
@@ -1079,18 +1079,12 @@ Canonical failures must map to stable error families and stable codes.
 | Config file missing or malformed | `ConfigError` | `ERR_CONFIG_PARSE` |
 | Invalid var-file shape | `ConfigError` | `ERR_CONFIG_VARFILE` |
 | Malformed object from structured input source | `ValidationError` | `ERR_VAL_OBJECT_SHAPE` |
+| Nested array shape supplied where H2 only allows top-level arrays of scalars or objects | `ValidationError` | `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` |
 | Nested required path expects an object but receives a scalar, or vice versa | `ValidationError` | `ERR_VAL_SHAPE_MISMATCH` |
 | Nested required field absent inside a present object or array member | `ValidationError` | `ERR_VAL_MISSING_NESTED_FIELD` |
 | Example or template pack name not found | `ConfigError` | `ERR_CONFIG_PACK_NOT_FOUND` |
 | Named pack is not renderable because a bundled example name is ambiguous or a template pack has zero or multiple root-level `*.j2` files | `ConfigError` | `ERR_CONFIG_PACK_NOT_RENDERABLE` |
 | `templates add` target name already exists | `ConfigError` | `ERR_CONFIG_TEMPLATE_EXISTS` |
-
-H2-reserved note:
-
-- `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` remains reserved for H2.
-- On the H1 branch, nested arrays and arrays of objects are still rejected
-  during structured-input parsing and currently surface as
-  `ERR_VAL_OBJECT_SHAPE`.
 
 ## 19. Observability Integration (FR-9, FR-10, FR-11)
 
@@ -1395,9 +1389,12 @@ Frontmatter defaults
   `sprints`, not to `sprint` or `sprint.id`,
 - requires scope-aware token scanning. A regex identifier sweep without scope
   tracking cannot distinguish loop-bound names from context variables,
-- begins H2 with a spike comparing MiniJinja AST access against a hand-rolled
-  `for`/`endfor` scope tracker. The chosen approach must be documented in this
-  section before the remaining H2 work proceeds,
+- H2 resolves the spike in favor of a hand-rolled `for`/`endfor` scope
+  tracker. MiniJinja does not expose a stable public AST interface for this
+  use case, while the scope tracker covers the required discovery contract
+  without coupling `sc-composer` to parser internals,
+- the scope tracker collects identifiers from loop iterable expressions before
+  binding loop locals, then ignores loop-bound names inside the loop body,
 - must emit understandable generated field paths instead of opaque flattened
   names.
 

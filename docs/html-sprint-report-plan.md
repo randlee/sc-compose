@@ -73,6 +73,8 @@ Scope:
 - allow arrays of objects in the same input paths as Sprint H1,
 - support loops such as `{% for sprint in sprints %}`,
 - support nested object fields inside each array member,
+- use a scope-tracker for loop-body discovery instead of a MiniJinja AST
+  dependency,
 - continue to reject nested arrays and other hard-to-govern shapes.
 
 Validation focus:

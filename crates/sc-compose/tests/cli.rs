@@ -626,6 +626,122 @@ fn template_json_object_input_defaults_obey_precedence() {
 }
 
 #[test]
+fn render_accepts_array_of_objects_in_json_var_file() {
+    let root = temp_root("array-objects-json");
+    write_file(
+        &root.join("template.md.j2"),
+        "{% for sprint in sprints %}{{ sprint.id }}:{{ sprint.stage }}\n{% endfor %}",
+    );
+    let vars_file = root.join("vars.json");
+    write_file(
+        &vars_file,
+        r#"{ "sprints": [ { "id": "S1", "stage": "qa" }, { "id": "S2", "stage": "merged" } ] }"#,
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("S1:qa"));
+    assert!(stdout.contains("S2:merged"));
+}
+
+#[test]
+fn render_accepts_array_of_objects_in_yaml_var_file() {
+    let root = temp_root("array-objects-yaml");
+    write_file(
+        &root.join("template.md.j2"),
+        "{% for sprint in sprints %}{{ sprint.id }}:{{ sprint.stage }}\n{% endfor %}",
+    );
+    let vars_file = root.join("vars.yaml");
+    write_file(
+        &vars_file,
+        "sprints:\n  - id: S1\n    stage: qa\n  - id: S2\n    stage: merged\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("S1:qa"));
+    assert!(stdout.contains("S2:merged"));
+}
+
+#[test]
+fn render_rejects_nested_arrays_in_var_file_with_reserved_code() {
+    let root = temp_root("nested-array-var-file");
+    write_file(&root.join("template.md.j2"), "{{ sprints }}\n");
+    let vars_file = root.join("vars.json");
+    write_file(&vars_file, r#"{ "sprints": [["bad"]] }"#);
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("ERR_VAL_NESTED_ARRAY_UNSUPPORTED"));
+}
+
+#[test]
+fn templates_named_render_uses_array_of_objects_input_defaults_from_template_json() {
+    let root = temp_root("templates-array-object-defaults");
+    let templates_root = root.join("user-templates");
+    let pack = templates_root.join("sprint-summary");
+    write_file(
+        &pack.join("template.json"),
+        r#"{ "description": "Sprint summary", "version": "1.0.0", "input_defaults": { "sprints": [ { "id": "S1", "stage": "qa" }, { "id": "S2", "stage": "merged" } ] } }"#,
+    );
+    write_file(
+        &pack.join("report.md.j2"),
+        "{% for sprint in sprints %}{{ sprint.id }}:{{ sprint.stage }}\n{% endfor %}",
+    );
+
+    let output = sc_compose()
+        .arg("templates")
+        .arg("sprint-summary")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("S1:qa"));
+    assert!(stdout.contains("S2:merged"));
+}
+
+#[test]
 fn templates_add_directory_creates_pack_and_readme_and_named_render_uses_input_defaults() {
     let root = temp_root("templates-add-dir");
     let templates_root = root.join("user-templates");

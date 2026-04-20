@@ -20,6 +20,19 @@ pub type InputValue = serde_json::Value;
 /// Returns [`InvalidInputValueError`] when the value contains unsupported
 /// nested arrays, non-string object keys, or arrays of objects.
 pub fn validate_input_value(value: &InputValue) -> Result<(), InvalidInputValueError> {
+    validate_input_value_at(value, ArrayContext::TopLevel)
+}
+
+#[derive(Clone, Copy)]
+enum ArrayContext {
+    TopLevel,
+    Nested,
+}
+
+fn validate_input_value_at(
+    value: &InputValue,
+    array_context: ArrayContext,
+) -> Result<(), InvalidInputValueError> {
     match value {
         serde_json::Value::Null
         | serde_json::Value::Bool(_)
@@ -34,15 +47,20 @@ pub fn validate_input_value(value: &InputValue) -> Result<(), InvalidInputValueE
                     | serde_json::Value::String(_) => {}
                     serde_json::Value::Array(_) => {
                         return Err(InvalidInputValueError::new(
-                            DiagnosticCode::ErrValObjectShape,
-                            "expected a scalar value or array of scalars, found nested array",
+                            DiagnosticCode::ErrValNestedArrayUnsupported,
+                            "nested arrays are unsupported in H2",
                         ));
                     }
-                    serde_json::Value::Object(_) => {
-                        return Err(InvalidInputValueError::new(
-                            DiagnosticCode::ErrValObjectShape,
-                            "expected a scalar value or array of scalars, found object in array",
-                        ));
+                    serde_json::Value::Object(object) => {
+                        if !matches!(array_context, ArrayContext::TopLevel) {
+                            return Err(InvalidInputValueError::new(
+                                DiagnosticCode::ErrValNestedArrayUnsupported,
+                                "arrays of objects are unsupported at nested paths in H2",
+                            ));
+                        }
+                        for value in object.values() {
+                            validate_input_value_at(value, ArrayContext::Nested)?;
+                        }
                     }
                 }
             }
@@ -50,7 +68,7 @@ pub fn validate_input_value(value: &InputValue) -> Result<(), InvalidInputValueE
         }
         serde_json::Value::Object(object) => {
             for value in object.values() {
-                validate_input_value(value)?;
+                validate_input_value_at(value, ArrayContext::Nested)?;
             }
             Ok(())
         }
@@ -102,7 +120,11 @@ pub fn input_value_from_yaml(
                 Ok((key, value))
             })
             .collect::<Result<serde_json::Map<String, serde_json::Value>, _>>()
-            .map(serde_json::Value::Object),
+            .map(serde_json::Value::Object)
+            .and_then(|value| {
+                validate_input_value(&value)?;
+                Ok(value)
+            }),
     }
 }
 
@@ -555,6 +577,8 @@ mod tests {
     use serde_json::json;
     use serde_yaml::from_str;
 
+    use crate::DiagnosticCode;
+
     use super::{ProfileName, VariableName, input_value_from_yaml, validate_input_value};
 
     #[test]
@@ -614,6 +638,51 @@ mod tests {
                 }
             })
         );
+    }
+
+    #[test]
+    fn validate_input_value_accepts_array_of_objects() {
+        let value = json!([
+            {
+                "id": "S1",
+                "stage": "qa",
+                "pr": { "number": 43 }
+            },
+            {
+                "id": "S2",
+                "stage": "merged",
+                "pr": { "number": 44 }
+            }
+        ]);
+
+        validate_input_value(&value).unwrap();
+    }
+
+    #[test]
+    fn input_value_from_yaml_sequence_of_objects_becomes_array() {
+        let yaml = from_str::<serde_yaml::Value>(
+            "- id: S1\n  stage: qa\n  pr:\n    number: 43\n- id: S2\n  stage: merged\n  pr:\n    number: 44\n",
+        )
+        .unwrap();
+
+        let value = input_value_from_yaml(yaml).unwrap();
+
+        assert_eq!(
+            value,
+            json!([
+                { "id": "S1", "stage": "qa", "pr": { "number": 43 } },
+                { "id": "S2", "stage": "merged", "pr": { "number": 44 } }
+            ])
+        );
+    }
+
+    #[test]
+    fn validate_input_value_rejects_nested_array_with_reserved_code() {
+        let value = json!([["nested"]]);
+
+        let error = validate_input_value(&value).unwrap_err();
+
+        assert_eq!(error.code(), DiagnosticCode::ErrValNestedArrayUnsupported);
     }
 
     #[test]

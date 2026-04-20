@@ -20,6 +20,11 @@ enum RequiredPathStatus {
 }
 
 #[derive(Debug, Default)]
+struct LoopScope {
+    bound_names: BTreeSet<String>,
+}
+
+#[derive(Debug, Default)]
 pub(crate) struct ValidationState {
     pub(crate) context: BTreeMap<VariableName, InputValue>,
     pub(crate) variable_sources: BTreeMap<VariableName, VariableSource>,
@@ -341,28 +346,45 @@ fn validate_required_path(
         return RequiredPathStatus::MissingTopLevel;
     };
     let top_level = VariableName::new(first).expect("top-level path segment remains valid");
-    let Some(mut current) = context.get(&top_level) else {
+    let Some(current) = context.get(&top_level) else {
         return RequiredPathStatus::MissingTopLevel;
     };
-    let mut traversed = String::from(first);
+    let remaining_segments = segments.collect::<Vec<_>>();
+    validate_required_value(current, &remaining_segments, first)
+}
 
-    for segment in segments {
-        match current {
-            serde_json::Value::Object(map) => {
-                let Some(next) = map.get(segment) else {
-                    return RequiredPathStatus::MissingNested {
-                        missing_path: format!("{traversed}.{segment}"),
-                    };
+fn validate_required_value(
+    current: &serde_json::Value,
+    segments: &[&str],
+    traversed: &str,
+) -> RequiredPathStatus {
+    let Some((segment, rest)) = segments.split_first() else {
+        return RequiredPathStatus::Satisfied;
+    };
+
+    match current {
+        serde_json::Value::Object(map) => {
+            let Some(next) = map.get(*segment) else {
+                return RequiredPathStatus::MissingNested {
+                    missing_path: format!("{traversed}.{segment}"),
                 };
-                traversed.push('.');
-                traversed.push_str(segment);
-                current = next;
-            }
-            _ => return RequiredPathStatus::ShapeMismatch { at_path: traversed },
+            };
+            let next_path = format!("{traversed}.{segment}");
+            validate_required_value(next, rest, &next_path)
         }
+        serde_json::Value::Array(values) => {
+            for value in values {
+                let status = validate_required_value(value, segments, traversed);
+                if !matches!(status, RequiredPathStatus::Satisfied) {
+                    return status;
+                }
+            }
+            RequiredPathStatus::Satisfied
+        }
+        _ => RequiredPathStatus::ShapeMismatch {
+            at_path: traversed.to_string(),
+        },
     }
-
-    RequiredPathStatus::Satisfied
 }
 
 fn top_level_variable_name(variable: &VariableName) -> VariableName {
@@ -503,30 +525,89 @@ fn merge_frontmatter(
 
 pub(crate) fn discover_tokens(text: &str) -> BTreeSet<VariableName> {
     let mut tokens = BTreeSet::new();
-    collect_tokens_from_delimiters(text, "{{", "}}", &mut tokens);
-    collect_tokens_from_delimiters(text, "{%", "%}", &mut tokens);
-    tokens
-}
-
-fn collect_tokens_from_delimiters(
-    text: &str,
-    start_delimiter: &str,
-    end_delimiter: &str,
-    tokens: &mut BTreeSet<VariableName>,
-) {
+    let mut scopes = Vec::<LoopScope>::new();
     let mut cursor = text;
-    while let Some(start) = cursor.find(start_delimiter) {
+
+    while let Some((delimiter, start)) = next_delimiter(cursor) {
+        let start_delimiter = match delimiter {
+            Delimiter::Expression => "{{",
+            Delimiter::Statement => "{%",
+        };
+        let end_delimiter = match delimiter {
+            Delimiter::Expression => "}}",
+            Delimiter::Statement => "%}",
+        };
+
         let after_start = &cursor[start + start_delimiter.len()..];
         let Some(end) = after_start.find(end_delimiter) else {
             break;
         };
-        let expression = &after_start[..end];
-        collect_identifiers(expression, tokens);
+        let expression = after_start[..end].trim();
+        match delimiter {
+            Delimiter::Expression => collect_identifiers(expression, &scopes, &mut tokens),
+            Delimiter::Statement => {
+                if let Some(loop_scope) = parse_for_loop_scope(expression, &scopes, &mut tokens) {
+                    scopes.push(loop_scope);
+                } else if expression.starts_with("endfor") {
+                    scopes.pop();
+                } else {
+                    collect_identifiers(expression, &scopes, &mut tokens);
+                }
+            }
+        }
         cursor = &after_start[end + end_delimiter.len()..];
+    }
+    tokens
+}
+
+#[derive(Clone, Copy)]
+enum Delimiter {
+    Expression,
+    Statement,
+}
+
+fn next_delimiter(text: &str) -> Option<(Delimiter, usize)> {
+    match (text.find("{{"), text.find("{%")) {
+        (Some(expression), Some(statement)) if expression <= statement => {
+            Some((Delimiter::Expression, expression))
+        }
+        (Some(_) | None, Some(statement)) => Some((Delimiter::Statement, statement)),
+        (Some(expression), None) => Some((Delimiter::Expression, expression)),
+        (None, None) => None,
     }
 }
 
-fn collect_identifiers(expression: &str, tokens: &mut BTreeSet<VariableName>) {
+fn parse_for_loop_scope(
+    expression: &str,
+    scopes: &[LoopScope],
+    tokens: &mut BTreeSet<VariableName>,
+) -> Option<LoopScope> {
+    let trimmed = expression.trim();
+    let remainder = trimmed.strip_prefix("for ")?;
+    let (binding, iterable) = remainder.split_once(" in ")?;
+    collect_identifiers(iterable, scopes, tokens);
+
+    let bound_names = binding
+        .split(',')
+        .filter_map(|candidate| {
+            let candidate = candidate
+                .trim()
+                .trim_matches(|character: char| matches!(character, '(' | ')'));
+            if candidate.is_empty() {
+                return None;
+            }
+            let root = candidate.split('.').next().unwrap_or(candidate);
+            Some(root.to_string())
+        })
+        .collect();
+    Some(LoopScope { bound_names })
+}
+
+fn collect_identifiers(
+    expression: &str,
+    scopes: &[LoopScope],
+    tokens: &mut BTreeSet<VariableName>,
+) {
     const KEYWORDS: &[&str] = &[
         "if",
         "else",
@@ -550,10 +631,19 @@ fn collect_identifiers(expression: &str, tokens: &mut BTreeSet<VariableName>) {
         "endfilter",
     ];
 
+    let bound_names = scopes
+        .iter()
+        .flat_map(|scope| scope.bound_names.iter().map(String::as_str))
+        .collect::<BTreeSet<_>>();
+
     for candidate in expression.split(|character: char| {
         !(character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.'))
     }) {
         if candidate.is_empty() || KEYWORDS.contains(&candidate) {
+            continue;
+        }
+        let root = candidate.split('.').next().unwrap_or(candidate);
+        if bound_names.contains(root) {
             continue;
         }
         if let Ok(variable) = VariableName::new(candidate) {
@@ -914,6 +1004,109 @@ mod tests {
                 && diagnostic.message.contains("pr.number")
                 && diagnostic.message.contains("pr")
         }));
+    }
+
+    #[test]
+    fn required_variable_path_array_member_id_is_satisfied_by_array_of_objects() {
+        let root = temp_root("validation_required_array_member_path");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - sprints.id\n---\n{% for sprint in sprints %}{{ sprint.id }}{% endfor %}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("sprints").unwrap(),
+            json!([
+                { "id": "S1", "stage": "qa" },
+                { "id": "S2", "stage": "merged" }
+            ]),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty());
+    }
+
+    #[test]
+    fn missing_nested_field_in_array_member_reports_err_val_missing_nested_field() {
+        let root = temp_root("validation_missing_array_member_field");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - sprints.id\n---\n{% for sprint in sprints %}{{ sprint.id }}{% endfor %}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("sprints").unwrap(),
+            json!([
+                { "id": "S1", "stage": "qa" },
+                { "stage": "merged" }
+            ]),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValMissingNestedField
+                && diagnostic.message.contains("sprints.id")
+        }));
+    }
+
+    #[test]
+    fn shape_mismatch_in_array_member_reports_err_val_shape_mismatch() {
+        let root = temp_root("validation_array_member_shape_mismatch");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - sprints.id\n---\n{% for sprint in sprints %}{{ sprint.id }}{% endfor %}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("sprints").unwrap(),
+            json!([
+                { "id": "S1", "stage": "qa" },
+                "bad-member"
+            ]),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValShapeMismatch
+                && diagnostic.message.contains("sprints.id")
+                && diagnostic.message.contains("sprints")
+        }));
+    }
+
+    #[test]
+    fn discover_tokens_attributes_loop_body_references_to_iterable() {
+        let tokens = super::discover_tokens(
+            "{% for sprint in sprints %}{{ sprint.id }} {{ report.title }}{% endfor %}",
+        );
+
+        assert!(tokens.contains(&crate::VariableName::new("sprints").unwrap()));
+        assert!(tokens.contains(&crate::VariableName::new("report.title").unwrap()));
+        assert!(!tokens.contains(&crate::VariableName::new("sprint").unwrap()));
+        assert!(!tokens.contains(&crate::VariableName::new("sprint.id").unwrap()));
+    }
+
+    #[test]
+    fn discover_tokens_handles_nested_loops_with_separate_scopes() {
+        let tokens = super::discover_tokens(
+            "{% for sprint in sprints %}{% for finding in sprint_findings %}{{ finding.id }} {{ sprint.title }} {{ report.url }}{% endfor %}{% endfor %}",
+        );
+
+        assert!(tokens.contains(&crate::VariableName::new("sprints").unwrap()));
+        assert!(tokens.contains(&crate::VariableName::new("sprint_findings").unwrap()));
+        assert!(tokens.contains(&crate::VariableName::new("report.url").unwrap()));
+        assert!(!tokens.contains(&crate::VariableName::new("finding").unwrap()));
+        assert!(!tokens.contains(&crate::VariableName::new("finding.id").unwrap()));
+        assert!(!tokens.contains(&crate::VariableName::new("sprint").unwrap()));
+        assert!(!tokens.contains(&crate::VariableName::new("sprint.title").unwrap()));
     }
 
     #[test]

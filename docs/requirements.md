@@ -130,11 +130,15 @@ structured-input support lands.
   - number
   - boolean
   - null
-  - an object/map with string keys
+  - an object/map with string keys; object fields may nest objects and arrays
+    of scalars
   - a sequence of scalar values
-- Sequence values may contain only supported scalar value types.
-- Arrays of objects and nested sequences remain out of scope until H2 for
-  template variables, `defaults`, and user-template `input_defaults`.
+  - a top-level sequence of objects
+- Sequence values may contain supported scalar values or, at the top-level
+  variable boundary, object values.
+- Nested sequences remain out of scope.
+- Arrays of objects are only supported when the array is the variable value
+  itself; nested object fields do not gain array-of-object support in H2.
 - `metadata` may contain arbitrary YAML values because it is descriptive only
   and does not participate in rendering semantics.
 
@@ -517,8 +521,12 @@ Pack root policy:
 - Variable-file keys must be strings.
 - Variable-file values must be supported render-context value types.
 - Object/map values with string keys are valid per FR-12.
-- Sequence values in variable files must contain only supported scalar values.
-- Nested arrays and arrays of objects remain invalid until FR-13 / H2.
+- Sequence values in variable files may contain scalar values or, at the
+  top-level variable boundary, object values.
+- Nested arrays remain invalid and must report
+  `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`.
+- Arrays of objects are valid per FR-13 when the array is the variable value
+  itself.
 
 ### FR-7b: Exit Codes
 
@@ -911,7 +919,8 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
 This is a post-`1.0` follow-on requirement. It does not change the shipped
 `1.0` contract until implemented.
 
-- Callers may pass arrays whose members are objects.
+- Callers may pass arrays whose members are objects when the array itself is
+  the variable value.
 - Jinja loops such as `{% for item in list %}` must support field access within
   each array member object.
 - Arrays of objects are valid through:
@@ -1047,6 +1056,6 @@ Required integration coverage includes:
 - `prepare-hook` and `post-render-hook` execution
 - Named render for packs with multiple root-level `*.j2` entry candidates
 - Template deletion, update, sync, or remote registry features
-- Structured map/object render inputs and arrays of objects remain deferred to
-  the follow-on design track in
+- Nested arrays, nested array-of-object fields, and wrapper-owned HTML report
+  orchestration remain deferred to the follow-on design track in
   [docs/html-sprint-report-plan.md](html-sprint-report-plan.md)
