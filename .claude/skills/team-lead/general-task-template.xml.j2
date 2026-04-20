@@ -1,0 +1,65 @@
+---
+name: general-task
+version: 1.0.0
+description: General teammate task assignment for non-dev/non-QA roles (publisher, architect, etc.). Enforces ACK + status + completion protocol.
+format: xml
+required_variables:
+  - task_id
+  - description
+  - deliverables
+  - acceptance_criteria
+  - references
+input_defaults:
+  assignee: teammate
+  worktree_path: ""
+  branch: ""
+  pr_target: ""
+---
+<atm-task id="{{ task_id }}" assignee="{{ assignee }}">
+  <description>{{ description }}</description>
+
+{% if worktree_path %}
+  <worktree>{{ worktree_path }}</worktree>
+{% endif %}
+{% if branch %}
+  <branch>{{ branch }}</branch>
+{% endif %}
+{% if pr_target %}
+  <pr-target>{{ pr_target }}</pr-target>
+{% endif %}
+
+  <deliverables>
+{{ deliverables }}
+  </deliverables>
+
+  <acceptance-criteria>
+{{ acceptance_criteria }}
+  </acceptance-criteria>
+
+  <references>
+{{ references }}
+  </references>
+
+  <start-decision>
+    Reply to this message immediately when read.
+
+    <choose evaluated-by="assignee-at-read-time">
+      <when test="another-task-is-already-active">
+        <command>atm send team-lead "received {{ task_id }}, queued after &lt;ACTIVE-TASK-ID&gt;"</command>
+        <action>Return immediately to the current in-progress task.</action>
+      </when>
+      <otherwise>
+        <command>atm ack &lt;MESSAGE-ID&gt; "ack, starting {{ task_id }}"</command>
+        <command>atm send team-lead "starting {{ task_id }}"</command>
+        <action>Begin execution immediately.</action>
+      </otherwise>
+    </choose>
+  </start-decision>
+
+  <workflow>
+    <step id="a">Reply to this message immediately. State whether the task is starting now or queued behind active work.</step>
+    <step id="b">Execute the deliverables in order. Send a status update to team-lead at meaningful milestones.</step>
+    <step id="c">When all deliverables are complete and acceptance criteria verified, send a completion report to team-lead with: task ID, summary of what was done, any artifacts or URLs produced, and PASS or FAIL against acceptance criteria.</step>
+    <step id="d">After the completion report, read ATM again for follow-up work.</step>
+  </workflow>
+</atm-task>
