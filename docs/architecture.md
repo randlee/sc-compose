@@ -1285,14 +1285,15 @@ Trait openness decisions:
   hooks, arbitrary manifest-driven behavior, and nested mappings remain
   deferred.
 
-## 21. Post-`1.0` Structured Input And HTML Report Architecture
+## 21. Structured Input And HTML Report Architecture
 
-This section is a forward design track only. It does not redefine the shipped
-`1.0` implementation.
+This section describes the shipped H1-H4 architecture plus the explicit H5+
+boundary. It must not be read as license to silently expand the delivered
+contract.
 
 ### 21.1 Input Model Expansion
 
-The follow-on structured-input track expands `InputValue` to support:
+The shipped structured-input track expands `InputValue` to support:
 
 - object/map values with string keys,
 - arrays of objects,
@@ -1401,7 +1402,7 @@ Frontmatter defaults
 ### 21.6 H4 Wrapper-Owned Orchestration Pattern
 
 The HTML sprint-report track uses the structured-input expansion for a bundled
-`sprint-report-html` example and later wrapper integration.
+single-panel `sprint-report-html` example and wrapper integration.
 
 Architectural boundaries:
 
@@ -1409,8 +1410,7 @@ Architectural boundaries:
 - the example/template pack owns the HTML structure,
 - H3 keeps the bundled example as a single flat file
   `examples/sprint-report-html.html.j2`,
-- directory-based example layout is deferred to H4 or a later architecture
-  amendment,
+- directory-based example layout is deferred beyond H4,
 - `sc-compose` does not enable MiniJinja auto-escaping for `.html.j2`
   templates; the bundled example documentation must call this out explicitly,
 - wrapper tooling such as `/sprint-report` owns open/display behavior and is
@@ -1424,3 +1424,13 @@ Architectural boundaries:
   than introducing multi-render orchestration, hooks, or browser behavior into
   the CLI,
 - no hook execution is added to `sc-compose` for this phase.
+
+### 21.7 H5+ Follow-On Boundary
+
+Follow-on work may explore:
+
+- multi-panel HTML/XHTML report composition,
+- wrapper-level `--open` or application-selection behavior,
+- optional post-render hook designs that remain outside `sc-composer` and do
+  not become implicit `sc-compose` behavior without an explicit later
+  architecture amendment.

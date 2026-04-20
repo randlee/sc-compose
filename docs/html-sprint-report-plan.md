@@ -2,13 +2,13 @@
 
 ## Status
 
-Design exploration only. This document does not change the shipped `1.0`
-implementation contract. It defines a follow-on plan for richer structured
-inputs and an XHTML sprint-report example/template flow.
+Follow-on design exploration only. H1-H4 are shipped; this document now covers
+H5-and-later work and does not change the delivered Phase HTML-Report
+contract.
 
 ## Goal
 
-Deliver a genuinely useful HTML sprint report that:
+Explore the next phase of the HTML sprint report so it can:
 
 - renders as a self-contained single HTML/XHTML file with inline CSS,
 - shows a top-level sprint summary panel with direct links to PRs and key docs,
@@ -16,137 +16,59 @@ Deliver a genuinely useful HTML sprint report that:
 - proves that `sc-compose` is useful for structured report composition rather
   than only for flat markdown/file generation.
 
-## Why This Needs Follow-on Input Work
+## Shipped Baseline
 
-The current `1.0` input model accepts:
+Phase HTML-Report already delivered:
 
-- scalars,
-- arrays of scalars.
+- H1 object/map inputs,
+- H2 arrays of objects,
+- H3 the bundled single-panel `sprint-report-html` example,
+- H4 wrapper-owned HTML rendering integration without hook execution in
+  `sc-compose`.
 
-That is enough for simple examples and the current markdown `/sprint-report`
-skill, but it is not enough for a structured HTML report with:
+## Next Step Sequence
 
-- sprint rows carrying multiple named fields,
-- per-sprint PR metadata,
-- per-PR CI check lists,
-- stage-to-icon or stage-to-class mapping.
-
-This plan therefore starts with an input-model expansion before any HTML report
-implementation.
-
-## Sprint Sequence
-
-### Sprint H1: Map/Object Input Support
+### H5: Multi-Panel XHTML Report
 
 Objective:
 
-- allow object/map render inputs with string keys.
-
-Scope:
-
-- extend the `InputValue` contract to support objects,
-- allow object values in `--var-file`,
-- allow object values in frontmatter `defaults`,
-- allow object values in user-template `template.json` `input_defaults`,
-- document object access patterns such as `sprint.stage` and `pr.title`.
-
-Validation focus:
-
-- object parsing and validation,
-- string-key enforcement,
-- deterministic merge and precedence behavior,
-- clear rejection of unsupported shapes.
-
-Usable outcome:
-
-- templates can consume one structured record instead of many flattened scalar
-  variables.
-
-### Sprint H2: Arrays Of Objects
-
-Objective:
-
-- allow arrays whose members are objects.
-
-Scope:
-
-- allow arrays of objects in the same input paths as Sprint H1,
-- support loops such as `{% for sprint in sprints %}`,
-- support nested object fields inside each array member,
-- use a scope-tracker for loop-body discovery instead of a MiniJinja AST
-  dependency,
-- continue to reject nested arrays and other hard-to-govern shapes.
-
-Validation focus:
-
-- arrays of objects through `--var-file`,
-- arrays of objects in frontmatter defaults,
-- arrays of objects in `template.json` `input_defaults`,
-- stable and actionable validation errors for rejected nested shapes.
-
-Usable outcome:
-
-- one structured input file can describe a sprint report with repeated sections
-  without flattening each sprint row into unrelated scalar variables.
-
-### Sprint H3: XHTML Sprint Report v1
-
-Objective:
-
-- render the current `/sprint-report` as a single self-contained HTML/XHTML
-  panel that is directly viewable in a browser.
-
-Scope:
-
-- add one bundled example/template conceptually named
-  `sprint-report-html`,
-- render one top-level panel that carries:
-  - report title,
-  - sprint status summary,
-  - PR number/title/branch,
-  - DEV/QA/CI status,
-  - clickable links to:
-    - GitHub PR,
-    - CI run logs,
-    - plan doc,
-    - findings doc when present,
-- use inline CSS and a palette compatible with the existing
-  `xhtml-plugin-expert` guidance,
-- keep H3 as one flat file `examples/sprint-report-html.html.j2` with all
-  markup inline,
-- keep browser opening in the `/sprint-report` skill or wrapper flow rather
-  than in `sc-compose` itself.
-
-Usable outcome:
-
-- the existing sprint-report workflow gains a clickable HTML artifact even
-  before multi-panel report composition exists.
-
-### Sprint H4: Multi-Panel XHTML Report
-
-Objective:
-
-- expand the single-panel report into a multi-panel report with repeated sprint
-  sections.
+- expand the shipped single-panel report into a multi-panel report with
+  repeated sprint sections.
 
 Scope:
 
 - top summary panel,
 - repeated per-sprint panels,
 - stage-sensitive panel sections,
-- reusable includes/fragments for headers, summary tables, PR cards, and CI
-  status callouts if a later architecture amendment expands the example beyond
-  the flat single-file H3 layout.
+- optional reusable fragments if a later architecture amendment expands the
+  example beyond the flat single-file H3 layout.
 
-### Deferred Next Step: Wrapper-Owned Orchestration
+### H6: Wrapper View/Open Behavior
 
-After H1-H4, the next logical extension is a wrapper-owned multi-render flow:
+Objective:
 
-- one source JSON drives multiple `sc-compose render` calls,
-- report fragments render first,
-- final HTML report shell renders last,
-- optional browser-open step lives in the `/sprint-report` skill or a wrapper
-  script, not in `sc-compose`.
+- make the wrapper’s post-render viewing UX explicit without pushing it into
+  `sc-compose`.
+
+Scope:
+
+- wrapper-owned `--open` or application-selection behavior,
+- clearer separation between HTML mode selection and output viewing behavior,
+- no browser-open behavior in `sc-compose` itself.
+
+### H7: Post-Render Hook Exploration
+
+Objective:
+
+- evaluate whether reusable post-render behavior is worth formalizing after the
+  wrapper UX settles.
+
+Scope:
+
+- possible post-render-hook design,
+- explicit non-goal: no hook execution in `sc-composer`,
+- explicit boundary: no implicit hook behavior in `sc-compose` without a later
+  accepted architecture amendment.
 
 ## Proposed XHTML Template Structure
 

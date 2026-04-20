@@ -133,8 +133,8 @@ impl ResolveError {
 
     /// Return the stable diagnostic code when one is available.
     #[must_use]
-    pub const fn code(&self) -> Option<DiagnosticCode> {
-        Some(self.code)
+    pub const fn code(&self) -> DiagnosticCode {
+        self.code
     }
 
     /// Return the attempted paths recorded for this failure.
@@ -205,8 +205,8 @@ impl IncludeError {
 
     /// Return the stable diagnostic code when one is available.
     #[must_use]
-    pub const fn code(&self) -> Option<DiagnosticCode> {
-        Some(self.code)
+    pub const fn code(&self) -> DiagnosticCode {
+        self.code
     }
 
     /// Return the include chain captured for the failure.
@@ -304,8 +304,8 @@ impl ValidationError {
 
     /// Return the stable diagnostic code when one is available.
     #[must_use]
-    pub const fn code(&self) -> Option<DiagnosticCode> {
-        Some(self.code)
+    pub const fn code(&self) -> DiagnosticCode {
+        self.code
     }
 
     /// Return structured recovery hints.
@@ -436,8 +436,8 @@ impl ConfigError {
 
     /// Return the stable diagnostic code when one is available.
     #[must_use]
-    pub const fn code(&self) -> Option<DiagnosticCode> {
-        Some(self.code)
+    pub const fn code(&self) -> DiagnosticCode {
+        self.code
     }
 
     /// Return structured recovery hints.
@@ -492,11 +492,11 @@ impl ComposeError {
     #[must_use]
     pub const fn code(&self) -> Option<DiagnosticCode> {
         match self {
-            Self::Resolve(error) => error.code(),
-            Self::Include(error) => error.code(),
-            Self::Validation(error) => error.code(),
+            Self::Resolve(error) => Some(error.code()),
+            Self::Include(error) => Some(error.code()),
+            Self::Validation(error) => Some(error.code()),
             Self::Render(error) => error.code(),
-            Self::Config(error) => error.code(),
+            Self::Config(error) => Some(error.code()),
         }
     }
 }
@@ -576,7 +576,7 @@ mod tests {
         )
         .with_source(std::io::Error::other("missing"));
 
-        assert_eq!(error.code(), Some(DiagnosticCode::ErrResolveNotFound));
+        assert_eq!(error.code(), DiagnosticCode::ErrResolveNotFound);
         assert_eq!(error.attempted_paths().len(), 1);
         assert!(error.to_string().contains("template not found"));
         assert!(error.to_string().contains("caused by:"));
@@ -594,7 +594,7 @@ mod tests {
         )
         .with_source(std::io::Error::other("escape"));
 
-        assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeEscape));
+        assert_eq!(error.code(), DiagnosticCode::ErrIncludeEscape);
         assert_eq!(error.include_chain().len(), 1);
         assert!(error.to_string().contains("include escaped root"));
         assert!(error.to_string().contains("caused by:"));
@@ -608,7 +608,7 @@ mod tests {
         let variable = VariableName::new("name").unwrap();
         let error = ValidationError::duplicate_variable(&variable);
 
-        assert_eq!(error.code(), Some(DiagnosticCode::ErrValDuplicate));
+        assert_eq!(error.code(), DiagnosticCode::ErrValDuplicate);
         assert!(error.recovery_hints().is_empty());
         assert!(error.to_string().contains("duplicate frontmatter variable"));
         assert!(error.to_string().contains("backtrace"));
@@ -634,7 +634,7 @@ mod tests {
         let error = ConfigError::new(DiagnosticCode::ErrConfigParse, "config parse failed")
             .with_source(std::io::Error::other("parse"));
 
-        assert_eq!(error.code(), Some(DiagnosticCode::ErrConfigParse));
+        assert_eq!(error.code(), DiagnosticCode::ErrConfigParse);
         assert!(error.recovery_hints().is_empty());
         assert!(error.to_string().contains("config parse failed"));
         assert!(error.to_string().contains("caused by:"));
@@ -663,7 +663,7 @@ mod tests {
 
         let error = ValidationError::from_diagnostics(diagnostics.clone());
 
-        assert_eq!(error.code(), Some(DiagnosticCode::ErrValMissingRequired));
+        assert_eq!(error.code(), DiagnosticCode::ErrValMissingRequired);
         assert_eq!(error.diagnostics(), diagnostics.as_slice());
         assert!(error.to_string().contains("templates/root.md.j2:12:4"));
         assert!(

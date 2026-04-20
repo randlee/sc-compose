@@ -242,7 +242,7 @@ Deliverables:
 
 Acceptance criteria:
 
-- all FR-1 through FR-11 behavior is implemented and covered by automated tests
+- all FR-1 through FR-15 behavior is implemented and covered by automated tests
 - all release blockers are closed
 - all required docs match shipped behavior
 - downstream cutover notes are accurate
@@ -324,7 +324,7 @@ following are true:
 - no release blocker remains open
 - `requirements.md`, `architecture.md`, and `project-plan.md` match the shipped
   behavior
-- all FR-1 through FR-11 behavior is implemented and covered by automated tests
+- all FR-1 through FR-15 behavior is implemented and covered by automated tests
 - `cargo test --workspace` passes
 - `cargo clippy --all-targets --all-features -- -D warnings` passes
 - `cargo fmt --all --check` passes
@@ -350,10 +350,12 @@ following are true:
 - CLI-to-log-file emission is covered by command and observer integration
   tests, but there is not yet a standalone seam test that asserts every
   command event reaches the final sink file on disk.
-- Structured object inputs, arrays of objects, and the HTML sprint-report track
-  remain planned follow-on work documented in
-  [docs/html-sprint-report-plan.md](html-sprint-report-plan.md) and the Phase
-  HTML-Report section above.
+- Multi-panel HTML/XHTML report composition, wrapper-level open/app selection,
+  and any reusable post-render hook design remain follow-on work documented in
+  [docs/html-sprint-report-plan.md](html-sprint-report-plan.md). The shipped
+  Phase HTML-Report scope is limited to the structured-input model, the
+  bundled single-panel `sprint-report-html` example, and wrapper-owned HTML
+  rendering integration.
 
 ### Sprint S8: Release Engineering And Distribution
 
@@ -529,7 +531,7 @@ Acceptance criteria:
 
 Status:
 
-- planned
+- completed
 
 Phase goal:
 
@@ -697,20 +699,20 @@ Exit Gate:
 
 Description:
 
-- extend the single-panel example into a fuller report and connect it to the
-  wrapper workflow without moving open/display behavior into `sc-compose`.
+- connect the shipped single-panel HTML example to the wrapper workflow without
+  moving open/display behavior into `sc-compose`.
 
 H4 introduces no new functional requirements. All H4 work extends FR-12,
-FR-13, FR-14, and FR-15 with wrapper integration and multi-panel example work.
-This is intentional.
+FR-13, FR-14, and FR-15 with wrapper integration and final source-of-truth
+documentation. This is intentional.
 
 Deliverables:
 
-- multi-panel report layout with repeated per-sprint sections
-- stage-sensitive panel sections or variants
-- `/sprint-report` skill update that renders the HTML artifact and opens or
-  writes it from wrapper logic
+- `/sprint-report` skill update that selects the shipped HTML artifact and
+  writes or optionally opens it from wrapper logic
 - architecture/docs update describing the wrapper-owned orchestration pattern
+- explicit scoping language that multi-panel XHTML composition and any
+  reusable post-render hook remain follow-on work, not H4 deliverables
 
 Acceptance Criteria:
 
@@ -718,13 +720,15 @@ Acceptance Criteria:
   orchestration
 - the wrapper path opens or writes the output without requiring hook execution
   in `sc-compose`
-- the multi-panel layout remains self-contained and deterministic
+- H4 keeps the bundled HTML artifact as the shipped single-panel example and
+  does not redefine it into a multi-panel report
 
 Exit Gate:
 
 - wrapper integration works without changing `sc-compose` into a workflow
   orchestrator
-- quality review confirms the final report flow is usable and maintainable
+- quality review confirms the final single-panel HTML report flow is usable and
+  maintainable
 - all HTML-Report phase blockers are closed
 - `quality-mgr` sprint_review passes with no blocker findings
 
@@ -735,7 +739,7 @@ Exit Gate:
 - `docs/test-strategy.md`
 - `docs/html-sprint-report-plan.md`
 
-## Follow-on Design Track
+## Follow-on Design Track (H5+)
 
 The current plan is the authoritative release plan for `1.0`. Additional
 post-`1.0` design exploration must not silently rewrite the shipped contract.
@@ -743,10 +747,12 @@ post-`1.0` design exploration must not silently rewrite the shipped contract.
 The current follow-on design track is:
 
 - `docs/html-sprint-report-plan.md`
-  - structured input-value expansion for maps/objects and arrays of objects,
-  - XHTML sprint-report example/template design,
-  - wrapper-owned browser-open workflow rather than hook execution in
-    `sc-compose`.
+  - multi-panel HTML/XHTML sprint-report exploration beyond the shipped
+    single-panel artifact,
+  - wrapper-level output viewing behavior such as `--open` or application
+    selection,
+  - possible post-render-hook design exploration that remains outside the core
+    `sc-compose` renderer boundary unless explicitly accepted in a later phase.
 
 ## Rule
 

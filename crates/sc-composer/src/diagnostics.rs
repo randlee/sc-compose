@@ -1,5 +1,6 @@
 //! Structured diagnostics and stable `ERR_*` codes.
 
+use std::fmt;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -17,6 +18,17 @@ pub enum DiagnosticSeverity {
     Warning,
     /// Informational diagnostic.
     Info,
+}
+
+impl fmt::Display for DiagnosticSeverity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let severity = match self {
+            Self::Error => "error",
+            Self::Warning => "warning",
+            Self::Info => "info",
+        };
+        f.write_str(severity)
+    }
 }
 
 /// Canonical stable diagnostic code.

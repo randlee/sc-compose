@@ -143,14 +143,14 @@ structured-input support lands.
 - `metadata` may contain arbitrary YAML values because it is descriptive only
   and does not participate in rendering semantics.
 
-Post-`1.0` design track:
+HTML-Report follow-on design track:
 
-- A follow-on design track continues structured render inputs for richer report
-  and UI-style template outputs.
-- That design is captured in [docs/html-sprint-report-plan.md](html-sprint-report-plan.md).
-- The detailed follow-on functional requirements are FR-12 through FR-15.
-- This is not part of the shipped `1.0` contract and remains future work until
-  implemented.
+- FR-12 through FR-15 are implemented by Phase HTML-Report.
+- The remaining design exploration in
+  [docs/html-sprint-report-plan.md](html-sprint-report-plan.md) is limited to
+  H5-and-later work such as multi-panel HTML/XHTML composition, wrapper-level
+  output viewing behavior, and possible post-render-hook design that stays
+  outside the core `sc-compose` contract unless explicitly accepted later.
 
 ### FR-1c: File Extension and Discovery Conventions
 
@@ -886,8 +886,7 @@ same command payloads as `render` and `render --dry-run`.
 
 ### FR-12: Map/Object Variable Inputs
 
-This is a post-`1.0` follow-on requirement. It does not change the shipped
-`1.0` contract until implemented.
+Implemented in Phase HTML-Report.
 
 - Callers may pass structured object/map values as template variables.
 - Object keys must be strings.
@@ -917,8 +916,7 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
 
 ### FR-13: Arrays Of Objects
 
-This is a post-`1.0` follow-on requirement. It does not change the shipped
-`1.0` contract until implemented.
+Implemented in Phase HTML-Report.
 
 - Callers may pass arrays whose members are objects when the array itself is
   the variable value.
@@ -933,9 +931,7 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
   separate decision and are not implied by this requirement.
 - Nested arrays are out of scope for H1 and H2. Callers who pass an array that
   contains another array, or an object that contains an array at a nested
-  field, must receive `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` (in H1 these shapes
-  still surface as `ERR_VAL_OBJECT_SHAPE`; the dedicated nested-array code is
-  implemented in H2).
+  field, must receive `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`.
 - Missing nested fields inside array members must report stable field-path
   diagnostics using `ERR_VAL_MISSING_NESTED_FIELD`.
 - `frontmatter-init` must discover variable references inside `for` loop
@@ -945,8 +941,7 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
 
 ### FR-14: HTML Template Output
 
-This is a post-`1.0` follow-on requirement. It does not change the shipped
-`1.0` contract until implemented.
+Implemented in Phase HTML-Report.
 
 - `.html.j2` templates render like other file-mode templates.
 - Output path derivation removes only the trailing `.j2` suffix and therefore
@@ -962,8 +957,7 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
 
 ### FR-15: Bundled HTML Report Example
 
-This is a post-`1.0` follow-on requirement. It does not change the shipped
-`1.0` contract until implemented.
+Implemented in Phase HTML-Report.
 
 - `sc-compose` shall ship a bundled example named `sprint-report-html`.
 - The example must demonstrate FR-12, FR-13, and FR-14 together using a
@@ -1057,6 +1051,7 @@ Required integration coverage includes:
 - `prepare-hook` and `post-render-hook` execution
 - Named render for packs with multiple root-level `*.j2` entry candidates
 - Template deletion, update, sync, or remote registry features
-- Nested arrays, nested array-of-object fields, and wrapper-owned HTML report
-  orchestration remain deferred to the follow-on design track in
+- Nested arrays, nested array-of-object fields, multi-panel HTML/XHTML report
+  expansion, and wrapper-level output viewing behavior remain deferred to the
+  follow-on design track in
   [docs/html-sprint-report-plan.md](html-sprint-report-plan.md)

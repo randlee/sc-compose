@@ -10,7 +10,7 @@ Build fenced JSON and pipe to the Jinja2 template. `mode` controls table vs deta
 ## Usage
 
 ```
-/sprint-report [--table | --detailed]
+/sprint-report [--table | --detailed | --html]
 ```
 
 Default: `--table`
@@ -39,7 +39,7 @@ the `git worktree list | head -1` fallback is used instead.
 ```bash
 cd "${CLAUDE_PROJECT_DIR:-$(git worktree list | head -1 | awk '{print $1}')}"
 echo '<json>' > /tmp/sprint-report.json
-sc-compose render .claude/skills/sprint-report/report.md.j2 --var-file /tmp/sprint-report.json
+sc-compose render --file .claude/skills/sprint-report/report.md.j2 --var-file /tmp/sprint-report.json
 ```
 
 ## --html

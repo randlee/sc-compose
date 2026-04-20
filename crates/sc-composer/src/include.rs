@@ -100,11 +100,8 @@ fn expand_file(
 
     if state.resolved_seen.insert(path_buf.clone()) {
         state.resolved_files.push(path_buf.clone());
+        state.include_chains.insert(path_buf.clone(), stack.clone());
     }
-    state
-        .include_chains
-        .entry(path_buf.clone())
-        .or_insert_with(|| stack.clone());
 
     let raw = std::fs::read_to_string(path).map_err(|error| {
         IncludeError::new(
@@ -301,7 +298,7 @@ mod tests {
 
         match error {
             ComposeError::Include(error) => {
-                assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeNotFound));
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludeNotFound);
             }
             other => panic!("unexpected error: {other}"),
         }
@@ -322,7 +319,7 @@ mod tests {
 
         match error {
             ComposeError::Include(error) => {
-                assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeCycle));
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludeCycle);
             }
             other => panic!("unexpected error: {other}"),
         }
@@ -350,7 +347,7 @@ mod tests {
 
         match error {
             ComposeError::Include(error) => {
-                assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeDepth));
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludeDepth);
             }
             other => panic!("unexpected error: {other}"),
         }
@@ -372,7 +369,7 @@ mod tests {
 
         match error {
             ComposeError::Include(error) => {
-                assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeEscape));
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludeEscape);
             }
             other => panic!("unexpected error: {other}"),
         }
@@ -392,7 +389,7 @@ mod tests {
 
         match error {
             ComposeError::Include(error) => {
-                assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeEscape));
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludeEscape);
             }
             other => panic!("unexpected error: {other}"),
         }
@@ -433,7 +430,7 @@ mod tests {
 
         match error {
             ComposeError::Include(error) => {
-                assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeEscape));
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludeEscape);
             }
             other => panic!("unexpected error: {other}"),
         }
@@ -459,7 +456,7 @@ mod tests {
 
         match error {
             ComposeError::Include(error) => {
-                assert_eq!(error.code(), Some(DiagnosticCode::ErrIncludeEscape));
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludeEscape);
             }
             other => panic!("unexpected error: {other}"),
         }

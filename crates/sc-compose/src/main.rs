@@ -779,7 +779,7 @@ fn planned_init_changes(root: &Path) -> Vec<PathBuf> {
 }
 
 fn format_diagnostic(diagnostic: &sc_composer::Diagnostic) -> String {
-    let severity = format!("{:?}", diagnostic.severity).to_ascii_lowercase();
+    let severity = diagnostic.severity.to_string();
     let location =
         diagnostic
             .path
@@ -936,20 +936,16 @@ fn compose_error_diagnostics(error: &ComposeError) -> Vec<Diagnostic> {
         }
         ComposeError::Resolve(resolve) => vec![Diagnostic::new(
             DiagnosticSeverity::Error,
-            resolve.code().unwrap_or(DiagnosticCode::ErrResolveNotFound),
+            resolve.code(),
             resolve.message(),
         )],
         ComposeError::Include(include) => vec![
-            Diagnostic::new(
-                DiagnosticSeverity::Error,
-                include.code().unwrap_or(DiagnosticCode::ErrIncludeNotFound),
-                include.message(),
-            )
-            .with_include_chain(include.include_chain().to_vec()),
+            Diagnostic::new(DiagnosticSeverity::Error, include.code(), include.message())
+                .with_include_chain(include.include_chain().to_vec()),
         ],
         ComposeError::Validation(validation) => vec![Diagnostic::new(
             DiagnosticSeverity::Error,
-            validation.code().unwrap_or(DiagnosticCode::ErrValEmpty),
+            validation.code(),
             validation.message(),
         )],
         ComposeError::Render(render) => vec![Diagnostic::new(
@@ -959,7 +955,7 @@ fn compose_error_diagnostics(error: &ComposeError) -> Vec<Diagnostic> {
         )],
         ComposeError::Config(config) => vec![Diagnostic::new(
             DiagnosticSeverity::Error,
-            config.code().unwrap_or(DiagnosticCode::ErrConfigParse),
+            config.code(),
             config.message(),
         )],
     }

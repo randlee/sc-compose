@@ -63,9 +63,10 @@ pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_templ
 #[doc(inline)]
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
-    FrontmatterInitResult, IncludeDepth, InitResult, InputValue, MetadataValue, ProfileKind,
-    ProfileName, ResolveResult, ResolverPolicy, RuntimeKind, UnknownVariablePolicy,
-    ValidationReport, VariableName, VariableSource, input_value_from_yaml, validate_input_value,
+    FrontmatterInitResult, IncludeDepth, InitResult, InputValue, InvalidInputValueError,
+    InvalidProfileNameError, InvalidVariableNameError, MetadataValue, ProfileKind, ProfileName,
+    ResolveResult, ResolverPolicy, RuntimeKind, UnknownVariablePolicy, ValidationReport,
+    VariableName, VariableSource, input_value_from_yaml, validate_input_value,
 };
 #[doc(inline)]
 pub use validate::{validate, validate_with_observer};
