@@ -264,6 +264,257 @@ fn examples_named_render_accepts_array_values_from_var_file() {
 }
 
 #[test]
+fn general_task_template_validate_accepts_optional_input_defaults_without_explicit_values() {
+    let vars_file = temp_root("general-task-validate").join("vars.json");
+    write_file(
+        &vars_file,
+        r#"{ "task_id": "SC-GENERAL-TASK-REVIEW-001", "description": "review", "deliverables": "pass review", "acceptance_criteria": "passes", "references": "template + dev-template" }"#,
+    );
+
+    let output = sc_compose()
+        .arg("validate")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(repo_root())
+        .arg("--file")
+        .arg(".claude/skills/team-lead/general-task-template.xml.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
+fn general_task_template_render_uses_optional_input_defaults_when_absent() {
+    let vars_file = temp_root("general-task-defaults").join("vars.json");
+    write_file(
+        &vars_file,
+        r#"{ "task_id": "SC-GENERAL-TASK-REVIEW-001", "description": "review", "deliverables": "pass review", "acceptance_criteria": "passes", "references": "template + dev-template" }"#,
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(repo_root())
+        .arg("--file")
+        .arg(".claude/skills/team-lead/general-task-template.xml.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains(r#"assignee="teammate""#));
+    assert!(!stdout.contains("<worktree>"));
+    assert!(!stdout.contains("<branch>"));
+    assert!(!stdout.contains("<pr-target>"));
+}
+
+#[test]
+fn general_task_template_render_dry_run_reports_default_usage_info() {
+    let vars_file = temp_root("general-task-dry-run-defaults").join("vars.json");
+    write_file(
+        &vars_file,
+        r#"{ "task_id": "SC-GENERAL-TASK-REVIEW-001", "description": "review", "deliverables": "pass review", "acceptance_criteria": "passes", "references": "template + dev-template" }"#,
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(repo_root())
+        .arg("--file")
+        .arg(".claude/skills/team-lead/general-task-template.xml.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .arg("--dry-run")
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains(r#"variable assignee not provided, using default: "teammate""#));
+}
+
+#[test]
+fn general_task_template_render_allows_overriding_optional_input_defaults() {
+    let vars_file = temp_root("general-task-override").join("vars.json");
+    write_file(
+        &vars_file,
+        r#"{ "task_id": "SC-GENERAL-TASK-REVIEW-001", "assignee": "architect", "description": "review", "worktree_path": "/tmp/wt", "branch": "feat/x", "pr_target": "develop", "deliverables": "pass review", "acceptance_criteria": "passes", "references": "template + dev-template" }"#,
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(repo_root())
+        .arg("--file")
+        .arg(".claude/skills/team-lead/general-task-template.xml.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains(r#"assignee="architect""#));
+    assert!(stdout.contains("<worktree>/tmp/wt</worktree>"));
+    assert!(stdout.contains("<branch>feat/x</branch>"));
+    assert!(stdout.contains("<pr-target>develop</pr-target>"));
+}
+
+#[test]
+fn render_treats_required_variable_as_satisfied_by_input_defaults_alias() {
+    let root = temp_root("required-input-defaults");
+    let vars_file = root.join("vars.json");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - name\ninput_defaults:\n  name: world\n---\nhello {{ name }}\n",
+    );
+    write_file(&vars_file, "{}");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "hello world"
+    );
+}
+
+#[test]
+fn validate_still_errors_for_variables_not_in_required_or_input_defaults() {
+    let root = temp_root("unknown-variable-with-input-defaults");
+    let vars_file = root.join("vars.json");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - task_id\ninput_defaults:\n  assignee: teammate\n---\nhello {{ task_id }} {{ assignee }}\n",
+    );
+    write_file(
+        &vars_file,
+        r#"{ "task_id": "SC-1", "unexpected": "value" }"#,
+    );
+
+    let output = sc_compose()
+        .arg("validate")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .arg("--unknown-var-mode")
+        .arg("error")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("ERR_VAL_EXTRA_INPUT"));
+}
+
+#[test]
+fn validate_warns_when_defaults_and_input_defaults_both_exist() {
+    let root = temp_root("input-defaults-alias-warning");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\ndefaults:\n  name: old\ninput_defaults:\n  name: new\nrequired_variables:\n  - task_id\n---\nhello {{ task_id }} {{ name }}\n",
+    );
+
+    let output = sc_compose()
+        .arg("validate")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("task_id=SC-1")
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("input_defaults"));
+    assert!(stdout.contains("defaults"));
+}
+
+#[test]
+fn templates_named_render_dry_run_reports_template_json_default_usage() {
+    let root = temp_root("template-json-default-usage");
+    let templates_root = root.join("templates");
+    let pack_root = templates_root.join("report");
+    write_file(
+        &pack_root.join("template.json"),
+        r#"{ "description": "Report template", "version": "1.0.0", "input_defaults": { "name": "world" } }"#,
+    );
+    write_file(&pack_root.join("report.md.j2"), "hello {{ name }}\n");
+
+    let output = sc_compose()
+        .arg("templates")
+        .arg("report")
+        .arg("--dry-run")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains(r#"variable name not provided, using default: "world""#));
+}
+
+#[test]
 fn examples_named_render_missing_pack_reports_list_recovery_hint() {
     let output = sc_compose()
         .arg("examples")

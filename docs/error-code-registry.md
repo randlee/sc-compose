@@ -30,6 +30,7 @@ by `sc-composer` and `sc-compose`.
 | `ERR_VAL_MISSING_REQUIRED` | `ValidationError` | error | required variable remains unresolved after merge | validation pipeline |
 | `ERR_VAL_UNDECLARED_TOKEN` | `ValidationError` | warning/error | referenced token is not declared in frontmatter | validation pipeline |
 | `ERR_VAL_EXTRA_INPUT` | `ValidationError` | warning/error | caller provided a variable that is neither declared nor referenced | validation pipeline |
+| `INFO_VAL_DEFAULT_USED` | `ValidationError` | info | variable was not provided explicitly and a default value was used | validation pipeline, CLI `validate`, CLI `render --dry-run` |
 | `ERR_RENDER_STDIN_DOUBLE_READ` | `RenderError` | error | CLI attempts to consume stdin twice for guidance/prompt inputs | CLI input layer |
 | `ERR_RENDER_WRITE` | `RenderError` | error | output write or output-target materialization failure | CLI output layer |
 | `ERR_CONFIG_READONLY` | `ConfigError` | error | frontmatter rewrite or workspace update refused on read-only target | `frontmatter_init()`, `init_workspace()` |

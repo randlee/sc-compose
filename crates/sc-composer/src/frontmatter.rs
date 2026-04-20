@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::Deserialize;
 
-use crate::diagnostics::DiagnosticCode;
+use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
 use crate::error::{ComposeError, ConfigError, ValidationError};
 use crate::types::{InputValue, MetadataValue, VariableName, input_value_from_yaml};
 
@@ -14,6 +14,7 @@ pub struct Frontmatter {
     required_variables: Vec<VariableName>,
     defaults: BTreeMap<VariableName, InputValue>,
     metadata: BTreeMap<String, MetadataValue>,
+    diagnostics: Vec<Diagnostic>,
 }
 
 impl Frontmatter {
@@ -39,6 +40,12 @@ impl Frontmatter {
     #[must_use]
     pub fn metadata(&self) -> &BTreeMap<String, MetadataValue> {
         &self.metadata
+    }
+
+    /// Borrow non-fatal diagnostics produced while normalizing frontmatter.
+    #[must_use]
+    pub fn diagnostics(&self) -> &[Diagnostic] {
+        &self.diagnostics
     }
 }
 
@@ -69,6 +76,8 @@ struct RawFrontmatter {
     required_variables: Vec<String>,
     #[serde(default)]
     defaults: BTreeMap<String, serde_yaml::Value>,
+    #[serde(default)]
+    input_defaults: BTreeMap<String, serde_yaml::Value>,
     #[serde(default)]
     metadata: BTreeMap<String, serde_yaml::Value>,
 }
@@ -156,12 +165,33 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
         required_variables.push(variable);
     }
 
+    let mut diagnostics = Vec::new();
     let mut defaults = BTreeMap::new();
     for (name, value) in raw.defaults {
         let variable = VariableName::new(name).map_err(|error| {
             ConfigError::new(
                 DiagnosticCode::ErrConfigParse,
                 format!("invalid frontmatter default variable name: {error}"),
+            )
+        })?;
+        let input_value = input_value_from_yaml(value)
+            .map_err(|error| ValidationError::invalid_scalar(error.to_string()))?;
+        defaults.insert(variable, input_value);
+    }
+
+    if !defaults.is_empty() && !raw.input_defaults.is_empty() {
+        diagnostics.push(Diagnostic::new(
+            DiagnosticSeverity::Warning,
+            DiagnosticCode::ErrValDuplicate,
+            "frontmatter contains both `defaults` and `input_defaults`; `input_defaults` overrides overlapping keys",
+        ));
+    }
+
+    for (name, value) in raw.input_defaults {
+        let variable = VariableName::new(name).map_err(|error| {
+            ConfigError::new(
+                DiagnosticCode::ErrConfigParse,
+                format!("invalid frontmatter input_defaults variable name: {error}"),
             )
         })?;
         let input_value = input_value_from_yaml(value)
@@ -179,5 +209,6 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
         required_variables,
         defaults,
         metadata,
+        diagnostics,
     })
 }

@@ -145,6 +145,50 @@ mod tests {
     }
 
     #[test]
+    fn frontmatter_accepts_input_defaults_alias() {
+        let parsed = parse_template_document(
+            "---\ninput_defaults:\n  assignee: teammate\n  branch: \"\"\n---\n{{ assignee }}\n",
+        )
+        .unwrap();
+        let frontmatter = parsed.frontmatter().unwrap();
+
+        assert_eq!(
+            frontmatter
+                .defaults()
+                .get(&super::VariableName::new("assignee").unwrap()),
+            Some(&json!("teammate"))
+        );
+        assert_eq!(
+            frontmatter
+                .defaults()
+                .get(&super::VariableName::new("branch").unwrap()),
+            Some(&json!(""))
+        );
+    }
+
+    #[test]
+    fn frontmatter_warns_when_defaults_and_input_defaults_both_exist() {
+        let parsed = parse_template_document(
+            "---\ndefaults:\n  name: old\ninput_defaults:\n  name: new\n---\n{{ name }}\n",
+        )
+        .unwrap();
+        let frontmatter = parsed.frontmatter().unwrap();
+
+        assert_eq!(
+            frontmatter
+                .defaults()
+                .get(&super::VariableName::new("name").unwrap()),
+            Some(&json!("new"))
+        );
+        assert!(
+            frontmatter
+                .diagnostics()
+                .iter()
+                .any(|diagnostic| diagnostic.message.contains("input_defaults"))
+        );
+    }
+
+    #[test]
     fn render_error_constructor_is_documented_and_usable() {
         let error = RenderError::render(std::io::Error::other("boom"));
         assert!(error.source().is_some());
