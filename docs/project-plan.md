@@ -696,7 +696,7 @@ Deliverables:
 
 Acceptance Criteria:
 
-- `sc-compose examples sprint-report-html --var-file sample-vars.json` works
+- `sc-compose examples sprint-report-html --var-file examples/sprint-report-html.sample-vars.json` works
   end-to-end
 - rendered HTML is self-contained and browser-viewable
 - rendered output includes working PR, CI, and plan/findings links from sample

@@ -626,7 +626,6 @@ mod tests {
     #[test]
     fn render_error_code_defaults_to_none() {
         let error = RenderError::render(std::io::Error::other("render failed"));
-
         assert_eq!(error.code(), None);
     }
 

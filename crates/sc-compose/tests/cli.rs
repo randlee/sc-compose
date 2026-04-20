@@ -263,11 +263,15 @@ fn examples_named_render_accepts_array_values_from_var_file() {
     assert!(stdout.contains("def test_logout(fixture_state):"));
 }
 
+fn sprint_report_html_sample_vars() -> PathBuf {
+    repo_root()
+        .join("examples")
+        .join("sprint-report-html.sample-vars.json")
+}
+
 #[test]
 fn examples_named_render_sprint_report_html_renders_browser_viewable_html() {
-    let vars_file = repo_root()
-        .join("examples")
-        .join("sprint-report-html.sample-vars.json");
+    let vars_file = sprint_report_html_sample_vars();
 
     let output = sc_compose()
         .arg("examples")
@@ -292,9 +296,7 @@ fn examples_named_render_sprint_report_html_renders_browser_viewable_html() {
 
 #[test]
 fn examples_named_render_dry_run_derives_html_output_path_from_example_name() {
-    let vars_file = repo_root()
-        .join("examples")
-        .join("sprint-report-html.sample-vars.json");
+    let vars_file = sprint_report_html_sample_vars();
 
     let output = sc_compose()
         .arg("examples")
