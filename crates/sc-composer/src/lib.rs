@@ -64,7 +64,7 @@ pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_templ
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
     FrontmatterInitResult, IncludeDepth, InitResult, InputValue, MetadataValue, ProfileKind,
-    ProfileName, ResolveResult, ResolverPolicy, RuntimeKind, ScalarValue, UnknownVariablePolicy,
+    ProfileName, ResolveResult, ResolverPolicy, RuntimeKind, UnknownVariablePolicy,
     ValidationReport, VariableName, VariableSource, input_value_from_yaml, validate_input_value,
 };
 #[doc(inline)]
@@ -76,10 +76,7 @@ mod tests {
 
     use serde_json::json;
 
-    use super::{
-        ComposeError, DiagnosticCode, RenderError, ScalarValue, parse_template_document,
-        render_template,
-    };
+    use super::{RenderError, parse_template_document, render_template};
 
     #[test]
     fn renders_inline_template() {
@@ -107,25 +104,22 @@ mod tests {
     }
 
     #[test]
-    fn frontmatter_rejects_nested_defaults() {
-        let error = parse_template_document(
-            "---\ndefaults:\n  name:\n    nested: nope\n---\nhello {{ name }}\n",
+    fn frontmatter_defaults_accept_object_value() {
+        let parsed = parse_template_document(
+            "---\ndefaults:\n  pr:\n    number: 43\n    url: https://example.test/pr/43\n---\nhello {{ pr.number }}\n",
         )
-        .unwrap_err();
+        .unwrap();
+        let frontmatter = parsed.frontmatter().unwrap();
 
-        match error {
-            ComposeError::Validation(validation) => {
-                assert_eq!(validation.code(), Some(DiagnosticCode::ErrValType));
-            }
-            other => panic!("unexpected error: {other}"),
-        }
-    }
-
-    #[test]
-    fn scalar_value_rejects_object_json_values() {
-        let value = serde_json::json!({ "nested": true });
-        let error = ScalarValue::try_from(value).unwrap_err();
-        assert!(error.to_string().contains("scalar"));
+        assert_eq!(
+            frontmatter
+                .defaults()
+                .get(&super::VariableName::new("pr").unwrap()),
+            Some(&json!({
+                "number": 43,
+                "url": "https://example.test/pr/43"
+            }))
+        );
     }
 
     #[test]

@@ -110,14 +110,6 @@ pub struct ResolveError {
 impl ResolveError {
     /// Create a new resolver error without an underlying source.
     #[must_use]
-    #[allow(
-        unfulfilled_lint_expectations,
-        reason = "Constructor is currently used; keep the explicit dead_code expectation tracked."
-    )]
-    #[expect(
-        dead_code,
-        reason = "Sprint 2 seeds constructors that later pipeline modules call."
-    )]
     pub(crate) fn new(
         code: DiagnosticCode,
         message: impl Into<String>,
@@ -134,14 +126,6 @@ impl ResolveError {
 
     /// Attach an underlying source error.
     #[must_use]
-    #[allow(
-        unfulfilled_lint_expectations,
-        reason = "Constructor is currently used; keep the explicit dead_code expectation tracked."
-    )]
-    #[expect(
-        dead_code,
-        reason = "Sprint 2 seeds constructors that later pipeline modules call."
-    )]
     pub(crate) fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
         self.source = Some(Box::new(source));
         self
@@ -198,14 +182,6 @@ pub struct IncludeError {
 impl IncludeError {
     /// Create a new include error.
     #[must_use]
-    #[allow(
-        unfulfilled_lint_expectations,
-        reason = "Constructor is currently used; keep the explicit dead_code expectation tracked."
-    )]
-    #[expect(
-        dead_code,
-        reason = "Sprint 2 seeds constructors that later pipeline modules call."
-    )]
     pub(crate) fn new(
         code: DiagnosticCode,
         message: impl Into<String>,
@@ -222,14 +198,6 @@ impl IncludeError {
 
     /// Attach an underlying source error.
     #[must_use]
-    #[allow(
-        unfulfilled_lint_expectations,
-        reason = "Constructor is currently used; keep the explicit dead_code expectation tracked."
-    )]
-    #[expect(
-        dead_code,
-        reason = "Sprint 2 seeds constructors that later pipeline modules call."
-    )]
     pub(crate) fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
         self.source = Some(Box::new(source));
         self
@@ -328,40 +296,10 @@ impl ValidationError {
         )
     }
 
-    /// Create a scalar-type validation error.
+    /// Create a validation error for an invalid input-value shape.
     #[must_use]
-    pub(crate) fn invalid_scalar(message: impl Into<String>) -> Self {
-        Self::new(DiagnosticCode::ErrValType, message)
-    }
-
-    /// Attach structured recovery hints.
-    #[must_use]
-    #[allow(
-        unfulfilled_lint_expectations,
-        reason = "Constructor is currently used; keep the explicit dead_code expectation tracked."
-    )]
-    #[expect(
-        dead_code,
-        reason = "Sprint 2 seeds constructors that later pipeline modules call."
-    )]
-    pub(crate) fn with_recovery_hints(mut self, recovery_hints: Vec<RecoveryHint>) -> Self {
-        self.recovery_hints = recovery_hints;
-        self
-    }
-
-    /// Attach an underlying source error.
-    #[must_use]
-    #[allow(
-        unfulfilled_lint_expectations,
-        reason = "Constructor is currently used; keep the explicit dead_code expectation tracked."
-    )]
-    #[expect(
-        dead_code,
-        reason = "Sprint 2 seeds constructors that later pipeline modules call."
-    )]
-    pub(crate) fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
-        self.source = Some(Box::new(source));
-        self
+    pub(crate) fn invalid_input_value(code: DiagnosticCode, message: impl Into<String>) -> Self {
+        Self::new(code, message)
     }
 
     /// Return the stable diagnostic code when one is available.
@@ -436,21 +374,6 @@ impl RenderError {
         }
     }
 
-    /// Attach a stable render code when the calling layer knows one.
-    #[must_use]
-    #[allow(
-        unfulfilled_lint_expectations,
-        reason = "Constructor is currently used; keep the explicit dead_code expectation tracked."
-    )]
-    #[expect(
-        dead_code,
-        reason = "Sprint 2 seeds constructors that later pipeline modules call."
-    )]
-    pub(crate) fn with_code(mut self, code: DiagnosticCode) -> Self {
-        self.code = Some(code);
-        self
-    }
-
     /// Return the captured backtrace for the render failure.
     pub const fn backtrace(&self) -> &Backtrace {
         &self.backtrace
@@ -502,21 +425,6 @@ impl ConfigError {
             source: None,
             backtrace: Backtrace::capture(),
         }
-    }
-
-    /// Attach structured recovery hints.
-    #[must_use]
-    #[allow(
-        unfulfilled_lint_expectations,
-        reason = "Constructor is currently used; keep the explicit dead_code expectation tracked."
-    )]
-    #[expect(
-        dead_code,
-        reason = "Sprint 2 seeds constructors that later pipeline modules call."
-    )]
-    pub(crate) fn with_recovery_hints(mut self, recovery_hints: Vec<RecoveryHint>) -> Self {
-        self.recovery_hints = recovery_hints;
-        self
     }
 
     /// Attach an underlying source error.
@@ -653,8 +561,7 @@ mod tests {
     use std::path::PathBuf;
 
     use super::{
-        ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind, RenderError,
-        ResolveError, ValidationError,
+        ComposeError, ConfigError, IncludeError, RenderError, ResolveError, ValidationError,
     };
     use crate::Diagnostic;
     use crate::diagnostics::{DiagnosticCode, DiagnosticSeverity};
@@ -699,19 +606,13 @@ mod tests {
     #[test]
     fn validation_error_constructor_roundtrip_and_display() {
         let variable = VariableName::new("name").unwrap();
-        let error = ValidationError::duplicate_variable(&variable)
-            .with_recovery_hints(vec![RecoveryHint::new(RecoveryHintKind::ProvideVariable {
-                variable: variable.clone(),
-            })])
-            .with_source(std::io::Error::other("duplicate"));
+        let error = ValidationError::duplicate_variable(&variable);
 
         assert_eq!(error.code(), Some(DiagnosticCode::ErrValDuplicate));
-        assert_eq!(error.recovery_hints().len(), 1);
+        assert!(error.recovery_hints().is_empty());
         assert!(error.to_string().contains("duplicate frontmatter variable"));
-        assert!(error.to_string().contains("caused by:"));
-        assert!(error.to_string().contains("duplicate"));
         assert!(error.to_string().contains("backtrace"));
-        assert!(error.source().is_some());
+        assert!(error.source().is_none());
     }
 
     #[test]
@@ -723,27 +624,19 @@ mod tests {
     }
 
     #[test]
-    fn render_error_code_can_be_set_or_left_unset() {
-        let without_code = RenderError::render(std::io::Error::other("render failed"));
-        let with_code = RenderError::render(std::io::Error::other("write failed"))
-            .with_code(DiagnosticCode::ErrRenderWrite);
+    fn render_error_code_defaults_to_none() {
+        let error = RenderError::render(std::io::Error::other("render failed"));
 
-        assert_eq!(without_code.code(), None);
-        assert_eq!(with_code.code(), Some(DiagnosticCode::ErrRenderWrite));
+        assert_eq!(error.code(), None);
     }
 
     #[test]
     fn config_error_constructor_roundtrip_and_display() {
         let error = ConfigError::new(DiagnosticCode::ErrConfigParse, "config parse failed")
-            .with_recovery_hints(vec![RecoveryHint::new(
-                RecoveryHintKind::ReviewConfiguration {
-                    key: "frontmatter".to_owned(),
-                },
-            )])
             .with_source(std::io::Error::other("parse"));
 
         assert_eq!(error.code(), Some(DiagnosticCode::ErrConfigParse));
-        assert_eq!(error.recovery_hints().len(), 1);
+        assert!(error.recovery_hints().is_empty());
         assert!(error.to_string().contains("config parse failed"));
         assert!(error.to_string().contains("caused by:"));
         assert!(error.to_string().contains("parse"));
@@ -798,10 +691,7 @@ mod tests {
             DiagnosticCode::ErrValEmpty,
             "validation",
         ));
-        let render = ComposeError::from(
-            RenderError::render(std::io::Error::other("render"))
-                .with_code(DiagnosticCode::ErrRenderWrite),
-        );
+        let render = ComposeError::from(RenderError::render(std::io::Error::other("render")));
         let config = ComposeError::from(ConfigError::new(DiagnosticCode::ErrConfigParse, "config"));
 
         assert!(matches!(resolve, ComposeError::Resolve(_)));
