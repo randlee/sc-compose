@@ -184,7 +184,10 @@ mod tests {
             frontmatter
                 .diagnostics()
                 .iter()
-                .any(|diagnostic| diagnostic.message.contains("input_defaults"))
+                .any(|diagnostic| {
+                    diagnostic.code == super::DiagnosticCode::WarnValConflictingDefaultSections
+                        && diagnostic.message.contains("input_defaults")
+                })
         );
     }
 

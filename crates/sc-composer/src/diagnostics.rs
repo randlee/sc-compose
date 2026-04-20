@@ -39,6 +39,8 @@ pub enum DiagnosticCode {
     ErrValType,
     /// Frontmatter declarations contained duplicate variables.
     ErrValDuplicate,
+    /// Frontmatter used both defaults sections and `input_defaults` overrides them.
+    WarnValConflictingDefaultSections,
     /// A template body was empty when content was required.
     ErrValEmpty,
     /// The root template omitted a frontmatter block.
@@ -84,6 +86,7 @@ impl DiagnosticCode {
             Self::ErrIncludeDepth => "ERR_INCLUDE_DEPTH",
             Self::ErrValType => "ERR_VAL_TYPE",
             Self::ErrValDuplicate => "ERR_VAL_DUPLICATE",
+            Self::WarnValConflictingDefaultSections => "WARN_VAL_CONFLICTING_DEFAULT_SECTIONS",
             Self::ErrValEmpty => "ERR_VAL_EMPTY",
             Self::ErrValMissingFrontmatter => "ERR_VAL_MISSING_FRONTMATTER",
             Self::ErrValMissingRequired => "ERR_VAL_MISSING_REQUIRED",

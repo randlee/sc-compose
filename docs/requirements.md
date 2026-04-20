@@ -116,7 +116,7 @@ Schema rules:
   unless overridden by environment-derived or explicit input values.
 - If both `defaults` and `input_defaults` appear in the same frontmatter
   block, `input_defaults` wins for overlapping keys and validation emits a
-  warning diagnostic.
+  `WARN_VAL_CONFLICTING_DEFAULT_SECTIONS` warning diagnostic.
 - `metadata` is descriptive only. It must not directly change render semantics
   unless a future requirement explicitly assigns meaning to a metadata key.
 

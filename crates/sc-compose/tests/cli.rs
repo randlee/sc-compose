@@ -482,6 +482,7 @@ fn validate_warns_when_defaults_and_input_defaults_both_exist() {
         String::from_utf8_lossy(&output.stderr)
     );
     let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("WARN_VAL_CONFLICTING_DEFAULT_SECTIONS"));
     assert!(stdout.contains("input_defaults"));
     assert!(stdout.contains("defaults"));
 }

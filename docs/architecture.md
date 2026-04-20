@@ -253,7 +253,8 @@ Normalization rules:
 - If frontmatter exists but omits `metadata`, normalize to `{}`.
 - If no frontmatter exists, the document has no declarations and no defaults.
 - If both `defaults` and `input_defaults` appear, merge both maps, let
-  `input_defaults` override overlapping keys, and emit a warning diagnostic.
+  `input_defaults` override overlapping keys, and emit
+  `WARN_VAL_CONFLICTING_DEFAULT_SECTIONS`.
 
 Semantic rules:
 

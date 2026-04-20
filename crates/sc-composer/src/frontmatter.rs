@@ -150,6 +150,22 @@ fn split_frontmatter(input: &str) -> Result<Option<(&str, &str)>, ComposeError> 
 }
 
 fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeError> {
+    let parse_default_entry =
+        |section_name: &str,
+         name: String,
+         value: serde_yaml::Value|
+         -> Result<(VariableName, InputValue), ComposeError> {
+            let variable = VariableName::new(name).map_err(|error| {
+                ConfigError::new(
+                    DiagnosticCode::ErrConfigParse,
+                    format!("invalid frontmatter {section_name} variable name: {error}"),
+                )
+            })?;
+            let input_value = input_value_from_yaml(value)
+                .map_err(|error| ValidationError::invalid_scalar(error.to_string()))?;
+            Ok((variable, input_value))
+        };
+
     let mut required_variables = Vec::with_capacity(raw.required_variables.len());
     let mut seen = BTreeSet::new();
     for variable in raw.required_variables {
@@ -168,34 +184,20 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
     let mut diagnostics = Vec::new();
     let mut defaults = BTreeMap::new();
     for (name, value) in raw.defaults {
-        let variable = VariableName::new(name).map_err(|error| {
-            ConfigError::new(
-                DiagnosticCode::ErrConfigParse,
-                format!("invalid frontmatter default variable name: {error}"),
-            )
-        })?;
-        let input_value = input_value_from_yaml(value)
-            .map_err(|error| ValidationError::invalid_scalar(error.to_string()))?;
+        let (variable, input_value) = parse_default_entry("default", name, value)?;
         defaults.insert(variable, input_value);
     }
 
     if !defaults.is_empty() && !raw.input_defaults.is_empty() {
         diagnostics.push(Diagnostic::new(
             DiagnosticSeverity::Warning,
-            DiagnosticCode::ErrValDuplicate,
+            DiagnosticCode::WarnValConflictingDefaultSections,
             "frontmatter contains both `defaults` and `input_defaults`; `input_defaults` overrides overlapping keys",
         ));
     }
 
     for (name, value) in raw.input_defaults {
-        let variable = VariableName::new(name).map_err(|error| {
-            ConfigError::new(
-                DiagnosticCode::ErrConfigParse,
-                format!("invalid frontmatter input_defaults variable name: {error}"),
-            )
-        })?;
-        let input_value = input_value_from_yaml(value)
-            .map_err(|error| ValidationError::invalid_scalar(error.to_string()))?;
+        let (variable, input_value) = parse_default_entry("input_defaults", name, value)?;
         defaults.insert(variable, input_value);
     }
 

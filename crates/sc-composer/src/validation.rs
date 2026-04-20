@@ -227,9 +227,8 @@ fn default_usage_diagnostics(state: &ValidationState) -> Vec<Diagnostic> {
                         diagnostic
                     }
                 }
-                VariableSource::TemplateInputDefault
-                | VariableSource::ExplicitInput
-                | VariableSource::Environment => diagnostic,
+                VariableSource::TemplateInputDefault => diagnostic,
+                VariableSource::ExplicitInput | VariableSource::Environment => unreachable!(),
             })
         })
         .collect()
@@ -657,6 +656,34 @@ mod tests {
                 .errors
                 .iter()
                 .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput)
+        );
+    }
+
+    #[test]
+    fn input_defaults_only_var_uses_default_when_absent_emits_info_diagnostic() {
+        let root = temp_root("validation_input_defaults_only_default");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\ninput_defaults:\n  assignee: teammate\n---\nhello {{ assignee }}\n",
+        );
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty());
+        assert!(
+            report.warnings.iter().any(|diagnostic| {
+                diagnostic.severity == DiagnosticSeverity::Info
+                    && diagnostic.code == DiagnosticCode::InfoValDefaultUsed
+                    && diagnostic.message.contains("variable assignee not provided")
+                    && diagnostic.message.contains("\"teammate\"")
+            }),
+            "{report:?}"
         );
     }
 
