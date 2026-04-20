@@ -355,28 +355,6 @@ following are true:
   [docs/html-sprint-report-plan.md](html-sprint-report-plan.md) and the Phase
   HTML-Report section above.
 
-### Sprint S8: Release Engineering And Distribution
-
-Status:
-
-- completed
-
-Branch:
-
-- `chore/version-bump-1.0.0` -> `develop`
-
-Goals:
-
-- finalize the first standalone `1.0.0` release path for `sc-composer` and
-  `sc-compose`
-- add release-control infrastructure that prevents accidental duplicate publish
-- make Homebrew, `winget`, and packaged GitHub Release installs match the
-  documented examples-discovery contract
-
-Deliverables:
-
-- completed as specified in [docs/publishing.md](docs/publishing.md)
-
 Acceptance Criteria:
 
 - workspace and crate manifests are updated to `1.0.0`

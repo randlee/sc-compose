@@ -39,7 +39,8 @@ pub enum DiagnosticCode {
     ErrValType,
     /// Structured object input used an unsupported shape.
     ErrValObjectShape,
-    /// Structured input used a nested array shape that H2 still forbids.
+    /// Structured input used either a literal nested array or an array of
+    /// objects at a non-top-level path.
     ErrValNestedArrayUnsupported,
     /// Frontmatter declarations contained duplicate variables.
     ErrValDuplicate,

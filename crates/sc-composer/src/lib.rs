@@ -139,6 +139,25 @@ mod tests {
     }
 
     #[test]
+    fn frontmatter_defaults_accept_array_of_objects() {
+        let parsed = parse_template_document(
+            "---\ndefaults:\n  sprints:\n    - id: H1\n      stage: merged\n    - id: H2\n      stage: in-review\n---\n{{ sprints | length }}\n",
+        )
+        .unwrap();
+        let frontmatter = parsed.frontmatter().unwrap();
+
+        assert_eq!(
+            frontmatter
+                .defaults()
+                .get(&super::VariableName::new("sprints").unwrap()),
+            Some(&json!([
+                { "id": "H1", "stage": "merged" },
+                { "id": "H2", "stage": "in-review" }
+            ]))
+        );
+    }
+
+    #[test]
     fn frontmatter_accepts_input_defaults_alias() {
         let parsed = parse_template_document(
             "---\ninput_defaults:\n  assignee: teammate\n  branch: \"\"\n---\n{{ assignee }}\n",

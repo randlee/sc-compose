@@ -138,7 +138,8 @@ structured-input support lands.
   variable boundary, object values.
 - Nested sequences remain out of scope.
 - Arrays of objects are only supported when the array is the variable value
-  itself; nested object fields do not gain array-of-object support in H2.
+  itself; object fields within array members may be nested objects, but an
+  object field whose value is itself an array of objects remains out of scope.
 - `metadata` may contain arbitrary YAML values because it is descriptive only
   and does not participate in rendering semantics.
 

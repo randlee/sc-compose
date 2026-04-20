@@ -18,7 +18,7 @@ pub type InputValue = serde_json::Value;
 /// # Errors
 ///
 /// Returns [`InvalidInputValueError`] when the value contains unsupported
-/// nested arrays, non-string object keys, or arrays of objects.
+/// nested arrays or arrays of objects at non-top-level paths.
 pub fn validate_input_value(value: &InputValue) -> Result<(), InvalidInputValueError> {
     validate_input_value_at(value, ArrayContext::TopLevel)
 }
@@ -48,14 +48,14 @@ fn validate_input_value_at(
                     serde_json::Value::Array(_) => {
                         return Err(InvalidInputValueError::new(
                             DiagnosticCode::ErrValNestedArrayUnsupported,
-                            "nested arrays are unsupported in H2",
+                            "nested arrays are unsupported",
                         ));
                     }
                     serde_json::Value::Object(object) => {
                         if !matches!(array_context, ArrayContext::TopLevel) {
                             return Err(InvalidInputValueError::new(
                                 DiagnosticCode::ErrValNestedArrayUnsupported,
-                                "arrays of objects are unsupported at nested paths in H2",
+                                "arrays of objects are unsupported at nested paths",
                             ));
                         }
                         for value in object.values() {
