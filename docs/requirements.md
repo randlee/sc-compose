@@ -882,12 +882,16 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
   2. environment-derived variables,
   3. user-template `input_defaults`,
   4. frontmatter defaults.
+- `required_variables` may name nested field paths such as `pr.number` once
+  structured inputs are implemented.
 - Missing nested required fields must report the full field path, for example
   `pr.number`.
 - Malformed object input must fail with stable configuration or validation
   diagnostics.
 - `--var key=value` remains string-only in this phase. Structured input comes
   from `--var-file`, frontmatter defaults, or `template.json` `input_defaults`.
+- JSON and YAML var-file documents remain top-level objects. Structured values
+  are carried in object fields within that top-level object.
 
 ### FR-13: Arrays Of Objects
 
@@ -902,6 +906,8 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
   - frontmatter defaults,
   - user-template `template.json` `input_defaults`.
 - Empty arrays remain valid inputs.
+- Arrays of objects may contain nested object fields. Arrays of arrays remain a
+  separate decision and are not implied by this requirement.
 - Nested arrays must either:
   - remain explicitly out of scope, or
   - be documented with exact validation rules before implementation.
@@ -930,6 +936,9 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
 - `sc-compose` shall ship a bundled example named `sprint-report-html`.
 - The example must demonstrate FR-12, FR-13, and FR-14 together using a
   self-contained HTML sprint status report.
+- The example may use a bundled example-pack directory layout rather than the
+  current flat example-file layout if that is required for include fragments and
+  sample data files.
 - The example must include realistic structured input data showing:
   - report metadata,
   - sprint entries,

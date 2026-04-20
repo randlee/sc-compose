@@ -165,6 +165,9 @@ Follow-on include fragments:
 
 The single-panel v1 can keep all markup in one file if that is simpler for the
 starter example. Multi-panel expansion is where `_includes/` adds clear value.
+If H3 uses include fragments in the bundled example, the HTML-report track must
+also define the required bundled example-pack layout change explicitly rather
+than silently reusing the current flat example-file convention.
 
 ## Proposed Example Input Shape
 

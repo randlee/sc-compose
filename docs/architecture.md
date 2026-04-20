@@ -1341,7 +1341,8 @@ Frontmatter defaults
 `required_variables`
 
 - remains the declaration surface for required inputs,
-- must support nested field paths if nested field validation is implemented.
+- must support nested field paths such as `pr.number` and
+  `sprints[].checks[].status` if nested field validation is implemented.
 
 `frontmatter-init`
 
@@ -1360,5 +1361,8 @@ Architectural boundaries:
 
 - `sc-compose` owns rendering,
 - the example/template pack owns the HTML structure,
+- the HTML example track may extend bundled examples from flat files to
+  directory-based example packs when include fragments and sample assets make
+  that materially clearer than one flat file,
 - wrapper tooling such as `/sprint-report` owns open/display behavior,
 - no hook execution is added to `sc-compose` for this phase.
