@@ -122,29 +122,35 @@ Schema rules:
 
 ### FR-1b: Value Types
 
-For the initial release, the render-context value model remains intentionally
-narrow even after template-pack support is added.
+The render-context value model remains intentionally narrow even after H1
+structured-input support lands.
 
 - Variables used by template rendering must be one of:
   - string
   - number
   - boolean
   - null
+  - an object/map with string keys; object fields may nest objects and arrays
+    of scalars
   - a sequence of scalar values
-- Sequence values may contain only supported scalar value types.
-- Nested sequences and mapping values are out of scope for template variables,
-  `defaults`, and user-template `input_defaults` in the initial release.
+  - a top-level sequence of objects
+- Sequence values may contain supported scalar values or, at the top-level
+  variable boundary, object values.
+- Nested sequences remain out of scope.
+- Arrays of objects are only supported when the array is the variable value
+  itself; object fields within array members may be nested objects, but an
+  object field whose value is itself an array of objects remains out of scope.
 - `metadata` may contain arbitrary YAML values because it is descriptive only
   and does not participate in rendering semantics.
 
-Post-`1.0` design track:
+HTML-Report follow-on design track:
 
-- A follow-on design track proposes structured render inputs for richer report
-  and UI-style template outputs.
-- That design is captured in [docs/html-sprint-report-plan.md](html-sprint-report-plan.md).
-- The detailed follow-on functional requirements are FR-12 through FR-15.
-- This is not part of the shipped `1.0` contract and remains future work until
-  implemented.
+- FR-12 through FR-15 are implemented by Phase HTML-Report.
+- The remaining design exploration in
+  [docs/html-sprint-report-plan.md](html-sprint-report-plan.md) is limited to
+  H5-and-later work such as multi-panel HTML/XHTML composition, wrapper-level
+  output viewing behavior, and possible post-render-hook design that stays
+  outside the core `sc-compose` contract unless explicitly accepted later.
 
 ### FR-1c: File Extension and Discovery Conventions
 
@@ -515,10 +521,13 @@ Pack root policy:
 - `--var-file` accepts a JSON or YAML object.
 - Variable-file keys must be strings.
 - Variable-file values must be supported render-context value types.
-- Sequence values in variable files must contain only supported scalar values.
-- Nested objects and nested sequences are invalid in the initial release.
-- See FR-12 and FR-13 for the post-`1.0` extension that adds object and
-  array-of-object input support.
+- Object/map values with string keys are valid per FR-12.
+- Sequence values in variable files may contain scalar values or, at the
+  top-level variable boundary, object values.
+- Nested arrays remain invalid and must report
+  `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`.
+- Arrays of objects are valid per FR-13 when the array is the variable value
+  itself.
 
 ### FR-7b: Exit Codes
 
@@ -873,12 +882,11 @@ same command payloads as `render` and `render --dry-run`.
 - The CLI shall perform graceful logger shutdown on process exit so pending
   events flush before termination.
 
-### Post-`1.0` Functional Requirements
+### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 
 ### FR-12: Map/Object Variable Inputs
 
-This is a post-`1.0` follow-on requirement. It does not change the shipped
-`1.0` contract until implemented.
+Implemented in Phase HTML-Report.
 
 - Callers may pass structured object/map values as template variables.
 - Object keys must be strings.
@@ -908,10 +916,10 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
 
 ### FR-13: Arrays Of Objects
 
-This is a post-`1.0` follow-on requirement. It does not change the shipped
-`1.0` contract until implemented.
+Implemented in Phase HTML-Report.
 
-- Callers may pass arrays whose members are objects.
+- Callers may pass arrays whose members are objects when the array itself is
+  the variable value.
 - Jinja loops such as `{% for item in list %}` must support field access within
   each array member object.
 - Arrays of objects are valid through:
@@ -933,8 +941,7 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
 
 ### FR-14: HTML Template Output
 
-This is a post-`1.0` follow-on requirement. It does not change the shipped
-`1.0` contract until implemented.
+Implemented in Phase HTML-Report.
 
 - `.html.j2` templates render like other file-mode templates.
 - Output path derivation removes only the trailing `.j2` suffix and therefore
@@ -950,8 +957,7 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
 
 ### FR-15: Bundled HTML Report Example
 
-This is a post-`1.0` follow-on requirement. It does not change the shipped
-`1.0` contract until implemented.
+Implemented in Phase HTML-Report.
 
 - `sc-compose` shall ship a bundled example named `sprint-report-html`.
 - The example must demonstrate FR-12, FR-13, and FR-14 together using a
@@ -1045,6 +1051,7 @@ Required integration coverage includes:
 - `prepare-hook` and `post-render-hook` execution
 - Named render for packs with multiple root-level `*.j2` entry candidates
 - Template deletion, update, sync, or remote registry features
-- Structured map/object render inputs and arrays of objects remain deferred to
-  the follow-on design track in
+- Nested arrays, nested array-of-object fields, multi-panel HTML/XHTML report
+  expansion, and wrapper-level output viewing behavior remain deferred to the
+  follow-on design track in
   [docs/html-sprint-report-plan.md](html-sprint-report-plan.md)

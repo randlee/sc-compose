@@ -246,7 +246,7 @@ fn parse_var_file(contents: &str) -> Result<BTreeMap<VariableName, InputValue>, 
             input_value_from_yaml(value).map_err(|error| {
                 CommandError::usage_with_code(
                     anyhow!("invalid var-file value for `{key}`: {error}"),
-                    DiagnosticCode::ErrConfigVarfile,
+                    error.code(),
                 )
             })?,
         );
@@ -276,7 +276,7 @@ fn parse_object_value(
                 validate_input_value(value).map_err(|error| {
                     CommandError::usage_with_code(
                         anyhow!("invalid var-file value for `{key}`: {error}"),
-                        DiagnosticCode::ErrConfigVarfile,
+                        error.code(),
                     )
                 })?;
                 value.clone()

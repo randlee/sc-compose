@@ -1,0 +1,59 @@
+{
+  "report": {
+    "title": "HTML Sprint Report",
+    "phase": "Phase HTML-Report",
+    "generated_at": "2026-04-20T05:30:00Z",
+    "repository": "randlee/sc-compose"
+  },
+  "summary": {
+    "completed": 2,
+    "in_review": 1,
+    "blocked": 0
+  },
+  "pr": {
+    "number": 47,
+    "url": "https://github.com/randlee/sc-compose/pull/47",
+    "merge_url": "https://github.com/randlee/sc-compose/pull/47",
+    "head": "feat/html-report-H3",
+    "base": "integrate/phase-HTML-report"
+  },
+  "ci": {
+    "run_name": "CI #118",
+    "run_url": "https://github.com/randlee/sc-compose/actions/runs/118",
+    "status": "PASS",
+    "summary": "fmt, clippy, and workspace tests are green on the current HTML sprint branch."
+  },
+  "links": {
+    "plan_url": "https://github.com/randlee/sc-compose/blob/develop/docs/project-plan.md",
+    "findings_url": "https://github.com/randlee/sc-compose/blob/develop/docs/html-sprint-report-plan.md"
+  },
+  "sprints": [
+    {
+      "id": "H1",
+      "title": "Structured object inputs",
+      "stage": "merged",
+      "qa": "PASS",
+      "ci": "PASS",
+      "pr_url": "https://github.com/randlee/sc-compose/pull/45",
+      "note": "Object values and nested field diagnostics landed."
+    },
+    {
+      "id": "H2",
+      "title": "Arrays of objects",
+      "stage": "merged",
+      "qa": "PASS",
+      "ci": "PASS",
+      "pr_url": "https://github.com/randlee/sc-compose/pull/46",
+      "note": "Loop-body discovery now understands array members."
+    },
+    {
+      "id": "H3",
+      "title": "Bundled HTML example",
+      "stage": "in-review",
+      "qa": "Queued",
+      "ci": "Running",
+      "pr_url": "https://github.com/randlee/sc-compose/pull/47",
+      "note": "This report is generated from one flat example file with structured inputs."
+    }
+  ]
+}

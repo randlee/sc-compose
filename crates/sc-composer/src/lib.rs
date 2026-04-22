@@ -63,9 +63,10 @@ pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_templ
 #[doc(inline)]
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
-    FrontmatterInitResult, IncludeDepth, InitResult, InputValue, MetadataValue, ProfileKind,
-    ProfileName, ResolveResult, ResolverPolicy, RuntimeKind, ScalarValue, UnknownVariablePolicy,
-    ValidationReport, VariableName, VariableSource, input_value_from_yaml, validate_input_value,
+    FrontmatterInitResult, IncludeDepth, InitResult, InputValue, InvalidInputValueError,
+    InvalidProfileNameError, InvalidVariableNameError, MetadataValue, ProfileKind, ProfileName,
+    ResolveResult, ResolverPolicy, RuntimeKind, UnknownVariablePolicy, ValidationReport,
+    VariableName, VariableSource, input_value_from_yaml, validate_input_value,
 };
 #[doc(inline)]
 pub use validate::{validate, validate_with_observer};
@@ -76,10 +77,7 @@ mod tests {
 
     use serde_json::json;
 
-    use super::{
-        ComposeError, DiagnosticCode, RenderError, ScalarValue, parse_template_document,
-        render_template,
-    };
+    use super::{RenderError, parse_template_document, render_template};
 
     #[test]
     fn renders_inline_template() {
@@ -107,25 +105,22 @@ mod tests {
     }
 
     #[test]
-    fn frontmatter_rejects_nested_defaults() {
-        let error = parse_template_document(
-            "---\ndefaults:\n  name:\n    nested: nope\n---\nhello {{ name }}\n",
+    fn frontmatter_defaults_accept_object_value() {
+        let parsed = parse_template_document(
+            "---\ndefaults:\n  pr:\n    number: 43\n    url: https://example.test/pr/43\n---\nhello {{ pr.number }}\n",
         )
-        .unwrap_err();
+        .unwrap();
+        let frontmatter = parsed.frontmatter().unwrap();
 
-        match error {
-            ComposeError::Validation(validation) => {
-                assert_eq!(validation.code(), Some(DiagnosticCode::ErrValType));
-            }
-            other => panic!("unexpected error: {other}"),
-        }
-    }
-
-    #[test]
-    fn scalar_value_rejects_object_json_values() {
-        let value = serde_json::json!({ "nested": true });
-        let error = ScalarValue::try_from(value).unwrap_err();
-        assert!(error.to_string().contains("scalar"));
+        assert_eq!(
+            frontmatter
+                .defaults()
+                .get(&super::VariableName::new("pr").unwrap()),
+            Some(&json!({
+                "number": 43,
+                "url": "https://example.test/pr/43"
+            }))
+        );
     }
 
     #[test]
@@ -141,6 +136,25 @@ mod tests {
                 .defaults()
                 .get(&super::VariableName::new("test_names").unwrap()),
             Some(&json!(["login", "logout"]))
+        );
+    }
+
+    #[test]
+    fn frontmatter_defaults_accept_array_of_objects() {
+        let parsed = parse_template_document(
+            "---\ndefaults:\n  sprints:\n    - id: H1\n      stage: merged\n    - id: H2\n      stage: in-review\n---\n{{ sprints | length }}\n",
+        )
+        .unwrap();
+        let frontmatter = parsed.frontmatter().unwrap();
+
+        assert_eq!(
+            frontmatter
+                .defaults()
+                .get(&super::VariableName::new("sprints").unwrap()),
+            Some(&json!([
+                { "id": "H1", "stage": "merged" },
+                { "id": "H2", "stage": "in-review" }
+            ]))
         );
     }
 
