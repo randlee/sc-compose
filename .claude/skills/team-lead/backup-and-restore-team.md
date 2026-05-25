@@ -1,123 +1,101 @@
-# Team Backup and Restore Procedure
-
-Follow this procedure when Step 1 of the team-lead skill detects a session ID
-mismatch or a missing `config.json` (i.e., a full team restore is required).
-
 ---
+name: backup-and-restore-team
+version: 0.2.0
+description: Procedure for backing up and restoring an ATM team. Referenced by the team-lead skill when a session ID mismatch is detected.
+---
+# Team Backup And Restore Procedure
+
+Follow this procedure when Step 1 of the `team-lead` skill detects a session id
+mismatch and a full team restore is required. This is the startup or `clear`
+path where the live `SESSION_ID` changed and no longer matches
+`leadSessionId`.
+
+Do not use this procedure for same-session compaction or resume when the
+session id still matches. Verify teammate routing first before using this
+destructive restore path.
 
 ## Step 2 — Backup Current State
 
-Always backup before modifying the team:
+Always back up before modifying the team:
 
 ```bash
 atm teams backup sc-compose
-# Note the backup path from output, e.g.:
-# Backup created: ~/.claude/teams/.backups/sc-compose/<timestamp>
 ```
 
-Also backup the Claude Code project task list (separate bucket):
+Also back up the Claude Code project task list separately:
 
 ```bash
 BACKUP_PATH=$(ls -td ~/.claude/teams/.backups/sc-compose/*/ | head -1)
-cp -r ~/.claude/tasks/sc-compose/ "$BACKUP_PATH/tasks-cc" 2>/dev/null || true
+cp -r ~/.claude/tasks/sc-compose/ "$BACKUP_PATH/tasks-cc"
 echo "CC task list backed up to $BACKUP_PATH/tasks-cc"
 ```
 
-> **Note**: `atm teams backup` captures `~/.claude/tasks/sc-compose/` (ATM sprint
-> tasks) but NOT the Claude Code task tools bucket. These are two separate buckets.
+Note: back up the `~/.claude/tasks/sc-compose/` task bucket explicitly even if
+`atm teams backup` also captures team state. Do not assume task history is
+restored unless this directory is copied back.
 
----
+## Step 3 — Clear Stale Team State
 
-## Step 3 — Repair or Recreate Team Config
-
-Two cases:
-
-### Case A — `config.json` missing but directory exists (most common)
-
-Reconstruct `config.json` from the latest backup + current session ID:
-
-```python
-python3 -c "
-import json, os, glob
-
-# Find latest backup
-backups = sorted(glob.glob(os.path.expanduser(
-    '~/.claude/teams/.backups/sc-compose/*/config.json')))
-if not backups:
-    raise SystemExit('No backup found — cannot restore')
-
-with open(backups[-1]) as f:
-    cfg = json.load(f)
-
-# Stamp current session ID (get from SESSION_ID= in context or atm whoami)
-import subprocess
-session_id = subprocess.check_output(['atm', 'whoami', '--session-id'],
-    text=True).strip()
-cfg['leadSessionId'] = session_id
-
-# Clear stale tmuxPaneId for team-lead
-for m in cfg['members']:
-    if m['name'] == 'team-lead':
-        m['tmuxPaneId'] = ''
-
-out = os.path.expanduser('~/.claude/teams/sc-compose/config.json')
-with open(out, 'w') as f:
-    json.dump(cfg, f, indent=2)
-print('Restored from:', backups[-1])
-print('Members:', [m['name'] for m in cfg['members']])
-print('leadSessionId:', cfg['leadSessionId'])
-"
+```text
+TeamDelete
 ```
 
-If `atm whoami --session-id` is unavailable, supply the SESSION_ID manually
-(visible in the `SessionStart` hook output at the top of context).
-
-### Case B — Directory missing entirely
+Then remove the stale team directory so the next create uses the correct name:
 
 ```bash
-# 1. Clear any active team context in this session
-TeamDelete  # tool call — may say "No team name found", that is OK
-
-# 2. Create fresh team
-TeamCreate(team_name="sc-compose", description="sc-compose development team", agent_type="team-lead")
-# Verify team_name in response is "sc-compose" — stop if it is not
-
-# 3. Restore members and inboxes from backup
-LATEST=$(ls -td ~/.claude/teams/.backups/sc-compose/*/ | head -1)
-atm teams restore sc-compose --from "$LATEST"
-# Expected: N member(s) added, N inbox file(s) restored
+rm -rf ~/.claude/teams/sc-compose
 ```
 
----
+If `TeamDelete` already removed the directory, the `rm -rf` is harmless.
 
-## Step 4 — Verify and Prune Members
+## Step 4 — Create Team
+
+```text
+TeamCreate(team_name="sc-compose", description="sc-compose development team", agent_type="team-lead")
+```
+
+Verify that the returned team name is exactly `sc-compose`. If it is not, stop.
+
+Note: if communications are broken after compaction or resume, confirm the
+failure first and avoid this destructive backup/delete/restore flow unless a
+lighter routing repair is impossible.
+
+## Step 5 — Restore Team Members And Inboxes
+
+```bash
+atm teams restore sc-compose --from ~/.claude/teams/.backups/sc-compose/<timestamp>
+```
+
+Verify members:
 
 ```bash
 atm members
 ```
 
-Expected members: `team-lead`, `quality-mgr`, `comp`.
-Remove unexpected members if present (until `atm teams remove-member` ships):
+If unexpected ghost members exist, trim the config manually:
 
-```python
+```bash
 python3 -c "
 import json
 path = '/Users/randlee/.claude/teams/sc-compose/config.json'
-with open(path) as f: cfg = json.load(f)
-keep = ['team-lead', 'quality-mgr', 'comp']
+with open(path) as f:
+    cfg = json.load(f)
+keep = ['team-lead', 'comp', 'quality-mgr']
 cfg['members'] = [m for m in cfg['members'] if m['name'] in keep]
-with open(path, 'w') as f: json.dump(cfg, f, indent=2)
+with open(path, 'w') as f:
+    json.dump(cfg, f, indent=2)
 print('Members:', [m['name'] for m in cfg['members']])
 "
 ```
 
----
+Adjust the `keep` list if additional named teammates are intentionally active.
 
-## Step 5 — Restore Claude Code Task List
+## Step 6 — Restore Claude Code Task List
 
 ```bash
 BACKUP_PATH=$(ls -td ~/.claude/teams/.backups/sc-compose/*/ | head -1)
 if [ -d "$BACKUP_PATH/tasks-cc" ]; then
+  mkdir -p ~/.claude/tasks/sc-compose
   cp "$BACKUP_PATH/tasks-cc/"*.json ~/.claude/tasks/sc-compose/ 2>/dev/null || true
   MAX_ID=$(ls ~/.claude/tasks/sc-compose/*.json 2>/dev/null \
     | xargs -I{} basename {} .json \
@@ -129,62 +107,59 @@ else
 fi
 ```
 
-> The Claude Code UI task panel will not show restored tasks until one task is
-> created via `TaskCreate`. Create a real task to trigger the panel refresh.
+The Claude Code UI task panel may not show restored tasks until one task is
+created through the task tool.
 
-> **Known bug**: `atm teams restore` sets `.highwatermark` to `min_id - 1`
-> instead of `max_id`. The script above corrects this manually.
-
----
-
-## Step 6 — Verify Team Health
+## Step 7 — Verify Team Health
 
 ```bash
-atm members          # confirm expected members
-atm inbox            # check for unread messages
-atm gh pr list       # open PRs and CI status
+atm members
+atm read team-lead --unread-only --no-mark --json
+gh pr list
 ```
 
----
+Communication verification is also mandatory:
+1. `atm send quality-mgr "team restore verification ping"` to prove teammate
+   routing works.
+2. `atm send comp "team restore verification ping"` and confirm the Codex-side
+   nudge or mailbox poll path still works.
 
-## Step 7 — Read Project Context
+## Step 8 — Read Project Context
 
-1. Read `docs/project-plan.md` — focus on current phase and open tasks
-2. Check `TaskList` — recreate pending tasks via `TaskCreate` if list is empty
+1. Read `docs/project-plan.md`.
+2. Recreate pending tasks if the task list is empty.
 3. Output a concise project summary:
-   - Current phase and status
-   - Open PRs
-   - Active teammates and their last known task
-   - Next sprint(s) ready to execute
+   - current phase and status
+   - open PRs
+   - active teammates and their last known task
+   - next sprint or sprints ready to execute
 
----
-
-## Step 8 — Notify Teammates
+## Step 9 — Notify Teammates
 
 ```bash
-atm send comp "New session (session-id: <SESSION_ID>). Team sc-compose restored. Please ACK and confirm status."
-atm send quality-mgr "New session (session-id: <SESSION_ID>). Team sc-compose restored. Please ACK and confirm status."
+atm send comp "New session (session-id: <SESSION_ID>). Team sc-compose restored. Please acknowledge and confirm status."
 ```
 
-If no response within ~60s, nudge comp via tmux (comp is a Codex agent and
-does not receive ATM push — must be poked to poll inbox):
+If no response arrives within about 60 seconds, nudge via tmux. Preferred
+structured nudge payload when task metadata is available:
+
+```text
+<atm><action>read atm</action><action>ack <TASK-ID></action><action>execute assigned task</action><when idle="immediate" busy="after-current-task"/><console announce="concise" pause="false"/></atm>
+```
+
+Fallback plain-text nudge:
 
 ```bash
 tmux list-panes -a -F '#{session_name}:#{window_index}.#{pane_index} #{pane_title}'
-tmux send-keys -t <pane-id> "" && sleep 0.5 && \
-tmux send-keys -t <pane-id> "You have unread ATM messages." Enter
+tmux send-keys -t <pane-id> "read atm for task <TASK-ID> and complete it before stopping" Enter
 ```
-
----
 
 ## Common Failure Modes
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `config.json` missing, dir exists | Config deleted or corrupted | Use Case A in Step 3 |
-| `TeamCreate` returns random name | `~/.claude/teams/sc-compose` still exists | `rm -rf ~/.claude/teams/sc-compose` then retry |
-| `TeamDelete` says "No team name found" | Fresh session, no active team context | Expected — proceed |
-| `atm teams restore` fails "team not found" | Directory missing | Create dir first or use `TeamCreate` (Case B) |
-| `TaskList` returns empty after restore | Highwatermark mismatch | Set manually + create one task via `TaskCreate` |
-| `atm send` fails "Agent not found" | Member lost after restore overwrite | `atm teams add-member sc-compose <name> ...` |
-| Self-send (team-lead → team-lead) | Teammate wrong `ATM_IDENTITY` | Relaunch with `ATM_IDENTITY=<correct-name>` |
+| `TeamCreate` returns random name | `~/.claude/teams/sc-compose` still exists | remove the directory and retry |
+| `TeamDelete` says no team name found | fresh session with no active team context | expected, proceed |
+| task list looks empty after restore | highwatermark mismatch or UI stale state | set `.highwatermark`, then create one real task |
+| `atm send` fails with agent not found | member missing after restore | add the member back to the team |
+| self-send or wrong identity routing | teammate launched with wrong `ATM_IDENTITY` | relaunch with the correct identity |

@@ -379,7 +379,7 @@ Goals:
 
 Deliverables:
 
-- completed as specified in [docs/publishing.md](docs/publishing.md)
+- completed as specified in [docs/publishing.md](publishing.md)
 
 Acceptance Criteria:
 
