@@ -1,269 +1,134 @@
 ---
 name: codex-orchestration
-description: Orchestrate multi-sprint phases where comp is the sole developer, with pipelined QA via a dedicated quality-mgr teammate.
+version: 0.1.0
+description: Orchestrate sc-compose sprint work where team-lead coordinates, comp is the sole developer, and quality-mgr enforces the QA gate.
+depends_on:
+  quality-mgr: 0.x
+  req-qa: 0.x
+  arch-qa: 0.x
+  rust-qa-agent: 0.x
+  simplification-reviewer: 1.x
+  test-auditor: 1.x
 ---
 
 # Codex Orchestration
 
-This skill defines how `team-lead` orchestrates phases where `comp` is the sole
-developer, executing sprints sequentially while QA runs in parallel via
-`quality-mgr`.
+This skill defines the repo-local orchestration workflow for `sc-compose`.
 
-## Core Rule
+## Model
 
-`quality-mgr` owns QA coordination for all three review modes:
+- `team-lead` coordinates sprint sequencing, worktree assignments, and PR flow
+- `comp` is the sole developer for Codex-driven implementation work
+- `quality-mgr` runs the QA gate after each delivery
 
-- `plan_gate`
-- `sprint_review`
-- `phase_ending_review`
+## Preconditions
 
-`team-lead` chooses the review type.
-`quality-mgr` chooses and launches the reviewers according to
-`.claude/agents/quality-mgr.md`.
-`quality-mgr` must re-read that prompt for every assignment.
-
-Do not hardcode reviewer selection in `team-lead` messages when using this
-skill.
-
-## Plan Is The Spec
-
-For development assignments, the active plan in `docs/project-plan.md` is
-authoritative.
-
-`team-lead` must:
-
-- read the active plan first
-- identify the exact sprint or fix slice being assigned
-- extract that sprint scope as written
-- wrap it in `dev-template.xml.j2`
-- send that slice to `comp`
-
-`team-lead` must not:
-
-- reinterpret sprint scope
-- rewrite deliverables into a narrower or broader task
-- adjudicate design intent inside the assignment
-- replace the plan with a team-lead summary
-
-The correct workflow is:
-
-1. read the plan
-2. extract the sprint slice
-3. send that slice through the dev template
-
-The plan is the spec.
-
-## Task Sequencing
-
-`team-lead` must keep `comp`'s ATM inbox preloaded during phased work.
-
-Required execution model:
-
-- `comp` replies immediately when a task is read
-- queued tasks get a receipt message, not an `atm ack`
-- `atm ack` happens only when that task becomes active and execution starts
-- queued assignments execute in order received unless a task explicitly says
-  `INTERRUPT CURRENT TASK`
-- for phased work, fixes are handled from earliest sprint to latest sprint
-  before later sprint work starts
-- `team-lead` must queue the next known task as soon as the current task is
-  started
-- do not wait for task completion or validation before queueing the next known
-  task
-- failure to queue follow-on work can stall the phase and is a workflow failure
-- `comp` prioritizes queued work using the assignment/template rules, not ad hoc
-  nudges
-
-## Interrupt Policy
-
-`INTERRUPT CURRENT TASK` is rare.
-
-Valid interrupt reasons:
-
-- `comp` is working from incorrect instructions
-- `comp` is on the wrong branch or worktree
-- `comp`'s current work conflicts with another agent's work
-- continuing the current task would produce invalid output because the task
-  basis is wrong
-
-Not valid interrupt reasons:
-
-- normal dev/QA loop findings
-- ordinary sprint fix work
-- a new QA finding on another branch/worktree
-- curiosity or a status check
-- `team-lead` preference to reprioritize work already correctly queued
-
-Do not interrupt for normal dev/QA loop work. Queue the fix and let `comp`
-reach it in order.
-
-## Nudge Text
-
-Nudges must be short and protocol-only.
-
-- Do not restate deliverables, acceptance criteria, or plan content in a nudge.
-- Do not expand the Jinja2 task assignment into the nudge text.
-- Nudges exist to restore queue/ack/start behavior, not to resend the task.
-- Long narrative nudges reduce traceability and can break inbox acknowledgement
-  discipline.
-
-Typical nudge:
-
-```bash
-tmux send-keys -t sc-compose:1.2 "check atm for <TASK-ID>" Enter; sleep 0.5;
-tmux send-keys -t sc-compose:1.2 "" Enter
-```
-
-Urgent nudge:
-
-```bash
-tmux send-keys -t sc-compose:1.2 "check atm IMMEDIATELY for <TASK-ID>" Enter; sleep 0.5;
-tmux send-keys -t sc-compose:1.2 "" Enter
-```
-
-Use the urgent nudge rarely. It is for true interrupt conditions only, not
-normal QA/fix traffic.
+Before starting a sprint:
+1. `docs/requirements.md`, `docs/architecture.md`, and `docs/project-plan.md`
+   define the sprint or phase review target.
+2. A worktree exists for the sprint branch under the repo’s worktree strategy.
+3. The target branch for the sprint is chosen from the current repo plan.
+4. The following prompts exist in `.claude/agents/`:
+   - `quality-mgr.md`
+   - `req-qa.md`
+   - `arch-qa.md`
+   - `rust-qa-agent.md`
+   - `simplification-reviewer.md`
+   - `test-auditor.md`
+5. `sc-compose` is available from the Homebrew install path for rendering the
+   bundled XML, JSON, and markdown templates.
 
 ## Sprint Flow
 
-1. `team-lead` sends a sprint assignment to `comp` using
-   `dev-template.xml.j2`.
-2. `comp` receives or ACKs according to queue state, then implements, commits,
-   pushes, and reports the branch + SHA.
-3. `team-lead` opens/updates the PR.
-4. `team-lead` assigns QA to `quality-mgr` using `qa-template.xml.j2`.
-5. `quality-mgr` launches the required reviewers for the review type.
-6. If QA passes and CI is green, merge proceeds.
-7. If QA fails, `team-lead` routes the fixes back to `comp`.
+1. `team-lead` assigns development to `comp` using `dev-template.xml.j2`.
+   Every dev assignment must include the sprint-plan document path as
+   `sprint_doc`, and that sprint document is the authoritative source for the
+   task. Assignment prose may summarize, but it must not replace or weaken the
+   sprint doc.
+2. `comp` ACKs, implements, commits, pushes, and reports branch plus SHA.
+3. Before QA starts, `comp` performs the normal repo validation sweep required
+   by the active assignment and fixes obvious local issues before handoff.
+4. `team-lead` opens or updates the PR.
+5. `team-lead` assigns QA to `quality-mgr` using `qa-template.xml.j2`.
+   Every QA assignment must include `sprint_doc`, and `quality-mgr` must treat
+   that sprint document as the authoritative QA scope source.
+6. `quality-mgr` launches the reviewer set:
+   - `rust-qa-agent`
+   - `req-qa`
+   - `arch-qa`
+   - `simplification-reviewer`
+7. All blocking findings must be routed back to `comp` via
+   `fix-assignment.xml.j2` before another QA round begins.
+8. If QA passes and CI is green, merge may proceed.
+9. If QA fails, `team-lead` routes concrete fixes back to `comp` using
+   `fix-assignment.xml.j2`. Fix assignments must also include `sprint_doc`,
+   and the sprint document remains authoritative if the task summary omits or
+   compresses details.
 
-## CI
+## Plan Review Flow
 
-Use standard GitHub CLI for PR checks:
+1. `team-lead` completes `/plan-hardening` steps 1 through 5.
+2. `team-lead` assigns plan QA to `quality-mgr` using `qa-template.xml.j2`
+   with `review_type: plan_gate`.
+3. The QA assignment must include the phase-plan document as `sprint_doc`, and
+   that plan document is the authoritative scope source for plan QA.
+4. `quality-mgr` treats `review_type: plan_gate` as docs-only review and
+   launches:
+   - `req-qa`
+   - `arch-qa`
+5. If plan QA passes, the hardened plan is ready for implementation dispatch.
+6. If plan QA fails, `team-lead` uses the normal codex-orchestration
+   triage-and-fix loop to route concrete fixes back to `comp`.
 
-- `gh pr checks <PR> --watch`
-- `gh pr view <PR> --json mergeStateStatus,reviewDecision`
+## QA Coverage Rule
 
-Do not assume ATM-specific PR monitoring commands exist in this repo.
+- `quality-mgr` must extract every deliverable, acceptance criterion, deletion
+  target, required validation item, and expected artifact from `sprint_doc`
+  before launching `req-qa`
+- `req-qa` must independently treat `sprint_doc` as authoritative
+- `req-qa` must count deliverable completion and report a completion percentage
+- `arch-qa` must inspect sprint-doc structural gate artifacts directly when a
+  deliverable points to a boundary, packaging, release-tracking, readiness, or
+  validation gate
+- QA cannot PASS unless deliverable completion is 100%
 
-## Worktrees
+## Phase-End Review
 
-Create sprint worktrees with normal git worktree commands when needed:
+For extraction-readiness or phase-close reviews, use `review-template.xml.j2`
+to assign a read-only review to `comp`.
 
-```bash
-git worktree add ../<repo>-worktrees/<branch-name> -b <branch-name> <base-branch>
-```
-
-## Quality Manager Spawn
-
-Spawn once per phase as a named teammate:
-
-```json
-{
-  "subagent_type": "quality-mgr",
-  "name": "quality-mgr",
-  "team_name": "sc-compose",
-  "prompt": "You are quality-mgr for the active sc-compose phase. You will receive plan, sprint, and phase-ending QA assignments from team-lead. Re-read .claude/agents/quality-mgr.md for every assignment. Launch every reviewer with run_in_background=true. Do not perform the review inline."
-}
-```
-
-## Team-lead To quality-mgr
-
-Always use the Jinja2 QA template and set `review_type` explicitly:
-
-- `plan_gate`
-- `sprint_review`
-- `phase_ending_review`
-
-The template must carry:
-
-- review type
-- worktree
-- PR number when applicable
-- deliverables
-- references / design docs
-- changed scope
-- touched SSOT sections
-- optional known findings to re-check
-- optional fixed findings to confirm
-
-## Review-Type Rules
-
-### Plan Gate
-
-Use for:
-
-- requirements updates
-- sprint plans
-- phase plans
-- checklist/status corrections
-
-Expected reviewers:
-
-- `req-qa`
-- `arch-qa`
-
-### Sprint Review
-
-Use for:
-
-- sprint completion QA
-- fix-pass QA
-- re-run QA after findings are addressed
-
-Expected reviewers:
-
-- `rust-qa-agent`
-- `req-qa`
-- `arch-qa`
-- `simplification-reviewer`
-
-### Phase-Ending Review
-
-Use for:
-
-- integration branch readiness
-- whole-phase closeout review
-
-Expected reviewers:
-
+For phase-ending QA routed through `quality-mgr`, the reviewer set is
+mandatory:
 - `rust-qa-agent`
 - `req-qa`
 - `arch-qa`
 - `simplification-reviewer`
 - `test-auditor`
 
-## Workflow
+## CI
 
-1. `comp` replies immediately when a new assignment is read.
-2. if the assignment is not starting yet, `comp` reports it as queued behind
-   the current task and continues active work.
-3. when a queued task becomes active, `comp` runs `atm ack` and sends a start
-   message with task id + branch/worktree.
-4. as soon as `comp` starts task `N`, `team-lead` queues the next known task.
-5. `comp` completes the task and reports branch + SHA.
-6. `team-lead` opens PR and starts CI monitoring.
-7. `team-lead` creates the next dev worktree for `comp`.
-8. `team-lead` reads the active plan, extracts the next sprint slice verbatim,
-   and sends that sprint assignment to `comp`.
-9. `team-lead` sends the QA assignment to `quality-mgr` using
-   `qa-template.xml.j2` with the correct `review_type`.
-10. `quality-mgr` launches reviewers per its own prompt and returns one
-    consolidated report.
-11. `team-lead` schedules fixes if needed.
-12. merge only after QA pass and CI green.
+Use standard GitHub CLI:
+- `gh pr checks <PR> --watch`
+- `gh pr view <PR> --json mergeStateStatus,reviewDecision`
 
-## Anti-Patterns
+Do not assume ATM-specific PR monitoring commands exist.
 
-- Do not hardcode reviewer selection in `team-lead` workflow.
-- Do not choose reviewers in the template instead of `quality-mgr`.
-- Do not rewrite sprint scope before assigning it to `comp`.
-- Do not summarize the plan when the sprint can be extracted directly.
-- Do not treat `team-lead` interpretation as authoritative over the plan text.
-- Do not assume every newly delivered assignment should start immediately.
-- Do not use `atm ack` as a synonym for "message received."
-- Do not interrupt an in-progress sprint on another worktree for normal dev/QA
-  loop work.
-- Do not schedule a later-sprint task ahead of an earlier-sprint fix in the
-  same phase unless the assignment explicitly overrides queue order.
-- Do not wait for a task to finish before queueing the next known task.
-- Do not expand task content into a nudge.
+## Assignment Templates
+
+Use the templates in this skill directory:
+- `dev-template.xml.j2`
+- `fix-assignment.xml.j2`
+- `qa-template.xml.j2`
+- `review-template.xml.j2`
+- `req-qa-assignment.json.j2`
+- `arch-qa-assignment.json.j2`
+- `flaky-test-qa-assignment.json.j2`
+- `sprint-plan.md.j2`
+
+## Required Message Sequence
+
+Every ATM task message must follow:
+1. ACK
+2. Work
+3. Completion summary
+4. Completion ACK by receiver

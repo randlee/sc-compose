@@ -1,49 +1,115 @@
 agents:
+  scrum-master:
+    version: 0.1.0
+    path: .claude/agents/scrum-master.md
   quality-mgr:
-    version: 1.1.0
+    version: 0.1.0
     path: .claude/agents/quality-mgr.md
+  req-qa:
+    version: 0.1.0
+    path: .claude/agents/req-qa.md
+  arch-qa:
+    version: 0.1.0
+    path: .claude/agents/arch-qa.md
+  plan-scope-reviewer:
+    version: 0.1.0
+    path: .claude/agents/plan-scope-reviewer.md
+  critical-plan-reviewer:
+    version: 0.1.0
+    path: .claude/agents/critical-plan-reviewer.md
+  flaky-test-qa:
+    version: 0.1.0
+    path: .claude/agents/flaky-test-qa.md
+  qa-triage:
+    version: 1.0.0
+    path: .claude/agents/qa-triage.md
+  rust-architect:
+    version: 0.11.0
+    path: .claude/agents/rust-architect.md
+  rust-code-reviewer:
+    version: 0.11.0
+    path: .claude/agents/rust-code-reviewer.md
+  rust-code-explorer:
+    version: 0.11.0
+    path: .claude/agents/rust-code-explorer.md
+  rust-developer:
+    version: 0.11.0
+    path: .claude/agents/rust-developer.md
+  rust-qa-agent:
+    version: 0.11.0
+    path: .claude/agents/rust-qa-agent.md
+  rust-best-practices-agent:
+    version: 0.11.0
+    path: .claude/agents/rust-best-practices-agent.md
+  rust-service-hardening-agent:
+    version: 0.11.0
+    path: .claude/agents/rust-service-hardening-agent.md
   simplification-reviewer:
     version: 1.0.0
     path: .claude/agents/simplification-reviewer.md
   test-auditor:
     version: 1.0.0
     path: .claude/agents/test-auditor.md
-  rust-architect:
-    version: 1.0.0
-    path: .claude/agents/rust-architect.md
-  rust-code-reviewer:
-    version: 1.0.0
-    path: .claude/agents/rust-code-reviewer.md
-  rust-code-explorer:
-    version: 1.0.0
-    path: .claude/agents/rust-code-explorer.md
-  rust-developer:
-    version: 1.0.0
-    path: .claude/agents/rust-developer.md
-  rust-qa-agent:
-    version: 1.0.0
-    path: .claude/agents/rust-qa-agent.md
-  req-qa:
-    version: 1.0.0
-    path: .claude/agents/req-qa.md
-  arch-qa:
-    version: 1.0.0
-    path: .claude/agents/arch-qa.md
-  flaky-test-qa:
-    version: 1.0.0
-    path: .claude/agents/flaky-test-qa.md
   test-stability-auditor:
     version: 1.0.0
     path: .claude/agents/test-stability-auditor.md
-
 skills:
+  team-lead:
+    version: 0.2.0
+    path: .claude/skills/team-lead/SKILL.md
   codex-orchestration:
-    version: 1.0.0
-    path: .claude/skills/codex-orchestration/SKILL.md
-  rust-development:
+    version: 0.1.0
     depends_on:
-      rust-architect: "1.x"
-      rust-code-reviewer: "1.x"
-      rust-code-explorer: "1.x"
-      rust-developer: "1.x"
-      rust-qa-agent: "1.x"
+      quality-management-gh: 1.x
+      quality-mgr: 0.x
+      req-qa: 0.x
+      arch-qa: 0.x
+      flaky-test-qa: 0.x
+      rust-qa-agent: 0.x
+      rust-best-practices-agent: 0.x
+      rust-service-hardening-agent: 0.x
+  plan-hardening:
+    version: 1.4.0
+    path: .claude/skills/plan-hardening/SKILL.md
+  todo-triage:
+    version: 1.0.0
+    path: .claude/skills/todo-triage/SKILL.md
+  phase-orchestration:
+    version: 0.1.0
+    depends_on:
+      scrum-master: 0.x
+      rust-developer: 0.x
+      rust-qa-agent: 0.x
+      req-qa: 0.x
+      rust-architect: 0.x
+  quality-management-gh:
+    version: 1.0.0
+    path: .claude/skills/quality-management-gh/SKILL.md
+  sprint-report:
+    version: 3.1.0
+    path: .claude/skills/sprint-report/SKILL.md
+  rust-development:
+    version: 0.11.0
+    path: .claude/skills/rust-development/SKILL.md
+    depends_on:
+      rust-architect: 0.x
+      rust-code-reviewer: 0.x
+      rust-code-explorer: 0.x
+      rust-developer: 0.x
+  rust-best-practices:
+    version: 0.11.0
+    path: .claude/skills/rust-best-practices/SKILL.md
+    depends_on:
+      rust-best-practices-agent: 0.x
+      rust-architect: 0.x
+      rust-code-reviewer: 0.x
+      rust-code-explorer: 0.x
+  rust-service-hardening:
+    version: 0.11.0
+    path: .claude/skills/rust-service-hardening/SKILL.md
+    depends_on:
+      rust-service-hardening-agent: 0.x
+      rust-architect: 0.x
+      rust-code-reviewer: 0.x
+      rust-code-explorer: 0.x
+      rust-qa-agent: 0.x

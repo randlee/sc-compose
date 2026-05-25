@@ -103,7 +103,7 @@ Target post-H2 input shape:
     "title": "Sprint Status",
     "generated_at": "2026-04-20T00:00:00Z",
     "plan_url": "https://github.com/org/repo/blob/main/docs/project-plan.md",
-    "findings_url": "https://github.com/org/repo/blob/main/docs/findings.md"
+    "findings_url": "https://github.com/org/repo/blob/main/docs/html-sprint-report-plan.md"
   },
   "sprints": [
     {

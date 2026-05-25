@@ -1,0 +1,101 @@
+---
+name: findings-report
+version: 1.0.0
+description: Multi-pass QA findings report template for FAIL and IN-FLIGHT updates.
+format: markdown
+required_variables:
+  - generated_at
+  - qa_pass
+  - sprint_id
+  - task_id
+  - branch
+  - commit
+  - pr_number
+  - verdict
+  - deliverables_complete
+  - deliverables_total
+  - deliverables_percent
+  - merge_readiness
+  - merge_reason
+  - findings_blocking
+  - findings_important
+  - findings_minor
+  - blocking_ids_json
+  - blocking_findings_md
+  - detailed_findings_md
+  - next_action
+  - action_owner
+optional_variables:
+  - resolved_findings_md
+---
+# QA Findings Update
+
+Generated: {{ generated_at }}
+QA Pass: {{ qa_pass }}
+Sprint/Task: {{ sprint_id }} / {{ task_id }}
+Branch: `{{ branch }}`
+Commit: `{{ commit }}`
+PR: #{{ pr_number }}
+Verdict: **{{ verdict }}**
+
+## Machine Status (JSON)
+```json
+{
+  "sprint": "{{ sprint_id }}",
+  "task": "{{ task_id }}",
+  "branch": "{{ branch }}",
+  "commit": "{{ commit }}",
+  "pr": {{ pr_number }},
+  "verdict": "{{ verdict }}",
+  "deliverables": {
+    "complete": {{ deliverables_complete }},
+    "total": {{ deliverables_total }},
+    "percent": {{ deliverables_percent }}
+  },
+  "findings": {
+    "blocking": {{ findings_blocking }},
+    "important": {{ findings_important }},
+    "minor": {{ findings_minor }}
+  },
+  "blocking_ids": {{ blocking_ids_json }},
+  "merge_readiness": "{{ merge_readiness }}",
+  "merge_reason": "{{ merge_reason }}",
+  "next_action": "{{ next_action }}",
+  "owner": "{{ action_owner }}"
+}
+```
+
+## Findings Summary
+- Deliverables: {{ deliverables_complete }}/{{ deliverables_total }} ({{ deliverables_percent }}%)
+- Blocking: {{ findings_blocking }}
+- Important: {{ findings_important }}
+- Minor: {{ findings_minor }}
+
+## Blocking Findings
+{% if blocking_findings_md -%}
+{{ blocking_findings_md }}
+{% else -%}
+- none
+{% endif %}
+
+## Detailed Findings
+{% if detailed_findings_md -%}
+{{ detailed_findings_md }}
+{% else -%}
+- none
+{% endif %}
+
+## Resolved Since Last Pass
+{% if resolved_findings_md -%}
+{{ resolved_findings_md }}
+{% else -%}
+- none
+{% endif %}
+
+## Merge Readiness
+- Status: **{{ merge_readiness }}**
+- Reason: {{ merge_reason }}
+
+## Next Action
+- Action: {{ next_action }}
+- Owner: {{ action_owner }}

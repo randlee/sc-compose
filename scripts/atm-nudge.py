@@ -135,7 +135,7 @@ def resolve_team() -> str:
             pass
 
     env_team = os.environ.get("ATM_TEAM", "").strip()
-    return env_team or "atm-dev"
+    return env_team or "sc-compose"
 
 
 def _normalize_team(candidate: object) -> str | None:
