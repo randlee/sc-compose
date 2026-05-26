@@ -6,12 +6,11 @@ use sc_composer::{
 };
 use sc_observability::{
     ActionName, Level, LogEvent, Logger, LoggingHealthReport, OBSERVATION_ENVELOPE_VERSION,
-    OutcomeLabel, ProcessIdentity, SchemaVersion, ServiceName, ShutdownError, Stopped,
-    TargetCategory, Timestamp,
+    OutcomeLabel, ProcessIdentity, SchemaVersion, ServiceName, Stopped, TargetCategory, Timestamp,
 };
 use sc_observability_types::{
     DiagnosticInfo, DiagnosticSummary, LoggingHealthState, MaintenanceWorkerState,
-    QueryHealthReport, QueryHealthState,
+    QueryHealthReport, QueryHealthState, ShutdownError,
 };
 
 use crate::observability::SERVICE_NAME;
