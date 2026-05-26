@@ -131,8 +131,8 @@ Phase A should leave the repo with:
   opening/viewing
 - one defined output policy for latest artifact overwrite and optional
   timestamped archive copy
-- one defined machine-readable publish-manifest contract for CI or wrapper
-  publishing
+- one defined machine-readable publish-manifest contract in
+  `docs/requirements.md` for CI or wrapper publishing
 - multiple example families that prove the shared model is generic enough for
   both `atm-core` style diagrams and `sc-lint` style evidence reports
 - one explicit plan for `sc-observability` `1.1.0` adoption in the CLI logging

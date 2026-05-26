@@ -1060,6 +1060,40 @@ Archive ownership note:
 - archive directories are file-system-local
 - archive directories may be consumer-managed
 - archive directories may be gitignored
+### Phase A Publish-Manifest And CI Handoff Contract (Planning Only)
+
+Phase A follow-on planning defines a machine-readable handoff from generated
+report artifacts to CI or wrapper-owned publication steps without moving
+network or hosting behavior into `sc-compose`.
+
+Planned publish-manifest contract:
+
+- each generated report set may emit a machine-readable publish manifest
+- the manifest lists generated artifacts and their intended publish destinations
+- artifact roles remain explicit in the manifest rather than inferred by CI
+
+Planned manifest fields include:
+
+- report_name
+- generated timestamp
+- files
+- per-file role
+- per-file path
+- per-file intended publish destination
+
+Ownership split:
+
+- producers and renderers create artifacts plus manifest metadata
+- CI or wrapper tooling performs upload, copy, or publication steps
+
+Boundary rules:
+
+- the artifact contract is intended to support generic lint, test, smoke,
+  diagram, and custom reports through one shared metadata and filesystem shape
+- browser-open behavior remains outside the core engine
+- publish transport remains outside `sc-composer` and `sc-compose`
+- hosting logic remains outside `sc-composer` and `sc-compose`
+- machine-readable handoff is in scope; network transport is not
 
 ## 5. Non-Functional Requirements
 

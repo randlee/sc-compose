@@ -1054,7 +1054,10 @@ Boundary rules:
 - the canonical latest/archive output policy is defined in
   `docs/requirements.md` under `### Phase A Latest/Archive Output And Reports
   Aggregator Contract (Planning Only)`
-- later sprints may extend that contract with publish-manifest behavior
+- the canonical publish-manifest contract is defined in `docs/requirements.md`
+  under `### Phase A Publish-Manifest And CI Handoff Contract (Planning Only)`
+- later sprints may extend those contracts with implementation-specific
+  publish workflow details
 
 ## 15b. Follow-On Latest/Archive Policy And Reports Aggregator (Phase A Planning Only)
 
@@ -1071,6 +1074,35 @@ Illustrative output shape:
   "latest": "reports/latest/sc-lint/index.html",
   "archive": "reports/archive/2026-05-25T22-10-00Z/sc-lint/index.html",
   "metadata": "reports/latest/sc-lint/report.json"
+}
+```
+
+## 15c. Follow-On Publish Manifest And CI Handoff (Phase A Planning Only)
+
+The canonical publish-manifest contract is defined in
+`docs/requirements.md` under `### Phase A Publish-Manifest And CI Handoff
+Contract (Planning Only)`. This architecture section keeps only the
+illustrative manifest shape for that contract and does not restate the
+normative ownership or boundary prose.
+
+Illustrative publish-manifest shape:
+
+```json
+{
+  "report_name": "state-diagrams",
+  "generated_at": "2026-05-25T22:10:00Z",
+  "files": [
+    {
+      "role": "latest_html",
+      "path": "reports/latest/state-diagrams/index.html",
+      "publish_to": "reports/state-diagrams/index.html"
+    },
+    {
+      "role": "json_sidecar",
+      "path": "reports/latest/state-diagrams/report.json",
+      "publish_to": "reports/state-diagrams/report.json"
+    }
+  ]
 }
 ```
 

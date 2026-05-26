@@ -1,7 +1,9 @@
 ---
 id: A7
 title: Publish Manifest And CI Handoff
-status: planned
+status: complete
+branch: feat/sprint-A7
+worktree: /Users/randlee/Documents/github/sc-compose-sprint-A7
 ---
 
 # Sprint A7 — Publish Manifest And CI Handoff

@@ -845,6 +845,10 @@ The current follow-on design track is:
 - `docs/phase-A/sprint-A6.md`
   - the sixth executable Phase A sprint, which defines latest/archive output
     policy and the shared `just reports` aggregation and verification behavior
+- `docs/phase-A/sprint-A7.md`
+  - the seventh executable Phase A sprint, which defines the machine-readable
+    publish-manifest handoff from generated artifacts to CI or wrapper-owned
+    publication steps
 - `docs/phase-A/sprint-A1.md`
   - the first executable Phase A sprint, which defines the generic report
     artifact contract and report catalog before any later report-family or
