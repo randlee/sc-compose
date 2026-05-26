@@ -28,6 +28,7 @@ use crate::reporting::index::{build_report_index, verify_required_reports};
 use crate::reporting::init::{init_report_scaffold, run_smoke_report};
 use crate::reporting::publish_manifest::write_publish_manifest;
 use crate::reporting::render_many::{RenderManyRequest, SourceSetDefinition, render_many};
+use crate::reporting::spec::run_render_spec_report;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -282,6 +283,8 @@ enum ReportsSubcommand {
     Init(ReportsInitArgs),
     #[command(about = "Run the shared smoke-report fixture harness")]
     Smoke(ReportsSmokeArgs),
+    #[command(about = "Render one semantic diagram spec to Mermaid output")]
+    RenderSpec(ReportsRenderSpecArgs),
     #[command(about = "Summarize latest report entrypoints and sidecars")]
     Index(ReportsIndexArgs),
     #[command(about = "Verify required report evidence from the catalog")]
@@ -324,6 +327,18 @@ struct ReportsIndexArgs {
 struct ReportsVerifyArgs {
     #[arg(long, default_value = ".")]
     root: PathBuf,
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+struct ReportsRenderSpecArgs {
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    #[arg(long = "spec")]
+    spec_path: PathBuf,
+    #[arg(long)]
+    archive: bool,
     #[arg(long)]
     json: bool,
 }
@@ -494,6 +509,12 @@ fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, Comma
                     run_reports_smoke(smoke_args, observer)
                 })
             }
+            ReportsSubcommand::RenderSpec(render_args) => observe_command(
+                observer,
+                "reports-render-spec",
+                render_args.json,
+                |observer| run_reports_render_spec(render_args, observer),
+            ),
             ReportsSubcommand::Index(index_args) => {
                 observe_command(observer, "reports-index", index_args.json, |_observer| {
                     run_reports_index(index_args)
@@ -579,6 +600,40 @@ fn run_reports_smoke(
         }
         if !result.warnings.is_empty() {
             print_diagnostic_messages(&result.warnings);
+        }
+    }
+    Ok(exit_codes::SUCCESS)
+}
+
+fn run_reports_render_spec(
+    args: &ReportsRenderSpecArgs,
+    observer: &mut dyn CompositionObserver,
+) -> Result<i32, CommandError> {
+    let result = run_render_spec_report(&args.root, &args.spec_path, args.archive, observer)?;
+    if args.json {
+        let payload = serde_json::json!({
+            "report_id": result.report_id,
+            "kind": result.kind,
+            "produced_at": result.produced_at,
+            "status": result.status,
+            "entrypoint": result.entrypoint.display().to_string(),
+            "metadata": result.metadata.display().to_string(),
+            "artifacts": result.artifacts.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+            "archived_artifacts": result.archived_artifacts.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+        });
+        print_json(payload, result.warnings).map_err(CommandError::usage)?;
+    } else {
+        println!("report_id: {}", result.report_id);
+        println!("kind: {}", result.kind);
+        println!("produced_at: {}", result.produced_at);
+        println!("status: {}", result.status);
+        println!("entrypoint: {}", result.entrypoint.display());
+        println!("metadata: {}", result.metadata.display());
+        for artifact in &result.artifacts {
+            println!("artifact: {}", artifact.display());
+        }
+        for artifact in &result.archived_artifacts {
+            println!("archived: {}", artifact.display());
         }
     }
     Ok(exit_codes::SUCCESS)
@@ -1083,6 +1138,7 @@ fn command_wants_json(command: &Command) -> bool {
         Command::Reports(args) => match &args.command {
             ReportsSubcommand::Init(init_args) => init_args.json,
             ReportsSubcommand::Smoke(smoke_args) => smoke_args.json,
+            ReportsSubcommand::RenderSpec(render_args) => render_args.json,
             ReportsSubcommand::Index(index_args) => index_args.json,
             ReportsSubcommand::Verify(verify_args) => verify_args.json,
             ReportsSubcommand::PublishManifest(publish_args) => publish_args.json,

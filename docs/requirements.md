@@ -497,6 +497,7 @@ Command behavior:
   - supports:
     - `reports init`
     - `reports smoke`
+    - `reports render-spec`
     - `reports index`
     - `reports verify`
     - `reports publish-manifest`
@@ -1015,18 +1016,18 @@ Implemented in Phase HTML-Report.
 - The example must be a credible showcase for `sc-compose`, not just a
   hand-written HTML file stored in the repo.
 
-### Phase A Semantic Report-Spec Contract (Planning Only)
+### Semantic Report-Spec Contract
 
-Phase A follow-on planning defines typed semantic report-spec kinds so rendered
-diagram formats such as Mermaid become outputs or migration inputs rather than
-the long-term source of truth.
+`sc-compose` accepts typed TOML semantic report-spec inputs so rendered diagram
+formats such as Mermaid become outputs or migration inputs rather than the
+long-term source of truth.
 
-Initial planned report-spec kinds:
+Initial implemented report-spec kinds:
 
 - `state_machine`
 - `sql_query`
 
-Planned `state_machine` semantic fields:
+`state_machine` semantic fields:
 
 - `kind`
 - `id`
@@ -1039,7 +1040,7 @@ Planned `state_machine` semantic fields:
 - `effects`
 - optional metadata for ownership, tags, and renderer targets
 
-Planned `sql_query` semantic fields:
+`sql_query` semantic fields:
 
 - `kind`
 - `id`
@@ -1052,6 +1053,12 @@ Planned `sql_query` semantic fields:
 - `cardinality`
 - `transactional_assumptions`
 - optional metadata for ownership, tags, and renderer targets
+
+Input format rule:
+
+- semantic spec input files use TOML
+- each spec file defines `[spec]`
+- `sql_query` semantic fields live under `[sql_query]`
 
 Transitional Mermaid rule:
 
