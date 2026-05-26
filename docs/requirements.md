@@ -882,7 +882,7 @@ same command payloads as `render` and `render --dry-run`.
 - The CLI shall perform graceful logger shutdown on process exit so pending
   events flush before termination.
 
-### Post-`1.0` Functional Requirements
+### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 
 ### FR-12: Map/Object Variable Inputs
 

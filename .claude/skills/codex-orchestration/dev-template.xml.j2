@@ -1,13 +1,12 @@
 ---
 name: dev-task
-version: 1.3.1
-description: ccomp sprint assignment template for codex-orchestration phases.
+version: 1.0.0
+description: team-lead sprint assignment template for codex-orchestration development work.
 format: xml
 required_variables:
   - task_id
   - sprint
-  - plan_path
-  - plan_line_range
+  - sprint_doc
   - description
   - worktree_path
   - branch
@@ -16,16 +15,13 @@ required_variables:
   - acceptance_criteria
   - references
 ---
-<atm-task id="{{ task_id }}" sprint="{{ sprint }}" assignee="ccomp">
-  <source-plan>
-    <path>{{ plan_path }}</path>
-    <line-range>{{ plan_line_range }}</line-range>
-  </source-plan>
+<atm-task id="{{ task_id }}" sprint="{{ sprint }}" assignee="comp">
   <description>{{ description }}</description>
 
   <worktree>{{ worktree_path }}</worktree>
   <branch>{{ branch }}</branch>
   <pr-target>{{ pr_target }}</pr-target>
+  <authoritative-sprint-doc>{{ sprint_doc }}</authoritative-sprint-doc>
 
   <deliverables>
 {{ deliverables }}
@@ -33,53 +29,27 @@ required_variables:
 
   <acceptance-criteria>
 {{ acceptance_criteria }}
+- sprint doc deliverables gate:
+  - `{{ sprint_doc }}` exists
+  - sprint doc frontmatter sets `status: complete`
+  - sprint doc frontmatter sets `branch:`
+  - sprint doc frontmatter sets `worktree:`
+- planning index gate:
+  - `docs/project-plan.md` includes the sprint entry before closeout
   </acceptance-criteria>
 
   <references>
 {{ references }}
   </references>
 
-  <task-sequencing>
-    Team-lead may queue this task before the current task is complete.
-    Reply to every assignment immediately when read.
-    If this task cannot start yet, reply with a queued status message that names the active task it is queued behind.
-    Do not run `atm ack` when merely queuing a task.
-    Run `atm ack` only when this task becomes the active task and execution is starting.
-    Execute queued assignments in order received unless this assignment explicitly says `INTERRUPT CURRENT TASK`.
-    For `/codex-orchestration` phased work, execute fixes from earliest sprint to latest sprint before starting later sprint work.
-    Do not switch branches or worktrees mid-task unless this assignment explicitly says `INTERRUPT CURRENT TASK`.
-    Normal dev/QA loop findings do not justify interruption.
-  </task-sequencing>
-
-  <start-decision>
-    Protocol reminder: Do not start or `atm ack` this task unless it is now the active queued task.
-
-    <choose evaluated-by="assignee-at-read-time">
-      <when test="another-task-is-already-active">
-        <command>atm send team-lead "received {{ task_id }}, queued after &lt;ACTIVE-TASK-ID&gt;"</command>
-        <action>Return immediately to the current in-progress task.</action>
-      </when>
-      <otherwise>
-        <command>atm ack &lt;MESSAGE-ID&gt; "ack, starting {{ task_id }} on {{ branch }}"</command>
-        <command>atm send team-lead "starting {{ task_id }} on {{ branch }}"</command>
-        <action>Begin execution immediately.</action>
-      </otherwise>
-    </choose>
-
-    Do not restate or summarize the assignment unless a real blocker prevents execution.
-  </start-decision>
-
   <workflow>
-    <step id="a">Reply to this message immediately in ATM. If the task is starting now, say so explicitly. If the task is queued behind active work, say that explicitly.</step>
-    <step id="a1">Do not run `atm ack` unless this task is becoming the active task now.</step>
-    <step id="a2">When this task becomes active, run `atm ack` and send a start message naming the task id, branch, and worktree.</step>
-    <step id="b">If this is the active queued task, begin executing immediately after `atm ack`. Otherwise keep it queued and continue the current active task until this task reaches the front of the queue.</step>
-    <step id="b1">Treat the active plan slice at `{{ plan_path }}` lines `{{ plan_line_range }}` as the authoritative sprint specification. If the ATM assignment text conflicts with that plan slice, escalate instead of silently following the rewritten assignment.</step>
-    <step id="c">Before coding: run `git fetch origin && git merge origin/{{ pr_target }}` to include all prior sprint fixes. Then complete the assigned development work end-to-end.</step>
-    <step id="c1">Default to simplification. Prefer code removal over code addition. Delete dead code instead of preserving it for hypothetical reuse. If code must be added, the completion report must state what old path, fallback, or manual rule it enables us to delete.</step>
-    <step id="d">As soon as the development changes are complete and the branch is in a pushable state, commit and push immediately. Send the branch name + commit hash right away so team-lead can open the PR and prepare the next worktree in parallel.</step>
-    <step id="e">After the push report, run the required validation/tests. When the assignment does not override this, run `cargo test --workspace` and `cargo clippy --all-targets --all-features -- -D warnings`.</step>
-    <step id="f">When validation completes, send a second report with PASS or FAIL, concrete failure details if any, and whether follow-up fixes are required.</step>
-    <step id="g">After the validation report, read ATM again for follow-up work.</step>
+    <step id="a">ACK this message immediately. Make reasonable assumptions and do not ask clarifying questions unless a real blocker prevents execution.</step>
+    <step id="b">Immediately after ACK, begin executing the task in the same work session.</step>
+    <step id="c">Read `{{ sprint_doc }}` before coding. Treat it as the authoritative source for scope, deliverables, deletion targets, validation, and acceptance criteria. If this assignment summary and the sprint doc differ, the sprint doc wins and the mismatch must be reported.</step>
+    <step id="d">Before coding, update the worktree from the sprint target branch and include prior fixes already merged to that target.</step>
+    <step id="e">As soon as the development changes are complete and the branch is pushable, commit and push immediately. Send branch name and commit hash right away so PR work and QA preparation can begin in parallel.</step>
+    <step id="f">After the push report, run the required validation and tests. Do not wait for PR creation before starting validation.</step>
+    <step id="g">When validation completes, send a second report with PASS or FAIL, concrete failure details if any, and whether follow-up fixes are required.</step>
+    <step id="h">After the validation report, read ATM again for follow-up work.</step>
   </workflow>
 </atm-task>

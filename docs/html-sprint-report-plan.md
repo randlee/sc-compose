@@ -95,3 +95,81 @@ The shared reporting line must be broad enough to cover at least:
 - hook execution inside `sc-composer`
 - network upload or hosting behavior inside `sc-compose`
 - locking the long-term diagram source model to Mermaid text
+
+## Retained HTML-Specific Context
+
+The reporting line is intentionally broader than the original HTML-report
+follow-on, but the earlier HTML-specific exploration still provides useful
+example direction.
+
+### HTML-Specific Next Steps
+
+- H5: multi-panel XHTML report expansion with repeated sprint panels
+- H6: wrapper-owned view/open behavior without moving browser logic into
+  `sc-compose`
+- H7: post-render-hook exploration only after wrapper UX stabilizes
+
+### Proposed XHTML Template Structure
+
+Initial H3 structure:
+
+- `sprint-report-html.html.j2`
+  - outer document shell
+  - inline CSS
+  - top summary panel
+  - optional repeated sprint summary rows
+
+Follow-on include fragments, deferred until a later accepted architecture
+amendment:
+
+- `_includes/report-head.html.j2`
+- `_includes/summary-table.html.j2`
+- `_includes/pr-card.html.j2`
+- `_includes/check-list.html.j2`
+- `_includes/stage-badge.html.j2`
+
+H3 intentionally keeps all markup in one flat file. Multi-panel expansion is
+where `_includes/` begins to add clear value, and that layout change must be
+documented explicitly before implementation.
+
+### Example Structured Input Shape
+
+```json
+{
+  "report": {
+    "title": "Sprint Status",
+    "generated_at": "2026-04-20T00:00:00Z",
+    "plan_url": "https://github.com/org/repo/blob/main/docs/project-plan.md",
+    "findings_url": "https://github.com/org/repo/blob/main/docs/html-sprint-report-plan.md"
+  },
+  "sprints": [
+    {
+      "id": "S7",
+      "title": "Examples and templates",
+      "stage": "qa_pass",
+      "branch": "feat/examples-command",
+      "pr": {
+        "number": 32,
+        "title": "Add examples and templates support",
+        "url": "https://github.com/org/repo/pull/32"
+      },
+      "ci_status": "pass",
+      "ci_url": "https://github.com/org/repo/actions/runs/123"
+    }
+  ]
+}
+```
+
+This example remains useful because it shows why the structured-input work is
+valuable: the current scalar-plus-array-of-scalars model forces most of this
+shape to be flattened into prebuilt HTML or markdown strings.
+
+### Why The HTML Example Still Matters
+
+- one template system can produce both markdown and rich HTML artifacts
+- include-based composition works for UI/report fragments as well as prompt
+  assets
+- structured inputs make `sc-compose` practical for higher-value generated
+  outputs, not just simple string substitution
+- the same report can stay deterministic and version-controlled while still
+  being clickable and visually useful
