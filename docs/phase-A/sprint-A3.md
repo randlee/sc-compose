@@ -1,7 +1,9 @@
 ---
 id: A3
 title: Source Collection, Metadata Extraction, And Render-Many
-status: planned
+status: complete
+branch: feat/sprint-A3
+worktree: /Users/randlee/Documents/github/sc-compose-sprint-A3
 ---
 
 # Sprint A3 — Source Collection, Metadata Extraction, And Render-Many
