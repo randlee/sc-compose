@@ -1165,8 +1165,7 @@ Illustrative publish-manifest shape:
 }
 ```
 
-<<<<<<< HEAD
-## 15d. Follow-On Producer Recipes And Aggregator Surface (Phase A Planning Only)
+## 15e. Follow-On Producer Recipes And Aggregator Surface (Phase A Planning Only)
 
 The canonical producer-command surface and `just reports` contract are defined
 in `docs/requirements.md` under `### Phase A Producer Recipe Contract
@@ -1177,7 +1176,7 @@ contract prose.
 Adding repo-specific producer commands must not require changing the shared
 aggregation or discovery contract.
 
-## 15e. Follow-On Semantic Report-Spec Contract (Phase A Planning Only)
+## 15f. Follow-On Semantic Report-Spec Contract (Phase A Planning Only)
 
 The canonical semantic report-spec contract is defined in
 `docs/requirements.md` under `### Phase A Semantic Report-Spec Contract
@@ -1186,6 +1185,26 @@ The canonical semantic report-spec contract is defined in
 the semantic QA direction, and the extension rule. This architecture section
 intentionally defers to that requirements section rather than restating those
 lists or transition-policy details.
+## 15g. Follow-On Template Families And Shared Panel Chrome (Phase A Planning Only)
+
+Phase A follow-on planning defines shared template-family selection and shared
+panel chrome so consumer repos reuse one UI contract instead of rebuilding it
+per report family. This is planning only and does not change shipped `1.0`
+runtime behavior.
+
+Initial template families:
+
+- lint/test/smoke evidence reports
+- public API, CLI, and ICD style reports
+- diagram, state-machine, and SQL-query reports
+
+For the canonical selection and override example, see
+`docs/phase-A/sprint-A5.md`.
+
+The authoritative override contract, bundled shared template root, consumer
+activation config, shared panel contract, ownership split, Jinja2 block
+boundary, required template variables, and include deferral are defined in
+`docs/phase-A/sprint-A5.md`.
 
 ## 16. `init` Command Behavior (FR-7)
 

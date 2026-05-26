@@ -1,7 +1,9 @@
 ---
 id: A5
 title: Template Families And Shared Panel Chrome
-status: planned
+status: complete
+branch: feat/sprint-A5
+worktree: /Users/randlee/Documents/github/sc-compose-sprint-A5
 ---
 
 # Sprint A5 — Template Families And Shared Panel Chrome
@@ -52,6 +54,55 @@ source = "shared:diagram-panels"
 path = ".sc-compose/templates/lint-report.html.j2"
 ```
 
+## Authoritative Override Contract
+
+This sprint doc is the authoritative home of the A5 override contract.
+
+Shared lookup namespace:
+
+- `shared:<family>` is a reserved selector owned by the `sc-compose` CLI
+  boundary
+- the CLI resolves `shared:<family>` against the bundled shared template root
+  shipped with `sc-compose`, under the family tree
+  `reports/templates/<family>/`
+- consumer repos do not pass `shared:` URIs into `sc-composer`; the library
+  receives resolved filesystem paths only
+
+Minimum consumer activation config:
+
+- shared family activation uses:
+  - `[reporting.templates.<family>] source = "shared:<family>"`
+- repo-local override activation uses:
+  - `[reporting.templates.<family>] path = ".sc-compose/templates/<file>.html.j2"`
+- selecting one repo-local override must not require forking unrelated bundled
+  families
+
+Template interface boundary:
+
+- shared chrome exposes the Jinja2 blocks:
+  - `report_header`
+  - `panel_body`
+  - `panel_footer`
+- consumer body templates are expected to provide `panel_body` and may
+  override `report_header` when a family needs repo-specific framing text
+- shared chrome expects the top-level template variables:
+  - `title`
+  - `panels`
+  - optional `report_metadata`
+- each `panels[]` entry must provide:
+  - `panel_id`
+  - `title`
+  - `body`
+  - `copy_text`
+  - optional `copy_json`
+  - optional `fragment_href`
+
+Include boundary:
+
+- Cross-family include composition is deferred to a later sprint; single-family
+  panel rendering is sufficient for Phase A validation and keeps the first
+  override contract narrow enough to verify cleanly.
+
 ## This Sprint Does Not Close
 
 - latest/archive output policy
@@ -70,3 +121,5 @@ path = ".sc-compose/templates/lint-report.html.j2"
 ## Required Validation
 
 - `cargo fmt --all --check`
+- `cargo clippy --all-targets --all-features`
+- `cargo test --all`

@@ -871,6 +871,10 @@ The current follow-on design track is:
   - the second executable Phase A sprint, which defines the standard producer
     command contract and reserves `just reports` for shared aggregation,
     verification, and opening/viewing
+- `docs/phase-A/sprint-A5.md`
+  - the fifth executable Phase A sprint, which defines shared template
+    families, repo-local override points, and shared panel chrome with stable
+    copy-action behavior
 
 ## Rule
 

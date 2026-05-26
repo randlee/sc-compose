@@ -1240,6 +1240,47 @@ Boundary rules for the producer line:
 - the report ids owned by a producer are declared through the shared report
   catalog rather than inferred from hard-coded aggregator behavior
 
+### Phase A Template-Family And Panel-Chrome Contract (Planning Only)
+
+Phase A follow-on planning defines shared template families and shared panel
+chrome so report UI behavior does not need to be reimplemented per consumer
+repo.
+
+Initial planned template families:
+
+- lint/test/smoke evidence reports
+- public API, CLI, and ICD style reports
+- diagram, state-machine, and SQL-query reports
+
+Planned override contract:
+
+The authoritative override contract, shared lookup namespace, consumer
+activation config, template block boundary, required template variables, and
+include deferral are defined in `docs/phase-A/sprint-A5.md`.
+
+Shared panel contract:
+
+- stable panel id
+- title
+- body content
+- required copy-text action
+- optional copy-JSON action
+- optional fragment or open link
+
+Planned ownership split:
+
+- shared panel chrome owns panel framing and shared actions
+- consumer-specific templates own the panel body content for their report
+  family or repo-local override
+
+Boundary rules:
+
+- per-panel text copy is mandatory
+- per-panel JSON copy is optional but first-class
+- panel chrome remains part of shared template behavior rather than wrapper-only
+  logic
+- network publishing and browser-open behavior remain outside the core engine
+
 ## 5. Non-Functional Requirements
 
 - Cross-platform support is required for macOS, Linux, and Windows.
