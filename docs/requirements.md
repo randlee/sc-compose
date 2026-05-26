@@ -1254,10 +1254,9 @@ Initial planned template families:
 
 Planned override contract:
 
-- a repo may point a report family at repo-local templates
-- the override path does not require forking `sc-compose`
-- shared family behavior remains intact when a repo swaps only its local panel
-  body templates or family entry templates
+The authoritative override contract, shared lookup namespace, consumer
+activation config, template block boundary, required template variables, and
+include deferral are defined in `docs/phase-A/sprint-A5.md`.
 
 Shared panel contract:
 
