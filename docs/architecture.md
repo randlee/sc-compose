@@ -1053,6 +1053,49 @@ Boundary rules:
 - later sprints may define latest/archive policy, publish manifests, and
   aggregator behavior, but A1 only locks the shared artifact and catalog shape
 
+## 15b. Follow-On Latest/Archive Policy And Reports Aggregator (Phase A Planning Only)
+
+Phase A follow-on planning defines how producers maintain stable latest outputs
+and optional timestamped archive copies, and how the shared reports surface
+verifies and summarizes those outputs. This is planning only and does not
+change shipped `1.0` runtime behavior.
+
+Planned output policy:
+
+- producers overwrite the canonical latest output in place under
+  `reports/latest/<report-id>/...`
+- producers may also write timestamped archive copies under
+  `reports/archive/<timestamp>/<report-id>/...`
+- archive writes are deterministic and file-system-local
+
+Canonical archive timestamp shape:
+
+- filesystem-safe UTC form such as `2026-05-25T22-10-00Z`
+- one producer run uses one stable timestamp prefix for all archive outputs it
+  writes in that run
+
+Planned shared aggregator surface:
+
+- `just reports`
+  - verifies required evidence exists
+  - summarizes report status across producers
+  - builds or refreshes a combined index when the repo defines one
+  - opens or views the latest report set
+
+Verification direction:
+
+- `just reports` is not the primary producer entrypoint
+- `just reports` does not rerun all evidence collection as part of normal
+  verification
+- missing required evidence causes verification failure
+- required report expectations come from the shared report catalog
+
+Archive ownership note:
+
+- archive directories are file-system-local
+- archive directories may be consumer-managed
+- archive directories may be gitignored
+
 ## 16. `init` Command Behavior (FR-7)
 
 `init_workspace` and the CLI `init` command must:
