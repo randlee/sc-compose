@@ -1,7 +1,9 @@
 ---
 id: A5
 title: Template Families And Shared Panel Chrome
-status: planned
+status: complete
+branch: feat/sprint-A5
+worktree: /Users/randlee/Documents/github/sc-compose-sprint-A5
 ---
 
 # Sprint A5 — Template Families And Shared Panel Chrome
