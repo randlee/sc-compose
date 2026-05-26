@@ -63,7 +63,7 @@ Shared lookup namespace:
 - `shared:<family>` is a reserved selector owned by the `sc-compose` CLI
   boundary
 - the CLI resolves `shared:<family>` against the bundled shared template root
-  shipped with `sc-compose`, under a family tree such as
+  shipped with `sc-compose`, under the family tree
   `reports/templates/<family>/`
 - consumer repos do not pass `shared:` URIs into `sc-composer`; the library
   receives resolved filesystem paths only
@@ -121,3 +121,5 @@ Include boundary:
 ## Required Validation
 
 - `cargo fmt --all --check`
+- `cargo clippy --all-targets --all-features`
+- `cargo test --all`
