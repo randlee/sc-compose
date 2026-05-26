@@ -17,6 +17,7 @@ underlying reporting patterns, and Phase A defined the shared contract shape
 without implementing the shared runtime for:
 
 - report catalog loading and validation
+- built-in render-context variable injection
 - source-driven render-many generation
 - shared template-family resolution and repo-local overrides
 - latest plus archive output writing
@@ -53,6 +54,8 @@ that make it easy for consumer repos to adopt.
 - separate authored docs from generated report evidence
 - prefer a report catalog plus machine-readable metadata over hard-coded file
   paths
+- inject a small caller-overridable built-in render-context set so templates
+  can depend on stable environment and template metadata without boilerplate
 - treat GitHub issue `#56` source-collection/render-many work as foundational
 - prefer typed semantic specs for diagrams where possible, with Mermaid
   retained only as a transitional output or migration input
@@ -132,6 +135,10 @@ Phase B should leave the repo with:
   - source specs/templates separated from generated outputs
   - latest plus optional archive output behavior
   - machine-readable per-report metadata
+- one implemented built-in render-context layer with:
+  - caller-overridable template metadata variables
+  - caller-overridable host/user/time variables
+  - explicit precedence below caller inputs and above frontmatter defaults
 - one implemented producer and scaffold contract for:
   - standard producers such as lint/test/smoke
   - repo-specific custom producers that do not break shared report handling
