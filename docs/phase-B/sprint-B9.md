@@ -1,27 +1,18 @@
 ---
 id: B9
 title: sc-observability 1.2 Adoption
-status: blocked
-branch: plan/phase-B
-worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
+status: draft
+branch: feat/sprint-B9
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/sprint-B9
 ---
 
 # Sprint B9 — sc-observability 1.2 Adoption
 
 ## Goal
 
-Adopt `sc-observability` `1.2` in `sc-compose` after that release exists,
-verify logger and observer compatibility against the report-generation
-runtime, and migrate `sc-compose` to the locked `1.2.0` logging and shutdown
-surface now defined in `../sc-observability`.
-
-## Blocked On
-
-- upstream release of `sc-observability` `1.2`
-
-This sprint is intentionally blocked until that release is available. The plan
-exists now so the dependency uplift, validation scope, and exit criteria are
-already explicit before implementation starts.
+Adopt `sc-observability` `1.2` in `sc-compose`, verify logger and observer
+compatibility against the report-generation runtime, and migrate `sc-compose`
+to the locked `1.2.0` logging and shutdown surface.
 
 ## Hard Dependencies
 
@@ -92,25 +83,15 @@ let stopped = logger.shutdown();
 let health = stopped.health();
 ```
 
-## Local Source Of Truth
+## API Reference
 
-Until the published `1.2.0` release is available, the planned API shape for
-this sprint is taken from the local repository at:
-
-- `../sc-observability`
-
-Specifically:
+The `sc-observability` `1.2.0` public API surface is available on crates.io.
+Key documents for implementation:
 
 - `CHANGELOG.md`
 - `docs/requirements.md`
 - `docs/architecture.md`
 - `crates/sc-observability/src/runtime.rs`
-
-The expected `1.2.0` surface should be treated as stable for planning even
-while this sprint remains blocked on the actual published release.
-
-This local path is a planning-reference fallback only. Implementation remains
-blocked on the actual published `sc-observability` `1.2.0` release.
 
 ## This Sprint Does Not Close
 
@@ -121,12 +102,10 @@ blocked on the actual published `sc-observability` `1.2.0` release.
 
 ## Acceptance Criteria
 
-- the sprint remains blocked until `sc-observability` `1.2` is released
-- the sprint uses the local `../sc-observability` `1.2.0` repo state as the
-  planning source of truth for the breaking-surface review
-- once unblocked, the exact `sc-compose` logger construction, direct logging,
-  and shutdown seams required by the report runtime are identified and tested
-  before the dependency uplift lands
+- `sc-observability` `1.2` is resolved from crates.io (published release)
+- the exact `sc-compose` logger construction, direct logging, and shutdown
+  seams required by the report runtime are identified and tested before the
+  dependency uplift lands
 - direct `Logger::emit(...)` use in `sc-compose` is either migrated to
   `log()` / `try_log()` or retained only with an explicit compatibility
   rationale documented in `docs/migration-notes.md`
