@@ -875,6 +875,10 @@ The current follow-on design track is:
   - the fifth executable Phase A sprint, which defines shared template
     families, repo-local override points, and shared panel chrome with stable
     copy-action behavior
+- `docs/phase-A/sprint-A9.md`
+  - the observability follow-on sprint, which upgrades `sc-compose` to
+    `sc-observability` `1.1.0`, keeps direct logger integration, and adopts
+    logger-managed retained-log maintenance defaults
 
 ## Rule
 

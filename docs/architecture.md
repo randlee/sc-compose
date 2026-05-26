@@ -1315,6 +1315,9 @@ Architecture rules:
   provide their own implementations.
 - `sc-observe` and `sc-observability-otlp` are not part of this initial
   release architecture.
+- The current CLI uplift targets `sc-observability` `1.1.0` directly and does
+  not add the `sc-observe` facade because `sc-compose` still owns concrete
+  logger construction and sink registration at this seam.
 
 ### 19.1 Dependency Graph
 
@@ -1335,6 +1338,9 @@ sc-observability -----> sc-observability-types
   `QueryHealthReport`, and `QueryHealthState` through its public re-export
   surface.
 - `sc-compose` depends on both `sc-composer` and `sc-observability`.
+- `sc-compose` adapts to the `Logger<Running>` / `Logger<Stopped>` typestate by
+  keeping the CLI observer responsible for the shutdown-state transition while
+  preserving post-shutdown health inspection.
 
 ### 19.2 Library Injection Pattern
 
@@ -1417,6 +1423,20 @@ CLI wiring rules:
   `LoggingHealthReport` under `--json`,
 - `observability-health` reports process-local logger state only and does not
   depend on any daemon or background runtime,
+- the same logger configuration keeps `RetainedLogPolicy::default()` enabled,
+  so rotation, pruning, maintenance cadence, and shutdown join behavior stay
+  owned by `sc-observability` rather than by wrapper code in `sc-compose`,
+- `sc-observability` rotates log files by rename-then-open rather than by
+  truncate-in-place, so the active log path is replaced through the logger's
+  own file-rotation flow instead of wrapper-managed mutation,
+- on POSIX systems, rename-based rotation can replace an open path while
+  readers or tailers still hold the old inode; on Windows, the maintenance
+  thread must coordinate file-handle release and reopen behavior through
+  `sc-observability`'s platform-aware rotation path,
+- `sc-compose` does not implement its own Windows file-lock workaround or
+  alternate rotation algorithm; it relies on the `sc-observability`
+  maintenance thread to perform platform-correct rotation and retained-log
+  cleanup,
 - CLI shutdown calls the logger's `shutdown()` path so registered sinks flush
   before process exit.
 
