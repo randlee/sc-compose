@@ -1121,13 +1121,6 @@ Planned producer contract:
 - adding a repo-specific producer command must not require changing the shared
   report aggregation or discovery contract
 
-Planned `just reports` contract:
-
-- verify expected evidence exists
-- summarize report status across producers
-- build or refresh a combined index when the repo defines one
-- open or view the latest generated report set
-
 Boundary rules for the producer line:
 
 - producer recipes own domain data gathering and invocation order
