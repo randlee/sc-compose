@@ -1,7 +1,9 @@
 ---
 id: A6
 title: Latest And Archive Output Policy And Reports Aggregator
-status: planned
+status: complete
+branch: feat/sprint-A6
+worktree: /Users/randlee/Documents/github/sc-compose-sprint-A6
 ---
 
 # Sprint A6 — Latest And Archive Output Policy And Reports Aggregator

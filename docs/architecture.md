@@ -1050,8 +1050,29 @@ Boundary rules:
 
 - network publish behavior remains outside `sc-composer` and `sc-compose`
 - browser-open behavior remains outside `sc-composer` and `sc-compose`
-- later sprints may define latest/archive policy, publish manifests, and
-  aggregator behavior, but A1 only locks the shared artifact and catalog shape
+- A1 only locks the shared artifact and catalog shape
+- the canonical latest/archive output policy is defined in
+  `docs/requirements.md` under `### Phase A Latest/Archive Output And Reports
+  Aggregator Contract (Planning Only)`
+- later sprints may extend that contract with publish-manifest behavior
+
+## 15b. Follow-On Latest/Archive Policy And Reports Aggregator (Phase A Planning Only)
+
+The canonical latest/archive output policy is defined in
+`docs/requirements.md` under `### Phase A Latest/Archive Output And Reports
+Aggregator Contract (Planning Only)`. This architecture section keeps only the
+illustrative output shape for that contract and does not restate the normative
+policy prose.
+
+Illustrative output shape:
+
+```json
+{
+  "latest": "reports/latest/sc-lint/index.html",
+  "archive": "reports/archive/2026-05-25T22-10-00Z/sc-lint/index.html",
+  "metadata": "reports/latest/sc-lint/report.json"
+}
+```
 
 ## 16. `init` Command Behavior (FR-7)
 

@@ -1021,6 +1021,46 @@ Boundary rules for the follow-on line:
 - the artifact contract is intended to support generic lint, test, smoke,
   diagram, and custom reports through one shared metadata and filesystem shape
 
+### Phase A Latest/Archive Output And Reports Aggregator Contract (Planning Only)
+
+Phase A follow-on planning defines how producers write stable latest outputs,
+how optional timestamped archive copies are named, and how `just reports`
+aggregates and verifies generated evidence.
+
+Planned output policy:
+
+- producers overwrite the latest artifact in place at the canonical
+  `reports/latest/<report-id>/...` path
+- producers may also write timestamped archive copies under
+  `reports/archive/<timestamp>/<report-id>/...`
+- archive writes are deterministic and file-system-local
+
+Canonical archive timestamp policy:
+
+- timestamps use a filesystem-safe UTC form such as `2026-05-25T22-10-00Z`
+- one producer run uses one stable timestamp prefix for all archive outputs
+  generated in that run
+
+Planned `just reports` contract:
+
+- verify required evidence exists
+- summarize report status across producers
+- build or refresh a combined index when the repo defines one
+- open or view the latest report set
+
+Verification and failure direction:
+
+- `just reports` is a shared aggregator and verifier, not a producer that
+  reruns all evidence collection
+- missing required evidence causes report verification to fail
+- required-vs-optional report expectations come from the shared report catalog
+
+Archive ownership note:
+
+- archive directories are file-system-local
+- archive directories may be consumer-managed
+- archive directories may be gitignored
+
 ## 5. Non-Functional Requirements
 
 - Cross-platform support is required for macOS, Linux, and Windows.
