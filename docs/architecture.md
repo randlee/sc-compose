@@ -360,7 +360,7 @@ Missing required variables remain a separate diagnostic class:
 - they are reported with file, line and column when available, and include
   chain.
 
-### 7.4 Built-In Render-Context Tier
+### 7.4 Built-In Render-Context Tier (FR-2c)
 
 Built-in render-context variables are injected after caller-provided inputs are
 merged and before template-owned defaults are applied.

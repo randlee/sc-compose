@@ -232,7 +232,7 @@ HTML-Report follow-on design track:
   - diagnostics must include a direct fix command:
     `sc-compose frontmatter-init <file>.j2`.
 
-### FR-2b: Built-In Render-Context Variables
+### FR-2c: Built-In Render-Context Variables
 
 - Every render context must inject these built-in variables when the caller
   does not supply them:

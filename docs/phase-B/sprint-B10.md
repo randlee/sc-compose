@@ -52,7 +52,7 @@ timestamp without the caller needing to pass them as `--var` flags.
   actually rendered rather than a caller-supplied alias
 - one explicit call-path rule that `build_render_context()` calls
   `inject_builtin_vars(...)` after caller values are merged, with
-  `template_name` sourced from the resolved `RenderRequest` template path
+  `template_name` sourced from the resolved `BuiltinVarContext` template path
 - one explicit implementation constraint that hostname/username lookup may use
   `gethostname`, `whoami`, or `std::env::var`, but must not add
   observability-, ATM-, or daemon-lifecycle-specific dependencies
@@ -73,7 +73,7 @@ fn inject_builtin_vars(
         .or_insert_with(|| now_iso().into());
 }
 
-fn build_render_context(request: &RenderRequest) -> BTreeMap<String, serde_json::Value> {
+fn build_render_context(request: &BuiltinVarContext) -> BTreeMap<String, serde_json::Value> {
     let mut context = merge_caller_values(request);
     inject_builtin_vars(&mut context, request.template_path.file_name().unwrap().to_str().unwrap());
     apply_frontmatter_defaults(&mut context, request);
