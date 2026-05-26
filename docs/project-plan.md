@@ -859,6 +859,10 @@ The current follow-on design track is:
     state-machine/SQL-query reports and `sc-lint` style lint/test/smoke
     evidence reports without changing the shared discovery or verification
     contract
+- `docs/phase-A/sprint-A2.md`
+  - the second executable Phase A sprint, which defines the standard producer
+    command contract and reserves `just reports` for shared aggregation,
+    verification, and opening/viewing
 
 ## Rule
 
