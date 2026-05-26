@@ -80,8 +80,10 @@ When assigning work to a teammate:
 ### Communication Rules
 
 - No ACK means the work is not being done.
-- Codex agents such as `comp` only see new ATM messages when they check
-  mail after their current task completes.
+- Codex agents such as `comp` receive an XML nudge with a call to action when
+  `atm send` messages are sent.
+- Verify `.atm.toml` contains the appropriate `tmux_pane_id` for the Codex
+  agent.
 
 ## PR and CI Protocol
 
