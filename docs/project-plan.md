@@ -889,3 +889,29 @@ boundary defined by:
 - `docs/architecture.md`
 - `docs/git-workflows.md`
 - `docs/publishing.md`
+
+## Follow-on Implementation Track (Phase B)
+
+The current follow-on implementation track is:
+
+- `docs/phase-B/phase-B-plan.md`
+  - the implementation phase that turns the Phase A reporting contracts into a
+    runnable shared system
+- `docs/phase-B/sprint-B1.md`
+  - report artifact runtime and catalog
+- `docs/phase-B/sprint-B2.md`
+  - producer recipes, report-init scaffold, and `just` command surface
+- `docs/phase-B/sprint-B3.md`
+  - source collection, metadata extraction, and render-many runtime
+- `docs/phase-B/sprint-B4.md`
+  - template families and shared panel chrome
+- `docs/phase-B/sprint-B5.md`
+  - latest/archive output policy and reports aggregator
+- `docs/phase-B/sprint-B6.md`
+  - publish manifest and CI handoff
+- `docs/phase-B/sprint-B7.md`
+  - semantic diagram-spec runtime
+- `docs/phase-B/sprint-B8.md`
+  - cross-use-case proof by implemented examples
+- `docs/phase-B/sprint-B9.md`
+  - blocked `sc-observability` `1.2` uplift after the upstream release exists
