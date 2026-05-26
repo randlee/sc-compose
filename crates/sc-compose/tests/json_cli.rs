@@ -1210,6 +1210,88 @@ fn reports_smoke_json_uses_diagnostic_envelope() {
         value["payload"]["metadata"],
         "reports/latest/smoke/report.json"
     );
+    assert_eq!(value["payload"]["report_id"], "smoke");
+    assert_eq!(value["payload"]["status"], "pass");
+    assert!(value["payload"]["produced_at"].is_string());
+}
+
+#[test]
+fn reports_index_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-index-json");
+    write_smoke_fixture(&root);
+    write_report_catalog(
+        &root,
+        r#"[[report]]
+id = "smoke"
+kind = "smoke"
+producer = "just smoke"
+required = true
+entrypoint = "reports/latest/smoke/index.html"
+metadata = "reports/latest/smoke/report.json"
+"#,
+    );
+
+    let smoke = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .output()
+        .unwrap();
+    assert!(smoke.status.success());
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("index")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["report_count"], 1);
+    assert_eq!(value["payload"]["entries"][0]["report_id"], "smoke");
+    assert_eq!(value["payload"]["entries"][0]["status"], "pass");
+}
+
+#[test]
+fn reports_smoke_json_lists_archive_artifacts_when_requested() {
+    let root = temp_root("reports-smoke-archive-json");
+    write_smoke_fixture(&root);
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .arg("--archive")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["archived_artifacts"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
 }
 
 #[test]

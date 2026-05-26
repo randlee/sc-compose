@@ -1093,6 +1093,111 @@ fn reports_smoke_writes_latest_smoke_artifact_set() {
     let metadata_text = fs::read_to_string(&metadata).unwrap();
     assert!(metadata_text.contains("\"report_id\": \"smoke\""));
     assert!(metadata_text.contains("\"entrypoint\": \"reports/latest/smoke/index.html\""));
+    assert!(metadata_text.contains("\"produced_at\":"));
+    assert!(metadata_text.contains("\"status\": \"pass\""));
+}
+
+#[test]
+fn reports_smoke_archive_writes_timestamped_archive_copy() {
+    let root = temp_root("reports-smoke-archive");
+    write_smoke_fixture(&root);
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .arg("--archive")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let archive_root = root.join("reports").join("archive");
+    let archive_entries = fs::read_dir(&archive_root)
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .collect::<Vec<_>>();
+    assert_eq!(archive_entries.len(), 1);
+    let archived_smoke_dir = archive_entries[0].join("smoke");
+    assert!(archived_smoke_dir.join("index.html").exists());
+    assert!(archived_smoke_dir.join("report.json").exists());
+}
+
+#[test]
+fn reports_index_summarizes_latest_report_status() {
+    let root = temp_root("reports-index");
+    write_smoke_fixture(&root);
+    write_report_catalog(
+        &root,
+        r#"[[report]]
+id = "smoke"
+kind = "smoke"
+producer = "just smoke"
+required = true
+entrypoint = "reports/latest/smoke/index.html"
+metadata = "reports/latest/smoke/report.json"
+"#,
+    );
+
+    let smoke = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .output()
+        .unwrap();
+    assert!(smoke.status.success());
+
+    let index = sc_compose()
+        .arg("reports")
+        .arg("index")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert!(index.status.success());
+    let stdout = String::from_utf8(index.stdout).unwrap();
+    assert!(stdout.contains("reports: 1"));
+    assert!(stdout.contains("smoke kind=smoke required=true status=pass"));
+    assert!(stdout.contains("entrypoint=reports/latest/smoke/index.html"));
+}
+
+#[test]
+fn reports_verify_fails_when_required_evidence_is_missing() {
+    let root = temp_root("reports-verify-missing");
+    write_report_catalog(
+        &root,
+        r#"[[report]]
+id = "smoke"
+kind = "smoke"
+producer = "just smoke"
+required = true
+entrypoint = "reports/latest/smoke/index.html"
+metadata = "reports/latest/smoke/report.json"
+"#,
+    );
+
+    let verify = sc_compose()
+        .arg("reports")
+        .arg("verify")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert_eq!(verify.status.code(), Some(3));
+    let stderr = String::from_utf8(verify.stderr).unwrap();
+    assert!(stderr.contains("missing required report evidence for smoke"));
+    assert!(stderr.contains("reports/latest/smoke/index.html"));
 }
 
 #[test]

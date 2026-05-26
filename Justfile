@@ -13,7 +13,7 @@ smoke:
     sc-compose reports smoke --root . --fixture reports/smoke/reference-template.html.j2 --vars reports/smoke/sample-vars.json
 
 reports:
-    @echo "Reserved shared aggregator surface. Sprint B5 wires this recipe to 'sc-compose reports index'."
+    sc-compose reports index --root .
 
 reports-verify:
-    @echo "Reserved shared verifier surface. Sprint B5 wires this recipe to 'sc-compose reports verify'."
+    sc-compose reports verify --root .
