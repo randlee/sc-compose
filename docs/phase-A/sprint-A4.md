@@ -1,7 +1,9 @@
 ---
 id: A4
 title: Semantic Diagram Spec Contract
-status: planned
+status: complete
+branch: feat/sprint-A4
+worktree: /Users/randlee/Documents/github/sc-compose-sprint-A4
 ---
 
 # Sprint A4 — Semantic Diagram Spec Contract

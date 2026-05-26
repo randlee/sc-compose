@@ -1176,6 +1176,16 @@ contract prose.
 Adding repo-specific producer commands must not require changing the shared
 aggregation or discovery contract.
 
+## 15e. Follow-On Semantic Report-Spec Contract (Phase A Planning Only)
+
+The canonical semantic report-spec contract is defined in
+`docs/requirements.md` under `### Phase A Semantic Report-Spec Contract
+(Planning Only)`. That requirements section is the normative owner for the
+`state_machine` / `sql_query` field inventory, the transitional Mermaid rule,
+the semantic QA direction, and the extension rule. This architecture section
+intentionally defers to that requirements section rather than restating those
+lists or transition-policy details.
+
 ## 16. `init` Command Behavior (FR-7)
 
 `init_workspace` and the CLI `init` command must:

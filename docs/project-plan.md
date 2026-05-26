@@ -857,6 +857,10 @@ The current follow-on design track is:
   - the third executable Phase A sprint, which defines the generic
     source-driven rendering contract for collection discovery, metadata
     extraction, render-many, and generated manifests
+- `docs/phase-A/sprint-A4.md`
+  - the fourth executable Phase A sprint, which defines the typed semantic
+    report-spec contract so Mermaid becomes one renderer or migration input
+    instead of the long-term semantic source model
 - `docs/phase-A/sprint-A8.md`
   - the cross-use-case proof sprint, which demonstrates that the shared
     reporting model must serve both `atm-core` style multi-panel
