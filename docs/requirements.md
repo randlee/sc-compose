@@ -1060,7 +1060,6 @@ Archive ownership note:
 - archive directories are file-system-local
 - archive directories may be consumer-managed
 - archive directories may be gitignored
-
 ### Phase A Publish-Manifest And CI Handoff Contract (Planning Only)
 
 Phase A follow-on planning defines a machine-readable handoff from generated

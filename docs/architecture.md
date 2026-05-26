@@ -1054,7 +1054,10 @@ Boundary rules:
 - the canonical latest/archive output policy is defined in
   `docs/requirements.md` under `### Phase A Latest/Archive Output And Reports
   Aggregator Contract (Planning Only)`
-- later sprints may extend that contract with publish-manifest behavior
+- the canonical publish-manifest contract is defined in `docs/requirements.md`
+  under `### Phase A Publish-Manifest And CI Handoff Contract (Planning Only)`
+- later sprints may extend those contracts with implementation-specific
+  publish workflow details
 
 ## 15b. Follow-On Latest/Archive Policy And Reports Aggregator (Phase A Planning Only)
 
@@ -1074,11 +1077,13 @@ Illustrative output shape:
 }
 ```
 
-## 15b. Follow-On Publish Manifest And CI Handoff (Phase A Planning Only)
+## 15c. Follow-On Publish Manifest And CI Handoff (Phase A Planning Only)
 
-Phase A follow-on planning defines a machine-readable publish-manifest handoff
-from generated artifacts to CI or wrapper-owned publication steps. This is
-planning only and does not change shipped `1.0` runtime behavior.
+The canonical publish-manifest contract is defined in
+`docs/requirements.md` under `### Phase A Publish-Manifest And CI Handoff
+Contract (Planning Only)`. This architecture section keeps only the
+illustrative manifest shape for that contract and does not restate the
+normative ownership or boundary prose.
 
 Illustrative publish-manifest shape:
 
@@ -1100,19 +1105,6 @@ Illustrative publish-manifest shape:
   ]
 }
 ```
-
-Planned contract direction:
-
-- artifact roles are explicit
-- intended publish destinations are explicit
-- CI or wrapper tooling consumes the manifest for publication work
-- producers/renderers stop at artifact and manifest creation
-
-Boundary rules:
-
-- upload implementation remains outside `sc-composer` and `sc-compose`
-- hosting logic remains outside `sc-composer` and `sc-compose`
-- network transport remains outside the core renderer boundary
 
 ## 16. `init` Command Behavior (FR-7)
 
