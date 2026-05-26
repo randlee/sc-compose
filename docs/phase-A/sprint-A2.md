@@ -1,7 +1,9 @@
 ---
 id: A2
 title: Producer Recipes And Just Surface
-status: planned
+status: complete
+branch: feat/sprint-A2
+worktree: /Users/randlee/Documents/github/sc-compose-sprint-A2
 ---
 
 # Sprint A2 — Producer Recipes And Just Surface

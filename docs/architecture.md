@@ -1165,6 +1165,17 @@ Illustrative publish-manifest shape:
 }
 ```
 
+## 15d. Follow-On Producer Recipes And Aggregator Surface (Phase A Planning Only)
+
+The canonical producer-command surface and `just reports` contract are defined
+in `docs/requirements.md` under `### Phase A Producer Recipe Contract
+(Planning Only)`. This architecture section intentionally defers to that
+requirements section rather than restating the command block or aggregator
+contract prose.
+
+Adding repo-specific producer commands must not require changing the shared
+aggregation or discovery contract.
+
 ## 16. `init` Command Behavior (FR-7)
 
 `init_workspace` and the CLI `init` command must:

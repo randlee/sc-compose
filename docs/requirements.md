@@ -1143,6 +1143,41 @@ Boundary rules:
 - hosting logic remains outside `sc-composer` and `sc-compose`
 - machine-readable handoff is in scope; network transport is not
 
+### Phase A Producer Recipe Contract (Planning Only)
+
+Phase A follow-on planning defines producer recipes as the owners of report
+generation. Report generation is not centered on one catch-all `just reports`
+command.
+
+Planned standard producer surface:
+
+- `just lint`
+- `just test`
+- `just smoke`
+- repo-specific producer commands such as:
+  - `just state-diagrams`
+  - `just sql-diagrams`
+  - schema, migration, or other repo-local evidence producers
+
+Planned producer contract:
+
+- each producer command is responsible for generating the report artifacts for
+  the report ids it owns
+- each producer command writes evidence in the shared report artifact shape
+- each producer command updates or emits the catalog/metadata entries for the
+  report ids it owns
+- adding a repo-specific producer command must not require changing the shared
+  report aggregation or discovery contract
+
+Boundary rules for the producer line:
+
+- producer recipes own domain data gathering and invocation order
+- `just reports` is reserved for aggregation, verification, and opening/viewing
+- network publishing remains outside the core engine
+- browser-open behavior remains outside the core engine
+- the report ids owned by a producer are declared through the shared report
+  catalog rather than inferred from hard-coded aggregator behavior
+
 ## 5. Non-Functional Requirements
 
 - Cross-platform support is required for macOS, Linux, and Windows.
