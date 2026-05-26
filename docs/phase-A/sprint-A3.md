@@ -1,7 +1,9 @@
 ---
 id: A3
 title: Source Collection, Metadata Extraction, And Render-Many
-status: planned
+status: complete
+branch: feat/sprint-A3
+worktree: /Users/randlee/Documents/github/sc-compose-sprint-A3
 ---
 
 # Sprint A3 — Source Collection, Metadata Extraction, And Render-Many
@@ -65,6 +67,8 @@ aggregate pages without custom wrapper scripts per repo.
 
 - the plan covers collection discovery, metadata extraction, render-many, and
   manifest output as one coherent source-driven contract
+- `docs/architecture.md` `§15b` includes `output_path` in the extracted input
+  shape so one output per discovered source is explicit
 - the plan makes source body and parsed metadata available without external
   scripting
 - the plan keeps the mechanism generic across Mermaid, SVG, and other text
