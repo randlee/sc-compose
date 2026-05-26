@@ -88,6 +88,15 @@ For the current plan state, verify:
   have explicit code samples or signatures when needed
 - the doc is direct-consumption friendly for dev, `req-qa`, `arch-qa`, and
   `quality-mgr`
+- every implementation sprint has at least one non-doc `Exact Target` such as a
+  Rust source file, `Justfile`, config file, or test file
+- if a sprint's `Exact Targets` are all doc/markdown files and required
+  validation contains no `cargo test --workspace`, it is treated as a docs-only
+  sprint and must be flagged `NON-PROD` at `Blocking` severity unless it is
+  explicitly labeled as a planning or design sprint
+- if a phase contains multiple consecutive docs-only sprints that are not
+  explicitly labeled planning or design, treat that as a process risk and flag
+  `NON-PROD` at `Blocking` severity for the affected sprint set
 
 ## Finding Types
 
@@ -197,3 +206,8 @@ Gate policy:
   implementability unless `affects_ac: true`
 - when returning `FAIL`, make the `required_correction` fields explicit enough
   for `comp` to fix them in the next cycle
+- when returning `NON-PROD` for a docs-only implementation sprint, require one
+  of:
+  - explicit relabeling of the sprint as planning/design
+  - addition of at least one executable `Exact Target`
+  - addition of implementation validation including `cargo test --workspace`
