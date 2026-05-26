@@ -1124,7 +1124,8 @@ Planned producer contract:
 Planned `just reports` contract:
 
 - verify expected evidence exists
-- build or refresh a combined index when the repo uses one
+- summarize report status across producers
+- build or refresh a combined index when the repo defines one
 - open or view the latest generated report set
 
 Boundary rules for the producer line:

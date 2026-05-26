@@ -36,7 +36,9 @@ new reporting model per repo."
 - keep network publish and browser-open behavior outside the core engine
 - keep report generation owned by producer recipes such as `just lint`,
   `just test`, `just smoke`, and repo-specific custom producers
-- reserve `just reports` for aggregation, verification, and viewing/opening
+- reserve `just reports` for aggregation, verification, and viewing/opening as
+  defined in `docs/requirements.md` under `### Phase A Producer Recipe
+  Contract (Planning Only)`
 - separate authored docs from generated report evidence
 - prefer a report catalog plus machine-readable metadata over hard-coded file
   paths
@@ -127,8 +129,6 @@ Phase A should leave the repo with:
 - one shared panel shell contract with:
   - mandatory per-panel copy button
   - optional per-panel copy-to-JSON button
-- one defined `just reports` contract for aggregation, verification, and
-  opening/viewing
 - one defined output policy for latest artifact overwrite and optional
   timestamped archive copy
 - one defined machine-readable publish-manifest contract in
