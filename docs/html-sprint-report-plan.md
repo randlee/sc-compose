@@ -89,6 +89,20 @@ The shared reporting line must be broad enough to cover at least:
 - repo-specific custom evidence producers added without changing the shared
   report contract
 
+Those are not treated as product-local exceptions. They are the minimum proof
+set for the shared model:
+
+- `atm-core` style families prove repeated multi-panel report pages, panel
+  fragments, text-copy actions, optional JSON-copy actions, JSON sidecars, and
+  publish-manifest output can all share one contract
+- `sc-lint` style families prove producer-owned evidence commands such as
+  `just lint`, `just test`, and `just smoke` can emit latest/archive evidence
+  and still flow through the same catalog, sidecar, verification, and
+  publication-handoff model
+- repo-specific producers such as `just state-diagrams` or
+  `just sql-diagrams` stay repo-local at the command surface while still
+  plugging into the shared discovery and verification contract
+
 ## Explicit Non-Goals
 
 - browser-opening logic inside `sc-compose`
@@ -108,6 +122,11 @@ example direction.
 - H6: wrapper-owned view/open behavior without moving browser logic into
   `sc-compose`
 - H7: post-render-hook exploration only after wrapper UX stabilizes
+
+Multi-panel composition is no longer treated as sprint-report-only behavior.
+The same panel-shell and repeated-rendering model must also support
+state-machine, SQL-query, lint, test, smoke, and future custom report
+families.
 
 ### Proposed XHTML Template Structure
 

@@ -1,7 +1,9 @@
 ---
 id: A8
 title: Cross-Use-Case Proof By Examples
-status: planned
+status: complete
+branch: feat/sprint-A8
+worktree: /Users/randlee/Documents/github/sc-compose-sprint-A8
 ---
 
 # Sprint A8 — Cross-Use-Case Proof By Examples
@@ -53,6 +55,8 @@ just smoke
 just state-diagrams
 just sql-diagrams
 just reports
+just reports-verify
+just reports-open
 ```
 
 ## This Sprint Does Not Close

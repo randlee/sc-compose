@@ -25,6 +25,11 @@ It also queues one explicit `sc-observability` `1.1.0` adoption closure so the
 CLI logging layer used by report-producing workflows does not drift behind the
 shared runtime.
 
+The proof standard for this phase is not "one nice HTML report." It is
+"multiple clearly different report families can plug into one shared artifact,
+catalog, verification, and publication-handoff contract without inventing a
+new reporting model per repo."
+
 ## Design Direction
 
 - keep `sc-composer` runtime-agnostic
@@ -63,6 +68,39 @@ shared runtime.
 9. `A9`
    - `sc-observability` `1.1.0` adoption, retained-log policy decision, and
      deprecated `emit` migration
+
+## Cross-Use-Case Proof Shape
+
+Phase A treats the following families as the minimum proof that the shared
+model is genuinely reusable rather than tuned to one repo:
+
+### `atm-core` style diagram family
+
+- producer commands such as `just state-diagrams` and `just sql-diagrams`
+- repeated panels rendered from many semantic source inputs rather than one
+  hand-written page
+- panel-fragment or per-panel entrypoint support where consumers need drill-in
+  pages
+- mandatory text-copy output, optional JSON-copy output, and JSON sidecars for
+  QA verification
+- publish-manifest output suitable for later CI or wrapper publication
+
+### `sc-lint` style evidence family
+
+- producer commands such as `just lint`, `just test`, and `just smoke`
+- one latest artifact set plus optional timestamped archive copies
+- shared report pages that aggregate multiple evidence producers without
+  requiring a special-case aggregator per repo
+- JSON sidecars and publish-manifest output with the same catalog-driven
+  discovery contract used by diagram families
+
+### Shared Rule
+
+- producer-command names and repo-local source inputs may vary by repo
+- report discovery, verification, sidecar shape, latest/archive policy, and
+  publish-manifest handoff stay shared across families
+- adding a repo-specific custom producer must require only new catalog entries
+  and templates/specs, not a new aggregator or verification model
 
 ## Exit Direction
 

@@ -846,6 +846,12 @@ The current follow-on design track is:
   - the first executable Phase A sprint, which defines the generic report
     artifact contract and report catalog before any later report-family or
     panel-specific planning work closes out
+- `docs/phase-A/sprint-A8.md`
+  - the cross-use-case proof sprint, which demonstrates that the shared
+    reporting model must serve both `atm-core` style multi-panel
+    state-machine/SQL-query reports and `sc-lint` style lint/test/smoke
+    evidence reports without changing the shared discovery or verification
+    contract
 
 ## Rule
 
