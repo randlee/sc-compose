@@ -9,7 +9,7 @@ use sc_observability::{
     OutcomeLabel, ProcessIdentity, SchemaVersion, ServiceName, Stopped, TargetCategory, Timestamp,
 };
 
-const SERVICE_NAME: &str = "sc-compose";
+use crate::observability::SERVICE_NAME;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct CommandStartEvent {
@@ -59,7 +59,10 @@ impl CliObserver {
     }
 
     pub fn shutdown(&mut self) {
-        let running = match self.logger.take().expect("logger handle present") {
+        let Some(state) = self.logger.take() else {
+            return;
+        };
+        let running = match state {
             LoggerState::Running(logger) => logger,
             LoggerState::Stopped(logger) => {
                 self.logger = Some(LoggerState::Stopped(logger));
@@ -99,6 +102,12 @@ impl CliObserver {
         if let Some(LoggerState::Running(logger)) = &self.logger {
             let _ignored = logger.emit(event);
         }
+    }
+}
+
+impl Drop for CliObserver {
+    fn drop(&mut self) {
+        self.shutdown();
     }
 }
 

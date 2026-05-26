@@ -98,6 +98,9 @@ Downstream consumers that shell out to `sc-compose` should expect:
   `.sc-compose/logs/` under the current working directory otherwise.
 - graceful shutdown to flush logger sinks before process exit while recording sink
   degradation in health counters instead of aborting command completion.
+- Windows rotation compatibility is validated by the CI matrix on Windows, and the
+  retained-log maintenance thread plus log-file rotation are exercised by the
+  existing integration test suite on every supported platform.
 
 ## Release And Cutover Order
 

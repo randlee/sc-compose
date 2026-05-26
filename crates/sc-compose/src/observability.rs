@@ -11,7 +11,7 @@ use serde_json::Value;
 use crate::CommandError;
 
 const DEFAULT_LOG_ROOT_DIR: &str = ".sc-compose";
-const LOG_SERVICE_NAME: &str = "sc-compose";
+pub(crate) const SERVICE_NAME: &str = "sc-compose";
 
 pub(crate) fn build_logger(wants_json: bool) -> Result<Logger, CommandError> {
     build_logger_for_root(default_log_root()?, wants_json)
@@ -21,7 +21,7 @@ pub(crate) fn build_logger_for_root(
     log_root: PathBuf,
     wants_json: bool,
 ) -> Result<Logger, CommandError> {
-    let service_name = ServiceName::new(LOG_SERVICE_NAME).map_err(|error| {
+    let service_name = ServiceName::new(SERVICE_NAME).map_err(|error| {
         CommandError::usage(anyhow!("invalid observability service name: {error}"))
     })?;
     let mut config = LoggerConfig::default_for(service_name, log_root);

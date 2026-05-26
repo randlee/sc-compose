@@ -67,6 +67,9 @@ Issue driver:
     from an additional facade at this seam
 - Windows rotation compatibility included in the validation target because
   `sc-compose` is a tiered cross-platform CLI with Windows release paths
+  - validation evidence comes from the CI matrix Windows test run, while the
+    retained-log maintenance thread and log-file rotation are exercised by the
+    existing integration test suite on every supported platform
 
 ## Explicit Code Samples
 
@@ -116,3 +119,5 @@ if let Some(LoggerState::Running(logger)) = &self.logger {
 ## Required Validation
 
 - `cargo fmt --all --check`
+- `cargo clippy --all-targets --all-features`
+- `cargo test --all`
