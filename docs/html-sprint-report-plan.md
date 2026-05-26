@@ -1,20 +1,31 @@
-# HTML Sprint Report Plan
+# SC-Reporting Follow-On Plan
 
 ## Status
 
-Follow-on design exploration only. H1-H4 are shipped; this document now covers
-H5-and-later work and does not change the delivered Phase HTML-Report
-contract.
+Planning line only. H1-H4 are shipped. This document covers the reusable
+reporting line that follows the shipped single-panel HTML example and does not
+change the delivered `1.0` contract until a later review accepts it.
 
 ## Goal
 
-Explore the next phase of the HTML sprint report so it can:
+Lay down one reusable reporting pattern for `sc-compose` consumers so repos can
+add lint, test, smoke, diagram, and custom publishable reports without
+reinventing report layout, output policy, or handoff conventions.
 
-- renders as a self-contained single HTML/XHTML file with inline CSS,
-- shows a top-level sprint summary panel with direct links to PRs and key docs,
-- scales into repeated per-sprint panels,
-- proves that `sc-compose` is useful for structured report composition rather
-  than only for flat markdown/file generation.
+The follow-on line must support:
+
+- report generation through the repo's domain `just` recipes such as
+  `just lint`, `just test`, `just smoke`, and repo-specific custom recipes,
+- a shared evidence contract for generated artifacts and metadata,
+- one stable latest output plus timestamped archive copies where the producer
+  recipe enables them,
+- one shared `just reports` surface for aggregation, verification, and
+  opening/viewing,
+- reusable templates and panel chrome where they add value,
+- reusable diagram/state-machine and SQL-query reporting patterns across many
+  repos,
+- future renderer changes without keeping Mermaid as the long-term semantic
+  source of truth.
 
 ## Shipped Baseline
 
@@ -26,51 +37,79 @@ Phase HTML-Report already delivered:
 - H4 wrapper-owned HTML rendering integration without hook execution in
   `sc-compose`.
 
-## Next Step Sequence
+## Follow-On Rules
 
-### H5: Multi-Panel XHTML Report
+- Producer recipes own report generation. `just lint`, `just test`,
+  `just smoke`, and repo-specific producer recipes generate their own evidence.
+- `just reports` is an aggregator and verifier, not the primary producer.
+- Authored docs and generated evidence stay separate:
+  - `docs/` for authored policy and design notes
+  - report specs/templates/catalogs under a report-specific tree
+  - generated latest/archive outputs under generated-evidence paths
+- The report contract must allow repo-specific custom reports without changing
+  the shared aggregation pattern.
+- GitHub issue `#56` is in-scope for the follow-on line as the generic
+  source-collection and render-many capability, but Mermaid-as-SSOT is treated
+  as transitional rather than the long-term semantic end state.
+- Network publish behavior and browser-open behavior remain outside
+  `sc-composer` and `sc-compose`.
 
-Objective:
+## Phase A Sprint Sequence
 
-- expand the shipped single-panel report into a multi-panel report with
-  repeated sprint sections.
+The authoritative sprint order for this line is the Phase A plan in
+[docs/phase-A/phase-A-plan.md](phase-A/phase-A-plan.md):
 
-Scope:
+1. `A1` report artifact contract and catalog
+2. `A2` producer-recipe and `just` command contract
+3. `A3` source-collection, metadata-extraction, and render-many contract
+4. `A4` semantic diagram-spec contract
+5. `A5` template-family and shared panel-chrome contract
+6. `A6` latest/archive output policy and `just reports` aggregator contract
+7. `A7` publish-manifest and CI handoff contract
+8. `A8` cross-use-case proof through multiple report families
+9. `A9` `sc-observability` `1.1.0` adoption for report-producing CLI flows
 
-- top summary panel,
-- repeated per-sprint panels,
-- stage-sensitive panel sections,
-- optional reusable fragments if a later architecture amendment expands the
-  example beyond the flat single-file H3 layout.
+## Output Direction
 
-### H6: Wrapper View/Open Behavior
+The follow-on line should converge on a shared evidence shape with:
 
-Objective:
+- a report catalog/manifest
+- source specs and templates separated from generated outputs
+- one latest artifact location per report
+- optional timestamped archive outputs
+- one machine-readable sidecar per generated report
+- one machine-readable handoff for downstream publication tooling
 
-- make the wrapper’s post-render viewing UX explicit without pushing it into
-  `sc-compose`.
+## Example Consumer Shapes
 
-Scope:
+The shared reporting line must be broad enough to cover at least:
 
-- wrapper-owned `--open` or application-selection behavior,
-- clearer separation between HTML mode selection and output viewing behavior,
-- no browser-open behavior in `sc-compose` itself.
+- `atm-core` style repeated state-machine and SQL-query diagrams
+- `sc-lint` style lint/test/smoke and other evidence reports
+- repo-specific custom evidence producers added without changing the shared
+  report contract
 
-### H7: Post-Render Hook Exploration
+## Explicit Non-Goals
 
-Objective:
+- browser-opening logic inside `sc-compose`
+- hook execution inside `sc-composer`
+- network upload or hosting behavior inside `sc-compose`
+- locking the long-term diagram source model to Mermaid text
 
-- evaluate whether reusable post-render behavior is worth formalizing after the
-  wrapper UX settles.
+## Retained HTML-Specific Context
 
-Scope:
+The reporting line is intentionally broader than the original HTML-report
+follow-on, but the earlier HTML-specific exploration still provides useful
+example direction.
 
-- possible post-render-hook design,
-- explicit non-goal: no hook execution in `sc-composer`,
-- explicit boundary: no implicit hook behavior in `sc-compose` without a later
-  accepted architecture amendment.
+### HTML-Specific Next Steps
 
-## Proposed XHTML Template Structure
+- H5: multi-panel XHTML report expansion with repeated sprint panels
+- H6: wrapper-owned view/open behavior without moving browser logic into
+  `sc-compose`
+- H7: post-render-hook exploration only after wrapper UX stabilizes
+
+### Proposed XHTML Template Structure
 
 Initial H3 structure:
 
@@ -80,7 +119,7 @@ Initial H3 structure:
   - top summary panel
   - optional repeated sprint summary rows
 
-Follow-on include fragments, deferred until H4 or a later architecture
+Follow-on include fragments, deferred until a later accepted architecture
 amendment:
 
 - `_includes/report-head.html.j2`
@@ -93,9 +132,7 @@ H3 intentionally keeps all markup in one flat file. Multi-panel expansion is
 where `_includes/` begins to add clear value, and that layout change must be
 documented explicitly before implementation.
 
-## Proposed Example Input Shape
-
-Target post-H2 input shape:
+### Example Structured Input Shape
 
 ```json
 {
@@ -123,29 +160,16 @@ Target post-H2 input shape:
 }
 ```
 
-This shape is the main reason the follow-on input work matters. The current
-scalar-plus-array-of-scalars model forces most of this structure to be flattened
-into prebuilt HTML or markdown strings.
+This example remains useful because it shows why the structured-input work is
+valuable: the current scalar-plus-array-of-scalars model forces most of this
+shape to be flattened into prebuilt HTML or markdown strings.
 
-## Why This Is A Good `sc-compose` Showcase
+### Why The HTML Example Still Matters
 
-This is a strong showcase if the structured-input work lands because it proves:
-
-- one template system can produce both markdown and rich HTML artifacts,
+- one template system can produce both markdown and rich HTML artifacts
 - include-based composition works for UI/report fragments as well as prompt
-  assets,
+  assets
 - structured inputs make `sc-compose` practical for higher-value generated
-  outputs, not just simple string substitution,
+  outputs, not just simple string substitution
 - the same report can stay deterministic and version-controlled while still
-  being clickable and visually useful.
-
-Without the structured-input work, the HTML report would still be possible, but
-it would mostly be a thin wrapper around precomputed HTML strings. That is less
-compelling and does not demonstrate `sc-compose` at its best.
-
-## Explicit Non-Goals For This Track
-
-- browser-opening logic in `sc-compose` itself,
-- hook execution inside `sc-compose`,
-- external JavaScript/CSS dependencies,
-- server-side report hosting requirements.
+  being clickable and visually useful

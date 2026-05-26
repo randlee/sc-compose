@@ -359,6 +359,89 @@ following are true:
   bundled single-panel `sprint-report-html` example, and wrapper-owned HTML
   rendering integration.
 
+### Sprint S9: User Data Directory Unification (`~/.sc-compose`)
+
+Status:
+
+- planned
+
+Branch:
+
+- `TBD`
+
+Goals:
+
+- unify the default examples and user-template directories under one stable
+  user-owned root: `~/.sc-compose/`
+- preserve `SC_COMPOSE_DATA_DIR` and `SC_COMPOSE_TEMPLATE_DIR` override
+  behavior exactly as it exists today
+- make installer-created directories and first-run diagnostics match the new
+  unified user-data contract
+
+Deliverables:
+
+- `crates/sc-compose/src/template_store.rs`
+  - `pub(crate) fn data_dir() -> Result<PathBuf>`
+    - preserves `SC_COMPOSE_DATA_DIR`
+    - changes the default fallback from install-relative
+      `../share/sc-compose` to `~/.sc-compose`
+  - `pub(crate) fn user_templates_dir() -> Result<PathBuf>`
+    - preserves `SC_COMPOSE_TEMPLATE_DIR`
+    - changes the default fallback from the platform-specific user-data root to
+      `~/.sc-compose/templates`
+  - `fn platform_user_data_dir() -> Option<PathBuf>`
+    - is simplified or removed if it no longer owns the examples/templates
+      default-resolution path
+- `release/homebrew/sc-compose.rb.j2`
+  - adds a `post_install` block that:
+    - creates `~/.sc-compose/examples`
+    - copies bundled examples from `#{share}/sc-compose/examples/` into
+      `~/.sc-compose/examples/`
+    - creates `~/.sc-compose/templates`
+- equivalent installer/runtime planning notes for other distribution paths so
+  Homebrew is not treated as the only installer owning the unified user-data
+  contract
+- unit and integration tests covering:
+  - new default examples resolution
+  - new default templates resolution
+  - preserved env-override precedence
+  - clear first-run error messaging when the expected user-data dirs are absent
+- docs updated so the default user-facing examples/templates locations point to
+  `~/.sc-compose/`
+
+Explicit non-closure:
+
+- no change to the meaning of `SC_COMPOSE_DATA_DIR`
+- no change to the meaning of `SC_COMPOSE_TEMPLATE_DIR`
+- no runtime writes into package-managed install prefixes
+- no implementation of publish/reporting behavior in this sprint
+
+Acceptance Criteria:
+
+- `sc-compose examples` resolves bundled examples from
+  `SC_COMPOSE_DATA_DIR/examples` when `SC_COMPOSE_DATA_DIR` is set
+- without `SC_COMPOSE_DATA_DIR`, `sc-compose examples` resolves from
+  `~/.sc-compose/examples`
+- `sc-compose templates` resolves from `SC_COMPOSE_TEMPLATE_DIR` when
+  `SC_COMPOSE_TEMPLATE_DIR` is set
+- without `SC_COMPOSE_TEMPLATE_DIR`, `sc-compose templates` resolves from
+  `~/.sc-compose/templates`
+- if the unified user-data dirs are missing on first run, `sc-compose` emits a
+  clear error that points users to `~/.sc-compose/`
+- the Homebrew install path creates `~/.sc-compose/examples`,
+  populates it from packaged bundled examples, and creates an empty
+  `~/.sc-compose/templates` directory
+- no runtime fallback remains on install-relative
+  `../share/sc-compose/examples/` for default bundled-example discovery
+- tests cover the new defaults and the preserved env overrides on macOS, Linux,
+  and Windows path conventions
+
+Required Validation:
+
+- `cargo fmt --all --check`
+- `cargo test --workspace`
+- `cargo clippy --all-targets --all-features -- -D warnings`
+
 ### Sprint S8: Release Engineering And Distribution
 
 Status:
@@ -755,6 +838,10 @@ The current follow-on design track is:
     selection,
   - possible post-render-hook design exploration that remains outside the core
     `sc-compose` renderer boundary unless explicitly accepted in a later phase.
+- `docs/phase-A/phase-A-plan.md`
+  - reusable report-pack planning for multi-output bundles, shared XHTML panel
+    chrome, latest/archive output policy, publish-manifest handoff, and
+    `sc-observability` `1.1.0` adoption planning for the CLI logging layer
 
 ## Rule
 
