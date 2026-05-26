@@ -1336,12 +1336,33 @@ fn render_smoke_pipeline_handles_includes_vars_var_file_env_and_output() {
 }
 
 #[test]
+fn observability_health_text_reports_process_local_status() {
+    let log_root = temp_root("observability-health-text");
+    let health = sc_compose()
+        .arg("observability-health")
+        .env("SC_LOG_ROOT", &log_root)
+        .output()
+        .unwrap();
+
+    assert!(health.status.success());
+    let stdout = String::from_utf8_lossy(&health.stdout);
+    assert!(stdout.contains("state: Healthy"));
+    assert!(stdout.contains("query_state: Healthy"));
+    assert!(stdout.contains("maintenance_state: Running"));
+    assert!(stdout.contains("sink jsonl-file: Healthy"));
+    assert!(stdout.contains(&format!(
+        "active_log_path: {}",
+        log_root.join("logs").join("sc-compose.log.jsonl").display()
+    )));
+}
+
+#[test]
 fn observability_health_json_reports_process_local_status() {
-    let root = temp_root("observability-health-text");
+    let log_root = temp_root("observability-health-json");
     let health = sc_compose()
         .arg("observability-health")
         .arg("--json")
-        .env("SC_LOG_ROOT", &root)
+        .env("SC_LOG_ROOT", &log_root)
         .output()
         .unwrap();
 
@@ -1363,7 +1384,8 @@ fn observability_health_json_reports_process_local_status() {
     );
     assert_eq!(
         value["payload"]["logging"]["active_log_path"],
-        root.join("logs")
+        log_root
+            .join("logs")
             .join("sc-compose.log.jsonl")
             .display()
             .to_string()

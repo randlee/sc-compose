@@ -6,7 +6,12 @@ use sc_composer::{
 };
 use sc_observability::{
     ActionName, Level, LogEvent, Logger, LoggingHealthReport, OBSERVATION_ENVELOPE_VERSION,
-    OutcomeLabel, ProcessIdentity, SchemaVersion, ServiceName, Stopped, TargetCategory, Timestamp,
+    OutcomeLabel, ProcessIdentity, SchemaVersion, ServiceName, ShutdownError, Stopped,
+    TargetCategory, Timestamp,
+};
+use sc_observability_types::{
+    DiagnosticInfo, DiagnosticSummary, LoggingHealthState, MaintenanceWorkerState,
+    QueryHealthReport, QueryHealthState,
 };
 
 use crate::observability::SERVICE_NAME;
@@ -35,6 +40,7 @@ pub(crate) trait CommandLifecycleObserver {
 
 pub(crate) struct CliObserver {
     logger: Option<LoggerState>,
+    last_health: LoggingHealthReport,
     service: ServiceName,
 }
 
@@ -45,31 +51,46 @@ enum LoggerState {
 
 impl CliObserver {
     pub fn new(logger: Logger) -> Self {
+        let last_health = logger.health();
         Self {
             logger: Some(LoggerState::Running(logger)),
+            last_health,
             service: service_name(),
         }
     }
 
     pub fn health(&self) -> LoggingHealthReport {
-        match self.logger.as_ref().expect("logger handle present") {
-            LoggerState::Running(logger) => logger.health(),
-            LoggerState::Stopped(logger) => logger.health(),
+        match self.logger.as_ref() {
+            Some(LoggerState::Running(logger)) => logger.health(),
+            Some(LoggerState::Stopped(logger)) => logger.health(),
+            None => self.last_health.clone(),
         }
     }
 
-    pub fn shutdown(&mut self) {
+    pub fn shutdown(&mut self) -> Result<(), ShutdownError> {
         let Some(state) = self.logger.take() else {
-            return;
+            return Ok(());
         };
         let running = match state {
             LoggerState::Running(logger) => logger,
             LoggerState::Stopped(logger) => {
+                self.last_health = logger.health();
                 self.logger = Some(LoggerState::Stopped(logger));
-                return;
+                return Ok(());
             }
         };
-        self.logger = running.shutdown().ok().map(LoggerState::Stopped);
+        let pre_shutdown_health = running.health();
+        match running.shutdown() {
+            Ok(logger) => {
+                self.last_health = logger.health();
+                self.logger = Some(LoggerState::Stopped(logger));
+                Ok(())
+            }
+            Err(error) => {
+                self.last_health = shutdown_error_health(pre_shutdown_health, &error);
+                Err(error)
+            }
+        }
     }
 
     fn emit_log(
@@ -107,8 +128,34 @@ impl CliObserver {
 
 impl Drop for CliObserver {
     fn drop(&mut self) {
-        self.shutdown();
+        let _ignored = self.shutdown();
     }
+}
+
+fn shutdown_error_health(
+    mut health: LoggingHealthReport,
+    error: &ShutdownError,
+) -> LoggingHealthReport {
+    let summary = DiagnosticSummary::from(error.diagnostic());
+    health.state = LoggingHealthState::DegradedDropping;
+    health.last_error = Some(summary.clone());
+    match &mut health.query {
+        Some(query) => {
+            query.state = QueryHealthState::Unavailable;
+            query.last_error = Some(summary.clone());
+        }
+        None => {
+            health.query = Some(QueryHealthReport {
+                state: QueryHealthState::Unavailable,
+                last_error: Some(summary.clone()),
+            });
+        }
+    }
+    if let Some(maintenance) = &mut health.maintenance {
+        maintenance.state = MaintenanceWorkerState::Degraded;
+        maintenance.last_error = Some(summary);
+    }
+    health
 }
 
 impl CompositionObserver for CliObserver {
@@ -580,7 +627,7 @@ mod tests {
         builder.register_sink(SinkRegistration::new(Arc::new(FlushFailSink)));
         let mut observer = CliObserver::new(builder.build());
 
-        observer.shutdown();
+        observer.shutdown().expect("shutdown");
 
         let health = observer.health();
         assert_eq!(health.flush_errors_total, 1);

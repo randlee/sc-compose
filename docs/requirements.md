@@ -1044,8 +1044,8 @@ Extension rule:
 Boundary rules:
 
 - the semantic source contract remains format-agnostic
-- network publishing remains outside the core engine
-- browser-open behavior remains outside the core engine
+- shared Phase A reporting boundary rules are centralized under
+  `### Phase A Follow-On Reporting Contract (Planning Only)`
 
 ### Phase A Follow-On Reporting Contract (Planning Only)
 
@@ -1059,7 +1059,8 @@ Planned contract shape:
   tree such as:
   - `reports/catalog/`
   - `reports/specs/`
-  - `reports/templates/`
+  - `reports/templates/` for repo-authored template overrides and other checked-in
+    template inputs
 - generated evidence lives outside `docs/` under generated-output paths such
   as:
   - `reports/latest/<report-id>/`
@@ -1072,8 +1073,17 @@ Planned canonical report catalog fields:
 - `id`
 - `kind`
 - `producer`
+- `required`
 - `entrypoint`
 - `metadata`
+
+Requiredness rule:
+
+- each catalog entry declares `required = true` or `required = false`
+- `just reports` verification fails only when a report marked `required = true`
+  is missing
+- optional reports remain discoverable and publishable without failing shared
+  verification
 
 Planned ownership split:
 
@@ -1085,7 +1095,7 @@ Planned ownership split:
 - consumer repos own domain-specific inputs, local producer surfaces, and
   publish destinations
 
-Boundary rules for the follow-on line:
+Shared Phase A reporting boundary rule:
 
 - network publishing remains outside the core engine
 - browser-open behavior remains outside the core engine
@@ -1137,8 +1147,8 @@ Planned generated-manifest contract:
 Boundary rules for the source-driven line:
 
 - the mechanism remains generic rather than diagram-format-specific
-- network publishing remains outside the core engine
-- browser-open behavior remains outside the core engine
+- shared Phase A reporting boundary rules are centralized under
+  `### Phase A Follow-On Reporting Contract (Planning Only)`
 
 ### Phase A Latest/Archive Output And Reports Aggregator Contract (Planning Only)
 
@@ -1165,14 +1175,18 @@ Planned `just reports` contract:
 - verify required evidence exists
 - summarize report status across producers
 - build or refresh a combined index when the repo defines one
-- open or view the latest report set
+- print or summarize the latest report entrypoints/paths for the current latest
+  report set
+- optional wrapper-owned helpers may open those paths, but browser opening is
+  outside the shared core contract
 
 Verification and failure direction:
 
 - `just reports` is a shared aggregator and verifier, not a producer that
   reruns all evidence collection
 - missing required evidence causes report verification to fail
-- required-vs-optional report expectations come from the shared report catalog
+- required-vs-optional report expectations come from each shared report catalog
+  entry's `required` field
 
 Archive ownership note:
 
@@ -1193,12 +1207,16 @@ Planned publish-manifest contract:
 
 Planned manifest fields include:
 
-- report_name
-- generated timestamp
+- report_id
+- generated_at
 - files
 - per-file role
 - per-file path
 - per-file intended publish destination
+
+Identity rule:
+
+- `report_id` must equal the canonical A1 report catalog `id`
 
 Ownership split:
 
@@ -1209,9 +1227,9 @@ Boundary rules:
 
 - the artifact contract is intended to support generic lint, test, smoke,
   diagram, and custom reports through one shared metadata and filesystem shape
-- browser-open behavior remains outside the core engine
-- publish transport remains outside `sc-composer` and `sc-compose`
-- hosting logic remains outside `sc-composer` and `sc-compose`
+- shared Phase A reporting boundary rules are centralized under
+  `### Phase A Follow-On Reporting Contract (Planning Only)`
+- publish transport and hosting remain outside `sc-composer` and `sc-compose`
 - machine-readable handoff is in scope; network transport is not
 
 ### Phase A Producer Recipe Contract (Planning Only)
@@ -1243,9 +1261,12 @@ Planned producer contract:
 Boundary rules for the producer line:
 
 - producer recipes own domain data gathering and invocation order
-- `just reports` is reserved for aggregation, verification, and opening/viewing
-- network publishing remains outside the core engine
-- browser-open behavior remains outside the core engine
+- `just reports` is reserved for aggregation, verification, combined-index
+  refresh, and latest-entrypoint/path reporting
+- optional wrapper-owned helpers such as `just reports-open` may exist locally,
+  but they are not part of the shared Phase A command contract
+- shared Phase A reporting boundary rules are centralized under
+  `### Phase A Follow-On Reporting Contract (Planning Only)`
 - the report ids owned by a producer are declared through the shared report
   catalog rather than inferred from hard-coded aggregator behavior
 
@@ -1266,6 +1287,13 @@ Planned override contract:
 The authoritative override contract, shared lookup namespace, consumer
 activation config, template block boundary, required template variables, and
 include deferral are defined in `docs/phase-A/sprint-A5.md`.
+
+Repo-authored versus bundled template rule:
+
+- repo-authored template overrides live under the consumer repo's
+  `reports/templates/` tree
+- `shared:<family>` resolves to bundled CLI-owned assets and is not a reference
+  to the consumer repo's authored `reports/templates/` tree
 
 Shared panel contract:
 
@@ -1288,7 +1316,8 @@ Boundary rules:
 - per-panel JSON copy is optional but first-class
 - panel chrome remains part of shared template behavior rather than wrapper-only
   logic
-- network publishing and browser-open behavior remain outside the core engine
+- shared Phase A reporting boundary rules are centralized under
+  `### Phase A Follow-On Reporting Contract (Planning Only)`
 
 ## 5. Non-Functional Requirements
 

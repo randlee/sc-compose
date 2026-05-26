@@ -61,7 +61,6 @@ just state-diagrams
 just sql-diagrams
 just reports
 just reports-verify
-just reports-open
 ```
 
 ## This Sprint Does Not Close

@@ -36,9 +36,11 @@ new reporting model per repo."
 - keep network publish and browser-open behavior outside the core engine
 - keep report generation owned by producer recipes such as `just lint`,
   `just test`, `just smoke`, and repo-specific custom producers
-- reserve `just reports` for aggregation, verification, and viewing/opening as
-  defined in `docs/requirements.md` under `### Phase A Producer Recipe
-  Contract (Planning Only)`
+- reserve `just reports` for aggregation, verification, and deterministic
+  latest-entrypoint/index reporting as defined in `docs/requirements.md` under
+  `### Phase A Producer Recipe Contract (Planning Only)`
+- treat wrapper-owned open helpers as optional add-ons rather than part of the
+  shared Phase A command contract
 - separate authored docs from generated report evidence
 - prefer a report catalog plus machine-readable metadata over hard-coded file
   paths

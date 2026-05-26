@@ -37,9 +37,11 @@ verification behavior over those outputs.
   - verify required evidence exists
   - summarize report status across producers
   - build or refresh a combined index if needed
-  - open/view the latest report set
+  - print or summarize the latest report entrypoints/paths
 - one explicit note that archive directories are file-system-local and may be
   consumer-managed or gitignored
+- one explicit note that browser opening remains wrapper-owned and is not part
+  of the shared Phase A command contract
 
 ## Explicit Code Samples
 

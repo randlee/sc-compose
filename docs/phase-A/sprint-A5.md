@@ -51,7 +51,7 @@ consumer repo.
 source = "shared:diagram-panels"
 
 [reporting.templates.lint]
-path = ".sc-compose/templates/lint-report.html.j2"
+path = "reports/templates/lint/lint-report.html.j2"
 ```
 
 ## Authoritative Override Contract
@@ -63,8 +63,10 @@ Shared lookup namespace:
 - `shared:<family>` is a reserved selector owned by the `sc-compose` CLI
   boundary
 - the CLI resolves `shared:<family>` against the bundled shared template root
-  shipped with `sc-compose`, under the family tree
-  `reports/templates/<family>/`
+  shipped with `sc-compose`
+- bundled shared template assets may mirror the family tree
+  `reports/templates/<family>/`, but that bundled asset root is not the
+  consumer repo's authored `reports/templates/` tree
 - consumer repos do not pass `shared:` URIs into `sc-composer`; the library
   receives resolved filesystem paths only
 
@@ -72,8 +74,10 @@ Minimum consumer activation config:
 
 - shared family activation uses:
   - `[reporting.templates.<family>] source = "shared:<family>"`
+- repo-authored template overrides live under the consumer repo's
+  `reports/templates/` tree
 - repo-local override activation uses:
-  - `[reporting.templates.<family>] path = ".sc-compose/templates/<file>.html.j2"`
+  - `[reporting.templates.<family>] path = "reports/templates/<family>/<file>.html.j2"`
 - selecting one repo-local override must not require forking unrelated bundled
   families
 

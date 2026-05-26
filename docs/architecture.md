@@ -1027,17 +1027,14 @@ Planned catalog contract:
 id = "sc-lint"
 kind = "lint"
 producer = "just lint"
+required = true
 entrypoint = "reports/latest/sc-lint/index.html"
 metadata = "reports/latest/sc-lint/report.json"
 ```
 
-Canonical report catalog members:
-
-- `id`
-- `kind`
-- `producer`
-- `entrypoint`
-- `metadata`
+The canonical report catalog field inventory, requiredness rule, and shared
+Phase A reporting boundary rule are defined in `docs/requirements.md` under
+`### Phase A Follow-On Reporting Contract (Planning Only)`.
 
 Ownership split:
 
@@ -1061,21 +1058,11 @@ Boundary rules:
 
 ## 15b. Follow-On Source-Driven Rendering Contract (Phase A Planning Only)
 
-Phase A follow-on planning defines a generic source-driven rendering mechanism
-for text assets. This is planning only and does not change shipped `1.0`
-runtime behavior.
-
-Planned collection discovery model:
-
-- a source collection is declared by glob or another stable collection
-  definition
-- collection membership determines which source files participate in one
-  render-many execution
-- the collection mechanism remains generic across Mermaid, SVG, Markdown, and
-  other text assets
-- `sc-compose` owns collection discovery at the CLI boundary and passes the
-  discovered source set into the render-many flow; `sc-composer` does not own
-  repo-level glob discovery
+The canonical source-driven rendering contract, including collection-discovery
+ownership and generated-manifest semantics, is defined in `docs/requirements.md`
+under `### Phase A Source-Driven Rendering Contract (Planning Only)`. This
+architecture section keeps only the illustrative extracted input shape for that
+contract and does not restate the normative prose.
 
 Planned extracted input shape per discovered source:
 
@@ -1090,33 +1077,6 @@ Planned extracted input shape per discovered source:
   }
 }
 ```
-
-Planned metadata extraction model:
-
-- comment-prefix metadata is supported
-- block-comment metadata is supported
-- the raw body is retained as a first-class render input
-- parsed metadata and raw body are available without external scripting
-- `sets` metadata groups one source into one or more logical sets for
-  selective rendering, filtering, or aggregate grouping
-- `sets` has type `Option<Vec<String>>` or equivalent optional string-list
-  representation and defaults to `None` when absent
-
-Planned render-many model:
-
-- one output is produced per discovered source file
-- output derivation remains deterministic from collection membership plus
-  source identity
-- one generated manifest is emitted for aggregate templates and review tooling
-- the manifest records source identity, derived output path, and extracted
-  metadata needed by aggregate consumers
-
-Boundary rules:
-
-- the source-driven mechanism is generic and is not Mermaid-only
-- `sc-compose` owns rendering semantics where it is used as the renderer
-- browser automation and hosted site behavior remain outside `sc-composer` and
-  `sc-compose`
 
 ## 15c. Follow-On Latest/Archive Policy And Reports Aggregator (Phase A Planning Only)
 
@@ -1148,7 +1108,7 @@ Illustrative publish-manifest shape:
 
 ```json
 {
-  "report_name": "state-diagrams",
+  "report_id": "state-diagrams",
   "generated_at": "2026-05-25T22:10:00Z",
   "files": [
     {

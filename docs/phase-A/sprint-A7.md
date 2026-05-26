@@ -40,7 +40,7 @@ into `sc-compose`.
 
 ```json
 {
-  "report_name": "state-diagrams",
+  "report_id": "state-diagrams",
   "generated_at": "2026-05-25T22:10:00Z",
   "files": [
     {

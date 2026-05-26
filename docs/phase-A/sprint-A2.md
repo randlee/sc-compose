@@ -35,9 +35,11 @@ repo-specific custom producers all generate evidence in the same shape, while
 - one explicit `just reports` contract for:
   - verify expected evidence exists
   - build or refresh a combined index if needed
-  - open/view the latest report set
+  - print or summarize the latest report entrypoints/paths
 - one explicit statement that adding repo-specific producer commands must not
   require changing the shared aggregation contract
+- one explicit note that wrapper-owned helpers such as `just reports-open` may
+  exist locally but are not part of the shared Phase A contract
 
 ## Explicit Code Samples
 
@@ -49,7 +51,6 @@ just state-diagrams
 just sql-diagrams
 just reports
 just reports-verify
-just reports-open
 ```
 
 ## This Sprint Does Not Close
@@ -65,7 +66,7 @@ just reports-open
 
 - the plan makes producer recipes the owners of report generation
 - the plan reserves `just reports` for aggregation, verification, and
-  opening/viewing rather than primary generation
+  deterministic latest-entrypoint/path reporting rather than primary generation
 - the plan allows repo-specific custom producers without changing the report
   discovery contract
 - the plan states how a producer identifies the report ids it owns

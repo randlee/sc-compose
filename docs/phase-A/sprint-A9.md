@@ -74,10 +74,19 @@ Issue driver:
 ## Explicit Code Samples
 
 ```rust
-pub fn shutdown(&mut self) {
-    if let Some(LoggerState::Running(logger)) = self.logger.take() {
-        self.logger = logger.shutdown().ok().map(LoggerState::Stopped);
-    }
+pub fn shutdown(&mut self) -> Result<(), ShutdownError> {
+    let Some(LoggerState::Running(logger)) = self.logger.take() else {
+        return Ok(());
+    };
+    let stopped = logger.shutdown()?;
+    self.logger = Some(LoggerState::Stopped(stopped));
+    Ok(())
+}
+```
+
+```rust
+if let Err(error) = observer.shutdown() {
+    eprintln!("{error}");
 }
 ```
 

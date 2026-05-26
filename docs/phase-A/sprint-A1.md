@@ -36,7 +36,7 @@ consumer-specific templates or panel UI are planned.
   - generated archive output locations
   - per-report metadata sidecars
 - one planned report catalog manifest listing report ids, kinds, entrypoints,
-  and producer ownership
+  producer ownership, and required-vs-optional verification intent
 - one clear ownership split:
   - producer recipes own data gathering and report generation
   - `sc-compose` owns rendering semantics where it is used
@@ -51,6 +51,7 @@ consumer-specific templates or panel UI are planned.
 id = "sc-lint"
 kind = "lint"
 producer = "just lint"
+required = true
 entrypoint = "reports/latest/sc-lint/index.html"
 metadata = "reports/latest/sc-lint/report.json"
 
@@ -58,6 +59,7 @@ metadata = "reports/latest/sc-lint/report.json"
 id = "state-diagrams"
 kind = "diagram"
 producer = "just state-diagrams"
+required = false
 entrypoint = "reports/latest/state-diagrams/index.html"
 metadata = "reports/latest/state-diagrams/report.json"
 ```
@@ -79,6 +81,7 @@ metadata = "reports/latest/state-diagrams/report.json"
   - report id
   - report kind
   - producer owner
+  - requiredness for verification
   - latest entrypoint
   - metadata sidecar
 - the plan defines a stable separation between authored docs and generated
