@@ -121,15 +121,15 @@ pub(crate) fn write_report_metadata_and_archive(
             .chain(std::iter::once(&request.metadata_path))
         {
             let archive_path =
-                archive_root.join(artifact.strip_prefix(&latest_report_root).map_err(|_strip_error| {
-                    OutputError::InvalidPath {
+                archive_root.join(artifact.strip_prefix(&latest_report_root).map_err(
+                    |_strip_error| OutputError::InvalidPath {
                         path: artifact.clone(),
                         message: format!(
                             "artifact must remain under {}",
                             latest_report_root.display()
                         ),
-                    }
-                })?);
+                    },
+                )?);
             copy_relative_file(root, artifact, &archive_path)?;
             archived_artifacts.push(archive_path);
         }
