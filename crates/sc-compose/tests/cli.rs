@@ -32,7 +32,14 @@ fn sc_compose() -> Command {
 }
 
 fn test_log_root() -> PathBuf {
-    let root = std::env::temp_dir().join(format!("sc-compose-cli-logs-{}", std::process::id()));
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!(
+        "sc-compose-cli-logs-{}-{nanos}",
+        std::process::id()
+    ));
     fs::create_dir_all(&root).unwrap();
     root
 }
@@ -409,9 +416,28 @@ fn general_task_template_render_dry_run_reports_default_usage_info() {
 #[test]
 fn general_task_template_render_allows_overriding_optional_input_defaults() {
     let vars_file = temp_root("general-task-override").join("vars.json");
+    let worktree_path = std::env::temp_dir().join(format!(
+        "wt-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
     write_file(
         &vars_file,
-        r#"{ "task_id": "SC-GENERAL-TASK-REVIEW-001", "assignee": "architect", "description": "review", "worktree_path": "/tmp/wt", "branch": "feat/x", "pr_target": "develop", "deliverables": "pass review", "acceptance_criteria": "passes", "references": "template + dev-template" }"#,
+        &serde_json::json!({
+            "task_id": "SC-GENERAL-TASK-REVIEW-001",
+            "assignee": "architect",
+            "description": "review",
+            "worktree_path": worktree_path.display().to_string(),
+            "branch": "feat/x",
+            "pr_target": "develop",
+            "deliverables": "pass review",
+            "acceptance_criteria": "passes",
+            "references": "template + dev-template"
+        })
+        .to_string(),
     );
 
     let output = sc_compose()
@@ -434,7 +460,7 @@ fn general_task_template_render_allows_overriding_optional_input_defaults() {
     );
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains(r#"assignee="architect""#));
-    assert!(stdout.contains("<worktree>/tmp/wt</worktree>"));
+    assert!(stdout.contains(&format!("<worktree>{}</worktree>", worktree_path.display())));
     assert!(stdout.contains("<branch>feat/x</branch>"));
     assert!(stdout.contains("<pr-target>develop</pr-target>"));
 }
@@ -1189,8 +1215,9 @@ fn init_dry_run_text_reports_recommendations() {
 
 #[test]
 fn render_reports_include_escape_for_path_confinement_violations() {
-    let root = temp_root("render-include-escape-cli");
-    let outside = root.parent().unwrap().join("outside-include.md");
+    let namespace = temp_root("render-include-escape-cli");
+    let root = namespace.join("repo");
+    let outside = namespace.join("outside-include.md");
     write_file(&outside, "outside\n");
     write_file(&root.join("template.md.j2"), "@<../outside-include.md>\n");
 
@@ -1211,8 +1238,9 @@ fn render_reports_include_escape_for_path_confinement_violations() {
 
 #[test]
 fn render_reports_include_escape_for_symlink_escape_at_cli_layer() {
-    let root = temp_root("render-symlink-escape-cli");
-    let outside = root.parent().unwrap().join("outside-symlink-include.md");
+    let namespace = temp_root("render-symlink-escape-cli");
+    let root = namespace.join("repo");
+    let outside = namespace.join("outside-symlink-include.md");
     write_file(&outside, "outside\n");
     let symlink_path = root.join("linked-outside.md");
     if !create_symlink_if_supported(&outside, &symlink_path) {
@@ -1238,8 +1266,9 @@ fn render_reports_include_escape_for_symlink_escape_at_cli_layer() {
 #[cfg(windows)]
 #[test]
 fn windows_backslash_escape_requires_cli_confinement_coverage() {
-    let root = temp_root("render-backslash-escape-cli");
-    let outside = root.parent().unwrap().join("outside-backslash-include.md");
+    let namespace = temp_root("render-backslash-escape-cli");
+    let root = namespace.join("repo");
+    let outside = namespace.join("outside-backslash-include.md");
     write_file(&outside, "outside\n");
     write_file(
         &root.join("template.md.j2"),
@@ -1308,25 +1337,59 @@ fn render_smoke_pipeline_handles_includes_vars_var_file_env_and_output() {
 
 #[test]
 fn observability_health_text_reports_process_local_status() {
-    let root = temp_root("observability-health-text");
-    let output = sc_compose()
+    let log_root = temp_root("observability-health-text");
+    let health = sc_compose()
         .arg("observability-health")
-        .env("SC_LOG_ROOT", &root)
+        .env("SC_LOG_ROOT", &log_root)
         .output()
         .unwrap();
 
-    assert!(output.status.success());
-    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(health.status.success());
+    let stdout = String::from_utf8_lossy(&health.stdout);
     assert!(stdout.contains("state: Healthy"));
     assert!(stdout.contains("query_state: Healthy"));
+    assert!(stdout.contains("maintenance_state: Running"));
     assert!(stdout.contains("sink jsonl-file: Healthy"));
-    #[cfg(not(windows))]
     assert!(stdout.contains(&format!(
         "active_log_path: {}",
-        root.join("logs").join("sc-compose.log.jsonl").display()
+        log_root.join("logs").join("sc-compose.log.jsonl").display()
     )));
-    #[cfg(windows)]
-    assert!(stdout.contains("active_log_path:") && stdout.contains("sc-compose.log.jsonl"));
+}
+
+#[test]
+fn observability_health_json_reports_process_local_status() {
+    let log_root = temp_root("observability-health-json");
+    let health = sc_compose()
+        .arg("observability-health")
+        .arg("--json")
+        .env("SC_LOG_ROOT", &log_root)
+        .output()
+        .unwrap();
+
+    assert!(health.status.success());
+    let value = parse_stdout_json(&health);
+    assert_eq!(value["payload"]["logging"]["state"], "Healthy");
+    assert_eq!(value["payload"]["logging"]["query"]["state"], "Healthy");
+    assert_eq!(
+        value["payload"]["logging"]["maintenance"]["state"],
+        "Running"
+    );
+    assert_eq!(
+        value["payload"]["logging"]["sink_statuses"][0]["name"],
+        "jsonl-file"
+    );
+    assert_eq!(
+        value["payload"]["logging"]["sink_statuses"][0]["state"],
+        "Healthy"
+    );
+    assert_eq!(
+        value["payload"]["logging"]["active_log_path"],
+        log_root
+            .join("logs")
+            .join("sc-compose.log.jsonl")
+            .display()
+            .to_string()
+    );
 }
 
 #[test]
@@ -1393,6 +1456,10 @@ fn release_smoke_covers_render_pipeline_and_observability_health() {
             .join("sc-compose.log.jsonl")
             .display()
             .to_string()
+    );
+    assert_eq!(
+        value["payload"]["logging"]["maintenance"]["state"],
+        "Running"
     );
 }
 

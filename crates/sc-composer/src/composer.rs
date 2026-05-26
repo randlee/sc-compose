@@ -48,7 +48,7 @@ pub fn compose_with_observer(
             result
         }
         Err(error) => {
-            emit_resolve_error(observer, &error);
+            notify_resolve_error(observer, &error);
             return Err(error);
         }
     };
@@ -58,7 +58,7 @@ pub fn compose_with_observer(
         &request.policy,
     )
     .inspect_err(|error| {
-        emit_include_error(observer, error);
+        notify_include_error(observer, error);
     })?;
     observer.on_include_outcome(&IncludeOutcomeEvent {
         resolved_files: expanded.resolved_files.clone(),
@@ -111,7 +111,7 @@ fn resolve_attempt_label(request: &ComposeRequest) -> String {
     }
 }
 
-fn emit_resolve_error(observer: &mut dyn CompositionObserver, error: &ComposeError) {
+fn notify_resolve_error(observer: &mut dyn CompositionObserver, error: &ComposeError) {
     if let ComposeError::Resolve(resolve_error) = error {
         observer.on_resolve_outcome(&ResolveOutcomeEvent {
             resolved_path: None,
@@ -121,7 +121,7 @@ fn emit_resolve_error(observer: &mut dyn CompositionObserver, error: &ComposeErr
     }
 }
 
-fn emit_include_error(observer: &mut dyn CompositionObserver, error: &ComposeError) {
+fn notify_include_error(observer: &mut dyn CompositionObserver, error: &ComposeError) {
     if let ComposeError::Include(include_error) = error {
         observer.on_include_outcome(&IncludeOutcomeEvent {
             resolved_files: Vec::new(),

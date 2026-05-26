@@ -842,6 +842,43 @@ The current follow-on design track is:
   - reusable report-pack planning for multi-output bundles, shared XHTML panel
     chrome, latest/archive output policy, publish-manifest handoff, and
     `sc-observability` `1.1.0` adoption planning for the CLI logging layer
+- `docs/phase-A/sprint-A6.md`
+  - the sixth executable Phase A sprint, which defines latest/archive output
+    policy and the shared `just reports` aggregation and verification behavior
+- `docs/phase-A/sprint-A7.md`
+  - the seventh executable Phase A sprint, which defines the machine-readable
+    publish-manifest handoff from generated artifacts to CI or wrapper-owned
+    publication steps
+- `docs/phase-A/sprint-A1.md`
+  - the first executable Phase A sprint, which defines the generic report
+    artifact contract and report catalog before any later report-family or
+    panel-specific planning work closes out
+- `docs/phase-A/sprint-A3.md`
+  - the third executable Phase A sprint, which defines the generic
+    source-driven rendering contract for collection discovery, metadata
+    extraction, render-many, and generated manifests
+- `docs/phase-A/sprint-A4.md`
+  - the fourth executable Phase A sprint, which defines the typed semantic
+    report-spec contract so Mermaid becomes one renderer or migration input
+    instead of the long-term semantic source model
+- `docs/phase-A/sprint-A8.md`
+  - the cross-use-case proof sprint, which demonstrates that the shared
+    reporting model must serve both `atm-core` style multi-panel
+    state-machine/SQL-query reports and `sc-lint` style lint/test/smoke
+    evidence reports without changing the shared discovery or verification
+    contract
+- `docs/phase-A/sprint-A2.md`
+  - the second executable Phase A sprint, which defines the standard producer
+    command contract and reserves `just reports` for shared aggregation,
+    verification, and opening/viewing
+- `docs/phase-A/sprint-A5.md`
+  - the fifth executable Phase A sprint, which defines shared template
+    families, repo-local override points, and shared panel chrome with stable
+    copy-action behavior
+- `docs/phase-A/sprint-A9.md`
+  - the observability follow-on sprint, which upgrades `sc-compose` to
+    `sc-observability` `1.1.0`, keeps direct logger integration, and adopts
+    logger-managed retained-log maintenance defaults
 
 ## Rule
 

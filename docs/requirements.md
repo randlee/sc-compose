@@ -833,6 +833,8 @@ same command payloads as `render` and `render --dry-run`.
   model.
 - `sc-compose` shall use `sc-observability` as the canonical concrete
   observability binding for CLI execution.
+- The current follow-on observability uplift targets `sc-observability`
+  `1.1.0`.
 - `sc-composer` must emit composition pipeline events through its local
   observer/sink hook model.
 - `sc-compose` must emit command lifecycle events through the same local hook
@@ -841,6 +843,8 @@ same command payloads as `render` and `render --dry-run`.
 - Embedded use must permit host-supplied sink and path configuration.
 - If no sink is injected, both crates must remain fully functional with
   observability reduced to a no-op.
+- `sc-compose` shall keep direct `sc-observability` logger construction and
+  sink registration rather than adding the `sc-observe` facade at the CLI seam.
 - `sc-observe` and `sc-observability-otlp` remain out of scope for the initial
   release.
 
@@ -875,10 +879,15 @@ same command payloads as `render` and `render --dry-run`.
   command completion, and command failure.
 - The CLI shall expose logger health through a dedicated
   `observability-health` command so operators can inspect sink state,
-  dropped-event counts, and the active log path.
+  dropped-event counts, retained-log maintenance state, and the active log
+  path.
 - The `observability-health` command shall initialize logger configuration the
   same way as a normal CLI process, query health from that process-local
   logger instance, and must not depend on any daemon or background runtime.
+- The CLI logger configuration shall keep logger-managed retained-log
+  maintenance enabled through `RetainedLogPolicy::default()` so rotation,
+  pruning, and maintenance cadence stay owned by `sc-observability` rather
+  than duplicated in `sc-compose`.
 - The CLI shall perform graceful logger shutdown on process exit so pending
   events flush before termination.
 
@@ -975,6 +984,340 @@ Implemented in Phase HTML-Report.
   surface and var-file flow.
 - The example must be a credible showcase for `sc-compose`, not just a
   hand-written HTML file stored in the repo.
+
+### Phase A Semantic Report-Spec Contract (Planning Only)
+
+Phase A follow-on planning defines typed semantic report-spec kinds so rendered
+diagram formats such as Mermaid become outputs or migration inputs rather than
+the long-term source of truth.
+
+Initial planned report-spec kinds:
+
+- `state_machine`
+- `sql_query`
+
+Planned `state_machine` semantic fields:
+
+- `kind`
+- `id`
+- `title`
+- `states`
+- `transitions`
+- `events`
+- `guards`
+- `actors`
+- `effects`
+- optional metadata for ownership, tags, and renderer targets
+
+Planned `sql_query` semantic fields:
+
+- `kind`
+- `id`
+- `title`
+- `purpose`
+- `tables_read`
+- `tables_written`
+- `filters`
+- `ordering`
+- `cardinality`
+- `transactional_assumptions`
+- optional metadata for ownership, tags, and renderer targets
+
+Transitional Mermaid rule:
+
+- Mermaid may be emitted as an output renderer during migration
+- Mermaid may be accepted as a migration input where repos already store it
+- Mermaid is not the long-term semantic source model
+
+Semantic QA direction:
+
+- QA should validate structured semantic fields rather than string-compare only
+  the rendered Mermaid output
+- renderers may change over time without replacing the typed semantic source
+  contract
+
+Extension rule:
+
+- repos may add new semantic report-spec kinds later without rewriting the
+  shared artifact catalog or producer contracts
+
+Boundary rules:
+
+- the semantic source contract remains format-agnostic
+- shared Phase A reporting boundary rules are centralized under
+  `### Phase A Follow-On Reporting Contract (Planning Only)`
+
+### Phase A Follow-On Reporting Contract (Planning Only)
+
+Phase A follow-on planning defines reporting as a generic artifact contract,
+not as a one-off HTML sprint report feature.
+
+Planned contract shape:
+
+- authored docs remain under `docs/`
+- report source and catalog inputs live outside `docs/` under a report-specific
+  tree such as:
+  - `reports/catalog/`
+  - `reports/specs/`
+  - `reports/templates/` for repo-authored template overrides and other checked-in
+    template inputs
+- generated evidence lives outside `docs/` under generated-output paths such
+  as:
+  - `reports/latest/<report-id>/`
+  - `reports/archive/<timestamp>/<report-id>/`
+- each generated report has one machine-readable metadata sidecar such as
+  `reports/latest/<report-id>/report.json`
+
+Planned canonical report catalog fields:
+
+- `id`
+- `kind`
+- `producer`
+- `required`
+- `entrypoint`
+- `metadata`
+
+Requiredness rule:
+
+- each catalog entry declares `required = true` or `required = false`
+- `just reports` verification fails only when a report marked `required = true`
+  is missing
+- optional reports remain discoverable and publishable without failing shared
+  verification
+
+Planned ownership split:
+
+- producer recipes such as `just lint`, `just test`, `just smoke`, and
+  repo-specific producer commands own domain data gathering and report
+  generation
+- `sc-compose` owns rendering semantics where it is used as the report
+  renderer
+- consumer repos own domain-specific inputs, local producer surfaces, and
+  publish destinations
+
+Shared Phase A reporting boundary rule:
+
+- network publishing remains outside the core engine
+- browser-open behavior remains outside the core engine
+- the artifact contract is intended to support generic lint, test, smoke,
+  diagram, and custom reports through one shared metadata and filesystem shape
+
+### Phase A Source-Driven Rendering Contract (Planning Only)
+
+Phase A follow-on planning defines a generic source-driven rendering contract
+for text assets. This mechanism is not Mermaid-only.
+
+Planned collection-input contract:
+
+- source collections may be declared by glob or by another stable collection
+  definition
+- a collection declares which source files participate in one render-many run
+- collection discovery is generic across Mermaid, SVG, Markdown, and other
+  text-based assets
+
+Planned metadata-extraction contract:
+
+- comment-prefix metadata is supported
+- block-comment metadata is supported
+- the raw source body remains available to templates without external
+  scripting
+- parsed metadata and raw body are exposed together as render inputs
+- `sets` metadata is a collection-local grouping field used to tag one source
+  file into one or more logical sets for selective rendering, filtering, or
+  aggregate grouping
+- `sets` has type `Option<Vec<String>>` or equivalent optional string-list
+  representation and defaults to `None` when absent
+
+Planned render-many contract:
+
+- one generated output is produced per discovered source file
+- output derivation is deterministic from collection membership plus source
+  identity
+- aggregate templates and review tooling consume a generated manifest rather
+  than ad hoc wrapper state
+
+Planned generated-manifest contract:
+
+- each source-driven run emits a manifest describing the discovered sources and
+  generated outputs
+- the manifest is intended for aggregate templates and review tooling
+- browser automation and hosted site behavior remain out of scope for the core
+  engine
+
+Boundary rules for the source-driven line:
+
+- the mechanism remains generic rather than diagram-format-specific
+- shared Phase A reporting boundary rules are centralized under
+  `### Phase A Follow-On Reporting Contract (Planning Only)`
+
+### Phase A Latest/Archive Output And Reports Aggregator Contract (Planning Only)
+
+Phase A follow-on planning defines how producers write stable latest outputs,
+how optional timestamped archive copies are named, and how `just reports`
+aggregates and verifies generated evidence.
+
+Planned output policy:
+
+- producers overwrite the latest artifact in place at the canonical
+  `reports/latest/<report-id>/...` path
+- producers may also write timestamped archive copies under
+  `reports/archive/<timestamp>/<report-id>/...`
+- archive writes are deterministic and file-system-local
+
+Canonical archive timestamp policy:
+
+- timestamps use a filesystem-safe UTC form such as `2026-05-25T22-10-00Z`
+- one producer run uses one stable timestamp prefix for all archive outputs
+  generated in that run
+
+Planned `just reports` contract:
+
+- verify required evidence exists
+- summarize report status across producers
+- build or refresh a combined index when the repo defines one
+- print or summarize the latest report entrypoints/paths for the current latest
+  report set
+- optional wrapper-owned helpers may open those paths, but browser opening is
+  outside the shared core contract
+
+Verification and failure direction:
+
+- `just reports` is a shared aggregator and verifier, not a producer that
+  reruns all evidence collection
+- missing required evidence causes report verification to fail
+- required-vs-optional report expectations come from each shared report catalog
+  entry's `required` field
+
+Archive ownership note:
+
+- archive directories are file-system-local
+- archive directories may be consumer-managed
+- archive directories may be gitignored
+### Phase A Publish-Manifest And CI Handoff Contract (Planning Only)
+
+Phase A follow-on planning defines a machine-readable handoff from generated
+report artifacts to CI or wrapper-owned publication steps without moving
+network or hosting behavior into `sc-compose`.
+
+Planned publish-manifest contract:
+
+- each generated report set may emit a machine-readable publish manifest
+- the manifest lists generated artifacts and their intended publish destinations
+- artifact roles remain explicit in the manifest rather than inferred by CI
+
+Planned manifest fields include:
+
+- report_id
+- generated_at
+- files
+- per-file role
+- per-file path
+- per-file intended publish destination
+
+Identity rule:
+
+- `report_id` must equal the canonical A1 report catalog `id`
+
+Ownership split:
+
+- producers and renderers create artifacts plus manifest metadata
+- CI or wrapper tooling performs upload, copy, or publication steps
+
+Boundary rules:
+
+- the artifact contract is intended to support generic lint, test, smoke,
+  diagram, and custom reports through one shared metadata and filesystem shape
+- shared Phase A reporting boundary rules are centralized under
+  `### Phase A Follow-On Reporting Contract (Planning Only)`
+- publish transport and hosting remain outside `sc-composer` and `sc-compose`
+- machine-readable handoff is in scope; network transport is not
+
+### Phase A Producer Recipe Contract (Planning Only)
+
+Phase A follow-on planning defines producer recipes as the owners of report
+generation. Report generation is not centered on one catch-all `just reports`
+command.
+
+Planned standard producer surface:
+
+- `just lint`
+- `just test`
+- `just smoke`
+- repo-specific producer commands such as:
+  - `just state-diagrams`
+  - `just sql-diagrams`
+  - schema, migration, or other repo-local evidence producers
+
+Planned producer contract:
+
+- each producer command is responsible for generating the report artifacts for
+  the report ids it owns
+- each producer command writes evidence in the shared report artifact shape
+- each producer command updates or emits the catalog/metadata entries for the
+  report ids it owns
+- adding a repo-specific producer command must not require changing the shared
+  report aggregation or discovery contract
+
+Boundary rules for the producer line:
+
+- producer recipes own domain data gathering and invocation order
+- `just reports` is reserved for aggregation, verification, combined-index
+  refresh, and latest-entrypoint/path reporting
+- optional wrapper-owned helpers such as `just reports-open` may exist locally,
+  but they are not part of the shared Phase A command contract
+- shared Phase A reporting boundary rules are centralized under
+  `### Phase A Follow-On Reporting Contract (Planning Only)`
+- the report ids owned by a producer are declared through the shared report
+  catalog rather than inferred from hard-coded aggregator behavior
+
+### Phase A Template-Family And Panel-Chrome Contract (Planning Only)
+
+Phase A follow-on planning defines shared template families and shared panel
+chrome so report UI behavior does not need to be reimplemented per consumer
+repo.
+
+Initial planned template families:
+
+- lint/test/smoke evidence reports
+- public API, CLI, and ICD style reports
+- diagram, state-machine, and SQL-query reports
+
+Planned override contract:
+
+The authoritative override contract, shared lookup namespace, consumer
+activation config, template block boundary, required template variables, and
+include deferral are defined in `docs/phase-A/sprint-A5.md`.
+
+Repo-authored versus bundled template rule:
+
+- repo-authored template overrides live under the consumer repo's
+  `reports/templates/` tree
+- `shared:<family>` resolves to bundled CLI-owned assets and is not a reference
+  to the consumer repo's authored `reports/templates/` tree
+
+Shared panel contract:
+
+- stable panel id
+- title
+- body content
+- required copy-text action
+- optional copy-JSON action
+- optional fragment or open link
+
+Planned ownership split:
+
+- shared panel chrome owns panel framing and shared actions
+- consumer-specific templates own the panel body content for their report
+  family or repo-local override
+
+Boundary rules:
+
+- per-panel text copy is mandatory
+- per-panel JSON copy is optional but first-class
+- panel chrome remains part of shared template behavior rather than wrapper-only
+  logic
+- shared Phase A reporting boundary rules are centralized under
+  `### Phase A Follow-On Reporting Contract (Planning Only)`
 
 ## 5. Non-Functional Requirements
 

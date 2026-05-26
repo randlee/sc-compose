@@ -1000,6 +1000,172 @@ Implicit named render convention:
 - supporting assets remain available for directory-import workflows and future
   expansion, but they do not change the initial render resolution rules.
 
+## 15a. Follow-On Report Artifact Contract (Phase A Planning Only)
+
+Phase A follow-on planning treats reporting as a generic artifact contract.
+This is a planning line only and does not change the shipped `1.0` release
+behavior until a later implementation sprint lands.
+
+Planned filesystem contract:
+
+- authored docs remain under `docs/`
+- report sources and catalog inputs live outside `docs/` under paths such as:
+  - `reports/catalog/`
+  - `reports/specs/`
+  - `reports/templates/`
+- generated evidence lives outside `docs/` under paths such as:
+  - `reports/latest/<report-id>/`
+  - `reports/archive/<timestamp>/<report-id>/`
+- each generated report carries a machine-readable metadata sidecar located
+  with its generated output, for example
+  `reports/latest/<report-id>/report.json`
+
+Planned catalog contract:
+
+```toml
+[[report]]
+id = "sc-lint"
+kind = "lint"
+producer = "just lint"
+required = true
+entrypoint = "reports/latest/sc-lint/index.html"
+metadata = "reports/latest/sc-lint/report.json"
+```
+
+The canonical report catalog field inventory, requiredness rule, and shared
+Phase A reporting boundary rule are defined in `docs/requirements.md` under
+`### Phase A Follow-On Reporting Contract (Planning Only)`.
+
+Ownership split:
+
+- producer recipes own domain data gathering and report generation
+- `sc-compose` owns rendering semantics where it is selected as the renderer
+- consumer repos own domain-specific source inputs, producer entrypoints, and
+  publish surfaces
+
+Boundary rules:
+
+- network publish behavior remains outside `sc-composer` and `sc-compose`
+- browser-open behavior remains outside `sc-composer` and `sc-compose`
+- A1 only locks the shared artifact and catalog shape
+- the canonical latest/archive output policy is defined in
+  `docs/requirements.md` under `### Phase A Latest/Archive Output And Reports
+  Aggregator Contract (Planning Only)`
+- the canonical publish-manifest contract is defined in `docs/requirements.md`
+  under `### Phase A Publish-Manifest And CI Handoff Contract (Planning Only)`
+- later sprints may extend those contracts with implementation-specific
+  publish workflow details
+
+## 15b. Follow-On Source-Driven Rendering Contract (Phase A Planning Only)
+
+The canonical source-driven rendering contract, including collection-discovery
+ownership and generated-manifest semantics, is defined in `docs/requirements.md`
+under `### Phase A Source-Driven Rendering Contract (Planning Only)`. This
+architecture section keeps only the illustrative extracted input shape for that
+contract and does not restate the normative prose.
+
+Planned extracted input shape per discovered source:
+
+```json
+{
+  "source_path": "docs/atm/diagrams/atm-list.mmd",
+  "output_path": "reports/latest/state-diagrams/panels/atm-list.xhtml",
+  "stem": "atm-list",
+  "meta": {
+    "title": "`atm list`",
+    "sets": ["cli", "query"]
+  }
+}
+```
+
+## 15c. Follow-On Latest/Archive Policy And Reports Aggregator (Phase A Planning Only)
+
+The canonical latest/archive output policy is defined in
+`docs/requirements.md` under `### Phase A Latest/Archive Output And Reports
+Aggregator Contract (Planning Only)`. This architecture section keeps only the
+illustrative output shape for that contract and does not restate the normative
+policy prose.
+
+Illustrative output shape:
+
+```json
+{
+  "latest": "reports/latest/sc-lint/index.html",
+  "archive": "reports/archive/2026-05-25T22-10-00Z/sc-lint/index.html",
+  "metadata": "reports/latest/sc-lint/report.json"
+}
+```
+
+## 15d. Follow-On Publish Manifest And CI Handoff (Phase A Planning Only)
+
+The canonical publish-manifest contract is defined in
+`docs/requirements.md` under `### Phase A Publish-Manifest And CI Handoff
+Contract (Planning Only)`. This architecture section keeps only the
+illustrative manifest shape for that contract and does not restate the
+normative ownership or boundary prose.
+
+Illustrative publish-manifest shape:
+
+```json
+{
+  "report_id": "state-diagrams",
+  "generated_at": "2026-05-25T22:10:00Z",
+  "files": [
+    {
+      "role": "latest_html",
+      "path": "reports/latest/state-diagrams/index.html",
+      "publish_to": "reports/state-diagrams/index.html"
+    },
+    {
+      "role": "json_sidecar",
+      "path": "reports/latest/state-diagrams/report.json",
+      "publish_to": "reports/state-diagrams/report.json"
+    }
+  ]
+}
+```
+
+## 15e. Follow-On Producer Recipes And Aggregator Surface (Phase A Planning Only)
+
+The canonical producer-command surface and `just reports` contract are defined
+in `docs/requirements.md` under `### Phase A Producer Recipe Contract
+(Planning Only)`. This architecture section intentionally defers to that
+requirements section rather than restating the command block or aggregator
+contract prose.
+
+Adding repo-specific producer commands must not require changing the shared
+aggregation or discovery contract.
+
+## 15f. Follow-On Semantic Report-Spec Contract (Phase A Planning Only)
+
+The canonical semantic report-spec contract is defined in
+`docs/requirements.md` under `### Phase A Semantic Report-Spec Contract
+(Planning Only)`. That requirements section is the normative owner for the
+`state_machine` / `sql_query` field inventory, the transitional Mermaid rule,
+the semantic QA direction, and the extension rule. This architecture section
+intentionally defers to that requirements section rather than restating those
+lists or transition-policy details.
+## 15g. Follow-On Template Families And Shared Panel Chrome (Phase A Planning Only)
+
+Phase A follow-on planning defines shared template-family selection and shared
+panel chrome so consumer repos reuse one UI contract instead of rebuilding it
+per report family. This is planning only and does not change shipped `1.0`
+runtime behavior.
+
+Initial template families:
+
+- lint/test/smoke evidence reports
+- public API, CLI, and ICD style reports
+- diagram, state-machine, and SQL-query reports
+
+For the canonical selection and override example, see
+`docs/phase-A/sprint-A5.md`.
+
+The authoritative override contract, bundled shared template root, consumer
+activation config, shared panel contract, ownership split, Jinja2 block
+boundary, required template variables, and include deferral are defined in
+`docs/phase-A/sprint-A5.md`.
+
 ## 16. `init` Command Behavior (FR-7)
 
 `init_workspace` and the CLI `init` command must:
@@ -1109,6 +1275,9 @@ Architecture rules:
   provide their own implementations.
 - `sc-observe` and `sc-observability-otlp` are not part of this initial
   release architecture.
+- The current CLI uplift targets `sc-observability` `1.1.0` directly and does
+  not add the `sc-observe` facade because `sc-compose` still owns concrete
+  logger construction and sink registration at this seam.
 
 ### 19.1 Dependency Graph
 
@@ -1129,6 +1298,9 @@ sc-observability -----> sc-observability-types
   `QueryHealthReport`, and `QueryHealthState` through its public re-export
   surface.
 - `sc-compose` depends on both `sc-composer` and `sc-observability`.
+- `sc-compose` adapts to the `Logger<Running>` / `Logger<Stopped>` typestate by
+  keeping the CLI observer responsible for the shutdown-state transition while
+  preserving post-shutdown health inspection.
 
 ### 19.2 Library Injection Pattern
 
@@ -1211,6 +1383,20 @@ CLI wiring rules:
   `LoggingHealthReport` under `--json`,
 - `observability-health` reports process-local logger state only and does not
   depend on any daemon or background runtime,
+- the same logger configuration keeps `RetainedLogPolicy::default()` enabled,
+  so rotation, pruning, maintenance cadence, and shutdown join behavior stay
+  owned by `sc-observability` rather than by wrapper code in `sc-compose`,
+- `sc-observability` rotates log files by rename-then-open rather than by
+  truncate-in-place, so the active log path is replaced through the logger's
+  own file-rotation flow instead of wrapper-managed mutation,
+- on POSIX systems, rename-based rotation can replace an open path while
+  readers or tailers still hold the old inode; on Windows, the maintenance
+  thread must coordinate file-handle release and reopen behavior through
+  `sc-observability`'s platform-aware rotation path,
+- `sc-compose` does not implement its own Windows file-lock workaround or
+  alternate rotation algorithm; it relies on the `sc-observability`
+  maintenance thread to perform platform-correct rotation and retained-log
+  cleanup,
 - CLI shutdown calls the logger's `shutdown()` path so registered sinks flush
   before process exit.
 

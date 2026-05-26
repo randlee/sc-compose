@@ -8,7 +8,10 @@ one reusable reporting platform pattern:
 
 - producer recipes such as `just lint`, `just test`, `just smoke`, and
   repo-specific custom recipes generate evidence directly
-- `just reports` aggregates, verifies, and opens report outputs
+- `just reports` aggregates, verifies, and reports deterministic latest
+  entrypoints/paths
+- wrapper tooling may provide optional open helpers, but browser-open behavior
+  is not part of the shared core contract
 - generated evidence follows one shared contract for latest, archive,
   metadata, and publish handoff
 - source-driven asset collections and diagram reports can extend the same

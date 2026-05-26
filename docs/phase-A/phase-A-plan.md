@@ -25,13 +25,22 @@ It also queues one explicit `sc-observability` `1.1.0` adoption closure so the
 CLI logging layer used by report-producing workflows does not drift behind the
 shared runtime.
 
+The proof standard for this phase is not "one nice HTML report." It is
+"multiple clearly different report families can plug into one shared artifact,
+catalog, verification, and publication-handoff contract without inventing a
+new reporting model per repo."
+
 ## Design Direction
 
 - keep `sc-composer` runtime-agnostic
 - keep network publish and browser-open behavior outside the core engine
 - keep report generation owned by producer recipes such as `just lint`,
   `just test`, `just smoke`, and repo-specific custom producers
-- reserve `just reports` for aggregation, verification, and viewing/opening
+- reserve `just reports` for aggregation, verification, and deterministic
+  latest-entrypoint/index reporting as defined in `docs/requirements.md` under
+  `### Phase A Producer Recipe Contract (Planning Only)`
+- treat wrapper-owned open helpers as optional add-ons rather than part of the
+  shared Phase A command contract
 - separate authored docs from generated report evidence
 - prefer a report catalog plus machine-readable metadata over hard-coded file
   paths
@@ -64,6 +73,43 @@ shared runtime.
    - `sc-observability` `1.1.0` adoption, retained-log policy decision, and
      deprecated `emit` migration
 
+## Cross-Use-Case Proof Shape
+
+Phase A treats the following families as the minimum proof that the shared
+model is genuinely reusable rather than tuned to one repo:
+
+### `atm-core` style diagram family
+
+- producer commands such as `just state-diagrams` and `just sql-diagrams`
+- repeated panels rendered from many semantic source inputs rather than one
+  hand-written page
+- panel-fragment or per-panel entrypoint support where consumers need drill-in
+  pages
+- mandatory text-copy output, optional JSON-copy output, and JSON sidecars for
+  QA verification
+- publish-manifest output suitable for later CI or wrapper publication
+
+### `sc-lint` style evidence family
+
+- producer commands such as `just lint`, `just test`, and `just smoke`
+- one latest artifact set plus optional timestamped archive copies
+- shared report pages that aggregate multiple evidence producers without
+  requiring a special-case aggregator per repo
+- JSON sidecars and publish-manifest output with the same catalog-driven
+  discovery contract used by diagram families
+
+### Shared Rule
+
+- producer-command names and repo-local source inputs may vary by repo
+- report discovery, verification, sidecar shape, latest/archive policy, and
+  publish-manifest handoff stay shared across families
+- `atm-core` and `sc-lint` are illustrative family labels only; the A5
+  template-family key remains the catalog discriminator
+- producer extension-point typing remains owned by the A1 report artifact
+  contract
+- adding a repo-specific custom producer must require only new catalog entries
+  and templates/specs, not a new aggregator or verification model
+
 ## Exit Direction
 
 Phase A should leave the repo with:
@@ -85,17 +131,16 @@ Phase A should leave the repo with:
 - one shared panel shell contract with:
   - mandatory per-panel copy button
   - optional per-panel copy-to-JSON button
-- one defined `just reports` contract for aggregation, verification, and
-  opening/viewing
 - one defined output policy for latest artifact overwrite and optional
   timestamped archive copy
-- one defined machine-readable publish-manifest contract for CI or wrapper
-  publishing
+- one defined machine-readable publish-manifest contract in
+  `docs/requirements.md` for CI or wrapper publishing
 - multiple example families that prove the shared model is generic enough for
   both `atm-core` style diagrams and `sc-lint` style evidence reports
 - one explicit plan for `sc-observability` `1.1.0` adoption in the CLI logging
   layer, including:
   - logger typestate compatibility
-  - retained-log policy enable/defer decision
-  - deprecated `emit` call-site migration to `log` / `try_log`
-  - explicit `sc-observe` adoption decision
+  - retained-log policy enablement using logger-managed defaults
+  - explicit decision to keep direct `Logger::emit(...)` because the released
+    `1.1.0` surface does not require a `log` / `try_log` migration here
+  - explicit `sc-observe` non-adoption decision at the CLI/logger seam

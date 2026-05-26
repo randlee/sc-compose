@@ -20,10 +20,8 @@ serde_json.workspace = true
 serde_yaml.workspace = true
 sc-composer = { path = "../sc-composer", version = "1.0.1" }
 sc-observability.workspace = true
+sc-observability-types.workspace = true
 ulid.workspace = true
 
 [lints]
 workspace = true
-
-[dev-dependencies]
-sc-observability-types = "1"

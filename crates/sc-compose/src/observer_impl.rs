@@ -6,10 +6,14 @@ use sc_composer::{
 };
 use sc_observability::{
     ActionName, Level, LogEvent, Logger, LoggingHealthReport, OBSERVATION_ENVELOPE_VERSION,
-    OutcomeLabel, ProcessIdentity, SchemaVersion, ServiceName, TargetCategory, Timestamp,
+    OutcomeLabel, ProcessIdentity, SchemaVersion, ServiceName, Stopped, TargetCategory, Timestamp,
+};
+use sc_observability_types::{
+    DiagnosticInfo, DiagnosticSummary, LoggingHealthState, MaintenanceWorkerState,
+    QueryHealthReport, QueryHealthState, ShutdownError,
 };
 
-const SERVICE_NAME: &str = "sc-compose";
+use crate::observability::SERVICE_NAME;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct CommandStartEvent {
@@ -34,24 +38,58 @@ pub(crate) trait CommandLifecycleObserver {
 }
 
 pub(crate) struct CliObserver {
-    logger: Logger,
+    logger: Option<LoggerState>,
+    last_health: LoggingHealthReport,
     service: ServiceName,
+}
+
+enum LoggerState {
+    Running(Logger),
+    Stopped(Logger<Stopped>),
 }
 
 impl CliObserver {
     pub fn new(logger: Logger) -> Self {
+        let last_health = logger.health();
         Self {
-            logger,
+            logger: Some(LoggerState::Running(logger)),
+            last_health,
             service: service_name(),
         }
     }
 
     pub fn health(&self) -> LoggingHealthReport {
-        self.logger.health()
+        match self.logger.as_ref() {
+            Some(LoggerState::Running(logger)) => logger.health(),
+            Some(LoggerState::Stopped(logger)) => logger.health(),
+            None => self.last_health.clone(),
+        }
     }
 
-    pub fn shutdown(&self) {
-        let _ignored = self.logger.shutdown();
+    pub fn shutdown(&mut self) -> Result<(), ShutdownError> {
+        let Some(state) = self.logger.take() else {
+            return Ok(());
+        };
+        let running = match state {
+            LoggerState::Running(logger) => logger,
+            LoggerState::Stopped(logger) => {
+                self.last_health = logger.health();
+                self.logger = Some(LoggerState::Stopped(logger));
+                return Ok(());
+            }
+        };
+        let pre_shutdown_health = running.health();
+        match running.shutdown() {
+            Ok(logger) => {
+                self.last_health = logger.health();
+                self.logger = Some(LoggerState::Stopped(logger));
+                Ok(())
+            }
+            Err(error) => {
+                self.last_health = shutdown_error_health(pre_shutdown_health, &error);
+                Err(error)
+            }
+        }
     }
 
     fn emit_log(
@@ -81,8 +119,42 @@ impl CliObserver {
             fields,
         };
 
-        let _ignored = self.logger.emit(event);
+        if let Some(LoggerState::Running(logger)) = &self.logger {
+            let _ignored = logger.emit(event);
+        }
     }
+}
+
+impl Drop for CliObserver {
+    fn drop(&mut self) {
+        let _ignored = self.shutdown();
+    }
+}
+
+fn shutdown_error_health(
+    mut health: LoggingHealthReport,
+    error: &ShutdownError,
+) -> LoggingHealthReport {
+    let summary = DiagnosticSummary::from(error.diagnostic());
+    health.state = LoggingHealthState::DegradedDropping;
+    health.last_error = Some(summary.clone());
+    match &mut health.query {
+        Some(query) => {
+            query.state = QueryHealthState::Unavailable;
+            query.last_error = Some(summary.clone());
+        }
+        None => {
+            health.query = Some(QueryHealthReport {
+                state: QueryHealthState::Unavailable,
+                last_error: Some(summary.clone()),
+            });
+        }
+    }
+    if let Some(maintenance) = &mut health.maintenance {
+        maintenance.state = MaintenanceWorkerState::Degraded;
+        maintenance.last_error = Some(summary);
+    }
+    health
 }
 
 impl CompositionObserver for CliObserver {
@@ -552,9 +624,9 @@ mod tests {
         config.enable_file_sink = false;
         let mut builder = Logger::builder(config).expect("logger builder");
         builder.register_sink(SinkRegistration::new(Arc::new(FlushFailSink)));
-        let observer = CliObserver::new(builder.build());
+        let mut observer = CliObserver::new(builder.build());
 
-        observer.shutdown();
+        observer.shutdown().expect("shutdown");
 
         let health = observer.health();
         assert_eq!(health.flush_errors_total, 1);
