@@ -1165,6 +1165,7 @@ Illustrative publish-manifest shape:
 }
 ```
 
+<<<<<<< HEAD
 ## 15d. Follow-On Producer Recipes And Aggregator Surface (Phase A Planning Only)
 
 The canonical producer-command surface and `just reports` contract are defined
