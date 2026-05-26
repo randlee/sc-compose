@@ -139,6 +139,13 @@ For every req-qa review, explicitly perform these checks:
    implementation path where required.
 6. When a sprint doc promises a behavior change, verify the behavior path in
    code rather than only the surrounding documentation.
+7. When the sprint is presented as an implementation sprint rather than an
+   explicitly labeled planning/design sprint, required validation must include
+   `cargo test --workspace` or an equivalent real test execution command.
+8. If an implementation sprint's required validation omits `cargo test
+   --workspace` (or equivalent), emit an `acceptance-gap` finding and do not
+   count the sprint as `100%` deliverable-complete even if the other artifacts
+   exist.
 
 Gate-artifact rule:
 - read the artifact directly
@@ -166,6 +173,9 @@ Presence-check examples that must be treated as req-qa work:
   sprint.
 - List each finding with `file:line` and a remediation note.
 - The pre-existing/new distinction is informational only.
+- Do not count an implementation sprint as fully complete when its required
+  validation is only `cargo fmt` or another non-test gate; that is an
+  `acceptance-gap` unless the sprint is explicitly labeled planning/design.
 
 ## Output Contract
 

@@ -42,6 +42,17 @@ wording.
 Every listed deliverable must be expected to land at a production-ready level
 for the scope that sprint claims.
 
+An implementation sprint must have at least one non-doc `Exact Target`. Exact
+Targets that are all markdown or doc files indicate a planning sprint, not an
+implementation sprint, and must be explicitly labeled as planning or design.
+
+Implementation sprints must include `cargo test --workspace` in required
+validation.
+
+Planning/design sprints are allowed, but they must state explicitly that they
+do not produce executable artifacts and must not be presented as product or
+runtime delivery sprints.
+
 Do not allow:
 
 - shape-only completion
