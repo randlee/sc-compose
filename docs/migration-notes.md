@@ -94,16 +94,12 @@ Downstream consumers that shell out to `sc-compose` should expect:
   - `7`-day retention window
   - `60`-second maintenance cadence
   - `5`-second shutdown join timeout
-- rotation uses the logger's rename-then-open flow rather than truncate-in-place
-  mutation of the active log file
 - file-backed logging under `SC_LOG_ROOT` when the environment variable is set, or
   `.sc-compose/logs/` under the current working directory otherwise.
 - graceful shutdown to flush logger sinks before process exit while recording sink
   degradation in health counters instead of aborting command completion.
-- POSIX and Windows differ during rotation: POSIX can rename an open file while
-  readers continue on the old inode, while Windows relies on the
-  `sc-observability` maintenance thread to coordinate handle release and reopen
-  behavior during rotation and retained-log cleanup.
+- For the normative rotation semantics, including rename-then-open behavior and
+  Windows file-lock handling, see `docs/architecture.md` `§19.3`.
 - Windows rotation compatibility is validated by the CI matrix on Windows, and the
   retained-log maintenance thread plus log-file rotation are exercised by the
   existing integration test suite on every supported platform.

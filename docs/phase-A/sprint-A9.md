@@ -119,5 +119,5 @@ if let Some(LoggerState::Running(logger)) = &self.logger {
 ## Required Validation
 
 - `cargo fmt --all --check`
-- `cargo clippy --all-targets --all-features`
+- `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo test --all`
