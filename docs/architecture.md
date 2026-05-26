@@ -1000,6 +1000,59 @@ Implicit named render convention:
 - supporting assets remain available for directory-import workflows and future
   expansion, but they do not change the initial render resolution rules.
 
+## 15a. Follow-On Report Artifact Contract (Phase A Planning Only)
+
+Phase A follow-on planning treats reporting as a generic artifact contract.
+This is a planning line only and does not change the shipped `1.0` release
+behavior until a later implementation sprint lands.
+
+Planned filesystem contract:
+
+- authored docs remain under `docs/`
+- report sources and catalog inputs live outside `docs/` under paths such as:
+  - `reports/catalog/`
+  - `reports/specs/`
+  - `reports/templates/`
+- generated evidence lives outside `docs/` under paths such as:
+  - `reports/latest/<report-id>/`
+  - `reports/archive/<timestamp>/<report-id>/`
+- each generated report carries a machine-readable metadata sidecar located
+  with its generated output, for example
+  `reports/latest/<report-id>/report.json`
+
+Planned catalog contract:
+
+```toml
+[[report]]
+id = "sc-lint"
+kind = "lint"
+producer = "just lint"
+entrypoint = "reports/latest/sc-lint/index.html"
+metadata = "reports/latest/sc-lint/report.json"
+```
+
+Canonical report catalog members:
+
+- `id`
+- `kind`
+- `producer`
+- `entrypoint`
+- `metadata`
+
+Ownership split:
+
+- producer recipes own domain data gathering and report generation
+- `sc-compose` owns rendering semantics where it is selected as the renderer
+- consumer repos own domain-specific source inputs, producer entrypoints, and
+  publish surfaces
+
+Boundary rules:
+
+- network publish behavior remains outside `sc-composer` and `sc-compose`
+- browser-open behavior remains outside `sc-composer` and `sc-compose`
+- later sprints may define latest/archive policy, publish manifests, and
+  aggregator behavior, but A1 only locks the shared artifact and catalog shape
+
 ## 16. `init` Command Behavior (FR-7)
 
 `init_workspace` and the CLI `init` command must:

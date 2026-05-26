@@ -842,6 +842,10 @@ The current follow-on design track is:
   - reusable report-pack planning for multi-output bundles, shared XHTML panel
     chrome, latest/archive output policy, publish-manifest handoff, and
     `sc-observability` `1.1.0` adoption planning for the CLI logging layer
+- `docs/phase-A/sprint-A1.md`
+  - the first executable Phase A sprint, which defines the generic report
+    artifact contract and report catalog before any later report-family or
+    panel-specific planning work closes out
 
 ## Rule
 

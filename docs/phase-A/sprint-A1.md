@@ -1,7 +1,9 @@
 ---
 id: A1
 title: Report Artifact Contract And Catalog
-status: planned
+status: complete
+branch: feat/sprint-A1
+worktree: /Users/randlee/Documents/github/sc-compose-sprint-A1
 ---
 
 # Sprint A1 — Report Artifact Contract And Catalog
