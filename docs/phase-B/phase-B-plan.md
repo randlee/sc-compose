@@ -64,21 +64,26 @@ that make it easy for consumer repos to adopt.
 
 1. `B1`
    - report artifact runtime and catalog
-2. `B2`
+2. `B10`
+   - built-in render context variables
+   - follows `B1` because it changes the core render context
+   - can run in parallel with `B3` through `B8` after the `B1` context shape
+     is fixed
+3. `B2`
    - producer recipes, report-init scaffold, and `just` command surface
-3. `B3`
+4. `B3`
    - source collection, metadata extraction, and render-many runtime
-4. `B4`
+5. `B4`
    - template families and shared panel chrome
-5. `B5`
+6. `B5`
    - latest/archive output policy and reports aggregator
-6. `B6`
+7. `B6`
    - publish manifest and CI handoff
-7. `B7`
+8. `B7`
    - semantic diagram-spec runtime
-8. `B8`
+9. `B8`
    - cross-use-case proof by implemented examples
-9. `B9`
+10. `B9`
    - `sc-observability` `1.2` adoption after the upstream release exists
 
 ## Cross-Use-Case Proof Shape

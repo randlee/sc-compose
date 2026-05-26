@@ -899,6 +899,8 @@ The current follow-on implementation track is:
     runnable shared system
 - `docs/phase-B/sprint-B1.md`
   - report artifact runtime and catalog
+- `docs/phase-B/sprint-B10.md`
+  - built-in render context variables injected into every render context
 - `docs/phase-B/sprint-B2.md`
   - producer recipes, report-init scaffold, and `just` command surface
 - `docs/phase-B/sprint-B3.md`
