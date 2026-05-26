@@ -82,12 +82,7 @@ The follow-on line should converge on a shared evidence shape with:
 
 ## Example Consumer Shapes
 
-The shared reporting line must be broad enough to cover at least:
-
-- `atm-core` style repeated state-machine and SQL-query diagrams
-- `sc-lint` style lint/test/smoke and other evidence reports
-- repo-specific custom evidence producers added without changing the shared
-  report contract
+See [docs/phase-A/phase-A-plan.md](./phase-A/phase-A-plan.md) `## Cross-Use-Case Proof Shape` for the canonical minimum proof families and shared custom-producer rule.
 
 ## Explicit Non-Goals
 
@@ -108,6 +103,11 @@ example direction.
 - H6: wrapper-owned view/open behavior without moving browser logic into
   `sc-compose`
 - H7: post-render-hook exploration only after wrapper UX stabilizes
+
+Multi-panel composition is no longer treated as sprint-report-only behavior.
+The same panel-shell and repeated-rendering model must also support
+state-machine, SQL-query, lint, test, smoke, and future custom report
+families.
 
 ### Proposed XHTML Template Structure
 
