@@ -50,6 +50,9 @@ timestamp without the caller needing to pass them as `--var` flags.
   - frontmatter defaults do not override built-ins
 - one explicit rule that `TEMPLATE_NAME` reflects the template filename
   actually rendered rather than a caller-supplied alias
+- one explicit call-path rule that `build_render_context()` calls
+  `inject_builtin_vars(...)` after caller values are merged, with
+  `template_name` sourced from the resolved `RenderRequest` template path
 
 ## Explicit Code Samples
 
@@ -65,6 +68,13 @@ fn inject_builtin_vars(
     context
         .entry("RENDER_TIMESTAMP".into())
         .or_insert_with(|| now_iso().into());
+}
+
+fn build_render_context(request: &RenderRequest) -> BTreeMap<String, serde_json::Value> {
+    let mut context = merge_caller_values(request);
+    inject_builtin_vars(&mut context, request.template_path.file_name().unwrap().to_str().unwrap());
+    apply_frontmatter_defaults(&mut context, request);
+    context
 }
 ```
 

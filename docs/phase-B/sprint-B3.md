@@ -41,6 +41,10 @@ plus aggregate pages without custom wrapper scripts per repo.
   - block-comment metadata
   - body/raw source access
 - one render-many runtime for one output per source file
+- one `sc-composer` library entry point exposed from `renderer.rs` that
+  renders pre-loaded template content for `render_many.rs` without adding
+  filesystem I/O, path walking, or repo-runtime discovery behavior to
+  `sc-composer`
 - one generated manifest runtime that aggregate templates and review tooling
   can consume
 - one explicit statement in runtime/docs that these collection capabilities are
@@ -62,6 +66,11 @@ pub struct SourceEntry {
     pub metadata: BTreeMap<String, serde_json::Value>,
     pub sets: Option<Vec<String>>,
 }
+
+pub fn render_loaded_template(
+    template_text: &str,
+    request: &RenderRequest,
+) -> Result<RenderedArtifact, RenderError>;
 
 pub fn render_many(request: RenderManyRequest) -> Result<RenderManyResult, RenderManyError>;
 ```
@@ -93,6 +102,8 @@ sets = ["publish", "latest"]
   pipeline stages
 - the runtime keeps the mechanism generic across Mermaid, SVG, and other text
   assets
+- the `sc-composer` boundary remains runtime-agnostic and gains no filesystem
+  traversal or source-discovery behavior
 - the runtime keeps browser automation and site hosting out of scope
 
 ## Required Validation

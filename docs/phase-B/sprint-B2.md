@@ -54,8 +54,11 @@ provides the scaffold path that makes adoption easy.
 - one smoke test scaffold contract that defines:
   - a reference smoke template fixture
   - a sample `sample-vars.json` fixture
+  - one `sc-compose reports smoke` CLI subcommand that accepts `--fixture`
+    and `--vars` flags, runs the smoke fixture through the render pipeline,
+    and emits results to `reports/latest/smoke/`
   - one harness wrapper entrypoint that the generated `just smoke` target
-    invokes
+    invokes by calling that `sc-compose reports smoke` subcommand
 - one bundled `.claude/skills/reports-init/` scaffold skill that emits:
   - `Justfile` stubs
   - report-catalog starter entries

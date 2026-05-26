@@ -36,6 +36,9 @@ the long-term source of truth.
 - one typed semantic spec runtime for at least:
   - `state_machine`
   - `sql_query`
+- one explicit statement that semantic spec input files use TOML format,
+  consistent with the report catalog and source-set TOML established in B1 and
+  B3
 - one transitional rule that Mermaid may still be emitted as an output during
   migration but is not the long-term semantic source model
 - one Mermaid renderer that consumes typed specs
