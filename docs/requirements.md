@@ -976,6 +976,68 @@ Implemented in Phase HTML-Report.
 - The example must be a credible showcase for `sc-compose`, not just a
   hand-written HTML file stored in the repo.
 
+### Phase A Semantic Report-Spec Contract (Planning Only)
+
+Phase A follow-on planning defines typed semantic report-spec kinds so rendered
+diagram formats such as Mermaid become outputs or migration inputs rather than
+the long-term source of truth.
+
+Initial planned report-spec kinds:
+
+- `state_machine`
+- `sql_query`
+
+Planned `state_machine` semantic fields:
+
+- `kind`
+- `id`
+- `title`
+- `states`
+- `transitions`
+- `events`
+- `guards`
+- `actors`
+- `effects`
+- optional metadata for ownership, tags, and renderer targets
+
+Planned `sql_query` semantic fields:
+
+- `kind`
+- `id`
+- `title`
+- `purpose`
+- `tables_read`
+- `tables_written`
+- `filters`
+- `ordering`
+- `cardinality`
+- `transactional_assumptions`
+- optional metadata for ownership, tags, and renderer targets
+
+Transitional Mermaid rule:
+
+- Mermaid may be emitted as an output renderer during migration
+- Mermaid may be accepted as a migration input where repos already store it
+- Mermaid is not the long-term semantic source model
+
+Semantic QA direction:
+
+- QA should validate structured semantic fields rather than string-compare only
+  the rendered Mermaid output
+- renderers may change over time without replacing the typed semantic source
+  contract
+
+Extension rule:
+
+- repos may add new semantic report-spec kinds later without rewriting the
+  shared artifact catalog or producer contracts
+
+Boundary rules:
+
+- the semantic source contract remains format-agnostic
+- network publishing remains outside the core engine
+- browser-open behavior remains outside the core engine
+
 ### Phase A Follow-On Reporting Contract (Planning Only)
 
 Phase A follow-on planning defines reporting as a generic artifact contract,
