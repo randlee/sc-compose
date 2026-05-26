@@ -499,6 +499,7 @@ Command behavior:
     - `reports smoke`
     - `reports index`
     - `reports verify`
+    - `reports publish-manifest`
   - owns the shared reporting runtime surface rather than repo-specific
     producer command bodies,
   - keeps publish upload and browser-open behavior outside the command family.
@@ -1222,30 +1223,38 @@ Archive ownership note:
 - archive directories are file-system-local
 - archive directories may be consumer-managed
 - archive directories may be gitignored
-### Phase A Publish-Manifest And CI Handoff Contract (Planning Only)
+### Publish-Manifest And CI Handoff Contract
 
-Phase A follow-on planning defines a machine-readable handoff from generated
-report artifacts to CI or wrapper-owned publication steps without moving
-network or hosting behavior into `sc-compose`.
+`sc-compose` emits one machine-readable handoff from generated report artifacts
+to CI or wrapper-owned publication steps without moving network or hosting
+behavior into the core engine.
 
-Planned publish-manifest contract:
+Implemented publish-manifest contract:
 
-- each generated report set may emit a machine-readable publish manifest
-- the manifest lists generated artifacts and their intended publish destinations
+- `sc-compose reports publish-manifest` writes
+  `reports/latest/publish-manifest.json`
+- the manifest is generated from the current report catalog plus latest
+  sidecars and artifact sets, not from hard-coded per-report paths
+- optional reports whose latest artifact sets are absent are skipped
+- required reports whose latest artifact sets are absent make manifest
+  generation fail
 - artifact roles remain explicit in the manifest rather than inferred by CI
 
-Planned manifest fields include:
+Manifest fields include:
 
-- report_id
 - generated_at
-- files
+- reports
+- per-report report_id
+- per-report kind
+- per-report entrypoint
+- per-report optional archive_root
 - per-file role
 - per-file path
 - per-file intended publish destination
 
 Identity rule:
 
-- `report_id` must equal the canonical A1 report catalog `id`
+- `report_id` must equal the canonical report catalog `id`
 
 Ownership split:
 
@@ -1254,10 +1263,8 @@ Ownership split:
 
 Boundary rules:
 
-- the artifact contract is intended to support generic lint, test, smoke,
-  diagram, and custom reports through one shared metadata and filesystem shape
-- shared Phase A reporting boundary rules are centralized under
-  `### Phase A Follow-On Reporting Contract (Planning Only)`
+- the artifact contract supports generic lint, test, smoke, diagram, and
+  custom reports through one shared metadata and filesystem shape
 - publish transport and hosting remain outside `sc-composer` and `sc-compose`
 - machine-readable handoff is in scope; network transport is not
 

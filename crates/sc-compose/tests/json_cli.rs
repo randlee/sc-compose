@@ -1295,6 +1295,64 @@ fn reports_smoke_json_lists_archive_artifacts_when_requested() {
 }
 
 #[test]
+fn reports_publish_manifest_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-publish-manifest-json");
+    write_smoke_fixture(&root);
+    write_report_catalog(
+        &root,
+        r#"[[report]]
+id = "smoke"
+kind = "smoke"
+producer = "just smoke"
+required = true
+entrypoint = "reports/latest/smoke/index.html"
+metadata = "reports/latest/smoke/report.json"
+"#,
+    );
+
+    let smoke = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .arg("--archive")
+        .output()
+        .unwrap();
+    assert!(smoke.status.success());
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("publish-manifest")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["manifest_path"],
+        "reports/latest/publish-manifest.json"
+    );
+    assert_eq!(value["payload"]["report_count"], 1);
+    assert_eq!(
+        value["payload"]["manifest"]["reports"][0]["report_id"],
+        "smoke"
+    );
+    assert_eq!(
+        value["payload"]["manifest"]["reports"][0]["files"][0]["publish_to"],
+        "reports/smoke/index.html"
+    );
+}
+
+#[test]
 fn report_render_many_json_uses_diagnostic_envelope() {
     let root = temp_root("report-render-many-json");
     write_render_many_fixture(&root);

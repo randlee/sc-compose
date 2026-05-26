@@ -678,6 +678,8 @@ Command mapping:
 - `reports index` -> aggregate and summarize latest report entrypoints from the
   report catalog
 - `reports verify` -> verify required report artifacts exist for the catalog
+- `reports publish-manifest` -> emit one machine-readable publish handoff from
+  current latest report outputs
 
 The CLI must not reimplement core composition semantics. If a command requires
 logic useful to non-CLI callers, that logic belongs in the library.
@@ -738,6 +740,12 @@ Command-specific rules:
 - `reports verify`
   - checks required report artifacts for presence and reports missing evidence
     as a failure.
+- `reports publish-manifest`
+  - writes `reports/latest/publish-manifest.json`,
+  - derives manifest content from current latest sidecars and artifact sets,
+  - skips optional reports whose latest artifact sets are absent,
+  - fails when required report evidence is missing,
+  - lists intended publish destinations without owning upload behavior.
 
 Guidance and prompt input model:
 
@@ -1107,7 +1115,7 @@ Boundary rules:
   `docs/requirements.md` under `### Phase A Latest/Archive Output And Reports
   Aggregator Contract (Planning Only)`
 - the canonical publish-manifest contract is defined in `docs/requirements.md`
-  under `### Phase A Publish-Manifest And CI Handoff Contract (Planning Only)`
+  under `### Publish-Manifest And CI Handoff Contract`
 - later sprints may extend those contracts with implementation-specific
   publish workflow details
 
@@ -1151,11 +1159,11 @@ Illustrative output shape:
 }
 ```
 
-## 15d. Follow-On Publish Manifest And CI Handoff (Phase A Planning Only)
+## 15d. Publish Manifest And CI Handoff
 
 The canonical publish-manifest contract is defined in
-`docs/requirements.md` under `### Phase A Publish-Manifest And CI Handoff
-Contract (Planning Only)`. This architecture section keeps only the
+`docs/requirements.md` under `### Publish-Manifest And CI Handoff Contract`.
+This architecture section keeps only the
 illustrative manifest shape for that contract and does not restate the
 normative ownership or boundary prose.
 
@@ -1163,18 +1171,25 @@ Illustrative publish-manifest shape:
 
 ```json
 {
-  "report_id": "state-diagrams",
   "generated_at": "2026-05-25T22:10:00Z",
-  "files": [
+  "reports": [
     {
-      "role": "latest_html",
-      "path": "reports/latest/state-diagrams/index.html",
-      "publish_to": "reports/state-diagrams/index.html"
-    },
-    {
-      "role": "json_sidecar",
-      "path": "reports/latest/state-diagrams/report.json",
-      "publish_to": "reports/state-diagrams/report.json"
+      "report_id": "state-diagrams",
+      "kind": "diagram",
+      "entrypoint": "reports/latest/state-diagrams/index.html",
+      "archive_root": "reports/archive/2026-05-25T22-10-00Z/state-diagrams",
+      "files": [
+        {
+          "role": "entrypoint",
+          "path": "reports/latest/state-diagrams/index.html",
+          "publish_to": "reports/state-diagrams/index.html"
+        },
+        {
+          "role": "metadata",
+          "path": "reports/latest/state-diagrams/report.json",
+          "publish_to": "reports/state-diagrams/report.json"
+        }
+      ]
     }
   ]
 }

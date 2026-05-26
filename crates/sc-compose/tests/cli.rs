@@ -1201,6 +1201,63 @@ metadata = "reports/latest/smoke/report.json"
 }
 
 #[test]
+fn reports_publish_manifest_writes_machine_readable_handoff() {
+    let root = temp_root("reports-publish-manifest");
+    write_smoke_fixture(&root);
+    write_report_catalog(
+        &root,
+        r#"[[report]]
+id = "smoke"
+kind = "smoke"
+producer = "just smoke"
+required = true
+entrypoint = "reports/latest/smoke/index.html"
+metadata = "reports/latest/smoke/report.json"
+"#,
+    );
+
+    let smoke = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .arg("--archive")
+        .output()
+        .unwrap();
+    assert!(smoke.status.success());
+
+    let publish_manifest = sc_compose()
+        .arg("reports")
+        .arg("publish-manifest")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert!(publish_manifest.status.success());
+    let stdout = String::from_utf8(publish_manifest.stdout).unwrap();
+    assert!(stdout.contains("manifest: reports/latest/publish-manifest.json"));
+    assert!(stdout.contains("reports: 1"));
+    assert!(stdout.contains("smoke kind=smoke entrypoint=reports/latest/smoke/index.html"));
+    assert!(stdout.contains("publish_to=reports/smoke/index.html"));
+    assert!(stdout.contains("archive_root: reports/archive/"));
+
+    let manifest_path = root
+        .join("reports")
+        .join("latest")
+        .join("publish-manifest.json");
+    assert!(manifest_path.exists());
+    let manifest_text = fs::read_to_string(manifest_path).unwrap();
+    assert!(manifest_text.contains("\"report_id\": \"smoke\""));
+    assert!(manifest_text.contains("\"publish_to\": \"reports/smoke/index.html\""));
+    assert!(manifest_text.contains("\"archive_root\": \"reports/archive/"));
+}
+
+#[test]
 fn templates_add_directory_creates_pack_and_readme_and_named_render_uses_input_defaults() {
     let root = temp_root("templates-add-dir");
     let templates_root = root.join("user-templates");

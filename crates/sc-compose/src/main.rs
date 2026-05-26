@@ -26,6 +26,7 @@ use crate::render_request::{build_request, read_block_pair};
 use crate::reporting::catalog::ReportCatalog;
 use crate::reporting::index::{build_report_index, verify_required_reports};
 use crate::reporting::init::{init_report_scaffold, run_smoke_report};
+use crate::reporting::publish_manifest::write_publish_manifest;
 use crate::reporting::render_many::{RenderManyRequest, SourceSetDefinition, render_many};
 
 #[global_allocator]
@@ -285,6 +286,8 @@ enum ReportsSubcommand {
     Index(ReportsIndexArgs),
     #[command(about = "Verify required report evidence from the catalog")]
     Verify(ReportsVerifyArgs),
+    #[command(about = "Write one machine-readable publish manifest for current report outputs")]
+    PublishManifest(ReportsPublishManifestArgs),
 }
 
 #[derive(Debug, Clone, Args)]
@@ -319,6 +322,14 @@ struct ReportsIndexArgs {
 
 #[derive(Debug, Clone, Args)]
 struct ReportsVerifyArgs {
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+struct ReportsPublishManifestArgs {
     #[arg(long, default_value = ".")]
     root: PathBuf,
     #[arg(long)]
@@ -493,6 +504,12 @@ fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, Comma
                     run_reports_verify(verify_args)
                 })
             }
+            ReportsSubcommand::PublishManifest(publish_args) => observe_command(
+                observer,
+                "reports-publish-manifest",
+                publish_args.json,
+                |_observer| run_reports_publish_manifest(publish_args),
+            ),
         },
         Command::ReportRenderMany(args) => {
             observe_command(observer, "report-render-many", args.json, |_observer| {
@@ -614,6 +631,43 @@ fn run_reports_verify(args: &ReportsVerifyArgs) -> Result<i32, CommandError> {
             "verified required reports: {}/{}",
             result.verified_count, result.required_count
         );
+    }
+    Ok(exit_codes::SUCCESS)
+}
+
+fn run_reports_publish_manifest(args: &ReportsPublishManifestArgs) -> Result<i32, CommandError> {
+    let result = write_publish_manifest(&args.root).map_err(|error| {
+        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
+    })?;
+    if args.json {
+        let payload = serde_json::json!({
+            "manifest_path": result.manifest_path.display().to_string(),
+            "report_count": result.report_count,
+            "manifest": result.manifest,
+        });
+        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
+    } else {
+        println!("manifest: {}", result.manifest_path.display());
+        println!("reports: {}", result.report_count);
+        for report in &result.manifest.reports {
+            println!(
+                "{} kind={} entrypoint={}",
+                report.report_id,
+                report.kind,
+                report.entrypoint.display()
+            );
+            if let Some(archive_root) = &report.archive_root {
+                println!("archive_root: {}", archive_root.display());
+            }
+            for file in &report.files {
+                println!(
+                    "file role={} path={} publish_to={}",
+                    file.role,
+                    file.path.display(),
+                    file.publish_to.display()
+                );
+            }
+        }
     }
     Ok(exit_codes::SUCCESS)
 }
@@ -1031,6 +1085,7 @@ fn command_wants_json(command: &Command) -> bool {
             ReportsSubcommand::Smoke(smoke_args) => smoke_args.json,
             ReportsSubcommand::Index(index_args) => index_args.json,
             ReportsSubcommand::Verify(verify_args) => verify_args.json,
+            ReportsSubcommand::PublishManifest(publish_args) => publish_args.json,
         },
         Command::ReportRenderMany(args) => args.json,
         Command::ReportCatalog(args) => args.json,
