@@ -88,12 +88,17 @@ For the hardened plan in scope, verify:
 - important ADR coverage exists for significant architectural choices
 - impossible or forbidden paths are explicitly ruled out when the plan depends
   on that guarantee
+- a sprint whose `Exact Targets` are all doc/markdown files and whose required
+  validation contains no `cargo test --workspace` is treated as a docs-only
+  sprint and must be flagged `NON-PROD` at `Blocking` severity unless it is
+  explicitly labeled as a planning or design sprint
 
 ## Finding Types
 
 - `ARCH-RISK`
 - `BOUNDARY-RISK`
 - `FALSE-CLOSURE`
+- `NON-PROD`
 - `CONTRA`
 - `MISSING-ADR`
 - `UNDEF`
@@ -109,6 +114,7 @@ They may never be downgraded to `Minor`:
 - `BOUNDARY-RISK`
 - code duplication removal opportunities across modules or boundaries
 - `FALSE-CLOSURE`
+- `NON-PROD`
 - `MISSING-ADR`
 - `UNDEF`
 
@@ -146,7 +152,7 @@ Return fenced JSON only.
     {
       "id": "PLAN-CRIT-001",
       "severity": "Blocking | Important | Minor",
-      "category": "ARCH-RISK | BOUNDARY-RISK | FALSE-CLOSURE | CONTRA | MISSING-ADR | UNDEF | VAGUE | GAP",
+      "category": "ARCH-RISK | BOUNDARY-RISK | FALSE-CLOSURE | NON-PROD | CONTRA | MISSING-ADR | UNDEF | VAGUE | GAP",
       "classification": "structural | wording",
       "affects_ac": false,
       "target_refs": [
