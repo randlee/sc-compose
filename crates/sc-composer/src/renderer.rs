@@ -8,6 +8,15 @@ use serde_json::Value;
 
 use crate::RenderError;
 
+/// Additional named templates that the main template may extend or include.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct NamedTemplateAsset {
+    /// Stable template identifier used for loader lookups.
+    pub template_name: String,
+    /// Template body associated with the identifier.
+    pub template_text: String,
+}
+
 /// Request for rendering template text that the caller already loaded.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct LoadedTemplateRequest {
@@ -17,6 +26,9 @@ pub struct LoadedTemplateRequest {
     pub template_text: String,
     /// Render context supplied by the caller.
     pub context: BTreeMap<String, Value>,
+    /// Additional named templates the main template may extend or include.
+    #[serde(default)]
+    pub supporting_templates: Vec<NamedTemplateAsset>,
 }
 
 /// Artifact returned by the pre-loaded template render path.
@@ -112,11 +124,20 @@ pub fn render_template<T: serde::Serialize>(
 pub fn render_loaded_template(
     request: LoadedTemplateRequest,
 ) -> Result<RenderedArtifact, RenderError> {
-    let rendered = Renderer::new().render_named(
-        &request.template_name,
-        &request.template_text,
-        &request.context,
-    )?;
+    let mut env = Environment::new();
+    env.set_trim_blocks(true);
+    env.set_lstrip_blocks(true);
+    for asset in request.supporting_templates {
+        env.add_template_owned(asset.template_name, asset.template_text)
+            .map_err(RenderError::render)?;
+    }
+    env.add_template_owned(request.template_name.clone(), request.template_text.clone())
+        .map_err(RenderError::render)?;
+    let rendered = env
+        .get_template(&request.template_name)
+        .map_err(RenderError::render)?
+        .render(&request.context)
+        .map_err(RenderError::render)?;
     Ok(RenderedArtifact {
         rendered,
         template_name: request.template_name,

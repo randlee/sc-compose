@@ -318,8 +318,10 @@ struct ReportRenderManyArgs {
     id: String,
     #[arg(long)]
     glob: String,
-    #[arg(long)]
-    template: PathBuf,
+    #[arg(long, conflicts_with = "template_family")]
+    template: Option<String>,
+    #[arg(long = "template-family", conflicts_with = "template")]
+    template_family: Option<String>,
     #[arg(long = "output-dir")]
     output_dir: PathBuf,
     #[arg(long)]
@@ -546,12 +548,14 @@ fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, CommandError> {
 }
 
 fn run_report_render_many(args: ReportRenderManyArgs) -> Result<i32, CommandError> {
+    let template_selector = args.template.clone().unwrap_or_default();
     let request = RenderManyRequest {
         root: args.root,
         source_set: SourceSetDefinition {
             id: args.id,
             glob: args.glob,
-            template_path: args.template,
+            template_selector,
+            template_family: args.template_family,
             output_dir: args.output_dir,
         },
     };

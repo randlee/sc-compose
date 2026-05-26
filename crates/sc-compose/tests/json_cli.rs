@@ -84,6 +84,17 @@ fn write_render_many_fixture(root: &Path) {
     );
 }
 
+fn write_report_family_override(root: &Path) {
+    write_file(
+        &root
+            .join("reports")
+            .join("templates")
+            .join("lint")
+            .join("report.html.j2"),
+        "{% extends \"base/report.html.j2\" %}\n{% block report_header %}<header class=\"report-header report-header-lint\"><h1>Lint override</h1><p>Lint override</p></header>{% endblock %}\n{% block panel_body %}<div class=\"panel-body panel-body-lint\">Override body marker</div>{% endblock %}\n",
+    );
+}
+
 fn assert_envelope(value: &Value) {
     assert_eq!(value["schema_version"], "1");
     assert!(value.get("payload").is_some());
@@ -1246,4 +1257,55 @@ fn report_render_many_json_uses_diagnostic_envelope() {
         value["payload"]["entries"][0]["sets"],
         serde_json::json!(["publish"])
     );
+}
+
+#[test]
+fn report_render_many_json_supports_template_family_overrides() {
+    let root = temp_root("report-render-many-family-json");
+    write_file(
+        &root.join("docs").join("lint").join("a.txt"),
+        "# title: Lint Alpha\n# copy_json:\n#   status: pass\nalpha body\n",
+    );
+    write_report_family_override(&root);
+    write_report_catalog(
+        &root,
+        r#"[reporting.templates.lint]
+path = "reports/templates/lint/report.html.j2"
+"#,
+    );
+
+    let output = sc_compose()
+        .arg("report-render-many")
+        .arg("--root")
+        .arg(&root)
+        .arg("--id")
+        .arg("lint")
+        .arg("--glob")
+        .arg("docs/lint/*.txt")
+        .arg("--template-family")
+        .arg("lint")
+        .arg("--output-dir")
+        .arg("reports/latest/lint")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["entries"][0]["source_path"],
+        "docs/lint/a.txt"
+    );
+    let rendered = fs::read_to_string(
+        root.join("reports")
+            .join("latest")
+            .join("lint")
+            .join("docs")
+            .join("lint")
+            .join("a.html"),
+    )
+    .unwrap();
+    assert!(rendered.contains("Lint override"));
 }
