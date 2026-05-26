@@ -53,7 +53,7 @@
       "qa": "Queued",
       "ci": "Running",
       "pr_url": "https://github.com/randlee/sc-compose/pull/47",
-      "note": "This report is generated from one flat example file with structured inputs."
+      "note": "This bundled example remains backward-compatible while the shared reporting runtime grows around it."
     }
   ]
 }

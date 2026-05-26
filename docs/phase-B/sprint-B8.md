@@ -1,9 +1,9 @@
 ---
 id: B8
 title: Cross-Use-Case Proof By Implemented Examples
-status: draft
-branch: plan/phase-B
-worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
+status: complete
+branch: feat/sprint-B8
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/sprint-B8
 ---
 
 # Sprint B8 — Cross-Use-Case Proof By Implemented Examples

@@ -46,6 +46,16 @@ pub(crate) struct MaterializedReport {
     pub(crate) archived_artifacts: Vec<PathBuf>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct FinalizeReportRequest {
+    pub(crate) report_id: String,
+    pub(crate) kind: String,
+    pub(crate) status: String,
+    pub(crate) entrypoint: PathBuf,
+    pub(crate) artifacts: Vec<PathBuf>,
+    pub(crate) archive: bool,
+}
+
 #[derive(Debug)]
 pub(crate) enum OutputError {
     TimeFormat(time::error::Format),
@@ -221,3 +231,40 @@ impl fmt::Display for OutputError {
 }
 
 impl std::error::Error for OutputError {}
+
+pub(crate) fn finalize_report_outputs(
+    root: &Path,
+    request: &FinalizeReportRequest,
+) -> Result<MaterializedReport, OutputError> {
+    let latest_report_root = latest_report_root(&request.entrypoint, &request.report_id)?;
+    let mut latest_artifacts = Vec::new();
+    latest_artifacts.push(request.entrypoint.clone());
+    for artifact in &request.artifacts {
+        if artifact == &request.entrypoint {
+            continue;
+        }
+        if !artifact.starts_with(&latest_report_root) {
+            return Err(OutputError::InvalidPath {
+                path: artifact.clone(),
+                message: format!(
+                    "artifact must remain under {}",
+                    latest_report_root.display()
+                ),
+            });
+        }
+        latest_artifacts.push(artifact.clone());
+    }
+
+    write_report_metadata_and_archive(
+        root,
+        &ReportOutputRequest {
+            report_id: request.report_id.clone(),
+            kind: request.kind.clone(),
+            status: request.status.clone(),
+            entrypoint: request.entrypoint.clone(),
+            metadata_path: latest_report_root.join("report.json"),
+            latest_artifacts,
+            archive: request.archive,
+        },
+    )
+}

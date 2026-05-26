@@ -675,6 +675,8 @@ Command mapping:
 - `reports init` -> initialize the shared report scaffold and starter catalog
 - `reports smoke` -> run the shared smoke fixture render path and emit the
   smoke latest-artifact set
+- `reports finalize` -> materialize one producer-owned report artifact set into
+  the shared sidecar and archive shape
 - `reports render-spec` -> parse one TOML semantic spec and emit one Mermaid
   latest-artifact set
 - `reports index` -> aggregate and summarize latest report entrypoints from the
@@ -736,6 +738,10 @@ Command-specific rules:
   - runs the shared smoke render path,
   - emits the smoke latest-artifact set without owning repo-specific smoke
     logic beyond the shared harness contract.
+- `reports finalize`
+  - accepts one producer-owned latest artifact set,
+  - writes the canonical `report.json` sidecar,
+  - optionally copies the artifact set into the timestamped archive tree.
 - `reports render-spec`
   - accepts one TOML semantic spec file,
   - renders Mermaid from `state_machine` and `sql_query` specs,
@@ -1229,6 +1235,21 @@ Runtime integration notes:
 - `reports render-spec` emits Mermaid latest outputs and shared sidecars
 - `report-render-many` may discover TOML semantic specs and render shared
   diagram-family outputs from them
+
+## 15h. Implemented Cross-Use-Case Proof Families
+
+This repo now carries one checked-in Phase B proof set under `reports/` plus
+the reference `Justfile` producer surface.
+
+Runtime proof direction:
+
+- lint/test/smoke producers remain repo-local commands while using the shared
+  artifact, sidecar, archive, verification, and publish-manifest runtime
+- state-machine and SQL-query diagrams render through the same shared model
+  without inventing a diagram-only publication contract
+- `report-evidence-summary` is the new bundled Phase B proof vehicle
+- `sprint-report-html` remains the backward-compatible bundled example covered
+  by the shared proof harness
 ## 15g. Follow-On Template Families And Shared Panel Chrome (Phase A Planning Only)
 
 Phase A follow-on planning defines shared template-family selection and shared
