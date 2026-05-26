@@ -11,8 +11,8 @@ path where the live `SESSION_ID` changed and no longer matches
 `leadSessionId`.
 
 Do not use this procedure for same-session compaction or resume when the
-session id still matches. Verify teammate routing first before using this
-destructive restore path.
+session id still matches. Use `/restore-team-communications` for that lighter
+repair path.
 
 ## Step 2 — Backup Current State
 
@@ -56,9 +56,10 @@ TeamCreate(team_name="sc-compose", description="sc-compose development team", ag
 
 Verify that the returned team name is exactly `sc-compose`. If it is not, stop.
 
-Note: if communications are broken after compaction or resume, confirm the
-failure first and avoid this destructive backup/delete/restore flow unless a
-lighter routing repair is impossible.
+Note: `/restore-team-communications` reuses this same `TeamCreate` primitive
+when communications are broken after compaction or resume, but that path should
+prove the failure first and avoid this destructive backup/delete/restore flow
+unless the lighter repair fails.
 
 ## Step 5 — Restore Team Members And Inboxes
 
