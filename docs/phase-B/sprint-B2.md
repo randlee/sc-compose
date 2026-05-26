@@ -29,6 +29,7 @@ provides the scaffold path that makes adoption easy.
 - `crates/sc-compose/src/reporting/init.rs`
 - `crates/sc-compose/src/main.rs`
 - `crates/sc-compose/tests/cli.rs`
+- `crates/sc-compose/tests/json_cli.rs`
 - `docs/requirements.md`
 - `docs/architecture.md`
 - `docs/phase-B/phase-B-plan.md`

@@ -6,6 +6,10 @@ Draft implementation plan for review only. This phase is follow-on work after
 the accepted Phase A contract set and does not get committed or pushed until
 `team-lead` approves the sprint set.
 
+The note in `docs/phase-B/recommended-sc-just-upgrades.md` is a supporting
+integration handoff for the external `sc-just` package. It is not a source of
+truth for Phase B scope or sprint closure.
+
 ## Objective
 
 Phase B implements the reusable reporting line defined by Phase A so repos can
