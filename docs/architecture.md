@@ -1426,6 +1426,17 @@ CLI wiring rules:
 - the same logger configuration keeps `RetainedLogPolicy::default()` enabled,
   so rotation, pruning, maintenance cadence, and shutdown join behavior stay
   owned by `sc-observability` rather than by wrapper code in `sc-compose`,
+- `sc-observability` rotates log files by rename-then-open rather than by
+  truncate-in-place, so the active log path is replaced through the logger's
+  own file-rotation flow instead of wrapper-managed mutation,
+- on POSIX systems, rename-based rotation can replace an open path while
+  readers or tailers still hold the old inode; on Windows, the maintenance
+  thread must coordinate file-handle release and reopen behavior through
+  `sc-observability`'s platform-aware rotation path,
+- `sc-compose` does not implement its own Windows file-lock workaround or
+  alternate rotation algorithm; it relies on the `sc-observability`
+  maintenance thread to perform platform-correct rotation and retained-log
+  cleanup,
 - CLI shutdown calls the logger's `shutdown()` path so registered sinks flush
   before process exit.
 

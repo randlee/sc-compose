@@ -32,7 +32,14 @@ fn sc_compose() -> Command {
 }
 
 fn test_log_root() -> PathBuf {
-    let root = std::env::temp_dir().join(format!("sc-compose-json-logs-{}", std::process::id()));
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!(
+        "sc-compose-json-logs-{}-{nanos}",
+        std::process::id()
+    ));
     fs::create_dir_all(&root).unwrap();
     root
 }
