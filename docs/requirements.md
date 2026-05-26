@@ -209,8 +209,9 @@ HTML-Report follow-on design track:
 - Final render context precedence must be:
   1. explicit input variables,
   2. environment-derived variables,
-  3. user-template `input_defaults`,
-  4. frontmatter defaults.
+  3. built-in render-context variables,
+  4. user-template `input_defaults`,
+  5. frontmatter defaults.
 - Frontmatter-declared `required_variables` must be evaluated after the merge.
 - Variables present only in `defaults` are optional by default.
 - A variable may appear in both `required_variables` and `defaults`; in that
@@ -230,6 +231,24 @@ HTML-Report follow-on design track:
   - `validate` must emit a generated-frontmatter recommendation,
   - diagnostics must include a direct fix command:
     `sc-compose frontmatter-init <file>.j2`.
+
+### FR-2c: Built-In Render-Context Variables
+
+- Every render context must inject these built-in variables when the caller
+  does not supply them:
+  - `TEMPLATE_NAME`
+  - `HOSTNAME`
+  - `USERNAME`
+  - `RENDER_DATE`
+  - `RENDER_TIMESTAMP`
+- Built-ins sit below explicit caller inputs and environment-derived values,
+  and above template-owned defaults.
+- `TEMPLATE_NAME` must reflect the resolved template filename actually rendered,
+  not a caller alias.
+- Caller-provided values always win:
+  - explicit input values override built-ins,
+  - environment-derived values override built-ins,
+  - template-owned defaults do not override built-ins.
 
 ### FR-2a: Tokens Not Declared in Frontmatter
 
@@ -398,6 +417,7 @@ Each block may be empty. Ordering is never caller-defined.
 - `observability-health`
 - `examples`
 - `templates`
+- `reports`
 
 The CLI must support:
 
@@ -473,6 +493,15 @@ Command behavior:
   - allows `add` from either a single file or a directory source,
   - stores a file source as `<user-template-root>/<pack-name>/<original-file>`,
   - stores a directory source as `<user-template-root>/<pack-name>/...`.
+- `reports`
+  - supports:
+    - `reports init`
+    - `reports smoke`
+    - `reports index`
+    - `reports verify`
+  - owns the shared reporting runtime surface rather than repo-specific
+    producer command bodies,
+  - keeps publish upload and browser-open behavior outside the command family.
 
 `--dry-run` behavior:
 
