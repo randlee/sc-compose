@@ -90,6 +90,8 @@ The crate root re-exports the main entry points — `compose`, `compose_with_obs
 - `docs/cross-platform-guidelines.md` — platform-specific behavior and testing rules.
 - `docs/publishing.md` — release procedures for integrators.
 - `docs/atm-adapter-notes.md` — adapter boundary and integration ownership.
+- `docs/phase-A/phase-A-plan.md` — follow-on reusable reporting and
+  report-pack planning line after the shipped `1.0` baseline.
 
 Contributor references: `docs/git-workflows.md`, `.claude/skills/rust-development/guidelines.txt`.
 
