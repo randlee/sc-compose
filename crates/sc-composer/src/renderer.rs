@@ -1,8 +1,32 @@
 //! Template renderer wrapper.
 
+use std::collections::BTreeMap;
+
 use minijinja::Environment;
+use serde::Serialize;
+use serde_json::Value;
 
 use crate::RenderError;
+
+/// Request for rendering template text that the caller already loaded.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct LoadedTemplateRequest {
+    /// Stable template identifier used for diagnostics and template naming.
+    pub template_name: String,
+    /// Pre-loaded template text to render.
+    pub template_text: String,
+    /// Render context supplied by the caller.
+    pub context: BTreeMap<String, Value>,
+}
+
+/// Artifact returned by the pre-loaded template render path.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct RenderedArtifact {
+    /// Final rendered output text.
+    pub rendered: String,
+    /// Stable template identifier used during rendering.
+    pub template_name: String,
+}
 
 /// Pure template-engine wrapper used by composition entry points.
 #[derive(Debug)]
@@ -37,9 +61,23 @@ impl Renderer {
         template: &str,
         context: T,
     ) -> Result<String, RenderError> {
+        self.render_named("inline", template, context)
+    }
+
+    /// Render a template string with an explicit template name.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError`] when template parsing or rendering fails.
+    pub fn render_named<T: serde::Serialize>(
+        &self,
+        template_name: &str,
+        template: &str,
+        context: T,
+    ) -> Result<String, RenderError> {
         let template = self
             .env
-            .template_from_named_str("inline", template)
+            .template_from_named_str(template_name, template)
             .map_err(RenderError::render)?;
         template.render(context).map_err(RenderError::render)
     }
@@ -63,6 +101,26 @@ pub fn render_template<T: serde::Serialize>(
     context: T,
 ) -> Result<String, RenderError> {
     Renderer::new().render(template, context)
+}
+
+/// Render pre-loaded template content without taking ownership of file
+/// discovery or repository traversal.
+///
+/// # Errors
+///
+/// Returns [`RenderError`] when template parsing or rendering fails.
+pub fn render_loaded_template(
+    request: LoadedTemplateRequest,
+) -> Result<RenderedArtifact, RenderError> {
+    let rendered = Renderer::new().render_named(
+        &request.template_name,
+        &request.template_text,
+        &request.context,
+    )?;
+    Ok(RenderedArtifact {
+        rendered,
+        template_name: request.template_name,
+    })
 }
 
 #[cfg(test)]

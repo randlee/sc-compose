@@ -57,7 +57,9 @@ pub use observer::{
     RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
 #[doc(inline)]
-pub use renderer::{Renderer, render_template};
+pub use renderer::{
+    LoadedTemplateRequest, RenderedArtifact, Renderer, render_loaded_template, render_template,
+};
 #[doc(inline)]
 pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_template_path};
 #[doc(inline)]

@@ -77,6 +77,13 @@ fn write_smoke_fixture(root: &Path) {
     );
 }
 
+fn write_render_many_fixture(root: &Path) {
+    write_file(
+        &root.join("reports").join("templates").join("panel.html.j2"),
+        "<article>{{ metadata.title }}|{{ body }}|{{ output_path }}{% if sets %}|{{ sets | join(\",\") }}{% endif %}</article>\n",
+    );
+}
+
 #[test]
 fn render_dry_run_does_not_create_output_file() {
     let root = temp_root("dry-run");
@@ -1720,6 +1727,76 @@ fn release_smoke_covers_render_pipeline_and_observability_health() {
         value["payload"]["logging"]["maintenance"]["state"],
         "Running"
     );
+}
+
+#[test]
+fn report_render_many_renders_one_output_per_source_in_sorted_order() {
+    let root = temp_root("report-render-many");
+    write_render_many_fixture(&root);
+    write_file(
+        &root.join("docs").join("diagrams").join("b.txt"),
+        "# title: Bravo\n# sets:\n#   - publish\nbravo body\n",
+    );
+    write_file(
+        &root.join("docs").join("diagrams").join("a.txt"),
+        "# title: Alpha\nalpha body\n",
+    );
+
+    let output = sc_compose()
+        .arg("report-render-many")
+        .arg("--root")
+        .arg(&root)
+        .arg("--id")
+        .arg("state-machines")
+        .arg("--glob")
+        .arg("docs/diagrams/*.txt")
+        .arg("--template")
+        .arg("reports/templates/panel.html.j2")
+        .arg("--output-dir")
+        .arg("reports/latest/panels")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert_eq!(
+        fs::read_to_string(
+            root.join("reports")
+                .join("latest")
+                .join("panels")
+                .join("docs")
+                .join("diagrams")
+                .join("a.html")
+        )
+        .unwrap(),
+        "<article>Alpha|alpha body|reports/latest/panels/docs/diagrams/a.html</article>"
+    );
+    assert_eq!(
+        fs::read_to_string(
+            root.join("reports")
+                .join("latest")
+                .join("panels")
+                .join("docs")
+                .join("diagrams")
+                .join("b.html")
+        )
+        .unwrap(),
+        "<article>Bravo|bravo body|reports/latest/panels/docs/diagrams/b.html|publish</article>"
+    );
+
+    let manifest = fs::read_to_string(
+        root.join("reports")
+            .join("latest")
+            .join("panels")
+            .join("manifest.json"),
+    )
+    .unwrap();
+    let alpha_index = manifest
+        .find("\"source_path\": \"docs/diagrams/a.txt\"")
+        .unwrap();
+    let bravo_index = manifest
+        .find("\"source_path\": \"docs/diagrams/b.txt\"")
+        .unwrap();
+    assert!(alpha_index < bravo_index);
 }
 
 #[cfg(unix)]

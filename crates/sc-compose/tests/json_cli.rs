@@ -77,6 +77,13 @@ fn write_smoke_fixture(root: &Path) {
     );
 }
 
+fn write_render_many_fixture(root: &Path) {
+    write_file(
+        &root.join("reports").join("templates").join("panel.html.j2"),
+        "<article>{{ metadata.title }}|{{ body }}|{{ output_path }}{% if sets %}|{{ sets | join(\",\") }}{% endif %}</article>\n",
+    );
+}
+
 fn assert_envelope(value: &Value) {
     assert_eq!(value["schema_version"], "1");
     assert!(value.get("payload").is_some());
@@ -1191,5 +1198,52 @@ fn reports_smoke_json_uses_diagnostic_envelope() {
     assert_eq!(
         value["payload"]["metadata"],
         "reports/latest/smoke/report.json"
+    );
+}
+
+#[test]
+fn report_render_many_json_uses_diagnostic_envelope() {
+    let root = temp_root("report-render-many-json");
+    write_render_many_fixture(&root);
+    write_file(
+        &root.join("docs").join("diagrams").join("a.txt"),
+        "/*\ntitle: Alpha\nsets:\n  - publish\n*/\nalpha body\n",
+    );
+
+    let output = sc_compose()
+        .arg("report-render-many")
+        .arg("--root")
+        .arg(&root)
+        .arg("--id")
+        .arg("state-machines")
+        .arg("--glob")
+        .arg("docs/diagrams/*.txt")
+        .arg("--template")
+        .arg("reports/templates/panel.html.j2")
+        .arg("--output-dir")
+        .arg("reports/latest/panels")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["manifest_path"],
+        "reports/latest/panels/manifest.json"
+    );
+    assert_eq!(
+        value["payload"]["entries"][0]["source_path"],
+        "docs/diagrams/a.txt"
+    );
+    assert_eq!(
+        value["payload"]["entries"][0]["output_path"],
+        "reports/latest/panels/docs/diagrams/a.html"
+    );
+    assert_eq!(
+        value["payload"]["entries"][0]["sets"],
+        serde_json::json!(["publish"])
     );
 }

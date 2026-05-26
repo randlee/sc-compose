@@ -25,6 +25,7 @@ use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandSta
 use crate::render_request::{build_request, read_block_pair};
 use crate::reporting::catalog::ReportCatalog;
 use crate::reporting::init::{init_report_scaffold, run_smoke_report};
+use crate::reporting::render_many::{RenderManyRequest, SourceSetDefinition, render_many};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -60,6 +61,8 @@ enum Command {
     Templates(TemplatesArgs),
     #[command(about = "Initialize and run shared report scaffolds")]
     Reports(ReportsArgs),
+    #[command(hide = true, name = "report-render-many")]
+    ReportRenderMany(ReportRenderManyArgs),
     #[command(hide = true, name = "report-catalog")]
     ReportCatalog(ReportCatalogArgs),
 }
@@ -307,6 +310,22 @@ struct ReportCatalogArgs {
     json: bool,
 }
 
+#[derive(Debug, Clone, Args)]
+struct ReportRenderManyArgs {
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    #[arg(long)]
+    id: String,
+    #[arg(long)]
+    glob: String,
+    #[arg(long)]
+    template: PathBuf,
+    #[arg(long = "output-dir")]
+    output_dir: PathBuf,
+    #[arg(long)]
+    json: bool,
+}
+
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum Mode {
     Profile,
@@ -440,6 +459,11 @@ fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, Comma
                 })
             }
         },
+        Command::ReportRenderMany(args) => {
+            observe_command(observer, "report-render-many", args.json, |_observer| {
+                run_report_render_many(args)
+            })
+        }
         Command::ReportCatalog(args) => {
             observe_command(observer, "report-catalog", args.json, |_observer| {
                 run_report_catalog(&args)
@@ -515,6 +539,39 @@ fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, CommandError> {
                 report.entrypoint.display(),
                 report.metadata.display()
             );
+        }
+    }
+
+    Ok(exit_codes::SUCCESS)
+}
+
+fn run_report_render_many(args: ReportRenderManyArgs) -> Result<i32, CommandError> {
+    let request = RenderManyRequest {
+        root: args.root,
+        source_set: SourceSetDefinition {
+            id: args.id,
+            glob: args.glob,
+            template_path: args.template,
+            output_dir: args.output_dir,
+        },
+    };
+    let result = render_many(&request).map_err(|error| {
+        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
+    })?;
+
+    if args.json {
+        let payload = serde_json::json!({
+            "manifest_path": result.manifest_path.display().to_string(),
+            "output_count": result.generated_outputs.len(),
+            "generated_outputs": result.generated_outputs.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+            "entries": result.entries,
+        });
+        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
+    } else {
+        println!("manifest: {}", result.manifest_path.display());
+        println!("outputs: {}", result.generated_outputs.len());
+        for output in &result.generated_outputs {
+            println!("generated: {}", output.display());
         }
     }
 
@@ -867,6 +924,7 @@ fn command_wants_json(command: &Command) -> bool {
             ReportsSubcommand::Init(init_args) => init_args.json,
             ReportsSubcommand::Smoke(smoke_args) => smoke_args.json,
         },
+        Command::ReportRenderMany(args) => args.json,
         Command::ReportCatalog(args) => args.json,
     }
 }
