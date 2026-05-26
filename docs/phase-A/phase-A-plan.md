@@ -99,6 +99,10 @@ model is genuinely reusable rather than tuned to one repo:
 - producer-command names and repo-local source inputs may vary by repo
 - report discovery, verification, sidecar shape, latest/archive policy, and
   publish-manifest handoff stay shared across families
+- `atm-core` and `sc-lint` are illustrative family labels only; the A5
+  template-family key remains the catalog discriminator
+- producer extension-point typing remains owned by the A1 report artifact
+  contract
 - adding a repo-specific custom producer must require only new catalog entries
   and templates/specs, not a new aggregator or verification model
 

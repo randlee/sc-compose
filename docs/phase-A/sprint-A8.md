@@ -29,6 +29,7 @@ repo.
 - `docs/phase-A/phase-A-plan.md`
 - `docs/phase-A/sprint-A8.md`
 - `docs/html-sprint-report-plan.md`
+- `docs/project-plan.md`
 
 ## Deliverables
 
@@ -45,6 +46,10 @@ repo.
   - publish-manifest output
 - one explicit rule that repo-specific custom producers can be added without
   changing the shared report discovery or verification contract
+- one explicit note that `atm-core` and `sc-lint` are illustrative family
+  labels only; the A5 template-family key remains the catalog discriminator
+- one explicit note that producer extension-point typing remains owned by the
+  A1 report catalog contract
 
 ## Explicit Code Samples
 

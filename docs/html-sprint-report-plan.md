@@ -82,26 +82,7 @@ The follow-on line should converge on a shared evidence shape with:
 
 ## Example Consumer Shapes
 
-The shared reporting line must be broad enough to cover at least:
-
-- `atm-core` style repeated state-machine and SQL-query diagrams
-- `sc-lint` style lint/test/smoke and other evidence reports
-- repo-specific custom evidence producers added without changing the shared
-  report contract
-
-Those are not treated as product-local exceptions. They are the minimum proof
-set for the shared model:
-
-- `atm-core` style families prove repeated multi-panel report pages, panel
-  fragments, text-copy actions, optional JSON-copy actions, JSON sidecars, and
-  publish-manifest output can all share one contract
-- `sc-lint` style families prove producer-owned evidence commands such as
-  `just lint`, `just test`, and `just smoke` can emit latest/archive evidence
-  and still flow through the same catalog, sidecar, verification, and
-  publication-handoff model
-- repo-specific producers such as `just state-diagrams` or
-  `just sql-diagrams` stay repo-local at the command surface while still
-  plugging into the shared discovery and verification contract
+See [docs/phase-A/phase-A-plan.md](./phase-A/phase-A-plan.md) `## Cross-Use-Case Proof Shape` for the canonical minimum proof families and shared custom-producer rule.
 
 ## Explicit Non-Goals
 
