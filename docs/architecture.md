@@ -1074,6 +1074,46 @@ Illustrative output shape:
 }
 ```
 
+## 15b. Follow-On Publish Manifest And CI Handoff (Phase A Planning Only)
+
+Phase A follow-on planning defines a machine-readable publish-manifest handoff
+from generated artifacts to CI or wrapper-owned publication steps. This is
+planning only and does not change shipped `1.0` runtime behavior.
+
+Illustrative publish-manifest shape:
+
+```json
+{
+  "report_name": "state-diagrams",
+  "generated_at": "2026-05-25T22:10:00Z",
+  "files": [
+    {
+      "role": "latest_html",
+      "path": "reports/latest/state-diagrams/index.html",
+      "publish_to": "reports/state-diagrams/index.html"
+    },
+    {
+      "role": "json_sidecar",
+      "path": "reports/latest/state-diagrams/report.json",
+      "publish_to": "reports/state-diagrams/report.json"
+    }
+  ]
+}
+```
+
+Planned contract direction:
+
+- artifact roles are explicit
+- intended publish destinations are explicit
+- CI or wrapper tooling consumes the manifest for publication work
+- producers/renderers stop at artifact and manifest creation
+
+Boundary rules:
+
+- upload implementation remains outside `sc-composer` and `sc-compose`
+- hosting logic remains outside `sc-composer` and `sc-compose`
+- network transport remains outside the core renderer boundary
+
 ## 16. `init` Command Behavior (FR-7)
 
 `init_workspace` and the CLI `init` command must:
