@@ -1059,7 +1059,66 @@ Boundary rules:
 - later sprints may extend those contracts with implementation-specific
   publish workflow details
 
-## 15b. Follow-On Latest/Archive Policy And Reports Aggregator (Phase A Planning Only)
+## 15b. Follow-On Source-Driven Rendering Contract (Phase A Planning Only)
+
+Phase A follow-on planning defines a generic source-driven rendering mechanism
+for text assets. This is planning only and does not change shipped `1.0`
+runtime behavior.
+
+Planned collection discovery model:
+
+- a source collection is declared by glob or another stable collection
+  definition
+- collection membership determines which source files participate in one
+  render-many execution
+- the collection mechanism remains generic across Mermaid, SVG, Markdown, and
+  other text assets
+- `sc-compose` owns collection discovery at the CLI boundary and passes the
+  discovered source set into the render-many flow; `sc-composer` does not own
+  repo-level glob discovery
+
+Planned extracted input shape per discovered source:
+
+```json
+{
+  "source_path": "docs/atm/diagrams/atm-list.mmd",
+  "output_path": "reports/latest/state-diagrams/panels/atm-list.xhtml",
+  "stem": "atm-list",
+  "meta": {
+    "title": "`atm list`",
+    "sets": ["cli", "query"]
+  }
+}
+```
+
+Planned metadata extraction model:
+
+- comment-prefix metadata is supported
+- block-comment metadata is supported
+- the raw body is retained as a first-class render input
+- parsed metadata and raw body are available without external scripting
+- `sets` metadata groups one source into one or more logical sets for
+  selective rendering, filtering, or aggregate grouping
+- `sets` has type `Option<Vec<String>>` or equivalent optional string-list
+  representation and defaults to `None` when absent
+
+Planned render-many model:
+
+- one output is produced per discovered source file
+- output derivation remains deterministic from collection membership plus
+  source identity
+- one generated manifest is emitted for aggregate templates and review tooling
+- the manifest records source identity, derived output path, and extracted
+  metadata needed by aggregate consumers
+
+Boundary rules:
+
+- the source-driven mechanism is generic and is not Mermaid-only
+- `sc-compose` owns rendering semantics where it is used as the renderer
+- browser automation and hosted site behavior remain outside `sc-composer` and
+  `sc-compose`
+
+## 15c. Follow-On Latest/Archive Policy And Reports Aggregator (Phase A Planning Only)
 
 The canonical latest/archive output policy is defined in
 `docs/requirements.md` under `### Phase A Latest/Archive Output And Reports
@@ -1077,7 +1136,7 @@ Illustrative output shape:
 }
 ```
 
-## 15c. Follow-On Publish Manifest And CI Handoff (Phase A Planning Only)
+## 15d. Follow-On Publish Manifest And CI Handoff (Phase A Planning Only)
 
 The canonical publish-manifest contract is defined in
 `docs/requirements.md` under `### Phase A Publish-Manifest And CI Handoff

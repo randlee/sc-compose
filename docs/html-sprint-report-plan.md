@@ -51,6 +51,9 @@ Phase HTML-Report already delivered:
 - GitHub issue `#56` is in-scope for the follow-on line as the generic
   source-collection and render-many capability, but Mermaid-as-SSOT is treated
   as transitional rather than the long-term semantic end state.
+- Source-driven rendering must expose collection membership, parsed metadata,
+  and raw source body as first-class inputs so aggregate templates do not need
+  wrapper-specific preprocessing scripts.
 - Network publish behavior and browser-open behavior remain outside
   `sc-composer` and `sc-compose`.
 

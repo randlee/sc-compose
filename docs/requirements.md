@@ -1021,6 +1021,54 @@ Boundary rules for the follow-on line:
 - the artifact contract is intended to support generic lint, test, smoke,
   diagram, and custom reports through one shared metadata and filesystem shape
 
+### Phase A Source-Driven Rendering Contract (Planning Only)
+
+Phase A follow-on planning defines a generic source-driven rendering contract
+for text assets. This mechanism is not Mermaid-only.
+
+Planned collection-input contract:
+
+- source collections may be declared by glob or by another stable collection
+  definition
+- a collection declares which source files participate in one render-many run
+- collection discovery is generic across Mermaid, SVG, Markdown, and other
+  text-based assets
+
+Planned metadata-extraction contract:
+
+- comment-prefix metadata is supported
+- block-comment metadata is supported
+- the raw source body remains available to templates without external
+  scripting
+- parsed metadata and raw body are exposed together as render inputs
+- `sets` metadata is a collection-local grouping field used to tag one source
+  file into one or more logical sets for selective rendering, filtering, or
+  aggregate grouping
+- `sets` has type `Option<Vec<String>>` or equivalent optional string-list
+  representation and defaults to `None` when absent
+
+Planned render-many contract:
+
+- one generated output is produced per discovered source file
+- output derivation is deterministic from collection membership plus source
+  identity
+- aggregate templates and review tooling consume a generated manifest rather
+  than ad hoc wrapper state
+
+Planned generated-manifest contract:
+
+- each source-driven run emits a manifest describing the discovered sources and
+  generated outputs
+- the manifest is intended for aggregate templates and review tooling
+- browser automation and hosted site behavior remain out of scope for the core
+  engine
+
+Boundary rules for the source-driven line:
+
+- the mechanism remains generic rather than diagram-format-specific
+- network publishing remains outside the core engine
+- browser-open behavior remains outside the core engine
+
 ### Phase A Latest/Archive Output And Reports Aggregator Contract (Planning Only)
 
 Phase A follow-on planning defines how producers write stable latest outputs,
