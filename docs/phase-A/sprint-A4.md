@@ -54,8 +54,6 @@ transitions:
 metadata:
   renderer_targets:
     - mermaid
-    - html
-    - json
 ```
 
 ## This Sprint Does Not Close
