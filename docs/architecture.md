@@ -360,6 +360,27 @@ Missing required variables remain a separate diagnostic class:
 - they are reported with file, line and column when available, and include
   chain.
 
+### 7.4 Built-In Render-Context Tier
+
+Built-in render-context variables are injected after caller-provided inputs are
+merged and before template-owned defaults are applied.
+
+The built-in set is:
+
+- `TEMPLATE_NAME`
+- `HOSTNAME`
+- `USERNAME`
+- `RENDER_DATE`
+- `RENDER_TIMESTAMP`
+
+Merge order is therefore:
+
+1. explicit input variables,
+2. environment-derived variables,
+3. built-in render-context variables,
+4. user-template `input_defaults`,
+5. frontmatter defaults.
+
 ## 8. Public API Shape (FR-6, FR-7)
 
 The library API should expose explicit request and result types.
@@ -373,6 +394,9 @@ Required library surface:
 - `frontmatter_init(path, options) -> FrontmatterInitResult`
 - `Renderer::render(compiled, context) -> Result<String, RenderError>` as the
   primary repeated-render API
+- `render_loaded_template(request) -> Result<RenderedArtifact, RenderError>` as
+  the runtime-agnostic entry point for callers that already loaded template
+  text outside `sc-composer`
 
 Primary render-entrypoint decision:
 
@@ -432,6 +456,17 @@ Semantics:
 - `max_include_depth: IncludeDepth`
 - `allowed_roots: Vec<ConfiningRoot>`
 - `resolver_policy: ResolverPolicy`
+
+`LoadedTemplateRequest`
+
+- `template_name: String`
+- `template_text: String`
+- `context: BTreeMap<String, serde_json::Value>`
+
+`RenderedArtifact`
+
+- `rendered: String`
+- `template_name: String`
 
 ### 8.3 Core Result Types
 
@@ -637,6 +672,12 @@ Command mapping:
   root as one pack
 - `templates <name>` -> resolve the user pack entry template, merge pack
   `input_defaults`, then `compose`
+- `reports init` -> initialize the shared report scaffold and starter catalog
+- `reports smoke` -> run the shared smoke fixture render path and emit the
+  smoke latest-artifact set
+- `reports index` -> aggregate and summarize latest report entrypoints from the
+  report catalog
+- `reports verify` -> verify required report artifacts exist for the catalog
 
 The CLI must not reimplement core composition semantics. If a command requires
 logic useful to non-CLI callers, that logic belongs in the library.
@@ -683,6 +724,20 @@ Command-specific rules:
   - support the same render flags and output semantics as `render`,
   - are defined only when the target pack has exactly one root-level `*.j2`
     file.
+- `reports init`
+  - creates the shared reports scaffold and starter catalog,
+  - does not own repo-specific producer command bodies.
+- `reports smoke`
+  - accepts the smoke fixture and vars inputs,
+  - runs the shared smoke render path,
+  - emits the smoke latest-artifact set without owning repo-specific smoke
+    logic beyond the shared harness contract.
+- `reports index`
+  - summarizes deterministic latest entrypoints and report metadata from the
+    catalog.
+- `reports verify`
+  - checks required report artifacts for presence and reports missing evidence
+    as a failure.
 
 Guidance and prompt input model:
 

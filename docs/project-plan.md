@@ -901,6 +901,8 @@ The current follow-on implementation track is:
   - report artifact runtime and catalog
 - `docs/phase-B/sprint-B10.md`
   - built-in render context variables injected into every render context
+  - added during Phase B hardening to make render-context precedence and
+    template metadata injection explicit before implementation dispatch
 - `docs/phase-B/sprint-B2.md`
   - producer recipes, report-init scaffold, and `just` command surface
 - `docs/phase-B/sprint-B3.md`

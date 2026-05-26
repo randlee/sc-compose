@@ -67,9 +67,14 @@ pub struct SourceEntry {
     pub sets: Option<Vec<String>>,
 }
 
+pub struct LoadedTemplateRequest {
+    pub template_name: String,
+    pub template_text: String,
+    pub context: BTreeMap<String, serde_json::Value>,
+}
+
 pub fn render_loaded_template(
-    template_text: &str,
-    request: &RenderRequest,
+    request: LoadedTemplateRequest,
 ) -> Result<RenderedArtifact, RenderError>;
 
 pub fn render_many(request: RenderManyRequest) -> Result<RenderManyResult, RenderManyError>;

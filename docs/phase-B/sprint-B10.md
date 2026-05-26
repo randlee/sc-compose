@@ -53,6 +53,9 @@ timestamp without the caller needing to pass them as `--var` flags.
 - one explicit call-path rule that `build_render_context()` calls
   `inject_builtin_vars(...)` after caller values are merged, with
   `template_name` sourced from the resolved `RenderRequest` template path
+- one explicit implementation constraint that hostname/username lookup may use
+  `gethostname`, `whoami`, or `std::env::var`, but must not add
+  observability-, ATM-, or daemon-lifecycle-specific dependencies
 
 ## Explicit Code Samples
 
@@ -94,7 +97,7 @@ fn build_render_context(request: &RenderRequest) -> BTreeMap<String, serde_json:
 - frontmatter default does not override a built-in
 - `TEMPLATE_NAME` reflects the template filename actually rendered, not a
   caller-supplied alias
-- tests cover all four priority levels for at least one built-in variable
+- tests cover all five built-in variables across all four priority levels
 
 ## Required Validation
 

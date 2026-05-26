@@ -78,6 +78,8 @@ into `sc-compose`.
 - the runtime makes CI publication possible without making `sc-compose` own
   hosting logic
 - `report_id` stays aligned with the catalog `id`
+- at least one test exercises the publish-manifest output path and validates
+  the emitted manifest shape
 
 ## Required Validation
 

@@ -109,6 +109,9 @@ Specifically:
 The expected `1.2.0` surface should be treated as stable for planning even
 while this sprint remains blocked on the actual published release.
 
+This local path is a planning-reference fallback only. Implementation remains
+blocked on the actual published `sc-observability` `1.2.0` release.
+
 ## This Sprint Does Not Close
 
 - upload implementation

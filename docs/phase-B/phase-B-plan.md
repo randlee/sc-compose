@@ -1,3 +1,11 @@
+---
+id: phase-B
+title: SC-Reporting Phase B Plan
+status: draft
+branch: plan/phase-B
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
+---
+
 # SC-Reporting Phase B Plan
 
 ## Status
