@@ -976,6 +976,51 @@ Implemented in Phase HTML-Report.
 - The example must be a credible showcase for `sc-compose`, not just a
   hand-written HTML file stored in the repo.
 
+### Phase A Follow-On Reporting Contract (Planning Only)
+
+Phase A follow-on planning defines reporting as a generic artifact contract,
+not as a one-off HTML sprint report feature.
+
+Planned contract shape:
+
+- authored docs remain under `docs/`
+- report source and catalog inputs live outside `docs/` under a report-specific
+  tree such as:
+  - `reports/catalog/`
+  - `reports/specs/`
+  - `reports/templates/`
+- generated evidence lives outside `docs/` under generated-output paths such
+  as:
+  - `reports/latest/<report-id>/`
+  - `reports/archive/<timestamp>/<report-id>/`
+- each generated report has one machine-readable metadata sidecar such as
+  `reports/latest/<report-id>/report.json`
+
+Planned canonical report catalog fields:
+
+- `id`
+- `kind`
+- `producer`
+- `entrypoint`
+- `metadata`
+
+Planned ownership split:
+
+- producer recipes such as `just lint`, `just test`, `just smoke`, and
+  repo-specific producer commands own domain data gathering and report
+  generation
+- `sc-compose` owns rendering semantics where it is used as the report
+  renderer
+- consumer repos own domain-specific inputs, local producer surfaces, and
+  publish destinations
+
+Boundary rules for the follow-on line:
+
+- network publishing remains outside the core engine
+- browser-open behavior remains outside the core engine
+- the artifact contract is intended to support generic lint, test, smoke,
+  diagram, and custom reports through one shared metadata and filesystem shape
+
 ## 5. Non-Functional Requirements
 
 - Cross-platform support is required for macOS, Linux, and Windows.
