@@ -24,6 +24,7 @@ use crate::commands::templates::{run_templates_add, run_templates_list, run_temp
 use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
 use crate::render_request::{build_request, read_block_pair};
 use crate::reporting::catalog::ReportCatalog;
+use crate::reporting::init::{init_report_scaffold, run_smoke_report};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -57,6 +58,8 @@ enum Command {
     Examples(ExamplesArgs),
     #[command(about = "List, add, or render user template packs")]
     Templates(TemplatesArgs),
+    #[command(about = "Initialize and run shared report scaffolds")]
+    Reports(ReportsArgs),
     #[command(hide = true, name = "report-catalog")]
     ReportCatalog(ReportCatalogArgs),
 }
@@ -263,6 +266,40 @@ struct TemplatesAddArgs {
 }
 
 #[derive(Debug, Clone, Args)]
+struct ReportsArgs {
+    #[command(subcommand)]
+    command: ReportsSubcommand,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+enum ReportsSubcommand {
+    #[command(about = "Initialize the shared reports scaffold")]
+    Init(ReportsInitArgs),
+    #[command(about = "Run the shared smoke-report fixture harness")]
+    Smoke(ReportsSmokeArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+struct ReportsInitArgs {
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+struct ReportsSmokeArgs {
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+    #[arg(long)]
+    fixture: PathBuf,
+    #[arg(long)]
+    vars: PathBuf,
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
 struct ReportCatalogArgs {
     #[arg(long, default_value = ".")]
     root: PathBuf,
@@ -391,12 +428,66 @@ fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, Comma
                 run_templates_render(&args, observer)
             }),
         },
+        Command::Reports(args) => match &args.command {
+            ReportsSubcommand::Init(init_args) => {
+                observe_command(observer, "reports-init", init_args.json, |_observer| {
+                    run_reports_init(init_args)
+                })
+            }
+            ReportsSubcommand::Smoke(smoke_args) => {
+                observe_command(observer, "reports-smoke", smoke_args.json, |observer| {
+                    run_reports_smoke(smoke_args, observer)
+                })
+            }
+        },
         Command::ReportCatalog(args) => {
             observe_command(observer, "report-catalog", args.json, |_observer| {
                 run_report_catalog(&args)
             })
         }
     }
+}
+
+fn run_reports_init(args: &ReportsInitArgs) -> Result<i32, CommandError> {
+    let result = init_report_scaffold(&args.root)?;
+    if args.json {
+        let payload = serde_json::json!({
+            "workspace_root": result.workspace_root.display().to_string(),
+            "created_paths": result.created_paths,
+        });
+        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
+    } else {
+        println!("workspace_root: {}", result.workspace_root.display());
+        for path in &result.created_paths {
+            println!("created: {path}");
+        }
+    }
+    Ok(exit_codes::SUCCESS)
+}
+
+fn run_reports_smoke(
+    args: &ReportsSmokeArgs,
+    observer: &mut dyn CompositionObserver,
+) -> Result<i32, CommandError> {
+    let result = run_smoke_report(&args.root, &args.fixture, &args.vars, observer)?;
+    if args.json {
+        let payload = serde_json::json!({
+            "entrypoint": result.entrypoint.display().to_string(),
+            "metadata": result.metadata.display().to_string(),
+            "artifacts": result.artifacts.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+        });
+        print_json(payload, result.warnings).map_err(CommandError::usage)?;
+    } else {
+        println!("entrypoint: {}", result.entrypoint.display());
+        println!("metadata: {}", result.metadata.display());
+        for artifact in &result.artifacts {
+            println!("artifact: {}", artifact.display());
+        }
+        if !result.warnings.is_empty() {
+            print_diagnostic_messages(&result.warnings);
+        }
+    }
+    Ok(exit_codes::SUCCESS)
 }
 
 fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, CommandError> {
@@ -771,6 +862,10 @@ fn command_wants_json(command: &Command) -> bool {
             Some(TemplatesSubcommand::List(list_args)) => list_args.json,
             Some(TemplatesSubcommand::Add(add_args)) => add_args.json,
             None => args.render.json,
+        },
+        Command::Reports(args) => match &args.command {
+            ReportsSubcommand::Init(init_args) => init_args.json,
+            ReportsSubcommand::Smoke(smoke_args) => smoke_args.json,
         },
         Command::ReportCatalog(args) => args.json,
     }

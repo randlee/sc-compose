@@ -63,6 +63,20 @@ fn write_report_catalog(root: &Path, contents: &str) {
     );
 }
 
+fn write_smoke_fixture(root: &Path) {
+    write_file(
+        &root
+            .join("reports")
+            .join("smoke")
+            .join("reference-template.html.j2"),
+        "---\nrequired_variables:\n  - title\n  - summary\n---\n<html><body><h1>{{ title }}</h1><p>{{ summary }}</p></body></html>\n",
+    );
+    write_file(
+        &root.join("reports").join("smoke").join("sample-vars.json"),
+        "{ \"title\": \"Smoke Report\", \"summary\": \"fixture\" }\n",
+    );
+}
+
 #[test]
 fn render_dry_run_does_not_create_output_file() {
     let root = temp_root("dry-run");
@@ -973,6 +987,94 @@ metadata = "reports/latest/sc-lint/report.json"
     assert_eq!(output.status.code(), Some(3));
     let stderr = String::from_utf8(output.stderr).unwrap();
     assert!(stderr.contains("field 'entrypoint' must be a normalized relative path"));
+}
+
+#[test]
+fn reports_init_creates_scaffold_and_catalog_passes_validator() {
+    let root = temp_root("reports-init");
+
+    let init = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert!(init.status.success());
+    assert!(
+        root.join("reports")
+            .join("catalog")
+            .join("reports.toml")
+            .exists()
+    );
+    assert!(root.join("reports").join("latest").exists());
+    assert!(root.join("reports").join("archive").exists());
+    assert!(root.join("reports").join("templates").exists());
+    assert!(
+        root.join("reports")
+            .join("smoke")
+            .join("reference-template.html.j2")
+            .exists()
+    );
+    assert!(
+        root.join("reports")
+            .join("smoke")
+            .join("sample-vars.json")
+            .exists()
+    );
+
+    let validate = sc_compose()
+        .arg("report-catalog")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert!(validate.status.success());
+    let stdout = String::from_utf8(validate.stdout).unwrap();
+    assert!(stdout.contains("reports: 1"));
+    assert!(stdout.contains("smoke kind=smoke producer=just smoke required=true"));
+}
+
+#[test]
+fn reports_smoke_writes_latest_smoke_artifact_set() {
+    let root = temp_root("reports-smoke");
+    write_smoke_fixture(&root);
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let entrypoint = root
+        .join("reports")
+        .join("latest")
+        .join("smoke")
+        .join("index.html");
+    let metadata = root
+        .join("reports")
+        .join("latest")
+        .join("smoke")
+        .join("report.json");
+    assert!(entrypoint.exists());
+    assert!(metadata.exists());
+    assert!(
+        fs::read_to_string(&entrypoint)
+            .unwrap()
+            .contains("Smoke Report")
+    );
+    let metadata_text = fs::read_to_string(&metadata).unwrap();
+    assert!(metadata_text.contains("\"report_id\": \"smoke\""));
+    assert!(metadata_text.contains("\"entrypoint\": \"reports/latest/smoke/index.html\""));
 }
 
 #[test]

@@ -1,0 +1,19 @@
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+reports-init:
+    sc-compose reports init --root .
+
+lint:
+    @echo "TODO: repo-owned lint producer"
+
+test:
+    @echo "TODO: repo-owned test producer"
+
+smoke:
+    sc-compose reports smoke --root . --fixture reports/smoke/reference-template.html.j2 --vars reports/smoke/sample-vars.json
+
+reports:
+    @echo "Reserved shared aggregator surface. Sprint B5 wires this recipe to 'sc-compose reports index'."
+
+reports-verify:
+    @echo "Reserved shared verifier surface. Sprint B5 wires this recipe to 'sc-compose reports verify'."
