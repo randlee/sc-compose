@@ -33,8 +33,8 @@ python3 -c "import json; print(json.load(open('/Users/randlee/.claude/teams/sc-c
 - Match: the current session already matches the persisted team state. Proceed
   to reading `docs/project-plan.md` and outputting project status. Stay silent
   in ATM unless teammate action is required. If teammate communications are
-  broken despite a match, stop and verify routing before using the full restore
-  flow.
+  broken despite a match, stop and use `/restore-team-communications` instead
+  of the full restore flow.
 - Mismatch or missing config: this is the normal startup or `clear` case where
   the live `SESSION_ID` changed and the saved `leadSessionId` no longer
   matches. Follow the full restore procedure in
@@ -49,6 +49,7 @@ After initialization, use these repo-local skills to coordinate work:
 | `/codex-orchestration` | Run phases where comp is sole dev, with pipelined QA via quality-mgr |
 | `/plan-hardening` | Harden a phase plan and create any missing sprint docs before implementation starts or resumes |
 | `/sprint-report` | Generate a concise phase or sprint status report from repo data |
+| `/restore-team-communications` | Repair same-session Claude teammate routing after compaction or resume without invoking full startup/clear restore |
 | `team-lead/general-task-template.xml.j2` | Render structured non-dev ATM assignments that enforce ACK, work, completion summary, and completion ACK |
 
 Additional orchestration guides live in `.claude/skills/*/SKILL.md`.
