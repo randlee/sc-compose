@@ -1319,6 +1319,7 @@ fn observability_health_text_reports_process_local_status() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("state: Healthy"));
     assert!(stdout.contains("query_state: Healthy"));
+    assert!(stdout.contains("maintenance_state: Running"));
     assert!(stdout.contains("sink jsonl-file: Healthy"));
     #[cfg(not(windows))]
     assert!(stdout.contains(&format!(
@@ -1393,6 +1394,10 @@ fn release_smoke_covers_render_pipeline_and_observability_health() {
             .join("sc-compose.log.jsonl")
             .display()
             .to_string()
+    );
+    assert_eq!(
+        value["payload"]["logging"]["maintenance"]["state"],
+        "Running"
     );
 }
 

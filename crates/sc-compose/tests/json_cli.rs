@@ -473,6 +473,10 @@ fn observability_health_json_uses_diagnostic_envelope_and_stays_stdout_clean() {
     assert_eq!(value["payload"]["logging"]["state"], "Healthy");
     assert_eq!(value["payload"]["logging"]["query"]["state"], "Healthy");
     assert_eq!(
+        value["payload"]["logging"]["maintenance"]["state"],
+        "Running"
+    );
+    assert_eq!(
         value["payload"]["logging"]["active_log_path"],
         root.join("logs")
             .join("sc-compose.log.jsonl")
@@ -501,6 +505,10 @@ fn observability_health_json_nulls_unavailable_query_state() {
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert!(value["payload"]["logging"]["query"].is_null());
+    assert_eq!(
+        value["payload"]["logging"]["maintenance"]["state"],
+        "Stopped"
+    );
 }
 
 #[test]

@@ -61,6 +61,8 @@ should expect:
   `sc-observability`. The CLI creates the logger, keeps file logging enabled for every
   command, suppresses the console sink whenever `--json` is active, and exposes
   `observability-health` for process-local sink/query health inspection.
+  The current standalone line uses `sc-observability` `1.1.0` directly rather
+  than adding the `sc-observe` facade at the CLI seam.
 - **Template whitespace behavior**: `trim_blocks` and `lstrip_blocks` are enabled by
   default. Block tags now strip the trailing newline after the block and the leading
   indentation before the next rendered content. Templates that need the previous
@@ -85,6 +87,13 @@ Downstream consumers that shell out to `sc-compose` should expect:
   console sink is disabled in that mode,
 - `observability-health --json` to serialize `logging.query` as `null` whenever
   query/follow is unavailable in the process-local logger,
+- logger-managed retained-log maintenance enabled with the upstream
+  `RetainedLogPolicy::default()` settings:
+  - active-log rotation at `64 MiB`
+  - `10` retained rotated files
+  - `7`-day retention window
+  - `60`-second maintenance cadence
+  - `5`-second shutdown join timeout
 - file-backed logging under `SC_LOG_ROOT` when the environment variable is set, or
   `.sc-compose/logs/` under the current working directory otherwise.
 - graceful shutdown to flush logger sinks before process exit while recording sink

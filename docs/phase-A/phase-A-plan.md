@@ -138,6 +138,7 @@ Phase A should leave the repo with:
 - one explicit plan for `sc-observability` `1.1.0` adoption in the CLI logging
   layer, including:
   - logger typestate compatibility
-  - retained-log policy enable/defer decision
-  - deprecated `emit` call-site migration to `log` / `try_log`
-  - explicit `sc-observe` adoption decision
+  - retained-log policy enablement using logger-managed defaults
+  - explicit decision to keep direct `Logger::emit(...)` because the released
+    `1.1.0` surface does not require a `log` / `try_log` migration here
+  - explicit `sc-observe` non-adoption decision at the CLI/logger seam

@@ -26,4 +26,4 @@ ulid.workspace = true
 workspace = true
 
 [dev-dependencies]
-sc-observability-types = "1"
+sc-observability-types.workspace = true

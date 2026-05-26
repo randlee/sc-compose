@@ -6,7 +6,7 @@ use sc_composer::{
 };
 use sc_observability::{
     ActionName, Level, LogEvent, Logger, LoggingHealthReport, OBSERVATION_ENVELOPE_VERSION,
-    OutcomeLabel, ProcessIdentity, SchemaVersion, ServiceName, TargetCategory, Timestamp,
+    OutcomeLabel, ProcessIdentity, SchemaVersion, ServiceName, Stopped, TargetCategory, Timestamp,
 };
 
 const SERVICE_NAME: &str = "sc-compose";
@@ -34,24 +34,39 @@ pub(crate) trait CommandLifecycleObserver {
 }
 
 pub(crate) struct CliObserver {
-    logger: Logger,
+    logger: Option<LoggerState>,
     service: ServiceName,
+}
+
+enum LoggerState {
+    Running(Logger),
+    Stopped(Logger<Stopped>),
 }
 
 impl CliObserver {
     pub fn new(logger: Logger) -> Self {
         Self {
-            logger,
+            logger: Some(LoggerState::Running(logger)),
             service: service_name(),
         }
     }
 
     pub fn health(&self) -> LoggingHealthReport {
-        self.logger.health()
+        match self.logger.as_ref().expect("logger handle present") {
+            LoggerState::Running(logger) => logger.health(),
+            LoggerState::Stopped(logger) => logger.health(),
+        }
     }
 
-    pub fn shutdown(&self) {
-        let _ignored = self.logger.shutdown();
+    pub fn shutdown(&mut self) {
+        let running = match self.logger.take().expect("logger handle present") {
+            LoggerState::Running(logger) => logger,
+            LoggerState::Stopped(logger) => {
+                self.logger = Some(LoggerState::Stopped(logger));
+                return;
+            }
+        };
+        self.logger = running.shutdown().ok().map(LoggerState::Stopped);
     }
 
     fn emit_log(
@@ -81,7 +96,9 @@ impl CliObserver {
             fields,
         };
 
-        let _ignored = self.logger.emit(event);
+        if let Some(LoggerState::Running(logger)) = &self.logger {
+            let _ignored = logger.emit(event);
+        }
     }
 }
 
@@ -552,7 +569,7 @@ mod tests {
         config.enable_file_sink = false;
         let mut builder = Logger::builder(config).expect("logger builder");
         builder.register_sink(SinkRegistration::new(Arc::new(FlushFailSink)));
-        let observer = CliObserver::new(builder.build());
+        let mut observer = CliObserver::new(builder.build());
 
         observer.shutdown();
 

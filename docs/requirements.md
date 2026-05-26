@@ -833,6 +833,8 @@ same command payloads as `render` and `render --dry-run`.
   model.
 - `sc-compose` shall use `sc-observability` as the canonical concrete
   observability binding for CLI execution.
+- The current follow-on observability uplift targets `sc-observability`
+  `1.1.0`.
 - `sc-composer` must emit composition pipeline events through its local
   observer/sink hook model.
 - `sc-compose` must emit command lifecycle events through the same local hook
@@ -841,6 +843,8 @@ same command payloads as `render` and `render --dry-run`.
 - Embedded use must permit host-supplied sink and path configuration.
 - If no sink is injected, both crates must remain fully functional with
   observability reduced to a no-op.
+- `sc-compose` shall keep direct `sc-observability` logger construction and
+  sink registration rather than adding the `sc-observe` facade at the CLI seam.
 - `sc-observe` and `sc-observability-otlp` remain out of scope for the initial
   release.
 
@@ -875,10 +879,15 @@ same command payloads as `render` and `render --dry-run`.
   command completion, and command failure.
 - The CLI shall expose logger health through a dedicated
   `observability-health` command so operators can inspect sink state,
-  dropped-event counts, and the active log path.
+  dropped-event counts, retained-log maintenance state, and the active log
+  path.
 - The `observability-health` command shall initialize logger configuration the
   same way as a normal CLI process, query health from that process-local
   logger instance, and must not depend on any daemon or background runtime.
+- The CLI logger configuration shall keep logger-managed retained-log
+  maintenance enabled through `RetainedLogPolicy::default()` so rotation,
+  pruning, and maintenance cadence stay owned by `sc-observability` rather
+  than duplicated in `sc-compose`.
 - The CLI shall perform graceful logger shutdown on process exit so pending
   events flush before termination.
 

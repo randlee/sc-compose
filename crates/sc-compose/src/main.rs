@@ -614,7 +614,7 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
 
 fn run_observability_health(
     args: &ObservabilityHealthArgs,
-    observer: &observer_impl::CliObserver,
+    observer: &mut observer_impl::CliObserver,
 ) -> Result<i32, CommandError> {
     if std::env::var_os("SC_COMPOSE_TEST_FORCE_QUERY_UNAVAILABLE").is_some() {
         observer.shutdown();
@@ -979,7 +979,7 @@ mod tests {
     use super::{CommandError, observe_command};
     use anyhow::anyhow;
     use sc_composer::{CompositionObserver, DiagnosticCode};
-    use sc_observability_types::QueryHealthState;
+    use sc_observability_types::{MaintenanceWorkerState, QueryHealthState};
 
     use crate::exit_codes;
     use crate::observability::build_logger_for_root;
@@ -1078,13 +1078,35 @@ mod tests {
     }
 
     #[test]
+    fn build_logger_enables_retained_log_maintenance_by_default() {
+        let logger = build_logger_for_root(temp_root("logger-maintenance"), false).expect("logger");
+        let health = logger.health();
+
+        assert_eq!(
+            health
+                .maintenance
+                .expect("maintenance health present")
+                .state,
+            MaintenanceWorkerState::Running
+        );
+    }
+
+    #[test]
     fn shutdown_marks_query_health_unavailable() {
         let logger = build_logger_for_root(temp_root("logger-shutdown"), false).expect("logger");
-        let observer = crate::observer_impl::CliObserver::new(logger);
+        let mut observer = crate::observer_impl::CliObserver::new(logger);
 
         assert_eq!(
             observer.health().query.expect("query health present").state,
             QueryHealthState::Healthy
+        );
+        assert_eq!(
+            observer
+                .health()
+                .maintenance
+                .expect("maintenance health present")
+                .state,
+            MaintenanceWorkerState::Running
         );
 
         observer.shutdown();
@@ -1092,6 +1114,14 @@ mod tests {
         assert_eq!(
             observer.health().query.expect("query health present").state,
             QueryHealthState::Unavailable
+        );
+        assert_eq!(
+            observer
+                .health()
+                .maintenance
+                .expect("maintenance health present")
+                .state,
+            MaintenanceWorkerState::Stopped
         );
     }
 
