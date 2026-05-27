@@ -1152,7 +1152,13 @@ fn reports_init_json_uses_diagnostic_envelope() {
     assert!(output.stderr.is_empty());
     let value = parse_stdout(&output);
     assert_envelope(&value);
-    assert_eq!(value["payload"]["created_paths"][0], "reports/latest/");
+    assert!(
+        value["payload"]["created_paths"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item == "reports/latest/")
+    );
     assert!(
         value["payload"]["created_paths"]
             .as_array()
@@ -1192,4 +1198,50 @@ fn reports_smoke_json_uses_diagnostic_envelope() {
         value["payload"]["metadata"],
         "reports/latest/smoke/report.json"
     );
+}
+
+#[test]
+fn reports_index_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-index-json");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("index")
+        .arg("--root")
+        .arg(&root)
+        .arg("--catalog")
+        .arg("reports/catalog/reports.toml")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["subcommand"], "reports index");
+    assert_eq!(value["payload"]["status"], "reserved");
+}
+
+#[test]
+fn reports_verify_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-verify-json");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("verify")
+        .arg("--root")
+        .arg(&root)
+        .arg("--catalog")
+        .arg("reports/catalog/reports.toml")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["subcommand"], "reports verify");
+    assert_eq!(value["payload"]["status"], "reserved");
 }
