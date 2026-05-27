@@ -52,25 +52,11 @@ pub(crate) struct StateMachineTransition {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub(crate) struct StateMachineNamedValue {
-    pub(crate) id: String,
-    pub(crate) title: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct StateMachineSpec {
     pub(crate) spec: SpecHeader,
     pub(crate) states: Vec<StateMachineState>,
     #[serde(default)]
     pub(crate) transitions: Vec<StateMachineTransition>,
-    #[serde(default)]
-    pub(crate) events: Vec<StateMachineNamedValue>,
-    #[serde(default)]
-    pub(crate) guards: Vec<StateMachineNamedValue>,
-    #[serde(default)]
-    pub(crate) actors: Vec<StateMachineNamedValue>,
-    #[serde(default)]
-    pub(crate) effects: Vec<StateMachineNamedValue>,
     #[serde(default)]
     pub(crate) metadata: ReportSpecMetadata,
 }
@@ -318,8 +304,7 @@ impl ReportSpec {
                 .map_err(ReportSpecError::SerializeJson)?,
         );
         let spec_json = serde_json::to_value(self).map_err(ReportSpecError::SerializeJson)?;
-        metadata.insert("copy_json".to_owned(), spec_json.clone());
-        metadata.insert("spec".to_owned(), spec_json);
+        metadata.insert("copy_json".to_owned(), spec_json);
         Ok(metadata)
     }
 
