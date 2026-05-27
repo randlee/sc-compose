@@ -89,6 +89,9 @@ just reports-verify
 - browser-open behavior inside `sc-compose`
 - remote publish behavior inside `sc-compose`
 - observability `1.2` uplift
+- `ARCH-001` is resolved on this branch: [command_error.rs](../../crates/sc-compose/src/command_error.rs)
+  is `163` lines and [main.rs](../../crates/sc-compose/src/main.rs) is `919`
+  non-test lines, so the command-surface simplification gate is closed here
 
 ## Acceptance Criteria
 

@@ -71,6 +71,8 @@ renderer_targets = ["mermaid"]
 - shared panel chrome/copy behavior beyond the B4 contract
 - example migration proof across multiple families
 - observability `1.2` uplift
+- `ARCH-001`: remaining `main.rs` command-dispatch simplification on this
+  branch; that reduction is deferred to Sprint `B9`
 
 ## Acceptance Criteria
 

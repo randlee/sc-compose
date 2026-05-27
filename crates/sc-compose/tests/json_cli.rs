@@ -316,11 +316,10 @@ fn validate_json_reports_missing_frontmatter_for_included_file() {
     let diagnostics = value["diagnostics"].as_array().unwrap();
     assert!(diagnostics.iter().any(|diagnostic| {
         diagnostic["code"] == "ERR_VAL_MISSING_FRONTMATTER"
-            && diagnostic["path"]
-                == fs::canonicalize(root.join("_includes").join("snippet.md"))
-                    .unwrap()
-                    .display()
-                    .to_string()
+            && normalize_path_str(diagnostic["path"].as_str().unwrap_or(""))
+                == normalize_path_str(
+                    fs::canonicalize(root.join("_includes").join("snippet.md")).unwrap(),
+                )
     }));
 }
 
@@ -560,6 +559,62 @@ fn observability_health_json_nulls_unavailable_query_state() {
     assert_eq!(
         value["payload"]["logging"]["maintenance"]["state"],
         "Stopped"
+    );
+}
+
+#[test]
+fn reports_smoke_json_keeps_observability_health_green_under_logger_12() {
+    let root = temp_root("reports-smoke-observability-json");
+    let log_root = root.join("telemetry");
+    write_smoke_fixture(&root);
+
+    let init = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert!(init.status.success());
+
+    let smoke = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .arg("--archive")
+        .arg("--json")
+        .env("SC_LOG_ROOT", &log_root)
+        .output()
+        .unwrap();
+
+    assert!(smoke.status.success());
+    assert!(smoke.stderr.is_empty());
+    let smoke_value = parse_stdout(&smoke);
+    assert_envelope(&smoke_value);
+    assert_eq!(smoke_value["payload"]["report_id"], "smoke");
+
+    let health = sc_compose()
+        .arg("observability-health")
+        .arg("--json")
+        .env("SC_LOG_ROOT", &log_root)
+        .output()
+        .unwrap();
+
+    assert!(health.status.success());
+    assert!(health.stderr.is_empty());
+    let value = parse_stdout(&health);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["logging"]["state"], "Healthy");
+    assert_eq!(value["payload"]["logging"]["query"]["state"], "Healthy");
+    assert_eq!(
+        value["payload"]["logging"]["active_log_path"],
+        normalize_path_str(log_root.join("logs").join("sc-compose.log.jsonl"))
     );
 }
 
@@ -1231,6 +1286,14 @@ fn reports_init_json_uses_diagnostic_envelope() {
 #[test]
 fn reports_smoke_json_uses_diagnostic_envelope() {
     let root = temp_root("reports-smoke-json");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
 
     let output = sc_compose()
@@ -1266,6 +1329,14 @@ fn reports_smoke_json_uses_diagnostic_envelope() {
 #[test]
 fn reports_index_json_uses_diagnostic_envelope() {
     let root = temp_root("reports-index-json");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
     write_report_catalog(
         &root,
@@ -1313,6 +1384,14 @@ metadata = "reports/latest/smoke/report.json"
 #[test]
 fn reports_smoke_json_lists_archive_artifacts_when_requested() {
     let root = temp_root("reports-smoke-archive-json");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
 
     let output = sc_compose()
@@ -1345,6 +1424,14 @@ fn reports_smoke_json_lists_archive_artifacts_when_requested() {
 #[test]
 fn reports_publish_manifest_json_uses_diagnostic_envelope() {
     let root = temp_root("reports-publish-manifest-json");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
     write_report_catalog(
         &root,

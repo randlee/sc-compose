@@ -52,25 +52,11 @@ pub(crate) struct StateMachineTransition {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub(crate) struct StateMachineNamedValue {
-    pub(crate) id: String,
-    pub(crate) title: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct StateMachineSpec {
     pub(crate) spec: SpecHeader,
     pub(crate) states: Vec<StateMachineState>,
     #[serde(default)]
     pub(crate) transitions: Vec<StateMachineTransition>,
-    #[serde(default)]
-    pub(crate) events: Vec<StateMachineNamedValue>,
-    #[serde(default)]
-    pub(crate) guards: Vec<StateMachineNamedValue>,
-    #[serde(default)]
-    pub(crate) actors: Vec<StateMachineNamedValue>,
-    #[serde(default)]
-    pub(crate) effects: Vec<StateMachineNamedValue>,
     #[serde(default)]
     pub(crate) metadata: ReportSpecMetadata,
 }
@@ -120,8 +106,6 @@ pub(crate) enum ReportSpec {
     SqlQuery(SqlQuerySpec),
 }
 
-pub(crate) type ReportsRenderSpecResult = ReportsSmokeResult;
-
 #[derive(Debug)]
 pub(crate) enum ReportSpecError {
     ParseToml(toml::de::Error),
@@ -170,7 +154,7 @@ pub(crate) fn run_render_spec_report(
     spec_path: &Path,
     archive: bool,
     _observer: &mut dyn CompositionObserver,
-) -> Result<ReportsRenderSpecResult, CommandError> {
+) -> Result<ReportsSmokeResult, CommandError> {
     let workspace_root = std::fs::canonicalize(root).map_err(|error| {
         CommandError::usage_with_code(
             anyhow!(error).context(format!(
@@ -259,7 +243,7 @@ pub(crate) fn run_render_spec_report(
         )
     })?;
 
-    Ok(ReportsRenderSpecResult {
+    Ok(ReportsSmokeResult {
         report_id: materialized.report_id,
         kind: materialized.kind,
         produced_at: materialized.produced_at,
@@ -318,8 +302,7 @@ impl ReportSpec {
                 .map_err(ReportSpecError::SerializeJson)?,
         );
         let spec_json = serde_json::to_value(self).map_err(ReportSpecError::SerializeJson)?;
-        metadata.insert("copy_json".to_owned(), spec_json.clone());
-        metadata.insert("spec".to_owned(), spec_json);
+        metadata.insert("copy_json".to_owned(), spec_json);
         Ok(metadata)
     }
 
