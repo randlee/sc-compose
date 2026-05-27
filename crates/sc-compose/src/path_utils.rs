@@ -1,7 +1,9 @@
 use std::path::{Path, PathBuf};
 
 pub(crate) fn to_forward_slash(path: &Path) -> String {
-    path.to_string_lossy().replace('\\', "/")
+    let path = path.to_string_lossy();
+    let path = path.strip_prefix(r"\\?\").unwrap_or(&path);
+    path.replace('\\', "/")
 }
 
 #[allow(
