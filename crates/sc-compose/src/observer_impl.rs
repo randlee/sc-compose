@@ -33,31 +33,31 @@ pub(crate) trait CommandLifecycleObserver {
 }
 
 pub(crate) struct CliObserver {
-    logger: Option<LoggerState>,
-    last_health: LoggingHealthReport,
+    logger: Option<LoggerOrStopped>,
     service: ServiceName,
 }
 
-enum LoggerState {
+enum LoggerOrStopped {
     Running(Logger),
     Stopped(Logger<Stopped>),
 }
 
 impl CliObserver {
     pub fn new(logger: Logger) -> Self {
-        let last_health = logger.health();
         Self {
-            logger: Some(LoggerState::Running(logger)),
-            last_health,
+            logger: Some(LoggerOrStopped::Running(logger)),
             service: service_name(),
         }
     }
 
     pub fn health(&self) -> LoggingHealthReport {
-        match self.logger.as_ref() {
-            Some(LoggerState::Running(logger)) => logger.health(),
-            Some(LoggerState::Stopped(logger)) => logger.health(),
-            None => self.last_health.clone(),
+        match self
+            .logger
+            .as_ref()
+            .expect("cli observer always retains logger state")
+        {
+            LoggerOrStopped::Running(logger) => logger.health(),
+            LoggerOrStopped::Stopped(logger) => logger.health(),
         }
     }
 
@@ -66,19 +66,17 @@ impl CliObserver {
             return;
         };
         let running = match state {
-            LoggerState::Running(logger) => logger,
-            LoggerState::Stopped(logger) => {
-                self.last_health = logger.health();
-                self.logger = Some(LoggerState::Stopped(logger));
+            LoggerOrStopped::Running(logger) => logger,
+            LoggerOrStopped::Stopped(logger) => {
+                self.logger = Some(LoggerOrStopped::Stopped(logger));
                 return;
             }
         };
         let logger = running.shutdown();
-        self.last_health = logger.health();
-        self.logger = Some(LoggerState::Stopped(logger));
+        self.logger = Some(LoggerOrStopped::Stopped(logger));
     }
 
-    fn emit_log(
+    fn write_log_event(
         &self,
         level: Level,
         target: &str,
@@ -105,7 +103,7 @@ impl CliObserver {
             fields,
         };
 
-        if let Some(LoggerState::Running(logger)) = &self.logger {
+        if let Some(LoggerOrStopped::Running(logger)) = &self.logger {
             let _ignored = logger.log(event);
         }
     }
@@ -121,7 +119,7 @@ impl CompositionObserver for CliObserver {
     fn on_resolve_attempt(&mut self, event: &ResolveAttemptEvent) {
         let mut fields = Map::new();
         fields.insert("template".to_owned(), json!(event.template));
-        self.emit_log(
+        self.write_log_event(
             Level::Info,
             "compose.resolve",
             "attempt",
@@ -157,7 +155,7 @@ impl CompositionObserver for CliObserver {
         if let Some(code) = event.code {
             fields.insert("diagnostic_code".to_owned(), json!(code.as_str()));
         }
-        self.emit_log(
+        self.write_log_event(
             if event.code.is_some() {
                 Level::Error
             } else {
@@ -209,7 +207,7 @@ impl CompositionObserver for CliObserver {
         if let Some(code) = event.code {
             fields.insert("diagnostic_code".to_owned(), json!(code.as_str()));
         }
-        self.emit_log(
+        self.write_log_event(
             if event.code.is_some() {
                 Level::Error
             } else {
@@ -248,7 +246,7 @@ impl CompositionObserver for CliObserver {
                 json!(diagnostic.message.clone()),
             );
         }
-        self.emit_log(
+        self.write_log_event(
             if failed {
                 Level::Error
             } else if warnings > 0 {
@@ -279,7 +277,7 @@ impl CompositionObserver for CliObserver {
         if let Some(code) = event.code {
             fields.insert("diagnostic_code".to_owned(), json!(code.as_str()));
         }
-        self.emit_log(
+        self.write_log_event(
             if failed { Level::Error } else { Level::Info },
             "compose.render",
             if failed { "failed" } else { "completed" },
@@ -295,6 +293,10 @@ impl CompositionObserver for CliObserver {
 }
 
 impl ObservationSink for CliObserver {
+    /// Dispatch `ObservationEvent` values from `sc-composer` observer hooks.
+    ///
+    /// This method is unrelated to the deprecated `sc-observability::Logger::emit()`
+    /// compatibility path; CLI logging writes happen through `Logger::log()`.
     fn emit(&mut self, event: &ObservationEvent) {
         match event {
             ObservationEvent::ResolveAttempt(event) => self.on_resolve_attempt(event),
@@ -311,7 +313,7 @@ impl CommandLifecycleObserver for CliObserver {
         let mut fields = Map::new();
         fields.insert("command".to_owned(), json!(event.command_name));
         fields.insert("json_output".to_owned(), json!(event.json_output));
-        self.emit_log(
+        self.write_log_event(
             Level::Info,
             "compose.command",
             "started",
@@ -334,7 +336,7 @@ impl CommandLifecycleObserver for CliObserver {
         if let Some(message) = &event.diagnostic_message {
             fields.insert("diagnostic_message".to_owned(), json!(message));
         }
-        self.emit_log(
+        self.write_log_event(
             if success { Level::Info } else { Level::Error },
             "compose.command",
             if success { "completed" } else { "failed" },
@@ -410,16 +412,18 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use sc_observability::{
-        LogSink, Logger, LoggerConfig, SinkHealth, SinkHealthState, SinkRegistration, error_codes,
+        Level, LogEvent, LogSink, Logger, LoggerConfig, ProcessIdentity, SinkHealth,
+        SinkHealthState, SinkRegistration, Timestamp, error_codes,
     };
     use sc_observability_types::{
         ErrorContext, LogSinkError, QueryHealthState, Remediation, SinkName,
     };
+    use serde_json::Map;
 
     use super::{
         CliObserver, CommandEndEvent, CommandLifecycleObserver, CommandStartEvent,
         RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
-        service_name,
+        action_name, outcome_label, schema_version, service_name, target_category,
     };
     use sc_composer::{CompositionObserver, Diagnostic, DiagnosticCode, DiagnosticSeverity};
 
@@ -428,7 +432,10 @@ mod tests {
         let root = temp_root("observer-events");
         let mut config = LoggerConfig::default_for(service_name(), root.clone());
         config.enable_console_sink = false;
-        let logger = Logger::new(config).expect("logger");
+        let logger = Logger::builder(config).expect("logger builder").build();
+        logger
+            .log(sample_log_event("preflight log"))
+            .expect("preflight log");
         let mut observer = CliObserver::new(logger);
 
         observer.on_command_start(&CommandStartEvent {
@@ -467,22 +474,45 @@ mod tests {
 
         observer.shutdown();
         let lines = read_log_lines(&observer.health().active_log_path);
-        assert_eq!(lines.len(), 6);
-        assert_eq!(lines[0]["target"], "compose.command");
-        assert_eq!(lines[0]["action"], "started");
-        assert_eq!(lines[0]["message"], "command started");
-        assert_eq!(lines[1]["target"], "compose.resolve");
-        assert_eq!(lines[1]["action"], "attempt");
-        assert_eq!(lines[1]["message"], "resolve attempt");
+        assert_eq!(lines.len(), 7);
+        assert_eq!(lines[0]["action"], "preflight");
+        assert_eq!(lines[1]["target"], "compose.command");
+        assert_eq!(lines[1]["action"], "started");
+        assert_eq!(lines[1]["message"], "command started");
         assert_eq!(lines[2]["target"], "compose.resolve");
-        assert_eq!(lines[2]["action"], "resolved");
-        assert_eq!(lines[3]["target"], "compose.validate");
-        assert_eq!(lines[3]["action"], "completed");
-        assert_eq!(lines[3]["level"], "Warn");
-        assert_eq!(lines[4]["target"], "compose.render");
+        assert_eq!(lines[2]["action"], "attempt");
+        assert_eq!(lines[2]["message"], "resolve attempt");
+        assert_eq!(lines[3]["target"], "compose.resolve");
+        assert_eq!(lines[3]["action"], "resolved");
+        assert_eq!(lines[4]["target"], "compose.validate");
         assert_eq!(lines[4]["action"], "completed");
-        assert_eq!(lines[5]["target"], "compose.command");
+        assert_eq!(lines[4]["level"], "Warn");
+        assert_eq!(lines[5]["target"], "compose.render");
         assert_eq!(lines[5]["action"], "completed");
+        assert_eq!(lines[6]["target"], "compose.command");
+        assert_eq!(lines[6]["action"], "completed");
+    }
+
+    #[test]
+    fn cli_observer_shutdown_preserves_stopped_health_and_flush_durability() {
+        let root = temp_root("observer-shutdown-durability");
+        let mut config = LoggerConfig::default_for(service_name(), root.clone());
+        config.enable_console_sink = false;
+        let logger = Logger::new(config).expect("logger");
+        let mut observer = CliObserver::new(logger);
+
+        observer.on_command_start(&CommandStartEvent {
+            command_name: "reports-smoke".to_owned(),
+            json_output: false,
+        });
+        observer.shutdown();
+
+        let health = observer.health();
+        assert!(health.active_log_path.exists());
+        assert!(health.last_writer_error.is_none());
+        let lines = read_log_lines(&health.active_log_path);
+        assert!(!lines.is_empty());
+        assert_eq!(lines[0]["action"], "started");
     }
 
     #[test]
@@ -490,7 +520,10 @@ mod tests {
         let root = temp_root("observer-command-failure");
         let mut config = LoggerConfig::default_for(service_name(), root);
         config.enable_console_sink = false;
-        let logger = Logger::new(config).expect("logger");
+        let logger = Logger::builder(config).expect("logger builder").build();
+        logger
+            .try_log(sample_log_event("preflight try-log"))
+            .expect("preflight try-log");
         let mut observer = CliObserver::new(logger);
 
         observer.on_command_end(&CommandEndEvent {
@@ -505,12 +538,13 @@ mod tests {
 
         observer.shutdown();
         let lines = read_log_lines(&observer.health().active_log_path);
-        assert_eq!(lines.len(), 1);
-        assert_eq!(lines[0]["action"], "failed");
-        assert_eq!(lines[0]["message"], "command failed");
-        assert_eq!(lines[0]["fields"]["exit_code"], 2);
-        assert_eq!(lines[0]["fields"]["json_output"], true);
-        assert_eq!(lines[0]["fields"]["diagnostic_code"], "ERR_VAL");
+        assert_eq!(lines.len(), 2);
+        assert_eq!(lines[0]["action"], "preflight");
+        assert_eq!(lines[1]["action"], "failed");
+        assert_eq!(lines[1]["message"], "command failed");
+        assert_eq!(lines[1]["fields"]["exit_code"], 2);
+        assert_eq!(lines[1]["fields"]["json_output"], true);
+        assert_eq!(lines[1]["fields"]["diagnostic_code"], "ERR_VAL");
     }
 
     #[test]
@@ -615,5 +649,25 @@ mod tests {
             .lines()
             .map(|line| serde_json::from_str(line).expect("parse log line"))
             .collect()
+    }
+
+    fn sample_log_event(message: &str) -> LogEvent {
+        LogEvent {
+            version: schema_version(),
+            timestamp: Timestamp::now_utc(),
+            level: Level::Info,
+            service: service_name(),
+            target: target_category("compose.command"),
+            action: action_name("preflight"),
+            message: Some(message.to_owned()),
+            identity: ProcessIdentity::default(),
+            trace: None,
+            request_id: None,
+            correlation_id: None,
+            outcome: Some(outcome_label("success")),
+            diagnostic: None,
+            state_transition: None,
+            fields: Map::new(),
+        }
     }
 }

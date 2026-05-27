@@ -56,6 +56,10 @@ fn repo_root() -> PathBuf {
         .unwrap()
 }
 
+fn normalize_path_str(p: impl AsRef<Path>) -> String {
+    p.as_ref().to_string_lossy().replace('\\', "/")
+}
+
 fn write_report_catalog(root: &Path, contents: &str) {
     write_file(
         &root.join("reports").join("catalog").join("reports.toml"),
@@ -2486,11 +2490,7 @@ fn observability_health_json_reports_process_local_status() {
     );
     assert_eq!(
         value["payload"]["logging"]["active_log_path"],
-        log_root
-            .join("logs")
-            .join("sc-compose.log.jsonl")
-            .display()
-            .to_string()
+        normalize_path_str(log_root.join("logs").join("sc-compose.log.jsonl"))
     );
 }
 
@@ -2553,15 +2553,50 @@ fn release_smoke_covers_render_pipeline_and_observability_health() {
     assert_eq!(value["payload"]["logging"]["state"], "Healthy");
     assert_eq!(
         value["payload"]["logging"]["active_log_path"],
-        logs_root
-            .join("logs")
-            .join("sc-compose.log.jsonl")
-            .display()
-            .to_string()
+        normalize_path_str(logs_root.join("logs").join("sc-compose.log.jsonl"))
     );
     assert_eq!(
         value["payload"]["logging"]["maintenance"]["state"],
         "Running"
+    );
+}
+
+#[test]
+fn reports_smoke_keeps_observability_health_green_under_logger_12() {
+    let root = temp_root("reports-smoke-observability");
+    let logs_root = root.join("telemetry");
+    write_smoke_fixture(&root);
+
+    let smoke = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .arg("--archive")
+        .env("SC_LOG_ROOT", &logs_root)
+        .output()
+        .unwrap();
+
+    assert!(smoke.status.success(), "{smoke:?}");
+
+    let health = sc_compose()
+        .arg("observability-health")
+        .arg("--json")
+        .env("SC_LOG_ROOT", &logs_root)
+        .output()
+        .unwrap();
+
+    assert!(health.status.success());
+    let value = parse_stdout_json(&health);
+    assert_eq!(value["payload"]["logging"]["state"], "Healthy");
+    assert_eq!(value["payload"]["logging"]["query"]["state"], "Healthy");
+    assert_eq!(
+        value["payload"]["logging"]["active_log_path"],
+        normalize_path_str(logs_root.join("logs").join("sc-compose.log.jsonl"))
     );
 }
 
