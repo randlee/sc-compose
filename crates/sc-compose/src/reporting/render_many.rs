@@ -7,6 +7,7 @@ use sc_composer::{LoadedTemplateRequest, RenderError, RenderedArtifact, render_l
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::path_utils::to_forward_slash;
 use crate::reporting::source_entry::{SourceEntry, SourceEntryError};
 use crate::reporting::templates::{
     ResolvedTemplate, TemplateError, context_from_source_entry, render_shared_report,
@@ -30,7 +31,9 @@ pub(crate) struct RenderManyRequest {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(crate) struct RenderManyManifestEntry {
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) source_path: PathBuf,
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) output_path: PathBuf,
     pub(crate) metadata: BTreeMap<String, Value>,
     pub(crate) sets: Option<Vec<String>>,
@@ -38,8 +41,10 @@ pub(crate) struct RenderManyManifestEntry {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(crate) struct RenderManyResult {
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) manifest_path: PathBuf,
     pub(crate) entries: Vec<RenderManyManifestEntry>,
+    #[serde(serialize_with = "crate::path_utils::serialize_paths")]
     pub(crate) generated_outputs: Vec<PathBuf>,
 }
 
@@ -159,11 +164,7 @@ pub(crate) fn render_many(
 }
 
 fn discover_sources(request: &RenderManyRequest) -> Result<Vec<SourceEntry>, RenderManyError> {
-    let pattern = request
-        .root
-        .join(&request.source_set.glob)
-        .display()
-        .to_string();
+    let pattern = to_forward_slash(&request.root.join(&request.source_set.glob));
     let paths = glob(&pattern).map_err(|error| RenderManyError::InvalidGlob {
         glob: request.source_set.glob.clone(),
         message: error.to_string(),
@@ -216,11 +217,11 @@ fn render_entry(
     let mut context = BTreeMap::new();
     context.insert(
         "source_path".to_owned(),
-        Value::String(entry.source_path.display().to_string()),
+        Value::String(to_forward_slash(&entry.source_path)),
     );
     context.insert(
         "output_path".to_owned(),
-        Value::String(entry.output_path.display().to_string()),
+        Value::String(to_forward_slash(&entry.output_path)),
     );
     context.insert("metadata".to_owned(), serde_json::json!(entry.metadata));
     context.insert(

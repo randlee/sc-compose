@@ -7,6 +7,8 @@ use time::format_description::FormatItem;
 use time::format_description::well_known::Rfc3339;
 use time::macros::format_description;
 
+use crate::path_utils::to_forward_slash;
+
 pub(crate) const LATEST_ROOT_RELATIVE_PATH: &str = "reports/latest";
 pub(crate) const ARCHIVE_ROOT_RELATIVE_PATH: &str = "reports/archive";
 
@@ -40,9 +42,13 @@ pub(crate) struct MaterializedReport {
     pub(crate) kind: String,
     pub(crate) produced_at: String,
     pub(crate) status: String,
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) entrypoint: PathBuf,
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) metadata: PathBuf,
+    #[serde(serialize_with = "crate::path_utils::serialize_paths")]
     pub(crate) latest_artifacts: Vec<PathBuf>,
+    #[serde(serialize_with = "crate::path_utils::serialize_paths")]
     pub(crate) archived_artifacts: Vec<PathBuf>,
 }
 
@@ -96,12 +102,12 @@ pub(crate) fn write_report_metadata_and_archive(
         kind: request.kind.clone(),
         produced_at: produced_at.clone(),
         status: request.status.clone(),
-        entrypoint: request.entrypoint.display().to_string(),
+        entrypoint: to_forward_slash(&request.entrypoint),
         artifacts: request
             .latest_artifacts
             .iter()
             .chain(std::iter::once(&request.metadata_path))
-            .map(|path| path.display().to_string())
+            .map(|path| to_forward_slash(path))
             .collect(),
     };
     let metadata_json =

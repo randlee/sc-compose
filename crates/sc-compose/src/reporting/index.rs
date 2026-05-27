@@ -13,9 +13,13 @@ pub(crate) struct ReportIndexEntry {
     pub(crate) required: bool,
     pub(crate) status: Option<String>,
     pub(crate) produced_at: Option<String>,
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) entrypoint: PathBuf,
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) metadata: PathBuf,
+    #[serde(serialize_with = "crate::path_utils::serialize_paths")]
     pub(crate) artifacts: Vec<PathBuf>,
+    #[serde(serialize_with = "crate::path_utils::serialize_paths")]
     pub(crate) missing_paths: Vec<PathBuf>,
 }
 
