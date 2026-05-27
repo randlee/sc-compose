@@ -121,11 +121,6 @@ pub(crate) fn init_report_scaffold(root: &Path) -> Result<ReportsInitResult, Com
         STARTER_SMOKE_OUTPUT_DIR_RELATIVE_PATH,
         &mut created_paths,
     )?;
-    ensure_dir(
-        &workspace_root,
-        STARTER_SMOKE_OUTPUT_DIR_RELATIVE_PATH,
-        &mut created_paths,
-    )?;
     write_if_missing(
         &workspace_root,
         REPORT_CATALOG_RELATIVE_PATH,
