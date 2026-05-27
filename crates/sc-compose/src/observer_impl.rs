@@ -498,7 +498,7 @@ mod tests {
         let root = temp_root("observer-shutdown-durability");
         let mut config = LoggerConfig::default_for(service_name(), root.clone());
         config.enable_console_sink = false;
-        let logger = Logger::new(config).expect("logger");
+        let logger = Logger::builder(config).expect("logger builder").build();
         let mut observer = CliObserver::new(logger);
 
         observer.on_command_start(&CommandStartEvent {
