@@ -1,0 +1,17 @@
+[spec]
+kind = "sql_query"
+id = "release-summary"
+title = "Release Summary Query"
+renderer_targets = ["mermaid"]
+
+[sql_query]
+purpose = "Summarize release evidence"
+tables_read = ["releases", "checks", "reports"]
+tables_written = ["release_summary_cache"]
+filters = ["release_status = shipped"]
+ordering = ["released_at DESC"]
+cardinality = "many"
+transactional_assumptions = ["repeatable read"]
+
+[metadata]
+sets = ["publish", "diagram"]

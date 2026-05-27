@@ -9,6 +9,7 @@ use crate::path_utils::to_forward_slash;
 use crate::reporting::catalog::ReportCatalog;
 use crate::reporting::index::{build_report_index, verify_required_reports};
 use crate::reporting::init::{init_report_scaffold, run_smoke_report};
+use crate::reporting::output::{FinalizeReportRequest, finalize_report_outputs};
 use crate::reporting::publish_manifest::write_publish_manifest;
 use crate::reporting::render_many::{RenderManyRequest, SourceSetDefinition, render_many};
 use crate::reporting::spec::run_render_spec_report;
@@ -26,6 +27,8 @@ pub(crate) enum ReportsSubcommand {
     Init(ReportsInitArgs),
     #[command(about = "Run the shared smoke-report fixture harness")]
     Smoke(ReportsSmokeArgs),
+    #[command(about = "Write shared report metadata and archive outputs for one producer result")]
+    Finalize(ReportsFinalizeArgs),
     #[command(about = "Render one semantic diagram spec to Mermaid output")]
     RenderSpec(ReportsRenderSpecArgs),
     #[command(about = "Summarize latest report entrypoints and sidecars")]
@@ -52,6 +55,26 @@ pub(crate) struct ReportsSmokeArgs {
     pub(crate) fixture: PathBuf,
     #[arg(long)]
     pub(crate) vars: PathBuf,
+    #[arg(long)]
+    pub(crate) archive: bool,
+    #[arg(long)]
+    pub(crate) json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct ReportsFinalizeArgs {
+    #[arg(long, default_value = ".")]
+    pub(crate) root: PathBuf,
+    #[arg(long = "report-id")]
+    pub(crate) report_id: String,
+    #[arg(long)]
+    pub(crate) kind: String,
+    #[arg(long, default_value = "pass")]
+    pub(crate) status: String,
+    #[arg(long)]
+    pub(crate) entrypoint: PathBuf,
+    #[arg(long = "artifact", action = clap::ArgAction::Append)]
+    pub(crate) artifacts: Vec<PathBuf>,
     #[arg(long)]
     pub(crate) archive: bool,
     #[arg(long)]
@@ -178,6 +201,51 @@ pub(crate) fn run_reports_smoke(
         }
         if !result.warnings.is_empty() {
             print_diagnostic_messages(&result.warnings);
+        }
+    }
+    Ok(exit_codes::SUCCESS)
+}
+
+pub(crate) fn run_reports_finalize(args: &ReportsFinalizeArgs) -> Result<i32, CommandError> {
+    let result = finalize_report_outputs(
+        &args.root,
+        &FinalizeReportRequest {
+            report_id: args.report_id.clone(),
+            kind: args.kind.clone(),
+            status: args.status.clone(),
+            entrypoint: args.entrypoint.clone(),
+            artifacts: args.artifacts.clone(),
+            archive: args.archive,
+        },
+    )
+    .map_err(|error| {
+        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
+    })?;
+
+    if args.json {
+        let payload = serde_json::json!({
+            "report_id": result.report_id,
+            "kind": result.kind,
+            "produced_at": result.produced_at,
+            "status": result.status,
+            "entrypoint": to_forward_slash(&result.entrypoint),
+            "metadata": to_forward_slash(&result.metadata),
+            "artifacts": result.latest_artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
+            "archived_artifacts": result.archived_artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
+        });
+        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
+    } else {
+        println!("report_id: {}", result.report_id);
+        println!("kind: {}", result.kind);
+        println!("produced_at: {}", result.produced_at);
+        println!("status: {}", result.status);
+        println!("entrypoint: {}", to_forward_slash(&result.entrypoint));
+        println!("metadata: {}", to_forward_slash(&result.metadata));
+        for artifact in &result.latest_artifacts {
+            println!("artifact: {}", to_forward_slash(artifact));
+        }
+        for artifact in &result.archived_artifacts {
+            println!("archived: {}", to_forward_slash(artifact));
         }
     }
     Ok(exit_codes::SUCCESS)

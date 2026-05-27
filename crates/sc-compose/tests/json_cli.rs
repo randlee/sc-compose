@@ -892,6 +892,11 @@ fn examples_list_json_uses_diagnostic_envelope() {
     assert_envelope(&value);
     let packs = value["payload"]["packs"].as_array().unwrap();
     assert!(packs.iter().any(|pack| pack["name"] == "hello"));
+    assert!(
+        packs
+            .iter()
+            .any(|pack| pack["name"] == "report-evidence-summary")
+    );
 }
 
 #[test]
@@ -951,6 +956,43 @@ fn examples_named_render_html_dry_run_preserves_html_extension() {
             repo_root()
                 .join("examples")
                 .join("sprint-report-html.html.j2")
+                .canonicalize()
+                .unwrap()
+        )
+    );
+}
+
+#[test]
+fn examples_named_render_report_evidence_summary_json_matches_render_schema() {
+    let vars_file = repo_root()
+        .join("examples")
+        .join("report-evidence-summary.sample-vars.json");
+
+    let output = sc_compose()
+        .arg("examples")
+        .arg("report-evidence-summary")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .arg("--json")
+        .arg("--dry-run")
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["would_write"],
+        "report-evidence-summary.html"
+    );
+    assert_eq!(
+        value["payload"]["template"],
+        normalize_path_str(
+            repo_root()
+                .join("examples")
+                .join("report-evidence-summary.html.j2")
                 .canonicalize()
                 .unwrap()
         )
@@ -1507,6 +1549,66 @@ fn reports_render_spec_json_uses_diagnostic_envelope() {
             .unwrap()
             .len(),
         2
+    );
+}
+
+#[test]
+fn reports_finalize_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-finalize-json");
+    write_file(
+        &root
+            .join("reports")
+            .join("latest")
+            .join("sc-lint")
+            .join("index.html"),
+        "<!DOCTYPE html><html><body>lint</body></html>\n",
+    );
+    write_file(
+        &root
+            .join("reports")
+            .join("latest")
+            .join("sc-lint")
+            .join("panels")
+            .join("manifest.json"),
+        "{}\n",
+    );
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("finalize")
+        .arg("--root")
+        .arg(&root)
+        .arg("--report-id")
+        .arg("sc-lint")
+        .arg("--kind")
+        .arg("lint")
+        .arg("--entrypoint")
+        .arg("reports/latest/sc-lint/index.html")
+        .arg("--artifact")
+        .arg("reports/latest/sc-lint/index.html")
+        .arg("--artifact")
+        .arg("reports/latest/sc-lint/panels/manifest.json")
+        .arg("--archive")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["report_id"], "sc-lint");
+    assert_eq!(value["payload"]["kind"], "lint");
+    assert_eq!(
+        value["payload"]["metadata"],
+        "reports/latest/sc-lint/report.json"
+    );
+    assert_eq!(
+        value["payload"]["archived_artifacts"]
+            .as_array()
+            .unwrap()
+            .len(),
+        3
     );
 }
 

@@ -497,6 +497,7 @@ Command behavior:
   - supports:
     - `reports init`
     - `reports smoke`
+    - `reports finalize`
     - `reports render-spec`
     - `reports index`
     - `reports verify`
@@ -1282,7 +1283,42 @@ Boundary rules:
 - publish transport and hosting remain outside `sc-composer` and `sc-compose`
 - machine-readable handoff is in scope; network transport is not
 
-### Producer Recipe Contract (Implemented In Sprint B2)
+### Phase B Cross-Use-Case Proof Examples
+
+Phase B implements one checked-in proof set in this repo so the shared
+reporting runtime is exercised by real producer commands instead of docs only.
+
+Implemented proof set:
+
+- this repo ships one checked-in reference report catalog under
+  `reports/catalog/reports.toml`
+- this repo ships one checked-in source fixture tree under:
+  - `reports/inputs/`
+  - `reports/specs/`
+  - `reports/smoke/`
+  - `reports/vars/`
+- this repo ships one reference `Justfile` producer surface for:
+  - `just lint`
+  - `just test`
+  - `just smoke`
+  - `just state-diagrams`
+  - `just sql-diagrams`
+  - `just reports`
+  - `just reports-verify`
+- generic producer-owned HTML outputs can be materialized into the shared
+  report sidecar and archive shape with `sc-compose reports finalize`
+- the repo proves two distinct consumer families through one shared runtime:
+  - `sc-lint` style evidence reports
+  - `atm-core` style diagram reports
+- `atm-core` and `sc-lint` remain illustrative labels only; the template
+  family key is still the runtime discriminator
+- producer extension-point typing remains owned by the B1 report artifact
+  runtime
+- `report-evidence-summary` is a new bundled Phase B proof example
+- `sprint-report-html` remains backward-compatible and stays covered by the
+  shared proof harness
+
+### Phase A Producer Recipe Contract (Planning Only)
 
 Sprint B2 implements producer recipes as the owners of report generation.
 Report generation is not centered on one catch-all `just reports` command.

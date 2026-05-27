@@ -154,6 +154,101 @@ sets = ["publish", "diagram"]
     );
 }
 
+fn copy_dir_all(src: &Path, dst: &Path) {
+    fs::create_dir_all(dst).unwrap();
+    for entry in fs::read_dir(src).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        let target = dst.join(entry.file_name());
+        if path.is_dir() {
+            copy_dir_all(&path, &target);
+        } else {
+            if let Some(parent) = target.parent() {
+                fs::create_dir_all(parent).unwrap();
+            }
+            fs::copy(&path, &target).unwrap();
+        }
+    }
+}
+
+fn stage_phase_b_reference_assets(root: &Path) {
+    copy_dir_all(&repo_root().join("examples"), &root.join("examples"));
+    copy_dir_all(&repo_root().join("reports"), &root.join("reports"));
+}
+
+fn render_report_summary(root: &Path, vars_path: &str, output_path: &str) {
+    if let Some(parent) = root.join(output_path).parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(root)
+        .arg("--file")
+        .arg("examples/report-evidence-summary.html.j2")
+        .arg("--var-file")
+        .arg(root.join(vars_path))
+        .arg("--output")
+        .arg(root.join(output_path))
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{output:?}");
+}
+
+fn write_large_report_evidence_vars(path: &Path) {
+    let items = (0..160)
+        .map(|idx| {
+            serde_json::json!({
+                "section_key": if idx % 2 == 0 { "evidence" } else { "diagrams" },
+                "label": format!("Generated item {idx}"),
+                "href": format!("reports/latest/generated/{idx}.html"),
+                "status": if idx % 3 == 0 { serde_json::Value::String("latest".to_owned()) } else { serde_json::Value::Null },
+                "note": format!("Generated note {}", "x".repeat(24)),
+            })
+        })
+        .collect::<Vec<_>>();
+    let payload = serde_json::json!({
+        "report": {
+            "title": "Large Report Evidence Summary",
+            "family": "Phase B proof vehicle",
+            "generated_at": "2026-05-27T03:40:00Z"
+        },
+        "summary": {
+            "status": "PASS",
+            "note": "Large payload compatibility check."
+        },
+        "sections": [
+            { "key": "evidence", "title": "Evidence" },
+            { "key": "diagrams", "title": "Diagrams" }
+        ],
+        "items": items
+    });
+    write_file(path, &serde_json::to_string_pretty(&payload).unwrap());
+}
+
+fn finalize_report(root: &Path, report_id: &str, kind: &str, entrypoint: &str, artifacts: &[&str]) {
+    let mut command = sc_compose();
+    command
+        .arg("reports")
+        .arg("finalize")
+        .arg("--root")
+        .arg(root)
+        .arg("--report-id")
+        .arg(report_id)
+        .arg("--kind")
+        .arg(kind)
+        .arg("--entrypoint")
+        .arg(entrypoint)
+        .arg("--archive");
+    for artifact in artifacts {
+        command.arg("--artifact").arg(artifact);
+    }
+    let output = command.output().unwrap();
+    assert!(output.status.success(), "{output:?}");
+}
+
 #[test]
 fn render_dry_run_does_not_create_output_file() {
     let root = temp_root("dry-run");
@@ -420,6 +515,43 @@ fn examples_named_render_dry_run_derives_html_output_path_from_example_name() {
 }
 
 #[test]
+fn examples_list_includes_report_evidence_summary() {
+    let output = sc_compose()
+        .arg("examples")
+        .arg("list")
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("report-evidence-summary"));
+}
+
+#[test]
+fn examples_named_render_report_evidence_summary_renders_browser_viewable_html() {
+    let vars_file = repo_root()
+        .join("examples")
+        .join("report-evidence-summary.sample-vars.json");
+
+    let output = sc_compose()
+        .arg("examples")
+        .arg("report-evidence-summary")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("<!DOCTYPE html>"));
+    assert!(stdout.contains("Report Evidence Summary"));
+    assert!(stdout.contains("sc-lint style evidence family"));
+    assert!(stdout.contains("reports/latest/publish-manifest.json"));
+}
+
+#[test]
 fn general_task_template_validate_accepts_optional_input_defaults_without_explicit_values() {
     let vars_file = temp_root("general-task-validate").join("vars.json");
     write_file(
@@ -528,7 +660,7 @@ fn general_task_template_render_allows_overriding_optional_input_defaults() {
             "task_id": "SC-GENERAL-TASK-REVIEW-001",
             "assignee": "architect",
             "description": "review",
-            "worktree_path": worktree_path.display().to_string(),
+            "worktree_path": normalize_path_str(&worktree_path),
             "branch": "feat/x",
             "pr_target": "develop",
             "deliverables": "pass review",
@@ -558,7 +690,10 @@ fn general_task_template_render_allows_overriding_optional_input_defaults() {
     );
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains(r#"assignee="architect""#));
-    assert!(stdout.contains(&format!("<worktree>{}</worktree>", worktree_path.display())));
+    assert!(stdout.contains(&format!(
+        "<worktree>{}</worktree>",
+        normalize_path_str(&worktree_path)
+    )));
     assert!(stdout.contains("<branch>feat/x</branch>"));
     assert!(stdout.contains("<pr-target>develop</pr-target>"));
 }
@@ -1401,6 +1536,53 @@ metadata = "reports/latest/smoke/report.json"
 }
 
 #[test]
+fn reports_finalize_writes_shared_sidecar_for_generic_producer_outputs() {
+    let root = temp_root("reports-finalize");
+    write_file(
+        &root
+            .join("reports")
+            .join("latest")
+            .join("sc-lint")
+            .join("index.html"),
+        "<!DOCTYPE html><html><body>lint</body></html>\n",
+    );
+    write_file(
+        &root
+            .join("reports")
+            .join("latest")
+            .join("sc-lint")
+            .join("panels")
+            .join("manifest.json"),
+        "{}\n",
+    );
+
+    finalize_report(
+        &root,
+        "sc-lint",
+        "lint",
+        "reports/latest/sc-lint/index.html",
+        &[
+            "reports/latest/sc-lint/index.html",
+            "reports/latest/sc-lint/panels/manifest.json",
+        ],
+    );
+
+    let metadata = root
+        .join("reports")
+        .join("latest")
+        .join("sc-lint")
+        .join("report.json");
+    assert!(metadata.exists());
+    let metadata_text = fs::read_to_string(&metadata).unwrap();
+    assert!(metadata_text.contains("\"report_id\": \"sc-lint\""));
+    assert!(metadata_text.contains("\"kind\": \"lint\""));
+    assert!(metadata_text.contains("\"entrypoint\": \"reports/latest/sc-lint/index.html\""));
+
+    let archive_root = root.join("reports").join("archive");
+    assert!(archive_root.exists());
+}
+
+#[test]
 fn reports_render_spec_writes_mermaid_latest_artifact_set() {
     let root = temp_root("reports-render-spec");
     write_state_machine_spec(&root, "reports/specs/state-diagrams.toml");
@@ -1529,6 +1711,313 @@ fn report_render_many_accepts_semantic_spec_inputs_for_diagram_family() {
     .unwrap();
     assert!(second.contains("flowchart TD"));
     assert!(second.contains("read: orders"));
+}
+
+#[test]
+fn phase_b_reference_fixtures_produce_publish_manifest_for_distinct_report_families() {
+    let root = temp_root("phase-b-b8-reference");
+    stage_phase_b_reference_assets(&root);
+
+    let lint = sc_compose()
+        .arg("report-render-many")
+        .arg("--root")
+        .arg(&root)
+        .arg("--id")
+        .arg("sc-lint")
+        .arg("--glob")
+        .arg("reports/inputs/lint/*.md")
+        .arg("--template-family")
+        .arg("lint")
+        .arg("--output-dir")
+        .arg("reports/latest/sc-lint/panels")
+        .output()
+        .unwrap();
+    assert!(lint.status.success(), "{lint:?}");
+    render_report_summary(
+        &root,
+        "reports/vars/sc-lint-summary.json",
+        "reports/latest/sc-lint/index.html",
+    );
+    finalize_report(
+        &root,
+        "sc-lint",
+        "lint",
+        "reports/latest/sc-lint/index.html",
+        &[
+            "reports/latest/sc-lint/index.html",
+            "reports/latest/sc-lint/panels/manifest.json",
+            "reports/latest/sc-lint/panels/reports/inputs/lint/summary.html",
+            "reports/latest/sc-lint/panels/reports/inputs/lint/whitespace.html",
+        ],
+    );
+
+    let test = sc_compose()
+        .arg("report-render-many")
+        .arg("--root")
+        .arg(&root)
+        .arg("--id")
+        .arg("test-evidence")
+        .arg("--glob")
+        .arg("reports/inputs/test/*.md")
+        .arg("--template-family")
+        .arg("test")
+        .arg("--output-dir")
+        .arg("reports/latest/test-evidence/panels")
+        .output()
+        .unwrap();
+    assert!(test.status.success(), "{test:?}");
+    render_report_summary(
+        &root,
+        "reports/vars/test-evidence-summary.json",
+        "reports/latest/test-evidence/index.html",
+    );
+    finalize_report(
+        &root,
+        "test-evidence",
+        "test",
+        "reports/latest/test-evidence/index.html",
+        &[
+            "reports/latest/test-evidence/index.html",
+            "reports/latest/test-evidence/panels/manifest.json",
+            "reports/latest/test-evidence/panels/reports/inputs/test/results.html",
+            "reports/latest/test-evidence/panels/reports/inputs/test/matrix.html",
+        ],
+    );
+
+    let init = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init.status.success(), "{init:?}");
+
+    let smoke = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .arg("--archive")
+        .output()
+        .unwrap();
+    assert!(smoke.status.success(), "{smoke:?}");
+
+    let state = sc_compose()
+        .arg("report-render-many")
+        .arg("--root")
+        .arg(&root)
+        .arg("--id")
+        .arg("state-diagrams")
+        .arg("--glob")
+        .arg("reports/specs/state-diagrams/*.toml")
+        .arg("--template-family")
+        .arg("diagram")
+        .arg("--output-dir")
+        .arg("reports/latest/state-diagrams/panels")
+        .output()
+        .unwrap();
+    assert!(state.status.success(), "{state:?}");
+    render_report_summary(
+        &root,
+        "reports/vars/state-diagrams-summary.json",
+        "reports/latest/state-diagrams/index.html",
+    );
+    finalize_report(
+        &root,
+        "state-diagrams",
+        "state_machine",
+        "reports/latest/state-diagrams/index.html",
+        &[
+            "reports/latest/state-diagrams/index.html",
+            "reports/latest/state-diagrams/panels/manifest.json",
+            "reports/latest/state-diagrams/panels/reports/specs/state-diagrams/approval-flow.html",
+            "reports/latest/state-diagrams/panels/reports/specs/state-diagrams/retry-loop.html",
+        ],
+    );
+
+    let sql = sc_compose()
+        .arg("report-render-many")
+        .arg("--root")
+        .arg(&root)
+        .arg("--id")
+        .arg("sql-diagrams")
+        .arg("--glob")
+        .arg("reports/specs/sql-diagrams/*.toml")
+        .arg("--template-family")
+        .arg("diagram")
+        .arg("--output-dir")
+        .arg("reports/latest/sql-diagrams/panels")
+        .output()
+        .unwrap();
+    assert!(sql.status.success(), "{sql:?}");
+    render_report_summary(
+        &root,
+        "reports/vars/sql-diagrams-summary.json",
+        "reports/latest/sql-diagrams/index.html",
+    );
+    finalize_report(
+        &root,
+        "sql-diagrams",
+        "sql_query",
+        "reports/latest/sql-diagrams/index.html",
+        &[
+            "reports/latest/sql-diagrams/index.html",
+            "reports/latest/sql-diagrams/panels/manifest.json",
+            "reports/latest/sql-diagrams/panels/reports/specs/sql-diagrams/publish-manifest.html",
+            "reports/latest/sql-diagrams/panels/reports/specs/sql-diagrams/release-summary.html",
+        ],
+    );
+
+    render_report_summary(
+        &root,
+        "examples/report-evidence-summary.sample-vars.json",
+        "reports/latest/report-evidence-summary/index.html",
+    );
+    finalize_report(
+        &root,
+        "report-evidence-summary",
+        "custom",
+        "reports/latest/report-evidence-summary/index.html",
+        &["reports/latest/report-evidence-summary/index.html"],
+    );
+
+    let verify = sc_compose()
+        .arg("reports")
+        .arg("verify")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(verify.status.success(), "{verify:?}");
+
+    let publish_manifest = sc_compose()
+        .arg("reports")
+        .arg("publish-manifest")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(publish_manifest.status.success(), "{publish_manifest:?}");
+
+    let state_panel = fs::read_to_string(
+        root.join("reports")
+            .join("latest")
+            .join("state-diagrams")
+            .join("panels")
+            .join("reports")
+            .join("specs")
+            .join("state-diagrams")
+            .join("approval-flow.html"),
+    )
+    .unwrap();
+    assert!(state_panel.contains("Diagram report family"));
+    assert!(state_panel.contains("Copy json"));
+
+    let lint_panel = fs::read_to_string(
+        root.join("reports")
+            .join("latest")
+            .join("sc-lint")
+            .join("panels")
+            .join("reports")
+            .join("inputs")
+            .join("lint")
+            .join("whitespace.html"),
+    )
+    .unwrap();
+    assert!(lint_panel.contains("Whitespace edge case"));
+
+    let manifest_text = fs::read_to_string(
+        root.join("reports")
+            .join("latest")
+            .join("publish-manifest.json"),
+    )
+    .unwrap();
+    assert!(manifest_text.contains("\"report_id\": \"sc-lint\""));
+    assert!(manifest_text.contains("\"report_id\": \"test-evidence\""));
+    assert!(manifest_text.contains("\"report_id\": \"smoke\""));
+    assert!(manifest_text.contains("\"report_id\": \"state-diagrams\""));
+    assert!(manifest_text.contains("\"report_id\": \"sql-diagrams\""));
+    assert!(manifest_text.contains("\"report_id\": \"report-evidence-summary\""));
+}
+
+#[test]
+fn report_evidence_summary_renders_large_variable_payload() {
+    let root = temp_root("report-evidence-summary-large-payload");
+    stage_phase_b_reference_assets(&root);
+    let vars_path = root
+        .join("examples")
+        .join("report-evidence-summary.large-vars.json");
+    let output_path = root
+        .join("reports")
+        .join("latest")
+        .join("report-evidence-summary")
+        .join("large.html");
+    write_large_report_evidence_vars(&vars_path);
+    fs::create_dir_all(output_path.parent().unwrap()).unwrap();
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("examples/report-evidence-summary.html.j2")
+        .arg("--var-file")
+        .arg(&vars_path)
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let rendered = fs::read_to_string(&output_path).unwrap();
+    assert!(rendered.contains("Large Report Evidence Summary"));
+    assert!(rendered.contains("Generated item 0"));
+    assert!(rendered.contains("Generated item 159"));
+}
+
+#[test]
+fn render_supports_multi_level_nested_includes() {
+    let root = temp_root("nested-include-proof");
+    write_file(
+        &root.join("partials").join("footer.md.j2"),
+        "Footer for {{ owner }}\n",
+    );
+    write_file(
+        &root.join("partials").join("middle.md.j2"),
+        "Middle start\n@<footer.md.j2>\nMiddle end\n",
+    );
+    write_file(
+        &root.join("nested-root.md.j2"),
+        "---\nrequired_variables:\n  - owner\n---\nTop start\n@<partials/middle.md.j2>\nTop end\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("nested-root.md.j2")
+        .arg("--var")
+        .arg("owner=Phase B")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let rendered = String::from_utf8(output.stdout).unwrap();
+    assert!(rendered.contains("Top start"));
+    assert!(rendered.contains("Middle start"));
+    assert!(rendered.contains("Footer for Phase B"));
+    assert!(rendered.contains("Middle end"));
+    assert!(rendered.contains("Top end"));
 }
 
 #[test]
