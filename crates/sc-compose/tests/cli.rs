@@ -193,6 +193,37 @@ fn render_report_summary(root: &Path, vars_path: &str, output_path: &str) {
     assert!(output.status.success(), "{output:?}");
 }
 
+fn write_large_report_evidence_vars(path: &Path) {
+    let items = (0..160)
+        .map(|idx| {
+            serde_json::json!({
+                "section_key": if idx % 2 == 0 { "evidence" } else { "diagrams" },
+                "label": format!("Generated item {idx}"),
+                "href": format!("reports/latest/generated/{idx}.html"),
+                "status": if idx % 3 == 0 { serde_json::Value::String("latest".to_owned()) } else { serde_json::Value::Null },
+                "note": format!("Generated note {}", "x".repeat(24)),
+            })
+        })
+        .collect::<Vec<_>>();
+    let payload = serde_json::json!({
+        "report": {
+            "title": "Large Report Evidence Summary",
+            "family": "Phase B proof vehicle",
+            "generated_at": "2026-05-27T03:40:00Z"
+        },
+        "summary": {
+            "status": "PASS",
+            "note": "Large payload compatibility check."
+        },
+        "sections": [
+            { "key": "evidence", "title": "Evidence" },
+            { "key": "diagrams", "title": "Diagrams" }
+        ],
+        "items": items
+    });
+    write_file(path, &serde_json::to_string_pretty(&payload).unwrap());
+}
+
 fn finalize_report(root: &Path, report_id: &str, kind: &str, entrypoint: &str, artifacts: &[&str]) {
     let mut command = sc_compose();
     command
@@ -1812,6 +1843,81 @@ fn phase_b_reference_fixtures_produce_publish_manifest_for_distinct_report_famil
     assert!(manifest_text.contains("\"report_id\": \"state-diagrams\""));
     assert!(manifest_text.contains("\"report_id\": \"sql-diagrams\""));
     assert!(manifest_text.contains("\"report_id\": \"report-evidence-summary\""));
+}
+
+#[test]
+fn report_evidence_summary_renders_large_variable_payload() {
+    let root = temp_root("report-evidence-summary-large-payload");
+    stage_phase_b_reference_assets(&root);
+    let vars_path = root
+        .join("examples")
+        .join("report-evidence-summary.large-vars.json");
+    let output_path = root
+        .join("reports")
+        .join("latest")
+        .join("report-evidence-summary")
+        .join("large.html");
+    write_large_report_evidence_vars(&vars_path);
+    fs::create_dir_all(output_path.parent().unwrap()).unwrap();
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("examples/report-evidence-summary.html.j2")
+        .arg("--var-file")
+        .arg(&vars_path)
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let rendered = fs::read_to_string(&output_path).unwrap();
+    assert!(rendered.contains("Large Report Evidence Summary"));
+    assert!(rendered.contains("Generated item 0"));
+    assert!(rendered.contains("Generated item 159"));
+}
+
+#[test]
+fn render_supports_multi_level_nested_includes() {
+    let root = temp_root("nested-include-proof");
+    write_file(
+        &root.join("partials").join("footer.md.j2"),
+        "Footer for {{ owner }}\n",
+    );
+    write_file(
+        &root.join("partials").join("middle.md.j2"),
+        "Middle start\n@<footer.md.j2>\nMiddle end\n",
+    );
+    write_file(
+        &root.join("nested-root.md.j2"),
+        "---\nrequired_variables:\n  - owner\n---\nTop start\n@<partials/middle.md.j2>\nTop end\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("nested-root.md.j2")
+        .arg("--var")
+        .arg("owner=Phase B")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let rendered = String::from_utf8(output.stdout).unwrap();
+    assert!(rendered.contains("Top start"));
+    assert!(rendered.contains("Middle start"));
+    assert!(rendered.contains("Footer for Phase B"));
+    assert!(rendered.contains("Middle end"));
+    assert!(rendered.contains("Top end"));
 }
 
 #[test]

@@ -3,24 +3,18 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 
 use anyhow::anyhow;
-use sc_composer::{CompositionObserver, Diagnostic, DiagnosticCode};
+use sc_composer::{CompositionObserver, DiagnosticCode};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::CommandError;
+use crate::reporting::init::ReportsSmokeResult;
 use crate::reporting::mermaid::render_mermaid;
 use crate::reporting::output::{ReportOutputRequest, write_report_metadata_and_archive};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum SpecKind {
-    StateMachine,
-    SqlQuery,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct SpecHeader {
-    pub(crate) kind: SpecKind,
+    pub(crate) kind: String,
     pub(crate) id: String,
     pub(crate) title: String,
     #[serde(default)]
@@ -126,22 +120,7 @@ pub(crate) enum ReportSpec {
     SqlQuery(SqlQuerySpec),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(crate) struct ReportsRenderSpecResult {
-    pub(crate) report_id: String,
-    pub(crate) kind: String,
-    pub(crate) produced_at: String,
-    pub(crate) status: String,
-    #[serde(serialize_with = "crate::path_utils::serialize_path")]
-    pub(crate) entrypoint: PathBuf,
-    #[serde(serialize_with = "crate::path_utils::serialize_path")]
-    pub(crate) metadata: PathBuf,
-    #[serde(serialize_with = "crate::path_utils::serialize_paths")]
-    pub(crate) artifacts: Vec<PathBuf>,
-    #[serde(serialize_with = "crate::path_utils::serialize_paths")]
-    pub(crate) archived_artifacts: Vec<PathBuf>,
-    pub(crate) warnings: Vec<Diagnostic>,
-}
+pub(crate) type ReportsRenderSpecResult = ReportsSmokeResult;
 
 #[derive(Debug)]
 pub(crate) enum ReportSpecError {
@@ -338,14 +317,9 @@ impl ReportSpec {
             serde_json::to_value(self.renderer_targets())
                 .map_err(ReportSpecError::SerializeJson)?,
         );
-        metadata.insert(
-            "copy_json".to_owned(),
-            serde_json::to_value(self).map_err(ReportSpecError::SerializeJson)?,
-        );
-        metadata.insert(
-            "spec".to_owned(),
-            serde_json::to_value(self).map_err(ReportSpecError::SerializeJson)?,
-        );
+        let spec_json = serde_json::to_value(self).map_err(ReportSpecError::SerializeJson)?;
+        metadata.insert("copy_json".to_owned(), spec_json.clone());
+        metadata.insert("spec".to_owned(), spec_json);
         Ok(metadata)
     }
 

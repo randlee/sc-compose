@@ -1,3 +1,4 @@
+mod command_error;
 mod commands;
 mod exit_codes;
 mod json_output;
@@ -7,8 +8,8 @@ mod path_utils;
 mod render_request;
 mod reporting;
 mod template_store;
+mod var_file;
 
-use std::fmt;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
@@ -16,22 +17,21 @@ use anyhow::{Result, anyhow};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use mimalloc::MiMalloc;
 use sc_composer::{
-    ComposeError, ComposeMode, ComposeRequest, CompositionObserver, Diagnostic, DiagnosticCode,
-    DiagnosticSeverity, FrontmatterInitResult, RecoveryHint, RecoveryHintKind,
+    ComposeMode, ComposeRequest, CompositionObserver, Diagnostic, DiagnosticCode,
+    FrontmatterInitResult,
 };
 
+pub(crate) use crate::command_error::CommandError;
 use crate::commands::examples::{run_examples_list, run_examples_render};
+use crate::commands::reports::{
+    ReportCatalogArgs, ReportRenderManyArgs, ReportsArgs, ReportsSubcommand, run_report_catalog,
+    run_report_render_many, run_reports_finalize, run_reports_index, run_reports_init,
+    run_reports_publish_manifest, run_reports_render_spec, run_reports_smoke, run_reports_verify,
+};
 use crate::commands::templates::{run_templates_add, run_templates_list, run_templates_render};
 use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
 use crate::path_utils::to_forward_slash;
 use crate::render_request::{build_request, read_block_pair};
-use crate::reporting::catalog::ReportCatalog;
-use crate::reporting::index::{build_report_index, verify_required_reports};
-use crate::reporting::init::{init_report_scaffold, run_smoke_report};
-use crate::reporting::output::{FinalizeReportRequest, finalize_report_outputs};
-use crate::reporting::publish_manifest::write_publish_manifest;
-use crate::reporting::render_many::{RenderManyRequest, SourceSetDefinition, render_many};
-use crate::reporting::spec::run_render_spec_report;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -274,134 +274,6 @@ struct TemplatesAddArgs {
     json: bool,
 }
 
-#[derive(Debug, Clone, Args)]
-struct ReportsArgs {
-    #[command(subcommand)]
-    command: ReportsSubcommand,
-}
-
-#[derive(Debug, Clone, Subcommand)]
-enum ReportsSubcommand {
-    #[command(about = "Initialize the shared reports scaffold")]
-    Init(ReportsInitArgs),
-    #[command(about = "Run the shared smoke-report fixture harness")]
-    Smoke(ReportsSmokeArgs),
-    #[command(about = "Write shared report metadata and archive outputs for one producer result")]
-    Finalize(ReportsFinalizeArgs),
-    #[command(about = "Render one semantic diagram spec to Mermaid output")]
-    RenderSpec(ReportsRenderSpecArgs),
-    #[command(about = "Summarize latest report entrypoints and sidecars")]
-    Index(ReportsIndexArgs),
-    #[command(about = "Verify required report evidence from the catalog")]
-    Verify(ReportsVerifyArgs),
-    #[command(about = "Write one machine-readable publish manifest for current report outputs")]
-    PublishManifest(ReportsPublishManifestArgs),
-}
-
-#[derive(Debug, Clone, Args)]
-struct ReportsInitArgs {
-    #[arg(long, default_value = ".")]
-    root: PathBuf,
-    #[arg(long)]
-    json: bool,
-}
-
-#[derive(Debug, Clone, Args)]
-struct ReportsSmokeArgs {
-    #[arg(long, default_value = ".")]
-    root: PathBuf,
-    #[arg(long)]
-    fixture: PathBuf,
-    #[arg(long)]
-    vars: PathBuf,
-    #[arg(long)]
-    archive: bool,
-    #[arg(long)]
-    json: bool,
-}
-
-#[derive(Debug, Clone, Args)]
-struct ReportsFinalizeArgs {
-    #[arg(long, default_value = ".")]
-    root: PathBuf,
-    #[arg(long = "report-id")]
-    report_id: String,
-    #[arg(long)]
-    kind: String,
-    #[arg(long, default_value = "pass")]
-    status: String,
-    #[arg(long)]
-    entrypoint: PathBuf,
-    #[arg(long = "artifact", action = clap::ArgAction::Append)]
-    artifacts: Vec<PathBuf>,
-    #[arg(long)]
-    archive: bool,
-    #[arg(long)]
-    json: bool,
-}
-
-#[derive(Debug, Clone, Args)]
-struct ReportsIndexArgs {
-    #[arg(long, default_value = ".")]
-    root: PathBuf,
-    #[arg(long)]
-    json: bool,
-}
-
-#[derive(Debug, Clone, Args)]
-struct ReportsVerifyArgs {
-    #[arg(long, default_value = ".")]
-    root: PathBuf,
-    #[arg(long)]
-    json: bool,
-}
-
-#[derive(Debug, Clone, Args)]
-struct ReportsRenderSpecArgs {
-    #[arg(long, default_value = ".")]
-    root: PathBuf,
-    #[arg(long = "spec")]
-    spec_path: PathBuf,
-    #[arg(long)]
-    archive: bool,
-    #[arg(long)]
-    json: bool,
-}
-
-#[derive(Debug, Clone, Args)]
-struct ReportsPublishManifestArgs {
-    #[arg(long, default_value = ".")]
-    root: PathBuf,
-    #[arg(long)]
-    json: bool,
-}
-
-#[derive(Debug, Clone, Args)]
-struct ReportCatalogArgs {
-    #[arg(long, default_value = ".")]
-    root: PathBuf,
-    #[arg(long)]
-    json: bool,
-}
-
-#[derive(Debug, Clone, Args)]
-struct ReportRenderManyArgs {
-    #[arg(long, default_value = ".")]
-    root: PathBuf,
-    #[arg(long)]
-    id: String,
-    #[arg(long)]
-    glob: String,
-    #[arg(long, conflicts_with = "template_family")]
-    template: Option<String>,
-    #[arg(long = "template-family", conflicts_with = "template")]
-    template_family: Option<String>,
-    #[arg(long = "output-dir")]
-    output_dir: PathBuf,
-    #[arg(long)]
-    json: bool,
-}
-
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum Mode {
     Profile,
@@ -498,35 +370,51 @@ fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, Comma
                 run_observability_health(&args, observer)
             })
         }
-        Command::Examples(args) => match &args.command {
-            Some(ExamplesSubcommand::List(list_args)) => {
-                observe_command(observer, "examples", list_args.json, |_observer| {
-                    run_examples_list(list_args)
+        Command::Examples(args) => run_examples_command(&args, observer),
+        Command::Templates(args) => run_templates_command(&args, observer),
+        Command::Reports(args) => match &args.command {
+            ReportsSubcommand::Init(init_args) => {
+                observe_command(observer, "reports-init", init_args.json, |_observer| {
+                    run_reports_init(init_args)
                 })
             }
-            None => observe_command(observer, "examples", args.render.json, |observer| {
-                run_examples_render(&args, observer)
-            }),
+            ReportsSubcommand::Smoke(smoke_args) => {
+                observe_command(observer, "reports-smoke", smoke_args.json, |observer| {
+                    run_reports_smoke(smoke_args, observer)
+                })
+            }
+            ReportsSubcommand::Finalize(finalize_args) => observe_command(
+                observer,
+                "reports-finalize",
+                finalize_args.json,
+                |_observer| run_reports_finalize(finalize_args),
+            ),
+            ReportsSubcommand::RenderSpec(render_args) => observe_command(
+                observer,
+                "reports-render-spec",
+                render_args.json,
+                |observer| run_reports_render_spec(render_args, observer),
+            ),
+            ReportsSubcommand::Index(index_args) => {
+                observe_command(observer, "reports-index", index_args.json, |_observer| {
+                    run_reports_index(index_args)
+                })
+            }
+            ReportsSubcommand::Verify(verify_args) => {
+                observe_command(observer, "reports-verify", verify_args.json, |_observer| {
+                    run_reports_verify(verify_args)
+                })
+            }
+            ReportsSubcommand::PublishManifest(publish_args) => observe_command(
+                observer,
+                "reports-publish-manifest",
+                publish_args.json,
+                |_observer| run_reports_publish_manifest(publish_args),
+            ),
         },
-        Command::Templates(args) => match &args.command {
-            Some(TemplatesSubcommand::List(list_args)) => {
-                observe_command(observer, "templates", list_args.json, |_observer| {
-                    run_templates_list(list_args)
-                })
-            }
-            Some(TemplatesSubcommand::Add(add_args)) => {
-                observe_command(observer, "templates", add_args.json, |_observer| {
-                    run_templates_add(add_args)
-                })
-            }
-            None => observe_command(observer, "templates", args.render.json, |observer| {
-                run_templates_render(&args, observer)
-            }),
-        },
-        Command::Reports(args) => run_reports_command(&args, observer),
         Command::ReportRenderMany(args) => {
             observe_command(observer, "report-render-many", args.json, |_observer| {
-                run_report_render_many(args)
+                run_report_render_many(&args)
             })
         }
         Command::ReportCatalog(args) => {
@@ -537,343 +425,41 @@ fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, Comma
     }
 }
 
-fn run_reports_init(args: &ReportsInitArgs) -> Result<i32, CommandError> {
-    let result = init_report_scaffold(&args.root)?;
-    if args.json {
-        let payload = serde_json::json!({
-            "workspace_root": to_forward_slash(&result.workspace_root),
-            "created_paths": result.created_paths,
-        });
-        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
-    } else {
-        println!("workspace_root: {}", result.workspace_root.display());
-        for path in &result.created_paths {
-            println!("created: {path}");
-        }
-    }
-    Ok(exit_codes::SUCCESS)
-}
-
-fn run_reports_command(
-    args: &ReportsArgs,
+fn run_examples_command(
+    args: &ExamplesArgs,
     observer: &mut observer_impl::CliObserver,
 ) -> Result<i32, CommandError> {
     match &args.command {
-        ReportsSubcommand::Init(init_args) => {
-            observe_command(observer, "reports-init", init_args.json, |_observer| {
-                run_reports_init(init_args)
+        Some(ExamplesSubcommand::List(list_args)) => {
+            observe_command(observer, "examples", list_args.json, |_observer| {
+                run_examples_list(list_args)
             })
         }
-        ReportsSubcommand::Smoke(smoke_args) => {
-            observe_command(observer, "reports-smoke", smoke_args.json, |observer| {
-                run_reports_smoke(smoke_args, observer)
-            })
-        }
-        ReportsSubcommand::Finalize(finalize_args) => observe_command(
-            observer,
-            "reports-finalize",
-            finalize_args.json,
-            |_observer| run_reports_finalize(finalize_args),
-        ),
-        ReportsSubcommand::RenderSpec(render_args) => observe_command(
-            observer,
-            "reports-render-spec",
-            render_args.json,
-            |observer| run_reports_render_spec(render_args, observer),
-        ),
-        ReportsSubcommand::Index(index_args) => {
-            observe_command(observer, "reports-index", index_args.json, |_observer| {
-                run_reports_index(index_args)
-            })
-        }
-        ReportsSubcommand::Verify(verify_args) => {
-            observe_command(observer, "reports-verify", verify_args.json, |_observer| {
-                run_reports_verify(verify_args)
-            })
-        }
-        ReportsSubcommand::PublishManifest(publish_args) => observe_command(
-            observer,
-            "reports-publish-manifest",
-            publish_args.json,
-            |_observer| run_reports_publish_manifest(publish_args),
-        ),
+        None => observe_command(observer, "examples", args.render.json, |observer| {
+            run_examples_render(args, observer)
+        }),
     }
 }
 
-fn run_reports_smoke(
-    args: &ReportsSmokeArgs,
-    observer: &mut dyn CompositionObserver,
+fn run_templates_command(
+    args: &TemplatesArgs,
+    observer: &mut observer_impl::CliObserver,
 ) -> Result<i32, CommandError> {
-    let result = run_smoke_report(
-        &args.root,
-        &args.fixture,
-        &args.vars,
-        args.archive,
-        observer,
-    )?;
-    if args.json {
-        let payload = serde_json::json!({
-            "report_id": result.report_id,
-            "kind": result.kind,
-            "produced_at": result.produced_at,
-            "status": result.status,
-            "entrypoint": to_forward_slash(&result.entrypoint),
-            "metadata": to_forward_slash(&result.metadata),
-            "artifacts": result.artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
-            "archived_artifacts": result.archived_artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
-        });
-        print_json(payload, result.warnings).map_err(CommandError::usage)?;
-    } else {
-        println!("report_id: {}", result.report_id);
-        println!("kind: {}", result.kind);
-        println!("produced_at: {}", result.produced_at);
-        println!("status: {}", result.status);
-        println!("entrypoint: {}", result.entrypoint.display());
-        println!("metadata: {}", result.metadata.display());
-        for artifact in &result.artifacts {
-            println!("artifact: {}", artifact.display());
+    match &args.command {
+        Some(TemplatesSubcommand::List(list_args)) => {
+            observe_command(observer, "templates", list_args.json, |_observer| {
+                run_templates_list(list_args)
+            })
         }
-        for artifact in &result.archived_artifacts {
-            println!("archived: {}", artifact.display());
+        Some(TemplatesSubcommand::Add(add_args)) => {
+            observe_command(observer, "templates", add_args.json, |_observer| {
+                run_templates_add(add_args)
+            })
         }
-        if !result.warnings.is_empty() {
-            print_diagnostic_messages(&result.warnings);
-        }
+        None => observe_command(observer, "templates", args.render.json, |observer| {
+            run_templates_render(args, observer)
+        }),
     }
-    Ok(exit_codes::SUCCESS)
-}
-
-fn run_reports_render_spec(
-    args: &ReportsRenderSpecArgs,
-    observer: &mut dyn CompositionObserver,
-) -> Result<i32, CommandError> {
-    let result = run_render_spec_report(&args.root, &args.spec_path, args.archive, observer)?;
-    if args.json {
-        let payload = serde_json::json!({
-            "report_id": result.report_id,
-            "kind": result.kind,
-            "produced_at": result.produced_at,
-            "status": result.status,
-            "entrypoint": to_forward_slash(&result.entrypoint),
-            "metadata": to_forward_slash(&result.metadata),
-            "artifacts": result.artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
-            "archived_artifacts": result.archived_artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
-        });
-        print_json(payload, result.warnings).map_err(CommandError::usage)?;
-    } else {
-        println!("report_id: {}", result.report_id);
-        println!("kind: {}", result.kind);
-        println!("produced_at: {}", result.produced_at);
-        println!("status: {}", result.status);
-        println!("entrypoint: {}", result.entrypoint.display());
-        println!("metadata: {}", result.metadata.display());
-        for artifact in &result.artifacts {
-            println!("artifact: {}", artifact.display());
-        }
-        for artifact in &result.archived_artifacts {
-            println!("archived: {}", artifact.display());
-        }
-    }
-    Ok(exit_codes::SUCCESS)
-}
-
-fn run_reports_finalize(args: &ReportsFinalizeArgs) -> Result<i32, CommandError> {
-    let result = finalize_report_outputs(
-        &args.root,
-        &FinalizeReportRequest {
-            report_id: args.report_id.clone(),
-            kind: args.kind.clone(),
-            status: args.status.clone(),
-            entrypoint: args.entrypoint.clone(),
-            artifacts: args.artifacts.clone(),
-            archive: args.archive,
-        },
-    )
-    .map_err(|error| {
-        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-    })?;
-
-    if args.json {
-        let payload = serde_json::json!({
-            "report_id": result.report_id,
-            "kind": result.kind,
-            "produced_at": result.produced_at,
-            "status": result.status,
-            "entrypoint": to_forward_slash(&result.entrypoint),
-            "metadata": to_forward_slash(&result.metadata),
-            "artifacts": result.latest_artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
-            "archived_artifacts": result.archived_artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
-        });
-        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
-    } else {
-        println!("report_id: {}", result.report_id);
-        println!("kind: {}", result.kind);
-        println!("produced_at: {}", result.produced_at);
-        println!("status: {}", result.status);
-        println!("entrypoint: {}", result.entrypoint.display());
-        println!("metadata: {}", result.metadata.display());
-        for artifact in &result.latest_artifacts {
-            println!("artifact: {}", artifact.display());
-        }
-        for artifact in &result.archived_artifacts {
-            println!("archived: {}", artifact.display());
-        }
-    }
-    Ok(exit_codes::SUCCESS)
-}
-
-fn run_reports_index(args: &ReportsIndexArgs) -> Result<i32, CommandError> {
-    let index = build_report_index(&args.root).map_err(|error| {
-        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-    })?;
-    if args.json {
-        let payload = serde_json::json!({
-            "report_count": index.entries.len(),
-            "entries": index.entries,
-        });
-        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
-    } else {
-        println!("reports: {}", index.entries.len());
-        for entry in &index.entries {
-            println!(
-                "{} kind={} required={} status={} entrypoint={} metadata={}",
-                entry.report_id,
-                entry.kind,
-                entry.required,
-                entry.status.as_deref().unwrap_or("missing"),
-                entry.entrypoint.display(),
-                entry.metadata.display()
-            );
-            if !entry.missing_paths.is_empty() {
-                for missing in &entry.missing_paths {
-                    println!("missing: {}", missing.display());
-                }
-            }
-        }
-    }
-    Ok(exit_codes::SUCCESS)
-}
-
-fn run_reports_verify(args: &ReportsVerifyArgs) -> Result<i32, CommandError> {
-    let result = verify_required_reports(&args.root).map_err(|error| {
-        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-    })?;
-    if args.json {
-        let payload = serde_json::json!({
-            "required_count": result.required_count,
-            "verified_count": result.verified_count,
-        });
-        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
-    } else {
-        println!(
-            "verified required reports: {}/{}",
-            result.verified_count, result.required_count
-        );
-    }
-    Ok(exit_codes::SUCCESS)
-}
-
-fn run_reports_publish_manifest(args: &ReportsPublishManifestArgs) -> Result<i32, CommandError> {
-    let result = write_publish_manifest(&args.root).map_err(|error| {
-        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-    })?;
-    if args.json {
-        let payload = serde_json::json!({
-            "manifest_path": to_forward_slash(&result.manifest_path),
-            "report_count": result.report_count,
-            "manifest": result.manifest,
-        });
-        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
-    } else {
-        println!("manifest: {}", result.manifest_path.display());
-        println!("reports: {}", result.report_count);
-        for report in &result.manifest.reports {
-            println!(
-                "{} kind={} entrypoint={}",
-                report.report_id,
-                report.kind,
-                report.entrypoint.display()
-            );
-            if let Some(archive_root) = &report.archive_root {
-                println!("archive_root: {}", archive_root.display());
-            }
-            for file in &report.files {
-                println!(
-                    "file role={} path={} publish_to={}",
-                    file.role,
-                    file.path.display(),
-                    file.publish_to.display()
-                );
-            }
-        }
-    }
-    Ok(exit_codes::SUCCESS)
-}
-
-fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, CommandError> {
-    let catalog = ReportCatalog::load(&args.root).map_err(|error| {
-        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-    })?;
-
-    if args.json {
-        let payload = serde_json::json!({
-            "catalog_path": to_forward_slash(&catalog.catalog_path),
-            "report_count": catalog.reports.len(),
-            "reports": catalog.reports,
-        });
-        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
-    } else {
-        println!("catalog: {}", catalog.catalog_path.display());
-        println!("reports: {}", catalog.reports.len());
-        for report in &catalog.reports {
-            println!(
-                "{} kind={} producer={} required={} entrypoint={} metadata={}",
-                report.id,
-                report.kind,
-                report.producer,
-                report.required,
-                report.entrypoint.display(),
-                report.metadata.display()
-            );
-        }
-    }
-
-    Ok(exit_codes::SUCCESS)
-}
-
-fn run_report_render_many(args: ReportRenderManyArgs) -> Result<i32, CommandError> {
-    let template_selector = args.template.clone().unwrap_or_default();
-    let request = RenderManyRequest {
-        root: args.root,
-        source_set: SourceSetDefinition {
-            id: args.id,
-            glob: args.glob,
-            template_selector,
-            template_family: args.template_family,
-            output_dir: args.output_dir,
-        },
-    };
-    let result = render_many(&request).map_err(|error| {
-        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-    })?;
-
-    if args.json {
-        let payload = serde_json::json!({
-            "manifest_path": to_forward_slash(&result.manifest_path),
-            "output_count": result.generated_outputs.len(),
-            "generated_outputs": result.generated_outputs.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
-            "entries": result.entries,
-        });
-        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
-    } else {
-        println!("manifest: {}", result.manifest_path.display());
-        println!("outputs: {}", result.generated_outputs.len());
-        for output in &result.generated_outputs {
-            println!("generated: {}", output.display());
-        }
-    }
-
-    Ok(exit_codes::SUCCESS)
 }
 
 fn run_render(
@@ -1227,21 +813,17 @@ fn command_wants_json(command: &Command) -> bool {
             Some(TemplatesSubcommand::Add(add_args)) => add_args.json,
             None => args.render.json,
         },
-        Command::Reports(args) => reports_command_wants_json(args),
+        Command::Reports(args) => match &args.command {
+            ReportsSubcommand::Init(init_args) => init_args.json,
+            ReportsSubcommand::Smoke(smoke_args) => smoke_args.json,
+            ReportsSubcommand::Finalize(finalize_args) => finalize_args.json,
+            ReportsSubcommand::RenderSpec(render_args) => render_args.json,
+            ReportsSubcommand::Index(index_args) => index_args.json,
+            ReportsSubcommand::Verify(verify_args) => verify_args.json,
+            ReportsSubcommand::PublishManifest(publish_args) => publish_args.json,
+        },
         Command::ReportRenderMany(args) => args.json,
         Command::ReportCatalog(args) => args.json,
-    }
-}
-
-fn reports_command_wants_json(args: &ReportsArgs) -> bool {
-    match &args.command {
-        ReportsSubcommand::Init(init_args) => init_args.json,
-        ReportsSubcommand::Smoke(smoke_args) => smoke_args.json,
-        ReportsSubcommand::Finalize(finalize_args) => finalize_args.json,
-        ReportsSubcommand::RenderSpec(render_args) => render_args.json,
-        ReportsSubcommand::Index(index_args) => index_args.json,
-        ReportsSubcommand::Verify(verify_args) => verify_args.json,
-        ReportsSubcommand::PublishManifest(publish_args) => publish_args.json,
     }
 }
 
@@ -1324,19 +906,6 @@ fn format_diagnostic(diagnostic: &sc_composer::Diagnostic) -> String {
     }
 }
 
-fn format_recovery_hint(hint: &RecoveryHint) -> String {
-    match &hint.kind {
-        RecoveryHintKind::RunCommand { command } => format!("run `{command}`"),
-        RecoveryHintKind::InspectPath { path } => format!("inspect {}", path.display()),
-        RecoveryHintKind::ProvideVariable { variable } => {
-            format!("provide variable `{}`", variable.as_str())
-        }
-        RecoveryHintKind::ReviewConfiguration { key } => {
-            format!("review configuration: {key}")
-        }
-    }
-}
-
 fn actual_init_created_files(prompts_dir_missing: bool, gitignore_updated: bool) -> Vec<String> {
     let mut created = Vec::new();
     if prompts_dir_missing {
@@ -1346,149 +915,6 @@ fn actual_init_created_files(prompts_dir_missing: bool, gitignore_updated: bool)
         created.push(".gitignore".to_owned());
     }
     created
-}
-
-#[derive(Debug)]
-struct CommandError {
-    exit_code: i32,
-    diagnostic_code: Option<DiagnosticCode>,
-    diagnostics: Vec<Diagnostic>,
-    recovery_hints: Vec<RecoveryHint>,
-    error: anyhow::Error,
-}
-
-impl CommandError {
-    fn usage(error: anyhow::Error) -> Self {
-        Self {
-            exit_code: exit_codes::USAGE_FAIL,
-            diagnostic_code: None,
-            diagnostics: Vec::new(),
-            recovery_hints: Vec::new(),
-            error,
-        }
-    }
-
-    fn usage_with_code(error: anyhow::Error, diagnostic_code: DiagnosticCode) -> Self {
-        Self::usage_with_code_and_hints(error, diagnostic_code, Vec::new())
-    }
-
-    fn usage_with_code_and_hints(
-        error: anyhow::Error,
-        diagnostic_code: DiagnosticCode,
-        recovery_hints: Vec<RecoveryHint>,
-    ) -> Self {
-        Self {
-            exit_code: exit_codes::USAGE_FAIL,
-            diagnostic_code: Some(diagnostic_code),
-            diagnostics: vec![Diagnostic::new(
-                DiagnosticSeverity::Error,
-                diagnostic_code,
-                format!("{error:#}"),
-            )],
-            recovery_hints,
-            error,
-        }
-    }
-
-    fn compose(error: ComposeError) -> Self {
-        let exit_code = match &error {
-            ComposeError::Validation(_) | ComposeError::Render(_) | ComposeError::Include(_) => {
-                exit_codes::VALIDATION_OR_RENDER_FAIL
-            }
-            ComposeError::Resolve(_) | ComposeError::Config(_) => exit_codes::USAGE_FAIL,
-        };
-        Self {
-            exit_code,
-            diagnostic_code: error.code(),
-            diagnostics: compose_error_diagnostics(&error),
-            recovery_hints: compose_error_recovery_hints(&error),
-            error: anyhow!(error),
-        }
-    }
-
-    fn render_write(error: anyhow::Error) -> Self {
-        Self {
-            exit_code: exit_codes::VALIDATION_OR_RENDER_FAIL,
-            diagnostic_code: Some(DiagnosticCode::ErrRenderWrite),
-            diagnostics: vec![Diagnostic::new(
-                DiagnosticSeverity::Error,
-                DiagnosticCode::ErrRenderWrite,
-                format!("{error:#}"),
-            )],
-            recovery_hints: Vec::new(),
-            error,
-        }
-    }
-
-    fn stdin_double_read() -> Self {
-        Self {
-            exit_code: exit_codes::VALIDATION_OR_RENDER_FAIL,
-            diagnostic_code: Some(DiagnosticCode::ErrRenderStdinDoubleRead),
-            diagnostics: vec![Diagnostic::new(
-                DiagnosticSeverity::Error,
-                DiagnosticCode::ErrRenderStdinDoubleRead,
-                "guidance and prompt cannot both read from stdin",
-            )],
-            recovery_hints: Vec::new(),
-            error: anyhow!("guidance and prompt cannot both read from stdin"),
-        }
-    }
-}
-
-impl fmt::Display for CommandError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(code) = self.diagnostic_code {
-            write!(f, "{}: {:#}", code.as_str(), self.error)?;
-        } else {
-            write!(f, "{:#}", self.error)?;
-        }
-        for hint in &self.recovery_hints {
-            write!(f, "\nrecovery: {}", format_recovery_hint(hint))?;
-        }
-        Ok(())
-    }
-}
-
-impl std::error::Error for CommandError {}
-
-fn compose_error_diagnostics(error: &ComposeError) -> Vec<Diagnostic> {
-    match error {
-        ComposeError::Validation(validation) if !validation.diagnostics().is_empty() => {
-            validation.diagnostics().to_vec()
-        }
-        ComposeError::Resolve(resolve) => vec![Diagnostic::new(
-            DiagnosticSeverity::Error,
-            resolve.code(),
-            resolve.message(),
-        )],
-        ComposeError::Include(include) => vec![
-            Diagnostic::new(DiagnosticSeverity::Error, include.code(), include.message())
-                .with_include_chain(include.include_chain().to_vec()),
-        ],
-        ComposeError::Validation(validation) => vec![Diagnostic::new(
-            DiagnosticSeverity::Error,
-            validation.code(),
-            validation.message(),
-        )],
-        ComposeError::Render(render) => vec![Diagnostic::new(
-            DiagnosticSeverity::Error,
-            render.code().unwrap_or(DiagnosticCode::ErrRenderWrite),
-            render.message(),
-        )],
-        ComposeError::Config(config) => vec![Diagnostic::new(
-            DiagnosticSeverity::Error,
-            config.code(),
-            config.message(),
-        )],
-    }
-}
-
-fn compose_error_recovery_hints(error: &ComposeError) -> Vec<RecoveryHint> {
-    match error {
-        ComposeError::Validation(error) => error.recovery_hints().to_vec(),
-        ComposeError::Config(error) => error.recovery_hints().to_vec(),
-        ComposeError::Resolve(_) | ComposeError::Include(_) | ComposeError::Render(_) => Vec::new(),
-    }
 }
 
 #[cfg(test)]

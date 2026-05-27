@@ -5,19 +5,18 @@ use std::path::{Path, PathBuf};
 use anyhow::anyhow;
 use sc_composer::{
     ComposeMode, ComposePolicy, ComposeRequest, CompositionObserver, ConfiningRoot, Diagnostic,
-    DiagnosticCode, InputValue, VariableName, compose_with_observer, input_value_from_yaml,
-    validate_input_value,
+    DiagnosticCode, compose_with_observer,
 };
 use serde::Serialize;
 
 use crate::CommandError;
+use crate::reporting::catalog::REPORT_CATALOG_RELATIVE_PATH;
 use crate::reporting::output::{
-    MaterializedReport, ReportOutputRequest, write_report_metadata_and_archive,
+    ARCHIVE_ROOT_RELATIVE_PATH, LATEST_ROOT_RELATIVE_PATH, MaterializedReport, ReportOutputRequest,
+    write_report_metadata_and_archive,
 };
+use crate::var_file::load_var_file;
 
-pub(crate) const STARTER_CATALOG_RELATIVE_PATH: &str = "reports/catalog/reports.toml";
-pub(crate) const STARTER_LATEST_RELATIVE_PATH: &str = "reports/latest";
-pub(crate) const STARTER_ARCHIVE_RELATIVE_PATH: &str = "reports/archive";
 pub(crate) const STARTER_TEMPLATES_RELATIVE_PATH: &str = "reports/templates";
 pub(crate) const STARTER_SMOKE_DIR_RELATIVE_PATH: &str = "reports/smoke";
 pub(crate) const STARTER_SMOKE_FIXTURE_RELATIVE_PATH: &str =
@@ -98,12 +97,12 @@ pub(crate) fn init_report_scaffold(root: &Path) -> Result<ReportsInitResult, Com
     let mut created_paths = Vec::new();
     ensure_dir(
         &workspace_root,
-        STARTER_LATEST_RELATIVE_PATH,
+        LATEST_ROOT_RELATIVE_PATH,
         &mut created_paths,
     )?;
     ensure_dir(
         &workspace_root,
-        STARTER_ARCHIVE_RELATIVE_PATH,
+        ARCHIVE_ROOT_RELATIVE_PATH,
         &mut created_paths,
     )?;
     ensure_dir(
@@ -118,7 +117,7 @@ pub(crate) fn init_report_scaffold(root: &Path) -> Result<ReportsInitResult, Com
     )?;
     write_if_missing(
         &workspace_root,
-        STARTER_CATALOG_RELATIVE_PATH,
+        REPORT_CATALOG_RELATIVE_PATH,
         STARTER_REPORTS_TOML,
         &mut created_paths,
     )?;
@@ -311,86 +310,4 @@ fn resolve_relative_path(workspace_root: &Path, path: &Path) -> Result<PathBuf, 
             DiagnosticCode::ErrConfigParse,
         )
     })
-}
-
-fn load_var_file(path: &Path) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
-    let contents = fs::read_to_string(path).map_err(|error| {
-        CommandError::usage_with_code(
-            anyhow!(error).context(format!("failed to read var-file {}", path.display())),
-            DiagnosticCode::ErrConfigParse,
-        )
-    })?;
-
-    if let Ok(value) = serde_json::from_str::<serde_json::Value>(&contents) {
-        return parse_object_value(&value);
-    }
-    let value = serde_yaml::from_str::<serde_yaml::Value>(&contents).map_err(|error| {
-        CommandError::usage_with_code(
-            anyhow!(error).context("var-file must be valid JSON or YAML"),
-            DiagnosticCode::ErrConfigParse,
-        )
-    })?;
-    let serde_yaml::Value::Mapping(object) = value else {
-        return Err(CommandError::usage_with_code(
-            anyhow!("var-file must be a JSON or YAML object"),
-            DiagnosticCode::ErrConfigVarfile,
-        ));
-    };
-
-    let mut vars = BTreeMap::new();
-    for (key, value) in object {
-        let key = key.as_str().ok_or_else(|| {
-            CommandError::usage_with_code(
-                anyhow!("var-file keys must be strings"),
-                DiagnosticCode::ErrConfigVarfile,
-            )
-        })?;
-        vars.insert(
-            VariableName::new(key.to_owned()).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!("invalid var-file key `{key}`: {error}"),
-                    DiagnosticCode::ErrConfigVarfile,
-                )
-            })?,
-            input_value_from_yaml(value).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!("invalid var-file value for `{key}`: {error}"),
-                    error.code(),
-                )
-            })?,
-        );
-    }
-    Ok(vars)
-}
-
-fn parse_object_value(
-    value: &serde_json::Value,
-) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
-    let object = value.as_object().ok_or_else(|| {
-        CommandError::usage_with_code(
-            anyhow!("var-file must be a JSON object"),
-            DiagnosticCode::ErrConfigVarfile,
-        )
-    })?;
-    let mut vars = BTreeMap::new();
-    for (key, value) in object {
-        vars.insert(
-            VariableName::new(key.clone()).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!("invalid var-file key `{key}`: {error}"),
-                    DiagnosticCode::ErrConfigVarfile,
-                )
-            })?,
-            {
-                validate_input_value(value).map_err(|error| {
-                    CommandError::usage_with_code(
-                        anyhow!("invalid var-file value for `{key}`: {error}"),
-                        error.code(),
-                    )
-                })?;
-                value.clone()
-            },
-        );
-    }
-    Ok(vars)
 }
