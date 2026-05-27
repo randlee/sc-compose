@@ -52,7 +52,9 @@ pub fn repo_root() -> PathBuf {
 }
 
 pub fn normalize_path_str(p: impl AsRef<Path>) -> String {
-    p.as_ref().to_string_lossy().replace('\\', "/")
+    let path = p.as_ref().to_string_lossy();
+    let path = path.strip_prefix(r"\\?\").unwrap_or(&path);
+    path.replace('\\', "/")
 }
 
 pub fn write_report_catalog(root: &Path, contents: &str) {
