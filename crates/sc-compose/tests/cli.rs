@@ -1117,6 +1117,14 @@ fn reports_init_creates_scaffold_and_catalog_passes_validator() {
 #[test]
 fn reports_smoke_writes_latest_smoke_artifact_set() {
     let root = temp_root("reports-smoke");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
 
     let output = sc_compose()
@@ -1159,6 +1167,14 @@ fn reports_smoke_writes_latest_smoke_artifact_set() {
 #[test]
 fn reports_smoke_archive_writes_timestamped_archive_copy() {
     let root = temp_root("reports-smoke-archive");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
 
     let output = sc_compose()
@@ -1189,6 +1205,14 @@ fn reports_smoke_archive_writes_timestamped_archive_copy() {
 #[test]
 fn reports_index_summarizes_latest_report_status() {
     let root = temp_root("reports-index");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
     write_report_catalog(
         &root,
@@ -1262,6 +1286,14 @@ metadata = "reports/latest/smoke/report.json"
 #[test]
 fn reports_publish_manifest_writes_machine_readable_handoff() {
     let root = temp_root("reports-publish-manifest");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
     write_report_catalog(
         &root,
@@ -1981,7 +2013,7 @@ fn observability_health_text_reports_process_local_status() {
     assert!(stdout.contains("sink jsonl-file: Healthy"));
     assert!(stdout.contains(&format!(
         "active_log_path: {}",
-        log_root.join("logs").join("sc-compose.log.jsonl").display()
+        normalize_path_str(log_root.join("logs").join("sc-compose.log.jsonl"))
     )));
 }
 
@@ -2004,11 +2036,12 @@ fn observability_health_json_reports_process_local_status() {
         "Running"
     );
     assert_eq!(
-        value["payload"]["logging"]["sink_statuses"][0]["name"],
-        "jsonl-file"
-    );
-    assert_eq!(
-        value["payload"]["logging"]["sink_statuses"][0]["state"],
+        value["payload"]["logging"]["sink_statuses"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|sink| sink["name"] == "jsonl-file")
+            .unwrap()["state"],
         "Healthy"
     );
     assert_eq!(

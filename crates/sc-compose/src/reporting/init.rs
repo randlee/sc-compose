@@ -19,6 +19,7 @@ use crate::var_file::load_var_file;
 
 pub(crate) const STARTER_TEMPLATES_RELATIVE_PATH: &str = "reports/templates";
 pub(crate) const STARTER_SMOKE_DIR_RELATIVE_PATH: &str = "reports/smoke";
+pub(crate) const STARTER_SMOKE_OUTPUT_DIR_RELATIVE_PATH: &str = "reports/latest/smoke";
 pub(crate) const STARTER_SMOKE_FIXTURE_RELATIVE_PATH: &str =
     "reports/smoke/reference-template.html.j2";
 pub(crate) const STARTER_SMOKE_VARS_RELATIVE_PATH: &str = "reports/smoke/sample-vars.json";
@@ -115,6 +116,16 @@ pub(crate) fn init_report_scaffold(root: &Path) -> Result<ReportsInitResult, Com
         STARTER_SMOKE_DIR_RELATIVE_PATH,
         &mut created_paths,
     )?;
+    ensure_dir(
+        &workspace_root,
+        STARTER_SMOKE_OUTPUT_DIR_RELATIVE_PATH,
+        &mut created_paths,
+    )?;
+    ensure_dir(
+        &workspace_root,
+        STARTER_SMOKE_OUTPUT_DIR_RELATIVE_PATH,
+        &mut created_paths,
+    )?;
     write_if_missing(
         &workspace_root,
         REPORT_CATALOG_RELATIVE_PATH,
@@ -195,17 +206,6 @@ pub(crate) fn run_smoke_report(
 
     let result = compose_with_observer(&request, observer).map_err(CommandError::compose)?;
     let entrypoint = workspace_root.join(SMOKE_ENTRYPOINT_RELATIVE_PATH);
-    if let Some(parent) = entrypoint.parent() {
-        fs::create_dir_all(parent).map_err(|error| {
-            CommandError::usage_with_code(
-                anyhow!(error).context(format!(
-                    "failed to create smoke output dir {}",
-                    parent.display()
-                )),
-                DiagnosticCode::ErrConfigParse,
-            )
-        })?;
-    }
     fs::write(&entrypoint, &result.rendered_text).map_err(|error| {
         CommandError::render_write(
             anyhow!(error).context(format!("failed to write {}", entrypoint.display())),
