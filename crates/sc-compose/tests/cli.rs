@@ -842,7 +842,8 @@ metadata = "reports/latest/sc-lint/report.json"
     );
 
     let output = sc_compose()
-        .arg("report-catalog")
+        .arg("reports")
+        .arg("index")
         .arg("--root")
         .arg(&root)
         .output()
@@ -880,7 +881,8 @@ metadata = "reports/latest/sc-lint/report.json"
     );
 
     let output = sc_compose()
-        .arg("report-catalog")
+        .arg("reports")
+        .arg("index")
         .arg("--root")
         .arg(&root)
         .output()
@@ -908,7 +910,8 @@ metadata = "reports/latest/sc-lint/report.json"
     );
 
     let output = sc_compose()
-        .arg("report-catalog")
+        .arg("reports")
+        .arg("index")
         .arg("--root")
         .arg(&root)
         .output()
@@ -936,7 +939,8 @@ metadata = "reports/latest/sc-lint/report.json"
     );
 
     let output = sc_compose()
-        .arg("report-catalog")
+        .arg("reports")
+        .arg("index")
         .arg("--root")
         .arg(&root)
         .output()
@@ -964,7 +968,8 @@ metadata = "reports/latest/sc-lint/report.json"
     );
 
     let output = sc_compose()
-        .arg("report-catalog")
+        .arg("reports")
+        .arg("index")
         .arg("--root")
         .arg(&root)
         .output()

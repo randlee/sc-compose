@@ -5,7 +5,10 @@ use std::path::{Component, Path, PathBuf};
 use serde::Serialize;
 use toml::Value;
 
-const REPORT_CATALOG_RELATIVE_PATH: &str = "reports/catalog/reports.toml";
+pub(crate) const REPORT_CATALOG_RELATIVE_PATH: &str = "reports/catalog/reports.toml";
+pub(crate) const REPORTS_LATEST_ROOT_RELATIVE_PATH: &str = "reports/latest";
+pub(crate) const REPORTS_ARCHIVE_ROOT_RELATIVE_PATH: &str = "reports/archive";
+pub(crate) const REPORT_METADATA_BASENAME: &str = "report.json";
 
 const ALLOWED_REPORT_KINDS: &[&str] = &[
     "lint",
@@ -48,46 +51,49 @@ pub(crate) enum CatalogError {
 
 impl ReportCatalog {
     pub(crate) fn load(repo_root: &Path) -> Result<Self, CatalogError> {
-        let catalog_path = repo_root.join(REPORT_CATALOG_RELATIVE_PATH);
-        let contents =
-            std::fs::read_to_string(&catalog_path).map_err(|source| CatalogError::Read {
-                path: catalog_path.clone(),
-                source,
-            })?;
-        let document = contents
-            .parse::<Value>()
-            .map_err(|source| CatalogError::Parse {
-                path: catalog_path.clone(),
-                source,
-            })?;
-
-        let report_entries = document
-            .get("report")
-            .and_then(Value::as_array)
-            .ok_or_else(|| {
-                CatalogError::Invalid(format!(
-                    "{REPORT_CATALOG_RELATIVE_PATH} must define one or more [[report]] entries"
-                ))
-            })?;
-
-        let mut seen_ids = BTreeSet::new();
-        let mut reports = Vec::with_capacity(report_entries.len());
-        for (index, entry) in report_entries.iter().enumerate() {
-            let report = ReportDefinition::from_value(entry, index)?;
-            if !seen_ids.insert(report.id.clone()) {
-                return Err(CatalogError::Invalid(format!(
-                    "duplicate report id '{}' in {}",
-                    report.id, REPORT_CATALOG_RELATIVE_PATH
-                )));
-            }
-            reports.push(report);
-        }
-
-        Ok(Self {
-            catalog_path,
-            reports,
-        })
+        load_report_catalog(repo_root)
     }
+}
+
+pub fn load_report_catalog(repo_root: &Path) -> Result<ReportCatalog, CatalogError> {
+    let catalog_path = repo_root.join(REPORT_CATALOG_RELATIVE_PATH);
+    let contents = std::fs::read_to_string(&catalog_path).map_err(|source| CatalogError::Read {
+        path: catalog_path.clone(),
+        source,
+    })?;
+    let document = contents
+        .parse::<Value>()
+        .map_err(|source| CatalogError::Parse {
+            path: catalog_path.clone(),
+            source,
+        })?;
+
+    let report_entries = document
+        .get("report")
+        .and_then(Value::as_array)
+        .ok_or_else(|| {
+            CatalogError::Invalid(format!(
+                "{REPORT_CATALOG_RELATIVE_PATH} must define one or more [[report]] entries"
+            ))
+        })?;
+
+    let mut seen_ids = BTreeSet::new();
+    let mut reports = Vec::with_capacity(report_entries.len());
+    for (index, entry) in report_entries.iter().enumerate() {
+        let report = ReportDefinition::from_value(entry, index)?;
+        if !seen_ids.insert(report.id.clone()) {
+            return Err(CatalogError::Invalid(format!(
+                "duplicate report id '{}' in {}",
+                report.id, REPORT_CATALOG_RELATIVE_PATH
+            )));
+        }
+        reports.push(report);
+    }
+
+    Ok(ReportCatalog {
+        catalog_path,
+        reports,
+    })
 }
 
 impl ReportDefinition {

@@ -1055,11 +1055,10 @@ Implicit named render convention:
 - supporting assets remain available for directory-import workflows and future
   expansion, but they do not change the initial render resolution rules.
 
-## 15a. Follow-On Report Artifact Contract (Phase A Planning Only)
+## 15a. Report Artifact Contract (Implemented In Sprint B1)
 
-Phase A follow-on planning treats reporting as a generic artifact contract.
-This is a planning line only and does not change the shipped `1.0` release
-behavior until a later implementation sprint lands.
+Sprint B1 implements reporting as a generic artifact contract. This section
+is now active runtime behavior rather than a planning-only note.
 
 Planned filesystem contract:
 
@@ -1088,8 +1087,8 @@ metadata = "reports/latest/sc-lint/report.json"
 ```
 
 The canonical report catalog field inventory, requiredness rule, and shared
-Phase A reporting boundary rule are defined in `docs/requirements.md` under
-`### Phase A Follow-On Reporting Contract (Planning Only)`.
+reporting boundary rule are defined in `docs/requirements.md` under
+`### Report Artifact Contract (Implemented In Sprint B1)`.
 
 Ownership split:
 

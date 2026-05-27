@@ -1074,12 +1074,12 @@ Boundary rules:
 
 - the semantic source contract remains format-agnostic
 - shared Phase A reporting boundary rules are centralized under
-  `### Phase A Follow-On Reporting Contract (Planning Only)`
+  `### Report Artifact Contract (Implemented In Sprint B1)`
 
-### Phase A Follow-On Reporting Contract (Planning Only)
+### Report Artifact Contract (Implemented In Sprint B1)
 
-Phase A follow-on planning defines reporting as a generic artifact contract,
-not as a one-off HTML sprint report feature.
+Sprint B1 implements reporting as a generic artifact contract, not as a
+one-off HTML sprint report feature.
 
 Planned contract shape:
 
