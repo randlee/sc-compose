@@ -480,6 +480,16 @@ fn reports_smoke_json_keeps_observability_health_green_under_logger_12() {
     let log_root = root.join("telemetry");
     write_smoke_fixture(&root);
 
+    let init = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert!(init.status.success());
+
     let smoke = sc_compose()
         .arg("reports")
         .arg("smoke")
