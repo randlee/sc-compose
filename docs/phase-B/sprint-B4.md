@@ -1,9 +1,9 @@
 ---
 id: B4
 title: Template Families And Shared Panel Chrome
-status: draft
-branch: plan/phase-B
-worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
+status: complete
+branch: feat/sprint-B4
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/sprint-B4
 ---
 
 # Sprint B4 — Template Families And Shared Panel Chrome

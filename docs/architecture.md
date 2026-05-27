@@ -675,9 +675,15 @@ Command mapping:
 - `reports init` -> initialize the shared report scaffold and starter catalog
 - `reports smoke` -> run the shared smoke fixture render path and emit the
   smoke latest-artifact set
+- `reports finalize` -> materialize one producer-owned report artifact set into
+  the shared sidecar and archive shape
+- `reports render-spec` -> parse one TOML semantic spec and emit one Mermaid
+  latest-artifact set
 - `reports index` -> aggregate and summarize latest report entrypoints from the
   report catalog
 - `reports verify` -> verify required report artifacts exist for the catalog
+- `reports publish-manifest` -> emit one machine-readable publish handoff from
+  current latest report outputs
 
 The CLI must not reimplement core composition semantics. If a command requires
 logic useful to non-CLI callers, that logic belongs in the library.
@@ -732,12 +738,27 @@ Command-specific rules:
   - runs the shared smoke render path,
   - emits the smoke latest-artifact set without owning repo-specific smoke
     logic beyond the shared harness contract.
+- `reports finalize`
+  - accepts one producer-owned latest artifact set,
+  - writes the canonical `report.json` sidecar,
+  - optionally copies the artifact set into the timestamped archive tree.
+- `reports render-spec`
+  - accepts one TOML semantic spec file,
+  - renders Mermaid from `state_machine` and `sql_query` specs,
+  - writes one latest artifact plus sidecar using the shared report output
+    contract.
 - `reports index`
   - summarizes deterministic latest entrypoints and report metadata from the
-    catalog.
+  catalog.
 - `reports verify`
   - checks required report artifacts for presence and reports missing evidence
     as a failure.
+- `reports publish-manifest`
+  - writes `reports/latest/publish-manifest.json`,
+  - derives manifest content from current latest sidecars and artifact sets,
+  - skips optional reports whose latest artifact sets are absent,
+  - fails when required report evidence is missing,
+  - lists intended publish destinations without owning upload behavior.
 
 Guidance and prompt input model:
 
@@ -1107,7 +1128,7 @@ Boundary rules:
   `docs/requirements.md` under `### Phase A Latest/Archive Output And Reports
   Aggregator Contract (Planning Only)`
 - the canonical publish-manifest contract is defined in `docs/requirements.md`
-  under `### Phase A Publish-Manifest And CI Handoff Contract (Planning Only)`
+  under `### Publish-Manifest And CI Handoff Contract`
 - later sprints may extend those contracts with implementation-specific
   publish workflow details
 
@@ -1151,11 +1172,11 @@ Illustrative output shape:
 }
 ```
 
-## 15d. Follow-On Publish Manifest And CI Handoff (Phase A Planning Only)
+## 15d. Publish Manifest And CI Handoff
 
 The canonical publish-manifest contract is defined in
-`docs/requirements.md` under `### Phase A Publish-Manifest And CI Handoff
-Contract (Planning Only)`. This architecture section keeps only the
+`docs/requirements.md` under `### Publish-Manifest And CI Handoff Contract`.
+This architecture section keeps only the
 illustrative manifest shape for that contract and does not restate the
 normative ownership or boundary prose.
 
@@ -1163,18 +1184,25 @@ Illustrative publish-manifest shape:
 
 ```json
 {
-  "report_id": "state-diagrams",
   "generated_at": "2026-05-25T22:10:00Z",
-  "files": [
+  "reports": [
     {
-      "role": "latest_html",
-      "path": "reports/latest/state-diagrams/index.html",
-      "publish_to": "reports/state-diagrams/index.html"
-    },
-    {
-      "role": "json_sidecar",
-      "path": "reports/latest/state-diagrams/report.json",
-      "publish_to": "reports/state-diagrams/report.json"
+      "report_id": "state-diagrams",
+      "kind": "diagram",
+      "entrypoint": "reports/latest/state-diagrams/index.html",
+      "archive_root": "reports/archive/2026-05-25T22-10-00Z/state-diagrams",
+      "files": [
+        {
+          "role": "entrypoint",
+          "path": "reports/latest/state-diagrams/index.html",
+          "publish_to": "reports/state-diagrams/index.html"
+        },
+        {
+          "role": "metadata",
+          "path": "reports/latest/state-diagrams/report.json",
+          "publish_to": "reports/state-diagrams/report.json"
+        }
+      ]
     }
   ]
 }
@@ -1191,15 +1219,37 @@ contract prose.
 Adding repo-specific producer commands must not require changing the shared
 aggregation or discovery contract.
 
-## 15f. Follow-On Semantic Report-Spec Contract (Phase A Planning Only)
+## 15f. Semantic Report-Spec Contract
 
 The canonical semantic report-spec contract is defined in
-`docs/requirements.md` under `### Phase A Semantic Report-Spec Contract
-(Planning Only)`. That requirements section is the normative owner for the
+`docs/requirements.md` under `### Semantic Report-Spec Contract`. That
+requirements section is the normative owner for the
 `state_machine` / `sql_query` field inventory, the transitional Mermaid rule,
 the semantic QA direction, and the extension rule. This architecture section
 intentionally defers to that requirements section rather than restating those
 lists or transition-policy details.
+
+Runtime integration notes:
+
+- semantic spec source files are TOML
+- `reports render-spec` emits Mermaid latest outputs and shared sidecars
+- `report-render-many` may discover TOML semantic specs and render shared
+  diagram-family outputs from them
+
+## 15h. Implemented Cross-Use-Case Proof Families
+
+This repo now carries one checked-in Phase B proof set under `reports/` plus
+the reference `Justfile` producer surface.
+
+Runtime proof direction:
+
+- lint/test/smoke producers remain repo-local commands while using the shared
+  artifact, sidecar, archive, verification, and publish-manifest runtime
+- state-machine and SQL-query diagrams render through the same shared model
+  without inventing a diagram-only publication contract
+- `report-evidence-summary` is the new bundled Phase B proof vehicle
+- `sprint-report-html` remains the backward-compatible bundled example covered
+  by the shared proof harness
 ## 15g. Follow-On Template Families And Shared Panel Chrome (Phase A Planning Only)
 
 Phase A follow-on planning defines shared template-family selection and shared

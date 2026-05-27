@@ -1,0 +1,38 @@
+{
+  "report": {
+    "title": "Test Evidence Summary",
+    "family": "sc-lint style evidence",
+    "generated_at": "2026-05-26T19:45:00Z"
+  },
+  "summary": {
+    "status": "PASS",
+    "note": "Test evidence stays repo-local while the shared reporting runtime owns sidecars and publication handoff."
+  },
+  "sections": [
+    {
+      "key": "artifacts",
+      "title": "Latest artifacts"
+    }
+  ],
+  "items": [
+    {
+      "section_key": "artifacts",
+      "label": "Workspace test evidence",
+      "href": "reports/latest/test-evidence/panels/reports/inputs/test/results.html",
+      "status": "latest",
+      "note": "Primary test evidence page."
+    },
+    {
+      "section_key": "artifacts",
+      "label": "Backward-compat matrix",
+      "href": "reports/latest/test-evidence/panels/reports/inputs/test/matrix.html",
+      "note": "Tracks shared proof coverage for bundled examples and edge cases."
+    },
+    {
+      "section_key": "artifacts",
+      "label": "Render-many manifest",
+      "href": "reports/latest/test-evidence/panels/manifest.json",
+      "note": "Machine-readable panel output list."
+    }
+  ]
+}

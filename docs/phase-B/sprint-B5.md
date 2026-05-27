@@ -1,9 +1,9 @@
 ---
 id: B5
 title: Latest And Archive Output Policy And Reports Aggregator
-status: draft
-branch: plan/phase-B
-worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
+status: complete
+branch: feat/sprint-B5
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/sprint-B5
 ---
 
 # Sprint B5 — Latest And Archive Output Policy And Reports Aggregator

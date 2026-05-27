@@ -1,9 +1,9 @@
 ---
 id: B1
 title: Report Artifact Runtime And Catalog
-status: draft
-branch: plan/phase-B
-worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
+status: complete
+branch: feat/sprint-B1
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/sprint-B1
 ---
 
 # Sprint B1 — Report Artifact Runtime And Catalog

@@ -1,9 +1,9 @@
 ---
 id: B6
 title: Publish Manifest And CI Handoff
-status: draft
-branch: plan/phase-B
-worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
+status: complete
+branch: feat/sprint-B6
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/sprint-B6
 ---
 
 # Sprint B6 — Publish Manifest And CI Handoff
@@ -52,14 +52,27 @@ into `sc-compose`.
 
 ```json
 {
-  "report_id": "state-diagrams",
-  "kind": "diagram",
-  "entrypoint": "reports/latest/state-diagrams/index.html",
-  "artifacts": [
-    "reports/latest/state-diagrams/index.html",
-    "reports/latest/state-diagrams/report.json"
-  ],
-  "archive_root": "reports/archive/2026-05-26T20-14-55Z/state-diagrams"
+  "generated_at": "2026-05-26T20:14:55Z",
+  "reports": [
+    {
+      "report_id": "state-diagrams",
+      "kind": "diagram",
+      "entrypoint": "reports/latest/state-diagrams/index.html",
+      "archive_root": "reports/archive/2026-05-26T20-14-55Z/state-diagrams",
+      "files": [
+        {
+          "role": "entrypoint",
+          "path": "reports/latest/state-diagrams/index.html",
+          "publish_to": "reports/state-diagrams/index.html"
+        },
+        {
+          "role": "metadata",
+          "path": "reports/latest/state-diagrams/report.json",
+          "publish_to": "reports/state-diagrams/report.json"
+        }
+      ]
+    }
+  ]
 }
 ```
 

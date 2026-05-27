@@ -1,0 +1,14 @@
+{% extends "base/report.html.j2" %}
+
+{% block report_header %}
+<header class="report-header report-header-diagram">
+  <h1>{{ title }}</h1>
+  <p>Diagram report family</p>
+</header>
+{% endblock %}
+
+{% block panel_body %}
+<div class="panel-body panel-body-diagram">
+  <pre>{{ panel_body_text }}</pre>
+</div>
+{% endblock %}

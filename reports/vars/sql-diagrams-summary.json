@@ -1,0 +1,38 @@
+{
+  "report": {
+    "title": "SQL Diagram Summary",
+    "family": "atm-core style diagrams",
+    "generated_at": "2026-05-26T19:45:00Z"
+  },
+  "summary": {
+    "status": "PASS",
+    "note": "SQL-query diagrams use the same catalog, sidecar, archive, and publish-manifest runtime."
+  },
+  "sections": [
+    {
+      "key": "panels",
+      "title": "Panel entrypoints"
+    }
+  ],
+  "items": [
+    {
+      "section_key": "panels",
+      "label": "Publish manifest query",
+      "href": "reports/latest/sql-diagrams/panels/reports/specs/sql-diagrams/publish-manifest.html",
+      "status": "panel",
+      "note": "Query panel rendered from a TOML semantic spec."
+    },
+    {
+      "section_key": "panels",
+      "label": "Release summary query",
+      "href": "reports/latest/sql-diagrams/panels/reports/specs/sql-diagrams/release-summary.html",
+      "note": "Second panel proves repeated-panel support."
+    },
+    {
+      "section_key": "panels",
+      "label": "Render-many manifest",
+      "href": "reports/latest/sql-diagrams/panels/manifest.json",
+      "note": "Machine-readable panel output list."
+    }
+  ]
+}

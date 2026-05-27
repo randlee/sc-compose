@@ -1,0 +1,36 @@
+[spec]
+kind = "state_machine"
+id = "retry-loop"
+title = "Retry Loop"
+renderer_targets = ["mermaid"]
+
+[metadata]
+sets = ["publish", "diagram"]
+
+[[states]]
+id = "attempt"
+label = "Attempt"
+
+[[states]]
+id = "backoff"
+label = "Backoff"
+
+[[states]]
+id = "done"
+label = "Done"
+terminal = true
+
+[[transitions]]
+from = "attempt"
+to = "backoff"
+event = "retry"
+
+[[transitions]]
+from = "backoff"
+to = "attempt"
+event = "resume"
+
+[[transitions]]
+from = "attempt"
+to = "done"
+event = "success"

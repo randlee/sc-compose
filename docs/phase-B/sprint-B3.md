@@ -1,9 +1,9 @@
 ---
 id: B3
 title: Source Collection, Metadata Extraction, And Render-Many
-status: draft
-branch: plan/phase-B
-worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
+status: complete
+branch: feat/sprint-B3
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/sprint-B3
 ---
 
 # Sprint B3 — Source Collection, Metadata Extraction, And Render-Many
