@@ -20,7 +20,7 @@ where
 #[allow(
     clippy::ptr_arg,
     clippy::ref_option,
-    reason = "early Phase B branches do not yet serialize Option<PathBuf> but later branches do"
+    reason = "serde serialize_with passes &Option<PathBuf> so std Serialize is skipped"
 )]
 pub(crate) fn serialize_opt_path<S>(
     path: &Option<PathBuf>,

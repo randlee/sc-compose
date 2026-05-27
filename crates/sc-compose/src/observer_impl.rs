@@ -1,6 +1,7 @@
 use serde_json::{Map, Value, json};
 
 use crate::observability::SERVICE_NAME;
+use crate::path_utils::to_forward_slash;
 use sc_composer::{
     CompositionObserver, IncludeOutcomeEvent, ObservationEvent, ObservationSink,
     RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
@@ -142,15 +143,12 @@ impl CompositionObserver for CliObserver {
                 event
                     .attempted_paths
                     .iter()
-                    .map(|path| path.display().to_string())
+                    .map(|path| to_forward_slash(path))
                     .collect::<Vec<_>>()
             ),
         );
         if let Some(path) = &event.resolved_path {
-            fields.insert(
-                "resolved_path".to_owned(),
-                json!(path.display().to_string()),
-            );
+            fields.insert("resolved_path".to_owned(), json!(to_forward_slash(path)));
         }
         if let Some(code) = event.code {
             fields.insert("diagnostic_code".to_owned(), json!(code.as_str()));
@@ -190,7 +188,7 @@ impl CompositionObserver for CliObserver {
                 event
                     .resolved_files
                     .iter()
-                    .map(|path| path.display().to_string())
+                    .map(|path| to_forward_slash(path))
                     .collect::<Vec<_>>()
             ),
         );
@@ -200,7 +198,7 @@ impl CompositionObserver for CliObserver {
                 event
                     .include_chain
                     .iter()
-                    .map(|path| path.display().to_string())
+                    .map(|path| to_forward_slash(path))
                     .collect::<Vec<_>>()
             ),
         );
