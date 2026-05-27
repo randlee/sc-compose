@@ -3,6 +3,7 @@ mod exit_codes;
 mod json_output;
 mod observability;
 mod observer_impl;
+mod path_utils;
 mod render_request;
 mod reporting;
 mod template_store;
@@ -22,11 +23,13 @@ use sc_composer::{
 
 use crate::commands::examples::{run_examples_list, run_examples_render};
 use crate::commands::reports::{
-    ReportCatalogArgs, ReportsArgs, ReportsSubcommand, run_report_catalog, run_reports_index,
-    run_reports_init, run_reports_smoke, run_reports_verify,
+    ReportCatalogArgs, ReportRenderManyArgs, ReportsArgs, ReportsSubcommand, run_report_catalog,
+    run_report_render_many, run_reports_index, run_reports_init, run_reports_smoke,
+    run_reports_verify,
 };
 use crate::commands::templates::{run_templates_add, run_templates_list, run_templates_render};
 use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
+use crate::path_utils::to_forward_slash;
 use crate::render_request::{build_request, read_block_pair};
 
 #[global_allocator]
@@ -63,6 +66,8 @@ enum Command {
     Templates(TemplatesArgs),
     #[command(about = "Initialize and run shared report scaffolds")]
     Reports(ReportsArgs),
+    #[command(hide = true, name = "report-render-many")]
+    ReportRenderMany(ReportRenderManyArgs),
     #[command(hide = true, name = "report-catalog")]
     ReportCatalog(ReportCatalogArgs),
 }
@@ -411,6 +416,11 @@ fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, Comma
                 })
             }
         },
+        Command::ReportRenderMany(args) => {
+            observe_command(observer, "report-render-many", args.json, |_observer| {
+                run_report_render_many(&args)
+            })
+        }
         Command::ReportCatalog(args) => {
             observe_command(observer, "report-catalog", args.json, |_observer| {
                 run_report_catalog(&args)
@@ -473,16 +483,18 @@ fn execute_render(
     if args.json {
         let payload = if args.dry_run {
             serde_json::json!({
-                "would_write": derived_path.display().to_string(),
+                "would_write": to_forward_slash(&derived_path),
                 "would_change": would_change,
-                "template": result.resolve_result.resolved_path.display().to_string(),
+                "template": to_forward_slash(&result.resolve_result.resolved_path),
                 "rendered_preview": result.rendered_text,
             })
         } else {
             serde_json::json!({
-                "output_path": output_path.as_ref().map_or_else(|| "stdout".to_owned(), |path| path.display().to_string()),
+                "output_path": output_path
+                    .as_ref()
+                    .map_or_else(|| "stdout".to_owned(), |path| to_forward_slash(path)),
                 "bytes_written": bytes_written.unwrap_or_default(),
-                "template": result.resolve_result.resolved_path.display().to_string(),
+                "template": to_forward_slash(&result.resolve_result.resolved_path),
             })
         };
         print_json(payload, result.warnings).map_err(CommandError::usage)?;
@@ -525,8 +537,12 @@ fn run_resolve(
         .map_err(CommandError::compose)?;
     if args.json {
         let payload = serde_json::json!({
-            "resolved_path": result.resolved_path.display().to_string(),
-            "search_trace": result.attempted_paths.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+            "resolved_path": to_forward_slash(&result.resolved_path),
+            "search_trace": result
+                .attempted_paths
+                .iter()
+                .map(|path| to_forward_slash(path))
+                .collect::<Vec<_>>(),
             "found": true,
         });
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
@@ -585,7 +601,7 @@ fn run_frontmatter_init(args: &FrontmatterInitArgs) -> Result<i32, CommandError>
         print_json(
             serde_json::json!({
                 "action": "frontmatter-init",
-                "would_affect": [result.target_path.display().to_string()],
+                "would_affect": [to_forward_slash(&result.target_path)],
                 "changed": result.changed,
                 "would_change": result.would_change,
                 "skipped": !result.would_change,
@@ -620,14 +636,17 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
         let payload = if args.dry_run {
             serde_json::json!({
                 "action": "init",
-                "would_affect": planned_changes.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+                "would_affect": planned_changes
+                    .iter()
+                    .map(|path| to_forward_slash(path))
+                    .collect::<Vec<_>>(),
                 "changed": false,
                 "would_change": !planned_changes.is_empty(),
                 "skipped": planned_changes.is_empty(),
             })
         } else {
             serde_json::json!({
-                "workspace_root": canonical_root.display().to_string(),
+                "workspace_root": to_forward_slash(&canonical_root),
                 "created_files": actual_init_created_files(
                     prompts_dir_missing,
                     result.gitignore_updated,
@@ -717,7 +736,7 @@ fn print_diagnostic_messages(diagnostics: &[Diagnostic]) {
 
 fn print_json_frontmatter_init(result: &FrontmatterInitResult) -> Result<()> {
     let payload = serde_json::json!({
-        "template_path": result.target_path.display().to_string(),
+        "template_path": to_forward_slash(&result.target_path),
         "frontmatter_added": result.changed,
         "would_change": result.would_change,
         "vars": result.discovered_variables,
@@ -767,6 +786,7 @@ fn command_wants_json(command: &Command) -> bool {
             ReportsSubcommand::Index(index_args) => index_args.json,
             ReportsSubcommand::Verify(verify_args) => verify_args.json,
         },
+        Command::ReportRenderMany(args) => args.json,
         Command::ReportCatalog(args) => args.json,
     }
 }

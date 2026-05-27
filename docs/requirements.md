@@ -1131,12 +1131,12 @@ Shared Phase A reporting boundary rule:
 - the artifact contract is intended to support generic lint, test, smoke,
   diagram, and custom reports through one shared metadata and filesystem shape
 
-### Phase A Source-Driven Rendering Contract (Planning Only)
+### Source-Driven Rendering Contract (Implemented In Sprint B3)
 
-Phase A follow-on planning defines a generic source-driven rendering contract
-for text assets. This mechanism is not Mermaid-only.
+Sprint B3 implements a generic source-driven rendering contract for text
+assets. This mechanism is not Mermaid-only.
 
-Planned collection-input contract:
+Collection-input contract:
 
 - source collections may be declared by glob or by another stable collection
   definition
@@ -1144,7 +1144,7 @@ Planned collection-input contract:
 - collection discovery is generic across Mermaid, SVG, Markdown, and other
   text-based assets
 
-Planned metadata-extraction contract:
+Metadata-extraction contract:
 
 - comment-prefix metadata is supported
 - block-comment metadata is supported
@@ -1157,7 +1157,7 @@ Planned metadata-extraction contract:
 - `sets` has type `Option<Vec<String>>` or equivalent optional string-list
   representation and defaults to `None` when absent
 
-Planned render-many contract:
+Render-many contract:
 
 - one generated output is produced per discovered source file
 - output derivation is deterministic from collection membership plus source
@@ -1165,7 +1165,7 @@ Planned render-many contract:
 - aggregate templates and review tooling consume a generated manifest rather
   than ad hoc wrapper state
 
-Planned generated-manifest contract:
+Generated-manifest contract:
 
 - each source-driven run emits a manifest describing the discovered sources and
   generated outputs
@@ -1178,6 +1178,9 @@ Boundary rules for the source-driven line:
 - the mechanism remains generic rather than diagram-format-specific
 - shared Phase A reporting boundary rules are centralized under
   `### Phase A Follow-On Reporting Contract (Planning Only)`
+- the scaffold owns creation of `reports/latest/smoke/`, and
+  report-smoke execution writes into that prepared path rather than creating
+  the output directory at runtime
 
 ### Phase A Latest/Archive Output And Reports Aggregator Contract (Planning Only)
 

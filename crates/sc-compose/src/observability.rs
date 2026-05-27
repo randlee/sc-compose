@@ -9,6 +9,7 @@ use sc_observability::{
 use serde_json::Value;
 
 use crate::CommandError;
+use crate::path_utils::to_forward_slash;
 
 const DEFAULT_LOG_ROOT_DIR: &str = ".sc-compose";
 pub(crate) const SERVICE_NAME: &str = "sc-compose";
@@ -40,7 +41,10 @@ pub(crate) fn build_logger_for_root(
 
 pub(crate) fn print_observability_health(health: &LoggingHealthReport) {
     println!("state: {:?}", health.state);
-    println!("active_log_path: {}", health.active_log_path.display());
+    println!(
+        "active_log_path: {}",
+        to_forward_slash(&health.active_log_path)
+    );
     println!("dropped_events_total: {}", health.dropped_events_total);
     println!("flush_errors_total: {}", health.flush_errors_total);
 
@@ -75,6 +79,7 @@ pub(crate) fn print_observability_health(health: &LoggingHealthReport) {
 /// indicate a violated invariant in the crate-owned health schema.
 pub(crate) fn health_json_value(health: &LoggingHealthReport) -> Value {
     let mut value = serde_json::to_value(health).expect("logging health serializes");
+    value["active_log_path"] = Value::String(to_forward_slash(&health.active_log_path));
     if value["query"]["state"] == Value::String("Unavailable".to_owned()) {
         value["query"] = Value::Null;
     }

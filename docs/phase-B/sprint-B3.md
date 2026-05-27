@@ -1,9 +1,9 @@
 ---
 id: B3
 title: Source Collection, Metadata Extraction, And Render-Many
-status: draft
-branch: plan/phase-B
-worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
+status: complete
+branch: feat/sprint-B3
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/sprint-B3
 ---
 
 # Sprint B3 — Source Collection, Metadata Extraction, And Render-Many
@@ -56,6 +56,9 @@ plus aggregate pages without custom wrapper scripts per repo.
   - deterministic `output_path`
 - one deterministic sort rule so repeated runs over the same source set produce
   the same output order and manifest order
+- one explicit deferral that the remaining small `crates/sc-compose/src/main.rs`
+  simplification delta on this branch is owned by B9 rather than B3, because
+  B3 only owns the source-driven reporting surface and its direct command seam
 
 ## Explicit Code Samples
 
@@ -110,6 +113,9 @@ sets = ["publish", "latest"]
 - the `sc-composer` boundary remains runtime-agnostic and gains no filesystem
   traversal or source-discovery behavior
 - the runtime keeps browser automation and site hosting out of scope
+- the scaffold owns creation of `reports/latest/smoke/`, and
+  report-smoke execution on this branch writes into that prepared path rather
+  than creating it implicitly at runtime
 
 ## Required Validation
 

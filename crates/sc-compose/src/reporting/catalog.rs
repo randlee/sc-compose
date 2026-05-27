@@ -22,7 +22,7 @@ const ALLOWED_REPORT_KINDS: &[&str] = &[
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(crate) struct ReportCatalog {
-    #[serde(serialize_with = "serialize_pathbuf_with_forward_slashes")]
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) catalog_path: PathBuf,
     pub(crate) reports: Vec<ReportDefinition>,
 }
@@ -33,9 +33,9 @@ pub(crate) struct ReportDefinition {
     pub(crate) kind: String,
     pub(crate) producer: String,
     pub(crate) required: bool,
-    #[serde(serialize_with = "serialize_pathbuf_with_forward_slashes")]
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) entrypoint: PathBuf,
-    #[serde(serialize_with = "serialize_pathbuf_with_forward_slashes")]
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) metadata: PathBuf,
 }
 

@@ -1123,11 +1123,11 @@ Boundary rules:
 - later sprints may extend those contracts with implementation-specific
   publish workflow details
 
-## 15b. Follow-On Source-Driven Rendering Contract (Phase A Planning Only)
+## 15b. Source-Driven Rendering Contract (Implemented In Sprint B3)
 
 The canonical source-driven rendering contract, including collection-discovery
 ownership and generated-manifest semantics, is defined in `docs/requirements.md`
-under `### Phase A Source-Driven Rendering Contract (Planning Only)`. This
+under `### Source-Driven Rendering Contract (Implemented In Sprint B3)`. This
 architecture section keeps only the illustrative extracted input shape for that
 contract and does not restate the normative prose.
 

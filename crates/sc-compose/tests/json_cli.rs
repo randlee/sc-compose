@@ -56,6 +56,10 @@ fn repo_root() -> PathBuf {
         .unwrap()
 }
 
+fn normalize_path_str(p: impl AsRef<std::path::Path>) -> String {
+    p.as_ref().to_string_lossy().replace('\\', "/")
+}
+
 fn write_report_catalog(root: &Path, contents: &str) {
     write_file(
         &root.join("reports").join("catalog").join("reports.toml"),
@@ -74,6 +78,13 @@ fn write_smoke_fixture(root: &Path) {
     write_file(
         &root.join("reports").join("smoke").join("sample-vars.json"),
         "{ \"title\": \"Smoke Report\", \"summary\": \"fixture\" }\n",
+    );
+}
+
+fn write_render_many_fixture(root: &Path) {
+    write_file(
+        &root.join("reports").join("templates").join("panel.html.j2"),
+        "<article>{{ metadata.title }}|{{ body }}|{{ output_path }}{% if sets %}|{{ sets | join(\",\") }}{% endif %}</article>\n",
     );
 }
 
@@ -150,10 +161,7 @@ fn render_dry_run_json_uses_diagnostic_envelope() {
     assert!(value["payload"]["would_write"].is_string());
     assert_eq!(
         value["payload"]["template"],
-        fs::canonicalize(root.join("template.md.j2"))
-            .unwrap()
-            .display()
-            .to_string()
+        normalize_path_str(fs::canonicalize(root.join("template.md.j2")).unwrap())
     );
     assert_eq!(value["payload"]["would_change"], true);
 }
@@ -289,11 +297,10 @@ fn validate_json_reports_missing_frontmatter_for_included_file() {
     let diagnostics = value["diagnostics"].as_array().unwrap();
     assert!(diagnostics.iter().any(|diagnostic| {
         diagnostic["code"] == "ERR_VAL_MISSING_FRONTMATTER"
-            && diagnostic["path"]
-                == fs::canonicalize(root.join("_includes").join("snippet.md"))
-                    .unwrap()
-                    .display()
-                    .to_string()
+            && normalize_path_str(PathBuf::from(diagnostic["path"].as_str().unwrap()))
+                == normalize_path_str(
+                    fs::canonicalize(root.join("_includes").join("snippet.md")).unwrap(),
+                )
     }));
 }
 
@@ -320,7 +327,7 @@ fn frontmatter_init_json_uses_diagnostic_envelope() {
     assert_envelope(&value);
     assert_eq!(
         value["payload"]["template_path"],
-        fs::canonicalize(&path).unwrap().display().to_string()
+        normalize_path_str(fs::canonicalize(&path).unwrap())
     );
     assert_eq!(value["payload"]["frontmatter_added"], true);
     assert_eq!(value["payload"]["would_change"], true);
@@ -377,7 +384,7 @@ fn init_json_uses_diagnostic_envelope() {
     assert_envelope(&value);
     assert_eq!(
         value["payload"]["workspace_root"],
-        fs::canonicalize(&root).unwrap().display().to_string()
+        normalize_path_str(fs::canonicalize(&root).unwrap())
     );
 }
 
@@ -506,10 +513,7 @@ fn observability_health_json_uses_diagnostic_envelope_and_stays_stdout_clean() {
     );
     assert_eq!(
         value["payload"]["logging"]["active_log_path"],
-        root.join("logs")
-            .join("sc-compose.log.jsonl")
-            .display()
-            .to_string()
+        normalize_path_str(root.join("logs").join("sc-compose.log.jsonl"))
     );
 }
 
@@ -867,13 +871,13 @@ fn examples_named_render_json_matches_render_schema() {
     assert_eq!(value["payload"]["output_path"], "stdout");
     assert_eq!(
         value["payload"]["template"],
-        repo_root()
-            .join("examples")
-            .join("hello.md.j2")
-            .canonicalize()
-            .unwrap()
-            .display()
-            .to_string()
+        normalize_path_str(
+            repo_root()
+                .join("examples")
+                .join("hello.md.j2")
+                .canonicalize()
+                .unwrap()
+        )
     );
 }
 
@@ -901,13 +905,13 @@ fn examples_named_render_html_dry_run_preserves_html_extension() {
     assert_eq!(value["payload"]["would_write"], "sprint-report-html.html");
     assert_eq!(
         value["payload"]["template"],
-        repo_root()
-            .join("examples")
-            .join("sprint-report-html.html.j2")
-            .canonicalize()
-            .unwrap()
-            .display()
-            .to_string()
+        normalize_path_str(
+            repo_root()
+                .join("examples")
+                .join("sprint-report-html.html.j2")
+                .canonicalize()
+                .unwrap()
+        )
     );
 }
 
@@ -1254,4 +1258,51 @@ fn reports_verify_json_uses_diagnostic_envelope() {
     assert_envelope(&value);
     assert_eq!(value["payload"]["subcommand"], "reports verify");
     assert_eq!(value["payload"]["status"], "reserved");
+}
+
+#[test]
+fn report_render_many_json_uses_diagnostic_envelope() {
+    let root = temp_root("report-render-many-json");
+    write_render_many_fixture(&root);
+    write_file(
+        &root.join("docs").join("diagrams").join("a.txt"),
+        "/*\ntitle: Alpha\nsets:\n  - publish\n*/\nalpha body\n",
+    );
+
+    let output = sc_compose()
+        .arg("report-render-many")
+        .arg("--root")
+        .arg(&root)
+        .arg("--id")
+        .arg("state-machines")
+        .arg("--glob")
+        .arg("docs/diagrams/*.txt")
+        .arg("--template")
+        .arg("reports/templates/panel.html.j2")
+        .arg("--output-dir")
+        .arg("reports/latest/panels")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["manifest_path"],
+        "reports/latest/panels/manifest.json"
+    );
+    assert_eq!(
+        value["payload"]["entries"][0]["source_path"],
+        "docs/diagrams/a.txt"
+    );
+    assert_eq!(
+        value["payload"]["entries"][0]["output_path"],
+        "reports/latest/panels/docs/diagrams/a.html"
+    );
+    assert_eq!(
+        value["payload"]["entries"][0]["sets"],
+        serde_json::json!(["publish"])
+    );
 }

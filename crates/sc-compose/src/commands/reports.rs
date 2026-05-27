@@ -5,8 +5,10 @@ use clap::{Args, Subcommand};
 use sc_composer::{CompositionObserver, DiagnosticCode};
 
 use crate::exit_codes;
+use crate::path_utils::to_forward_slash;
 use crate::reporting::catalog::{REPORT_CATALOG_RELATIVE_PATH, ReportCatalog};
 use crate::reporting::init::{init_report_scaffold, run_smoke_report};
+use crate::reporting::render_many::{RenderManyRequest, SourceSetDefinition, render_many};
 use crate::{CommandError, print_diagnostic_messages, print_json};
 
 #[derive(Debug, Clone, Args)]
@@ -75,11 +77,27 @@ pub(crate) struct ReportCatalogArgs {
     pub(crate) json: bool,
 }
 
+#[derive(Debug, Clone, Args)]
+pub(crate) struct ReportRenderManyArgs {
+    #[arg(long, default_value = ".")]
+    pub(crate) root: PathBuf,
+    #[arg(long)]
+    pub(crate) id: String,
+    #[arg(long)]
+    pub(crate) glob: String,
+    #[arg(long)]
+    pub(crate) template: PathBuf,
+    #[arg(long = "output-dir")]
+    pub(crate) output_dir: PathBuf,
+    #[arg(long)]
+    pub(crate) json: bool,
+}
+
 pub(crate) fn run_reports_init(args: &ReportsInitArgs) -> Result<i32, CommandError> {
     let result = init_report_scaffold(&args.root)?;
     if args.json {
         let payload = serde_json::json!({
-            "workspace_root": result.workspace_root.display().to_string(),
+            "workspace_root": to_forward_slash(&result.workspace_root),
             "created_paths": result.created_paths,
         });
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
@@ -99,9 +117,9 @@ pub(crate) fn run_reports_smoke(
     let result = run_smoke_report(&args.root, &args.fixture, &args.vars, observer)?;
     if args.json {
         let payload = serde_json::json!({
-            "entrypoint": result.entrypoint.display().to_string(),
-            "metadata": result.metadata.display().to_string(),
-            "artifacts": result.artifacts.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+            "entrypoint": to_forward_slash(&result.entrypoint),
+            "metadata": to_forward_slash(&result.metadata),
+            "artifacts": result.artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
         });
         print_json(payload, result.warnings).map_err(CommandError::usage)?;
     } else {
@@ -162,7 +180,7 @@ pub(crate) fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, Comman
 
     if args.json {
         let payload = serde_json::json!({
-            "catalog_path": catalog.catalog_path.display().to_string(),
+            "catalog_path": to_forward_slash(&catalog.catalog_path),
             "report_count": catalog.reports.len(),
             "reports": catalog.reports,
         });
@@ -180,6 +198,39 @@ pub(crate) fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, Comman
                 report.entrypoint.display(),
                 report.metadata.display()
             );
+        }
+    }
+
+    Ok(exit_codes::SUCCESS)
+}
+
+pub(crate) fn run_report_render_many(args: &ReportRenderManyArgs) -> Result<i32, CommandError> {
+    let request = RenderManyRequest {
+        root: args.root.clone(),
+        source_set: SourceSetDefinition {
+            id: args.id.clone(),
+            glob: args.glob.clone(),
+            template_path: args.template.clone(),
+            output_dir: args.output_dir.clone(),
+        },
+    };
+    let result = render_many(&request).map_err(|error| {
+        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
+    })?;
+
+    if args.json {
+        let payload = serde_json::json!({
+            "manifest_path": to_forward_slash(&result.manifest_path),
+            "output_count": result.generated_outputs.len(),
+            "generated_outputs": result.generated_outputs.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
+            "entries": result.entries,
+        });
+        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
+    } else {
+        println!("manifest: {}", result.manifest_path.display());
+        println!("outputs: {}", result.generated_outputs.len());
+        for output in &result.generated_outputs {
+            println!("generated: {}", output.display());
         }
     }
 
