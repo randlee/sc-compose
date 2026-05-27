@@ -27,8 +27,8 @@ pub(crate) fn build_logger_for_root(
     })?;
     let mut config = LoggerConfig::default_for(service_name, log_root);
     config.enable_console_sink = false;
-    // A9 decision: keep logger-managed retained-log maintenance enabled using
-    // sc-observability 1.1.0 defaults rather than adding a repo-local policy.
+    // Keep logger-managed retained-log maintenance enabled using
+    // sc-observability 1.2.0 defaults rather than adding a repo-local policy.
     config.retained_log_policy = RetainedLogPolicy::default();
     let mut builder = Logger::builder(config).map_err(|error| {
         CommandError::usage(anyhow!(error).context("failed to initialize observability logger"))

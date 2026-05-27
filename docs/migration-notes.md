@@ -61,7 +61,7 @@ should expect:
   `sc-observability`. The CLI creates the logger, keeps file logging enabled for every
   command, suppresses the console sink whenever `--json` is active, and exposes
   `observability-health` for process-local sink/query health inspection.
-  The current standalone line uses `sc-observability` `1.1.0` directly rather
+  The current standalone line uses `sc-observability` `1.2.0` directly rather
   than adding the `sc-observe` facade at the CLI seam.
 - **Template whitespace behavior**: `trim_blocks` and `lstrip_blocks` are enabled by
   default. Block tags now strip the trailing newline after the block and the leading
@@ -96,8 +96,16 @@ Downstream consumers that shell out to `sc-compose` should expect:
   - `5`-second shutdown join timeout
 - file-backed logging under `SC_LOG_ROOT` when the environment variable is set, or
   `.sc-compose/logs/` under the current working directory otherwise.
+- direct CLI lifecycle logging to prefer `Logger::log(...)`; `Logger::emit(...)`
+  remains deprecated and is retained only as an upstream compatibility path,
+- queue admission and sink durability to be treated as distinct concerns:
+  `log()` / `try_log()` confirm writer-queue admission, while
+  durability-sensitive paths rely on `flush()` or `shutdown()`,
 - graceful shutdown to flush logger sinks before process exit while recording sink
-  degradation in health counters instead of aborting command completion.
+  degradation in health counters instead of aborting command completion,
+- `Logger::shutdown(self)` to return `Logger<Stopped>` only after definitive
+  writer-thread join so post-shutdown health inspection remains available from
+  the stopped typestate.
 - For the normative rotation semantics, including rename-then-open behavior and
   Windows file-lock handling, see `docs/architecture.md` `§19.3`.
 - Windows rotation compatibility is validated by the CI matrix on Windows, and the

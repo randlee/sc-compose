@@ -1391,7 +1391,7 @@ Architecture rules:
   provide their own implementations.
 - `sc-observe` and `sc-observability-otlp` are not part of this initial
   release architecture.
-- The current CLI uplift targets `sc-observability` `1.1.0` directly and does
+- The current CLI uplift targets `sc-observability` `1.2.0` directly and does
   not add the `sc-observe` facade because `sc-compose` still owns concrete
   logger construction and sink registration at this seam.
 
@@ -1417,6 +1417,9 @@ sc-observability -----> sc-observability-types
 - `sc-compose` adapts to the `Logger<Running>` / `Logger<Stopped>` typestate by
   keeping the CLI observer responsible for the shutdown-state transition while
   preserving post-shutdown health inspection.
+- The CLI observer adapter now routes direct lifecycle logging through
+  `Logger::log(...)`; `Logger::emit(...)` remains only as an upstream
+  compatibility path and is not the primary `sc-compose` call surface.
 
 ### 19.2 Library Injection Pattern
 

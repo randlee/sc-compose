@@ -338,9 +338,7 @@ fn main() {
             error.exit_code
         }
     };
-    if let Err(error) = observer.shutdown() {
-        eprintln!("{error}");
-    }
+    observer.shutdown();
     std::process::exit(code);
 }
 
@@ -708,9 +706,7 @@ fn run_observability_health(
     observer: &mut observer_impl::CliObserver,
 ) -> Result<i32, CommandError> {
     if std::env::var_os("SC_COMPOSE_TEST_FORCE_QUERY_UNAVAILABLE").is_some() {
-        observer.shutdown().map_err(|error| {
-            CommandError::usage(anyhow!(error).context("failed to shut down observability logger"))
-        })?;
+        observer.shutdown();
     }
     let health = observer.health();
     if args.json {
@@ -1057,7 +1053,7 @@ mod tests {
             MaintenanceWorkerState::Running
         );
 
-        observer.shutdown().expect("shutdown");
+        observer.shutdown();
 
         assert_eq!(
             observer.health().query.expect("query health present").state,

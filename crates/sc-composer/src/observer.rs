@@ -23,7 +23,10 @@ pub enum ObservationEvent {
 
 /// Sink trait for consumers that want a single event-stream interface.
 pub trait ObservationSink {
-    /// Emit one structured observation event.
+    /// Emit one structured observation event from the composition observer API.
+    ///
+    /// This trait method is unrelated to any deprecated logger-specific
+    /// compatibility helpers such as `Logger::emit()` in downstream hosts.
     fn emit(&mut self, event: &ObservationEvent);
 }
 

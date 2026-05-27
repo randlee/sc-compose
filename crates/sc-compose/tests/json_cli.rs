@@ -1,133 +1,22 @@
+mod support;
+
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::path::PathBuf;
+use std::process::Stdio;
 
 use serde_json::Value;
+use support::{
+    normalize_path_str, parse_stdout, repo_root, write_file, write_render_many_fixture,
+    write_report_catalog, write_report_family_override, write_smoke_fixture,
+    write_state_machine_spec,
+};
 
 fn temp_root(label: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let root = std::env::temp_dir().join(format!(
-        "sc-compose-json-{label}-{}-{nanos}",
-        std::process::id()
-    ));
-    fs::create_dir_all(&root).unwrap();
-    root
+    support::temp_root(label, "sc-compose-json")
 }
 
-fn write_file(path: &Path, contents: &str) {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).unwrap();
-    }
-    fs::write(path, contents).unwrap();
-}
-
-fn sc_compose() -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_sc-compose"));
-    command.env("SC_LOG_ROOT", test_log_root());
-    command
-}
-
-fn test_log_root() -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let root = std::env::temp_dir().join(format!(
-        "sc-compose-json-logs-{}-{nanos}",
-        std::process::id()
-    ));
-    fs::create_dir_all(&root).unwrap();
-    root
-}
-
-fn parse_stdout(output: &std::process::Output) -> Value {
-    serde_json::from_slice(&output.stdout).unwrap()
-}
-
-fn repo_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..")
-        .canonicalize()
-        .unwrap()
-}
-
-fn normalize_path_str(p: impl AsRef<std::path::Path>) -> String {
-    p.as_ref().to_string_lossy().replace('\\', "/")
-}
-
-fn write_report_catalog(root: &Path, contents: &str) {
-    write_file(
-        &root.join("reports").join("catalog").join("reports.toml"),
-        contents,
-    );
-}
-
-fn write_smoke_fixture(root: &Path) {
-    write_file(
-        &root
-            .join("reports")
-            .join("smoke")
-            .join("reference-template.html.j2"),
-        "---\nrequired_variables:\n  - title\n  - summary\n---\n<html><body><h1>{{ title }}</h1><p>{{ summary }}</p></body></html>\n",
-    );
-    write_file(
-        &root.join("reports").join("smoke").join("sample-vars.json"),
-        "{ \"title\": \"Smoke Report\", \"summary\": \"fixture\" }\n",
-    );
-}
-
-fn write_render_many_fixture(root: &Path) {
-    write_file(
-        &root.join("reports").join("templates").join("panel.html.j2"),
-        "<article>{{ metadata.title }}|{{ body }}|{{ output_path }}{% if sets %}|{{ sets | join(\",\") }}{% endif %}</article>\n",
-    );
-}
-
-fn write_report_family_override(root: &Path) {
-    write_file(
-        &root
-            .join("reports")
-            .join("templates")
-            .join("lint")
-            .join("report.html.j2"),
-        "{% extends \"base/report.html.j2\" %}\n{% block report_header %}<header class=\"report-header report-header-lint\"><h1>Lint override</h1><p>Lint override</p></header>{% endblock %}\n{% block panel_body %}<div class=\"panel-body panel-body-lint\">Override body marker</div>{% endblock %}\n",
-    );
-}
-
-fn write_state_machine_spec(root: &Path, relative: &str) {
-    write_file(
-        &root.join(relative),
-        r#"[spec]
-kind = "state_machine"
-id = "state-diagrams"
-title = "State Diagrams"
-renderer_targets = ["mermaid"]
-
-[metadata]
-sets = ["publish", "diagram"]
-
-[[states]]
-id = "accepted"
-label = "Accepted"
-
-[[states]]
-id = "validated"
-label = "Validated"
-terminal = true
-
-[[transitions]]
-from = "accepted"
-to = "validated"
-event = "validate_ok"
-guard = "input_valid"
-effect = "store message"
-"#,
-    );
+fn sc_compose() -> std::process::Command {
+    support::sc_compose("sc-compose-json")
 }
 
 fn assert_envelope(value: &Value) {
@@ -582,6 +471,62 @@ fn observability_health_json_nulls_unavailable_query_state() {
     assert_eq!(
         value["payload"]["logging"]["maintenance"]["state"],
         "Stopped"
+    );
+}
+
+#[test]
+fn reports_smoke_json_keeps_observability_health_green_under_logger_12() {
+    let root = temp_root("reports-smoke-observability-json");
+    let log_root = root.join("telemetry");
+    write_smoke_fixture(&root);
+
+    let init = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert!(init.status.success());
+
+    let smoke = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .arg("--archive")
+        .arg("--json")
+        .env("SC_LOG_ROOT", &log_root)
+        .output()
+        .unwrap();
+
+    assert!(smoke.status.success());
+    assert!(smoke.stderr.is_empty());
+    let smoke_value = parse_stdout(&smoke);
+    assert_envelope(&smoke_value);
+    assert_eq!(smoke_value["payload"]["report_id"], "smoke");
+
+    let health = sc_compose()
+        .arg("observability-health")
+        .arg("--json")
+        .env("SC_LOG_ROOT", &log_root)
+        .output()
+        .unwrap();
+
+    assert!(health.status.success());
+    assert!(health.stderr.is_empty());
+    let value = parse_stdout(&health);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["logging"]["state"], "Healthy");
+    assert_eq!(value["payload"]["logging"]["query"]["state"], "Healthy");
+    assert_eq!(
+        value["payload"]["logging"]["active_log_path"],
+        normalize_path_str(log_root.join("logs").join("sc-compose.log.jsonl"))
     );
 }
 
