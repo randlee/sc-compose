@@ -3,6 +3,7 @@ mod exit_codes;
 mod json_output;
 mod observability;
 mod observer_impl;
+mod path_utils;
 mod render_request;
 mod reporting;
 mod template_store;
@@ -22,6 +23,7 @@ use sc_composer::{
 use crate::commands::examples::{run_examples_list, run_examples_render};
 use crate::commands::templates::{run_templates_add, run_templates_list, run_templates_render};
 use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
+use crate::path_utils::to_forward_slash;
 use crate::render_request::{build_request, read_block_pair};
 use crate::reporting::catalog::ReportCatalog;
 use crate::reporting::index::{build_report_index, verify_required_reports};
@@ -528,7 +530,7 @@ fn run_reports_init(args: &ReportsInitArgs) -> Result<i32, CommandError> {
     let result = init_report_scaffold(&args.root)?;
     if args.json {
         let payload = serde_json::json!({
-            "workspace_root": result.workspace_root.display().to_string(),
+            "workspace_root": to_forward_slash(&result.workspace_root),
             "created_paths": result.created_paths,
         });
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
@@ -558,10 +560,10 @@ fn run_reports_smoke(
             "kind": result.kind,
             "produced_at": result.produced_at,
             "status": result.status,
-            "entrypoint": result.entrypoint.display().to_string(),
-            "metadata": result.metadata.display().to_string(),
-            "artifacts": result.artifacts.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
-            "archived_artifacts": result.archived_artifacts.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+            "entrypoint": to_forward_slash(&result.entrypoint),
+            "metadata": to_forward_slash(&result.metadata),
+            "artifacts": result.artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
+            "archived_artifacts": result.archived_artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
         });
         print_json(payload, result.warnings).map_err(CommandError::usage)?;
     } else {
@@ -641,7 +643,7 @@ fn run_reports_publish_manifest(args: &ReportsPublishManifestArgs) -> Result<i32
     })?;
     if args.json {
         let payload = serde_json::json!({
-            "manifest_path": result.manifest_path.display().to_string(),
+            "manifest_path": to_forward_slash(&result.manifest_path),
             "report_count": result.report_count,
             "manifest": result.manifest,
         });
@@ -679,7 +681,7 @@ fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, CommandError> {
 
     if args.json {
         let payload = serde_json::json!({
-            "catalog_path": catalog.catalog_path.display().to_string(),
+            "catalog_path": to_forward_slash(&catalog.catalog_path),
             "report_count": catalog.reports.len(),
             "reports": catalog.reports,
         });
@@ -721,9 +723,9 @@ fn run_report_render_many(args: ReportRenderManyArgs) -> Result<i32, CommandErro
 
     if args.json {
         let payload = serde_json::json!({
-            "manifest_path": result.manifest_path.display().to_string(),
+            "manifest_path": to_forward_slash(&result.manifest_path),
             "output_count": result.generated_outputs.len(),
-            "generated_outputs": result.generated_outputs.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+            "generated_outputs": result.generated_outputs.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
             "entries": result.entries,
         });
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
@@ -792,16 +794,18 @@ fn execute_render(
     if args.json {
         let payload = if args.dry_run {
             serde_json::json!({
-                "would_write": derived_path.display().to_string(),
+                "would_write": to_forward_slash(&derived_path),
                 "would_change": would_change,
-                "template": result.resolve_result.resolved_path.display().to_string(),
+                "template": to_forward_slash(&result.resolve_result.resolved_path),
                 "rendered_preview": result.rendered_text,
             })
         } else {
             serde_json::json!({
-                "output_path": output_path.as_ref().map_or_else(|| "stdout".to_owned(), |path| path.display().to_string()),
+                "output_path": output_path
+                    .as_ref()
+                    .map_or_else(|| "stdout".to_owned(), |path| to_forward_slash(path)),
                 "bytes_written": bytes_written.unwrap_or_default(),
-                "template": result.resolve_result.resolved_path.display().to_string(),
+                "template": to_forward_slash(&result.resolve_result.resolved_path),
             })
         };
         print_json(payload, result.warnings).map_err(CommandError::usage)?;
@@ -844,8 +848,12 @@ fn run_resolve(
         .map_err(CommandError::compose)?;
     if args.json {
         let payload = serde_json::json!({
-            "resolved_path": result.resolved_path.display().to_string(),
-            "search_trace": result.attempted_paths.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+            "resolved_path": to_forward_slash(&result.resolved_path),
+            "search_trace": result
+                .attempted_paths
+                .iter()
+                .map(|path| to_forward_slash(path))
+                .collect::<Vec<_>>(),
             "found": true,
         });
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
@@ -904,7 +912,7 @@ fn run_frontmatter_init(args: &FrontmatterInitArgs) -> Result<i32, CommandError>
         print_json(
             serde_json::json!({
                 "action": "frontmatter-init",
-                "would_affect": [result.target_path.display().to_string()],
+                "would_affect": [to_forward_slash(&result.target_path)],
                 "changed": result.changed,
                 "would_change": result.would_change,
                 "skipped": !result.would_change,
@@ -939,14 +947,17 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
         let payload = if args.dry_run {
             serde_json::json!({
                 "action": "init",
-                "would_affect": planned_changes.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+                "would_affect": planned_changes
+                    .iter()
+                    .map(|path| to_forward_slash(path))
+                    .collect::<Vec<_>>(),
                 "changed": false,
                 "would_change": !planned_changes.is_empty(),
                 "skipped": planned_changes.is_empty(),
             })
         } else {
             serde_json::json!({
-                "workspace_root": canonical_root.display().to_string(),
+                "workspace_root": to_forward_slash(&canonical_root),
                 "created_files": actual_init_created_files(
                     prompts_dir_missing,
                     result.gitignore_updated,
@@ -1036,7 +1047,7 @@ fn print_diagnostic_messages(diagnostics: &[Diagnostic]) {
 
 fn print_json_frontmatter_init(result: &FrontmatterInitResult) -> Result<()> {
     let payload = serde_json::json!({
-        "template_path": result.target_path.display().to_string(),
+        "template_path": to_forward_slash(&result.target_path),
         "frontmatter_added": result.changed,
         "would_change": result.would_change,
         "vars": result.discovered_variables,

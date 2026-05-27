@@ -63,6 +63,7 @@ const STARTER_SMOKE_VARS: &str = r#"{
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(crate) struct ReportsInitResult {
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) workspace_root: PathBuf,
     pub(crate) created_paths: Vec<String>,
 }
@@ -73,8 +74,11 @@ pub(crate) struct ReportsSmokeResult {
     pub(crate) kind: String,
     pub(crate) produced_at: String,
     pub(crate) status: String,
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) entrypoint: PathBuf,
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) metadata: PathBuf,
+    #[serde(serialize_with = "crate::path_utils::serialize_paths")]
     pub(crate) artifacts: Vec<PathBuf>,
     pub(crate) archived_artifacts: Vec<PathBuf>,
     pub(crate) warnings: Vec<Diagnostic>,
