@@ -63,6 +63,18 @@ fn write_report_catalog(root: &Path, contents: &str) {
     );
 }
 
+fn valid_report_catalog() -> &'static str {
+    r#"
+[[report]]
+id = "sc-lint"
+kind = "lint"
+producer = "just lint"
+required = true
+entrypoint = "reports/latest/sc-lint/index.html"
+metadata = "reports/latest/sc-lint/report.json"
+"#
+}
+
 #[test]
 fn render_dry_run_does_not_create_output_file() {
     let root = temp_root("dry-run");
@@ -828,18 +840,7 @@ fn templates_named_render_uses_array_of_objects_input_defaults_from_template_jso
 #[test]
 fn report_catalog_loads_valid_catalog_from_repo_root() {
     let root = temp_root("report-catalog-valid");
-    write_report_catalog(
-        &root,
-        r#"
-[[report]]
-id = "sc-lint"
-kind = "lint"
-producer = "just lint"
-required = true
-entrypoint = "reports/latest/sc-lint/index.html"
-metadata = "reports/latest/sc-lint/report.json"
-"#,
-    );
+    write_report_catalog(&root, valid_report_catalog());
 
     let output = sc_compose()
         .arg("reports")
@@ -854,6 +855,64 @@ metadata = "reports/latest/sc-lint/report.json"
     assert!(stdout.contains("catalog:"));
     assert!(stdout.contains("reports: 1"));
     assert!(stdout.contains("sc-lint kind=lint producer=just lint required=true"));
+}
+
+#[test]
+fn reports_init_happy_path_returns_reserved_status() {
+    let root = temp_root("reports-init");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("reports init reserved"));
+    assert!(stdout.contains(&format!("root: {}", root.display())));
+}
+
+#[test]
+fn reports_smoke_happy_path_returns_reserved_status() {
+    let root = temp_root("reports-smoke");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("reports smoke reserved"));
+    assert!(stdout.contains(&format!("root: {}", root.display())));
+}
+
+#[test]
+fn reports_index_uses_explicit_catalog_argument() {
+    let root = temp_root("report-catalog-explicit");
+    let catalog = root.join("custom").join("reports.toml");
+    write_file(&catalog, valid_report_catalog());
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("index")
+        .arg("--root")
+        .arg(&root)
+        .arg("--catalog")
+        .arg("custom/reports.toml")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("catalog:"));
+    assert!(stdout.contains("custom/reports.toml"));
 }
 
 #[test]
@@ -978,6 +1037,54 @@ metadata = "reports/latest/sc-lint/report.json"
     assert_eq!(output.status.code(), Some(3));
     let stderr = String::from_utf8(output.stderr).unwrap();
     assert!(stderr.contains("field 'entrypoint' must be a normalized relative path"));
+}
+
+#[test]
+fn reports_verify_happy_path_checks_required_artifacts() {
+    let root = temp_root("reports-verify");
+    write_report_catalog(&root, valid_report_catalog());
+    write_file(
+        &root.join("reports/latest/sc-lint/index.html"),
+        "<html></html>",
+    );
+    write_file(&root.join("reports/latest/sc-lint/report.json"), "{}");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("verify")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("status: validated"));
+    assert!(stdout.contains("required_reports: 1"));
+}
+
+#[test]
+fn reports_verify_rejects_missing_required_artifacts() {
+    let root = temp_root("reports-verify-missing");
+    write_report_catalog(&root, valid_report_catalog());
+    write_file(
+        &root.join("reports/latest/sc-lint/index.html"),
+        "<html></html>",
+    );
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("verify")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("ERR_CONFIG_PARSE"));
+    assert!(stderr.contains("missing required report artifacts"));
+    assert!(stderr.contains("sc-lint:metadata=reports/latest/sc-lint/report.json"));
 }
 
 #[test]

@@ -7,7 +7,8 @@ use sc_composer::DiagnosticCode;
 use crate::exit_codes;
 use crate::reporting::catalog::{
     REPORT_CATALOG_RELATIVE_PATH, REPORT_METADATA_BASENAME, REPORTS_ARCHIVE_ROOT_RELATIVE_PATH,
-    REPORTS_LATEST_ROOT_RELATIVE_PATH, ReportCatalog,
+    REPORTS_LATEST_ROOT_RELATIVE_PATH, ReportCatalog, load_report_catalog,
+    load_report_catalog_from_path,
 };
 use crate::{CommandError, print_json};
 
@@ -108,13 +109,22 @@ pub(crate) fn run_reports_smoke(args: &ReportsSmokeArgs) -> Result<i32, CommandE
 }
 
 pub(crate) fn run_reports_index(args: &ReportsIndexArgs) -> Result<i32, CommandError> {
-    run_catalog_summary(&args.root, args.json)
+    run_catalog_summary(&args.root, &args.catalog, args.json)
 }
 
 pub(crate) fn run_reports_verify(args: &ReportsVerifyArgs) -> Result<i32, CommandError> {
-    let catalog = ReportCatalog::load(&args.root).map_err(|error| {
+    let catalog = load_report_catalog_from_path(&args.root, &args.catalog).map_err(|error| {
         CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
     })?;
+
+    let missing_artifacts = collect_missing_required_artifacts(&args.root, &catalog);
+    if !missing_artifacts.is_empty() {
+        let details = missing_artifacts.join(", ");
+        return Err(CommandError::usage_with_code(
+            anyhow!("missing required report artifacts: {details}"),
+            DiagnosticCode::ErrConfigParse,
+        ));
+    }
 
     let required_reports = catalog
         .reports
@@ -122,7 +132,7 @@ pub(crate) fn run_reports_verify(args: &ReportsVerifyArgs) -> Result<i32, Comman
         .filter(|report| report.required)
         .count();
     let payload = serde_json::json!({
-        "catalog_path": catalog.catalog_path.display().to_string(),
+        "catalog_path": normalize_path_display(&catalog.catalog_path),
         "report_count": catalog.reports.len(),
         "required_reports": required_reports,
         "latest_root": REPORTS_LATEST_ROOT_RELATIVE_PATH,
@@ -133,7 +143,7 @@ pub(crate) fn run_reports_verify(args: &ReportsVerifyArgs) -> Result<i32, Comman
     if args.json {
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
     } else {
-        println!("catalog: {}", catalog.catalog_path.display());
+        println!("catalog: {}", normalize_path_display(&catalog.catalog_path));
         println!("reports: {}", catalog.reports.len());
         println!("required_reports: {required_reports}");
         println!("latest_root: {REPORTS_LATEST_ROOT_RELATIVE_PATH}");
@@ -145,17 +155,26 @@ pub(crate) fn run_reports_verify(args: &ReportsVerifyArgs) -> Result<i32, Comman
 }
 
 pub(crate) fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, CommandError> {
-    run_catalog_summary(&args.root, args.json)
+    run_catalog_summary(
+        &args.root,
+        Path::new(REPORT_CATALOG_RELATIVE_PATH),
+        args.json,
+    )
 }
 
-fn run_catalog_summary(root: &Path, json: bool) -> Result<i32, CommandError> {
-    let catalog = ReportCatalog::load(root).map_err(|error| {
+fn run_catalog_summary(root: &Path, catalog_path: &Path, json: bool) -> Result<i32, CommandError> {
+    let loader = if catalog_path == Path::new(REPORT_CATALOG_RELATIVE_PATH) {
+        load_report_catalog(root)
+    } else {
+        load_report_catalog_from_path(root, catalog_path)
+    };
+    let catalog = loader.map_err(|error| {
         CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
     })?;
 
     if json {
         let payload = serde_json::json!({
-            "catalog_path": catalog.catalog_path.display().to_string(),
+            "catalog_path": normalize_path_display(&catalog.catalog_path),
             "report_count": catalog.reports.len(),
             "latest_root": REPORTS_LATEST_ROOT_RELATIVE_PATH,
             "archive_root": REPORTS_ARCHIVE_ROOT_RELATIVE_PATH,
@@ -164,7 +183,7 @@ fn run_catalog_summary(root: &Path, json: bool) -> Result<i32, CommandError> {
         });
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
     } else {
-        println!("catalog: {}", catalog.catalog_path.display());
+        println!("catalog: {}", normalize_path_display(&catalog.catalog_path));
         println!("reports: {}", catalog.reports.len());
         for report in &catalog.reports {
             println!(
@@ -173,11 +192,36 @@ fn run_catalog_summary(root: &Path, json: bool) -> Result<i32, CommandError> {
                 report.kind,
                 report.producer,
                 report.required,
-                report.entrypoint.display(),
-                report.metadata.display()
+                normalize_path_display(&report.entrypoint),
+                normalize_path_display(&report.metadata)
             );
         }
     }
 
     Ok(exit_codes::SUCCESS)
+}
+
+fn collect_missing_required_artifacts(root: &Path, catalog: &ReportCatalog) -> Vec<String> {
+    let mut missing = Vec::new();
+    for report in catalog.reports.iter().filter(|report| report.required) {
+        for (label, relative_path) in [
+            ("entrypoint", &report.entrypoint),
+            ("metadata", &report.metadata),
+        ] {
+            let artifact_path = root.join(relative_path);
+            if !artifact_path.exists() {
+                missing.push(format!(
+                    "{}:{}={}",
+                    report.id,
+                    label,
+                    normalize_path_display(relative_path)
+                ));
+            }
+        }
+    }
+    missing
+}
+
+fn normalize_path_display(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
 }

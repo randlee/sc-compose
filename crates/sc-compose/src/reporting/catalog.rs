@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::fmt;
 use std::path::{Component, Path, PathBuf};
 
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 use toml::Value;
 
 pub(crate) const REPORT_CATALOG_RELATIVE_PATH: &str = "reports/catalog/reports.toml";
@@ -22,6 +22,7 @@ const ALLOWED_REPORT_KINDS: &[&str] = &[
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(crate) struct ReportCatalog {
+    #[serde(serialize_with = "serialize_pathbuf_with_forward_slashes")]
     pub(crate) catalog_path: PathBuf,
     pub(crate) reports: Vec<ReportDefinition>,
 }
@@ -32,7 +33,9 @@ pub(crate) struct ReportDefinition {
     pub(crate) kind: String,
     pub(crate) producer: String,
     pub(crate) required: bool,
+    #[serde(serialize_with = "serialize_pathbuf_with_forward_slashes")]
     pub(crate) entrypoint: PathBuf,
+    #[serde(serialize_with = "serialize_pathbuf_with_forward_slashes")]
     pub(crate) metadata: PathBuf,
 }
 
@@ -49,14 +52,15 @@ pub(crate) enum CatalogError {
     Invalid(String),
 }
 
-impl ReportCatalog {
-    pub(crate) fn load(repo_root: &Path) -> Result<Self, CatalogError> {
-        load_report_catalog(repo_root)
-    }
+pub(crate) fn load_report_catalog(repo_root: &Path) -> Result<ReportCatalog, CatalogError> {
+    load_report_catalog_from_path(repo_root, Path::new(REPORT_CATALOG_RELATIVE_PATH))
 }
 
-pub fn load_report_catalog(repo_root: &Path) -> Result<ReportCatalog, CatalogError> {
-    let catalog_path = repo_root.join(REPORT_CATALOG_RELATIVE_PATH);
+pub(crate) fn load_report_catalog_from_path(
+    repo_root: &Path,
+    catalog_path: &Path,
+) -> Result<ReportCatalog, CatalogError> {
+    let catalog_path = resolve_catalog_path(repo_root, catalog_path);
     let contents = std::fs::read_to_string(&catalog_path).map_err(|source| CatalogError::Read {
         path: catalog_path.clone(),
         source,
@@ -219,4 +223,20 @@ fn normalized_relative_path(
     }
 
     Ok(path)
+}
+
+fn resolve_catalog_path(repo_root: &Path, catalog_path: &Path) -> PathBuf {
+    if catalog_path.is_absolute() {
+        catalog_path.to_path_buf()
+    } else {
+        repo_root.join(catalog_path)
+    }
+}
+
+fn serialize_pathbuf_with_forward_slashes<S>(path: &Path, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let normalized = path.to_string_lossy().replace('\\', "/");
+    serializer.serialize_str(&normalized)
 }

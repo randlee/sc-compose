@@ -93,6 +93,13 @@ metadata = "reports/latest/sc-lint/report.json"
 - latest/archive writing
 - publish-manifest output
 
+## Explicit Deferral
+
+- `ARCH-001`: [crates/sc-compose/src/main.rs](../../crates/sc-compose/src/main.rs)
+  remains above the `1000` non-test line gate in Sprint B1. The line-count
+  reduction is deferred to Sprint `B8`, where the `CommandError` extraction
+  reduces `main.rs` to `911` non-test lines on the integrated branch.
+
 ## Acceptance Criteria
 
 - `requirements.md` and `architecture.md` describe reporting as a generic
