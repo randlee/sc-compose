@@ -4,7 +4,10 @@ pub(crate) fn to_forward_slash(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "/")
 }
 
-#[allow(clippy::ptr_arg, reason = "serde serialize_with passes &PathBuf for PathBuf fields")]
+#[allow(
+    clippy::ptr_arg,
+    reason = "serde serialize_with passes &PathBuf for PathBuf fields"
+)]
 pub(crate) fn serialize_path<S>(path: &PathBuf, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
