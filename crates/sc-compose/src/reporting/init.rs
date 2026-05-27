@@ -11,6 +11,7 @@ use sc_composer::{
 use serde::Serialize;
 
 use crate::CommandError;
+use crate::path_utils::to_forward_slash;
 
 pub(crate) const STARTER_CATALOG_RELATIVE_PATH: &str = "reports/catalog/reports.toml";
 pub(crate) const STARTER_LATEST_RELATIVE_PATH: &str = "reports/latest";
@@ -60,14 +61,18 @@ const STARTER_SMOKE_VARS: &str = r#"{
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(crate) struct ReportsInitResult {
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) workspace_root: PathBuf,
     pub(crate) created_paths: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(crate) struct ReportsSmokeResult {
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) entrypoint: PathBuf,
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) metadata: PathBuf,
+    #[serde(serialize_with = "crate::path_utils::serialize_paths")]
     pub(crate) artifacts: Vec<PathBuf>,
     pub(crate) warnings: Vec<Diagnostic>,
 }
@@ -221,7 +226,7 @@ pub(crate) fn run_smoke_report(
         entrypoint: SMOKE_ENTRYPOINT_RELATIVE_PATH.to_owned(),
         artifacts: artifacts
             .iter()
-            .map(|path| path.display().to_string())
+            .map(|path| to_forward_slash(path))
             .collect(),
     };
     let metadata_json = serde_json::to_string_pretty(&metadata_payload).map_err(|error| {
