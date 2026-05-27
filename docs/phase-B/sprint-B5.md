@@ -54,6 +54,9 @@ verification behavior over those outputs.
   consumer-managed or gitignored
 - one explicit note that browser opening remains wrapper-owned and is not part
   of the shared command contract
+- one explicit deferral that the remaining small `crates/sc-compose/src/main.rs`
+  simplification delta on this branch is owned by B9 rather than B5, because
+  B5 only owns the latest/archive reporting surface and its direct command seam
 
 ## Explicit Code Samples
 
@@ -91,6 +94,9 @@ reports/archive/2026-05-26T20-14-55Z/smoke/
 - the runtime makes `just reports` the shared aggregator and verifier rather
   than a producer that reruns all evidence collection
 - missing required evidence fails `reports verify`
+- the scaffold owns creation of `reports/latest/smoke/`, and
+  report-smoke execution on this branch writes into that prepared path rather
+  than creating it implicitly at runtime
 
 ## Required Validation
 

@@ -1062,6 +1062,14 @@ fn reports_init_creates_scaffold_and_catalog_passes_validator() {
 #[test]
 fn reports_smoke_writes_latest_smoke_artifact_set() {
     let root = temp_root("reports-smoke");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
 
     let output = sc_compose()
@@ -1104,6 +1112,14 @@ fn reports_smoke_writes_latest_smoke_artifact_set() {
 #[test]
 fn reports_smoke_archive_writes_timestamped_archive_copy() {
     let root = temp_root("reports-smoke-archive");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
 
     let output = sc_compose()

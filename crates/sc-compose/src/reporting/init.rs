@@ -19,6 +19,7 @@ use crate::var_file::load_var_file;
 
 pub(crate) const STARTER_TEMPLATES_RELATIVE_PATH: &str = "reports/templates";
 pub(crate) const STARTER_SMOKE_DIR_RELATIVE_PATH: &str = "reports/smoke";
+pub(crate) const STARTER_SMOKE_OUTPUT_DIR_RELATIVE_PATH: &str = "reports/latest/smoke";
 pub(crate) const STARTER_SMOKE_FIXTURE_RELATIVE_PATH: &str =
     "reports/smoke/reference-template.html.j2";
 pub(crate) const STARTER_SMOKE_VARS_RELATIVE_PATH: &str = "reports/smoke/sample-vars.json";
@@ -113,6 +114,11 @@ pub(crate) fn init_report_scaffold(root: &Path) -> Result<ReportsInitResult, Com
     ensure_dir(
         &workspace_root,
         STARTER_SMOKE_DIR_RELATIVE_PATH,
+        &mut created_paths,
+    )?;
+    ensure_dir(
+        &workspace_root,
+        STARTER_SMOKE_OUTPUT_DIR_RELATIVE_PATH,
         &mut created_paths,
     )?;
     write_if_missing(

@@ -1133,11 +1133,11 @@ Planned extracted input shape per discovered source:
 }
 ```
 
-## 15c. Follow-On Latest/Archive Policy And Reports Aggregator (Phase A Planning Only)
+## 15c. Latest/Archive Policy And Reports Aggregator (Implemented In Sprint B5)
 
 The canonical latest/archive output policy is defined in
-`docs/requirements.md` under `### Phase A Latest/Archive Output And Reports
-Aggregator Contract (Planning Only)`. This architecture section keeps only the
+`docs/requirements.md` under `### Latest/Archive Output And Reports
+Aggregator Contract (Implemented In Sprint B5)`. This architecture section keeps only the
 illustrative output shape for that contract and does not restate the normative
 policy prose.
 
