@@ -1,5 +1,6 @@
 use serde_json::{Map, Value, json};
 
+use crate::observability::SERVICE_NAME;
 use sc_composer::{
     CompositionObserver, IncludeOutcomeEvent, ObservationEvent, ObservationSink,
     RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
@@ -8,12 +9,6 @@ use sc_observability::{
     ActionName, Level, LogEvent, Logger, LoggingHealthReport, OBSERVATION_ENVELOPE_VERSION,
     OutcomeLabel, ProcessIdentity, SchemaVersion, ServiceName, Stopped, TargetCategory, Timestamp,
 };
-use sc_observability_types::{
-    DiagnosticInfo, DiagnosticSummary, LoggingHealthState, MaintenanceWorkerState,
-    QueryHealthReport, QueryHealthState, ShutdownError,
-};
-
-use crate::observability::SERVICE_NAME;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct CommandStartEvent {
@@ -66,30 +61,21 @@ impl CliObserver {
         }
     }
 
-    pub fn shutdown(&mut self) -> Result<(), ShutdownError> {
+    pub fn shutdown(&mut self) {
         let Some(state) = self.logger.take() else {
-            return Ok(());
+            return;
         };
         let running = match state {
             LoggerState::Running(logger) => logger,
             LoggerState::Stopped(logger) => {
                 self.last_health = logger.health();
                 self.logger = Some(LoggerState::Stopped(logger));
-                return Ok(());
+                return;
             }
         };
-        let pre_shutdown_health = running.health();
-        match running.shutdown() {
-            Ok(logger) => {
-                self.last_health = logger.health();
-                self.logger = Some(LoggerState::Stopped(logger));
-                Ok(())
-            }
-            Err(error) => {
-                self.last_health = shutdown_error_health(pre_shutdown_health, &error);
-                Err(error)
-            }
-        }
+        let logger = running.shutdown();
+        self.last_health = logger.health();
+        self.logger = Some(LoggerState::Stopped(logger));
     }
 
     fn emit_log(
@@ -120,41 +106,15 @@ impl CliObserver {
         };
 
         if let Some(LoggerState::Running(logger)) = &self.logger {
-            let _ignored = logger.emit(event);
+            let _ignored = logger.log(event);
         }
     }
 }
 
 impl Drop for CliObserver {
     fn drop(&mut self) {
-        let _ignored = self.shutdown();
+        self.shutdown();
     }
-}
-
-fn shutdown_error_health(
-    mut health: LoggingHealthReport,
-    error: &ShutdownError,
-) -> LoggingHealthReport {
-    let summary = DiagnosticSummary::from(error.diagnostic());
-    health.state = LoggingHealthState::DegradedDropping;
-    health.last_error = Some(summary.clone());
-    match &mut health.query {
-        Some(query) => {
-            query.state = QueryHealthState::Unavailable;
-            query.last_error = Some(summary.clone());
-        }
-        None => {
-            health.query = Some(QueryHealthReport {
-                state: QueryHealthState::Unavailable,
-                last_error: Some(summary.clone()),
-            });
-        }
-    }
-    if let Some(maintenance) = &mut health.maintenance {
-        maintenance.state = MaintenanceWorkerState::Degraded;
-        maintenance.last_error = Some(summary);
-    }
-    health
 }
 
 impl CompositionObserver for CliObserver {
@@ -450,8 +410,7 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use sc_observability::{
-        LogSink, Logger, LoggerConfig, LoggingHealthState, SinkHealth, SinkHealthState,
-        SinkRegistration, error_codes,
+        LogSink, Logger, LoggerConfig, SinkHealth, SinkHealthState, SinkRegistration, error_codes,
     };
     use sc_observability_types::{
         ErrorContext, LogSinkError, QueryHealthState, Remediation, SinkName,
@@ -506,6 +465,7 @@ mod tests {
             diagnostic_message: None,
         });
 
+        observer.shutdown();
         let lines = read_log_lines(&observer.health().active_log_path);
         assert_eq!(lines.len(), 6);
         assert_eq!(lines[0]["target"], "compose.command");
@@ -543,6 +503,7 @@ mod tests {
             diagnostic_message: Some("validation failed".to_owned()),
         });
 
+        observer.shutdown();
         let lines = read_log_lines(&observer.health().active_log_path);
         assert_eq!(lines.len(), 1);
         assert_eq!(lines[0]["action"], "failed");
@@ -587,8 +548,8 @@ mod tests {
             json_output: true,
         });
 
+        observer.shutdown();
         let health = observer.health();
-        assert_eq!(health.state, LoggingHealthState::DegradedDropping);
         assert_eq!(health.dropped_events_total, 1);
         assert!(health.last_error.is_some());
     }
@@ -626,11 +587,11 @@ mod tests {
         builder.register_sink(SinkRegistration::new(Arc::new(FlushFailSink)));
         let mut observer = CliObserver::new(builder.build());
 
-        observer.shutdown().expect("shutdown");
+        observer.shutdown();
 
         let health = observer.health();
-        assert_eq!(health.flush_errors_total, 1);
         assert!(health.last_error.is_some());
+        assert!(health.last_writer_error.is_some());
         assert_eq!(
             health.query.expect("query health present").state,
             QueryHealthState::Unavailable

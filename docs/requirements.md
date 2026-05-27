@@ -863,7 +863,16 @@ same command payloads as `render` and `render --dry-run`.
 - `sc-compose` shall use `sc-observability` as the canonical concrete
   observability binding for CLI execution.
 - The current follow-on observability uplift targets `sc-observability`
-  `1.1.0`.
+  `1.2.0`.
+- The CLI lifecycle adapter shall prefer `Logger::log(...)` for blocking queue
+  admission and may use `Logger::try_log(...)` only where non-blocking
+  admission is explicitly required.
+- `Logger::emit(...)` remains a deprecated compatibility path only; any
+  retained use must carry an explicit compatibility rationale in
+  `docs/migration-notes.md`.
+- The CLI shutdown path shall adapt to `Logger::shutdown(self) ->
+  Logger<Stopped>` while preserving post-shutdown health inspection through the
+  stopped logger typestate.
 - `sc-composer` must emit composition pipeline events through its local
   observer/sink hook model.
 - `sc-compose` must emit command lifecycle events through the same local hook
