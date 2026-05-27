@@ -2503,6 +2503,15 @@ fn reports_smoke_keeps_observability_health_green_under_logger_12() {
     let logs_root = root.join("telemetry");
     write_smoke_fixture(&root);
 
+    let init = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init.status.success(), "{init:?}");
+
     let smoke = sc_compose()
         .arg("reports")
         .arg("smoke")
