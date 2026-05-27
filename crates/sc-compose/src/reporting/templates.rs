@@ -137,13 +137,13 @@ pub(crate) fn context_from_source_entry(
     let mut report_metadata = BTreeMap::new();
     report_metadata.insert(
         "source_path".to_owned(),
-        Value::String(entry.source_path.display().to_string()),
+        Value::String(entry.record.source_path.display().to_string()),
     );
     report_metadata.insert(
         "output_path".to_owned(),
-        Value::String(entry.output_path.display().to_string()),
+        Value::String(entry.record.output_path.display().to_string()),
     );
-    if let Some(sets) = entry.sets.clone() {
+    if let Some(sets) = entry.record.sets.clone() {
         report_metadata.insert("sets".to_owned(), serde_json::json!(sets));
     }
 
@@ -328,12 +328,14 @@ fn supporting_templates() -> Vec<NamedTemplateAsset> {
 
 fn entry_title(entry: &SourceEntry) -> String {
     entry
+        .record
         .metadata
         .get("title")
         .and_then(Value::as_str)
         .map_or_else(
             || {
                 entry
+                    .record
                     .source_path
                     .file_stem()
                     .and_then(|value| value.to_str())
@@ -346,6 +348,7 @@ fn entry_title(entry: &SourceEntry) -> String {
 
 fn panel_id(entry: &SourceEntry) -> String {
     entry
+        .record
         .source_path
         .display()
         .to_string()
@@ -359,6 +362,7 @@ fn panel_id(entry: &SourceEntry) -> String {
 
 fn panel_copy_json(entry: &SourceEntry) -> Option<String> {
     entry
+        .record
         .metadata
         .get("copy_json")
         .map(|value| serde_json::to_string(value).unwrap_or_else(|_| String::from("null")))
@@ -366,12 +370,14 @@ fn panel_copy_json(entry: &SourceEntry) -> Option<String> {
 
 fn panel_fragment_href(entry: &SourceEntry) -> Option<String> {
     entry
+        .record
         .metadata
         .get("fragment_href")
         .and_then(Value::as_str)
         .map(str::to_owned)
         .or_else(|| {
             entry
+                .record
                 .metadata
                 .get("fragment")
                 .and_then(Value::as_str)

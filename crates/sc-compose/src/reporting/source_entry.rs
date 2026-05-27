@@ -2,18 +2,26 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::path::{Path, PathBuf};
 
+use serde::Serialize;
 use serde_json::Value;
 
 type ParsedMetadata = (BTreeMap<String, Value>, Option<Vec<String>>, String);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SourceEntry {
+    pub(crate) record: SourceEntryRecord,
+    pub(crate) raw_source: String,
+    pub(crate) body: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(crate) struct SourceEntryRecord {
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) source_path: PathBuf,
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) output_path: PathBuf,
     pub(crate) metadata: BTreeMap<String, Value>,
     pub(crate) sets: Option<Vec<String>>,
-    pub(crate) raw_source: String,
-    pub(crate) body: String,
 }
 
 #[derive(Debug)]
@@ -43,10 +51,12 @@ impl SourceEntry {
         let (metadata, sets, body) = parse_metadata(source_path, &raw_source)?;
 
         Ok(Self {
-            source_path: source_path.to_path_buf(),
-            output_path,
-            metadata,
-            sets,
+            record: SourceEntryRecord {
+                source_path: source_path.to_path_buf(),
+                output_path,
+                metadata,
+                sets,
+            },
             raw_source,
             body,
         })

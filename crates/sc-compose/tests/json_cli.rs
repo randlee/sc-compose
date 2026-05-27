@@ -1213,6 +1213,52 @@ fn reports_smoke_json_uses_diagnostic_envelope() {
 }
 
 #[test]
+fn reports_index_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-index-json");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("index")
+        .arg("--root")
+        .arg(&root)
+        .arg("--catalog")
+        .arg("reports/catalog/reports.toml")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["subcommand"], "reports index");
+    assert_eq!(value["payload"]["status"], "reserved");
+}
+
+#[test]
+fn reports_verify_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-verify-json");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("verify")
+        .arg("--root")
+        .arg(&root)
+        .arg("--catalog")
+        .arg("reports/catalog/reports.toml")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["subcommand"], "reports verify");
+    assert_eq!(value["payload"]["status"], "reserved");
+}
+
+#[test]
 fn report_render_many_json_uses_diagnostic_envelope() {
     let root = temp_root("report-render-many-json");
     write_render_many_fixture(&root);
@@ -1260,6 +1306,54 @@ fn report_render_many_json_uses_diagnostic_envelope() {
 }
 
 #[test]
+fn report_render_many_json_supports_shared_template_family() {
+    let root = temp_root("report-render-many-shared-family-json");
+    write_file(
+        &root.join("docs").join("diagrams").join("a.txt"),
+        "# title: Alpha\n# fragment_href: /reports/alpha\nalpha body\n",
+    );
+
+    let output = sc_compose()
+        .arg("report-render-many")
+        .arg("--root")
+        .arg(&root)
+        .arg("--id")
+        .arg("state-machines")
+        .arg("--glob")
+        .arg("docs/diagrams/*.txt")
+        .arg("--template")
+        .arg("shared:diagram")
+        .arg("--output-dir")
+        .arg("reports/latest/diagrams")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["entries"][0]["source_path"],
+        "docs/diagrams/a.txt"
+    );
+    assert_eq!(
+        value["payload"]["entries"][0]["output_path"],
+        "reports/latest/diagrams/docs/diagrams/a.html"
+    );
+    let rendered = fs::read_to_string(
+        root.join("reports")
+            .join("latest")
+            .join("diagrams")
+            .join("docs")
+            .join("diagrams")
+            .join("a.html"),
+    )
+    .unwrap();
+    assert!(rendered.contains("Diagram report family"));
+}
+
+#[test]
 fn report_render_many_json_supports_template_family_overrides() {
     let root = temp_root("report-render-many-family-json");
     write_file(
@@ -1297,6 +1391,10 @@ path = "reports/templates/lint/report.html.j2"
     assert_eq!(
         value["payload"]["entries"][0]["source_path"],
         "docs/lint/a.txt"
+    );
+    assert_eq!(
+        value["payload"]["entries"][0]["output_path"],
+        "reports/latest/lint/docs/lint/a.html"
     );
     let rendered = fs::read_to_string(
         root.join("reports")

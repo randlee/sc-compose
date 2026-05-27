@@ -7,6 +7,7 @@ mod path_utils;
 mod render_request;
 mod reporting;
 mod template_store;
+mod var_file;
 
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -21,13 +22,15 @@ use sc_composer::{
 };
 
 use crate::commands::examples::{run_examples_list, run_examples_render};
+use crate::commands::reports::{
+    ReportCatalogArgs, ReportRenderManyArgs, ReportsArgs, ReportsSubcommand, run_report_catalog,
+    run_report_render_many, run_reports_index, run_reports_init, run_reports_smoke,
+    run_reports_verify,
+};
 use crate::commands::templates::{run_templates_add, run_templates_list, run_templates_render};
 use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
 use crate::path_utils::to_forward_slash;
 use crate::render_request::{build_request, read_block_pair};
-use crate::reporting::catalog::ReportCatalog;
-use crate::reporting::init::{init_report_scaffold, run_smoke_report};
-use crate::reporting::render_many::{RenderManyRequest, SourceSetDefinition, render_many};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -270,66 +273,6 @@ struct TemplatesAddArgs {
     json: bool,
 }
 
-#[derive(Debug, Clone, Args)]
-struct ReportsArgs {
-    #[command(subcommand)]
-    command: ReportsSubcommand,
-}
-
-#[derive(Debug, Clone, Subcommand)]
-enum ReportsSubcommand {
-    #[command(about = "Initialize the shared reports scaffold")]
-    Init(ReportsInitArgs),
-    #[command(about = "Run the shared smoke-report fixture harness")]
-    Smoke(ReportsSmokeArgs),
-}
-
-#[derive(Debug, Clone, Args)]
-struct ReportsInitArgs {
-    #[arg(long, default_value = ".")]
-    root: PathBuf,
-    #[arg(long)]
-    json: bool,
-}
-
-#[derive(Debug, Clone, Args)]
-struct ReportsSmokeArgs {
-    #[arg(long, default_value = ".")]
-    root: PathBuf,
-    #[arg(long)]
-    fixture: PathBuf,
-    #[arg(long)]
-    vars: PathBuf,
-    #[arg(long)]
-    json: bool,
-}
-
-#[derive(Debug, Clone, Args)]
-struct ReportCatalogArgs {
-    #[arg(long, default_value = ".")]
-    root: PathBuf,
-    #[arg(long)]
-    json: bool,
-}
-
-#[derive(Debug, Clone, Args)]
-struct ReportRenderManyArgs {
-    #[arg(long, default_value = ".")]
-    root: PathBuf,
-    #[arg(long)]
-    id: String,
-    #[arg(long)]
-    glob: String,
-    #[arg(long, conflicts_with = "template_family")]
-    template: Option<String>,
-    #[arg(long = "template-family", conflicts_with = "template")]
-    template_family: Option<String>,
-    #[arg(long = "output-dir")]
-    output_dir: PathBuf,
-    #[arg(long)]
-    json: bool,
-}
-
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum Mode {
     Profile,
@@ -462,10 +405,20 @@ fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, Comma
                     run_reports_smoke(smoke_args, observer)
                 })
             }
+            ReportsSubcommand::Index(index_args) => {
+                observe_command(observer, "reports-index", index_args.json, |_observer| {
+                    run_reports_index(index_args)
+                })
+            }
+            ReportsSubcommand::Verify(verify_args) => {
+                observe_command(observer, "reports-verify", verify_args.json, |_observer| {
+                    run_reports_verify(verify_args)
+                })
+            }
         },
         Command::ReportRenderMany(args) => {
             observe_command(observer, "report-render-many", args.json, |_observer| {
-                run_report_render_many(args)
+                run_report_render_many(&args)
             })
         }
         Command::ReportCatalog(args) => {
@@ -474,114 +427,6 @@ fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, Comma
             })
         }
     }
-}
-
-fn run_reports_init(args: &ReportsInitArgs) -> Result<i32, CommandError> {
-    let result = init_report_scaffold(&args.root)?;
-    if args.json {
-        let payload = serde_json::json!({
-            "workspace_root": to_forward_slash(&result.workspace_root),
-            "created_paths": result.created_paths,
-        });
-        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
-    } else {
-        println!("workspace_root: {}", result.workspace_root.display());
-        for path in &result.created_paths {
-            println!("created: {path}");
-        }
-    }
-    Ok(exit_codes::SUCCESS)
-}
-
-fn run_reports_smoke(
-    args: &ReportsSmokeArgs,
-    observer: &mut dyn CompositionObserver,
-) -> Result<i32, CommandError> {
-    let result = run_smoke_report(&args.root, &args.fixture, &args.vars, observer)?;
-    if args.json {
-        let payload = serde_json::json!({
-            "entrypoint": to_forward_slash(&result.entrypoint),
-            "metadata": to_forward_slash(&result.metadata),
-            "artifacts": result.artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
-        });
-        print_json(payload, result.warnings).map_err(CommandError::usage)?;
-    } else {
-        println!("entrypoint: {}", result.entrypoint.display());
-        println!("metadata: {}", result.metadata.display());
-        for artifact in &result.artifacts {
-            println!("artifact: {}", artifact.display());
-        }
-        if !result.warnings.is_empty() {
-            print_diagnostic_messages(&result.warnings);
-        }
-    }
-    Ok(exit_codes::SUCCESS)
-}
-
-fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, CommandError> {
-    let catalog = ReportCatalog::load(&args.root).map_err(|error| {
-        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-    })?;
-
-    if args.json {
-        let payload = serde_json::json!({
-            "catalog_path": to_forward_slash(&catalog.catalog_path),
-            "report_count": catalog.reports.len(),
-            "reports": catalog.reports,
-        });
-        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
-    } else {
-        println!("catalog: {}", catalog.catalog_path.display());
-        println!("reports: {}", catalog.reports.len());
-        for report in &catalog.reports {
-            println!(
-                "{} kind={} producer={} required={} entrypoint={} metadata={}",
-                report.id,
-                report.kind,
-                report.producer,
-                report.required,
-                report.entrypoint.display(),
-                report.metadata.display()
-            );
-        }
-    }
-
-    Ok(exit_codes::SUCCESS)
-}
-
-fn run_report_render_many(args: ReportRenderManyArgs) -> Result<i32, CommandError> {
-    let template_selector = args.template.clone().unwrap_or_default();
-    let request = RenderManyRequest {
-        root: args.root,
-        source_set: SourceSetDefinition {
-            id: args.id,
-            glob: args.glob,
-            template_selector,
-            template_family: args.template_family,
-            output_dir: args.output_dir,
-        },
-    };
-    let result = render_many(&request).map_err(|error| {
-        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-    })?;
-
-    if args.json {
-        let payload = serde_json::json!({
-            "manifest_path": to_forward_slash(&result.manifest_path),
-            "output_count": result.generated_outputs.len(),
-            "generated_outputs": result.generated_outputs.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
-            "entries": result.entries,
-        });
-        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
-    } else {
-        println!("manifest: {}", result.manifest_path.display());
-        println!("outputs: {}", result.generated_outputs.len());
-        for output in &result.generated_outputs {
-            println!("generated: {}", output.display());
-        }
-    }
-
-    Ok(exit_codes::SUCCESS)
 }
 
 fn run_render(
@@ -938,6 +783,8 @@ fn command_wants_json(command: &Command) -> bool {
         Command::Reports(args) => match &args.command {
             ReportsSubcommand::Init(init_args) => init_args.json,
             ReportsSubcommand::Smoke(smoke_args) => smoke_args.json,
+            ReportsSubcommand::Index(index_args) => index_args.json,
+            ReportsSubcommand::Verify(verify_args) => verify_args.json,
         },
         Command::ReportRenderMany(args) => args.json,
         Command::ReportCatalog(args) => args.json,
