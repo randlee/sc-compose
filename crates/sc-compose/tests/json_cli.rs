@@ -56,6 +56,10 @@ fn repo_root() -> PathBuf {
         .unwrap()
 }
 
+fn normalize_path_str(p: impl AsRef<std::path::Path>) -> String {
+    p.as_ref().to_string_lossy().replace('\\', "/")
+}
+
 fn write_report_catalog(root: &Path, contents: &str) {
     write_file(
         &root.join("reports").join("catalog").join("reports.toml"),
@@ -157,10 +161,7 @@ fn render_dry_run_json_uses_diagnostic_envelope() {
     assert!(value["payload"]["would_write"].is_string());
     assert_eq!(
         value["payload"]["template"],
-        fs::canonicalize(root.join("template.md.j2"))
-            .unwrap()
-            .display()
-            .to_string()
+        normalize_path_str(fs::canonicalize(root.join("template.md.j2")).unwrap())
     );
     assert_eq!(value["payload"]["would_change"], true);
 }
@@ -327,7 +328,7 @@ fn frontmatter_init_json_uses_diagnostic_envelope() {
     assert_envelope(&value);
     assert_eq!(
         value["payload"]["template_path"],
-        fs::canonicalize(&path).unwrap().display().to_string()
+        normalize_path_str(fs::canonicalize(&path).unwrap())
     );
     assert_eq!(value["payload"]["frontmatter_added"], true);
     assert_eq!(value["payload"]["would_change"], true);
@@ -384,7 +385,7 @@ fn init_json_uses_diagnostic_envelope() {
     assert_envelope(&value);
     assert_eq!(
         value["payload"]["workspace_root"],
-        fs::canonicalize(&root).unwrap().display().to_string()
+        normalize_path_str(fs::canonicalize(&root).unwrap())
     );
 }
 
@@ -513,10 +514,7 @@ fn observability_health_json_uses_diagnostic_envelope_and_stays_stdout_clean() {
     );
     assert_eq!(
         value["payload"]["logging"]["active_log_path"],
-        root.join("logs")
-            .join("sc-compose.log.jsonl")
-            .display()
-            .to_string()
+        normalize_path_str(root.join("logs").join("sc-compose.log.jsonl"))
     );
 }
 
@@ -874,13 +872,13 @@ fn examples_named_render_json_matches_render_schema() {
     assert_eq!(value["payload"]["output_path"], "stdout");
     assert_eq!(
         value["payload"]["template"],
-        repo_root()
-            .join("examples")
-            .join("hello.md.j2")
-            .canonicalize()
-            .unwrap()
-            .display()
-            .to_string()
+        normalize_path_str(
+            repo_root()
+                .join("examples")
+                .join("hello.md.j2")
+                .canonicalize()
+                .unwrap()
+        )
     );
 }
 
@@ -908,13 +906,13 @@ fn examples_named_render_html_dry_run_preserves_html_extension() {
     assert_eq!(value["payload"]["would_write"], "sprint-report-html.html");
     assert_eq!(
         value["payload"]["template"],
-        repo_root()
-            .join("examples")
-            .join("sprint-report-html.html.j2")
-            .canonicalize()
-            .unwrap()
-            .display()
-            .to_string()
+        normalize_path_str(
+            repo_root()
+                .join("examples")
+                .join("sprint-report-html.html.j2")
+                .canonicalize()
+                .unwrap()
+        )
     );
 }
 
