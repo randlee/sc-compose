@@ -1814,11 +1814,12 @@ fn observability_health_json_reports_process_local_status() {
         "Running"
     );
     assert_eq!(
-        value["payload"]["logging"]["sink_statuses"][0]["name"],
-        "jsonl-file"
-    );
-    assert_eq!(
-        value["payload"]["logging"]["sink_statuses"][0]["state"],
+        value["payload"]["logging"]["sink_statuses"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|sink| sink["name"] == "jsonl-file")
+            .unwrap()["state"],
         "Healthy"
     );
     assert_eq!(

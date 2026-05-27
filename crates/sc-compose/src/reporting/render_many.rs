@@ -10,7 +10,7 @@ use serde_json::Value;
 use crate::path_utils::to_forward_slash;
 use crate::reporting::source_entry::{SourceEntry, SourceEntryError};
 use crate::reporting::templates::{
-    ResolvedTemplate, TemplateError, context_from_source_entry, render_shared_report,
+    ResolvedTemplate, TemplateError, context_from_source_entry, entry_title, render_shared_report,
     resolve_template_family, resolve_template_selector,
 };
 
@@ -247,24 +247,6 @@ fn render_entry(
         context,
         supporting_templates: template.supporting_templates.clone(),
     })
-}
-
-fn entry_title(entry: &SourceEntry) -> String {
-    entry
-        .metadata
-        .get("title")
-        .and_then(Value::as_str)
-        .map_or_else(
-            || {
-                entry
-                    .source_path
-                    .file_stem()
-                    .and_then(|value| value.to_str())
-                    .unwrap_or("report-panel")
-                    .to_owned()
-            },
-            str::to_owned,
-        )
 }
 
 impl fmt::Display for RenderManyError {
