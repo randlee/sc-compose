@@ -50,6 +50,9 @@ consumer repo.
   - optional fragment/open link
 - one explicit split between shared panel chrome and consumer-specific panel
   body content
+- one explicit deferral that the remaining small `crates/sc-compose/src/main.rs`
+  simplification delta on this branch is owned by B9 rather than B4, because
+  B4 only owns the template-family reporting surface and its direct command seam
 
 ## Explicit Code Samples
 
@@ -84,6 +87,9 @@ path = "reports/templates/lint/report.html.j2"
 - the runtime makes per-panel JSON copy optional but first-class
 - the runtime keeps panel chrome in shared template behavior rather than
   wrapper-only logic
+- the scaffold owns creation of `reports/latest/smoke/`, and
+  report-smoke execution on this branch writes into that prepared path rather
+  than creating it implicitly at runtime
 
 ## Required Validation
 

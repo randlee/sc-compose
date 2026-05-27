@@ -1261,13 +1261,12 @@ Boundary rules:
 - publish transport and hosting remain outside `sc-composer` and `sc-compose`
 - machine-readable handoff is in scope; network transport is not
 
-### Phase A Producer Recipe Contract (Planning Only)
+### Producer Recipe Contract (Implemented In Sprint B2)
 
-Phase A follow-on planning defines producer recipes as the owners of report
-generation. Report generation is not centered on one catch-all `just reports`
-command.
+Sprint B2 implements producer recipes as the owners of report generation.
+Report generation is not centered on one catch-all `just reports` command.
 
-Planned standard producer surface:
+Standard producer surface:
 
 - `just lint`
 - `just test`
@@ -1277,7 +1276,7 @@ Planned standard producer surface:
   - `just sql-diagrams`
   - schema, migration, or other repo-local evidence producers
 
-Planned producer contract:
+Producer contract:
 
 - each producer command is responsible for generating the report artifacts for
   the report ids it owns
@@ -1298,20 +1297,22 @@ Boundary rules for the producer line:
   `### Phase A Follow-On Reporting Contract (Planning Only)`
 - the report ids owned by a producer are declared through the shared report
   catalog rather than inferred from hard-coded aggregator behavior
+- the scaffold owns creation of `reports/latest/smoke/`, and
+  report-smoke execution writes into that prepared path rather than creating
+  the output directory at runtime
 
-### Phase A Template-Family And Panel-Chrome Contract (Planning Only)
+### Template-Family And Panel-Chrome Contract (Implemented In Sprint B4)
 
-Phase A follow-on planning defines shared template families and shared panel
-chrome so report UI behavior does not need to be reimplemented per consumer
-repo.
+Sprint B4 implements shared template families and shared panel chrome so
+report UI behavior does not need to be reimplemented per consumer repo.
 
-Initial planned template families:
+Initial template families:
 
 - lint/test/smoke evidence reports
 - public API, CLI, and ICD style reports
 - diagram, state-machine, and SQL-query reports
 
-Planned override contract:
+Override contract:
 
 The authoritative override contract, shared lookup namespace, consumer
 activation config, template block boundary, required template variables, and
@@ -1333,7 +1334,7 @@ Shared panel contract:
 - optional copy-JSON action
 - optional fragment or open link
 
-Planned ownership split:
+Ownership split:
 
 - shared panel chrome owns panel framing and shared actions
 - consumer-specific templates own the panel body content for their report
