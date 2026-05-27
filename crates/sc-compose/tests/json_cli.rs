@@ -98,6 +98,94 @@ fn render_dry_run_json_uses_diagnostic_envelope() {
 }
 
 #[test]
+fn render_dry_run_json_injects_builtin_variables() {
+    let root = temp_root("render-dry-run-builtins-json");
+    write_file(
+        &root.join("report.md.j2"),
+        "{{ TEMPLATE_NAME }}|{{ HOSTNAME }}|{{ USERNAME }}|{{ RENDER_DATE }}|{{ RENDER_TIMESTAMP }}\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("report.md.j2")
+        .arg("--json")
+        .arg("--dry-run")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    let preview = value["payload"]["rendered_preview"].as_str().unwrap();
+    let parts = preview.trim().split('|').collect::<Vec<_>>();
+    assert_eq!(parts[0], "report.md.j2");
+    assert!(!parts[1].is_empty());
+    assert!(!parts[2].is_empty());
+    assert_eq!(parts[3].len(), 10);
+    assert!(parts[4].contains('T'));
+}
+
+#[test]
+fn render_dry_run_json_builtin_override_precedence_is_stable() {
+    let root = temp_root("render-dry-run-builtins-priority-json");
+    write_file(
+        &root.join("report.md.j2"),
+        "---\ndefaults:\n  TEMPLATE_NAME: default-template\n  HOSTNAME: default-host\n  USERNAME: default-user\n  RENDER_DATE: 1999-12-31\n  RENDER_TIMESTAMP: 1999-12-31T23:59:59Z\n---\n{{ TEMPLATE_NAME }}|{{ HOSTNAME }}|{{ USERNAME }}|{{ RENDER_DATE }}|{{ RENDER_TIMESTAMP }}\n",
+    );
+
+    let output = sc_compose()
+        .env("SC_TEMPLATE_NAME", "env-template")
+        .env("SC_HOSTNAME", "env-host")
+        .env("SC_USERNAME", "env-user")
+        .env("SC_RENDER_DATE", "2001-02-03")
+        .env("SC_RENDER_TIMESTAMP", "2001-02-03T04:05:06Z")
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("report.md.j2")
+        .arg("--env-prefix")
+        .arg("SC_")
+        .arg("--var")
+        .arg("HOSTNAME=cli-host")
+        .arg("--json")
+        .arg("--dry-run")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    let preview = value["payload"]["rendered_preview"].as_str().unwrap();
+    let parts = preview.trim().split('|').collect::<Vec<_>>();
+    assert_eq!(
+        parts,
+        vec![
+            "env-template",
+            "cli-host",
+            "env-user",
+            "2001-02-03",
+            "2001-02-03T04:05:06Z",
+        ]
+    );
+}
+
+#[test]
 fn render_dry_run_json_reports_no_change_when_output_matches() {
     let root = temp_root("render-dry-run-json-no-change");
     let output_path = root.join("out.md");

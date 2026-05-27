@@ -362,8 +362,9 @@ Missing required variables remain a separate diagnostic class:
 
 ### 7.4 Built-In Render-Context Tier (FR-2c)
 
-Built-in render-context variables are injected after caller-provided inputs are
-merged and before template-owned defaults are applied.
+Built-in render-context variables are injected after caller-provided inputs
+(explicit `--var` and `--env-prefix`) are merged but before template-owned
+defaults take effect. Caller-provided values always win over built-ins.
 
 The built-in set is:
 

@@ -3,6 +3,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
+use time::OffsetDateTime;
+use time::format_description::well_known::Rfc3339;
+use time::macros::format_description;
+
 use crate::ExpandedTemplate;
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
 use crate::frontmatter::{Frontmatter, parse_template_document};
@@ -10,6 +14,18 @@ use crate::types::{
     ComposeRequest, InputValue, UnknownVariablePolicy, ValidationReport, VariableName,
     VariableSource,
 };
+
+const RENDER_DATE_FORMAT: &[time::format_description::FormatItem<'static>] =
+    format_description!("[year]-[month]-[day]");
+
+/// Built-in render-context variable names injected for every render.
+pub const BUILTIN_VARIABLE_NAMES: [&str; 5] = [
+    "TEMPLATE_NAME",
+    "HOSTNAME",
+    "USERNAME",
+    "RENDER_DATE",
+    "RENDER_TIMESTAMP",
+];
 
 #[derive(Debug, PartialEq, Eq)]
 enum RequiredPathStatus {
@@ -39,7 +55,7 @@ pub(crate) fn validate_expanded(
     request: &ComposeRequest,
     expanded: &ExpandedTemplate,
     resolve_result: crate::ResolveResult,
-) -> ValidationReport {
+) -> (ValidationReport, ValidationState) {
     let state = collect_validation_state(request, expanded);
 
     let mut warnings = Vec::new();
@@ -93,12 +109,15 @@ pub(crate) fn validate_expanded(
         &mut errors,
     );
 
-    ValidationReport {
-        ok: errors.is_empty(),
-        warnings,
-        errors,
-        resolve_result,
-    }
+    (
+        ValidationReport {
+            ok: errors.is_empty(),
+            warnings,
+            errors,
+            resolve_result,
+        },
+        state,
+    )
 }
 
 fn missing_required_path_diagnostics(state: &ValidationState) -> Vec<Diagnostic> {
@@ -296,7 +315,9 @@ fn default_usage_diagnostics(state: &ValidationState) -> Vec<Diagnostic> {
                     }
                 }
                 VariableSource::TemplateInputDefault => diagnostic,
-                VariableSource::ExplicitInput | VariableSource::Environment => unreachable!(),
+                VariableSource::ExplicitInput
+                | VariableSource::Environment
+                | VariableSource::Builtin => unreachable!(),
             })
         })
         .collect()
@@ -345,7 +366,9 @@ fn validate_required_path(
     let Some(first) = segments.next() else {
         return RequiredPathStatus::MissingTopLevel;
     };
-    let top_level = VariableName::new(first).expect("top-level path segment remains valid");
+    let Ok(top_level) = VariableName::new(first) else {
+        return RequiredPathStatus::MissingTopLevel;
+    };
     let Some(current) = context.get(&top_level) else {
         return RequiredPathStatus::MissingTopLevel;
     };
@@ -393,7 +416,7 @@ fn top_level_variable_name(variable: &VariableName) -> VariableName {
         .split('.')
         .next()
         .unwrap_or(variable.as_str());
-    VariableName::new(top_level).expect("top-level path segment remains valid")
+    VariableName::new(top_level).unwrap_or_else(|_| variable.clone())
 }
 
 fn top_level_boundary_names(variables: BTreeSet<VariableName>) -> BTreeSet<VariableName> {
@@ -444,11 +467,13 @@ pub(crate) fn collect_validation_state(
     expanded: &ExpandedTemplate,
 ) -> ValidationState {
     let mut state = ValidationState::default();
-    let root_path = expanded.resolved_files.first();
 
     for (path, frontmatter) in &expanded.frontmatters {
         if let Some(frontmatter) = frontmatter {
-            let is_root = root_path.is_some_and(|root| root == path);
+            let is_root = expanded
+                .resolved_files
+                .first()
+                .is_some_and(|root| root == path);
             merge_frontmatter(path, frontmatter, expanded, &mut state, is_root);
         }
     }
@@ -474,7 +499,98 @@ pub(crate) fn collect_validation_state(
     }
 
     state.referenced_variables = discover_tokens(&expanded.text);
+    declare_builtin_variables(&mut state);
     state
+}
+
+pub(crate) fn inject_builtin_vars(state: &mut ValidationState, template_path: &Path) {
+    let now = OffsetDateTime::now_utc();
+    insert_builtin_var(
+        state,
+        BUILTIN_VARIABLE_NAMES[0],
+        template_path.file_name().map_or_else(
+            || "unknown".to_owned(),
+            |name| name.to_string_lossy().into_owned(),
+        ),
+    );
+    insert_builtin_var(state, BUILTIN_VARIABLE_NAMES[1], current_hostname());
+    insert_builtin_var(state, BUILTIN_VARIABLE_NAMES[2], current_username());
+    insert_builtin_var(state, BUILTIN_VARIABLE_NAMES[3], format_render_date(now));
+    insert_builtin_var(
+        state,
+        BUILTIN_VARIABLE_NAMES[4],
+        format_render_timestamp(now),
+    );
+}
+
+fn declare_builtin_variables(state: &mut ValidationState) {
+    for raw_name in BUILTIN_VARIABLE_NAMES {
+        if let Ok(name) = VariableName::new(raw_name) {
+            state.declared_variables.insert(name);
+        }
+    }
+}
+
+fn insert_builtin_var(state: &mut ValidationState, raw_name: &'static str, value: String) {
+    let Ok(name) = VariableName::new(raw_name) else {
+        return;
+    };
+    let preserve_caller_value = matches!(
+        state.variable_sources.get(&name),
+        Some(VariableSource::Environment | VariableSource::ExplicitInput)
+    );
+    if !preserve_caller_value {
+        state
+            .context
+            .insert(name.clone(), serde_json::Value::String(value));
+        state
+            .variable_sources
+            .insert(name.clone(), VariableSource::Builtin);
+    }
+    state.declared_variables.insert(name);
+}
+
+fn format_render_date(now: OffsetDateTime) -> String {
+    now.format(RENDER_DATE_FORMAT)
+        .unwrap_or_else(|_| render_date_fallback(now))
+}
+
+fn format_render_timestamp(now: OffsetDateTime) -> String {
+    now.format(&Rfc3339)
+        .unwrap_or_else(|_| render_timestamp_fallback(now))
+}
+
+fn render_date_fallback(now: OffsetDateTime) -> String {
+    format!(
+        "{:04}-{:02}-{:02}",
+        now.year(),
+        u8::from(now.month()),
+        now.day()
+    )
+}
+
+fn render_timestamp_fallback(now: OffsetDateTime) -> String {
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+        now.year(),
+        u8::from(now.month()),
+        now.day(),
+        now.hour(),
+        now.minute(),
+        now.second()
+    )
+}
+
+fn current_hostname() -> String {
+    std::env::var("HOSTNAME")
+        .or_else(|_| std::env::var("COMPUTERNAME"))
+        .unwrap_or_else(|_| "unknown".to_owned())
+}
+
+fn current_username() -> String {
+    std::env::var("USER")
+        .or_else(|_| std::env::var("USERNAME"))
+        .unwrap_or_else(|_| "unknown".to_owned())
 }
 
 fn merge_frontmatter(
@@ -666,7 +782,7 @@ mod tests {
     };
     use crate::{DiagnosticCode, DiagnosticSeverity, validate};
 
-    use super::collect_validation_state;
+    use super::{collect_validation_state, inject_builtin_vars};
 
     #[test]
     fn default_mode_preserves_undeclared_tokens_as_warnings() {
@@ -730,7 +846,8 @@ mod tests {
             &request.policy,
         )
         .unwrap();
-        let state = collect_validation_state(&request, &expanded);
+        let mut state = collect_validation_state(&request, &expanded);
+        inject_builtin_vars(&mut state, &resolve_result.resolved_path);
 
         assert_eq!(
             state
@@ -774,7 +891,8 @@ mod tests {
             &request.policy,
         )
         .unwrap();
-        let state = collect_validation_state(&request, &expanded);
+        let mut state = collect_validation_state(&request, &expanded);
+        inject_builtin_vars(&mut state, &resolve_result.resolved_path);
 
         assert_eq!(
             state
@@ -787,6 +905,123 @@ mod tests {
                 .variable_sources
                 .get(&crate::VariableName::new("name").unwrap()),
             Some(&crate::VariableSource::ExplicitInput)
+        );
+    }
+
+    #[test]
+    fn builtins_are_available_without_frontmatter_declarations() {
+        let root = temp_root("validation_builtins");
+        write_file(
+            &root.join("template.md.j2"),
+            "{{ TEMPLATE_NAME }} {{ HOSTNAME }} {{ USERNAME }} {{ RENDER_DATE }} {{ RENDER_TIMESTAMP }}\n",
+        );
+
+        let request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        let report = validate(&request).unwrap();
+        assert!(
+            !report
+                .warnings
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValUndeclaredToken)
+        );
+
+        let resolve_result = crate::resolve_template_path(&request).unwrap();
+        let expanded = crate::expand_includes(
+            &resolve_result.resolved_path,
+            &request.root,
+            &request.policy,
+        )
+        .unwrap();
+        let mut state = collect_validation_state(&request, &expanded);
+        inject_builtin_vars(&mut state, &resolve_result.resolved_path);
+
+        assert_eq!(
+            state
+                .context
+                .get(&crate::VariableName::new("TEMPLATE_NAME").unwrap()),
+            Some(&json!("template.md.j2"))
+        );
+        for name in ["HOSTNAME", "USERNAME", "RENDER_DATE", "RENDER_TIMESTAMP"] {
+            let variable = crate::VariableName::new(name).unwrap();
+            let value = state
+                .context
+                .get(&variable)
+                .and_then(serde_json::Value::as_str);
+            assert!(
+                value.is_some_and(|value| !value.is_empty()),
+                "{name} missing"
+            );
+            assert_eq!(
+                state.variable_sources.get(&variable),
+                Some(&crate::VariableSource::Builtin)
+            );
+        }
+    }
+
+    #[test]
+    fn builtins_override_defaults_and_can_be_overridden_by_env_and_input() {
+        let root = temp_root("validation_builtin_precedence");
+        write_file(
+            &root.join("report.md.j2"),
+            "---\ndefaults:\n  HOSTNAME: default-host\n  USERNAME: default-user\n  RENDER_DATE: 2000-01-01\n---\n{{ HOSTNAME }} {{ USERNAME }} {{ RENDER_DATE }}\n",
+        );
+
+        let mut request = request_for_file(&root, "report.md.j2", ComposePolicy::default());
+        request.vars_env.insert(
+            crate::VariableName::new("HOSTNAME").unwrap(),
+            json!("env-host"),
+        );
+        request.vars_input.insert(
+            crate::VariableName::new("USERNAME").unwrap(),
+            json!("input-user"),
+        );
+
+        let resolve_result = crate::resolve_template_path(&request).unwrap();
+        let expanded = crate::expand_includes(
+            &resolve_result.resolved_path,
+            &request.root,
+            &request.policy,
+        )
+        .unwrap();
+        let mut state = collect_validation_state(&request, &expanded);
+        inject_builtin_vars(&mut state, &resolve_result.resolved_path);
+
+        assert_eq!(
+            state
+                .context
+                .get(&crate::VariableName::new("HOSTNAME").unwrap()),
+            Some(&json!("env-host"))
+        );
+        assert_eq!(
+            state
+                .variable_sources
+                .get(&crate::VariableName::new("HOSTNAME").unwrap()),
+            Some(&crate::VariableSource::Environment)
+        );
+        assert_eq!(
+            state
+                .context
+                .get(&crate::VariableName::new("USERNAME").unwrap()),
+            Some(&json!("input-user"))
+        );
+        assert_eq!(
+            state
+                .variable_sources
+                .get(&crate::VariableName::new("USERNAME").unwrap()),
+            Some(&crate::VariableSource::ExplicitInput)
+        );
+
+        let render_date = state
+            .context
+            .get(&crate::VariableName::new("RENDER_DATE").unwrap())
+            .and_then(serde_json::Value::as_str)
+            .unwrap();
+        assert_ne!(render_date, "2000-01-01");
+        assert_eq!(
+            state
+                .variable_sources
+                .get(&crate::VariableName::new("RENDER_DATE").unwrap()),
+            Some(&crate::VariableSource::Builtin)
         );
     }
 

@@ -3,8 +3,8 @@ use std::io::Read;
 
 use anyhow::{Context, anyhow};
 use sc_composer::{
-    ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, InputValue, ProfileKind,
-    RuntimeKind, UnknownVariablePolicy, VariableName,
+    BUILTIN_VARIABLE_NAMES, ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, InputValue,
+    ProfileKind, RuntimeKind, UnknownVariablePolicy, VariableName,
 };
 
 use crate::template_store::TemplatePack;
@@ -199,8 +199,13 @@ fn load_env(args: &InputArgs) -> Result<BTreeMap<VariableName, InputValue>, Comm
     if let Some(prefix) = &args.env_prefix {
         for (key, value) in std::env::vars() {
             if let Some(trimmed) = key.strip_prefix(prefix) {
+                let name = if BUILTIN_VARIABLE_NAMES.contains(&trimmed) {
+                    trimmed.to_owned()
+                } else {
+                    trimmed.to_ascii_lowercase()
+                };
                 vars.insert(
-                    VariableName::new(trimmed.to_ascii_lowercase()).map_err(|error| {
+                    VariableName::new(name).map_err(|error| {
                         CommandError::usage(anyhow!(
                             "invalid environment-derived variable `{trimmed}`: {error}"
                         ))

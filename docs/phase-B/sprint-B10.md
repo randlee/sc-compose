@@ -1,9 +1,9 @@
 ---
 id: B10
 title: Built-In Render Context Variables
-status: draft
-branch: plan/phase-B
-worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
+status: complete
+branch: feat/sprint-B10
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/sprint-B10
 ---
 
 # Sprint B10 — Built-In Render Context Variables
@@ -43,16 +43,19 @@ timestamp without the caller needing to pass them as `--var` flags.
   1. explicit `--var` flags
   2. `--env-prefix` absorbed environment variables
   3. built-in injected values
-  4. frontmatter defaults
+  4. user-template `input_defaults`
+  5. frontmatter defaults
 - one explicit guarantee that caller-provided values always win:
   - explicit `--var HOSTNAME=...` overrides the built-in
   - `--env-prefix` absorbed `HOSTNAME` overrides the built-in
   - frontmatter defaults do not override built-ins
 - one explicit rule that `TEMPLATE_NAME` reflects the template filename
   actually rendered rather than a caller-supplied alias
-- one explicit call-path rule that `build_render_context()` calls
-  `inject_builtin_vars(...)` after caller values are merged, with
-  `template_name` sourced from the resolved `BuiltinVarContext` template path
+- one explicit call-path rule that render-context construction injects
+  built-ins from the resolved root template path after caller values are
+  merged, while still preserving the settled precedence:
+  explicit `--var`, then `--env-prefix`, then built-ins, then
+  user-template `input_defaults`, then frontmatter defaults
 - one explicit implementation constraint that hostname/username lookup may use
   `gethostname`, `whoami`, or `std::env::var`, but must not add
   observability-, ATM-, or daemon-lifecycle-specific dependencies
@@ -61,23 +64,27 @@ timestamp without the caller needing to pass them as `--var` flags.
 
 ```rust
 fn inject_builtin_vars(
-    context: &mut BTreeMap<String, serde_json::Value>,
-    template_name: &str,
+    state: &mut ValidationState,
+    template_path: &Path,
 ) {
-    context.entry("TEMPLATE_NAME".into()).or_insert_with(|| template_name.into());
-    context.entry("HOSTNAME".into()).or_insert_with(|| hostname().into());
-    context.entry("USERNAME".into()).or_insert_with(|| username().into());
-    context.entry("RENDER_DATE".into()).or_insert_with(|| today_iso().into());
-    context
-        .entry("RENDER_TIMESTAMP".into())
-        .or_insert_with(|| now_iso().into());
+    // inject built-ins unless caller-provided values already won
 }
 
-fn build_render_context(request: &BuiltinVarContext) -> BTreeMap<String, serde_json::Value> {
-    let mut context = merge_caller_values(request);
-    inject_builtin_vars(&mut context, request.template_path.file_name().unwrap().to_str().unwrap());
-    apply_frontmatter_defaults(&mut context, request);
-    context
+fn build_render_context(
+    state: &mut ValidationState,
+    template_path: &Path,
+) -> BTreeMap<String, serde_json::Value> {
+    inject_builtin_vars(state, template_path);
+    state.context.clone()
+}
+
+fn collect_validation_state(
+    request: &ComposeRequest,
+    expanded: &ExpandedTemplate,
+) -> ValidationState {
+    let mut state = merge_frontmatter_defaults(expanded);
+    apply_env_and_explicit_inputs(&mut state, request);
+    state
 }
 ```
 
