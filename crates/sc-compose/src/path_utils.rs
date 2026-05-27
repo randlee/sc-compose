@@ -18,7 +18,6 @@ where
 }
 
 #[allow(
-    dead_code,
     clippy::ptr_arg,
     clippy::ref_option,
     reason = "early Phase B branches do not yet serialize Option<PathBuf> but later branches do"

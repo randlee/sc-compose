@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use anyhow::anyhow;
 use sc_composer::{DiagnosticCode, RecoveryHint, RecoveryHintKind};
 
+use crate::path_utils::to_forward_slash;
 use crate::template_store::TemplateMeta;
 use crate::{CommandError, print_json};
 
@@ -18,7 +19,7 @@ fn print_pack_list(packs: &[TemplateMeta], json: bool) -> anyhow::Result<()> {
                     .iter()
                     .map(|pack| serde_json::json!({
                         "name": pack.name,
-                        "path": pack.path.display().to_string(),
+                        "path": to_forward_slash(&pack.path),
                     }))
                     .collect::<Vec<_>>(),
             }),

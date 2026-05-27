@@ -239,13 +239,13 @@ pub(crate) fn run_reports_finalize(args: &ReportsFinalizeArgs) -> Result<i32, Co
         println!("kind: {}", result.kind);
         println!("produced_at: {}", result.produced_at);
         println!("status: {}", result.status);
-        println!("entrypoint: {}", result.entrypoint.display());
-        println!("metadata: {}", result.metadata.display());
+        println!("entrypoint: {}", to_forward_slash(&result.entrypoint));
+        println!("metadata: {}", to_forward_slash(&result.metadata));
         for artifact in &result.latest_artifacts {
-            println!("artifact: {}", artifact.display());
+            println!("artifact: {}", to_forward_slash(artifact));
         }
         for artifact in &result.archived_artifacts {
-            println!("archived: {}", artifact.display());
+            println!("archived: {}", to_forward_slash(artifact));
         }
     }
     Ok(exit_codes::SUCCESS)

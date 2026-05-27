@@ -1188,6 +1188,14 @@ fn reports_init_json_uses_diagnostic_envelope() {
 #[test]
 fn reports_smoke_json_uses_diagnostic_envelope() {
     let root = temp_root("reports-smoke-json");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
 
     let output = sc_compose()
@@ -1223,6 +1231,14 @@ fn reports_smoke_json_uses_diagnostic_envelope() {
 #[test]
 fn reports_index_json_uses_diagnostic_envelope() {
     let root = temp_root("reports-index-json");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
     write_report_catalog(
         &root,
@@ -1270,6 +1286,14 @@ metadata = "reports/latest/smoke/report.json"
 #[test]
 fn reports_smoke_json_lists_archive_artifacts_when_requested() {
     let root = temp_root("reports-smoke-archive-json");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
 
     let output = sc_compose()
@@ -1302,6 +1326,14 @@ fn reports_smoke_json_lists_archive_artifacts_when_requested() {
 #[test]
 fn reports_publish_manifest_json_uses_diagnostic_envelope() {
     let root = temp_root("reports-publish-manifest-json");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
     write_report_catalog(
         &root,

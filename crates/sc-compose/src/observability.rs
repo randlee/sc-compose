@@ -41,7 +41,10 @@ pub(crate) fn build_logger_for_root(
 
 pub(crate) fn print_observability_health(health: &LoggingHealthReport) {
     println!("state: {:?}", health.state);
-    println!("active_log_path: {}", health.active_log_path.display());
+    println!(
+        "active_log_path: {}",
+        to_forward_slash(&health.active_log_path)
+    );
     println!("dropped_events_total: {}", health.dropped_events_total);
     println!("flush_errors_total: {}", health.flush_errors_total);
 

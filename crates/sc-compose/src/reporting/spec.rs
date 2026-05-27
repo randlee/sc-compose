@@ -106,8 +106,6 @@ pub(crate) enum ReportSpec {
     SqlQuery(SqlQuerySpec),
 }
 
-pub(crate) type ReportsRenderSpecResult = ReportsSmokeResult;
-
 #[derive(Debug)]
 pub(crate) enum ReportSpecError {
     ParseToml(toml::de::Error),
@@ -156,7 +154,7 @@ pub(crate) fn run_render_spec_report(
     spec_path: &Path,
     archive: bool,
     _observer: &mut dyn CompositionObserver,
-) -> Result<ReportsRenderSpecResult, CommandError> {
+) -> Result<ReportsSmokeResult, CommandError> {
     let workspace_root = std::fs::canonicalize(root).map_err(|error| {
         CommandError::usage_with_code(
             anyhow!(error).context(format!(
@@ -245,7 +243,7 @@ pub(crate) fn run_render_spec_report(
         )
     })?;
 
-    Ok(ReportsRenderSpecResult {
+    Ok(ReportsSmokeResult {
         report_id: materialized.report_id,
         kind: materialized.kind,
         produced_at: materialized.produced_at,

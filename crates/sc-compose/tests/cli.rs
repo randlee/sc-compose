@@ -551,7 +551,7 @@ fn general_task_template_render_allows_overriding_optional_input_defaults() {
             "task_id": "SC-GENERAL-TASK-REVIEW-001",
             "assignee": "architect",
             "description": "review",
-            "worktree_path": worktree_path.display().to_string(),
+            "worktree_path": normalize_path_str(&worktree_path),
             "branch": "feat/x",
             "pr_target": "develop",
             "deliverables": "pass review",
@@ -581,7 +581,10 @@ fn general_task_template_render_allows_overriding_optional_input_defaults() {
     );
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains(r#"assignee="architect""#));
-    assert!(stdout.contains(&format!("<worktree>{}</worktree>", worktree_path.display())));
+    assert!(stdout.contains(&format!(
+        "<worktree>{}</worktree>",
+        normalize_path_str(&worktree_path)
+    )));
     assert!(stdout.contains("<branch>feat/x</branch>"));
     assert!(stdout.contains("<pr-target>develop</pr-target>"));
 }
@@ -1140,6 +1143,14 @@ fn reports_init_creates_scaffold_and_catalog_passes_validator() {
 #[test]
 fn reports_smoke_writes_latest_smoke_artifact_set() {
     let root = temp_root("reports-smoke");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
 
     let output = sc_compose()
@@ -1182,6 +1193,14 @@ fn reports_smoke_writes_latest_smoke_artifact_set() {
 #[test]
 fn reports_smoke_archive_writes_timestamped_archive_copy() {
     let root = temp_root("reports-smoke-archive");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
 
     let output = sc_compose()
@@ -1212,6 +1231,14 @@ fn reports_smoke_archive_writes_timestamped_archive_copy() {
 #[test]
 fn reports_index_summarizes_latest_report_status() {
     let root = temp_root("reports-index");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
     write_report_catalog(
         &root,
@@ -1285,6 +1312,14 @@ metadata = "reports/latest/smoke/report.json"
 #[test]
 fn reports_publish_manifest_writes_machine_readable_handoff() {
     let root = temp_root("reports-publish-manifest");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
     write_report_catalog(
         &root,
@@ -1587,6 +1622,15 @@ fn phase_b_reference_fixtures_produce_publish_manifest_for_distinct_report_famil
             "reports/latest/test-evidence/panels/reports/inputs/test/matrix.html",
         ],
     );
+
+    let init = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init.status.success(), "{init:?}");
 
     let smoke = sc_compose()
         .arg("reports")
@@ -2349,7 +2393,7 @@ fn observability_health_text_reports_process_local_status() {
     assert!(stdout.contains("sink jsonl-file: Healthy"));
     assert!(stdout.contains(&format!(
         "active_log_path: {}",
-        log_root.join("logs").join("sc-compose.log.jsonl").display()
+        normalize_path_str(log_root.join("logs").join("sc-compose.log.jsonl"))
     )));
 }
 
@@ -2372,11 +2416,12 @@ fn observability_health_json_reports_process_local_status() {
         "Running"
     );
     assert_eq!(
-        value["payload"]["logging"]["sink_statuses"][0]["name"],
-        "jsonl-file"
-    );
-    assert_eq!(
-        value["payload"]["logging"]["sink_statuses"][0]["state"],
+        value["payload"]["logging"]["sink_statuses"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|sink| sink["name"] == "jsonl-file")
+            .unwrap()["state"],
         "Healthy"
     );
     assert_eq!(
