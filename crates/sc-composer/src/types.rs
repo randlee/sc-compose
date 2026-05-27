@@ -435,6 +435,8 @@ pub enum VariableSource {
     ExplicitInput,
     /// Environment-derived input.
     Environment,
+    /// Built-in render-context variable injected by the runtime.
+    Builtin,
     /// Default supplied by a user template pack.
     TemplateInputDefault,
     /// Default declared in the root document frontmatter.

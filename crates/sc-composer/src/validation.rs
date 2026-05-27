@@ -3,6 +3,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
+use time::OffsetDateTime;
+use time::format_description::well_known::Rfc3339;
+use time::macros::format_description;
+
 use crate::ExpandedTemplate;
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
 use crate::frontmatter::{Frontmatter, parse_template_document};
@@ -296,7 +300,9 @@ fn default_usage_diagnostics(state: &ValidationState) -> Vec<Diagnostic> {
                     }
                 }
                 VariableSource::TemplateInputDefault => diagnostic,
-                VariableSource::ExplicitInput | VariableSource::Environment => unreachable!(),
+                VariableSource::ExplicitInput
+                | VariableSource::Environment
+                | VariableSource::Builtin => unreachable!(),
             })
         })
         .collect()
@@ -460,6 +466,13 @@ pub(crate) fn collect_validation_state(
             .variable_sources
             .insert(name.clone(), VariableSource::TemplateInputDefault);
     }
+    for (name, value) in builtins_for_root(root_path) {
+        state.context.insert(name.clone(), value);
+        state
+            .variable_sources
+            .insert(name.clone(), VariableSource::Builtin);
+        state.declared_variables.insert(name);
+    }
     for (name, value) in &request.vars_env {
         state.context.insert(name.clone(), value.clone());
         state
@@ -475,6 +488,52 @@ pub(crate) fn collect_validation_state(
 
     state.referenced_variables = discover_tokens(&expanded.text);
     state
+}
+
+fn builtins_for_root(root_path: Option<&PathBuf>) -> BTreeMap<VariableName, InputValue> {
+    let mut builtins = BTreeMap::new();
+    let template_name = root_path.and_then(|path| path.file_name()).map_or_else(
+        || "unknown".to_owned(),
+        |name| name.to_string_lossy().into_owned(),
+    );
+    let now = OffsetDateTime::now_utc();
+
+    builtins.insert(
+        VariableName::new("TEMPLATE_NAME").expect("built-in variable name is valid"),
+        serde_json::Value::String(template_name),
+    );
+    builtins.insert(
+        VariableName::new("HOSTNAME").expect("built-in variable name is valid"),
+        serde_json::Value::String(current_hostname()),
+    );
+    builtins.insert(
+        VariableName::new("USERNAME").expect("built-in variable name is valid"),
+        serde_json::Value::String(current_username()),
+    );
+    builtins.insert(
+        VariableName::new("RENDER_DATE").expect("built-in variable name is valid"),
+        serde_json::Value::String(
+            now.format(&format_description!("[year]-[month]-[day]"))
+                .expect("current UTC date formats"),
+        ),
+    );
+    builtins.insert(
+        VariableName::new("RENDER_TIMESTAMP").expect("built-in variable name is valid"),
+        serde_json::Value::String(now.format(&Rfc3339).expect("current UTC timestamp formats")),
+    );
+    builtins
+}
+
+fn current_hostname() -> String {
+    std::env::var("HOSTNAME")
+        .or_else(|_| std::env::var("COMPUTERNAME"))
+        .unwrap_or_else(|_| "unknown".to_owned())
+}
+
+fn current_username() -> String {
+    std::env::var("USER")
+        .or_else(|_| std::env::var("USERNAME"))
+        .unwrap_or_else(|_| "unknown".to_owned())
 }
 
 fn merge_frontmatter(
@@ -787,6 +846,121 @@ mod tests {
                 .variable_sources
                 .get(&crate::VariableName::new("name").unwrap()),
             Some(&crate::VariableSource::ExplicitInput)
+        );
+    }
+
+    #[test]
+    fn builtins_are_available_without_frontmatter_declarations() {
+        let root = temp_root("validation_builtins");
+        write_file(
+            &root.join("template.md.j2"),
+            "{{ TEMPLATE_NAME }} {{ HOSTNAME }} {{ USERNAME }} {{ RENDER_DATE }} {{ RENDER_TIMESTAMP }}\n",
+        );
+
+        let request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        let report = validate(&request).unwrap();
+        assert!(
+            !report
+                .warnings
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValUndeclaredToken)
+        );
+
+        let resolve_result = crate::resolve_template_path(&request).unwrap();
+        let expanded = crate::expand_includes(
+            &resolve_result.resolved_path,
+            &request.root,
+            &request.policy,
+        )
+        .unwrap();
+        let state = collect_validation_state(&request, &expanded);
+
+        assert_eq!(
+            state
+                .context
+                .get(&crate::VariableName::new("TEMPLATE_NAME").unwrap()),
+            Some(&json!("template.md.j2"))
+        );
+        for name in ["HOSTNAME", "USERNAME", "RENDER_DATE", "RENDER_TIMESTAMP"] {
+            let variable = crate::VariableName::new(name).unwrap();
+            let value = state
+                .context
+                .get(&variable)
+                .and_then(serde_json::Value::as_str);
+            assert!(
+                value.is_some_and(|value| !value.is_empty()),
+                "{name} missing"
+            );
+            assert_eq!(
+                state.variable_sources.get(&variable),
+                Some(&crate::VariableSource::Builtin)
+            );
+        }
+    }
+
+    #[test]
+    fn builtins_override_defaults_and_can_be_overridden_by_env_and_input() {
+        let root = temp_root("validation_builtin_precedence");
+        write_file(
+            &root.join("report.md.j2"),
+            "---\ndefaults:\n  HOSTNAME: default-host\n  USERNAME: default-user\n  RENDER_DATE: 2000-01-01\n---\n{{ HOSTNAME }} {{ USERNAME }} {{ RENDER_DATE }}\n",
+        );
+
+        let mut request = request_for_file(&root, "report.md.j2", ComposePolicy::default());
+        request.vars_env.insert(
+            crate::VariableName::new("HOSTNAME").unwrap(),
+            json!("env-host"),
+        );
+        request.vars_input.insert(
+            crate::VariableName::new("USERNAME").unwrap(),
+            json!("input-user"),
+        );
+
+        let resolve_result = crate::resolve_template_path(&request).unwrap();
+        let expanded = crate::expand_includes(
+            &resolve_result.resolved_path,
+            &request.root,
+            &request.policy,
+        )
+        .unwrap();
+        let state = collect_validation_state(&request, &expanded);
+
+        assert_eq!(
+            state
+                .context
+                .get(&crate::VariableName::new("HOSTNAME").unwrap()),
+            Some(&json!("env-host"))
+        );
+        assert_eq!(
+            state
+                .variable_sources
+                .get(&crate::VariableName::new("HOSTNAME").unwrap()),
+            Some(&crate::VariableSource::Environment)
+        );
+        assert_eq!(
+            state
+                .context
+                .get(&crate::VariableName::new("USERNAME").unwrap()),
+            Some(&json!("input-user"))
+        );
+        assert_eq!(
+            state
+                .variable_sources
+                .get(&crate::VariableName::new("USERNAME").unwrap()),
+            Some(&crate::VariableSource::ExplicitInput)
+        );
+
+        let render_date = state
+            .context
+            .get(&crate::VariableName::new("RENDER_DATE").unwrap())
+            .and_then(serde_json::Value::as_str)
+            .unwrap();
+        assert_ne!(render_date, "2000-01-01");
+        assert_eq!(
+            state
+                .variable_sources
+                .get(&crate::VariableName::new("RENDER_DATE").unwrap()),
+            Some(&crate::VariableSource::Builtin)
         );
     }
 

@@ -1100,6 +1100,44 @@ fn render_uses_env_prefix_inputs() {
 }
 
 #[test]
+fn render_injects_builtin_variables_and_respects_override_precedence() {
+    let root = temp_root("render-builtins");
+    write_file(
+        &root.join("report.md.j2"),
+        "---\ndefaults:\n  HOSTNAME: default-host\n---\n{{ TEMPLATE_NAME }}|{{ HOSTNAME }}|{{ USERNAME }}|{{ RENDER_DATE }}|{{ RENDER_TIMESTAMP }}\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("report.md.j2")
+        .arg("--env-prefix")
+        .arg("SC_")
+        .arg("--var")
+        .arg("USERNAME=cli-user")
+        .env("SC_HOSTNAME", "env-host")
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let parts = stdout.trim().split('|').collect::<Vec<_>>();
+    assert_eq!(parts[0], "report.md.j2");
+    assert_eq!(parts[1], "env-host");
+    assert_eq!(parts[2], "cli-user");
+    assert_eq!(parts[3].len(), 10);
+    assert!(parts[4].contains('T'));
+}
+
+#[test]
 fn frontmatter_init_dry_run_reports_changed_and_would_change_without_writing() {
     let root = temp_root("frontmatter-dry-run-cli");
     let template = root.join("template.md.j2");

@@ -142,6 +142,8 @@ fn fail_if_invalid(errors: Vec<crate::Diagnostic>) -> Result<(), ComposeError> {
 fn build_render_context(
     state: &crate::validation::ValidationState,
 ) -> BTreeMap<String, serde_json::Value> {
+    // Validation state already carries the final precedence-resolved render
+    // context, including built-ins and caller overrides.
     state
         .context
         .iter()
@@ -271,6 +273,54 @@ mod tests {
             result
                 .variable_sources
                 .get(&VariableName::new("name").unwrap()),
+            Some(&VariableSource::ExplicitInput)
+        );
+    }
+
+    #[test]
+    fn compose_injects_builtin_variables_and_keeps_override_precedence() {
+        let root = temp_root("compose_builtins");
+        write_file(
+            &root.join("report.md.j2"),
+            "---\ndefaults:\n  HOSTNAME: default-host\n  USERNAME: default-user\n---\n{{ TEMPLATE_NAME }}|{{ HOSTNAME }}|{{ USERNAME }}|{{ RENDER_DATE }}|{{ RENDER_TIMESTAMP }}",
+        );
+
+        let mut vars_env = BTreeMap::default();
+        vars_env.insert(VariableName::new("HOSTNAME").unwrap(), json!("env-host"));
+        let mut vars_input = BTreeMap::default();
+        vars_input.insert(VariableName::new("USERNAME").unwrap(), json!("cli-user"));
+
+        let result = compose(&ComposeRequest {
+            runtime: None,
+            mode: ComposeMode::File {
+                template_path: PathBuf::from("report.md.j2"),
+            },
+            root: ConfiningRoot::new(&root).unwrap(),
+            vars_input,
+            vars_env,
+            vars_defaults: BTreeMap::default(),
+            guidance_block: None,
+            user_prompt: None,
+            policy: ComposePolicy::default(),
+        })
+        .unwrap();
+
+        let parts = result.rendered_text.split('|').collect::<Vec<_>>();
+        assert_eq!(parts[0], "report.md.j2");
+        assert_eq!(parts[1], "env-host");
+        assert_eq!(parts[2], "cli-user");
+        assert_eq!(parts[3].len(), 10);
+        assert!(parts[4].contains('T'));
+        assert_eq!(
+            result
+                .variable_sources
+                .get(&VariableName::new("HOSTNAME").unwrap()),
+            Some(&VariableSource::Environment)
+        );
+        assert_eq!(
+            result
+                .variable_sources
+                .get(&VariableName::new("USERNAME").unwrap()),
             Some(&VariableSource::ExplicitInput)
         );
     }
