@@ -1176,6 +1176,14 @@ fn reports_init_json_uses_diagnostic_envelope() {
 #[test]
 fn reports_smoke_json_uses_diagnostic_envelope() {
     let root = temp_root("reports-smoke-json");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
 
     let output = sc_compose()
