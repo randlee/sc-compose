@@ -660,7 +660,7 @@ fn general_task_template_render_allows_overriding_optional_input_defaults() {
             "task_id": "SC-GENERAL-TASK-REVIEW-001",
             "assignee": "architect",
             "description": "review",
-            "worktree_path": worktree_path.display().to_string(),
+            "worktree_path": normalize_path_str(&worktree_path),
             "branch": "feat/x",
             "pr_target": "develop",
             "deliverables": "pass review",
@@ -690,7 +690,10 @@ fn general_task_template_render_allows_overriding_optional_input_defaults() {
     );
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains(r#"assignee="architect""#));
-    assert!(stdout.contains(&format!("<worktree>{}</worktree>", worktree_path.display())));
+    assert!(stdout.contains(&format!(
+        "<worktree>{}</worktree>",
+        normalize_path_str(&worktree_path)
+    )));
     assert!(stdout.contains("<branch>feat/x</branch>"));
     assert!(stdout.contains("<pr-target>develop</pr-target>"));
 }
@@ -1728,6 +1731,15 @@ fn phase_b_reference_fixtures_produce_publish_manifest_for_distinct_report_famil
             "reports/latest/test-evidence/panels/reports/inputs/test/matrix.html",
         ],
     );
+
+    let init = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init.status.success(), "{init:?}");
 
     let smoke = sc_compose()
         .arg("reports")
