@@ -8,7 +8,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::path_utils::to_forward_slash;
-use crate::reporting::source_entry::{SourceEntry, SourceEntryError};
+use crate::reporting::source_entry::{SourceEntry, SourceEntryError, SourceEntryRecord};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SourceSetDefinition {
@@ -24,15 +24,7 @@ pub(crate) struct RenderManyRequest {
     pub(crate) source_set: SourceSetDefinition,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(crate) struct RenderManyManifestEntry {
-    #[serde(serialize_with = "crate::path_utils::serialize_path")]
-    pub(crate) source_path: PathBuf,
-    #[serde(serialize_with = "crate::path_utils::serialize_path")]
-    pub(crate) output_path: PathBuf,
-    pub(crate) metadata: BTreeMap<String, Value>,
-    pub(crate) sets: Option<Vec<String>>,
-}
+pub(crate) type RenderManyManifestEntry = SourceEntryRecord;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(crate) struct RenderManyResult {
@@ -109,6 +101,9 @@ impl RenderManyRequest {
     }
 }
 
+// This source-collection and render-many path is generic across text inputs.
+// It is not Mermaid-specific and is intended to support Mermaid, SVG, Markdown,
+// SQL, and other text assets that carry embedded metadata.
 pub(crate) fn render_many(
     request: &RenderManyRequest,
 ) -> Result<RenderManyResult, RenderManyError> {
@@ -126,7 +121,7 @@ pub(crate) fn render_many(
     })?;
 
     let mut discovered = discover_sources(request)?;
-    discovered.sort_by(|left, right| left.source_path.cmp(&right.source_path));
+    discovered.sort_by(|left, right| left.record.source_path.cmp(&right.record.source_path));
 
     let mut entries = Vec::with_capacity(discovered.len());
     let mut generated_outputs = Vec::with_capacity(discovered.len());
@@ -134,11 +129,11 @@ pub(crate) fn render_many(
         let rendered =
             render_entry(&entry, &request.source_set.id, &template_text).map_err(|source| {
                 RenderManyError::Render {
-                    source_path: entry.source_path.clone(),
+                    source_path: entry.record.source_path.clone(),
                     source,
                 }
             })?;
-        let absolute_output = request.root.join(&entry.output_path);
+        let absolute_output = request.root.join(&entry.record.output_path);
         if let Some(parent) = absolute_output.parent() {
             std::fs::create_dir_all(parent).map_err(|source| RenderManyError::CreateOutputDir {
                 path: parent.to_path_buf(),
@@ -151,13 +146,8 @@ pub(crate) fn render_many(
                 source,
             }
         })?;
-        generated_outputs.push(entry.output_path.clone());
-        entries.push(RenderManyManifestEntry {
-            source_path: entry.source_path.clone(),
-            output_path: entry.output_path.clone(),
-            metadata: entry.metadata.clone(),
-            sets: entry.sets.clone(),
-        });
+        generated_outputs.push(entry.record.output_path.clone());
+        entries.push(entry.record.clone());
     }
 
     let manifest_path = request.source_set.output_dir.join("manifest.json");
@@ -225,16 +215,20 @@ fn render_entry(
     let mut context = BTreeMap::new();
     context.insert(
         "source_path".to_owned(),
-        Value::String(to_forward_slash(&entry.source_path)),
+        Value::String(to_forward_slash(&entry.record.source_path)),
     );
     context.insert(
         "output_path".to_owned(),
-        Value::String(to_forward_slash(&entry.output_path)),
+        Value::String(to_forward_slash(&entry.record.output_path)),
     );
-    context.insert("metadata".to_owned(), serde_json::json!(entry.metadata));
+    context.insert(
+        "metadata".to_owned(),
+        serde_json::json!(entry.record.metadata),
+    );
     context.insert(
         "sets".to_owned(),
         entry
+            .record
             .sets
             .clone()
             .map_or(Value::Null, |sets| serde_json::json!(sets)),

@@ -1085,6 +1085,46 @@ fn reports_smoke_writes_latest_smoke_artifact_set() {
 }
 
 #[test]
+fn reports_index_stub_exists_with_catalog_surface() {
+    let root = temp_root("reports-index");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("index")
+        .arg("--root")
+        .arg(&root)
+        .arg("--catalog")
+        .arg("reports/catalog/reports.toml")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("reports index reserved"));
+    assert!(stdout.contains("catalog: reports/catalog/reports.toml"));
+}
+
+#[test]
+fn reports_verify_stub_exists_with_catalog_surface() {
+    let root = temp_root("reports-verify");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("verify")
+        .arg("--root")
+        .arg(&root)
+        .arg("--catalog")
+        .arg("reports/catalog/reports.toml")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("reports verify reserved"));
+    assert!(stdout.contains("catalog: reports/catalog/reports.toml"));
+}
+
+#[test]
 fn templates_add_directory_creates_pack_and_readme_and_named_render_uses_input_defaults() {
     let root = temp_root("templates-add-dir");
     let templates_root = root.join("user-templates");
