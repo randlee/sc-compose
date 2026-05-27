@@ -18,6 +18,15 @@ use crate::types::{
 const RENDER_DATE_FORMAT: &[time::format_description::FormatItem<'static>] =
     format_description!("[year]-[month]-[day]");
 
+/// Built-in render-context variable names injected for every render.
+pub const BUILTIN_VARIABLE_NAMES: [&str; 5] = [
+    "TEMPLATE_NAME",
+    "HOSTNAME",
+    "USERNAME",
+    "RENDER_DATE",
+    "RENDER_TIMESTAMP",
+];
+
 #[derive(Debug, PartialEq, Eq)]
 enum RequiredPathStatus {
     Satisfied,
@@ -42,20 +51,11 @@ pub(crate) struct ValidationState {
     pub(crate) referenced_variables: BTreeSet<VariableName>,
 }
 
-#[derive(Debug)]
-struct BuiltinVarContext {
-    template_name: String,
-    hostname: String,
-    username: String,
-    render_date: String,
-    render_timestamp: String,
-}
-
 pub(crate) fn validate_expanded(
     request: &ComposeRequest,
     expanded: &ExpandedTemplate,
     resolve_result: crate::ResolveResult,
-) -> ValidationReport {
+) -> (ValidationReport, ValidationState) {
     let state = collect_validation_state(request, expanded);
 
     let mut warnings = Vec::new();
@@ -109,12 +109,15 @@ pub(crate) fn validate_expanded(
         &mut errors,
     );
 
-    ValidationReport {
-        ok: errors.is_empty(),
-        warnings,
-        errors,
-        resolve_result,
-    }
+    (
+        ValidationReport {
+            ok: errors.is_empty(),
+            warnings,
+            errors,
+            resolve_result,
+        },
+        state,
+    )
 }
 
 fn missing_required_path_diagnostics(state: &ValidationState) -> Vec<Diagnostic> {
@@ -363,7 +366,9 @@ fn validate_required_path(
     let Some(first) = segments.next() else {
         return RequiredPathStatus::MissingTopLevel;
     };
-    let top_level = VariableName::new(first).expect("top-level path segment remains valid");
+    let Ok(top_level) = VariableName::new(first) else {
+        return RequiredPathStatus::MissingTopLevel;
+    };
     let Some(current) = context.get(&top_level) else {
         return RequiredPathStatus::MissingTopLevel;
     };
@@ -411,7 +416,7 @@ fn top_level_variable_name(variable: &VariableName) -> VariableName {
         .split('.')
         .next()
         .unwrap_or(variable.as_str());
-    VariableName::new(top_level).expect("top-level path segment remains valid")
+    VariableName::new(top_level).unwrap_or_else(|_| variable.clone())
 }
 
 fn top_level_boundary_names(variables: BTreeSet<VariableName>) -> BTreeSet<VariableName> {
@@ -462,11 +467,13 @@ pub(crate) fn collect_validation_state(
     expanded: &ExpandedTemplate,
 ) -> ValidationState {
     let mut state = ValidationState::default();
-    let root_path = expanded.resolved_files.first();
 
     for (path, frontmatter) in &expanded.frontmatters {
         if let Some(frontmatter) = frontmatter {
-            let is_root = root_path.is_some_and(|root| root == path);
+            let is_root = expanded
+                .resolved_files
+                .first()
+                .is_some_and(|root| root == path);
             merge_frontmatter(path, frontmatter, expanded, &mut state, is_root);
         }
     }
@@ -477,9 +484,6 @@ pub(crate) fn collect_validation_state(
         state
             .variable_sources
             .insert(name.clone(), VariableSource::TemplateInputDefault);
-    }
-    if let Some(root_path) = root_path {
-        inject_builtin_vars(&mut state, root_path);
     }
     for (name, value) in &request.vars_env {
         state.context.insert(name.clone(), value.clone());
@@ -495,55 +499,55 @@ pub(crate) fn collect_validation_state(
     }
 
     state.referenced_variables = discover_tokens(&expanded.text);
+    declare_builtin_variables(&mut state);
     state
 }
 
-fn inject_builtin_vars(state: &mut ValidationState, template_path: &Path) {
-    BuiltinVarContext::for_template(template_path).inject_into(state);
+pub(crate) fn inject_builtin_vars(state: &mut ValidationState, template_path: &Path) {
+    let now = OffsetDateTime::now_utc();
+    insert_builtin_var(
+        state,
+        BUILTIN_VARIABLE_NAMES[0],
+        template_path.file_name().map_or_else(
+            || "unknown".to_owned(),
+            |name| name.to_string_lossy().into_owned(),
+        ),
+    );
+    insert_builtin_var(state, BUILTIN_VARIABLE_NAMES[1], current_hostname());
+    insert_builtin_var(state, BUILTIN_VARIABLE_NAMES[2], current_username());
+    insert_builtin_var(state, BUILTIN_VARIABLE_NAMES[3], format_render_date(now));
+    insert_builtin_var(
+        state,
+        BUILTIN_VARIABLE_NAMES[4],
+        format_render_timestamp(now),
+    );
 }
 
-impl BuiltinVarContext {
-    fn for_template(template_path: &Path) -> Self {
-        let now = OffsetDateTime::now_utc();
-        Self {
-            template_name: template_path.file_name().map_or_else(
-                || "unknown".to_owned(),
-                |name| name.to_string_lossy().into_owned(),
-            ),
-            hostname: current_hostname(),
-            username: current_username(),
-            render_date: format_render_date(now),
-            render_timestamp: format_render_timestamp(now),
+fn declare_builtin_variables(state: &mut ValidationState) {
+    for raw_name in BUILTIN_VARIABLE_NAMES {
+        if let Ok(name) = VariableName::new(raw_name) {
+            state.declared_variables.insert(name);
         }
     }
+}
 
-    fn inject_into(self, state: &mut ValidationState) {
-        let Self {
-            template_name,
-            hostname,
-            username,
-            render_date,
-            render_timestamp,
-        } = self;
-        Self::insert(state, "TEMPLATE_NAME", template_name);
-        Self::insert(state, "HOSTNAME", hostname);
-        Self::insert(state, "USERNAME", username);
-        Self::insert(state, "RENDER_DATE", render_date);
-        Self::insert(state, "RENDER_TIMESTAMP", render_timestamp);
-    }
-
-    fn insert(state: &mut ValidationState, raw_name: &'static str, value: String) {
-        let Ok(name) = VariableName::new(raw_name) else {
-            return;
-        };
+fn insert_builtin_var(state: &mut ValidationState, raw_name: &'static str, value: String) {
+    let Ok(name) = VariableName::new(raw_name) else {
+        return;
+    };
+    let preserve_caller_value = matches!(
+        state.variable_sources.get(&name),
+        Some(VariableSource::Environment | VariableSource::ExplicitInput)
+    );
+    if !preserve_caller_value {
         state
             .context
             .insert(name.clone(), serde_json::Value::String(value));
         state
             .variable_sources
             .insert(name.clone(), VariableSource::Builtin);
-        state.declared_variables.insert(name);
     }
+    state.declared_variables.insert(name);
 }
 
 fn format_render_date(now: OffsetDateTime) -> String {
@@ -778,7 +782,7 @@ mod tests {
     };
     use crate::{DiagnosticCode, DiagnosticSeverity, validate};
 
-    use super::collect_validation_state;
+    use super::{collect_validation_state, inject_builtin_vars};
 
     #[test]
     fn default_mode_preserves_undeclared_tokens_as_warnings() {
@@ -842,7 +846,8 @@ mod tests {
             &request.policy,
         )
         .unwrap();
-        let state = collect_validation_state(&request, &expanded);
+        let mut state = collect_validation_state(&request, &expanded);
+        inject_builtin_vars(&mut state, &resolve_result.resolved_path);
 
         assert_eq!(
             state
@@ -886,7 +891,8 @@ mod tests {
             &request.policy,
         )
         .unwrap();
-        let state = collect_validation_state(&request, &expanded);
+        let mut state = collect_validation_state(&request, &expanded);
+        inject_builtin_vars(&mut state, &resolve_result.resolved_path);
 
         assert_eq!(
             state
@@ -926,7 +932,8 @@ mod tests {
             &request.policy,
         )
         .unwrap();
-        let state = collect_validation_state(&request, &expanded);
+        let mut state = collect_validation_state(&request, &expanded);
+        inject_builtin_vars(&mut state, &resolve_result.resolved_path);
 
         assert_eq!(
             state
@@ -976,7 +983,8 @@ mod tests {
             &request.policy,
         )
         .unwrap();
-        let state = collect_validation_state(&request, &expanded);
+        let mut state = collect_validation_state(&request, &expanded);
+        inject_builtin_vars(&mut state, &resolve_result.resolved_path);
 
         assert_eq!(
             state

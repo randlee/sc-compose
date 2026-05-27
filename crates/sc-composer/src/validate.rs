@@ -68,7 +68,7 @@ pub fn validate_with_observer(
         code: None,
     });
 
-    let mut report = crate::validation::validate_expanded(request, &expanded, resolve_result);
+    let (mut report, _) = crate::validation::validate_expanded(request, &expanded, resolve_result);
     let event = ValidationOutcomeEvent {
         warnings: std::mem::take(&mut report.warnings),
         errors: std::mem::take(&mut report.errors),

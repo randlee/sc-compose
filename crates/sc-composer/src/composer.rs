@@ -1,6 +1,7 @@
 //! End-to-end composition orchestration.
 
 use std::collections::BTreeMap;
+use std::path::Path;
 
 use crate::ComposeError;
 use crate::error::ValidationError;
@@ -66,7 +67,7 @@ pub fn compose_with_observer(
         code: None,
     });
 
-    let mut validation_report =
+    let (mut validation_report, mut validation_state) =
         crate::validation::validate_expanded(request, &expanded, resolve_result);
     let validation_outcome = ValidationOutcomeEvent {
         warnings: std::mem::take(&mut validation_report.warnings),
@@ -74,11 +75,16 @@ pub fn compose_with_observer(
     };
     observer.on_validation_outcome(&validation_outcome);
     fail_if_invalid(validation_outcome.errors)?;
-    let validation_state = crate::validation::collect_validation_state(request, &expanded);
 
     let renderer = Renderer::new();
     let rendered_text = renderer
-        .render(&expanded.text, build_render_context(&validation_state))
+        .render(
+            &expanded.text,
+            build_render_context(
+                &mut validation_state,
+                &validation_report.resolve_result.resolved_path,
+            ),
+        )
         .inspect_err(|error| {
             observer.on_render_outcome(&RenderOutcomeEvent {
                 rendered_bytes: None,
@@ -140,10 +146,10 @@ fn fail_if_invalid(errors: Vec<crate::Diagnostic>) -> Result<(), ComposeError> {
 }
 
 fn build_render_context(
-    state: &crate::validation::ValidationState,
+    state: &mut crate::validation::ValidationState,
+    template_path: &Path,
 ) -> BTreeMap<String, serde_json::Value> {
-    // Validation state already carries the final precedence-resolved render
-    // context, including built-ins and caller overrides.
+    crate::validation::inject_builtin_vars(state, template_path);
     state
         .context
         .iter()

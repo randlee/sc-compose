@@ -51,10 +51,11 @@ timestamp without the caller needing to pass them as `--var` flags.
   - frontmatter defaults do not override built-ins
 - one explicit rule that `TEMPLATE_NAME` reflects the template filename
   actually rendered rather than a caller-supplied alias
-- one explicit call-path rule that validation-state collection injects
-  built-ins from the resolved root template path after template-owned defaults
-  are merged and before environment-derived or explicit caller values are
-  applied
+- one explicit call-path rule that render-context construction injects
+  built-ins from the resolved root template path after caller values are
+  merged, while still preserving the settled precedence:
+  explicit `--var`, then `--env-prefix`, then built-ins, then
+  user-template `input_defaults`, then frontmatter defaults
 - one explicit implementation constraint that hostname/username lookup may use
   `gethostname`, `whoami`, or `std::env::var`, but must not add
   observability-, ATM-, or daemon-lifecycle-specific dependencies
@@ -62,24 +63,26 @@ timestamp without the caller needing to pass them as `--var` flags.
 ## Explicit Code Samples
 
 ```rust
-struct BuiltinVarContext {
-    template_name: String,
-    hostname: String,
-    username: String,
-    render_date: String,
-    render_timestamp: String,
-}
-
 fn inject_builtin_vars(
     state: &mut ValidationState,
     template_path: &Path,
 ) {
-    BuiltinVarContext::for_template(template_path).inject_into(state);
+    // inject built-ins unless caller-provided values already won
 }
 
-fn collect_validation_state(request: &ComposeRequest, expanded: &ExpandedTemplate) -> ValidationState {
+fn build_render_context(
+    state: &mut ValidationState,
+    template_path: &Path,
+) -> BTreeMap<String, serde_json::Value> {
+    inject_builtin_vars(state, template_path);
+    state.context.clone()
+}
+
+fn collect_validation_state(
+    request: &ComposeRequest,
+    expanded: &ExpandedTemplate,
+) -> ValidationState {
     let mut state = merge_frontmatter_defaults(expanded);
-    inject_builtin_vars(&mut state, expanded.resolved_files.first().unwrap());
     apply_env_and_explicit_inputs(&mut state, request);
     state
 }
