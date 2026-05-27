@@ -63,16 +63,18 @@ fn write_report_catalog(root: &Path, contents: &str) {
     );
 }
 
-fn valid_report_catalog() -> &'static str {
-    r#"
-[[report]]
-id = "sc-lint"
-kind = "lint"
-producer = "just lint"
-required = true
-entrypoint = "reports/latest/sc-lint/index.html"
-metadata = "reports/latest/sc-lint/report.json"
-"#
+fn write_smoke_fixture(root: &Path) {
+    write_file(
+        &root
+            .join("reports")
+            .join("smoke")
+            .join("reference-template.html.j2"),
+        "---\nrequired_variables:\n  - title\n  - summary\n---\n<html><body><h1>{{ title }}</h1><p>{{ summary }}</p></body></html>\n",
+    );
+    write_file(
+        &root.join("reports").join("smoke").join("sample-vars.json"),
+        "{ \"title\": \"Smoke Report\", \"summary\": \"fixture\" }\n",
+    );
 }
 
 #[test]
@@ -1040,51 +1042,139 @@ metadata = "reports/latest/sc-lint/report.json"
 }
 
 #[test]
-fn reports_verify_happy_path_checks_required_artifacts() {
-    let root = temp_root("reports-verify");
-    write_report_catalog(&root, valid_report_catalog());
-    write_file(
-        &root.join("reports/latest/sc-lint/index.html"),
-        "<html></html>",
+fn reports_init_creates_scaffold_and_catalog_passes_validator() {
+    let root = temp_root("reports-init");
+
+    let init = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert!(init.status.success());
+    assert!(
+        root.join("reports")
+            .join("catalog")
+            .join("reports.toml")
+            .exists()
     );
-    write_file(&root.join("reports/latest/sc-lint/report.json"), "{}");
+    assert!(root.join("reports").join("latest").exists());
+    assert!(root.join("reports").join("archive").exists());
+    assert!(root.join("reports").join("templates").exists());
+    assert!(
+        root.join("reports")
+            .join("smoke")
+            .join("reference-template.html.j2")
+            .exists()
+    );
+    assert!(
+        root.join("reports")
+            .join("smoke")
+            .join("sample-vars.json")
+            .exists()
+    );
+
+    let validate = sc_compose()
+        .arg("report-catalog")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert!(validate.status.success());
+    let stdout = String::from_utf8(validate.stdout).unwrap();
+    assert!(stdout.contains("reports: 1"));
+    assert!(stdout.contains("smoke kind=smoke producer=just smoke required=true"));
+}
+
+#[test]
+fn reports_smoke_writes_latest_smoke_artifact_set() {
+    let root = temp_root("reports-smoke");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
+    write_smoke_fixture(&root);
 
     let output = sc_compose()
         .arg("reports")
-        .arg("verify")
+        .arg("smoke")
         .arg("--root")
         .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let entrypoint = root
+        .join("reports")
+        .join("latest")
+        .join("smoke")
+        .join("index.html");
+    let metadata = root
+        .join("reports")
+        .join("latest")
+        .join("smoke")
+        .join("report.json");
+    assert!(entrypoint.exists());
+    assert!(metadata.exists());
+    assert!(
+        fs::read_to_string(&entrypoint)
+            .unwrap()
+            .contains("Smoke Report")
+    );
+    let metadata_text = fs::read_to_string(&metadata).unwrap();
+    assert!(metadata_text.contains("\"report_id\": \"smoke\""));
+    assert!(metadata_text.contains("\"entrypoint\": \"reports/latest/smoke/index.html\""));
+}
+
+#[test]
+fn reports_index_stub_exists_with_catalog_surface() {
+    let root = temp_root("reports-index");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("index")
+        .arg("--root")
+        .arg(&root)
+        .arg("--catalog")
+        .arg("reports/catalog/reports.toml")
         .output()
         .unwrap();
 
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("status: validated"));
-    assert!(stdout.contains("required_reports: 1"));
+    assert!(stdout.contains("reports index reserved"));
+    assert!(stdout.contains("catalog: reports/catalog/reports.toml"));
 }
 
 #[test]
-fn reports_verify_rejects_missing_required_artifacts() {
-    let root = temp_root("reports-verify-missing");
-    write_report_catalog(&root, valid_report_catalog());
-    write_file(
-        &root.join("reports/latest/sc-lint/index.html"),
-        "<html></html>",
-    );
+fn reports_verify_stub_exists_with_catalog_surface() {
+    let root = temp_root("reports-verify");
 
     let output = sc_compose()
         .arg("reports")
         .arg("verify")
         .arg("--root")
         .arg(&root)
+        .arg("--catalog")
+        .arg("reports/catalog/reports.toml")
         .output()
         .unwrap();
 
-    assert_eq!(output.status.code(), Some(3));
-    let stderr = String::from_utf8(output.stderr).unwrap();
-    assert!(stderr.contains("ERR_CONFIG_PARSE"));
-    assert!(stderr.contains("missing required report artifacts"));
-    assert!(stderr.contains("sc-lint:metadata=reports/latest/sc-lint/report.json"));
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("reports verify reserved"));
+    assert!(stdout.contains("catalog: reports/catalog/reports.toml"));
 }
 
 #[test]

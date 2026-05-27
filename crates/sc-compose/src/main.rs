@@ -6,6 +6,7 @@ mod observer_impl;
 mod render_request;
 mod reporting;
 mod template_store;
+mod var_file;
 
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -390,22 +391,22 @@ fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, Comma
         },
         Command::Reports(args) => match &args.command {
             ReportsSubcommand::Init(init_args) => {
-                observe_command(observer, "reports", init_args.json, |_observer| {
+                observe_command(observer, "reports-init", init_args.json, |_observer| {
                     run_reports_init(init_args)
                 })
             }
             ReportsSubcommand::Smoke(smoke_args) => {
-                observe_command(observer, "reports", smoke_args.json, |_observer| {
-                    run_reports_smoke(smoke_args)
+                observe_command(observer, "reports-smoke", smoke_args.json, |observer| {
+                    run_reports_smoke(smoke_args, observer)
                 })
             }
             ReportsSubcommand::Index(index_args) => {
-                observe_command(observer, "reports", index_args.json, |_observer| {
+                observe_command(observer, "reports-index", index_args.json, |_observer| {
                     run_reports_index(index_args)
                 })
             }
             ReportsSubcommand::Verify(verify_args) => {
-                observe_command(observer, "reports", verify_args.json, |_observer| {
+                observe_command(observer, "reports-verify", verify_args.json, |_observer| {
                     run_reports_verify(verify_args)
                 })
             }

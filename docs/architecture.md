@@ -1192,11 +1192,11 @@ Illustrative publish-manifest shape:
 }
 ```
 
-## 15e. Follow-On Producer Recipes And Aggregator Surface (Phase A Planning Only)
+## 15e. Producer Recipes And Aggregator Surface (Implemented In Sprint B2)
 
 The canonical producer-command surface and `just reports` contract are defined
-in `docs/requirements.md` under `### Phase A Producer Recipe Contract
-(Planning Only)`. This architecture section intentionally defers to that
+in `docs/requirements.md` under `### Producer Recipe Contract (Implemented In
+Sprint B2)`. This architecture section intentionally defers to that
 requirements section rather than restating the command block or aggregator
 contract prose.
 

@@ -63,6 +63,20 @@ fn write_report_catalog(root: &Path, contents: &str) {
     );
 }
 
+fn write_smoke_fixture(root: &Path) {
+    write_file(
+        &root
+            .join("reports")
+            .join("smoke")
+            .join("reference-template.html.j2"),
+        "---\nrequired_variables:\n  - title\n  - summary\n---\n<html><body><h1>{{ title }}</h1><p>{{ summary }}</p></body></html>\n",
+    );
+    write_file(
+        &root.join("reports").join("smoke").join("sample-vars.json"),
+        "{ \"title\": \"Smoke Report\", \"summary\": \"fixture\" }\n",
+    );
+}
+
 fn assert_envelope(value: &Value) {
     assert_eq!(value["schema_version"], "1");
     assert!(value.get("payload").is_some());
@@ -1121,4 +1135,123 @@ metadata = "reports/latest/sc-lint/report.json"
         value["diagnostics"][0]["message"],
         "report 'sc-lint' field 'required' must be true or false"
     );
+}
+
+#[test]
+fn reports_init_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-init-json");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert!(
+        value["payload"]["created_paths"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item == "reports/latest/")
+    );
+    assert!(
+        value["payload"]["created_paths"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item == "reports/catalog/reports.toml")
+    );
+}
+
+#[test]
+fn reports_smoke_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-smoke-json");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
+    write_smoke_fixture(&root);
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["entrypoint"],
+        "reports/latest/smoke/index.html"
+    );
+    assert_eq!(
+        value["payload"]["metadata"],
+        "reports/latest/smoke/report.json"
+    );
+}
+
+#[test]
+fn reports_index_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-index-json");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("index")
+        .arg("--root")
+        .arg(&root)
+        .arg("--catalog")
+        .arg("reports/catalog/reports.toml")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["subcommand"], "reports index");
+    assert_eq!(value["payload"]["status"], "reserved");
+}
+
+#[test]
+fn reports_verify_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-verify-json");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("verify")
+        .arg("--root")
+        .arg(&root)
+        .arg("--catalog")
+        .arg("reports/catalog/reports.toml")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["subcommand"], "reports verify");
+    assert_eq!(value["payload"]["status"], "reserved");
 }

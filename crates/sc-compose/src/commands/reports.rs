@@ -1,16 +1,13 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::anyhow;
 use clap::{Args, Subcommand};
-use sc_composer::DiagnosticCode;
+use sc_composer::{CompositionObserver, DiagnosticCode};
 
 use crate::exit_codes;
-use crate::reporting::catalog::{
-    REPORT_CATALOG_RELATIVE_PATH, REPORT_METADATA_BASENAME, REPORTS_ARCHIVE_ROOT_RELATIVE_PATH,
-    REPORTS_LATEST_ROOT_RELATIVE_PATH, ReportCatalog, load_report_catalog,
-    load_report_catalog_from_path,
-};
-use crate::{CommandError, print_json};
+use crate::reporting::catalog::{REPORT_CATALOG_RELATIVE_PATH, ReportCatalog};
+use crate::reporting::init::{init_report_scaffold, run_smoke_report};
+use crate::{CommandError, print_diagnostic_messages, print_json};
 
 #[derive(Debug, Clone, Args)]
 pub(crate) struct ReportsArgs {
@@ -42,6 +39,10 @@ pub(crate) struct ReportsInitArgs {
 pub(crate) struct ReportsSmokeArgs {
     #[arg(long, default_value = ".")]
     pub(crate) root: PathBuf,
+    #[arg(long)]
+    pub(crate) fixture: PathBuf,
+    #[arg(long)]
+    pub(crate) vars: PathBuf,
     #[arg(long)]
     pub(crate) json: bool,
 }
@@ -75,115 +76,99 @@ pub(crate) struct ReportCatalogArgs {
 }
 
 pub(crate) fn run_reports_init(args: &ReportsInitArgs) -> Result<i32, CommandError> {
-    let payload = serde_json::json!({
-        "status": "reserved",
-        "subcommand": "reports init",
-        "root": args.root.display().to_string(),
-        "note": "shared scaffold creation lands in Sprint B2",
-    });
+    let result = init_report_scaffold(&args.root)?;
     if args.json {
+        let payload = serde_json::json!({
+            "workspace_root": result.workspace_root.display().to_string(),
+            "created_paths": result.created_paths,
+        });
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
     } else {
-        println!("reports init reserved");
-        println!("root: {}", args.root.display());
-        println!("note: shared scaffold creation lands in Sprint B2");
+        println!("workspace_root: {}", result.workspace_root.display());
+        for path in &result.created_paths {
+            println!("created: {path}");
+        }
     }
     Ok(exit_codes::SUCCESS)
 }
 
-pub(crate) fn run_reports_smoke(args: &ReportsSmokeArgs) -> Result<i32, CommandError> {
-    let payload = serde_json::json!({
-        "status": "reserved",
-        "subcommand": "reports smoke",
-        "root": args.root.display().to_string(),
-        "note": "shared smoke harness behavior lands in Sprint B2",
-    });
+pub(crate) fn run_reports_smoke(
+    args: &ReportsSmokeArgs,
+    observer: &mut dyn CompositionObserver,
+) -> Result<i32, CommandError> {
+    let result = run_smoke_report(&args.root, &args.fixture, &args.vars, observer)?;
     if args.json {
-        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
+        let payload = serde_json::json!({
+            "entrypoint": result.entrypoint.display().to_string(),
+            "metadata": result.metadata.display().to_string(),
+            "artifacts": result.artifacts.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+        });
+        print_json(payload, result.warnings).map_err(CommandError::usage)?;
     } else {
-        println!("reports smoke reserved");
-        println!("root: {}", args.root.display());
-        println!("note: shared smoke harness behavior lands in Sprint B2");
+        println!("entrypoint: {}", result.entrypoint.display());
+        println!("metadata: {}", result.metadata.display());
+        for artifact in &result.artifacts {
+            println!("artifact: {}", artifact.display());
+        }
+        if !result.warnings.is_empty() {
+            print_diagnostic_messages(&result.warnings);
+        }
     }
     Ok(exit_codes::SUCCESS)
 }
 
 pub(crate) fn run_reports_index(args: &ReportsIndexArgs) -> Result<i32, CommandError> {
-    run_catalog_summary(&args.root, &args.catalog, args.json)
-}
-
-pub(crate) fn run_reports_verify(args: &ReportsVerifyArgs) -> Result<i32, CommandError> {
-    let catalog = load_report_catalog_from_path(&args.root, &args.catalog).map_err(|error| {
-        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-    })?;
-
-    let missing_artifacts = collect_missing_required_artifacts(&args.root, &catalog);
-    if !missing_artifacts.is_empty() {
-        let details = missing_artifacts.join(", ");
-        return Err(CommandError::usage_with_code(
-            anyhow!("missing required report artifacts: {details}"),
-            DiagnosticCode::ErrConfigParse,
-        ));
-    }
-
-    let required_reports = catalog
-        .reports
-        .iter()
-        .filter(|report| report.required)
-        .count();
     let payload = serde_json::json!({
-        "catalog_path": normalize_path_display(&catalog.catalog_path),
-        "report_count": catalog.reports.len(),
-        "required_reports": required_reports,
-        "latest_root": REPORTS_LATEST_ROOT_RELATIVE_PATH,
-        "archive_root": REPORTS_ARCHIVE_ROOT_RELATIVE_PATH,
-        "metadata_sidecar_basename": REPORT_METADATA_BASENAME,
-        "status": "validated",
+        "status": "reserved",
+        "subcommand": "reports index",
+        "root": args.root.display().to_string(),
+        "catalog": args.catalog.display().to_string(),
+        "note": "full aggregation behavior lands in Sprint B5",
     });
     if args.json {
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
     } else {
-        println!("catalog: {}", normalize_path_display(&catalog.catalog_path));
-        println!("reports: {}", catalog.reports.len());
-        println!("required_reports: {required_reports}");
-        println!("latest_root: {REPORTS_LATEST_ROOT_RELATIVE_PATH}");
-        println!("archive_root: {REPORTS_ARCHIVE_ROOT_RELATIVE_PATH}");
-        println!("metadata_sidecar_basename: {REPORT_METADATA_BASENAME}");
-        println!("status: validated");
+        println!("reports index reserved");
+        println!("root: {}", args.root.display());
+        println!("catalog: {}", args.catalog.display());
+        println!("note: full aggregation behavior lands in Sprint B5");
+    }
+    Ok(exit_codes::SUCCESS)
+}
+
+pub(crate) fn run_reports_verify(args: &ReportsVerifyArgs) -> Result<i32, CommandError> {
+    let payload = serde_json::json!({
+        "status": "reserved",
+        "subcommand": "reports verify",
+        "root": args.root.display().to_string(),
+        "catalog": args.catalog.display().to_string(),
+        "note": "full required-evidence verification lands in Sprint B5",
+    });
+    if args.json {
+        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
+    } else {
+        println!("reports verify reserved");
+        println!("root: {}", args.root.display());
+        println!("catalog: {}", args.catalog.display());
+        println!("note: full required-evidence verification lands in Sprint B5");
     }
     Ok(exit_codes::SUCCESS)
 }
 
 pub(crate) fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, CommandError> {
-    run_catalog_summary(
-        &args.root,
-        Path::new(REPORT_CATALOG_RELATIVE_PATH),
-        args.json,
-    )
-}
-
-fn run_catalog_summary(root: &Path, catalog_path: &Path, json: bool) -> Result<i32, CommandError> {
-    let loader = if catalog_path == Path::new(REPORT_CATALOG_RELATIVE_PATH) {
-        load_report_catalog(root)
-    } else {
-        load_report_catalog_from_path(root, catalog_path)
-    };
-    let catalog = loader.map_err(|error| {
+    let catalog = ReportCatalog::load(&args.root).map_err(|error| {
         CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
     })?;
 
-    if json {
+    if args.json {
         let payload = serde_json::json!({
-            "catalog_path": normalize_path_display(&catalog.catalog_path),
+            "catalog_path": catalog.catalog_path.display().to_string(),
             "report_count": catalog.reports.len(),
-            "latest_root": REPORTS_LATEST_ROOT_RELATIVE_PATH,
-            "archive_root": REPORTS_ARCHIVE_ROOT_RELATIVE_PATH,
-            "metadata_sidecar_basename": REPORT_METADATA_BASENAME,
             "reports": catalog.reports,
         });
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
     } else {
-        println!("catalog: {}", normalize_path_display(&catalog.catalog_path));
+        println!("catalog: {}", catalog.catalog_path.display());
         println!("reports: {}", catalog.reports.len());
         for report in &catalog.reports {
             println!(
@@ -192,36 +177,11 @@ fn run_catalog_summary(root: &Path, catalog_path: &Path, json: bool) -> Result<i
                 report.kind,
                 report.producer,
                 report.required,
-                normalize_path_display(&report.entrypoint),
-                normalize_path_display(&report.metadata)
+                report.entrypoint.display(),
+                report.metadata.display()
             );
         }
     }
 
     Ok(exit_codes::SUCCESS)
-}
-
-fn collect_missing_required_artifacts(root: &Path, catalog: &ReportCatalog) -> Vec<String> {
-    let mut missing = Vec::new();
-    for report in catalog.reports.iter().filter(|report| report.required) {
-        for (label, relative_path) in [
-            ("entrypoint", &report.entrypoint),
-            ("metadata", &report.metadata),
-        ] {
-            let artifact_path = root.join(relative_path);
-            if !artifact_path.exists() {
-                missing.push(format!(
-                    "{}:{}={}",
-                    report.id,
-                    label,
-                    normalize_path_display(relative_path)
-                ));
-            }
-        }
-    }
-    missing
-}
-
-fn normalize_path_display(path: &Path) -> String {
-    path.to_string_lossy().replace('\\', "/")
 }
