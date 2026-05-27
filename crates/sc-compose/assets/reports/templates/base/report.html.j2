@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ title }}</title>
+</head>
+<body>
+  <main data-template-family="base">
+    {% block report_header %}
+    <header class="report-header">
+      <h1>{{ title }}</h1>
+    </header>
+    {% endblock %}
+    <section class="report-panels">
+      {% for panel in panels %}
+      {% set current_panel = panel %}
+      <article id="{{ panel.panel_id }}" class="report-panel">
+        <header class="panel-header">
+          <h2>{{ current_panel.title }}</h2>
+        </header>
+        {% block panel_body %}
+        <div class="panel-body">{{ current_panel.body }}</div>
+        {% endblock %}
+        <footer class="panel-footer">
+          {% block panel_footer %}
+          <button type="button" data-copy-text="{{ current_panel.copy_text }}">Copy text</button>
+          {% if current_panel.copy_json is not none %}
+          <button type="button" data-copy-json="{{ current_panel.copy_json }}">Copy json</button>
+          {% endif %}
+          {% if current_panel.fragment_href %}
+          <a href="{{ current_panel.fragment_href }}">Open fragment</a>
+          {% endif %}
+          {% endblock %}
+        </footer>
+      </article>
+      {% endfor %}
+    </section>
+  </main>
+</body>
+</html>

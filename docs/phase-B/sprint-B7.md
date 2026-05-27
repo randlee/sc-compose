@@ -1,9 +1,9 @@
 ---
 id: B7
 title: Semantic Diagram Spec Runtime
-status: draft
-branch: plan/phase-B
-worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
+status: complete
+branch: feat/sprint-B7
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/sprint-B7
 ---
 
 # Sprint B7 — Semantic Diagram Spec Runtime

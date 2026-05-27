@@ -4,10 +4,11 @@ use std::io::Read;
 use anyhow::{Context, anyhow};
 use sc_composer::{
     ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, InputValue, ProfileKind,
-    RuntimeKind, UnknownVariablePolicy, VariableName, input_value_from_yaml, validate_input_value,
+    RuntimeKind, UnknownVariablePolicy, VariableName,
 };
 
 use crate::template_store::TemplatePack;
+use crate::var_file::parse_var_file_contents;
 use crate::{
     Ai, CommandError, CommonArgs, DiagnosticCode, InputArgs, Kind, Mode, RenderBehaviorArgs,
     UnknownVarMode,
@@ -187,7 +188,7 @@ fn load_vars(args: &InputArgs) -> Result<BTreeMap<VariableName, InputValue>, Com
                 )
             })?
         };
-        let object = parse_var_file(&contents)?;
+        let object = parse_var_file_contents(&contents)?;
         vars.extend(object);
     }
     Ok(vars)
@@ -216,80 +217,6 @@ fn load_env(args: &InputArgs) -> Result<BTreeMap<VariableName, InputValue>, Comm
                 );
             }
         }
-    }
-    Ok(vars)
-}
-
-fn parse_var_file(contents: &str) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
-    if let Ok(value) = serde_json::from_str::<serde_json::Value>(contents) {
-        return parse_object_value(&value);
-    }
-    let value = serde_yaml::from_str::<serde_yaml::Value>(contents).map_err(|error| {
-        CommandError::usage_with_code(
-            anyhow!(error).context("var-file must be valid JSON or YAML"),
-            DiagnosticCode::ErrConfigParse,
-        )
-    })?;
-    let serde_yaml::Value::Mapping(object) = value else {
-        return Err(CommandError::usage_with_code(
-            anyhow!("var-file must be a JSON or YAML object"),
-            DiagnosticCode::ErrConfigVarfile,
-        ));
-    };
-    let mut vars = BTreeMap::default();
-    for (key, value) in object {
-        let key = key.as_str().ok_or_else(|| {
-            CommandError::usage_with_code(
-                anyhow!("var-file keys must be strings"),
-                DiagnosticCode::ErrConfigVarfile,
-            )
-        })?;
-        vars.insert(
-            VariableName::new(key.to_owned()).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!("invalid var-file key `{key}`: {error}"),
-                    DiagnosticCode::ErrConfigVarfile,
-                )
-            })?,
-            input_value_from_yaml(value).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!("invalid var-file value for `{key}`: {error}"),
-                    error.code(),
-                )
-            })?,
-        );
-    }
-    Ok(vars)
-}
-
-fn parse_object_value(
-    value: &serde_json::Value,
-) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
-    let object = value.as_object().ok_or_else(|| {
-        CommandError::usage_with_code(
-            anyhow!("var-file must be a JSON object"),
-            DiagnosticCode::ErrConfigVarfile,
-        )
-    })?;
-    let mut vars = BTreeMap::default();
-    for (key, value) in object {
-        vars.insert(
-            VariableName::new(key.clone()).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!("invalid var-file key `{key}`: {error}"),
-                    DiagnosticCode::ErrConfigVarfile,
-                )
-            })?,
-            {
-                validate_input_value(value).map_err(|error| {
-                    CommandError::usage_with_code(
-                        anyhow!("invalid var-file value for `{key}`: {error}"),
-                        error.code(),
-                    )
-                })?;
-                value.clone()
-            },
-        );
     }
     Ok(vars)
 }

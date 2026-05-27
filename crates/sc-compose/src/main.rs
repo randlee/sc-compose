@@ -1,12 +1,15 @@
+mod command_error;
 mod commands;
 mod exit_codes;
 mod json_output;
 mod observability;
 mod observer_impl;
+mod path_utils;
 mod render_request;
+mod reporting;
 mod template_store;
+mod var_file;
 
-use std::fmt;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
@@ -14,13 +17,20 @@ use anyhow::{Result, anyhow};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use mimalloc::MiMalloc;
 use sc_composer::{
-    ComposeError, ComposeMode, ComposeRequest, CompositionObserver, Diagnostic, DiagnosticCode,
-    DiagnosticSeverity, FrontmatterInitResult, RecoveryHint, RecoveryHintKind,
+    ComposeMode, ComposeRequest, CompositionObserver, Diagnostic, DiagnosticCode,
+    FrontmatterInitResult,
 };
 
+pub(crate) use crate::command_error::CommandError;
 use crate::commands::examples::{run_examples_list, run_examples_render};
+use crate::commands::reports::{
+    ReportCatalogArgs, ReportRenderManyArgs, ReportsArgs, ReportsSubcommand, run_report_catalog,
+    run_report_render_many, run_reports_finalize, run_reports_index, run_reports_init,
+    run_reports_publish_manifest, run_reports_render_spec, run_reports_smoke, run_reports_verify,
+};
 use crate::commands::templates::{run_templates_add, run_templates_list, run_templates_render};
 use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
+use crate::path_utils::to_forward_slash;
 use crate::render_request::{build_request, read_block_pair};
 
 #[global_allocator]
@@ -55,6 +65,12 @@ enum Command {
     Examples(ExamplesArgs),
     #[command(about = "List, add, or render user template packs")]
     Templates(TemplatesArgs),
+    #[command(about = "Initialize and run shared report scaffolds")]
+    Reports(ReportsArgs),
+    #[command(hide = true, name = "report-render-many")]
+    ReportRenderMany(ReportRenderManyArgs),
+    #[command(hide = true, name = "report-catalog")]
+    ReportCatalog(ReportCatalogArgs),
 }
 
 #[derive(Debug, Clone, Args)]
@@ -322,9 +338,7 @@ fn main() {
             error.exit_code
         }
     };
-    if let Err(error) = observer.shutdown() {
-        eprintln!("{error}");
-    }
+    observer.shutdown();
     std::process::exit(code);
 }
 
@@ -354,31 +368,95 @@ fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, Comma
                 run_observability_health(&args, observer)
             })
         }
-        Command::Examples(args) => match &args.command {
-            Some(ExamplesSubcommand::List(list_args)) => {
-                observe_command(observer, "examples", list_args.json, |_observer| {
-                    run_examples_list(list_args)
+        Command::Examples(args) => run_examples_command(&args, observer),
+        Command::Templates(args) => run_templates_command(&args, observer),
+        Command::Reports(args) => match &args.command {
+            ReportsSubcommand::Init(init_args) => {
+                observe_command(observer, "reports-init", init_args.json, |_observer| {
+                    run_reports_init(init_args)
                 })
             }
-            None => observe_command(observer, "examples", args.render.json, |observer| {
-                run_examples_render(&args, observer)
-            }),
+            ReportsSubcommand::Smoke(smoke_args) => {
+                observe_command(observer, "reports-smoke", smoke_args.json, |observer| {
+                    run_reports_smoke(smoke_args, observer)
+                })
+            }
+            ReportsSubcommand::Finalize(finalize_args) => observe_command(
+                observer,
+                "reports-finalize",
+                finalize_args.json,
+                |_observer| run_reports_finalize(finalize_args),
+            ),
+            ReportsSubcommand::RenderSpec(render_args) => observe_command(
+                observer,
+                "reports-render-spec",
+                render_args.json,
+                |observer| run_reports_render_spec(render_args, observer),
+            ),
+            ReportsSubcommand::Index(index_args) => {
+                observe_command(observer, "reports-index", index_args.json, |_observer| {
+                    run_reports_index(index_args)
+                })
+            }
+            ReportsSubcommand::Verify(verify_args) => {
+                observe_command(observer, "reports-verify", verify_args.json, |_observer| {
+                    run_reports_verify(verify_args)
+                })
+            }
+            ReportsSubcommand::PublishManifest(publish_args) => observe_command(
+                observer,
+                "reports-publish-manifest",
+                publish_args.json,
+                |_observer| run_reports_publish_manifest(publish_args),
+            ),
         },
-        Command::Templates(args) => match &args.command {
-            Some(TemplatesSubcommand::List(list_args)) => {
-                observe_command(observer, "templates", list_args.json, |_observer| {
-                    run_templates_list(list_args)
-                })
-            }
-            Some(TemplatesSubcommand::Add(add_args)) => {
-                observe_command(observer, "templates", add_args.json, |_observer| {
-                    run_templates_add(add_args)
-                })
-            }
-            None => observe_command(observer, "templates", args.render.json, |observer| {
-                run_templates_render(&args, observer)
-            }),
-        },
+        Command::ReportRenderMany(args) => {
+            observe_command(observer, "report-render-many", args.json, |_observer| {
+                run_report_render_many(&args)
+            })
+        }
+        Command::ReportCatalog(args) => {
+            observe_command(observer, "report-catalog", args.json, |_observer| {
+                run_report_catalog(&args)
+            })
+        }
+    }
+}
+
+fn run_examples_command(
+    args: &ExamplesArgs,
+    observer: &mut observer_impl::CliObserver,
+) -> Result<i32, CommandError> {
+    match &args.command {
+        Some(ExamplesSubcommand::List(list_args)) => {
+            observe_command(observer, "examples", list_args.json, |_observer| {
+                run_examples_list(list_args)
+            })
+        }
+        None => observe_command(observer, "examples", args.render.json, |observer| {
+            run_examples_render(args, observer)
+        }),
+    }
+}
+
+fn run_templates_command(
+    args: &TemplatesArgs,
+    observer: &mut observer_impl::CliObserver,
+) -> Result<i32, CommandError> {
+    match &args.command {
+        Some(TemplatesSubcommand::List(list_args)) => {
+            observe_command(observer, "templates", list_args.json, |_observer| {
+                run_templates_list(list_args)
+            })
+        }
+        Some(TemplatesSubcommand::Add(add_args)) => {
+            observe_command(observer, "templates", add_args.json, |_observer| {
+                run_templates_add(add_args)
+            })
+        }
+        None => observe_command(observer, "templates", args.render.json, |observer| {
+            run_templates_render(args, observer)
+        }),
     }
 }
 
@@ -436,16 +514,18 @@ fn execute_render(
     if args.json {
         let payload = if args.dry_run {
             serde_json::json!({
-                "would_write": derived_path.display().to_string(),
+                "would_write": to_forward_slash(&derived_path),
                 "would_change": would_change,
-                "template": result.resolve_result.resolved_path.display().to_string(),
+                "template": to_forward_slash(&result.resolve_result.resolved_path),
                 "rendered_preview": result.rendered_text,
             })
         } else {
             serde_json::json!({
-                "output_path": output_path.as_ref().map_or_else(|| "stdout".to_owned(), |path| path.display().to_string()),
+                "output_path": output_path
+                    .as_ref()
+                    .map_or_else(|| "stdout".to_owned(), |path| to_forward_slash(path)),
                 "bytes_written": bytes_written.unwrap_or_default(),
-                "template": result.resolve_result.resolved_path.display().to_string(),
+                "template": to_forward_slash(&result.resolve_result.resolved_path),
             })
         };
         print_json(payload, result.warnings).map_err(CommandError::usage)?;
@@ -488,8 +568,12 @@ fn run_resolve(
         .map_err(CommandError::compose)?;
     if args.json {
         let payload = serde_json::json!({
-            "resolved_path": result.resolved_path.display().to_string(),
-            "search_trace": result.attempted_paths.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+            "resolved_path": to_forward_slash(&result.resolved_path),
+            "search_trace": result
+                .attempted_paths
+                .iter()
+                .map(|path| to_forward_slash(path))
+                .collect::<Vec<_>>(),
             "found": true,
         });
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
@@ -548,7 +632,7 @@ fn run_frontmatter_init(args: &FrontmatterInitArgs) -> Result<i32, CommandError>
         print_json(
             serde_json::json!({
                 "action": "frontmatter-init",
-                "would_affect": [result.target_path.display().to_string()],
+                "would_affect": [to_forward_slash(&result.target_path)],
                 "changed": result.changed,
                 "would_change": result.would_change,
                 "skipped": !result.would_change,
@@ -583,14 +667,17 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
         let payload = if args.dry_run {
             serde_json::json!({
                 "action": "init",
-                "would_affect": planned_changes.iter().map(|path| path.display().to_string()).collect::<Vec<_>>(),
+                "would_affect": planned_changes
+                    .iter()
+                    .map(|path| to_forward_slash(path))
+                    .collect::<Vec<_>>(),
                 "changed": false,
                 "would_change": !planned_changes.is_empty(),
                 "skipped": planned_changes.is_empty(),
             })
         } else {
             serde_json::json!({
-                "workspace_root": canonical_root.display().to_string(),
+                "workspace_root": to_forward_slash(&canonical_root),
                 "created_files": actual_init_created_files(
                     prompts_dir_missing,
                     result.gitignore_updated,
@@ -619,9 +706,7 @@ fn run_observability_health(
     observer: &mut observer_impl::CliObserver,
 ) -> Result<i32, CommandError> {
     if std::env::var_os("SC_COMPOSE_TEST_FORCE_QUERY_UNAVAILABLE").is_some() {
-        observer.shutdown().map_err(|error| {
-            CommandError::usage(anyhow!(error).context("failed to shut down observability logger"))
-        })?;
+        observer.shutdown();
     }
     let health = observer.health();
     if args.json {
@@ -680,7 +765,7 @@ fn print_diagnostic_messages(diagnostics: &[Diagnostic]) {
 
 fn print_json_frontmatter_init(result: &FrontmatterInitResult) -> Result<()> {
     let payload = serde_json::json!({
-        "template_path": result.target_path.display().to_string(),
+        "template_path": to_forward_slash(&result.target_path),
         "frontmatter_added": result.changed,
         "would_change": result.would_change,
         "vars": result.discovered_variables,
@@ -724,6 +809,17 @@ fn command_wants_json(command: &Command) -> bool {
             Some(TemplatesSubcommand::Add(add_args)) => add_args.json,
             None => args.render.json,
         },
+        Command::Reports(args) => match &args.command {
+            ReportsSubcommand::Init(init_args) => init_args.json,
+            ReportsSubcommand::Smoke(smoke_args) => smoke_args.json,
+            ReportsSubcommand::Finalize(finalize_args) => finalize_args.json,
+            ReportsSubcommand::RenderSpec(render_args) => render_args.json,
+            ReportsSubcommand::Index(index_args) => index_args.json,
+            ReportsSubcommand::Verify(verify_args) => verify_args.json,
+            ReportsSubcommand::PublishManifest(publish_args) => publish_args.json,
+        },
+        Command::ReportRenderMany(args) => args.json,
+        Command::ReportCatalog(args) => args.json,
     }
 }
 
@@ -806,19 +902,6 @@ fn format_diagnostic(diagnostic: &sc_composer::Diagnostic) -> String {
     }
 }
 
-fn format_recovery_hint(hint: &RecoveryHint) -> String {
-    match &hint.kind {
-        RecoveryHintKind::RunCommand { command } => format!("run `{command}`"),
-        RecoveryHintKind::InspectPath { path } => format!("inspect {}", path.display()),
-        RecoveryHintKind::ProvideVariable { variable } => {
-            format!("provide variable `{}`", variable.as_str())
-        }
-        RecoveryHintKind::ReviewConfiguration { key } => {
-            format!("review configuration: {key}")
-        }
-    }
-}
-
 fn actual_init_created_files(prompts_dir_missing: bool, gitignore_updated: bool) -> Vec<String> {
     let mut created = Vec::new();
     if prompts_dir_missing {
@@ -828,149 +911,6 @@ fn actual_init_created_files(prompts_dir_missing: bool, gitignore_updated: bool)
         created.push(".gitignore".to_owned());
     }
     created
-}
-
-#[derive(Debug)]
-struct CommandError {
-    exit_code: i32,
-    diagnostic_code: Option<DiagnosticCode>,
-    diagnostics: Vec<Diagnostic>,
-    recovery_hints: Vec<RecoveryHint>,
-    error: anyhow::Error,
-}
-
-impl CommandError {
-    fn usage(error: anyhow::Error) -> Self {
-        Self {
-            exit_code: exit_codes::USAGE_FAIL,
-            diagnostic_code: None,
-            diagnostics: Vec::new(),
-            recovery_hints: Vec::new(),
-            error,
-        }
-    }
-
-    fn usage_with_code(error: anyhow::Error, diagnostic_code: DiagnosticCode) -> Self {
-        Self::usage_with_code_and_hints(error, diagnostic_code, Vec::new())
-    }
-
-    fn usage_with_code_and_hints(
-        error: anyhow::Error,
-        diagnostic_code: DiagnosticCode,
-        recovery_hints: Vec<RecoveryHint>,
-    ) -> Self {
-        Self {
-            exit_code: exit_codes::USAGE_FAIL,
-            diagnostic_code: Some(diagnostic_code),
-            diagnostics: vec![Diagnostic::new(
-                DiagnosticSeverity::Error,
-                diagnostic_code,
-                format!("{error:#}"),
-            )],
-            recovery_hints,
-            error,
-        }
-    }
-
-    fn compose(error: ComposeError) -> Self {
-        let exit_code = match &error {
-            ComposeError::Validation(_) | ComposeError::Render(_) | ComposeError::Include(_) => {
-                exit_codes::VALIDATION_OR_RENDER_FAIL
-            }
-            ComposeError::Resolve(_) | ComposeError::Config(_) => exit_codes::USAGE_FAIL,
-        };
-        Self {
-            exit_code,
-            diagnostic_code: error.code(),
-            diagnostics: compose_error_diagnostics(&error),
-            recovery_hints: compose_error_recovery_hints(&error),
-            error: anyhow!(error),
-        }
-    }
-
-    fn render_write(error: anyhow::Error) -> Self {
-        Self {
-            exit_code: exit_codes::VALIDATION_OR_RENDER_FAIL,
-            diagnostic_code: Some(DiagnosticCode::ErrRenderWrite),
-            diagnostics: vec![Diagnostic::new(
-                DiagnosticSeverity::Error,
-                DiagnosticCode::ErrRenderWrite,
-                format!("{error:#}"),
-            )],
-            recovery_hints: Vec::new(),
-            error,
-        }
-    }
-
-    fn stdin_double_read() -> Self {
-        Self {
-            exit_code: exit_codes::VALIDATION_OR_RENDER_FAIL,
-            diagnostic_code: Some(DiagnosticCode::ErrRenderStdinDoubleRead),
-            diagnostics: vec![Diagnostic::new(
-                DiagnosticSeverity::Error,
-                DiagnosticCode::ErrRenderStdinDoubleRead,
-                "guidance and prompt cannot both read from stdin",
-            )],
-            recovery_hints: Vec::new(),
-            error: anyhow!("guidance and prompt cannot both read from stdin"),
-        }
-    }
-}
-
-impl fmt::Display for CommandError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(code) = self.diagnostic_code {
-            write!(f, "{}: {:#}", code.as_str(), self.error)?;
-        } else {
-            write!(f, "{:#}", self.error)?;
-        }
-        for hint in &self.recovery_hints {
-            write!(f, "\nrecovery: {}", format_recovery_hint(hint))?;
-        }
-        Ok(())
-    }
-}
-
-impl std::error::Error for CommandError {}
-
-fn compose_error_diagnostics(error: &ComposeError) -> Vec<Diagnostic> {
-    match error {
-        ComposeError::Validation(validation) if !validation.diagnostics().is_empty() => {
-            validation.diagnostics().to_vec()
-        }
-        ComposeError::Resolve(resolve) => vec![Diagnostic::new(
-            DiagnosticSeverity::Error,
-            resolve.code(),
-            resolve.message(),
-        )],
-        ComposeError::Include(include) => vec![
-            Diagnostic::new(DiagnosticSeverity::Error, include.code(), include.message())
-                .with_include_chain(include.include_chain().to_vec()),
-        ],
-        ComposeError::Validation(validation) => vec![Diagnostic::new(
-            DiagnosticSeverity::Error,
-            validation.code(),
-            validation.message(),
-        )],
-        ComposeError::Render(render) => vec![Diagnostic::new(
-            DiagnosticSeverity::Error,
-            render.code().unwrap_or(DiagnosticCode::ErrRenderWrite),
-            render.message(),
-        )],
-        ComposeError::Config(config) => vec![Diagnostic::new(
-            DiagnosticSeverity::Error,
-            config.code(),
-            config.message(),
-        )],
-    }
-}
-
-fn compose_error_recovery_hints(error: &ComposeError) -> Vec<RecoveryHint> {
-    match error {
-        ComposeError::Validation(error) => error.recovery_hints().to_vec(),
-        ComposeError::Config(error) => error.recovery_hints().to_vec(),
-        ComposeError::Resolve(_) | ComposeError::Include(_) | ComposeError::Render(_) => Vec::new(),
-    }
 }
 
 #[cfg(test)]
@@ -1113,7 +1053,7 @@ mod tests {
             MaintenanceWorkerState::Running
         );
 
-        observer.shutdown().expect("shutdown");
+        observer.shutdown();
 
         assert_eq!(
             observer.health().query.expect("query health present").state,

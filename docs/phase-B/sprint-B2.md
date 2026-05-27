@@ -1,9 +1,9 @@
 ---
 id: B2
 title: Producer Recipes, Report-Init Scaffold, And Just Surface
-status: draft
-branch: plan/phase-B
-worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
+status: complete
+branch: feat/sprint-B2
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/sprint-B2
 ---
 
 # Sprint B2 — Producer Recipes, Report-Init Scaffold, And Just Surface

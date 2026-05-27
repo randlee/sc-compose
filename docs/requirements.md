@@ -497,8 +497,11 @@ Command behavior:
   - supports:
     - `reports init`
     - `reports smoke`
+    - `reports finalize`
+    - `reports render-spec`
     - `reports index`
     - `reports verify`
+    - `reports publish-manifest`
   - owns the shared reporting runtime surface rather than repo-specific
     producer command bodies,
   - keeps publish upload and browser-open behavior outside the command family.
@@ -863,7 +866,16 @@ same command payloads as `render` and `render --dry-run`.
 - `sc-compose` shall use `sc-observability` as the canonical concrete
   observability binding for CLI execution.
 - The current follow-on observability uplift targets `sc-observability`
-  `1.1.0`.
+  `1.2.0`.
+- The CLI lifecycle adapter shall prefer `Logger::log(...)` for blocking queue
+  admission and may use `Logger::try_log(...)` only where non-blocking
+  admission is explicitly required.
+- `Logger::emit(...)` remains a deprecated compatibility path only; any
+  retained use must carry an explicit compatibility rationale in
+  `docs/migration-notes.md`.
+- The CLI shutdown path shall adapt to `Logger::shutdown(self) ->
+  Logger<Stopped>` while preserving post-shutdown health inspection through the
+  stopped logger typestate.
 - `sc-composer` must emit composition pipeline events through its local
   observer/sink hook model.
 - `sc-compose` must emit command lifecycle events through the same local hook
@@ -1014,18 +1026,18 @@ Implemented in Phase HTML-Report.
 - The example must be a credible showcase for `sc-compose`, not just a
   hand-written HTML file stored in the repo.
 
-### Phase A Semantic Report-Spec Contract (Planning Only)
+### Semantic Report-Spec Contract
 
-Phase A follow-on planning defines typed semantic report-spec kinds so rendered
-diagram formats such as Mermaid become outputs or migration inputs rather than
-the long-term source of truth.
+`sc-compose` accepts typed TOML semantic report-spec inputs so rendered diagram
+formats such as Mermaid become outputs or migration inputs rather than the
+long-term source of truth.
 
-Initial planned report-spec kinds:
+Initial implemented report-spec kinds:
 
 - `state_machine`
 - `sql_query`
 
-Planned `state_machine` semantic fields:
+`state_machine` semantic fields:
 
 - `kind`
 - `id`
@@ -1038,7 +1050,7 @@ Planned `state_machine` semantic fields:
 - `effects`
 - optional metadata for ownership, tags, and renderer targets
 
-Planned `sql_query` semantic fields:
+`sql_query` semantic fields:
 
 - `kind`
 - `id`
@@ -1051,6 +1063,12 @@ Planned `sql_query` semantic fields:
 - `cardinality`
 - `transactional_assumptions`
 - optional metadata for ownership, tags, and renderer targets
+
+Input format rule:
+
+- semantic spec input files use TOML
+- each spec file defines `[spec]`
+- `sql_query` semantic fields live under `[sql_query]`
 
 Transitional Mermaid rule:
 
@@ -1222,30 +1240,38 @@ Archive ownership note:
 - archive directories are file-system-local
 - archive directories may be consumer-managed
 - archive directories may be gitignored
-### Phase A Publish-Manifest And CI Handoff Contract (Planning Only)
+### Publish-Manifest And CI Handoff Contract
 
-Phase A follow-on planning defines a machine-readable handoff from generated
-report artifacts to CI or wrapper-owned publication steps without moving
-network or hosting behavior into `sc-compose`.
+`sc-compose` emits one machine-readable handoff from generated report artifacts
+to CI or wrapper-owned publication steps without moving network or hosting
+behavior into the core engine.
 
-Planned publish-manifest contract:
+Implemented publish-manifest contract:
 
-- each generated report set may emit a machine-readable publish manifest
-- the manifest lists generated artifacts and their intended publish destinations
+- `sc-compose reports publish-manifest` writes
+  `reports/latest/publish-manifest.json`
+- the manifest is generated from the current report catalog plus latest
+  sidecars and artifact sets, not from hard-coded per-report paths
+- optional reports whose latest artifact sets are absent are skipped
+- required reports whose latest artifact sets are absent make manifest
+  generation fail
 - artifact roles remain explicit in the manifest rather than inferred by CI
 
-Planned manifest fields include:
+Manifest fields include:
 
-- report_id
 - generated_at
-- files
+- reports
+- per-report report_id
+- per-report kind
+- per-report entrypoint
+- per-report optional archive_root
 - per-file role
 - per-file path
 - per-file intended publish destination
 
 Identity rule:
 
-- `report_id` must equal the canonical A1 report catalog `id`
+- `report_id` must equal the canonical report catalog `id`
 
 Ownership split:
 
@@ -1254,12 +1280,45 @@ Ownership split:
 
 Boundary rules:
 
-- the artifact contract is intended to support generic lint, test, smoke,
-  diagram, and custom reports through one shared metadata and filesystem shape
-- shared Phase A reporting boundary rules are centralized under
-  `### Phase A Follow-On Reporting Contract (Planning Only)`
+- the artifact contract supports generic lint, test, smoke, diagram, and
+  custom reports through one shared metadata and filesystem shape
 - publish transport and hosting remain outside `sc-composer` and `sc-compose`
 - machine-readable handoff is in scope; network transport is not
+
+### Phase B Cross-Use-Case Proof Examples
+
+Phase B implements one checked-in proof set in this repo so the shared
+reporting runtime is exercised by real producer commands instead of docs only.
+
+Implemented proof set:
+
+- this repo ships one checked-in reference report catalog under
+  `reports/catalog/reports.toml`
+- this repo ships one checked-in source fixture tree under:
+  - `reports/inputs/`
+  - `reports/specs/`
+  - `reports/smoke/`
+  - `reports/vars/`
+- this repo ships one reference `Justfile` producer surface for:
+  - `just lint`
+  - `just test`
+  - `just smoke`
+  - `just state-diagrams`
+  - `just sql-diagrams`
+  - `just reports`
+  - `just reports-verify`
+- generic producer-owned HTML outputs can be materialized into the shared
+  report sidecar and archive shape with `sc-compose reports finalize`
+- the repo proves two distinct consumer families through one shared runtime:
+  - `sc-lint` style evidence reports
+  - `atm-core` style diagram reports
+- `atm-core` and `sc-lint` remain illustrative labels only; the template
+  family key is still the runtime discriminator
+- producer extension-point typing remains owned by the B1 report artifact
+  runtime
+- `report-evidence-summary` is a new bundled Phase B proof example
+- `sprint-report-html` remains backward-compatible and stays covered by the
+  shared proof harness
 
 ### Phase A Producer Recipe Contract (Planning Only)
 

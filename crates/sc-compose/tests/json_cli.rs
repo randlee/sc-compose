@@ -56,6 +56,80 @@ fn repo_root() -> PathBuf {
         .unwrap()
 }
 
+fn normalize_path_str(p: impl AsRef<std::path::Path>) -> String {
+    p.as_ref().to_string_lossy().replace('\\', "/")
+}
+
+fn write_report_catalog(root: &Path, contents: &str) {
+    write_file(
+        &root.join("reports").join("catalog").join("reports.toml"),
+        contents,
+    );
+}
+
+fn write_smoke_fixture(root: &Path) {
+    write_file(
+        &root
+            .join("reports")
+            .join("smoke")
+            .join("reference-template.html.j2"),
+        "---\nrequired_variables:\n  - title\n  - summary\n---\n<html><body><h1>{{ title }}</h1><p>{{ summary }}</p></body></html>\n",
+    );
+    write_file(
+        &root.join("reports").join("smoke").join("sample-vars.json"),
+        "{ \"title\": \"Smoke Report\", \"summary\": \"fixture\" }\n",
+    );
+}
+
+fn write_render_many_fixture(root: &Path) {
+    write_file(
+        &root.join("reports").join("templates").join("panel.html.j2"),
+        "<article>{{ metadata.title }}|{{ body }}|{{ output_path }}{% if sets %}|{{ sets | join(\",\") }}{% endif %}</article>\n",
+    );
+}
+
+fn write_report_family_override(root: &Path) {
+    write_file(
+        &root
+            .join("reports")
+            .join("templates")
+            .join("lint")
+            .join("report.html.j2"),
+        "{% extends \"base/report.html.j2\" %}\n{% block report_header %}<header class=\"report-header report-header-lint\"><h1>Lint override</h1><p>Lint override</p></header>{% endblock %}\n{% block panel_body %}<div class=\"panel-body panel-body-lint\">Override body marker</div>{% endblock %}\n",
+    );
+}
+
+fn write_state_machine_spec(root: &Path, relative: &str) {
+    write_file(
+        &root.join(relative),
+        r#"[spec]
+kind = "state_machine"
+id = "state-diagrams"
+title = "State Diagrams"
+renderer_targets = ["mermaid"]
+
+[metadata]
+sets = ["publish", "diagram"]
+
+[[states]]
+id = "accepted"
+label = "Accepted"
+
+[[states]]
+id = "validated"
+label = "Validated"
+terminal = true
+
+[[transitions]]
+from = "accepted"
+to = "validated"
+event = "validate_ok"
+guard = "input_valid"
+effect = "store message"
+"#,
+    );
+}
+
 fn assert_envelope(value: &Value) {
     assert_eq!(value["schema_version"], "1");
     assert!(value.get("payload").is_some());
@@ -129,10 +203,7 @@ fn render_dry_run_json_uses_diagnostic_envelope() {
     assert!(value["payload"]["would_write"].is_string());
     assert_eq!(
         value["payload"]["template"],
-        fs::canonicalize(root.join("template.md.j2"))
-            .unwrap()
-            .display()
-            .to_string()
+        normalize_path_str(fs::canonicalize(root.join("template.md.j2")).unwrap())
     );
     assert_eq!(value["payload"]["would_change"], true);
 }
@@ -336,7 +407,7 @@ fn frontmatter_init_json_uses_diagnostic_envelope() {
     assert_envelope(&value);
     assert_eq!(
         value["payload"]["template_path"],
-        fs::canonicalize(&path).unwrap().display().to_string()
+        normalize_path_str(fs::canonicalize(&path).unwrap())
     );
     assert_eq!(value["payload"]["frontmatter_added"], true);
     assert_eq!(value["payload"]["would_change"], true);
@@ -393,7 +464,7 @@ fn init_json_uses_diagnostic_envelope() {
     assert_envelope(&value);
     assert_eq!(
         value["payload"]["workspace_root"],
-        fs::canonicalize(&root).unwrap().display().to_string()
+        normalize_path_str(fs::canonicalize(&root).unwrap())
     );
 }
 
@@ -522,10 +593,7 @@ fn observability_health_json_uses_diagnostic_envelope_and_stays_stdout_clean() {
     );
     assert_eq!(
         value["payload"]["logging"]["active_log_path"],
-        root.join("logs")
-            .join("sc-compose.log.jsonl")
-            .display()
-            .to_string()
+        normalize_path_str(root.join("logs").join("sc-compose.log.jsonl"))
     );
 }
 
@@ -862,6 +930,11 @@ fn examples_list_json_uses_diagnostic_envelope() {
     assert_envelope(&value);
     let packs = value["payload"]["packs"].as_array().unwrap();
     assert!(packs.iter().any(|pack| pack["name"] == "hello"));
+    assert!(
+        packs
+            .iter()
+            .any(|pack| pack["name"] == "report-evidence-summary")
+    );
 }
 
 #[test]
@@ -883,13 +956,13 @@ fn examples_named_render_json_matches_render_schema() {
     assert_eq!(value["payload"]["output_path"], "stdout");
     assert_eq!(
         value["payload"]["template"],
-        repo_root()
-            .join("examples")
-            .join("hello.md.j2")
-            .canonicalize()
-            .unwrap()
-            .display()
-            .to_string()
+        normalize_path_str(
+            repo_root()
+                .join("examples")
+                .join("hello.md.j2")
+                .canonicalize()
+                .unwrap()
+        )
     );
 }
 
@@ -917,13 +990,50 @@ fn examples_named_render_html_dry_run_preserves_html_extension() {
     assert_eq!(value["payload"]["would_write"], "sprint-report-html.html");
     assert_eq!(
         value["payload"]["template"],
-        repo_root()
-            .join("examples")
-            .join("sprint-report-html.html.j2")
-            .canonicalize()
-            .unwrap()
-            .display()
-            .to_string()
+        normalize_path_str(
+            repo_root()
+                .join("examples")
+                .join("sprint-report-html.html.j2")
+                .canonicalize()
+                .unwrap()
+        )
+    );
+}
+
+#[test]
+fn examples_named_render_report_evidence_summary_json_matches_render_schema() {
+    let vars_file = repo_root()
+        .join("examples")
+        .join("report-evidence-summary.sample-vars.json");
+
+    let output = sc_compose()
+        .arg("examples")
+        .arg("report-evidence-summary")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .arg("--json")
+        .arg("--dry-run")
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["would_write"],
+        "report-evidence-summary.html"
+    );
+    assert_eq!(
+        value["payload"]["template"],
+        normalize_path_str(
+            repo_root()
+                .join("examples")
+                .join("report-evidence-summary.html.j2")
+                .canonicalize()
+                .unwrap()
+        )
     );
 }
 
@@ -1074,4 +1184,472 @@ fn init_missing_root_json_reports_config_parse() {
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_first_code(&value, "ERR_CONFIG_PARSE");
+}
+
+#[test]
+fn report_catalog_json_uses_diagnostic_envelope() {
+    let root = temp_root("report-catalog-json");
+    write_report_catalog(
+        &root,
+        r#"
+[[report]]
+id = "sc-lint"
+kind = "lint"
+producer = "just lint"
+required = true
+entrypoint = "reports/latest/sc-lint/index.html"
+metadata = "reports/latest/sc-lint/report.json"
+"#,
+    );
+
+    let output = sc_compose()
+        .arg("report-catalog")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["report_count"], 1);
+    assert_eq!(value["payload"]["reports"][0]["id"], "sc-lint");
+    assert_eq!(
+        value["payload"]["reports"][0]["metadata"],
+        "reports/latest/sc-lint/report.json"
+    );
+}
+
+#[test]
+fn report_catalog_invalid_json_reports_config_parse() {
+    let root = temp_root("report-catalog-invalid-json");
+    write_report_catalog(
+        &root,
+        r#"
+[[report]]
+id = "sc-lint"
+kind = "lint"
+producer = "just lint"
+required = "yes"
+entrypoint = "reports/latest/sc-lint/index.html"
+metadata = "reports/latest/sc-lint/report.json"
+"#,
+    );
+
+    let output = sc_compose()
+        .arg("report-catalog")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"], serde_json::json!({}));
+    assert_first_code(&value, "ERR_CONFIG_PARSE");
+    assert_eq!(
+        value["diagnostics"][0]["message"],
+        "report 'sc-lint' field 'required' must be true or false"
+    );
+}
+
+#[test]
+fn reports_init_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-init-json");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["created_paths"][0], "reports/latest/");
+    assert!(
+        value["payload"]["created_paths"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item == "reports/catalog/reports.toml")
+    );
+}
+
+#[test]
+fn reports_smoke_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-smoke-json");
+    write_smoke_fixture(&root);
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["entrypoint"],
+        "reports/latest/smoke/index.html"
+    );
+    assert_eq!(
+        value["payload"]["metadata"],
+        "reports/latest/smoke/report.json"
+    );
+    assert_eq!(value["payload"]["report_id"], "smoke");
+    assert_eq!(value["payload"]["status"], "pass");
+    assert!(value["payload"]["produced_at"].is_string());
+}
+
+#[test]
+fn reports_index_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-index-json");
+    write_smoke_fixture(&root);
+    write_report_catalog(
+        &root,
+        r#"[[report]]
+id = "smoke"
+kind = "smoke"
+producer = "just smoke"
+required = true
+entrypoint = "reports/latest/smoke/index.html"
+metadata = "reports/latest/smoke/report.json"
+"#,
+    );
+
+    let smoke = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .output()
+        .unwrap();
+    assert!(smoke.status.success());
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("index")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["report_count"], 1);
+    assert_eq!(value["payload"]["entries"][0]["report_id"], "smoke");
+    assert_eq!(value["payload"]["entries"][0]["status"], "pass");
+}
+
+#[test]
+fn reports_smoke_json_lists_archive_artifacts_when_requested() {
+    let root = temp_root("reports-smoke-archive-json");
+    write_smoke_fixture(&root);
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .arg("--archive")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["archived_artifacts"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+}
+
+#[test]
+fn reports_publish_manifest_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-publish-manifest-json");
+    write_smoke_fixture(&root);
+    write_report_catalog(
+        &root,
+        r#"[[report]]
+id = "smoke"
+kind = "smoke"
+producer = "just smoke"
+required = true
+entrypoint = "reports/latest/smoke/index.html"
+metadata = "reports/latest/smoke/report.json"
+"#,
+    );
+
+    let smoke = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .arg("--archive")
+        .output()
+        .unwrap();
+    assert!(smoke.status.success());
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("publish-manifest")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["manifest_path"],
+        "reports/latest/publish-manifest.json"
+    );
+    assert_eq!(value["payload"]["report_count"], 1);
+    assert_eq!(
+        value["payload"]["manifest"]["reports"][0]["report_id"],
+        "smoke"
+    );
+    assert_eq!(
+        value["payload"]["manifest"]["reports"][0]["files"][0]["publish_to"],
+        "reports/smoke/index.html"
+    );
+}
+
+#[test]
+fn reports_render_spec_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-render-spec-json");
+    write_state_machine_spec(&root, "reports/specs/state-diagrams.toml");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("render-spec")
+        .arg("--root")
+        .arg(&root)
+        .arg("--spec")
+        .arg("reports/specs/state-diagrams.toml")
+        .arg("--archive")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["report_id"], "state-diagrams");
+    assert_eq!(value["payload"]["kind"], "state_machine");
+    assert_eq!(
+        value["payload"]["entrypoint"],
+        "reports/latest/state-diagrams/index.mmd"
+    );
+    assert_eq!(
+        value["payload"]["archived_artifacts"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+}
+
+#[test]
+fn reports_finalize_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-finalize-json");
+    write_file(
+        &root
+            .join("reports")
+            .join("latest")
+            .join("sc-lint")
+            .join("index.html"),
+        "<!DOCTYPE html><html><body>lint</body></html>\n",
+    );
+    write_file(
+        &root
+            .join("reports")
+            .join("latest")
+            .join("sc-lint")
+            .join("panels")
+            .join("manifest.json"),
+        "{}\n",
+    );
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("finalize")
+        .arg("--root")
+        .arg(&root)
+        .arg("--report-id")
+        .arg("sc-lint")
+        .arg("--kind")
+        .arg("lint")
+        .arg("--entrypoint")
+        .arg("reports/latest/sc-lint/index.html")
+        .arg("--artifact")
+        .arg("reports/latest/sc-lint/index.html")
+        .arg("--artifact")
+        .arg("reports/latest/sc-lint/panels/manifest.json")
+        .arg("--archive")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["report_id"], "sc-lint");
+    assert_eq!(value["payload"]["kind"], "lint");
+    assert_eq!(
+        value["payload"]["metadata"],
+        "reports/latest/sc-lint/report.json"
+    );
+    assert_eq!(
+        value["payload"]["archived_artifacts"]
+            .as_array()
+            .unwrap()
+            .len(),
+        3
+    );
+}
+
+#[test]
+fn report_render_many_json_uses_diagnostic_envelope() {
+    let root = temp_root("report-render-many-json");
+    write_render_many_fixture(&root);
+    write_file(
+        &root.join("docs").join("diagrams").join("a.txt"),
+        "/*\ntitle: Alpha\nsets:\n  - publish\n*/\nalpha body\n",
+    );
+
+    let output = sc_compose()
+        .arg("report-render-many")
+        .arg("--root")
+        .arg(&root)
+        .arg("--id")
+        .arg("state-machines")
+        .arg("--glob")
+        .arg("docs/diagrams/*.txt")
+        .arg("--template")
+        .arg("reports/templates/panel.html.j2")
+        .arg("--output-dir")
+        .arg("reports/latest/panels")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["manifest_path"],
+        "reports/latest/panels/manifest.json"
+    );
+    assert_eq!(
+        value["payload"]["entries"][0]["source_path"],
+        "docs/diagrams/a.txt"
+    );
+    assert_eq!(
+        value["payload"]["entries"][0]["output_path"],
+        "reports/latest/panels/docs/diagrams/a.html"
+    );
+    assert_eq!(
+        value["payload"]["entries"][0]["sets"],
+        serde_json::json!(["publish"])
+    );
+}
+
+#[test]
+fn report_render_many_json_supports_template_family_overrides() {
+    let root = temp_root("report-render-many-family-json");
+    write_file(
+        &root.join("docs").join("lint").join("a.txt"),
+        "# title: Lint Alpha\n# copy_json:\n#   status: pass\nalpha body\n",
+    );
+    write_report_family_override(&root);
+    write_report_catalog(
+        &root,
+        r#"[reporting.templates.lint]
+path = "reports/templates/lint/report.html.j2"
+"#,
+    );
+
+    let output = sc_compose()
+        .arg("report-render-many")
+        .arg("--root")
+        .arg(&root)
+        .arg("--id")
+        .arg("lint")
+        .arg("--glob")
+        .arg("docs/lint/*.txt")
+        .arg("--template-family")
+        .arg("lint")
+        .arg("--output-dir")
+        .arg("reports/latest/lint")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["entries"][0]["source_path"],
+        "docs/lint/a.txt"
+    );
+    let rendered = fs::read_to_string(
+        root.join("reports")
+            .join("latest")
+            .join("lint")
+            .join("docs")
+            .join("lint")
+            .join("a.html"),
+    )
+    .unwrap();
+    assert!(rendered.contains("Lint override"));
 }
