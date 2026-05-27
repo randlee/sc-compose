@@ -29,7 +29,7 @@ pub fn sc_compose(log_prefix: &str) -> Command {
     command
 }
 
-pub fn test_log_root(prefix: &str) -> PathBuf {
+fn test_log_root(prefix: &str) -> PathBuf {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()

@@ -17,10 +17,6 @@ fn sc_compose() -> std::process::Command {
     support::sc_compose("sc-compose-cli")
 }
 
-fn parse_stdout_json(output: &std::process::Output) -> serde_json::Value {
-    parse_stdout(output)
-}
-
 fn write_sql_query_spec(root: &Path, relative: &str) {
     write_file(
         &root.join(relative),
@@ -2156,7 +2152,7 @@ fn frontmatter_init_dry_run_reports_changed_and_would_change_without_writing() {
         .unwrap();
 
     assert!(output.status.success());
-    let value = parse_stdout_json(&output);
+    let value = parse_stdout(&output);
     assert_eq!(value["payload"]["changed"], false);
     assert_eq!(value["payload"]["would_change"], true);
     assert_eq!(fs::read_to_string(&template).unwrap(), "hello {{ name }}\n");
@@ -2178,7 +2174,7 @@ fn init_dry_run_does_not_create_workspace_and_reports_would_create_files() {
 
     assert!(output.status.success());
     assert!(!root.join(".prompts").exists());
-    let value = parse_stdout_json(&output);
+    let value = parse_stdout(&output);
     assert_eq!(value["payload"]["action"], "init");
     assert!(
         !value["payload"]["would_affect"]
@@ -2408,7 +2404,7 @@ fn observability_health_json_reports_process_local_status() {
         .unwrap();
 
     assert!(health.status.success());
-    let value = parse_stdout_json(&health);
+    let value = parse_stdout(&health);
     assert_eq!(value["payload"]["logging"]["state"], "Healthy");
     assert_eq!(value["payload"]["logging"]["query"]["state"], "Healthy");
     assert_eq!(
@@ -2485,7 +2481,7 @@ fn release_smoke_covers_render_pipeline_and_observability_health() {
         .unwrap();
 
     assert!(health.status.success());
-    let value = parse_stdout_json(&health);
+    let value = parse_stdout(&health);
     assert_eq!(value["payload"]["logging"]["state"], "Healthy");
     assert_eq!(
         value["payload"]["logging"]["active_log_path"],
@@ -2536,7 +2532,7 @@ fn reports_smoke_keeps_observability_health_green_under_logger_12() {
         .unwrap();
 
     assert!(health.status.success());
-    let value = parse_stdout_json(&health);
+    let value = parse_stdout(&health);
     assert_eq!(value["payload"]["logging"]["state"], "Healthy");
     assert_eq!(value["payload"]["logging"]["query"]["state"], "Healthy");
     assert_eq!(
