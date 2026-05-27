@@ -1301,22 +1301,21 @@ Boundary rules for the producer line:
 - the report ids owned by a producer are declared through the shared report
   catalog rather than inferred from hard-coded aggregator behavior
 - the scaffold owns creation of `reports/latest/smoke/`, and
-  `sc-compose reports smoke` writes into that prepared path rather than
-  creating the output directory at runtime
+  report-smoke execution writes into that prepared path rather than creating
+  the output directory at runtime
 
-### Phase A Template-Family And Panel-Chrome Contract (Planning Only)
+### Template-Family And Panel-Chrome Contract (Implemented In Sprint B4)
 
-Phase A follow-on planning defines shared template families and shared panel
-chrome so report UI behavior does not need to be reimplemented per consumer
-repo.
+Sprint B4 implements shared template families and shared panel chrome so
+report UI behavior does not need to be reimplemented per consumer repo.
 
-Initial planned template families:
+Initial template families:
 
 - lint/test/smoke evidence reports
 - public API, CLI, and ICD style reports
 - diagram, state-machine, and SQL-query reports
 
-Planned override contract:
+Override contract:
 
 The authoritative override contract, shared lookup namespace, consumer
 activation config, template block boundary, required template variables, and
@@ -1338,7 +1337,7 @@ Shared panel contract:
 - optional copy-JSON action
 - optional fragment or open link
 
-Planned ownership split:
+Ownership split:
 
 - shared panel chrome owns panel framing and shared actions
 - consumer-specific templates own the panel body content for their report

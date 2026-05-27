@@ -88,6 +88,17 @@ fn write_render_many_fixture(root: &Path) {
     );
 }
 
+fn write_report_family_override(root: &Path) {
+    write_file(
+        &root
+            .join("reports")
+            .join("templates")
+            .join("lint")
+            .join("report.html.j2"),
+        "{% extends \"base/report.html.j2\" %}\n{% block report_header %}<header class=\"report-header report-header-lint\"><h1>Lint override</h1><p>Lint override</p></header>{% endblock %}\n{% block panel_body %}<div class=\"panel-body panel-body-lint\">Override body marker</div>{% endblock %}\n",
+    );
+}
+
 #[test]
 fn render_dry_run_does_not_create_output_file() {
     let root = temp_root("dry-run");
@@ -1893,6 +1904,92 @@ fn report_render_many_renders_one_output_per_source_in_sorted_order() {
         .find("\"source_path\": \"docs/diagrams/b.txt\"")
         .unwrap();
     assert!(alpha_index < bravo_index);
+}
+
+#[test]
+fn report_render_many_supports_shared_diagram_template_selector() {
+    let root = temp_root("report-render-many-shared");
+    write_file(
+        &root.join("docs").join("diagrams").join("a.txt"),
+        "# title: Alpha\n# fragment_href: /reports/alpha\nalpha body\n",
+    );
+
+    let output = sc_compose()
+        .arg("report-render-many")
+        .arg("--root")
+        .arg(&root)
+        .arg("--id")
+        .arg("state-machines")
+        .arg("--glob")
+        .arg("docs/diagrams/*.txt")
+        .arg("--template")
+        .arg("shared:diagram")
+        .arg("--output-dir")
+        .arg("reports/latest/diagrams")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let rendered = fs::read_to_string(
+        root.join("reports")
+            .join("latest")
+            .join("diagrams")
+            .join("docs")
+            .join("diagrams")
+            .join("a.html"),
+    )
+    .unwrap();
+    assert!(rendered.contains("Diagram report family"));
+    assert!(rendered.contains("<pre>alpha body</pre>"));
+    assert!(rendered.contains("Copy text"));
+    assert!(rendered.contains("Open fragment"));
+    assert!(!rendered.contains("Copy json"));
+}
+
+#[test]
+fn report_render_many_uses_repo_local_template_family_override() {
+    let root = temp_root("report-render-many-family-override");
+    write_file(
+        &root.join("docs").join("lint").join("a.txt"),
+        "# title: Lint Alpha\n# copy_json:\n#   status: pass\nalpha body\n",
+    );
+    write_report_family_override(&root);
+    write_report_catalog(
+        &root,
+        r#"[reporting.templates.lint]
+path = "reports/templates/lint/report.html.j2"
+"#,
+    );
+
+    let output = sc_compose()
+        .arg("report-render-many")
+        .arg("--root")
+        .arg(&root)
+        .arg("--id")
+        .arg("lint")
+        .arg("--glob")
+        .arg("docs/lint/*.txt")
+        .arg("--template-family")
+        .arg("lint")
+        .arg("--output-dir")
+        .arg("reports/latest/lint")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let rendered = fs::read_to_string(
+        root.join("reports")
+            .join("latest")
+            .join("lint")
+            .join("docs")
+            .join("lint")
+            .join("a.html"),
+    )
+    .unwrap();
+    assert!(rendered.contains("Lint override"));
+    assert!(rendered.contains("Override body marker"));
+    assert!(rendered.contains("Copy text"));
+    assert!(rendered.contains("Copy json"));
 }
 
 #[cfg(unix)]

@@ -8,7 +8,7 @@ use anyhow::anyhow;
 use sc_composer::{DiagnosticCode, RecoveryHint, RecoveryHintKind};
 
 use crate::template_store::TemplateMeta;
-use crate::{CommandError, print_json};
+use crate::{CommandError, path_utils::to_forward_slash, print_json};
 
 fn print_pack_list(packs: &[TemplateMeta], json: bool) -> anyhow::Result<()> {
     if json {
@@ -18,7 +18,7 @@ fn print_pack_list(packs: &[TemplateMeta], json: bool) -> anyhow::Result<()> {
                     .iter()
                     .map(|pack| serde_json::json!({
                         "name": pack.name,
-                        "path": pack.path.display().to_string(),
+                        "path": to_forward_slash(&pack.path),
                     }))
                     .collect::<Vec<_>>(),
             }),

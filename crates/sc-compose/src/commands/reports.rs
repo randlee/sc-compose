@@ -85,8 +85,10 @@ pub(crate) struct ReportRenderManyArgs {
     pub(crate) id: String,
     #[arg(long)]
     pub(crate) glob: String,
-    #[arg(long)]
-    pub(crate) template: PathBuf,
+    #[arg(long, conflicts_with = "template_family")]
+    pub(crate) template: Option<String>,
+    #[arg(long = "template-family", conflicts_with = "template")]
+    pub(crate) template_family: Option<String>,
     #[arg(long = "output-dir")]
     pub(crate) output_dir: PathBuf,
     #[arg(long)]
@@ -139,8 +141,8 @@ pub(crate) fn run_reports_index(args: &ReportsIndexArgs) -> Result<i32, CommandE
     let payload = serde_json::json!({
         "status": "reserved",
         "subcommand": "reports index",
-        "root": args.root.display().to_string(),
-        "catalog": args.catalog.display().to_string(),
+        "root": to_forward_slash(&args.root),
+        "catalog": to_forward_slash(&args.catalog),
         "note": "full aggregation behavior lands in Sprint B5",
     });
     if args.json {
@@ -158,8 +160,8 @@ pub(crate) fn run_reports_verify(args: &ReportsVerifyArgs) -> Result<i32, Comman
     let payload = serde_json::json!({
         "status": "reserved",
         "subcommand": "reports verify",
-        "root": args.root.display().to_string(),
-        "catalog": args.catalog.display().to_string(),
+        "root": to_forward_slash(&args.root),
+        "catalog": to_forward_slash(&args.catalog),
         "note": "full required-evidence verification lands in Sprint B5",
     });
     if args.json {
@@ -205,12 +207,14 @@ pub(crate) fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, Comman
 }
 
 pub(crate) fn run_report_render_many(args: &ReportRenderManyArgs) -> Result<i32, CommandError> {
+    let template_selector = args.template.clone().unwrap_or_default();
     let request = RenderManyRequest {
         root: args.root.clone(),
         source_set: SourceSetDefinition {
             id: args.id.clone(),
             glob: args.glob.clone(),
-            template_path: args.template.clone(),
+            template_selector,
+            template_family: args.template_family.clone(),
             output_dir: args.output_dir.clone(),
         },
     };

@@ -1212,12 +1212,11 @@ The canonical semantic report-spec contract is defined in
 the semantic QA direction, and the extension rule. This architecture section
 intentionally defers to that requirements section rather than restating those
 lists or transition-policy details.
-## 15g. Follow-On Template Families And Shared Panel Chrome (Phase A Planning Only)
+## 15g. Template Families And Shared Panel Chrome (Implemented In Sprint B4)
 
-Phase A follow-on planning defines shared template-family selection and shared
-panel chrome so consumer repos reuse one UI contract instead of rebuilding it
-per report family. This is planning only and does not change shipped `1.0`
-runtime behavior.
+Sprint B4 implements shared template-family selection and shared panel chrome
+so consumer repos reuse one UI contract instead of rebuilding it per report
+family.
 
 Initial template families:
 

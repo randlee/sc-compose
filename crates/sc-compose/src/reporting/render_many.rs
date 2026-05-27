@@ -9,12 +9,17 @@ use serde_json::Value;
 
 use crate::path_utils::to_forward_slash;
 use crate::reporting::source_entry::{SourceEntry, SourceEntryError, SourceEntryRecord};
+use crate::reporting::templates::{
+    ResolvedTemplate, TemplateError, context_from_source_entry, render_shared_report,
+    resolve_template_family, resolve_template_selector, source_entry_title,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SourceSetDefinition {
     pub(crate) id: String,
     pub(crate) glob: String,
-    pub(crate) template_path: PathBuf,
+    pub(crate) template_selector: String,
+    pub(crate) template_family: Option<String>,
     pub(crate) output_dir: PathBuf,
 }
 
@@ -45,10 +50,6 @@ pub(crate) enum RenderManyError {
         glob: String,
         message: String,
     },
-    ReadTemplate {
-        path: PathBuf,
-        source: std::io::Error,
-    },
     InvalidTemplatePath {
         path: PathBuf,
         message: String,
@@ -73,31 +74,21 @@ pub(crate) enum RenderManyError {
         source: RenderError,
     },
     SourceEntry(SourceEntryError),
+    Template(TemplateError),
 }
 
 impl RenderManyRequest {
     pub(crate) fn output_extension(&self) -> Result<String, RenderManyError> {
-        let file_name = self
-            .source_set
-            .template_path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .ok_or_else(|| RenderManyError::InvalidTemplatePath {
-                path: self.source_set.template_path.clone(),
-                message: "template path must have a valid UTF-8 filename".to_owned(),
-            })?;
-        let stripped =
-            file_name
-                .strip_suffix(".j2")
-                .ok_or_else(|| RenderManyError::InvalidTemplatePath {
-                    path: self.source_set.template_path.clone(),
-                    message: "template path must end with .j2".to_owned(),
-                })?;
-        let extension = Path::new(stripped)
-            .extension()
-            .and_then(|extension| extension.to_str())
-            .unwrap_or("out");
-        Ok(extension.to_owned())
+        let template = self.resolve_template()?;
+        Ok(template.output_extension)
+    }
+
+    fn resolve_template(&self) -> Result<ResolvedTemplate, RenderManyError> {
+        if let Some(family) = &self.source_set.template_family {
+            return resolve_template_family(&self.root, family).map_err(RenderManyError::Template);
+        }
+        resolve_template_selector(&self.root, &self.source_set.template_selector)
+            .map_err(RenderManyError::Template)
     }
 }
 
@@ -107,13 +98,7 @@ impl RenderManyRequest {
 pub(crate) fn render_many(
     request: &RenderManyRequest,
 ) -> Result<RenderManyResult, RenderManyError> {
-    let template_path = request.root.join(&request.source_set.template_path);
-    let template_text = std::fs::read_to_string(&template_path).map_err(|source| {
-        RenderManyError::ReadTemplate {
-            path: template_path.clone(),
-            source,
-        }
-    })?;
+    let resolved_template = request.resolve_template()?;
     let output_root = request.root.join(&request.source_set.output_dir);
     std::fs::create_dir_all(&output_root).map_err(|source| RenderManyError::CreateOutputDir {
         path: output_root.clone(),
@@ -127,7 +112,7 @@ pub(crate) fn render_many(
     let mut generated_outputs = Vec::with_capacity(discovered.len());
     for entry in discovered {
         let rendered =
-            render_entry(&entry, &request.source_set.id, &template_text).map_err(|source| {
+            render_entry(&entry, &request.source_set.id, &resolved_template).map_err(|source| {
                 RenderManyError::Render {
                     source_path: entry.record.source_path.clone(),
                     source,
@@ -210,8 +195,15 @@ fn derive_output_path(output_dir: &Path, source_path: &Path, extension: &str) ->
 fn render_entry(
     entry: &SourceEntry,
     template_name: &str,
-    template_text: &str,
+    template: &ResolvedTemplate,
 ) -> Result<RenderedArtifact, RenderError> {
+    if template.uses_report_context {
+        return render_shared_report(
+            template,
+            &context_from_source_entry(entry, Some(source_entry_title(entry))),
+        );
+    }
+
     let mut context = BTreeMap::new();
     context.insert(
         "source_path".to_owned(),
@@ -240,12 +232,16 @@ fn render_entry(
     context.insert("body".to_owned(), Value::String(entry.body.clone()));
 
     render_loaded_template(LoadedTemplateRequest {
-        template_name: template_name.to_owned(),
-        template_text: template_text.to_owned(),
+        template_name: if template.template_name.is_empty() {
+            template_name.to_owned()
+        } else {
+            template.template_name.clone()
+        },
+        template_text: template.template_text.clone(),
         context,
+        supporting_templates: template.supporting_templates.clone(),
     })
 }
-
 impl fmt::Display for RenderManyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -254,13 +250,6 @@ impl fmt::Display for RenderManyError {
             }
             Self::GlobWalk { glob, message } => {
                 write!(f, "failed to walk source glob '{glob}': {message}")
-            }
-            Self::ReadTemplate { path, source } => {
-                write!(
-                    f,
-                    "failed to read render-many template {}: {source}",
-                    path.display()
-                )
             }
             Self::InvalidTemplatePath { path, message } => {
                 write!(
@@ -304,6 +293,7 @@ impl fmt::Display for RenderManyError {
                 )
             }
             Self::SourceEntry(source) => write!(f, "{source}"),
+            Self::Template(source) => write!(f, "{source}"),
         }
     }
 }
