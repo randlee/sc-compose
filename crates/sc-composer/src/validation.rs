@@ -15,6 +15,9 @@ use crate::types::{
     VariableSource,
 };
 
+const RENDER_DATE_FORMAT: &[time::format_description::FormatItem<'static>] =
+    format_description!("[year]-[month]-[day]");
+
 #[derive(Debug, PartialEq, Eq)]
 enum RequiredPathStatus {
     Satisfied,
@@ -37,6 +40,15 @@ pub(crate) struct ValidationState {
     default_origins: BTreeMap<VariableName, Option<PathBuf>>,
     pub(crate) declared_variables: BTreeSet<VariableName>,
     pub(crate) referenced_variables: BTreeSet<VariableName>,
+}
+
+#[derive(Debug)]
+struct BuiltinVarContext {
+    template_name: String,
+    hostname: String,
+    username: String,
+    render_date: String,
+    render_timestamp: String,
 }
 
 pub(crate) fn validate_expanded(
@@ -466,12 +478,8 @@ pub(crate) fn collect_validation_state(
             .variable_sources
             .insert(name.clone(), VariableSource::TemplateInputDefault);
     }
-    for (name, value) in builtins_for_root(root_path) {
-        state.context.insert(name.clone(), value);
-        state
-            .variable_sources
-            .insert(name.clone(), VariableSource::Builtin);
-        state.declared_variables.insert(name);
+    if let Some(root_path) = root_path {
+        inject_builtin_vars(&mut state, root_path);
     }
     for (name, value) in &request.vars_env {
         state.context.insert(name.clone(), value.clone());
@@ -490,38 +498,83 @@ pub(crate) fn collect_validation_state(
     state
 }
 
-fn builtins_for_root(root_path: Option<&PathBuf>) -> BTreeMap<VariableName, InputValue> {
-    let mut builtins = BTreeMap::new();
-    let template_name = root_path.and_then(|path| path.file_name()).map_or_else(
-        || "unknown".to_owned(),
-        |name| name.to_string_lossy().into_owned(),
-    );
-    let now = OffsetDateTime::now_utc();
+fn inject_builtin_vars(state: &mut ValidationState, template_path: &Path) {
+    BuiltinVarContext::for_template(template_path).inject_into(state);
+}
 
-    builtins.insert(
-        VariableName::new("TEMPLATE_NAME").expect("built-in variable name is valid"),
-        serde_json::Value::String(template_name),
-    );
-    builtins.insert(
-        VariableName::new("HOSTNAME").expect("built-in variable name is valid"),
-        serde_json::Value::String(current_hostname()),
-    );
-    builtins.insert(
-        VariableName::new("USERNAME").expect("built-in variable name is valid"),
-        serde_json::Value::String(current_username()),
-    );
-    builtins.insert(
-        VariableName::new("RENDER_DATE").expect("built-in variable name is valid"),
-        serde_json::Value::String(
-            now.format(&format_description!("[year]-[month]-[day]"))
-                .expect("current UTC date formats"),
-        ),
-    );
-    builtins.insert(
-        VariableName::new("RENDER_TIMESTAMP").expect("built-in variable name is valid"),
-        serde_json::Value::String(now.format(&Rfc3339).expect("current UTC timestamp formats")),
-    );
-    builtins
+impl BuiltinVarContext {
+    fn for_template(template_path: &Path) -> Self {
+        let now = OffsetDateTime::now_utc();
+        Self {
+            template_name: template_path.file_name().map_or_else(
+                || "unknown".to_owned(),
+                |name| name.to_string_lossy().into_owned(),
+            ),
+            hostname: current_hostname(),
+            username: current_username(),
+            render_date: format_render_date(now),
+            render_timestamp: format_render_timestamp(now),
+        }
+    }
+
+    fn inject_into(self, state: &mut ValidationState) {
+        let Self {
+            template_name,
+            hostname,
+            username,
+            render_date,
+            render_timestamp,
+        } = self;
+        Self::insert(state, "TEMPLATE_NAME", template_name);
+        Self::insert(state, "HOSTNAME", hostname);
+        Self::insert(state, "USERNAME", username);
+        Self::insert(state, "RENDER_DATE", render_date);
+        Self::insert(state, "RENDER_TIMESTAMP", render_timestamp);
+    }
+
+    fn insert(state: &mut ValidationState, raw_name: &'static str, value: String) {
+        let Ok(name) = VariableName::new(raw_name) else {
+            return;
+        };
+        state
+            .context
+            .insert(name.clone(), serde_json::Value::String(value));
+        state
+            .variable_sources
+            .insert(name.clone(), VariableSource::Builtin);
+        state.declared_variables.insert(name);
+    }
+}
+
+fn format_render_date(now: OffsetDateTime) -> String {
+    now.format(RENDER_DATE_FORMAT)
+        .unwrap_or_else(|_| render_date_fallback(now))
+}
+
+fn format_render_timestamp(now: OffsetDateTime) -> String {
+    now.format(&Rfc3339)
+        .unwrap_or_else(|_| render_timestamp_fallback(now))
+}
+
+fn render_date_fallback(now: OffsetDateTime) -> String {
+    format!(
+        "{:04}-{:02}-{:02}",
+        now.year(),
+        u8::from(now.month()),
+        now.day()
+    )
+}
+
+fn render_timestamp_fallback(now: OffsetDateTime) -> String {
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+        now.year(),
+        u8::from(now.month()),
+        now.day(),
+        now.hour(),
+        now.minute(),
+        now.second()
+    )
 }
 
 fn current_hostname() -> String {

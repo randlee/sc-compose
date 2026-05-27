@@ -62,15 +62,19 @@ timestamp without the caller needing to pass them as `--var` flags.
 ## Explicit Code Samples
 
 ```rust
+struct BuiltinVarContext {
+    template_name: String,
+    hostname: String,
+    username: String,
+    render_date: String,
+    render_timestamp: String,
+}
+
 fn inject_builtin_vars(
     state: &mut ValidationState,
     template_path: &Path,
 ) {
-    state.context.insert("TEMPLATE_NAME".into(), template_name(template_path).into());
-    state.context.insert("HOSTNAME".into(), hostname().into());
-    state.context.insert("USERNAME".into(), username().into());
-    state.context.insert("RENDER_DATE".into(), today_iso().into());
-    state.context.insert("RENDER_TIMESTAMP".into(), now_iso().into());
+    BuiltinVarContext::for_template(template_path).inject_into(state);
 }
 
 fn collect_validation_state(request: &ComposeRequest, expanded: &ExpandedTemplate) -> ValidationState {
