@@ -2553,11 +2553,7 @@ fn release_smoke_covers_render_pipeline_and_observability_health() {
     assert_eq!(value["payload"]["logging"]["state"], "Healthy");
     assert_eq!(
         value["payload"]["logging"]["active_log_path"],
-        logs_root
-            .join("logs")
-            .join("sc-compose.log.jsonl")
-            .display()
-            .to_string()
+        normalize_path_str(logs_root.join("logs").join("sc-compose.log.jsonl"))
     );
     assert_eq!(
         value["payload"]["logging"]["maintenance"]["state"],
