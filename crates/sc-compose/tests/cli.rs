@@ -1221,6 +1221,56 @@ metadata = "reports/latest/smoke/report.json"
 }
 
 #[test]
+fn reports_verify_succeeds_when_required_evidence_is_present() {
+    let root = temp_root("reports-verify-success");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
+    write_smoke_fixture(&root);
+    write_report_catalog(
+        &root,
+        r#"[[report]]
+id = "smoke"
+kind = "smoke"
+producer = "just smoke"
+required = true
+entrypoint = "reports/latest/smoke/index.html"
+metadata = "reports/latest/smoke/report.json"
+"#,
+    );
+
+    let smoke = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .output()
+        .unwrap();
+    assert!(smoke.status.success());
+
+    let verify = sc_compose()
+        .arg("reports")
+        .arg("verify")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert_eq!(verify.status.code(), Some(0));
+    let stdout = String::from_utf8(verify.stdout).unwrap();
+    assert!(stdout.contains("verified required reports: 1/1"));
+}
+
+#[test]
 fn templates_add_directory_creates_pack_and_readme_and_named_render_uses_input_defaults() {
     let root = temp_root("templates-add-dir");
     let templates_root = root.join("user-templates");

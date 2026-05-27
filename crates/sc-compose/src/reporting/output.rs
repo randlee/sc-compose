@@ -79,10 +79,9 @@ pub(crate) fn write_report_metadata_and_archive(
     root: &Path,
     request: &ReportOutputRequest,
 ) -> Result<MaterializedReport, OutputError> {
-    let produced_at = OffsetDateTime::now_utc()
-        .format(&Rfc3339)
-        .map_err(OutputError::TimeFormat)?;
-    let archive_label = OffsetDateTime::now_utc()
+    let now = OffsetDateTime::now_utc();
+    let produced_at = now.format(&Rfc3339).map_err(OutputError::TimeFormat)?;
+    let archive_label = now
         .format(ARCHIVE_TIMESTAMP_FORMAT)
         .map_err(OutputError::TimeFormat)?;
 

@@ -1269,6 +1269,60 @@ metadata = "reports/latest/smoke/report.json"
 }
 
 #[test]
+fn reports_verify_json_succeeds_when_required_evidence_is_present() {
+    let root = temp_root("reports-verify-json-success");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
+    write_smoke_fixture(&root);
+    write_report_catalog(
+        &root,
+        r#"[[report]]
+id = "smoke"
+kind = "smoke"
+producer = "just smoke"
+required = true
+entrypoint = "reports/latest/smoke/index.html"
+metadata = "reports/latest/smoke/report.json"
+"#,
+    );
+
+    let smoke = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .output()
+        .unwrap();
+    assert!(smoke.status.success());
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("verify")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["required_count"], 1);
+    assert_eq!(value["payload"]["verified_count"], 1);
+}
+
+#[test]
 fn reports_smoke_json_lists_archive_artifacts_when_requested() {
     let root = temp_root("reports-smoke-archive-json");
     write_smoke_fixture(&root);
