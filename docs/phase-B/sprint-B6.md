@@ -47,6 +47,9 @@ into `sc-compose`.
   - `entrypoint`
   - artifact paths
   - archive snapshot path when present
+- one explicit deferral that the remaining `crates/sc-compose/src/main.rs`
+  simplification delta on this branch is owned by B9 rather than B6, because
+  B6 owns the publish-manifest reporting surface and its direct command seam
 
 ## Explicit Code Samples
 
@@ -93,6 +96,9 @@ into `sc-compose`.
 - `report_id` stays aligned with the catalog `id`
 - at least one test exercises the publish-manifest output path and validates
   the emitted manifest shape
+- the scaffold owns creation of `reports/latest/smoke/`, and
+  report-smoke execution on this branch writes into that prepared path rather
+  than creating it implicitly at runtime
 
 ## Required Validation
 
