@@ -56,6 +56,10 @@ fn repo_root() -> PathBuf {
         .unwrap()
 }
 
+fn normalize_path_str(p: impl AsRef<Path>) -> String {
+    p.as_ref().to_string_lossy().replace('\\', "/")
+}
+
 fn write_report_catalog(root: &Path, contents: &str) {
     write_file(
         &root.join("reports").join("catalog").join("reports.toml"),
@@ -2009,11 +2013,7 @@ fn observability_health_json_reports_process_local_status() {
     );
     assert_eq!(
         value["payload"]["logging"]["active_log_path"],
-        log_root
-            .join("logs")
-            .join("sc-compose.log.jsonl")
-            .display()
-            .to_string()
+        normalize_path_str(log_root.join("logs").join("sc-compose.log.jsonl"))
     );
 }
 
