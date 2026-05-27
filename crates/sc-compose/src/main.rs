@@ -4,6 +4,7 @@ mod json_output;
 mod observability;
 mod observer_impl;
 mod render_request;
+mod reporting;
 mod template_store;
 
 use std::fmt;
@@ -19,6 +20,10 @@ use sc_composer::{
 };
 
 use crate::commands::examples::{run_examples_list, run_examples_render};
+use crate::commands::reports::{
+    ReportCatalogArgs, ReportsArgs, ReportsSubcommand, run_report_catalog, run_reports_index,
+    run_reports_init, run_reports_smoke, run_reports_verify,
+};
 use crate::commands::templates::{run_templates_add, run_templates_list, run_templates_render};
 use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
 use crate::render_request::{build_request, read_block_pair};
@@ -55,6 +60,10 @@ enum Command {
     Examples(ExamplesArgs),
     #[command(about = "List, add, or render user template packs")]
     Templates(TemplatesArgs),
+    #[command(about = "Initialize and run shared report scaffolds")]
+    Reports(ReportsArgs),
+    #[command(hide = true, name = "report-catalog")]
+    ReportCatalog(ReportCatalogArgs),
 }
 
 #[derive(Debug, Clone, Args)]
@@ -379,6 +388,33 @@ fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, Comma
                 run_templates_render(&args, observer)
             }),
         },
+        Command::Reports(args) => match &args.command {
+            ReportsSubcommand::Init(init_args) => {
+                observe_command(observer, "reports", init_args.json, |_observer| {
+                    run_reports_init(init_args)
+                })
+            }
+            ReportsSubcommand::Smoke(smoke_args) => {
+                observe_command(observer, "reports", smoke_args.json, |_observer| {
+                    run_reports_smoke(smoke_args)
+                })
+            }
+            ReportsSubcommand::Index(index_args) => {
+                observe_command(observer, "reports", index_args.json, |_observer| {
+                    run_reports_index(index_args)
+                })
+            }
+            ReportsSubcommand::Verify(verify_args) => {
+                observe_command(observer, "reports", verify_args.json, |_observer| {
+                    run_reports_verify(verify_args)
+                })
+            }
+        },
+        Command::ReportCatalog(args) => {
+            observe_command(observer, "report-catalog", args.json, |_observer| {
+                run_report_catalog(&args)
+            })
+        }
     }
 }
 
@@ -724,6 +760,13 @@ fn command_wants_json(command: &Command) -> bool {
             Some(TemplatesSubcommand::Add(add_args)) => add_args.json,
             None => args.render.json,
         },
+        Command::Reports(args) => match &args.command {
+            ReportsSubcommand::Init(init_args) => init_args.json,
+            ReportsSubcommand::Smoke(smoke_args) => smoke_args.json,
+            ReportsSubcommand::Index(index_args) => index_args.json,
+            ReportsSubcommand::Verify(verify_args) => verify_args.json,
+        },
+        Command::ReportCatalog(args) => args.json,
     }
 }
 

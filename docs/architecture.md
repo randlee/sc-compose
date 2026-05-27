@@ -1055,13 +1055,25 @@ Implicit named render convention:
 - supporting assets remain available for directory-import workflows and future
   expansion, but they do not change the initial render resolution rules.
 
-## 15a. Follow-On Report Artifact Contract (Phase A Planning Only)
+## 15a. Report Artifact Contract (Implemented In Sprint B1)
 
-Phase A follow-on planning treats reporting as a generic artifact contract.
-This is a planning line only and does not change the shipped `1.0` release
-behavior until a later implementation sprint lands.
+Sprint B1 implements reporting as a generic artifact contract. This section
+is now active runtime behavior rather than a planning-only note.
 
-Planned filesystem contract:
+Sprint B1 partial implementation scope:
+
+- `sc-compose` owns the report catalog loader and validator for
+  `reports/catalog/reports.toml`
+- `sc-compose` owns the initial `reports` CLI surface:
+  - `reports init`
+  - `reports smoke`
+  - `reports index`
+  - `reports verify`
+- Sprint B1 does not yet implement shared repo scaffolding, latest/archive
+  writers, or publish-manifest generation; later sprints close those
+  follow-on runtime seams
+
+Implemented filesystem contract:
 
 - authored docs remain under `docs/`
 - report sources and catalog inputs live outside `docs/` under paths such as:
@@ -1075,7 +1087,7 @@ Planned filesystem contract:
   with its generated output, for example
   `reports/latest/<report-id>/report.json`
 
-Planned catalog contract:
+Implemented catalog contract:
 
 ```toml
 [[report]]
@@ -1088,8 +1100,8 @@ metadata = "reports/latest/sc-lint/report.json"
 ```
 
 The canonical report catalog field inventory, requiredness rule, and shared
-Phase A reporting boundary rule are defined in `docs/requirements.md` under
-`### Phase A Follow-On Reporting Contract (Planning Only)`.
+reporting boundary rule are defined in `docs/requirements.md` under
+`### Report Artifact Contract (Implemented In Sprint B1)`.
 
 Ownership split:
 

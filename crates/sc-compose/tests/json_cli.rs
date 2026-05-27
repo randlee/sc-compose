@@ -56,6 +56,13 @@ fn repo_root() -> PathBuf {
         .unwrap()
 }
 
+fn write_report_catalog(root: &Path, contents: &str) {
+    write_file(
+        &root.join("reports").join("catalog").join("reports.toml"),
+        contents,
+    );
+}
+
 fn assert_envelope(value: &Value) {
     assert_eq!(value["schema_version"], "1");
     assert!(value.get("payload").is_some());
@@ -1037,4 +1044,81 @@ fn init_missing_root_json_reports_config_parse() {
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_first_code(&value, "ERR_CONFIG_PARSE");
+}
+
+#[test]
+fn report_catalog_json_uses_diagnostic_envelope() {
+    let root = temp_root("report-catalog-json");
+    write_report_catalog(
+        &root,
+        r#"
+[[report]]
+id = "sc-lint"
+kind = "lint"
+producer = "just lint"
+required = true
+entrypoint = "reports/latest/sc-lint/index.html"
+metadata = "reports/latest/sc-lint/report.json"
+"#,
+    );
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("index")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["report_count"], 1);
+    assert_eq!(value["payload"]["reports"][0]["id"], "sc-lint");
+    assert_eq!(
+        value["payload"]["reports"][0]["metadata"],
+        "reports/latest/sc-lint/report.json"
+    );
+}
+
+#[test]
+fn report_catalog_invalid_json_reports_config_parse() {
+    let root = temp_root("report-catalog-invalid-json");
+    write_report_catalog(
+        &root,
+        r#"
+[[report]]
+id = "sc-lint"
+kind = "lint"
+producer = "just lint"
+required = "yes"
+entrypoint = "reports/latest/sc-lint/index.html"
+metadata = "reports/latest/sc-lint/report.json"
+"#,
+    );
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("index")
+        .arg("--root")
+        .arg(&root)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"], serde_json::json!({}));
+    assert_first_code(&value, "ERR_CONFIG_PARSE");
+    assert_eq!(
+        value["diagnostics"][0]["message"],
+        "report 'sc-lint' field 'required' must be true or false"
+    );
 }
