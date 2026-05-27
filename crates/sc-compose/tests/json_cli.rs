@@ -228,7 +228,7 @@ fn validate_json_reports_missing_frontmatter_for_included_file() {
     let diagnostics = value["diagnostics"].as_array().unwrap();
     assert!(diagnostics.iter().any(|diagnostic| {
         diagnostic["code"] == "ERR_VAL_MISSING_FRONTMATTER"
-            && diagnostic["path"]
+            && normalize_path_str(diagnostic["path"].as_str().unwrap_or(""))
                 == normalize_path_str(
                     fs::canonicalize(root.join("_includes").join("snippet.md")).unwrap(),
                 )
