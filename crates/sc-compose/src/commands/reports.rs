@@ -347,24 +347,24 @@ pub(crate) fn run_reports_publish_manifest(
         });
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
     } else {
-        println!("manifest: {}", result.manifest_path.display());
+        println!("manifest: {}", to_forward_slash(&result.manifest_path));
         println!("reports: {}", result.report_count);
         for report in &result.manifest.reports {
             println!(
                 "{} kind={} entrypoint={}",
                 report.report_id,
                 report.kind,
-                report.entrypoint.display()
+                to_forward_slash(&report.entrypoint)
             );
             if let Some(archive_root) = &report.archive_root {
-                println!("archive_root: {}", archive_root.display());
+                println!("archive_root: {}", to_forward_slash(archive_root));
             }
             for file in &report.files {
                 println!(
                     "file role={} path={} publish_to={}",
                     file.role,
-                    file.path.display(),
-                    file.publish_to.display()
+                    to_forward_slash(&file.path),
+                    to_forward_slash(&file.publish_to)
                 );
             }
         }
@@ -385,7 +385,7 @@ pub(crate) fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, Comman
         });
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
     } else {
-        println!("catalog: {}", catalog.catalog_path.display());
+        println!("catalog: {}", to_forward_slash(&catalog.catalog_path));
         println!("reports: {}", catalog.reports.len());
         for report in &catalog.reports {
             println!(
@@ -394,8 +394,8 @@ pub(crate) fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, Comman
                 report.kind,
                 report.producer,
                 report.required,
-                report.entrypoint.display(),
-                report.metadata.display()
+                to_forward_slash(&report.entrypoint),
+                to_forward_slash(&report.metadata)
             );
         }
     }
