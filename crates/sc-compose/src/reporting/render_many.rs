@@ -10,8 +10,8 @@ use serde_json::Value;
 use crate::path_utils::to_forward_slash;
 use crate::reporting::source_entry::{SourceEntry, SourceEntryError};
 use crate::reporting::templates::{
-    ResolvedTemplate, TemplateError, context_from_source_entry, render_shared_report,
-    resolve_template_family, resolve_template_selector, source_entry_title,
+    ResolvedTemplate, TemplateError, context_from_source_entry, entry_title, render_shared_report,
+    resolve_template_family, resolve_template_selector,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -246,6 +246,7 @@ fn render_entry(
         supporting_templates: template.supporting_templates.clone(),
     })
 }
+
 impl fmt::Display for RenderManyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

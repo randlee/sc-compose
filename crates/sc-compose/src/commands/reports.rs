@@ -9,6 +9,7 @@ use crate::path_utils::to_forward_slash;
 use crate::reporting::catalog::ReportCatalog;
 use crate::reporting::index::{build_report_index, verify_required_reports};
 use crate::reporting::init::{init_report_scaffold, run_smoke_report};
+use crate::reporting::publish_manifest::write_publish_manifest;
 use crate::reporting::render_many::{RenderManyRequest, SourceSetDefinition, render_many};
 use crate::{CommandError, print_diagnostic_messages, print_json};
 
@@ -28,6 +29,8 @@ pub(crate) enum ReportsSubcommand {
     Index(ReportsIndexArgs),
     #[command(about = "Verify required report evidence from the catalog")]
     Verify(ReportsVerifyArgs),
+    #[command(about = "Write one machine-readable publish manifest for current report outputs")]
+    PublishManifest(ReportsPublishManifestArgs),
 }
 
 #[derive(Debug, Clone, Args)]
@@ -62,6 +65,14 @@ pub(crate) struct ReportsIndexArgs {
 
 #[derive(Debug, Clone, Args)]
 pub(crate) struct ReportsVerifyArgs {
+    #[arg(long, default_value = ".")]
+    pub(crate) root: PathBuf,
+    #[arg(long)]
+    pub(crate) json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct ReportsPublishManifestArgs {
     #[arg(long, default_value = ".")]
     pub(crate) root: PathBuf,
     #[arg(long)]
@@ -205,6 +216,45 @@ pub(crate) fn run_reports_verify(args: &ReportsVerifyArgs) -> Result<i32, Comman
     Ok(exit_codes::SUCCESS)
 }
 
+pub(crate) fn run_reports_publish_manifest(
+    args: &ReportsPublishManifestArgs,
+) -> Result<i32, CommandError> {
+    let result = write_publish_manifest(&args.root).map_err(|error| {
+        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
+    })?;
+    if args.json {
+        let payload = serde_json::json!({
+            "manifest_path": to_forward_slash(&result.manifest_path),
+            "report_count": result.report_count,
+            "manifest": result.manifest,
+        });
+        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
+    } else {
+        println!("manifest: {}", to_forward_slash(&result.manifest_path));
+        println!("reports: {}", result.report_count);
+        for report in &result.manifest.reports {
+            println!(
+                "{} kind={} entrypoint={}",
+                report.report_id,
+                report.kind,
+                to_forward_slash(&report.entrypoint)
+            );
+            if let Some(archive_root) = &report.archive_root {
+                println!("archive_root: {}", to_forward_slash(archive_root));
+            }
+            for file in &report.files {
+                println!(
+                    "file role={} path={} publish_to={}",
+                    file.role,
+                    to_forward_slash(&file.path),
+                    to_forward_slash(&file.publish_to)
+                );
+            }
+        }
+    }
+    Ok(exit_codes::SUCCESS)
+}
+
 pub(crate) fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, CommandError> {
     let catalog = ReportCatalog::load(&args.root).map_err(|error| {
         CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
@@ -218,7 +268,7 @@ pub(crate) fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, Comman
         });
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
     } else {
-        println!("catalog: {}", catalog.catalog_path.display());
+        println!("catalog: {}", to_forward_slash(&catalog.catalog_path));
         println!("reports: {}", catalog.reports.len());
         for report in &catalog.reports {
             println!(
@@ -227,8 +277,8 @@ pub(crate) fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, Comman
                 report.kind,
                 report.producer,
                 report.required,
-                report.entrypoint.display(),
-                report.metadata.display()
+                to_forward_slash(&report.entrypoint),
+                to_forward_slash(&report.metadata)
             );
         }
     }

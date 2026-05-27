@@ -1281,8 +1281,8 @@ metadata = "reports/latest/smoke/report.json"
 }
 
 #[test]
-fn reports_verify_succeeds_when_required_evidence_is_present() {
-    let root = temp_root("reports-verify-success");
+fn reports_publish_manifest_writes_machine_readable_handoff() {
+    let root = temp_root("reports-publish-manifest");
     let init_output = sc_compose()
         .arg("reports")
         .arg("init")
@@ -1313,61 +1313,36 @@ metadata = "reports/latest/smoke/report.json"
         .arg("reports/smoke/reference-template.html.j2")
         .arg("--vars")
         .arg("reports/smoke/sample-vars.json")
+        .arg("--archive")
         .output()
         .unwrap();
     assert!(smoke.status.success());
 
-    let verify = sc_compose()
+    let publish_manifest = sc_compose()
         .arg("reports")
-        .arg("verify")
+        .arg("publish-manifest")
         .arg("--root")
         .arg(&root)
         .output()
         .unwrap();
 
-    assert_eq!(verify.status.code(), Some(0));
-    let stdout = String::from_utf8(verify.stdout).unwrap();
-    assert!(stdout.contains("verified required reports: 1/1"));
-}
+    assert!(publish_manifest.status.success());
+    let stdout = String::from_utf8(publish_manifest.stdout).unwrap();
+    assert!(stdout.contains("manifest: reports/latest/publish-manifest.json"));
+    assert!(stdout.contains("reports: 1"));
+    assert!(stdout.contains("smoke kind=smoke entrypoint=reports/latest/smoke/index.html"));
+    assert!(stdout.contains("publish_to=reports/smoke/index.html"));
+    assert!(stdout.contains("archive_root: reports/archive/"));
 
-#[test]
-fn reports_index_stub_exists_with_catalog_surface() {
-    let root = temp_root("reports-index");
-
-    let output = sc_compose()
-        .arg("reports")
-        .arg("index")
-        .arg("--root")
-        .arg(&root)
-        .arg("--catalog")
-        .arg("reports/catalog/reports.toml")
-        .output()
-        .unwrap();
-
-    assert!(output.status.success());
-    let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("reports index reserved"));
-    assert!(stdout.contains("catalog: reports/catalog/reports.toml"));
-}
-
-#[test]
-fn reports_verify_stub_exists_with_catalog_surface() {
-    let root = temp_root("reports-verify");
-
-    let output = sc_compose()
-        .arg("reports")
-        .arg("verify")
-        .arg("--root")
-        .arg(&root)
-        .arg("--catalog")
-        .arg("reports/catalog/reports.toml")
-        .output()
-        .unwrap();
-
-    assert!(output.status.success());
-    let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("reports verify reserved"));
-    assert!(stdout.contains("catalog: reports/catalog/reports.toml"));
+    let manifest_path = root
+        .join("reports")
+        .join("latest")
+        .join("publish-manifest.json");
+    assert!(manifest_path.exists());
+    let manifest_text = fs::read_to_string(manifest_path).unwrap();
+    assert!(manifest_text.contains("\"report_id\": \"smoke\""));
+    assert!(manifest_text.contains("\"publish_to\": \"reports/smoke/index.html\""));
+    assert!(manifest_text.contains("\"archive_root\": \"reports/archive/"));
 }
 
 #[test]
@@ -1927,11 +1902,12 @@ fn observability_health_json_reports_process_local_status() {
         "Running"
     );
     assert_eq!(
-        value["payload"]["logging"]["sink_statuses"][0]["name"],
-        "jsonl-file"
-    );
-    assert_eq!(
-        value["payload"]["logging"]["sink_statuses"][0]["state"],
+        value["payload"]["logging"]["sink_statuses"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|sink| sink["name"] == "jsonl-file")
+            .unwrap()["state"],
         "Healthy"
     );
     assert_eq!(

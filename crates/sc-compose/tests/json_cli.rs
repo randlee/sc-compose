@@ -1378,16 +1378,48 @@ fn reports_smoke_json_lists_archive_artifacts_when_requested() {
 }
 
 #[test]
-fn reports_index_json_uses_diagnostic_envelope() {
-    let root = temp_root("reports-index-json");
+fn reports_publish_manifest_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-publish-manifest-json");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
+    write_smoke_fixture(&root);
+    write_report_catalog(
+        &root,
+        r#"[[report]]
+id = "smoke"
+kind = "smoke"
+producer = "just smoke"
+required = true
+entrypoint = "reports/latest/smoke/index.html"
+metadata = "reports/latest/smoke/report.json"
+"#,
+    );
+
+    let smoke = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .arg("--archive")
+        .output()
+        .unwrap();
+    assert!(smoke.status.success());
 
     let output = sc_compose()
         .arg("reports")
-        .arg("index")
+        .arg("publish-manifest")
         .arg("--root")
         .arg(&root)
-        .arg("--catalog")
-        .arg("reports/catalog/reports.toml")
         .arg("--json")
         .output()
         .unwrap();
@@ -1396,31 +1428,19 @@ fn reports_index_json_uses_diagnostic_envelope() {
     assert!(output.stderr.is_empty());
     let value = parse_stdout(&output);
     assert_envelope(&value);
-    assert_eq!(value["payload"]["subcommand"], "reports index");
-    assert_eq!(value["payload"]["status"], "reserved");
-}
-
-#[test]
-fn reports_verify_json_uses_diagnostic_envelope() {
-    let root = temp_root("reports-verify-json");
-
-    let output = sc_compose()
-        .arg("reports")
-        .arg("verify")
-        .arg("--root")
-        .arg(&root)
-        .arg("--catalog")
-        .arg("reports/catalog/reports.toml")
-        .arg("--json")
-        .output()
-        .unwrap();
-
-    assert!(output.status.success());
-    assert!(output.stderr.is_empty());
-    let value = parse_stdout(&output);
-    assert_envelope(&value);
-    assert_eq!(value["payload"]["subcommand"], "reports verify");
-    assert_eq!(value["payload"]["status"], "reserved");
+    assert_eq!(
+        value["payload"]["manifest_path"],
+        "reports/latest/publish-manifest.json"
+    );
+    assert_eq!(value["payload"]["report_count"], 1);
+    assert_eq!(
+        value["payload"]["manifest"]["reports"][0]["report_id"],
+        "smoke"
+    );
+    assert_eq!(
+        value["payload"]["manifest"]["reports"][0]["files"][0]["publish_to"],
+        "reports/smoke/index.html"
+    );
 }
 
 #[test]

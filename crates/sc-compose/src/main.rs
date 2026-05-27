@@ -24,8 +24,8 @@ use sc_composer::{
 use crate::commands::examples::{run_examples_list, run_examples_render};
 use crate::commands::reports::{
     ReportCatalogArgs, ReportRenderManyArgs, ReportsArgs, ReportsSubcommand, run_report_catalog,
-    run_report_render_many, run_reports_index, run_reports_init, run_reports_smoke,
-    run_reports_verify,
+    run_report_render_many, run_reports_index, run_reports_init, run_reports_publish_manifest,
+    run_reports_smoke, run_reports_verify,
 };
 use crate::commands::templates::{run_templates_add, run_templates_list, run_templates_render};
 use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
@@ -415,6 +415,12 @@ fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, Comma
                     run_reports_verify(verify_args)
                 })
             }
+            ReportsSubcommand::PublishManifest(publish_args) => observe_command(
+                observer,
+                "reports-publish-manifest",
+                publish_args.json,
+                |_observer| run_reports_publish_manifest(publish_args),
+            ),
         },
         Command::ReportRenderMany(args) => {
             observe_command(observer, "report-render-many", args.json, |_observer| {
@@ -785,6 +791,7 @@ fn command_wants_json(command: &Command) -> bool {
             ReportsSubcommand::Smoke(smoke_args) => smoke_args.json,
             ReportsSubcommand::Index(index_args) => index_args.json,
             ReportsSubcommand::Verify(verify_args) => verify_args.json,
+            ReportsSubcommand::PublishManifest(publish_args) => publish_args.json,
         },
         Command::ReportRenderMany(args) => args.json,
         Command::ReportCatalog(args) => args.json,

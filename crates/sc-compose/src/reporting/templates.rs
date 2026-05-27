@@ -314,7 +314,7 @@ fn supporting_templates() -> Vec<NamedTemplateAsset> {
     ]
 }
 
-pub(crate) fn source_entry_title(entry: &SourceEntry) -> String {
+pub(crate) fn entry_title(entry: &SourceEntry) -> String {
     entry
         .record
         .metadata
@@ -406,35 +406,8 @@ fn render_context_map(context: &ReportTemplateContext) -> BTreeMap<String, Value
     map.insert("title".to_owned(), Value::String(context.title.clone()));
     map.insert("panels".to_owned(), Value::Array(panels));
     map.insert(
-        "panel_id".to_owned(),
-        primary_panel.map_or(Value::Null, |panel| Value::String(panel.panel_id.clone())),
-    );
-    map.insert(
-        "panel_title".to_owned(),
-        primary_panel.map_or(Value::Null, |panel| Value::String(panel.title.clone())),
-    );
-    map.insert(
         "panel_body_text".to_owned(),
         primary_panel.map_or(Value::Null, |panel| Value::String(panel.body.clone())),
-    );
-    map.insert(
-        "panel_copy_text".to_owned(),
-        primary_panel.map_or(Value::Null, |panel| Value::String(panel.copy_text.clone())),
-    );
-    map.insert(
-        "panel_copy_json".to_owned(),
-        primary_panel.map_or(Value::Null, |panel| {
-            panel.copy_json.clone().map_or(Value::Null, Value::String)
-        }),
-    );
-    map.insert(
-        "panel_fragment_href".to_owned(),
-        primary_panel.map_or(Value::Null, |panel| {
-            panel
-                .fragment_href
-                .clone()
-                .map_or(Value::Null, Value::String)
-        }),
     );
     map.insert(
         "report_metadata".to_owned(),
