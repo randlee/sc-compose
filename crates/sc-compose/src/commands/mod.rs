@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use anyhow::anyhow;
 use sc_composer::{DiagnosticCode, RecoveryHint, RecoveryHintKind};
 
+use crate::path_utils::to_forward_slash;
 use crate::template_store::TemplateMeta;
 use crate::{CommandError, path_utils::to_forward_slash, print_json};
 

@@ -99,6 +99,61 @@ fn write_report_family_override(root: &Path) {
     );
 }
 
+fn write_state_machine_spec(root: &Path, relative: &str) {
+    write_file(
+        &root.join(relative),
+        r#"[spec]
+kind = "state_machine"
+id = "state-diagrams"
+title = "State Diagrams"
+renderer_targets = ["mermaid"]
+
+[metadata]
+sets = ["publish", "diagram"]
+
+[[states]]
+id = "accepted"
+label = "Accepted"
+
+[[states]]
+id = "validated"
+label = "Validated"
+terminal = true
+
+[[transitions]]
+from = "accepted"
+to = "validated"
+event = "validate_ok"
+guard = "input_valid"
+effect = "store message"
+"#,
+    );
+}
+
+fn write_sql_query_spec(root: &Path, relative: &str) {
+    write_file(
+        &root.join(relative),
+        r#"[spec]
+kind = "sql_query"
+id = "sql-diagrams"
+title = "SQL Diagrams"
+renderer_targets = ["mermaid"]
+
+[sql_query]
+purpose = "Summarize shipped orders"
+tables_read = ["orders", "customers"]
+tables_written = ["report_cache"]
+filters = ["status = shipped"]
+ordering = ["created_at DESC"]
+cardinality = "many"
+transactional_assumptions = ["read committed"]
+
+[metadata]
+sets = ["publish", "diagram"]
+"#,
+    );
+}
+
 #[test]
 fn render_dry_run_does_not_create_output_file() {
     let root = temp_root("dry-run");
@@ -1343,6 +1398,137 @@ metadata = "reports/latest/smoke/report.json"
     assert!(manifest_text.contains("\"report_id\": \"smoke\""));
     assert!(manifest_text.contains("\"publish_to\": \"reports/smoke/index.html\""));
     assert!(manifest_text.contains("\"archive_root\": \"reports/archive/"));
+}
+
+#[test]
+fn reports_render_spec_writes_mermaid_latest_artifact_set() {
+    let root = temp_root("reports-render-spec");
+    write_state_machine_spec(&root, "reports/specs/state-diagrams.toml");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("render-spec")
+        .arg("--root")
+        .arg(&root)
+        .arg("--spec")
+        .arg("reports/specs/state-diagrams.toml")
+        .arg("--archive")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let entrypoint = root
+        .join("reports")
+        .join("latest")
+        .join("state-diagrams")
+        .join("index.mmd");
+    let metadata = root
+        .join("reports")
+        .join("latest")
+        .join("state-diagrams")
+        .join("report.json");
+    assert!(entrypoint.exists());
+    assert!(metadata.exists());
+    let rendered = fs::read_to_string(&entrypoint).unwrap();
+    assert!(rendered.contains("stateDiagram-v2"));
+    assert!(rendered.contains("accepted --> validated : validate_ok"));
+    let metadata_text = fs::read_to_string(&metadata).unwrap();
+    assert!(metadata_text.contains("\"report_id\": \"state-diagrams\""));
+    assert!(metadata_text.contains("\"kind\": \"state_machine\""));
+}
+
+#[test]
+fn reports_render_spec_participates_in_publish_manifest_pipeline() {
+    let root = temp_root("reports-render-spec-publish-manifest");
+    write_state_machine_spec(&root, "reports/specs/state-diagrams.toml");
+    write_report_catalog(
+        &root,
+        r#"[[report]]
+id = "state-diagrams"
+kind = "state_machine"
+producer = "just state-diagrams"
+required = true
+entrypoint = "reports/latest/state-diagrams/index.mmd"
+metadata = "reports/latest/state-diagrams/report.json"
+"#,
+    );
+
+    let render = sc_compose()
+        .arg("reports")
+        .arg("render-spec")
+        .arg("--root")
+        .arg(&root)
+        .arg("--spec")
+        .arg("reports/specs/state-diagrams.toml")
+        .arg("--archive")
+        .output()
+        .unwrap();
+    assert!(render.status.success());
+
+    let publish_manifest = sc_compose()
+        .arg("reports")
+        .arg("publish-manifest")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert!(publish_manifest.status.success());
+    let manifest_text = fs::read_to_string(
+        root.join("reports")
+            .join("latest")
+            .join("publish-manifest.json"),
+    )
+    .unwrap();
+    assert!(manifest_text.contains("\"report_id\": \"state-diagrams\""));
+    assert!(manifest_text.contains("\"path\": \"reports/latest/state-diagrams/index.mmd\""));
+    assert!(manifest_text.contains("\"publish_to\": \"reports/state-diagrams/index.mmd\""));
+}
+
+#[test]
+fn report_render_many_accepts_semantic_spec_inputs_for_diagram_family() {
+    let root = temp_root("report-render-many-semantic-spec");
+    write_state_machine_spec(&root, "docs/specs/first.toml");
+    write_sql_query_spec(&root, "docs/specs/second.toml");
+
+    let output = sc_compose()
+        .arg("report-render-many")
+        .arg("--root")
+        .arg(&root)
+        .arg("--id")
+        .arg("state-diagrams")
+        .arg("--glob")
+        .arg("docs/specs/*.toml")
+        .arg("--template-family")
+        .arg("diagram")
+        .arg("--output-dir")
+        .arg("reports/latest/state-diagrams")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let first = fs::read_to_string(
+        root.join("reports")
+            .join("latest")
+            .join("state-diagrams")
+            .join("docs")
+            .join("specs")
+            .join("first.html"),
+    )
+    .unwrap();
+    assert!(first.contains("Diagram report family"));
+    assert!(first.contains("stateDiagram-v2"));
+    let second = fs::read_to_string(
+        root.join("reports")
+            .join("latest")
+            .join("state-diagrams")
+            .join("docs")
+            .join("specs")
+            .join("second.html"),
+    )
+    .unwrap();
+    assert!(second.contains("flowchart TD"));
+    assert!(second.contains("read: orders"));
 }
 
 #[test]

@@ -675,6 +675,8 @@ Command mapping:
 - `reports init` -> initialize the shared report scaffold and starter catalog
 - `reports smoke` -> run the shared smoke fixture render path and emit the
   smoke latest-artifact set
+- `reports render-spec` -> parse one TOML semantic spec and emit one Mermaid
+  latest-artifact set
 - `reports index` -> aggregate and summarize latest report entrypoints from the
   report catalog
 - `reports verify` -> verify required report artifacts exist for the catalog
@@ -734,9 +736,14 @@ Command-specific rules:
   - runs the shared smoke render path,
   - emits the smoke latest-artifact set without owning repo-specific smoke
     logic beyond the shared harness contract.
+- `reports render-spec`
+  - accepts one TOML semantic spec file,
+  - renders Mermaid from `state_machine` and `sql_query` specs,
+  - writes one latest artifact plus sidecar using the shared report output
+    contract.
 - `reports index`
   - summarizes deterministic latest entrypoints and report metadata from the
-    catalog.
+  catalog.
 - `reports verify`
   - checks required report artifacts for presence and reports missing evidence
     as a failure.
@@ -1218,16 +1225,23 @@ contract prose.
 Adding repo-specific producer commands must not require changing the shared
 aggregation or discovery contract.
 
-## 15f. Follow-On Semantic Report-Spec Contract (Phase A Planning Only)
+## 15f. Semantic Report-Spec Contract
 
 The canonical semantic report-spec contract is defined in
-`docs/requirements.md` under `### Phase A Semantic Report-Spec Contract
-(Planning Only)`. That requirements section is the normative owner for the
+`docs/requirements.md` under `### Semantic Report-Spec Contract`. That
+requirements section is the normative owner for the
 `state_machine` / `sql_query` field inventory, the transitional Mermaid rule,
 the semantic QA direction, and the extension rule. This architecture section
 intentionally defers to that requirements section rather than restating those
 lists or transition-policy details.
-## 15g. Template Families And Shared Panel Chrome (Implemented In Sprint B4)
+
+Runtime integration notes:
+
+- semantic spec source files are TOML
+- `reports render-spec` emits Mermaid latest outputs and shared sidecars
+- `report-render-many` may discover TOML semantic specs and render shared
+  diagram-family outputs from them
+## 15g. Follow-On Template Families And Shared Panel Chrome (Phase A Planning Only)
 
 Sprint B4 implements shared template-family selection and shared panel chrome
 so consumer repos reuse one UI contract instead of rebuilding it per report

@@ -11,6 +11,7 @@ use crate::reporting::index::{build_report_index, verify_required_reports};
 use crate::reporting::init::{init_report_scaffold, run_smoke_report};
 use crate::reporting::publish_manifest::write_publish_manifest;
 use crate::reporting::render_many::{RenderManyRequest, SourceSetDefinition, render_many};
+use crate::reporting::spec::run_render_spec_report;
 use crate::{CommandError, print_diagnostic_messages, print_json};
 
 #[derive(Debug, Clone, Args)]
@@ -25,6 +26,8 @@ pub(crate) enum ReportsSubcommand {
     Init(ReportsInitArgs),
     #[command(about = "Run the shared smoke-report fixture harness")]
     Smoke(ReportsSmokeArgs),
+    #[command(about = "Render one semantic diagram spec to Mermaid output")]
+    RenderSpec(ReportsRenderSpecArgs),
     #[command(about = "Summarize latest report entrypoints and sidecars")]
     Index(ReportsIndexArgs),
     #[command(about = "Verify required report evidence from the catalog")]
@@ -49,6 +52,18 @@ pub(crate) struct ReportsSmokeArgs {
     pub(crate) fixture: PathBuf,
     #[arg(long)]
     pub(crate) vars: PathBuf,
+    #[arg(long)]
+    pub(crate) archive: bool,
+    #[arg(long)]
+    pub(crate) json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct ReportsRenderSpecArgs {
+    #[arg(long, default_value = ".")]
+    pub(crate) root: PathBuf,
+    #[arg(long = "spec")]
+    pub(crate) spec_path: PathBuf,
     #[arg(long)]
     pub(crate) archive: bool,
     #[arg(long)]
@@ -114,7 +129,10 @@ pub(crate) fn run_reports_init(args: &ReportsInitArgs) -> Result<i32, CommandErr
         });
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
     } else {
-        println!("workspace_root: {}", result.workspace_root.display());
+        println!(
+            "workspace_root: {}",
+            to_forward_slash(&result.workspace_root)
+        );
         for path in &result.created_paths {
             println!("created: {path}");
         }
@@ -150,16 +168,50 @@ pub(crate) fn run_reports_smoke(
         println!("kind: {}", result.kind);
         println!("produced_at: {}", result.produced_at);
         println!("status: {}", result.status);
-        println!("entrypoint: {}", result.entrypoint.display());
-        println!("metadata: {}", result.metadata.display());
+        println!("entrypoint: {}", to_forward_slash(&result.entrypoint));
+        println!("metadata: {}", to_forward_slash(&result.metadata));
         for artifact in &result.artifacts {
-            println!("artifact: {}", artifact.display());
+            println!("artifact: {}", to_forward_slash(artifact));
         }
         for artifact in &result.archived_artifacts {
-            println!("archived: {}", artifact.display());
+            println!("archived: {}", to_forward_slash(artifact));
         }
         if !result.warnings.is_empty() {
             print_diagnostic_messages(&result.warnings);
+        }
+    }
+    Ok(exit_codes::SUCCESS)
+}
+
+pub(crate) fn run_reports_render_spec(
+    args: &ReportsRenderSpecArgs,
+    observer: &mut dyn CompositionObserver,
+) -> Result<i32, CommandError> {
+    let result = run_render_spec_report(&args.root, &args.spec_path, args.archive, observer)?;
+    if args.json {
+        let payload = serde_json::json!({
+            "report_id": result.report_id,
+            "kind": result.kind,
+            "produced_at": result.produced_at,
+            "status": result.status,
+            "entrypoint": to_forward_slash(&result.entrypoint),
+            "metadata": to_forward_slash(&result.metadata),
+            "artifacts": result.artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
+            "archived_artifacts": result.archived_artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
+        });
+        print_json(payload, result.warnings).map_err(CommandError::usage)?;
+    } else {
+        println!("report_id: {}", result.report_id);
+        println!("kind: {}", result.kind);
+        println!("produced_at: {}", result.produced_at);
+        println!("status: {}", result.status);
+        println!("entrypoint: {}", to_forward_slash(&result.entrypoint));
+        println!("metadata: {}", to_forward_slash(&result.metadata));
+        for artifact in &result.artifacts {
+            println!("artifact: {}", to_forward_slash(artifact));
+        }
+        for artifact in &result.archived_artifacts {
+            println!("archived: {}", to_forward_slash(artifact));
         }
     }
     Ok(exit_codes::SUCCESS)
@@ -184,12 +236,12 @@ pub(crate) fn run_reports_index(args: &ReportsIndexArgs) -> Result<i32, CommandE
                 entry.kind,
                 entry.required,
                 entry.status.as_deref().unwrap_or("missing"),
-                entry.entrypoint.display(),
-                entry.metadata.display()
+                to_forward_slash(&entry.entrypoint),
+                to_forward_slash(&entry.metadata)
             );
             if !entry.missing_paths.is_empty() {
                 for missing in &entry.missing_paths {
-                    println!("missing: {}", missing.display());
+                    println!("missing: {}", to_forward_slash(missing));
                 }
             }
         }
@@ -311,10 +363,10 @@ pub(crate) fn run_report_render_many(args: &ReportRenderManyArgs) -> Result<i32,
         });
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
     } else {
-        println!("manifest: {}", result.manifest_path.display());
+        println!("manifest: {}", to_forward_slash(&result.manifest_path));
         println!("outputs: {}", result.generated_outputs.len());
         for output in &result.generated_outputs {
-            println!("generated: {}", output.display());
+            println!("generated: {}", to_forward_slash(output));
         }
     }
 

@@ -99,6 +99,37 @@ fn write_report_family_override(root: &Path) {
     );
 }
 
+fn write_state_machine_spec(root: &Path, relative: &str) {
+    write_file(
+        &root.join(relative),
+        r#"[spec]
+kind = "state_machine"
+id = "state-diagrams"
+title = "State Diagrams"
+renderer_targets = ["mermaid"]
+
+[metadata]
+sets = ["publish", "diagram"]
+
+[[states]]
+id = "accepted"
+label = "Accepted"
+
+[[states]]
+id = "validated"
+label = "Validated"
+terminal = true
+
+[[transitions]]
+from = "accepted"
+to = "validated"
+event = "validate_ok"
+guard = "input_valid"
+effect = "store message"
+"#,
+    );
+}
+
 fn assert_envelope(value: &Value) {
     assert_eq!(value["schema_version"], "1");
     assert!(value.get("payload").is_some());
@@ -308,7 +339,7 @@ fn validate_json_reports_missing_frontmatter_for_included_file() {
     let diagnostics = value["diagnostics"].as_array().unwrap();
     assert!(diagnostics.iter().any(|diagnostic| {
         diagnostic["code"] == "ERR_VAL_MISSING_FRONTMATTER"
-            && normalize_path_str(PathBuf::from(diagnostic["path"].as_str().unwrap()))
+            && normalize_path_str(diagnostic["path"].as_str().unwrap_or(""))
                 == normalize_path_str(
                     fs::canonicalize(root.join("_includes").join("snippet.md")).unwrap(),
                 )
@@ -1440,6 +1471,42 @@ metadata = "reports/latest/smoke/report.json"
     assert_eq!(
         value["payload"]["manifest"]["reports"][0]["files"][0]["publish_to"],
         "reports/smoke/index.html"
+    );
+}
+
+#[test]
+fn reports_render_spec_json_uses_diagnostic_envelope() {
+    let root = temp_root("reports-render-spec-json");
+    write_state_machine_spec(&root, "reports/specs/state-diagrams.toml");
+
+    let output = sc_compose()
+        .arg("reports")
+        .arg("render-spec")
+        .arg("--root")
+        .arg(&root)
+        .arg("--spec")
+        .arg("reports/specs/state-diagrams.toml")
+        .arg("--archive")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["report_id"], "state-diagrams");
+    assert_eq!(value["payload"]["kind"], "state_machine");
+    assert_eq!(
+        value["payload"]["entrypoint"],
+        "reports/latest/state-diagrams/index.mmd"
+    );
+    assert_eq!(
+        value["payload"]["archived_artifacts"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
     );
 }
 

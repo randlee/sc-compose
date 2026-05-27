@@ -5,6 +5,9 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::reporting::mermaid::render_mermaid;
+use crate::reporting::spec::parse_report_spec;
+
 type ParsedMetadata = (BTreeMap<String, Value>, Option<Vec<String>>, String);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -86,6 +89,25 @@ fn parse_metadata(
     source_path: &Path,
     raw_source: &str,
 ) -> Result<ParsedMetadata, SourceEntryError> {
+    if source_path.extension().and_then(|value| value.to_str()) == Some("toml")
+        && let Some(spec) =
+            parse_report_spec(raw_source).map_err(|error| SourceEntryError::InvalidMetadata {
+                path: source_path.to_path_buf(),
+                message: error.to_string(),
+            })?
+    {
+        let metadata =
+            spec.report_metadata()
+                .map_err(|error| SourceEntryError::InvalidMetadata {
+                    path: source_path.to_path_buf(),
+                    message: error.to_string(),
+                })?;
+        let body = render_mermaid(&spec).map_err(|error| SourceEntryError::InvalidMetadata {
+            path: source_path.to_path_buf(),
+            message: error.to_string(),
+        })?;
+        return Ok((metadata, spec.sets(), body));
+    }
     if let Some((metadata_text, body)) = parse_block_comment_metadata(raw_source) {
         return finalize_metadata(source_path, metadata_text, body);
     }

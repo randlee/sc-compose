@@ -1,8 +1,10 @@
 pub(crate) mod catalog;
 pub(crate) mod index;
 pub(crate) mod init;
+pub(crate) mod mermaid;
 pub(crate) mod output;
 pub(crate) mod publish_manifest;
 pub(crate) mod render_many;
 pub(crate) mod source_entry;
+pub(crate) mod spec;
 pub(crate) mod templates;
