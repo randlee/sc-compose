@@ -15,25 +15,6 @@ where
     serializer.serialize_str(&to_forward_slash(path))
 }
 
-#[allow(
-    dead_code,
-    clippy::ptr_arg,
-    clippy::ref_option,
-    reason = "early Phase B branches do not yet serialize Option<PathBuf> but later branches do"
-)]
-pub(crate) fn serialize_opt_path<S>(
-    path: &Option<PathBuf>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    match path {
-        Some(path) => serializer.serialize_some(&to_forward_slash(path)),
-        None => serializer.serialize_none(),
-    }
-}
-
 pub(crate) fn serialize_paths<S>(paths: &[PathBuf], serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,

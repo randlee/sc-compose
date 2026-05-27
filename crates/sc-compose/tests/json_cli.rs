@@ -297,11 +297,10 @@ fn validate_json_reports_missing_frontmatter_for_included_file() {
     let diagnostics = value["diagnostics"].as_array().unwrap();
     assert!(diagnostics.iter().any(|diagnostic| {
         diagnostic["code"] == "ERR_VAL_MISSING_FRONTMATTER"
-            && diagnostic["path"]
-                == fs::canonicalize(root.join("_includes").join("snippet.md"))
-                    .unwrap()
-                    .display()
-                    .to_string()
+            && normalize_path_str(PathBuf::from(diagnostic["path"].as_str().unwrap()))
+                == normalize_path_str(
+                    fs::canonicalize(root.join("_includes").join("snippet.md")).unwrap(),
+                )
     }));
 }
 

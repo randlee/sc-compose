@@ -1670,7 +1670,7 @@ fn observability_health_text_reports_process_local_status() {
     assert!(stdout.contains("sink jsonl-file: Healthy"));
     assert!(stdout.contains(&format!(
         "active_log_path: {}",
-        log_root.join("logs").join("sc-compose.log.jsonl").display()
+        normalize_path_str(log_root.join("logs").join("sc-compose.log.jsonl"))
     )));
 }
 
