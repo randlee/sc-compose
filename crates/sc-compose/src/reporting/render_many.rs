@@ -8,7 +8,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::path_utils::to_forward_slash;
-use crate::reporting::source_entry::{SourceEntry, SourceEntryError, SourceEntryRecord};
+use crate::reporting::source_entry::{SourceEntry, SourceEntryError};
 use crate::reporting::templates::{
     ResolvedTemplate, TemplateError, context_from_source_entry, render_shared_report,
     resolve_template_family, resolve_template_selector, source_entry_title,
@@ -29,7 +29,15 @@ pub(crate) struct RenderManyRequest {
     pub(crate) source_set: SourceSetDefinition,
 }
 
-pub(crate) type RenderManyManifestEntry = SourceEntryRecord;
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(crate) struct RenderManyManifestEntry {
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
+    pub(crate) source_path: PathBuf,
+    #[serde(serialize_with = "crate::path_utils::serialize_path")]
+    pub(crate) output_path: PathBuf,
+    pub(crate) metadata: BTreeMap<String, Value>,
+    pub(crate) sets: Option<Vec<String>>,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(crate) struct RenderManyResult {
@@ -207,15 +215,11 @@ fn render_entry(
     let mut context = BTreeMap::new();
     context.insert(
         "source_path".to_owned(),
-        Value::String(to_forward_slash(&entry.record.source_path)),
+        Value::String(to_forward_slash(&entry.source_path)),
     );
     context.insert(
         "output_path".to_owned(),
-        Value::String(to_forward_slash(&entry.record.output_path)),
-    );
-    context.insert(
-        "metadata".to_owned(),
-        serde_json::json!(entry.record.metadata),
+        Value::String(to_forward_slash(&entry.output_path)),
     );
     context.insert(
         "sets".to_owned(),

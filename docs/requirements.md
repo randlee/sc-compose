@@ -1182,13 +1182,13 @@ Boundary rules for the source-driven line:
   report-smoke execution writes into that prepared path rather than creating
   the output directory at runtime
 
-### Phase A Latest/Archive Output And Reports Aggregator Contract (Planning Only)
+### Latest/Archive Output And Reports Aggregator Contract (Implemented In Sprint B5)
 
-Phase A follow-on planning defines how producers write stable latest outputs,
-how optional timestamped archive copies are named, and how `just reports`
-aggregates and verifies generated evidence.
+Sprint B5 implements how producers write stable latest outputs, how optional
+timestamped archive copies are named, and how `just reports` aggregates and
+verifies generated evidence.
 
-Planned output policy:
+Output policy:
 
 - producers overwrite the latest artifact in place at the canonical
   `reports/latest/<report-id>/...` path
@@ -1202,7 +1202,7 @@ Canonical archive timestamp policy:
 - one producer run uses one stable timestamp prefix for all archive outputs
   generated in that run
 
-Planned `just reports` contract:
+`just reports` contract:
 
 - verify required evidence exists
 - summarize report status across producers
@@ -1219,6 +1219,9 @@ Verification and failure direction:
 - missing required evidence causes report verification to fail
 - required-vs-optional report expectations come from each shared report catalog
   entry's `required` field
+- the scaffold owns creation of `reports/latest/smoke/`, and
+  report-smoke execution writes into that prepared path rather than creating
+  the output directory at runtime
 
 Archive ownership note:
 

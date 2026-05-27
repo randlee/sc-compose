@@ -10,12 +10,13 @@ use sc_composer::{
 use serde::Serialize;
 
 use crate::CommandError;
-use crate::path_utils::to_forward_slash;
 use crate::reporting::catalog::REPORT_CATALOG_RELATIVE_PATH;
+use crate::reporting::output::{
+    ARCHIVE_ROOT_RELATIVE_PATH, LATEST_ROOT_RELATIVE_PATH, MaterializedReport, ReportOutputRequest,
+    write_report_metadata_and_archive,
+};
 use crate::var_file::load_var_file;
 
-pub(crate) const STARTER_LATEST_RELATIVE_PATH: &str = "reports/latest";
-pub(crate) const STARTER_ARCHIVE_RELATIVE_PATH: &str = "reports/archive";
 pub(crate) const STARTER_TEMPLATES_RELATIVE_PATH: &str = "reports/templates";
 pub(crate) const STARTER_SMOKE_DIR_RELATIVE_PATH: &str = "reports/smoke";
 pub(crate) const STARTER_SMOKE_OUTPUT_DIR_RELATIVE_PATH: &str = "reports/latest/smoke";
@@ -69,22 +70,18 @@ pub(crate) struct ReportsInitResult {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(crate) struct ReportsSmokeResult {
+    pub(crate) report_id: String,
+    pub(crate) kind: String,
+    pub(crate) produced_at: String,
+    pub(crate) status: String,
     #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) entrypoint: PathBuf,
     #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) metadata: PathBuf,
     #[serde(serialize_with = "crate::path_utils::serialize_paths")]
     pub(crate) artifacts: Vec<PathBuf>,
+    pub(crate) archived_artifacts: Vec<PathBuf>,
     pub(crate) warnings: Vec<Diagnostic>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct SmokeMetadata {
-    report_id: String,
-    kind: String,
-    status: String,
-    entrypoint: String,
-    artifacts: Vec<String>,
 }
 
 pub(crate) fn init_report_scaffold(root: &Path) -> Result<ReportsInitResult, CommandError> {
@@ -101,12 +98,12 @@ pub(crate) fn init_report_scaffold(root: &Path) -> Result<ReportsInitResult, Com
     let mut created_paths = Vec::new();
     ensure_dir(
         &workspace_root,
-        STARTER_LATEST_RELATIVE_PATH,
+        LATEST_ROOT_RELATIVE_PATH,
         &mut created_paths,
     )?;
     ensure_dir(
         &workspace_root,
-        STARTER_ARCHIVE_RELATIVE_PATH,
+        ARCHIVE_ROOT_RELATIVE_PATH,
         &mut created_paths,
     )?;
     ensure_dir(
@@ -153,6 +150,7 @@ pub(crate) fn run_smoke_report(
     root: &Path,
     fixture: &Path,
     vars: &Path,
+    archive: bool,
     observer: &mut dyn CompositionObserver,
 ) -> Result<ReportsSmokeResult, CommandError> {
     let workspace_root = fs::canonicalize(root).map_err(|error| {
@@ -203,44 +201,50 @@ pub(crate) fn run_smoke_report(
 
     let result = compose_with_observer(&request, observer).map_err(CommandError::compose)?;
     let entrypoint = workspace_root.join(SMOKE_ENTRYPOINT_RELATIVE_PATH);
-    let metadata = workspace_root.join(SMOKE_METADATA_RELATIVE_PATH);
     fs::write(&entrypoint, &result.rendered_text).map_err(|error| {
         CommandError::render_write(
             anyhow!(error).context(format!("failed to write {}", entrypoint.display())),
         )
     })?;
 
-    let artifacts = vec![
-        PathBuf::from(SMOKE_ENTRYPOINT_RELATIVE_PATH),
-        PathBuf::from(SMOKE_METADATA_RELATIVE_PATH),
-    ];
-    let metadata_payload = SmokeMetadata {
-        report_id: "smoke".to_owned(),
-        kind: "smoke".to_owned(),
-        status: "pass".to_owned(),
-        entrypoint: SMOKE_ENTRYPOINT_RELATIVE_PATH.to_owned(),
-        artifacts: artifacts
-            .iter()
-            .map(|path| to_forward_slash(path))
-            .collect(),
-    };
-    let metadata_json = serde_json::to_string_pretty(&metadata_payload).map_err(|error| {
-        CommandError::usage_with_code(
-            anyhow!(error).context("failed to serialize smoke metadata"),
-            DiagnosticCode::ErrConfigParse,
-        )
-    })?;
-    fs::write(&metadata, metadata_json).map_err(|error| {
-        CommandError::render_write(
-            anyhow!(error).context(format!("failed to write {}", metadata.display())),
-        )
-    })?;
+    let artifacts = vec![PathBuf::from(SMOKE_ENTRYPOINT_RELATIVE_PATH)];
+    let materialized = write_smoke_outputs(&workspace_root, archive, artifacts)?;
 
     Ok(ReportsSmokeResult {
-        entrypoint: PathBuf::from(SMOKE_ENTRYPOINT_RELATIVE_PATH),
-        metadata: PathBuf::from(SMOKE_METADATA_RELATIVE_PATH),
-        artifacts,
+        report_id: materialized.report_id,
+        kind: materialized.kind,
+        produced_at: materialized.produced_at,
+        status: materialized.status,
+        entrypoint: materialized.entrypoint,
+        metadata: materialized.metadata,
+        artifacts: materialized.latest_artifacts,
+        archived_artifacts: materialized.archived_artifacts,
         warnings: result.warnings,
+    })
+}
+
+fn write_smoke_outputs(
+    workspace_root: &Path,
+    archive: bool,
+    latest_artifacts: Vec<PathBuf>,
+) -> Result<MaterializedReport, CommandError> {
+    write_report_metadata_and_archive(
+        workspace_root,
+        &ReportOutputRequest {
+            report_id: "smoke".to_owned(),
+            kind: "smoke".to_owned(),
+            status: "pass".to_owned(),
+            entrypoint: PathBuf::from(SMOKE_ENTRYPOINT_RELATIVE_PATH),
+            metadata_path: PathBuf::from(SMOKE_METADATA_RELATIVE_PATH),
+            latest_artifacts,
+            archive,
+        },
+    )
+    .map_err(|error| {
+        CommandError::usage_with_code(
+            anyhow!(error).context("failed to materialize smoke report outputs"),
+            DiagnosticCode::ErrConfigParse,
+        )
     })
 }
 

@@ -10,7 +10,7 @@ use serde::Serialize;
 use serde_json::Value;
 use toml::Value as TomlValue;
 
-use crate::path_utils::{is_normalized_relative_path, to_forward_slash};
+use crate::path_utils::to_forward_slash;
 use crate::reporting::catalog::REPORT_CATALOG_RELATIVE_PATH;
 use crate::reporting::source_entry::SourceEntry;
 
@@ -138,11 +138,11 @@ pub(crate) fn context_from_source_entry(
     let mut report_metadata = BTreeMap::new();
     report_metadata.insert(
         "source_path".to_owned(),
-        Value::String(to_forward_slash(&entry.record.source_path)),
+        Value::String(to_forward_slash(&entry.source_path)),
     );
     report_metadata.insert(
         "output_path".to_owned(),
-        Value::String(to_forward_slash(&entry.record.output_path)),
+        Value::String(to_forward_slash(&entry.output_path)),
     );
     if let Some(sets) = entry.record.sets.clone() {
         report_metadata.insert("sets".to_owned(), serde_json::json!(sets));

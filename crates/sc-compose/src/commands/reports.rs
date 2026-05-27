@@ -6,7 +6,8 @@ use sc_composer::{CompositionObserver, DiagnosticCode};
 
 use crate::exit_codes;
 use crate::path_utils::to_forward_slash;
-use crate::reporting::catalog::{REPORT_CATALOG_RELATIVE_PATH, ReportCatalog};
+use crate::reporting::catalog::ReportCatalog;
+use crate::reporting::index::{build_report_index, verify_required_reports};
 use crate::reporting::init::{init_report_scaffold, run_smoke_report};
 use crate::reporting::render_many::{RenderManyRequest, SourceSetDefinition, render_many};
 use crate::{CommandError, print_diagnostic_messages, print_json};
@@ -23,9 +24,9 @@ pub(crate) enum ReportsSubcommand {
     Init(ReportsInitArgs),
     #[command(about = "Run the shared smoke-report fixture harness")]
     Smoke(ReportsSmokeArgs),
-    #[command(about = "Summarize latest report entrypoints from the catalog")]
+    #[command(about = "Summarize latest report entrypoints and sidecars")]
     Index(ReportsIndexArgs),
-    #[command(about = "Verify required report evidence declared in the catalog")]
+    #[command(about = "Verify required report evidence from the catalog")]
     Verify(ReportsVerifyArgs),
 }
 
@@ -46,6 +47,8 @@ pub(crate) struct ReportsSmokeArgs {
     #[arg(long)]
     pub(crate) vars: PathBuf,
     #[arg(long)]
+    pub(crate) archive: bool,
+    #[arg(long)]
     pub(crate) json: bool,
 }
 
@@ -53,8 +56,6 @@ pub(crate) struct ReportsSmokeArgs {
 pub(crate) struct ReportsIndexArgs {
     #[arg(long, default_value = ".")]
     pub(crate) root: PathBuf,
-    #[arg(long, default_value = REPORT_CATALOG_RELATIVE_PATH)]
-    pub(crate) catalog: PathBuf,
     #[arg(long)]
     pub(crate) json: bool,
 }
@@ -63,8 +64,6 @@ pub(crate) struct ReportsIndexArgs {
 pub(crate) struct ReportsVerifyArgs {
     #[arg(long, default_value = ".")]
     pub(crate) root: PathBuf,
-    #[arg(long, default_value = REPORT_CATALOG_RELATIVE_PATH)]
-    pub(crate) catalog: PathBuf,
     #[arg(long)]
     pub(crate) json: bool,
 }
@@ -116,19 +115,37 @@ pub(crate) fn run_reports_smoke(
     args: &ReportsSmokeArgs,
     observer: &mut dyn CompositionObserver,
 ) -> Result<i32, CommandError> {
-    let result = run_smoke_report(&args.root, &args.fixture, &args.vars, observer)?;
+    let result = run_smoke_report(
+        &args.root,
+        &args.fixture,
+        &args.vars,
+        args.archive,
+        observer,
+    )?;
     if args.json {
         let payload = serde_json::json!({
+            "report_id": result.report_id,
+            "kind": result.kind,
+            "produced_at": result.produced_at,
+            "status": result.status,
             "entrypoint": to_forward_slash(&result.entrypoint),
             "metadata": to_forward_slash(&result.metadata),
             "artifacts": result.artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
+            "archived_artifacts": result.archived_artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
         });
         print_json(payload, result.warnings).map_err(CommandError::usage)?;
     } else {
+        println!("report_id: {}", result.report_id);
+        println!("kind: {}", result.kind);
+        println!("produced_at: {}", result.produced_at);
+        println!("status: {}", result.status);
         println!("entrypoint: {}", result.entrypoint.display());
         println!("metadata: {}", result.metadata.display());
         for artifact in &result.artifacts {
             println!("artifact: {}", artifact.display());
+        }
+        for artifact in &result.archived_artifacts {
+            println!("archived: {}", artifact.display());
         }
         if !result.warnings.is_empty() {
             print_diagnostic_messages(&result.warnings);
@@ -138,39 +155,52 @@ pub(crate) fn run_reports_smoke(
 }
 
 pub(crate) fn run_reports_index(args: &ReportsIndexArgs) -> Result<i32, CommandError> {
-    let payload = serde_json::json!({
-        "status": "reserved",
-        "subcommand": "reports index",
-        "root": to_forward_slash(&args.root),
-        "catalog": to_forward_slash(&args.catalog),
-        "note": "full aggregation behavior lands in Sprint B5",
-    });
+    let index = build_report_index(&args.root).map_err(|error| {
+        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
+    })?;
     if args.json {
+        let payload = serde_json::json!({
+            "report_count": index.entries.len(),
+            "entries": index.entries,
+        });
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
     } else {
-        println!("reports index reserved");
-        println!("root: {}", args.root.display());
-        println!("catalog: {}", args.catalog.display());
-        println!("note: full aggregation behavior lands in Sprint B5");
+        println!("reports: {}", index.entries.len());
+        for entry in &index.entries {
+            println!(
+                "{} kind={} required={} status={} entrypoint={} metadata={}",
+                entry.report_id,
+                entry.kind,
+                entry.required,
+                entry.status.as_deref().unwrap_or("missing"),
+                entry.entrypoint.display(),
+                entry.metadata.display()
+            );
+            if !entry.missing_paths.is_empty() {
+                for missing in &entry.missing_paths {
+                    println!("missing: {}", missing.display());
+                }
+            }
+        }
     }
     Ok(exit_codes::SUCCESS)
 }
 
 pub(crate) fn run_reports_verify(args: &ReportsVerifyArgs) -> Result<i32, CommandError> {
-    let payload = serde_json::json!({
-        "status": "reserved",
-        "subcommand": "reports verify",
-        "root": to_forward_slash(&args.root),
-        "catalog": to_forward_slash(&args.catalog),
-        "note": "full required-evidence verification lands in Sprint B5",
-    });
+    let result = verify_required_reports(&args.root).map_err(|error| {
+        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
+    })?;
     if args.json {
+        let payload = serde_json::json!({
+            "required_count": result.required_count,
+            "verified_count": result.verified_count,
+        });
         print_json(payload, Vec::new()).map_err(CommandError::usage)?;
     } else {
-        println!("reports verify reserved");
-        println!("root: {}", args.root.display());
-        println!("catalog: {}", args.catalog.display());
-        println!("note: full required-evidence verification lands in Sprint B5");
+        println!(
+            "verified required reports: {}/{}",
+            result.verified_count, result.required_count
+        );
     }
     Ok(exit_codes::SUCCESS)
 }
