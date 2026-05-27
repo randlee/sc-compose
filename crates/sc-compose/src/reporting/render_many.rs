@@ -140,7 +140,12 @@ pub(crate) fn render_many(
             }
         })?;
         generated_outputs.push(entry.record.output_path.clone());
-        entries.push(entry.record.clone());
+        entries.push(RenderManyManifestEntry {
+            source_path: entry.record.source_path.clone(),
+            output_path: entry.record.output_path.clone(),
+            metadata: entry.record.metadata.clone(),
+            sets: entry.record.sets.clone(),
+        });
     }
 
     let manifest_path = request.source_set.output_dir.join("manifest.json");
@@ -208,18 +213,22 @@ fn render_entry(
     if template.uses_report_context {
         return render_shared_report(
             template,
-            &context_from_source_entry(entry, Some(source_entry_title(entry))),
+            &context_from_source_entry(entry, Some(entry_title(entry))),
         );
     }
 
     let mut context = BTreeMap::new();
     context.insert(
         "source_path".to_owned(),
-        Value::String(to_forward_slash(&entry.source_path)),
+        Value::String(to_forward_slash(&entry.record.source_path)),
     );
     context.insert(
         "output_path".to_owned(),
-        Value::String(to_forward_slash(&entry.output_path)),
+        Value::String(to_forward_slash(&entry.record.output_path)),
+    );
+    context.insert(
+        "metadata".to_owned(),
+        serde_json::json!(entry.record.metadata),
     );
     context.insert(
         "sets".to_owned(),

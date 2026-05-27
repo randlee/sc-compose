@@ -29,6 +29,12 @@ pub(crate) struct ReportCatalog {
     pub(crate) reports: Vec<ReportDefinition>,
 }
 
+impl ReportCatalog {
+    pub(crate) fn load(repo_root: &Path) -> Result<Self, CatalogError> {
+        load_report_catalog(repo_root)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(crate) struct ReportDefinition {
     pub(crate) id: String,

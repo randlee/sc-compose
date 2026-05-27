@@ -64,6 +64,19 @@ pub fn write_report_catalog(root: &Path, contents: &str) {
     );
 }
 
+#[allow(dead_code)]
+pub fn valid_report_catalog() -> &'static str {
+    r#"
+[[report]]
+id = "sc-lint"
+kind = "lint"
+producer = "just lint"
+required = true
+entrypoint = "reports/latest/sc-lint/index.html"
+metadata = "reports/latest/sc-lint/report.json"
+"#
+}
+
 pub fn write_smoke_fixture(root: &Path) {
     write_file(
         &root

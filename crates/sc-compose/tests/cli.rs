@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use support::{
-    normalize_path_str, parse_stdout, repo_root, write_file, write_render_many_fixture,
-    write_report_catalog, write_report_family_override, write_smoke_fixture,
+    normalize_path_str, parse_stdout, repo_root, valid_report_catalog, write_file,
+    write_render_many_fixture, write_report_catalog, write_report_family_override, write_smoke_fixture,
     write_state_machine_spec,
 };
 
@@ -945,8 +945,7 @@ fn report_catalog_loads_valid_catalog_from_repo_root() {
     write_report_catalog(&root, valid_report_catalog());
 
     let output = sc_compose()
-        .arg("reports")
-        .arg("index")
+        .arg("report-catalog")
         .arg("--root")
         .arg(&root)
         .output()
@@ -957,64 +956,6 @@ fn report_catalog_loads_valid_catalog_from_repo_root() {
     assert!(stdout.contains("catalog:"));
     assert!(stdout.contains("reports: 1"));
     assert!(stdout.contains("sc-lint kind=lint producer=just lint required=true"));
-}
-
-#[test]
-fn reports_init_happy_path_returns_reserved_status() {
-    let root = temp_root("reports-init");
-
-    let output = sc_compose()
-        .arg("reports")
-        .arg("init")
-        .arg("--root")
-        .arg(&root)
-        .output()
-        .unwrap();
-
-    assert!(output.status.success());
-    let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("reports init reserved"));
-    assert!(stdout.contains(&format!("root: {}", root.display())));
-}
-
-#[test]
-fn reports_smoke_happy_path_returns_reserved_status() {
-    let root = temp_root("reports-smoke");
-
-    let output = sc_compose()
-        .arg("reports")
-        .arg("smoke")
-        .arg("--root")
-        .arg(&root)
-        .output()
-        .unwrap();
-
-    assert!(output.status.success());
-    let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("reports smoke reserved"));
-    assert!(stdout.contains(&format!("root: {}", root.display())));
-}
-
-#[test]
-fn reports_index_uses_explicit_catalog_argument() {
-    let root = temp_root("report-catalog-explicit");
-    let catalog = root.join("custom").join("reports.toml");
-    write_file(&catalog, valid_report_catalog());
-
-    let output = sc_compose()
-        .arg("reports")
-        .arg("index")
-        .arg("--root")
-        .arg(&root)
-        .arg("--catalog")
-        .arg("custom/reports.toml")
-        .output()
-        .unwrap();
-
-    assert!(output.status.success());
-    let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("catalog:"));
-    assert!(stdout.contains("custom/reports.toml"));
 }
 
 #[test]

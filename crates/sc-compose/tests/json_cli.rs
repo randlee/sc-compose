@@ -1198,8 +1198,7 @@ metadata = "reports/latest/sc-lint/report.json"
     );
 
     let output = sc_compose()
-        .arg("reports")
-        .arg("index")
+        .arg("report-catalog")
         .arg("--root")
         .arg(&root)
         .arg("--json")
