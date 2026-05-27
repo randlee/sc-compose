@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::fmt;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use sc_composer::{
     LoadedTemplateRequest, NamedTemplateAsset, RenderError, RenderedArtifact,
@@ -10,6 +10,7 @@ use serde::Serialize;
 use serde_json::Value;
 use toml::Value as TomlValue;
 
+use crate::path_utils::{is_normalized_relative_path, to_forward_slash};
 use crate::reporting::catalog::REPORT_CATALOG_RELATIVE_PATH;
 use crate::reporting::source_entry::SourceEntry;
 
@@ -132,16 +133,16 @@ pub(crate) fn context_from_source_entry(
     entry: &SourceEntry,
     report_title: Option<String>,
 ) -> ReportTemplateContext {
-    let title = report_title.unwrap_or_else(|| entry_title(entry));
-    let panel_title = entry_title(entry);
+    let title = report_title.unwrap_or_else(|| source_entry_title(entry));
+    let panel_title = source_entry_title(entry);
     let mut report_metadata = BTreeMap::new();
     report_metadata.insert(
         "source_path".to_owned(),
-        Value::String(entry.record.source_path.display().to_string()),
+        Value::String(to_forward_slash(&entry.record.source_path)),
     );
     report_metadata.insert(
         "output_path".to_owned(),
-        Value::String(entry.record.output_path.display().to_string()),
+        Value::String(to_forward_slash(&entry.record.output_path)),
     );
     if let Some(sets) = entry.record.sets.clone() {
         report_metadata.insert("sets".to_owned(), serde_json::json!(sets));
@@ -279,20 +280,7 @@ fn resolve_repo_template(
 }
 
 fn normalized_relative_path(path: &Path) -> Result<PathBuf, TemplateError> {
-    if path.as_os_str().is_empty() || path.is_absolute() {
-        return Err(TemplateError::InvalidTemplatePath {
-            path: path.to_path_buf(),
-            message: "template path must be a normalized relative path".to_owned(),
-        });
-    }
-
-    let is_normalized = path.components().all(|component| match component {
-        Component::Normal(_) => true,
-        Component::CurDir | Component::ParentDir | Component::RootDir | Component::Prefix(_) => {
-            false
-        }
-    });
-    if !is_normalized {
+    if !is_normalized_relative_path(path) {
         return Err(TemplateError::InvalidTemplatePath {
             path: path.to_path_buf(),
             message: "template path must be a normalized relative path".to_owned(),
@@ -326,7 +314,7 @@ fn supporting_templates() -> Vec<NamedTemplateAsset> {
     ]
 }
 
-fn entry_title(entry: &SourceEntry) -> String {
+pub(crate) fn source_entry_title(entry: &SourceEntry) -> String {
     entry
         .record
         .metadata

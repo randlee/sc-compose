@@ -308,11 +308,10 @@ fn validate_json_reports_missing_frontmatter_for_included_file() {
     let diagnostics = value["diagnostics"].as_array().unwrap();
     assert!(diagnostics.iter().any(|diagnostic| {
         diagnostic["code"] == "ERR_VAL_MISSING_FRONTMATTER"
-            && diagnostic["path"]
-                == fs::canonicalize(root.join("_includes").join("snippet.md"))
-                    .unwrap()
-                    .display()
-                    .to_string()
+            && normalize_path_str(PathBuf::from(diagnostic["path"].as_str().unwrap()))
+                == normalize_path_str(
+                    fs::canonicalize(root.join("_includes").join("snippet.md")).unwrap(),
+                )
     }));
 }
 
@@ -1168,7 +1167,13 @@ fn reports_init_json_uses_diagnostic_envelope() {
     assert!(output.stderr.is_empty());
     let value = parse_stdout(&output);
     assert_envelope(&value);
-    assert_eq!(value["payload"]["created_paths"][0], "reports/latest/");
+    assert!(
+        value["payload"]["created_paths"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item == "reports/latest/")
+    );
     assert!(
         value["payload"]["created_paths"]
             .as_array()

@@ -1,9 +1,11 @@
 use std::collections::BTreeSet;
 use std::fmt;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 use toml::Value;
+
+use crate::path_utils::is_normalized_relative_path;
 
 pub(crate) const REPORT_CATALOG_RELATIVE_PATH: &str = "reports/catalog/reports.toml";
 
@@ -197,19 +199,7 @@ fn normalized_relative_path(
     field: &str,
 ) -> Result<PathBuf, CatalogError> {
     let path = PathBuf::from(value);
-    if path.as_os_str().is_empty() || path.is_absolute() {
-        return Err(CatalogError::Invalid(format!(
-            "report '{report_id}' field '{field}' must be a normalized relative path"
-        )));
-    }
-
-    let is_normalized = path.components().all(|component| match component {
-        Component::Normal(_) => true,
-        Component::CurDir | Component::ParentDir | Component::RootDir | Component::Prefix(_) => {
-            false
-        }
-    });
-    if !is_normalized {
+    if !is_normalized_relative_path(&path) {
         return Err(CatalogError::Invalid(format!(
             "report '{report_id}' field '{field}' must be a normalized relative path"
         )));

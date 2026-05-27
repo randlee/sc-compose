@@ -141,8 +141,8 @@ pub(crate) fn run_reports_index(args: &ReportsIndexArgs) -> Result<i32, CommandE
     let payload = serde_json::json!({
         "status": "reserved",
         "subcommand": "reports index",
-        "root": args.root.display().to_string(),
-        "catalog": args.catalog.display().to_string(),
+        "root": to_forward_slash(&args.root),
+        "catalog": to_forward_slash(&args.catalog),
         "note": "full aggregation behavior lands in Sprint B5",
     });
     if args.json {
@@ -160,8 +160,8 @@ pub(crate) fn run_reports_verify(args: &ReportsVerifyArgs) -> Result<i32, Comman
     let payload = serde_json::json!({
         "status": "reserved",
         "subcommand": "reports verify",
-        "root": args.root.display().to_string(),
-        "catalog": args.catalog.display().to_string(),
+        "root": to_forward_slash(&args.root),
+        "catalog": to_forward_slash(&args.catalog),
         "note": "full required-evidence verification lands in Sprint B5",
     });
     if args.json {

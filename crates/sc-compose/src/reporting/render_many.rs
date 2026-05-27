@@ -11,7 +11,7 @@ use crate::path_utils::to_forward_slash;
 use crate::reporting::source_entry::{SourceEntry, SourceEntryError, SourceEntryRecord};
 use crate::reporting::templates::{
     ResolvedTemplate, TemplateError, context_from_source_entry, render_shared_report,
-    resolve_template_family, resolve_template_selector,
+    resolve_template_family, resolve_template_selector, source_entry_title,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -200,7 +200,7 @@ fn render_entry(
     if template.uses_report_context {
         return render_shared_report(
             template,
-            &context_from_source_entry(entry, Some(entry_title(entry))),
+            &context_from_source_entry(entry, Some(source_entry_title(entry))),
         );
     }
 
@@ -242,27 +242,6 @@ fn render_entry(
         supporting_templates: template.supporting_templates.clone(),
     })
 }
-
-fn entry_title(entry: &SourceEntry) -> String {
-    entry
-        .record
-        .metadata
-        .get("title")
-        .and_then(Value::as_str)
-        .map_or_else(
-            || {
-                entry
-                    .record
-                    .source_path
-                    .file_stem()
-                    .and_then(|value| value.to_str())
-                    .unwrap_or("report-panel")
-                    .to_owned()
-            },
-            str::to_owned,
-        )
-}
-
 impl fmt::Display for RenderManyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
