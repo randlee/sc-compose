@@ -201,17 +201,6 @@ pub(crate) fn run_smoke_report(
 
     let result = compose_with_observer(&request, observer).map_err(CommandError::compose)?;
     let entrypoint = workspace_root.join(SMOKE_ENTRYPOINT_RELATIVE_PATH);
-    if let Some(parent) = entrypoint.parent() {
-        fs::create_dir_all(parent).map_err(|error| {
-            CommandError::usage_with_code(
-                anyhow!(error).context(format!(
-                    "failed to create smoke output dir {}",
-                    parent.display()
-                )),
-                DiagnosticCode::ErrConfigParse,
-            )
-        })?;
-    }
     fs::write(&entrypoint, &result.rendered_text).map_err(|error| {
         CommandError::render_write(
             anyhow!(error).context(format!("failed to write {}", entrypoint.display())),

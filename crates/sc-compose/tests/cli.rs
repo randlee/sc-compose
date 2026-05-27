@@ -1150,6 +1150,14 @@ fn reports_smoke_archive_writes_timestamped_archive_copy() {
 #[test]
 fn reports_index_summarizes_latest_report_status() {
     let root = temp_root("reports-index");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
     write_smoke_fixture(&root);
     write_report_catalog(
         &root,
