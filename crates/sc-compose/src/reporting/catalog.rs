@@ -5,7 +5,7 @@ use std::path::{Component, Path, PathBuf};
 use serde::Serialize;
 use toml::Value;
 
-pub(crate) const REPORT_CATALOG_RELATIVE_PATH: &str = "reports/catalog/reports.toml";
+const REPORT_CATALOG_RELATIVE_PATH: &str = "reports/catalog/reports.toml";
 
 const ALLOWED_REPORT_KINDS: &[&str] = &[
     "lint",

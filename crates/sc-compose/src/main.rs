@@ -20,10 +20,10 @@ use sc_composer::{
 };
 
 use crate::commands::examples::{run_examples_list, run_examples_render};
+use crate::commands::reports::{ReportCatalogArgs, run_report_catalog};
 use crate::commands::templates::{run_templates_add, run_templates_list, run_templates_render};
 use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
 use crate::render_request::{build_request, read_block_pair};
-use crate::reporting::catalog::ReportCatalog;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -262,14 +262,6 @@ struct TemplatesAddArgs {
     json: bool,
 }
 
-#[derive(Debug, Clone, Args)]
-struct ReportCatalogArgs {
-    #[arg(long, default_value = ".")]
-    root: PathBuf,
-    #[arg(long)]
-    json: bool,
-}
-
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum Mode {
     Profile,
@@ -397,37 +389,6 @@ fn run(cli: Cli, observer: &mut observer_impl::CliObserver) -> Result<i32, Comma
             })
         }
     }
-}
-
-fn run_report_catalog(args: &ReportCatalogArgs) -> Result<i32, CommandError> {
-    let catalog = ReportCatalog::load(&args.root).map_err(|error| {
-        CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-    })?;
-
-    if args.json {
-        let payload = serde_json::json!({
-            "catalog_path": catalog.catalog_path.display().to_string(),
-            "report_count": catalog.reports.len(),
-            "reports": catalog.reports,
-        });
-        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
-    } else {
-        println!("catalog: {}", catalog.catalog_path.display());
-        println!("reports: {}", catalog.reports.len());
-        for report in &catalog.reports {
-            println!(
-                "{} kind={} producer={} required={} entrypoint={} metadata={}",
-                report.id,
-                report.kind,
-                report.producer,
-                report.required,
-                report.entrypoint.display(),
-                report.metadata.display()
-            );
-        }
-    }
-
-    Ok(exit_codes::SUCCESS)
 }
 
 fn run_render(

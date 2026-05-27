@@ -1,4 +1,5 @@
 pub(crate) mod examples;
+pub(crate) mod reports;
 pub(crate) mod templates;
 
 use std::path::PathBuf;
