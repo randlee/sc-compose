@@ -6,8 +6,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use support::{
     normalize_path_str, parse_stdout, repo_root, valid_report_catalog, write_file,
-    write_render_many_fixture, write_report_catalog, write_report_family_override, write_smoke_fixture,
-    write_state_machine_spec,
+    write_render_many_fixture, write_report_catalog, write_report_family_override,
+    write_smoke_fixture, write_state_machine_spec,
 };
 
 fn temp_root(label: &str) -> PathBuf {

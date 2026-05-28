@@ -45,7 +45,7 @@ where
 pub(crate) fn is_normalized_relative_path(path: &Path) -> bool {
     !path.as_os_str().is_empty()
         && !path.is_absolute()
-        && path.components().all(|component| {
-            matches!(component, std::path::Component::Normal(_))
-        })
+        && path
+            .components()
+            .all(|component| matches!(component, std::path::Component::Normal(_)))
 }
