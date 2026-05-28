@@ -177,3 +177,31 @@ Phase B should leave the repo with:
 - publish upload or network transport logic
 - ATM-specific orchestration behavior inside either crate
 - consumer-specific lint/smoke/test command bodies beyond scaffold TODO stubs
+
+## Post-Close Cleanup Track
+
+Phase B implementation is complete, but the accepted production-readiness
+review left five follow-on cleanup slices that preserve the shipped scope while
+closing remaining release-readiness gaps on `integrate/phase-B`.
+
+- [Sprint B11 — Contract-Alignment](../sprints/b11-contract-alignment.md)
+  - align `docs/requirements.md` and `docs/architecture.md` to the shipped
+    `sc-composer` API surface
+- [Sprint B12 — JSON Surface Hardening](../sprints/b12-json-surface-hardening.md)
+  - normalize the remaining JSON and JSONL path surfaces and add
+    Windows-sensitive coverage
+- [Sprint B13 — Observability Panic Removal](../sprints/b13-observability-panic-removal.md)
+  - remove production `expect()` / `unwrap()` paths from CLI observability code
+  - boundary ADR: [ADR-0001: Observability Health Interface Stability During Panic Removal](../adrs/0001-observability-health-interface-stability.md)
+- [Sprint B14 — CLI Extraction](../sprints/b14-cli-extraction.md)
+  - split oversized CLI modules into focused command-owned files
+- [Sprint B15 — Reporting Runtime Cleanup](../sprints/b15-reporting-runtime-cleanup.md)
+  - remove dead reporting seams and over-scoped runtime helpers after the CLI
+    extraction lands
+
+These cleanup sprints do not reopen Phase B feature scope. They harden the
+already-implemented Phase B line so it is easier to certify, review, and carry
+forward.
+
+The accepted cleanup findings and their owning sprint assignments are tracked
+in [docs/issues-inventory.md](../issues-inventory.md).

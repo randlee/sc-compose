@@ -337,6 +337,27 @@ following are true:
 
 ## Follow-On Work
 
+### Phase B Cleanup Sprint Plans
+
+Status:
+
+- planned follow-on cleanup after the integrated Phase B production-readiness review
+
+Sprint entries:
+
+- [Sprint B11 — Contract-Alignment](sprints/b11-contract-alignment.md)
+- [Sprint B12 — JSON Surface Hardening](sprints/b12-json-surface-hardening.md)
+- [Sprint B13 — Observability Panic Removal](sprints/b13-observability-panic-removal.md)
+- [Sprint B14 — CLI Extraction](sprints/b14-cli-extraction.md)
+- [Sprint B15 — Reporting Runtime Cleanup](sprints/b15-reporting-runtime-cleanup.md)
+- [Issues Inventory](issues-inventory.md)
+
+These sprint plans target `integrate/phase-B` follow-on cleanup work. They do
+not change the completed Phase B execution record; they capture the next
+implementation slices needed to close the remaining production-readiness gaps.
+The accepted cleanup findings and sprint ownership are tracked in
+[docs/issues-inventory.md](issues-inventory.md).
+
 ### Known Limitations
 
 - Undeclared-token diagnostics currently attribute the warning or error to the
@@ -919,3 +940,18 @@ The current follow-on implementation track is:
   - cross-use-case proof by implemented examples
 - `docs/phase-B/sprint-B9.md`
   - blocked `sc-observability` `1.2` uplift after the upstream release exists
+- `docs/sprints/b11-contract-alignment.md`
+  - follow-on cleanup sprint for normative doc/API drift between Phase B
+    source-of-truth docs and the shipped `sc-composer` API
+- `docs/sprints/b12-json-surface-hardening.md`
+  - follow-on cleanup sprint for remaining JSON and JSONL forward-slash path
+    normalization plus Windows-sensitive coverage
+- `docs/sprints/b13-observability-panic-removal.md`
+  - follow-on cleanup sprint for removing panic paths from production
+    observability code after the `sc-observability 1.2` uplift
+- `docs/sprints/b14-cli-extraction.md`
+  - follow-on cleanup sprint for oversized CLI module extraction and command
+    ownership cleanup
+- `docs/sprints/b15-reporting-runtime-cleanup.md`
+  - follow-on cleanup sprint for dead reporting seams, duplicated helper
+    removal, and report-runtime scope tightening
