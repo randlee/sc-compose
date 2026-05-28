@@ -92,3 +92,4 @@ pub(crate) fn run_render_spec_report(
 - `cargo fmt --all --check`
 - `cargo test --workspace`
 - `cargo clippy --all-targets --all-features -- -D warnings`
+- `test -f crates/sc-compose/src/reporting/path.rs`

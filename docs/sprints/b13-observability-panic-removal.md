@@ -57,7 +57,7 @@ fn target_category(value: &str) -> Result<TargetCategory, CommandError>;
 fn action_name(value: &str) -> Result<ActionName, CommandError>;
 fn outcome_label(value: &str) -> Result<OutcomeLabel, CommandError>;
 
-fn write_log_event(
+fn emit_log(
     &self,
     level: Level,
     target: &str,
