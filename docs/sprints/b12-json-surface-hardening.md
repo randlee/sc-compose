@@ -25,12 +25,15 @@ target: integrate/phase-B
 - `crates/sc-composer/src/validate.rs`
 - `crates/sc-compose/src/main.rs`
 - `crates/sc-compose/src/path_utils.rs`
-## Deliverables
 
-Every listed deliverable is expected to land at a production-ready level for
-the scope this sprint claims. If that cannot be done cleanly in one sprint, the
-sprint must be split before implementation begins. No deliverable may be
-silently dropped or partially deferred.
+Phase B branch note:
+
+- Exact Targets are verified against `integrate/phase-B`, which is the target
+  branch for this cleanup work.
+- `crates/sc-composer/src/validate.rs` and
+  `crates/sc-compose/src/path_utils.rs` already exist on that Phase B line even
+  though they may not exist on older `develop` or `main` baselines.
+## Deliverables
 
 - `templates add --json` emits normalized `source` and `destination` paths via `to_forward_slash()`.
 - Any remaining validation-related JSON or JSONL path surfaces on the `integrate/phase-B` line are normalized to forward slashes.

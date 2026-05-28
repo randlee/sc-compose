@@ -25,12 +25,15 @@ target: integrate/phase-B
 - `crates/sc-composer/src/lib.rs`
 - `crates/sc-composer/src/renderer.rs`
 - `crates/sc-composer/src/validate.rs`
-## Deliverables
 
-Every listed deliverable is expected to land at a production-ready level for
-the scope this sprint claims. If that cannot be done cleanly in one sprint, the
-sprint must be split before implementation begins. No deliverable may be
-silently dropped or partially deferred.
+Phase B branch note:
+
+- Exact Targets are verified against `integrate/phase-B`, which is the target
+  branch for this cleanup work.
+- `crates/sc-composer/src/validate.rs` is the public validation entrypoint on
+  that Phase B line and is the authoritative source for the shipped
+  `validate()` signature.
+## Deliverables
 
 - `docs/requirements.md` describes `Renderer::new()` with no config argument.
 - `docs/architecture.md` describes `validate()` as returning `Result<ValidationReport, ComposeError>`.

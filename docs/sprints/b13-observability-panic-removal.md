@@ -24,11 +24,6 @@ target: integrate/phase-B
 - `crates/sc-compose/src/observer_impl.rs`
 ## Deliverables
 
-Every listed deliverable is expected to land at a production-ready level for
-the scope this sprint claims. If that cannot be done cleanly in one sprint, the
-sprint must be split before implementation begins. No deliverable may be
-silently dropped or partially deferred.
-
 - `health_json_value()` no longer panics on serialization.
 - `CliObserver::health()` no longer relies on `expect(...)` over internal logger state.
 - Static target/action/outcome/service/schema normalization no longer panics in production execution paths.
@@ -37,7 +32,7 @@ silently dropped or partially deferred.
 
 - Replace `serde_json::to_value(...).expect(...)` with an error-aware or fallback-producing path in `observability.rs`.
 - Refactor `CliObserver` state access so health and shutdown behavior are expressed through `Result`-returning helpers rather than implicit panic invariants.
-- Remove panic-based newtype helpers for service name, schema version, target, action, and outcome labels from production code paths.
+- Replace the static service/schema/target/action/outcome normalization helpers with typed fallbacks or validated startup state so production paths no longer panic on crate-owned label guards.
 - Add tests that prove observability degradation is reported cleanly instead of aborting the process.
 ## Explicit Code Samples
 
@@ -50,6 +45,10 @@ explicit code samples or signatures showing the intended end state.
 pub fn health(&self) -> Result<LoggingHealthReport, CommandError>;
 
 fn health_json_value(health: &LoggingHealthReport) -> Result<Value, CommandError>;
+
+fn target_category(value: &str) -> Result<TargetCategory, CommandError>;
+fn action_name(value: &str) -> Result<ActionName, CommandError>;
+fn outcome_label(value: &str) -> Result<OutcomeLabel, CommandError>;
 ```
 
 ## This Sprint Does Not Close
@@ -59,7 +58,7 @@ fn health_json_value(health: &LoggingHealthReport) -> Result<Value, CommandError
 - No ATM-specific runtime behavior.
 ## Acceptance Criteria
 
-- No `expect()` or `unwrap()` remains in the listed production files.
+- No runtime-reachable panic path remains in the listed production files, including the static event-label and schema/service normalization helpers.
 - `health()` returns an explicit `Result`-based state instead of panicking on missing logger state.
 - Observability label and schema normalization errors degrade gracefully.
 - `cargo clippy --all-targets --all-features -- -D warnings` passes on the implementation branch.

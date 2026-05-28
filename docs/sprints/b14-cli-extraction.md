@@ -26,12 +26,22 @@ target: integrate/phase-B
 - `crates/sc-compose/src/reporting/spec.rs`
 - `crates/sc-compose/src/reporting/init.rs`
 - `crates/sc-compose/src/reporting/output.rs`
-## Deliverables
 
-Every listed deliverable is expected to land at a production-ready level for
-the scope this sprint claims. If that cannot be done cleanly in one sprint, the
-sprint must be split before implementation begins. No deliverable may be
-silently dropped or partially deferred.
+Phase B branch note:
+
+- Exact Targets are verified against `integrate/phase-B`, which is the target
+  branch for this cleanup work.
+- The following Phase B-origin files do not exist on older `develop` or `main`
+  baselines and must be reviewed on `integrate/phase-B`:
+  - `crates/sc-compose/src/commands/reports.rs`
+    - shared reports subcommand surface that currently remains oversized
+  - `crates/sc-compose/src/reporting/spec.rs`
+    - semantic-spec render path that still carries the dead `_observer` seam
+  - `crates/sc-compose/src/reporting/init.rs`
+    - scaffold/runtime setup path that still owns over-scoped report constants
+  - `crates/sc-compose/src/reporting/output.rs`
+    - latest/archive materialization path involved in constant scoping cleanup
+## Deliverables
 
 - `crates/sc-compose/src/main.rs` is decomposed so no single CLI file remains above the 400-line cap.
 - `crates/sc-compose/src/commands/reports.rs` is split into focused report-command modules.
@@ -52,11 +62,14 @@ explicit code samples or signatures showing the intended end state.
 
 ```rust
 mod commands;
-mod command_error;
-mod observability;
-mod observer_impl;
 
-use crate::commands::{run_reports_command, run_templates_command, run_examples_command};
+pub(crate) mod examples;
+pub(crate) mod reports;
+pub(crate) mod templates;
+
+use crate::commands::examples::{run_examples_list, run_examples_render};
+use crate::commands::reports::{run_reports_init, run_reports_smoke, run_reports_verify};
+use crate::commands::templates::{run_templates_add, run_templates_list, run_templates_render};
 ```
 
 ## This Sprint Does Not Close
