@@ -337,6 +337,23 @@ following are true:
 
 ## Follow-On Work
 
+### Phase B Cleanup Sprint Plans
+
+Status:
+
+- planned follow-on cleanup after the integrated Phase B production-readiness review
+
+Sprint entries:
+
+- [Sprint B11 — Contract-Alignment](sprints/b11-contract-alignment.md)
+- [Sprint B12 — JSON Surface Hardening](sprints/b12-json-surface-hardening.md)
+- [Sprint B13 — Observability Panic Removal](sprints/b13-observability-panic-removal.md)
+- [Sprint B14 — CLI Extraction](sprints/b14-cli-extraction.md)
+
+These sprint plans target `integrate/phase-B` follow-on cleanup work. They do
+not change the completed Phase B execution record; they capture the next
+implementation slices needed to close the remaining production-readiness gaps.
+
 ### Known Limitations
 
 - Undeclared-token diagnostics currently attribute the warning or error to the
