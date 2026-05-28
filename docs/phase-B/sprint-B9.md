@@ -89,14 +89,13 @@ let stopped = logger.shutdown();
 let health = stopped.health();
 ```
 
-## Local Source Of Truth
+## API Reference
 
-The planned API shape for this sprint is confirmed against the local
-repository at:
+The `sc-observability` `1.2.0` public API surface is available on crates.io.
+The implementation shape for this sprint is also confirmed against the local
+repository at `../sc-observability`.
 
-- `../sc-observability`
-
-Specifically:
+Key documents for implementation:
 
 - `CHANGELOG.md`
 - `docs/requirements.md`
@@ -119,6 +118,7 @@ implementation blocker.
 - the sprint uses the published `sc-observability` `1.2.0` crates plus the
   local `../sc-observability` repo state as the implementation source of truth
   for the breaking-surface review
+- `sc-observability` `1.2` is resolved from crates.io (published release)
 - the exact `sc-compose` logger construction, direct logging, and shutdown
   seams required by the report runtime are identified and tested before the
   dependency uplift lands
