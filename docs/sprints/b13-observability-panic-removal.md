@@ -57,9 +57,9 @@ pub fn health(&self) -> LoggingHealthReport;
 
 fn health_json_value(health: &LoggingHealthReport) -> Value;
 
-fn target_category(value: &str) -> Result<TargetCategory, CommandError>;
-fn action_name(value: &str) -> Result<ActionName, CommandError>;
-fn outcome_label(value: &str) -> Result<OutcomeLabel, CommandError>;
+fn target_category(value: &str) -> Result<TargetCategory, ValueValidationError>;
+fn action_name(value: &str) -> Result<ActionName, ValueValidationError>;
+fn outcome_label(value: &str) -> Result<OutcomeLabel, ValueValidationError>;
 
 fn emit_log(
     &self,

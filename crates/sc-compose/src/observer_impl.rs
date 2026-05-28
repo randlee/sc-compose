@@ -84,7 +84,7 @@ impl CliObserver {
         self.logger = Some(LoggerOrStopped::Stopped(logger));
     }
 
-    fn write_log_event(
+    fn emit_log(
         &self,
         level: Level,
         target: &str,
@@ -129,7 +129,7 @@ impl CompositionObserver for CliObserver {
     fn on_resolve_attempt(&mut self, event: &ResolveAttemptEvent) {
         let mut fields = Map::new();
         fields.insert("template".to_owned(), json!(event.template));
-        self.write_log_event(
+        self.emit_log(
             Level::Info,
             "compose.resolve",
             "attempt",
@@ -162,7 +162,7 @@ impl CompositionObserver for CliObserver {
         if let Some(code) = event.code {
             fields.insert("diagnostic_code".to_owned(), json!(code.as_str()));
         }
-        self.write_log_event(
+        self.emit_log(
             if event.code.is_some() {
                 Level::Error
             } else {
@@ -214,7 +214,7 @@ impl CompositionObserver for CliObserver {
         if let Some(code) = event.code {
             fields.insert("diagnostic_code".to_owned(), json!(code.as_str()));
         }
-        self.write_log_event(
+        self.emit_log(
             if event.code.is_some() {
                 Level::Error
             } else {
@@ -253,7 +253,7 @@ impl CompositionObserver for CliObserver {
                 json!(diagnostic.message.clone()),
             );
         }
-        self.write_log_event(
+        self.emit_log(
             if failed {
                 Level::Error
             } else if warnings > 0 {
@@ -284,7 +284,7 @@ impl CompositionObserver for CliObserver {
         if let Some(code) = event.code {
             fields.insert("diagnostic_code".to_owned(), json!(code.as_str()));
         }
-        self.write_log_event(
+        self.emit_log(
             if failed { Level::Error } else { Level::Info },
             "compose.render",
             if failed { "failed" } else { "completed" },
@@ -320,7 +320,7 @@ impl CommandLifecycleObserver for CliObserver {
         let mut fields = Map::new();
         fields.insert("command".to_owned(), json!(event.command_name));
         fields.insert("json_output".to_owned(), json!(event.json_output));
-        self.write_log_event(
+        self.emit_log(
             Level::Info,
             "compose.command",
             "started",
@@ -343,7 +343,7 @@ impl CommandLifecycleObserver for CliObserver {
         if let Some(message) = &event.diagnostic_message {
             fields.insert("diagnostic_message".to_owned(), json!(message));
         }
-        self.write_log_event(
+        self.emit_log(
             if success { Level::Info } else { Level::Error },
             "compose.command",
             if success { "completed" } else { "failed" },
@@ -685,7 +685,7 @@ mod tests {
         };
         let mut observer = CliObserver::new(logger);
 
-        observer.write_log_event(
+        observer.emit_log(
             Level::Info,
             "compose/invalid",
             "bad action",
