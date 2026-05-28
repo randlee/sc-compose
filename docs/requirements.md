@@ -896,8 +896,10 @@ same command payloads as `render` and `render --dry-run`.
 - The library hook surface shall remain a local sink/observer abstraction over
   `ObservationEvent` rather than importing observability contracts from
   `sc-observability-types`.
-- `Renderer::new(config)` and `compose()` shall preserve no-op behavior when the
-  caller does not provide an observer implementation.
+- `Renderer::new()` shall remain a pure renderer constructor with no observer
+  dependency.
+- `compose()` shall preserve no-op behavior when the caller does not provide an
+  observer implementation.
 - `compose_with_observer(request, &mut dyn CompositionObserver)` shall remain
   the required end-to-end injection surface for host-provided observability.
 - The local observer hook surface shall remain object-safe and `dyn`-compatible

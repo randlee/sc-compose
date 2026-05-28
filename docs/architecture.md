@@ -388,9 +388,9 @@ The library API should expose explicit request and result types.
 
 Required library surface:
 
-- `resolve_profile(request) -> ResolveResult`
-- `compose(request) -> ComposeResult`
-- `validate(request) -> ValidationReport`
+- `resolve_profile(request) -> Result<ResolveResult, ComposeError>`
+- `compose(request) -> Result<ComposeResult, ComposeError>`
+- `validate(request) -> Result<ValidationReport, ComposeError>`
 - `init_workspace(root, options) -> InitResult`
 - `frontmatter_init(path, options) -> FrontmatterInitResult`
 - `Renderer::render(compiled, context) -> Result<String, RenderError>` as the
@@ -415,9 +415,9 @@ The rendering and composition surfaces have distinct responsibilities.
 
 | Surface | Owns | Does not own |
 | --- | --- | --- |
-| `Renderer` | template loading, include resolution, variable expansion, validation, rendering | CLI argument parsing, output formatting, repository bootstrap |
-| `compose()` | top-level convenience orchestration; calls `Renderer` internally for end-to-end composition and block assembly | direct CLI UX decisions |
-| `render_template()` | lower-level rendering entry point for callers that pre-supply resolved template content | profile resolution, repository scanning, workspace bootstrap |
+| `Renderer` | reusable template-engine environment setup plus inline/named rendering over caller-supplied template text and context | profile resolution, include expansion, variable validation, block assembly, repository bootstrap |
+| `compose()` | top-level composition orchestration: resolve, include expansion, validation, built-in context injection, render, and block assembly | direct CLI UX decisions |
+| `render_template()` | one-shot rendering entry point for callers that already have template text and context | profile resolution, repository scanning, include expansion, validation, workspace bootstrap |
 | `validate()` | validation phase only; returns structured diagnostics without writing output | output generation or file writing |
 | `frontmatter_init()` | frontmatter discovery and rewrite helper | template composition pipeline execution |
 | `init_workspace()` | repository bootstrap helper | template composition pipeline execution |
@@ -1461,8 +1461,8 @@ pub fn compose_with_observer(
 
 Required library behavior:
 
-- `Renderer::new(...)` and `compose()` install the built-in no-op observer
-  unless a caller supplies an explicit observer.
+- `Renderer::new()` remains observer-free, and `compose()` installs the built-in
+  no-op observer unless a caller supplies an explicit observer.
 - `compose_with_observer(...)` is the public end-to-end observability
   injection entry point.
 - `ObservationSink` and `CompositionObserver` remain the local extension points
