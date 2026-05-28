@@ -1074,6 +1074,14 @@ fn templates_add_json_uses_diagnostic_envelope() {
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_eq!(value["payload"]["name"], "hello");
+    assert_eq!(
+        value["payload"]["source"],
+        normalize_path_str(fs::canonicalize(&source).unwrap())
+    );
+    assert_eq!(
+        value["payload"]["destination"],
+        normalize_path_str(templates_root.join("hello"))
+    );
     assert_eq!(value["payload"]["changed"], true);
 }
 
