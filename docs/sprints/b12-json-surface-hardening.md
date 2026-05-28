@@ -36,7 +36,7 @@ Phase B branch note:
 ## Deliverables
 
 - `templates add --json` emits normalized `source` and `destination` paths via `to_forward_slash()`.
-- Any remaining validation-related JSON or JSONL path surfaces on the `integrate/phase-B` line are normalized to forward slashes.
+- The known non-compliant machine-readable surface at sprint start is `templates add --json` `source` / `destination`; any additional non-compliant validation-related JSON or JSONL path emitters discovered in `validate.rs` or `main.rs` must be enumerated in the implementation diff before sprint close.
 - `crates/sc-compose/tests/json_cli.rs` asserts path formatting for `templates add --json` instead of only checking `name` and `changed`.
 - Windows-sensitive path regression coverage exists for every JSON surface touched by the sprint.
 ## Required Work
@@ -71,7 +71,8 @@ print_json(
 ## Acceptance Criteria
 
 - JSON and JSONL output paths always use forward slashes on Windows and Unix-like platforms.
-- Tests assert path format directly for the touched surfaces.
+- `templates add --json` `source` and `destination` are asserted directly in regression tests.
+- If the sprint touches any validation-related JSON or JSONL path emitters beyond `templates add --json`, those exact touched surfaces are named in the implementation diff and covered by regression tests.
 - No touched JSON surface regresses existing field names or schema shape.
 - `cargo test --workspace` passes on the implementation branch that lands the hardening changes.
 ## Required Validation
