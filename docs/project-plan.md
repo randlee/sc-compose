@@ -345,7 +345,6 @@ Status:
 
 Sprint entries:
 
-<<<<<<< HEAD
 - [Sprint B11 — Contract-Alignment](sprints/b11-contract-alignment.md)
 - [Sprint B12 — JSON Surface Hardening](sprints/b12-json-surface-hardening.md)
 - [Sprint B13 — Observability Panic Removal](sprints/b13-observability-panic-removal.md)
@@ -944,3 +943,4 @@ Status:
 Sprint entries:
 
 - [Sprint B14 — CLI Extraction](sprints/b14-cli-extraction.md)
+- [Sprint B15 — Reporting Runtime Cleanup](sprints/b15-reporting-runtime-cleanup.md)

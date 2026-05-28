@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use sc_composer::{CompositionObserver, DiagnosticCode};
+use sc_composer::DiagnosticCode;
 
 use crate::commands::reports::{ReportCatalogArgs, ReportRenderManyArgs, ReportsRenderSpecArgs};
 use crate::exit_codes;
@@ -11,9 +11,8 @@ use crate::{CommandError, print_json};
 
 pub(crate) fn run_reports_render_spec(
     args: &ReportsRenderSpecArgs,
-    observer: &mut dyn CompositionObserver,
 ) -> Result<i32, CommandError> {
-    let result = run_render_spec_report(&args.root, &args.spec_path, args.archive, observer)?;
+    let result = run_render_spec_report(&args.root, &args.spec_path, args.archive)?;
     if args.json {
         let payload = serde_json::json!({
             "report_id": result.report_id,

@@ -15,16 +15,16 @@ use crate::reporting::output::{
     ARCHIVE_ROOT_RELATIVE_PATH, LATEST_ROOT_RELATIVE_PATH, MaterializedReport, ReportOutputRequest,
     write_report_metadata_and_archive,
 };
+use crate::reporting::path::resolve_relative_path;
 use crate::var_file::load_var_file;
 
-pub(crate) const STARTER_TEMPLATES_RELATIVE_PATH: &str = "reports/templates";
-pub(crate) const STARTER_SMOKE_DIR_RELATIVE_PATH: &str = "reports/smoke";
-pub(crate) const STARTER_SMOKE_OUTPUT_DIR_RELATIVE_PATH: &str = "reports/latest/smoke";
-pub(crate) const STARTER_SMOKE_FIXTURE_RELATIVE_PATH: &str =
-    "reports/smoke/reference-template.html.j2";
-pub(crate) const STARTER_SMOKE_VARS_RELATIVE_PATH: &str = "reports/smoke/sample-vars.json";
-pub(crate) const SMOKE_ENTRYPOINT_RELATIVE_PATH: &str = "reports/latest/smoke/index.html";
-pub(crate) const SMOKE_METADATA_RELATIVE_PATH: &str = "reports/latest/smoke/report.json";
+const STARTER_TEMPLATES_RELATIVE_PATH: &str = "reports/templates";
+const STARTER_SMOKE_DIR_RELATIVE_PATH: &str = "reports/smoke";
+const STARTER_SMOKE_OUTPUT_DIR_RELATIVE_PATH: &str = "reports/latest/smoke";
+const STARTER_SMOKE_FIXTURE_RELATIVE_PATH: &str = "reports/smoke/reference-template.html.j2";
+const STARTER_SMOKE_VARS_RELATIVE_PATH: &str = "reports/smoke/sample-vars.json";
+const SMOKE_ENTRYPOINT_RELATIVE_PATH: &str = "reports/latest/smoke/index.html";
+const SMOKE_METADATA_RELATIVE_PATH: &str = "reports/latest/smoke/report.json";
 
 const STARTER_REPORTS_TOML: &str = r#"[[report]]
 id = "smoke"
@@ -291,18 +291,4 @@ fn write_if_missing(
         created_paths.push(relative.to_owned());
     }
     Ok(())
-}
-
-fn resolve_relative_path(workspace_root: &Path, path: &Path) -> Result<PathBuf, CommandError> {
-    let joined = if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        workspace_root.join(path)
-    };
-    fs::canonicalize(&joined).map_err(|error| {
-        CommandError::usage_with_code(
-            anyhow!(error).context(format!("failed to resolve {}", joined.display())),
-            DiagnosticCode::ErrConfigParse,
-        )
-    })
 }

@@ -3,7 +3,7 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 
 use anyhow::anyhow;
-use sc_composer::{CompositionObserver, DiagnosticCode};
+use sc_composer::DiagnosticCode;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -11,6 +11,7 @@ use crate::CommandError;
 use crate::reporting::init::ReportsSmokeResult;
 use crate::reporting::mermaid::render_mermaid;
 use crate::reporting::output::{ReportOutputRequest, write_report_metadata_and_archive};
+use crate::reporting::path::resolve_relative_path;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct SpecHeader {
@@ -153,7 +154,6 @@ pub(crate) fn run_render_spec_report(
     root: &Path,
     spec_path: &Path,
     archive: bool,
-    _observer: &mut dyn CompositionObserver,
 ) -> Result<ReportsSmokeResult, CommandError> {
     let workspace_root = std::fs::canonicalize(root).map_err(|error| {
         CommandError::usage_with_code(
@@ -334,16 +334,6 @@ impl fmt::Display for ReportSpecError {
 }
 
 impl std::error::Error for ReportSpecError {}
-
-fn resolve_relative_path(root: &Path, relative: &Path) -> Result<PathBuf, CommandError> {
-    let candidate = root.join(relative);
-    std::fs::canonicalize(&candidate).map_err(|error| {
-        CommandError::usage_with_code(
-            anyhow!(error).context(format!("failed to canonicalize {}", candidate.display())),
-            DiagnosticCode::ErrConfigParse,
-        )
-    })
-}
 
 fn merge_renderer_targets(spec: &SpecHeader, metadata: &ReportSpecMetadata) -> Vec<String> {
     if !metadata.renderer_targets.is_empty() {
