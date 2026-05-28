@@ -349,6 +349,7 @@ Sprint entries:
 - [Sprint B12 — JSON Surface Hardening](sprints/b12-json-surface-hardening.md)
 - [Sprint B13 — Observability Panic Removal](sprints/b13-observability-panic-removal.md)
 - [Sprint B14 — CLI Extraction](sprints/b14-cli-extraction.md)
+- [Sprint B15 — Reporting Runtime Cleanup](sprints/b15-reporting-runtime-cleanup.md)
 
 These sprint plans target `integrate/phase-B` follow-on cleanup work. They do
 not change the completed Phase B execution record; they capture the next
@@ -946,5 +947,8 @@ The current follow-on implementation track is:
   - follow-on cleanup sprint for removing panic paths from production
     observability code after the `sc-observability 1.2` uplift
 - `docs/sprints/b14-cli-extraction.md`
-  - follow-on cleanup sprint for oversized CLI module extraction and dead
-    reporting seam removal
+  - follow-on cleanup sprint for oversized CLI module extraction and command
+    ownership cleanup
+- `docs/sprints/b15-reporting-runtime-cleanup.md`
+  - follow-on cleanup sprint for dead reporting seams, duplicated helper
+    removal, and report-runtime scope tightening

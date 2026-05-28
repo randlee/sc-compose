@@ -12,8 +12,8 @@ target: integrate/phase-B
 ## Goal
 
 - Decompose oversized CLI files into focused modules with clear ownership boundaries.
-- Remove dead reporting seams and over-scoped constants that survived the Phase B merge.
-- Consolidate duplicated relative-path helpers without changing the shipped command surface.
+- Finish the command-surface extraction work needed to make the CLI layer reviewable and maintainable on the shipped Phase B branch.
+- Preserve the shipped command surface and runtime behavior while reducing file-level review risk.
 ## Hard Dependencies
 
 - `integrate/phase-B` at the current merged Phase B tip.
@@ -23,36 +23,28 @@ target: integrate/phase-B
 - `crates/sc-compose/src/main.rs`
 - `crates/sc-compose/src/commands/mod.rs`
 - `crates/sc-compose/src/commands/reports.rs`
-- `crates/sc-compose/src/reporting/spec.rs`
-- `crates/sc-compose/src/reporting/init.rs`
-- `crates/sc-compose/src/reporting/output.rs`
+- `crates/sc-compose/src/commands/examples.rs`
+- `crates/sc-compose/src/commands/templates.rs`
 
 Phase B branch note:
 
 - Exact Targets are verified against `integrate/phase-B`, which is the target
   branch for this cleanup work.
-- The following Phase B-origin files do not exist on older `develop` or `main`
-  baselines and must be reviewed on `integrate/phase-B`:
-  - `crates/sc-compose/src/commands/reports.rs`
-    - shared reports subcommand surface that currently remains oversized
-  - `crates/sc-compose/src/reporting/spec.rs`
-    - semantic-spec render path that still carries the dead `_observer` seam
-  - `crates/sc-compose/src/reporting/init.rs`
-    - scaffold/runtime setup path that still owns over-scoped report constants
-  - `crates/sc-compose/src/reporting/output.rs`
-    - latest/archive materialization path involved in constant scoping cleanup
+- `crates/sc-compose/src/commands/reports.rs` is the Phase B-origin reports
+  command surface that remains above the cleanup size cap on
+  `integrate/phase-B`.
 ## Deliverables
 
 - `crates/sc-compose/src/main.rs` is decomposed so no single CLI file remains above the 400-line cap.
 - `crates/sc-compose/src/commands/reports.rs` is split into focused report-command modules.
-- The dead `_observer` parameter in `reporting/spec.rs` is removed or wired to real behavior.
-- Zero-caller `pub(crate)` reporting constants are removed or scope-reduced, and duplicated relative-path helpers are consolidated.
+- Command dispatch and helper ownership are localized under `crates/sc-compose/src/commands/` instead of remaining centralized in `main.rs`.
+- The shipped command surface and JSON/text contracts remain unchanged after the extraction.
 ## Required Work
 
 - Extract subcommand dispatch and helper logic out of `main.rs` into focused modules while preserving the current command contract.
 - Split `commands/reports.rs` by subcommand family or responsibility so review and ownership are localized.
-- Resolve the dead `_observer` seam in `reporting/spec.rs` and audit over-scoped report constants in `reporting/init.rs` / `reporting/output.rs`.
-- Consolidate duplicated `resolve_relative_path(...)` logic from the reporting layer into one shared helper and update call sites.
+- Move any CLI-only helper logic that blocks the file-size cap into focused sibling command modules rather than leaving partial extraction in place.
+- Keep the sprint scoped to CLI extraction only; reporting-runtime seam cleanup lands in a follow-on sprint.
 ## Explicit Code Samples
 
 If the sprint introduces or changes important traits, features, enums, protocol
@@ -76,12 +68,12 @@ use crate::commands::templates::{run_templates_add, run_templates_list, run_temp
 
 - No new command-surface behavior.
 - No change to JSON or text output contracts beyond what extraction requires to preserve them.
-- No new reporting features.
+- No reporting-runtime seam cleanup inside `reporting/spec.rs`, `reporting/init.rs`, or `reporting/output.rs`.
 ## Acceptance Criteria
 
 - No touched source file remains above 400 lines.
-- Dead code called out in the production-readiness findings is removed or wired.
-- The duplicated relative-path helper exists in one place only after the sprint.
+- `main.rs` and the reports command surface are both below the size cap with focused module boundaries.
+- Command behavior, argument parsing, and JSON/text output remain compatible with the shipped `integrate/phase-B` contract.
 - `cargo test --workspace` and `cargo clippy --all-targets --all-features -- -D warnings` pass on the implementation branch.
 ## Required Validation
 

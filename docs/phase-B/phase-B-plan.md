@@ -181,7 +181,7 @@ Phase B should leave the repo with:
 ## Post-Close Cleanup Track
 
 Phase B implementation is complete, but the accepted production-readiness
-review left four follow-on cleanup slices that preserve the shipped scope while
+review left five follow-on cleanup slices that preserve the shipped scope while
 closing remaining release-readiness gaps on `integrate/phase-B`.
 
 - [Sprint B11 — Contract-Alignment](../sprints/b11-contract-alignment.md)
@@ -193,7 +193,10 @@ closing remaining release-readiness gaps on `integrate/phase-B`.
 - [Sprint B13 — Observability Panic Removal](../sprints/b13-observability-panic-removal.md)
   - remove production `expect()` / `unwrap()` paths from CLI observability code
 - [Sprint B14 — CLI Extraction](../sprints/b14-cli-extraction.md)
-  - split oversized CLI modules and remove dead reporting seams
+  - split oversized CLI modules into focused command-owned files
+- [Sprint B15 — Reporting Runtime Cleanup](../sprints/b15-reporting-runtime-cleanup.md)
+  - remove dead reporting seams and over-scoped runtime helpers after the CLI
+    extraction lands
 
 These cleanup sprints do not reopen Phase B feature scope. They harden the
 already-implemented Phase B line so it is easier to certify, review, and carry
