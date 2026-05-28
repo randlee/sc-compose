@@ -36,7 +36,7 @@ silently dropped or partially deferred.
 ## Required Work
 
 - Replace `serde_json::to_value(...).expect(...)` with an error-aware or fallback-producing path in `observability.rs`.
-- Refactor `CliObserver` state access so health and shutdown behavior are expressed through `Result` or `Option` rather than implicit panic invariants.
+- Refactor `CliObserver` state access so health and shutdown behavior are expressed through `Result`-returning helpers rather than implicit panic invariants.
 - Remove panic-based newtype helpers for service name, schema version, target, action, and outcome labels from production code paths.
 - Add tests that prove observability degradation is reported cleanly instead of aborting the process.
 ## Explicit Code Samples
@@ -60,7 +60,7 @@ fn health_json_value(health: &LoggingHealthReport) -> Result<Value, CommandError
 ## Acceptance Criteria
 
 - No `expect()` or `unwrap()` remains in the listed production files.
-- `health()` returns an explicit `Result` or `Option`-based state instead of panicking on missing logger state.
+- `health()` returns an explicit `Result`-based state instead of panicking on missing logger state.
 - Observability label and schema normalization errors degrade gracefully.
 - `cargo clippy --all-targets --all-features -- -D warnings` passes on the implementation branch.
 ## Required Validation

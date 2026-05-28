@@ -936,3 +936,15 @@ The current follow-on implementation track is:
   - cross-use-case proof by implemented examples
 - `docs/phase-B/sprint-B9.md`
   - blocked `sc-observability` `1.2` uplift after the upstream release exists
+- `docs/sprints/b11-contract-alignment.md`
+  - follow-on cleanup sprint for normative doc/API drift between Phase B
+    source-of-truth docs and the shipped `sc-composer` API
+- `docs/sprints/b12-json-surface-hardening.md`
+  - follow-on cleanup sprint for remaining JSON and JSONL forward-slash path
+    normalization plus Windows-sensitive coverage
+- `docs/sprints/b13-observability-panic-removal.md`
+  - follow-on cleanup sprint for removing panic paths from production
+    observability code after the `sc-observability 1.2` uplift
+- `docs/sprints/b14-cli-extraction.md`
+  - follow-on cleanup sprint for oversized CLI module extraction and dead
+    reporting seam removal

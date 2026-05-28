@@ -21,6 +21,7 @@ target: integrate/phase-B
 ## Exact Targets
 
 - `crates/sc-compose/src/main.rs`
+- `crates/sc-compose/src/commands/mod.rs`
 - `crates/sc-compose/src/commands/reports.rs`
 - `crates/sc-compose/src/reporting/spec.rs`
 - `crates/sc-compose/src/reporting/init.rs`
