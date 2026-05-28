@@ -1,7 +1,7 @@
 ---
 id: B13
 title: Observability Panic Removal
-status: complete
+status: planned
 branch: feat/b13-observability-panic-removal
 worktree: ../sc-compose-worktrees/feat/b13-observability-panic-removal
 target: integrate/phase-B

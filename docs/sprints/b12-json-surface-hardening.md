@@ -1,7 +1,7 @@
 ---
 id: B12
 title: JSON Surface Hardening
-status: complete
+status: planned
 branch: feat/b12-json-surface-hardening
 worktree: ../sc-compose-worktrees/feat/b12-json-surface-hardening
 target: integrate/phase-B

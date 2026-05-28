@@ -1,7 +1,7 @@
 ---
 id: B14
 title: CLI Extraction
-status: complete
+status: planned
 branch: feat/b14-cli-extraction
 worktree: ../sc-compose-worktrees/feat/b14-cli-extraction
 target: integrate/phase-B

@@ -1,7 +1,7 @@
 ---
 id: B11
 title: Contract-Alignment
-status: complete
+status: planned
 branch: feat/b11-contract-alignment
 worktree: ../sc-compose-worktrees/feat/b11-contract-alignment
 target: integrate/phase-B
