@@ -192,6 +192,7 @@ closing remaining release-readiness gaps on `integrate/phase-B`.
     Windows-sensitive coverage
 - [Sprint B13 — Observability Panic Removal](../sprints/b13-observability-panic-removal.md)
   - remove production `expect()` / `unwrap()` paths from CLI observability code
+  - boundary ADR: [ADR-0001: Observability Health Interface Stability During Panic Removal](../adrs/0001-observability-health-interface-stability.md)
 - [Sprint B14 — CLI Extraction](../sprints/b14-cli-extraction.md)
   - split oversized CLI modules into focused command-owned files
 - [Sprint B15 — Reporting Runtime Cleanup](../sprints/b15-reporting-runtime-cleanup.md)

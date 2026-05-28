@@ -350,6 +350,7 @@ Sprint entries:
 - [Sprint B13 — Observability Panic Removal](sprints/b13-observability-panic-removal.md)
 - [Sprint B14 — CLI Extraction](sprints/b14-cli-extraction.md)
 - [Sprint B15 — Reporting Runtime Cleanup](sprints/b15-reporting-runtime-cleanup.md)
+- [Issues Inventory](issues-inventory.md)
 
 These sprint plans target `integrate/phase-B` follow-on cleanup work. They do
 not change the completed Phase B execution record; they capture the next
