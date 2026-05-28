@@ -2,15 +2,12 @@ use std::collections::BTreeSet;
 use std::fmt;
 use std::path::{Path, PathBuf};
 
-use serde::{Serialize, Serializer};
+use serde::Serialize;
 use toml::Value;
 
 use crate::path_utils::is_normalized_relative_path;
 
 pub(crate) const REPORT_CATALOG_RELATIVE_PATH: &str = "reports/catalog/reports.toml";
-pub(crate) const REPORTS_LATEST_ROOT_RELATIVE_PATH: &str = "reports/latest";
-pub(crate) const REPORTS_ARCHIVE_ROOT_RELATIVE_PATH: &str = "reports/archive";
-pub(crate) const REPORT_METADATA_BASENAME: &str = "report.json";
 
 const ALLOWED_REPORT_KINDS: &[&str] = &[
     "lint",
@@ -227,12 +224,4 @@ fn resolve_catalog_path(repo_root: &Path, catalog_path: &Path) -> PathBuf {
     } else {
         repo_root.join(catalog_path)
     }
-}
-
-fn serialize_pathbuf_with_forward_slashes<S>(path: &Path, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    let normalized = path.to_string_lossy().replace('\\', "/");
-    serializer.serialize_str(&normalized)
 }

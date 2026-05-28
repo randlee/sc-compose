@@ -64,7 +64,10 @@ pub fn write_report_catalog(root: &Path, contents: &str) {
     );
 }
 
-#[allow(dead_code)]
+#[allow(
+    dead_code,
+    reason = "shared CLI support is only used by selected branch-local tests"
+)]
 pub fn valid_report_catalog() -> &'static str {
     r#"
 [[report]]
