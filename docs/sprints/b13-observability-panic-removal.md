@@ -38,7 +38,7 @@ target: integrate/phase-B
 
 - Replace `serde_json::to_value(...).expect(...)` with a fallback-producing path in `observability.rs` while keeping `health_json_value()` infallible at the CLI boundary.
 - Refactor `CliObserver` state access so `health()` remains infallible but no longer depends on `expect(...)` over retained logger state.
-- Replace the dynamic target/action/outcome normalization helpers with fallback-producing logic so runtime label errors degrade cleanly inside `write_log_event()`.
+- Replace the dynamic target/action/outcome normalization helpers with fallback-producing logic so runtime label errors degrade cleanly inside `emit_log()`.
 - Keep `CliObserver::new()` and the crate-owned schema/service constant guards out of scope for B13 so this sprint does not pull `main.rs` into its Exact Targets.
 - Add tests that prove observability degradation is reported cleanly instead of aborting the process.
 ## Explicit Code Samples

@@ -27,7 +27,7 @@ The production-readiness review distinguished two classes of panic guards:
 - `health_json_value()` remains infallible at the interface level and degrades
   to a fallback JSON object instead of panicking if serialization fails.
 - Dynamic target/action/outcome normalization may use internal `Result`-based
-  helpers, but `write_log_event()` owns the degradation policy and must emit a
+  helpers, but `emit_log()` owns the degradation policy and must emit a
   fallback event shape instead of propagating those failures across the CLI
   boundary.
 - Sprint B13 closes runtime-variable panic paths only. Startup-invariant guards

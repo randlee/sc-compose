@@ -354,6 +354,8 @@ Sprint entries:
 These sprint plans target `integrate/phase-B` follow-on cleanup work. They do
 not change the completed Phase B execution record; they capture the next
 implementation slices needed to close the remaining production-readiness gaps.
+The accepted cleanup findings and sprint ownership are tracked in
+[docs/issues-inventory.md](issues-inventory.md).
 
 ### Known Limitations
 

@@ -201,3 +201,6 @@ closing remaining release-readiness gaps on `integrate/phase-B`.
 These cleanup sprints do not reopen Phase B feature scope. They harden the
 already-implemented Phase B line so it is easier to certify, review, and carry
 forward.
+
+The accepted cleanup findings and their owning sprint assignments are tracked
+in [docs/issues-inventory.md](../issues-inventory.md).
