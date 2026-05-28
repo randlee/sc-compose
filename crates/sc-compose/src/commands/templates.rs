@@ -1,13 +1,15 @@
 use anyhow::anyhow;
 use sc_composer::{CompositionObserver, DiagnosticCode};
 
+use crate::cli::{ListArgs, TemplatesAddArgs, TemplatesArgs};
+use crate::commands::compose::execute_render;
 use crate::commands::{
     pack_not_found_error, pack_not_renderable_error, print_pack_list, store_root_error,
     template_exists_error,
 };
 use crate::render_request::{build_named_request, read_block_pair};
 use crate::template_store::{AddError, GetTemplateError, TemplateStore};
-use crate::{CommandError, ListArgs, TemplatesAddArgs, TemplatesArgs, execute_render, print_json};
+use crate::{CommandError, print_json};
 
 pub(crate) fn run_templates_list(args: &ListArgs) -> Result<i32, CommandError> {
     let store = TemplateStore::templates()

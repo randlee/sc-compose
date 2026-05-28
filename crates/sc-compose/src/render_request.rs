@@ -3,16 +3,14 @@ use std::io::Read;
 
 use anyhow::{Context, anyhow};
 use sc_composer::{
-    BUILTIN_VARIABLE_NAMES, ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, InputValue,
-    ProfileKind, RuntimeKind, UnknownVariablePolicy, VariableName,
+    BUILTIN_VARIABLE_NAMES, ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot,
+    DiagnosticCode, InputValue, ProfileKind, RuntimeKind, UnknownVariablePolicy, VariableName,
 };
 
+use crate::CommandError;
+use crate::cli::{Ai, CommonArgs, InputArgs, Kind, Mode, RenderBehaviorArgs, UnknownVarMode};
 use crate::template_store::TemplatePack;
 use crate::var_file::parse_var_file_contents;
-use crate::{
-    Ai, CommandError, CommonArgs, DiagnosticCode, InputArgs, Kind, Mode, RenderBehaviorArgs,
-    UnknownVarMode,
-};
 
 pub(crate) fn build_request(
     args: &CommonArgs,
