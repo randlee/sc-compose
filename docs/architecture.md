@@ -1139,7 +1139,7 @@ Boundary rules:
 - A1 only locks the shared artifact and catalog shape
 - the canonical latest/archive output policy is defined in
   `docs/requirements.md` under `### Phase A Latest/Archive Output And Reports
-  Aggregator Contract (Planning Only)`
+  Aggregator Contract (Implemented In Sprint B5)`
 - the canonical publish-manifest contract is defined in `docs/requirements.md`
   under `### Publish-Manifest And CI Handoff Contract`
 - later sprints may extend those contracts with implementation-specific
@@ -1263,7 +1263,7 @@ Runtime proof direction:
 - `report-evidence-summary` is the new bundled Phase B proof vehicle
 - `sprint-report-html` remains the backward-compatible bundled example covered
   by the shared proof harness
-## 15g. Follow-On Template Families And Shared Panel Chrome (Phase A Planning Only)
+## 15g. Follow-On Template Families And Shared Panel Chrome (Implemented In Sprint B4)
 
 Sprint B4 implements shared template-family selection and shared panel chrome
 so consumer repos reuse one UI contract instead of rebuilding it per report
