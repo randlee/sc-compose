@@ -346,6 +346,7 @@ Status:
 Sprint entries:
 
 - [Sprint B11 — Contract-Alignment](sprints/b11-contract-alignment.md)
+- [Sprint B12 — JSON Surface Hardening](sprints/b12-json-surface-hardening.md)
 
 ### Known Limitations
 

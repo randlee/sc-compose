@@ -10,6 +10,7 @@ use crate::observer::{
     CompositionObserver, IncludeOutcomeEvent, NoopObserver, RenderOutcomeEvent,
     ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
+use crate::path_utils::to_forward_slash;
 use crate::renderer::Renderer;
 use crate::resolver::resolve_template_path;
 use crate::types::{ComposeRequest, ComposeResult};
@@ -113,7 +114,7 @@ pub fn compose_with_observer(
 fn resolve_attempt_label(request: &ComposeRequest) -> String {
     match &request.mode {
         crate::types::ComposeMode::Profile { kind, name } => format!("{kind:?}:{name}"),
-        crate::types::ComposeMode::File { template_path } => template_path.display().to_string(),
+        crate::types::ComposeMode::File { template_path } => to_forward_slash(template_path),
     }
 }
 
@@ -182,8 +183,8 @@ mod tests {
     use serde_json::json;
 
     use crate::observer::{
-        CompositionObserver, IncludeOutcomeEvent, RenderOutcomeEvent, ResolveOutcomeEvent,
-        ValidationOutcomeEvent,
+        CompositionObserver, IncludeOutcomeEvent, RenderOutcomeEvent, ResolveAttemptEvent,
+        ResolveOutcomeEvent, ValidationOutcomeEvent,
     };
     use crate::types::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot};
     use crate::{
@@ -192,6 +193,7 @@ mod tests {
 
     #[derive(Default)]
     struct CapturingObserver {
+        attempts: Vec<ResolveAttemptEvent>,
         resolve: Vec<ResolveOutcomeEvent>,
         include: Vec<IncludeOutcomeEvent>,
         validation: Vec<ValidationOutcomeEvent>,
@@ -199,6 +201,10 @@ mod tests {
     }
 
     impl CompositionObserver for CapturingObserver {
+        fn on_resolve_attempt(&mut self, event: &ResolveAttemptEvent) {
+            self.attempts.push(event.clone());
+        }
+
         fn on_resolve_outcome(&mut self, event: &ResolveOutcomeEvent) {
             self.resolve.push(event.clone());
         }
@@ -360,8 +366,9 @@ mod tests {
     #[test]
     fn compose_with_observer_emits_success_outcomes() {
         let root = temp_root("compose_observer_success");
+        let template_path = PathBuf::from("nested").join("template.md.j2");
         write_file(
-            &root.join("template.md.j2"),
+            &root.join(&template_path),
             "---\ndefaults:\n  name: world\n---\nhello {{ name }}",
         );
         let mut observer = CapturingObserver::default();
@@ -370,7 +377,7 @@ mod tests {
             &ComposeRequest {
                 runtime: None,
                 mode: ComposeMode::File {
-                    template_path: PathBuf::from("template.md.j2"),
+                    template_path: template_path.clone(),
                 },
                 root: ConfiningRoot::new(&root).unwrap(),
                 vars_input: BTreeMap::default(),
@@ -385,6 +392,8 @@ mod tests {
         .unwrap();
 
         assert_eq!(result.rendered_text, "hello world");
+        assert_eq!(observer.attempts.len(), 1);
+        assert_eq!(observer.attempts[0].template, "nested/template.md.j2");
         assert_eq!(observer.resolve.len(), 1);
         assert_eq!(observer.include.len(), 1);
         assert_eq!(observer.validation.len(), 1);

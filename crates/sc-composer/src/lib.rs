@@ -21,6 +21,7 @@ pub mod include;
 pub mod init_workspace;
 /// Observer traits and event payloads.
 pub mod observer;
+mod path_utils;
 /// Template renderer wrapper.
 pub mod renderer;
 /// Runtime-aware profile resolution and search tracing.
