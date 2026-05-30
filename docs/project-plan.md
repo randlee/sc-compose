@@ -932,3 +932,15 @@ The current follow-on implementation track is:
   - cross-use-case proof by implemented examples
 - `docs/phase-B/sprint-B9.md`
   - blocked `sc-observability` `1.2` uplift after the upstream release exists
+
+## Follow-On Work
+
+### Phase B Cleanup Sprint Plans
+
+Status:
+
+- planned follow-on cleanup after the integrated Phase B production-readiness review
+
+Sprint entries:
+
+- [Sprint B14 — CLI Extraction](sprints/b14-cli-extraction.md)
