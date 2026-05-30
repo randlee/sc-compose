@@ -66,7 +66,7 @@ pub(crate) fn run(cli: Cli, observer: &mut CliObserver) -> Result<i32, CommandEr
                 observer,
                 "reports-render-spec",
                 render_args.json,
-                |observer| run_reports_render_spec(render_args, observer),
+                |_observer| run_reports_render_spec(render_args),
             ),
             ReportsSubcommand::Index(index_args) => {
                 observe_command(observer, "reports-index", index_args.json, |_observer| {

@@ -9,9 +9,7 @@ use crate::reporting::render_many::{RenderManyRequest, SourceSetDefinition, rend
 use crate::reporting::spec::run_render_spec_report;
 use crate::{CommandError, print_json};
 
-pub(crate) fn run_reports_render_spec(
-    args: &ReportsRenderSpecArgs,
-) -> Result<i32, CommandError> {
+pub(crate) fn run_reports_render_spec(args: &ReportsRenderSpecArgs) -> Result<i32, CommandError> {
     let result = run_render_spec_report(&args.root, &args.spec_path, args.archive)?;
     if args.json {
         let payload = serde_json::json!({
