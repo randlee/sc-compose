@@ -345,8 +345,10 @@ Status:
 
 Sprint entries:
 
+<<<<<<< HEAD
 - [Sprint B11 — Contract-Alignment](sprints/b11-contract-alignment.md)
 - [Sprint B12 — JSON Surface Hardening](sprints/b12-json-surface-hardening.md)
+- [Sprint B13 — Observability Panic Removal](sprints/b13-observability-panic-removal.md)
 
 ### Known Limitations
 
