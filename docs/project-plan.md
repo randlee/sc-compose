@@ -337,6 +337,16 @@ following are true:
 
 ## Follow-On Work
 
+### Phase B Cleanup Sprint Plans
+
+Status:
+
+- planned follow-on cleanup after the integrated Phase B production-readiness review
+
+Sprint entries:
+
+- [Sprint B11 — Contract-Alignment](sprints/b11-contract-alignment.md)
+
 ### Known Limitations
 
 - Undeclared-token diagnostics currently attribute the warning or error to the
