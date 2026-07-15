@@ -192,10 +192,15 @@ fn discover_sources(request: &RenderManyRequest) -> Result<Vec<SourceEntry>, Ren
             message: error.to_string(),
         })?;
         let absolute_source = if source_path.is_absolute() {
-            source_path
+            source_path.clone()
         } else {
-            canonical_root.join(source_path)
-        };
+            canonical_root.join(&source_path)
+        }
+        .canonicalize()
+        .map_err(|error| RenderManyError::InvalidTemplatePath {
+            path: source_path.clone(),
+            message: error.to_string(),
+        })?;
         let relative_source = absolute_source
             .strip_prefix(&canonical_root)
             .map_err(|error| RenderManyError::InvalidTemplatePath {
