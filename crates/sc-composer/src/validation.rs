@@ -1080,6 +1080,38 @@ mod tests {
     }
 
     #[test]
+    fn extra_input_policy_can_warn() {
+        let root = temp_root("validation_extra_input_warn");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
+        );
+
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unknown_variable_policy: UnknownVariablePolicy::Warn,
+                ..ComposePolicy::default()
+            },
+        );
+        request
+            .vars_input
+            .insert(crate::VariableName::new("name").unwrap(), json!("world"));
+        request
+            .vars_input
+            .insert(crate::VariableName::new("extra").unwrap(), json!("value"));
+
+        let report = validate(&request).unwrap();
+        assert!(report.ok);
+        assert!(report.warnings.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValExtraInput
+                && diagnostic.severity == DiagnosticSeverity::Warning
+        }));
+        assert!(report.errors.is_empty());
+    }
+
+    #[test]
     fn input_defaults_alias_marks_optional_variable_as_known() {
         let root = temp_root("validation_input_defaults_known");
         write_file(

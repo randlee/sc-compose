@@ -14,7 +14,6 @@ All notable changes to this project will be documented in this file.
 - Sprint S8: release engineering and distribution support, including release
   gate automation, Homebrew tap automation, winget manifests, and idempotent
   publish handling for already-published crate versions.
-- Sprint S9: user data directory unification under `~/.sc-compose/`.
 - Phase A (A1 through A9): the SC-Reporting contract foundation, covering the
   report artifact catalog, producer recipe surface, source-collection and
   render-many contract, semantic diagram spec, template families, shared panel
@@ -44,8 +43,6 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Workspace version bump: `1.0.2` -> `1.1.0`.
-- Default examples and templates roots are unified under `~/.sc-compose/` while
-  preserving `SC_COMPOSE_DATA_DIR` and `SC_COMPOSE_TEMPLATE_DIR` overrides.
 - Sprint B9 / PR #85: `sc-compose` now adopts `sc-observability` `1.2.0`
   directly for CLI logging, including retained-log maintenance defaults,
   `Logger::log(...)` queue-admission semantics, and the shutdown-to-stopped
