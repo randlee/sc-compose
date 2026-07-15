@@ -40,6 +40,7 @@ pub(crate) struct ReportsSmokeResult {
     pub(crate) artifacts: Vec<PathBuf>,
     #[serde(serialize_with = "crate::path_utils::serialize_paths")]
     pub(crate) archived_artifacts: Vec<PathBuf>,
+    #[serde(skip_serializing)]
     pub(crate) warnings: Vec<Diagnostic>,
 }
 

@@ -17,6 +17,7 @@ use anyhow::Result;
 use clap::Parser;
 use mimalloc::MiMalloc;
 use sc_composer::Diagnostic;
+use serde::Serialize;
 
 use crate::cli::{Cli, command_wants_json};
 pub(crate) use crate::command_error::CommandError;
@@ -32,12 +33,7 @@ fn main() {
             Ok(observer) => observer,
             Err(error) => {
                 if wants_json {
-                    if let Err(print_error) =
-                        print_json(serde_json::json!({}), error.diagnostics.clone())
-                    {
-                        eprintln!("{error}");
-                        eprintln!("{print_error:#}");
-                    }
+                    print_json_error(&error, error.diagnostics.clone());
                 } else {
                     eprintln!("{error}");
                 }
@@ -48,12 +44,7 @@ fn main() {
         Ok(code) => code,
         Err(error) => {
             if wants_json {
-                if let Err(print_error) =
-                    print_json(serde_json::json!({}), error.diagnostics.clone())
-                {
-                    eprintln!("{error}");
-                    eprintln!("{print_error:#}");
-                }
+                print_json_error(&error, error.diagnostics.clone());
             } else {
                 eprintln!("{error}");
             }
@@ -71,7 +62,7 @@ pub(crate) fn print_diagnostic_messages(diagnostics: &[Diagnostic]) {
 }
 
 pub(crate) fn print_json(
-    payload: serde_json::Value,
+    payload: impl Serialize,
     diagnostics: Vec<sc_composer::Diagnostic>,
 ) -> Result<()> {
     println!(
@@ -79,4 +70,11 @@ pub(crate) fn print_json(
         serde_json::to_string_pretty(&json_output::envelope(payload, diagnostics))?
     );
     Ok(())
+}
+
+fn print_json_error(error: &CommandError, diagnostics: Vec<Diagnostic>) {
+    if let Err(print_error) = print_json(serde_json::json!({}), diagnostics) {
+        eprintln!("{error}");
+        eprintln!("{print_error:#}");
+    }
 }

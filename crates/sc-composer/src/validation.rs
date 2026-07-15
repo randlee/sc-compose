@@ -777,12 +777,14 @@ mod tests {
 
     use serde_json::json;
 
+    use crate::ExpandedTemplate;
     use crate::types::{
-        ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, UnknownVariablePolicy,
+        ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, ResolveResult,
+        UnknownVariablePolicy,
     };
     use crate::{DiagnosticCode, DiagnosticSeverity, validate};
 
-    use super::{collect_validation_state, inject_builtin_vars};
+    use super::{collect_validation_state, inject_builtin_vars, missing_frontmatter_warnings};
 
     #[test]
     fn default_mode_preserves_undeclared_tokens_as_warnings() {
@@ -1044,6 +1046,45 @@ mod tests {
             }),
             "expected missing-frontmatter warning with fix command"
         );
+    }
+
+    #[test]
+    fn missing_included_frontmatter_emits_fixup_warning_for_include() {
+        let root = temp_root("validation_missing_included_frontmatter");
+        let root_template = root.join("template.md.j2");
+        write_file(&root_template, "---\nrequired_variables:\n  - name\n---\n");
+        write_file(&root.join("partials/body.md.j2"), "hello {{ name }}\n");
+
+        let warnings = missing_frontmatter_warnings(
+            &ResolveResult {
+                resolved_path: root_template,
+                attempted_paths: Vec::new(),
+                ambiguity_candidates: Vec::new(),
+            },
+            &ExpandedTemplate {
+                text: "hello {{ name }}\n".to_owned(),
+                resolved_files: vec![
+                    root.join("template.md.j2"),
+                    root.join("partials/body.md.j2"),
+                ],
+                frontmatters: vec![
+                    (
+                        root.join("template.md.j2"),
+                        Some(crate::Frontmatter::empty()),
+                    ),
+                    (root.join("partials/body.md.j2"), None),
+                ],
+                include_chains: BTreeMap::default(),
+            },
+        );
+
+        assert!(warnings.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
+                && diagnostic
+                    .message
+                    .contains("included file has no frontmatter")
+                && diagnostic.message.contains("partials/body.md.j2")
+        }));
     }
 
     #[test]

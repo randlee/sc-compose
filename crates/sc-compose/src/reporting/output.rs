@@ -46,6 +46,7 @@ pub(crate) struct MaterializedReport {
     pub(crate) entrypoint: PathBuf,
     #[serde(serialize_with = "crate::path_utils::serialize_path")]
     pub(crate) metadata: PathBuf,
+    #[serde(rename = "artifacts")]
     #[serde(serialize_with = "crate::path_utils::serialize_paths")]
     pub(crate) latest_artifacts: Vec<PathBuf>,
     #[serde(serialize_with = "crate::path_utils::serialize_paths")]

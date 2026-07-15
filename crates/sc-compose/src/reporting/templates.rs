@@ -220,7 +220,7 @@ fn resolve_repo_template(
             })?,
     )?;
     Ok(ResolvedTemplate {
-        template_name: format!("repo-template-{}", normalized_template_key(&normalized)),
+        template_name: format!("repo-template-{}", stable_path_key(&normalized)),
         template_text,
         supporting_templates: supporting_templates(),
         output_extension,
@@ -307,10 +307,6 @@ fn render_context_map(context: &ReportTemplateContext) -> BTreeMap<String, Value
             .map_or(Value::Null, |metadata| serde_json::json!(metadata)),
     );
     map
-}
-
-fn normalized_template_key(path: &Path) -> String {
-    stable_path_key(path)
 }
 
 impl fmt::Display for TemplateError {

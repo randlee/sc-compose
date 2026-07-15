@@ -12,17 +12,7 @@ use crate::{CommandError, print_json};
 pub(crate) fn run_reports_render_spec(args: &ReportsRenderSpecArgs) -> Result<i32, CommandError> {
     let result = run_render_spec_report(&args.root, &args.spec_path, args.archive)?;
     if args.json {
-        let payload = serde_json::json!({
-            "report_id": result.report_id,
-            "kind": result.kind,
-            "produced_at": result.produced_at,
-            "status": result.status,
-            "entrypoint": to_forward_slash(&result.entrypoint),
-            "metadata": to_forward_slash(&result.metadata),
-            "artifacts": result.artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
-            "archived_artifacts": result.archived_artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
-        });
-        print_json(payload, result.warnings).map_err(CommandError::usage)?;
+        print_json(&result, result.warnings.clone()).map_err(CommandError::usage)?;
     } else {
         println!("report_id: {}", result.report_id);
         println!("kind: {}", result.kind);

@@ -237,3 +237,55 @@ impl fmt::Display for PublishManifestError {
 }
 
 impl std::error::Error for PublishManifestError {}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use super::{ARCHIVE_ROOT_RELATIVE_PATH, latest_archive_root};
+
+    #[test]
+    fn latest_archive_root_selects_lexically_latest_archive_directory() {
+        let root = temp_root("publish-manifest-latest-archive-root");
+        create_dir(
+            &root
+                .join(ARCHIVE_ROOT_RELATIVE_PATH)
+                .join("2026-07-14T01-00-00Z")
+                .join("sc-lint"),
+        );
+        create_dir(
+            &root
+                .join(ARCHIVE_ROOT_RELATIVE_PATH)
+                .join("2026-07-15T09-00-00Z")
+                .join("sc-lint"),
+        );
+
+        let archive_root = latest_archive_root(&root, "sc-lint")
+            .unwrap()
+            .expect("archive root");
+
+        assert_eq!(
+            archive_root,
+            PathBuf::from(ARCHIVE_ROOT_RELATIVE_PATH)
+                .join("2026-07-15T09-00-00Z")
+                .join("sc-lint")
+        );
+    }
+
+    fn temp_root(label: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("sc-compose-{label}-{}-{nanos}", std::process::id()));
+        fs::create_dir_all(&root).expect("create temp root");
+        root
+    }
+
+    fn create_dir(path: &Path) {
+        fs::create_dir_all(path).expect("create dir");
+    }
+}

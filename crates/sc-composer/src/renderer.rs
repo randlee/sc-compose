@@ -148,7 +148,7 @@ pub fn render_loaded_template(
 mod tests {
     use serde_json::json;
 
-    use super::Renderer;
+    use super::{LoadedTemplateRequest, NamedTemplateAsset, Renderer, render_loaded_template};
 
     #[test]
     fn renderer_can_render_multiple_templates_with_one_environment() {
@@ -173,5 +173,29 @@ mod tests {
             .unwrap();
 
         assert_eq!(output, "before\n    value\nafter");
+    }
+
+    #[test]
+    fn render_loaded_template_rejects_malformed_supporting_templates() {
+        let error = render_loaded_template(LoadedTemplateRequest {
+            template_name: "report.html.j2".to_owned(),
+            template_text: "{{ value }}".to_owned(),
+            context: json!({ "value": "ok" })
+                .as_object()
+                .unwrap()
+                .clone()
+                .into_iter()
+                .collect(),
+            supporting_templates: vec![NamedTemplateAsset {
+                template_name: "shared/base.html.j2".to_owned(),
+                template_text: "{% if broken %}".to_owned(),
+            }],
+        })
+        .unwrap_err();
+
+        assert!(
+            error.to_string().contains("unexpected end of input"),
+            "expected supporting-template parse failure, got: {error}"
+        );
     }
 }

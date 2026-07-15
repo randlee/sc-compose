@@ -25,17 +25,7 @@ pub(crate) fn run_reports_finalize(args: &ReportsFinalizeArgs) -> Result<i32, Co
     })?;
 
     if args.json {
-        let payload = serde_json::json!({
-            "report_id": result.report_id,
-            "kind": result.kind,
-            "produced_at": result.produced_at,
-            "status": result.status,
-            "entrypoint": to_forward_slash(&result.entrypoint),
-            "metadata": to_forward_slash(&result.metadata),
-            "artifacts": result.latest_artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
-            "archived_artifacts": result.archived_artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
-        });
-        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
+        print_json(&result, Vec::new()).map_err(CommandError::usage)?;
     } else {
         println!("report_id: {}", result.report_id);
         println!("kind: {}", result.kind);
@@ -60,12 +50,7 @@ pub(crate) fn run_reports_publish_manifest(
         CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
     })?;
     if args.json {
-        let payload = serde_json::json!({
-            "manifest_path": to_forward_slash(&result.manifest_path),
-            "report_count": result.report_count,
-            "manifest": result.manifest,
-        });
-        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
+        print_json(&result, Vec::new()).map_err(CommandError::usage)?;
     } else {
         println!("manifest: {}", to_forward_slash(&result.manifest_path));
         println!("reports: {}", result.report_count);
