@@ -17,8 +17,7 @@ All notable changes to this project will be documented in this file.
 - Phase A (A1 through A9): the SC-Reporting contract foundation, covering the
   report artifact catalog, producer recipe surface, source-collection and
   render-many contract, semantic diagram spec, template families, shared panel
-  chrome, latest/archive policy, publish-manifest handoff, and
-  `sc-observability` `1.1.0` adoption planning.
+  chrome, latest/archive policy, and publish-manifest handoff.
 - Phase B (B1 through B15, integrated via PR #87): the public reporting CLI
   surface with `reports init`, `reports smoke`, `reports finalize`,
   `reports render-spec`, `reports index`, `reports verify`, and
