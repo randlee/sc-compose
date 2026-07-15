@@ -24,11 +24,15 @@ by `sc-composer` and `sc-compose`.
 | `ERR_INCLUDE_CYCLE` | `IncludeError` | error | include graph revisits a file already on the active include stack | include engine |
 | `ERR_INCLUDE_DEPTH` | `IncludeError` | error | include depth exceeds configured maximum | include engine |
 | `ERR_VAL_TYPE` | `ValidationError` | error | invalid scalar type or variable type mismatch | validation pipeline |
+| `ERR_VAL_OBJECT_SHAPE` | `ValidationError` | error | structured input object uses an unsupported shape such as a non-string key or array/object nesting not yet supported | structured input parsing, validation pipeline |
+| `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` | `ValidationError` | error | structured input used a nested array shape that H2 still forbids | structured input parsing, validation pipeline |
 | `ERR_VAL_DUPLICATE` | `ValidationError` | error | duplicate frontmatter variable declaration | frontmatter normalization, validation pipeline |
 | `WARN_VAL_CONFLICTING_DEFAULT_SECTIONS` | `ValidationError` | warning | frontmatter declared both `defaults` and `input_defaults`; `input_defaults` overrides overlaps | frontmatter normalization, validation pipeline |
 | `ERR_VAL_EMPTY` | `ValidationError` | error | template body is empty where composition requires content | validation pipeline |
 | `ERR_VAL_MISSING_FRONTMATTER` | `ValidationError` | warning | a root or included template file references variables but has no frontmatter block | validation pipeline |
 | `ERR_VAL_MISSING_REQUIRED` | `ValidationError` | error | required variable remains unresolved after merge | validation pipeline |
+| `ERR_VAL_MISSING_NESTED_FIELD` | `ValidationError` | error | a required nested field path is missing inside a present object value | validation pipeline |
+| `ERR_VAL_SHAPE_MISMATCH` | `ValidationError` | error | nested required-path traversal expected an object but found a scalar or array | validation pipeline |
 | `ERR_VAL_UNDECLARED_TOKEN` | `ValidationError` | warning/error | referenced token is not declared in frontmatter | validation pipeline |
 | `ERR_VAL_EXTRA_INPUT` | `ValidationError` | warning/error | caller provided a variable that is neither declared nor referenced | validation pipeline |
 | `INFO_VAL_DEFAULT_USED` | `ValidationError` | info | variable was not provided explicitly and a default value was used | validation pipeline, CLI `validate`, CLI `render --dry-run` |
@@ -61,6 +65,10 @@ minimum logical structure:
 - `ResolveError` codes are owned by resolver work in Sprint 3.
 - `IncludeError` and most `ValidationError` codes are owned by include and
   validation work across Sprint 3 and Sprint 4.
+- `ERR_VAL_OBJECT_SHAPE`, `ERR_VAL_SHAPE_MISMATCH`, and
+  `ERR_VAL_MISSING_NESTED_FIELD` are owned by Phase HTML-Report / Sprint H1.
+- `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` remains H2-reserved on the H1 branch, so
+  its registry entry is deferred until the H2 implementation lands.
 - `RenderError` CLI-facing codes are owned by the Sprint 4 release-gate
   command/output verification work.
 - `ConfigError` codes are shared between Sprint 2 type/error work and Sprint 4

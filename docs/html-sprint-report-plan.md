@@ -1,152 +1,118 @@
-# HTML Sprint Report Plan
+# SC-Reporting Follow-On Plan
 
 ## Status
 
-Design exploration only. This document does not change the shipped `1.0`
-implementation contract. It defines a follow-on plan for richer structured
-inputs and an XHTML sprint-report example/template flow.
+Planning line only. H1-H4 are shipped. This document covers the reusable
+reporting line that follows the shipped single-panel HTML example and does not
+change the delivered `1.0` contract until a later review accepts it.
 
 ## Goal
 
-Deliver a genuinely useful HTML sprint report that:
+Lay down one reusable reporting pattern for `sc-compose` consumers so repos can
+add lint, test, smoke, diagram, and custom publishable reports without
+reinventing report layout, output policy, or handoff conventions.
 
-- renders as a self-contained single HTML/XHTML file with inline CSS,
-- shows a top-level sprint summary panel with direct links to PRs and key docs,
-- scales into repeated per-sprint panels,
-- proves that `sc-compose` is useful for structured report composition rather
-  than only for flat markdown/file generation.
+The follow-on line must support:
 
-## Why This Needs Follow-on Input Work
+- report generation through the repo's domain `just` recipes such as
+  `just lint`, `just test`, `just smoke`, and repo-specific custom recipes,
+- a shared evidence contract for generated artifacts and metadata,
+- one stable latest output plus timestamped archive copies where the producer
+  recipe enables them,
+- one shared `just reports` surface for aggregation, verification, and
+  opening/viewing,
+- reusable templates and panel chrome where they add value,
+- reusable diagram/state-machine and SQL-query reporting patterns across many
+  repos,
+- future renderer changes without keeping Mermaid as the long-term semantic
+  source of truth.
 
-The current `1.0` input model accepts:
+## Shipped Baseline
 
-- scalars,
-- arrays of scalars.
+Phase HTML-Report already delivered:
 
-That is enough for simple examples and the current markdown `/sprint-report`
-skill, but it is not enough for a structured HTML report with:
+- H1 object/map inputs,
+- H2 arrays of objects,
+- H3 the bundled single-panel `sprint-report-html` example,
+- H4 wrapper-owned HTML rendering integration without hook execution in
+  `sc-compose`.
 
-- sprint rows carrying multiple named fields,
-- per-sprint PR metadata,
-- per-PR CI check lists,
-- stage-to-icon or stage-to-class mapping.
+## Follow-On Rules
 
-This plan therefore starts with an input-model expansion before any HTML report
-implementation.
+- Producer recipes own report generation. `just lint`, `just test`,
+  `just smoke`, and repo-specific producer recipes generate their own evidence.
+- `just reports` is an aggregator and verifier, not the primary producer.
+- Authored docs and generated evidence stay separate:
+  - `docs/` for authored policy and design notes
+  - report specs/templates/catalogs under a report-specific tree
+  - generated latest/archive outputs under generated-evidence paths
+- The report contract must allow repo-specific custom reports without changing
+  the shared aggregation pattern.
+- GitHub issue `#56` is in-scope for the follow-on line as the generic
+  source-collection and render-many capability, but Mermaid-as-SSOT is treated
+  as transitional rather than the long-term semantic end state.
+- Source-driven rendering must expose collection membership, parsed metadata,
+  and raw source body as first-class inputs so aggregate templates do not need
+  wrapper-specific preprocessing scripts.
+- Network publish behavior and browser-open behavior remain outside
+  `sc-composer` and `sc-compose`.
 
-## Sprint Sequence
+## Phase A Sprint Sequence
 
-### Sprint H1: Map/Object Input Support
+The authoritative sprint order for this line is the Phase A plan in
+[docs/phase-A/phase-A-plan.md](phase-A/phase-A-plan.md):
 
-Objective:
+1. `A1` report artifact contract and catalog
+2. `A2` producer-recipe and `just` command contract
+3. `A3` source-collection, metadata-extraction, and render-many contract
+4. `A4` semantic diagram-spec contract
+5. `A5` template-family and shared panel-chrome contract
+6. `A6` latest/archive output policy and `just reports` aggregator contract
+7. `A7` publish-manifest and CI handoff contract
+8. `A8` cross-use-case proof through multiple report families
+9. `A9` `sc-observability` `1.1.0` adoption for report-producing CLI flows
 
-- allow object/map render inputs with string keys.
+## Output Direction
 
-Scope:
+The follow-on line should converge on a shared evidence shape with:
 
-- extend the `InputValue` contract to support objects,
-- allow object values in `--var-file`,
-- allow object values in frontmatter `defaults`,
-- allow object values in user-template `template.json` `input_defaults`,
-- document object access patterns such as `sprint.stage` and `pr.title`.
+- a report catalog/manifest
+- source specs and templates separated from generated outputs
+- one latest artifact location per report
+- optional timestamped archive outputs
+- one machine-readable sidecar per generated report
+- one machine-readable handoff for downstream publication tooling
 
-Validation focus:
+## Example Consumer Shapes
 
-- object parsing and validation,
-- string-key enforcement,
-- deterministic merge and precedence behavior,
-- clear rejection of unsupported shapes.
+See [docs/phase-A/phase-A-plan.md](./phase-A/phase-A-plan.md) `## Cross-Use-Case Proof Shape` for the canonical minimum proof families and shared custom-producer rule.
 
-Usable outcome:
+## Explicit Non-Goals
 
-- templates can consume one structured record instead of many flattened scalar
-  variables.
+- browser-opening logic inside `sc-compose`
+- hook execution inside `sc-composer`
+- network upload or hosting behavior inside `sc-compose`
+- locking the long-term diagram source model to Mermaid text
 
-### Sprint H2: Arrays Of Objects
+## Retained HTML-Specific Context
 
-Objective:
+The reporting line is intentionally broader than the original HTML-report
+follow-on, but the earlier HTML-specific exploration still provides useful
+example direction.
 
-- allow arrays whose members are objects.
+### HTML-Specific Next Steps
 
-Scope:
+- H5: multi-panel XHTML report expansion with repeated sprint panels
+- H6: wrapper-owned view/open behavior without moving browser logic into
+  `sc-compose`
+- H7: post-render-hook exploration only after wrapper UX stabilizes
 
-- allow arrays of objects in the same input paths as Sprint H1,
-- support loops such as `{% for sprint in sprints %}`,
-- support nested object fields inside each array member,
-- continue to reject nested arrays and other hard-to-govern shapes.
+Multi-panel composition is no longer treated as sprint-report-only behavior.
+The same panel-shell and repeated-rendering model must also support
+state-machine, SQL-query, lint, test, smoke, and future custom report
+families.
 
-Validation focus:
-
-- arrays of objects through `--var-file`,
-- arrays of objects in frontmatter defaults,
-- arrays of objects in `template.json` `input_defaults`,
-- stable and actionable validation errors for rejected nested shapes.
-
-Usable outcome:
-
-- one structured input file can describe a sprint report with repeated sections
-  without flattening each sprint row into unrelated scalar variables.
-
-### Sprint H3: XHTML Sprint Report v1
-
-Objective:
-
-- render the current `/sprint-report` as a single self-contained HTML/XHTML
-  panel that is directly viewable in a browser.
-
-Scope:
-
-- add one bundled example/template conceptually named
-  `sprint-report-html`,
-- render one top-level panel that carries:
-  - report title,
-  - sprint status summary,
-  - PR number/title/branch,
-  - DEV/QA/CI status,
-  - clickable links to:
-    - GitHub PR,
-    - CI run logs,
-    - plan doc,
-    - findings doc when present,
-- use inline CSS and a palette compatible with the existing
-  `xhtml-plugin-expert` guidance,
-- keep H3 as one flat file `examples/sprint-report-html.html.j2` with all
-  markup inline,
-- keep browser opening in the `/sprint-report` skill or wrapper flow rather
-  than in `sc-compose` itself.
-
-Usable outcome:
-
-- the existing sprint-report workflow gains a clickable HTML artifact even
-  before multi-panel report composition exists.
-
-### Sprint H4: Multi-Panel XHTML Report
-
-Objective:
-
-- expand the single-panel report into a multi-panel report with repeated sprint
-  sections.
-
-Scope:
-
-- top summary panel,
-- repeated per-sprint panels,
-- stage-sensitive panel sections,
-- reusable includes/fragments for headers, summary tables, PR cards, and CI
-  status callouts if a later architecture amendment expands the example beyond
-  the flat single-file H3 layout.
-
-### Deferred Next Step: Wrapper-Owned Orchestration
-
-After H1-H4, the next logical extension is a wrapper-owned multi-render flow:
-
-- one source JSON drives multiple `sc-compose render` calls,
-- report fragments render first,
-- final HTML report shell renders last,
-- optional browser-open step lives in the `/sprint-report` skill or a wrapper
-  script, not in `sc-compose`.
-
-## Proposed XHTML Template Structure
+### Proposed XHTML Template Structure
 
 Initial H3 structure:
 
@@ -156,7 +122,7 @@ Initial H3 structure:
   - top summary panel
   - optional repeated sprint summary rows
 
-Follow-on include fragments, deferred until H4 or a later architecture
+Follow-on include fragments, deferred until a later accepted architecture
 amendment:
 
 - `_includes/report-head.html.j2`
@@ -169,9 +135,7 @@ H3 intentionally keeps all markup in one flat file. Multi-panel expansion is
 where `_includes/` begins to add clear value, and that layout change must be
 documented explicitly before implementation.
 
-## Proposed Example Input Shape
-
-Target post-H2 input shape:
+### Example Structured Input Shape
 
 ```json
 {
@@ -179,7 +143,7 @@ Target post-H2 input shape:
     "title": "Sprint Status",
     "generated_at": "2026-04-20T00:00:00Z",
     "plan_url": "https://github.com/org/repo/blob/main/docs/project-plan.md",
-    "findings_url": "https://github.com/org/repo/blob/main/docs/findings.md"
+    "findings_url": "https://github.com/org/repo/blob/main/docs/html-sprint-report-plan.md"
   },
   "sprints": [
     {
@@ -199,29 +163,16 @@ Target post-H2 input shape:
 }
 ```
 
-This shape is the main reason the follow-on input work matters. The current
-scalar-plus-array-of-scalars model forces most of this structure to be flattened
-into prebuilt HTML or markdown strings.
+This example remains useful because it shows why the structured-input work is
+valuable: the current scalar-plus-array-of-scalars model forces most of this
+shape to be flattened into prebuilt HTML or markdown strings.
 
-## Why This Is A Good `sc-compose` Showcase
+### Why The HTML Example Still Matters
 
-This is a strong showcase if the structured-input work lands because it proves:
-
-- one template system can produce both markdown and rich HTML artifacts,
+- one template system can produce both markdown and rich HTML artifacts
 - include-based composition works for UI/report fragments as well as prompt
-  assets,
+  assets
 - structured inputs make `sc-compose` practical for higher-value generated
-  outputs, not just simple string substitution,
+  outputs, not just simple string substitution
 - the same report can stay deterministic and version-controlled while still
-  being clickable and visually useful.
-
-Without the structured-input work, the HTML report would still be possible, but
-it would mostly be a thin wrapper around precomputed HTML strings. That is less
-compelling and does not demonstrate `sc-compose` at its best.
-
-## Explicit Non-Goals For This Track
-
-- browser-opening logic in `sc-compose` itself,
-- hook execution inside `sc-compose`,
-- external JavaScript/CSS dependencies,
-- server-side report hosting requirements.
+  being clickable and visually useful

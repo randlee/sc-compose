@@ -242,7 +242,7 @@ Deliverables:
 
 Acceptance criteria:
 
-- all FR-1 through FR-11 behavior is implemented and covered by automated tests
+- all FR-1 through FR-15 behavior is implemented and covered by automated tests
 - all release blockers are closed
 - all required docs match shipped behavior
 - downstream cutover notes are accurate
@@ -315,6 +315,8 @@ Exit gate:
   - Sprint H3 adds HTML template output as a bundled report example track
 - FR-15:
   - Sprint H3 ships the `sprint-report-html` bundled example
+- FR-12 through FR-15 (H4):
+  - Sprint H4 extends wrapper integration across FR-12–FR-15 and finalizes source-of-truth documentation; introduces no new functional requirements
 
 ## Production Readiness Gate
 
@@ -324,7 +326,7 @@ following are true:
 - no release blocker remains open
 - `requirements.md`, `architecture.md`, and `project-plan.md` match the shipped
   behavior
-- all FR-1 through FR-11 behavior is implemented and covered by automated tests
+- all FR-1 through FR-15 behavior is implemented and covered by automated tests
 - `cargo test --workspace` passes
 - `cargo clippy --all-targets --all-features -- -D warnings` passes
 - `cargo fmt --all --check` passes
@@ -334,6 +336,27 @@ following are true:
 - release is approved for merge to `main`
 
 ## Follow-On Work
+
+### Phase B Cleanup Sprint Plans
+
+Status:
+
+- planned follow-on cleanup after the integrated Phase B production-readiness review
+
+Sprint entries:
+
+- [Sprint B11 — Contract-Alignment](sprints/b11-contract-alignment.md)
+- [Sprint B12 — JSON Surface Hardening](sprints/b12-json-surface-hardening.md)
+- [Sprint B13 — Observability Panic Removal](sprints/b13-observability-panic-removal.md)
+- [Sprint B14 — CLI Extraction](sprints/b14-cli-extraction.md)
+- [Sprint B15 — Reporting Runtime Cleanup](sprints/b15-reporting-runtime-cleanup.md)
+- [Issues Inventory](issues-inventory.md)
+
+These sprint plans target `integrate/phase-B` follow-on cleanup work. They do
+not change the completed Phase B execution record; they capture the next
+implementation slices needed to close the remaining production-readiness gaps.
+The accepted cleanup findings and sprint ownership are tracked in
+[docs/issues-inventory.md](issues-inventory.md).
 
 ### Known Limitations
 
@@ -350,51 +373,95 @@ following are true:
 - CLI-to-log-file emission is covered by command and observer integration
   tests, but there is not yet a standalone seam test that asserts every
   command event reaches the final sink file on disk.
-- Structured object inputs, arrays of objects, and the HTML sprint-report track
-  remain planned follow-on work documented in
-  [docs/html-sprint-report-plan.md](html-sprint-report-plan.md) and the Phase
-  HTML-Report section above.
+- Multi-panel HTML/XHTML report composition, wrapper-level open/app selection,
+  and any reusable post-render hook design remain follow-on work documented in
+  [docs/html-sprint-report-plan.md](html-sprint-report-plan.md). The shipped
+  Phase HTML-Report scope is limited to the structured-input model, the
+  bundled single-panel `sprint-report-html` example, and wrapper-owned HTML
+  rendering integration.
 
-### Sprint S8: Release Engineering And Distribution
+### Sprint S9: User Data Directory Unification (`~/.sc-compose`)
 
 Status:
 
-- completed
+- planned
 
 Branch:
 
-- `chore/version-bump-1.0.0` -> `develop`
+- `TBD`
 
 Goals:
 
-- finalize the first standalone `1.0.0` release path for `sc-composer` and
-  `sc-compose`
-- add release-control infrastructure that prevents accidental duplicate publish
-- make Homebrew, `winget`, and packaged GitHub Release installs match the
-  documented examples-discovery contract
+- unify the default examples and user-template directories under one stable
+  user-owned root: `~/.sc-compose/`
+- preserve `SC_COMPOSE_DATA_DIR` and `SC_COMPOSE_TEMPLATE_DIR` override
+  behavior exactly as it exists today
+- make installer-created directories and first-run diagnostics match the new
+  unified user-data contract
 
 Deliverables:
 
-- completed as specified in [docs/publishing.md](docs/publishing.md)
+- `crates/sc-compose/src/template_store.rs`
+  - `pub(crate) fn data_dir() -> Result<PathBuf>`
+    - preserves `SC_COMPOSE_DATA_DIR`
+    - changes the default fallback from install-relative
+      `../share/sc-compose` to `~/.sc-compose`
+  - `pub(crate) fn user_templates_dir() -> Result<PathBuf>`
+    - preserves `SC_COMPOSE_TEMPLATE_DIR`
+    - changes the default fallback from the platform-specific user-data root to
+      `~/.sc-compose/templates`
+  - `fn platform_user_data_dir() -> Option<PathBuf>`
+    - is simplified or removed if it no longer owns the examples/templates
+      default-resolution path
+- `release/homebrew/sc-compose.rb.j2`
+  - adds a `post_install` block that:
+    - creates `~/.sc-compose/examples`
+    - copies bundled examples from `#{share}/sc-compose/examples/` into
+      `~/.sc-compose/examples/`
+    - creates `~/.sc-compose/templates`
+- equivalent installer/runtime planning notes for other distribution paths so
+  Homebrew is not treated as the only installer owning the unified user-data
+  contract
+- unit and integration tests covering:
+  - new default examples resolution
+  - new default templates resolution
+  - preserved env-override precedence
+  - clear first-run error messaging when the expected user-data dirs are absent
+- docs updated so the default user-facing examples/templates locations point to
+  `~/.sc-compose/`
+
+Explicit non-closure:
+
+- no change to the meaning of `SC_COMPOSE_DATA_DIR`
+- no change to the meaning of `SC_COMPOSE_TEMPLATE_DIR`
+- no runtime writes into package-managed install prefixes
+- no implementation of publish/reporting behavior in this sprint
 
 Acceptance Criteria:
 
-- workspace and crate manifests are updated to `1.0.0`
-- release workflow archives ship `bin/sc-compose` and
-  `share/sc-compose/examples/...`
-- `scripts/release_gate.sh` exists and enforces release ancestry plus
-  unpublished-version checks
-- release preflight verifies unpublished crate versions before release
-- release workflow publish steps are idempotent when crates are already live
-- Homebrew automation updates `randlee/homebrew-tap` from the checked-in formula
-  template
-- `winget` automation and supporting docs are present for `randlee.sc-compose`
-- publishing docs and operator guidance are aligned with the first standalone
-  `1.0.0` release path
+- `sc-compose examples` resolves bundled examples from
+  `SC_COMPOSE_DATA_DIR/examples` when `SC_COMPOSE_DATA_DIR` is set
+- without `SC_COMPOSE_DATA_DIR`, `sc-compose examples` resolves from
+  `~/.sc-compose/examples`
+- `sc-compose templates` resolves from `SC_COMPOSE_TEMPLATE_DIR` when
+  `SC_COMPOSE_TEMPLATE_DIR` is set
+- without `SC_COMPOSE_TEMPLATE_DIR`, `sc-compose templates` resolves from
+  `~/.sc-compose/templates`
+- if the unified user-data dirs are missing on first run, `sc-compose` emits a
+  clear error that points users to `~/.sc-compose/`
+- the Homebrew install path creates `~/.sc-compose/examples`,
+  populates it from packaged bundled examples, and creates an empty
+  `~/.sc-compose/templates` directory
+- no runtime fallback remains on install-relative
+  `../share/sc-compose/examples/` for default bundled-example discovery
+- tests cover the new defaults and the preserved env overrides on macOS, Linux,
+  and Windows path conventions
 
-Exit Gate:
+Required Validation:
 
-- `SC-RELEASE-ENG-QA-001` passed as the Sprint S8 exit gate
+- `cargo fmt --all --check`
+- `cargo test --workspace`
+- `cargo clippy --all-targets --all-features -- -D warnings`
 
 ### Sprint S8: Release Engineering And Distribution
 
@@ -416,7 +483,7 @@ Goals:
 
 Deliverables:
 
-- completed as specified in [docs/publishing.md](docs/publishing.md)
+- completed as specified in [docs/publishing.md](publishing.md)
 
 Acceptance Criteria:
 
@@ -570,7 +637,7 @@ Acceptance criteria:
 
 Status:
 
-- planned
+- completed
 
 Phase goal:
 
@@ -581,9 +648,9 @@ Release blocker inventory:
 
 | ID | Blocker | Status | Sprint | Closure condition |
 | --- | --- | --- | --- | --- |
-| HRB-01 | The current input model cannot express structured records such as PR objects and nested field access. | Open | H1 | Object/map input values render end-to-end with stable field-path diagnostics. |
-| HRB-02 | The current input model cannot express repeated report sections as arrays of structured records. | Open | H2 | Arrays of objects render, validate, and support loop-body discovery end-to-end. |
-| HRB-03 | There is no bundled HTML report example proving `sc-compose` can generate a useful clickable report artifact. | Open | H3 | `sprint-report-html` renders a self-contained HTML report from realistic structured input. |
+| HRB-01 | The current input model cannot express structured records such as PR objects and nested field access. | Closed — PR #45, `2280bd1`. All 11 H1 acceptance tests pass including `frontmatter_defaults_accept_object_value` (`crates/sc-composer/src/lib.rs:107`), `render_accepts_object_values_in_json_var_file` (`crates/sc-compose/tests/cli.rs:818`), and `template_json_object_input_defaults_obey_precedence` (`crates/sc-compose/tests/cli.rs:581`). | H1 | Object/map input values render end-to-end with stable field-path diagnostics. |
+| HRB-02 | The current input model cannot express repeated report sections as arrays of structured records. | Closed — H2 implements arrays-of-objects ingress, nested-array diagnostics, and loop-body discovery with dedicated unit/integration coverage. | H2 | Arrays of objects render, validate, and support loop-body discovery end-to-end. |
+| HRB-03 | There is no bundled HTML report example proving `sc-compose` can generate a useful clickable report artifact. | Closed — H3 adds `examples/sprint-report-html.html.j2`, realistic sample vars, and named-render coverage for `sprint-report-html.html.j2 -> sprint-report-html.html`. | H3 | `sprint-report-html` renders a self-contained HTML report from realistic structured input. |
 
 #### Sprint H1: Structured Object Input Support
 
@@ -659,9 +726,8 @@ Deliverables:
 - arrays of objects accepted in frontmatter defaults
 - arrays of objects accepted in `template.json` `input_defaults`
 - loop-body field access in Jinja templates
-- Spike: loop-body discovery approach (MiniJinja AST vs scope-tracker);
-  document the decision in `architecture.md` section 21.5 before proceeding
-  with the remaining H2 deliverables
+- scope-tracker chosen over a MiniJinja AST dependency for loop-body
+  discovery; the decision is documented in `architecture.md` section 21.5
 - frontmatter-init discovery for nested references inside loop bodies
 - nested arrays explicitly remain out of scope for H1/H2 and are rejected with
   `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
@@ -719,7 +785,7 @@ Deliverables:
 
 Acceptance Criteria:
 
-- `sc-compose examples sprint-report-html --var-file sample-vars.json` works
+- `sc-compose examples sprint-report-html --var-file examples/sprint-report-html.sample-vars.json` works
   end-to-end
 - rendered HTML is self-contained and browser-viewable
 - rendered output includes working PR, CI, and plan/findings links from sample
@@ -739,20 +805,20 @@ Exit Gate:
 
 Description:
 
-- extend the single-panel example into a fuller report and connect it to the
-  wrapper workflow without moving open/display behavior into `sc-compose`.
+- connect the shipped single-panel HTML example to the wrapper workflow without
+  moving open/display behavior into `sc-compose`.
 
 H4 introduces no new functional requirements. All H4 work extends FR-12,
-FR-13, FR-14, and FR-15 with wrapper integration and multi-panel example work.
-This is intentional.
+FR-13, FR-14, and FR-15 with wrapper integration and final source-of-truth
+documentation. This is intentional.
 
 Deliverables:
 
-- multi-panel report layout with repeated per-sprint sections
-- stage-sensitive panel sections or variants
-- `/sprint-report` skill update that renders the HTML artifact and opens or
-  writes it from wrapper logic
+- `/sprint-report` skill update that selects the shipped HTML artifact and
+  writes or optionally opens it from wrapper logic
 - architecture/docs update describing the wrapper-owned orchestration pattern
+- explicit scoping language that multi-panel XHTML composition and any
+  reusable post-render hook remain follow-on work, not H4 deliverables
 
 Acceptance Criteria:
 
@@ -760,13 +826,15 @@ Acceptance Criteria:
   orchestration
 - the wrapper path opens or writes the output without requiring hook execution
   in `sc-compose`
-- the multi-panel layout remains self-contained and deterministic
+- H4 keeps the bundled HTML artifact as the shipped single-panel example and
+  does not redefine it into a multi-panel report
 
 Exit Gate:
 
 - wrapper integration works without changing `sc-compose` into a workflow
   orchestrator
-- quality review confirms the final report flow is usable and maintainable
+- quality review confirms the final single-panel HTML report flow is usable and
+  maintainable
 - all HTML-Report phase blockers are closed
 - `quality-mgr` sprint_review passes with no blocker findings
 
@@ -777,7 +845,7 @@ Exit Gate:
 - `docs/test-strategy.md`
 - `docs/html-sprint-report-plan.md`
 
-## Follow-on Design Track
+## Follow-on Design Track (H5+)
 
 The current plan is the authoritative release plan for `1.0`. Additional
 post-`1.0` design exploration must not silently rewrite the shipped contract.
@@ -785,10 +853,53 @@ post-`1.0` design exploration must not silently rewrite the shipped contract.
 The current follow-on design track is:
 
 - `docs/html-sprint-report-plan.md`
-  - structured input-value expansion for maps/objects and arrays of objects,
-  - XHTML sprint-report example/template design,
-  - wrapper-owned browser-open workflow rather than hook execution in
-    `sc-compose`.
+  - multi-panel HTML/XHTML sprint-report exploration beyond the shipped
+    single-panel artifact,
+  - wrapper-level output viewing behavior such as `--open` or application
+    selection,
+  - possible post-render-hook design exploration that remains outside the core
+    `sc-compose` renderer boundary unless explicitly accepted in a later phase.
+- `docs/phase-A/phase-A-plan.md`
+  - reusable report-pack planning for multi-output bundles, shared XHTML panel
+    chrome, latest/archive output policy, publish-manifest handoff, and
+    `sc-observability` `1.1.0` adoption planning for the CLI logging layer
+- `docs/phase-A/sprint-A6.md`
+  - the sixth executable Phase A sprint, which defines latest/archive output
+    policy and the shared `just reports` aggregation and verification behavior
+- `docs/phase-A/sprint-A7.md`
+  - the seventh executable Phase A sprint, which defines the machine-readable
+    publish-manifest handoff from generated artifacts to CI or wrapper-owned
+    publication steps
+- `docs/phase-A/sprint-A1.md`
+  - the first executable Phase A sprint, which defines the generic report
+    artifact contract and report catalog before any later report-family or
+    panel-specific planning work closes out
+- `docs/phase-A/sprint-A3.md`
+  - the third executable Phase A sprint, which defines the generic
+    source-driven rendering contract for collection discovery, metadata
+    extraction, render-many, and generated manifests
+- `docs/phase-A/sprint-A4.md`
+  - the fourth executable Phase A sprint, which defines the typed semantic
+    report-spec contract so Mermaid becomes one renderer or migration input
+    instead of the long-term semantic source model
+- `docs/phase-A/sprint-A8.md`
+  - the cross-use-case proof sprint, which demonstrates that the shared
+    reporting model must serve both `atm-core` style multi-panel
+    state-machine/SQL-query reports and `sc-lint` style lint/test/smoke
+    evidence reports without changing the shared discovery or verification
+    contract
+- `docs/phase-A/sprint-A2.md`
+  - the second executable Phase A sprint, which defines the standard producer
+    command contract and reserves `just reports` for shared aggregation,
+    verification, and opening/viewing
+- `docs/phase-A/sprint-A5.md`
+  - the fifth executable Phase A sprint, which defines shared template
+    families, repo-local override points, and shared panel chrome with stable
+    copy-action behavior
+- `docs/phase-A/sprint-A9.md`
+  - the observability follow-on sprint, which upgrades `sc-compose` to
+    `sc-observability` `1.1.0`, keeps direct logger integration, and adopts
+    logger-managed retained-log maintenance defaults
 
 ## Rule
 
@@ -799,3 +910,48 @@ boundary defined by:
 - `docs/architecture.md`
 - `docs/git-workflows.md`
 - `docs/publishing.md`
+
+## Follow-on Implementation Track (Phase B)
+
+The current follow-on implementation track is:
+
+- `docs/phase-B/phase-B-plan.md`
+  - the implementation phase that turns the Phase A reporting contracts into a
+    runnable shared system
+- `docs/phase-B/sprint-B1.md`
+  - report artifact runtime and catalog
+- `docs/phase-B/sprint-B10.md`
+  - built-in render context variables injected into every render context
+  - added during Phase B hardening to make render-context precedence and
+    template metadata injection explicit before implementation dispatch
+- `docs/phase-B/sprint-B2.md`
+  - producer recipes, report-init scaffold, and `just` command surface
+- `docs/phase-B/sprint-B3.md`
+  - source collection, metadata extraction, and render-many runtime
+- `docs/phase-B/sprint-B4.md`
+  - template families and shared panel chrome
+- `docs/phase-B/sprint-B5.md`
+  - latest/archive output policy and reports aggregator
+- `docs/phase-B/sprint-B6.md`
+  - publish manifest and CI handoff
+- `docs/phase-B/sprint-B7.md`
+  - semantic diagram-spec runtime
+- `docs/phase-B/sprint-B8.md`
+  - cross-use-case proof by implemented examples
+- `docs/phase-B/sprint-B9.md`
+  - blocked `sc-observability` `1.2` uplift after the upstream release exists
+- `docs/sprints/b11-contract-alignment.md`
+  - follow-on cleanup sprint for normative doc/API drift between Phase B
+    source-of-truth docs and the shipped `sc-composer` API
+- `docs/sprints/b12-json-surface-hardening.md`
+  - follow-on cleanup sprint for remaining JSON and JSONL forward-slash path
+    normalization plus Windows-sensitive coverage
+- `docs/sprints/b13-observability-panic-removal.md`
+  - follow-on cleanup sprint for removing panic paths from production
+    observability code after the `sc-observability 1.2` uplift
+- `docs/sprints/b14-cli-extraction.md`
+  - follow-on cleanup sprint for oversized CLI module extraction and command
+    ownership cleanup
+- `docs/sprints/b15-reporting-runtime-cleanup.md`
+  - follow-on cleanup sprint for dead reporting seams, duplicated helper
+    removal, and report-runtime scope tightening

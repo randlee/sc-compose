@@ -1,0 +1,29 @@
+{
+  "task_id": "phase-x-plan-qa",
+  "sprint": "phase-X",
+  "sprint_doc": "docs/phase-X/plan-phase-X.md",
+  "review_type": "plan_gate",
+  "description": "Focused plan QA for phase-X after consistency hardening",
+  "pr_number": "",
+  "branch": "plan/phase-x",
+  "worktree_path": "/absolute/path/to/worktree",
+  "commits": "HEAD",
+  "deliverables": [
+    "Plan and sprint docs are hardened and ready for implementation dispatch"
+  ],
+  "references": [
+    "docs/project-plan.md",
+    "docs/requirements.md",
+    "docs/architecture.md"
+  ],
+  "changed_scope": [
+    "docs/phase-X/plan-phase-X.md",
+    "docs/phase-X/sprint-X1.md",
+    "docs/phase-X/sprint-X2.md"
+  ],
+  "touched_ssot_sections": [
+    "docs/project-plan.md",
+    "docs/requirements.md",
+    "docs/architecture.md"
+  ]
+}

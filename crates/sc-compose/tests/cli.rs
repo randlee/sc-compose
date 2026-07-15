@@ -32,7 +32,14 @@ fn sc_compose() -> Command {
 }
 
 fn test_log_root() -> PathBuf {
-    let root = std::env::temp_dir().join(format!("sc-compose-cli-logs-{}", std::process::id()));
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!(
+        "sc-compose-cli-logs-{}-{nanos}",
+        std::process::id()
+    ));
     fs::create_dir_all(&root).unwrap();
     root
 }
@@ -263,6 +270,57 @@ fn examples_named_render_accepts_array_values_from_var_file() {
     assert!(stdout.contains("def test_logout(fixture_state):"));
 }
 
+fn sprint_report_html_sample_vars() -> PathBuf {
+    repo_root()
+        .join("examples")
+        .join("sprint-report-html.sample-vars.json")
+}
+
+#[test]
+fn examples_named_render_sprint_report_html_renders_browser_viewable_html() {
+    let vars_file = sprint_report_html_sample_vars();
+
+    let output = sc_compose()
+        .arg("examples")
+        .arg("sprint-report-html")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("<!DOCTYPE html>"));
+    assert!(stdout.contains("<title>HTML Sprint Report</title>"));
+    assert!(stdout.contains("https://github.com/randlee/sc-compose/pull/47"));
+    assert!(stdout.contains("https://github.com/randlee/sc-compose/actions/runs/118"));
+    assert!(stdout.contains("Plan Doc"));
+    assert!(stdout.contains("Findings Doc"));
+    assert!(stdout.contains("Structured object inputs"));
+    assert!(stdout.contains("Arrays of objects"));
+}
+
+#[test]
+fn examples_named_render_dry_run_derives_html_output_path_from_example_name() {
+    let vars_file = sprint_report_html_sample_vars();
+
+    let output = sc_compose()
+        .arg("examples")
+        .arg("sprint-report-html")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .arg("--dry-run")
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("would_write: sprint-report-html.html"));
+    assert!(stdout.contains("<!DOCTYPE html>"));
+}
+
 #[test]
 fn general_task_template_validate_accepts_optional_input_defaults_without_explicit_values() {
     let vars_file = temp_root("general-task-validate").join("vars.json");
@@ -358,9 +416,28 @@ fn general_task_template_render_dry_run_reports_default_usage_info() {
 #[test]
 fn general_task_template_render_allows_overriding_optional_input_defaults() {
     let vars_file = temp_root("general-task-override").join("vars.json");
+    let worktree_path = std::env::temp_dir().join(format!(
+        "wt-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
     write_file(
         &vars_file,
-        r#"{ "task_id": "SC-GENERAL-TASK-REVIEW-001", "assignee": "architect", "description": "review", "worktree_path": "/tmp/wt", "branch": "feat/x", "pr_target": "develop", "deliverables": "pass review", "acceptance_criteria": "passes", "references": "template + dev-template" }"#,
+        &serde_json::json!({
+            "task_id": "SC-GENERAL-TASK-REVIEW-001",
+            "assignee": "architect",
+            "description": "review",
+            "worktree_path": worktree_path.display().to_string(),
+            "branch": "feat/x",
+            "pr_target": "develop",
+            "deliverables": "pass review",
+            "acceptance_criteria": "passes",
+            "references": "template + dev-template"
+        })
+        .to_string(),
     );
 
     let output = sc_compose()
@@ -383,7 +460,7 @@ fn general_task_template_render_allows_overriding_optional_input_defaults() {
     );
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains(r#"assignee="architect""#));
-    assert!(stdout.contains("<worktree>/tmp/wt</worktree>"));
+    assert!(stdout.contains(&format!("<worktree>{}</worktree>", worktree_path.display())));
     assert!(stdout.contains("<branch>feat/x</branch>"));
     assert!(stdout.contains("<pr-target>develop</pr-target>"));
 }
@@ -578,6 +655,170 @@ fn templates_named_render_uses_array_input_defaults_from_template_json() {
 }
 
 #[test]
+fn template_json_object_input_defaults_obey_precedence() {
+    let root = temp_root("templates-object-default-precedence");
+    let templates_root = root.join("user-templates");
+    let pack = templates_root.join("report");
+    write_file(
+        &pack.join("template.json"),
+        r#"{ "description": "Report defaults", "version": "1.0.0", "input_defaults": { "pr": { "number": 43, "url": "https://example.test/pr/43" } } }"#,
+    );
+    write_file(
+        &pack.join("report.md.j2"),
+        "---\ndefaults:\n  pr:\n    number: 7\n    url: https://frontmatter.test/pr/7\n---\nPR #{{ pr.number }} -> {{ pr.url }}\n",
+    );
+
+    let default_output = sc_compose()
+        .arg("templates")
+        .arg("report")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(default_output.status.success());
+    assert_eq!(
+        String::from_utf8(default_output.stdout).unwrap().trim(),
+        "PR #43 -> https://example.test/pr/43"
+    );
+
+    let vars_file = root.join("vars.json");
+    write_file(
+        &vars_file,
+        r#"{ "pr": { "number": 99, "url": "https://input.test/pr/99" } }"#,
+    );
+    let explicit_output = sc_compose()
+        .arg("templates")
+        .arg("report")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(explicit_output.status.success());
+    assert_eq!(
+        String::from_utf8(explicit_output.stdout).unwrap().trim(),
+        "PR #99 -> https://input.test/pr/99"
+    );
+}
+
+#[test]
+fn render_accepts_array_of_objects_in_json_var_file() {
+    let root = temp_root("array-objects-json");
+    write_file(
+        &root.join("template.md.j2"),
+        "{% for sprint in sprints %}{{ sprint.id }}:{{ sprint.stage }}\n{% endfor %}",
+    );
+    let vars_file = root.join("vars.json");
+    write_file(
+        &vars_file,
+        r#"{ "sprints": [ { "id": "S1", "stage": "qa" }, { "id": "S2", "stage": "merged" } ] }"#,
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("S1:qa"));
+    assert!(stdout.contains("S2:merged"));
+}
+
+#[test]
+fn render_accepts_array_of_objects_in_yaml_var_file() {
+    let root = temp_root("array-objects-yaml");
+    write_file(
+        &root.join("template.md.j2"),
+        "{% for sprint in sprints %}{{ sprint.id }}:{{ sprint.stage }}\n{% endfor %}",
+    );
+    let vars_file = root.join("vars.yaml");
+    write_file(
+        &vars_file,
+        "sprints:\n  - id: S1\n    stage: qa\n  - id: S2\n    stage: merged\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("S1:qa"));
+    assert!(stdout.contains("S2:merged"));
+}
+
+#[test]
+fn render_rejects_nested_arrays_in_var_file_with_reserved_code() {
+    let root = temp_root("nested-array-var-file");
+    write_file(&root.join("template.md.j2"), "{{ sprints }}\n");
+    let vars_file = root.join("vars.json");
+    write_file(&vars_file, r#"{ "sprints": [["bad"]] }"#);
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("ERR_VAL_NESTED_ARRAY_UNSUPPORTED"));
+}
+
+#[test]
+fn templates_named_render_uses_array_of_objects_input_defaults_from_template_json() {
+    let root = temp_root("templates-array-object-defaults");
+    let templates_root = root.join("user-templates");
+    let pack = templates_root.join("sprint-summary");
+    write_file(
+        &pack.join("template.json"),
+        r#"{ "description": "Sprint summary", "version": "1.0.0", "input_defaults": { "sprints": [ { "id": "S1", "stage": "qa" }, { "id": "S2", "stage": "merged" } ] } }"#,
+    );
+    write_file(
+        &pack.join("report.md.j2"),
+        "{% for sprint in sprints %}{{ sprint.id }}:{{ sprint.stage }}\n{% endfor %}",
+    );
+
+    let output = sc_compose()
+        .arg("templates")
+        .arg("sprint-summary")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("S1:qa"));
+    assert!(stdout.contains("S2:merged"));
+}
+
+#[test]
 fn templates_add_directory_creates_pack_and_readme_and_named_render_uses_input_defaults() {
     let root = temp_root("templates-add-dir");
     let templates_root = root.join("user-templates");
@@ -767,11 +1008,17 @@ fn templates_named_render_reports_parse_errors_for_invalid_template_manifest() {
 }
 
 #[test]
-fn render_rejects_nested_object_values_in_var_file() {
-    let root = temp_root("nested-object-var-file");
+fn render_accepts_object_values_in_json_var_file() {
+    let root = temp_root("object-json-var-file");
     let vars_file = root.join("vars.json");
-    write_file(&root.join("template.md.j2"), "hello\n");
-    write_file(&vars_file, r#"{ "service": { "name": "api" } }"#);
+    write_file(
+        &root.join("template.md.j2"),
+        "PR #{{ pr.number }} -> {{ pr.url }}\n",
+    );
+    write_file(
+        &vars_file,
+        r#"{ "pr": { "number": 43, "url": "https://example.test/pr/43" } }"#,
+    );
 
     let output = sc_compose()
         .arg("render")
@@ -786,18 +1033,25 @@ fn render_rejects_nested_object_values_in_var_file() {
         .output()
         .unwrap();
 
-    assert_eq!(output.status.code(), Some(3));
-    let stderr = String::from_utf8(output.stderr).unwrap();
-    assert!(stderr.contains("ERR_CONFIG_VARFILE"));
-    assert!(stderr.contains("found object"));
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8(output.stdout).unwrap().trim(),
+        "PR #43 -> https://example.test/pr/43"
+    );
 }
 
 #[test]
-fn render_rejects_nested_sequence_values_in_var_file() {
-    let root = temp_root("nested-sequence-var-file");
-    let vars_file = root.join("vars.json");
-    write_file(&root.join("template.md.j2"), "hello\n");
-    write_file(&vars_file, r#"{ "test_names": [["login"], ["logout"]] }"#);
+fn render_accepts_object_values_in_yaml_var_file() {
+    let root = temp_root("object-yaml-var-file");
+    let vars_file = root.join("vars.yaml");
+    write_file(
+        &root.join("template.md.j2"),
+        "PR #{{ pr.number }} -> {{ pr.url }}\n",
+    );
+    write_file(
+        &vars_file,
+        "pr:\n  number: 43\n  url: https://example.test/pr/43\n",
+    );
 
     let output = sc_compose()
         .arg("render")
@@ -812,10 +1066,11 @@ fn render_rejects_nested_sequence_values_in_var_file() {
         .output()
         .unwrap();
 
-    assert_eq!(output.status.code(), Some(3));
-    let stderr = String::from_utf8(output.stderr).unwrap();
-    assert!(stderr.contains("ERR_CONFIG_VARFILE"));
-    assert!(stderr.contains("nested array"));
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8(output.stdout).unwrap().trim(),
+        "PR #43 -> https://example.test/pr/43"
+    );
 }
 
 #[test]
@@ -960,8 +1215,9 @@ fn init_dry_run_text_reports_recommendations() {
 
 #[test]
 fn render_reports_include_escape_for_path_confinement_violations() {
-    let root = temp_root("render-include-escape-cli");
-    let outside = root.parent().unwrap().join("outside-include.md");
+    let namespace = temp_root("render-include-escape-cli");
+    let root = namespace.join("repo");
+    let outside = namespace.join("outside-include.md");
     write_file(&outside, "outside\n");
     write_file(&root.join("template.md.j2"), "@<../outside-include.md>\n");
 
@@ -982,8 +1238,9 @@ fn render_reports_include_escape_for_path_confinement_violations() {
 
 #[test]
 fn render_reports_include_escape_for_symlink_escape_at_cli_layer() {
-    let root = temp_root("render-symlink-escape-cli");
-    let outside = root.parent().unwrap().join("outside-symlink-include.md");
+    let namespace = temp_root("render-symlink-escape-cli");
+    let root = namespace.join("repo");
+    let outside = namespace.join("outside-symlink-include.md");
     write_file(&outside, "outside\n");
     let symlink_path = root.join("linked-outside.md");
     if !create_symlink_if_supported(&outside, &symlink_path) {
@@ -1009,8 +1266,9 @@ fn render_reports_include_escape_for_symlink_escape_at_cli_layer() {
 #[cfg(windows)]
 #[test]
 fn windows_backslash_escape_requires_cli_confinement_coverage() {
-    let root = temp_root("render-backslash-escape-cli");
-    let outside = root.parent().unwrap().join("outside-backslash-include.md");
+    let namespace = temp_root("render-backslash-escape-cli");
+    let root = namespace.join("repo");
+    let outside = namespace.join("outside-backslash-include.md");
     write_file(&outside, "outside\n");
     write_file(
         &root.join("template.md.j2"),
@@ -1079,25 +1337,59 @@ fn render_smoke_pipeline_handles_includes_vars_var_file_env_and_output() {
 
 #[test]
 fn observability_health_text_reports_process_local_status() {
-    let root = temp_root("observability-health-text");
-    let output = sc_compose()
+    let log_root = temp_root("observability-health-text");
+    let health = sc_compose()
         .arg("observability-health")
-        .env("SC_LOG_ROOT", &root)
+        .env("SC_LOG_ROOT", &log_root)
         .output()
         .unwrap();
 
-    assert!(output.status.success());
-    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(health.status.success());
+    let stdout = String::from_utf8_lossy(&health.stdout);
     assert!(stdout.contains("state: Healthy"));
     assert!(stdout.contains("query_state: Healthy"));
+    assert!(stdout.contains("maintenance_state: Running"));
     assert!(stdout.contains("sink jsonl-file: Healthy"));
-    #[cfg(not(windows))]
     assert!(stdout.contains(&format!(
         "active_log_path: {}",
-        root.join("logs").join("sc-compose.log.jsonl").display()
+        log_root.join("logs").join("sc-compose.log.jsonl").display()
     )));
-    #[cfg(windows)]
-    assert!(stdout.contains("active_log_path:") && stdout.contains("sc-compose.log.jsonl"));
+}
+
+#[test]
+fn observability_health_json_reports_process_local_status() {
+    let log_root = temp_root("observability-health-json");
+    let health = sc_compose()
+        .arg("observability-health")
+        .arg("--json")
+        .env("SC_LOG_ROOT", &log_root)
+        .output()
+        .unwrap();
+
+    assert!(health.status.success());
+    let value = parse_stdout_json(&health);
+    assert_eq!(value["payload"]["logging"]["state"], "Healthy");
+    assert_eq!(value["payload"]["logging"]["query"]["state"], "Healthy");
+    assert_eq!(
+        value["payload"]["logging"]["maintenance"]["state"],
+        "Running"
+    );
+    assert_eq!(
+        value["payload"]["logging"]["sink_statuses"][0]["name"],
+        "jsonl-file"
+    );
+    assert_eq!(
+        value["payload"]["logging"]["sink_statuses"][0]["state"],
+        "Healthy"
+    );
+    assert_eq!(
+        value["payload"]["logging"]["active_log_path"],
+        log_root
+            .join("logs")
+            .join("sc-compose.log.jsonl")
+            .display()
+            .to_string()
+    );
 }
 
 #[test]
@@ -1164,6 +1456,10 @@ fn release_smoke_covers_render_pipeline_and_observability_health() {
             .join("sc-compose.log.jsonl")
             .display()
             .to_string()
+    );
+    assert_eq!(
+        value["payload"]["logging"]["maintenance"]["state"],
+        "Running"
     );
 }
 

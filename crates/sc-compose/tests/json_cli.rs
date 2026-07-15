@@ -32,7 +32,14 @@ fn sc_compose() -> Command {
 }
 
 fn test_log_root() -> PathBuf {
-    let root = std::env::temp_dir().join(format!("sc-compose-json-logs-{}", std::process::id()));
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!(
+        "sc-compose-json-logs-{}-{nanos}",
+        std::process::id()
+    ));
     fs::create_dir_all(&root).unwrap();
     root
 }
@@ -473,6 +480,10 @@ fn observability_health_json_uses_diagnostic_envelope_and_stays_stdout_clean() {
     assert_eq!(value["payload"]["logging"]["state"], "Healthy");
     assert_eq!(value["payload"]["logging"]["query"]["state"], "Healthy");
     assert_eq!(
+        value["payload"]["logging"]["maintenance"]["state"],
+        "Running"
+    );
+    assert_eq!(
         value["payload"]["logging"]["active_log_path"],
         root.join("logs")
             .join("sc-compose.log.jsonl")
@@ -501,6 +512,10 @@ fn observability_health_json_nulls_unavailable_query_state() {
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert!(value["payload"]["logging"]["query"].is_null());
+    assert_eq!(
+        value["payload"]["logging"]["maintenance"]["state"],
+        "Stopped"
+    );
 }
 
 #[test]
@@ -834,6 +849,40 @@ fn examples_named_render_json_matches_render_schema() {
         repo_root()
             .join("examples")
             .join("hello.md.j2")
+            .canonicalize()
+            .unwrap()
+            .display()
+            .to_string()
+    );
+}
+
+#[test]
+fn examples_named_render_html_dry_run_preserves_html_extension() {
+    let vars_file = repo_root()
+        .join("examples")
+        .join("sprint-report-html.sample-vars.json");
+
+    let output = sc_compose()
+        .arg("examples")
+        .arg("sprint-report-html")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .arg("--json")
+        .arg("--dry-run")
+        .env("SC_COMPOSE_DATA_DIR", repo_root())
+        .output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["would_write"], "sprint-report-html.html");
+    assert_eq!(
+        value["payload"]["template"],
+        repo_root()
+            .join("examples")
+            .join("sprint-report-html.html.j2")
             .canonicalize()
             .unwrap()
             .display()

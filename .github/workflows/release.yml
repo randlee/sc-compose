@@ -244,6 +244,11 @@ jobs:
     needs: [gate-and-tag, release]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout sc-compose (for formula template)
+        uses: actions/checkout@v4
+        with:
+          path: sc-compose
+
       - name: Checkout homebrew-tap
         uses: actions/checkout@v4
         with:
@@ -273,7 +278,7 @@ jobs:
           from pathlib import Path
           import os
 
-          template = Path("release/homebrew/sc-compose.rb.j2").read_text()
+          template = Path("sc-compose/release/homebrew/sc-compose.rb.j2").read_text()
           rendered = (
               template
               .replace("{{ tarball_url }}", os.environ["TARBALL_URL"])

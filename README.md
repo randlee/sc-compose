@@ -90,6 +90,8 @@ The crate root re-exports the main entry points — `compose`, `compose_with_obs
 - `docs/cross-platform-guidelines.md` — platform-specific behavior and testing rules.
 - `docs/publishing.md` — release procedures for integrators.
 - `docs/atm-adapter-notes.md` — adapter boundary and integration ownership.
+- `docs/phase-A/phase-A-plan.md` — follow-on reusable reporting and
+  report-pack planning line after the shipped `1.0` baseline.
 
 Contributor references: `docs/git-workflows.md`, `.claude/skills/rust-development/guidelines.txt`.
 
@@ -307,9 +309,12 @@ Installed alongside the binary:
 sc-compose examples list           # show available examples
 sc-compose examples pytest-fixture --var-file vars.json --output tests/test_auth.py
 sc-compose examples service-config --var-file svc.json --output deploy/config.yaml
+sc-compose examples sprint-report-html --var-file examples/sprint-report-html.sample-vars.json --output sprint-report.html
 ```
 
 The examples directory is located automatically from the binary path (`../share/sc-compose/examples/` relative to the binary, following Homebrew and FHS conventions). Override with `SC_COMPOSE_DATA_DIR` if needed.
+
+`.html.j2` templates render like any other file-mode template. `sc-compose` does not enable automatic HTML escaping, so template authors remain responsible for escaping untrusted values.
 
 ### Personal templates
 

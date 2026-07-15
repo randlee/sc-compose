@@ -199,7 +199,7 @@ mod tests {
 
         match error {
             ComposeError::Config(error) => {
-                assert_eq!(error.code(), Some(DiagnosticCode::ErrConfigReadonly));
+                assert_eq!(error.code(), DiagnosticCode::ErrConfigReadonly);
             }
             other => panic!("unexpected error: {other}"),
         }

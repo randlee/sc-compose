@@ -322,7 +322,9 @@ fn main() {
             error.exit_code
         }
     };
-    observer.shutdown();
+    if let Err(error) = observer.shutdown() {
+        eprintln!("{error}");
+    }
     std::process::exit(code);
 }
 
@@ -614,10 +616,12 @@ fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
 
 fn run_observability_health(
     args: &ObservabilityHealthArgs,
-    observer: &observer_impl::CliObserver,
+    observer: &mut observer_impl::CliObserver,
 ) -> Result<i32, CommandError> {
     if std::env::var_os("SC_COMPOSE_TEST_FORCE_QUERY_UNAVAILABLE").is_some() {
-        observer.shutdown();
+        observer.shutdown().map_err(|error| {
+            CommandError::usage(anyhow!(error).context("failed to shut down observability logger"))
+        })?;
     }
     let health = observer.health();
     if args.json {
@@ -779,7 +783,7 @@ fn planned_init_changes(root: &Path) -> Vec<PathBuf> {
 }
 
 fn format_diagnostic(diagnostic: &sc_composer::Diagnostic) -> String {
-    let severity = format!("{:?}", diagnostic.severity).to_ascii_lowercase();
+    let severity = diagnostic.severity.to_string();
     let location =
         diagnostic
             .path
@@ -936,20 +940,16 @@ fn compose_error_diagnostics(error: &ComposeError) -> Vec<Diagnostic> {
         }
         ComposeError::Resolve(resolve) => vec![Diagnostic::new(
             DiagnosticSeverity::Error,
-            resolve.code().unwrap_or(DiagnosticCode::ErrResolveNotFound),
+            resolve.code(),
             resolve.message(),
         )],
         ComposeError::Include(include) => vec![
-            Diagnostic::new(
-                DiagnosticSeverity::Error,
-                include.code().unwrap_or(DiagnosticCode::ErrIncludeNotFound),
-                include.message(),
-            )
-            .with_include_chain(include.include_chain().to_vec()),
+            Diagnostic::new(DiagnosticSeverity::Error, include.code(), include.message())
+                .with_include_chain(include.include_chain().to_vec()),
         ],
         ComposeError::Validation(validation) => vec![Diagnostic::new(
             DiagnosticSeverity::Error,
-            validation.code().unwrap_or(DiagnosticCode::ErrValEmpty),
+            validation.code(),
             validation.message(),
         )],
         ComposeError::Render(render) => vec![Diagnostic::new(
@@ -959,7 +959,7 @@ fn compose_error_diagnostics(error: &ComposeError) -> Vec<Diagnostic> {
         )],
         ComposeError::Config(config) => vec![Diagnostic::new(
             DiagnosticSeverity::Error,
-            config.code().unwrap_or(DiagnosticCode::ErrConfigParse),
+            config.code(),
             config.message(),
         )],
     }
@@ -983,7 +983,7 @@ mod tests {
     use super::{CommandError, observe_command};
     use anyhow::anyhow;
     use sc_composer::{CompositionObserver, DiagnosticCode};
-    use sc_observability_types::QueryHealthState;
+    use sc_observability_types::{MaintenanceWorkerState, QueryHealthState};
 
     use crate::exit_codes;
     use crate::observability::build_logger_for_root;
@@ -1082,20 +1082,50 @@ mod tests {
     }
 
     #[test]
+    fn build_logger_enables_retained_log_maintenance_by_default() {
+        let logger = build_logger_for_root(temp_root("logger-maintenance"), false).expect("logger");
+        let health = logger.health();
+
+        assert_eq!(
+            health
+                .maintenance
+                .expect("maintenance health present")
+                .state,
+            MaintenanceWorkerState::Running
+        );
+    }
+
+    #[test]
     fn shutdown_marks_query_health_unavailable() {
         let logger = build_logger_for_root(temp_root("logger-shutdown"), false).expect("logger");
-        let observer = crate::observer_impl::CliObserver::new(logger);
+        let mut observer = crate::observer_impl::CliObserver::new(logger);
 
         assert_eq!(
             observer.health().query.expect("query health present").state,
             QueryHealthState::Healthy
         );
+        assert_eq!(
+            observer
+                .health()
+                .maintenance
+                .expect("maintenance health present")
+                .state,
+            MaintenanceWorkerState::Running
+        );
 
-        observer.shutdown();
+        observer.shutdown().expect("shutdown");
 
         assert_eq!(
             observer.health().query.expect("query health present").state,
             QueryHealthState::Unavailable
+        );
+        assert_eq!(
+            observer
+                .health()
+                .maintenance
+                .expect("maintenance health present")
+                .state,
+            MaintenanceWorkerState::Stopped
         );
     }
 

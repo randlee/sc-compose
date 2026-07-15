@@ -112,6 +112,26 @@ mod tests {
         assert!(matches!(error, ComposeError::Config(_)));
     }
 
+    #[test]
+    fn frontmatter_init_discovers_iterable_from_loop_body_references() {
+        let root = temp_root("frontmatter_init_loop_body");
+        let template = root.join("template.md.j2");
+        write_file(
+            &template,
+            "{% for sprint in sprints %}{{ sprint.id }} {{ sprint.stage }} {{ report.title }}{% endfor %}\n",
+        );
+
+        let result = frontmatter_init(&template, false, true).unwrap();
+
+        assert_eq!(
+            result.discovered_variables,
+            vec![
+                VariableName::new("report.title").unwrap(),
+                VariableName::new("sprints").unwrap(),
+            ]
+        );
+    }
+
     fn temp_root(label: &str) -> PathBuf {
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)

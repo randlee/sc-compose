@@ -38,7 +38,7 @@ pub fn validate_with_observer(
             observer.on_resolve_outcome(&ResolveOutcomeEvent {
                 resolved_path: None,
                 attempted_paths: resolve_error.attempted_paths().to_vec(),
-                code: resolve_error.code(),
+                code: Some(resolve_error.code()),
             });
         }
     })?;
@@ -58,7 +58,7 @@ pub fn validate_with_observer(
             observer.on_include_outcome(&IncludeOutcomeEvent {
                 resolved_files: Vec::new(),
                 include_chain: include_error.include_chain().to_vec(),
-                code: include_error.code(),
+                code: Some(include_error.code()),
             });
         }
     })?;
@@ -68,11 +68,14 @@ pub fn validate_with_observer(
         code: None,
     });
 
-    let report = crate::validation::validate_expanded(request, &expanded, resolve_result);
-    observer.on_validation_outcome(&ValidationOutcomeEvent {
-        warnings: report.warnings.clone(),
-        errors: report.errors.clone(),
-    });
+    let mut report = crate::validation::validate_expanded(request, &expanded, resolve_result);
+    let event = ValidationOutcomeEvent {
+        warnings: std::mem::take(&mut report.warnings),
+        errors: std::mem::take(&mut report.errors),
+    };
+    observer.on_validation_outcome(&event);
+    report.warnings = event.warnings;
+    report.errors = event.errors;
 
     Ok(report)
 }

@@ -99,7 +99,7 @@ pub fn resolve_profile_with_observer(
                     observer.on_resolve_outcome(&ResolveOutcomeEvent {
                         resolved_path: None,
                         attempted_paths: error.attempted_paths().to_vec(),
-                        code: error.code(),
+                        code: Some(error.code()),
                     });
                 }
                 Err(_) => {}
@@ -409,7 +409,7 @@ mod tests {
 
         match error {
             ComposeError::Resolve(error) => {
-                assert_eq!(error.code(), Some(DiagnosticCode::ErrResolveAmbiguous));
+                assert_eq!(error.code(), DiagnosticCode::ErrResolveAmbiguous);
                 assert!(!error.attempted_paths().is_empty());
             }
             other => panic!("unexpected error: {other}"),
@@ -462,7 +462,7 @@ mod tests {
 
         match error {
             ComposeError::Config(error) => {
-                assert_eq!(error.code(), Some(DiagnosticCode::ErrConfigMode));
+                assert_eq!(error.code(), DiagnosticCode::ErrConfigMode);
             }
             other => panic!("unexpected error: {other}"),
         }

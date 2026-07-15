@@ -122,29 +122,35 @@ Schema rules:
 
 ### FR-1b: Value Types
 
-For the initial release, the render-context value model remains intentionally
-narrow even after template-pack support is added.
+The render-context value model remains intentionally narrow even after H1
+structured-input support lands.
 
 - Variables used by template rendering must be one of:
   - string
   - number
   - boolean
   - null
+  - an object/map with string keys; object fields may nest objects and arrays
+    of scalars
   - a sequence of scalar values
-- Sequence values may contain only supported scalar value types.
-- Nested sequences and mapping values are out of scope for template variables,
-  `defaults`, and user-template `input_defaults` in the initial release.
+  - a top-level sequence of objects
+- Sequence values may contain supported scalar values or, at the top-level
+  variable boundary, object values.
+- Nested sequences remain out of scope.
+- Arrays of objects are only supported when the array is the variable value
+  itself; object fields within array members may be nested objects, but an
+  object field whose value is itself an array of objects remains out of scope.
 - `metadata` may contain arbitrary YAML values because it is descriptive only
   and does not participate in rendering semantics.
 
-Post-`1.0` design track:
+HTML-Report follow-on design track:
 
-- A follow-on design track proposes structured render inputs for richer report
-  and UI-style template outputs.
-- That design is captured in [docs/html-sprint-report-plan.md](html-sprint-report-plan.md).
-- The detailed follow-on functional requirements are FR-12 through FR-15.
-- This is not part of the shipped `1.0` contract and remains future work until
-  implemented.
+- FR-12 through FR-15 are implemented by Phase HTML-Report.
+- The remaining design exploration in
+  [docs/html-sprint-report-plan.md](html-sprint-report-plan.md) is limited to
+  H5-and-later work such as multi-panel HTML/XHTML composition, wrapper-level
+  output viewing behavior, and possible post-render-hook design that stays
+  outside the core `sc-compose` contract unless explicitly accepted later.
 
 ### FR-1c: File Extension and Discovery Conventions
 
@@ -203,8 +209,9 @@ Post-`1.0` design track:
 - Final render context precedence must be:
   1. explicit input variables,
   2. environment-derived variables,
-  3. user-template `input_defaults`,
-  4. frontmatter defaults.
+  3. built-in render-context variables,
+  4. user-template `input_defaults`,
+  5. frontmatter defaults.
 - Frontmatter-declared `required_variables` must be evaluated after the merge.
 - Variables present only in `defaults` are optional by default.
 - A variable may appear in both `required_variables` and `defaults`; in that
@@ -224,6 +231,24 @@ Post-`1.0` design track:
   - `validate` must emit a generated-frontmatter recommendation,
   - diagnostics must include a direct fix command:
     `sc-compose frontmatter-init <file>.j2`.
+
+### FR-2c: Built-In Render-Context Variables
+
+- Every render context must inject these built-in variables when the caller
+  does not supply them:
+  - `TEMPLATE_NAME`
+  - `HOSTNAME`
+  - `USERNAME`
+  - `RENDER_DATE`
+  - `RENDER_TIMESTAMP`
+- Built-ins sit below explicit caller inputs and environment-derived values,
+  and above template-owned defaults.
+- `TEMPLATE_NAME` must reflect the resolved template filename actually rendered,
+  not a caller alias.
+- Caller-provided values always win:
+  - explicit input values override built-ins,
+  - environment-derived values override built-ins,
+  - template-owned defaults do not override built-ins.
 
 ### FR-2a: Tokens Not Declared in Frontmatter
 
@@ -392,6 +417,7 @@ Each block may be empty. Ordering is never caller-defined.
 - `observability-health`
 - `examples`
 - `templates`
+- `reports`
 
 The CLI must support:
 
@@ -467,6 +493,15 @@ Command behavior:
   - allows `add` from either a single file or a directory source,
   - stores a file source as `<user-template-root>/<pack-name>/<original-file>`,
   - stores a directory source as `<user-template-root>/<pack-name>/...`.
+- `reports`
+  - supports:
+    - `reports init`
+    - `reports smoke`
+    - `reports index`
+    - `reports verify`
+  - owns the shared reporting runtime surface rather than repo-specific
+    producer command bodies,
+  - keeps publish upload and browser-open behavior outside the command family.
 
 `--dry-run` behavior:
 
@@ -515,10 +550,13 @@ Pack root policy:
 - `--var-file` accepts a JSON or YAML object.
 - Variable-file keys must be strings.
 - Variable-file values must be supported render-context value types.
-- Sequence values in variable files must contain only supported scalar values.
-- Nested objects and nested sequences are invalid in the initial release.
-- See FR-12 and FR-13 for the post-`1.0` extension that adds object and
-  array-of-object input support.
+- Object/map values with string keys are valid per FR-12.
+- Sequence values in variable files may contain scalar values or, at the
+  top-level variable boundary, object values.
+- Nested arrays remain invalid and must report
+  `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`.
+- Arrays of objects are valid per FR-13 when the array is the variable value
+  itself.
 
 ### FR-7b: Exit Codes
 
@@ -824,6 +862,8 @@ same command payloads as `render` and `render --dry-run`.
   model.
 - `sc-compose` shall use `sc-observability` as the canonical concrete
   observability binding for CLI execution.
+- The current follow-on observability uplift targets `sc-observability`
+  `1.1.0`.
 - `sc-composer` must emit composition pipeline events through its local
   observer/sink hook model.
 - `sc-compose` must emit command lifecycle events through the same local hook
@@ -832,6 +872,8 @@ same command payloads as `render` and `render --dry-run`.
 - Embedded use must permit host-supplied sink and path configuration.
 - If no sink is injected, both crates must remain fully functional with
   observability reduced to a no-op.
+- `sc-compose` shall keep direct `sc-observability` logger construction and
+  sink registration rather than adding the `sc-observe` facade at the CLI seam.
 - `sc-observe` and `sc-observability-otlp` remain out of scope for the initial
   release.
 
@@ -866,19 +908,23 @@ same command payloads as `render` and `render --dry-run`.
   command completion, and command failure.
 - The CLI shall expose logger health through a dedicated
   `observability-health` command so operators can inspect sink state,
-  dropped-event counts, and the active log path.
+  dropped-event counts, retained-log maintenance state, and the active log
+  path.
 - The `observability-health` command shall initialize logger configuration the
   same way as a normal CLI process, query health from that process-local
   logger instance, and must not depend on any daemon or background runtime.
+- The CLI logger configuration shall keep logger-managed retained-log
+  maintenance enabled through `RetainedLogPolicy::default()` so rotation,
+  pruning, and maintenance cadence stay owned by `sc-observability` rather
+  than duplicated in `sc-compose`.
 - The CLI shall perform graceful logger shutdown on process exit so pending
   events flush before termination.
 
-### Post-`1.0` Functional Requirements
+### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 
 ### FR-12: Map/Object Variable Inputs
 
-This is a post-`1.0` follow-on requirement. It does not change the shipped
-`1.0` contract until implemented.
+Implemented in Phase HTML-Report.
 
 - Callers may pass structured object/map values as template variables.
 - Object keys must be strings.
@@ -908,10 +954,10 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
 
 ### FR-13: Arrays Of Objects
 
-This is a post-`1.0` follow-on requirement. It does not change the shipped
-`1.0` contract until implemented.
+Implemented in Phase HTML-Report.
 
-- Callers may pass arrays whose members are objects.
+- Callers may pass arrays whose members are objects when the array itself is
+  the variable value.
 - Jinja loops such as `{% for item in list %}` must support field access within
   each array member object.
 - Arrays of objects are valid through:
@@ -933,8 +979,7 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
 
 ### FR-14: HTML Template Output
 
-This is a post-`1.0` follow-on requirement. It does not change the shipped
-`1.0` contract until implemented.
+Implemented in Phase HTML-Report.
 
 - `.html.j2` templates render like other file-mode templates.
 - Output path derivation removes only the trailing `.j2` suffix and therefore
@@ -950,8 +995,7 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
 
 ### FR-15: Bundled HTML Report Example
 
-This is a post-`1.0` follow-on requirement. It does not change the shipped
-`1.0` contract until implemented.
+Implemented in Phase HTML-Report.
 
 - `sc-compose` shall ship a bundled example named `sprint-report-html`.
 - The example must demonstrate FR-12, FR-13, and FR-14 together using a
@@ -969,6 +1013,340 @@ This is a post-`1.0` follow-on requirement. It does not change the shipped
   surface and var-file flow.
 - The example must be a credible showcase for `sc-compose`, not just a
   hand-written HTML file stored in the repo.
+
+### Phase A Semantic Report-Spec Contract (Planning Only)
+
+Phase A follow-on planning defines typed semantic report-spec kinds so rendered
+diagram formats such as Mermaid become outputs or migration inputs rather than
+the long-term source of truth.
+
+Initial planned report-spec kinds:
+
+- `state_machine`
+- `sql_query`
+
+Planned `state_machine` semantic fields:
+
+- `kind`
+- `id`
+- `title`
+- `states`
+- `transitions`
+- `events`
+- `guards`
+- `actors`
+- `effects`
+- optional metadata for ownership, tags, and renderer targets
+
+Planned `sql_query` semantic fields:
+
+- `kind`
+- `id`
+- `title`
+- `purpose`
+- `tables_read`
+- `tables_written`
+- `filters`
+- `ordering`
+- `cardinality`
+- `transactional_assumptions`
+- optional metadata for ownership, tags, and renderer targets
+
+Transitional Mermaid rule:
+
+- Mermaid may be emitted as an output renderer during migration
+- Mermaid may be accepted as a migration input where repos already store it
+- Mermaid is not the long-term semantic source model
+
+Semantic QA direction:
+
+- QA should validate structured semantic fields rather than string-compare only
+  the rendered Mermaid output
+- renderers may change over time without replacing the typed semantic source
+  contract
+
+Extension rule:
+
+- repos may add new semantic report-spec kinds later without rewriting the
+  shared artifact catalog or producer contracts
+
+Boundary rules:
+
+- the semantic source contract remains format-agnostic
+- shared Phase A reporting boundary rules are centralized under
+  `### Phase A Follow-On Reporting Contract (Planning Only)`
+
+### Phase A Follow-On Reporting Contract (Planning Only)
+
+Phase A follow-on planning defines reporting as a generic artifact contract,
+not as a one-off HTML sprint report feature.
+
+Planned contract shape:
+
+- authored docs remain under `docs/`
+- report source and catalog inputs live outside `docs/` under a report-specific
+  tree such as:
+  - `reports/catalog/`
+  - `reports/specs/`
+  - `reports/templates/` for repo-authored template overrides and other checked-in
+    template inputs
+- generated evidence lives outside `docs/` under generated-output paths such
+  as:
+  - `reports/latest/<report-id>/`
+  - `reports/archive/<timestamp>/<report-id>/`
+- each generated report has one machine-readable metadata sidecar such as
+  `reports/latest/<report-id>/report.json`
+
+Planned canonical report catalog fields:
+
+- `id`
+- `kind`
+- `producer`
+- `required`
+- `entrypoint`
+- `metadata`
+
+Requiredness rule:
+
+- each catalog entry declares `required = true` or `required = false`
+- `just reports` verification fails only when a report marked `required = true`
+  is missing
+- optional reports remain discoverable and publishable without failing shared
+  verification
+
+Planned ownership split:
+
+- producer recipes such as `just lint`, `just test`, `just smoke`, and
+  repo-specific producer commands own domain data gathering and report
+  generation
+- `sc-compose` owns rendering semantics where it is used as the report
+  renderer
+- consumer repos own domain-specific inputs, local producer surfaces, and
+  publish destinations
+
+Shared Phase A reporting boundary rule:
+
+- network publishing remains outside the core engine
+- browser-open behavior remains outside the core engine
+- the artifact contract is intended to support generic lint, test, smoke,
+  diagram, and custom reports through one shared metadata and filesystem shape
+
+### Phase A Source-Driven Rendering Contract (Planning Only)
+
+Phase A follow-on planning defines a generic source-driven rendering contract
+for text assets. This mechanism is not Mermaid-only.
+
+Planned collection-input contract:
+
+- source collections may be declared by glob or by another stable collection
+  definition
+- a collection declares which source files participate in one render-many run
+- collection discovery is generic across Mermaid, SVG, Markdown, and other
+  text-based assets
+
+Planned metadata-extraction contract:
+
+- comment-prefix metadata is supported
+- block-comment metadata is supported
+- the raw source body remains available to templates without external
+  scripting
+- parsed metadata and raw body are exposed together as render inputs
+- `sets` metadata is a collection-local grouping field used to tag one source
+  file into one or more logical sets for selective rendering, filtering, or
+  aggregate grouping
+- `sets` has type `Option<Vec<String>>` or equivalent optional string-list
+  representation and defaults to `None` when absent
+
+Planned render-many contract:
+
+- one generated output is produced per discovered source file
+- output derivation is deterministic from collection membership plus source
+  identity
+- aggregate templates and review tooling consume a generated manifest rather
+  than ad hoc wrapper state
+
+Planned generated-manifest contract:
+
+- each source-driven run emits a manifest describing the discovered sources and
+  generated outputs
+- the manifest is intended for aggregate templates and review tooling
+- browser automation and hosted site behavior remain out of scope for the core
+  engine
+
+Boundary rules for the source-driven line:
+
+- the mechanism remains generic rather than diagram-format-specific
+- shared Phase A reporting boundary rules are centralized under
+  `### Phase A Follow-On Reporting Contract (Planning Only)`
+
+### Phase A Latest/Archive Output And Reports Aggregator Contract (Planning Only)
+
+Phase A follow-on planning defines how producers write stable latest outputs,
+how optional timestamped archive copies are named, and how `just reports`
+aggregates and verifies generated evidence.
+
+Planned output policy:
+
+- producers overwrite the latest artifact in place at the canonical
+  `reports/latest/<report-id>/...` path
+- producers may also write timestamped archive copies under
+  `reports/archive/<timestamp>/<report-id>/...`
+- archive writes are deterministic and file-system-local
+
+Canonical archive timestamp policy:
+
+- timestamps use a filesystem-safe UTC form such as `2026-05-25T22-10-00Z`
+- one producer run uses one stable timestamp prefix for all archive outputs
+  generated in that run
+
+Planned `just reports` contract:
+
+- verify required evidence exists
+- summarize report status across producers
+- build or refresh a combined index when the repo defines one
+- print or summarize the latest report entrypoints/paths for the current latest
+  report set
+- optional wrapper-owned helpers may open those paths, but browser opening is
+  outside the shared core contract
+
+Verification and failure direction:
+
+- `just reports` is a shared aggregator and verifier, not a producer that
+  reruns all evidence collection
+- missing required evidence causes report verification to fail
+- required-vs-optional report expectations come from each shared report catalog
+  entry's `required` field
+
+Archive ownership note:
+
+- archive directories are file-system-local
+- archive directories may be consumer-managed
+- archive directories may be gitignored
+### Phase A Publish-Manifest And CI Handoff Contract (Planning Only)
+
+Phase A follow-on planning defines a machine-readable handoff from generated
+report artifacts to CI or wrapper-owned publication steps without moving
+network or hosting behavior into `sc-compose`.
+
+Planned publish-manifest contract:
+
+- each generated report set may emit a machine-readable publish manifest
+- the manifest lists generated artifacts and their intended publish destinations
+- artifact roles remain explicit in the manifest rather than inferred by CI
+
+Planned manifest fields include:
+
+- report_id
+- generated_at
+- files
+- per-file role
+- per-file path
+- per-file intended publish destination
+
+Identity rule:
+
+- `report_id` must equal the canonical A1 report catalog `id`
+
+Ownership split:
+
+- producers and renderers create artifacts plus manifest metadata
+- CI or wrapper tooling performs upload, copy, or publication steps
+
+Boundary rules:
+
+- the artifact contract is intended to support generic lint, test, smoke,
+  diagram, and custom reports through one shared metadata and filesystem shape
+- shared Phase A reporting boundary rules are centralized under
+  `### Phase A Follow-On Reporting Contract (Planning Only)`
+- publish transport and hosting remain outside `sc-composer` and `sc-compose`
+- machine-readable handoff is in scope; network transport is not
+
+### Phase A Producer Recipe Contract (Planning Only)
+
+Phase A follow-on planning defines producer recipes as the owners of report
+generation. Report generation is not centered on one catch-all `just reports`
+command.
+
+Planned standard producer surface:
+
+- `just lint`
+- `just test`
+- `just smoke`
+- repo-specific producer commands such as:
+  - `just state-diagrams`
+  - `just sql-diagrams`
+  - schema, migration, or other repo-local evidence producers
+
+Planned producer contract:
+
+- each producer command is responsible for generating the report artifacts for
+  the report ids it owns
+- each producer command writes evidence in the shared report artifact shape
+- each producer command updates or emits the catalog/metadata entries for the
+  report ids it owns
+- adding a repo-specific producer command must not require changing the shared
+  report aggregation or discovery contract
+
+Boundary rules for the producer line:
+
+- producer recipes own domain data gathering and invocation order
+- `just reports` is reserved for aggregation, verification, combined-index
+  refresh, and latest-entrypoint/path reporting
+- optional wrapper-owned helpers such as `just reports-open` may exist locally,
+  but they are not part of the shared Phase A command contract
+- shared Phase A reporting boundary rules are centralized under
+  `### Phase A Follow-On Reporting Contract (Planning Only)`
+- the report ids owned by a producer are declared through the shared report
+  catalog rather than inferred from hard-coded aggregator behavior
+
+### Phase A Template-Family And Panel-Chrome Contract (Planning Only)
+
+Phase A follow-on planning defines shared template families and shared panel
+chrome so report UI behavior does not need to be reimplemented per consumer
+repo.
+
+Initial planned template families:
+
+- lint/test/smoke evidence reports
+- public API, CLI, and ICD style reports
+- diagram, state-machine, and SQL-query reports
+
+Planned override contract:
+
+The authoritative override contract, shared lookup namespace, consumer
+activation config, template block boundary, required template variables, and
+include deferral are defined in `docs/phase-A/sprint-A5.md`.
+
+Repo-authored versus bundled template rule:
+
+- repo-authored template overrides live under the consumer repo's
+  `reports/templates/` tree
+- `shared:<family>` resolves to bundled CLI-owned assets and is not a reference
+  to the consumer repo's authored `reports/templates/` tree
+
+Shared panel contract:
+
+- stable panel id
+- title
+- body content
+- required copy-text action
+- optional copy-JSON action
+- optional fragment or open link
+
+Planned ownership split:
+
+- shared panel chrome owns panel framing and shared actions
+- consumer-specific templates own the panel body content for their report
+  family or repo-local override
+
+Boundary rules:
+
+- per-panel text copy is mandatory
+- per-panel JSON copy is optional but first-class
+- panel chrome remains part of shared template behavior rather than wrapper-only
+  logic
+- shared Phase A reporting boundary rules are centralized under
+  `### Phase A Follow-On Reporting Contract (Planning Only)`
 
 ## 5. Non-Functional Requirements
 
@@ -1045,6 +1423,7 @@ Required integration coverage includes:
 - `prepare-hook` and `post-render-hook` execution
 - Named render for packs with multiple root-level `*.j2` entry candidates
 - Template deletion, update, sync, or remote registry features
-- Structured map/object render inputs and arrays of objects remain deferred to
-  the follow-on design track in
+- Nested arrays, nested array-of-object fields, multi-panel HTML/XHTML report
+  expansion, and wrapper-level output viewing behavior remain deferred to the
+  follow-on design track in
   [docs/html-sprint-report-plan.md](html-sprint-report-plan.md)

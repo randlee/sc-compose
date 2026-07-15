@@ -160,8 +160,9 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
                 format!("invalid frontmatter {section_name} variable name: {error}"),
             )
         })?;
-        let input_value = input_value_from_yaml(value)
-            .map_err(|error| ValidationError::invalid_scalar(error.to_string()))?;
+        let input_value = input_value_from_yaml(value).map_err(|error| {
+            ValidationError::invalid_input_value(error.code(), error.to_string())
+        })?;
         Ok((variable, input_value))
     };
 

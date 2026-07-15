@@ -11,6 +11,19 @@ use crate::types::{
     VariableSource,
 };
 
+#[derive(Debug, PartialEq, Eq)]
+enum RequiredPathStatus {
+    Satisfied,
+    MissingTopLevel,
+    MissingNested { missing_path: String },
+    ShapeMismatch { at_path: String },
+}
+
+#[derive(Debug, Default)]
+struct LoopScope {
+    bound_names: BTreeSet<String>,
+}
+
 #[derive(Debug, Default)]
 pub(crate) struct ValidationState {
     pub(crate) context: BTreeMap<VariableName, InputValue>,
@@ -46,20 +59,7 @@ pub(crate) fn validate_expanded(
     warnings.extend(missing_frontmatter_warnings(&resolve_result, expanded));
     warnings.extend(frontmatter_diagnostics(expanded));
     warnings.extend(default_usage_diagnostics(&state));
-
-    for (variable, origin) in &state.required_origins {
-        if !state.context.contains_key(variable) {
-            errors.push(missing_required_diagnostic(
-                origin,
-                variable,
-                state
-                    .required_include_chains
-                    .get(variable)
-                    .cloned()
-                    .unwrap_or_default(),
-            ));
-        }
-    }
+    errors.extend(missing_required_path_diagnostics(&state));
 
     for variable in state
         .referenced_variables
@@ -85,17 +85,85 @@ pub(crate) fn validate_expanded(
         }
     }
 
-    let declared_or_referenced = state
-        .declared_variables
-        .union(&state.referenced_variables)
-        .cloned()
-        .collect::<BTreeSet<_>>();
-    let provided_variables = request
-        .vars_input
-        .keys()
-        .chain(request.vars_env.keys())
-        .cloned()
-        .collect::<BTreeSet<_>>();
+    push_extra_input_diagnostics(
+        request,
+        &state,
+        &resolve_result.resolved_path,
+        &mut warnings,
+        &mut errors,
+    );
+
+    ValidationReport {
+        ok: errors.is_empty(),
+        warnings,
+        errors,
+        resolve_result,
+    }
+}
+
+fn missing_required_path_diagnostics(state: &ValidationState) -> Vec<Diagnostic> {
+    let mut diagnostics = Vec::new();
+
+    for (variable, origin) in &state.required_origins {
+        let include_chain = state
+            .required_include_chains
+            .get(variable)
+            .cloned()
+            .unwrap_or_default();
+        match validate_required_path(&state.context, variable) {
+            RequiredPathStatus::Satisfied => {}
+            RequiredPathStatus::MissingTopLevel => {
+                diagnostics.push(missing_required_diagnostic(origin, variable, include_chain));
+            }
+            RequiredPathStatus::MissingNested { missing_path } => {
+                diagnostics.push(required_path_diagnostic(
+                    DiagnosticCode::ErrValMissingNestedField,
+                    origin,
+                    variable,
+                    format!("missing required nested field: {missing_path}"),
+                    include_chain,
+                ));
+            }
+            RequiredPathStatus::ShapeMismatch { at_path } => {
+                diagnostics.push(required_path_diagnostic(
+                    DiagnosticCode::ErrValShapeMismatch,
+                    origin,
+                    variable,
+                    format!(
+                        "required nested field path {variable} expected an object at {at_path}"
+                    ),
+                    include_chain,
+                ));
+            }
+        }
+    }
+
+    diagnostics
+}
+
+fn push_extra_input_diagnostics(
+    request: &ComposeRequest,
+    state: &ValidationState,
+    resolved_path: &Path,
+    warnings: &mut Vec<Diagnostic>,
+    errors: &mut Vec<Diagnostic>,
+) {
+    let declared_or_referenced = top_level_boundary_names(
+        state
+            .declared_variables
+            .union(&state.referenced_variables)
+            .cloned()
+            .collect::<BTreeSet<_>>(),
+    );
+    let provided_variables = top_level_boundary_names(
+        request
+            .vars_input
+            .keys()
+            .chain(request.vars_env.keys())
+            .cloned()
+            .collect::<BTreeSet<_>>(),
+    );
+
     for variable in provided_variables
         .difference(&declared_or_referenced)
         .cloned()
@@ -110,20 +178,13 @@ pub(crate) fn validate_expanded(
             DiagnosticCode::ErrValExtraInput,
             format!("extra provided variable: {variable}"),
         )
-        .with_path(resolve_result.resolved_path.clone());
+        .with_path(resolved_path.to_path_buf());
 
         match request.policy.unknown_variable_policy {
             UnknownVariablePolicy::Error => errors.push(diagnostic),
             UnknownVariablePolicy::Warn => warnings.push(diagnostic),
             UnknownVariablePolicy::Ignore => {}
         }
-    }
-
-    ValidationReport {
-        ok: errors.is_empty(),
-        warnings,
-        errors,
-        resolve_result,
     }
 }
 
@@ -204,9 +265,16 @@ fn default_usage_diagnostics(state: &ValidationState) -> Vec<Diagnostic> {
             ) {
                 return None;
             }
-            if !state.referenced_variables.contains(variable)
-                && !state.required_origins.contains_key(variable)
-            {
+            let top_level = top_level_variable_name(variable);
+            let used_by_reference = state
+                .referenced_variables
+                .iter()
+                .any(|referenced| top_level_variable_name(referenced) == top_level);
+            let used_by_required = state
+                .required_origins
+                .keys()
+                .any(|required| top_level_variable_name(required) == top_level);
+            if !used_by_reference && !used_by_required {
                 return None;
             }
 
@@ -250,6 +318,89 @@ fn missing_required_diagnostic(
         Some((line, column)) => diagnostic.with_location(line, column),
         None => diagnostic,
     }
+}
+
+fn required_path_diagnostic(
+    code: DiagnosticCode,
+    origin: &Path,
+    variable: &VariableName,
+    message: String,
+    include_chain: Vec<PathBuf>,
+) -> Diagnostic {
+    let diagnostic = Diagnostic::new(DiagnosticSeverity::Error, code, message)
+        .with_path(origin.to_path_buf())
+        .with_include_chain(include_chain);
+    match required_variable_location(origin, variable.as_str()) {
+        Some((line, column)) => diagnostic.with_location(line, column),
+        None => diagnostic,
+    }
+}
+
+fn validate_required_path(
+    context: &BTreeMap<VariableName, InputValue>,
+    variable: &VariableName,
+) -> RequiredPathStatus {
+    let path = variable.as_str();
+    let mut segments = path.split('.');
+    let Some(first) = segments.next() else {
+        return RequiredPathStatus::MissingTopLevel;
+    };
+    let top_level = VariableName::new(first).expect("top-level path segment remains valid");
+    let Some(current) = context.get(&top_level) else {
+        return RequiredPathStatus::MissingTopLevel;
+    };
+    let remaining_segments = segments.collect::<Vec<_>>();
+    validate_required_value(current, &remaining_segments, first)
+}
+
+fn validate_required_value(
+    current: &serde_json::Value,
+    segments: &[&str],
+    traversed: &str,
+) -> RequiredPathStatus {
+    let Some((segment, rest)) = segments.split_first() else {
+        return RequiredPathStatus::Satisfied;
+    };
+
+    match current {
+        serde_json::Value::Object(map) => {
+            let Some(next) = map.get(*segment) else {
+                return RequiredPathStatus::MissingNested {
+                    missing_path: format!("{traversed}.{segment}"),
+                };
+            };
+            let next_path = format!("{traversed}.{segment}");
+            validate_required_value(next, rest, &next_path)
+        }
+        serde_json::Value::Array(values) => {
+            for value in values {
+                let status = validate_required_value(value, segments, traversed);
+                if !matches!(status, RequiredPathStatus::Satisfied) {
+                    return status;
+                }
+            }
+            RequiredPathStatus::Satisfied
+        }
+        _ => RequiredPathStatus::ShapeMismatch {
+            at_path: traversed.to_string(),
+        },
+    }
+}
+
+fn top_level_variable_name(variable: &VariableName) -> VariableName {
+    let top_level = variable
+        .as_str()
+        .split('.')
+        .next()
+        .unwrap_or(variable.as_str());
+    VariableName::new(top_level).expect("top-level path segment remains valid")
+}
+
+fn top_level_boundary_names(variables: BTreeSet<VariableName>) -> BTreeSet<VariableName> {
+    variables
+        .into_iter()
+        .map(|variable| top_level_variable_name(&variable))
+        .collect()
 }
 
 fn required_variable_location(path: &Path, variable: &str) -> Option<(usize, usize)> {
@@ -374,30 +525,89 @@ fn merge_frontmatter(
 
 pub(crate) fn discover_tokens(text: &str) -> BTreeSet<VariableName> {
     let mut tokens = BTreeSet::new();
-    collect_tokens_from_delimiters(text, "{{", "}}", &mut tokens);
-    collect_tokens_from_delimiters(text, "{%", "%}", &mut tokens);
-    tokens
-}
-
-fn collect_tokens_from_delimiters(
-    text: &str,
-    start_delimiter: &str,
-    end_delimiter: &str,
-    tokens: &mut BTreeSet<VariableName>,
-) {
+    let mut scopes = Vec::<LoopScope>::new();
     let mut cursor = text;
-    while let Some(start) = cursor.find(start_delimiter) {
+
+    while let Some((delimiter, start)) = next_delimiter(cursor) {
+        let start_delimiter = match delimiter {
+            Delimiter::Expression => "{{",
+            Delimiter::Statement => "{%",
+        };
+        let end_delimiter = match delimiter {
+            Delimiter::Expression => "}}",
+            Delimiter::Statement => "%}",
+        };
+
         let after_start = &cursor[start + start_delimiter.len()..];
         let Some(end) = after_start.find(end_delimiter) else {
             break;
         };
-        let expression = &after_start[..end];
-        collect_identifiers(expression, tokens);
+        let expression = after_start[..end].trim();
+        match delimiter {
+            Delimiter::Expression => collect_identifiers(expression, &scopes, &mut tokens),
+            Delimiter::Statement => {
+                if let Some(loop_scope) = parse_for_loop_scope(expression, &scopes, &mut tokens) {
+                    scopes.push(loop_scope);
+                } else if expression.starts_with("endfor") {
+                    scopes.pop();
+                } else {
+                    collect_identifiers(expression, &scopes, &mut tokens);
+                }
+            }
+        }
         cursor = &after_start[end + end_delimiter.len()..];
+    }
+    tokens
+}
+
+#[derive(Clone, Copy)]
+enum Delimiter {
+    Expression,
+    Statement,
+}
+
+fn next_delimiter(text: &str) -> Option<(Delimiter, usize)> {
+    match (text.find("{{"), text.find("{%")) {
+        (Some(expression), Some(statement)) if expression <= statement => {
+            Some((Delimiter::Expression, expression))
+        }
+        (Some(_) | None, Some(statement)) => Some((Delimiter::Statement, statement)),
+        (Some(expression), None) => Some((Delimiter::Expression, expression)),
+        (None, None) => None,
     }
 }
 
-fn collect_identifiers(expression: &str, tokens: &mut BTreeSet<VariableName>) {
+fn parse_for_loop_scope(
+    expression: &str,
+    scopes: &[LoopScope],
+    tokens: &mut BTreeSet<VariableName>,
+) -> Option<LoopScope> {
+    let trimmed = expression.trim();
+    let remainder = trimmed.strip_prefix("for ")?;
+    let (binding, iterable) = remainder.split_once(" in ")?;
+    collect_identifiers(iterable, scopes, tokens);
+
+    let bound_names = binding
+        .split(',')
+        .filter_map(|candidate| {
+            let candidate = candidate
+                .trim()
+                .trim_matches(|character: char| matches!(character, '(' | ')'));
+            if candidate.is_empty() {
+                return None;
+            }
+            let root = candidate.split('.').next().unwrap_or(candidate);
+            Some(root.to_string())
+        })
+        .collect();
+    Some(LoopScope { bound_names })
+}
+
+fn collect_identifiers(
+    expression: &str,
+    scopes: &[LoopScope],
+    tokens: &mut BTreeSet<VariableName>,
+) {
     const KEYWORDS: &[&str] = &[
         "if",
         "else",
@@ -421,10 +631,19 @@ fn collect_identifiers(expression: &str, tokens: &mut BTreeSet<VariableName>) {
         "endfilter",
     ];
 
+    let bound_names = scopes
+        .iter()
+        .flat_map(|scope| scope.bound_names.iter().map(String::as_str))
+        .collect::<BTreeSet<_>>();
+
     for candidate in expression.split(|character: char| {
         !(character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.'))
     }) {
         if candidate.is_empty() || KEYWORDS.contains(&candidate) {
+            continue;
+        }
+        let root = candidate.split('.').next().unwrap_or(candidate);
+        if bound_names.contains(root) {
             continue;
         }
         if let Ok(variable) = VariableName::new(candidate) {
@@ -714,6 +933,246 @@ mod tests {
                     && diagnostic.message.contains("\"world\"")
             }),
             "{report:?}"
+        );
+    }
+
+    #[test]
+    fn required_variable_path_pr_number_is_satisfied_by_object_input() {
+        let root = temp_root("validation_required_object_path");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - pr.number\n---\nhello {{ pr.number }}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("pr").unwrap(),
+            json!({
+                "number": 43,
+                "url": "https://example.test/pr/43",
+            }),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty());
+    }
+
+    #[test]
+    fn missing_nested_field_reports_err_val_missing_nested_field() {
+        let root = temp_root("validation_missing_nested_field");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - pr.number\n---\nhello {{ pr.number }}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("pr").unwrap(),
+            json!({ "url": "https://example.test/pr/43" }),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValMissingNestedField
+                && diagnostic.message.contains("pr.number")
+        }));
+    }
+
+    #[test]
+    fn shape_mismatch_reports_err_val_shape_mismatch() {
+        let root = temp_root("validation_shape_mismatch");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - pr.number\n---\nhello {{ pr.number }}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("pr").unwrap(),
+            json!("not-an-object"),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValShapeMismatch
+                && diagnostic.message.contains("pr.number")
+                && diagnostic.message.contains("pr")
+        }));
+    }
+
+    #[test]
+    fn required_variable_path_array_member_id_is_satisfied_by_array_of_objects() {
+        let root = temp_root("validation_required_array_member_path");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - sprints.id\n---\n{% for sprint in sprints %}{{ sprint.id }}{% endfor %}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("sprints").unwrap(),
+            json!([
+                { "id": "S1", "stage": "qa" },
+                { "id": "S2", "stage": "merged" }
+            ]),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty());
+    }
+
+    #[test]
+    fn missing_nested_field_in_array_member_reports_err_val_missing_nested_field() {
+        let root = temp_root("validation_missing_array_member_field");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - sprints.id\n---\n{% for sprint in sprints %}{{ sprint.id }}{% endfor %}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("sprints").unwrap(),
+            json!([
+                { "id": "S1", "stage": "qa" },
+                { "stage": "merged" }
+            ]),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValMissingNestedField
+                && diagnostic.message.contains("sprints.id")
+        }));
+    }
+
+    #[test]
+    fn shape_mismatch_in_array_member_reports_err_val_shape_mismatch() {
+        let root = temp_root("validation_array_member_shape_mismatch");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - sprints.id\n---\n{% for sprint in sprints %}{{ sprint.id }}{% endfor %}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("sprints").unwrap(),
+            json!([
+                { "id": "S1", "stage": "qa" },
+                "bad-member"
+            ]),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValShapeMismatch
+                && diagnostic.message.contains("sprints.id")
+                && diagnostic.message.contains("sprints")
+        }));
+    }
+
+    #[test]
+    fn discover_tokens_attributes_loop_body_references_to_iterable() {
+        let tokens = super::discover_tokens(
+            "{% for sprint in sprints %}{{ sprint.id }} {{ report.title }}{% endfor %}",
+        );
+
+        assert!(tokens.contains(&crate::VariableName::new("sprints").unwrap()));
+        assert!(tokens.contains(&crate::VariableName::new("report.title").unwrap()));
+        assert!(!tokens.contains(&crate::VariableName::new("sprint").unwrap()));
+        assert!(!tokens.contains(&crate::VariableName::new("sprint.id").unwrap()));
+    }
+
+    #[test]
+    fn discover_tokens_handles_nested_loops_with_separate_scopes() {
+        let tokens = super::discover_tokens(
+            "{% for sprint in sprints %}{% for finding in sprint_findings %}{{ finding.id }} {{ sprint.title }} {{ report.url }}{% endfor %}{% endfor %}",
+        );
+
+        assert!(tokens.contains(&crate::VariableName::new("sprints").unwrap()));
+        assert!(tokens.contains(&crate::VariableName::new("sprint_findings").unwrap()));
+        assert!(tokens.contains(&crate::VariableName::new("report.url").unwrap()));
+        assert!(!tokens.contains(&crate::VariableName::new("finding").unwrap()));
+        assert!(!tokens.contains(&crate::VariableName::new("finding.id").unwrap()));
+        assert!(!tokens.contains(&crate::VariableName::new("sprint").unwrap()));
+        assert!(!tokens.contains(&crate::VariableName::new("sprint.title").unwrap()));
+    }
+
+    #[test]
+    fn structured_defaults_replace_without_deep_merge() {
+        let root = temp_root("validation_structured_default_replace");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\ndefaults:\n  pr:\n    number: 7\n    url: https://example.test/pr/7\n---\nhello {{ pr.number }}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("pr").unwrap(),
+            json!({
+                "number": 43,
+            }),
+        );
+
+        let resolve_result = crate::resolve_template_path(&request).unwrap();
+        let expanded = crate::expand_includes(
+            &resolve_result.resolved_path,
+            &request.root,
+            &request.policy,
+        )
+        .unwrap();
+        let state = collect_validation_state(&request, &expanded);
+
+        assert_eq!(
+            state.context.get(&crate::VariableName::new("pr").unwrap()),
+            Some(&json!({ "number": 43 }))
+        );
+    }
+
+    #[test]
+    fn extra_nested_fields_are_ignored_by_top_level_extra_input_policy() {
+        let root = temp_root("validation_extra_nested_fields");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - pr.number\n---\nhello {{ pr.number }}\n",
+        );
+
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unknown_variable_policy: UnknownVariablePolicy::Error,
+                ..ComposePolicy::default()
+            },
+        );
+        request.vars_input.insert(
+            crate::VariableName::new("pr").unwrap(),
+            json!({
+                "number": 43,
+                "url": "https://example.test/pr/43",
+                "status": "open",
+            }),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(
+            !report
+                .errors
+                .iter()
+                .any(|diagnostic| { diagnostic.code == DiagnosticCode::ErrValExtraInput })
         );
     }
 

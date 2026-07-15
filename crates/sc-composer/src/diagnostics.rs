@@ -1,5 +1,6 @@
 //! Structured diagnostics and stable `ERR_*` codes.
 
+use std::fmt;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -17,6 +18,17 @@ pub enum DiagnosticSeverity {
     Warning,
     /// Informational diagnostic.
     Info,
+}
+
+impl fmt::Display for DiagnosticSeverity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let severity = match self {
+            Self::Error => "error",
+            Self::Warning => "warning",
+            Self::Info => "info",
+        };
+        f.write_str(severity)
+    }
 }
 
 /// Canonical stable diagnostic code.
@@ -37,6 +49,11 @@ pub enum DiagnosticCode {
     ErrIncludeDepth,
     /// A variable had an invalid scalar type or shape.
     ErrValType,
+    /// Structured object input used an unsupported shape.
+    ErrValObjectShape,
+    /// Structured input used either a literal nested array or an array of
+    /// objects at a non-top-level path.
+    ErrValNestedArrayUnsupported,
     /// Frontmatter declarations contained duplicate variables.
     ErrValDuplicate,
     /// Frontmatter used both defaults sections and `input_defaults` overrides them.
@@ -47,6 +64,10 @@ pub enum DiagnosticCode {
     ErrValMissingFrontmatter,
     /// A required variable was still missing after context merge.
     ErrValMissingRequired,
+    /// A required nested field path was missing inside a present object.
+    ErrValMissingNestedField,
+    /// Nested required-path traversal encountered the wrong intermediate shape.
+    ErrValShapeMismatch,
     /// A referenced token was not declared in frontmatter.
     ErrValUndeclaredToken,
     /// A caller-provided variable was not declared or referenced.
@@ -85,11 +106,15 @@ impl DiagnosticCode {
             Self::ErrIncludeCycle => "ERR_INCLUDE_CYCLE",
             Self::ErrIncludeDepth => "ERR_INCLUDE_DEPTH",
             Self::ErrValType => "ERR_VAL_TYPE",
+            Self::ErrValObjectShape => "ERR_VAL_OBJECT_SHAPE",
+            Self::ErrValNestedArrayUnsupported => "ERR_VAL_NESTED_ARRAY_UNSUPPORTED",
             Self::ErrValDuplicate => "ERR_VAL_DUPLICATE",
             Self::WarnValConflictingDefaultSections => "WARN_VAL_CONFLICTING_DEFAULT_SECTIONS",
             Self::ErrValEmpty => "ERR_VAL_EMPTY",
             Self::ErrValMissingFrontmatter => "ERR_VAL_MISSING_FRONTMATTER",
             Self::ErrValMissingRequired => "ERR_VAL_MISSING_REQUIRED",
+            Self::ErrValMissingNestedField => "ERR_VAL_MISSING_NESTED_FIELD",
+            Self::ErrValShapeMismatch => "ERR_VAL_SHAPE_MISMATCH",
             Self::ErrValUndeclaredToken => "ERR_VAL_UNDECLARED_TOKEN",
             Self::ErrValExtraInput => "ERR_VAL_EXTRA_INPUT",
             Self::InfoValDefaultUsed => "INFO_VAL_DEFAULT_USED",
