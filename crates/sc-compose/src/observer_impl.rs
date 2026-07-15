@@ -517,7 +517,9 @@ mod tests {
         RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
         action_name, outcome_label, schema_version, service_name, target_category,
     };
-    use sc_composer::{CompositionObserver, Diagnostic, DiagnosticCode, DiagnosticSeverity};
+    use sc_composer::{
+        CompositionObserver, Diagnostic, DiagnosticCode, DiagnosticSeverity, IncludeOutcomeEvent,
+    };
 
     #[test]
     fn cli_observer_emits_command_and_pipeline_events_to_logger() {
@@ -672,6 +674,43 @@ mod tests {
         assert_eq!(lines[1]["fields"]["exit_code"], 2);
         assert_eq!(lines[1]["fields"]["json_output"], true);
         assert_eq!(lines[1]["fields"]["diagnostic_code"], "ERR_VAL");
+    }
+
+    #[test]
+    fn include_outcome_failure_records_failure_fields() {
+        let root = temp_root("observer-include-failure");
+        let mut config = LoggerConfig::default_for(service_name(), root);
+        config.enable_console_sink = false;
+        let logger = match Logger::builder(config) {
+            Ok(builder) => builder.build(),
+            Err(error) => panic!("logger builder: {error}"),
+        };
+        let mut observer = CliObserver::new(logger);
+
+        observer.on_include_outcome(&IncludeOutcomeEvent {
+            resolved_files: vec![PathBuf::from("partials/header.md.j2")],
+            include_chain: vec![
+                PathBuf::from("template.md.j2"),
+                PathBuf::from("partials/header.md.j2"),
+            ],
+            code: Some(DiagnosticCode::ErrIncludeNotFound),
+        });
+
+        observer.shutdown();
+        let lines = read_log_lines(&observer.health().active_log_path);
+        assert_eq!(lines.len(), 1);
+        assert_eq!(lines[0]["target"], "compose.include_expand");
+        assert_eq!(lines[0]["action"], "failed");
+        assert_eq!(lines[0]["outcome"], "failure");
+        assert_eq!(
+            lines[0]["fields"]["diagnostic_code"],
+            "ERR_INCLUDE_NOT_FOUND"
+        );
+        assert_eq!(
+            lines[0]["fields"]["resolved_files"][0],
+            "partials/header.md.j2"
+        );
+        assert_eq!(lines[0]["fields"]["include_chain"][0], "template.md.j2");
     }
 
     #[test]

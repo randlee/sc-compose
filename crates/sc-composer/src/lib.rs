@@ -58,6 +58,8 @@ pub use observer::{
     RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
 #[doc(inline)]
+pub use path_utils::to_forward_slash;
+#[doc(inline)]
 pub use renderer::{
     LoadedTemplateRequest, NamedTemplateAsset, RenderedArtifact, Renderer, render_loaded_template,
     render_template,

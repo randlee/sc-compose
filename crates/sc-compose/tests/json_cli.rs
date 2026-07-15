@@ -1481,13 +1481,13 @@ fn reports_smoke_json_lists_archive_artifacts_when_requested() {
     assert!(output.stderr.is_empty());
     let value = parse_stdout(&output);
     assert_envelope(&value);
-    assert_eq!(
-        value["payload"]["archived_artifacts"]
-            .as_array()
-            .unwrap()
-            .len(),
-        2
-    );
+    let archived = value["payload"]["archived_artifacts"].as_array().unwrap();
+    assert_eq!(archived.len(), 2);
+    for artifact in archived {
+        let artifact = artifact.as_str().unwrap();
+        assert!(artifact.contains("reports/archive/"));
+        assert!(!artifact.contains('\\'));
+    }
 }
 
 #[test]

@@ -138,3 +138,63 @@ fn sanitize_node_id(input: &str) -> String {
         })
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{render_mermaid, sanitize_node_id};
+    use crate::reporting::spec::{
+        ReportSpec, ReportSpecMetadata, SpecHeader, SqlQuerySpec, StateMachineSpec,
+    };
+
+    fn spec_header(kind: &str, id: &str, title: &str) -> SpecHeader {
+        SpecHeader {
+            kind: kind.to_owned(),
+            id: id.to_owned(),
+            title: title.to_owned(),
+            renderer_targets: vec!["mermaid".to_owned()],
+        }
+    }
+
+    #[test]
+    fn state_machine_specs_require_at_least_one_state() {
+        let error = render_mermaid(&ReportSpec::StateMachine(StateMachineSpec {
+            spec: spec_header("state_machine", "state-empty", "State Empty"),
+            states: Vec::new(),
+            transitions: Vec::new(),
+            metadata: ReportSpecMetadata::default(),
+        }))
+        .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "state_machine specs must define at least one state"
+        );
+    }
+
+    #[test]
+    fn sql_query_specs_require_at_least_one_table() {
+        let error = render_mermaid(&ReportSpec::SqlQuery(SqlQuerySpec {
+            spec: spec_header("sql_query", "sql-empty", "SQL Empty"),
+            purpose: "test".to_owned(),
+            tables_read: Vec::new(),
+            tables_written: Vec::new(),
+            filters: Vec::new(),
+            ordering: Vec::new(),
+            cardinality: "1 row".to_owned(),
+            transactional_assumptions: Vec::new(),
+            metadata: ReportSpecMetadata::default(),
+        }))
+        .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "sql_query specs must define at least one read or write table"
+        );
+    }
+
+    #[test]
+    fn sanitize_node_id_collides_for_distinct_inputs() {
+        assert_eq!(sanitize_node_id("build:ok"), sanitize_node_id("build/ok"));
+        assert_eq!(sanitize_node_id("build:ok"), "build_ok");
+    }
+}

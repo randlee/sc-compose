@@ -13,11 +13,7 @@ use crate::{CommandError, print_diagnostic_messages, print_json};
 pub(crate) fn run_reports_init(args: &ReportsInitArgs) -> Result<i32, CommandError> {
     let result = init_report_scaffold(&args.root)?;
     if args.json {
-        let payload = serde_json::json!({
-            "workspace_root": to_forward_slash(&result.workspace_root),
-            "created_paths": result.created_paths,
-        });
-        print_json(payload, Vec::new()).map_err(CommandError::usage)?;
+        print_json(&result, Vec::new()).map_err(CommandError::usage)?;
     } else {
         println!(
             "workspace_root: {}",
@@ -42,17 +38,7 @@ pub(crate) fn run_reports_smoke(
         observer,
     )?;
     if args.json {
-        let payload = serde_json::json!({
-            "report_id": result.report_id,
-            "kind": result.kind,
-            "produced_at": result.produced_at,
-            "status": result.status,
-            "entrypoint": to_forward_slash(&result.entrypoint),
-            "metadata": to_forward_slash(&result.metadata),
-            "artifacts": result.artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
-            "archived_artifacts": result.archived_artifacts.iter().map(|path| to_forward_slash(path)).collect::<Vec<_>>(),
-        });
-        print_json(payload, result.warnings).map_err(CommandError::usage)?;
+        print_json(&result, result.warnings.clone()).map_err(CommandError::usage)?;
     } else {
         println!("report_id: {}", result.report_id);
         println!("kind: {}", result.kind);

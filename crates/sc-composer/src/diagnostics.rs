@@ -47,8 +47,6 @@ pub enum DiagnosticCode {
     ErrIncludeCycle,
     /// The include graph exceeded the configured maximum depth.
     ErrIncludeDepth,
-    /// A variable had an invalid scalar type or shape.
-    ErrValType,
     /// Structured object input used an unsupported shape.
     ErrValObjectShape,
     /// Structured input used either a literal nested array or an array of
@@ -105,7 +103,6 @@ impl DiagnosticCode {
             Self::ErrIncludeNotFound => "ERR_INCLUDE_NOT_FOUND",
             Self::ErrIncludeCycle => "ERR_INCLUDE_CYCLE",
             Self::ErrIncludeDepth => "ERR_INCLUDE_DEPTH",
-            Self::ErrValType => "ERR_VAL_TYPE",
             Self::ErrValObjectShape => "ERR_VAL_OBJECT_SHAPE",
             Self::ErrValNestedArrayUnsupported => "ERR_VAL_NESTED_ARRAY_UNSUPPORTED",
             Self::ErrValDuplicate => "ERR_VAL_DUPLICATE",
