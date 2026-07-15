@@ -263,12 +263,21 @@ jobs:
           set -euo pipefail
           tag='${{ needs.gate-and-tag.outputs.release_tag }}'
           version='${{ needs.gate-and-tag.outputs.release_version }}'
-          tarball_path="${RUNNER_TEMP:?RUNNER_TEMP is required}/release.tar.gz"
-          tarball_url="https://github.com/randlee/sc-compose/releases/download/${tag}/sc-compose_${version}_aarch64-apple-darwin.tar.gz"
-          echo "tarball_url=${tarball_url}" >> "$GITHUB_OUTPUT"
-          curl -fsSL --retry 5 --retry-delay 30 --retry-all-errors -o "${tarball_path}" "${tarball_url}"
-          sha256=$(sha256sum "${tarball_path}" | awk '{print $1}')
-          echo "sha256=${sha256}" >> "$GITHUB_OUTPUT"
+          declare -A targets=(
+            [macos_arm]="aarch64-apple-darwin"
+            [macos_intel]="x86_64-apple-darwin"
+            [linux]="x86_64-unknown-linux-gnu"
+          )
+
+          for key in "${!targets[@]}"; do
+            target="${targets[$key]}"
+            tarball_path="${RUNNER_TEMP:?RUNNER_TEMP is required}/${target}.tar.gz"
+            tarball_url="https://github.com/randlee/sc-compose/releases/download/${tag}/sc-compose_${version}_${target}.tar.gz"
+            echo "${key}_url=${tarball_url}" >> "$GITHUB_OUTPUT"
+            curl -fsSL --retry 5 --retry-delay 30 --retry-all-errors -o "${tarball_path}" "${tarball_url}"
+            sha256=$(sha256sum "${tarball_path}" | awk '{print $1}')
+            echo "${key}_sha256=${sha256}" >> "$GITHUB_OUTPUT"
+          done
 
       - name: Write formula from template
         shell: bash
@@ -281,16 +290,24 @@ jobs:
           template = Path("sc-compose/release/homebrew/sc-compose.rb.j2").read_text()
           rendered = (
               template
-              .replace("{{ tarball_url }}", os.environ["TARBALL_URL"])
-              .replace("{{ sha256 }}", os.environ["SHA256"])
+              .replace("{{ macos_arm_url }}", os.environ["MACOS_ARM_URL"])
+              .replace("{{ macos_arm_sha256 }}", os.environ["MACOS_ARM_SHA256"])
+              .replace("{{ macos_intel_url }}", os.environ["MACOS_INTEL_URL"])
+              .replace("{{ macos_intel_sha256 }}", os.environ["MACOS_INTEL_SHA256"])
+              .replace("{{ linux_url }}", os.environ["LINUX_URL"])
+              .replace("{{ linux_sha256 }}", os.environ["LINUX_SHA256"])
               .replace("{{ version }}", os.environ["VERSION"])
           )
           Path(os.environ["FORMULA"]).write_text(rendered)
           PY
         env:
           FORMULA: homebrew-tap/Formula/sc-compose.rb
-          SHA256: ${{ steps.sha.outputs.sha256 }}
-          TARBALL_URL: ${{ steps.sha.outputs.tarball_url }}
+          LINUX_SHA256: ${{ steps.sha.outputs.linux_sha256 }}
+          LINUX_URL: ${{ steps.sha.outputs.linux_url }}
+          MACOS_ARM_SHA256: ${{ steps.sha.outputs.macos_arm_sha256 }}
+          MACOS_ARM_URL: ${{ steps.sha.outputs.macos_arm_url }}
+          MACOS_INTEL_SHA256: ${{ steps.sha.outputs.macos_intel_sha256 }}
+          MACOS_INTEL_URL: ${{ steps.sha.outputs.macos_intel_url }}
           VERSION: ${{ needs.gate-and-tag.outputs.release_version }}
 
       - name: Commit and push to homebrew-tap
