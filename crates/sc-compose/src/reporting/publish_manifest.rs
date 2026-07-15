@@ -47,7 +47,7 @@ pub(crate) struct PublishManifestResult {
 
 #[derive(Debug)]
 pub(crate) enum PublishManifestError {
-    Index(ReportIndexError),
+    Index(Box<ReportIndexError>),
     TimeFormat(time::error::Format),
     InvalidArtifactPath {
         report_id: String,
@@ -72,18 +72,20 @@ pub(crate) enum PublishManifestError {
 pub(crate) fn write_publish_manifest(
     root: &Path,
 ) -> Result<PublishManifestResult, PublishManifestError> {
-    let index = build_report_index(root).map_err(PublishManifestError::Index)?;
+    let index = build_report_index(root)
+        .map_err(Box::new)
+        .map_err(PublishManifestError::Index)?;
 
     let mut reports = Vec::new();
     for entry in index.entries {
         if !entry.missing_paths.is_empty() {
             if entry.required {
-                return Err(PublishManifestError::Index(
+                return Err(PublishManifestError::Index(Box::new(
                     ReportIndexError::MissingRequiredEvidence {
                         report_id: entry.report_id,
                         missing_paths: entry.missing_paths,
                     },
-                ));
+                )));
             }
             continue;
         }

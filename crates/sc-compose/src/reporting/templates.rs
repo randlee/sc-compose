@@ -42,7 +42,7 @@ pub(crate) enum TemplateError {
     },
     ParseCatalog {
         path: PathBuf,
-        source: toml::de::Error,
+        source: Box<toml::de::Error>,
     },
     InvalidCatalog(String),
     InvalidSelector(String),
@@ -190,7 +190,7 @@ fn lookup_family_selector(
         .parse::<TomlValue>()
         .map_err(|source| TemplateError::ParseCatalog {
             path: catalog_path.to_path_buf(),
-            source,
+            source: Box::new(source),
         })?;
     let Some(table) = document
         .get("reporting")

@@ -79,10 +79,10 @@ pub(crate) enum RenderManyError {
     },
     Render {
         source_path: PathBuf,
-        source: RenderError,
+        source: Box<RenderError>,
     },
     SourceEntry(SourceEntryError),
-    Template(TemplateError),
+    Template(Box<TemplateError>),
 }
 
 impl RenderManyRequest {
@@ -93,9 +93,12 @@ impl RenderManyRequest {
 
     fn resolve_template(&self) -> Result<ResolvedTemplate, RenderManyError> {
         if let Some(family) = &self.source_set.template_family {
-            return resolve_template_family(&self.root, family).map_err(RenderManyError::Template);
+            return resolve_template_family(&self.root, family)
+                .map_err(Box::new)
+                .map_err(RenderManyError::Template);
         }
         resolve_template_selector(&self.root, &self.source_set.template_selector)
+            .map_err(Box::new)
             .map_err(RenderManyError::Template)
     }
 }
@@ -123,7 +126,7 @@ pub(crate) fn render_many(
             render_entry(&entry, &request.source_set.id, &resolved_template).map_err(|source| {
                 RenderManyError::Render {
                     source_path: entry.record.source_path.clone(),
-                    source,
+                    source: Box::new(source),
                 }
             })?;
         let absolute_output = request.root.join(&entry.record.output_path);

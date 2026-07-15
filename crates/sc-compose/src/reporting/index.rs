@@ -36,7 +36,7 @@ pub(crate) struct ReportVerifyResult {
 
 #[derive(Debug)]
 pub(crate) enum ReportIndexError {
-    Catalog(CatalogError),
+    Catalog(Box<CatalogError>),
     ReadMetadata {
         path: PathBuf,
         source: std::io::Error,
@@ -52,7 +52,9 @@ pub(crate) enum ReportIndexError {
 }
 
 pub(crate) fn build_report_index(root: &Path) -> Result<ReportIndex, ReportIndexError> {
-    let catalog = ReportCatalog::load(root).map_err(ReportIndexError::Catalog)?;
+    let catalog = ReportCatalog::load(root)
+        .map_err(Box::new)
+        .map_err(ReportIndexError::Catalog)?;
     let mut entries = Vec::with_capacity(catalog.reports.len());
     for report in catalog.reports {
         entries.push(index_entry(root, report)?);

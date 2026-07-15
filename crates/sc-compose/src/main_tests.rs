@@ -1,7 +1,9 @@
 use std::fs;
 use std::path::PathBuf;
-use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+#[cfg(not(windows))]
+use std::sync::{Mutex, OnceLock};
 
 use anyhow::anyhow;
 use sc_composer::{CompositionObserver, DiagnosticCode};

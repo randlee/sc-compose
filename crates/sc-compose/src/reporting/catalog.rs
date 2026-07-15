@@ -52,7 +52,7 @@ pub(crate) enum CatalogError {
     },
     Parse {
         path: PathBuf,
-        source: toml::de::Error,
+        source: Box<toml::de::Error>,
     },
     Invalid(String),
 }
@@ -74,7 +74,7 @@ pub(crate) fn load_report_catalog_from_path(
         .parse::<Value>()
         .map_err(|source| CatalogError::Parse {
             path: catalog_path.clone(),
-            source,
+            source: Box::new(source),
         })?;
 
     let report_entries = document
