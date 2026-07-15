@@ -152,10 +152,11 @@ metadata:
 
 ## Includes: the reuse lever
 
-The include directive is a single line that begins with `@`, followed by a path relative to the including file or to the workspace root:
+The include directive is a single line of the form `@<path>`, where `path` is
+resolved relative to the including file or to the workspace root:
 
 ```
-@_includes/house-style.md
+@<_includes/house-style.md>
 ```
 
 At render time the directive is replaced by the target file's contents. Includes may nest. The engine tracks the chain, detects cycles, enforces a depth limit, and keeps every resolved path inside the workspace root. Included files can also declare frontmatter. Their `required_variables` merge upward into the caller-visible set, and their `defaults` apply behind any defaults the parent already declared.
@@ -296,12 +297,14 @@ Put a shared snippet in `_includes/house-style.md` and reference it from any tem
 ```
 Before making changes, review the house style.
 
-@_includes/house-style.md
+@<_includes/house-style.md>
 
 Then proceed with the task described below.
 ```
 
-At render time the `@_includes/house-style.md` line is replaced by that file's contents. Edit `house-style.md` once. Every template that includes it picks up the change on the next render.
+At render time the `@<_includes/house-style.md>` line is replaced by that
+file's contents. Edit `house-style.md` once. Every template that includes it
+picks up the change on the next render.
 
 ---
 
@@ -391,7 +394,8 @@ Any other frontmatter field is preserved as metadata.
 
 ### Include syntax
 
-- Directive: a line beginning with `@` followed by a path (for example, `@_includes/house-style.md`).
+- Directive: a line of the form `@<path>` (for example,
+  `@<_includes/house-style.md>`).
 - Resolution order: first relative to the including file, then relative to the workspace root.
 - Nested includes are supported. Cycles and depth overruns fail with a diagnostic.
 - All resolved paths are confined to the workspace root. Paths that escape via `..` are rejected.
