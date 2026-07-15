@@ -32,22 +32,14 @@ fn main() {
         match observability::build_logger(wants_json).map(observer_impl::CliObserver::new) {
             Ok(observer) => observer,
             Err(error) => {
-                if wants_json {
-                    print_json_error(&error, error.diagnostics.clone());
-                } else {
-                    eprintln!("{error}");
-                }
+                report_error(&error, wants_json);
                 std::process::exit(error.exit_code);
             }
         };
     let code = match commands::dispatch::run(cli, &mut observer) {
         Ok(code) => code,
         Err(error) => {
-            if wants_json {
-                print_json_error(&error, error.diagnostics.clone());
-            } else {
-                eprintln!("{error}");
-            }
+            report_error(&error, wants_json);
             error.exit_code
         }
     };
@@ -76,5 +68,13 @@ fn print_json_error(error: &CommandError, diagnostics: Vec<Diagnostic>) {
     if let Err(print_error) = print_json(serde_json::json!({}), diagnostics) {
         eprintln!("{error}");
         eprintln!("{print_error:#}");
+    }
+}
+
+fn report_error(error: &CommandError, wants_json: bool) {
+    if wants_json {
+        print_json_error(error, error.diagnostics.clone());
+    } else {
+        eprintln!("{error}");
     }
 }
