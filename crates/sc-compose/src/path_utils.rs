@@ -49,3 +49,34 @@ pub(crate) fn is_normalized_relative_path(path: &Path) -> bool {
             .components()
             .all(|component| matches!(component, std::path::Component::Normal(_)))
 }
+
+pub(crate) fn normalize_relative_path(path: &Path) -> Result<PathBuf, String> {
+    if path.as_os_str().is_empty() {
+        return Err("path must not be empty".to_owned());
+    }
+    if path.is_absolute() {
+        return Err("path must be relative".to_owned());
+    }
+
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::Normal(value) => normalized.push(value),
+            std::path::Component::CurDir => {
+                return Err("path must not contain '.' segments".to_owned());
+            }
+            std::path::Component::ParentDir => {
+                return Err("path must not contain '..' segments".to_owned());
+            }
+            std::path::Component::RootDir | std::path::Component::Prefix(_) => {
+                return Err("path must be relative".to_owned());
+            }
+        }
+    }
+
+    if normalized.as_os_str().is_empty() {
+        return Err("path must not be empty".to_owned());
+    }
+
+    Ok(normalized)
+}

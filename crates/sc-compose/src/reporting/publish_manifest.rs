@@ -5,6 +5,7 @@ use serde::Serialize;
 use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
 
+use crate::path_utils::normalize_relative_path;
 use crate::reporting::index::{ReportIndexError, build_report_index};
 use crate::reporting::output::{ARCHIVE_ROOT_RELATIVE_PATH, LATEST_ROOT_RELATIVE_PATH};
 
@@ -101,10 +102,20 @@ pub(crate) fn write_publish_manifest(
                         latest_report_root.display()
                     ),
                 })?;
+            let relative = normalize_relative_path(relative).map_err(|message| {
+                PublishManifestError::InvalidArtifactPath {
+                    report_id: entry.report_id.clone(),
+                    path: artifact.clone(),
+                    message: format!(
+                        "artifact must remain under {}: {message}",
+                        latest_report_root.display()
+                    ),
+                }
+            })?;
             files.push(PublishManifestFile {
                 role: artifact_role(&entry.entrypoint, &entry.metadata, artifact),
                 path: artifact.clone(),
-                publish_to: publish_root.join(relative),
+                publish_to: publish_root.join(&relative),
             });
         }
 

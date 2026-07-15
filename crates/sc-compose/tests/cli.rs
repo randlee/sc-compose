@@ -1365,6 +1365,82 @@ metadata = "reports/latest/smoke/report.json"
 }
 
 #[test]
+fn reports_publish_manifest_rejects_parent_dir_artifact_from_metadata() {
+    let root = temp_root("reports-publish-manifest-parent-dir");
+    let init_output = sc_compose()
+        .arg("reports")
+        .arg("init")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
+    write_smoke_fixture(&root);
+    write_report_catalog(
+        &root,
+        r#"[[report]]
+id = "smoke"
+kind = "smoke"
+producer = "just smoke"
+required = true
+entrypoint = "reports/latest/smoke/index.html"
+metadata = "reports/latest/smoke/report.json"
+"#,
+    );
+
+    let smoke = sc_compose()
+        .arg("reports")
+        .arg("smoke")
+        .arg("--root")
+        .arg(&root)
+        .arg("--fixture")
+        .arg("reports/smoke/reference-template.html.j2")
+        .arg("--vars")
+        .arg("reports/smoke/sample-vars.json")
+        .output()
+        .unwrap();
+    assert!(smoke.status.success(), "{smoke:?}");
+
+    write_file(
+        &root.join("reports").join("latest").join("escaped.html"),
+        "<!DOCTYPE html><html><body>escaped</body></html>\n",
+    );
+    write_file(
+        &root
+            .join("reports")
+            .join("latest")
+            .join("smoke")
+            .join("report.json"),
+        r#"{
+  "report_id": "smoke",
+  "kind": "smoke",
+  "produced_at": "2026-05-27T03:40:00Z",
+  "status": "pass",
+  "entrypoint": "reports/latest/smoke/index.html",
+  "artifacts": [
+    "reports/latest/smoke/index.html",
+    "reports/latest/smoke/report.json",
+    "reports/latest/smoke/../escaped.html"
+  ]
+}
+"#,
+    );
+
+    let publish_manifest = sc_compose()
+        .arg("reports")
+        .arg("publish-manifest")
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert_eq!(publish_manifest.status.code(), Some(3));
+    let stderr = String::from_utf8(publish_manifest.stderr).unwrap();
+    assert!(stderr.contains("invalid publish-manifest artifact path for smoke"));
+    assert!(stderr.contains("path must not contain '..' segments"));
+}
+
+#[test]
 fn reports_finalize_writes_shared_sidecar_for_generic_producer_outputs() {
     let root = temp_root("reports-finalize");
     write_file(
@@ -2641,6 +2717,46 @@ fn report_render_many_renders_one_output_per_source_in_sorted_order() {
         .find("\"source_path\": \"docs/diagrams/b.txt\"")
         .unwrap();
     assert!(alpha_index < bravo_index);
+}
+
+#[test]
+fn report_render_many_accepts_repo_relative_root_argument() {
+    let root = temp_root("report-render-many-relative-root");
+    write_render_many_fixture(&root);
+    write_file(
+        &root.join("docs").join("diagrams").join("a.txt"),
+        "# title: Alpha\nalpha body\n",
+    );
+
+    let output = sc_compose()
+        .current_dir(&root)
+        .arg("report-render-many")
+        .arg("--root")
+        .arg(".")
+        .arg("--id")
+        .arg("state-machines")
+        .arg("--glob")
+        .arg("docs/diagrams/*.txt")
+        .arg("--template")
+        .arg("reports/templates/panel.html.j2")
+        .arg("--output-dir")
+        .arg("reports/latest/panels")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(
+        fs::read_to_string(
+            root.join("reports")
+                .join("latest")
+                .join("panels")
+                .join("docs")
+                .join("diagrams")
+                .join("a.html")
+        )
+        .unwrap(),
+        "<article>Alpha|alpha body|reports/latest/panels/docs/diagrams/a.html</article>"
+    );
 }
 
 #[test]

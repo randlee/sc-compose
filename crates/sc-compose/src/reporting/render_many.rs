@@ -167,7 +167,15 @@ pub(crate) fn render_many(
 }
 
 fn discover_sources(request: &RenderManyRequest) -> Result<Vec<SourceEntry>, RenderManyError> {
-    let pattern = to_forward_slash(&request.root.join(&request.source_set.glob));
+    let canonical_root =
+        request
+            .root
+            .canonicalize()
+            .map_err(|error| RenderManyError::InvalidTemplatePath {
+                path: request.root.clone(),
+                message: error.to_string(),
+            })?;
+    let pattern = to_forward_slash(&canonical_root.join(&request.source_set.glob));
     let paths = glob(&pattern).map_err(|error| RenderManyError::InvalidGlob {
         glob: request.source_set.glob.clone(),
         message: error.to_string(),
@@ -176,12 +184,17 @@ fn discover_sources(request: &RenderManyRequest) -> Result<Vec<SourceEntry>, Ren
 
     let mut entries = Vec::new();
     for path in paths {
-        let absolute_source = path.map_err(|error| RenderManyError::GlobWalk {
+        let source_path = path.map_err(|error| RenderManyError::GlobWalk {
             glob: request.source_set.glob.clone(),
             message: error.to_string(),
         })?;
+        let absolute_source = if source_path.is_absolute() {
+            source_path
+        } else {
+            canonical_root.join(source_path)
+        };
         let relative_source = absolute_source
-            .strip_prefix(&request.root)
+            .strip_prefix(&canonical_root)
             .map_err(|error| RenderManyError::InvalidTemplatePath {
                 path: absolute_source.clone(),
                 message: error.to_string(),
