@@ -16,10 +16,19 @@ Use this checklist before every crates.io release of `sc-composer` and `sc-compo
 - [ ] `cargo test --workspace` passes with zero failures on the release tag commit
 - [ ] `cargo clippy --all-targets --all-features -- -D warnings` passes
 - [ ] `cargo fmt --all --check` passes
-- [ ] Sprint 4 exit gate is fully cleared:
-  - all FR-1 through FR-11 requirements implemented and covered by tests
-  - failure-mode matrix ERR_* codes exercised by tests
-  - full end-to-end smoke test passes, including `observability-health`
+- [ ] The full `1.1.0` promoted surface is cleared on the release branch:
+  - HTML-report functionality and examples remain covered by tests
+  - Phase A and Phase B reporting commands remain covered by tests:
+    `reports init`, `reports smoke`, `reports finalize`, `reports render-spec`,
+    `reports index`, `reports verify`, and `reports publish-manifest`
+  - the checked-in `Justfile` proof path remains release-ready:
+    `just lint`, `just test`, `just smoke`, `just state-diagrams`,
+    `just sql-diagrams`, `just reports`, and `just reports-verify`
+  - publish-manifest handoff remains verified through
+    `reports/latest/publish-manifest.json`
+  - `observability-health` and the shipped `sc-observability 1.2.0`
+    queue-admission / shutdown behavior remain covered by tests
+  - failure-mode matrix `ERR_*` codes exercised by tests
   - `--json` commands are verified to keep stdout machine-readable
   - `quality-mgr` full QA pass on the release branch
   - `team-lead` final design review complete
@@ -70,6 +79,10 @@ triggered by a release tag.
 
 ## Release Authorization
 
-- [ ] Sprint 4 exit gate is cleared on the release branch
+- [ ] The `1.1.0` promoted surface is cleared on the release branch:
+  - HTML-report line remains release-ready
+  - Phase A and Phase B reporting runtime remains release-ready
+  - publish-manifest handoff remains release-ready
+  - `sc-observability 1.2.0` observability behavior remains release-ready
 - [ ] standalone boundary verification passes with no forbidden ATM references in source
 - [ ] downstream cutover notes are published alongside the release notes
