@@ -7,19 +7,23 @@
 home for both crates. All future development and releases happen here.
 
 The last versions of these crates published from the `agent-team-mail` workspace are the
-baseline. This repo's standalone release version is `1.0.0`, which stays above that
-baseline so crates.io version ordering remains correct through the source-of-truth cutover.
+baseline. This repo's first standalone release was `1.0.0`; the current standalone
+release line on `develop` is `1.1.0`, which stays above that baseline so crates.io
+version ordering remains correct through the source-of-truth cutover and the Phase B
+reporting expansion.
 
 ## What Changes for Downstream Consumers
 
 ### crates.io Consumers
 
-With the first standalone `1.0.0` release from this repo:
+With the standalone release line from this repo:
 
 - Downstream crates that depend on `sc-composer` or `sc-compose` via crates.io will
   automatically resolve to the new source with no manifest change required, as long as
   their version constraint covers the new release.
 - Consumers pinned to a pre-standalone version will need to update their version pin.
+- Consumers pinned to the first standalone `1.0.0` line should update to `1.1.0` if
+  they want the Phase B reporting/report-publication commands described below.
 
 ### ATM Workspace (agent-team-mail)
 
@@ -36,12 +40,42 @@ Cutover steps for the ATM workspace maintainer:
    sc-composer = { path = "../sc-composer" }
 
    # After (crates.io pin):
-   sc-composer = "1.0.0"
+   sc-composer = "1.1.0"
    ```
 3. Run `cargo update` to resolve the dependency graph.
 4. Run `cargo test --workspace` to verify nothing broke.
 5. Delete the in-workspace crate directories for `sc-composer` and `sc-compose` once
    all dependent crates resolve cleanly.
+
+## 1.1.0 Update Note: Phase B Reporting Surface
+
+The `1.1.0` line adds a consumer-visible reporting surface on top of the `1.0.0`
+standalone baseline. Downstream wrappers, release tooling, and human operators should
+account for these new commands when adopting `develop` or promoting it to `main`.
+
+New public CLI additions in the `1.1.0` line:
+
+- `reports init` — bootstraps the shared report scaffold and starter catalog.
+- `reports smoke` — runs the shared smoke fixture and emits report artifacts.
+- `reports finalize` — writes report sidecars and optional archive copies for
+  producer-owned outputs.
+- `reports render-spec` — renders checked-in semantic report specs into shared report
+  artifacts.
+- `reports index` — summarizes latest report entrypoints and sidecars from the report
+  catalog.
+- `reports verify` — fails when required report evidence is missing.
+- `reports publish-manifest` — writes `reports/latest/publish-manifest.json` as the
+  machine-readable CI/publication handoff.
+
+Consumer impact for the `1.1.0` line:
+
+- shell-out integrations can now treat `sc-compose` as the canonical producer for
+  shared report-scaffold initialization, verification, and publish-manifest emission,
+- release automation can consume `reports/latest/publish-manifest.json` instead of
+  reconstructing publish paths from ad hoc report-specific logic,
+- downstream repos that only use `render`/`resolve`/`validate` do not need behavioral
+  changes, but should update version pins and operator docs if they want the reporting
+  workflow.
 
 ## Breaking Changes
 
@@ -114,11 +148,13 @@ Downstream consumers that shell out to `sc-compose` should expect:
 
 ## Release And Cutover Order
 
-The first standalone crates.io release for this repo is `1.0.0`.
+The first standalone crates.io release for this repo was `1.0.0`. The current release
+line for this repo is `1.1.0`.
 
 Recommended downstream cutover order:
 
-1. Publish `sc-composer` and `sc-compose` version `1.0.0` from this repo.
+1. Publish `sc-composer` and `sc-compose` version `1.1.0` from this repo when promoting
+   the current standalone line.
 2. Verify crates.io resolution and installation using the release checklist.
 3. Update downstream consumers such as ATM to the published versions.
 4. Run downstream integration validation after the published release is live.

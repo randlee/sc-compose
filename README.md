@@ -51,11 +51,19 @@ cargo build --release -p sc-compose
 | `validate` | Expand includes and analyze variables without writing output. |
 | `frontmatter-init` | Discover referenced variables and prepend minimal frontmatter. |
 | `init` | Create `.prompts/`, add it to `.gitignore`, and scan templates. |
+| `observability-health` | Report process-local structured logging health. |
 | `examples list` | List bundled starter templates shipped with sc-compose. |
 | `examples <name>` | Render a bundled example with optional `--var` / `--var-file`. |
 | `templates list` | List your saved personal templates. |
 | `templates add <src> [name]` | Save a file or directory to your local template store. |
 | `templates <name>` | Render a saved template with optional `--var` / `--var-file`. |
+| `reports init` | Create the shared report scaffold and starter catalog. |
+| `reports smoke` | Render the built-in smoke report fixture and emit report artifacts. |
+| `reports finalize` | Materialize metadata and optional archives for producer-owned report outputs. |
+| `reports render-spec` | Render a semantic report spec into shared report artifacts. |
+| `reports index` | Summarize the current latest report artifacts from the report catalog. |
+| `reports verify` | Verify that required report evidence is present. |
+| `reports publish-manifest` | Write the machine-readable publish handoff manifest for current report outputs. |
 
 ---
 
@@ -65,7 +73,7 @@ For embedded hosts and programmatic use, depend on `sc-composer` directly:
 
 ```toml
 [dependencies]
-sc-composer = "1.0.0"
+sc-composer = "1.1.0"
 ```
 
 The crate root re-exports the main entry points — `compose`, `compose_with_observer`, `validate_with_observer`, `resolve_profile_with_observer`, `frontmatter_init`, `init_workspace` — plus request/result types and the diagnostic envelope. See `crates/sc-composer/src/lib.rs` and `docs/architecture.md`.
@@ -76,11 +84,11 @@ The crate root re-exports the main entry points — `compose`, `compose_with_obs
 
 | | |
 |-|-|
-| Version | 1.0.0 |
+| Version | 1.1.0 |
 | MSRV | Rust 1.94.1 |
 | Rust edition | 2024 |
 | Platforms | macOS, Linux, Windows |
-| Stability | stable 1.0 release line |
+| Stability | stable 1.1 release line |
 
 ## Documentation
 
@@ -91,7 +99,7 @@ The crate root re-exports the main entry points — `compose`, `compose_with_obs
 - `docs/publishing.md` — release procedures for integrators.
 - `docs/atm-adapter-notes.md` — adapter boundary and integration ownership.
 - `docs/phase-A/phase-A-plan.md` — follow-on reusable reporting and
-  report-pack planning line after the shipped `1.0` baseline.
+  report-pack planning line after the shipped `1.1` baseline.
 
 Contributor references: `docs/git-workflows.md`, `.claude/skills/rust-development/guidelines.txt`.
 
