@@ -6,13 +6,12 @@ use sc_composer::{
     LoadedTemplateRequest, NamedTemplateAsset, RenderError, RenderedArtifact,
     render_loaded_template,
 };
-use serde::Serialize;
 use serde_json::Value;
 use toml::Value as TomlValue;
 
-use crate::path_utils::{is_normalized_relative_path, to_forward_slash};
+use crate::path_utils::is_normalized_relative_path;
 use crate::reporting::catalog::REPORT_CATALOG_RELATIVE_PATH;
-use crate::reporting::source_entry::SourceEntry;
+use crate::reporting::report_context::{ReportTemplateContext, stable_path_key};
 
 const BASE_REPORT_TEMPLATE_NAME: &str = "base/report.html.j2";
 const DIAGRAM_REPORT_TEMPLATE_NAME: &str = "diagram/report.html.j2";
@@ -66,23 +65,6 @@ enum TemplateSelector {
     RepoPath(PathBuf),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(crate) struct ReportPanel {
-    pub(crate) panel_id: String,
-    pub(crate) title: String,
-    pub(crate) body: String,
-    pub(crate) copy_text: String,
-    pub(crate) copy_json: Option<String>,
-    pub(crate) fragment_href: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub(crate) struct ReportTemplateContext {
-    pub(crate) title: String,
-    pub(crate) panels: Vec<ReportPanel>,
-    pub(crate) report_metadata: Option<BTreeMap<String, Value>>,
-}
-
 pub(crate) fn resolve_template_selector(
     root: &Path,
     selector: &str,
@@ -127,39 +109,6 @@ pub(crate) fn render_shared_report(
         context: render_context_map(context),
         supporting_templates: template.supporting_templates.clone(),
     })
-}
-
-pub(crate) fn context_from_source_entry(
-    entry: &SourceEntry,
-    report_title: Option<String>,
-) -> ReportTemplateContext {
-    let title = report_title.unwrap_or_else(|| entry_title(entry));
-    let panel_title = entry_title(entry);
-    let mut report_metadata = BTreeMap::new();
-    report_metadata.insert(
-        "source_path".to_owned(),
-        Value::String(to_forward_slash(&entry.record.source_path)),
-    );
-    report_metadata.insert(
-        "output_path".to_owned(),
-        Value::String(to_forward_slash(&entry.record.output_path)),
-    );
-    if let Some(sets) = entry.record.sets.clone() {
-        report_metadata.insert("sets".to_owned(), serde_json::json!(sets));
-    }
-
-    ReportTemplateContext {
-        title,
-        panels: vec![ReportPanel {
-            panel_id: panel_id(entry),
-            title: panel_title,
-            body: entry.body.clone(),
-            copy_text: entry.body.clone(),
-            copy_json: panel_copy_json(entry),
-            fragment_href: panel_fragment_href(entry),
-        }],
-        report_metadata: Some(report_metadata),
-    }
 }
 
 fn parse_template_selector(selector: &str) -> Result<TemplateSelector, TemplateError> {
@@ -314,65 +263,6 @@ fn supporting_templates() -> Vec<NamedTemplateAsset> {
     ]
 }
 
-pub(crate) fn entry_title(entry: &SourceEntry) -> String {
-    entry
-        .record
-        .metadata
-        .get("title")
-        .and_then(Value::as_str)
-        .map_or_else(
-            || {
-                entry
-                    .record
-                    .source_path
-                    .file_stem()
-                    .and_then(|value| value.to_str())
-                    .unwrap_or("report-panel")
-                    .to_owned()
-            },
-            str::to_owned,
-        )
-}
-
-fn panel_id(entry: &SourceEntry) -> String {
-    entry
-        .record
-        .source_path
-        .display()
-        .to_string()
-        .chars()
-        .map(|ch| match ch {
-            'a'..='z' | 'A'..='Z' | '0'..='9' => ch,
-            _ => '-',
-        })
-        .collect()
-}
-
-fn panel_copy_json(entry: &SourceEntry) -> Option<String> {
-    entry
-        .record
-        .metadata
-        .get("copy_json")
-        .map(|value| serde_json::to_string(value).unwrap_or_else(|_| String::from("null")))
-}
-
-fn panel_fragment_href(entry: &SourceEntry) -> Option<String> {
-    entry
-        .record
-        .metadata
-        .get("fragment_href")
-        .and_then(Value::as_str)
-        .map(str::to_owned)
-        .or_else(|| {
-            entry
-                .record
-                .metadata
-                .get("fragment")
-                .and_then(Value::as_str)
-                .map(str::to_owned)
-        })
-}
-
 fn render_context_map(context: &ReportTemplateContext) -> BTreeMap<String, Value> {
     let primary_panel = context.panels.first();
     let panels = context
@@ -420,14 +310,7 @@ fn render_context_map(context: &ReportTemplateContext) -> BTreeMap<String, Value
 }
 
 fn normalized_template_key(path: &Path) -> String {
-    path.display()
-        .to_string()
-        .chars()
-        .map(|ch| match ch {
-            'a'..='z' | 'A'..='Z' | '0'..='9' => ch,
-            _ => '-',
-        })
-        .collect()
+    stable_path_key(path)
 }
 
 impl fmt::Display for TemplateError {

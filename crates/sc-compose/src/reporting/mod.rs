@@ -6,6 +6,8 @@ pub(crate) mod output;
 pub(crate) mod path;
 pub(crate) mod publish_manifest;
 pub(crate) mod render_many;
+pub(crate) mod report_context;
+pub(crate) mod scaffold;
 pub(crate) mod source_entry;
 pub(crate) mod spec;
 pub(crate) mod templates;
