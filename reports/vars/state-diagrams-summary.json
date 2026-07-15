@@ -1,0 +1,38 @@
+{
+  "report": {
+    "title": "State Diagram Summary",
+    "family": "atm-core style diagrams",
+    "generated_at": "2026-05-26T19:45:00Z"
+  },
+  "summary": {
+    "status": "PASS",
+    "note": "Repeated state-machine panels render through the shared diagram family."
+  },
+  "sections": [
+    {
+      "key": "panels",
+      "title": "Panel entrypoints"
+    }
+  ],
+  "items": [
+    {
+      "section_key": "panels",
+      "label": "Approval flow",
+      "href": "reports/latest/state-diagrams/panels/reports/specs/state-diagrams/approval-flow.html",
+      "status": "panel",
+      "note": "State-machine panel with copy-text and copy-json output."
+    },
+    {
+      "section_key": "panels",
+      "label": "Retry loop",
+      "href": "reports/latest/state-diagrams/panels/reports/specs/state-diagrams/retry-loop.html",
+      "note": "Second panel proves repeated-panel support."
+    },
+    {
+      "section_key": "panels",
+      "label": "Render-many manifest",
+      "href": "reports/latest/state-diagrams/panels/manifest.json",
+      "note": "Machine-readable panel output list."
+    }
+  ]
+}

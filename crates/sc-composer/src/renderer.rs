@@ -1,8 +1,44 @@
 //! Template renderer wrapper.
 
+use std::collections::BTreeMap;
+
 use minijinja::Environment;
+use serde::Serialize;
+use serde_json::Value;
 
 use crate::RenderError;
+
+/// Additional named templates that the main template may extend or include.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct NamedTemplateAsset {
+    /// Stable template identifier used for loader lookups.
+    pub template_name: String,
+    /// Template body associated with the identifier.
+    pub template_text: String,
+}
+
+/// Request for rendering template text that the caller already loaded.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct LoadedTemplateRequest {
+    /// Stable template identifier used for diagnostics and template naming.
+    pub template_name: String,
+    /// Pre-loaded template text to render.
+    pub template_text: String,
+    /// Render context supplied by the caller.
+    pub context: BTreeMap<String, Value>,
+    /// Additional named templates the main template may extend or include.
+    #[serde(default)]
+    pub supporting_templates: Vec<NamedTemplateAsset>,
+}
+
+/// Artifact returned by the pre-loaded template render path.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct RenderedArtifact {
+    /// Final rendered output text.
+    pub rendered: String,
+    /// Stable template identifier used during rendering.
+    pub template_name: String,
+}
 
 /// Pure template-engine wrapper used by composition entry points.
 #[derive(Debug)]
@@ -37,9 +73,23 @@ impl Renderer {
         template: &str,
         context: T,
     ) -> Result<String, RenderError> {
+        self.render_named("inline", template, context)
+    }
+
+    /// Render a template string with an explicit template name.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError`] when template parsing or rendering fails.
+    pub fn render_named<T: serde::Serialize>(
+        &self,
+        template_name: &str,
+        template: &str,
+        context: T,
+    ) -> Result<String, RenderError> {
         let template = self
             .env
-            .template_from_named_str("inline", template)
+            .template_from_named_str(template_name, template)
             .map_err(RenderError::render)?;
         template.render(context).map_err(RenderError::render)
     }
@@ -63,6 +113,35 @@ pub fn render_template<T: serde::Serialize>(
     context: T,
 ) -> Result<String, RenderError> {
     Renderer::new().render(template, context)
+}
+
+/// Render pre-loaded template content without taking ownership of file
+/// discovery or repository traversal.
+///
+/// # Errors
+///
+/// Returns [`RenderError`] when template parsing or rendering fails.
+pub fn render_loaded_template(
+    request: LoadedTemplateRequest,
+) -> Result<RenderedArtifact, RenderError> {
+    let mut env = Environment::new();
+    env.set_trim_blocks(true);
+    env.set_lstrip_blocks(true);
+    for asset in request.supporting_templates {
+        env.add_template_owned(asset.template_name, asset.template_text)
+            .map_err(RenderError::render)?;
+    }
+    env.add_template_owned(request.template_name.clone(), request.template_text.clone())
+        .map_err(RenderError::render)?;
+    let rendered = env
+        .get_template(&request.template_name)
+        .map_err(RenderError::render)?
+        .render(&request.context)
+        .map_err(RenderError::render)?;
+    Ok(RenderedArtifact {
+        rendered,
+        template_name: request.template_name,
+    })
 }
 
 #[cfg(test)]

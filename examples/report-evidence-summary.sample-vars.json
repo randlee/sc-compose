@@ -1,0 +1,61 @@
+{
+  "report": {
+    "title": "Report Evidence Summary",
+    "family": "Phase B proof vehicle",
+    "generated_at": "2026-05-26T19:45:00Z"
+  },
+  "summary": {
+    "status": "PASS",
+    "note": "This bundled example is new in Phase B and summarizes the latest report entrypoints produced by the shared reporting runtime."
+  },
+  "sections": [
+    {
+      "key": "evidence",
+      "title": "sc-lint style evidence family"
+    },
+    {
+      "key": "diagrams",
+      "title": "atm-core style diagrams"
+    }
+  ],
+  "items": [
+    {
+      "section_key": "evidence",
+      "label": "Lint evidence",
+      "href": "reports/latest/sc-lint/index.html",
+      "status": "latest",
+      "note": "Shared lint evidence summary."
+    },
+    {
+      "section_key": "evidence",
+      "label": "Test evidence",
+      "href": "reports/latest/test-evidence/index.html",
+      "note": "Shared test evidence summary."
+    },
+    {
+      "section_key": "evidence",
+      "label": "Smoke evidence",
+      "href": "reports/latest/smoke/index.html",
+      "note": "Shared smoke fixture output."
+    },
+    {
+      "section_key": "diagrams",
+      "label": "State diagrams",
+      "href": "reports/latest/state-diagrams/index.html",
+      "status": "latest",
+      "note": "Repeated state-machine panels."
+    },
+    {
+      "section_key": "diagrams",
+      "label": "SQL diagrams",
+      "href": "reports/latest/sql-diagrams/index.html",
+      "note": "Repeated SQL-query panels."
+    },
+    {
+      "section_key": "diagrams",
+      "label": "Publish manifest",
+      "href": "reports/latest/publish-manifest.json",
+      "note": "Machine-readable publication handoff."
+    }
+  ]
+}

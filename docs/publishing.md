@@ -113,3 +113,20 @@ The standalone release path covers:
 
 The first `winget` release requires a one-time manual submission to
 `microsoft/winget-pkgs`. Later releases use the automated workflow job.
+
+## Report Publication Handoff
+
+Generated report evidence uses one machine-readable handoff file:
+
+- `sc-compose reports publish-manifest --root .`
+- writes `reports/latest/publish-manifest.json`
+
+That manifest lists:
+
+- each publishable report present in the current latest artifact set
+- each report artifact path
+- the intended publish destination for each artifact
+- the latest archive snapshot path for the report when one exists
+
+`sc-compose` does not upload, copy, or host those artifacts. CI and wrapper
+tooling consume the manifest and perform publication separately.

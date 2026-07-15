@@ -1,0 +1,38 @@
+{
+  "report": {
+    "title": "Lint Evidence Summary",
+    "family": "sc-lint style evidence",
+    "generated_at": "2026-05-26T19:45:00Z"
+  },
+  "summary": {
+    "status": "PASS",
+    "note": "Lint evidence uses one shared report contract and nested metadata inputs."
+  },
+  "sections": [
+    {
+      "key": "artifacts",
+      "title": "Latest artifacts"
+    }
+  ],
+  "items": [
+    {
+      "section_key": "artifacts",
+      "label": "Summary panel",
+      "href": "reports/latest/sc-lint/panels/reports/inputs/lint/summary.html",
+      "status": "latest",
+      "note": "Primary lint evidence page."
+    },
+    {
+      "section_key": "artifacts",
+      "label": "Whitespace edge case",
+      "href": "reports/latest/sc-lint/panels/reports/inputs/lint/whitespace.html",
+      "note": "Exercises unusual whitespace and ignored extra fields."
+    },
+    {
+      "section_key": "artifacts",
+      "label": "Render-many manifest",
+      "href": "reports/latest/sc-lint/panels/manifest.json",
+      "note": "Machine-readable panel output list."
+    }
+  ]
+}

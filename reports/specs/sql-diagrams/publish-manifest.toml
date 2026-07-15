@@ -1,0 +1,17 @@
+[spec]
+kind = "sql_query"
+id = "publish-manifest"
+title = "Publish Manifest Query"
+renderer_targets = ["mermaid"]
+
+[sql_query]
+purpose = "Collect publishable report files"
+tables_read = ["reports", "report_artifacts"]
+tables_written = ["publish_manifest_cache"]
+filters = ["required = true"]
+ordering = ["report_id ASC"]
+cardinality = "many"
+transactional_assumptions = ["read committed"]
+
+[metadata]
+sets = ["publish", "diagram"]

@@ -1,0 +1,31 @@
+[spec]
+kind = "state_machine"
+id = "approval-flow"
+title = "Approval Flow"
+renderer_targets = ["mermaid"]
+
+[metadata]
+sets = ["publish", "diagram"]
+
+[[states]]
+id = "queued"
+label = "Queued"
+
+[[states]]
+id = "reviewed"
+label = "Reviewed"
+
+[[states]]
+id = "published"
+label = "Published"
+terminal = true
+
+[[transitions]]
+from = "queued"
+to = "reviewed"
+event = "review_ok"
+
+[[transitions]]
+from = "reviewed"
+to = "published"
+event = "publish_ok"

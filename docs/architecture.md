@@ -362,8 +362,9 @@ Missing required variables remain a separate diagnostic class:
 
 ### 7.4 Built-In Render-Context Tier (FR-2c)
 
-Built-in render-context variables are injected after caller-provided inputs are
-merged and before template-owned defaults are applied.
+Built-in render-context variables are injected after caller-provided inputs
+(explicit `--var` and `--env-prefix`) are merged but before template-owned
+defaults take effect. Caller-provided values always win over built-ins.
 
 The built-in set is:
 
@@ -387,9 +388,9 @@ The library API should expose explicit request and result types.
 
 Required library surface:
 
-- `resolve_profile(request) -> ResolveResult`
-- `compose(request) -> ComposeResult`
-- `validate(request) -> ValidationReport`
+- `resolve_profile(request) -> Result<ResolveResult, ComposeError>`
+- `compose(request) -> Result<ComposeResult, ComposeError>`
+- `validate(request) -> Result<ValidationReport, ComposeError>`
 - `init_workspace(root, options) -> InitResult`
 - `frontmatter_init(path, options) -> FrontmatterInitResult`
 - `Renderer::render(compiled, context) -> Result<String, RenderError>` as the
@@ -414,9 +415,9 @@ The rendering and composition surfaces have distinct responsibilities.
 
 | Surface | Owns | Does not own |
 | --- | --- | --- |
-| `Renderer` | template loading, include resolution, variable expansion, validation, rendering | CLI argument parsing, output formatting, repository bootstrap |
-| `compose()` | top-level convenience orchestration; calls `Renderer` internally for end-to-end composition and block assembly | direct CLI UX decisions |
-| `render_template()` | lower-level rendering entry point for callers that pre-supply resolved template content | profile resolution, repository scanning, workspace bootstrap |
+| `Renderer` | reusable template-engine environment setup plus inline/named rendering over caller-supplied template text and context | profile resolution, include expansion, variable validation, block assembly, repository bootstrap |
+| `compose()` | top-level composition orchestration: resolve, include expansion, validation, built-in context injection, render, and block assembly | direct CLI UX decisions |
+| `render_template()` | one-shot rendering entry point for callers that already have template text and context | profile resolution, repository scanning, include expansion, validation, workspace bootstrap |
 | `validate()` | validation phase only; returns structured diagnostics without writing output | output generation or file writing |
 | `frontmatter_init()` | frontmatter discovery and rewrite helper | template composition pipeline execution |
 | `init_workspace()` | repository bootstrap helper | template composition pipeline execution |
@@ -675,9 +676,15 @@ Command mapping:
 - `reports init` -> initialize the shared report scaffold and starter catalog
 - `reports smoke` -> run the shared smoke fixture render path and emit the
   smoke latest-artifact set
+- `reports finalize` -> materialize one producer-owned report artifact set into
+  the shared sidecar and archive shape
+- `reports render-spec` -> parse one TOML semantic spec and emit one Mermaid
+  latest-artifact set
 - `reports index` -> aggregate and summarize latest report entrypoints from the
   report catalog
 - `reports verify` -> verify required report artifacts exist for the catalog
+- `reports publish-manifest` -> emit one machine-readable publish handoff from
+  current latest report outputs
 
 The CLI must not reimplement core composition semantics. If a command requires
 logic useful to non-CLI callers, that logic belongs in the library.
@@ -732,12 +739,27 @@ Command-specific rules:
   - runs the shared smoke render path,
   - emits the smoke latest-artifact set without owning repo-specific smoke
     logic beyond the shared harness contract.
+- `reports finalize`
+  - accepts one producer-owned latest artifact set,
+  - writes the canonical `report.json` sidecar,
+  - optionally copies the artifact set into the timestamped archive tree.
+- `reports render-spec`
+  - accepts one TOML semantic spec file,
+  - renders Mermaid from `state_machine` and `sql_query` specs,
+  - writes one latest artifact plus sidecar using the shared report output
+    contract.
 - `reports index`
   - summarizes deterministic latest entrypoints and report metadata from the
-    catalog.
+  catalog.
 - `reports verify`
   - checks required report artifacts for presence and reports missing evidence
     as a failure.
+- `reports publish-manifest`
+  - writes `reports/latest/publish-manifest.json`,
+  - derives manifest content from current latest sidecars and artifact sets,
+  - skips optional reports whose latest artifact sets are absent,
+  - fails when required report evidence is missing,
+  - lists intended publish destinations without owning upload behavior.
 
 Guidance and prompt input model:
 
@@ -1055,13 +1077,25 @@ Implicit named render convention:
 - supporting assets remain available for directory-import workflows and future
   expansion, but they do not change the initial render resolution rules.
 
-## 15a. Follow-On Report Artifact Contract (Phase A Planning Only)
+## 15a. Report Artifact Contract (Implemented In Sprint B1)
 
-Phase A follow-on planning treats reporting as a generic artifact contract.
-This is a planning line only and does not change the shipped `1.0` release
-behavior until a later implementation sprint lands.
+Sprint B1 implements reporting as a generic artifact contract. This section
+is now active runtime behavior rather than a planning-only note.
 
-Planned filesystem contract:
+Sprint B1 partial implementation scope:
+
+- `sc-compose` owns the report catalog loader and validator for
+  `reports/catalog/reports.toml`
+- `sc-compose` owns the initial `reports` CLI surface:
+  - `reports init`
+  - `reports smoke`
+  - `reports index`
+  - `reports verify`
+- Sprint B1 does not yet implement shared repo scaffolding, latest/archive
+  writers, or publish-manifest generation; later sprints close those
+  follow-on runtime seams
+
+Implemented filesystem contract:
 
 - authored docs remain under `docs/`
 - report sources and catalog inputs live outside `docs/` under paths such as:
@@ -1075,7 +1109,7 @@ Planned filesystem contract:
   with its generated output, for example
   `reports/latest/<report-id>/report.json`
 
-Planned catalog contract:
+Implemented catalog contract:
 
 ```toml
 [[report]]
@@ -1088,8 +1122,8 @@ metadata = "reports/latest/sc-lint/report.json"
 ```
 
 The canonical report catalog field inventory, requiredness rule, and shared
-Phase A reporting boundary rule are defined in `docs/requirements.md` under
-`### Phase A Follow-On Reporting Contract (Planning Only)`.
+reporting boundary rule are defined in `docs/requirements.md` under
+`### Report Artifact Contract (Implemented In Sprint B1)`.
 
 Ownership split:
 
@@ -1105,17 +1139,17 @@ Boundary rules:
 - A1 only locks the shared artifact and catalog shape
 - the canonical latest/archive output policy is defined in
   `docs/requirements.md` under `### Phase A Latest/Archive Output And Reports
-  Aggregator Contract (Planning Only)`
+  Aggregator Contract (Implemented In Sprint B5)`
 - the canonical publish-manifest contract is defined in `docs/requirements.md`
-  under `### Phase A Publish-Manifest And CI Handoff Contract (Planning Only)`
+  under `### Publish-Manifest And CI Handoff Contract`
 - later sprints may extend those contracts with implementation-specific
   publish workflow details
 
-## 15b. Follow-On Source-Driven Rendering Contract (Phase A Planning Only)
+## 15b. Source-Driven Rendering Contract (Implemented In Sprint B3)
 
 The canonical source-driven rendering contract, including collection-discovery
 ownership and generated-manifest semantics, is defined in `docs/requirements.md`
-under `### Phase A Source-Driven Rendering Contract (Planning Only)`. This
+under `### Source-Driven Rendering Contract (Implemented In Sprint B3)`. This
 architecture section keeps only the illustrative extracted input shape for that
 contract and does not restate the normative prose.
 
@@ -1133,11 +1167,11 @@ Planned extracted input shape per discovered source:
 }
 ```
 
-## 15c. Follow-On Latest/Archive Policy And Reports Aggregator (Phase A Planning Only)
+## 15c. Latest/Archive Policy And Reports Aggregator (Implemented In Sprint B5)
 
 The canonical latest/archive output policy is defined in
-`docs/requirements.md` under `### Phase A Latest/Archive Output And Reports
-Aggregator Contract (Planning Only)`. This architecture section keeps only the
+`docs/requirements.md` under `### Latest/Archive Output And Reports
+Aggregator Contract (Implemented In Sprint B5)`. This architecture section keeps only the
 illustrative output shape for that contract and does not restate the normative
 policy prose.
 
@@ -1151,11 +1185,11 @@ Illustrative output shape:
 }
 ```
 
-## 15d. Follow-On Publish Manifest And CI Handoff (Phase A Planning Only)
+## 15d. Publish Manifest And CI Handoff
 
 The canonical publish-manifest contract is defined in
-`docs/requirements.md` under `### Phase A Publish-Manifest And CI Handoff
-Contract (Planning Only)`. This architecture section keeps only the
+`docs/requirements.md` under `### Publish-Manifest And CI Handoff Contract`.
+This architecture section keeps only the
 illustrative manifest shape for that contract and does not restate the
 normative ownership or boundary prose.
 
@@ -1163,49 +1197,77 @@ Illustrative publish-manifest shape:
 
 ```json
 {
-  "report_id": "state-diagrams",
   "generated_at": "2026-05-25T22:10:00Z",
-  "files": [
+  "reports": [
     {
-      "role": "latest_html",
-      "path": "reports/latest/state-diagrams/index.html",
-      "publish_to": "reports/state-diagrams/index.html"
-    },
-    {
-      "role": "json_sidecar",
-      "path": "reports/latest/state-diagrams/report.json",
-      "publish_to": "reports/state-diagrams/report.json"
+      "report_id": "state-diagrams",
+      "kind": "diagram",
+      "entrypoint": "reports/latest/state-diagrams/index.html",
+      "archive_root": "reports/archive/2026-05-25T22-10-00Z/state-diagrams",
+      "files": [
+        {
+          "role": "entrypoint",
+          "path": "reports/latest/state-diagrams/index.html",
+          "publish_to": "reports/state-diagrams/index.html"
+        },
+        {
+          "role": "metadata",
+          "path": "reports/latest/state-diagrams/report.json",
+          "publish_to": "reports/state-diagrams/report.json"
+        }
+      ]
     }
   ]
 }
 ```
 
-## 15e. Follow-On Producer Recipes And Aggregator Surface (Phase A Planning Only)
+## 15e. Producer Recipes And Aggregator Surface (Implemented In Sprint B2)
 
 The canonical producer-command surface and `just reports` contract are defined
-in `docs/requirements.md` under `### Phase A Producer Recipe Contract
-(Planning Only)`. This architecture section intentionally defers to that
+in `docs/requirements.md` under `### Producer Recipe Contract (Implemented In
+Sprint B2)`. This architecture section intentionally defers to that
 requirements section rather than restating the command block or aggregator
 contract prose.
 
 Adding repo-specific producer commands must not require changing the shared
 aggregation or discovery contract.
 
-## 15f. Follow-On Semantic Report-Spec Contract (Phase A Planning Only)
+## 15f. Semantic Report-Spec Contract
 
 The canonical semantic report-spec contract is defined in
-`docs/requirements.md` under `### Phase A Semantic Report-Spec Contract
-(Planning Only)`. That requirements section is the normative owner for the
+`docs/requirements.md` under `### Semantic Report-Spec Contract`. That
+requirements section is the normative owner for the
 `state_machine` / `sql_query` field inventory, the transitional Mermaid rule,
 the semantic QA direction, and the extension rule. This architecture section
 intentionally defers to that requirements section rather than restating those
 lists or transition-policy details.
-## 15g. Follow-On Template Families And Shared Panel Chrome (Phase A Planning Only)
 
-Phase A follow-on planning defines shared template-family selection and shared
-panel chrome so consumer repos reuse one UI contract instead of rebuilding it
-per report family. This is planning only and does not change shipped `1.0`
-runtime behavior.
+Runtime integration notes:
+
+- semantic spec source files are TOML
+- `reports render-spec` emits Mermaid latest outputs and shared sidecars
+- `report-render-many` may discover TOML semantic specs and render shared
+  diagram-family outputs from them
+
+## 15h. Implemented Cross-Use-Case Proof Families
+
+This repo now carries one checked-in Phase B proof set under `reports/` plus
+the reference `Justfile` producer surface.
+
+Runtime proof direction:
+
+- lint/test/smoke producers remain repo-local commands while using the shared
+  artifact, sidecar, archive, verification, and publish-manifest runtime
+- state-machine and SQL-query diagrams render through the same shared model
+  without inventing a diagram-only publication contract
+- `report-evidence-summary` is the new bundled Phase B proof vehicle
+- `sprint-report-html` remains the backward-compatible bundled example covered
+  by the shared proof harness
+## 15g. Follow-On Template Families And Shared Panel Chrome (Implemented In Sprint B4)
+
+Sprint B4 implements shared template-family selection and shared panel chrome
+so consumer repos reuse one UI contract instead of rebuilding it per report
+family.
 
 Initial template families:
 
@@ -1330,7 +1392,7 @@ Architecture rules:
   provide their own implementations.
 - `sc-observe` and `sc-observability-otlp` are not part of this initial
   release architecture.
-- The current CLI uplift targets `sc-observability` `1.1.0` directly and does
+- The current CLI uplift targets `sc-observability` `1.2.0` directly and does
   not add the `sc-observe` facade because `sc-compose` still owns concrete
   logger construction and sink registration at this seam.
 
@@ -1356,6 +1418,9 @@ sc-observability -----> sc-observability-types
 - `sc-compose` adapts to the `Logger<Running>` / `Logger<Stopped>` typestate by
   keeping the CLI observer responsible for the shutdown-state transition while
   preserving post-shutdown health inspection.
+- The CLI observer adapter now routes direct lifecycle logging through
+  `Logger::log(...)`; `Logger::emit(...)` remains only as an upstream
+  compatibility path and is not the primary `sc-compose` call surface.
 
 ### 19.2 Library Injection Pattern
 
@@ -1396,8 +1461,8 @@ pub fn compose_with_observer(
 
 Required library behavior:
 
-- `Renderer::new(...)` and `compose()` install the built-in no-op observer
-  unless a caller supplies an explicit observer.
+- `Renderer::new()` remains observer-free, and `compose()` installs the built-in
+  no-op observer unless a caller supplies an explicit observer.
 - `compose_with_observer(...)` is the public end-to-end observability
   injection entry point.
 - `ObservationSink` and `CompositionObserver` remain the local extension points
