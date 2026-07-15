@@ -1,0 +1,47 @@
+[[report]]
+id = "sc-lint"
+kind = "lint"
+producer = "just lint"
+required = true
+entrypoint = "reports/latest/sc-lint/index.html"
+metadata = "reports/latest/sc-lint/report.json"
+
+[[report]]
+id = "test-evidence"
+kind = "test"
+producer = "just test"
+required = true
+entrypoint = "reports/latest/test-evidence/index.html"
+metadata = "reports/latest/test-evidence/report.json"
+
+[[report]]
+id = "smoke"
+kind = "smoke"
+producer = "just smoke"
+required = true
+entrypoint = "reports/latest/smoke/index.html"
+metadata = "reports/latest/smoke/report.json"
+
+[[report]]
+id = "state-diagrams"
+kind = "state_machine"
+producer = "just state-diagrams"
+required = true
+entrypoint = "reports/latest/state-diagrams/index.html"
+metadata = "reports/latest/state-diagrams/report.json"
+
+[[report]]
+id = "sql-diagrams"
+kind = "sql_query"
+producer = "just sql-diagrams"
+required = true
+entrypoint = "reports/latest/sql-diagrams/index.html"
+metadata = "reports/latest/sql-diagrams/report.json"
+
+[[report]]
+id = "report-evidence-summary"
+kind = "custom"
+producer = "just reports"
+required = false
+entrypoint = "reports/latest/report-evidence-summary/index.html"
+metadata = "reports/latest/report-evidence-summary/report.json"

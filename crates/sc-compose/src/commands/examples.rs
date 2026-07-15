@@ -1,12 +1,14 @@
 use anyhow::anyhow;
 use sc_composer::CompositionObserver;
 
+use crate::CommandError;
+use crate::cli::{ExamplesArgs, ListArgs};
+use crate::commands::compose::execute_render;
 use crate::commands::{
     pack_not_found_error, pack_not_renderable_error, print_pack_list, store_root_error,
 };
 use crate::render_request::{build_named_request, read_block_pair};
 use crate::template_store::TemplateStore;
-use crate::{CommandError, ExamplesArgs, ListArgs, execute_render};
 
 pub(crate) fn run_examples_list(args: &ListArgs) -> Result<i32, CommandError> {
     let store = TemplateStore::examples()

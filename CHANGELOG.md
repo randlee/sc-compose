@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.0] - 2026-05-26
+## [1.1.0] - 2026-05-26 (updated 2026-07-15)
 
 ### Added
 
@@ -14,12 +14,16 @@ All notable changes to this project will be documented in this file.
 - Sprint S8: release engineering and distribution support, including release
   gate automation, Homebrew tap automation, winget manifests, and idempotent
   publish handling for already-published crate versions.
-- Sprint S9: user data directory unification under `~/.sc-compose/`.
 - Phase A (A1 through A9): the SC-Reporting contract foundation, covering the
   report artifact catalog, producer recipe surface, source-collection and
   render-many contract, semantic diagram spec, template families, shared panel
-  chrome, latest/archive policy, publish-manifest handoff, and
-  `sc-observability` `1.1.0` adoption planning.
+  chrome, latest/archive policy, and publish-manifest handoff.
+- Phase B (B1 through B15, integrated via PR #87): the public reporting CLI
+  surface with `reports init`, `reports smoke`, `reports finalize`,
+  `reports render-spec`, `reports index`, `reports verify`, and
+  `reports publish-manifest`, plus the shared report scaffold, semantic-spec
+  rendering path, latest/archive materialization, and publish-manifest CI
+  handoff.
 
 ### Fixed
 
@@ -32,12 +36,16 @@ All notable changes to this project will be documented in this file.
   header and added the missing H4 row to the FR coverage matrix.
 - Homebrew release automation and formula rendering fixes that removed the
   manual tap-push requirement after `1.0.1`.
+- PR #95: removed the stale `.atm.toml` pane-hook wiring so repo-local ATM
+  configuration no longer depends on tmux pane metadata or post-send hooks.
 
 ### Changed
 
 - Workspace version bump: `1.0.2` -> `1.1.0`.
-- Default examples and templates roots are unified under `~/.sc-compose/` while
-  preserving `SC_COMPOSE_DATA_DIR` and `SC_COMPOSE_TEMPLATE_DIR` overrides.
+- Sprint B9 / PR #85: `sc-compose` now adopts `sc-observability` `1.2.0`
+  directly for CLI logging, including retained-log maintenance defaults,
+  `Logger::log(...)` queue-admission semantics, and the shutdown-to-stopped
+  typestate path used by `observability-health`.
 
 ## [1.0.1] - previous release
 

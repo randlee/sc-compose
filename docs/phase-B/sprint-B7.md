@@ -1,9 +1,9 @@
 ---
 id: B7
 title: Semantic Diagram Spec Runtime
-status: draft
-branch: plan/phase-B
-worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
+status: complete
+branch: feat/sprint-B7
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/sprint-B7
 ---
 
 # Sprint B7 — Semantic Diagram Spec Runtime
@@ -71,6 +71,8 @@ renderer_targets = ["mermaid"]
 - shared panel chrome/copy behavior beyond the B4 contract
 - example migration proof across multiple families
 - observability `1.2` uplift
+- `ARCH-001`: remaining `main.rs` command-dispatch simplification on this
+  branch; that reduction is deferred to Sprint `B9`
 
 ## Acceptance Criteria
 

@@ -939,7 +939,7 @@ The current follow-on implementation track is:
 - `docs/phase-B/sprint-B8.md`
   - cross-use-case proof by implemented examples
 - `docs/phase-B/sprint-B9.md`
-  - blocked `sc-observability` `1.2` uplift after the upstream release exists
+  - complete: `sc-observability` `1.2` uplift landed and Phase B closeout docs/tests track the shipped surface
 - `docs/sprints/b11-contract-alignment.md`
   - follow-on cleanup sprint for normative doc/API drift between Phase B
     source-of-truth docs and the shipped `sc-composer` API

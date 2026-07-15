@@ -1,9 +1,9 @@
 ---
 id: B2
 title: Producer Recipes, Report-Init Scaffold, And Just Surface
-status: draft
-branch: plan/phase-B
-worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
+status: complete
+branch: feat/sprint-B2
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/sprint-B2
 ---
 
 # Sprint B2 — Producer Recipes, Report-Init Scaffold, And Just Surface
@@ -82,6 +82,9 @@ provides the scaffold path that makes adoption easy.
 - one explicit note that the B8 backward-compat harness builds on this smoke
   scaffold contract so the same fixture shape is reused to verify that existing
   examples still pass after the shared runtime is adopted
+- one explicit deferral that reducing `crates/sc-compose/src/main.rs` below the
+  branch-wide simplification threshold is owned by B9 rather than B2, because
+  B2 only owns the initial producer/scaffold command surface
 
 ## Explicit Code Samples
 
@@ -133,6 +136,9 @@ metadata = "reports/latest/smoke/report.json"
   and the scaffold skill, not the repo-specific producer body
 - the scaffold defines the generated smoke fixture shape and the harness
   wrapper entrypoint that `just smoke` invokes
+- the scaffold owns creation of `reports/latest/smoke/`, and
+  `sc-compose reports smoke` writes into that prepared path rather than
+  creating it implicitly at runtime
 
 ## Required Validation
 

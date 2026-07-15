@@ -1,6 +1,7 @@
 //! End-to-end composition orchestration.
 
 use std::collections::BTreeMap;
+use std::path::Path;
 
 use crate::ComposeError;
 use crate::error::ValidationError;
@@ -9,6 +10,7 @@ use crate::observer::{
     CompositionObserver, IncludeOutcomeEvent, NoopObserver, RenderOutcomeEvent,
     ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
+use crate::path_utils::to_forward_slash;
 use crate::renderer::Renderer;
 use crate::resolver::resolve_template_path;
 use crate::types::{ComposeRequest, ComposeResult};
@@ -66,7 +68,7 @@ pub fn compose_with_observer(
         code: None,
     });
 
-    let mut validation_report =
+    let (mut validation_report, mut validation_state) =
         crate::validation::validate_expanded(request, &expanded, resolve_result);
     let validation_outcome = ValidationOutcomeEvent {
         warnings: std::mem::take(&mut validation_report.warnings),
@@ -74,11 +76,16 @@ pub fn compose_with_observer(
     };
     observer.on_validation_outcome(&validation_outcome);
     fail_if_invalid(validation_outcome.errors)?;
-    let validation_state = crate::validation::collect_validation_state(request, &expanded);
 
     let renderer = Renderer::new();
     let rendered_text = renderer
-        .render(&expanded.text, build_render_context(&validation_state))
+        .render(
+            &expanded.text,
+            build_render_context(
+                &mut validation_state,
+                &validation_report.resolve_result.resolved_path,
+            ),
+        )
         .inspect_err(|error| {
             observer.on_render_outcome(&RenderOutcomeEvent {
                 rendered_bytes: None,
@@ -107,7 +114,7 @@ pub fn compose_with_observer(
 fn resolve_attempt_label(request: &ComposeRequest) -> String {
     match &request.mode {
         crate::types::ComposeMode::Profile { kind, name } => format!("{kind:?}:{name}"),
-        crate::types::ComposeMode::File { template_path } => template_path.display().to_string(),
+        crate::types::ComposeMode::File { template_path } => to_forward_slash(template_path),
     }
 }
 
@@ -140,8 +147,10 @@ fn fail_if_invalid(errors: Vec<crate::Diagnostic>) -> Result<(), ComposeError> {
 }
 
 fn build_render_context(
-    state: &crate::validation::ValidationState,
+    state: &mut crate::validation::ValidationState,
+    template_path: &Path,
 ) -> BTreeMap<String, serde_json::Value> {
+    crate::validation::inject_builtin_vars(state, template_path);
     state
         .context
         .iter()
@@ -174,8 +183,8 @@ mod tests {
     use serde_json::json;
 
     use crate::observer::{
-        CompositionObserver, IncludeOutcomeEvent, RenderOutcomeEvent, ResolveOutcomeEvent,
-        ValidationOutcomeEvent,
+        CompositionObserver, IncludeOutcomeEvent, RenderOutcomeEvent, ResolveAttemptEvent,
+        ResolveOutcomeEvent, ValidationOutcomeEvent,
     };
     use crate::types::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot};
     use crate::{
@@ -184,6 +193,7 @@ mod tests {
 
     #[derive(Default)]
     struct CapturingObserver {
+        attempts: Vec<ResolveAttemptEvent>,
         resolve: Vec<ResolveOutcomeEvent>,
         include: Vec<IncludeOutcomeEvent>,
         validation: Vec<ValidationOutcomeEvent>,
@@ -191,6 +201,10 @@ mod tests {
     }
 
     impl CompositionObserver for CapturingObserver {
+        fn on_resolve_attempt(&mut self, event: &ResolveAttemptEvent) {
+            self.attempts.push(event.clone());
+        }
+
         fn on_resolve_outcome(&mut self, event: &ResolveOutcomeEvent) {
             self.resolve.push(event.clone());
         }
@@ -276,6 +290,54 @@ mod tests {
     }
 
     #[test]
+    fn compose_injects_builtin_variables_and_keeps_override_precedence() {
+        let root = temp_root("compose_builtins");
+        write_file(
+            &root.join("report.md.j2"),
+            "---\ndefaults:\n  HOSTNAME: default-host\n  USERNAME: default-user\n---\n{{ TEMPLATE_NAME }}|{{ HOSTNAME }}|{{ USERNAME }}|{{ RENDER_DATE }}|{{ RENDER_TIMESTAMP }}",
+        );
+
+        let mut vars_env = BTreeMap::default();
+        vars_env.insert(VariableName::new("HOSTNAME").unwrap(), json!("env-host"));
+        let mut vars_input = BTreeMap::default();
+        vars_input.insert(VariableName::new("USERNAME").unwrap(), json!("cli-user"));
+
+        let result = compose(&ComposeRequest {
+            runtime: None,
+            mode: ComposeMode::File {
+                template_path: PathBuf::from("report.md.j2"),
+            },
+            root: ConfiningRoot::new(&root).unwrap(),
+            vars_input,
+            vars_env,
+            vars_defaults: BTreeMap::default(),
+            guidance_block: None,
+            user_prompt: None,
+            policy: ComposePolicy::default(),
+        })
+        .unwrap();
+
+        let parts = result.rendered_text.split('|').collect::<Vec<_>>();
+        assert_eq!(parts[0], "report.md.j2");
+        assert_eq!(parts[1], "env-host");
+        assert_eq!(parts[2], "cli-user");
+        assert_eq!(parts[3].len(), 10);
+        assert!(parts[4].contains('T'));
+        assert_eq!(
+            result
+                .variable_sources
+                .get(&VariableName::new("HOSTNAME").unwrap()),
+            Some(&VariableSource::Environment)
+        );
+        assert_eq!(
+            result
+                .variable_sources
+                .get(&VariableName::new("USERNAME").unwrap()),
+            Some(&VariableSource::ExplicitInput)
+        );
+    }
+
+    #[test]
     fn compose_without_observer_remains_fully_functional() {
         let root = temp_root("compose_no_observer");
         write_file(
@@ -304,8 +366,9 @@ mod tests {
     #[test]
     fn compose_with_observer_emits_success_outcomes() {
         let root = temp_root("compose_observer_success");
+        let template_path = PathBuf::from("nested").join("template.md.j2");
         write_file(
-            &root.join("template.md.j2"),
+            &root.join(&template_path),
             "---\ndefaults:\n  name: world\n---\nhello {{ name }}",
         );
         let mut observer = CapturingObserver::default();
@@ -314,7 +377,7 @@ mod tests {
             &ComposeRequest {
                 runtime: None,
                 mode: ComposeMode::File {
-                    template_path: PathBuf::from("template.md.j2"),
+                    template_path: template_path.clone(),
                 },
                 root: ConfiningRoot::new(&root).unwrap(),
                 vars_input: BTreeMap::default(),
@@ -329,6 +392,8 @@ mod tests {
         .unwrap();
 
         assert_eq!(result.rendered_text, "hello world");
+        assert_eq!(observer.attempts.len(), 1);
+        assert_eq!(observer.attempts[0].template, "nested/template.md.j2");
         assert_eq!(observer.resolve.len(), 1);
         assert_eq!(observer.include.len(), 1);
         assert_eq!(observer.validation.len(), 1);

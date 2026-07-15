@@ -21,6 +21,7 @@ pub mod include;
 pub mod init_workspace;
 /// Observer traits and event payloads.
 pub mod observer;
+mod path_utils;
 /// Template renderer wrapper.
 pub mod renderer;
 /// Runtime-aware profile resolution and search tracing.
@@ -57,7 +58,12 @@ pub use observer::{
     RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
 #[doc(inline)]
-pub use renderer::{Renderer, render_template};
+pub use path_utils::to_forward_slash;
+#[doc(inline)]
+pub use renderer::{
+    LoadedTemplateRequest, NamedTemplateAsset, RenderedArtifact, Renderer, render_loaded_template,
+    render_template,
+};
 #[doc(inline)]
 pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_template_path};
 #[doc(inline)]
@@ -70,6 +76,7 @@ pub use types::{
 };
 #[doc(inline)]
 pub use validate::{validate, validate_with_observer};
+pub use validation::BUILTIN_VARIABLE_NAMES;
 
 #[cfg(test)]
 mod tests {

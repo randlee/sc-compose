@@ -4,6 +4,7 @@ use crate::observer::{
     CompositionObserver, IncludeOutcomeEvent, NoopObserver, ResolveAttemptEvent,
     ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
+use crate::path_utils::to_forward_slash;
 use crate::{ComposeError, ComposeRequest, ValidationReport};
 
 /// Validate a compose request without rendering output.
@@ -28,9 +29,7 @@ pub fn validate_with_observer(
     observer.on_resolve_attempt(&ResolveAttemptEvent {
         template: match &request.mode {
             crate::types::ComposeMode::Profile { kind, name } => format!("{kind:?}:{name}"),
-            crate::types::ComposeMode::File { template_path } => {
-                template_path.display().to_string()
-            }
+            crate::types::ComposeMode::File { template_path } => to_forward_slash(template_path),
         },
     });
     let resolve_result = crate::resolve_template_path(request).inspect_err(|error| {
@@ -68,7 +67,7 @@ pub fn validate_with_observer(
         code: None,
     });
 
-    let mut report = crate::validation::validate_expanded(request, &expanded, resolve_result);
+    let (mut report, _) = crate::validation::validate_expanded(request, &expanded, resolve_result);
     let event = ValidationOutcomeEvent {
         warnings: std::mem::take(&mut report.warnings),
         errors: std::mem::take(&mut report.errors),
@@ -123,8 +122,9 @@ mod tests {
     #[test]
     fn validate_with_observer_emits_failed_validation_outcome() {
         let root = temp_root("validate_observer_failure");
+        let template_path = PathBuf::from("nested").join("template.md.j2");
         write_file(
-            &root.join("template.md.j2"),
+            &root.join(&template_path),
             "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
         );
         let mut observer = CapturingObserver::default();
@@ -133,7 +133,7 @@ mod tests {
             &ComposeRequest {
                 runtime: None,
                 mode: ComposeMode::File {
-                    template_path: PathBuf::from("template.md.j2"),
+                    template_path: template_path.clone(),
                 },
                 root: ConfiningRoot::new(&root).unwrap(),
                 vars_input: BTreeMap::default(),
@@ -149,6 +149,7 @@ mod tests {
 
         assert!(!report.ok);
         assert_eq!(observer.attempts.len(), 1);
+        assert_eq!(observer.attempts[0].template, "nested/template.md.j2");
         assert_eq!(observer.resolve.len(), 1);
         assert_eq!(observer.include.len(), 1);
         assert_eq!(observer.validation.len(), 1);

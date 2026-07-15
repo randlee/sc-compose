@@ -1,9 +1,9 @@
 ---
 id: B1
 title: Report Artifact Runtime And Catalog
-status: draft
-branch: plan/phase-B
-worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
+status: complete
+branch: feat/sprint-B1
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/sprint-B1
 ---
 
 # Sprint B1 — Report Artifact Runtime And Catalog
@@ -92,6 +92,13 @@ metadata = "reports/latest/sc-lint/report.json"
 - template-family resolution
 - latest/archive writing
 - publish-manifest output
+
+## Explicit Deferral
+
+- `ARCH-001`: [crates/sc-compose/src/main.rs](../../crates/sc-compose/src/main.rs)
+  remains above the `1000` non-test line gate in Sprint B1. The line-count
+  reduction is deferred to Sprint `B8`, where the `CommandError` extraction
+  reduces `main.rs` to `911` non-test lines on the integrated branch.
 
 ## Acceptance Criteria
 
