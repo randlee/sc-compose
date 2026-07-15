@@ -19,6 +19,11 @@ target
 # Generated report evidence
 reports/latest/
 reports/archive/
+.prompts/
+.sc-compose/
+.sc/
+.serena/
+.tmp/
 
 # RustRover
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

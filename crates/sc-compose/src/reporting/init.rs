@@ -10,56 +10,14 @@ use sc_composer::{
 use serde::Serialize;
 
 use crate::CommandError;
-use crate::reporting::catalog::REPORT_CATALOG_RELATIVE_PATH;
 use crate::reporting::output::{
-    ARCHIVE_ROOT_RELATIVE_PATH, LATEST_ROOT_RELATIVE_PATH, MaterializedReport, ReportOutputRequest,
-    write_report_metadata_and_archive,
+    MaterializedReport, ReportOutputRequest, write_report_metadata_and_archive,
 };
 use crate::reporting::path::resolve_relative_path;
+use crate::reporting::scaffold::{
+    SMOKE_ENTRYPOINT_RELATIVE_PATH, SMOKE_METADATA_RELATIVE_PATH, write_report_scaffold,
+};
 use crate::var_file::load_var_file;
-
-const STARTER_TEMPLATES_RELATIVE_PATH: &str = "reports/templates";
-const STARTER_SMOKE_DIR_RELATIVE_PATH: &str = "reports/smoke";
-const STARTER_SMOKE_OUTPUT_DIR_RELATIVE_PATH: &str = "reports/latest/smoke";
-const STARTER_SMOKE_FIXTURE_RELATIVE_PATH: &str = "reports/smoke/reference-template.html.j2";
-const STARTER_SMOKE_VARS_RELATIVE_PATH: &str = "reports/smoke/sample-vars.json";
-const SMOKE_ENTRYPOINT_RELATIVE_PATH: &str = "reports/latest/smoke/index.html";
-const SMOKE_METADATA_RELATIVE_PATH: &str = "reports/latest/smoke/report.json";
-
-const STARTER_REPORTS_TOML: &str = r#"[[report]]
-id = "smoke"
-kind = "smoke"
-producer = "just smoke"
-required = true
-entrypoint = "reports/latest/smoke/index.html"
-metadata = "reports/latest/smoke/report.json"
-"#;
-
-const STARTER_SMOKE_TEMPLATE: &str = r#"---
-required_variables:
-  - title
-  - summary
----
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>{{ title }}</title>
-</head>
-<body>
-  <main>
-    <h1>{{ title }}</h1>
-    <p>{{ summary }}</p>
-  </main>
-</body>
-</html>
-"#;
-
-const STARTER_SMOKE_VARS: &str = r#"{
-  "title": "Smoke Report",
-  "summary": "Shared reporting scaffold smoke test."
-}
-"#;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(crate) struct ReportsInitResult {
@@ -80,6 +38,7 @@ pub(crate) struct ReportsSmokeResult {
     pub(crate) metadata: PathBuf,
     #[serde(serialize_with = "crate::path_utils::serialize_paths")]
     pub(crate) artifacts: Vec<PathBuf>,
+    #[serde(serialize_with = "crate::path_utils::serialize_paths")]
     pub(crate) archived_artifacts: Vec<PathBuf>,
     pub(crate) warnings: Vec<Diagnostic>,
 }
@@ -95,51 +54,7 @@ pub(crate) fn init_report_scaffold(root: &Path) -> Result<ReportsInitResult, Com
         )
     })?;
 
-    let mut created_paths = Vec::new();
-    ensure_dir(
-        &workspace_root,
-        LATEST_ROOT_RELATIVE_PATH,
-        &mut created_paths,
-    )?;
-    ensure_dir(
-        &workspace_root,
-        ARCHIVE_ROOT_RELATIVE_PATH,
-        &mut created_paths,
-    )?;
-    ensure_dir(
-        &workspace_root,
-        STARTER_TEMPLATES_RELATIVE_PATH,
-        &mut created_paths,
-    )?;
-    ensure_dir(
-        &workspace_root,
-        STARTER_SMOKE_DIR_RELATIVE_PATH,
-        &mut created_paths,
-    )?;
-    ensure_dir(
-        &workspace_root,
-        STARTER_SMOKE_OUTPUT_DIR_RELATIVE_PATH,
-        &mut created_paths,
-    )?;
-    write_if_missing(
-        &workspace_root,
-        REPORT_CATALOG_RELATIVE_PATH,
-        STARTER_REPORTS_TOML,
-        &mut created_paths,
-    )?;
-    write_if_missing(
-        &workspace_root,
-        STARTER_SMOKE_FIXTURE_RELATIVE_PATH,
-        STARTER_SMOKE_TEMPLATE,
-        &mut created_paths,
-    )?;
-    write_if_missing(
-        &workspace_root,
-        STARTER_SMOKE_VARS_RELATIVE_PATH,
-        STARTER_SMOKE_VARS,
-        &mut created_paths,
-    )?;
-
+    let created_paths = write_report_scaffold(&workspace_root)?;
     Ok(ReportsInitResult {
         workspace_root,
         created_paths,
@@ -246,49 +161,4 @@ fn write_smoke_outputs(
             DiagnosticCode::ErrConfigParse,
         )
     })
-}
-
-fn ensure_dir(
-    workspace_root: &Path,
-    relative: &str,
-    created_paths: &mut Vec<String>,
-) -> Result<(), CommandError> {
-    let path = workspace_root.join(relative);
-    if !path.exists() {
-        fs::create_dir_all(&path).map_err(|error| {
-            CommandError::usage_with_code(
-                anyhow!(error).context(format!("failed to create {}", path.display())),
-                DiagnosticCode::ErrConfigParse,
-            )
-        })?;
-        created_paths.push(format!("{relative}/"));
-    }
-    Ok(())
-}
-
-fn write_if_missing(
-    workspace_root: &Path,
-    relative: &str,
-    contents: &str,
-    created_paths: &mut Vec<String>,
-) -> Result<(), CommandError> {
-    let path = workspace_root.join(relative);
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|error| {
-            CommandError::usage_with_code(
-                anyhow!(error).context(format!("failed to create {}", parent.display())),
-                DiagnosticCode::ErrConfigParse,
-            )
-        })?;
-    }
-    if !path.exists() {
-        fs::write(&path, contents).map_err(|error| {
-            CommandError::usage_with_code(
-                anyhow!(error).context(format!("failed to write {}", path.display())),
-                DiagnosticCode::ErrConfigParse,
-            )
-        })?;
-        created_paths.push(relative.to_owned());
-    }
-    Ok(())
 }

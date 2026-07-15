@@ -8,10 +8,11 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::path_utils::to_forward_slash;
+use crate::reporting::report_context::{context_from_source_entry, entry_title};
 use crate::reporting::source_entry::{SourceEntry, SourceEntryError};
 use crate::reporting::templates::{
-    ResolvedTemplate, TemplateError, context_from_source_entry, entry_title, render_shared_report,
-    resolve_template_family, resolve_template_selector,
+    ResolvedTemplate, TemplateError, render_shared_report, resolve_template_family,
+    resolve_template_selector,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -191,22 +192,8 @@ fn discover_sources(request: &RenderManyRequest) -> Result<Vec<SourceEntry>, Ren
             glob: request.source_set.glob.clone(),
             message: error.to_string(),
         })?;
-        let absolute_source = if source_path.is_absolute() {
-            source_path.clone()
-        } else {
-            canonical_root.join(&source_path)
-        }
-        .canonicalize()
-        .map_err(|error| RenderManyError::InvalidTemplatePath {
-            path: source_path.clone(),
-            message: error.to_string(),
-        })?;
-        let relative_source = absolute_source
-            .strip_prefix(&canonical_root)
-            .map_err(|error| RenderManyError::InvalidTemplatePath {
-                path: absolute_source.clone(),
-                message: error.to_string(),
-            })?;
+        let absolute_source = canonical_source_path(&canonical_root, &source_path)?;
+        let relative_source = relative_source_path(&canonical_root, &absolute_source)?;
         let output_path = derive_output_path(
             &request.source_set.output_dir,
             relative_source,
@@ -224,6 +211,35 @@ fn derive_output_path(output_dir: &Path, source_path: &Path, extension: &str) ->
     let mut output_path = output_dir.join(source_path);
     output_path.set_extension(extension);
     output_path
+}
+
+fn canonical_source_path(
+    canonical_root: &Path,
+    source_path: &Path,
+) -> Result<PathBuf, RenderManyError> {
+    let absolute_source = if source_path.is_absolute() {
+        source_path.to_path_buf()
+    } else {
+        canonical_root.join(source_path)
+    };
+    absolute_source
+        .canonicalize()
+        .map_err(|error| RenderManyError::InvalidTemplatePath {
+            path: source_path.to_path_buf(),
+            message: error.to_string(),
+        })
+}
+
+fn relative_source_path<'a>(
+    canonical_root: &'a Path,
+    absolute_source: &'a Path,
+) -> Result<&'a Path, RenderManyError> {
+    absolute_source
+        .strip_prefix(canonical_root)
+        .map_err(|error| RenderManyError::InvalidTemplatePath {
+            path: absolute_source.to_path_buf(),
+            message: error.to_string(),
+        })
 }
 
 fn render_entry(

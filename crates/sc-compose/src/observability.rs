@@ -78,13 +78,19 @@ pub(crate) fn health_json_value(health: &LoggingHealthReport) -> Value {
 }
 
 fn default_log_root() -> Result<PathBuf, CommandError> {
+    default_log_root_with(std::env::current_dir)
+}
+
+fn default_log_root_with(
+    current_dir: impl FnOnce() -> std::io::Result<PathBuf>,
+) -> Result<PathBuf, CommandError> {
     if let Ok(path) = std::env::var("SC_LOG_ROOT")
         && !path.is_empty()
     {
         return Ok(PathBuf::from(path));
     }
 
-    Ok(std::env::current_dir()
+    Ok(current_dir()
         .map_err(|error| {
             CommandError::usage(anyhow!(error).context("failed to determine current directory"))
         })?
@@ -145,7 +151,7 @@ mod tests {
     };
     use serde::Serialize;
 
-    use super::{health_json_from_serialized, health_json_value};
+    use super::{default_log_root_with, health_json_from_serialized, health_json_value};
 
     #[test]
     fn health_json_value_nulls_unavailable_query_state() {
@@ -179,6 +185,16 @@ mod tests {
             panic!("serialization_error should be a string");
         };
         assert!(serialization_error.contains("boom"));
+    }
+
+    #[test]
+    fn default_log_root_reports_usage_error_when_current_dir_lookup_fails() {
+        let result = default_log_root_with(|| Err(std::io::Error::other("cwd missing")));
+
+        let Err(error) = result else {
+            panic!("default_log_root_with should fail");
+        };
+        assert!(format!("{error}").contains("failed to determine current directory"));
     }
 
     fn sample_health() -> LoggingHealthReport {

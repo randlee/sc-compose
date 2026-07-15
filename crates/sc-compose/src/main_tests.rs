@@ -2,9 +2,6 @@ use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-#[cfg(not(windows))]
-use std::sync::{Mutex, OnceLock};
-
 use anyhow::anyhow;
 use sc_composer::{CompositionObserver, DiagnosticCode};
 use sc_observability_types::{MaintenanceWorkerState, QueryHealthState};
@@ -141,28 +138,6 @@ fn shutdown_marks_query_health_unavailable() {
             .state,
         MaintenanceWorkerState::Stopped
     );
-}
-
-#[cfg(not(windows))]
-#[test]
-fn build_logger_reports_usage_error_when_current_directory_is_unavailable() {
-    static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    let _guard = ENV_LOCK
-        .get_or_init(|| Mutex::new(()))
-        .lock()
-        .expect("lock current-dir guard");
-    let original_dir = std::env::current_dir().expect("current dir");
-    let missing_dir = temp_root("logger-missing-cwd").join("gone");
-    fs::create_dir_all(&missing_dir).expect("create missing dir");
-    std::env::set_current_dir(&missing_dir).expect("enter missing dir");
-    fs::remove_dir_all(&missing_dir).expect("remove current dir");
-    let result = crate::observability::build_logger(false);
-    std::env::set_current_dir(&original_dir).expect("restore current dir");
-    let Err(error) = result else {
-        panic!("logger build should fail");
-    };
-    assert_eq!(error.exit_code, exit_codes::USAGE_FAIL);
-    assert!(format!("{error}").contains("failed to determine current directory"));
 }
 
 fn temp_root(label: &str) -> PathBuf {
