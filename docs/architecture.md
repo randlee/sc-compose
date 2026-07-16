@@ -1,16 +1,17 @@
 # SC-Compose Architecture
 
 > Status: Active Release Baseline
-> Product: `sc-composer` (library) and `sc-compose` (CLI)
-> Document role: Normative release architecture for both crates
+> Product: `sc-composer` (library), `sc-compose` (CLI), and `bindings/python` (Python adapter)
+> Document role: Normative release architecture for all in-repo packages
 
 This document supersedes the prior high-level placeholder. It is the normative
 release architecture baseline for `sc-compose` v1.0.
 
 ## 1. Architectural Intent
 
-This document defines the required architecture of `sc-composer` and
-`sc-compose` for release work. It is not a description of the current
+This document defines the required architecture of `sc-composer`,
+`sc-compose`, and `bindings/python` for release work. It is not a description
+of the current
 implementation.
 
 The goals are:
@@ -89,12 +90,31 @@ dependency on `sc-observability`.
 - pack metadata parsing,
 - templates add workflows.
 
-### 3.3 Dependency Direction
+### 3.3 `bindings/python`
+
+`bindings/python` is the Python-facing adapter package. It owns:
+
+- PyO3 wrapper classes and functions,
+- maturin packaging metadata,
+- Python type stubs and `py.typed` markers,
+- Python wheel smoke tests,
+- Python-facing request/result shims over `sc-composer`.
+
+It must remain an adapter layer only. It does not own:
+
+- CLI argument parsing,
+- observability or logger wiring,
+- report runtime helpers,
+- ATM-specific integration,
+- any semantic reimplementation of composition or validation behavior.
+
+### 3.4 Dependency Direction
 
 Required dependency direction:
 
 - `sc-compose` -> `sc-composer`
 - `sc-compose` -> `sc-observability`
+- `bindings/python` -> `sc-composer`
 - `sc-observability` -> `sc-observability-types`
 
 Required observability split:
@@ -105,7 +125,11 @@ Required observability split:
 Forbidden dependency direction:
 
 - `sc-composer` -> `sc-compose`
+- `sc-composer` -> `bindings/python`
 - `sc-composer` -> `sc-observability`
+- `bindings/python` -> `sc-compose`
+- `bindings/python` -> `sc-observability`
+- `bindings/python` -> orchestration-specific runtime crates
 - `sc-composer` -> orchestration-specific runtime crates
 - `sc-composer` -> mailbox helpers, daemon helpers, team-state helpers, or
   runtime-specific home-resolution helpers

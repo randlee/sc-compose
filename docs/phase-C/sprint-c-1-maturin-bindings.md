@@ -1,7 +1,7 @@
 ---
 id: C.1
 title: Maturin Python Bindings Foundation
-status: planned
+status: complete
 branch: sprint/c-1-maturin-bindings
 worktree: ../sc-compose-worktrees/sprint/c-1-maturin-bindings
 ---
