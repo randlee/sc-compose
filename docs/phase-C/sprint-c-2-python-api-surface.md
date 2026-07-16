@@ -111,12 +111,12 @@ C.2 commits exactly these deliverables:
     `ResolveResult`, `RuntimeKind`, `ProfileKind`, `UnknownVariablePolicy`,
     `VariableSource`, `DiagnosticSeverity`, `DiagnosticCode`
 - `D3`
-  - add `features = ["custom_syntax"]` to the workspace-level `minijinja`
-    dependency declaration in the root `Cargo.toml` — the workspace wires
-    third-party crate features directly at `[workspace.dependencies]` rather
-    than through per-crate `[features]` tables, and
-    `minijinja::syntax::SyntaxConfig` is gated behind minijinja's
-    `custom_syntax` feature, which is not currently enabled
+  - rely on the already-enabled `features = ["custom_syntax"]` setting on the
+    workspace-level `minijinja` dependency declaration in the root
+    `Cargo.toml` — the workspace wires third-party crate features directly at
+    `[workspace.dependencies]` rather than through per-crate `[features]`
+    tables, and `minijinja::syntax::SyntaxConfig` is gated behind that
+    minijinja `custom_syntax` feature
   - add `Renderer::with_delimiters(open: &str, close: &str) -> Self` to
     `sc-composer`'s public API per [Renderer Seam Decision](#renderer-seam-decision)
     and wrap the reusable `Renderer` class for Python, including constructor,
