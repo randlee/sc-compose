@@ -24,6 +24,11 @@ required to ship.
 - `sc-composer` remains a pure library.
 - `sc-compose` may depend on `sc-composer` and standalone observability crates
   only.
+- `bindings/python` is a Python-facing adapter package that may depend on
+  `sc-composer` only.
+- `bindings/python` must not depend on `sc-compose`, `sc-observability`, or
+  ATM-specific crates.
+- `sc-composer` must not depend on `bindings/python`.
 - No ATM-specific runtime assumptions may enter code or manifests.
 
 ## Release Blocker Inventory

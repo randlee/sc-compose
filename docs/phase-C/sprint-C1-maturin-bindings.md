@@ -28,6 +28,9 @@ implementation:
 - the adapter lives in this repo under `bindings/python/`
 - package name is `sc-compose`
 - Python import name is `sc_compose`
+- the import name intentionally diverges from the investigation memo's
+  illustrative `sc_composer` sample so the Python module matches the pip
+  package identity while avoiding collision with the Rust crate name
 - v1 scope is composition APIs only
 - reporting and observability APIs are out of scope
 - versioning is lockstep with the workspace version
@@ -56,6 +59,9 @@ This sprint plans work against these future implementation targets:
 - `bindings/python/tests/test_smoke.py`
 - `.github/workflows/ci.yml`
 - `docs/architecture.md`
+- `docs/project-plan.md`
+- `CLAUDE.md`
+- `scripts/release_artifacts.py`
 - `docs/phase-C/sprint-C1-maturin-bindings.md`
 
 ## Confirmed Scope
@@ -107,6 +113,8 @@ C1 commits exactly these deliverables:
 - `D8`
   - amend `docs/architecture.md` so the repo documents `bindings/python` as a
     third, Python-facing adapter package that depends on `sc-composer` only
+  - update `CLAUDE.md` and `docs/project-plan.md` so the repo-wide boundary
+    rules name `bindings/python` and its allowed and forbidden dependency edges
 
 Every other Python-binding concern is out of scope for C1 unless it is
 explicitly named in this deliverables list.
@@ -175,7 +183,9 @@ configuration and keep the crate testable in a Cargo workspace.
   - `build-backend = "maturin"`
 - `[project]`
   - `name = "sc-compose"`
-  - `version` sourced from the workspace during release sync
+  - `version` is rewritten by
+    `python3 scripts/release_artifacts.py sync-python-version --workspace-toml Cargo.toml --pyproject bindings/python/pyproject.toml`
+    immediately before `maturin build` or `maturin sdist`
   - `requires-python = ">=3.11"`
   - README, license, repository, and classifiers
 - `[tool.maturin]`
@@ -188,6 +198,18 @@ Python import name must remain `sc_compose`.
 
 The Rust module name exposed from `bindings/python/src/lib.rs` must therefore
 be `_native`, not `sc_compose`.
+
+Release validation must also run:
+
+```bash
+python3 scripts/release_artifacts.py verify-python-version \
+  --workspace-toml Cargo.toml \
+  --pyproject bindings/python/pyproject.toml \
+  --version <X.Y.Z>
+```
+
+The Python release path is not considered closed unless both the sync step and
+the verify step are present in the future release workflow.
 
 ## Python Import Surface
 
@@ -399,7 +421,9 @@ This sample is normative for C1 in three ways:
 - define the Python package metadata
 - point maturin at `python/sc_compose`
 - include the typed-package markers
-- keep version lockstep documented and wired to release automation
+- keep version lockstep documented and wired to release automation through
+  `scripts/release_artifacts.py sync-python-version` before wheel and sdist
+  builds plus `verify-python-version` as the release gate
 
 ### `bindings/python/python/sc_compose/__init__.py`
 
@@ -469,6 +493,7 @@ Forbidden dependency additions remain:
 
 - `sc-composer` -> `bindings/python`
 - `bindings/python` -> `sc-compose`
+- `bindings/python` -> `sc-observability`
 - `bindings/python` -> ATM-specific crates
 
 ## Out Of Scope
@@ -533,6 +558,9 @@ The first implementation sprint closes only when all of the following are true:
 - `AC8` for `D8`
   - `docs/architecture.md` documents `bindings/python` as a third,
     Python-facing adapter package that depends on `sc-composer` only
+  - `CLAUDE.md` and `docs/project-plan.md` name `bindings/python` in the same
+    boundary rule set and forbid `bindings/python` dependency edges back into
+    `sc-compose`, `sc-observability`, or ATM-specific crates
 - `AC9` scope guard
   - C1 makes no changes to `.github/workflows/release.yml`,
     `release/publish-artifacts.toml`, `docs/publishing.md`, or
@@ -545,6 +573,14 @@ When C1 is implemented, the owning agent must run:
 - `cargo fmt --all --check`
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo test --workspace`
+- `cp bindings/python/pyproject.toml /tmp/sc-compose-pyproject.toml`
+- `python3 scripts/release_artifacts.py sync-python-version --workspace-toml Cargo.toml --pyproject /tmp/sc-compose-pyproject.toml`
+- `python3 scripts/release_artifacts.py verify-python-version --workspace-toml Cargo.toml --pyproject /tmp/sc-compose-pyproject.toml --version "$(python3 - <<'PY'
+import tomllib
+from pathlib import Path
+print(tomllib.loads(Path('Cargo.toml').read_text(encoding='utf-8'))['workspace']['package']['version'])
+PY
+)"`
 - Python smoke tests from installed wheels on:
   - macOS
   - Linux
