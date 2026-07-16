@@ -35,28 +35,154 @@ prove the binding scaffold itself.
 
 ## Deliverables
 
-- add Python wheel and sdist build steps to the main release workflow
-- add PyPI publish wiring to the main release workflow
-- add Python artifact metadata to `release/publish-artifacts.toml`
-- document the new `PYPI_API_TOKEN` requirement
-- update release operator docs so PyPI is a required verification channel
-- attach built wheels and sdist artifacts to GitHub Releases
+- `D1`
+  - add Python wheel and sdist build steps to the main release workflow
+- `D2`
+  - add PyPI publish wiring to the main release workflow
+- `D3`
+  - add Python artifact metadata to `release/publish-artifacts.toml`
+- `D4`
+  - document the new `PYPI_API_TOKEN` requirement
+- `D5`
+  - update release operator docs so PyPI is a required verification channel
+- `D6`
+  - attach built wheels and sdist artifacts to GitHub Releases
+
+## Release Workflow Sample
+
+The release workflow additions should follow this shape:
+
+```yaml
+  build-python-wheels:
+    needs: gate-and-tag
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.11"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate-and-tag.outputs.release_tag }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+      - name: Install maturin
+        run: python -m pip install maturin==1.9.4
+      - name: Build wheels
+        run: maturin build --release --manifest-path bindings/python/Cargo.toml --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-wheels-${{ matrix.os }}
+          path: dist/*
+
+  publish-pypi:
+    needs: [gate-and-tag, build-python-wheels]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install maturin
+        run: python -m pip install maturin==1.9.4
+      - name: Publish wheels and sdist to PyPI
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+          MATURIN_NON_INTERACTIVE: "1"
+        run: maturin upload --non-interactive dist/**/*
+```
+
+This sample is normative for C4 in three ways:
+
+- PyPI credentials enter the publish step only through
+  `MATURIN_PYPI_TOKEN=${{ secrets.PYPI_API_TOKEN }}`
+- release-tagged wheel builds stay on the main release workflow rather than a
+  separate ad hoc workflow
+- wheel artifacts are built first, uploaded, and then consumed by the PyPI
+  publish job
+
+## Release Artifact Manifest Sample
+
+The `release/publish-artifacts.toml` additions should follow this shape:
+
+```toml
+schema_version = 1
+
+[[python_packages]]
+artifact = "sc-compose-python"
+package = "sc-compose"
+manifest = "bindings/python/pyproject.toml"
+module = "sc_compose"
+publish = "pypi"
+
+[[python_distributions]]
+name = "sc-compose"
+source = "bindings/python"
+sdist = true
+wheels = ["ubuntu-latest", "macos-latest", "windows-latest"]
+```
+
+This sample is normative for C4 in two ways:
+
+- the Python package entry is a first-class release artifact beside the
+  existing crates and release binaries
+- the manifest points at `bindings/python/pyproject.toml`, not any crate under
+  `crates/`
 
 ## Acceptance Criteria
 
-- `.github/workflows/release.yml` builds wheel artifacts on macOS, Linux, and
-  Windows for tagged releases
-- `.github/workflows/release.yml` builds one Python source distribution
-- PyPI publication uses `MATURIN_PYPI_TOKEN` sourced from
-  `PYPI_API_TOKEN`
-- `release/publish-artifacts.toml` documents Python release artifacts
-- `docs/publishing.md` and `docs/publishing-agent.md` include PyPI verification
-  and secret requirements
-- GitHub Releases attach Python wheels and the sdist beside existing release
-  archives
+- `AC1` for `D1`
+  - `.github/workflows/release.yml` defines a named Python build path for
+    tagged releases that builds wheel artifacts on macOS, Linux, and Windows
+  - `.github/workflows/release.yml` defines one Python source distribution path
+- `AC2` for `D2`
+  - `.github/workflows/release.yml` defines a named `publish-pypi` job
+  - PyPI publication uses `MATURIN_PYPI_TOKEN` sourced from
+    `PYPI_API_TOKEN`
+- `AC3` for `D3`
+  - `release/publish-artifacts.toml` documents Python release artifacts with a
+    concrete entry for the `sc-compose` Python package
+- `AC4` for `D4`
+  - `docs/publishing-agent.md` names `PYPI_API_TOKEN` as a required secret
+- `AC5` for `D5`
+  - `docs/publishing.md` and `docs/publishing-agent.md` include PyPI
+    verification and release-operator steps
+- `AC6` for `D6`
+  - GitHub Releases attach Python wheels and the sdist beside existing release
+    archives
 
 ## Required Validation
 
-- release workflow YAML parses cleanly
-- Python artifact metadata and operator docs are internally consistent
-- a release dry-run or equivalent workflow validation passes before merge
+- `cargo test --workspace`
+- `python3 scripts/release_artifacts.py verify-version --manifest release/publish-artifacts.toml --workspace-toml Cargo.toml --version <X.Y.Z>`
+- `python3 -c "import pathlib, yaml; yaml.safe_load(pathlib.Path('.github/workflows/release.yml').read_text())"`
+- `python3 - <<'PY'
+import pathlib
+import tomllib
+
+tomllib.loads(pathlib.Path('release/publish-artifacts.toml').read_text())
+PY`
+- `gh workflow view Release --yaml >/dev/null`
+
+Validation-to-AC mapping:
+
+- `cargo test --workspace`
+  - verifies `AC1` through `AC6` do not regress the workspace after the Python
+    release-train wiring lands
+- `python3 scripts/release_artifacts.py verify-version ...`
+  - verifies `AC3` against the updated release artifact manifest contract
+- `python3 -c "import pathlib, yaml; ..."`
+  - verifies `AC1`, `AC2`, and `AC6` by ensuring the edited workflow YAML still
+    parses
+- `python3 - <<'PY' ...`
+  - verifies `AC3` by ensuring the manifest remains valid TOML
+- `gh workflow view Release --yaml >/dev/null`
+  - verifies the named workflow remains addressable as `Release`, which is the
+    workflow C4 edits directly

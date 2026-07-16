@@ -263,12 +263,19 @@ Phase B reporting types and observability types are explicitly excluded.
 
 C1 does not deliver the entire v1 surface in one pass.
 
-C1 explicitly defers:
+## Deferred To C4
+
+C1 explicitly defers these release-train items to
+[Sprint C4 — Python Release Train And Packaging Hardening](./sprint-C4-python-release-train.md):
 
 - all `release.yml` Python release-train work
 - PyPI publish credentials and publish automation
 - `release/publish-artifacts.toml` amendments
 - `docs/publishing.md` and `docs/publishing-agent.md` amendments
+- GitHub Release wheel and sdist attachment behavior
+
+C1 separately defers these non-release implementation items:
+
 - `validate_file`
 - `resolve_profile`
 - `frontmatter_init`
@@ -276,8 +283,6 @@ C1 explicitly defers:
 - richer exception hierarchy
 - Python-specific convenience helpers beyond the minimum needed to make the
   wrapped APIs usable
-
-Those deferred items move to [Sprint C4 — Python Release Train And Packaging Hardening](./sprint-C4-python-release-train.md).
 
 ## Concrete Wrapper Rules
 
@@ -478,7 +483,8 @@ C1 must not modify:
 - GitHub Release attachment logic for wheels or sdists
 
 Those release-train items are deferred intact to
-[Sprint C4 — Python Release Train And Packaging Hardening](./sprint-C4-python-release-train.md).
+[Sprint C4 — Python Release Train And Packaging Hardening](./sprint-C4-python-release-train.md); see the canonical
+[Deferred To C4](#deferred-to-c4) list above.
 
 ## Explicit Non-Goals
 
@@ -531,16 +537,6 @@ The first implementation sprint closes only when all of the following are true:
   - C1 makes no changes to `.github/workflows/release.yml`,
     `release/publish-artifacts.toml`, `docs/publishing.md`, or
     `docs/publishing-agent.md`
-
-## Follow-On Sprint C4
-
-Sprint C4 owns the release-train and PyPI publication slice deferred out of C1:
-
-- `.github/workflows/release.yml` Python jobs
-- `release/publish-artifacts.toml` Python artifact metadata
-- `docs/publishing.md` and `docs/publishing-agent.md` PyPI channel updates
-- new `PYPI_API_TOKEN` release secret requirements
-- GitHub Release wheel and sdist attachment behavior
 
 ## Required Validation
 
