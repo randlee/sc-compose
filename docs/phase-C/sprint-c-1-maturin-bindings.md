@@ -50,6 +50,9 @@ implementation:
 This sprint plans work against these future implementation targets:
 
 - `Cargo.toml`
+- `crates/sc-composer/src/lib.rs`
+- `crates/sc-composer/src/renderer.rs`
+- `crates/sc-composer/src/validation.rs`
 - `bindings/python/Cargo.toml`
 - `bindings/python/pyproject.toml`
 - `bindings/python/python/sc_compose/__init__.py`
@@ -99,22 +102,44 @@ C.1 commits exactly these deliverables:
     `bindings/python/src/lib.rs`, and the typed Python package skeleton under
     `bindings/python/python/sc_compose/`
 - `D4`
-  - wrap exactly three callable functions for the first implementation slice:
-    `render_template`, `render_loaded_template`, and `compose_file`
+  - wrap the full non-reporting callable surface needed to use
+    `sc-composer` from Python without dropping to subprocesses:
+    `compose`, `validate`, `resolve_template_path`, `resolve_profile`,
+    `render_template`, `render_loaded_template`, `parse_template_document`,
+    `expand_includes`, `compose_file`, `validate_file`, `frontmatter_init`,
+    `init_workspace`, `validate_input_value`, `input_value_from_yaml`,
+    `to_forward_slash`, and `BUILTIN_VARIABLE_NAMES`
 - `D5`
-  - add the minimum Python-facing wrapper types and enums required to support
-    those three functions
+  - add the Python-facing wrapper types, enums, constants, and request/result
+    shims required to support the full D4 surface, including parse,
+    validation, include-expansion, and path-confinement types
 - `D6`
   - add one CI job in `.github/workflows/ci.yml` that builds wheels and runs a
     smoke test on macOS, Linux, and Windows using one pinned Python version
 - `D7`
   - add one smoke test module at `bindings/python/tests/test_smoke.py` that
-    verifies import plus the three wrapped functions from installed wheels
+    verifies import plus the core non-reporting wrapped functions from
+    installed wheels
 - `D8`
   - amend `docs/architecture.md` so the repo documents `bindings/python` as a
     third, Python-facing adapter package that depends on `sc-composer` only
   - update `CLAUDE.md` and `docs/project-plan.md` so the repo-wide boundary
     rules name `bindings/python` and its allowed and forbidden dependency edges
+- `D9`
+  - expose a public renderer-customization seam in `sc-composer` by making
+    `Renderer::with_options()` public or by adding an equivalent
+    `Renderer::with_delimiters(open, close)` constructor so Python can drive
+    multi-pass rendering with non-default delimiters
+- `D10`
+  - wrap the reusable `Renderer` class for Python, including constructor,
+    render helpers, and delimiter customization
+- `D11`
+  - wrap the public error surface as Python exceptions with stable `.message`
+    and `.code` access where a diagnostic code exists
+- `D12`
+  - make token-discovery callable from Python by changing `discover_tokens`
+    from `pub(crate)` to public and exposing a Python wrapper for variable
+    discovery workflows
 
 Every other Python-binding concern is out of scope for C.1 unless it is
 explicitly named in this deliverables list.
@@ -253,37 +278,75 @@ first release is typed from day one.
 
 ## Full V1 API Boundary
 
-The Phase C v1 target surface is:
+The Phase C v1 target surface is the full non-reporting public library
+surface plus the Pythonic file wrappers needed for ergonomic use:
 
-- `render_template`
-- `render_loaded_template`
-- `compose_file`
-- `validate_file`
-- `resolve_profile`
-- `frontmatter_init`
-- `init_workspace`
+- standalone callable entry points:
+  - `compose`
+  - `validate`
+  - `resolve_template_path`
+  - `resolve_profile`
+  - `render_template`
+  - `render_loaded_template`
+  - `parse_template_document`
+  - `expand_includes`
+  - `compose_file`
+  - `validate_file`
+  - `frontmatter_init`
+  - `init_workspace`
+  - `validate_input_value`
+  - `input_value_from_yaml`
+  - `to_forward_slash`
+  - `BUILTIN_VARIABLE_NAMES`
+- reusable class surface:
+  - `Renderer`
+  - `Renderer.with_options()` or `Renderer.with_delimiters(open, close)`
+  - `Frontmatter`
+  - `ParsedTemplate`
+  - `VariableName`
+  - `ProfileName`
+  - `ConfiningRoot`
 
-Associated Python-facing types and enums are in scope only insofar as they are
-required to support those functions:
+Associated Python-facing types and enums are in scope insofar as they are
+required to support those functions and classes:
 
-- `ComposePolicy`
-- `ComposeRequest`
-- `ComposeResult`
-- `LoadedTemplateRequest`
-- `RenderedArtifact`
-- `ValidationReport`
-- `ResolveResult`
-- `FrontmatterInitResult`
-- `InitResult`
-- `RuntimeKind`
-- `ProfileKind`
-- `UnknownVariablePolicy`
+- request/result and data types:
+  - `ComposePolicy`
+  - `ComposeRequest`
+  - `ComposeResult`
+  - `ComposeMode`
+  - `ResolverPolicy`
+  - `ResolveResult`
+  - `LoadedTemplateRequest`
+  - `NamedTemplateAsset`
+  - `RenderedArtifact`
+  - `ExpandedTemplate`
+  - `ParsedTemplate`
+  - `Frontmatter`
+  - `FrontmatterInitResult`
+  - `InitResult`
+  - `ValidationReport`
+  - `Diagnostic`
+  - `VariableName`
+  - `ProfileName`
+  - `ConfiningRoot`
+- enums and constants:
+  - `RuntimeKind`
+  - `ProfileKind`
+  - `UnknownVariablePolicy`
+  - `VariableSource`
+  - `DiagnosticSeverity`
+  - `DiagnosticCode`
+  - `BUILTIN_VARIABLE_NAMES`
+- exceptions:
+  - `ComposeError`
+  - `RenderError`
+  - `ValidationError`
+  - `ResolveError`
+  - `IncludeError`
+  - `ConfigError`
 
 Phase B reporting types and observability types are explicitly excluded.
-
-## C.1 Implementation Slice
-
-C.1 does not deliver the entire v1 surface in one pass.
 
 ## Deferred To C.2
 
@@ -298,13 +361,16 @@ C.1 explicitly defers these release-train items to
 
 C.1 separately defers these non-release implementation items:
 
-- `validate_file`
-- `resolve_profile`
-- `frontmatter_init`
-- `init_workspace`
-- richer exception hierarchy
-- Python-specific convenience helpers beyond the minimum needed to make the
-  wrapped APIs usable
+- observer-owned entry points:
+  - `compose_with_observer`
+  - `validate_with_observer`
+  - `resolve_profile_with_observer`
+- observation and callback surfaces:
+  - `ObservationEvent`
+  - `CompositionObserver`
+  - `ObservationSink`
+- JSON envelope or operator-focused wrappers such as `DiagnosticEnvelope<T>`
+- any reporting runtime APIs or `reports *` command wrappers
 
 ## Concrete Wrapper Rules
 
@@ -321,8 +387,8 @@ The wrapper layer should follow these mapping rules:
 - wrappers should prefer explicit builder or constructor methods over exposing
   raw Rust struct fields when invariants need validation
 
-The wrapper should not expose observer hooks, logger sinks, or any `sc-compose`
-CLI-only concepts.
+The wrapper should not expose observer hooks, logger sinks, reporting runtime
+APIs, or any `sc-compose` CLI-only concepts in C.1.
 
 ## Rust FFI Boundary Sample
 
@@ -399,22 +465,61 @@ This sample is normative for C.1 in three ways:
 - define `#[pymodule]`
   - `#[pyo3(name = "_native")]`
 - define `#[pyfunction]`
+  - `compose`
+  - `validate`
+  - `resolve_template_path`
+  - `resolve_profile`
   - `render_template`
   - `render_loaded_template`
+  - `parse_template_document`
+  - `expand_includes`
   - `compose_file`
+  - `validate_file`
+  - `frontmatter_init`
+  - `init_workspace`
+  - `validate_input_value`
+  - `input_value_from_yaml`
+  - `to_forward_slash`
 - define `#[pyclass]` wrappers needed for:
+  - `Frontmatter`
+  - `ParsedTemplate`
   - `LoadedTemplateRequest`
+  - `NamedTemplateAsset`
   - `RenderedArtifact`
+  - `ExpandedTemplate`
   - `ComposePolicy`
   - `ComposeRequest`
+  - `ComposeMode`
   - `ComposeResult`
+  - `ResolverPolicy`
+  - `ResolveResult`
+  - `ValidationReport`
+  - `Diagnostic`
+  - `VariableName`
+  - `ProfileName`
+  - `ConfiningRoot`
+  - `Renderer`
 - define Python-visible enums or string wrappers for:
   - `RuntimeKind`
   - `ProfileKind`
   - `UnknownVariablePolicy`
+  - `VariableSource`
+  - `DiagnosticSeverity`
+  - `DiagnosticCode`
 - define a small exception surface:
   - `ScComposeError`
+  - `ScRenderError`
+  - `ScValidationError`
+  - `ScResolveError`
+  - `ScIncludeError`
+  - `ScConfigError`
   - one helper for attaching diagnostic code when available
+- define Python-visible constants:
+  - `BUILTIN_VARIABLE_NAMES`
+- expose `Renderer` delimiter customization through either:
+  - public `Renderer::with_options()`, or
+  - a new `Renderer.with_delimiters(open, close)` wrapper if the Rust seam is
+    introduced under a different public name
 
 ### `bindings/python/pyproject.toml`
 
@@ -433,15 +538,23 @@ This sample is normative for C.1 in three ways:
 ### `bindings/python/python/sc_compose/_native.pyi`
 
 - declare the first-sprint public signatures
-- provide enough type detail for the wrapped request/result classes
+- provide enough type detail for the wrapped request/result, parser,
+  include-expansion, validation, and renderer classes
 
 ### `bindings/python/tests/test_smoke.py`
 
 - import `sc_compose`
 - assert the module exposes the expected names
+- exercise `compose`, `validate`, `resolve_template_path`, and
+  `resolve_profile`
 - render one inline template
 - render one loaded template with a supporting template
+- parse one template document and inspect frontmatter/body
+- expand one include graph
 - compose one file-mode request from a temp directory
+- run `validate_input_value`, `input_value_from_yaml`, and `to_forward_slash`
+- exercise `Renderer` with non-default delimiters to prove the customization
+  seam is actually usable from Python
 
 ## CI Additions
 
@@ -540,11 +653,15 @@ The first implementation sprint closes only when all of the following are true:
     typed Python package skeleton exist
   - `pyproject.toml` sets `requires-python = ">=3.11"`
 - `AC4` for `D4`
-  - `render_template`, `render_loaded_template`, and `compose_file` are
-    callable from Python
+  - every D4 non-reporting entry point is callable from Python:
+    `compose`, `validate`, `resolve_template_path`, `resolve_profile`,
+    `render_template`, `render_loaded_template`, `parse_template_document`,
+    `expand_includes`, `compose_file`, `validate_file`, `frontmatter_init`,
+    `init_workspace`, `validate_input_value`, `input_value_from_yaml`,
+    `to_forward_slash`, and `BUILTIN_VARIABLE_NAMES`
 - `AC5` for `D5`
-  - the minimum wrapper types and enums required by the three wrapped
-    functions are exposed from `sc_compose`
+  - the wrapper types, enums, parser/include types, and constants required by
+    the D4 surface are exposed from `sc_compose`
   - no `sc-compose` CLI types or observability paths leak into the Python
     public API
 - `AC6` for `D6`
@@ -552,8 +669,8 @@ The first implementation sprint closes only when all of the following are true:
     Linux, and Windows using `python-version: "3.11"`
 - `AC7` for `D7`
   - `import sc_compose` succeeds from an installed wheel on all three OS jobs
-  - the smoke suite exercises inline render, loaded-template render, and
-    file-mode composition
+  - the smoke suite exercises the parser, include-expansion, validation,
+    resolution, rendering, and file-mode composition paths
   - typed package markers ship with the built wheel
 - `AC8` for `D8`
   - `docs/architecture.md` documents `bindings/python` as a third,
@@ -561,7 +678,19 @@ The first implementation sprint closes only when all of the following are true:
   - `CLAUDE.md` and `docs/project-plan.md` name `bindings/python` in the same
     boundary rule set and forbid `bindings/python` dependency edges back into
     `sc-compose`, `sc-observability`, or ATM-specific crates
-- `AC9` scope guard
+- `AC9` for `D9`
+  - `Renderer` exposes a public delimiter-customization seam usable from
+    Python without introducing new rendering semantics
+- `AC10` for `D10`
+  - Python can construct and use `Renderer` directly, including non-default
+    delimiter rendering
+- `AC11` for `D11`
+  - Rust error variants map to stable Python exceptions with `.message` and
+    `.code` access where a diagnostic code exists
+- `AC12` for `D12`
+  - Python can call token discovery without invoking the full validation
+    pipeline
+- `AC13` scope guard
   - C.1 makes no changes to `.github/workflows/release.yml`,
     `release/publish-artifacts.toml`, `docs/publishing.md`, or
     `docs/publishing-agent.md`
@@ -597,13 +726,14 @@ PY
 This sprint leaves these concrete next slices for later Phase C work:
 
 - C3 (not yet drafted as a sprint doc)
-  - add `validate_file`
-  - add `resolve_profile`
-  - extend smoke coverage to profile-mode resolution
+  - add observer-owned Python callbacks and event wrappers
+  - add `compose_with_observer`, `validate_with_observer`, and
+    `resolve_profile_with_observer`
+  - add `DiagnosticEnvelope<T>` or another explicit Python JSON-envelope seam
 - C4 (not yet drafted as a sprint doc)
-  - add `frontmatter_init`
-  - add `init_workspace`
-  - add richer exception typing and user-facing docs
+  - extend user-facing docs and examples for the broader API surface
+  - evaluate whether recovery-hint and observer event types merit direct
+    Python modeling
 
 Sprint C.2 (release-train work, delivering the canonical [Deferred To C.2](#deferred-to-c2)
 section below) was pulled forward ahead of these two placeholders per the
