@@ -1,10 +1,25 @@
 class ScCompose < Formula
   desc "Standalone CLI for template composition"
   homepage "https://github.com/randlee/sc-compose"
-  url "{{ tarball_url }}"
-  sha256 "{{ sha256 }}"
   version "{{ version }}"
   license "MIT"
+
+  on_macos do
+    on_arm do
+      url "{{ macos_arm_url }}"
+      sha256 "{{ macos_arm_sha256 }}"
+    end
+
+    on_intel do
+      url "{{ macos_intel_url }}"
+      sha256 "{{ macos_intel_sha256 }}"
+    end
+  end
+
+  on_linux do
+    url "{{ linux_url }}"
+    sha256 "{{ linux_sha256 }}"
+  end
 
   def install
     bin.install "bin/sc-compose"
