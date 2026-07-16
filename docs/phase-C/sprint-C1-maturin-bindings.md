@@ -285,10 +285,10 @@ Phase B reporting types and observability types are explicitly excluded.
 
 C1 does not deliver the entire v1 surface in one pass.
 
-## Deferred To C4
+## Deferred To C2
 
 C1 explicitly defers these release-train items to
-[Sprint C4 — Python Release Train And Packaging Hardening](./sprint-C4-python-release-train.md):
+[Sprint C2 — Python Release Train And Packaging Hardening](./sprint-C2-python-release-train.md):
 
 - all `release.yml` Python release-train work
 - PyPI publish credentials and publish automation
@@ -508,8 +508,8 @@ C1 must not modify:
 - GitHub Release attachment logic for wheels or sdists
 
 Those release-train items are deferred intact to
-[Sprint C4 — Python Release Train And Packaging Hardening](./sprint-C4-python-release-train.md); see the canonical
-[Deferred To C4](#deferred-to-c4) list above.
+[Sprint C2 — Python Release Train And Packaging Hardening](./sprint-C2-python-release-train.md); see the canonical
+[Deferred To C2](#deferred-to-c2) list above.
 
 ## Explicit Non-Goals
 
@@ -596,16 +596,18 @@ PY
 
 This sprint leaves these concrete next slices for later Phase C work:
 
-- C2
+- C3 (not yet drafted as a sprint doc)
   - add `validate_file`
   - add `resolve_profile`
   - extend smoke coverage to profile-mode resolution
-- C3
+- C4 (not yet drafted as a sprint doc)
   - add `frontmatter_init`
   - add `init_workspace`
   - add richer exception typing and user-facing docs
-- C4
-  - deliver the release-train work listed in the canonical
-    [Deferred To C4](#deferred-to-c4) section
-  - expand interpreter matrix
-  - evaluate `abi3` or `abi3t` only after the base adapter is stable
+
+Sprint C2 (release-train work, delivering the canonical [Deferred To C2](#deferred-to-c2)
+section below) was pulled forward ahead of these two placeholders per the
+Sprint Numbering rule in `sprint-planning-guidelines.md`: it was ready to be
+drafted as a real sprint doc first, so it takes the next open number, and the
+remaining placeholder slices keep their prose-only follow-on status until they
+are drafted.

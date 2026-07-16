@@ -1,12 +1,12 @@
 ---
-id: C4
+id: C2
 title: Python Release Train And Packaging Hardening
 status: planned
 branch: plan/maturin-bindings-implementation-plan
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/maturin-bindings-implementation-plan
 ---
 
-# Sprint C4 — Python Release Train And Packaging Hardening
+# Sprint C2 — Python Release Train And Packaging Hardening
 
 ## Goal
 
@@ -36,7 +36,7 @@ and operator requirements that a later implementation change must satisfy.
 - `scripts/release_artifacts.py`
 - `docs/publishing.md`
 - `docs/publishing-agent.md`
-- `docs/phase-C/sprint-C4-python-release-train.md`
+- `docs/phase-C/sprint-C2-python-release-train.md`
 
 ## Deliverables
 
@@ -165,7 +165,7 @@ The release workflow additions should follow this shape:
         run: maturin upload --non-interactive dist/*.whl dist/*.tar.gz
 ```
 
-This sample is normative for C4 in six ways:
+This sample is normative for C2 in six ways:
 
 - PyPI credentials enter the publish step only through
   `MATURIN_PYPI_TOKEN=${{ secrets.PYPI_API_TOKEN }}`
@@ -257,14 +257,14 @@ sdist = true
 wheels = ["ubuntu-latest", "macos-latest", "windows-latest"]
 ```
 
-For C4 planning, these `[[python_packages]]` and `[[python_distributions]]`
+For C2 planning, these `[[python_packages]]` and `[[python_distributions]]`
 entries are descriptive release-manifest records, not yet a live workflow
 input. Their authority comes from cross-check validation enforced by
 `scripts/release_artifacts.py validate-manifest` plus the explicit workflow
 assertions below, so the manifest and YAML cannot silently drift while the
 release workflow still uses direct YAML wiring.
 
-This sample is normative for C4 in three ways:
+This sample is normative for C2 in three ways:
 
 - the Python package entry is a first-class release artifact beside the
   existing crates and release binaries
@@ -310,7 +310,7 @@ Static YAML, TOML, and grep-style validation does not prove end-to-end Python
 release correctness. Until the planned workflow is exercised through a staged
 release, these acceptance criteria remain design-closed only.
 
-Before C4 may be treated as closed for a real production release, one staged
+Before C2 may be treated as closed for a real production release, one staged
 execution must pass on either TestPyPI or a `workflow_dispatch` rehearsal path
 that builds wheels, builds exactly one sdist, publishes to a non-production
 destination, and confirms the GitHub Release attachment set.
@@ -403,4 +403,4 @@ Validation-to-AC mapping:
     generation includes wheel files
 - `gh workflow view Release --yaml >/dev/null`
   - verifies the named workflow remains addressable as `Release`, which is the
-    workflow C4 edits directly
+    workflow C2 edits directly
