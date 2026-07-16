@@ -573,9 +573,15 @@ When C1 is implemented, the owning agent must run:
 - `cargo fmt --all --check`
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo test --workspace`
-- `cp bindings/python/pyproject.toml /tmp/sc-compose-pyproject.toml`
-- `python3 scripts/release_artifacts.py sync-python-version --workspace-toml Cargo.toml --pyproject /tmp/sc-compose-pyproject.toml`
-- `python3 scripts/release_artifacts.py verify-python-version --workspace-toml Cargo.toml --pyproject /tmp/sc-compose-pyproject.toml --version "$(python3 - <<'PY'
+- `TMP_PYPROJECT="$(python3 - <<'PY'
+from pathlib import Path
+import tempfile
+print(Path(tempfile.mkdtemp(prefix='sc-compose-')) / 'pyproject.toml')
+PY
+)"`
+- `cp bindings/python/pyproject.toml "$TMP_PYPROJECT"`
+- `python3 scripts/release_artifacts.py sync-python-version --workspace-toml Cargo.toml --pyproject "$TMP_PYPROJECT"`
+- `python3 scripts/release_artifacts.py verify-python-version --workspace-toml Cargo.toml --pyproject "$TMP_PYPROJECT" --version "$(python3 - <<'PY'
 import tomllib
 from pathlib import Path
 print(tomllib.loads(Path('Cargo.toml').read_text(encoding='utf-8'))['workspace']['package']['version'])
