@@ -88,6 +88,8 @@ The release workflow additions should follow this shape:
     steps:
       - uses: actions/download-artifact@v4
         with:
+          pattern: python-wheels-*
+          merge-multiple: true
           path: dist
       - uses: actions/setup-python@v5
         with:
@@ -98,7 +100,7 @@ The release workflow additions should follow this shape:
         env:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
           MATURIN_NON_INTERACTIVE: "1"
-        run: maturin upload --non-interactive dist/**/*
+        run: maturin upload --non-interactive dist/*.whl dist/*.tar.gz
 ```
 
 This sample is normative for C4 in four ways:
@@ -109,8 +111,8 @@ This sample is normative for C4 in four ways:
   separate ad hoc workflow
 - wheels and the sdist are both produced into the same `dist/` artifact set
   before upload
-- uploaded `dist/` artifacts are then consumed unchanged by the PyPI publish
-  job
+- the PyPI publish job downloads only the `python-wheels-*` artifacts and
+  uploads only `dist/*.whl` and `dist/*.tar.gz`
 
 ## GitHub Release Attachment Sample
 
@@ -140,14 +142,28 @@ by the collection filter:
 -          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} release/ \;
 +          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' -o -name '*.whl' \) -exec mv {} release/ \;
            ls -la release/
+
+       - name: Generate checksums
+         working-directory: release
+         run: |
+           files=()
+           for pattern in *.tar.gz *.zip *.whl; do
+             for file in $pattern; do
+               [[ -e "$file" ]] || continue
+               files+=("$file")
+             done
+           done
+           sha256sum "${files[@]}" > checksums.txt
 ```
 
-This sample is normative for `D6` in two ways:
+This sample is normative for `D6` in three ways:
 
 - the `release` job must wait on `build-python-wheels` and `publish-pypi`
   before collecting artifacts and creating the GitHub Release
 - the collection filter must include `*.whl` so wheel files land in `release/`
   beside the existing binary archives and the Python sdist `*.tar.gz`
+- the checksum generation step must include `*.whl` so every wheel attached to
+  the GitHub Release also appears in `checksums.txt`
 
 ## Release Artifact Manifest Sample
 
@@ -242,6 +258,14 @@ assert 'needs: [gate-and-tag, build, publish, build-python-wheels, publish-pypi]
     'release job must depend on build-python-wheels and publish-pypi'
 assert \"-name '*.whl'\" in text, \
     'release artifact collection must include *.whl files'
+assert 'pattern: python-wheels-*' in text, \
+    'publish-pypi artifact download must be scoped to python-wheels-*'
+assert 'merge-multiple: true' in text, \
+    'publish-pypi artifact download must flatten scoped Python artifacts into dist/'
+assert 'maturin upload --non-interactive dist/*.whl dist/*.tar.gz' in text, \
+    'publish-pypi must upload only wheel and sdist files'
+assert 'for pattern in *.tar.gz *.zip *.whl; do' in text, \
+    'release checksum generation must include wheel files'
 PY`
 - `gh workflow view Release --yaml >/dev/null`
 
@@ -259,8 +283,10 @@ Validation-to-AC mapping:
   - verifies `AC3` by asserting the concrete `[[python_packages]]` and
     `[[python_distributions]]` entries exist with the expected keys and values
 - the third `python3 - <<'PY' ...`
-  - verifies `AC6` by asserting the `release` job depends on the Python
-    artifact jobs and that the artifact-collection filter includes `*.whl`
+  - verifies `AC2` and `AC6` by asserting the PyPI publish job downloads only
+    scoped Python artifacts, uploads only wheel and sdist files, the `release`
+    job depends on the Python artifact jobs, the artifact-collection filter
+    includes `*.whl`, and checksum generation includes wheel files
 - `gh workflow view Release --yaml >/dev/null`
   - verifies the named workflow remains addressable as `Release`, which is the
     workflow C4 edits directly
