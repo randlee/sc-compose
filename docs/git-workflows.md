@@ -9,6 +9,26 @@
 - Merge `develop` into `main` for release readiness and release publication.
 - Use git worktrees when parallel tasks need isolated branches.
 
+## Naming Convention
+
+- Phase plan doc: `docs/phase-X/phase-X-plan.md` (e.g. `docs/phase-C/phase-C-plan.md`).
+- Prose sprint identifiers (doc `id:` field, headings, running text) use dot
+  notation matching the phase letter's own case: `X.#` (e.g. `C.2`).
+- Sprint doc filenames and worktree names use lowercase kebab syntax:
+  `sprint-x-#-<description>.md` (e.g.
+  `docs/phase-C/sprint-c-3-python-release-train.md`) — lowercase phase
+  letter, dash-separated from the sprint number, dash-separated from a short
+  kebab-case description.
+- Sprint numbers are contiguous within a phase, starting at 1, with no gaps.
+  See `.claude/skills/plan-hardening/sprint-planning-guidelines.md`.
+- Branch names are always lowercase.
+- Integration branch: `integrate/phase-x` (e.g. `integrate/phase-c`).
+- Sprint branch: `sprint/x-#-<description>` (e.g.
+  `sprint/c-2-python-release-train`), matching its sprint doc's number and
+  description.
+- This naming convention applies going forward; already-shipped phase/sprint
+  docs and branches (phases A and B) are not retroactively renamed.
+
 ## Pull Request Rule
 
 Every change should follow:

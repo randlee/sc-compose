@@ -18,6 +18,10 @@ releases of these crate names now come from this repo instead.
 - Release workflows verify that the requested release version matches:
   - workspace version
   - each crate package version
+- The planned Phase C Python release channel must also sync
+  `bindings/python/pyproject.toml` from the workspace version immediately
+  before wheel or sdist builds and then fail release if
+  `verify-python-version` detects drift.
 
 ## Replacement/Cutover Rule
 
@@ -93,6 +97,10 @@ Required secrets:
 - `HOMEBREW_TAP_TOKEN`
   - must be configured in the repo secrets before Homebrew automation can
     update `randlee/homebrew-tap`
+- `PYPI_API_TOKEN`
+  - reserved for the future Phase C Python release channel
+  - must be configured in the GitHub Actions `pypi` environment before PyPI
+    publication is enabled
 
 Manual verification steps:
 
@@ -110,6 +118,13 @@ The standalone release path covers:
 - GitHub Release archives for Linux, macOS, and Windows
 - Homebrew formula updates in `randlee/homebrew-tap`
 - `winget` publication for package id `randlee.sc-compose`
+- planned Phase C PyPI publication for package `sc-compose`
+
+Future Python release-train rule:
+
+- do not treat the Python release path as production-closed until a staged
+  TestPyPI or `workflow_dispatch` rehearsal proves wheel build, single-sdist
+  build, publish, and GitHub Release attachment behavior end-to-end
 
 The first `winget` release requires a one-time manual submission to
 `microsoft/winget-pkgs`. Later releases use the automated workflow job.

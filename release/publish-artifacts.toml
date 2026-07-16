@@ -17,3 +17,15 @@ wait_after_publish_seconds = 0
 [[release_binaries]]
 name = "sc-compose"
 
+[[python_packages]]
+artifact = "sc-compose-python"
+package = "sc-compose"
+manifest = "bindings/python/pyproject.toml"
+module = "sc_compose"
+publish = "pypi"
+
+[[python_distributions]]
+name = "sc-compose"
+source = "bindings/python"
+sdist = true
+wheels = ["ubuntu-latest", "macos-latest", "windows-latest"]
