@@ -563,9 +563,7 @@ This sprint leaves these concrete next slices for later Phase C work:
   - add `init_workspace`
   - add richer exception typing and user-facing docs
 - C4
-  - add release-train wheel, sdist, and PyPI publication automation
-  - update `release/publish-artifacts.toml`
-  - update `docs/publishing.md` and `docs/publishing-agent.md`
-  - document the new `PYPI_API_TOKEN` secret
+  - deliver the release-train work listed in the canonical
+    [Deferred To C4](#deferred-to-c4) section
   - expand interpreter matrix
   - evaluate `abi3` or `abi3t` only after the base adapter is stable

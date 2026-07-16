@@ -75,6 +75,8 @@ The release workflow additions should follow this shape:
         run: python -m pip install maturin==1.9.4
       - name: Build wheels
         run: maturin build --release --manifest-path bindings/python/Cargo.toml --out dist
+      - name: Build sdist
+        run: maturin sdist --manifest-path bindings/python/Cargo.toml --out dist
       - uses: actions/upload-artifact@v4
         with:
           name: python-wheels-${{ matrix.os }}
@@ -99,14 +101,16 @@ The release workflow additions should follow this shape:
         run: maturin upload --non-interactive dist/**/*
 ```
 
-This sample is normative for C4 in three ways:
+This sample is normative for C4 in four ways:
 
 - PyPI credentials enter the publish step only through
   `MATURIN_PYPI_TOKEN=${{ secrets.PYPI_API_TOKEN }}`
 - release-tagged wheel builds stay on the main release workflow rather than a
   separate ad hoc workflow
-- wheel artifacts are built first, uploaded, and then consumed by the PyPI
-  publish job
+- wheels and the sdist are both produced into the same `dist/` artifact set
+  before upload
+- uploaded `dist/` artifacts are then consumed unchanged by the PyPI publish
+  job
 
 ## Release Artifact Manifest Sample
 
@@ -161,13 +165,36 @@ This sample is normative for C4 in two ways:
 ## Required Validation
 
 - `cargo test --workspace`
-- `python3 scripts/release_artifacts.py verify-version --manifest release/publish-artifacts.toml --workspace-toml Cargo.toml --version <X.Y.Z>`
 - `python3 -c "import pathlib, yaml; yaml.safe_load(pathlib.Path('.github/workflows/release.yml').read_text())"`
 - `python3 - <<'PY'
 import pathlib
 import tomllib
 
 tomllib.loads(pathlib.Path('release/publish-artifacts.toml').read_text())
+PY`
+- `python3 - <<'PY'
+import pathlib
+import tomllib
+
+data = tomllib.loads(pathlib.Path('release/publish-artifacts.toml').read_text())
+packages = data.get('python_packages', [])
+distributions = data.get('python_distributions', [])
+
+assert any(
+    entry.get('package') == 'sc-compose'
+    and entry.get('manifest') == 'bindings/python/pyproject.toml'
+    and entry.get('module') == 'sc_compose'
+    and entry.get('publish') == 'pypi'
+    for entry in packages
+), 'missing or invalid [[python_packages]] entry for sc-compose'
+
+assert any(
+    entry.get('name') == 'sc-compose'
+    and entry.get('source') == 'bindings/python'
+    and entry.get('sdist') is True
+    and entry.get('wheels') == ['ubuntu-latest', 'macos-latest', 'windows-latest']
+    for entry in distributions
+), 'missing or invalid [[python_distributions]] entry for sc-compose'
 PY`
 - `gh workflow view Release --yaml >/dev/null`
 
@@ -176,13 +203,14 @@ Validation-to-AC mapping:
 - `cargo test --workspace`
   - verifies `AC1` through `AC6` do not regress the workspace after the Python
     release-train wiring lands
-- `python3 scripts/release_artifacts.py verify-version ...`
-  - verifies `AC3` against the updated release artifact manifest contract
 - `python3 -c "import pathlib, yaml; ..."`
   - verifies `AC1`, `AC2`, and `AC6` by ensuring the edited workflow YAML still
     parses
 - `python3 - <<'PY' ...`
-  - verifies `AC3` by ensuring the manifest remains valid TOML
+  - verifies the base TOML syntax needed for `AC3`
+- the second `python3 - <<'PY' ...`
+  - verifies `AC3` by asserting the concrete `[[python_packages]]` and
+    `[[python_distributions]]` entries exist with the expected keys and values
 - `gh workflow view Release --yaml >/dev/null`
   - verifies the named workflow remains addressable as `Release`, which is the
     workflow C4 edits directly
