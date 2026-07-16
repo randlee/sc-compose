@@ -33,11 +33,13 @@ production-ready Rust and Python code, not a design-only artifact.
 ## Exact Targets
 
 - `crates/sc-composer/src/renderer.rs`
-- `crates/sc-composer/src/lib.rs`
+- `crates/sc-composer/src/validation.rs`
 - `bindings/python/src/lib.rs`
 - `bindings/python/python/sc_compose/__init__.py`
 - `bindings/python/python/sc_compose/_native.pyi`
 - `bindings/python/tests/test_smoke.py`
+- `docs/architecture.md`
+- `Cargo.toml`
 - `docs/phase-C/sprint-c-2-python-api-surface.md`
 
 ## Renderer Seam Decision
@@ -59,10 +61,12 @@ The only committed seam is:
 impl Renderer {
     /// Create a renderer with non-default block/variable delimiters.
     ///
-    /// # Errors
+    /// # Panics
     ///
-    /// Returns [`RenderError`] if `open` or `close` are not valid delimiter
-    /// tokens accepted by the underlying template engine.
+    /// Panics if `open` or `close` are not valid delimiter tokens accepted
+    /// by the underlying template engine. This narrow internal seam is
+    /// infallible-by-signature and does not surface a `RenderError`; callers
+    /// must pass validated delimiter tokens.
     #[must_use]
     pub fn with_delimiters(open: &str, close: &str) -> Self {
         Self::with_options(|env| {
@@ -78,7 +82,14 @@ impl Renderer {
 ```
 
 `with_options` itself stays `pub(crate)`. `with_delimiters` is the only public
-customization entry point.
+customization entry point. Unlike the rest of this sprint's public
+constructors, `with_delimiters` does not raise `ScValidationError` or
+`ScConfigError` on malformed delimiter tokens — invalid tokens currently
+panic. This is an accepted narrow exception to the
+"constructors validate and raise ... rather than accepting malformed values
+silently" contract stated in
+[Wrapper Class Code Samples](#wrapper-class-code-samples), scoped to this one
+internal engine-configuration seam.
 
 ## Deliverables
 
@@ -88,7 +99,7 @@ C.2 commits exactly these deliverables:
   - wrap the remaining full non-reporting callable surface from Python:
     `compose`, `validate`, `resolve_template_path`, `resolve_profile`,
     `render_template`, `render_loaded_template`, `parse_template_document`,
-    `expand_includes`, `validate_file`, `frontmatter_init`, `init_workspace`,
+    `expand_includes`, `frontmatter_init`, `init_workspace`,
     `validate_input_value`, `input_value_from_yaml`, `to_forward_slash`, and
     `BUILTIN_VARIABLE_NAMES`
 - `D2`
@@ -100,6 +111,12 @@ C.2 commits exactly these deliverables:
     `ResolveResult`, `RuntimeKind`, `ProfileKind`, `UnknownVariablePolicy`,
     `VariableSource`, `DiagnosticSeverity`, `DiagnosticCode`
 - `D3`
+  - add `features = ["custom_syntax"]` to the workspace-level `minijinja`
+    dependency declaration in the root `Cargo.toml` — the workspace wires
+    third-party crate features directly at `[workspace.dependencies]` rather
+    than through per-crate `[features]` tables, and
+    `minijinja::syntax::SyntaxConfig` is gated behind minijinja's
+    `custom_syntax` feature, which is not currently enabled
   - add `Renderer::with_delimiters(open: &str, close: &str) -> Self` to
     `sc-composer`'s public API per [Renderer Seam Decision](#renderer-seam-decision)
     and wrap the reusable `Renderer` class for Python, including constructor,
@@ -112,8 +129,15 @@ C.2 commits exactly these deliverables:
     exists
 - `D5`
   - make token discovery callable from Python by changing `discover_tokens`
-    from `pub(crate)` to public in `crates/sc-composer/src/lib.rs` and
+    from `pub(crate)` to public in `crates/sc-composer/src/validation.rs` and
     exposing a Python wrapper for variable discovery workflows
+- `D6`
+  - update `docs/architecture.md` so the normative architecture baseline does
+    not drift from the newly shipped `sc-composer` public surface: add
+    `Renderer::with_delimiters(open: &str, close: &str) -> Self` to the
+    Public API Shape section (§8) and its `Renderer` entry in the API
+    Ownership Matrix (§8.1), and document `discover_tokens` as a public
+    `validation` module function in the Module Architecture section (§4)
 
 Every other Python-binding concern is out of scope for C.2 unless it is
 explicitly named in this deliverables list. This list is the single
@@ -166,6 +190,87 @@ All four constructors validate their input and raise `ScValidationError` or
 `ScConfigError` (per the exception hierarchy below) rather than accepting
 malformed values silently.
 
+### `ResolverPolicy`
+
+[docs/architecture.md §20](../architecture.md#20-extensibility) marks
+`ResolverPolicy` as an intentionally open, extensible Rust type on the
+Rust-native surface (`custom resolver policies` is a named extension point).
+That open-extensibility promise does **not** extend across the Python
+boundary in v1. `ResolverPolicy` is opaque and read-only from Python for
+C.2: it is returned embedded in `ComposePolicy` (via `compose`/`validate`
+request round-trips) but Python code cannot construct a custom
+`ResolverPolicy` or subclass/extend its resolution behavior.
+
+```python
+class ResolverPolicy:
+    """Opaque, read-only in v1. No public constructor and no field access
+    beyond `__repr__`. Python callers select policy behavior only through
+    the enums and options already exposed on `ComposePolicy`."""
+```
+
+Python-side construction of custom resolver policies (mirroring the Rust
+extensibility point) is explicitly deferred to a later sprint and is not a
+C.2 deliverable.
+
+### Remaining D2 Wrapper Types (Signature Table)
+
+The following D2 types are read-only data/result pyclasses (no custom
+methods beyond field access and `__repr__`), mirrored field-for-field from
+their Rust definitions. `X | None` denotes an optional field.
+
+| Python type | Field | Python type |
+| --- | --- | --- |
+| `LoadedTemplateRequest` | `template_name` | `str` |
+| | `template_text` | `str` |
+| | `context` | `dict` |
+| `NamedTemplateAsset` | `template_name` | `str` |
+| | `template_text` | `str` |
+| `RenderedArtifact` | `rendered` | `str` |
+| | `template_name` | `str` |
+| `ExpandedTemplate` | `text` | `str` |
+| | `resolved_files` | `list[str]` |
+| | `frontmatters` | `list[tuple[str, Frontmatter \| None]]` |
+| | `include_chains` | `dict[str, list[str]]` |
+| `FrontmatterInitResult` | `target_path` | `str` |
+| | `frontmatter_text` | `str` |
+| | `discovered_variables` | `list[VariableName]` |
+| | `changed` | `bool` |
+| | `would_change` | `bool` |
+| `InitResult` | `prompts_dir` | `str` |
+| | `gitignore_updated` | `bool` |
+| | `scanned_templates` | `list[str]` |
+| | `recommendations` | `list[Diagnostic]` |
+| | `validation_passed` | `bool` |
+| `ValidationReport` | `ok` | `bool` |
+| | `warnings` | `list[Diagnostic]` |
+| | `errors` | `list[Diagnostic]` |
+| | `resolve_result` | `ResolveResult` |
+| `Diagnostic` | `severity` | `DiagnosticSeverity` |
+| | `code` | `DiagnosticCode` |
+| | `message` | `str` |
+| | `path` | `str \| None` |
+| | `line` | `int \| None` |
+| | `column` | `int \| None` |
+| | `include_chain` | `list[str]` |
+| `ResolveResult` | `resolved_path` | `str` |
+| | `attempted_paths` | `list[str]` |
+| | `ambiguity_candidates` | `list[str]` |
+
+Plain enums (member names are `UPPER_SNAKE_CASE` in Python, values are the
+lowercase/snake_case Rust `serde` wire form):
+
+| Python type | Members |
+| --- | --- |
+| `RuntimeKind` | `CLAUDE`, `CODEX`, `GEMINI`, `OPENCODE` |
+| `ProfileKind` | `AGENT`, `COMMAND`, `SKILL` |
+| `UnknownVariablePolicy` | `ERROR`, `WARN`, `IGNORE` (default `IGNORE`) |
+| `VariableSource` | `EXPLICIT_INPUT`, `ENVIRONMENT`, `BUILTIN`, `TEMPLATE_INPUT_DEFAULT`, `FRONTMATTER_DEFAULT`, `INCLUDED_DEFAULT` |
+| `DiagnosticSeverity` | `ERROR`, `WARNING`, `INFO` |
+
+These types carry no separate acceptance criterion beyond `AC2` ("every D2
+type, enum, and constant is exposed from `sc_compose` and used by at least
+one D1 callable's signature"), which already covers them.
+
 ## Exception Hierarchy Contract
 
 Every exception in the public surface exposes:
@@ -187,6 +292,22 @@ class ScConfigError(ScComposeError): ...
   and a stable string identifier otherwise.
 - each subclass maps to exactly one Rust error family; no Rust error variant
   maps to more than one Python exception class.
+
+### `DiagnosticCode` / Exception `.code` Relationship
+
+`DiagnosticCode` (D2) and each exception's `.code` (D4) refer to the same
+underlying value space: the stable code registry in
+[docs/architecture.md §18.1](../architecture.md#181-failure-mode-matrix)
+(`ERR_RESOLVE_NOT_FOUND`, `ERR_VAL_MISSING_REQUIRED`, `ERR_CONFIG_PARSE`,
+etc.). `DiagnosticCode` is exposed as a Python `StrEnum` (or plain `str`
+alias, implementer's choice, but not a distinct opaque wrapper class) whose
+member values are exactly equal to the `.code` strings raised by the
+corresponding exception. No conversion step exists or is needed between a
+`Diagnostic.code` value and an `ScComposeError` subclass's `.code` value for
+the same underlying failure — they are the same string. `AC2` and `AC4`
+jointly assert this: `AC2` requires `DiagnosticCode` values to round-trip
+through `Diagnostic.code`, and `AC4` requires exception `.code` values to be
+drawn from the same `DiagnosticCode` value space.
 
 ## Python Import Surface
 
@@ -231,7 +352,6 @@ from ._native import (
     compose,
     compose_file,
     validate,
-    validate_file,
     resolve_template_path,
     resolve_profile,
     render_template,
@@ -330,6 +450,13 @@ This sprint does not include:
     by at least one D1 callable's signature
   - `FrontmatterInitResult` and `InitResult` are pyclasses returned by
     `frontmatter_init` and `init_workspace` respectively
+  - `DiagnosticCode` member values are exactly the stable code strings from
+    [docs/architecture.md §18.1](../architecture.md#181-failure-mode-matrix)
+    and round-trip through `Diagnostic.code` per
+    [DiagnosticCode / Exception `.code` Relationship](#diagnosticcode--exception-code-relationship)
+  - `ResolverPolicy` is opaque and read-only from Python per
+    [`ResolverPolicy`](#resolverpolicy): no public constructor, no
+    Python-side extension of resolution behavior
 - `AC3` for `D3`
   - `sc-composer` exposes `Renderer::with_delimiters(open: &str, close: &str) -> Self`
     as its only public renderer-customization seam
@@ -343,10 +470,20 @@ This sprint does not include:
   - every exception exposes `.message` (always a non-empty string) and
     `.code` (`None` or a stable string) per
     [Exception Hierarchy Contract](#exception-hierarchy-contract)
+  - every non-`None` exception `.code` value is drawn from the same
+    `DiagnosticCode` value space per
+    [DiagnosticCode / Exception `.code` Relationship](#diagnosticcode--exception-code-relationship)
 - `AC5` for `D5`
   - Python can call token discovery without invoking the full validation
     pipeline
-- `AC6` scope guard
+- `AC6` for `D6`
+  - `docs/architecture.md` §8 (Public API Shape) lists
+    `Renderer::with_delimiters(open: &str, close: &str) -> Self`
+  - `docs/architecture.md` §8.1 (API Ownership Matrix) reflects the
+    `Renderer` row's expanded seam
+  - `docs/architecture.md` §4 (Module Architecture) documents
+    `discover_tokens` as a public `validation` module function
+- `AC7` scope guard
   - C.2 makes no changes to `.github/workflows/release.yml`,
     `release/publish-artifacts.toml`, `docs/publishing.md`, or
     `docs/publishing-agent.md`
@@ -357,6 +494,10 @@ This sprint does not include:
 
 When C.2 is implemented, the owning agent must run:
 
+- `cargo build -p sc-composer` to prove the workspace-enabled
+  `minijinja` `custom_syntax` feature compiles and
+  `Renderer::with_delimiters` builds against
+  `minijinja::syntax::SyntaxConfig`
 - `cargo fmt --all --check`
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo test --workspace`

@@ -62,8 +62,6 @@ This sprint plans work against these future implementation targets:
 - `bindings/python/tests/test_smoke.py`
 - `.github/workflows/ci.yml`
 - `docs/architecture.md`
-- `docs/project-plan.md`
-- `CLAUDE.md`
 - `scripts/release_artifacts.py`
 - `docs/phase-C/sprint-c-1-maturin-bindings.md`
 
@@ -117,8 +115,12 @@ C.1 commits exactly these deliverables:
 - `D7`
   - amend `docs/architecture.md` so the repo documents `bindings/python` as a
     third, Python-facing adapter package that depends on `sc-composer` only
-  - update `CLAUDE.md` and `docs/project-plan.md` so the repo-wide boundary
-    rules name `bindings/python` and its allowed and forbidden dependency edges
+  - `CLAUDE.md` (Boundary Rules) and `docs/project-plan.md` (Release Rules)
+    already name `bindings/python` and its allowed/forbidden dependency edges
+    in this worktree; `docs/architecture.md` is the only target that remains
+    open for D7, and C.1 must not re-edit `CLAUDE.md` or
+    `docs/project-plan.md` for this deliverable unless a review finds their
+    existing language insufficient
 
 Every other Python-binding concern is out of scope for C.1 unless it is
 explicitly named in this deliverables list.
@@ -444,9 +446,9 @@ C.1 explicitly defers the remaining v1 API surface to
 [Sprint C.2 — Python API Surface](./sprint-c-2-python-api-surface.md):
 
 - the remaining non-reporting callable surface: `compose`, `validate`,
-  `resolve_template_path`, `resolve_profile`, `render_template`,
-  `render_loaded_template`, `parse_template_document`, `expand_includes`,
-  `validate_file`, `frontmatter_init`, `init_workspace`,
+  `validate_with_observer`, `resolve_template_path`, `resolve_profile`,
+  `render_template`, `render_loaded_template`, `parse_template_document`,
+  `expand_includes`, `frontmatter_init`, `init_workspace`,
   `validate_input_value`, `input_value_from_yaml`, `to_forward_slash`, and
   `BUILTIN_VARIABLE_NAMES`
 - the full wrapper type, enum, and constant surface required to support that
@@ -512,10 +514,14 @@ The first implementation sprint closes only when all of the following are true:
   - typed package markers ship with the built wheel
 - `AC7` for `D7`
   - `docs/architecture.md` documents `bindings/python` as a third,
-    Python-facing adapter package that depends on `sc-composer` only
-  - `CLAUDE.md` and `docs/project-plan.md` name `bindings/python` in the same
-    boundary rule set and forbid `bindings/python` dependency edges back into
-    `sc-compose`, `sc-observability`, or ATM-specific crates
+    Python-facing adapter package that depends on `sc-composer` only — this is
+    the single unambiguous diff QA checks for D7/AC7
+  - `CLAUDE.md` (Boundary Rules) and `docs/project-plan.md` (Release Rules)
+    already name `bindings/python` in a boundary rule set and forbid
+    `bindings/python` dependency edges back into `sc-compose`,
+    `sc-observability`, or ATM-specific crates as of the start of C.1; these
+    two files are not open targets for D7 unless a review finds their
+    existing language insufficient
 - `AC8` scope guard
   - C.1 makes no changes to `.github/workflows/release.yml`,
     `release/publish-artifacts.toml`, `docs/publishing.md`, or
