@@ -16,7 +16,7 @@
   notation matching the phase letter's own case: `X.#` (e.g. `C.2`).
 - Sprint doc filenames and worktree names use lowercase kebab syntax:
   `sprint-x-#-<description>.md` (e.g.
-  `docs/phase-C/sprint-c-2-python-release-train.md`) — lowercase phase
+  `docs/phase-C/sprint-c-3-python-release-train.md`) — lowercase phase
   letter, dash-separated from the sprint number, dash-separated from a short
   kebab-case description.
 - Sprint numbers are contiguous within a phase, starting at 1, with no gaps.

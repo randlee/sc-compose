@@ -1,30 +1,33 @@
 ---
-id: C.2
+id: C.3
 title: Python Release Train And Packaging Hardening
 status: planned
-branch: plan/maturin-bindings-implementation-plan
-worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/maturin-bindings-implementation-plan
+branch: sprint/c-3-python-release-train
+worktree: ../sc-compose-worktrees/sprint/c-3-python-release-train
 ---
 
-# Sprint C.2 — Python Release Train And Packaging Hardening
+# Sprint C.3 — Python Release Train And Packaging Hardening
 
 ## Goal
 
 Extend the main `sc-compose` release train so the Python adapter ships as a
-first-class release channel after the adapter surface and cross-platform wheel
-builds already exist.
+first-class release channel after the adapter surface, the full Python API
+surface, and cross-platform wheel builds already exist.
 
-This sprint is intentionally separate from C.1 because it depends on live
-release credentials and release-pipeline ownership that are not required to
-prove the binding scaffold itself.
+This sprint is intentionally separate from C.1 and C.2 because it depends on
+live release credentials and release-pipeline ownership that are not required
+to prove the binding scaffold or wrapper surface themselves.
 
-This is a planning sprint. It does not produce executable Python release
-artifacts on its own; it defines the production-ready release wiring, gates,
-and operator requirements that a later implementation change must satisfy.
+This sprint plans and wires the production-ready release path, but it edits
+the live `.github/workflows/release.yml` and is gated by the
+[Explicit Non-Closure](#explicit-non-closure) rule below rather than being
+non-executable: the workflow changes are real and CI-parseable, but the
+release path is not treated as closed for production until it has been
+exercised through a staged execution.
 
 ## Hard Dependencies
 
-- [docs/phase-C/sprint-C.1-maturin-bindings.md](./sprint-C.1-maturin-bindings.md)
+- [docs/phase-C/sprint-c-2-python-api-surface.md](./sprint-c-2-python-api-surface.md)
 - [docs/architecture.md](../architecture.md)
 - [docs/publishing.md](../publishing.md)
 - [docs/publishing-agent.md](../publishing-agent.md)
@@ -36,7 +39,7 @@ and operator requirements that a later implementation change must satisfy.
 - `scripts/release_artifacts.py`
 - `docs/publishing.md`
 - `docs/publishing-agent.md`
-- `docs/phase-C/sprint-c-2-python-release-train.md`
+- `docs/phase-C/sprint-c-3-python-release-train.md`
 
 ## Deliverables
 
@@ -165,7 +168,7 @@ The release workflow additions should follow this shape:
         run: maturin upload --non-interactive dist/*.whl dist/*.tar.gz
 ```
 
-This sample is normative for C.2 in six ways:
+This sample is normative for C.3 in six ways:
 
 - PyPI credentials enter the publish step only through
   `MATURIN_PYPI_TOKEN=${{ secrets.PYPI_API_TOKEN }}`
@@ -257,14 +260,14 @@ sdist = true
 wheels = ["ubuntu-latest", "macos-latest", "windows-latest"]
 ```
 
-For C.2 planning, these `[[python_packages]]` and `[[python_distributions]]`
+For C.3 planning, these `[[python_packages]]` and `[[python_distributions]]`
 entries are descriptive release-manifest records, not yet a live workflow
 input. Their authority comes from cross-check validation enforced by
 `scripts/release_artifacts.py validate-manifest` plus the explicit workflow
 assertions below, so the manifest and YAML cannot silently drift while the
 release workflow still uses direct YAML wiring.
 
-This sample is normative for C.2 in three ways:
+This sample is normative for C.3 in three ways:
 
 - the Python package entry is a first-class release artifact beside the
   existing crates and release binaries
@@ -310,7 +313,7 @@ Static YAML, TOML, and grep-style validation does not prove end-to-end Python
 release correctness. Until the planned workflow is exercised through a staged
 release, these acceptance criteria remain design-closed only.
 
-Before C.2 may be treated as closed for a real production release, one staged
+Before C.3 may be treated as closed for a real production release, one staged
 execution must pass on either TestPyPI or a `workflow_dispatch` rehearsal path
 that builds wheels, builds exactly one sdist, publishes to a non-production
 destination, and confirms the GitHub Release attachment set.
@@ -403,4 +406,4 @@ Validation-to-AC mapping:
     generation includes wheel files
 - `gh workflow view Release --yaml >/dev/null`
   - verifies the named workflow remains addressable as `Release`, which is the
-    workflow C.2 edits directly
+    workflow C.3 edits directly
