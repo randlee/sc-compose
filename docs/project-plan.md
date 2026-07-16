@@ -337,6 +337,23 @@ following are true:
 
 ## Follow-On Work
 
+### Phase C Sprint Plans
+
+Status:
+
+- planned follow-on Python bindings work after the shipped `1.1.x` line
+
+Sprint entries:
+
+- [Sprint C1 — Maturin Python Bindings Foundation](phase-C/sprint-C1-maturin-bindings.md)
+- [Phase C README](phase-C/README.md)
+- [Maturin Bindings Investigation](phase-C/maturin-bindings-investigation.md)
+
+These sprint plans define the first implementation path for a Python-facing
+adapter package that depends on `sc-composer` while keeping `sc-composer` a
+pure Rust library and keeping reporting plus observability APIs out of the
+initial Python scope.
+
 ### Phase B Cleanup Sprint Plans
 
 Status:
