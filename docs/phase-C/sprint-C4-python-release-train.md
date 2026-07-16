@@ -112,6 +112,43 @@ This sample is normative for C4 in four ways:
 - uploaded `dist/` artifacts are then consumed unchanged by the PyPI publish
   job
 
+## GitHub Release Attachment Sample
+
+The existing `release` job also needs an explicit update so wheel and sdist
+artifacts are present before the GitHub Release is created and are not dropped
+by the collection filter:
+
+```diff
+-  release:
+-    needs: [gate-and-tag, build, publish]
++  release:
++    needs: [gate-and-tag, build, publish, build-python-wheels, publish-pypi]
+     runs-on: ubuntu-latest
+     steps:
+       - uses: actions/checkout@v4
+         with:
+           ref: ${{ needs.gate-and-tag.outputs.release_tag }}
+
+       - name: Download all artifacts
+         uses: actions/download-artifact@v4
+         with:
+           path: artifacts
+
+       - name: Collect archives
+         run: |
+           mkdir -p release
+-          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} release/ \;
++          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' -o -name '*.whl' \) -exec mv {} release/ \;
+           ls -la release/
+```
+
+This sample is normative for `D6` in two ways:
+
+- the `release` job must wait on `build-python-wheels` and `publish-pypi`
+  before collecting artifacts and creating the GitHub Release
+- the collection filter must include `*.whl` so wheel files land in `release/`
+  beside the existing binary archives and the Python sdist `*.tar.gz`
+
 ## Release Artifact Manifest Sample
 
 The `release/publish-artifacts.toml` additions should follow this shape:
@@ -196,6 +233,16 @@ assert any(
     for entry in distributions
 ), 'missing or invalid [[python_distributions]] entry for sc-compose'
 PY`
+- `python3 - <<'PY'
+import pathlib
+
+text = pathlib.Path('.github/workflows/release.yml').read_text()
+
+assert 'needs: [gate-and-tag, build, publish, build-python-wheels, publish-pypi]' in text, \
+    'release job must depend on build-python-wheels and publish-pypi'
+assert \"-name '*.whl'\" in text, \
+    'release artifact collection must include *.whl files'
+PY`
 - `gh workflow view Release --yaml >/dev/null`
 
 Validation-to-AC mapping:
@@ -211,6 +258,9 @@ Validation-to-AC mapping:
 - the second `python3 - <<'PY' ...`
   - verifies `AC3` by asserting the concrete `[[python_packages]]` and
     `[[python_distributions]]` entries exist with the expected keys and values
+- the third `python3 - <<'PY' ...`
+  - verifies `AC6` by asserting the `release` job depends on the Python
+    artifact jobs and that the artifact-collection filter includes `*.whl`
 - `gh workflow view Release --yaml >/dev/null`
   - verifies the named workflow remains addressable as `Release`, which is the
     workflow C4 edits directly
