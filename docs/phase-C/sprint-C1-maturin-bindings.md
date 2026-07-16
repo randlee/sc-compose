@@ -55,12 +55,7 @@ This sprint plans work against these future implementation targets:
 - `bindings/python/src/lib.rs`
 - `bindings/python/tests/test_smoke.py`
 - `.github/workflows/ci.yml`
-- `.github/workflows/release.yml`
-- `release/publish-artifacts.toml`
 - `docs/architecture.md`
-- `docs/publishing.md`
-- `docs/publishing-agent.md`
-- `docs/phase-C/README.md`
 - `docs/phase-C/sprint-C1-maturin-bindings.md`
 
 ## Confirmed Scope
@@ -82,6 +77,39 @@ The adapter package does not own:
 - observability adapters
 - ATM integration
 - any semantic reimplementation of rendering or validation
+
+## Deliverables
+
+C1 commits exactly these deliverables:
+
+- `D1`
+  - add `bindings/python/` as a new in-repo adapter package with the mixed
+    Rust/Python layout defined below
+- `D2`
+  - add the new workspace member to root `Cargo.toml` without introducing PyO3
+    or Python packaging logic into `crates/sc-composer`
+- `D3`
+  - implement `bindings/python/Cargo.toml`, `bindings/python/pyproject.toml`,
+    `bindings/python/src/lib.rs`, and the typed Python package skeleton under
+    `bindings/python/python/sc_compose/`
+- `D4`
+  - wrap exactly three callable functions for the first implementation slice:
+    `render_template`, `render_loaded_template`, and `compose_file`
+- `D5`
+  - add the minimum Python-facing wrapper types and enums required to support
+    those three functions
+- `D6`
+  - add one CI job in `.github/workflows/ci.yml` that builds wheels and runs a
+    smoke test on macOS, Linux, and Windows using one pinned Python version
+- `D7`
+  - add one smoke test module at `bindings/python/tests/test_smoke.py` that
+    verifies import plus the three wrapped functions from installed wheels
+- `D8`
+  - amend `docs/architecture.md` so the repo documents `bindings/python` as a
+    third, Python-facing adapter package that depends on `sc-composer` only
+
+Every other Python-binding concern is out of scope for C1 unless it is
+explicitly named in this deliverables list.
 
 ## Structural Shape
 
@@ -122,8 +150,8 @@ The Rust workspace remains the semantic source of truth:
 - path dependency on `sc-composer = { path = "../../crates/sc-composer", version = "1.1.0" }`
 - `pyo3 = "0.29"` as the Python binding layer
 - `serde_json = "1"` for value conversion
-- optionally `pythonize` only if direct serde-to-Python conversion materially
-  simplifies wrapper code after implementation review
+- `pythonize` is explicitly out of scope for C1 and must not be introduced in
+  this sprint
 
 The sprint should start without `abi3`.
 
@@ -148,7 +176,7 @@ configuration and keep the crate testable in a Cargo workspace.
 - `[project]`
   - `name = "sc-compose"`
   - `version` sourced from the workspace during release sync
-  - Python compatibility floor for the package
+  - `requires-python = ">=3.11"`
   - README, license, repository, and classifiers
 - `[tool.maturin]`
   - `python-source = "python"`
@@ -235,33 +263,12 @@ Phase B reporting types and observability types are explicitly excluded.
 
 C1 does not deliver the entire v1 surface in one pass.
 
-C1 delivers:
-
-- adapter package scaffold under `bindings/python/`
-- workspace membership wired in root `Cargo.toml`
-- `pyproject.toml` configured for maturin mixed-project layout
-- typed Python package skeleton under `bindings/python/python/sc_compose/`
-- first three wrapped functions:
-  - `render_template`
-  - `render_loaded_template`
-  - `compose_file`
-- first required wrapper types:
-  - `LoadedTemplateRequest`
-  - `RenderedArtifact`
-  - `ComposePolicy`
-  - `ComposeRequest`
-  - `ComposeResult`
-  - `RuntimeKind`
-  - `ProfileKind`
-  - `UnknownVariablePolicy`
-- one smoke test that imports `sc_compose` and exercises:
-  - inline template rendering
-  - preloaded template rendering
-  - file-mode composition from a temporary repo-like tree
-- wheel builds on macOS, Linux, and Windows in CI
-
 C1 explicitly defers:
 
+- all `release.yml` Python release-train work
+- PyPI publish credentials and publish automation
+- `release/publish-artifacts.toml` amendments
+- `docs/publishing.md` and `docs/publishing-agent.md` amendments
 - `validate_file`
 - `resolve_profile`
 - `frontmatter_init`
@@ -269,6 +276,8 @@ C1 explicitly defers:
 - richer exception hierarchy
 - Python-specific convenience helpers beyond the minimum needed to make the
   wrapped APIs usable
+
+Those deferred items move to [Sprint C4 — Python Release Train And Packaging Hardening](./sprint-C4-python-release-train.md).
 
 ## Concrete Wrapper Rules
 
@@ -287,6 +296,56 @@ The wrapper layer should follow these mapping rules:
 
 The wrapper should not expose observer hooks, logger sinks, or any `sc-compose`
 CLI-only concepts.
+
+## Rust FFI Boundary Sample
+
+The binding crate should follow this boundary pattern:
+
+```rust
+use pyo3::exceptions::PyException;
+use pyo3::prelude::*;
+use pyo3::create_exception;
+use sc_composer::{ComposeError, ComposeRequest, ComposeResult};
+
+create_exception!(sc_compose, ScComposeError, PyException);
+
+#[pyclass]
+#[derive(Clone)]
+pub struct PyComposeResult {
+    #[pyo3(get)]
+    pub rendered_text: String,
+}
+
+#[pyfunction]
+fn compose_file(request: PyComposeRequest) -> PyResult<PyComposeResult> {
+    let request: ComposeRequest = request.try_into()?;
+    let result: ComposeResult = sc_composer::compose(&request).map_err(compose_error_to_pyerr)?;
+    Ok(PyComposeResult {
+        rendered_text: result.rendered_text,
+    })
+}
+
+#[pymodule]
+#[pyo3(name = "_native")]
+fn native(py: Python<'_>, module: &Bound<'_, PyModule>) -> PyResult<()> {
+    module.add("ScComposeError", py.get_type::<ScComposeError>())?;
+    module.add_class::<PyComposeResult>()?;
+    module.add_function(wrap_pyfunction!(compose_file, module)?)?;
+    Ok(())
+}
+
+fn compose_error_to_pyerr(error: ComposeError) -> PyErr {
+    let message = error.to_string();
+    ScComposeError::new_err(message)
+}
+```
+
+This sample is normative for C1 in three ways:
+
+- `#[pymodule]` owns the private `_native` module only
+- wrapped functions return `PyResult<_>`
+- Rust composition errors are converted in one dedicated helper rather than
+  ad hoc at each call site
 
 ## Concrete File Breakdown
 
@@ -365,8 +424,7 @@ Recommended job shape:
 - job name: `python-wheels`
 - matrix axes:
   - `os`: `ubuntu-latest`, `macos-latest`, `windows-latest`
-  - `python-version`: one stable floor version for C1 smoke, not a full
-    interpreter matrix yet
+  - `python-version`: `"3.11"`
 - key steps:
   - checkout
   - setup Python
@@ -382,73 +440,6 @@ Why one Python version in C1:
 - multi-interpreter support can expand after the adapter surface exists
 - the release train already spans multiple OS targets, which is the larger
   initial risk
-
-## Release Workflow Additions
-
-Implementation should extend the main release train in
-`.github/workflows/release.yml` with Python packaging steps.
-
-Required additions:
-
-- new build job: `build-python-wheels`
-  - runs after `gate-and-tag`
-  - builds wheels for:
-    - `ubuntu-latest`
-    - `macos-latest`
-    - `windows-latest`
-  - uploads wheel artifacts
-- new build step for source distribution:
-  - either inside `build-python-wheels` or a dedicated `build-python-sdist` job
-  - produces one sdist artifact from `bindings/python/`
-- new publish job: `publish-pypi`
-  - runs after wheel and sdist artifacts exist
-  - downloads those artifacts
-  - publishes with maturin
-- release job update:
-  - attach wheels and sdist to the GitHub Release alongside existing archives
-
-Recommended publish command:
-
-```bash
-maturin upload --non-interactive dist/*
-```
-
-with:
-
-- `MATURIN_PYPI_TOKEN=${{ secrets.PYPI_API_TOKEN }}`
-- `MATURIN_NON_INTERACTIVE=1`
-
-This keeps PyPI publication aligned with the existing release workflow pattern,
-which already publishes from workflow-managed credentials.
-
-## Required New Secret
-
-Document one new required secret only:
-
-- `PYPI_API_TOKEN`
-  - used to populate `MATURIN_PYPI_TOKEN` during `publish-pypi`
-
-No secret values are created or checked into the repo as part of this plan.
-
-## Release Metadata Changes
-
-Implementation should also update:
-
-- `release/publish-artifacts.toml`
-  - add a Python artifact section or equivalent source-of-truth entry for:
-    - wheel artifacts
-    - source distribution
-- `docs/publishing.md`
-  - add PyPI verification steps
-- `docs/publishing-agent.md`
-  - add the new required secret and PyPI verification rules
-
-The release docs should treat PyPI as a first-class release channel alongside:
-
-- crates.io
-- GitHub Releases
-- Homebrew
-- `winget`
 
 ## Architecture Amendment Required
 
@@ -475,6 +466,20 @@ Forbidden dependency additions remain:
 - `bindings/python` -> `sc-compose`
 - `bindings/python` -> ATM-specific crates
 
+## Out Of Scope
+
+C1 must not modify:
+
+- `.github/workflows/release.yml`
+- `release/publish-artifacts.toml`
+- `docs/publishing.md`
+- `docs/publishing-agent.md`
+- PyPI credential wiring or secrets handling
+- GitHub Release attachment logic for wheels or sdists
+
+Those release-train items are deferred intact to
+[Sprint C4 — Python Release Train And Packaging Hardening](./sprint-C4-python-release-train.md).
+
 ## Explicit Non-Goals
 
 This sprint does not include:
@@ -494,20 +499,48 @@ This sprint does not include:
 
 The first implementation sprint closes only when all of the following are true:
 
-- `bindings/python/` exists with the planned mixed Rust/Python layout
-- root `Cargo.toml` includes the new workspace member
-- `pyproject.toml` builds through maturin
-- `import sc_compose` succeeds from an installed wheel on macOS, Linux, and
-  Windows
-- `render_template`, `render_loaded_template`, and `compose_file` are callable
-  from Python
-- typed package markers ship with the wheel
-- one CI job builds and smoke-tests wheels on all three operating systems
-- release workflow can build wheel artifacts and an sdist without changing the
-  existing Rust crate publish order
-- no PyO3 dependency or Python packaging logic enters `crates/sc-composer`
-- no `sc-compose` CLI types or observability paths leak into the Python public
-  API
+- `AC1` for `D1`
+  - `bindings/python/` exists with the planned mixed Rust/Python layout
+- `AC2` for `D2`
+  - root `Cargo.toml` includes the new workspace member
+  - no PyO3 dependency or Python packaging logic enters `crates/sc-composer`
+- `AC3` for `D3`
+  - `bindings/python/Cargo.toml`, `bindings/python/pyproject.toml`, and the
+    typed Python package skeleton exist
+  - `pyproject.toml` sets `requires-python = ">=3.11"`
+- `AC4` for `D4`
+  - `render_template`, `render_loaded_template`, and `compose_file` are
+    callable from Python
+- `AC5` for `D5`
+  - the minimum wrapper types and enums required by the three wrapped
+    functions are exposed from `sc_compose`
+  - no `sc-compose` CLI types or observability paths leak into the Python
+    public API
+- `AC6` for `D6`
+  - one CI job named `python-wheels` builds and smoke-tests wheels on macOS,
+    Linux, and Windows using `python-version: "3.11"`
+- `AC7` for `D7`
+  - `import sc_compose` succeeds from an installed wheel on all three OS jobs
+  - the smoke suite exercises inline render, loaded-template render, and
+    file-mode composition
+  - typed package markers ship with the built wheel
+- `AC8` for `D8`
+  - `docs/architecture.md` documents `bindings/python` as a third,
+    Python-facing adapter package that depends on `sc-composer` only
+- `AC9` scope guard
+  - C1 makes no changes to `.github/workflows/release.yml`,
+    `release/publish-artifacts.toml`, `docs/publishing.md`, or
+    `docs/publishing-agent.md`
+
+## Follow-On Sprint C4
+
+Sprint C4 owns the release-train and PyPI publication slice deferred out of C1:
+
+- `.github/workflows/release.yml` Python jobs
+- `release/publish-artifacts.toml` Python artifact metadata
+- `docs/publishing.md` and `docs/publishing-agent.md` PyPI channel updates
+- new `PYPI_API_TOKEN` release secret requirements
+- GitHub Release wheel and sdist attachment behavior
 
 ## Required Validation
 
@@ -534,5 +567,9 @@ This sprint leaves these concrete next slices for later Phase C work:
   - add `init_workspace`
   - add richer exception typing and user-facing docs
 - C4
+  - add release-train wheel, sdist, and PyPI publication automation
+  - update `release/publish-artifacts.toml`
+  - update `docs/publishing.md` and `docs/publishing-agent.md`
+  - document the new `PYPI_API_TOKEN` secret
   - expand interpreter matrix
   - evaluate `abi3` or `abi3t` only after the base adapter is stable

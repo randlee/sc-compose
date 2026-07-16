@@ -346,6 +346,7 @@ Status:
 Sprint entries:
 
 - [Sprint C1 — Maturin Python Bindings Foundation](phase-C/sprint-C1-maturin-bindings.md)
+- [Sprint C4 — Python Release Train And Packaging Hardening](phase-C/sprint-C4-python-release-train.md)
 - [Phase C README](phase-C/README.md)
 - [Maturin Bindings Investigation](phase-C/maturin-bindings-investigation.md)
 
