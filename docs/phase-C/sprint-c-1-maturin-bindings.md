@@ -121,6 +121,10 @@ C.1 commits exactly these deliverables:
     open for D7, and C.1 must not re-edit `CLAUDE.md` or
     `docs/project-plan.md` for this deliverable unless a review finds their
     existing language insufficient
+  - while amending the body, also update the doc's header line ("Product:
+    `sc-composer` (library) and `sc-compose` (CLI)") to include
+    `bindings/python`, so the header stays in sync with the body it
+    introduces
 
 Every other Python-binding concern is out of scope for C.1 unless it is
 explicitly named in this deliverables list.
