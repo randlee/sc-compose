@@ -1,12 +1,12 @@
 ---
-id: C1
+id: C.1
 title: Maturin Python Bindings Foundation
 status: planned
 branch: plan/maturin-bindings-implementation-plan
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/maturin-bindings-implementation-plan
 ---
 
-# Sprint C1 — Maturin Python Bindings Foundation
+# Sprint C.1 — Maturin Python Bindings Foundation
 
 ## Goal
 
@@ -62,7 +62,7 @@ This sprint plans work against these future implementation targets:
 - `docs/project-plan.md`
 - `CLAUDE.md`
 - `scripts/release_artifacts.py`
-- `docs/phase-C/sprint-C1-maturin-bindings.md`
+- `docs/phase-C/sprint-C.1-maturin-bindings.md`
 
 ## Confirmed Scope
 
@@ -86,7 +86,7 @@ The adapter package does not own:
 
 ## Deliverables
 
-C1 commits exactly these deliverables:
+C.1 commits exactly these deliverables:
 
 - `D1`
   - add `bindings/python/` as a new in-repo adapter package with the mixed
@@ -116,7 +116,7 @@ C1 commits exactly these deliverables:
   - update `CLAUDE.md` and `docs/project-plan.md` so the repo-wide boundary
     rules name `bindings/python` and its allowed and forbidden dependency edges
 
-Every other Python-binding concern is out of scope for C1 unless it is
+Every other Python-binding concern is out of scope for C.1 unless it is
 explicitly named in this deliverables list.
 
 ## Structural Shape
@@ -158,7 +158,7 @@ The Rust workspace remains the semantic source of truth:
 - path dependency on `sc-composer = { path = "../../crates/sc-composer", version = "1.1.0" }`
 - `pyo3 = "0.29"` as the Python binding layer
 - `serde_json = "1"` for value conversion
-- `pythonize` is explicitly out of scope for C1 and must not be introduced in
+- `pythonize` is explicitly out of scope for C.1 and must not be introduced in
   this sprint
 
 The sprint should start without `abi3`.
@@ -281,14 +281,14 @@ required to support those functions:
 
 Phase B reporting types and observability types are explicitly excluded.
 
-## C1 Implementation Slice
+## C.1 Implementation Slice
 
-C1 does not deliver the entire v1 surface in one pass.
+C.1 does not deliver the entire v1 surface in one pass.
 
-## Deferred To C2
+## Deferred To C.2
 
-C1 explicitly defers these release-train items to
-[Sprint C-2 — Python Release Train And Packaging Hardening](./sprint-C-2-python-release-train.md):
+C.1 explicitly defers these release-train items to
+[Sprint C-2 — Python Release Train And Packaging Hardening](./sprint-c-2-python-release-train.md):
 
 - all `release.yml` Python release-train work
 - PyPI publish credentials and publish automation
@@ -296,7 +296,7 @@ C1 explicitly defers these release-train items to
 - `docs/publishing.md` and `docs/publishing-agent.md` amendments
 - GitHub Release wheel and sdist attachment behavior
 
-C1 separately defers these non-release implementation items:
+C.1 separately defers these non-release implementation items:
 
 - `validate_file`
 - `resolve_profile`
@@ -367,7 +367,7 @@ fn compose_error_to_pyerr(error: ComposeError) -> PyErr {
 }
 ```
 
-This sample is normative for C1 in three ways:
+This sample is normative for C.1 in three ways:
 
 - `#[pymodule]` owns the private `_native` module only
 - wrapped functions return `PyResult<_>`
@@ -463,9 +463,9 @@ Recommended job shape:
   - install the produced wheel
   - run `pytest bindings/python/tests/test_smoke.py`
 
-Why one Python version in C1:
+Why one Python version in C.1:
 
-- C1 is proving platform portability and packaging shape first
+- C.1 is proving platform portability and packaging shape first
 - multi-interpreter support can expand after the adapter surface exists
 - the release train already spans multiple OS targets, which is the larger
   initial risk
@@ -498,7 +498,7 @@ Forbidden dependency additions remain:
 
 ## Out Of Scope
 
-C1 must not modify:
+C.1 must not modify:
 
 - `.github/workflows/release.yml`
 - `release/publish-artifacts.toml`
@@ -508,8 +508,8 @@ C1 must not modify:
 - GitHub Release attachment logic for wheels or sdists
 
 Those release-train items are deferred intact to
-[Sprint C-2 — Python Release Train And Packaging Hardening](./sprint-C-2-python-release-train.md); see the canonical
-[Deferred To C2](#deferred-to-c2) list above.
+[Sprint C-2 — Python Release Train And Packaging Hardening](./sprint-c-2-python-release-train.md); see the canonical
+[Deferred To C.2](#deferred-to-c2) list above.
 
 ## Explicit Non-Goals
 
@@ -562,13 +562,13 @@ The first implementation sprint closes only when all of the following are true:
     boundary rule set and forbid `bindings/python` dependency edges back into
     `sc-compose`, `sc-observability`, or ATM-specific crates
 - `AC9` scope guard
-  - C1 makes no changes to `.github/workflows/release.yml`,
+  - C.1 makes no changes to `.github/workflows/release.yml`,
     `release/publish-artifacts.toml`, `docs/publishing.md`, or
     `docs/publishing-agent.md`
 
 ## Required Validation
 
-When C1 is implemented, the owning agent must run:
+When C.1 is implemented, the owning agent must run:
 
 - `cargo fmt --all --check`
 - `cargo clippy --all-targets --all-features -- -D warnings`
@@ -605,7 +605,7 @@ This sprint leaves these concrete next slices for later Phase C work:
   - add `init_workspace`
   - add richer exception typing and user-facing docs
 
-Sprint C2 (release-train work, delivering the canonical [Deferred To C2](#deferred-to-c2)
+Sprint C.2 (release-train work, delivering the canonical [Deferred To C.2](#deferred-to-c2)
 section below) was pulled forward ahead of these two placeholders per the
 Sprint Numbering rule in `sprint-planning-guidelines.md`: it was ready to be
 drafted as a real sprint doc first, so it takes the next open number, and the

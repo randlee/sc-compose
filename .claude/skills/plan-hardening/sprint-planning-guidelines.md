@@ -28,7 +28,7 @@ Do not preserve an overloaded sprint just to keep the sprint count low.
 ## Sprint Numbering
 
 Sprint numbers within a phase must be contiguous, starting at 1, with no gaps
-(e.g. `C1, C2, C3`, never `C1, C4`). This applies regardless of the order
+(e.g. `C.1, C.2, C.3`, never `C.1, C.4`). This applies regardless of the order
 sprints are staffed or implemented in.
 
 If a later-priority slice of work needs to be pulled forward ahead of
@@ -41,10 +41,11 @@ takes the next open number.
 
 A gap in sprint numbering is a Blocking finding during plan hardening.
 
-Sprint doc filenames and sprint branches must follow the naming convention in
-`docs/git-workflows.md` (`sprint-X-#-<description>.md`, phase letter case, and
-`sprint/x-#-<description>`, always lowercase for branches). A sprint doc that
-doesn't match this pattern is a
+Sprint doc filenames, worktree names, and sprint branches must follow the
+naming convention in `docs/git-workflows.md`: prose identifiers use dot
+notation (`X.#`, phase letter case), filenames/worktrees/branches use
+lowercase kebab syntax (`sprint-x-#-<description>.md`,
+`sprint/x-#-<description>`). A sprint doc that doesn't match this pattern is a
 Blocking finding.
 
 ## Sprint Doc Shape

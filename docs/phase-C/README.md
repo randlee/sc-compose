@@ -6,5 +6,5 @@ This folder holds follow-on planning and investigation work after the shipped
 Current documents:
 
 - [maturin-bindings-investigation.md](./maturin-bindings-investigation.md)
-- [sprint-C1-maturin-bindings.md](./sprint-C1-maturin-bindings.md)
-- [sprint-C-2-python-release-train.md](./sprint-C-2-python-release-train.md)
+- [sprint-c-1-maturin-bindings.md](./sprint-c-1-maturin-bindings.md)
+- [sprint-c-2-python-release-train.md](./sprint-c-2-python-release-train.md)
