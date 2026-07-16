@@ -288,7 +288,7 @@ C1 does not deliver the entire v1 surface in one pass.
 ## Deferred To C2
 
 C1 explicitly defers these release-train items to
-[Sprint C2 — Python Release Train And Packaging Hardening](./sprint-C2-python-release-train.md):
+[Sprint C-2 — Python Release Train And Packaging Hardening](./sprint-C-2-python-release-train.md):
 
 - all `release.yml` Python release-train work
 - PyPI publish credentials and publish automation
@@ -508,7 +508,7 @@ C1 must not modify:
 - GitHub Release attachment logic for wheels or sdists
 
 Those release-train items are deferred intact to
-[Sprint C2 — Python Release Train And Packaging Hardening](./sprint-C2-python-release-train.md); see the canonical
+[Sprint C-2 — Python Release Train And Packaging Hardening](./sprint-C-2-python-release-train.md); see the canonical
 [Deferred To C2](#deferred-to-c2) list above.
 
 ## Explicit Non-Goals

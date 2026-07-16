@@ -41,6 +41,12 @@ takes the next open number.
 
 A gap in sprint numbering is a Blocking finding during plan hardening.
 
+Sprint doc filenames and sprint branches must follow the naming convention in
+`docs/git-workflows.md` (`sprint-X-#-<description>.md`, phase letter case, and
+`sprint/x-#-<description>`, always lowercase for branches). A sprint doc that
+doesn't match this pattern is a
+Blocking finding.
+
 ## Sprint Doc Shape
 
 Each sprint doc should have one authoritative list for:

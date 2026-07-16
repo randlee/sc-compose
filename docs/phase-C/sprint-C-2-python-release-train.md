@@ -36,7 +36,7 @@ and operator requirements that a later implementation change must satisfy.
 - `scripts/release_artifacts.py`
 - `docs/publishing.md`
 - `docs/publishing-agent.md`
-- `docs/phase-C/sprint-C2-python-release-train.md`
+- `docs/phase-C/sprint-C-2-python-release-train.md`
 
 ## Deliverables
 
