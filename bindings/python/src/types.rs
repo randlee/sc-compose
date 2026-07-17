@@ -188,7 +188,7 @@ impl PyComposeMode {
                 )
             }
             ComposeMode::Profile { kind, name } => format!(
-                "ComposeMode.profile(kind={!r}, name={!r})",
+                "ComposeMode.profile(kind={:?}, name={:?})",
                 profile_kind_str(*kind),
                 name.as_str()
             ),
@@ -256,7 +256,7 @@ impl PyComposePolicy {
 
     fn __repr__(&self) -> String {
         format!(
-            "ComposePolicy(strict_undeclared_variables={}, unknown_variable_policy={!r}, max_include_depth={}, allowed_roots={:?}, resolver_policy={})",
+            "ComposePolicy(strict_undeclared_variables={}, unknown_variable_policy={:?}, max_include_depth={}, allowed_roots={:?}, resolver_policy={})",
             self.inner.strict_undeclared_variables,
             unknown_variable_policy_str(self.inner.unknown_variable_policy),
             self.inner.max_include_depth.get(),
@@ -342,7 +342,7 @@ impl PyComposeRequest {
 
     fn __repr__(&self) -> String {
         format!(
-            "ComposeRequest(root={!r}, mode={}, runtime={:?}, vars_input={}, vars_env={}, vars_defaults={}, guidance_block={}, user_prompt={}, policy={})",
+            "ComposeRequest(root={:?}, mode={}, runtime={:?}, vars_input={}, vars_env={}, vars_defaults={}, guidance_block={}, user_prompt={}, policy={})",
             self.root(),
             self.mode().__repr__(),
             self.runtime(),
