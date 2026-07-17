@@ -187,3 +187,19 @@ pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(discover_tokens, module)?)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn discover_tokens_wrapper_returns_python_variable_names() {
+        let tokens = discover_tokens("{{ name }} {{ report.title }}");
+        let values = tokens
+            .into_iter()
+            .map(|token| token.inner.to_string())
+            .collect::<Vec<_>>();
+
+        assert_eq!(values, vec!["name", "report.title"]);
+    }
+}

@@ -7,6 +7,14 @@ on:
         description: "Release version (e.g. 1.0.0 or v1.0.0)"
         required: true
         type: string
+      target:
+        description: "Release target"
+        required: true
+        type: choice
+        default: testpypi
+        options:
+          - testpypi
+          - production
 
 permissions:
   contents: write
@@ -20,6 +28,8 @@ jobs:
     outputs:
       release_tag: ${{ steps.meta.outputs.release_tag }}
       release_version: ${{ steps.meta.outputs.release_version }}
+      release_target: ${{ steps.meta.outputs.release_target }}
+      release_ref: ${{ steps.release-ref.outputs.release_ref }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,14 +46,20 @@ jobs:
         run: |
           set -euo pipefail
           raw='${{ github.event.inputs.version }}'
+          target='${{ github.event.inputs.target }}'
           tag="$raw"
           [[ "$tag" == v* ]] || tag="v${tag}"
           if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Invalid version: '$raw' (expected X.Y.Z or vX.Y.Z)" >&2
             exit 1
           fi
+          if [[ "$target" != "testpypi" && "$target" != "production" ]]; then
+            echo "Invalid target: '$target' (expected testpypi or production)" >&2
+            exit 1
+          fi
           echo "release_tag=$tag" >> "$GITHUB_OUTPUT"
           echo "release_version=${tag#v}" >> "$GITHUB_OUTPUT"
+          echo "release_target=$target" >> "$GITHUB_OUTPUT"
 
       - name: Verify requested version matches workspace
         run: |
@@ -56,23 +72,32 @@ jobs:
         run: scripts/release_gate.sh origin/main origin/develop '${{ steps.meta.outputs.release_version }}' "${RELEASE_ARTIFACT_MANIFEST}"
 
       - name: Ensure tag is correct or create it
+        id: release-ref
         shell: bash
         run: |
           set -euo pipefail
           git fetch origin --prune --tags
           tag='${{ steps.meta.outputs.release_tag }}'
+          target='${{ steps.meta.outputs.release_target }}'
           main_sha="$(git rev-parse origin/main)"
-          remote_tag_sha="$(git ls-remote --tags origin "refs/tags/${tag}" | awk '{print $1}' || true)"
-          if [[ -n "$remote_tag_sha" ]]; then
-            if [[ "$remote_tag_sha" == "$main_sha" ]]; then
-              echo "Tag ${tag} already exists and points to origin/main (${main_sha}), skipping creation"
-              exit 0
+          if [[ "$target" == "production" ]]; then
+            remote_tag_sha="$(git ls-remote --tags origin "refs/tags/${tag}" | awk '{print $1}' || true)"
+            if [[ -n "$remote_tag_sha" ]]; then
+              if [[ "$remote_tag_sha" == "$main_sha" ]]; then
+                echo "Tag ${tag} already exists and points to origin/main (${main_sha}), skipping creation"
+                echo "release_ref=$tag" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              echo "Tag ${tag} exists but points to ${remote_tag_sha}, not origin/main (${main_sha})" >&2
+              exit 1
             fi
-            echo "Tag ${tag} exists but points to ${remote_tag_sha}, not origin/main (${main_sha})" >&2
-            exit 1
+            git tag "$tag" origin/main
+            git push origin "$tag"
+            echo "release_ref=$tag" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
-          git tag "$tag" origin/main
-          git push origin "$tag"
+          echo "Rehearsal mode: validating release tag ${tag} locally only; not pushing any tag to origin"
+          echo "release_ref=$main_sha" >> "$GITHUB_OUTPUT"
 
   build:
     needs: gate-and-tag
@@ -96,7 +121,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.gate-and-tag.outputs.release_tag }}
+          ref: ${{ needs.gate-and-tag.outputs.release_ref }}
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
@@ -160,13 +185,14 @@ jobs:
           path: ${{ env.ARCHIVE }}
 
   publish:
+    if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
     needs: gate-and-tag
     runs-on: ubuntu-latest
     environment: crates-io
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.gate-and-tag.outputs.release_tag }}
+          ref: ${{ needs.gate-and-tag.outputs.release_ref }}
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
@@ -219,7 +245,7 @@ jobs:
     steps:
       - uses: ./.github/actions/setup-python-release-build
         with:
-          release_tag: ${{ needs.gate-and-tag.outputs.release_tag }}
+          release_ref: ${{ needs.gate-and-tag.outputs.release_ref }}
           release_version: ${{ needs.gate-and-tag.outputs.release_version }}
       - name: Build wheels
         run: maturin build --release --manifest-path bindings/python/Cargo.toml --out dist
@@ -234,7 +260,7 @@ jobs:
     steps:
       - uses: ./.github/actions/setup-python-release-build
         with:
-          release_tag: ${{ needs.gate-and-tag.outputs.release_tag }}
+          release_ref: ${{ needs.gate-and-tag.outputs.release_ref }}
           release_version: ${{ needs.gate-and-tag.outputs.release_version }}
       - name: Build sdist
         run: maturin sdist --manifest-path bindings/python/Cargo.toml --out dist
@@ -246,7 +272,7 @@ jobs:
   publish-pypi:
     needs: [gate-and-tag, build-python-wheels, build-python-sdist]
     runs-on: ubuntu-latest
-    environment: pypi
+    environment: ${{ needs.gate-and-tag.outputs.release_target == 'production' && 'pypi' || 'testpypi' }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -272,13 +298,22 @@ jobs:
             echo "expected exactly one sdist, found ${#sdists[@]}" >&2
             exit 1
           fi
+      - name: Publish wheels and sdist to TestPyPI
+        if: ${{ needs.gate-and-tag.outputs.release_target == 'testpypi' }}
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          MATURIN_NON_INTERACTIVE: "1"
+        run: maturin upload --repository testpypi --non-interactive dist/*.whl dist/*.tar.gz
+
       - name: Publish wheels and sdist to PyPI
+        if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
         env:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
           MATURIN_NON_INTERACTIVE: "1"
         run: maturin upload --non-interactive dist/*.whl dist/*.tar.gz
 
   release:
+    if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
     needs: [gate-and-tag, build, publish, build-python-wheels, build-python-sdist, publish-pypi]
     runs-on: ubuntu-latest
     steps:
@@ -295,7 +330,7 @@ jobs:
         run: |
           mkdir -p release
           find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} release/ \;
-          find artifacts -type f \( -name '*.zip' -o -name '*.whl' \) -exec mv {} release/ \;
+          find artifacts -type f -name '*.whl' -exec mv {} release/ \;
           ls -la release/
 
       - name: Generate checksums
@@ -319,6 +354,7 @@ jobs:
             release/*
 
   update-homebrew:
+    if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
     needs: [gate-and-tag, release]
     runs-on: ubuntu-latest
     steps:
@@ -402,6 +438,7 @@ jobs:
           git push
 
   publish-winget:
+    if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
     needs: [gate-and-tag, release]
     runs-on: ubuntu-latest
     steps:

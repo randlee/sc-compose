@@ -77,6 +77,42 @@ def test_import_surface_exposes_c2_api() -> None:
         assert getattr(sc_compose, name) is not None
 
 
+def test_repr_surface_is_informative(tmp_path: Path) -> None:
+    mode = sc_compose.ComposeMode.profile(sc_compose.ProfileKind.AGENT, "reviewer")
+    policy = sc_compose.ComposePolicy(
+        strict_undeclared_variables=True,
+        unknown_variable_policy=sc_compose.UnknownVariablePolicy.ERROR,
+        max_include_depth=7,
+        allowed_roots=[tmp_path],
+    )
+    request = sc_compose.ComposeRequest(
+        root=tmp_path,
+        mode=mode,
+        vars_input={"name": "world"},
+        guidance_block="use the guide",
+        user_prompt="render this",
+        policy=policy,
+        runtime=sc_compose.RuntimeKind.CLAUDE,
+    )
+
+    mode_repr = repr(mode)
+    policy_repr = repr(policy)
+    request_repr = repr(request)
+
+    assert mode_repr == "ComposeMode.profile(kind='agent', name='reviewer')"
+    assert "ComposePolicy(" in policy_repr
+    assert "unknown_variable_policy='error'" in policy_repr
+    assert "allowed_roots=[" in policy_repr
+    assert "resolver_policy=ResolverPolicy(" in policy_repr
+    assert "ComposeRequest(" in request_repr
+    assert "mode=ComposeMode.profile(kind='agent', name='reviewer')" in request_repr
+    assert "runtime='claude'" in request_repr
+    assert "vars_input=1" in request_repr
+    assert "guidance_block=True" in request_repr
+    assert "user_prompt=True" in request_repr
+    assert "policy=ComposePolicy(" in request_repr
+
+
 def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
     write(
         tmp_path / "template.md.j2",
@@ -209,12 +245,10 @@ def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
             sc_compose.DiagnosticCode.ERR_RESOLVE_NOT_FOUND,
         ),
         (
-                lambda root: sc_compose.expand_includes(
-                    root / "missing-include.md.j2", root
-                ),
-                sc_compose.ScIncludeError,
-                sc_compose.DiagnosticCode.ERR_INCLUDE_NOT_FOUND,
-            ),
+            lambda root: sc_compose.expand_includes(root / "missing-include.md.j2", root),
+            sc_compose.ScIncludeError,
+            sc_compose.DiagnosticCode.ERR_INCLUDE_NOT_FOUND,
+        ),
         (
             lambda root: sc_compose.input_value_from_yaml("[1"),
             sc_compose.ScConfigError,

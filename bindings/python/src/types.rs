@@ -23,6 +23,18 @@ use crate::errors::{
     compose_error_to_pyerr, config_error, render_error_to_pyerr, validation_error,
 };
 
+fn python_string_repr(value: &str) -> String {
+    format!("'{}'", value.replace('\\', "\\\\").replace('\'', "\\'"))
+}
+
+fn python_option_string_repr(value: Option<&str>) -> String {
+    value.map_or_else(|| "None".to_owned(), python_string_repr)
+}
+
+fn python_bool_repr(value: bool) -> &'static str {
+    if value { "True" } else { "False" }
+}
+
 #[pyclass(name = "VariableName", skip_from_py_object)]
 #[derive(Clone, Debug)]
 pub(crate) struct PyVariableName {
@@ -178,6 +190,22 @@ impl PyComposeMode {
             ComposeMode::File { .. } => None,
         }
     }
+
+    fn __repr__(&self) -> String {
+        match &self.inner {
+            ComposeMode::File { template_path } => {
+                format!(
+                    "ComposeMode.file({:?})",
+                    template_path.display().to_string()
+                )
+            }
+            ComposeMode::Profile { kind, name } => format!(
+                "ComposeMode.profile(kind={}, name={})",
+                python_string_repr(profile_kind_str(*kind)),
+                python_string_repr(name.as_str())
+            ),
+        }
+    }
 }
 
 #[pyclass(name = "ComposePolicy", skip_from_py_object)]
@@ -236,6 +264,22 @@ impl PyComposePolicy {
         PyResolverPolicy {
             inner: self.inner.resolver_policy.clone(),
         }
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "ComposePolicy(strict_undeclared_variables={}, unknown_variable_policy={}, max_include_depth={}, allowed_roots={:?}, resolver_policy={})",
+            python_bool_repr(self.inner.strict_undeclared_variables),
+            python_string_repr(unknown_variable_policy_str(
+                self.inner.unknown_variable_policy
+            )),
+            self.inner.max_include_depth.get(),
+            self.allowed_roots(),
+            PyResolverPolicy {
+                inner: self.inner.resolver_policy.clone(),
+            }
+            .__repr__()
+        )
     }
 }
 
@@ -309,6 +353,21 @@ impl PyComposeRequest {
             inner: self.inner.policy.clone(),
         }
     }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "ComposeRequest(root={:?}, mode={}, runtime={}, vars_input={}, vars_env={}, vars_defaults={}, guidance_block={}, user_prompt={}, policy={})",
+            self.root(),
+            self.mode().__repr__(),
+            python_option_string_repr(self.runtime().as_deref()),
+            self.inner.vars_input.len(),
+            self.inner.vars_env.len(),
+            self.inner.vars_defaults.len(),
+            python_bool_repr(self.inner.guidance_block.is_some()),
+            python_bool_repr(self.inner.user_prompt.is_some()),
+            self.policy().__repr__()
+        )
+    }
 }
 
 #[pyclass(name = "Diagnostic", skip_from_py_object)]
@@ -359,6 +418,67 @@ impl PyDiagnostic {
             .iter()
             .map(|path| path.display().to_string())
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sc_composer::{ProfileKind, ProfileName};
+
+    use super::*;
+
+    #[test]
+    fn python_repr_helpers_match_python_style_output() {
+        assert_eq!(python_string_repr("claude"), "'claude'");
+        assert_eq!(python_option_string_repr(Some("claude")), "'claude'");
+        assert_eq!(python_option_string_repr(None), "None");
+        assert_eq!(python_bool_repr(true), "True");
+        assert_eq!(python_bool_repr(false), "False");
+    }
+
+    #[test]
+    fn compose_wrappers_emit_informative_repr_strings() {
+        let mode = PyComposeMode {
+            inner: ComposeMode::Profile {
+                kind: ProfileKind::Agent,
+                name: ProfileName::new("reviewer").unwrap(),
+            },
+        };
+        let policy = PyComposePolicy {
+            inner: ComposePolicy {
+                strict_undeclared_variables: true,
+                ..ComposePolicy::default()
+            },
+        };
+        let request = PyComposeRequest {
+            inner: ComposeRequest {
+                runtime: Some(sc_composer::RuntimeKind::Claude),
+                mode: mode.inner.clone(),
+                root: ConfiningRoot::new(std::env::temp_dir()).unwrap(),
+                vars_input: BTreeMap::from([(
+                    VariableName::new("name").unwrap(),
+                    serde_json::json!("world"),
+                )]),
+                vars_env: BTreeMap::new(),
+                vars_defaults: BTreeMap::new(),
+                guidance_block: Some("use the guide".to_owned()),
+                user_prompt: Some("render this".to_owned()),
+                policy: policy.inner.clone(),
+            },
+        };
+
+        assert_eq!(
+            mode.__repr__(),
+            "ComposeMode.profile(kind='agent', name='reviewer')"
+        );
+        assert!(
+            policy
+                .__repr__()
+                .contains("unknown_variable_policy='ignore'")
+        );
+        assert!(request.__repr__().contains("runtime='claude'"));
+        assert!(request.__repr__().contains("guidance_block=True"));
+        assert!(request.__repr__().contains("user_prompt=True"));
     }
 }
 

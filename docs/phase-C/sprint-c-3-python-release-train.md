@@ -27,6 +27,8 @@ exercised through a staged execution.
 
 ## Hard Dependencies
 
+- [docs/phase-C/README.md](./README.md)
+- [docs/phase-C/maturin-bindings-investigation.md](./maturin-bindings-investigation.md)
 - [docs/phase-C/sprint-c-2-python-api-surface.md](./sprint-c-2-python-api-surface.md)
 - [docs/architecture.md](../architecture.md)
 - [docs/publishing.md](../publishing.md)
@@ -61,6 +63,20 @@ exercised through a staged execution.
 The release workflow additions should follow this shape:
 
 ```yaml
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. 1.0.0 or v1.0.0)"
+        required: true
+        type: string
+      target:
+        description: "Release target"
+        required: true
+        type: choice
+        default: testpypi
+        options: [testpypi, production]
+
   build-python-wheels:
     needs: gate-and-tag
     strategy:
@@ -71,7 +87,7 @@ The release workflow additions should follow this shape:
     steps:
       - uses: ./.github/actions/setup-python-release-build
         with:
-          release_tag: ${{ needs.gate-and-tag.outputs.release_tag }}
+          release_ref: ${{ needs.gate-and-tag.outputs.release_ref }}
           release_version: ${{ needs.gate-and-tag.outputs.release_version }}
       - name: Build wheels
         run: maturin build --release --manifest-path bindings/python/Cargo.toml --out dist
@@ -86,7 +102,7 @@ The release workflow additions should follow this shape:
     steps:
       - uses: ./.github/actions/setup-python-release-build
         with:
-          release_tag: ${{ needs.gate-and-tag.outputs.release_tag }}
+          release_ref: ${{ needs.gate-and-tag.outputs.release_ref }}
           release_version: ${{ needs.gate-and-tag.outputs.release_version }}
       - name: Build sdist
         run: maturin sdist --manifest-path bindings/python/Cargo.toml --out dist
@@ -98,7 +114,7 @@ The release workflow additions should follow this shape:
   publish-pypi:
     needs: [gate-and-tag, build-python-wheels, build-python-sdist]
     runs-on: ubuntu-latest
-    environment: pypi
+    environment: ${{ needs.gate-and-tag.outputs.release_target == 'production' && 'pypi' || 'testpypi' }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -124,14 +140,21 @@ The release workflow additions should follow this shape:
             echo "expected exactly one sdist, found ${#sdists[@]}" >&2
             exit 1
           fi
+      - name: Publish wheels and sdist to TestPyPI
+        if: ${{ needs.gate-and-tag.outputs.release_target == 'testpypi' }}
+        env:
+          MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          MATURIN_NON_INTERACTIVE: "1"
+        run: maturin upload --repository testpypi --non-interactive dist/*.whl dist/*.tar.gz
       - name: Publish wheels and sdist to PyPI
+        if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
         env:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
           MATURIN_NON_INTERACTIVE: "1"
         run: maturin upload --non-interactive dist/*.whl dist/*.tar.gz
 ```
 
-This sample is normative for C.3 in six ways:
+This sample is normative for C.3 in eight ways:
 
 - PyPI credentials enter the publish step only through
   `MATURIN_PYPI_TOKEN=${{ secrets.PYPI_API_TOKEN }}`
@@ -146,6 +169,12 @@ This sample is normative for C.3 in six ways:
 - the PyPI publish job downloads only the `python-wheels-*` artifacts plus the
   single `python-sdist` artifact, asserts there is exactly one `dist/*.tar.gz`,
   and uploads only `dist/*.whl` and `dist/*.tar.gz`
+- `workflow_dispatch` must expose a safe rehearsal selector with
+  `target=testpypi` as the default path
+- when `target=testpypi`, the workflow must publish only to TestPyPI through a
+  protected `testpypi` environment and `TEST_PYPI_API_TOKEN`, while production
+  tag pushes, crates.io publication, GitHub Release creation, Homebrew updates,
+  and winget publication remain disabled
 
 ## GitHub Release Attachment Sample
 
@@ -174,7 +203,7 @@ by the collection filter:
           mkdir -p release
 -          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} release/ \;
 +          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} release/ \;
-+          find artifacts -type f \( -name '*.zip' -o -name '*.whl' \) -exec mv {} release/ \;
++          find artifacts -type f -name '*.whl' -exec mv {} release/ \;
            ls -la release/
 
        - name: Generate checksums
@@ -281,6 +310,26 @@ execution must pass on either TestPyPI or a `workflow_dispatch` rehearsal path
 that builds wheels, builds exactly one sdist, publishes to a non-production
 destination, and confirms the GitHub Release attachment set.
 
+The required rehearsal command path is:
+
+1. Run the `Release` workflow with:
+   - `version=<X.Y.Z or vX.Y.Z>`
+   - `target=testpypi`
+2. Confirm the run:
+   - builds the main release binaries
+   - builds all three Python wheels
+   - builds exactly one Python sdist
+   - uploads Python artifacts to TestPyPI, not production PyPI
+   - does not publish to crates.io
+   - does not push a real `vX.Y.Z` tag to `origin`
+   - does not create a real GitHub Release
+   - does not update Homebrew or winget
+
+Closure evidence for this gate must record both:
+
+- the workflow run URL or run ID for the successful rehearsal
+- the TestPyPI package page URL showing the rehearsal upload
+
 ## Required Validation
 
 - `cargo test --workspace`
@@ -325,25 +374,31 @@ assert 'needs: [gate-and-tag, build, publish, build-python-wheels, build-python-
     'release job must depend on build-python-wheels, build-python-sdist, and publish-pypi'
 assert 'name: python-sdist' in text, \
     'release workflow must define a dedicated python-sdist artifact'
-assert 'environment: pypi' in text, \
-    'publish-pypi must run in the protected pypi environment'
+assert "default: testpypi" in text and "type: choice" in text, \
+    'workflow_dispatch must expose a rehearsal target input that defaults to testpypi'
+assert "release_target == 'production' && 'pypi' || 'testpypi'" in text, \
+    'publish-pypi must switch between the protected pypi and testpypi environments'
 assert "find artifacts -type f \\( -name '*.tar.gz' -o -name '*.zip' \\) -exec mv {} release/ \\;" in text, \
     'release artifact collection must preserve the pre-existing tar.gz and zip sweep'
-assert "-name '*.whl'" in text, \
-    'release artifact collection must include *.whl files'
+assert "find artifacts -type f -name '*.whl' -exec mv {} release/ \\;" in text, \
+    'release artifact collection must include a dedicated wheel sweep without a redundant zip match'
 assert 'pattern: python-wheels-*' in text, \
     'publish-pypi artifact download must be scoped to python-wheels-*'
 assert 'expected exactly one sdist' in text, \
     'publish-pypi must assert that exactly one sdist exists before upload'
+assert 'TEST_PYPI_API_TOKEN' in text and '--repository testpypi' in text, \
+    'rehearsal mode must publish Python artifacts to TestPyPI with the dedicated token'
 assert 'maturin upload --non-interactive dist/*.whl dist/*.tar.gz' in text, \
     'publish-pypi must upload only wheel and sdist files'
+assert "if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}" in text, \
+    'production-only jobs must be disabled during rehearsal mode'
 assert 'for pattern in *.tar.gz *.zip *.whl; do' in text, \
     'release checksum generation must include wheel files'
 assert 'uses: ./.github/actions/setup-python-release-build' in text, \
     'release workflow must invoke the shared Python release-build composite action'
 action_text = pathlib.Path('.github/actions/setup-python-release-build/action.yml').read_text()
-assert 'verify-python-version' in action_text and 'sync-python-version' in action_text, \
-    'shared Python release-build action must sync and verify the Python package version before wheel and sdist builds'
+assert 'verify-python-version' in action_text and 'sync-python-version' in action_text and 'release_ref' in action_text, \
+    'shared Python release-build action must sync and verify the Python package version and accept a build ref before wheel and sdist builds'
 PY`
 - `gh workflow view Release --yaml >/dev/null`
 

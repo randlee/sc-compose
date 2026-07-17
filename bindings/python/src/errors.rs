@@ -183,3 +183,87 @@ where
         PyErr::from_value(instance.into_any())
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use sc_composer::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot};
+
+    use super::*;
+
+    fn unique_missing_template() -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!("sc-compose-missing-{nanos}.md.j2"))
+    }
+
+    #[test]
+    fn helper_errors_expose_message_and_code_attributes() {
+        Python::initialize();
+        Python::attach(|py| {
+            let err = validation_error("bad input".to_owned(), Some("ERR_VAL_EMPTY"));
+            let exc = err.value(py);
+            assert_eq!(exc.get_type().name().unwrap(), "ScValidationError");
+            assert_eq!(
+                exc.getattr("message").unwrap().extract::<String>().unwrap(),
+                "bad input"
+            );
+            assert_eq!(
+                exc.getattr("code")
+                    .unwrap()
+                    .extract::<Option<String>>()
+                    .unwrap(),
+                Some("ERR_VAL_EMPTY".to_owned())
+            );
+
+            let err = config_error("bad config".to_owned(), Some("ERR_CONFIG_PARSE"));
+            let exc = err.value(py);
+            assert_eq!(exc.get_type().name().unwrap(), "ScConfigError");
+            assert_eq!(
+                exc.getattr("code")
+                    .unwrap()
+                    .extract::<Option<String>>()
+                    .unwrap(),
+                Some("ERR_CONFIG_PARSE".to_owned())
+            );
+        });
+    }
+
+    #[test]
+    fn compose_error_to_pyerr_maps_resolve_errors_to_scresolveerror() {
+        let root_path = std::env::temp_dir();
+        let request = ComposeRequest {
+            runtime: None,
+            mode: ComposeMode::File {
+                template_path: unique_missing_template(),
+            },
+            root: ConfiningRoot::new(&root_path).unwrap(),
+            vars_input: BTreeMap::new(),
+            vars_env: BTreeMap::new(),
+            vars_defaults: BTreeMap::new(),
+            guidance_block: None,
+            user_prompt: None,
+            policy: ComposePolicy::default(),
+        };
+
+        let err = sc_composer::resolve_template_path(&request).unwrap_err();
+        Python::initialize();
+        Python::attach(|py| {
+            let pyerr = compose_error_to_pyerr(err);
+            let exc = pyerr.value(py);
+            assert_eq!(exc.get_type().name().unwrap(), "ScResolveError");
+            assert_eq!(
+                exc.getattr("code")
+                    .unwrap()
+                    .extract::<Option<String>>()
+                    .unwrap(),
+                Some("ERR_RESOLVE_NOT_FOUND".to_owned())
+            );
+        });
+    }
+}
