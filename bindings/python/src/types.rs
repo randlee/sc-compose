@@ -178,6 +178,22 @@ impl PyComposeMode {
             ComposeMode::File { .. } => None,
         }
     }
+
+    fn __repr__(&self) -> String {
+        match &self.inner {
+            ComposeMode::File { template_path } => {
+                format!(
+                    "ComposeMode.file({:?})",
+                    template_path.display().to_string()
+                )
+            }
+            ComposeMode::Profile { kind, name } => format!(
+                "ComposeMode.profile(kind={!r}, name={!r})",
+                profile_kind_str(*kind),
+                name.as_str()
+            ),
+        }
+    }
 }
 
 #[pyclass(name = "ComposePolicy", skip_from_py_object)]
@@ -236,6 +252,20 @@ impl PyComposePolicy {
         PyResolverPolicy {
             inner: self.inner.resolver_policy.clone(),
         }
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "ComposePolicy(strict_undeclared_variables={}, unknown_variable_policy={!r}, max_include_depth={}, allowed_roots={:?}, resolver_policy={})",
+            self.inner.strict_undeclared_variables,
+            unknown_variable_policy_str(self.inner.unknown_variable_policy),
+            self.inner.max_include_depth.get(),
+            self.allowed_roots(),
+            PyResolverPolicy {
+                inner: self.inner.resolver_policy.clone(),
+            }
+            .__repr__()
+        )
     }
 }
 
@@ -308,6 +338,21 @@ impl PyComposeRequest {
         PyComposePolicy {
             inner: self.inner.policy.clone(),
         }
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "ComposeRequest(root={!r}, mode={}, runtime={:?}, vars_input={}, vars_env={}, vars_defaults={}, guidance_block={}, user_prompt={}, policy={})",
+            self.root(),
+            self.mode().__repr__(),
+            self.runtime(),
+            self.inner.vars_input.len(),
+            self.inner.vars_env.len(),
+            self.inner.vars_defaults.len(),
+            self.inner.guidance_block.is_some(),
+            self.inner.user_prompt.is_some(),
+            self.policy().__repr__()
+        )
     }
 }
 

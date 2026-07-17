@@ -256,6 +256,10 @@ their Rust definitions. `X | None` denotes an optional field.
 | | `attempted_paths` | `list[str]` |
 | | `ambiguity_candidates` | `list[str]` |
 
+This `list[Diagnostic]` `warnings` shape is intentional for C.2 and replaced
+the earlier C.1 plain-string warnings list to preserve structured diagnostic
+metadata for Python callers.
+
 Plain enums (member names are `UPPER_SNAKE_CASE` in Python, values are the
 lowercase/snake_case Rust `serde` wire form):
 
