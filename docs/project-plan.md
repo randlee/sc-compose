@@ -24,6 +24,11 @@ required to ship.
 - `sc-composer` remains a pure library.
 - `sc-compose` may depend on `sc-composer` and standalone observability crates
   only.
+- `bindings/python` is a Python-facing adapter package that may depend on
+  `sc-composer` only.
+- `bindings/python` must not depend on `sc-compose`, `sc-observability`, or
+  ATM-specific crates.
+- `sc-composer` must not depend on `bindings/python`.
 - No ATM-specific runtime assumptions may enter code or manifests.
 
 ## Release Blocker Inventory
@@ -336,6 +341,25 @@ following are true:
 - release is approved for merge to `main`
 
 ## Follow-On Work
+
+### Phase C Sprint Plans
+
+Status:
+
+- planned follow-on Python bindings work after the shipped `1.1.x` line
+
+Sprint entries:
+
+- [Sprint C.1 — Maturin Python Bindings Foundation](phase-C/sprint-c-1-maturin-bindings.md)
+- [Sprint C.2 — Python API Surface](phase-C/sprint-c-2-python-api-surface.md)
+- [Sprint C.3 — Python Release Train And Packaging Hardening](phase-C/sprint-c-3-python-release-train.md)
+- [Phase C README](phase-C/README.md)
+- [Maturin Bindings Investigation](phase-C/maturin-bindings-investigation.md)
+
+These sprint plans define the first implementation path for a Python-facing
+adapter package that depends on `sc-composer` while keeping `sc-composer` a
+pure Rust library and keeping reporting plus observability APIs out of the
+initial Python scope.
 
 ### Phase B Cleanup Sprint Plans
 

@@ -25,6 +25,29 @@ Split a sprint immediately when any of these are true:
 
 Do not preserve an overloaded sprint just to keep the sprint count low.
 
+## Sprint Numbering
+
+Sprint numbers within a phase must be contiguous, starting at 1, with no gaps
+(e.g. `C.1, C.2, C.3`, never `C.1, C.4`). This applies regardless of the order
+sprints are staffed or implemented in.
+
+If a later-priority slice of work needs to be pulled forward ahead of
+already-planned intermediate sprints, renumber so the executed sequence stays
+gapless — do not reserve a number for not-yet-written future work and jump
+ahead of it. Placeholder/follow-on work that has not been written up as a real
+sprint doc does not occupy a sprint number; it stays as prose (e.g. under a
+"Follow-On Sprints" section) until it is actually drafted, at which point it
+takes the next open number.
+
+A gap in sprint numbering is a Blocking finding during plan hardening.
+
+Sprint doc filenames, worktree names, and sprint branches must follow the
+naming convention in `docs/git-workflows.md`: prose identifiers use dot
+notation (`X.#`, phase letter case), filenames/worktrees/branches use
+lowercase kebab syntax (`sprint-x-#-<description>.md`,
+`sprint/x-#-<description>`). A sprint doc that doesn't match this pattern is a
+Blocking finding.
+
 ## Sprint Doc Shape
 
 Each sprint doc should have one authoritative list for:

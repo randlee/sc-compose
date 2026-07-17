@@ -1,16 +1,17 @@
 # SC-Compose Architecture
 
 > Status: Active Release Baseline
-> Product: `sc-composer` (library) and `sc-compose` (CLI)
-> Document role: Normative release architecture for both crates
+> Product: `sc-composer` (library), `sc-compose` (CLI), and `bindings/python` (Python adapter)
+> Document role: Normative release architecture for all in-repo packages
 
 This document supersedes the prior high-level placeholder. It is the normative
 release architecture baseline for `sc-compose` v1.0.
 
 ## 1. Architectural Intent
 
-This document defines the required architecture of `sc-composer` and
-`sc-compose` for release work. It is not a description of the current
+This document defines the required architecture of `sc-composer`,
+`sc-compose`, and `bindings/python` for release work. It is not a description
+of the current
 implementation.
 
 The goals are:
@@ -89,12 +90,31 @@ dependency on `sc-observability`.
 - pack metadata parsing,
 - templates add workflows.
 
-### 3.3 Dependency Direction
+### 3.3 `bindings/python`
+
+`bindings/python` is the Python-facing adapter package. It owns:
+
+- PyO3 wrapper classes and functions,
+- maturin packaging metadata,
+- Python type stubs and `py.typed` markers,
+- Python wheel smoke tests,
+- Python-facing request/result shims over `sc-composer`.
+
+It must remain an adapter layer only. It does not own:
+
+- CLI argument parsing,
+- observability or logger wiring,
+- report runtime helpers,
+- ATM-specific integration,
+- any semantic reimplementation of composition or validation behavior.
+
+### 3.4 Dependency Direction
 
 Required dependency direction:
 
 - `sc-compose` -> `sc-composer`
 - `sc-compose` -> `sc-observability`
+- `bindings/python` -> `sc-composer`
 - `sc-observability` -> `sc-observability-types`
 
 Required observability split:
@@ -105,7 +125,11 @@ Required observability split:
 Forbidden dependency direction:
 
 - `sc-composer` -> `sc-compose`
+- `sc-composer` -> `bindings/python`
 - `sc-composer` -> `sc-observability`
+- `bindings/python` -> `sc-compose`
+- `bindings/python` -> `sc-observability`
+- `bindings/python` -> orchestration-specific runtime crates
 - `sc-composer` -> orchestration-specific runtime crates
 - `sc-composer` -> mailbox helpers, daemon helpers, team-state helpers, or
   runtime-specific home-resolution helpers
@@ -147,7 +171,8 @@ ATM integration is an adapter concern outside this repository.
     in precedence order (explicit > env > frontmatter defaults),
   - tracks variable origin,
   - applies unknown-variable policy,
-  - discovers referenced template tokens,
+  - exposes `discover_tokens(text) -> BTreeSet<VariableName>` for standalone
+    token discovery workflows,
   - distinguishes declared, undeclared, missing, and extra variables.
 - `render`
   - configures the template engine,
@@ -395,6 +420,8 @@ Required library surface:
 - `frontmatter_init(path, options) -> FrontmatterInitResult`
 - `Renderer::render(compiled, context) -> Result<String, RenderError>` as the
   primary repeated-render API
+- `Renderer::with_delimiters(open, close) -> Self` as the only public
+  renderer-customization seam
 - `render_loaded_template(request) -> Result<RenderedArtifact, RenderError>` as
   the runtime-agnostic entry point for callers that already loaded template
   text outside `sc-composer`
@@ -415,7 +442,7 @@ The rendering and composition surfaces have distinct responsibilities.
 
 | Surface | Owns | Does not own |
 | --- | --- | --- |
-| `Renderer` | reusable template-engine environment setup plus inline/named rendering over caller-supplied template text and context | profile resolution, include expansion, variable validation, block assembly, repository bootstrap |
+| `Renderer` | reusable template-engine environment setup plus inline/named rendering over caller-supplied template text and context, including delimiter customization through `with_delimiters(open, close)` | profile resolution, include expansion, variable validation, block assembly, repository bootstrap, arbitrary third-party engine configuration |
 | `compose()` | top-level composition orchestration: resolve, include expansion, validation, built-in context injection, render, and block assembly | direct CLI UX decisions |
 | `render_template()` | one-shot rendering entry point for callers that already have template text and context | profile resolution, repository scanning, include expansion, validation, workspace bootstrap |
 | `validate()` | validation phase only; returns structured diagnostics without writing output | output generation or file writing |

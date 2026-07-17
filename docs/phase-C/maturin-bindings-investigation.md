@@ -194,7 +194,7 @@ from sc_composer import (
     render_template,
     render_loaded_template,
     resolve_profile,
-    validate_file,
+    validate,
     frontmatter_init,
     init_workspace,
 )
@@ -208,12 +208,17 @@ Suggested behavior:
   - maps cleanly to the current preloaded render path
 - `compose_file(...) -> ComposeResult`
   - file-mode composition over the existing `ComposeRequest`
-- `validate_file(...) -> ValidationReport`
+- `validate(...) -> ValidationReport`
   - validation without render
 - `resolve_profile(...) -> ResolveResult`
   - profile lookup without full composition
 - `frontmatter_init(path: str, force: bool = False, dry_run: bool = False) -> FrontmatterInitResult`
 - `init_workspace(root: str, dry_run: bool = False) -> InitResult`
+
+This investigation section is illustrative background, not the authoritative
+Phase C sprint scope. The finalized sprint docs use the real public validation
+entry points `validate` and `validate_with_observer` rather than the earlier
+illustrative `validate_file` wrapper name used in this memo.
 
 Recommended Python ergonomics:
 

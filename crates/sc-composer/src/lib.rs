@@ -76,7 +76,7 @@ pub use types::{
 };
 #[doc(inline)]
 pub use validate::{validate, validate_with_observer};
-pub use validation::BUILTIN_VARIABLE_NAMES;
+pub use validation::{BUILTIN_VARIABLE_NAMES, discover_tokens};
 
 #[cfg(test)]
 mod tests {

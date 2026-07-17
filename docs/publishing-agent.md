@@ -16,6 +16,8 @@ The release surface is:
   - `randlee/homebrew-tap` formula `sc-compose.rb`
 - `winget`:
   - package id `randlee.sc-compose`
+- PyPI:
+  - package `sc-compose`
 
 ## Hard Rules
 
@@ -32,6 +34,10 @@ The release surface is:
   - required for publishing both crates to crates.io
 - `HOMEBREW_TAP_TOKEN`
   - required so the workflow can update `randlee/homebrew-tap`
+- `PYPI_API_TOKEN`
+  - required for the Python release channel
+  - must be configured in the protected GitHub Actions `pypi` environment, not
+    as an unscoped repository secret
 
 `winget` automation uses the default workflow `GITHUB_TOKEN` and does not need
 an extra repository secret.
@@ -52,6 +58,8 @@ an extra repository secret.
      `share/sc-compose/examples`
    - Homebrew: `sc-compose.rb` updated in `randlee/homebrew-tap`
    - `winget`: submission dispatched successfully
+   - PyPI: wheel and sdist upload succeeds through the protected `pypi`
+     environment
 
 ## Manual Checks
 
@@ -63,6 +71,12 @@ an extra repository secret.
 - Verify package installs:
   - Homebrew and GitHub Release installs include bundled examples
   - `cargo install sc-compose --version <X.Y.Z>` installs the binary only
+- Verify the protected `pypi` environment contains `PYPI_API_TOKEN`.
+- Run one staged TestPyPI or `workflow_dispatch` rehearsal and confirm:
+  - exactly one sdist is produced
+  - all three wheel artifacts upload
+  - PyPI publication succeeds through the protected `pypi` environment
+  - the GitHub Release attachment set contains wheels plus the single sdist
 
 ## Notes
 

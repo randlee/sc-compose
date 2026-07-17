@@ -33,8 +33,11 @@ This repo is intentionally independent from ATM. Do not introduce
 
 1. `sc-composer` must remain a pure library.
 2. `sc-compose` may depend on `sc-composer` and standalone observability crates only.
-3. Do not read `ATM_HOME`.
-4. Any ATM integration belongs in ATM adapters, not in this repo.
+3. `bindings/python` is a Python-facing adapter package that may depend on `sc-composer` only.
+4. `bindings/python` must not depend on `sc-compose`, `sc-observability`, or ATM-specific crates.
+5. `sc-composer` must not depend on `bindings/python`.
+6. Do not read `ATM_HOME`.
+7. Any ATM integration belongs in ATM adapters, not in this repo.
 
 ## Team Communication
 
