@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/sc-composer", "crates/sc-compose"]
+members = ["crates/sc-composer", "crates/sc-compose", "bindings/python"]
 resolver = "2"
 
 [workspace.package]
