@@ -1,7 +1,7 @@
 ---
 id: C.3
 title: Python Release Train And Packaging Hardening
-status: planned
+status: complete
 branch: sprint/c-3-python-release-train
 worktree: ../sc-compose-worktrees/sprint/c-3-python-release-train
 ---

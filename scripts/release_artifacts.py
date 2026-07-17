@@ -57,6 +57,15 @@ def _python_project_version(pyproject_toml: Path) -> str:
     return version
 
 
+def _python_project_name(pyproject_toml: Path) -> str:
+    data = tomllib.loads(pyproject_toml.read_text(encoding="utf-8"))
+    project = data.get("project", {})
+    name = project.get("name")
+    if not isinstance(name, str):
+        raise SystemExit(f"{pyproject_toml}: [project].name must be a string")
+    return name
+
+
 def cmd_validate_manifest(args: argparse.Namespace) -> int:
     manifest = load_manifest(Path(args.manifest))
     members = workspace_members(Path(args.workspace_toml))
@@ -84,10 +93,16 @@ def cmd_validate_manifest(args: argparse.Namespace) -> int:
             raise SystemExit(f"duplicate artifact: {artifact}")
         python_artifacts.add(artifact)
         manifest_path = Path(package["manifest"])
-        if manifest_path.is_file():
-            python_package_version = _python_project_version(manifest_path)
-            if not python_package_version:
-                raise SystemExit(f"{manifest_path}: missing [project].version")
+        if not manifest_path.is_file():
+            raise SystemExit(f"{manifest_path}: missing Python package manifest")
+        python_package_version = _python_project_version(manifest_path)
+        if not python_package_version:
+            raise SystemExit(f"{manifest_path}: missing [project].version")
+        actual_package_name = _python_project_name(manifest_path)
+        if actual_package_name != package["package"]:
+            raise SystemExit(
+                f"{manifest_path}: python package mismatch: manifest={package['package']} actual={actual_package_name}"
+            )
         python_packages_by_name[package["package"]] = package
     for index, distribution in enumerate(manifest["python_distributions"], start=1):
         _require_keys(distribution, ("name", "source", "sdist", "wheels"), f"[[python_distributions]] #{index}")
@@ -96,11 +111,19 @@ def cmd_validate_manifest(args: argparse.Namespace) -> int:
                 f"[[python_distributions]] #{index}: no matching [[python_packages]] entry for {distribution['name']}"
             )
         source = Path(distribution["source"])
+        if not source.is_dir():
+            raise SystemExit(f"[[python_distributions]] #{index}: source directory does not exist: {source}")
         if not isinstance(distribution["sdist"], bool):
             raise SystemExit(f"[[python_distributions]] #{index}: sdist must be a boolean")
         wheels = distribution["wheels"]
         if not isinstance(wheels, list) or not all(isinstance(entry, str) for entry in wheels):
             raise SystemExit(f"[[python_distributions]] #{index}: wheels must be a list of strings")
+        package = python_packages_by_name[distribution["name"]]
+        module_root = source / "python" / package["module"]
+        if not module_root.is_dir():
+            raise SystemExit(
+                f"[[python_distributions]] #{index}: Python module path does not exist: {module_root}"
+            )
     print("manifest validation passed")
     return 0
 
