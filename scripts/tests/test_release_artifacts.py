@@ -179,14 +179,20 @@ def test_release_workflow_enforces_python_release_invariants() -> None:
         in text
     )
     assert "name: python-sdist" in text
-    assert "environment: pypi" in text
+    assert "default: testpypi" in text
+    assert "type: choice" in text
+    assert "release_target == 'production' && 'pypi' || 'testpypi'" in text
     assert "pattern: python-wheels-*" in text
     assert "expected exactly one sdist" in text
+    assert "TEST_PYPI_API_TOKEN" in text
+    assert "--repository testpypi" in text
     assert "maturin upload --non-interactive dist/*.whl dist/*.tar.gz" in text
+    assert "if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}" in text
     assert "for pattern in *.tar.gz *.zip *.whl; do" in text
     assert "uses: ./.github/actions/setup-python-release-build" in text
     assert "verify-python-version" in action_text
     assert "sync-python-version" in action_text
+    assert "release_ref" in action_text
 
 
 def test_release_workflow_collects_wheels_without_redundant_zip_sweep() -> None:
@@ -198,3 +204,11 @@ def test_release_workflow_collects_wheels_without_redundant_zip_sweep() -> None:
     )
     assert "find artifacts -type f -name '*.whl' -exec mv {} release/ \\;" in text
     assert "find artifacts -type f \\( -name '*.zip' -o -name '*.whl' \\)" not in text
+
+
+def test_release_workflow_rehearsal_mode_avoids_production_side_effects() -> None:
+    text = release_workflow_text()
+
+    assert 'echo "Rehearsal mode: validating release tag ${tag} locally only; not pushing any tag to origin"' in text
+    assert "echo \"release_ref=$main_sha\" >> \"$GITHUB_OUTPUT\"" in text
+    assert "if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}" in text

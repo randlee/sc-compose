@@ -2,8 +2,8 @@ name: Prepare Python release build
 description: Check out the tagged release and prepare the Python build toolchain.
 
 inputs:
-  release_tag:
-    description: Release tag to check out.
+  release_ref:
+    description: Git ref or commit to check out for the release build.
     required: true
   release_version:
     description: Release version expected in Python metadata.
@@ -18,7 +18,7 @@ runs:
   steps:
     - uses: actions/checkout@v4
       with:
-        ref: ${{ inputs.release_tag }}
+        ref: ${{ inputs.release_ref }}
     - uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python_version }}
