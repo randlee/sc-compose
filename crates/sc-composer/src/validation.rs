@@ -639,7 +639,11 @@ fn merge_frontmatter(
     }
 }
 
-pub(crate) fn discover_tokens(text: &str) -> BTreeSet<VariableName> {
+/// Discover declared template variable tokens without running full validation.
+///
+/// Returns the set of variable names referenced by `text`.
+#[must_use]
+pub fn discover_tokens(text: &str) -> BTreeSet<VariableName> {
     let mut tokens = BTreeSet::new();
     let mut scopes = Vec::<LoopScope>::new();
     let mut cursor = text;
