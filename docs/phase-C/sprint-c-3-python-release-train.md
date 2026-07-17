@@ -1,7 +1,7 @@
 ---
 id: C.3
 title: Python Release Train And Packaging Hardening
-status: planned
+status: complete
 branch: sprint/c-3-python-release-train
 worktree: ../sc-compose-worktrees/sprint/c-3-python-release-train
 ---
@@ -206,10 +206,11 @@ by the collection filter:
          with:
            path: artifacts
 
-       - name: Collect archives
-         run: |
-           mkdir -p release
+      - name: Collect archives
+        run: |
+          mkdir -p release
 -          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} release/ \;
++          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} release/ \;
 +          find artifacts -type f \( -name '*.zip' -o -name '*.whl' \) -exec mv {} release/ \;
 +          find artifacts/python-sdist -type f -name '*.tar.gz' -exec cp {} release/ \;
            ls -la release/
@@ -232,8 +233,9 @@ This sample is normative for `D6` in four ways:
 - the `release` job must wait on `build-python-wheels`, `build-python-sdist`,
   and `publish-pypi` before collecting artifacts and creating the GitHub
   Release
-- the release collector must copy the single `python-sdist` archive from its
-  dedicated artifact directory instead of flattening all `*.tar.gz` files
+- the release collector must preserve the pre-existing binary-archive sweep for
+  `*.tar.gz` and `*.zip`, add `*.whl`, and separately copy the single
+  `python-sdist` archive from its dedicated artifact directory
 - the collection filter must include `*.whl` so wheel files land in `release/`
   beside the existing binary archives and the Python sdist `*.tar.gz`
 - the checksum generation step must include `*.whl` so every wheel attached to
@@ -364,6 +366,8 @@ assert 'name: python-sdist' in text, \
     'release workflow must define a dedicated python-sdist artifact'
 assert 'environment: pypi' in text, \
     'publish-pypi must run in the protected pypi environment'
+assert "find artifacts -type f \\( -name '*.tar.gz' -o -name '*.zip' \\) -exec mv {} release/ \\;" in text, \
+    'release artifact collection must preserve the pre-existing tar.gz and zip sweep'
 assert "-name '*.whl'" in text, \
     'release artifact collection must include *.whl files'
 assert "find artifacts/python-sdist -type f -name '*.tar.gz' -exec cp {} release/ \\;" in text, \
