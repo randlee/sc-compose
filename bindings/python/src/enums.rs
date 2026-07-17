@@ -1,0 +1,226 @@
+use pyo3::prelude::*;
+use sc_composer::{
+    DiagnosticSeverity, ProfileKind, RuntimeKind, UnknownVariablePolicy, VariableSource,
+};
+
+use crate::errors::config_error;
+
+#[pyclass(name = "RuntimeKind")]
+pub(crate) struct PyRuntimeKind;
+
+#[pymethods]
+impl PyRuntimeKind {
+    #[classattr]
+    const CLAUDE: &'static str = "claude";
+    #[classattr]
+    const CODEX: &'static str = "codex";
+    #[classattr]
+    const GEMINI: &'static str = "gemini";
+    #[classattr]
+    const OPENCODE: &'static str = "opencode";
+}
+
+#[pyclass(name = "ProfileKind")]
+pub(crate) struct PyProfileKind;
+
+#[pymethods]
+impl PyProfileKind {
+    #[classattr]
+    const AGENT: &'static str = "agent";
+    #[classattr]
+    const COMMAND: &'static str = "command";
+    #[classattr]
+    const SKILL: &'static str = "skill";
+}
+
+#[pyclass(name = "UnknownVariablePolicy")]
+pub(crate) struct PyUnknownVariablePolicy;
+
+#[pymethods]
+impl PyUnknownVariablePolicy {
+    #[classattr]
+    const ERROR: &'static str = "error";
+    #[classattr]
+    const WARN: &'static str = "warn";
+    #[classattr]
+    const IGNORE: &'static str = "ignore";
+}
+
+#[pyclass(name = "VariableSource")]
+pub(crate) struct PyVariableSource;
+
+#[pymethods]
+impl PyVariableSource {
+    #[classattr]
+    const EXPLICIT_INPUT: &'static str = "explicit_input";
+    #[classattr]
+    const ENVIRONMENT: &'static str = "environment";
+    #[classattr]
+    const BUILTIN: &'static str = "builtin";
+    #[classattr]
+    const TEMPLATE_INPUT_DEFAULT: &'static str = "template_input_default";
+    #[classattr]
+    const FRONTMATTER_DEFAULT: &'static str = "frontmatter_default";
+    #[classattr]
+    const INCLUDED_DEFAULT: &'static str = "included_default";
+}
+
+#[pyclass(name = "DiagnosticSeverity")]
+pub(crate) struct PyDiagnosticSeverity;
+
+#[pymethods]
+impl PyDiagnosticSeverity {
+    #[classattr]
+    const ERROR: &'static str = "error";
+    #[classattr]
+    const WARNING: &'static str = "warning";
+    #[classattr]
+    const INFO: &'static str = "info";
+}
+
+#[pyclass(name = "DiagnosticCode")]
+pub(crate) struct PyDiagnosticCode;
+
+#[pymethods]
+impl PyDiagnosticCode {
+    #[classattr]
+    const ERR_RESOLVE_NOT_FOUND: &'static str = "ERR_RESOLVE_NOT_FOUND";
+    #[classattr]
+    const ERR_RESOLVE_AMBIGUOUS: &'static str = "ERR_RESOLVE_AMBIGUOUS";
+    #[classattr]
+    const ERR_INCLUDE_ESCAPE: &'static str = "ERR_INCLUDE_ESCAPE";
+    #[classattr]
+    const ERR_INCLUDE_NOT_FOUND: &'static str = "ERR_INCLUDE_NOT_FOUND";
+    #[classattr]
+    const ERR_INCLUDE_CYCLE: &'static str = "ERR_INCLUDE_CYCLE";
+    #[classattr]
+    const ERR_INCLUDE_DEPTH: &'static str = "ERR_INCLUDE_DEPTH";
+    #[classattr]
+    const ERR_VAL_OBJECT_SHAPE: &'static str = "ERR_VAL_OBJECT_SHAPE";
+    #[classattr]
+    const ERR_VAL_NESTED_ARRAY_UNSUPPORTED: &'static str = "ERR_VAL_NESTED_ARRAY_UNSUPPORTED";
+    #[classattr]
+    const ERR_VAL_DUPLICATE: &'static str = "ERR_VAL_DUPLICATE";
+    #[classattr]
+    const WARN_VAL_CONFLICTING_DEFAULT_SECTIONS: &'static str =
+        "WARN_VAL_CONFLICTING_DEFAULT_SECTIONS";
+    #[classattr]
+    const ERR_VAL_EMPTY: &'static str = "ERR_VAL_EMPTY";
+    #[classattr]
+    const ERR_VAL_MISSING_FRONTMATTER: &'static str = "ERR_VAL_MISSING_FRONTMATTER";
+    #[classattr]
+    const ERR_VAL_MISSING_REQUIRED: &'static str = "ERR_VAL_MISSING_REQUIRED";
+    #[classattr]
+    const ERR_VAL_MISSING_NESTED_FIELD: &'static str = "ERR_VAL_MISSING_NESTED_FIELD";
+    #[classattr]
+    const ERR_VAL_SHAPE_MISMATCH: &'static str = "ERR_VAL_SHAPE_MISMATCH";
+    #[classattr]
+    const ERR_VAL_UNDECLARED_TOKEN: &'static str = "ERR_VAL_UNDECLARED_TOKEN";
+    #[classattr]
+    const ERR_VAL_EXTRA_INPUT: &'static str = "ERR_VAL_EXTRA_INPUT";
+    #[classattr]
+    const INFO_VAL_DEFAULT_USED: &'static str = "INFO_VAL_DEFAULT_USED";
+    #[classattr]
+    const ERR_RENDER_STDIN_DOUBLE_READ: &'static str = "ERR_RENDER_STDIN_DOUBLE_READ";
+    #[classattr]
+    const ERR_RENDER_WRITE: &'static str = "ERR_RENDER_WRITE";
+    #[classattr]
+    const ERR_CONFIG_READONLY: &'static str = "ERR_CONFIG_READONLY";
+    #[classattr]
+    const ERR_CONFIG_MODE: &'static str = "ERR_CONFIG_MODE";
+    #[classattr]
+    const ERR_CONFIG_PARSE: &'static str = "ERR_CONFIG_PARSE";
+    #[classattr]
+    const ERR_CONFIG_VARFILE: &'static str = "ERR_CONFIG_VARFILE";
+    #[classattr]
+    const ERR_CONFIG_PACK_NOT_FOUND: &'static str = "ERR_CONFIG_PACK_NOT_FOUND";
+    #[classattr]
+    const ERR_CONFIG_PACK_NOT_RENDERABLE: &'static str = "ERR_CONFIG_PACK_NOT_RENDERABLE";
+    #[classattr]
+    const ERR_CONFIG_TEMPLATE_EXISTS: &'static str = "ERR_CONFIG_TEMPLATE_EXISTS";
+}
+
+pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
+    module.add_class::<PyRuntimeKind>()?;
+    module.add_class::<PyProfileKind>()?;
+    module.add_class::<PyUnknownVariablePolicy>()?;
+    module.add_class::<PyVariableSource>()?;
+    module.add_class::<PyDiagnosticSeverity>()?;
+    module.add_class::<PyDiagnosticCode>()?;
+    Ok(())
+}
+
+pub(crate) fn parse_runtime_kind(value: &Bound<'_, PyAny>) -> PyResult<RuntimeKind> {
+    match value.extract::<String>()?.as_str() {
+        "claude" => Ok(RuntimeKind::Claude),
+        "codex" => Ok(RuntimeKind::Codex),
+        "gemini" => Ok(RuntimeKind::Gemini),
+        "opencode" => Ok(RuntimeKind::Opencode),
+        other => Err(config_error(format!("unknown runtime kind: {other}"), None)),
+    }
+}
+
+pub(crate) fn parse_profile_kind(value: &Bound<'_, PyAny>) -> PyResult<ProfileKind> {
+    match value.extract::<String>()?.as_str() {
+        "agent" => Ok(ProfileKind::Agent),
+        "command" => Ok(ProfileKind::Command),
+        "skill" => Ok(ProfileKind::Skill),
+        other => Err(config_error(format!("unknown profile kind: {other}"), None)),
+    }
+}
+
+pub(crate) fn parse_unknown_variable_policy(value: &str) -> PyResult<UnknownVariablePolicy> {
+    match value {
+        "error" => Ok(UnknownVariablePolicy::Error),
+        "warn" => Ok(UnknownVariablePolicy::Warn),
+        "ignore" => Ok(UnknownVariablePolicy::Ignore),
+        other => Err(config_error(
+            format!("unknown unknown-variable policy: {other}"),
+            None,
+        )),
+    }
+}
+
+pub(crate) const fn runtime_kind_str(value: RuntimeKind) -> &'static str {
+    match value {
+        RuntimeKind::Claude => "claude",
+        RuntimeKind::Codex => "codex",
+        RuntimeKind::Gemini => "gemini",
+        RuntimeKind::Opencode => "opencode",
+    }
+}
+
+pub(crate) const fn profile_kind_str(value: ProfileKind) -> &'static str {
+    match value {
+        ProfileKind::Agent => "agent",
+        ProfileKind::Command => "command",
+        ProfileKind::Skill => "skill",
+    }
+}
+
+pub(crate) const fn unknown_variable_policy_str(value: UnknownVariablePolicy) -> &'static str {
+    match value {
+        UnknownVariablePolicy::Error => "error",
+        UnknownVariablePolicy::Warn => "warn",
+        UnknownVariablePolicy::Ignore => "ignore",
+    }
+}
+
+pub(crate) const fn variable_source_str(value: &VariableSource) -> &'static str {
+    match value {
+        VariableSource::ExplicitInput => "explicit_input",
+        VariableSource::Environment => "environment",
+        VariableSource::Builtin => "builtin",
+        VariableSource::TemplateInputDefault => "template_input_default",
+        VariableSource::FrontmatterDefault => "frontmatter_default",
+        VariableSource::IncludedDefault => "included_default",
+    }
+}
+
+pub(crate) const fn diagnostic_severity_str(value: DiagnosticSeverity) -> &'static str {
+    match value {
+        DiagnosticSeverity::Error => "error",
+        DiagnosticSeverity::Warning => "warning",
+        DiagnosticSeverity::Info => "info",
+    }
+}
