@@ -180,9 +180,13 @@ Why:
 - a first sprint should minimize platform surprises and ship version-specific
   wheels first
 
-The implementation should also avoid the deprecated `extension-module` cargo
-feature. Current PyO3 guidance is to let maturin handle extension-module build
-configuration and keep the crate testable in a Cargo workspace.
+The implementation should not enable `pyo3/extension-module` unconditionally
+by default in `bindings/python/Cargo.toml`, because that would break ordinary
+`cargo build` and `cargo test` usage inside the workspace. Instead, keep the
+crate cargo-testable by gating `pyo3/extension-module` behind a proxy feature
+such as `python-extension = ["pyo3/extension-module"]`, default it off in
+Cargo, and let maturin activate that proxy through its `features` setting in
+`bindings/python/pyproject.toml` when building the extension module.
 
 ## Python Packaging Shape
 
