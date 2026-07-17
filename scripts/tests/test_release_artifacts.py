@@ -212,3 +212,31 @@ def test_release_workflow_rehearsal_mode_avoids_production_side_effects() -> Non
     assert 'echo "Rehearsal mode: validating release tag ${tag} locally only; not pushing any tag to origin"' in text
     assert "echo \"release_ref=$main_sha\" >> \"$GITHUB_OUTPUT\"" in text
     assert "if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}" in text
+
+
+def test_release_workflow_checks_out_repo_before_local_python_setup_action() -> None:
+    text = release_workflow_text()
+
+    wheels_job = """  build-python-wheels:
+    needs: gate-and-tag
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate-and-tag.outputs.release_ref }}
+      - uses: ./.github/actions/setup-python-release-build"""
+    sdist_job = """  build-python-sdist:
+    needs: gate-and-tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate-and-tag.outputs.release_ref }}
+      - uses: ./.github/actions/setup-python-release-build"""
+
+    assert wheels_job in text
+    assert sdist_job in text
