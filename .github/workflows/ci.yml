@@ -141,6 +141,7 @@ jobs:
           python scripts/release_artifacts.py sync-python-version \
             --workspace-toml Cargo.toml \
             --pyproject bindings/python/pyproject.toml
+        shell: bash
 
       - name: Verify Python package version
         run: |
