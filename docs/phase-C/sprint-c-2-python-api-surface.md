@@ -1,7 +1,7 @@
 ---
 id: C.2
 title: Python API Surface
-status: planned
+status: complete
 branch: sprint/c-2-python-api-surface
 worktree: ../sc-compose-worktrees/sprint/c-2-python-api-surface
 ---

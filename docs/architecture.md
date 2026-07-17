@@ -171,7 +171,8 @@ ATM integration is an adapter concern outside this repository.
     in precedence order (explicit > env > frontmatter defaults),
   - tracks variable origin,
   - applies unknown-variable policy,
-  - discovers referenced template tokens,
+  - exposes `discover_tokens(text) -> BTreeSet<VariableName>` for standalone
+    token discovery workflows,
   - distinguishes declared, undeclared, missing, and extra variables.
 - `render`
   - configures the template engine,
@@ -419,6 +420,8 @@ Required library surface:
 - `frontmatter_init(path, options) -> FrontmatterInitResult`
 - `Renderer::render(compiled, context) -> Result<String, RenderError>` as the
   primary repeated-render API
+- `Renderer::with_delimiters(open, close) -> Self` as the only public
+  renderer-customization seam
 - `render_loaded_template(request) -> Result<RenderedArtifact, RenderError>` as
   the runtime-agnostic entry point for callers that already loaded template
   text outside `sc-composer`
@@ -439,7 +442,7 @@ The rendering and composition surfaces have distinct responsibilities.
 
 | Surface | Owns | Does not own |
 | --- | --- | --- |
-| `Renderer` | reusable template-engine environment setup plus inline/named rendering over caller-supplied template text and context | profile resolution, include expansion, variable validation, block assembly, repository bootstrap |
+| `Renderer` | reusable template-engine environment setup plus inline/named rendering over caller-supplied template text and context, including delimiter customization through `with_delimiters(open, close)` | profile resolution, include expansion, variable validation, block assembly, repository bootstrap, arbitrary third-party engine configuration |
 | `compose()` | top-level composition orchestration: resolve, include expansion, validation, built-in context injection, render, and block assembly | direct CLI UX decisions |
 | `render_template()` | one-shot rendering entry point for callers that already have template text and context | profile resolution, repository scanning, include expansion, validation, workspace bootstrap |
 | `validate()` | validation phase only; returns structured diagnostics without writing output | output generation or file writing |

@@ -63,6 +63,26 @@ impl Renderer {
         Self { env }
     }
 
+    /// Create a renderer with non-default variable delimiters.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `open` or `close` are not valid delimiter tokens accepted by
+    /// the underlying template engine.
+    #[must_use]
+    pub fn with_delimiters(open: &str, close: &str) -> Self {
+        let open = open.to_owned();
+        let close = close.to_owned();
+        Self::with_options(|env| {
+            env.set_syntax(
+                minijinja::syntax::SyntaxConfig::builder()
+                    .variable_delimiters(open, close)
+                    .build()
+                    .expect("valid delimiter configuration"),
+            );
+        })
+    }
+
     /// Render a template string with the provided serializable context.
     ///
     /// # Errors

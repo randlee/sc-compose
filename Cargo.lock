@@ -451,6 +451,7 @@ dependencies = [
  "pyo3",
  "sc-composer",
  "serde_json",
+ "serde_yaml",
 ]
 
 [[package]]
