@@ -27,6 +27,10 @@ fn python_string_repr(value: &str) -> String {
     format!("'{}'", value.replace('\\', "\\\\").replace('\'', "\\'"))
 }
 
+fn python_option_string_repr(value: Option<&str>) -> String {
+    value.map_or_else(|| "None".to_owned(), python_string_repr)
+}
+
 #[pyclass(name = "VariableName", skip_from_py_object)]
 #[derive(Clone, Debug)]
 pub(crate) struct PyVariableName {
@@ -348,10 +352,10 @@ impl PyComposeRequest {
 
     fn __repr__(&self) -> String {
         format!(
-            "ComposeRequest(root={:?}, mode={}, runtime={:?}, vars_input={}, vars_env={}, vars_defaults={}, guidance_block={}, user_prompt={}, policy={})",
+            "ComposeRequest(root={:?}, mode={}, runtime={}, vars_input={}, vars_env={}, vars_defaults={}, guidance_block={}, user_prompt={}, policy={})",
             self.root(),
             self.mode().__repr__(),
-            self.runtime().as_deref().map(python_string_repr),
+            python_option_string_repr(self.runtime().as_deref()),
             self.inner.vars_input.len(),
             self.inner.vars_env.len(),
             self.inner.vars_defaults.len(),
