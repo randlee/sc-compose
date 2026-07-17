@@ -67,31 +67,12 @@ The release workflow additions should follow this shape:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.11"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-release-build
         with:
-          ref: ${{ needs.gate-and-tag.outputs.release_tag }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.94.1
-      - name: Install maturin
-        run: python -m pip install maturin==1.9.4
-      - name: Sync Python package version
-        run: |
-          python3 scripts/release_artifacts.py sync-python-version \
-            --workspace-toml Cargo.toml \
-            --pyproject bindings/python/pyproject.toml
-      - name: Verify Python package version
-        run: |
-          python3 scripts/release_artifacts.py verify-python-version \
-            --workspace-toml Cargo.toml \
-            --pyproject bindings/python/pyproject.toml \
-            --version '${{ needs.gate-and-tag.outputs.release_version }}'
+          release_tag: ${{ needs.gate-and-tag.outputs.release_tag }}
+          release_version: ${{ needs.gate-and-tag.outputs.release_version }}
       - name: Build wheels
         run: maturin build --release --manifest-path bindings/python/Cargo.toml --out dist
       - uses: actions/upload-artifact@v4
@@ -103,28 +84,10 @@ The release workflow additions should follow this shape:
     needs: gate-and-tag
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-release-build
         with:
-          ref: ${{ needs.gate-and-tag.outputs.release_tag }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.94.1
-      - name: Install maturin
-        run: python -m pip install maturin==1.9.4
-      - name: Sync Python package version
-        run: |
-          python3 scripts/release_artifacts.py sync-python-version \
-            --workspace-toml Cargo.toml \
-            --pyproject bindings/python/pyproject.toml
-      - name: Verify Python package version
-        run: |
-          python3 scripts/release_artifacts.py verify-python-version \
-            --workspace-toml Cargo.toml \
-            --pyproject bindings/python/pyproject.toml \
-            --version '${{ needs.gate-and-tag.outputs.release_version }}'
+          release_tag: ${{ needs.gate-and-tag.outputs.release_tag }}
+          release_version: ${{ needs.gate-and-tag.outputs.release_version }}
       - name: Build sdist
         run: maturin sdist --manifest-path bindings/python/Cargo.toml --out dist
       - uses: actions/upload-artifact@v4
@@ -212,7 +175,6 @@ by the collection filter:
 -          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} release/ \;
 +          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} release/ \;
 +          find artifacts -type f \( -name '*.zip' -o -name '*.whl' \) -exec mv {} release/ \;
-+          find artifacts/python-sdist -type f -name '*.tar.gz' -exec cp {} release/ \;
            ls -la release/
 
        - name: Generate checksums
@@ -234,8 +196,7 @@ This sample is normative for `D6` in four ways:
   and `publish-pypi` before collecting artifacts and creating the GitHub
   Release
 - the release collector must preserve the pre-existing binary-archive sweep for
-  `*.tar.gz` and `*.zip`, add `*.whl`, and separately copy the single
-  `python-sdist` archive from its dedicated artifact directory
+  `*.tar.gz` and `*.zip`, and add `*.whl` without regressing the tarball path
 - the collection filter must include `*.whl` so wheel files land in `release/`
   beside the existing binary archives and the Python sdist `*.tar.gz`
 - the checksum generation step must include `*.whl` so every wheel attached to
@@ -370,8 +331,6 @@ assert "find artifacts -type f \\( -name '*.tar.gz' -o -name '*.zip' \\) -exec m
     'release artifact collection must preserve the pre-existing tar.gz and zip sweep'
 assert "-name '*.whl'" in text, \
     'release artifact collection must include *.whl files'
-assert "find artifacts/python-sdist -type f -name '*.tar.gz' -exec cp {} release/ \\;" in text, \
-    'release artifact collection must copy the dedicated python-sdist artifact separately'
 assert 'pattern: python-wheels-*' in text, \
     'publish-pypi artifact download must be scoped to python-wheels-*'
 assert 'expected exactly one sdist' in text, \
@@ -380,8 +339,11 @@ assert 'maturin upload --non-interactive dist/*.whl dist/*.tar.gz' in text, \
     'publish-pypi must upload only wheel and sdist files'
 assert 'for pattern in *.tar.gz *.zip *.whl; do' in text, \
     'release checksum generation must include wheel files'
-assert 'verify-python-version' in text and 'sync-python-version' in text, \
-    'release workflow must sync and verify the Python package version before wheel and sdist builds'
+assert 'uses: ./.github/actions/setup-python-release-build' in text, \
+    'release workflow must invoke the shared Python release-build composite action'
+action_text = pathlib.Path('.github/actions/setup-python-release-build/action.yml').read_text()
+assert 'verify-python-version' in action_text and 'sync-python-version' in action_text, \
+    'shared Python release-build action must sync and verify the Python package version before wheel and sdist builds'
 PY`
 - `gh workflow view Release --yaml >/dev/null`
 

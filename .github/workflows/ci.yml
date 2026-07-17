@@ -67,11 +67,17 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Install pytest
+        run: python3 -m pip install pytest
+
       - name: Validate manifest completeness
         run: |
           python3 scripts/release_artifacts.py validate-manifest \
             --manifest release/publish-artifacts.toml \
             --workspace-toml Cargo.toml
+
+      - name: Run manifest validation regression tests
+        run: python3 -m pytest scripts/tests/test_release_artifacts.py
 
       - name: Validate publish_order dependency graph
         run: bash scripts/ci/validate_publish_order.sh

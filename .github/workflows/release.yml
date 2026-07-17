@@ -215,31 +215,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.11"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-release-build
         with:
-          ref: ${{ needs.gate-and-tag.outputs.release_tag }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.94.1
-      - name: Install maturin
-        run: python -m pip install maturin==1.9.4
-      - name: Sync Python package version
-        run: |
-          python3 scripts/release_artifacts.py sync-python-version \
-            --workspace-toml Cargo.toml \
-            --pyproject bindings/python/pyproject.toml
-      - name: Verify Python package version
-        run: |
-          python3 scripts/release_artifacts.py verify-python-version \
-            --workspace-toml Cargo.toml \
-            --pyproject bindings/python/pyproject.toml \
-            --version '${{ needs.gate-and-tag.outputs.release_version }}'
+          release_tag: ${{ needs.gate-and-tag.outputs.release_tag }}
+          release_version: ${{ needs.gate-and-tag.outputs.release_version }}
       - name: Build wheels
         run: maturin build --release --manifest-path bindings/python/Cargo.toml --out dist
       - uses: actions/upload-artifact@v4
@@ -251,28 +232,10 @@ jobs:
     needs: gate-and-tag
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-release-build
         with:
-          ref: ${{ needs.gate-and-tag.outputs.release_tag }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.94.1
-      - name: Install maturin
-        run: python -m pip install maturin==1.9.4
-      - name: Sync Python package version
-        run: |
-          python3 scripts/release_artifacts.py sync-python-version \
-            --workspace-toml Cargo.toml \
-            --pyproject bindings/python/pyproject.toml
-      - name: Verify Python package version
-        run: |
-          python3 scripts/release_artifacts.py verify-python-version \
-            --workspace-toml Cargo.toml \
-            --pyproject bindings/python/pyproject.toml \
-            --version '${{ needs.gate-and-tag.outputs.release_version }}'
+          release_tag: ${{ needs.gate-and-tag.outputs.release_tag }}
+          release_version: ${{ needs.gate-and-tag.outputs.release_version }}
       - name: Build sdist
         run: maturin sdist --manifest-path bindings/python/Cargo.toml --out dist
       - uses: actions/upload-artifact@v4
@@ -333,7 +296,6 @@ jobs:
           mkdir -p release
           find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} release/ \;
           find artifacts -type f \( -name '*.zip' -o -name '*.whl' \) -exec mv {} release/ \;
-          find artifacts/python-sdist -type f -name '*.tar.gz' -exec cp {} release/ \;
           ls -la release/
 
       - name: Generate checksums
