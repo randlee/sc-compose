@@ -40,6 +40,30 @@ cargo build --release -p sc-compose
 ./target/release/sc-compose --help
 ```
 
+### Python bindings (PyPI)
+
+The composition engine is also published as a native extension module for
+Python 3.11+:
+
+```bash
+pip install sc-compose
+```
+
+```python
+from sc_compose import Renderer, compose, render_template
+
+result = render_template("Hello {{ name }}", {"name": "world"})
+```
+
+Wheels are built with [maturin](https://www.maturin.rs/) from
+`bindings/python`. Pre-release builds are published to
+[TestPyPI](https://test.pypi.org/project/sc-compose/) for rehearsal before
+each production release:
+
+```bash
+pip install -i https://test.pypi.org/simple/ sc-compose
+```
+
 ---
 
 ## Common commands

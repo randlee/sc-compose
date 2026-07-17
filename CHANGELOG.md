@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-07-17
+
+### Added
+
+- Phase C (C.1 through C.3): Python bindings for sc-compose composition APIs,
+  published as the `sc-compose` package on PyPI/TestPyPI.
+  - Sprint C.1: maturin-based `bindings/python` crate foundation, PyO3
+    extension module scaffolding, and Python packaging shape.
+  - Sprint C.2: the Python API surface — `Renderer`, `ComposeRequest`,
+    `ComposeResult`, `Frontmatter`/`ParsedTemplate`, resolver and validation
+    types, and the `compose`/`render_template`/`resolve_profile`/`validate`
+    module-level functions.
+  - Sprint C.3: the release train and packaging hardening — `workflow_dispatch`
+    release workflow with staged TestPyPI rehearsal and production PyPI
+    publish targets, release-gate enforcement, and GitHub Release attachment
+    handling.
+
+### Fixed
+
+- Issue #117: `__repr__` on PyO3 pyclass types (e.g. `ComposeRequest`) now
+  routes correctly and produces an informative repr instead of the default
+  opaque object repr.
+
+### Changed
+
+- Workspace version bump: `1.1.0` -> `1.2.0`.
+
 ## [1.1.0] - 2026-05-26 (updated 2026-07-15)
 
 ### Added
