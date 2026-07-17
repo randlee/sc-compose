@@ -10,7 +10,7 @@ import sc_compose
 
 def write(path: Path, contents: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(textwrap.dedent(contents), encoding="utf-8")
+    path.write_text(textwrap.dedent(contents), encoding="utf-8", newline="\n")
 
 
 def make_file_request(root: Path, name: str, **kwargs: object) -> sc_compose.ComposeRequest:
