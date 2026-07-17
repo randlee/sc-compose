@@ -31,6 +31,10 @@ fn python_option_string_repr(value: Option<&str>) -> String {
     value.map_or_else(|| "None".to_owned(), python_string_repr)
 }
 
+fn python_bool_repr(value: bool) -> &'static str {
+    if value { "True" } else { "False" }
+}
+
 #[pyclass(name = "VariableName", skip_from_py_object)]
 #[derive(Clone, Debug)]
 pub(crate) struct PyVariableName {
@@ -265,7 +269,7 @@ impl PyComposePolicy {
     fn __repr__(&self) -> String {
         format!(
             "ComposePolicy(strict_undeclared_variables={}, unknown_variable_policy={}, max_include_depth={}, allowed_roots={:?}, resolver_policy={})",
-            self.inner.strict_undeclared_variables,
+            python_bool_repr(self.inner.strict_undeclared_variables),
             python_string_repr(unknown_variable_policy_str(
                 self.inner.unknown_variable_policy
             )),
@@ -359,8 +363,8 @@ impl PyComposeRequest {
             self.inner.vars_input.len(),
             self.inner.vars_env.len(),
             self.inner.vars_defaults.len(),
-            self.inner.guidance_block.is_some(),
-            self.inner.user_prompt.is_some(),
+            python_bool_repr(self.inner.guidance_block.is_some()),
+            python_bool_repr(self.inner.user_prompt.is_some()),
             self.policy().__repr__()
         )
     }
