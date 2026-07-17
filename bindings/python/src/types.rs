@@ -421,6 +421,67 @@ impl PyDiagnostic {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use sc_composer::{ProfileKind, ProfileName};
+
+    use super::*;
+
+    #[test]
+    fn python_repr_helpers_match_python_style_output() {
+        assert_eq!(python_string_repr("claude"), "'claude'");
+        assert_eq!(python_option_string_repr(Some("claude")), "'claude'");
+        assert_eq!(python_option_string_repr(None), "None");
+        assert_eq!(python_bool_repr(true), "True");
+        assert_eq!(python_bool_repr(false), "False");
+    }
+
+    #[test]
+    fn compose_wrappers_emit_informative_repr_strings() {
+        let mode = PyComposeMode {
+            inner: ComposeMode::Profile {
+                kind: ProfileKind::Agent,
+                name: ProfileName::new("reviewer").unwrap(),
+            },
+        };
+        let policy = PyComposePolicy {
+            inner: ComposePolicy {
+                strict_undeclared_variables: true,
+                ..ComposePolicy::default()
+            },
+        };
+        let request = PyComposeRequest {
+            inner: ComposeRequest {
+                runtime: Some(sc_composer::RuntimeKind::Claude),
+                mode: mode.inner.clone(),
+                root: ConfiningRoot::new(std::env::temp_dir()).unwrap(),
+                vars_input: BTreeMap::from([(
+                    VariableName::new("name").unwrap(),
+                    serde_json::json!("world"),
+                )]),
+                vars_env: BTreeMap::new(),
+                vars_defaults: BTreeMap::new(),
+                guidance_block: Some("use the guide".to_owned()),
+                user_prompt: Some("render this".to_owned()),
+                policy: policy.inner.clone(),
+            },
+        };
+
+        assert_eq!(
+            mode.__repr__(),
+            "ComposeMode.profile(kind='agent', name='reviewer')"
+        );
+        assert!(
+            policy
+                .__repr__()
+                .contains("unknown_variable_policy='ignore'")
+        );
+        assert!(request.__repr__().contains("runtime='claude'"));
+        assert!(request.__repr__().contains("guidance_block=True"));
+        assert!(request.__repr__().contains("user_prompt=True"));
+    }
+}
+
 #[pyclass(name = "ResolveResult", skip_from_py_object)]
 #[derive(Clone, Debug)]
 pub(crate) struct PyResolveResult {

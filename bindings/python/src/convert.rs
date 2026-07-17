@@ -206,3 +206,57 @@ pub(crate) fn py_to_json_value(value: &Bound<'_, PyAny>) -> PyResult<serde_json:
         None,
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn py_value_round_trips_nested_json_shapes() {
+        Python::initialize();
+        Python::attach(|py| {
+            let dict = PyDict::new(py);
+            dict.set_item("flag", true).unwrap();
+            dict.set_item("items", vec!["a", "b"]).unwrap();
+
+            let nested = PyDict::new(py);
+            nested.set_item("count", 3).unwrap();
+            dict.set_item("nested", nested).unwrap();
+
+            let json = py_to_json_value(dict.as_any()).unwrap();
+            assert_eq!(
+                json,
+                serde_json::json!({
+                    "flag": true,
+                    "items": ["a", "b"],
+                    "nested": {"count": 3},
+                })
+            );
+
+            let roundtrip = py_to_json_value(json_to_py(py, &json).unwrap().bind(py)).unwrap();
+            assert_eq!(roundtrip, json);
+        });
+    }
+
+    #[test]
+    fn extract_var_map_rejects_invalid_variable_names() {
+        Python::initialize();
+        Python::attach(|py| {
+            let dict = PyDict::new(py);
+            dict.set_item("", "value").unwrap();
+
+            let err = extract_var_map(Some(dict.as_any())).unwrap_err();
+            let exc = err.value(py);
+            let message = exc.getattr("message").unwrap().extract::<String>().unwrap();
+            let code = exc
+                .getattr("code")
+                .unwrap()
+                .extract::<Option<String>>()
+                .unwrap();
+
+            assert_eq!(exc.get_type().name().unwrap(), "ScValidationError");
+            assert!(message.contains("invalid variable name ``"));
+            assert_eq!(code, None);
+        });
+    }
+}

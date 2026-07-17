@@ -27,6 +27,8 @@ exercised through a staged execution.
 
 ## Hard Dependencies
 
+- [docs/phase-C/README.md](./README.md)
+- [docs/phase-C/maturin-bindings-investigation.md](./maturin-bindings-investigation.md)
 - [docs/phase-C/sprint-c-2-python-api-surface.md](./sprint-c-2-python-api-surface.md)
 - [docs/architecture.md](../architecture.md)
 - [docs/publishing.md](../publishing.md)
@@ -174,7 +176,7 @@ by the collection filter:
           mkdir -p release
 -          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} release/ \;
 +          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} release/ \;
-+          find artifacts -type f \( -name '*.zip' -o -name '*.whl' \) -exec mv {} release/ \;
++          find artifacts -type f -name '*.whl' -exec mv {} release/ \;
            ls -la release/
 
        - name: Generate checksums
@@ -329,8 +331,8 @@ assert 'environment: pypi' in text, \
     'publish-pypi must run in the protected pypi environment'
 assert "find artifacts -type f \\( -name '*.tar.gz' -o -name '*.zip' \\) -exec mv {} release/ \\;" in text, \
     'release artifact collection must preserve the pre-existing tar.gz and zip sweep'
-assert "-name '*.whl'" in text, \
-    'release artifact collection must include *.whl files'
+assert "find artifacts -type f -name '*.whl' -exec mv {} release/ \\;" in text, \
+    'release artifact collection must include a dedicated wheel sweep without a redundant zip match'
 assert 'pattern: python-wheels-*' in text, \
     'publish-pypi artifact download must be scoped to python-wheels-*'
 assert 'expected exactly one sdist' in text, \

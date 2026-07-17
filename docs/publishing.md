@@ -18,7 +18,7 @@ releases of these crate names now come from this repo instead.
 - Release workflows verify that the requested release version matches:
   - workspace version
   - each crate package version
-- The planned Phase C Python release channel must also sync
+- The Phase C Python release channel must also sync
   `bindings/python/pyproject.toml` from the workspace version immediately
   before wheel or sdist builds and then fail release if
   `verify-python-version` detects drift.
@@ -118,7 +118,7 @@ The standalone release path covers:
 - GitHub Release archives for Linux, macOS, and Windows
 - Homebrew formula updates in `randlee/homebrew-tap`
 - `winget` publication for package id `randlee.sc-compose`
-- planned Phase C PyPI publication for package `sc-compose`
+- PyPI publication for package `sc-compose`
 
 Python release-train rule:
 

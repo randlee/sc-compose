@@ -17,7 +17,7 @@ The release surface is:
 - `winget`:
   - package id `randlee.sc-compose`
 - PyPI:
-  - planned Phase C package `sc-compose`
+  - package `sc-compose`
 
 ## Hard Rules
 

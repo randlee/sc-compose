@@ -224,3 +224,51 @@ pub(crate) const fn diagnostic_severity_str(value: DiagnosticSeverity) -> &'stat
         DiagnosticSeverity::Info => "info",
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn runtime_and_profile_kinds_round_trip() {
+        Python::initialize();
+        Python::attach(|py| {
+            let runtime = "claude".into_pyobject(py).unwrap();
+            let profile = "agent".into_pyobject(py).unwrap();
+
+            assert_eq!(
+                parse_runtime_kind(runtime.as_any()).unwrap(),
+                RuntimeKind::Claude
+            );
+            assert_eq!(
+                parse_profile_kind(profile.as_any()).unwrap(),
+                ProfileKind::Agent
+            );
+        });
+
+        assert_eq!(runtime_kind_str(RuntimeKind::Codex), "codex");
+        assert_eq!(profile_kind_str(ProfileKind::Skill), "skill");
+        assert_eq!(
+            unknown_variable_policy_str(UnknownVariablePolicy::Warn),
+            "warn"
+        );
+        assert_eq!(diagnostic_severity_str(DiagnosticSeverity::Info), "info");
+        assert_eq!(
+            variable_source_str(&VariableSource::TemplateInputDefault),
+            "template_input_default"
+        );
+    }
+
+    #[test]
+    fn invalid_unknown_variable_policy_maps_to_config_error() {
+        Python::initialize();
+        Python::attach(|py| {
+            let err = parse_unknown_variable_policy("bogus").unwrap_err();
+            let exc = err.value(py);
+            let message = exc.getattr("message").unwrap().extract::<String>().unwrap();
+
+            assert_eq!(exc.get_type().name().unwrap(), "ScConfigError");
+            assert!(message.contains("unknown unknown-variable policy: bogus"));
+        });
+    }
+}
