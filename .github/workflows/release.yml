@@ -331,6 +331,7 @@ jobs:
       - name: Collect archives
         run: |
           mkdir -p release
+          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} release/ \;
           find artifacts -type f \( -name '*.zip' -o -name '*.whl' \) -exec mv {} release/ \;
           find artifacts/python-sdist -type f -name '*.tar.gz' -exec cp {} release/ \;
           ls -la release/
