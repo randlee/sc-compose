@@ -339,8 +339,11 @@ assert 'maturin upload --non-interactive dist/*.whl dist/*.tar.gz' in text, \
     'publish-pypi must upload only wheel and sdist files'
 assert 'for pattern in *.tar.gz *.zip *.whl; do' in text, \
     'release checksum generation must include wheel files'
-assert 'verify-python-version' in text and 'sync-python-version' in text, \
-    'release workflow must sync and verify the Python package version before wheel and sdist builds'
+assert 'uses: ./.github/actions/setup-python-release-build' in text, \
+    'release workflow must invoke the shared Python release-build composite action'
+action_text = pathlib.Path('.github/actions/setup-python-release-build/action.yml').read_text()
+assert 'verify-python-version' in action_text and 'sync-python-version' in action_text, \
+    'shared Python release-build action must sync and verify the Python package version before wheel and sdist builds'
 PY`
 - `gh workflow view Release --yaml >/dev/null`
 
