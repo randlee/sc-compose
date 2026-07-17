@@ -1,0 +1,32 @@
+[build-system]
+requires = ["maturin>=1.9.4,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "sc-compose"
+version = "1.2.0"
+description = "Python bindings for sc-compose composition APIs"
+readme = "../../README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Randlee" }]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Rust",
+]
+
+[project.urls]
+Repository = "https://github.com/randlee/sc-compose"
+Homepage = "https://github.com/randlee/sc-compose"
+
+[tool.maturin]
+python-source = "python"
+module-name = "sc_compose._native"
+features = ["python-extension"]
+include = [
+  { path = "python/sc_compose/_native.pyi", format = ["sdist", "wheel"] },
+  { path = "python/sc_compose/py.typed", format = ["sdist", "wheel"] },
+]

@@ -1,0 +1,29 @@
+[package]
+name = "sc-compose-py"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Python bindings for standalone template composition."
+readme = "../../README.md"
+keywords = ["python", "template", "compose", "bindings"]
+categories = ["api-bindings", "development-tools"]
+
+[features]
+default = []
+python-extension = ["pyo3/extension-module"]
+
+[lib]
+name = "sc_compose_native"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3 = "0.29"
+sc-composer = { path = "../../crates/sc-composer", version = "1.1.0" }
+serde_json = "1"
+serde_yaml.workspace = true
+
+[lints]
+workspace = true

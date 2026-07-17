@@ -1,7 +1,7 @@
 ---
 id: C.2
 title: Python API Surface
-status: planned
+status: complete
 branch: sprint/c-2-python-api-surface
 worktree: ../sc-compose-worktrees/sprint/c-2-python-api-surface
 ---
@@ -255,6 +255,10 @@ their Rust definitions. `X | None` denotes an optional field.
 | `ResolveResult` | `resolved_path` | `str` |
 | | `attempted_paths` | `list[str]` |
 | | `ambiguity_candidates` | `list[str]` |
+
+This `list[Diagnostic]` `warnings` shape is intentional for C.2 and replaced
+the earlier C.1 plain-string warnings list to preserve structured diagnostic
+metadata for Python callers.
 
 Plain enums (member names are `UPPER_SNAKE_CASE` in Python, values are the
 lowercase/snake_case Rust `serde` wire form):
