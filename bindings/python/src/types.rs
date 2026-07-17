@@ -23,6 +23,10 @@ use crate::errors::{
     compose_error_to_pyerr, config_error, render_error_to_pyerr, validation_error,
 };
 
+fn python_string_repr(value: &str) -> String {
+    format!("'{}'", value.replace('\\', "\\\\").replace('\'', "\\'"))
+}
+
 #[pyclass(name = "VariableName", skip_from_py_object)]
 #[derive(Clone, Debug)]
 pub(crate) struct PyVariableName {
@@ -188,9 +192,9 @@ impl PyComposeMode {
                 )
             }
             ComposeMode::Profile { kind, name } => format!(
-                "ComposeMode.profile(kind={:?}, name={:?})",
-                profile_kind_str(*kind),
-                name.as_str()
+                "ComposeMode.profile(kind={}, name={})",
+                python_string_repr(profile_kind_str(*kind)),
+                python_string_repr(name.as_str())
             ),
         }
     }
@@ -256,9 +260,11 @@ impl PyComposePolicy {
 
     fn __repr__(&self) -> String {
         format!(
-            "ComposePolicy(strict_undeclared_variables={}, unknown_variable_policy={:?}, max_include_depth={}, allowed_roots={:?}, resolver_policy={})",
+            "ComposePolicy(strict_undeclared_variables={}, unknown_variable_policy={}, max_include_depth={}, allowed_roots={:?}, resolver_policy={})",
             self.inner.strict_undeclared_variables,
-            unknown_variable_policy_str(self.inner.unknown_variable_policy),
+            python_string_repr(unknown_variable_policy_str(
+                self.inner.unknown_variable_policy
+            )),
             self.inner.max_include_depth.get(),
             self.allowed_roots(),
             PyResolverPolicy {
@@ -345,7 +351,7 @@ impl PyComposeRequest {
             "ComposeRequest(root={:?}, mode={}, runtime={:?}, vars_input={}, vars_env={}, vars_defaults={}, guidance_block={}, user_prompt={}, policy={})",
             self.root(),
             self.mode().__repr__(),
-            self.runtime(),
+            self.runtime().as_deref().map(python_string_repr),
             self.inner.vars_input.len(),
             self.inner.vars_env.len(),
             self.inner.vars_defaults.len(),
