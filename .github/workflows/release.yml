@@ -243,6 +243,9 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate-and-tag.outputs.release_ref }}
       - uses: ./.github/actions/setup-python-release-build
         with:
           release_ref: ${{ needs.gate-and-tag.outputs.release_ref }}
@@ -258,6 +261,9 @@ jobs:
     needs: gate-and-tag
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate-and-tag.outputs.release_ref }}
       - uses: ./.github/actions/setup-python-release-build
         with:
           release_ref: ${{ needs.gate-and-tag.outputs.release_ref }}
