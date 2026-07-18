@@ -361,6 +361,27 @@ adapter package that depends on `sc-composer` while keeping `sc-composer` a
 pure Rust library and keeping reporting plus observability APIs out of the
 initial Python scope.
 
+### Phase D Sprint Plans
+
+Status:
+
+- planned follow-on multi-pass template rendering after the shipped Phase C
+  Python bindings (v1.2.0)
+
+Sprint entries:
+
+- [Sprint D.1 — Multi-Pass Library Foundation](phase-D/sprint-d-1-library-foundation.md)
+- [Sprint D.2 — Multi-Pass Composition Pipeline](phase-D/sprint-d-2-composition-pipeline.md)
+- [Sprint D.3 — Multi-Pass CLI Surface](phase-D/sprint-d-3-cli-surface.md)
+- [Sprint D.4 — template-init + verify](phase-D/sprint-d-4-template-init-verify.md)
+- [Phase D README](phase-D/README.md)
+
+These sprint plans define the first implementation path for multi-pass
+stacked-header template rendering in `sc-composer` and `sc-compose`,
+closing 10 of the 11 gaps identified in the prototype gap analysis
+(prototype/multipass/docs/gaps.md). GAP-4 (Renderer::with_delimiters)
+was already closed by Phase C.2.
+
 ### Phase B Cleanup Sprint Plans
 
 Status:
