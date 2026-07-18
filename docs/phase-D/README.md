@@ -62,15 +62,20 @@ Covered by the 6 user stories in
 D.1 (library foundation)
  ├─► D.2 (composition pipeline)
  │    ├─► D.3 (CLI surface)
- │    └─► D.4 (template-init + verify)
+ │    │    └─► D.4 (template-init + verify)
+ │    └─► D.4 (also depends on D.2 for render_all)
  └─► (D.3 and D.4 also depend on D.1 types)
 ```
 
 D.1 must ship first — every other sprint depends on the stacked-header types
 and brace-count-aware validation. D.2 ships second — the multi-pass compose
-loop is required before any CLI surface can be built. D.3 and D.4 can proceed
-in parallel once D.2 ships, but D.4 also depends on D.3 for the `--pass N`
-CLI arg infrastructure.
+loop is required before any CLI surface can be built. D.3 ships third —
+providing the `--pass N` CLI arg infrastructure that D.4 depends on. D.4
+(template-init + verify) ships last, reusing D.3's per-pass variable
+arguments and D.2's `render_all` entry point.
+
+**Note:** D.4 depends on D.3 for `--pass N` CLI arg infrastructure; they
+cannot proceed in parallel despite sharing D.2 as a common dependency.
 
 ## Fixed Product Decisions
 
@@ -113,6 +118,31 @@ baseline:
 - [sprint-d-2-composition-pipeline.md](./sprint-d-2-composition-pipeline.md)
 - [sprint-d-3-cli-surface.md](./sprint-d-3-cli-surface.md)
 - [sprint-d-4-template-init-verify.md](./sprint-d-4-template-init-verify.md)
+
+## Architecture Documentation Gap
+
+**Note:** `docs/architecture.md` has no coverage of multi-pass stacked-header
+template rendering. The architecture doc should be updated with:
+
+- Multi-pass rendering loop design and pass ordering (outer-to-inner)
+- Brace-count-aware delimiter discrimination semantics
+- `protect_higher_braces` mechanism and `{% raw %}` interaction constraints
+- `verify` drift-check boundary between `sc-composer` (library) and `sc-compose` (CLI)
+- `template-init` conversion algorithm and output contract
+- New `types.rs` and `verify.rs` modules in `sc-composer` (Section 4 Module Architecture)
+- `ComposePolicy.passes: Vec<PassConfig>` field (Section 8.2)
+- Updated `ParsedTemplate` shape: `passes: Vec<Frontmatter>` (Section 8)
+
+Additionally, the 7 Fixed Product Decisions below (DD-001 through DD-007) are
+significant architectural choices that lack formal ADR records. The repo has
+only ADR-0001 (observability health). Until architecture.md is updated to cover
+multi-pass, the sprint plans serve as the interim architectural record.
+Implementers should treat the sprint docs' code samples and decision rationale
+as the build-time reference.
+
+This is tracked as a pre-implementation requirement — D.1 implementers need
+the architecture decisions documented before coding the `split_frontmatter()`
+rewrite.
 
 ## Follow-On Sprints (not yet drafted)
 

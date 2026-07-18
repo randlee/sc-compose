@@ -187,8 +187,8 @@ fn build_multi_pass_request(
 - `AC4` for `D4`
   - All new CLI paths covered by integration tests
   - Backward compat: existing CLI tests pass unchanged
-  - Error messages are clear for: missing `--pass N` vars, invalid brace count,
-    `--all` with no stacked headers
+  - Error handling produces non-empty stderr for: missing `--pass N` vars,
+    invalid brace count (< 2), `--all` with no stacked headers
 - `AC5` backward compat guard
   - `sc-compose render template.j2 --var name=world` works identically
   - `sc-compose validate template.j2` works identically

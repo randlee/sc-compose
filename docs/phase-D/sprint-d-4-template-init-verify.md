@@ -19,6 +19,16 @@ target: develop
 Builds on D.1 (library types), D.2 (composition pipeline), and D.3 (CLI arg
 infrastructure for `--pass N`).
 
+**Split-risk mitigation:** This sprint packages two distinct features (verify +
+template-init). The risk is bounded: both features share the D.2
+render-path infrastructure, the prototype
+(`prototype/multipass/template_init.py` + `prototype/multipass/verify.py`)
+provides a validated reference implementation, and the longest-match-first
+logic in template-init has been proven in the prototype test suite. If either
+feature hits unexpected complexity during implementation, the sprint should
+be split into D.4 (verify) and D.5 (template-init) before development
+continues.
+
 ## Hard Dependencies
 
 - [Sprint D.1 — Multi-Pass Library Foundation](sprint-d-1-library-foundation.md)
@@ -37,6 +47,7 @@ infrastructure for `--pass N`).
 - `crates/sc-composer/src/verify.rs` — NEW: verify library entry point
 - `crates/sc-composer/src/lib.rs` — re-export verify
 - `crates/sc-composer/src/types.rs` — `VerifyResult` type
+- `crates/sc-composer/Cargo.toml` — add `similar` dependency for diff output
 - `crates/sc-compose/src/commands/verify.rs` — NEW: verify CLI command
 - `crates/sc-compose/src/commands/template_init.rs` — extended: multi-pass support
 - `crates/sc-compose/src/cli.rs` — verify subcommand, template-init args

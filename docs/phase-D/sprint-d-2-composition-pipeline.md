@@ -32,7 +32,7 @@ is deferred to [D.3](sprint-d-3-cli-surface.md).
 
 - `crates/sc-composer/src/composer.rs` — multi-pass compose loop
 - `crates/sc-composer/src/renderer.rs` — verify `with_delimiters` public API (no changes needed)
-- `crates/sc-composer/src/lib.rs` — re-export `render_all` if added
+- `crates/sc-composer/src/lib.rs` — re-export `render_all`, `protect_higher_braces`
 - `crates/sc-composer/tests/` — new or extended integration tests
 - `docs/phase-D/sprint-d-2-composition-pipeline.md` — this document
 
@@ -90,6 +90,7 @@ silently dropped or partially deferred.
 - Write integration tests
 - Verify `cargo test --workspace` passes with zero regressions
 - Verify single-header templates produce identical output
+- Update `lib.rs` re-exports for `render_all` and `protect_higher_braces`
 
 ## Explicit Code Samples
 

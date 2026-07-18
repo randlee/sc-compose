@@ -194,13 +194,13 @@ pub struct PassConfig {
 - `AC1` for `D1`
   - `parse_template_document("hello world")` → `ParsedTemplate { passes: [], body: "hello world" }`
   - `parse_template_document("---\npass: 2\n---\nbody")` → `passes[0].pass_number == 2`
-  - `parse_template_document("---\n---\n---\n---\nbody")` → `passes.len() == 2`
+  - `parse_template_document("---\n---\n---\n---\nbody")` → `passes.len() == 2`, both `passes[0].pass_number == 1`, `passes[1].pass_number == 1`
   - `parse_template_document("---\n...\n---\n...\nbody")` → `passes.len() == 2`
 - `AC2` for `D2`
-  - `discover_tokens("{{ a }}", 2)` returns `{"a"}`
-  - `discover_tokens("{{{ a }}}", 3)` returns `{"a"}`
-  - `discover_tokens("{{{ outer }}} {{ inner }}", 3)` returns `{"outer"}` (NOT `inner`)
-  - `discover_tokens("{{ a }}", 3)` returns `{}` (double-brace NOT matched by triple-brace scan)
+  - `discover_tokens_with_brace_count("{{ a }}", 2)` returns `{"a"}`
+  - `discover_tokens_with_brace_count("{{{ a }}}", 3)` returns `{"a"}`
+  - `discover_tokens_with_brace_count("{{{ outer }}} {{ inner }}", 3)` returns `{"outer"}` (NOT `inner`)
+  - `discover_tokens_with_brace_count("{{ a }}", 3)` returns `{}` (double-brace NOT matched by triple-brace scan)
   - `discover_all_pass_tokens(parsed)` returns `{pass_number → set of var names}`
   - `discover_tokens()` without brace_count still works (backward compat)
 - `AC3` for `D3`
@@ -211,9 +211,14 @@ pub struct PassConfig {
   - All new behavior covered by unit tests
   - Existing single-header tests pass unchanged
 - `AC5` backward compat guard
-  - No breaking changes to `parse_template_document` return type for downstream
-    code using `.frontmatter()` — deprecation path considered but existing
-    method preserved with doc-comment migration note
+  - **Breaking change:** `ParsedTemplate` struct field changes from
+    `frontmatter: Option<Frontmatter>` to `passes: Vec<Frontmatter>`.
+    Direct field access (`parsed.frontmatter`) will break. A deprecated
+    `pub fn frontmatter(&self) -> Option<&Frontmatter>` accessor method
+    returns `passes.first()` and emits a deprecation warning at compile
+    time via `#[deprecated(since = "1.3.0", note = "use .passes instead")]`.
+    Migration path: `parsed.frontmatter` → `parsed.frontmatter()` or
+    `parsed.passes.first()`.
   - `Renderer` API unchanged
   - `ComposeRequest` default behavior unchanged
 
