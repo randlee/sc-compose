@@ -7,7 +7,7 @@ rust-version.workspace = true
 repository.workspace = true
 homepage.workspace = true
 description = "Python bindings for standalone template composition."
-readme = "../../README.md"
+readme = "README.md"
 keywords = ["python", "template", "compose", "bindings"]
 categories = ["api-bindings", "development-tools"]
 
