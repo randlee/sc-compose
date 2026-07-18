@@ -75,7 +75,8 @@ silently dropped or partially deferred.
   - 3-pass template: deploy → install → invocation
   - Single-pass backward compat: identical output to current behavior
   - Observer event coverage: each pass emits start/end events
-  - Edge cases: empty passes list, pass_number mismatch between header and context
+  - Edge cases: empty passes list, pass_number mismatch between header and context,
+    duplicate pass numbers (two passes with same pass_number → error)
   - Defaults merging: provided variables override header defaults
   - Higher-brace protection: `{{{ }}}` in pass 1 body renders as literal text
 

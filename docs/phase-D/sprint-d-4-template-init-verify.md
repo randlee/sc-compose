@@ -111,6 +111,9 @@ silently dropped or partially deferred.
 - Parse template with `parse_template_document()`, render with `render_all()`
 - Read deployed file, compute unified diff
 - Re-export from `lib.rs`
+- Emit `verify-start` and `verify-end` events via `CompositionObserver`
+  (new trait methods `emit_verify_start()`/`emit_verify_end()` with default
+  no-op impls added to the trait in D.1 alongside pass lifecycle events)
 - Create `crates/sc-compose/src/commands/verify.rs`
 - Add `verify` subcommand to `cli.rs`
 - Wire per-pass vars from D.3's `--pass N` CLI infrastructure
@@ -157,6 +160,7 @@ pub fn verify(
 ### template-init multi-pass (GAP-8)
 
 ```rust
+// In sc-compose/src/commands/template_init.rs (CLI crate)
 /// Convert a concrete file into a multi-pass stacked template.
 pub fn template_init(
     file_path: impl AsRef<Path>,

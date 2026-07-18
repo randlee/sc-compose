@@ -53,8 +53,9 @@ silently dropped or partially deferred.
   - Passes render in outer-to-inner order (highest pass number first)
   - Single-pass templates without `--all` render identically to current behavior
   - `validate` command gains `--all` flag for multi-pass validation
-  - Error if `--all` used but template has no stacked headers (single pass is
-    fine — just warn or no-op)
+  - If `--all` is used on a template with no stacked headers: emit a warning
+    (via logger) and proceed with single-pass rendering — this is valid input,
+    not an error
 
 - `D2` — `--variable-delimiters` flag (GAP-10)
   - `--variable-delimiters "<open> <close>"` or `--brace-count N` on `render`
@@ -67,6 +68,7 @@ silently dropped or partially deferred.
 - `D3` — Re-exports (GAP-11)
   - `sc_composer::lib.rs` re-exports `PassConfig`, updated `ParsedTemplate`,
     `discover_tokens_with_brace_count`, `discover_all_pass_tokens`, `render_all`
+    (builds on D.1's re-exports; D.1 ships first, no merge conflict)
   - `sc_compose` CLI imports updated to use new re-exports
   - Downstream consumers can access multi-pass types through one public API
 

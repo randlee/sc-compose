@@ -33,6 +33,7 @@ backward compat is verified but multi-pass composition (GAP-3) is deferred to
 - `crates/sc-composer/src/frontmatter.rs` — stacked header parsing, `ParsedTemplate` type change
 - `crates/sc-composer/src/validation.rs` — brace-count-aware `discover_tokens`, `next_delimiter`
 - `crates/sc-composer/src/types.rs` — `PassConfig` struct, `ComposePolicy` extension
+- `crates/sc-composer/src/observer.rs` — add `emit_pass_start()`, `emit_pass_end()` trait methods
 - `crates/sc-composer/src/lib.rs` — re-exports
 - `crates/sc-composer/Cargo.toml` — no dependency changes expected
 - `docs/phase-D/sprint-d-1-library-foundation.md` — this document
@@ -100,6 +101,12 @@ silently dropped or partially deferred.
 - Extend `next_delimiter()` with brace_count parameter
 - Add exact-match guard in delimiter scanning
 - Update all internal callers of `parsed.frontmatter` → `parsed.passes`
+- Extend `CompositionObserver` trait in `observer.rs`:
+  `fn emit_pass_start(&mut self, pass_number: u8)`,
+  `fn emit_pass_end(&mut self, pass_number: u8)`,
+  `fn emit_verify_start(&mut self)`, and
+  `fn emit_verify_end(&mut self, result: &VerifyResult)`
+  — all with default no-op impls
 - Update `lib.rs` re-exports
 - Write unit tests for all new behavior
 - Verify existing `cargo test` passes
