@@ -215,6 +215,33 @@ def cmd_sync_python_version(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_verify_readme_version(args: argparse.Namespace) -> int:
+    version = workspace_version(Path(args.workspace_toml))
+    minor_version = version.rsplit(".", 1)[0]
+    readme = Path(args.readme)
+    text = readme.read_text(encoding="utf-8")
+
+    checks = (
+        ("sc-composer dependency example", rf'sc-composer\s*=\s*"([^"]+)"'),
+        ("Status table Version row", rf'\|\s*Version\s*\|\s*([^\s|]+)\s*\|'),
+        ("Status table Stability row", rf'\|\s*Stability\s*\|\s*stable\s+(\S+)\s+release line\s*\|'),
+    )
+    mismatches = []
+    for label, pattern in checks:
+        match = re.search(pattern, text)
+        if match is None:
+            raise SystemExit(f"{readme}: could not locate {label}")
+        found = match.group(1)
+        expected = minor_version if label.endswith("Stability row") else version
+        if found != expected:
+            mismatches.append(f"{label}: expected {expected}, found {found}")
+
+    if mismatches:
+        raise SystemExit(f"{readme}: stale version reference(s):\n" + "\n".join(mismatches))
+    print("readme version verification passed")
+    return 0
+
+
 def cmd_cargo_build_bin_args(args: argparse.Namespace) -> int:
     manifest = load_manifest(Path(args.manifest))
     print(" ".join(f"--bin {entry['name']}" for entry in manifest["release_binaries"]))
@@ -274,6 +301,11 @@ def main() -> int:
     p.add_argument("--workspace-toml", required=True)
     p.add_argument("--pyproject", required=True)
     p.set_defaults(func=cmd_sync_python_version)
+
+    p = sub.add_parser("verify-readme-version")
+    p.add_argument("--workspace-toml", required=True)
+    p.add_argument("--readme", required=True)
+    p.set_defaults(func=cmd_verify_readme_version)
 
     p = sub.add_parser("cargo-build-bin-args")
     p.add_argument("--manifest", required=True)
