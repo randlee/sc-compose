@@ -146,6 +146,14 @@ def release_workflow_text() -> str:
     return (repo_root() / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
 
 
+def python_pyproject_text() -> str:
+    return (repo_root() / "bindings" / "python" / "pyproject.toml").read_text(encoding="utf-8")
+
+
+def python_cargo_toml_text() -> str:
+    return (repo_root() / "bindings" / "python" / "Cargo.toml").read_text(encoding="utf-8")
+
+
 def test_validate_manifest_accepts_matching_python_release_shape(tmp_path: Path) -> None:
     result = run_validate_manifest(
         tmp_path,
@@ -240,3 +248,13 @@ def test_release_workflow_checks_out_repo_before_local_python_setup_action() -> 
 
     assert wheels_job in text
     assert sdist_job in text
+
+
+def test_python_package_metadata_uses_local_readme_for_sdist() -> None:
+    pyproject_text = python_pyproject_text()
+    cargo_toml_text = python_cargo_toml_text()
+
+    assert 'readme = "README.md"' in pyproject_text
+    assert 'readme = "README.md"' in cargo_toml_text
+    assert "../../README.md" not in pyproject_text
+    assert "../../README.md" not in cargo_toml_text

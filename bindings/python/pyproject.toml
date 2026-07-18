@@ -6,7 +6,7 @@ build-backend = "maturin"
 name = "sc-compose"
 version = "1.2.0"
 description = "Python bindings for sc-compose composition APIs"
-readme = "../../README.md"
+readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Randlee" }]
