@@ -215,30 +215,53 @@ def cmd_sync_python_version(args: argparse.Namespace) -> int:
     return 0
 
 
+def _readme_version_checks(version: str) -> tuple[tuple[str, str, str], ...]:
+    minor_version = version.rsplit(".", 1)[0]
+    return (
+        ("sc-composer dependency example", rf'(sc-composer\s*=\s*")[^"]+(")', version),
+        ("Status table Version row", rf'(\|\s*Version\s*\|\s*)[^\s|]+(\s*\|)', version),
+        ("Status table Stability row", rf'(\|\s*Stability\s*\|\s*stable\s+)\S+(\s+release line\s*\|)', minor_version),
+    )
+
+
 def cmd_verify_readme_version(args: argparse.Namespace) -> int:
     version = workspace_version(Path(args.workspace_toml))
-    minor_version = version.rsplit(".", 1)[0]
     readme = Path(args.readme)
     text = readme.read_text(encoding="utf-8")
 
-    checks = (
-        ("sc-composer dependency example", rf'sc-composer\s*=\s*"([^"]+)"'),
-        ("Status table Version row", rf'\|\s*Version\s*\|\s*([^\s|]+)\s*\|'),
-        ("Status table Stability row", rf'\|\s*Stability\s*\|\s*stable\s+(\S+)\s+release line\s*\|'),
-    )
     mismatches = []
-    for label, pattern in checks:
+    for label, pattern, expected in _readme_version_checks(version):
         match = re.search(pattern, text)
         if match is None:
             raise SystemExit(f"{readme}: could not locate {label}")
-        found = match.group(1)
-        expected = minor_version if label.endswith("Stability row") else version
+        found = text[match.end(1):match.start(2)]
         if found != expected:
             mismatches.append(f"{label}: expected {expected}, found {found}")
 
     if mismatches:
-        raise SystemExit(f"{readme}: stale version reference(s):\n" + "\n".join(mismatches))
+        raise SystemExit(
+            f"{readme}: stale version reference(s) (run 'sync-readme-version' to fix):\n"
+            + "\n".join(mismatches)
+        )
     print("readme version verification passed")
+    return 0
+
+
+def cmd_sync_readme_version(args: argparse.Namespace) -> int:
+    version = workspace_version(Path(args.workspace_toml))
+    readme = Path(args.readme)
+    text = readme.read_text(encoding="utf-8")
+
+    updated = 0
+    for label, pattern, expected in _readme_version_checks(version):
+        new_text, count = re.subn(pattern, rf'\g<1>{expected}\g<2>', text, count=1)
+        if count == 0:
+            raise SystemExit(f"{readme}: could not locate {label}")
+        text = new_text
+        updated += count
+
+    readme.write_text(text, encoding="utf-8")
+    print(f"synced {updated} readme version reference(s) to {version}")
     return 0
 
 
@@ -306,6 +329,11 @@ def main() -> int:
     p.add_argument("--workspace-toml", required=True)
     p.add_argument("--readme", required=True)
     p.set_defaults(func=cmd_verify_readme_version)
+
+    p = sub.add_parser("sync-readme-version")
+    p.add_argument("--workspace-toml", required=True)
+    p.add_argument("--readme", required=True)
+    p.set_defaults(func=cmd_sync_readme_version)
 
     p = sub.add_parser("cargo-build-bin-args")
     p.add_argument("--manifest", required=True)
