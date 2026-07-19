@@ -1,9 +1,10 @@
 ---
 id: D.2
 title: Multi-Pass Composition Pipeline
-status: planned
+status: complete
 branch: sprint/d-2-composition-pipeline
-target: develop
+target: integrate/phase-d
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/d-2-composition-pipeline
 ---
 
 # Sprint D.2 — Multi-Pass Composition Pipeline
