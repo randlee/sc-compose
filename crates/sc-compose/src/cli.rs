@@ -165,7 +165,7 @@ pub(crate) struct ValidateArgs {
         value_name = "N",
         help = "Declare the next per-pass variable group"
     )]
-    pub(crate) pass_numbers: Vec<u8>,
+    pub(crate) pass_groups: Vec<u8>,
     #[arg(long)]
     pub(crate) json: bool,
 }
@@ -182,7 +182,7 @@ pub(crate) struct RenderArgs {
         value_name = "N",
         help = "Declare the next per-pass variable group"
     )]
-    pub(crate) pass_numbers: Vec<u8>,
+    pub(crate) pass_groups: Vec<u8>,
     #[arg(
         long = "brace-count",
         value_parser = clap::value_parser!(u8).range(2..),
@@ -354,6 +354,20 @@ pub(crate) fn parse_pass_inputs(command_name: &str) -> Result<Vec<PassInputArgs>
                     var_files: Vec::new(),
                 });
             }
+            _ if arg.starts_with("--pass=") => {
+                if let Some(group) = current.take() {
+                    parsed.push(group);
+                }
+                let value = arg.trim_start_matches("--pass=");
+                let pass_number = value
+                    .parse::<u8>()
+                    .map_err(|error| format!("invalid pass number `{value}`: {error}"))?;
+                current = Some(PassInputArgs {
+                    pass_number,
+                    vars: Vec::new(),
+                    var_files: Vec::new(),
+                });
+            }
             "--var" => {
                 let Some(value) = args.next() else {
                     return Err("--var requires key=value".to_owned());
@@ -364,6 +378,14 @@ pub(crate) fn parse_pass_inputs(command_name: &str) -> Result<Vec<PassInputArgs>
                 })?;
                 current.vars.push(parse_var(&value)?);
             }
+            _ if arg.starts_with("--var=") => {
+                let current = current.as_mut().ok_or_else(|| {
+                    "--var must appear after --pass when --all is enabled".to_owned()
+                })?;
+                current
+                    .vars
+                    .push(parse_var(arg.trim_start_matches("--var="))?);
+            }
             "--var-file" => {
                 let Some(value) = args.next() else {
                     return Err("--var-file requires a path".to_owned());
@@ -372,6 +394,14 @@ pub(crate) fn parse_pass_inputs(command_name: &str) -> Result<Vec<PassInputArgs>
                     "--var-file must appear after --pass when --all is enabled".to_owned()
                 })?;
                 current.var_files.push(value.to_string_lossy().into_owned());
+            }
+            _ if arg.starts_with("--var-file=") => {
+                let current = current.as_mut().ok_or_else(|| {
+                    "--var-file must appear after --pass when --all is enabled".to_owned()
+                })?;
+                current
+                    .var_files
+                    .push(arg.trim_start_matches("--var-file=").to_owned());
             }
             _ => {}
         }

@@ -14,7 +14,7 @@ pub type InputValue = serde_json::Value;
 
 /// Default pass number applied to frontmatter and pass-policy entries.
 #[must_use]
-pub(crate) const fn default_pass_number() -> u8 {
+pub const fn default_pass_number() -> u8 {
     1
 }
 

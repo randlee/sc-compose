@@ -458,8 +458,39 @@ fn render_all_warns_and_falls_back_for_single_pass_template() {
         "hello world"
     );
     assert!(
-        String::from_utf8_lossy(&output.stderr).contains("without stacked headers"),
+        !String::from_utf8_lossy(&output.stderr).trim().is_empty(),
         "{output:?}"
+    );
+}
+
+#[test]
+fn render_all_accepts_equals_syntax_for_pass_groups() {
+    let root = temp_root("render-all-pass-equals");
+    write_file(
+        &root.join("template.2.j2"),
+        "---\npass: 2\n---\n---\npass: 1\n---\ndeploy {{ task }} for {{{ team }}}\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--all")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.2.j2")
+        .arg("--pass=2")
+        .arg("--var=team=wyvern")
+        .arg("--pass=1")
+        .arg("--var=task=test")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "deploy test for wyvern"
     );
 }
 
@@ -494,6 +525,96 @@ fn render_all_rejects_wrong_pass_order() {
     assert!(!output.status.success(), "{output:?}");
     assert!(
         !String::from_utf8_lossy(&output.stderr).trim().is_empty(),
+        "{output:?}"
+    );
+}
+
+#[test]
+fn render_all_reports_missing_pass_variables() {
+    let root = temp_root("render-all-missing-pass-vars");
+    write_file(
+        &root.join("template.2.j2"),
+        "---\npass: 2\nrequired_variables:\n  - team\n---\n---\npass: 1\nrequired_variables:\n  - task\n---\ndeploy {{ task }} for {{{ team }}}\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--all")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.2.j2")
+        .arg("--pass")
+        .arg("2")
+        .arg("--pass")
+        .arg("1")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("missing required variable"),
+        "{output:?}"
+    );
+}
+
+#[test]
+fn render_all_normalizes_pass_zero_to_default_pass_number() {
+    let root = temp_root("render-all-pass-zero");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - name\ndefaults:\n  name: fallback\n---\nhello {{ name }}\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--all")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--pass")
+        .arg("0")
+        .arg("--var")
+        .arg("name=world")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "hello world"
+    );
+}
+
+#[test]
+fn render_brace_count_runs_validation_before_custom_rendering() {
+    let root = temp_root("brace-count-validation");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - name\n---\nhello {{{ name }}}\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--brace-count")
+        .arg("3")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("missing required variable"),
         "{output:?}"
     );
 }

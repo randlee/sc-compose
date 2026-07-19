@@ -1,12 +1,6 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use anyhow::anyhow;
-use sc_composer::{
-    ComposeMode, ComposeRequest, CompositionObserver, Diagnostic, DiagnosticCode, ExpandedTemplate,
-    Frontmatter, ParsedTemplate, Renderer, ResolveResult,
-};
-
 use crate::cli::{
     Mode, RenderArgs, RenderBehaviorArgs, ResolveArgs, ValidateArgs, parse_pass_inputs,
 };
@@ -16,6 +10,12 @@ use crate::render_request::{
     read_block_pair_with_extra_stdin_reads,
 };
 use crate::{CommandError, print_diagnostic_messages, print_json};
+use anyhow::anyhow;
+use sc_composer::{
+    ComposeMode, ComposeRequest, CompositionObserver, Diagnostic, DiagnosticCode,
+    DiagnosticSeverity, ExpandedTemplate, Frontmatter, ParsedTemplate, RenderOutcomeEvent,
+    Renderer, ResolveResult, ValidationOutcomeEvent,
+};
 
 pub(crate) fn run_render(
     args: &RenderArgs,
@@ -35,9 +35,16 @@ pub(crate) fn run_render(
             BTreeMap::default(),
             &pass_inputs,
         )?;
+        debug_assert_eq!(args.pass_groups.len(), pass_inputs.len());
         let (_, _, root_passes) = preflight_template(&request)?;
         if root_passes.len() <= 1 {
-            emit_single_pass_all_warning();
+            emit_single_pass_all_warning(observer);
+            return execute_render_with_extra_warnings(
+                &request,
+                &args.render,
+                observer,
+                vec![single_pass_all_warning()],
+            );
         } else if pass_inputs.len() != root_passes.len() {
             return Err(CommandError::usage_with_code(
                 anyhow!(
@@ -73,14 +80,24 @@ pub(crate) fn execute_render(
     args: &RenderBehaviorArgs,
     observer: &mut dyn CompositionObserver,
 ) -> Result<i32, CommandError> {
+    execute_render_with_extra_warnings(request, args, observer, Vec::new())
+}
+
+fn execute_render_with_extra_warnings(
+    request: &ComposeRequest,
+    args: &RenderBehaviorArgs,
+    observer: &mut dyn CompositionObserver,
+    mut extra_warnings: Vec<Diagnostic>,
+) -> Result<i32, CommandError> {
     let result =
         sc_composer::compose_with_observer(request, observer).map_err(CommandError::compose)?;
+    extra_warnings.extend(result.warnings);
     emit_render_output(
         request,
         args,
         &result.resolve_result.resolved_path,
         &result.rendered_text,
-        result.warnings,
+        extra_warnings,
     )?;
 
     Ok(crate::exit_codes::SUCCESS)
@@ -145,16 +162,24 @@ pub(crate) fn run_validate(
             BTreeMap::default(),
             &pass_inputs,
         )?;
+        debug_assert_eq!(args.pass_groups.len(), pass_inputs.len());
         let (_, _, root_passes) = preflight_template(&request)?;
         if root_passes.len() <= 1 {
-            emit_single_pass_all_warning();
+            emit_single_pass_all_warning(observer);
         }
-        request
+        (request, root_passes.len() <= 1)
     } else {
-        build_request(&args.common, (None, None), BTreeMap::default())?
+        (
+            build_request(&args.common, (None, None), BTreeMap::default())?,
+            false,
+        )
     };
-    let report =
+    let (request, single_pass_fallback) = request;
+    let mut report =
         sc_composer::validate_with_observer(&request, observer).map_err(CommandError::compose)?;
+    if single_pass_fallback {
+        report.warnings.push(single_pass_all_warning());
+    }
     let diagnostics = report
         .warnings
         .iter()
@@ -200,28 +225,59 @@ fn derived_output_path(request: &ComposeRequest, explicit: Option<&Path>) -> Pat
 fn execute_custom_delimiter_render(
     request: &ComposeRequest,
     args: &RenderArgs,
-    _observer: &mut dyn CompositionObserver,
+    observer: &mut dyn CompositionObserver,
 ) -> Result<i32, CommandError> {
-    let (resolve_result, expanded, root_passes) = preflight_template(request)?;
+    let report =
+        sc_composer::validate_with_observer(request, observer).map_err(CommandError::compose)?;
+    if !report.ok {
+        return Err(validation_report_error(report.errors));
+    }
+    let resolve_result = report.resolve_result;
+    let expanded = sc_composer::expand_includes(
+        &resolve_result.resolved_path,
+        &request.root,
+        &request.policy,
+    )
+    .map_err(CommandError::compose)?;
+    let root_passes = expanded
+        .frontmatters
+        .iter()
+        .find_map(|(path, passes)| (path == &resolve_result.resolved_path).then(|| passes.clone()))
+        .unwrap_or_default();
     let (open, close) = if let Some(brace_count) = args.brace_count {
         let brace_count = usize::from(brace_count);
         ("{".repeat(brace_count), "}".repeat(brace_count))
     } else {
         let delimiters = args.variable_delimiters.clone().ok_or_else(|| {
-            CommandError::usage(anyhow!(
-                "--brace-count or --variable-delimiters is required for custom delimiter rendering"
-            ))
+            CommandError::usage_with_code(
+                anyhow!(
+                    "--brace-count or --variable-delimiters is required for custom delimiter rendering"
+                ),
+                DiagnosticCode::ErrConfigParse,
+            )
         })?;
         (delimiters[0].clone(), delimiters[1].clone())
     };
+    let parsed = ParsedTemplate::from_parts_validated(root_passes.clone(), expanded.text.clone())
+        .map_err(CommandError::compose)?;
     let rendered_text = Renderer::with_delimiters(&open, &close)
         .render(
-            ParsedTemplate::from_parts(root_passes.clone(), expanded.text.clone()).body(),
+            parsed.body(),
             build_custom_render_context(request, &resolve_result.resolved_path, &root_passes),
         )
+        .inspect_err(|error| {
+            observer.on_render_outcome(&RenderOutcomeEvent {
+                rendered_bytes: None,
+                code: error.code(),
+            });
+        })
         .map_err(|error| {
             CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
         })?;
+    observer.on_render_outcome(&RenderOutcomeEvent {
+        rendered_bytes: Some(rendered_text.len()),
+        code: None,
+    });
     let rendered_text = assemble_output(
         &rendered_text,
         request.guidance_block.as_deref(),
@@ -232,7 +288,7 @@ fn execute_custom_delimiter_render(
         &args.render,
         &resolve_result.resolved_path,
         &rendered_text,
-        Vec::new(),
+        report.warnings,
     )?;
     Ok(crate::exit_codes::SUCCESS)
 }
@@ -330,10 +386,34 @@ fn preflight_template(
     Ok((resolve_result, expanded, root_passes))
 }
 
-fn emit_single_pass_all_warning() {
-    eprintln!(
-        "warning: --all requested for a template without stacked headers; proceeding in single-pass mode"
+fn emit_single_pass_all_warning(observer: &mut dyn CompositionObserver) {
+    observer.on_validation_outcome(&ValidationOutcomeEvent {
+        warnings: vec![single_pass_all_warning()],
+        errors: Vec::new(),
+    });
+}
+
+fn single_pass_all_warning() -> Diagnostic {
+    Diagnostic::new(
+        DiagnosticSeverity::Warning,
+        DiagnosticCode::WarnConfigSinglePassAllFallback,
+        "--all requested for a template without stacked headers; proceeding in single-pass mode",
+    )
+}
+
+fn validation_report_error(errors: Vec<Diagnostic>) -> CommandError {
+    let diagnostic_code = errors.first().map(|diagnostic| diagnostic.code);
+    let message = errors.first().map_or_else(
+        || "render request failed validation".to_owned(),
+        |diagnostic| diagnostic.message.clone(),
     );
+    CommandError {
+        exit_code: crate::exit_codes::VALIDATION_OR_RENDER_FAIL,
+        diagnostic_code,
+        diagnostics: errors,
+        recovery_hints: Vec::new(),
+        error: anyhow!(message),
+    }
 }
 
 fn build_custom_render_context(
