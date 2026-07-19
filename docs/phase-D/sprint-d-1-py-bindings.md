@@ -21,9 +21,9 @@ target: integrate/phase-d
   single-pass semantics.
 - This is the first sprint in the tandem Python-binding sequence
   (see [Phase D README — Python Binding Parity](./README.md#python-binding-parity)).
-  It becomes assignable only after D.1 passes QA and merges to
-  `integrate/phase-d`, and it unblocks nothing else in D.2 — it wraps D.1's
-  library surface only.
+  D.1 has now passed QA and merged to `integrate/phase-d`, so this sprint is
+  documentation-ready for dispatch; it still unblocks nothing else in D.2 and
+  wraps D.1's library surface only.
 
 All work is confined to `bindings/python`. This sprint depends on D.1 having
 passed QA and merged the Rust library surface it wraps into
@@ -285,8 +285,8 @@ def discover_all_pass_tokens(parsed: ParsedTemplate) -> dict[int, list[VariableN
   remains single-frontmatter-oriented unless a later Rust sprint explicitly
   expands it.
 - Exposing any D.3 CLI flags (`--all`, `--pass N`, `--variable-delimiters`) to
-  Python — only underlying library functions are ever wrapped, and D.3 has
-  not landed yet regardless.
+  Python — only underlying library functions are ever wrapped, regardless of
+  the later D.3 CLI landing.
 - A high-level Pythonic multi-pass convenience API (e.g. a `MultiPassTemplate`
   facade) beyond thin wrappers over the library functions.
 - Async / streaming rendering surfaces.

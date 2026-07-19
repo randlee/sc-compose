@@ -61,18 +61,21 @@ bolt-on phase at the end — see
 | [D.1](sprint-d-1-library-foundation.md) | Multi-Pass Library Foundation | Stacked headers, brace-count validation, pass config types |
 | [D.1-py](sprint-d-1-py-bindings.md) | Python Bindings — Multi-Pass Library Foundation | PyO3 exposure of D.1's library surface |
 | [D.2](sprint-d-2-composition-pipeline.md) | Multi-Pass Composition Pipeline | Multi-pass compose loop, render_all, backward compat |
-| [D.2-py](sprint-d-2-py-bindings.md) *(stub)* | Python Bindings — Multi-Pass Composition Pipeline | PyO3 exposure of D.2's library surface |
+| [D.2-py](sprint-d-2-py-bindings.md) | Python Bindings — Multi-Pass Composition Pipeline | PyO3 exposure of D.2's library surface |
 | [D.3](sprint-d-3-cli-surface.md) | Multi-Pass CLI Surface | --all, --pass N, re-exports, delimiter flag |
-| [D.3-py](sprint-d-3-py-bindings.md) *(stub)* | Python Bindings — Multi-Pass CLI Surface Parity Check | Re-export parity check against D.3 |
+| [D.3-py](sprint-d-3-py-bindings.md) | Python Bindings — Multi-Pass CLI Surface Parity Check | Library-surface parity and boundary audit for D.3 |
 | [D.4](sprint-d-4-template-init-verify.md) | template-init + verify | template-init converter, verify library + CLI |
-| [D.4-py](sprint-d-4-py-bindings.md) *(stub)* | Python Bindings — template-init + verify | PyO3 exposure of D.4's library surface |
+| [D.4-py](sprint-d-4-py-bindings.md) | Python Bindings — template-init + verify | PyO3 exposure of D.4's library-owned surface |
 
 ## Dependency Order
 
-```
-Rust track: D.1 ─► D.2 ─► D.3 ─► D.4
-                │      │      │      │
+```text
+Rust track:     D.1 ─► D.2 ─► D.3 ─► D.4
+                  │      │      │      │
 Python track:   D.1-py D.2-py D.3-py D.4-py
+
+Dispatch rule: each D.#-py becomes dispatch-ready after the corresponding
+Rust sprint has passed QA and merged to integrate/phase-d.
 ```
 
 D.1 must ship first because every later Rust sprint depends on the
@@ -89,9 +92,12 @@ serially gate the next Rust sprint. The Python track is therefore contingent on
 the Rust track, but non-blocking with respect to subsequent Rust implementation
 work.
 
-**Current landing status:** as of July 19, 2026, no Phase D Rust sprint has yet
-passed QA and merged to `integrate/phase-d`, so no `-py` sprint is currently
-dispatch-ready even though the docs for them may already exist.
+**Current landing status:** as of Sunday, July 19, 2026, the Rust track
+`D.1`–`D.4` has passed QA and merged to `integrate/phase-d`
+(PR #129, #130, #131, and #133). The four `-py` sprint docs are now expected
+to remain at full sprint-doc rigor and are documentation-ready for dispatch.
+Actual assignment timing remains team-lead controlled and is not implied by
+this README alone.
 
 ## Python Binding Parity
 
@@ -109,14 +115,17 @@ passed QA and merged to `integrate/phase-d`.
   Rust sprint has passed QA and merged to `integrate/phase-d` — not batched,
   not deferred, and not assumed from branch/task wording alone.
 - Python is never more than one sprint behind the Rust surface it wraps.
-- `D.1-py` is fully drafted now with the same rigor as a regular sprint doc,
-  but it is not dispatch-ready until D.1 actually passes QA and merges.
-  `D.2-py`, `D.3-py`, and `D.4-py` are drafted as
-  lightweight stubs (`status: stub-pending-rust-sprint`) naming the expected
-  surface and open design questions, since D.2–D.4's exact final shape may
-  still shift before those Rust sprints land. Each stub is fleshed out to
-  full sprint-doc rigor once its corresponding Rust sprint passes QA and
-  merges.
+- All four `-py` sprint docs must be maintained at the same full rigor as the
+  Rust sprint docs once their corresponding Rust sprint has landed.
+- D.1-py sets the structure and wrapper-style bar for the later `-py` docs.
+- D.2-py wraps D.2's library-owned `render_all()` surface and
+  `ComposePolicy.passes`.
+- D.3-py is intentionally a small parity/boundary sprint: D.3 is largely
+  CLI-owned, so D.3-py exists to lock the library-vs-CLI boundary and protect
+  Python import-surface stability rather than to mirror CLI flag grammar.
+- D.4-py wraps library-owned `verify()` and `VerifyResult` only.
+  Multi-pass `template-init` remains CLI-owned and therefore out of scope for
+  a `bindings/python` library adapter.
 - All `bindings/python` boundary rules from `CLAUDE.md` (rules 3–5) continue
   to apply unchanged to every `-py` sprint: `bindings/python` may depend on
   `sc-composer` only, never on `sc-compose` or ATM-specific crates.
@@ -162,11 +171,11 @@ baseline:
 - [sprint-d-1-library-foundation.md](./sprint-d-1-library-foundation.md)
 - [sprint-d-1-py-bindings.md](./sprint-d-1-py-bindings.md)
 - [sprint-d-2-composition-pipeline.md](./sprint-d-2-composition-pipeline.md)
-- [sprint-d-2-py-bindings.md](./sprint-d-2-py-bindings.md) *(stub)*
+- [sprint-d-2-py-bindings.md](./sprint-d-2-py-bindings.md)
 - [sprint-d-3-cli-surface.md](./sprint-d-3-cli-surface.md)
-- [sprint-d-3-py-bindings.md](./sprint-d-3-py-bindings.md) *(stub)*
+- [sprint-d-3-py-bindings.md](./sprint-d-3-py-bindings.md)
 - [sprint-d-4-template-init-verify.md](./sprint-d-4-template-init-verify.md)
-- [sprint-d-4-py-bindings.md](./sprint-d-4-py-bindings.md) *(stub)*
+- [sprint-d-4-py-bindings.md](./sprint-d-4-py-bindings.md)
 - [prototype/multipass/](../../prototype/multipass/) (reference implementation
   and executable behavior oracle)
 
@@ -193,28 +202,20 @@ baseline for Phase D.
 Python binding sprints are no longer a single follow-on phase — see
 [Python Binding Parity](#python-binding-parity). Status per tandem sprint:
 
-Fully drafted:
+All four tandem `-py` sprint docs are now expected to exist at full sprint-doc
+rigor:
 
 - [D.1-py — Python Bindings — Multi-Pass Library Foundation](sprint-d-1-py-bindings.md)
-  covers the Python-exposure gap for D.1's library surface: wrapping
-  `ParsedTemplate.passes`, `Frontmatter.pass_number`, `PassConfig`,
-  `discover_tokens_with_brace_count`, and `discover_all_pass_tokens` in
-  `bindings/python` (`Renderer.with_delimiters()` is already exposed as of
-  Phase C). Not dispatch-ready until D.1 passes QA and merges to
-  `integrate/phase-d`.
-
-Drafted as stubs (`status: stub-pending-rust-sprint`), to be fleshed out once
-their corresponding Rust sprint passes QA and merges:
-
+  wraps D.1's parsing, pass-config, and discovery library surface.
 - [D.2-py — Python Bindings — Multi-Pass Composition Pipeline](sprint-d-2-py-bindings.md)
-  — expected to cover `render_all` and `PyComposePolicy.passes`.
+  wraps `render_all()` and Python exposure of `ComposePolicy.passes`.
 - [D.3-py — Python Bindings — Multi-Pass CLI Surface Parity Check](sprint-d-3-py-bindings.md)
-  — expected to be a re-export parity check; D.3 is largely CLI-only and CLI
-  flags are never exposed to Python.
+  locks the library-vs-CLI boundary and verifies that D.1-py / D.2-py remain
+  aligned with D.3's consolidated `sc_composer` public surface.
 - [D.4-py — Python Bindings — template-init + verify](sprint-d-4-py-bindings.md)
-  — expected to cover `verify`, and conditionally multi-pass `template-init`
-  (contingent on hosting its conversion core in `sc-composer`; see the stub's
-  open design questions).
+  wraps library-owned `verify()` and `VerifyResult`, and explicitly records
+  that multi-pass `template-init` remains CLI-owned and out of scope for the
+  Python adapter.
 
 Not yet drafted:
 

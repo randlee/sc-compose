@@ -1,64 +1,274 @@
 ---
 id: D.4-py
 title: Python Bindings — template-init + verify
-status: stub-pending-rust-sprint
+status: planned
 branch: sprint/d-4-py-bindings
 target: integrate/phase-d
 ---
 
-# Sprint D.4-py — Python Bindings — template-init + verify (stub)
+# Sprint D.4-py — Python Bindings — template-init + verify
 
-This is a placeholder, not a full sprint doc. It will be fleshed out to the
-same rigor as [D.1-py](sprint-d-1-py-bindings.md) once
-[D.4 — template-init + verify](sprint-d-4-template-init-verify.md) has passed
-QA, merged to `integrate/phase-d`, and its exact library surface is final.
-This is the last sprint in the tandem
-Python-binding sequence for Phase D — see
-[Phase D README — Python Binding Parity](./README.md#python-binding-parity).
+## Goal
 
-## Surface expected to be wrapped
+- Expose D.4's **library-owned** drift-verification surface to Python through
+  the existing PyO3 `bindings/python` crate.
+- Wrap `sc_composer::verify(request, deployed_path)` and the structured
+  `VerifyResult` returned by the Rust library.
+- Preserve D.4's actual ownership boundary: `verify` is library-owned per
+  [ADR-0007](../adrs/0007-verify-library-cli-boundary.md), while multi-pass
+  `template-init` is CLI-owned in `sc-compose` and therefore outside the
+  scope of a `bindings/python` library adapter.
+- Reuse existing Python request construction and builtin override behavior
+  instead of inventing a second verification-specific input model.
 
-Based on D.4's own deliverables (`D1`, `D3` in that sprint's Deliverables
-section):
+All work is confined to `bindings/python`. This sprint depends on D.4's Rust
+surface having passed QA and merged to `integrate/phase-d`. Per repo boundary
+rules, `bindings/python` may depend on **`sc-composer` only** — never on
+`sc-compose`, its CLI command modules, or ATM-specific crates.
 
-- `sc_composer::verify(template_path, deployed_path, contexts) -> Result<VerifyResult, ComposeError>`
-  (D.4's `D1` deliverable, library-hosted — bindable as-is). Expected Python
-  shape: a new `PyVerifyResult` wrapper class (`clean -> bool`,
-  `diff -> str | None`, `exit_code -> int`) and
-  `verify(template_path, deployed_path, contexts, overrides=None) -> VerifyResult`,
-  with `overrides` mapping to the builtin-variable override dict
-  (`RENDER_DATE`, `RENDER_TIMESTAMP`) for deterministic output.
-- `template-init` multi-pass support (D.4's `D3` deliverable) is **CLI-hosted
-  in D.4's current plan** (`sc-compose/src/commands/template_init.rs`), and
-  `bindings/python` may depend on `sc-composer` only. Whether this is
-  bindable at all depends on whether the multi-pass template-init conversion
-  core gets hosted in `sc-composer` (mirroring how the existing single-pass
-  `frontmatter_init` is bindable because it lives in the library). This is
-  the single biggest open question for this sprint — see below.
+The current adapter state confirms the remaining gap: there is no Python
+`verify()` wrapper and no `VerifyResult` wrapper class, while the Rust library
+already owns both. Conversely, there is no eligible library surface for
+multi-pass `template-init`, because the D.4 implementation deliberately kept
+that conversion logic in `crates/sc-compose/src/commands/template_init.rs`.
 
-## Open design questions
-
-- **template-init CLI/library boundary.** If D.4 (or a follow-up) hosts the
-  multi-pass template-init conversion core in `sc-composer`, this sprint
-  would expose `template_init(path, passes, force=False, dry_run=False) -> FrontmatterInitResult`
-  reusing the existing `PyFrontmatterInitResult` wrapper. If template-init
-  stays CLI-only, this deliverable drops from D.4-py entirely and must be
-  recorded explicitly under that sprint's "This Sprint Does Not Close"
-  section rather than silently deferred. This needs a decision before D.4-py
-  is fleshed out — ideally settled during or immediately after D.4 itself,
-  since it affects D.4's own crate placement.
-- **`verify` builtin-override semantics in Python.** D.4 scopes builtin
-  overrides as non-persistent (per-call only). Confirm no expectation of a
-  Python-side persistent override store when this sprint is drafted.
-- **Contexts representation reuse.** `verify`'s `contexts` parameter should
-  reuse whatever `list[tuple[int, dict]]` (or equivalent) shape D.2-py
-  settles on for `render_all`, rather than inventing a second convention. The
-  corresponding Rust API should stay aligned with D.2's
-  `&[(u8, BTreeMap<VariableName, InputValue>)]` contract.
-
-## Dependencies
+## Hard Dependencies
 
 - [Sprint D.4 — template-init + verify](sprint-d-4-template-init-verify.md)
-  must pass QA and merge first.
-- [Sprint D.2-py — Multi-Pass Composition Pipeline (Python)](sprint-d-2-py-bindings.md)
-  settles the per-pass `contexts` convention this sprint reuses for `verify`.
+  — actual Rust library and CLI ownership split
+- [ADR-0007: Verify Library-and-CLI Boundary](../adrs/0007-verify-library-cli-boundary.md)
+  — `verify` belongs in `sc-composer`; CLI UX remains in `sc-compose`
+- [Sprint D.2-py — Python Bindings — Multi-Pass Composition Pipeline](sprint-d-2-py-bindings.md)
+  — existing Python request / policy / per-pass context conventions reused by
+  `verify`
+- [Phase D README](./README.md) — [Python Binding Parity](./README.md#python-binding-parity)
+- [docs/architecture.md](../architecture.md) — adapter responsibilities and
+  crate boundaries
+- [CLAUDE.md](../../CLAUDE.md) — boundary rules 3–5 (`bindings/python` may
+  depend on `sc-composer` only)
+
+## Exact Targets
+
+- `bindings/python/src/types.rs` — add `PyVerifyResult` wrapper and register it
+- `bindings/python/src/functions.rs` — add `verify(request, deployed_path)`
+  wrapper and registration
+- `bindings/python/src/lib.rs` — no structural change expected; module
+  registration still flows through `types::register` / `functions::register`
+- `bindings/python/python/sc_compose/__init__.py` — re-export `verify` and
+  `VerifyResult`
+- `bindings/python/python/sc_compose/_native.pyi` — type stubs for
+  `VerifyResult` and `verify`
+- `bindings/python/tests/test_smoke.py` — verification smoke tests for clean,
+  drift, and builtin-override cases
+- `docs/phase-D/sprint-d-4-py-bindings.md` — this document
+
+## Deliverables
+
+Every listed deliverable is expected to land at a production-ready level for
+the scope this sprint claims. If that cannot be done cleanly in one sprint, the
+sprint must be split before implementation begins. No deliverable may be
+silently dropped or partially deferred.
+
+- `D1` — `verify()` Python wrapper (wraps D.4)
+  - New `verify(request: ComposeRequest, deployed_path: str | PathLike[str]) -> VerifyResult`
+    wrapper in `bindings/python/src/functions.rs`
+  - Delegates directly to `sc_composer::verify`
+  - Reuses the existing Python `ComposeRequest` shape, including any per-pass
+    `ComposePolicy.passes` supplied by D.2-py
+  - Uses the existing `ScComposeError` / `ScConfigError` hierarchy for failure
+    mapping; no verification-specific Python exception class is introduced
+
+- `D2` — `VerifyResult` Python wrapper (wraps D.4)
+  - New `VerifyResult` wrapper class exposing:
+    - `clean -> bool`
+    - `resolved_template_path -> str`
+    - `deployed_path -> str`
+    - `rendered_text -> str`
+    - `deployed_text -> str`
+    - `diff -> str | None`
+    - `warnings -> list[Diagnostic]`
+  - `__repr__` should make drift state and paths easy to inspect in REPL/debug
+    use, following the general Phase C/D wrapper style
+
+- `D3` — Builtin override parity through existing request semantics
+  - Python callers override `RENDER_DATE` / `RENDER_TIMESTAMP` the same way
+    they already override other inputs: by populating `ComposeRequest.vars_input`
+    with builtin keys before calling `verify()`
+  - No separate `overrides=` parameter is introduced, because the actual Rust
+    library API is `verify(request, deployed_path)` rather than a bespoke
+    verify-only context signature
+  - Smoke coverage proves deterministic verification via builtin override input
+
+- `D4` — Import surface, stubs, and tests
+  - `__init__.py` re-exports `verify` and `VerifyResult`
+  - `_native.pyi` defines both final signatures
+  - `test_smoke.py` covers:
+    - clean verification
+    - drift detection with unified diff
+    - builtin override determinism
+    - missing deployed file error mapping
+
+## Required Work
+
+- Add `PyVerifyResult` wrapper to `types.rs`, mirroring the style of
+  `PyComposeResult` and `PyValidationReport`
+- Add getters for every `VerifyResult` field and a concise `__repr__`
+- Register `PyVerifyResult` in `types::register`
+- Add `verify()` wrapper to `functions.rs`
+- Register the new function in `functions::register`
+- Update `__init__.py` and `_native.pyi` in lockstep
+- Add smoke coverage for clean/drift/error paths and builtin override reuse
+- Keep the sprint explicitly docs-consistent with the D.4 Rust ownership
+  outcome: no Python wrapper around CLI-owned `template-init`
+
+## Explicit Code Samples
+
+### `verify()` wrapper (functions.rs)
+
+```rust
+#[pyfunction]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracted arguments use owned PyRef values."
+)]
+fn verify(
+    request: PyRef<'_, PyComposeRequest>,
+    deployed_path: &Bound<'_, PyAny>,
+) -> PyResult<PyVerifyResult> {
+    let deployed_path = coerce_path_like(deployed_path)?;
+    sc_composer::verify(&request.inner, deployed_path)
+        .map(|inner| PyVerifyResult { inner })
+        .map_err(compose_error_to_pyerr)
+}
+```
+
+### `PyVerifyResult` wrapper (types.rs)
+
+```rust
+#[pyclass(name = "VerifyResult", skip_from_py_object)]
+#[derive(Clone, Debug)]
+pub(crate) struct PyVerifyResult {
+    pub(crate) inner: VerifyResult,
+}
+
+#[pymethods]
+impl PyVerifyResult {
+    #[getter]
+    fn clean(&self) -> bool {
+        self.inner.clean
+    }
+
+    #[getter]
+    fn diff(&self) -> Option<String> {
+        self.inner.diff.clone()
+    }
+
+    #[getter]
+    fn warnings(&self) -> Vec<PyDiagnostic> {
+        self.inner
+            .warnings
+            .iter()
+            .cloned()
+            .map(|inner| PyDiagnostic { inner })
+            .collect()
+    }
+}
+```
+
+### Builtin override reuse through `ComposeRequest`
+
+```python
+from sc_compose import ComposeMode, ComposePolicy, ComposeRequest, verify
+
+request = ComposeRequest(
+    root=repo_root,
+    mode=ComposeMode.file("template.md.j2"),
+    vars_input={"RENDER_DATE": "2026-01-01"},
+    policy=ComposePolicy(),
+)
+
+result = verify(request, deployed_path)
+assert result.clean is True
+```
+
+### `_native.pyi` additions
+
+```python
+class VerifyResult:
+    @property
+    def clean(self) -> bool: ...
+    @property
+    def resolved_template_path(self) -> str: ...
+    @property
+    def deployed_path(self) -> str: ...
+    @property
+    def rendered_text(self) -> str: ...
+    @property
+    def deployed_text(self) -> str: ...
+    @property
+    def diff(self) -> str | None: ...
+    @property
+    def warnings(self) -> list[Diagnostic]: ...
+
+
+def verify(
+    request: ComposeRequest,
+    deployed_path: str | PathLike[str],
+) -> VerifyResult: ...
+```
+
+## This Sprint Does Not Close
+
+- Multi-pass `template-init` Python exposure
+  - D.4's actual multi-pass `template-init` implementation is CLI-owned in
+    `sc-compose`, not library-owned in `sc-composer`
+  - Per repo boundary rules, `bindings/python` may not depend on `sc-compose`
+  - If Python-side template-init access is ever desired, it would require a
+    separate CLI façade or a future library extraction, neither of which is in
+    scope for this sprint
+- Any Python wrapper over `sc-compose verify` CLI flags or exit-code mapping;
+  this sprint wraps the library `verify()` API only
+- Any persistent builtin override configuration surface; overrides remain
+  per-request through `ComposeRequest.vars_input`
+- Any non-library adapter over `template-init` shelling out to the CLI
+- Any change to the D.4 Rust implementation itself
+
+## Acceptance Criteria
+
+- `AC1` for `D1`
+  - `verify(request, deployed_path)` returns a `VerifyResult` wrapper whose
+    `clean` field is `True` when the rendered template matches the deployed file
+  - The wrapper maps underlying Rust failures through the existing Python error
+    hierarchy without introducing new exception types
+
+- `AC2` for `D2`
+  - Drifted deployed output yields `VerifyResult.clean is False`
+  - `VerifyResult.diff` contains the unified diff text
+  - `VerifyResult.resolved_template_path` and `deployed_path` expose the actual
+    paths used by the Rust library result
+
+- `AC3` for `D3`
+  - A Python caller can make verification deterministic by overriding
+    `RENDER_DATE` or `RENDER_TIMESTAMP` through `ComposeRequest.vars_input`
+  - No verify-specific `overrides=` adapter parameter is required or added
+
+- `AC4` for `D4`
+  - `verify` and `VerifyResult` are importable from `sc_compose` and present in
+    `__all__`
+  - `_native.pyi` includes the final `verify` / `VerifyResult` signatures
+  - Smoke tests cover clean, drift, builtin-override, and missing-file paths
+
+- `AC5` boundary guard
+  - The sprint doc explicitly records that multi-pass `template-init` remains
+    out of scope because it is CLI-owned
+  - No Python wrapper around `template-init` is added or implied by this plan
+
+## Required Validation
+
+- `cargo fmt --all --check`
+- `cargo clippy --all-targets --all-features -- -D warnings`
+- `cargo test --workspace`
+- `cargo test -p sc-compose-py`
+- `maturin develop`
+- `pytest bindings/python/tests`
+- `git diff --check`
