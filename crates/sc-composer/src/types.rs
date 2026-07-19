@@ -12,6 +12,12 @@ use crate::diagnostics::DiagnosticCode;
 /// Caller-provided render input value.
 pub type InputValue = serde_json::Value;
 
+/// Default pass number applied to frontmatter and pass-policy entries.
+#[must_use]
+pub(crate) const fn default_pass_number() -> u8 {
+    1
+}
+
 /// Validate a caller-provided input value against the supported render-context
 /// model.
 ///
@@ -378,16 +384,29 @@ pub struct ResolverPolicy {
 }
 
 /// Per-pass configuration carried through the multi-pass composition pipeline.
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PassConfig {
     /// The pass number this configuration applies to.
+    #[serde(default = "default_pass_number")]
     pub pass_number: u8,
     /// Variables required before this pass can render.
     pub required_variables: Vec<VariableName>,
     /// Default values injected for this pass.
     pub defaults: BTreeMap<VariableName, InputValue>,
     /// Descriptive metadata associated with this pass.
+    #[serde(default)]
     pub metadata: BTreeMap<String, MetadataValue>,
+}
+
+impl Default for PassConfig {
+    fn default() -> Self {
+        Self {
+            pass_number: default_pass_number(),
+            required_variables: Vec::new(),
+            defaults: BTreeMap::new(),
+            metadata: BTreeMap::new(),
+        }
+    }
 }
 
 /// Policy bundle for the composition pipeline.
@@ -598,7 +617,10 @@ mod tests {
 
     use crate::DiagnosticCode;
 
-    use super::{ProfileName, VariableName, input_value_from_yaml, validate_input_value};
+    use super::{
+        PassConfig, ProfileName, VariableName, default_pass_number, input_value_from_yaml,
+        validate_input_value,
+    };
 
     #[test]
     fn variable_name_round_trips_for_valid_identifier() {
@@ -721,5 +743,10 @@ mod tests {
     fn profile_name_rejects_path_separators() {
         let error = ProfileName::new("agent/name").unwrap_err();
         assert_eq!(error.name(), "agent/name");
+    }
+
+    #[test]
+    fn pass_config_default_pass_number_matches_frontmatter_default() {
+        assert_eq!(PassConfig::default().pass_number, default_pass_number());
     }
 }

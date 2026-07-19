@@ -219,6 +219,33 @@ def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
     assert renderer.render("hello [[ name ]]", {"name": "python"}) == "hello python"
     assert renderer.render_named("inline", "hey [[ name ]]", {"name": "api"}) == "hey api"
 
+
+def test_expanded_template_exposes_full_frontmatter_passes(tmp_path: Path) -> None:
+    write(
+        tmp_path / "stacked.md.j2",
+        """
+        ---
+        pass: 1
+        metadata:
+          stage: outer
+        ---
+        ---
+        pass: 2
+        metadata:
+          stage: inner
+        ---
+        body
+        """,
+    )
+
+    expanded = sc_compose.expand_includes(tmp_path / "stacked.md.j2", tmp_path)
+
+    assert expanded.frontmatters[0][1] is not None
+    assert expanded.frontmatters[0][1].metadata["stage"] == "outer"
+    assert len(expanded.frontmatter_passes[0][1]) == 2
+    assert expanded.frontmatter_passes[0][1][0].metadata["stage"] == "outer"
+    assert expanded.frontmatter_passes[0][1][1].metadata["stage"] == "inner"
+
     tokens = sc_compose.discover_tokens("{{ name }} {{ report.title }}")
     assert [str(token) for token in tokens] == ["name", "report.title"]
     assert "TEMPLATE_NAME" in sc_compose.BUILTIN_VARIABLE_NAMES
