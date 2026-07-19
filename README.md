@@ -97,7 +97,7 @@ For embedded hosts and programmatic use, depend on `sc-composer` directly:
 
 ```toml
 [dependencies]
-sc-composer = "1.1.0"
+sc-composer = "1.2.0"
 ```
 
 The crate root re-exports the main entry points — `compose`, `compose_with_observer`, `validate_with_observer`, `resolve_profile_with_observer`, `frontmatter_init`, `init_workspace` — plus request/result types and the diagnostic envelope. See `crates/sc-composer/src/lib.rs` and `docs/architecture.md`.
@@ -108,11 +108,11 @@ The crate root re-exports the main entry points — `compose`, `compose_with_obs
 
 | | |
 |-|-|
-| Version | 1.1.0 |
+| Version | 1.2.0 |
 | MSRV | Rust 1.94.1 |
 | Rust edition | 2024 |
 | Platforms | macOS, Linux, Windows |
-| Stability | stable 1.1 release line |
+| Stability | stable 1.2 release line |
 
 ## Documentation
 
