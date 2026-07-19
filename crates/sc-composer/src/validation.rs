@@ -652,10 +652,7 @@ pub fn discover_tokens(text: &str) -> BTreeSet<VariableName> {
 
 /// Discover declared template variable tokens for a caller-provided brace count.
 #[must_use]
-pub fn discover_tokens_with_brace_count(
-    text: &str,
-    brace_count: usize,
-) -> BTreeSet<VariableName> {
+pub fn discover_tokens_with_brace_count(text: &str, brace_count: usize) -> BTreeSet<VariableName> {
     if brace_count < 2 {
         return BTreeSet::new();
     }
@@ -866,12 +863,12 @@ mod tests {
 
     use serde_json::json;
 
-    use crate::{ExpandedTemplate, parse_template_document};
     use crate::types::{
         ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, ResolveResult,
         UnknownVariablePolicy,
     };
     use crate::{DiagnosticCode, DiagnosticSeverity, validate};
+    use crate::{ExpandedTemplate, parse_template_document};
 
     use super::{collect_validation_state, inject_builtin_vars, missing_frontmatter_warnings};
 

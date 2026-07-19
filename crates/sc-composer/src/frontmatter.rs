@@ -347,8 +347,7 @@ mod tests {
     #[test]
     fn preserves_later_body_delimiters_after_leading_header_stack() {
         let parsed =
-            parse_template_document("---\ndefaults: {name: world}\n---\nhello\n---\nrule")
-                .unwrap();
+            parse_template_document("---\ndefaults: {name: world}\n---\nhello\n---\nrule").unwrap();
 
         assert_eq!(parsed.passes().len(), 1);
         assert_eq!(parsed.body(), "hello\n---\nrule");
@@ -358,7 +357,11 @@ mod tests {
     fn malformed_yaml_fails_closed() {
         let error = parse_template_document("---\ndefaults: [\n---\nbody").unwrap_err();
 
-        assert!(error.to_string().contains("failed to parse YAML frontmatter"));
+        assert!(
+            error
+                .to_string()
+                .contains("failed to parse YAML frontmatter")
+        );
     }
 
     #[test]

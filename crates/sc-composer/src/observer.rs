@@ -174,8 +174,8 @@ mod tests {
 
     use super::{
         CompositionObserver, IncludeOutcomeEvent, NoopObserver, ObservationEvent, ObservationSink,
-        PassEndEvent, PassStartEvent, RenderOutcomeEvent, ResolveAttemptEvent,
-        ResolveOutcomeEvent, ValidationOutcomeEvent, VerifyEndEvent, VerifyStartEvent,
+        PassEndEvent, PassStartEvent, RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent,
+        ValidationOutcomeEvent, VerifyEndEvent, VerifyStartEvent,
     };
 
     #[test]

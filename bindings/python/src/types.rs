@@ -231,6 +231,7 @@ impl PyComposePolicy {
                 max_include_depth: sc_composer::IncludeDepth::new(max_include_depth),
                 allowed_roots: extract_allowed_roots(allowed_roots)?,
                 resolver_policy: ResolverPolicy::default(),
+                passes: Vec::new(),
             },
         })
     }
@@ -786,7 +787,10 @@ impl PyExpandedTemplate {
             .map(|(path, frontmatter)| {
                 (
                     path.display().to_string(),
-                    frontmatter.clone().map(|inner| PyFrontmatter { inner }),
+                    frontmatter
+                        .first()
+                        .cloned()
+                        .map(|inner| PyFrontmatter { inner }),
                 )
             })
             .collect()

@@ -55,8 +55,8 @@ pub use init_workspace::init_workspace;
 #[doc(inline)]
 pub use observer::{
     CompositionObserver, IncludeOutcomeEvent, NoopObserver, ObservationEvent, ObservationSink,
-    PassEndEvent, PassStartEvent, RenderOutcomeEvent, ResolveAttemptEvent,
-    ResolveOutcomeEvent, ValidationOutcomeEvent, VerifyEndEvent, VerifyStartEvent,
+    PassEndEvent, PassStartEvent, RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent,
+    ValidationOutcomeEvent, VerifyEndEvent, VerifyStartEvent,
 };
 #[doc(inline)]
 pub use path_utils::to_forward_slash;
