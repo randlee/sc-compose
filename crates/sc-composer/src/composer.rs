@@ -93,12 +93,7 @@ pub fn compose_with_observer(
             &mut validation_state,
             &validation_report.resolve_result.resolved_path,
         );
-        render_all_with_observer(&parsed, &contexts, observer).inspect_err(|error| {
-            observer.on_render_outcome(&RenderOutcomeEvent {
-                rendered_bytes: None,
-                code: error.code(),
-            });
-        })?
+        render_all_with_observer(&parsed, &contexts, observer)?
     } else {
         let renderer = Renderer::new();
         renderer

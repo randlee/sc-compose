@@ -223,19 +223,17 @@ def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
 def test_expanded_template_exposes_full_frontmatter_passes(tmp_path: Path) -> None:
     write(
         tmp_path / "stacked.md.j2",
-        """
-        ---
-        pass: 1
-        metadata:
-          stage: outer
-        ---
-        ---
-        pass: 2
-        metadata:
-          stage: inner
-        ---
-        body
-        """,
+        "---\n"
+        "pass: 1\n"
+        "metadata:\n"
+        "  stage: outer\n"
+        "---\n"
+        "---\n"
+        "pass: 2\n"
+        "metadata:\n"
+        "  stage: inner\n"
+        "---\n"
+        "body\n",
     )
 
     expanded = sc_compose.expand_includes(tmp_path / "stacked.md.j2", tmp_path)
