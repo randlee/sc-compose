@@ -377,8 +377,21 @@ pub struct ResolverPolicy {
     pub ambiguous_without_runtime_is_error: bool,
 }
 
+/// Per-pass configuration carried through the multi-pass composition pipeline.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct PassConfig {
+    /// The pass number this configuration applies to.
+    pub pass_number: u8,
+    /// Variables required before this pass can render.
+    pub required_variables: Vec<VariableName>,
+    /// Default values injected for this pass.
+    pub defaults: BTreeMap<VariableName, InputValue>,
+    /// Descriptive metadata associated with this pass.
+    pub metadata: BTreeMap<String, MetadataValue>,
+}
+
 /// Policy bundle for the composition pipeline.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ComposePolicy {
     /// Whether undeclared referenced variables are fatal.
     pub strict_undeclared_variables: bool,
@@ -390,6 +403,8 @@ pub struct ComposePolicy {
     pub allowed_roots: Vec<ConfiningRoot>,
     /// Resolver configuration carried into later sprints.
     pub resolver_policy: ResolverPolicy,
+    /// Per-pass policy extensions for multi-pass templates.
+    pub passes: Vec<PassConfig>,
 }
 
 impl Default for ComposePolicy {
@@ -400,12 +415,13 @@ impl Default for ComposePolicy {
             max_include_depth: IncludeDepth::new(32),
             allowed_roots: Vec::new(),
             resolver_policy: ResolverPolicy::default(),
+            passes: Vec::new(),
         }
     }
 }
 
 /// Top-level library request for compose and validate entry points.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ComposeRequest {
     /// Optional runtime used for profile resolution policy.
     pub runtime: Option<RuntimeKind>,

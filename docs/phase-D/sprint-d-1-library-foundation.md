@@ -1,9 +1,10 @@
 ---
 id: D.1
 title: Multi-Pass Library Foundation
-status: planned
+status: complete
 branch: sprint/d-1-library-foundation
-target: develop
+target: integrate/phase-d
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/d-1-library-foundation
 ---
 
 # Sprint D.1 — Multi-Pass Library Foundation

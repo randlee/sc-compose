@@ -16,7 +16,7 @@ pub struct ExpandedTemplate {
     /// Files visited during include expansion, in first-seen order.
     pub resolved_files: Vec<PathBuf>,
     /// Parsed frontmatter values keyed by the file they came from.
-    pub frontmatters: Vec<(PathBuf, Option<Frontmatter>)>,
+    pub frontmatters: Vec<(PathBuf, Vec<Frontmatter>)>,
     /// Include chain recorded for each resolved file.
     pub include_chains: BTreeMap<PathBuf, Vec<PathBuf>>,
 }
@@ -63,7 +63,7 @@ pub fn expand_includes(
 struct ExpansionState {
     resolved_files: Vec<PathBuf>,
     resolved_seen: BTreeSet<PathBuf>,
-    frontmatters: Vec<(PathBuf, Option<Frontmatter>)>,
+    frontmatters: Vec<(PathBuf, Vec<Frontmatter>)>,
     include_chains: BTreeMap<PathBuf, Vec<PathBuf>>,
 }
 
@@ -118,7 +118,7 @@ fn expand_file(
     })?;
     state
         .frontmatters
-        .push((path.to_path_buf(), parsed.frontmatter().cloned()));
+        .push((path.to_path_buf(), parsed.passes().to_vec()));
     if is_new {
         state.resolved_seen.insert(path_buf);
     }

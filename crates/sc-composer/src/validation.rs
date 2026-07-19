@@ -214,8 +214,8 @@ fn missing_frontmatter_warnings(
     expanded
         .frontmatters
         .iter()
-        .filter_map(|(path, frontmatter)| {
-            if frontmatter.is_some() || !file_references_variables(path) {
+        .filter_map(|(path, frontmatters)| {
+            if !frontmatters.is_empty() || !file_references_variables(path) {
                 return None;
             }
             let message = if *path == resolve_result.resolved_path {
@@ -255,8 +255,8 @@ fn frontmatter_diagnostics(expanded: &ExpandedTemplate) -> Vec<Diagnostic> {
     expanded
         .frontmatters
         .iter()
-        .flat_map(|(path, frontmatter)| {
-            frontmatter
+        .flat_map(|(path, frontmatters)| {
+            frontmatters
                 .iter()
                 .flat_map(|frontmatter| frontmatter.diagnostics().iter())
                 .cloned()
@@ -468,13 +468,15 @@ pub(crate) fn collect_validation_state(
 ) -> ValidationState {
     let mut state = ValidationState::default();
 
-    for (path, frontmatter) in &expanded.frontmatters {
-        if let Some(frontmatter) = frontmatter {
+    for (path, frontmatters) in &expanded.frontmatters {
+        if !frontmatters.is_empty() {
             let is_root = expanded
                 .resolved_files
                 .first()
                 .is_some_and(|root| root == path);
-            merge_frontmatter(path, frontmatter, expanded, &mut state, is_root);
+            for frontmatter in frontmatters {
+                merge_frontmatter(path, frontmatter, expanded, &mut state, is_root);
+            }
         }
     }
 
@@ -641,27 +643,44 @@ fn merge_frontmatter(
 
 /// Discover declared template variable tokens without running full validation.
 ///
-/// Returns the set of variable names referenced by `text`.
+/// Returns the set of variable names referenced by `text` using the standard
+/// double-brace `{{ name }}` expression delimiters.
 #[must_use]
 pub fn discover_tokens(text: &str) -> BTreeSet<VariableName> {
+    discover_tokens_with_brace_count(text, 2)
+}
+
+/// Discover declared template variable tokens for a caller-provided brace count.
+#[must_use]
+pub fn discover_tokens_with_brace_count(
+    text: &str,
+    brace_count: usize,
+) -> BTreeSet<VariableName> {
+    if brace_count < 2 {
+        return BTreeSet::new();
+    }
+
     let mut tokens = BTreeSet::new();
     let mut scopes = Vec::<LoopScope>::new();
     let mut cursor = text;
+    let expression_delimiters = ExpressionDelimiters::new(brace_count);
 
-    while let Some((delimiter, start)) = next_delimiter(cursor) {
+    while let Some((delimiter, start)) = next_delimiter(cursor, &expression_delimiters) {
         let start_delimiter = match delimiter {
-            Delimiter::Expression => "{{",
+            Delimiter::Expression => expression_delimiters.open.as_str(),
             Delimiter::Statement => "{%",
         };
         let end_delimiter = match delimiter {
-            Delimiter::Expression => "}}",
+            Delimiter::Expression => expression_delimiters.close.as_str(),
             Delimiter::Statement => "%}",
         };
 
         let after_start = &cursor[start + start_delimiter.len()..];
-        let Some(end) = after_start.find(end_delimiter) else {
-            break;
+        let end = match delimiter {
+            Delimiter::Expression => find_expression_close(after_start, end_delimiter),
+            Delimiter::Statement => after_start.find(end_delimiter),
         };
+        let Some(end) = end else { break };
         let expression = after_start[..end].trim();
         match delimiter {
             Delimiter::Expression => collect_identifiers(expression, &scopes, &mut tokens),
@@ -680,14 +699,53 @@ pub fn discover_tokens(text: &str) -> BTreeSet<VariableName> {
     tokens
 }
 
+/// Discover tokens for every parsed pass using that pass's brace count.
+#[must_use]
+pub fn discover_all_pass_tokens(
+    parsed: &crate::frontmatter::ParsedTemplate,
+) -> BTreeMap<usize, BTreeSet<VariableName>> {
+    parsed
+        .passes()
+        .iter()
+        .map(|frontmatter| {
+            let pass_number = usize::from(frontmatter.pass_number());
+            let brace_count = pass_number + 1;
+            (
+                pass_number,
+                discover_tokens_with_brace_count(parsed.body(), brace_count),
+            )
+        })
+        .collect()
+}
+
 #[derive(Clone, Copy)]
 enum Delimiter {
     Expression,
     Statement,
 }
 
-fn next_delimiter(text: &str) -> Option<(Delimiter, usize)> {
-    match (text.find("{{"), text.find("{%")) {
+struct ExpressionDelimiters {
+    open: String,
+    close: String,
+}
+
+impl ExpressionDelimiters {
+    fn new(brace_count: usize) -> Self {
+        Self {
+            open: "{".repeat(brace_count),
+            close: "}".repeat(brace_count),
+        }
+    }
+}
+
+fn next_delimiter(
+    text: &str,
+    expression_delimiters: &ExpressionDelimiters,
+) -> Option<(Delimiter, usize)> {
+    match (
+        find_expression_open(text, expression_delimiters.open.as_str()),
+        text.find("{%"),
+    ) {
         (Some(expression), Some(statement)) if expression <= statement => {
             Some((Delimiter::Expression, expression))
         }
@@ -695,6 +753,33 @@ fn next_delimiter(text: &str) -> Option<(Delimiter, usize)> {
         (Some(expression), None) => Some((Delimiter::Expression, expression)),
         (None, None) => None,
     }
+}
+
+fn find_expression_open(text: &str, open_delimiter: &str) -> Option<usize> {
+    find_exact_delimiter(text, open_delimiter, b'{')
+}
+
+fn find_expression_close(text: &str, close_delimiter: &str) -> Option<usize> {
+    find_exact_delimiter(text, close_delimiter, b'}')
+}
+
+fn find_exact_delimiter(text: &str, delimiter: &str, repeated_byte: u8) -> Option<usize> {
+    let mut cursor = 0usize;
+    while cursor < text.len() {
+        let found = text[cursor..].find(delimiter)?;
+        let absolute = cursor + found;
+        let after = absolute + delimiter.len();
+        if text
+            .as_bytes()
+            .get(after)
+            .is_some_and(|byte| *byte == repeated_byte)
+        {
+            cursor = after;
+            continue;
+        }
+        return Some(absolute);
+    }
+    None
 }
 
 fn parse_for_loop_scope(
@@ -781,7 +866,7 @@ mod tests {
 
     use serde_json::json;
 
-    use crate::ExpandedTemplate;
+    use crate::{ExpandedTemplate, parse_template_document};
     use crate::types::{
         ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, ResolveResult,
         UnknownVariablePolicy,
@@ -1074,9 +1159,9 @@ mod tests {
                 frontmatters: vec![
                     (
                         root.join("template.md.j2"),
-                        Some(crate::Frontmatter::empty()),
+                        vec![crate::Frontmatter::empty()],
                     ),
-                    (root.join("partials/body.md.j2"), None),
+                    (root.join("partials/body.md.j2"), Vec::new()),
                 ],
                 include_chains: BTreeMap::default(),
             },
@@ -1419,6 +1504,52 @@ mod tests {
         assert!(!tokens.contains(&crate::VariableName::new("finding.id").unwrap()));
         assert!(!tokens.contains(&crate::VariableName::new("sprint").unwrap()));
         assert!(!tokens.contains(&crate::VariableName::new("sprint.title").unwrap()));
+    }
+
+    #[test]
+    fn discover_tokens_with_brace_count_finds_standard_and_higher_brace_tokens() {
+        let double = super::discover_tokens_with_brace_count("{{ a }}", 2);
+        let triple = super::discover_tokens_with_brace_count("{{{ a }}}", 3);
+
+        assert_eq!(double, [crate::VariableName::new("a").unwrap()].into());
+        assert_eq!(triple, [crate::VariableName::new("a").unwrap()].into());
+    }
+
+    #[test]
+    fn discover_tokens_with_brace_count_does_not_match_lower_brace_inside_higher_brace() {
+        let tokens = super::discover_tokens_with_brace_count("{{{ outer }}} {{ inner }}", 3);
+
+        assert_eq!(tokens, [crate::VariableName::new("outer").unwrap()].into());
+        assert!(
+            super::discover_tokens_with_brace_count("{{ a }}", 3).is_empty(),
+            "double-brace expression should not be matched by triple-brace discovery"
+        );
+    }
+
+    #[test]
+    fn discover_tokens_with_brace_count_ignores_higher_brace_when_scanning_lower_brace() {
+        let tokens = super::discover_tokens_with_brace_count("{{{ outer }}} {{ inner }}", 2);
+
+        assert_eq!(tokens, [crate::VariableName::new("inner").unwrap()].into());
+    }
+
+    #[test]
+    fn discover_all_pass_tokens_returns_per_pass_maps() {
+        let parsed = parse_template_document(
+            "---\npass: 1\n---\n---\npass: 2\n---\n{{ inner }} {{{ outer }}}",
+        )
+        .unwrap();
+
+        let tokens = super::discover_all_pass_tokens(&parsed);
+
+        assert_eq!(
+            tokens.get(&1).cloned().unwrap_or_default(),
+            [crate::VariableName::new("inner").unwrap()].into()
+        );
+        assert_eq!(
+            tokens.get(&2).cloned().unwrap_or_default(),
+            [crate::VariableName::new("outer").unwrap()].into()
+        );
     }
 
     #[test]
