@@ -1,36 +1,10 @@
 use std::path::{Path, PathBuf};
 
-use anyhow::{Result, anyhow};
-use sc_composer::FrontmatterInitResult;
-
-use crate::cli::{FrontmatterInitArgs, InitArgs, ObservabilityHealthArgs};
+use crate::cli::{InitArgs, ObservabilityHealthArgs};
 use crate::observer_impl::CliObserver;
 use crate::path_utils::to_forward_slash;
 use crate::{CommandError, observability, print_diagnostic_messages, print_json};
-
-pub(crate) fn run_frontmatter_init(args: &FrontmatterInitArgs) -> Result<i32, CommandError> {
-    let result = sc_composer::frontmatter_init(&args.file, args.force, args.dry_run)
-        .map_err(CommandError::compose)?;
-    if args.json && args.dry_run {
-        print_json(
-            serde_json::json!({
-                "action": "frontmatter-init",
-                "would_affect": [to_forward_slash(&result.target_path)],
-                "changed": result.changed,
-                "would_change": result.would_change,
-                "skipped": !result.would_change,
-                "vars": result.discovered_variables,
-            }),
-            Vec::new(),
-        )
-        .map_err(CommandError::usage)?;
-    } else if args.json {
-        print_json_frontmatter_init(&result).map_err(CommandError::usage)?;
-    } else if args.dry_run {
-        println!("{}", result.frontmatter_text);
-    }
-    Ok(crate::exit_codes::SUCCESS)
-}
+use anyhow::{Result, anyhow};
 
 pub(crate) fn run_init(args: &InitArgs) -> Result<i32, CommandError> {
     let canonical_root = std::fs::canonicalize(&args.root).map_err(|error| {
@@ -102,20 +76,6 @@ pub(crate) fn run_observability_health(
         observability::print_observability_health(&health);
     }
     Ok(crate::exit_codes::SUCCESS)
-}
-
-fn print_json_frontmatter_init(result: &FrontmatterInitResult) -> Result<()> {
-    let payload = serde_json::json!({
-        "template_path": to_forward_slash(&result.target_path),
-        "frontmatter_added": result.changed,
-        "would_change": result.would_change,
-        "vars": result.discovered_variables,
-    });
-    println!(
-        "{}",
-        serde_json::to_string_pretty(&crate::json_output::envelope(payload, Vec::new()))?
-    );
-    Ok(())
 }
 
 fn planned_init_changes(root: &Path) -> Vec<PathBuf> {

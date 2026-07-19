@@ -1,9 +1,9 @@
 ---
 id: D.4
 title: template-init + verify
-status: planned
+status: complete
 branch: sprint/d-4-template-init-verify
-target: develop
+target: integrate/phase-d
 ---
 
 # Sprint D.4 — template-init + verify

@@ -25,6 +25,11 @@ pub(crate) enum Command {
     Resolve(ResolveArgs),
     #[command(about = "Validate templates without rendering output")]
     Validate(ValidateArgs),
+    #[command(about = "Verify deployed output matches a rendered template")]
+    Verify(VerifyArgs),
+    #[command(name = "template-init")]
+    #[command(about = "Convert a concrete file into a template using pass-scoped replacements")]
+    TemplateInit(TemplateInitArgs),
     #[command(name = "frontmatter-init")]
     #[command(about = "Insert minimal frontmatter for referenced variables")]
     FrontmatterInit(FrontmatterInitArgs),
@@ -187,6 +192,41 @@ pub(crate) struct RenderArgs {
     pub(crate) variable_delimiters: Option<Vec<String>>,
     #[command(flatten)]
     pub(crate) render: RenderBehaviorArgs,
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct VerifyArgs {
+    #[command(flatten)]
+    pub(crate) common: CommonArgs,
+    #[arg(long, help = "Template path in file mode")]
+    pub(crate) against: Option<PathBuf>,
+    #[arg(long, help = "Verify all stacked template passes")]
+    pub(crate) all: bool,
+    #[arg(long, help = "Suppress diff output when drift is detected")]
+    pub(crate) quiet: bool,
+    #[arg(
+        long = "builtin-var",
+        value_parser = parse_var,
+        action = clap::ArgAction::Append,
+        help = "Override one builtin variable as key=value for deterministic verification"
+    )]
+    pub(crate) builtin_vars: Vec<(String, String)>,
+    #[arg(long, help = "Emit machine-readable JSON output")]
+    pub(crate) json: bool,
+    #[arg(help = "Concrete deployed file to compare against")]
+    pub(crate) deployed: PathBuf,
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct TemplateInitArgs {
+    #[arg(help = "Concrete file to convert into a template")]
+    pub(crate) file: PathBuf,
+    #[arg(long)]
+    pub(crate) force: bool,
+    #[arg(long)]
+    pub(crate) json: bool,
+    #[arg(long)]
+    pub(crate) dry_run: bool,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -360,15 +400,15 @@ pub(crate) fn parse_pass_inputs(command_name: &str) -> Result<Vec<PassInputArgs>
                     return Err("--var requires key=value".to_owned());
                 };
                 let value = value.to_string_lossy();
-                let current = current.as_mut().ok_or_else(|| {
-                    "--var must appear after --pass when --all is enabled".to_owned()
-                })?;
+                let current = current
+                    .as_mut()
+                    .ok_or_else(|| "--var must appear after --pass".to_owned())?;
                 current.vars.push(parse_var(&value)?);
             }
             _ if arg.starts_with("--var=") => {
-                let current = current.as_mut().ok_or_else(|| {
-                    "--var must appear after --pass when --all is enabled".to_owned()
-                })?;
+                let current = current
+                    .as_mut()
+                    .ok_or_else(|| "--var must appear after --pass".to_owned())?;
                 current.vars.push(parse_var(
                     arg.strip_prefix("--var=").unwrap_or(arg.as_ref()),
                 )?);
@@ -377,15 +417,15 @@ pub(crate) fn parse_pass_inputs(command_name: &str) -> Result<Vec<PassInputArgs>
                 let Some(value) = args.next() else {
                     return Err("--var-file requires a path".to_owned());
                 };
-                let current = current.as_mut().ok_or_else(|| {
-                    "--var-file must appear after --pass when --all is enabled".to_owned()
-                })?;
+                let current = current
+                    .as_mut()
+                    .ok_or_else(|| "--var-file must appear after --pass".to_owned())?;
                 current.var_files.push(value.to_string_lossy().into_owned());
             }
             _ if arg.starts_with("--var-file=") => {
-                let current = current.as_mut().ok_or_else(|| {
-                    "--var-file must appear after --pass when --all is enabled".to_owned()
-                })?;
+                let current = current
+                    .as_mut()
+                    .ok_or_else(|| "--var-file must appear after --pass".to_owned())?;
                 current.var_files.push(
                     arg.strip_prefix("--var-file=")
                         .unwrap_or(arg.as_ref())
@@ -421,7 +461,10 @@ fn filtered_args_for_clap() -> Vec<OsString> {
     while let Some(arg) = args.next() {
         let arg_text = arg.to_string_lossy();
         if command_name.is_none() {
-            if matches!(arg_text.as_ref(), "render" | "validate") {
+            if matches!(
+                arg_text.as_ref(),
+                "render" | "validate" | "verify" | "template-init"
+            ) {
                 command_name = Some(arg_text.into_owned());
                 in_pass_group = false;
             }
@@ -459,6 +502,8 @@ pub(crate) fn command_wants_json(command: &Command) -> bool {
         Command::Render(args) => args.render.json,
         Command::Resolve(args) => args.json,
         Command::Validate(args) => args.json,
+        Command::Verify(args) => args.json,
+        Command::TemplateInit(args) => args.json,
         Command::FrontmatterInit(args) => args.json,
         Command::Init(args) => args.json,
         Command::ObservabilityHealth(args) => args.json,
