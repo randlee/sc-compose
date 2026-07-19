@@ -566,6 +566,27 @@ Compatibility rule:
 - `changed: bool`
 - `would_change: bool`
 
+`TemplateInitPlan`
+
+- `passes: Vec<InitPass>`
+- `single_pass_compatible: bool`
+- `replacements: Vec<PlannedReplacement>`
+
+Template-init contract:
+
+- `template-init` consumes an input file plus one or more pass-scoped variable
+  maps from the CLI wrapper.
+- Replacement planning sorts passes outer-to-inner and, within each pass,
+  sorts literal values longest-first so specific strings are replaced before
+  substrings.
+- Generated headers are emitted in outer-to-inner order and include `pass: N`
+  only when the output must remain genuinely multi-pass.
+- If the resulting template is effectively single-pass, the emitted header is
+  normalized back to the shipped `1.2.x` single-header shape by omitting
+  `pass: 1`.
+- `template-init` remains CLI-owned in `sc-compose`; `sc-composer` owns only
+  the reusable workspace/helper types needed to support the conversion.
+
 `InitResult`
 
 - `prompts_dir: PathBuf`
@@ -1496,6 +1517,10 @@ use sc_composer::observer::{
 };
 
 pub enum ObservationEvent {
+    PassStart(PassStartEvent),
+    PassEnd(PassEndEvent),
+    VerifyStart(VerifyStartEvent),
+    VerifyEnd(VerifyEndEvent),
     ResolveAttempt(ResolveAttemptEvent),
     ResolveOutcome(ResolveOutcomeEvent),
     IncludeExpandOutcome(IncludeOutcomeEvent),
@@ -1508,6 +1533,10 @@ pub trait ObservationSink {
 }
 
 pub trait CompositionObserver {
+    fn on_pass_start(&mut self, event: &PassStartEvent) {}
+    fn on_pass_end(&mut self, event: &PassEndEvent) {}
+    fn on_verify_start(&mut self, event: &VerifyStartEvent) {}
+    fn on_verify_end(&mut self, event: &VerifyEndEvent) {}
     fn on_resolve_attempt(&mut self, event: &ResolveAttemptEvent) {}
     fn on_resolve_outcome(&mut self, event: &ResolveOutcomeEvent) {}
     fn on_include_outcome(&mut self, event: &IncludeOutcomeEvent) {}
@@ -1534,6 +1563,10 @@ Required library behavior:
   Internal composition code emits through the typed `CompositionObserver`
   callbacks rather than routing through `emit()`.
 - The approved minimum library-owned variant set is:
+  - `PassStart`
+  - `PassEnd`
+  - `VerifyStart`
+  - `VerifyEnd`
   - `ResolveAttempt`
   - `ResolveOutcome`
   - `IncludeExpandOutcome`

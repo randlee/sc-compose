@@ -119,10 +119,10 @@ fn compose_multi_pass(
         for (k, v) in &pass_header.defaults { pass_vars.insert(k.clone(), v.clone()); }
         // ... merge request vars (request wins over defaults)
 
-        observer.emit_pass_start(pass_header.pass_number);
+        observer.on_pass_start(&PassStartEvent::new(pass_header.pass_number));
         body = renderer.render(&protected_body, &pass_vars)
             .map_err(|e| ComposeError::Render(e))?;
-        observer.emit_pass_end(pass_header.pass_number);
+        observer.on_pass_end(&PassEndEvent::new(pass_header.pass_number));
     }
 
     Ok(ComposeResult {

@@ -62,12 +62,7 @@ Covered by the 6 user stories in
 ## Dependency Order
 
 ```
-D.1 (library foundation)
- ├─► D.2 (composition pipeline)
- │    ├─► D.3 (CLI surface)
- │    │    └─► D.4 (template-init + verify)
- │    └─► D.4 (also depends on D.2 for render_all)
- └─► (D.3 and D.4 also depend on D.1 types)
+D.1 (library foundation) ─► D.2 (composition pipeline) ─► D.3 (CLI surface) ─► D.4 (template-init + verify)
 ```
 
 D.1 must ship first — every other sprint depends on the stacked-header types
@@ -124,29 +119,23 @@ baseline:
 - [prototype/multipass/](../../prototype/multipass/) (reference implementation
   and executable behavior oracle)
 
-## Architecture Documentation Gap
+## Architecture Coverage
 
-**Note:** `docs/architecture.md` has no coverage of multi-pass stacked-header
-template rendering. The architecture doc should be updated with:
+This gap is now closed. `docs/architecture.md` has been updated to cover:
 
-- Multi-pass rendering loop design and pass ordering (outer-to-inner)
-- Brace-count-aware delimiter discrimination semantics
-- `protect_higher_braces` mechanism and `{% raw %}` interaction constraints
-- leading-header-only parsing rule so `---` in the body remains literal content
-- `verify` drift-check boundary between `sc-composer` (library) and `sc-compose` (CLI)
-- `template-init` conversion algorithm and output contract
-- New `types.rs` and `verify.rs` modules in `sc-composer` (Section 4 Module Architecture)
-- `ComposePolicy.passes: Vec<PassConfig>` field (Section 8.2)
-- Updated `ParsedTemplate` shape: `passes: Vec<Frontmatter>` (Section 8)
+- the multi-pass rendering loop and outer-to-inner pass ordering,
+- brace-count-aware delimiter discrimination and higher-brace protection,
+- the leading-header-only parsing rule so `---` in the body remains literal,
+- the `verify` library/CLI ownership boundary,
+- the `template-init` conversion algorithm and single-pass normalization rule,
+- the `types.rs` and `verify.rs` modules in `sc-composer`,
+- `ComposePolicy.passes: Vec<PassConfig>`, and
+- the updated `ParsedTemplate { passes, body }` shape.
 
 The ADR set in `docs/adrs/0002` through `0008` closes the prior decision-record
 gap for DD-001 through DD-007. `docs/architecture.md`, those ADRs, and the
 committed `prototype/multipass/` directory are the authoritative design
 baseline for Phase D.
-
-This is tracked as a pre-implementation requirement — D.1 implementers need
-the architecture decisions documented before coding the `split_frontmatter()`
-rewrite.
 
 ## Follow-On Sprints (not yet drafted)
 

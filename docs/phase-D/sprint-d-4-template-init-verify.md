@@ -117,7 +117,7 @@ silently dropped or partially deferred.
 - Read deployed file, compute unified diff
 - Re-export from `lib.rs`
 - Emit `verify-start` and `verify-end` events via `CompositionObserver`
-  (new trait methods `emit_verify_start()`/`emit_verify_end()` with default
+  (new trait methods `on_verify_start()`/`on_verify_end()` with default
   no-op impls added to the trait in D.1 alongside pass lifecycle events)
 - Create `crates/sc-compose/src/commands/verify.rs`
 - Add `verify` subcommand to `cli.rs`
