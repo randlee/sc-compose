@@ -49,7 +49,7 @@ pub use error::{
 #[doc(inline)]
 pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};
 #[doc(inline)]
-pub use frontmatter_init::{frontmatter_init, template_init};
+pub use frontmatter_init::frontmatter_init;
 #[doc(inline)]
 pub use include::{ExpandedTemplate, expand_includes};
 #[doc(inline)]
@@ -72,7 +72,7 @@ pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_templ
 #[doc(inline)]
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
-    FrontmatterInitResult, IncludeDepth, InitPass, InitResult, InputValue, InvalidInputValueError,
+    FrontmatterInitResult, IncludeDepth, InitResult, InputValue, InvalidInputValueError,
     InvalidProfileNameError, InvalidVariableNameError, MetadataValue, PassConfig, ProfileKind,
     ProfileName, ResolveResult, ResolverPolicy, RuntimeKind, UnknownVariablePolicy,
     ValidationReport, VariableName, VariableSource, VerifyResult, input_value_from_yaml,

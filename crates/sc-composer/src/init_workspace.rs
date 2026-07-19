@@ -25,7 +25,7 @@ pub fn init_workspace(root: impl AsRef<Path>, dry_run: bool) -> Result<InitResul
     let templates = scan_templates(&canonical_root)?;
 
     let prompts_dir_missing = !prompts_dir.exists();
-    let mut current_gitignore = std::fs::read_to_string(&gitignore).unwrap_or_default();
+    let mut current_gitignore = read_optional_gitignore(&gitignore)?;
     let gitignore_updated = !current_gitignore
         .lines()
         .any(|line| line.trim() == ".prompts/");
@@ -104,6 +104,19 @@ pub fn init_workspace(root: impl AsRef<Path>, dry_run: bool) -> Result<InitResul
         recommendations,
         validation_passed,
     })
+}
+
+fn read_optional_gitignore(path: &Path) -> Result<String, ComposeError> {
+    match std::fs::read_to_string(path) {
+        Ok(contents) => Ok(contents),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
+        Err(error) => Err(ConfigError::new(
+            DiagnosticCode::ErrConfigParse,
+            format!("failed to read gitignore: {}", path.display()),
+        )
+        .with_source(error)
+        .into()),
+    }
 }
 
 fn scan_templates(root: &Path) -> Result<Vec<PathBuf>, ComposeError> {
@@ -200,6 +213,23 @@ mod tests {
         match error {
             ComposeError::Config(error) => {
                 assert_eq!(error.code(), DiagnosticCode::ErrConfigReadonly);
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[test]
+    fn init_workspace_surfaces_gitignore_read_errors() {
+        let root = temp_root("init_workspace_gitignore_read_error");
+        write_file(&root.join("templates/example.md.j2"), "hello {{ name }}\n");
+        fs::create_dir_all(root.join(".gitignore")).unwrap();
+
+        let error = init_workspace(&root, true).unwrap_err();
+
+        match error {
+            ComposeError::Config(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrConfigParse);
+                assert!(error.message().contains("failed to read gitignore"));
             }
             other => panic!("unexpected error: {other}"),
         }

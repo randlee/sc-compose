@@ -551,15 +551,6 @@ pub struct FrontmatterInitResult {
     pub would_change: bool,
 }
 
-/// One pass worth of replacements for `template-init`.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct InitPass {
-    /// Pass number to render this replacement group under.
-    pub pass_number: u8,
-    /// Variable names mapped to the concrete values to replace.
-    pub variables: Vec<(VariableName, String)>,
-}
-
 /// Result returned by template drift verification.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct VerifyResult {

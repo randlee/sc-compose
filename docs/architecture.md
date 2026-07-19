@@ -566,24 +566,18 @@ Compatibility rule:
 - `changed: bool`
 - `would_change: bool`
 
-`TemplateInitPlan`
-
-- `passes: Vec<InitPass>`
-- `single_pass_compatible: bool`
-- `replacements: Vec<PlannedReplacement>`
-
 Template-init contract:
 
 - `template-init` consumes an input file plus one or more pass-scoped variable
   maps from the CLI wrapper.
-- Replacement planning sorts passes outer-to-inner and, within each pass,
-  sorts literal values longest-first so specific strings are replaced before
-  substrings.
+- Replacement planning is CLI-owned in `sc-compose` and sorts all pass-scoped
+  literal values globally longest-first, with higher pass numbers breaking ties,
+  so specific strings are reserved before substrings anywhere in the file.
 - Generated headers are emitted in outer-to-inner order and include `pass: N`
   only when the output must remain genuinely multi-pass.
 - If the resulting template is effectively single-pass, the emitted header is
-  normalized back to the shipped `1.2.x` single-header shape by omitting
-  `pass: 1`.
+  normalized back to the shipped `1.2.x` single-header shape:
+  `required_variables`, `defaults: {}`, `metadata: {}`, and no `pass: 1`.
 - `template-init` remains CLI-owned in `sc-compose`; `sc-composer` owns only
   the reusable workspace/helper types needed to support the conversion.
 
