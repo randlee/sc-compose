@@ -742,7 +742,9 @@ Command mapping:
 - `resolve` -> `resolve_profile`
 - `validate` -> `validate`
 - `frontmatter-init` -> `frontmatter_init`
+- `template-init` -> CLI-owned `template_init_file` rewrite path
 - `init` -> `init_workspace`
+- `verify` -> `verify`
 - `observability-health` -> CLI logger initialization, then `Logger::health()`
 - `examples list` -> list bundled example packs
 - `examples <name>` -> resolve the bundled example-pack file, merge pack
@@ -784,8 +786,27 @@ Command-specific rules:
 - `frontmatter-init`
   - rewrites or inserts frontmatter for a single target file,
   - uses token discovery but does not render the file.
+- `template-init`
+  - rewrites a single target file into a single-pass or multi-pass template,
+  - accepts one or more `--pass N` groups with pass-scoped `--var` and
+    `--var-file` inputs,
+  - honors `--force` for existing frontmatter/template rewrites,
+  - honors `--dry-run` without writing the rewritten file,
+  - returns exit code `3` when requested literal values are not found because
+    that outcome is a usage/configuration failure rather than a successful
+    drift result.
 - `init`
   - performs repository bootstrap and validation-oriented scanning.
+- `verify`
+  - compares one deployed file against the rendered output of `--against
+    <template>`,
+  - accepts `--quiet` to suppress diff body output,
+  - accepts `--builtin-var KEY=VALUE` overrides for deterministic builtin
+    values,
+  - accepts pass-scoped `--pass N` groups with per-pass `--var` and
+    `--var-file` inputs when `--all` is used,
+  - returns exit `0` when clean, exit `1` when drift is detected, and exit
+    `2` or `3` for genuine validation/render or usage/configuration failures.
 - `observability-health`
   - reads logger health state without mutating composition behavior,
   - prints a human-readable health summary by default,

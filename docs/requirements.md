@@ -413,7 +413,9 @@ Each block may be empty. Ordering is never caller-defined.
 - `resolve`
 - `validate`
 - `frontmatter-init`
+- `template-init`
 - `init`
+- `verify`
 - `observability-health`
 - `examples`
 - `templates`
@@ -441,6 +443,11 @@ The CLI must support:
 - `--prompt-file <path|->`
 - `--json`
 - `--dry-run`
+- `--force` where applicable
+- `--pass N` repeatably where applicable
+- `--against <path>` where applicable
+- `--quiet` where applicable
+- `--builtin-var KEY=VALUE` repeatably where applicable
 
 Command behavior:
 
@@ -463,6 +470,15 @@ Command behavior:
   - discovers referenced variables,
   - prepends minimal frontmatter,
   - fails if frontmatter already exists unless `--force` is provided.
+- `template-init`
+  - converts a concrete file into a templated file using one or more pass
+    groups declared with `--pass N`,
+  - accepts `--var key=value` replacements within each pass group,
+  - accepts `--force` to overwrite an existing frontmatter/template header,
+  - supports `--dry-run` without writing the rewritten file,
+  - exits with code `3` when declared literal values are not found in the
+    source file because that outcome is a usage/configuration failure rather
+    than a successful drift result.
 - `init`
   - creates `.prompts/`,
   - ensures `.prompts/` is ignored by Git,
@@ -505,6 +521,16 @@ Command behavior:
   - owns the shared reporting runtime surface rather than repo-specific
     producer command bodies,
   - keeps publish upload and browser-open behavior outside the command family.
+- `verify`
+  - compares a deployed file against the rendered output of `--against
+    <template>`,
+  - supports pass-scoped `--pass N` groups with per-pass `--var` and
+    `--var-file` inputs when `--all` is used,
+  - accepts `--builtin-var KEY=VALUE` for deterministic builtin overrides,
+  - accepts `--quiet` to suppress diff body output while preserving exit
+    status,
+  - exits `0` when clean, `1` when drift is detected, and `2` or `3` for
+    genuine validation/render or usage/configuration failures.
 
 `--dry-run` behavior:
 
@@ -566,8 +592,13 @@ Pack root policy:
 CLI exit codes must be:
 
 - `0` for success
+- `1` reserved exclusively for `verify` when drift is detected after a
+  successful comparison run
 - `2` for validation or render failure
 - `3` for usage, configuration, or contract error
+
+All other commands, including `template-init`, continue to use only `0`, `2`,
+and `3`.
 
 ### FR-7c: Template Whitespace Control
 

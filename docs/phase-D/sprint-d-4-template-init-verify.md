@@ -101,7 +101,8 @@ silently dropped or partially deferred.
     substring collisions (e.g., `/home/wyvern/worktrees/wyvern` before `wyvern`)
   - `--force` overwrites existing file
   - `--dry-run` prints what would change without writing
-  - Exit 1 if any value not found in file
+  - Exit 3 if any value not found in file because the missing literal is a
+    usage/configuration failure, not a successful drift result
 
 - `D4` — Integration test coverage
   - verify: clean template, drift detected, quiet mode, file not found
@@ -246,7 +247,7 @@ let frontmatter_text = build_stacked_frontmatter(passes)?;
   - Single-pass output matches the legacy frontmatter-init header shape:
     `required_variables`, `defaults: {}`, `metadata: {}`, and no `pass: 1`
   - Longest-match-first: `/home/wyvern/worktrees/wyvern` replaced before `wyvern`
-  - Value not found → exit 1 with `values not found in file`
+  - Value not found → exit 3 with `values not found in file`
   - Duplicate literal assignments or overlapping substitutions fail explicitly
     instead of silently dropping replacements or corrupting inserted tokens
   - Existing single-pass `frontmatter-init` behavior preserved
