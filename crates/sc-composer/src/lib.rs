@@ -34,7 +34,7 @@ pub mod validate;
 pub mod validation;
 
 #[doc(inline)]
-pub use composer::{compose, compose_with_observer};
+pub use composer::{compose, compose_with_observer, protect_higher_braces, render_all};
 #[doc(inline)]
 pub use diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope, DiagnosticSeverity,

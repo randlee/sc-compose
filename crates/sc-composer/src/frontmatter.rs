@@ -76,6 +76,11 @@ pub struct ParsedTemplate {
 }
 
 impl ParsedTemplate {
+    /// Construct a parsed template from already-normalized parts.
+    pub(crate) fn from_parts(passes: Vec<Frontmatter>, body: String) -> Self {
+        Self { passes, body }
+    }
+
     /// Borrow the outermost parsed frontmatter if one existed.
     ///
     /// This preserves the backward-compatible single-header accessor surface.
