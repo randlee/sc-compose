@@ -52,31 +52,66 @@ Covered by the 6 user stories in
 
 ## Sprint Plan
 
+Python bindings ship in **tandem** with each Rust sprint rather than as one
+bolt-on phase at the end — see
+[Python Binding Parity](#python-binding-parity) below.
+
 | Sprint | Title | Scope |
 |--------|-------|-------|
 | [D.1](sprint-d-1-library-foundation.md) | Multi-Pass Library Foundation | Stacked headers, brace-count validation, pass config types |
+| [D.1-py](sprint-d-1-py-bindings.md) | Python Bindings — Multi-Pass Library Foundation | PyO3 exposure of D.1's library surface |
 | [D.2](sprint-d-2-composition-pipeline.md) | Multi-Pass Composition Pipeline | Multi-pass compose loop, render_all, backward compat |
+| [D.2-py](sprint-d-2-py-bindings.md) *(stub)* | Python Bindings — Multi-Pass Composition Pipeline | PyO3 exposure of D.2's library surface |
 | [D.3](sprint-d-3-cli-surface.md) | Multi-Pass CLI Surface | --all, --pass N, re-exports, delimiter flag |
+| [D.3-py](sprint-d-3-py-bindings.md) *(stub)* | Python Bindings — Multi-Pass CLI Surface Parity Check | Re-export parity check against D.3 |
 | [D.4](sprint-d-4-template-init-verify.md) | template-init + verify | template-init converter, verify library + CLI |
-| [D.5](sprint-d-5-python-bindings.md) | Python Bindings for Multi-Pass Composition | PyO3 exposure of the D.1–D.4 library surface (draft, pre-review) |
+| [D.4-py](sprint-d-4-py-bindings.md) *(stub)* | Python Bindings — template-init + verify | PyO3 exposure of D.4's library surface |
 
 ## Dependency Order
 
 ```
-D.1 (library foundation) ─► D.2 (composition pipeline) ─► D.3 (CLI surface) ─► D.4 (template-init + verify) ─► D.5 (Python bindings)
+D.1 ─► D.1-py ─► D.2 ─► D.2-py ─► D.3 ─► D.3-py ─► D.4 ─► D.4-py
 ```
 
 D.1 must ship first — every other sprint depends on the stacked-header types
-and brace-count-aware validation. D.2 ships second — the multi-pass compose
-loop is required before any CLI surface can be built. D.3 ships third —
-providing the `--pass N` CLI arg infrastructure that D.4 depends on. D.4
-(template-init + verify) ships fourth, reusing D.3's per-pass variable
-arguments and D.2's `render_all` entry point. D.5 (Python bindings) ships last
-— it wraps the combined D.1–D.4 `sc-composer` library surface for Python and
-therefore depends on all four preceding sprints.
+and brace-count-aware validation. D.1-py ships immediately after D.1 lands,
+wrapping only D.1's surface, before D.2 begins. D.2 ships next — the
+multi-pass compose loop is required before any CLI surface can be built,
+followed immediately by D.2-py. D.3 ships next, providing the `--pass N` CLI
+arg infrastructure that D.4 depends on, followed immediately by D.3-py. D.4
+(template-init + verify) ships last among the Rust sprints, reusing D.3's
+per-pass variable arguments and D.2's `render_all` entry point, followed
+immediately by D.4-py.
 
 **Note:** D.4 depends on D.3 for `--pass N` CLI arg infrastructure; they
-cannot proceed in parallel despite sharing D.2 as a common dependency.
+cannot proceed in parallel despite sharing D.2 as a common dependency. Each
+`-py` sprint depends only on its corresponding Rust sprint (plus, where noted
+in that sprint's own doc, conventions established by an earlier `-py`
+sprint) — it does not block or get blocked by the next Rust sprint.
+
+## Python Binding Parity
+
+**Process change from the original Phase D plan.** Python bindings for the
+multi-pass surface are no longer planned as a single follow-on phase
+(the original "D.5") after all four Rust sprints land. Team-lead and the
+project owner have decided Python is a first-class customer of every Phase D
+feature, not a bolt-on: each Rust sprint is followed immediately by its own
+`-py` sprint that wraps exactly that sprint's new library surface, before the
+next Rust sprint starts.
+
+- Sequencing: `D.1 → D.1-py → D.2 → D.2-py → D.3 → D.3-py → D.4 → D.4-py`.
+- Each `-py` sprint is assigned to comp the moment its corresponding Rust
+  sprint lands on `integrate/phase-d` — not batched, not deferred.
+- Python is never more than one sprint behind the Rust surface it wraps.
+- `D.1-py` is fully drafted now (D.1 has landed) with the same rigor as a
+  regular sprint doc. `D.2-py`, `D.3-py`, and `D.4-py` are drafted as
+  lightweight stubs (`status: stub-pending-rust-sprint`) naming the expected
+  surface and open design questions, since D.2–D.4's exact final shape may
+  still shift before those Rust sprints land. Each stub is fleshed out to
+  full sprint-doc rigor once its corresponding Rust sprint ships.
+- All `bindings/python` boundary rules from `CLAUDE.md` (rules 3–5) continue
+  to apply unchanged to every `-py` sprint: `bindings/python` may depend on
+  `sc-composer` only, never on `sc-compose` or ATM-specific crates.
 
 ## Fixed Product Decisions
 
@@ -96,8 +131,9 @@ These decisions are closed and must not be revisited during implementation:
   variables. (DD-006)
 - No breaking changes to current single-header API. (DD-007)
 - `bindings/python` must not depend on `sc-compose`, `sc-observability`, or
-  ATM-specific crates. Phase D Python wrapping is deferred to a follow-on
-  phase.
+  ATM-specific crates. Phase D Python wrapping ships in tandem with each Rust
+  sprint (see [Python Binding Parity](#python-binding-parity)), not as a
+  deferred follow-on phase.
 
 ## Hard Dependencies
 
@@ -116,9 +152,13 @@ baseline:
 
 - [README.md](./README.md) (this file)
 - [sprint-d-1-library-foundation.md](./sprint-d-1-library-foundation.md)
+- [sprint-d-1-py-bindings.md](./sprint-d-1-py-bindings.md)
 - [sprint-d-2-composition-pipeline.md](./sprint-d-2-composition-pipeline.md)
+- [sprint-d-2-py-bindings.md](./sprint-d-2-py-bindings.md) *(stub)*
 - [sprint-d-3-cli-surface.md](./sprint-d-3-cli-surface.md)
+- [sprint-d-3-py-bindings.md](./sprint-d-3-py-bindings.md) *(stub)*
 - [sprint-d-4-template-init-verify.md](./sprint-d-4-template-init-verify.md)
+- [sprint-d-4-py-bindings.md](./sprint-d-4-py-bindings.md) *(stub)*
 - [prototype/multipass/](../../prototype/multipass/) (reference implementation
   and executable behavior oracle)
 
@@ -142,20 +182,34 @@ baseline for Phase D.
 
 ## Follow-On Sprints
 
-Now drafted:
+Python binding sprints are no longer a single follow-on phase — see
+[Python Binding Parity](#python-binding-parity). Status per tandem sprint:
 
-- [D.5 — Python Bindings for Multi-Pass Composition](sprint-d-5-python-bindings.md)
-  (draft, pending skillrx design review) covers the Python-exposure gap:
-  - wrapping the multi-pass types (`ParsedTemplate.passes`,
-    `Frontmatter.pass_number`, `PassConfig`, `discover_tokens_with_brace_count`,
-    `discover_all_pass_tokens`, `render_all`) in `bindings/python`
-    (`Renderer.with_delimiters()` is already exposed as of Phase C), and
-  - Python `verify` and multi-pass `template-init` bindings (the latter
-    conditional on hosting the template-init core in the `sc-composer` library
-    — see the sprint doc's open design questions).
+Fully drafted:
+
+- [D.1-py — Python Bindings — Multi-Pass Library Foundation](sprint-d-1-py-bindings.md)
+  covers the Python-exposure gap for D.1's library surface: wrapping
+  `ParsedTemplate.passes`, `Frontmatter.pass_number`, `PassConfig`,
+  `discover_tokens_with_brace_count`, and `discover_all_pass_tokens` in
+  `bindings/python` (`Renderer.with_delimiters()` is already exposed as of
+  Phase C). Assignable to comp now that D.1 has landed.
+
+Drafted as stubs (`status: stub-pending-rust-sprint`), to be fleshed out once
+their corresponding Rust sprint lands:
+
+- [D.2-py — Python Bindings — Multi-Pass Composition Pipeline](sprint-d-2-py-bindings.md)
+  — expected to cover `render_all` and `PyComposePolicy.passes`.
+- [D.3-py — Python Bindings — Multi-Pass CLI Surface Parity Check](sprint-d-3-py-bindings.md)
+  — expected to be a re-export parity check; D.3 is largely CLI-only and CLI
+  flags are never exposed to Python.
+- [D.4-py — Python Bindings — template-init + verify](sprint-d-4-py-bindings.md)
+  — expected to cover `verify`, and conditionally multi-pass `template-init`
+  (contingent on hosting its conversion core in `sc-composer`; see the stub's
+  open design questions).
 
 Not yet drafted:
 
-- Multi-pass smoke/integration test suite beyond the D.5 binding smoke tests
+- Multi-pass smoke/integration test suite beyond each `-py` sprint's own
+  binding smoke tests
 - `verify` builtin variable overrides (`RENDER_DATE`, `RENDER_TIMESTAMP`)
   persistence/config surface
