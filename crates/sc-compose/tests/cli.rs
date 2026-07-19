@@ -281,6 +281,249 @@ fn render_uses_yaml_var_file_inputs() {
 }
 
 #[test]
+fn render_all_renders_multi_pass_template_with_inline_pass_vars() {
+    let root = temp_root("render-all-inline");
+    write_file(
+        &root.join("template.2.j2"),
+        "---\npass: 2\n---\n---\npass: 1\n---\ndeploy {{ task }} for {{{ team }}}\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--all")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.2.j2")
+        .arg("--pass")
+        .arg("2")
+        .arg("--var")
+        .arg("team=wyvern")
+        .arg("--pass")
+        .arg("1")
+        .arg("--var")
+        .arg("task=test")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "deploy test for wyvern"
+    );
+}
+
+#[test]
+fn render_all_renders_multi_pass_template_with_per_pass_var_files() {
+    let root = temp_root("render-all-var-files");
+    write_file(
+        &root.join("template.2.j2"),
+        "---\npass: 2\n---\n---\npass: 1\n---\ndeploy {{ task }} for {{{ team }}}\n",
+    );
+    write_file(&root.join("vars-pass2.json"), "{ \"team\": \"wyvern\" }\n");
+    write_file(&root.join("vars-pass1.yaml"), "task: test\n");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--all")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.2.j2")
+        .arg("--pass")
+        .arg("2")
+        .arg("--var-file")
+        .arg(root.join("vars-pass2.json"))
+        .arg("--pass")
+        .arg("1")
+        .arg("--var-file")
+        .arg(root.join("vars-pass1.yaml"))
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "deploy test for wyvern"
+    );
+}
+
+#[test]
+fn validate_all_accepts_multi_pass_template() {
+    let root = temp_root("validate-all");
+    write_file(
+        &root.join("template.2.j2"),
+        "---\npass: 2\n---\n---\npass: 1\n---\ndeploy {{ task }} for {{{ team }}}\n",
+    );
+
+    let output = sc_compose()
+        .arg("validate")
+        .arg("--all")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.2.j2")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(String::from_utf8_lossy(&output.stdout).contains("undeclared referenced token"));
+}
+
+#[test]
+fn render_brace_count_uses_custom_triple_brace_delimiters() {
+    let root = temp_root("brace-count");
+    write_file(&root.join("template.md.j2"), "hello {{{ name }}}\n");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--brace-count")
+        .arg("3")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("name=world")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "hello world"
+    );
+}
+
+#[test]
+fn render_variable_delimiters_uses_explicit_delimiter_pair() {
+    let root = temp_root("variable-delimiters");
+    write_file(&root.join("template.md.j2"), "hello << name >>\n");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--variable-delimiters")
+        .arg("<<")
+        .arg(">>")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("name=world")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "hello world"
+    );
+}
+
+#[test]
+fn render_all_warns_and_falls_back_for_single_pass_template() {
+    let root = temp_root("render-all-single-pass");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--all")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--pass")
+        .arg("1")
+        .arg("--var")
+        .arg("name=world")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "hello world"
+    );
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("without stacked headers"),
+        "{output:?}"
+    );
+}
+
+#[test]
+fn render_all_rejects_wrong_pass_order() {
+    let root = temp_root("render-all-wrong-order");
+    write_file(
+        &root.join("template.2.j2"),
+        "---\npass: 2\n---\n---\npass: 1\n---\ndeploy {{ task }} for {{{ team }}}\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--all")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.2.j2")
+        .arg("--pass")
+        .arg("1")
+        .arg("--var")
+        .arg("task=test")
+        .arg("--pass")
+        .arg("2")
+        .arg("--var")
+        .arg("team=wyvern")
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success(), "{output:?}");
+    assert!(
+        !String::from_utf8_lossy(&output.stderr).trim().is_empty(),
+        "{output:?}"
+    );
+}
+
+#[test]
+fn render_brace_count_rejects_values_below_two() {
+    let root = temp_root("brace-count-invalid");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--brace-count")
+        .arg("1")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(
+        !String::from_utf8_lossy(&output.stderr).trim().is_empty(),
+        "{output:?}"
+    );
+}
+
+#[test]
 fn examples_list_uses_data_dir_override() {
     let output = sc_compose()
         .arg("examples")

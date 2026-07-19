@@ -1,9 +1,10 @@
 ---
 id: D.3
 title: Multi-Pass CLI Surface
-status: planned
+status: complete
 branch: sprint/d-3-cli-surface
-target: develop
+target: integrate/phase-d
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/d-3-cli-surface
 ---
 
 # Sprint D.3 — Multi-Pass CLI Surface

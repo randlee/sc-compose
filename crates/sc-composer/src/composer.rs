@@ -15,7 +15,7 @@ use crate::observer::{
 use crate::path_utils::to_forward_slash;
 use crate::renderer::Renderer;
 use crate::resolver::resolve_template_path;
-use crate::types::{ComposeRequest, ComposeResult, InputValue, VariableName};
+use crate::types::{ComposeRequest, ComposeResult, InputValue, PassConfig, VariableName};
 
 /// Compose a request end to end: resolve, expand includes, validate, render,
 /// and assemble output blocks.
@@ -90,6 +90,7 @@ pub fn compose_with_observer(
     let rendered_text = if parsed.passes().len() > 1 {
         let contexts = build_pass_contexts(
             parsed.passes(),
+            &request.policy.passes,
             &mut validation_state,
             &validation_report.resolve_result.resolved_path,
         );
@@ -234,10 +235,35 @@ fn build_render_context(
 
 fn build_pass_contexts(
     passes: &[Frontmatter],
+    pass_configs: &[PassConfig],
     state: &mut crate::validation::ValidationState,
     template_path: &Path,
 ) -> Vec<(u8, BTreeMap<VariableName, InputValue>)> {
     crate::validation::inject_builtin_vars(state, template_path);
+    let frontmatter_defaults = passes
+        .iter()
+        .map(|pass| (pass.pass_number(), pass.defaults().clone()))
+        .collect::<BTreeMap<_, _>>();
+
+    if !pass_configs.is_empty() {
+        return pass_configs
+            .iter()
+            .map(|pass| {
+                let mut context = frontmatter_defaults
+                    .get(&pass.pass_number)
+                    .cloned()
+                    .unwrap_or_default();
+                for (name, value) in &state.context {
+                    context.insert(name.clone(), value.clone());
+                }
+                for (name, value) in &pass.defaults {
+                    context.insert(name.clone(), value.clone());
+                }
+                (pass.pass_number, context)
+            })
+            .collect();
+    }
+
     passes
         .iter()
         .map(|pass| {

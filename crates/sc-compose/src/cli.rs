@@ -55,9 +55,10 @@ pub(crate) struct InputArgs {
     pub(crate) vars: Vec<(String, String)>,
     #[arg(
         long = "var-file",
+        action = clap::ArgAction::Append,
         help = "Load input variables from a JSON or YAML object file"
     )]
-    pub(crate) var_file: Option<String>,
+    pub(crate) var_file: Vec<String>,
     #[arg(
         long,
         help = "Absorb environment variables that match the given prefix"
@@ -72,6 +73,13 @@ pub(crate) struct InputArgs {
         help = "Control how extra caller-provided variables are reported"
     )]
     pub(crate) unknown_var_mode: UnknownVarMode,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct PassInputArgs {
+    pub(crate) pass_number: u8,
+    pub(crate) vars: Vec<(String, String)>,
+    pub(crate) var_files: Vec<String>,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -149,6 +157,15 @@ pub(crate) struct ResolveArgs {
 pub(crate) struct ValidateArgs {
     #[command(flatten)]
     pub(crate) common: CommonArgs,
+    #[arg(long, help = "Validate all stacked template passes")]
+    pub(crate) all: bool,
+    #[arg(
+        long = "pass",
+        action = clap::ArgAction::Append,
+        value_name = "N",
+        help = "Declare the next per-pass variable group"
+    )]
+    pub(crate) pass_numbers: Vec<u8>,
     #[arg(long)]
     pub(crate) json: bool,
 }
@@ -157,6 +174,30 @@ pub(crate) struct ValidateArgs {
 pub(crate) struct RenderArgs {
     #[command(flatten)]
     pub(crate) common: CommonArgs,
+    #[arg(long, help = "Render all stacked template passes")]
+    pub(crate) all: bool,
+    #[arg(
+        long = "pass",
+        action = clap::ArgAction::Append,
+        value_name = "N",
+        help = "Declare the next per-pass variable group"
+    )]
+    pub(crate) pass_numbers: Vec<u8>,
+    #[arg(
+        long = "brace-count",
+        value_parser = clap::value_parser!(u8).range(2..),
+        conflicts_with_all = ["all", "variable_delimiters"],
+        help = "Render with custom brace-count delimiters (for example 3 => {{{ }}})"
+    )]
+    pub(crate) brace_count: Option<u8>,
+    #[arg(
+        long = "variable-delimiters",
+        num_args = 2,
+        value_names = ["OPEN", "CLOSE"],
+        conflicts_with_all = ["all", "brace_count"],
+        help = "Render with explicit variable delimiters"
+    )]
+    pub(crate) variable_delimiters: Option<Vec<String>>,
     #[command(flatten)]
     pub(crate) render: RenderBehaviorArgs,
 }
@@ -278,6 +319,69 @@ pub(crate) fn parse_var(input: &str) -> Result<(String, String), String> {
         .split_once('=')
         .ok_or_else(|| "expected key=value".to_owned())?;
     Ok((key.to_owned(), value.to_owned()))
+}
+
+pub(crate) fn parse_pass_inputs(command_name: &str) -> Result<Vec<PassInputArgs>, String> {
+    let mut args = std::env::args_os();
+    let mut found_command = false;
+    let mut current: Option<PassInputArgs> = None;
+    let mut parsed = Vec::new();
+
+    while let Some(arg) = args.next() {
+        let arg = arg.to_string_lossy();
+        if !found_command {
+            if arg == command_name {
+                found_command = true;
+            }
+            continue;
+        }
+
+        match arg.as_ref() {
+            "--pass" => {
+                if let Some(group) = current.take() {
+                    parsed.push(group);
+                }
+                let Some(value) = args.next() else {
+                    return Err("--pass requires a numeric pass number".to_owned());
+                };
+                let value = value.to_string_lossy();
+                let pass_number = value
+                    .parse::<u8>()
+                    .map_err(|error| format!("invalid pass number `{value}`: {error}"))?;
+                current = Some(PassInputArgs {
+                    pass_number,
+                    vars: Vec::new(),
+                    var_files: Vec::new(),
+                });
+            }
+            "--var" => {
+                let Some(value) = args.next() else {
+                    return Err("--var requires key=value".to_owned());
+                };
+                let value = value.to_string_lossy();
+                let current = current.as_mut().ok_or_else(|| {
+                    "--var must appear after --pass when --all is enabled".to_owned()
+                })?;
+                current.vars.push(parse_var(&value)?);
+            }
+            "--var-file" => {
+                let Some(value) = args.next() else {
+                    return Err("--var-file requires a path".to_owned());
+                };
+                let current = current.as_mut().ok_or_else(|| {
+                    "--var-file must appear after --pass when --all is enabled".to_owned()
+                })?;
+                current.var_files.push(value.to_string_lossy().into_owned());
+            }
+            _ => {}
+        }
+    }
+
+    if let Some(group) = current {
+        parsed.push(group);
+    }
+
+    Ok(parsed)
 }
 
 pub(crate) fn command_wants_json(command: &Command) -> bool {

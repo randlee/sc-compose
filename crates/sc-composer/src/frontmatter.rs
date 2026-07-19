@@ -79,7 +79,8 @@ pub struct ParsedTemplate {
 
 impl ParsedTemplate {
     /// Construct a parsed template from already-normalized parts.
-    pub(crate) fn from_parts(passes: Vec<Frontmatter>, body: String) -> Self {
+    #[must_use]
+    pub fn from_parts(passes: Vec<Frontmatter>, body: String) -> Self {
         Self { passes, body }
     }
 
