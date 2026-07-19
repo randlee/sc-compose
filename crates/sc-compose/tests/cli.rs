@@ -488,6 +488,32 @@ fn verify_treats_crlf_deployed_file_as_clean() {
 }
 
 #[test]
+fn verify_treats_trailing_newline_difference_as_clean() {
+    let root = temp_root("verify-trailing-newline-clean");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\ndefaults:\n  name: world\n---\nhello {{ name }}\n",
+    );
+    let deployed = root.join("deployed.md");
+    write_file(&deployed, "hello world\n");
+
+    let output = sc_compose()
+        .arg("verify")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--against")
+        .arg("template.md.j2")
+        .arg(&deployed)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(String::from_utf8_lossy(&output.stdout).contains("OK"));
+}
+
+#[test]
 fn template_init_builds_multi_pass_template_from_pass_groups() {
     let root = temp_root("template-init-multi-pass");
     let file = root.join("agent.md");

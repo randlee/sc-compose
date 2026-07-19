@@ -904,6 +904,17 @@ The schemas below define the `payload` shape for each command.
 }
 ```
 
+`template-init --json`
+
+```json
+{
+  "template_path": "path/to/template.md",
+  "template_added": true,
+  "would_change": true,
+  "vars": ["task"]
+}
+```
+
 `validate --json`
 
 ```json
@@ -1437,6 +1448,7 @@ Canonical failures must map to stable error families and stable codes.
 | Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
 | Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |
 | Command or helper invoked in incompatible mode | `ConfigError` | `ERR_CONFIG_MODE` |
+| Text/config file exists but is not readable as valid text | `ConfigError` | `ERR_CONFIG_READ` |
 | Config file missing or malformed | `ConfigError` | `ERR_CONFIG_PARSE` |
 | Invalid var-file shape | `ConfigError` | `ERR_CONFIG_VARFILE` |
 | Malformed object from structured input source | `ValidationError` | `ERR_VAL_OBJECT_SHAPE` |

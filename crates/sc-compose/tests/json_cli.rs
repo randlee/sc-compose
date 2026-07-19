@@ -383,6 +383,40 @@ fn frontmatter_init_dry_run_json_uses_diagnostic_envelope() {
 }
 
 #[test]
+fn template_init_json_uses_documented_payload_fields() {
+    let root = temp_root("template-init-json");
+    let path = root.join("template.md");
+    write_file(&path, "deploy test");
+
+    let output = sc_compose()
+        .arg("template-init")
+        .arg(&path)
+        .arg("--json")
+        .arg("--force")
+        .arg("--pass")
+        .arg("1")
+        .arg("--var")
+        .arg("task=test")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(
+        output.stderr.is_empty(),
+        "--json must not emit console log noise"
+    );
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["template_path"],
+        normalize_path_str(fs::canonicalize(&path).unwrap())
+    );
+    assert_eq!(value["payload"]["template_added"], true);
+    assert_eq!(value["payload"]["would_change"], true);
+    assert_eq!(value["payload"]["vars"][0], "task");
+}
+
+#[test]
 fn init_json_uses_diagnostic_envelope() {
     let root = temp_root("init-json");
 

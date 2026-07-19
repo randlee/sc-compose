@@ -25,7 +25,7 @@ pub fn init_workspace(root: impl AsRef<Path>, dry_run: bool) -> Result<InitResul
     let templates = scan_templates(&canonical_root)?;
 
     let prompts_dir_missing = !prompts_dir.exists();
-    let mut current_gitignore = read_optional_gitignore(&gitignore)?;
+    let mut current_gitignore = read_optional_text_file(&gitignore)?;
     let gitignore_updated = !current_gitignore
         .lines()
         .any(|line| line.trim() == ".prompts/");
@@ -106,13 +106,18 @@ pub fn init_workspace(root: impl AsRef<Path>, dry_run: bool) -> Result<InitResul
     })
 }
 
-fn read_optional_gitignore(path: &Path) -> Result<String, ComposeError> {
+/// Read an optional text file, treating `NotFound` as an empty string.
+///
+/// # Errors
+///
+/// Returns [`ComposeError`] when the file exists but cannot be read as text.
+pub fn read_optional_text_file(path: &Path) -> Result<String, ComposeError> {
     match std::fs::read_to_string(path) {
         Ok(contents) => Ok(contents),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
         Err(error) => Err(ConfigError::new(
-            DiagnosticCode::ErrConfigParse,
-            format!("failed to read gitignore: {}", path.display()),
+            DiagnosticCode::ErrConfigRead,
+            format!("failed to read text file: {}", path.display()),
         )
         .with_source(error)
         .into()),

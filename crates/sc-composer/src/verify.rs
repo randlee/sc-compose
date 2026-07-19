@@ -69,11 +69,18 @@ fn read_deployed_text(deployed_path: &Path) -> Result<String, ComposeError> {
     fs::read_to_string(deployed_path).map_err(|error| {
         let code = if error.kind() == std::io::ErrorKind::NotFound {
             DiagnosticCode::ErrResolveNotFound
+        } else if error.kind() == std::io::ErrorKind::InvalidData {
+            DiagnosticCode::ErrConfigRead
         } else {
             DiagnosticCode::ErrConfigParse
         };
         let message = if code == DiagnosticCode::ErrResolveNotFound {
             format!("deployed file not found: {}", deployed_path.display())
+        } else if code == DiagnosticCode::ErrConfigRead {
+            format!(
+                "deployed file is not valid UTF-8 text: {}",
+                deployed_path.display()
+            )
         } else {
             format!("failed to read deployed file: {}", deployed_path.display())
         };
@@ -92,8 +99,8 @@ fn render_diff(
     deployed_text: &str,
     rendered_text: &str,
 ) -> Option<String> {
-    let normalized_deployed = normalize_line_endings(deployed_text);
-    let normalized_rendered = normalize_line_endings(rendered_text);
+    let normalized_deployed = normalize_text_for_compare(deployed_text);
+    let normalized_rendered = normalize_text_for_compare(rendered_text);
     if normalized_deployed == normalized_rendered {
         return None;
     }
@@ -109,8 +116,8 @@ fn render_diff(
     )
 }
 
-fn normalize_line_endings(text: &str) -> String {
-    text.replace("\r\n", "\n").replace('\r', "\n")
+fn normalize_text_for_compare(text: &str) -> String {
+    text.lines().collect::<Vec<_>>().join("\n")
 }
 
 #[cfg(test)]
@@ -299,11 +306,42 @@ mod tests {
 
         match error {
             crate::ComposeError::Config(config) => {
-                assert_eq!(config.code(), DiagnosticCode::ErrConfigParse);
-                assert!(config.message().contains("failed to read deployed file"));
+                assert_eq!(config.code(), DiagnosticCode::ErrConfigRead);
+                assert!(config.message().contains("not valid UTF-8 text"));
             }
             other => panic!("unexpected error: {other}"),
         }
+    }
+
+    #[test]
+    fn verify_treats_trailing_newline_difference_as_clean() {
+        let root = temp_root("verify-trailing-newline");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\ndefaults:\n  name: world\n---\nhello {{ name }}\n",
+        );
+        write_file(&root.join("deployed.md"), "hello world\n");
+
+        let result = verify(
+            &ComposeRequest {
+                runtime: None,
+                mode: ComposeMode::File {
+                    template_path: PathBuf::from("template.md.j2"),
+                },
+                root: ConfiningRoot::new(&root).unwrap(),
+                vars_input: BTreeMap::default(),
+                vars_env: BTreeMap::default(),
+                vars_defaults: BTreeMap::default(),
+                guidance_block: None,
+                user_prompt: None,
+                policy: ComposePolicy::default(),
+            },
+            root.join("deployed.md"),
+        )
+        .unwrap();
+
+        assert!(result.clean);
+        assert!(result.diff.is_none());
     }
 
     fn temp_root(label: &str) -> PathBuf {

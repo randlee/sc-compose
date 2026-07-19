@@ -647,6 +647,29 @@ Schema rules:
   `true`.
 - `rendered_preview` is a preview string.
 
+`template-init --json`
+
+```json
+{
+  "schema_version": "1",
+  "payload": {
+    "template_path": "path/to/template.md",
+    "template_added": true,
+    "would_change": true,
+    "vars": ["task"]
+  },
+  "diagnostics": []
+}
+```
+
+Schema rules:
+
+- `template_path` is the rewritten template path as a string.
+- `template_added` is `true` when the command wrote a changed template to disk.
+- `would_change` records whether the generated template differed from the
+  original file content.
+- `vars` is the ordered list of discovered variable names used in the rewrite.
+
 `resolve --json`
 
 ```json

@@ -389,17 +389,21 @@ fn build_stacked_frontmatter(passes: &[InitPass]) -> Result<String, CommandError
                 .map(|(name, value)| (name.as_str().to_owned(), value.clone()))
                 .collect(),
         };
-        let yaml = serde_yaml::to_string(&header).map_err(|error| {
-            CommandError::usage_with_code(
-                anyhow!(error).context("failed to serialize template-init header"),
-                DiagnosticCode::ErrConfigParse,
-            )
-        })?;
+        let yaml = serialize_header(&header)?;
         text.push_str("---\n");
         text.push_str(&yaml);
         text.push_str("---\n");
     }
     Ok(text)
+}
+
+fn serialize_header(value: &impl serde::Serialize) -> Result<String, CommandError> {
+    serde_yaml::to_string(value).map_err(|error| {
+        CommandError::usage_with_code(
+            anyhow!(error).context("failed to serialize template-init header"),
+            DiagnosticCode::ErrConfigParse,
+        )
+    })
 }
 
 #[cfg(test)]
@@ -408,8 +412,12 @@ mod tests {
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use super::{InitPass, build_stacked_frontmatter, normalize_pass_number, template_init_file};
+    use super::{
+        InitPass, build_stacked_frontmatter, normalize_pass_number, serialize_header,
+        template_init_file,
+    };
     use sc_composer::VariableName;
+    use serde::ser::{Error as _, Serializer};
 
     #[test]
     fn template_init_builds_multi_pass_template() {
@@ -593,12 +601,20 @@ mod tests {
 
     #[test]
     fn build_stacked_frontmatter_serialization_failure_is_structured() {
-        let text = build_stacked_frontmatter(&[InitPass {
-            pass_number: 1,
-            variables: vec![(VariableName::new("task").unwrap(), "test".to_owned())],
-        }])
-        .unwrap();
-        assert!(text.contains("metadata: {}"));
+        struct FailingSerialize;
+
+        impl serde::Serialize for FailingSerialize {
+            fn serialize<S>(&self, _serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                Err(S::Error::custom("boom"))
+            }
+        }
+
+        let error = serialize_header(&FailingSerialize).unwrap_err();
+        assert!(format!("{error:#}").contains("failed to serialize template-init header"));
+        assert!(format!("{error:#}").contains("boom"));
     }
 
     fn temp_root(label: &str) -> PathBuf {

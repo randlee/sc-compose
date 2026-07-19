@@ -53,7 +53,7 @@ pub use frontmatter_init::frontmatter_init;
 #[doc(inline)]
 pub use include::{ExpandedTemplate, expand_includes};
 #[doc(inline)]
-pub use init_workspace::init_workspace;
+pub use init_workspace::{init_workspace, read_optional_text_file};
 #[doc(inline)]
 pub use observer::{
     CompositionObserver, IncludeOutcomeEvent, NoopObserver, ObservationEvent, ObservationSink,

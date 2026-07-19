@@ -90,7 +90,8 @@ fn planned_init_changes(root: &Path) -> Result<Vec<PathBuf>, CommandError> {
     }
 
     let gitignore = root.join(".gitignore");
-    let current = read_optional_gitignore(&gitignore)?;
+    let current =
+        sc_composer::read_optional_text_file(&gitignore).map_err(CommandError::compose)?;
     if !current.lines().any(|line| line.trim() == ".prompts/") {
         changes.push(gitignore);
     }
@@ -107,18 +108,4 @@ fn actual_init_created_files(prompts_dir_missing: bool, gitignore_updated: bool)
         created.push(".gitignore".to_owned());
     }
     created
-}
-
-fn read_optional_gitignore(path: &Path) -> Result<String, CommandError> {
-    match std::fs::read_to_string(path) {
-        Ok(contents) => Ok(contents),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
-        Err(error) => Err(CommandError::usage_with_code_and_hints(
-            anyhow!(error).context(format!("failed to read {}", path.display())),
-            DiagnosticCode::ErrConfigParse,
-            vec![RecoveryHint::new(RecoveryHintKind::InspectPath {
-                path: path.to_path_buf(),
-            })],
-        )),
-    }
 }
