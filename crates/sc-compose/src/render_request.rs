@@ -255,12 +255,7 @@ fn read_block(inline: Option<String>, file: Option<&str>) -> Result<Option<Strin
 
 fn load_vars(args: &InputArgs) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
     let mut vars = BTreeMap::default();
-    for (key, value) in &args.vars {
-        vars.insert(
-            VariableName::new(key.clone()).map_err(|error| invalid_var_name_error(key, &error))?,
-            serde_json::Value::String(value.clone()),
-        );
-    }
+    extend_inline_vars(&mut vars, &args.vars)?;
     for path in &args.var_file {
         let object = load_var_source(path)?;
         vars.extend(object);
@@ -297,12 +292,7 @@ fn load_pass_vars(
     pass: &PassInputArgs,
 ) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
     let mut vars = BTreeMap::new();
-    for (key, value) in &pass.vars {
-        vars.insert(
-            VariableName::new(key.clone()).map_err(|error| invalid_var_name_error(key, &error))?,
-            serde_json::Value::String(value.clone()),
-        );
-    }
+    extend_inline_vars(&mut vars, &pass.vars)?;
     for path in &pass.var_files {
         vars.extend(load_var_source(path)?);
     }
@@ -344,4 +334,17 @@ fn invalid_var_name_error(
             key: "use variable names containing only ASCII letters, digits, ., _, or -".to_owned(),
         })],
     )
+}
+
+fn extend_inline_vars(
+    vars: &mut BTreeMap<VariableName, InputValue>,
+    entries: &[(String, String)],
+) -> Result<(), CommandError> {
+    for (key, value) in entries {
+        vars.insert(
+            VariableName::new(key.clone()).map_err(|error| invalid_var_name_error(key, &error))?,
+            serde_json::Value::String(value.clone()),
+        );
+    }
+    Ok(())
 }

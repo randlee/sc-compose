@@ -13,8 +13,8 @@ use crate::{CommandError, print_diagnostic_messages, print_json};
 use anyhow::anyhow;
 use sc_composer::{
     ComposeMode, ComposeRequest, CompositionObserver, Diagnostic, DiagnosticCode,
-    DiagnosticSeverity, ExpandedTemplate, Frontmatter, ParsedTemplate, RenderOutcomeEvent,
-    Renderer, ResolveResult, ValidationOutcomeEvent,
+    DiagnosticSeverity, ExpandedTemplate, Frontmatter, ParsedTemplate, RecoveryHint,
+    RecoveryHintKind, RenderOutcomeEvent, Renderer, ResolveResult, ValidationOutcomeEvent,
 };
 
 pub(crate) fn run_render(
@@ -22,8 +22,7 @@ pub(crate) fn run_render(
     observer: &mut dyn CompositionObserver,
 ) -> Result<i32, CommandError> {
     if args.all {
-        let pass_inputs =
-            parse_pass_inputs("render").map_err(|error| CommandError::usage(anyhow!(error)))?;
+        let pass_inputs = parse_pass_inputs("render").map_err(pass_inputs_parse_error)?;
         let stdin_reads = pass_inputs
             .iter()
             .flat_map(|pass| pass.var_files.iter())
@@ -35,7 +34,6 @@ pub(crate) fn run_render(
             BTreeMap::default(),
             &pass_inputs,
         )?;
-        debug_assert_eq!(args.pass_groups.len(), pass_inputs.len());
         let (_, _, root_passes) = preflight_template(&request)?;
         if root_passes.len() <= 1 {
             emit_single_pass_all_warning(observer);
@@ -145,8 +143,7 @@ pub(crate) fn run_validate(
     observer: &mut dyn CompositionObserver,
 ) -> Result<i32, CommandError> {
     let request = if args.all {
-        let pass_inputs =
-            parse_pass_inputs("validate").map_err(|error| CommandError::usage(anyhow!(error)))?;
+        let pass_inputs = parse_pass_inputs("validate").map_err(pass_inputs_parse_error)?;
         let stdin_reads = pass_inputs
             .iter()
             .flat_map(|pass| pass.var_files.iter())
@@ -162,7 +159,6 @@ pub(crate) fn run_validate(
             BTreeMap::default(),
             &pass_inputs,
         )?;
-        debug_assert_eq!(args.pass_groups.len(), pass_inputs.len());
         let (_, _, root_passes) = preflight_template(&request)?;
         if root_passes.len() <= 1 {
             emit_single_pass_all_warning(observer);
@@ -206,6 +202,17 @@ pub(crate) fn run_validate(
     } else {
         crate::exit_codes::VALIDATION_OR_RENDER_FAIL
     })
+}
+
+fn pass_inputs_parse_error(error: String) -> CommandError {
+    CommandError::usage_with_code_and_hints(
+        anyhow!(error),
+        DiagnosticCode::ErrConfigParse,
+        vec![RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
+            key: "when using --all, declare each --pass N group before its --var/--var-file arguments"
+                .to_owned(),
+        })],
+    )
 }
 
 fn derived_output_path(request: &ComposeRequest, explicit: Option<&Path>) -> PathBuf {

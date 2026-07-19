@@ -281,6 +281,37 @@ fn render_uses_yaml_var_file_inputs() {
 }
 
 #[test]
+fn render_all_rejects_repeated_equals_syntax_prefix_in_var_argument() {
+    let root = temp_root("render-all-repeated-var-prefix");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\npasses:\n  - pass: 1\nrequired_variables:\n  - foo\n---\n{{ foo }}\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--all")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--pass")
+        .arg("1")
+        .arg("--var=--var=foo=bar")
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("missing required variable: foo"),
+        "{stderr}"
+    );
+}
+
+#[test]
 fn render_all_renders_multi_pass_template_with_inline_pass_vars() {
     let root = temp_root("render-all-inline");
     write_file(

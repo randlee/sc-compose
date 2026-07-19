@@ -1,3 +1,4 @@
+use std::ffi::OsString;
 use std::path::PathBuf;
 
 use anyhow::Result;
@@ -159,13 +160,6 @@ pub(crate) struct ValidateArgs {
     pub(crate) common: CommonArgs,
     #[arg(long, help = "Validate all stacked template passes")]
     pub(crate) all: bool,
-    #[arg(
-        long = "pass",
-        action = clap::ArgAction::Append,
-        value_name = "N",
-        help = "Declare the next per-pass variable group"
-    )]
-    pub(crate) pass_groups: Vec<u8>,
     #[arg(long)]
     pub(crate) json: bool,
 }
@@ -176,13 +170,6 @@ pub(crate) struct RenderArgs {
     pub(crate) common: CommonArgs,
     #[arg(long, help = "Render all stacked template passes")]
     pub(crate) all: bool,
-    #[arg(
-        long = "pass",
-        action = clap::ArgAction::Append,
-        value_name = "N",
-        help = "Declare the next per-pass variable group"
-    )]
-    pub(crate) pass_groups: Vec<u8>,
     #[arg(
         long = "brace-count",
         value_parser = clap::value_parser!(u8).range(2..),
@@ -358,7 +345,7 @@ pub(crate) fn parse_pass_inputs(command_name: &str) -> Result<Vec<PassInputArgs>
                 if let Some(group) = current.take() {
                     parsed.push(group);
                 }
-                let value = arg.trim_start_matches("--pass=");
+                let value = arg.strip_prefix("--pass=").unwrap_or(arg.as_ref());
                 let pass_number = value
                     .parse::<u8>()
                     .map_err(|error| format!("invalid pass number `{value}`: {error}"))?;
@@ -382,9 +369,9 @@ pub(crate) fn parse_pass_inputs(command_name: &str) -> Result<Vec<PassInputArgs>
                 let current = current.as_mut().ok_or_else(|| {
                     "--var must appear after --pass when --all is enabled".to_owned()
                 })?;
-                current
-                    .vars
-                    .push(parse_var(arg.trim_start_matches("--var="))?);
+                current.vars.push(parse_var(
+                    arg.strip_prefix("--var=").unwrap_or(arg.as_ref()),
+                )?);
             }
             "--var-file" => {
                 let Some(value) = args.next() else {
@@ -399,9 +386,11 @@ pub(crate) fn parse_pass_inputs(command_name: &str) -> Result<Vec<PassInputArgs>
                 let current = current.as_mut().ok_or_else(|| {
                     "--var-file must appear after --pass when --all is enabled".to_owned()
                 })?;
-                current
-                    .var_files
-                    .push(arg.trim_start_matches("--var-file=").to_owned());
+                current.var_files.push(
+                    arg.strip_prefix("--var-file=")
+                        .unwrap_or(arg.as_ref())
+                        .to_owned(),
+                );
             }
             _ => {}
         }
@@ -412,6 +401,57 @@ pub(crate) fn parse_pass_inputs(command_name: &str) -> Result<Vec<PassInputArgs>
     }
 
     Ok(parsed)
+}
+
+pub(crate) fn parse_cli() -> Cli {
+    Cli::parse_from(filtered_args_for_clap())
+}
+
+fn filtered_args_for_clap() -> Vec<OsString> {
+    let mut filtered = Vec::new();
+    let mut args = std::env::args_os();
+    let Some(program) = args.next() else {
+        return filtered;
+    };
+    filtered.push(program);
+
+    let mut command_name: Option<String> = None;
+    let mut in_pass_group = false;
+
+    while let Some(arg) = args.next() {
+        let arg_text = arg.to_string_lossy();
+        if command_name.is_none() {
+            if matches!(arg_text.as_ref(), "render" | "validate") {
+                command_name = Some(arg_text.into_owned());
+                in_pass_group = false;
+            }
+            filtered.push(arg);
+            continue;
+        }
+
+        if matches!(arg_text.as_ref(), "--pass") {
+            in_pass_group = true;
+            let _ = args.next();
+            continue;
+        }
+        if arg_text.starts_with("--pass=") {
+            in_pass_group = true;
+            continue;
+        }
+        if in_pass_group && matches!(arg_text.as_ref(), "--var" | "--var-file") {
+            let _ = args.next();
+            continue;
+        }
+        if in_pass_group && (arg_text.starts_with("--var=") || arg_text.starts_with("--var-file="))
+        {
+            continue;
+        }
+
+        in_pass_group = false;
+        filtered.push(arg);
+    }
+
+    filtered
 }
 
 pub(crate) fn command_wants_json(command: &Command) -> bool {
