@@ -82,6 +82,8 @@ pub enum DiagnosticCode {
     ErrConfigReadonly,
     /// A command or helper was invoked in an incompatible mode.
     ErrConfigMode,
+    /// A configuration or text file could not be read as valid text.
+    ErrConfigRead,
     /// Configuration or YAML parsing failed.
     ErrConfigParse,
     /// A var-file contained an unsupported structure.
@@ -122,6 +124,7 @@ impl DiagnosticCode {
             Self::ErrRenderWrite => "ERR_RENDER_WRITE",
             Self::ErrConfigReadonly => "ERR_CONFIG_READONLY",
             Self::ErrConfigMode => "ERR_CONFIG_MODE",
+            Self::ErrConfigRead => "ERR_CONFIG_READ",
             Self::ErrConfigParse => "ERR_CONFIG_PARSE",
             Self::ErrConfigVarfile => "ERR_CONFIG_VARFILE",
             Self::ErrConfigPackNotFound => "ERR_CONFIG_PACK_NOT_FOUND",

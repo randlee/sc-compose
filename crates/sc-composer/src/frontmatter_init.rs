@@ -42,9 +42,9 @@ pub fn frontmatter_init(
         .into_iter()
         .collect::<Vec<_>>();
     let frontmatter_text = build_frontmatter(&discovered);
+    let template_text = format!("{frontmatter_text}{}", parsed.body());
     if !dry_run {
-        let rewritten = format!("{frontmatter_text}{}", parsed.body());
-        std::fs::write(&canonical, rewritten).map_err(|error| {
+        std::fs::write(&canonical, &template_text).map_err(|error| {
             ConfigError::new(
                 DiagnosticCode::ErrConfigReadonly,
                 format!("failed to write template: {}", canonical.display()),
@@ -56,6 +56,7 @@ pub fn frontmatter_init(
     Ok(FrontmatterInitResult {
         target_path: canonical,
         frontmatter_text,
+        template_text,
         discovered_variables: discovered,
         changed: !dry_run && would_change,
         would_change,

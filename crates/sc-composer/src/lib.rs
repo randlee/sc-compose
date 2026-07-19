@@ -32,6 +32,8 @@ pub mod types;
 pub mod validate;
 /// Variable discovery and validation semantics.
 pub mod validation;
+/// Drift-verification entrypoints.
+pub mod verify;
 
 #[doc(inline)]
 pub use composer::{compose, compose_with_observer, protect_higher_braces, render_all};
@@ -51,7 +53,7 @@ pub use frontmatter_init::frontmatter_init;
 #[doc(inline)]
 pub use include::{ExpandedTemplate, expand_includes};
 #[doc(inline)]
-pub use init_workspace::init_workspace;
+pub use init_workspace::{init_workspace, read_optional_text_file};
 #[doc(inline)]
 pub use observer::{
     CompositionObserver, IncludeOutcomeEvent, NoopObserver, ObservationEvent, ObservationSink,
@@ -73,7 +75,8 @@ pub use types::{
     FrontmatterInitResult, IncludeDepth, InitResult, InputValue, InvalidInputValueError,
     InvalidProfileNameError, InvalidVariableNameError, MetadataValue, PassConfig, ProfileKind,
     ProfileName, ResolveResult, ResolverPolicy, RuntimeKind, UnknownVariablePolicy,
-    ValidationReport, VariableName, VariableSource, input_value_from_yaml, validate_input_value,
+    ValidationReport, VariableName, VariableSource, VerifyResult, input_value_from_yaml,
+    validate_input_value,
 };
 #[doc(inline)]
 pub use validate::{validate, validate_with_observer};
@@ -81,6 +84,8 @@ pub use validation::{
     BUILTIN_VARIABLE_NAMES, discover_all_pass_tokens, discover_tokens,
     discover_tokens_with_brace_count,
 };
+#[doc(inline)]
+pub use verify::{verify, verify_with_observer};
 
 #[cfg(test)]
 mod tests {

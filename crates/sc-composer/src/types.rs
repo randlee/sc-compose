@@ -541,12 +541,33 @@ pub struct FrontmatterInitResult {
     pub target_path: PathBuf,
     /// Frontmatter text that would be written.
     pub frontmatter_text: String,
+    /// Full template text that would be written.
+    pub template_text: String,
     /// Variables discovered during analysis.
     pub discovered_variables: Vec<VariableName>,
     /// Whether the target file changed on disk.
     pub changed: bool,
     /// Whether the operation would rewrite the target if allowed to write.
     pub would_change: bool,
+}
+
+/// Result returned by template drift verification.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct VerifyResult {
+    /// Whether the rendered template matches the deployed file exactly.
+    pub clean: bool,
+    /// Final resolved template path used for rendering.
+    pub resolved_template_path: PathBuf,
+    /// Deployed file compared against the rendered template output.
+    pub deployed_path: PathBuf,
+    /// Rendered template output used for comparison.
+    pub rendered_text: String,
+    /// Concrete deployed file contents.
+    pub deployed_text: String,
+    /// Unified diff when drift is detected.
+    pub diff: Option<String>,
+    /// Non-fatal diagnostics emitted while rendering the template.
+    pub warnings: Vec<Diagnostic>,
 }
 
 /// Result returned by the future `init` helper.

@@ -128,7 +128,8 @@ This gap is now closed. `docs/architecture.md` has been updated to cover:
 - the leading-header-only parsing rule so `---` in the body remains literal,
 - the `verify` library/CLI ownership boundary,
 - the `template-init` conversion algorithm and single-pass normalization rule,
-- the `types.rs` and `verify.rs` modules in `sc-composer`,
+- the `verify.rs` module plus `VerifyResult` in `sc-composer`,
+- the CLI-owned `commands/template_init.rs` conversion implementation in `sc-compose`,
 - `ComposePolicy.passes: Vec<PassConfig>`, and
 - the updated `ParsedTemplate { passes, body }` shape.
 

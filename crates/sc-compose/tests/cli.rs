@@ -281,6 +281,423 @@ fn render_uses_yaml_var_file_inputs() {
 }
 
 #[test]
+fn verify_reports_clean_when_render_matches_deployed() {
+    let root = temp_root("verify-clean");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\ndefaults:\n  name: world\n---\nhello {{ name }}\n",
+    );
+    let deployed = root.join("deployed.md");
+    write_file(&deployed, "hello world");
+
+    let output = sc_compose()
+        .arg("verify")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--against")
+        .arg("template.md.j2")
+        .arg(&deployed)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(String::from_utf8_lossy(&output.stdout).contains("OK"));
+}
+
+#[test]
+fn verify_reports_drift_with_exit_code_one() {
+    let root = temp_root("verify-drift");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\ndefaults:\n  name: world\n---\nhello {{ name }}\n",
+    );
+    let deployed = root.join("deployed.md");
+    write_file(&deployed, "hello drift\n");
+
+    let output = sc_compose()
+        .arg("verify")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--against")
+        .arg("template.md.j2")
+        .arg(&deployed)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("DRIFT detected"), "{stderr}");
+    assert!(stderr.contains("-hello drift"), "{stderr}");
+    assert!(stderr.contains("+hello world"), "{stderr}");
+}
+
+#[test]
+fn verify_quiet_suppresses_diff_output() {
+    let root = temp_root("verify-quiet");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\ndefaults:\n  name: world\n---\nhello {{ name }}\n",
+    );
+    let deployed = root.join("deployed.md");
+    write_file(&deployed, "hello drift\n");
+
+    let output = sc_compose()
+        .arg("verify")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--against")
+        .arg("template.md.j2")
+        .arg("--quiet")
+        .arg(&deployed)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("DRIFT detected"), "{stderr}");
+    assert!(!stderr.contains("@@"), "{stderr}");
+}
+
+#[test]
+fn verify_builtin_var_override_can_make_output_deterministic() {
+    let root = temp_root("verify-builtin-override");
+    write_file(&root.join("template.md.j2"), "{{ RENDER_DATE }}\n");
+    let deployed = root.join("deployed.md");
+    write_file(&deployed, "2026-01-01");
+
+    let output = sc_compose()
+        .arg("verify")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--against")
+        .arg("template.md.j2")
+        .arg("--builtin-var")
+        .arg("RENDER_DATE=2026-01-01")
+        .arg(&deployed)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(String::from_utf8_lossy(&output.stdout).contains("OK"));
+}
+
+#[test]
+fn verify_requires_against_in_file_mode() {
+    let root = temp_root("verify-missing-against");
+    let deployed = root.join("deployed.md");
+    write_file(&deployed, "hello world");
+
+    let output = sc_compose()
+        .arg("verify")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg(&deployed)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--against is required in file mode"),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn verify_reports_missing_deployed_file() {
+    let root = temp_root("verify-missing-deployed");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\ndefaults:\n  name: world\n---\nhello {{ name }}\n",
+    );
+
+    let output = sc_compose()
+        .arg("verify")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--against")
+        .arg("template.md.j2")
+        .arg(root.join("missing.md"))
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("deployed file not found"), "{stderr}");
+}
+
+#[test]
+fn verify_reports_missing_template_path() {
+    let root = temp_root("verify-missing-template");
+    let deployed = root.join("deployed.md");
+    write_file(&deployed, "hello world");
+
+    let output = sc_compose()
+        .arg("verify")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--against")
+        .arg("missing.md.j2")
+        .arg(&deployed)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("template path not found"), "{stderr}");
+}
+
+#[test]
+fn verify_treats_crlf_deployed_file_as_clean() {
+    let root = temp_root("verify-crlf-clean");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\ndefaults:\n  name: world\n---\nhello {{ name }}\nnext line",
+    );
+    let deployed = root.join("deployed.md");
+    fs::write(&deployed, b"hello world\r\nnext line").unwrap();
+
+    let output = sc_compose()
+        .arg("verify")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--against")
+        .arg("template.md.j2")
+        .arg(&deployed)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(String::from_utf8_lossy(&output.stdout).contains("OK"));
+}
+
+#[test]
+fn verify_treats_trailing_newline_difference_as_clean() {
+    let root = temp_root("verify-trailing-newline-clean");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\ndefaults:\n  name: world\n---\nhello {{ name }}\n",
+    );
+    let deployed = root.join("deployed.md");
+    write_file(&deployed, "hello world\n");
+
+    let output = sc_compose()
+        .arg("verify")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--against")
+        .arg("template.md.j2")
+        .arg(&deployed)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(String::from_utf8_lossy(&output.stdout).contains("OK"));
+}
+
+#[test]
+fn template_init_builds_multi_pass_template_from_pass_groups() {
+    let root = temp_root("template-init-multi-pass");
+    let file = root.join("agent.md");
+    write_file(&file, "deploy test for wyvern");
+
+    let output = sc_compose()
+        .arg("template-init")
+        .arg(&file)
+        .arg("--dry-run")
+        .arg("--pass")
+        .arg("2")
+        .arg("--var")
+        .arg("team=wyvern")
+        .arg("--pass")
+        .arg("1")
+        .arg("--var")
+        .arg("task=test")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("pass: 2"), "{stdout}");
+    assert!(stdout.contains("pass: 1"), "{stdout}");
+    assert!(stdout.contains("{{{ team }}}"), "{stdout}");
+    assert!(stdout.contains("{{ task }}"), "{stdout}");
+}
+
+#[test]
+fn template_init_single_pass_omits_pass_one_marker() {
+    let root = temp_root("template-init-single-pass");
+    let file = root.join("agent.md");
+    write_file(&file, "deploy test");
+
+    let output = sc_compose()
+        .arg("template-init")
+        .arg(&file)
+        .arg("--dry-run")
+        .arg("--pass")
+        .arg("1")
+        .arg("--var")
+        .arg("task=test")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert_eq!(
+        stdout,
+        "---\nrequired_variables:\n  - task\ndefaults: {}\nmetadata: {}\n---\ndeploy {{ task }}\n"
+    );
+}
+
+#[test]
+fn template_init_round_trip_verifies_clean() {
+    let root = temp_root("template-init-round-trip");
+    let file = root.join("agent.md");
+    let deployed = root.join("deployed.md");
+    write_file(&file, "deploy test for wyvern");
+    write_file(&deployed, "deploy test for wyvern");
+
+    let init = sc_compose()
+        .arg("template-init")
+        .arg(&file)
+        .arg("--force")
+        .arg("--pass")
+        .arg("2")
+        .arg("--var")
+        .arg("team=wyvern")
+        .arg("--pass")
+        .arg("1")
+        .arg("--var")
+        .arg("task=test")
+        .output()
+        .unwrap();
+    assert!(init.status.success(), "{init:?}");
+
+    let verify = sc_compose()
+        .arg("verify")
+        .arg("--all")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--against")
+        .arg("agent.md")
+        .arg("--pass")
+        .arg("2")
+        .arg("--var")
+        .arg("team=wyvern")
+        .arg("--pass")
+        .arg("1")
+        .arg("--var")
+        .arg("task=test")
+        .arg(&deployed)
+        .output()
+        .unwrap();
+
+    assert!(verify.status.success(), "{verify:?}");
+    assert!(String::from_utf8_lossy(&verify.stdout).contains("OK"));
+}
+
+#[test]
+fn template_init_reports_values_not_found() {
+    let root = temp_root("template-init-value-not-found");
+    let file = root.join("agent.md");
+    write_file(&file, "deploy test");
+
+    let output = sc_compose()
+        .arg("template-init")
+        .arg(&file)
+        .arg("--dry-run")
+        .arg("--pass")
+        .arg("1")
+        .arg("--var")
+        .arg("team=wyvern")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("values not found in file"), "{stderr}");
+}
+
+#[test]
+fn template_init_rejects_duplicate_literal_assignments() {
+    let root = temp_root("template-init-duplicate-literal");
+    let file = root.join("agent.md");
+    write_file(&file, "alpha alpha");
+
+    let output = sc_compose()
+        .arg("template-init")
+        .arg(&file)
+        .arg("--dry-run")
+        .arg("--pass")
+        .arg("1")
+        .arg("--var")
+        .arg("first=alpha")
+        .arg("--pass")
+        .arg("1")
+        .arg("--var")
+        .arg("second=alpha")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("values could not be substituted without overlap"),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn template_init_avoids_rewriting_inside_inserted_tokens() {
+    let root = temp_root("template-init-substring-overlap");
+    let file = root.join("agent.md");
+    write_file(&file, "team me");
+
+    let output = sc_compose()
+        .arg("template-init")
+        .arg(&file)
+        .arg("--dry-run")
+        .arg("--pass")
+        .arg("2")
+        .arg("--var")
+        .arg("team_name=team")
+        .arg("--pass")
+        .arg("1")
+        .arg("--var")
+        .arg("suffix=me")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("{{{ team_name }}} {{ suffix }}"),
+        "{stdout}"
+    );
+    assert!(!stdout.contains("{{{ tea{{ suffix }}_name }}}"), "{stdout}");
+}
+
+#[test]
 fn render_all_rejects_repeated_equals_syntax_prefix_in_var_argument() {
     let root = temp_root("render-all-repeated-var-prefix");
     write_file(
