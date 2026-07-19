@@ -1,4 +1,4 @@
-# Phase D — Multi-Pass Template Rendering
+# Phase D — Nested Templates as a First-Class Feature
 
 ## Status
 
@@ -6,16 +6,19 @@ Planned follow-on work after the shipped Phase C Python bindings (v1.2.0).
 
 ## Objective
 
-Implement multi-pass stacked-header template rendering in `sc-composer` and
-`sc-compose`, closing 10 of the 11 gaps identified in
+Implement first-class nested-template support in `sc-composer` and
+`sc-compose` through multi-pass stacked-header rendering, closing 10 of the 11
+gaps identified in
 [prototype/multipass/docs/gaps.md](../../prototype/multipass/docs/gaps.md)
 (GAP-4 was closed by Phase C).
 
-Phase D delivers the production implementation of the multi-pass prototype
-([prototype/multipass-v2](../../prototype/multipass/)) proven in the prototype
-worktree. The prototype has been validated against the v1.2.0 maturin Python
-bindings — 55/55 tests passing — and Phase D translates that prototype logic
-into production Rust code.
+Phase D delivers the production implementation of the committed
+[prototype/multipass](../../prototype/multipass/) reference implementation.
+That prototype now runs against the maturin-backed `sc_compose` bindings where
+those bindings already exist, and its passing test suite is the canonical
+behavior contract for parser, discovery, rendering, verify, and template-init
+semantics. The Rust implementation should follow that behavior closely rather
+than re-deriving nested-template semantics from sprint prose alone.
 
 ## User Stories
 
@@ -118,6 +121,8 @@ baseline:
 - [sprint-d-2-composition-pipeline.md](./sprint-d-2-composition-pipeline.md)
 - [sprint-d-3-cli-surface.md](./sprint-d-3-cli-surface.md)
 - [sprint-d-4-template-init-verify.md](./sprint-d-4-template-init-verify.md)
+- [prototype/multipass/](../../prototype/multipass/) (reference implementation
+  and executable behavior oracle)
 
 ## Architecture Documentation Gap
 
@@ -127,18 +132,17 @@ template rendering. The architecture doc should be updated with:
 - Multi-pass rendering loop design and pass ordering (outer-to-inner)
 - Brace-count-aware delimiter discrimination semantics
 - `protect_higher_braces` mechanism and `{% raw %}` interaction constraints
+- leading-header-only parsing rule so `---` in the body remains literal content
 - `verify` drift-check boundary between `sc-composer` (library) and `sc-compose` (CLI)
 - `template-init` conversion algorithm and output contract
 - New `types.rs` and `verify.rs` modules in `sc-composer` (Section 4 Module Architecture)
 - `ComposePolicy.passes: Vec<PassConfig>` field (Section 8.2)
 - Updated `ParsedTemplate` shape: `passes: Vec<Frontmatter>` (Section 8)
 
-Additionally, the 7 Fixed Product Decisions below (DD-001 through DD-007) are
-significant architectural choices that lack formal ADR records. The repo has
-only ADR-0001 (observability health). Until architecture.md is updated to cover
-multi-pass, the sprint plans serve as the interim architectural record.
-Implementers should treat the sprint docs' code samples and decision rationale
-as the build-time reference.
+The ADR set in `docs/adrs/0002` through `0008` closes the prior decision-record
+gap for DD-001 through DD-007. `docs/architecture.md`, those ADRs, and the
+committed `prototype/multipass/` directory are the authoritative design
+baseline for Phase D.
 
 This is tracked as a pre-implementation requirement — D.1 implementers need
 the architecture decisions documented before coding the `split_frontmatter()`

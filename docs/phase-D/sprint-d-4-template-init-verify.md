@@ -15,6 +15,9 @@ target: develop
 - Extend `frontmatter-init` → `template-init` with multi-pass support (GAP-8):
   convert a concrete file into a multi-pass stacked template.
 - Add the `verify` CLI command (GAP-9): `sc-compose verify <deployed> --against <template>`.
+- Keep current templates and rollback flows viable: when `template-init`
+  produces an effectively single-pass template, it must normalize back to the
+  current single-pass shape instead of leaving a gratuitous `pass: 1`.
 
 Builds on D.1 (library types), D.2 (composition pipeline), and D.3 (CLI arg
 infrastructure for `--pass N`).
@@ -91,6 +94,8 @@ silently dropped or partially deferred.
     - Pass 1 value → `{{ name }}`
   - Generates stacked `---...---` headers with `pass: N`, `required_variables`,
     and `defaults`
+  - If the output is effectively single-pass, omits `pass: 1` so the result
+    remains compatible with the shipped `1.2.x` single-pass format
   - Longest-match-first: longest values replaced first to prevent substring
     collisions (e.g., `/home/wyvern/worktrees/wyvern` before `wyvern`)
   - `--force` overwrites existing file
@@ -126,6 +131,8 @@ silently dropped or partially deferred.
 - For each pass, scan file for each variable's value
 - Replace with appropriate brace-count variable (`"{" * (pass_number + 1) } name }}`)
 - Generate stacked YAML headers in outer-to-inner order
+- Normalize single-pass output back to the current single-header shape by
+  omitting `pass: 1`
 - Implement longest-match-first replacement ordering
 - Preserve existing single-pass `frontmatter-init` behavior as backward compat
 
@@ -225,15 +232,17 @@ for pass in &ordered_passes {
     works end-to-end
   - `--quiet` exits 0/1 with no diff output
   - `--builtin-var RENDER_DATE=2026-01-01` overrides builtin
-  - Missing `--against` flag produces clear error
-  - File not found produces clear error
+  - Missing `--against` flag produces a stable missing-argument error
+  - File not found produces a stable `deployed file not found` or
+    `template file not found` message
 - `AC3` for `D3`
   - `sc-compose template-init agent.md --pass 2 --var team=wyvern --pass 1 --var task=test`
     converts file to 2-pass template
   - `--dry-run` prints what would change, does not modify file
   - `--force` overwrites existing file
+  - Single-pass output omits `pass: 1`
   - Longest-match-first: `/home/wyvern/worktrees/wyvern` replaced before `wyvern`
-  - Value not found → exit 1 with clear error
+  - Value not found → exit 1 with `values not found in file`
   - Existing single-pass `frontmatter-init` behavior preserved
 - `AC4` for `D4`
   - End-to-end round-trip: `template-init → parse → render_all → verify` produces clean

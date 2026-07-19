@@ -156,6 +156,11 @@ ATM integration is an adapter concern outside this repository.
   - parses YAML frontmatter,
   - normalizes omitted fields to schema defaults,
   - exposes typed frontmatter structures.
+- `types`
+  - defines shared composition data structures such as pass configuration and
+    verify result types,
+  - centralizes multi-pass request/result shapes that are reused across parser,
+    validation, render, and verify code paths.
 - `resolver`
   - resolves explicit file paths and profile-mode prompt lookup,
   - records search traces,
@@ -182,6 +187,11 @@ ATM integration is an adapter concern outside this repository.
   - renders template content under normal or strict undeclared-token policy.
 - `validate`
   - produces validation reports and diagnostics without writing output.
+- `verify`
+  - renders templates through all configured passes and compares the result
+    against deployed content,
+  - returns structured drift-check results for both library callers and the
+    CLI wrapper.
 - `error`
   - defines crate-owned error types and shared recovery-hint structures,
   - maps lower-level failures into stable public categories.
@@ -484,6 +494,14 @@ Semantics:
 - `max_include_depth: IncludeDepth`
 - `allowed_roots: Vec<ConfiningRoot>`
 - `resolver_policy: ResolverPolicy`
+- `passes: Vec<PassConfig>`
+
+`PassConfig`
+
+- `pass_number: u8`
+- `required_variables: Vec<VariableName>`
+- `defaults: Map<VariableName, InputValue>`
+- `metadata: Map<String, MetadataValue>`
 
 `LoadedTemplateRequest`
 
@@ -495,6 +513,19 @@ Semantics:
 
 - `rendered: String`
 - `template_name: String`
+
+`ParsedTemplate`
+
+- `passes: Vec<Frontmatter>`
+- `body: String`
+
+Compatibility rule:
+
+- the existing `frontmatter() -> Option<&Frontmatter>` accessor remains the
+  compatibility seam for current callers,
+- single-header templates preserve existing semantics,
+- stacked templates may define `frontmatter()` as the first (outermost) pass
+  while `passes` exposes the full multi-pass structure.
 
 ### 8.3 Core Result Types
 
@@ -656,6 +687,9 @@ For `compose` and `validate`, the target lifecycle is:
 1. Resolve explicit path or profile path.
 2. Read the root template file.
 3. Parse frontmatter and body.
+   - For multi-pass templates, continue parsing only while the next bytes at
+     the current cursor begin another leading header. Later `---` lines in the
+     body remain literal content.
 4. Expand includes while enforcing path and depth policy.
 5. Merge frontmatter declarations and include-derived declarations.
 6. Discover referenced variables from the expanded template graph.
@@ -668,6 +702,9 @@ For `compose` and `validate`, the target lifecycle is:
    - undeclared referenced tokens,
    - extra provided variables.
 9. Render in normal or strict mode according to policy.
+   - When `policy.passes` or parsed stacked headers indicate nested-template
+     rendering, render outer-to-inner, using pass-specific delimiters and
+     `protect_higher_braces`-style higher-brace protection between passes.
 10. Assemble final output blocks.
 11. Return composed output or validation report with diagnostics and trace data.
 

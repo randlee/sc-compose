@@ -19,6 +19,7 @@ target
 # Python build/test artifacts
 __pycache__/
 *.pyc
+bindings/python/python/sc_compose/_native*.so
 
 # Generated report evidence
 reports/latest/
@@ -28,6 +29,7 @@ reports/archive/
 .sc/
 .serena/
 .tmp/
+docs/phase-D/.review-findings.json
 
 # RustRover
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

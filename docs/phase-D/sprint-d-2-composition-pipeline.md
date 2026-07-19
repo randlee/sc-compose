@@ -85,7 +85,7 @@ silently dropped or partially deferred.
 - Implement `compose_multi_pass()` private function in `composer.rs`
 - Branch in `compose()`: if `parsed.passes.len() > 1`, delegate to `compose_multi_pass()`
 - Implement `protect_higher_braces()` with the same algorithm as the
-  Python prototype (confirmed correct in 55/55 tests)
+  Python prototype (confirmed correct in the committed prototype test suite)
 - Implement `render_all()` public API
 - Wire observer callbacks for pass lifecycle events
 - Write integration tests

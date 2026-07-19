@@ -15,6 +15,8 @@ target: develop
 - Implement brace-count-aware token discovery and validation that correctly
   discriminates `{N}` inside `{N+1}` delimiters.
 - Introduce `PassConfig` types and wire them into `ComposePolicy`.
+- Treat `prototype/multipass/` as the authoritative reference behavior for the
+  nested-template semantics being ported into Rust.
 
 All work is library-only. No CLI changes, no Python binding changes. Single-pass
 backward compat is verified but multi-pass composition (GAP-3) is deferred to
@@ -48,13 +50,18 @@ silently dropped or partially deferred.
 - `D1` — Stacked header parsing (GAP-1)
   - `ParsedTemplate` changes from `frontmatter: Option<Frontmatter>` to
     `passes: Vec<Frontmatter>`
-  - `split_frontmatter()` loops: after stripping one `---...---` header,
-    checks if the body starts with `---\n` and parses another
+  - `split_frontmatter()` loops only while the next bytes at the current parse
+    cursor start another leading `---...---` header; later `---` lines in the
+    body remain literal content
   - `parse_template_document()` returns the new shape
   - `Frontmatter` gains a `pass_number: u8` field (default 1)
   - `RawFrontmatter` gains a `pass: Option<u8>` field
   - Empty `---\n---\n` headers produce `Frontmatter { pass_number: 1, ..Default::default() }`
   - `...` delimited headers supported identically to `---`
+  - Malformed YAML frontmatter fails closed instead of silently normalizing to
+    an empty pass
+  - Duplicate explicit `pass` values fail validation/parsing as invalid stacked
+    headers
 
 - `D2` — Brace-count-aware token discovery (GAP-2)
   - `discover_tokens(text: &str) -> BTreeSet<VariableName>` remains the public
@@ -93,6 +100,8 @@ silently dropped or partially deferred.
 ## Required Work
 
 - Rewrite `split_frontmatter()` to loop over stacked `---...---` blocks
+- Preserve `---` lines in the template body as ordinary content once the
+  leading header stack ends
 - Change `ParsedTemplate` struct from `Option<Frontmatter>` to `Vec<Frontmatter>`
 - Add `pass_number` field to `Frontmatter` and `RawFrontmatter`
 - Add `passes` field to `ComposePolicy`
@@ -110,6 +119,9 @@ silently dropped or partially deferred.
 - Update `lib.rs` re-exports
 - Write unit tests for all new behavior
 - Verify existing `cargo test` passes
+- Follow the committed `prototype/multipass/parser.py` and
+  `prototype/multipass/discover.py` semantics unless an ADR explicitly says
+  otherwise
 
 ## Explicit Code Samples
 
@@ -203,6 +215,10 @@ pub struct PassConfig {
   - `parse_template_document("---\npass: 2\n---\nbody")` → `passes[0].pass_number == 2`
   - `parse_template_document("---\n---\n---\n---\nbody")` → `passes.len() == 2`, both `passes[0].pass_number == 1`, `passes[1].pass_number == 1`
   - `parse_template_document("---\n...\n---\n...\nbody")` → `passes.len() == 2`
+  - `parse_template_document("---\ndefaults: {name: world}\n---\nhello\n---\nrule")`
+    preserves the trailing `---\nrule` in the body instead of parsing it as a
+    later header
+  - malformed YAML frontmatter and duplicate explicit `pass` values fail closed
 - `AC2` for `D2`
   - `discover_tokens_with_brace_count("{{ a }}", 2)` returns `{"a"}`
   - `discover_tokens_with_brace_count("{{{ a }}}", 3)` returns `{"a"}`
@@ -218,14 +234,14 @@ pub struct PassConfig {
   - All new behavior covered by unit tests
   - Existing single-header tests pass unchanged
 - `AC5` backward compat guard
-  - **Breaking change:** `ParsedTemplate` struct field changes from
-    `frontmatter: Option<Frontmatter>` to `passes: Vec<Frontmatter>`.
-    Direct field access (`parsed.frontmatter`) will break. A deprecated
-    `pub fn frontmatter(&self) -> Option<&Frontmatter>` accessor method
-    returns `passes.first()` and emits a deprecation warning at compile
-    time via `#[deprecated(since = "1.3.0", note = "use .passes instead")]`.
-    Migration path: `parsed.frontmatter` → `parsed.frontmatter()` or
-    `parsed.passes.first()`.
+  - `ParsedTemplate` gains `passes: Vec<Frontmatter>` for multi-pass callers.
+  - The real compatibility surface is the public
+    `frontmatter() -> Option<&Frontmatter>` accessor, not direct field access:
+    the field is already private in current Rust code.
+  - For single-header templates, `frontmatter()` preserves current semantics.
+  - For stacked templates, `frontmatter()` is documented as returning the first
+    (outermost) pass for backward-compatible callers while `passes` carries the
+    full multi-pass shape.
   - `Renderer` API unchanged
   - `ComposeRequest` default behavior unchanged
 
