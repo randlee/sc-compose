@@ -134,6 +134,15 @@ fn render_all_errors_on_pass_number_mismatch() {
 }
 
 #[test]
+fn render_all_with_empty_passes_returns_body_unchanged() {
+    let parsed = parse_template_document("body").unwrap();
+
+    let rendered = render_all(&parsed, &[]).unwrap();
+
+    assert_eq!(rendered, "body");
+}
+
+#[test]
 fn protect_higher_braces_wraps_only_next_higher_brace_count() {
     assert_eq!(
         protect_higher_braces("{{{ x }}}", 2),
@@ -166,6 +175,27 @@ fn compose_single_pass_backward_compat_output_is_unchanged() {
     .unwrap();
 
     assert_eq!(rendered.rendered_text, "hello world");
+}
+
+#[test]
+fn parse_template_document_allows_omitted_duplicate_default_pass_numbers() {
+    let parsed = parse_template_document("---\n---\n---\n---\nbody").unwrap();
+
+    assert_eq!(parsed.passes().len(), 2);
+    assert_eq!(parsed.passes()[0].pass_number(), 1);
+    assert_eq!(parsed.passes()[1].pass_number(), 1);
+    assert_eq!(parsed.body(), "body");
+}
+
+#[test]
+fn parse_template_document_rejects_duplicate_explicit_pass_numbers() {
+    let error = parse_template_document("---\npass: 2\n---\n---\npass: 2\n---\nbody").unwrap_err();
+
+    assert!(
+        error
+            .to_string()
+            .contains("duplicate explicit pass number in stacked frontmatter")
+    );
 }
 
 #[test]
@@ -221,11 +251,11 @@ fn compose_with_observer_emits_pass_events_for_multi_pass_template() {
 }
 
 #[test]
-fn compose_multi_pass_uses_protected_higher_brace_literals() {
+fn compose_multi_pass_preserves_still_higher_brace_literals_across_lower_passes() {
     let root = temp_root("higher-brace-literal");
     write_file(
         &root.join("template.md.j2"),
-        "---\npass: 2\n---\n---\n---\nLiteral={{{ install_dir }}}\nRendered={{ script_name }}\n",
+        "---\npass: 3\n---\n---\npass: 2\n---\n---\npass: 1\n---\nLiteral={{{ literal_block }}}\nTeam={{{ team }}}\nRendered={{ script_name }}\n",
     );
 
     let result = compose(&ComposeRequest {
@@ -236,9 +266,10 @@ fn compose_multi_pass_uses_protected_higher_brace_literals() {
         root: ConfiningRoot::new(&root).unwrap(),
         vars_input: BTreeMap::from([
             (
-                VariableName::new("install_dir").unwrap(),
-                json!("/srv/will-not-render-in-pass-1"),
+                VariableName::new("literal_block").unwrap(),
+                json!("{{{{ org }}}}"),
             ),
+            (VariableName::new("team").unwrap(), json!("platform")),
             (
                 VariableName::new("script_name").unwrap(),
                 json!("deploy.sh"),
@@ -254,8 +285,43 @@ fn compose_multi_pass_uses_protected_higher_brace_literals() {
 
     assert_eq!(
         result.rendered_text,
-        "Literal=/srv/will-not-render-in-pass-1\nRendered=deploy.sh"
+        "Literal={{{{ org }}}}\nTeam=platform\nRendered=deploy.sh"
     );
+}
+
+#[test]
+fn compose_with_observer_emits_single_render_failure_event_for_multi_pass_errors() {
+    let root = temp_root("multi-pass-render-failure-event");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\npass: 2\n---\n---\npass: 1\n---\nBroken={{{ invalid + }}}\nRendered={{ script_name }}\n",
+    );
+
+    let mut observer = CapturingObserver::default();
+    let error = compose_with_observer(
+        &ComposeRequest {
+            runtime: None,
+            mode: ComposeMode::File {
+                template_path: PathBuf::from("template.md.j2"),
+            },
+            root: ConfiningRoot::new(&root).unwrap(),
+            vars_input: BTreeMap::from([(
+                VariableName::new("script_name").unwrap(),
+                json!("deploy.sh"),
+            )]),
+            vars_env: BTreeMap::default(),
+            vars_defaults: BTreeMap::default(),
+            guidance_block: None,
+            user_prompt: None,
+            policy: ComposePolicy::default(),
+        },
+        &mut observer,
+    )
+    .unwrap_err();
+
+    assert!(error.to_string().contains("syntax error"));
+    assert_eq!(observer.render.len(), 1);
+    assert_eq!(observer.render[0].rendered_bytes, None);
 }
 
 fn temp_root(label: &str) -> PathBuf {
