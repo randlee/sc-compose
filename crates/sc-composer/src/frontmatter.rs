@@ -5,8 +5,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::Deserialize;
 
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
-use crate::error::{ComposeError, ConfigError, ValidationError};
-use crate::types::{InputValue, MetadataValue, VariableName, input_value_from_yaml};
+use crate::error::{ComposeError, ConfigError, RecoveryHint, RecoveryHintKind, ValidationError};
+use crate::types::{
+    InputValue, MetadataValue, VariableName, default_pass_number, input_value_from_yaml,
+};
 
 /// Typed frontmatter normalized to explicit empty collections when present.
 #[derive(Clone, Debug, PartialEq)]
@@ -21,7 +23,7 @@ pub struct Frontmatter {
 impl Default for Frontmatter {
     fn default() -> Self {
         Self {
-            pass_number: 1,
+            pass_number: default_pass_number(),
             required_variables: Vec::new(),
             defaults: BTreeMap::new(),
             metadata: BTreeMap::new(),
@@ -128,23 +130,16 @@ pub fn parse_template_document(input: &str) -> Result<ParsedTemplate, ComposeErr
     let mut passes = Vec::with_capacity(frontmatter_texts.len());
     let mut seen_explicit_pass_numbers = BTreeSet::new();
     for frontmatter_text in frontmatter_texts {
-        let raw = if frontmatter_text.trim().is_empty() {
-            RawFrontmatter {
-                pass: None,
-                required_variables: Vec::new(),
-                defaults: BTreeMap::new(),
-                input_defaults: BTreeMap::new(),
-                metadata: BTreeMap::new(),
-            }
-        } else {
-            serde_yaml::from_str::<RawFrontmatter>(frontmatter_text).map_err(|error| {
-                ConfigError::new(
-                    DiagnosticCode::ErrConfigParse,
-                    "failed to parse YAML frontmatter",
-                )
-                .with_source(error)
-            })?
-        };
+        let raw = serde_yaml::from_str::<RawFrontmatter>(frontmatter_text).map_err(|error| {
+            ConfigError::new(
+                DiagnosticCode::ErrConfigParse,
+                "failed to parse YAML frontmatter",
+            )
+            .with_recovery_hint(RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
+                key: "frontmatter".to_owned(),
+            }))
+            .with_source(error)
+        })?;
 
         let has_explicit_pass = raw.pass.is_some();
         let frontmatter = normalize_frontmatter(raw)?;
@@ -192,6 +187,9 @@ fn split_frontmatter(input: &str) -> Result<Option<(Vec<&str>, &str)>, ComposeEr
                 DiagnosticCode::ErrConfigParse,
                 "frontmatter block started with `---` but no closing delimiter was found",
             )
+            .with_recovery_hint(RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
+                key: "frontmatter".to_owned(),
+            }))
             .into());
         };
 
@@ -236,6 +234,11 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
                 DiagnosticCode::ErrConfigParse,
                 format!("invalid frontmatter {section_name} variable name: {error}"),
             )
+            .with_recovery_hint(RecoveryHint::new(
+                RecoveryHintKind::ReviewConfiguration {
+                    key: section_name.to_owned(),
+                },
+            ))
         })?;
         let input_value = input_value_from_yaml(value).map_err(|error| {
             ValidationError::invalid_input_value(error.code(), error.to_string())
@@ -259,6 +262,11 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
                 DiagnosticCode::ErrConfigParse,
                 format!("invalid frontmatter variable name: {error}"),
             )
+            .with_recovery_hint(RecoveryHint::new(
+                RecoveryHintKind::ReviewConfiguration {
+                    key: "required_variables".to_owned(),
+                },
+            ))
         })?;
         if !seen.insert(variable.clone()) {
             return Err(ValidationError::duplicate_variable(&variable).into());
@@ -293,7 +301,7 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
 
     Ok(Frontmatter {
         pass_number: match pass {
-            Some(0) | None => 1,
+            Some(0) | None => default_pass_number(),
             Some(pass_number) => pass_number,
         },
         required_variables,
