@@ -469,7 +469,7 @@ mod tests {
     fn template_init_replaces_longest_value_first() {
         let root = temp_root("template_init_longest_first");
         let template = root.join("agent.md");
-        write_file(&template, "/home/wyvern/worktrees/wyvern");
+        write_file(&template, "/home/wyvern/worktrees/wyvern owned by wyvern");
 
         let result = template_init_file(
             &template,
@@ -491,7 +491,11 @@ mod tests {
         )
         .unwrap();
 
-        assert!(result.template_text.contains("{{{ worktree_path }}}"));
+        assert!(
+            result
+                .template_text
+                .contains("{{{ worktree_path }}} owned by {{ team }}")
+        );
         assert!(
             !result
                 .template_text
