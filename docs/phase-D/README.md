@@ -70,24 +70,28 @@ bolt-on phase at the end — see
 ## Dependency Order
 
 ```
-D.1 ─► D.1-py ─► D.2 ─► D.2-py ─► D.3 ─► D.3-py ─► D.4 ─► D.4-py
+Rust track: D.1 ─► D.2 ─► D.3 ─► D.4
+                │      │      │      │
+Python track:   D.1-py D.2-py D.3-py D.4-py
 ```
 
-D.1 must ship first — every other sprint depends on the stacked-header types
-and brace-count-aware validation. D.1-py ships immediately after D.1 lands,
-wrapping only D.1's surface, before D.2 begins. D.2 ships next — the
-multi-pass compose loop is required before any CLI surface can be built,
-followed immediately by D.2-py. D.3 ships next, providing the `--pass N` CLI
-arg infrastructure that D.4 depends on, followed immediately by D.3-py. D.4
-(template-init + verify) ships last among the Rust sprints, reusing D.3's
-per-pass variable arguments and D.2's `render_all` entry point, followed
-immediately by D.4-py.
+D.1 must ship first because every later Rust sprint depends on the
+stacked-header types and brace-count-aware validation. D.2 ships next — the
+multi-pass compose loop is required before any CLI surface can be built. D.3
+ships next, providing the `--pass N` CLI arg infrastructure that D.4 depends
+on. D.4 (template-init + verify) ships last among the Rust sprints, reusing
+D.3's per-pass variable arguments and D.2's `render_all` entry point.
 
-**Note:** D.4 depends on D.3 for `--pass N` CLI arg infrastructure; they
-cannot proceed in parallel despite sharing D.2 as a common dependency. Each
-`-py` sprint depends only on its corresponding Rust sprint (plus, where noted
-in that sprint's own doc, conventions established by an earlier `-py`
-sprint) — it does not block or get blocked by the next Rust sprint.
+Each `-py` sprint depends on its corresponding Rust sprint having passed QA and
+merged to `integrate/phase-d`, plus any explicitly documented wrapper
+conventions established by earlier `-py` sprints. A `-py` sprint does **not**
+serially gate the next Rust sprint. The Python track is therefore contingent on
+the Rust track, but non-blocking with respect to subsequent Rust implementation
+work.
+
+**Current landing status:** as of July 19, 2026, no Phase D Rust sprint has yet
+passed QA and merged to `integrate/phase-d`, so no `-py` sprint is currently
+dispatch-ready even though the docs for them may already exist.
 
 ## Python Binding Parity
 
@@ -95,20 +99,24 @@ sprint) — it does not block or get blocked by the next Rust sprint.
 multi-pass surface are no longer planned as a single follow-on phase
 (the original "D.5") after all four Rust sprints land. Team-lead and the
 project owner have decided Python is a first-class customer of every Phase D
-feature, not a bolt-on: each Rust sprint is followed immediately by its own
-`-py` sprint that wraps exactly that sprint's new library surface, before the
-next Rust sprint starts.
+feature, not a bolt-on: each Rust sprint gets its own `-py` companion sprint
+that wraps exactly that sprint's new library surface once the Rust sprint has
+passed QA and merged to `integrate/phase-d`.
 
-- Sequencing: `D.1 → D.1-py → D.2 → D.2-py → D.3 → D.3-py → D.4 → D.4-py`.
-- Each `-py` sprint is assigned to comp the moment its corresponding Rust
-  sprint lands on `integrate/phase-d` — not batched, not deferred.
+- Sequencing policy: each Rust sprint `D.#` owns a corresponding `D.#-py`
+  companion sprint once the Rust sprint is merge-complete.
+- Each `-py` sprint becomes assignable to comp only after its corresponding
+  Rust sprint has passed QA and merged to `integrate/phase-d` — not batched,
+  not deferred, and not assumed from branch/task wording alone.
 - Python is never more than one sprint behind the Rust surface it wraps.
-- `D.1-py` is fully drafted now (D.1 has landed) with the same rigor as a
-  regular sprint doc. `D.2-py`, `D.3-py`, and `D.4-py` are drafted as
+- `D.1-py` is fully drafted now with the same rigor as a regular sprint doc,
+  but it is not dispatch-ready until D.1 actually passes QA and merges.
+  `D.2-py`, `D.3-py`, and `D.4-py` are drafted as
   lightweight stubs (`status: stub-pending-rust-sprint`) naming the expected
   surface and open design questions, since D.2–D.4's exact final shape may
   still shift before those Rust sprints land. Each stub is fleshed out to
-  full sprint-doc rigor once its corresponding Rust sprint ships.
+  full sprint-doc rigor once its corresponding Rust sprint passes QA and
+  merges.
 - All `bindings/python` boundary rules from `CLAUDE.md` (rules 3–5) continue
   to apply unchanged to every `-py` sprint: `bindings/python` may depend on
   `sc-composer` only, never on `sc-compose` or ATM-specific crates.
@@ -192,10 +200,11 @@ Fully drafted:
   `ParsedTemplate.passes`, `Frontmatter.pass_number`, `PassConfig`,
   `discover_tokens_with_brace_count`, and `discover_all_pass_tokens` in
   `bindings/python` (`Renderer.with_delimiters()` is already exposed as of
-  Phase C). Assignable to comp now that D.1 has landed.
+  Phase C). Not dispatch-ready until D.1 passes QA and merges to
+  `integrate/phase-d`.
 
 Drafted as stubs (`status: stub-pending-rust-sprint`), to be fleshed out once
-their corresponding Rust sprint lands:
+their corresponding Rust sprint passes QA and merges:
 
 - [D.2-py — Python Bindings — Multi-Pass Composition Pipeline](sprint-d-2-py-bindings.md)
   — expected to cover `render_all` and `PyComposePolicy.passes`.

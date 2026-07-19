@@ -21,11 +21,13 @@ target: integrate/phase-d
   single-pass semantics.
 - This is the first sprint in the tandem Python-binding sequence
   (see [Phase D README — Python Binding Parity](./README.md#python-binding-parity)).
-  It ships immediately after D.1 lands and unblocks nothing else in D.2 — it
-  wraps D.1's library surface only.
+  It becomes assignable only after D.1 passes QA and merges to
+  `integrate/phase-d`, and it unblocks nothing else in D.2 — it wraps D.1's
+  library surface only.
 
 All work is confined to `bindings/python`. This sprint depends on D.1 having
-landed the Rust library surface it wraps. Per repo boundary rules,
+passed QA and merged the Rust library surface it wraps into
+`integrate/phase-d`. Per repo boundary rules,
 `bindings/python` may depend on **`sc-composer` only** — never on
 `sc-compose` (the CLI crate) or ATM-specific crates.
 
@@ -47,7 +49,7 @@ landed the Rust library surface it wraps. Per repo boundary rules,
 - `bindings/python/src/functions.rs` — `discover_tokens_with_brace_count`,
   `discover_all_pass_tokens`
 - `bindings/python/src/convert.rs` — `extract_variable_names` and
-  `extract_metadata_map` helpers if not already present, reused by
+  `extract_metadata_map` net-new helpers, reused by
   `PyPassConfig::new`
 - `bindings/python/src/lib.rs` — no structural change (module registration is
   already delegated to `types::register` / `functions::register`)
@@ -118,8 +120,9 @@ silently dropped or partially deferred.
 - Extend `PyParsedTemplate` with a `passes` getter mapping
   `self.inner.passes()` → `Vec<PyFrontmatter>`; leave `frontmatter` untouched.
 - Extend `PyFrontmatter` with a `pass_number` getter.
-- Add `extract_variable_names` and `extract_metadata_map` helpers to
-  `convert.rs` if the existing helpers don't already cover these shapes
+- Add net-new `extract_variable_names` and `extract_metadata_map` helpers to
+  `convert.rs`
+  because the existing helpers do not already cover these shapes
   (`list[str | VariableName]` → `Vec<VariableName>`,
   `dict[str, Any]` → `BTreeMap<String, MetadataValue>`), reusing
   `extract_var_map` / `py_to_json_value` conventions already in the file.
@@ -270,11 +273,17 @@ def discover_all_pass_tokens(parsed: ParsedTemplate) -> dict[int, list[VariableN
 ## This Sprint Does Not Close
 
 - Any change to the `sc-composer` library or `sc-compose` CLI behavior — this
-  sprint is binding-only and assumes D.1 has landed.
+  sprint is binding-only and assumes D.1 has passed QA and merged.
 - `render_all` / multi-pass `compose()` Python exposure and
   `PyComposePolicy.passes` — deferred to D.2-py (needs D.2's compose loop).
 - `verify` and `template-init` Python exposure — deferred to D.4-py (needs
   D.4's library surface).
+- Included/supporting-template stacked-frontmatter exposure through
+  `ExpandedTemplate.frontmatters` / `PyExpandedTemplate.frontmatters()` —
+  deferred. This sprint does not change `crates/sc-composer/src/include.rs`
+  or the Python compatibility view for included-file frontmatter; that surface
+  remains single-frontmatter-oriented unless a later Rust sprint explicitly
+  expands it.
 - Exposing any D.3 CLI flags (`--all`, `--pass N`, `--variable-delimiters`) to
   Python — only underlying library functions are ever wrapped, and D.3 has
   not landed yet regardless.
@@ -306,8 +315,9 @@ def discover_all_pass_tokens(parsed: ParsedTemplate) -> dict[int, list[VariableN
     keyed by pass number.
 - `AC4` for `D4`
   - Every new name is importable from `sc_compose` and present in `__all__`.
-  - `_native.pyi` type-checks (no `mypy`/`pyright` regressions in the smoke
-    suite's configured checker).
+  - `_native.pyi` includes every new class, property, and function added by
+    this sprint, and the smoke suite exercises each new public symbol at least
+    once through import or direct use.
 - `AC5` backward-compat guard
   - Every Phase C exported name and behavior is unchanged.
   - The full existing `test_smoke.py` suite passes without modification (new
@@ -317,6 +327,7 @@ def discover_all_pass_tokens(parsed: ParsedTemplate) -> dict[int, list[VariableN
 
 - `cargo fmt --all --check`
 - `cargo clippy --all-targets --all-features -- -D warnings`
+- `cargo test --workspace`
 - `cargo test -p sc-compose-py` (crate unit tests, incl. new wrapper tests)
 - `maturin develop` + `pytest bindings/python/tests` (wheel smoke suite,
   including the new multi-pass tests)

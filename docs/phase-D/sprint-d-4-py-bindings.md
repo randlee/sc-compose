@@ -10,8 +10,9 @@ target: integrate/phase-d
 
 This is a placeholder, not a full sprint doc. It will be fleshed out to the
 same rigor as [D.1-py](sprint-d-1-py-bindings.md) once
-[D.4 — template-init + verify](sprint-d-4-template-init-verify.md) has landed
-and its exact library surface is final. This is the last sprint in the tandem
+[D.4 — template-init + verify](sprint-d-4-template-init-verify.md) has passed
+QA, merged to `integrate/phase-d`, and its exact library surface is final.
+This is the last sprint in the tandem
 Python-binding sequence for Phase D — see
 [Phase D README — Python Binding Parity](./README.md#python-binding-parity).
 
@@ -51,11 +52,13 @@ section):
   Python-side persistent override store when this sprint is drafted.
 - **Contexts representation reuse.** `verify`'s `contexts` parameter should
   reuse whatever `list[tuple[int, dict]]` (or equivalent) shape D.2-py
-  settles on for `render_all`, rather than inventing a second convention.
+  settles on for `render_all`, rather than inventing a second convention. The
+  corresponding Rust API should stay aligned with D.2's
+  `&[(u8, BTreeMap<VariableName, InputValue>)]` contract.
 
 ## Dependencies
 
 - [Sprint D.4 — template-init + verify](sprint-d-4-template-init-verify.md)
-  must land first.
+  must pass QA and merge first.
 - [Sprint D.2-py — Multi-Pass Composition Pipeline (Python)](sprint-d-2-py-bindings.md)
   settles the per-pass `contexts` convention this sprint reuses for `verify`.

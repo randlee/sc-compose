@@ -9,7 +9,8 @@ target: integrate/phase-d
 # Sprint D.3-py — Python Bindings — Multi-Pass CLI Surface Parity Check (stub)
 
 This is a placeholder, not a full sprint doc. It will be fleshed out once
-[D.3 — Multi-Pass CLI Surface](sprint-d-3-cli-surface.md) has landed. See
+[D.3 — Multi-Pass CLI Surface](sprint-d-3-cli-surface.md) has passed QA and
+merged to `integrate/phase-d`. See
 [Phase D README — Python Binding Parity](./README.md#python-binding-parity)
 for the tandem sequencing policy this sprint follows.
 
@@ -30,7 +31,7 @@ The one item with Python relevance is D.3's `D3` deliverable:
   check**, not new binding surface: confirm nothing D.1-py/D.2-py wrapped
   needs its import path updated now that D.3's re-export consolidation has
   landed, and confirm no net-new public library symbol appeared as a side
-  effect of D.3 that Python should also wrap.
+  effect of D.3 that Python should also wrap once D.3 is merge-complete.
 
 ## Open design questions
 
@@ -47,8 +48,8 @@ The one item with Python relevance is D.3's `D3` deliverable:
 
 ## Dependencies
 
-- [Sprint D.3 — Multi-Pass CLI Surface](sprint-d-3-cli-surface.md) must land
-  first.
+- [Sprint D.3 — Multi-Pass CLI Surface](sprint-d-3-cli-surface.md) must pass
+  QA and merge first.
 - [Sprint D.1-py](sprint-d-1-py-bindings.md) and
   [Sprint D.2-py](sprint-d-2-py-bindings.md) ship the wrapper conventions and
   import paths this sprint verifies against.

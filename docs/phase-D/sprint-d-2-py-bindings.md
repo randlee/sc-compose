@@ -11,7 +11,8 @@ target: integrate/phase-d
 This is a placeholder, not a full sprint doc. It will be fleshed out to the
 same rigor as [D.1-py](sprint-d-1-py-bindings.md) once
 [D.2 — Multi-Pass Composition Pipeline](sprint-d-2-composition-pipeline.md)
-has landed and its exact library surface is final. See
+has passed QA, merged to `integrate/phase-d`, and its exact library surface is
+final. See
 [Phase D README — Python Binding Parity](./README.md#python-binding-parity)
 for the tandem sequencing policy this sprint follows.
 
@@ -20,7 +21,7 @@ for the tandem sequencing policy this sprint follows.
 Based on D.2's own deliverables (`D1`–`D3` in that sprint's Deliverables
 section):
 
-- `sc_composer::render_all(parsed: &ParsedTemplate, contexts: &[(u8, HashMap<VariableName, InputValue>)]) -> Result<String>`
+- `sc_composer::render_all(parsed: &ParsedTemplate, contexts: &[(u8, BTreeMap<VariableName, InputValue>)]) -> Result<String>`
   — programmatic multi-pass rendering entry point (D.2's `D2` deliverable).
   Python signature is expected to be
   `render_all(parsed: ParsedTemplate, contexts: list[tuple[int, dict[str, Any]]]) -> str`.
@@ -34,7 +35,7 @@ section):
   `list[PassConfig]`) — deferred out of D.1-py specifically because it has no
   consumer until this sprint's compose loop exists. `PassConfig` itself
   already ships in D.1-py.
-- A `list[tuple[int, dict]]` → `Vec<(u8, HashMap<VariableName, InputValue>)>`
+- A `list[tuple[int, dict]]` → `Vec<(u8, BTreeMap<VariableName, InputValue>)>`
   conversion helper (`extract_pass_contexts` or similar) in `convert.rs`,
   reused by `render_all` here and by `verify` in D.4-py.
 
@@ -58,7 +59,7 @@ section):
 ## Dependencies
 
 - [Sprint D.2 — Multi-Pass Composition Pipeline](sprint-d-2-composition-pipeline.md)
-  must land first.
+  must pass QA and merge first.
 - [Sprint D.1-py — Multi-Pass Library Foundation (Python)](sprint-d-1-py-bindings.md)
   ships the `PassConfig` class and general wrapper conventions this sprint
   builds on.
