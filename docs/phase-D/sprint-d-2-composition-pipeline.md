@@ -1,9 +1,10 @@
 ---
 id: D.2
 title: Multi-Pass Composition Pipeline
-status: planned
+status: complete
 branch: sprint/d-2-composition-pipeline
-target: develop
+target: integrate/phase-d
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/d-2-composition-pipeline
 ---
 
 # Sprint D.2 — Multi-Pass Composition Pipeline
@@ -76,7 +77,8 @@ silently dropped or partially deferred.
   - Single-pass backward compat: identical output to current behavior
   - Observer event coverage: each pass emits start/end events
   - Edge cases: empty passes list, pass_number mismatch between header and context,
-    duplicate pass numbers (two passes with same pass_number → error)
+    duplicate explicit pass numbers (two passes with the same explicit pass_number
+    → parse-time error)
   - Defaults merging: provided variables override header defaults
   - Higher-brace protection: `{{{ }}}` in pass 1 body renders as literal text
 

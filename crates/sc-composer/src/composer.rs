@@ -4,16 +4,18 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use crate::ComposeError;
-use crate::error::ValidationError;
+use crate::diagnostics::DiagnosticCode;
+use crate::error::{ConfigError, ValidationError};
+use crate::frontmatter::{Frontmatter, ParsedTemplate};
 use crate::include::expand_includes;
 use crate::observer::{
-    CompositionObserver, IncludeOutcomeEvent, NoopObserver, RenderOutcomeEvent,
-    ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
+    CompositionObserver, IncludeOutcomeEvent, NoopObserver, PassEndEvent, PassStartEvent,
+    RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
 use crate::path_utils::to_forward_slash;
 use crate::renderer::Renderer;
 use crate::resolver::resolve_template_path;
-use crate::types::{ComposeRequest, ComposeResult};
+use crate::types::{ComposeRequest, ComposeResult, InputValue, VariableName};
 
 /// Compose a request end to end: resolve, expand includes, validate, render,
 /// and assemble output blocks.
@@ -77,21 +79,38 @@ pub fn compose_with_observer(
     observer.on_validation_outcome(&validation_outcome);
     fail_if_invalid(validation_outcome.errors)?;
 
-    let renderer = Renderer::new();
-    let rendered_text = renderer
-        .render(
-            &expanded.text,
-            build_render_context(
-                &mut validation_state,
-                &validation_report.resolve_result.resolved_path,
-            ),
-        )
-        .inspect_err(|error| {
-            observer.on_render_outcome(&RenderOutcomeEvent {
-                rendered_bytes: None,
-                code: error.code(),
-            });
-        })?;
+    let root_passes = expanded
+        .frontmatters
+        .iter()
+        .find_map(|(path, passes)| {
+            (path == &validation_report.resolve_result.resolved_path).then(|| passes.clone())
+        })
+        .unwrap_or_default();
+    let parsed = ParsedTemplate::from_parts(root_passes, expanded.text.clone());
+    let rendered_text = if parsed.passes().len() > 1 {
+        let contexts = build_pass_contexts(
+            parsed.passes(),
+            &mut validation_state,
+            &validation_report.resolve_result.resolved_path,
+        );
+        render_all_with_observer(&parsed, &contexts, observer)?
+    } else {
+        let renderer = Renderer::new();
+        renderer
+            .render(
+                &expanded.text,
+                build_render_context(
+                    &mut validation_state,
+                    &validation_report.resolve_result.resolved_path,
+                ),
+            )
+            .inspect_err(|error| {
+                observer.on_render_outcome(&RenderOutcomeEvent {
+                    rendered_bytes: None,
+                    code: error.code(),
+                });
+            })?
+    };
     observer.on_render_outcome(&RenderOutcomeEvent {
         rendered_bytes: Some(rendered_text.len()),
         code: None,
@@ -109,6 +128,56 @@ pub fn compose_with_observer(
         variable_sources: validation_state.variable_sources,
         warnings: validation_outcome.warnings,
     })
+}
+
+/// Render all passes in sequence for a parsed multi-pass template.
+///
+/// # Errors
+///
+/// Returns [`ComposeError`] when the number of contexts does not match the
+/// number of passes, when a context pass number does not match the parsed
+/// header pass number, or when rendering any pass fails.
+pub fn render_all(
+    parsed: &ParsedTemplate,
+    contexts: &[(u8, BTreeMap<VariableName, InputValue>)],
+) -> Result<String, ComposeError> {
+    let mut observer = NoopObserver;
+    render_all_with_observer(parsed, contexts, &mut observer)
+}
+
+/// Protect next-higher-brace expressions from lower-brace rendering passes.
+#[must_use]
+pub fn protect_higher_braces(text: &str, brace_count: usize) -> String {
+    let higher_brace_count = brace_count + 1;
+    let open_delim = "{".repeat(higher_brace_count);
+    let close_delim = "}".repeat(higher_brace_count);
+
+    if !text.contains(&open_delim) {
+        return text.to_owned();
+    }
+
+    let mut result = String::with_capacity(text.len());
+    let mut cursor = 0usize;
+    loop {
+        let Some(found) = text[cursor..].find(&open_delim) else {
+            result.push_str(&text[cursor..]);
+            break;
+        };
+        let absolute_start = cursor + found;
+        let after_open = absolute_start + open_delim.len();
+        let Some(relative_end) = text[after_open..].find(&close_delim) else {
+            result.push_str(&text[cursor..]);
+            break;
+        };
+        let absolute_end = after_open + relative_end + close_delim.len();
+        result.push_str(&text[cursor..absolute_start]);
+        result.push_str("{% raw %}");
+        result.push_str(&text[absolute_start..absolute_end]);
+        result.push_str("{% endraw %}");
+        cursor = absolute_end;
+    }
+
+    result
 }
 
 fn resolve_attempt_label(request: &ComposeRequest) -> String {
@@ -156,6 +225,82 @@ fn build_render_context(
         .iter()
         .map(|(key, value)| (key.to_string(), value.clone()))
         .collect()
+}
+
+fn build_pass_contexts(
+    passes: &[Frontmatter],
+    state: &mut crate::validation::ValidationState,
+    template_path: &Path,
+) -> Vec<(u8, BTreeMap<VariableName, InputValue>)> {
+    crate::validation::inject_builtin_vars(state, template_path);
+    passes
+        .iter()
+        .map(|pass| {
+            let mut context = pass.defaults().clone();
+            for (name, value) in &state.context {
+                context.insert(name.clone(), value.clone());
+            }
+            (pass.pass_number(), context)
+        })
+        .collect()
+}
+
+fn render_all_with_observer(
+    parsed: &ParsedTemplate,
+    contexts: &[(u8, BTreeMap<VariableName, InputValue>)],
+    observer: &mut dyn CompositionObserver,
+) -> Result<String, ComposeError> {
+    if contexts.len() != parsed.passes().len() {
+        return Err(ConfigError::new(
+            DiagnosticCode::ErrConfigParse,
+            format!(
+                "expected {} render contexts for {} passes, got {}",
+                parsed.passes().len(),
+                parsed.passes().len(),
+                contexts.len()
+            ),
+        )
+        .into());
+    }
+
+    let mut body = parsed.body().to_owned();
+    for (frontmatter, (context_pass_number, variables)) in
+        parsed.passes().iter().zip(contexts.iter())
+    {
+        let header_pass_number = frontmatter.pass_number();
+        if *context_pass_number != header_pass_number {
+            return Err(ConfigError::new(
+                DiagnosticCode::ErrConfigParse,
+                format!(
+                    "render context pass {context_pass_number} does not match header pass {header_pass_number}"
+                ),
+            )
+            .into());
+        }
+
+        let brace_count = usize::from(header_pass_number) + 1;
+        let open = "{".repeat(brace_count);
+        let close = "}".repeat(brace_count);
+        let renderer = Renderer::with_delimiters(&open, &close);
+        let protected_body = protect_higher_braces(&body, brace_count);
+        let render_context = variables
+            .iter()
+            .map(|(name, value)| (name.to_string(), value.clone()))
+            .collect::<BTreeMap<_, _>>();
+
+        observer.on_pass_start(&PassStartEvent::new(header_pass_number));
+        body = renderer
+            .render(&protected_body, render_context)
+            .inspect_err(|error| {
+                observer.on_render_outcome(&RenderOutcomeEvent {
+                    rendered_bytes: None,
+                    code: error.code(),
+                });
+            })?;
+        observer.on_pass_end(&PassEndEvent::new(header_pass_number));
+    }
+
+    Ok(body)
 }
 
 fn assemble_output(

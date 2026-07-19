@@ -18,6 +18,18 @@ pub(crate) const fn default_pass_number() -> u8 {
     1
 }
 
+fn deserialize_pass_number<'de, D>(deserializer: D) -> Result<u8, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let pass_number = u8::deserialize(deserializer)?;
+    Ok(if pass_number == 0 {
+        default_pass_number()
+    } else {
+        pass_number
+    })
+}
+
 /// Validate a caller-provided input value against the supported render-context
 /// model.
 ///
@@ -387,7 +399,10 @@ pub struct ResolverPolicy {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PassConfig {
     /// The pass number this configuration applies to.
-    #[serde(default = "default_pass_number")]
+    #[serde(
+        default = "default_pass_number",
+        deserialize_with = "deserialize_pass_number"
+    )]
     pub pass_number: u8,
     /// Variables required before this pass can render.
     pub required_variables: Vec<VariableName>,
@@ -748,5 +763,15 @@ mod tests {
     #[test]
     fn pass_config_default_pass_number_matches_frontmatter_default() {
         assert_eq!(PassConfig::default().pass_number, default_pass_number());
+    }
+
+    #[test]
+    fn pass_config_explicit_zero_normalizes_to_default_pass_number() {
+        let pass_config = serde_yaml::from_str::<PassConfig>(
+            "pass_number: 0\nrequired_variables: []\ndefaults: {}\n",
+        )
+        .unwrap();
+
+        assert_eq!(pass_config.pass_number, default_pass_number());
     }
 }
