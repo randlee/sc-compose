@@ -58,19 +58,22 @@ Covered by the 6 user stories in
 | [D.2](sprint-d-2-composition-pipeline.md) | Multi-Pass Composition Pipeline | Multi-pass compose loop, render_all, backward compat |
 | [D.3](sprint-d-3-cli-surface.md) | Multi-Pass CLI Surface | --all, --pass N, re-exports, delimiter flag |
 | [D.4](sprint-d-4-template-init-verify.md) | template-init + verify | template-init converter, verify library + CLI |
+| [D.5](sprint-d-5-python-bindings.md) | Python Bindings for Multi-Pass Composition | PyO3 exposure of the D.1–D.4 library surface (draft, pre-review) |
 
 ## Dependency Order
 
 ```
-D.1 (library foundation) ─► D.2 (composition pipeline) ─► D.3 (CLI surface) ─► D.4 (template-init + verify)
+D.1 (library foundation) ─► D.2 (composition pipeline) ─► D.3 (CLI surface) ─► D.4 (template-init + verify) ─► D.5 (Python bindings)
 ```
 
 D.1 must ship first — every other sprint depends on the stacked-header types
 and brace-count-aware validation. D.2 ships second — the multi-pass compose
 loop is required before any CLI surface can be built. D.3 ships third —
 providing the `--pass N` CLI arg infrastructure that D.4 depends on. D.4
-(template-init + verify) ships last, reusing D.3's per-pass variable
-arguments and D.2's `render_all` entry point.
+(template-init + verify) ships fourth, reusing D.3's per-pass variable
+arguments and D.2's `render_all` entry point. D.5 (Python bindings) ships last
+— it wraps the combined D.1–D.4 `sc-composer` library surface for Python and
+therefore depends on all four preceding sprints.
 
 **Note:** D.4 depends on D.3 for `--pass N` CLI arg infrastructure; they
 cannot proceed in parallel despite sharing D.2 as a common dependency.
@@ -137,11 +140,22 @@ gap for DD-001 through DD-007. `docs/architecture.md`, those ADRs, and the
 committed `prototype/multipass/` directory are the authoritative design
 baseline for Phase D.
 
-## Follow-On Sprints (not yet drafted)
+## Follow-On Sprints
 
-- Python binding extension: wrap the multi-pass types (`ParsedTemplate` with
-  `Vec<PassHeader>`, `Renderer.with_delimiters()`, `discover_tokens` with
-  brace_count) in `bindings/python`
-- Python `template-init` and `verify` bindings
-- Multi-pass smoke/integration test suite
+Now drafted:
+
+- [D.5 — Python Bindings for Multi-Pass Composition](sprint-d-5-python-bindings.md)
+  (draft, pending skillrx design review) covers the Python-exposure gap:
+  - wrapping the multi-pass types (`ParsedTemplate.passes`,
+    `Frontmatter.pass_number`, `PassConfig`, `discover_tokens_with_brace_count`,
+    `discover_all_pass_tokens`, `render_all`) in `bindings/python`
+    (`Renderer.with_delimiters()` is already exposed as of Phase C), and
+  - Python `verify` and multi-pass `template-init` bindings (the latter
+    conditional on hosting the template-init core in the `sc-composer` library
+    — see the sprint doc's open design questions).
+
+Not yet drafted:
+
+- Multi-pass smoke/integration test suite beyond the D.5 binding smoke tests
 - `verify` builtin variable overrides (`RENDER_DATE`, `RENDER_TIMESTAMP`)
+  persistence/config surface
