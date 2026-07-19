@@ -258,3 +258,119 @@ def test_python_package_metadata_uses_local_readme_for_sdist() -> None:
     assert 'readme = "README.md"' in cargo_toml_text
     assert "../../README.md" not in pyproject_text
     assert "../../README.md" not in cargo_toml_text
+
+
+def write_readme_fixture(tmp_path: Path, *, dependency_version: str, status_version: str, stability_minor: str) -> tuple[Path, Path]:
+    workspace = tmp_path / "Cargo.toml"
+    workspace.write_text(
+        "\n".join(["[workspace.package]", 'version = "1.2.0"', ""]),
+        encoding="utf-8",
+    )
+    readme = tmp_path / "README.md"
+    readme.write_text(
+        "\n".join(
+            [
+                "## Library usage",
+                "",
+                "```toml",
+                "[dependencies]",
+                f'sc-composer = "{dependency_version}"',
+                "```",
+                "",
+                "## Status",
+                "",
+                "| | |",
+                "|-|-|",
+                f"| Version | {status_version} |",
+                "| MSRV | Rust 1.94.1 |",
+                f"| Stability | stable {stability_minor} release line |",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return workspace, readme
+
+
+def run_sync_readme_version(workspace: Path, readme: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            "scripts/release_artifacts.py",
+            "sync-readme-version",
+            "--workspace-toml",
+            str(workspace),
+            "--readme",
+            str(readme),
+        ],
+        cwd=Path(__file__).resolve().parents[2],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+def run_verify_readme_version(workspace: Path, readme: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            "scripts/release_artifacts.py",
+            "verify-readme-version",
+            "--workspace-toml",
+            str(workspace),
+            "--readme",
+            str(readme),
+        ],
+        cwd=Path(__file__).resolve().parents[2],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+def test_verify_readme_version_passes_when_readme_matches_workspace(tmp_path: Path) -> None:
+    workspace, readme = write_readme_fixture(
+        tmp_path, dependency_version="1.2.0", status_version="1.2.0", stability_minor="1.2"
+    )
+
+    result = run_verify_readme_version(workspace, readme)
+
+    assert result.returncode == 0, result.stderr
+    assert "readme version verification passed" in result.stdout
+
+
+def test_verify_readme_version_rejects_stale_dependency_example(tmp_path: Path) -> None:
+    workspace, readme = write_readme_fixture(
+        tmp_path, dependency_version="1.1.0", status_version="1.2.0", stability_minor="1.2"
+    )
+
+    result = run_verify_readme_version(workspace, readme)
+
+    assert result.returncode != 0
+    assert "sc-composer dependency example" in result.stderr
+
+
+def test_verify_readme_version_rejects_stale_status_table(tmp_path: Path) -> None:
+    workspace, readme = write_readme_fixture(
+        tmp_path, dependency_version="1.2.0", status_version="1.1.0", stability_minor="1.1"
+    )
+
+    result = run_verify_readme_version(workspace, readme)
+
+    assert result.returncode != 0
+    assert "Status table Version row" in result.stderr
+    assert "Status table Stability row" in result.stderr
+
+
+def test_sync_readme_version_rewrites_stale_references(tmp_path: Path) -> None:
+    workspace, readme = write_readme_fixture(
+        tmp_path, dependency_version="1.1.0", status_version="1.1.0", stability_minor="1.1"
+    )
+
+    sync_result = run_sync_readme_version(workspace, readme)
+
+    assert sync_result.returncode == 0, sync_result.stderr
+    assert "synced 3 readme version reference(s) to 1.2.0" in sync_result.stdout
+
+    verify_result = run_verify_readme_version(workspace, readme)
+    assert verify_result.returncode == 0, verify_result.stderr
