@@ -1,9 +1,10 @@
 ---
 id: D.3
 title: Multi-Pass CLI Surface
-status: planned
+status: complete
 branch: sprint/d-3-cli-surface
-target: develop
+target: integrate/phase-d
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/d-3-cli-surface
 ---
 
 # Sprint D.3 — Multi-Pass CLI Surface
@@ -33,8 +34,8 @@ and the composition pipeline from [D.2](sprint-d-2-composition-pipeline.md).
 
 - `crates/sc-compose/src/cli.rs` — `--all`, `--pass N`, `--variable-delimiters` flags
 - `crates/sc-compose/src/render_request.rs` — multi-pass request building
-- `crates/sc-compose/src/commands/render.rs` — multi-pass render dispatch
-- `crates/sc-compose/src/commands/validate.rs` — multi-pass validate dispatch
+- `crates/sc-compose/src/commands/compose.rs` — multi-pass render and validate dispatch
+- `crates/sc-composer/src/frontmatter.rs` — validated public `ParsedTemplate::from_parts_validated`
 - `crates/sc-composer/src/lib.rs` — re-exports
 - `crates/sc-compose/tests/cli.rs` — new CLI integration tests
 - `docs/phase-D/sprint-d-3-cli-surface.md` — this document

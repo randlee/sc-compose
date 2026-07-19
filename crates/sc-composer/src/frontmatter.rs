@@ -14,6 +14,7 @@ use crate::types::{
 #[derive(Clone, Debug, PartialEq)]
 pub struct Frontmatter {
     pass_number: u8,
+    has_explicit_pass_number: bool,
     required_variables: Vec<VariableName>,
     defaults: BTreeMap<VariableName, InputValue>,
     metadata: BTreeMap<String, MetadataValue>,
@@ -24,6 +25,7 @@ impl Default for Frontmatter {
     fn default() -> Self {
         Self {
             pass_number: default_pass_number(),
+            has_explicit_pass_number: false,
             required_variables: Vec::new(),
             defaults: BTreeMap::new(),
             metadata: BTreeMap::new(),
@@ -68,6 +70,10 @@ impl Frontmatter {
     pub fn diagnostics(&self) -> &[Diagnostic] {
         &self.diagnostics
     }
+
+    pub(crate) const fn has_explicit_pass_number(&self) -> bool {
+        self.has_explicit_pass_number
+    }
 }
 
 /// Parsed template document with stacked frontmatter passes and the raw body.
@@ -79,8 +85,25 @@ pub struct ParsedTemplate {
 
 impl ParsedTemplate {
     /// Construct a parsed template from already-normalized parts.
+    #[must_use]
     pub(crate) fn from_parts(passes: Vec<Frontmatter>, body: String) -> Self {
         Self { passes, body }
+    }
+
+    /// Construct a parsed template from normalized parts after re-validating
+    /// duplicate explicit pass numbers.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ComposeError`] when the provided passes contain duplicate
+    /// explicit `pass` declarations that would have been rejected by
+    /// [`parse_template_document`].
+    pub fn from_parts_validated(
+        passes: Vec<Frontmatter>,
+        body: String,
+    ) -> Result<Self, ComposeError> {
+        validate_explicit_pass_numbers(&passes)?;
+        Ok(Self { passes, body })
     }
 
     /// Borrow the outermost parsed frontmatter if one existed.
@@ -133,7 +156,6 @@ pub fn parse_template_document(input: &str) -> Result<ParsedTemplate, ComposeErr
     };
 
     let mut passes = Vec::with_capacity(frontmatter_texts.len());
-    let mut seen_explicit_pass_numbers = BTreeSet::new();
     for frontmatter_text in frontmatter_texts {
         let raw = serde_yaml::from_str::<RawFrontmatter>(frontmatter_text).map_err(|error| {
             ConfigError::new(
@@ -145,21 +167,11 @@ pub fn parse_template_document(input: &str) -> Result<ParsedTemplate, ComposeErr
             }))
             .with_source(error)
         })?;
-
-        let has_explicit_pass = raw.pass.is_some();
         let frontmatter = normalize_frontmatter(raw)?;
-        if has_explicit_pass && !seen_explicit_pass_numbers.insert(frontmatter.pass_number()) {
-            return Err(ValidationError::invalid_input_value(
-                DiagnosticCode::ErrConfigParse,
-                format!(
-                    "duplicate explicit pass number in stacked frontmatter: {}",
-                    frontmatter.pass_number()
-                ),
-            )
-            .into());
-        }
         passes.push(frontmatter);
     }
+
+    validate_explicit_pass_numbers(&passes)?;
 
     Ok(ParsedTemplate {
         passes,
@@ -309,6 +321,7 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
             Some(0) | None => default_pass_number(),
             Some(pass_number) => pass_number,
         },
+        has_explicit_pass_number: pass.is_some(),
         required_variables,
         defaults,
         metadata,
@@ -316,8 +329,29 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
     })
 }
 
+fn validate_explicit_pass_numbers(passes: &[Frontmatter]) -> Result<(), ComposeError> {
+    let mut seen_explicit_pass_numbers = BTreeSet::new();
+    for frontmatter in passes {
+        if frontmatter.has_explicit_pass_number()
+            && !seen_explicit_pass_numbers.insert(frontmatter.pass_number())
+        {
+            return Err(ValidationError::invalid_input_value(
+                DiagnosticCode::ErrConfigParse,
+                format!(
+                    "duplicate explicit pass number in stacked frontmatter: {}",
+                    frontmatter.pass_number()
+                ),
+            )
+            .into());
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use super::parse_template_document;
 
     #[test]
@@ -381,6 +415,44 @@ mod tests {
     fn duplicate_explicit_pass_numbers_fail_closed() {
         let error =
             parse_template_document("---\npass: 2\n---\n---\npass: 2\n---\nbody").unwrap_err();
+
+        assert!(
+            error
+                .to_string()
+                .contains("duplicate explicit pass number in stacked frontmatter")
+        );
+    }
+
+    #[test]
+    fn from_parts_validated_allows_omitted_default_pass_duplicates() {
+        let parsed = parse_template_document("---\n---\n---\n---\nbody").unwrap();
+
+        let reparsed = super::ParsedTemplate::from_parts_validated(
+            parsed.passes().to_vec(),
+            "body".to_owned(),
+        )
+        .unwrap();
+
+        assert_eq!(reparsed.passes().len(), 2);
+        assert_eq!(reparsed.passes()[0].pass_number(), 1);
+        assert_eq!(reparsed.passes()[1].pass_number(), 1);
+    }
+
+    #[test]
+    fn from_parts_validated_rejects_duplicate_explicit_pass_numbers() {
+        let explicit = super::Frontmatter {
+            pass_number: 2,
+            has_explicit_pass_number: true,
+            required_variables: Vec::new(),
+            defaults: BTreeMap::new(),
+            metadata: BTreeMap::new(),
+            diagnostics: Vec::new(),
+        };
+        let error = super::ParsedTemplate::from_parts_validated(
+            vec![explicit.clone(), explicit],
+            "body".to_owned(),
+        )
+        .unwrap_err();
 
         assert!(
             error

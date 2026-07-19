@@ -4,49 +4,24 @@ use std::io::Read;
 use anyhow::{Context, anyhow};
 use sc_composer::{
     BUILTIN_VARIABLE_NAMES, ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot,
-    DiagnosticCode, InputValue, ProfileKind, RuntimeKind, UnknownVariablePolicy, VariableName,
+    DiagnosticCode, InputValue, PassConfig, ProfileKind, RecoveryHint, RecoveryHintKind,
+    RuntimeKind, UnknownVariablePolicy, VariableName,
 };
 
 use crate::CommandError;
-use crate::cli::{Ai, CommonArgs, InputArgs, Kind, Mode, RenderBehaviorArgs, UnknownVarMode};
+use crate::cli::{
+    Ai, CommonArgs, InputArgs, Kind, Mode, PassInputArgs, RenderBehaviorArgs, UnknownVarMode,
+};
 use crate::template_store::TemplatePack;
-use crate::var_file::parse_var_file_contents;
+use crate::var_file::{load_var_file, parse_var_file_contents};
 
 pub(crate) fn build_request(
     args: &CommonArgs,
     blocks: (Option<String>, Option<String>),
     vars_defaults: BTreeMap<VariableName, InputValue>,
 ) -> Result<ComposeRequest, CommandError> {
-    let root = ConfiningRoot::new(&args.root)
-        .with_context(|| format!("failed to canonicalize root {}", args.root.display()))
-        .map_err(|error| CommandError::usage_with_code(error, DiagnosticCode::ErrConfigParse))?;
-    let mode = match args.mode {
-        Mode::File => ComposeMode::File {
-            template_path: args
-                .file
-                .clone()
-                .ok_or_else(|| CommandError::usage(anyhow!("--file is required in file mode")))?,
-        },
-        Mode::Profile => ComposeMode::Profile {
-            kind: match args.kind {
-                Kind::Agent => ProfileKind::Agent,
-                Kind::Command => ProfileKind::Command,
-                Kind::Skill => ProfileKind::Skill,
-            },
-            name: args
-                .agent
-                .clone()
-                .or_else(|| args.agent_type.clone())
-                .ok_or_else(|| {
-                    CommandError::usage(anyhow!("--agent/--agent-type is required in profile mode"))
-                })
-                .and_then(|name| {
-                    sc_composer::ProfileName::new(name).map_err(|error| {
-                        CommandError::usage(anyhow!("invalid profile name: {error}"))
-                    })
-                })?,
-        },
-    };
+    let root = confining_root(&args.root)?;
+    let mode = compose_mode(args)?;
 
     Ok(ComposeRequest {
         runtime: args.runtime.map(runtime_kind),
@@ -58,6 +33,48 @@ pub(crate) fn build_request(
         guidance_block: blocks.0,
         user_prompt: blocks.1,
         policy: compose_policy(&args.input),
+    })
+}
+
+pub(crate) fn build_multi_pass_request(
+    args: &CommonArgs,
+    blocks: (Option<String>, Option<String>),
+    vars_defaults: BTreeMap<VariableName, InputValue>,
+    pass_inputs: &[PassInputArgs],
+) -> Result<ComposeRequest, CommandError> {
+    let root = confining_root(&args.root)?;
+    let mode = compose_mode(args)?;
+
+    let vars_input = collect_pass_union(pass_inputs)?;
+    let vars_env = load_env(&args.input)?;
+    let policy = ComposePolicy {
+        passes: pass_inputs
+            .iter()
+            .map(|pass| {
+                Ok(PassConfig {
+                    pass_number: if pass.pass_number == 0 {
+                        sc_composer::types::default_pass_number()
+                    } else {
+                        pass.pass_number
+                    },
+                    defaults: load_pass_vars(pass)?,
+                    ..PassConfig::default()
+                })
+            })
+            .collect::<Result<Vec<_>, CommandError>>()?,
+        ..compose_policy(&args.input)
+    };
+
+    Ok(ComposeRequest {
+        runtime: args.runtime.map(runtime_kind),
+        mode,
+        root,
+        vars_input,
+        vars_env,
+        vars_defaults,
+        guidance_block: blocks.0,
+        user_prompt: blocks.1,
+        policy,
     })
 }
 
@@ -95,20 +112,34 @@ pub(crate) fn read_block_pair(
     input: &InputArgs,
     render: &RenderBehaviorArgs,
 ) -> Result<(Option<String>, Option<String>), CommandError> {
+    read_block_pair_with_extra_stdin_reads(input, render, 0)
+}
+
+pub(crate) fn read_block_pair_with_extra_stdin_reads(
+    input: &InputArgs,
+    render: &RenderBehaviorArgs,
+    extra_stdin_reads: usize,
+) -> Result<(Option<String>, Option<String>), CommandError> {
     if render.guidance.is_some() && render.guidance_file.is_some() {
-        return Err(CommandError::usage(anyhow!(
-            "--guidance and --guidance-file are mutually exclusive"
-        )));
+        return Err(CommandError::usage_with_code(
+            anyhow!("--guidance and --guidance-file are mutually exclusive"),
+            DiagnosticCode::ErrConfigParse,
+        ));
     }
     if render.prompt.is_some() && render.prompt_file.is_some() {
-        return Err(CommandError::usage(anyhow!(
-            "--prompt and --prompt-file are mutually exclusive"
-        )));
+        return Err(CommandError::usage_with_code(
+            anyhow!("--prompt and --prompt-file are mutually exclusive"),
+            DiagnosticCode::ErrConfigParse,
+        ));
     }
-    let stdin_reads = usize::from(input.var_file.as_deref() == Some("-"))
+    let stdin_reads = input
+        .var_file
+        .iter()
+        .filter(|path| path.as_str() == "-")
+        .count()
         + usize::from(render.guidance_file.as_deref() == Some("-"))
         + usize::from(render.prompt_file.as_deref() == Some("-"));
-    if stdin_reads > 1 {
+    if stdin_reads + extra_stdin_reads > 1 {
         return Err(CommandError::stdin_double_read());
     }
 
@@ -126,6 +157,69 @@ fn compose_policy(input: &InputArgs) -> ComposePolicy {
             UnknownVarMode::Ignore => UnknownVariablePolicy::Ignore,
         },
         ..ComposePolicy::default()
+    }
+}
+
+fn compose_mode(args: &CommonArgs) -> Result<ComposeMode, CommandError> {
+    match args.mode {
+        Mode::File => Ok(ComposeMode::File {
+            template_path: required_file_path(args)?,
+        }),
+        Mode::Profile => Ok(ComposeMode::Profile {
+            kind: profile_kind(args.kind),
+            name: required_profile_name(args)?,
+        }),
+    }
+}
+
+fn confining_root(root: &std::path::Path) -> Result<ConfiningRoot, CommandError> {
+    ConfiningRoot::new(root)
+        .with_context(|| format!("failed to canonicalize root {}", root.display()))
+        .map_err(|error| CommandError::usage_with_code(error, DiagnosticCode::ErrConfigParse))
+}
+
+fn required_file_path(args: &CommonArgs) -> Result<std::path::PathBuf, CommandError> {
+    args.file.clone().ok_or_else(|| {
+        CommandError::usage_with_code_and_hints(
+            anyhow!("--file is required in file mode"),
+            DiagnosticCode::ErrConfigMode,
+            vec![RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
+                key: "pass --file when --mode file is selected".to_owned(),
+            })],
+        )
+    })
+}
+
+fn required_profile_name(args: &CommonArgs) -> Result<sc_composer::ProfileName, CommandError> {
+    let name = args
+        .agent
+        .clone()
+        .or_else(|| args.agent_type.clone())
+        .ok_or_else(|| {
+            CommandError::usage_with_code_and_hints(
+                anyhow!("--agent/--agent-type is required in profile mode"),
+                DiagnosticCode::ErrConfigMode,
+                vec![RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
+                    key: "pass --agent or --agent-type when --mode profile is selected".to_owned(),
+                })],
+            )
+        })?;
+    sc_composer::ProfileName::new(name).map_err(|error| {
+        CommandError::usage_with_code_and_hints(
+            anyhow!("invalid profile name: {error}"),
+            DiagnosticCode::ErrConfigParse,
+            vec![RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
+                key: "use an alphanumeric profile name with . _ or - only".to_owned(),
+            })],
+        )
+    })
+}
+
+const fn profile_kind(kind: Kind) -> ProfileKind {
+    match kind {
+        Kind::Agent => ProfileKind::Agent,
+        Kind::Command => ProfileKind::Command,
+        Kind::Skill => ProfileKind::Skill,
     }
 }
 
@@ -161,32 +255,9 @@ fn read_block(inline: Option<String>, file: Option<&str>) -> Result<Option<Strin
 
 fn load_vars(args: &InputArgs) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
     let mut vars = BTreeMap::default();
-    for (key, value) in &args.vars {
-        vars.insert(
-            VariableName::new(key.clone()).map_err(|error| {
-                CommandError::usage(anyhow!("invalid `--var` name `{key}`: {error}"))
-            })?,
-            serde_json::Value::String(value.clone()),
-        );
-    }
-    if let Some(path) = &args.var_file {
-        let contents = if path == "-" {
-            let mut input = String::new();
-            std::io::stdin()
-                .read_to_string(&mut input)
-                .map_err(|error| {
-                    CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
-                })?;
-            input
-        } else {
-            std::fs::read_to_string(path).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!(error).context(format!("failed to read var-file {path}")),
-                    DiagnosticCode::ErrConfigParse,
-                )
-            })?
-        };
-        let object = parse_var_file_contents(&contents)?;
+    extend_inline_vars(&mut vars, &args.vars)?;
+    for path in &args.var_file {
+        let object = load_var_source(path)?;
         vars.extend(object);
     }
     Ok(vars)
@@ -204,9 +275,10 @@ fn load_env(args: &InputArgs) -> Result<BTreeMap<VariableName, InputValue>, Comm
                 };
                 vars.insert(
                     VariableName::new(name).map_err(|error| {
-                        CommandError::usage(anyhow!(
-                            "invalid environment-derived variable `{trimmed}`: {error}"
-                        ))
+                        CommandError::usage_with_code(
+                            anyhow!("invalid environment-derived variable `{trimmed}`: {error}"),
+                            DiagnosticCode::ErrConfigParse,
+                        )
                     })?,
                     serde_json::Value::String(value),
                 );
@@ -214,4 +286,65 @@ fn load_env(args: &InputArgs) -> Result<BTreeMap<VariableName, InputValue>, Comm
         }
     }
     Ok(vars)
+}
+
+fn load_pass_vars(
+    pass: &PassInputArgs,
+) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
+    let mut vars = BTreeMap::new();
+    extend_inline_vars(&mut vars, &pass.vars)?;
+    for path in &pass.var_files {
+        vars.extend(load_var_source(path)?);
+    }
+    Ok(vars)
+}
+
+fn collect_pass_union(
+    pass_inputs: &[PassInputArgs],
+) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
+    let mut vars = BTreeMap::new();
+    for pass in pass_inputs {
+        vars.extend(load_pass_vars(pass)?);
+    }
+    Ok(vars)
+}
+
+fn load_var_source(path: &str) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
+    if path == "-" {
+        let mut input = String::new();
+        std::io::stdin()
+            .read_to_string(&mut input)
+            .map_err(|error| {
+                CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
+            })?;
+        parse_var_file_contents(&input)
+    } else {
+        load_var_file(std::path::Path::new(path))
+    }
+}
+
+fn invalid_var_name_error(
+    key: &str,
+    error: &sc_composer::InvalidVariableNameError,
+) -> CommandError {
+    CommandError::usage_with_code_and_hints(
+        anyhow!("invalid `--var` name `{key}`: {error}"),
+        DiagnosticCode::ErrConfigParse,
+        vec![RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
+            key: "use variable names containing only ASCII letters, digits, ., _, or -".to_owned(),
+        })],
+    )
+}
+
+fn extend_inline_vars(
+    vars: &mut BTreeMap<VariableName, InputValue>,
+    entries: &[(String, String)],
+) -> Result<(), CommandError> {
+    for (key, value) in entries {
+        vars.insert(
+            VariableName::new(key.clone()).map_err(|error| invalid_var_name_error(key, &error))?,
+            serde_json::Value::String(value.clone()),
+        );
+    }
+    Ok(())
 }

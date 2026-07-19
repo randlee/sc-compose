@@ -56,6 +56,8 @@ pub enum DiagnosticCode {
     ErrValDuplicate,
     /// Frontmatter used both defaults sections and `input_defaults` overrides them.
     WarnValConflictingDefaultSections,
+    /// `--all` was requested for a template without stacked headers.
+    WarnConfigSinglePassAllFallback,
     /// A template body was empty when content was required.
     ErrValEmpty,
     /// The root template omitted a frontmatter block.
@@ -107,6 +109,7 @@ impl DiagnosticCode {
             Self::ErrValNestedArrayUnsupported => "ERR_VAL_NESTED_ARRAY_UNSUPPORTED",
             Self::ErrValDuplicate => "ERR_VAL_DUPLICATE",
             Self::WarnValConflictingDefaultSections => "WARN_VAL_CONFLICTING_DEFAULT_SECTIONS",
+            Self::WarnConfigSinglePassAllFallback => "WARN_CONFIG_SINGLE_PASS_ALL_FALLBACK",
             Self::ErrValEmpty => "ERR_VAL_EMPTY",
             Self::ErrValMissingFrontmatter => "ERR_VAL_MISSING_FRONTMATTER",
             Self::ErrValMissingRequired => "ERR_VAL_MISSING_REQUIRED",
