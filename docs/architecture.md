@@ -156,6 +156,11 @@ ATM integration is an adapter concern outside this repository.
   - parses YAML frontmatter,
   - normalizes omitted fields to schema defaults,
   - exposes typed frontmatter structures.
+- `types`
+  - defines shared composition data structures such as pass configuration and
+    verify result types,
+  - centralizes multi-pass request/result shapes that are reused across parser,
+    validation, render, and verify code paths.
 - `resolver`
   - resolves explicit file paths and profile-mode prompt lookup,
   - records search traces,
@@ -182,6 +187,11 @@ ATM integration is an adapter concern outside this repository.
   - renders template content under normal or strict undeclared-token policy.
 - `validate`
   - produces validation reports and diagnostics without writing output.
+- `verify`
+  - renders templates through all configured passes and compares the result
+    against deployed content,
+  - returns structured drift-check results for both library callers and the
+    CLI wrapper.
 - `error`
   - defines crate-owned error types and shared recovery-hint structures,
   - maps lower-level failures into stable public categories.
@@ -484,6 +494,14 @@ Semantics:
 - `max_include_depth: IncludeDepth`
 - `allowed_roots: Vec<ConfiningRoot>`
 - `resolver_policy: ResolverPolicy`
+- `passes: Vec<PassConfig>`
+
+`PassConfig`
+
+- `pass_number: u8`
+- `required_variables: Vec<VariableName>`
+- `defaults: Map<VariableName, InputValue>`
+- `metadata: Map<String, MetadataValue>`
 
 `LoadedTemplateRequest`
 
@@ -495,6 +513,19 @@ Semantics:
 
 - `rendered: String`
 - `template_name: String`
+
+`ParsedTemplate`
+
+- `passes: Vec<Frontmatter>`
+- `body: String`
+
+Compatibility rule:
+
+- the existing `frontmatter() -> Option<&Frontmatter>` accessor remains the
+  compatibility seam for current callers,
+- single-header templates preserve existing semantics,
+- stacked templates may define `frontmatter()` as the first (outermost) pass
+  while `passes` exposes the full multi-pass structure.
 
 ### 8.3 Core Result Types
 
@@ -534,6 +565,27 @@ Semantics:
 - `discovered_variables: Vec<VariableName>`
 - `changed: bool`
 - `would_change: bool`
+
+`TemplateInitPlan`
+
+- `passes: Vec<InitPass>`
+- `single_pass_compatible: bool`
+- `replacements: Vec<PlannedReplacement>`
+
+Template-init contract:
+
+- `template-init` consumes an input file plus one or more pass-scoped variable
+  maps from the CLI wrapper.
+- Replacement planning sorts passes outer-to-inner and, within each pass,
+  sorts literal values longest-first so specific strings are replaced before
+  substrings.
+- Generated headers are emitted in outer-to-inner order and include `pass: N`
+  only when the output must remain genuinely multi-pass.
+- If the resulting template is effectively single-pass, the emitted header is
+  normalized back to the shipped `1.2.x` single-header shape by omitting
+  `pass: 1`.
+- `template-init` remains CLI-owned in `sc-compose`; `sc-composer` owns only
+  the reusable workspace/helper types needed to support the conversion.
 
 `InitResult`
 
@@ -656,6 +708,9 @@ For `compose` and `validate`, the target lifecycle is:
 1. Resolve explicit path or profile path.
 2. Read the root template file.
 3. Parse frontmatter and body.
+   - For multi-pass templates, continue parsing only while the next bytes at
+     the current cursor begin another leading header. Later `---` lines in the
+     body remain literal content.
 4. Expand includes while enforcing path and depth policy.
 5. Merge frontmatter declarations and include-derived declarations.
 6. Discover referenced variables from the expanded template graph.
@@ -668,6 +723,9 @@ For `compose` and `validate`, the target lifecycle is:
    - undeclared referenced tokens,
    - extra provided variables.
 9. Render in normal or strict mode according to policy.
+   - When `policy.passes` or parsed stacked headers indicate nested-template
+     rendering, render outer-to-inner, using pass-specific delimiters and
+     `protect_higher_braces`-style higher-brace protection between passes.
 10. Assemble final output blocks.
 11. Return composed output or validation report with diagnostics and trace data.
 
@@ -1459,6 +1517,10 @@ use sc_composer::observer::{
 };
 
 pub enum ObservationEvent {
+    PassStart(PassStartEvent),
+    PassEnd(PassEndEvent),
+    VerifyStart(VerifyStartEvent),
+    VerifyEnd(VerifyEndEvent),
     ResolveAttempt(ResolveAttemptEvent),
     ResolveOutcome(ResolveOutcomeEvent),
     IncludeExpandOutcome(IncludeOutcomeEvent),
@@ -1471,6 +1533,10 @@ pub trait ObservationSink {
 }
 
 pub trait CompositionObserver {
+    fn on_pass_start(&mut self, event: &PassStartEvent) {}
+    fn on_pass_end(&mut self, event: &PassEndEvent) {}
+    fn on_verify_start(&mut self, event: &VerifyStartEvent) {}
+    fn on_verify_end(&mut self, event: &VerifyEndEvent) {}
     fn on_resolve_attempt(&mut self, event: &ResolveAttemptEvent) {}
     fn on_resolve_outcome(&mut self, event: &ResolveOutcomeEvent) {}
     fn on_include_outcome(&mut self, event: &IncludeOutcomeEvent) {}
@@ -1497,6 +1563,10 @@ Required library behavior:
   Internal composition code emits through the typed `CompositionObserver`
   callbacks rather than routing through `emit()`.
 - The approved minimum library-owned variant set is:
+  - `PassStart`
+  - `PassEnd`
+  - `VerifyStart`
+  - `VerifyEnd`
   - `ResolveAttempt`
   - `ResolveOutcome`
   - `IncludeExpandOutcome`
