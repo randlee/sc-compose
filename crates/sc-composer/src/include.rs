@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use crate::DiagnosticCode;
 use crate::error::{ComposeError, IncludeError};
 use crate::frontmatter::{Frontmatter, parse_template_document};
-use crate::types::{ComposePolicy, ConfiningRoot};
+use crate::types::{ComposePolicy, ConfiningRoot, IncludeDepth};
 
 /// Expanded include graph returned from the include engine.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -16,9 +16,26 @@ pub struct ExpandedTemplate {
     /// Files visited during include expansion, in first-seen order.
     pub resolved_files: Vec<PathBuf>,
     /// Parsed frontmatter values keyed by the file they came from.
-    pub frontmatters: Vec<(PathBuf, Option<Frontmatter>)>,
+    pub frontmatters: Vec<(PathBuf, Vec<Frontmatter>)>,
     /// Include chain recorded for each resolved file.
     pub include_chains: BTreeMap<PathBuf, Vec<PathBuf>>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+struct CurrentIncludeDepth(u16);
+
+impl CurrentIncludeDepth {
+    const fn root() -> Self {
+        Self(0)
+    }
+
+    const fn get(self) -> u16 {
+        self.0
+    }
+
+    const fn next(self) -> Self {
+        Self(self.0.saturating_add(1))
+    }
 }
 
 /// Expand `@<path>` directives starting from the provided template path.
@@ -45,8 +62,8 @@ pub fn expand_includes(
         &template_path,
         root.as_path(),
         &policy.allowed_roots,
-        policy.max_include_depth.get(),
-        0,
+        policy.max_include_depth,
+        CurrentIncludeDepth::root(),
         &mut Vec::new(),
         &mut state,
     )?;
@@ -63,7 +80,7 @@ pub fn expand_includes(
 struct ExpansionState {
     resolved_files: Vec<PathBuf>,
     resolved_seen: BTreeSet<PathBuf>,
-    frontmatters: Vec<(PathBuf, Option<Frontmatter>)>,
+    frontmatters: Vec<(PathBuf, Vec<Frontmatter>)>,
     include_chains: BTreeMap<PathBuf, Vec<PathBuf>>,
 }
 
@@ -71,16 +88,16 @@ fn expand_file(
     path: &Path,
     root: &Path,
     allowed_roots: &[ConfiningRoot],
-    max_depth: u16,
-    depth: u16,
+    max_depth: IncludeDepth,
+    depth: CurrentIncludeDepth,
     stack: &mut Vec<PathBuf>,
     state: &mut ExpansionState,
 ) -> Result<String, ComposeError> {
     let path_buf = path.to_path_buf();
-    if depth > max_depth {
+    if depth.get() > max_depth.get() {
         return Err(IncludeError::new(
             DiagnosticCode::ErrIncludeDepth,
-            format!("include depth exceeded maximum of {max_depth}"),
+            format!("include depth exceeded maximum of {}", max_depth.get()),
             stack.clone(),
         )
         .into());
@@ -118,7 +135,7 @@ fn expand_file(
     })?;
     state
         .frontmatters
-        .push((path.to_path_buf(), parsed.frontmatter().cloned()));
+        .push((path.to_path_buf(), parsed.passes().to_vec()));
     if is_new {
         state.resolved_seen.insert(path_buf);
     }
@@ -133,7 +150,7 @@ fn expand_file(
                 root,
                 allowed_roots,
                 max_depth,
-                depth + 1,
+                depth.next(),
                 stack,
                 state,
             )?;

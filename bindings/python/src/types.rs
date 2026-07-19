@@ -231,6 +231,7 @@ impl PyComposePolicy {
                 max_include_depth: sc_composer::IncludeDepth::new(max_include_depth),
                 allowed_roots: extract_allowed_roots(allowed_roots)?,
                 resolver_policy: ResolverPolicy::default(),
+                passes: Vec::new(),
             },
         })
     }
@@ -778,6 +779,11 @@ impl PyExpandedTemplate {
             .collect()
     }
 
+    /// Return the legacy single-frontmatter view for each expanded file.
+    ///
+    /// This preserves the pre-multi-pass Python shape by returning only the
+    /// outermost frontmatter block for each file. Use `frontmatter_passes`
+    /// when callers need the full stacked-header data.
     #[getter]
     fn frontmatters(&self) -> Vec<(String, Option<PyFrontmatter>)> {
         self.inner
@@ -786,7 +792,29 @@ impl PyExpandedTemplate {
             .map(|(path, frontmatter)| {
                 (
                     path.display().to_string(),
-                    frontmatter.clone().map(|inner| PyFrontmatter { inner }),
+                    frontmatter
+                        .first()
+                        .cloned()
+                        .map(|inner| PyFrontmatter { inner }),
+                )
+            })
+            .collect()
+    }
+
+    /// Return every parsed frontmatter block for each expanded file.
+    #[getter]
+    fn frontmatter_passes(&self) -> Vec<(String, Vec<PyFrontmatter>)> {
+        self.inner
+            .frontmatters
+            .iter()
+            .map(|(path, frontmatters)| {
+                (
+                    path.display().to_string(),
+                    frontmatters
+                        .iter()
+                        .cloned()
+                        .map(|inner| PyFrontmatter { inner })
+                        .collect(),
                 )
             })
             .collect()

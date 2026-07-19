@@ -5,16 +5,31 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::Deserialize;
 
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
-use crate::error::{ComposeError, ConfigError, ValidationError};
-use crate::types::{InputValue, MetadataValue, VariableName, input_value_from_yaml};
+use crate::error::{ComposeError, ConfigError, RecoveryHint, RecoveryHintKind, ValidationError};
+use crate::types::{
+    InputValue, MetadataValue, VariableName, default_pass_number, input_value_from_yaml,
+};
 
 /// Typed frontmatter normalized to explicit empty collections when present.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Frontmatter {
+    pass_number: u8,
     required_variables: Vec<VariableName>,
     defaults: BTreeMap<VariableName, InputValue>,
     metadata: BTreeMap<String, MetadataValue>,
     diagnostics: Vec<Diagnostic>,
+}
+
+impl Default for Frontmatter {
+    fn default() -> Self {
+        Self {
+            pass_number: default_pass_number(),
+            required_variables: Vec::new(),
+            defaults: BTreeMap::new(),
+            metadata: BTreeMap::new(),
+            diagnostics: Vec::new(),
+        }
+    }
 }
 
 impl Frontmatter {
@@ -22,6 +37,12 @@ impl Frontmatter {
     #[must_use]
     pub fn empty() -> Self {
         Self::default()
+    }
+
+    /// Return the declared pass number for this header.
+    #[must_use]
+    pub fn pass_number(&self) -> u8 {
+        self.pass_number
     }
 
     /// Borrow the normalized required-variable declarations.
@@ -49,18 +70,26 @@ impl Frontmatter {
     }
 }
 
-/// Parsed template document with optional frontmatter and the raw body.
+/// Parsed template document with stacked frontmatter passes and the raw body.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParsedTemplate {
-    frontmatter: Option<Frontmatter>,
+    passes: Vec<Frontmatter>,
     body: String,
 }
 
 impl ParsedTemplate {
-    /// Borrow the parsed frontmatter if one existed.
+    /// Borrow the outermost parsed frontmatter if one existed.
+    ///
+    /// This preserves the backward-compatible single-header accessor surface.
     #[must_use]
     pub fn frontmatter(&self) -> Option<&Frontmatter> {
-        self.frontmatter.as_ref()
+        self.passes.first()
+    }
+
+    /// Borrow all parsed stacked frontmatter passes in outer-to-inner order.
+    #[must_use]
+    pub fn passes(&self) -> &[Frontmatter] {
+        &self.passes
     }
 
     /// Borrow the normalized body content without frontmatter delimiters.
@@ -72,6 +101,7 @@ impl ParsedTemplate {
 
 #[derive(Debug, Deserialize)]
 struct RawFrontmatter {
+    pass: Option<u8>,
     #[serde(default)]
     required_variables: Vec<String>,
     #[serde(default)]
@@ -90,63 +120,108 @@ struct RawFrontmatter {
 /// terminating delimiter, or contains values outside the supported Sprint 2
 /// schema.
 pub fn parse_template_document(input: &str) -> Result<ParsedTemplate, ComposeError> {
-    let Some((frontmatter_text, body)) = split_frontmatter(input)? else {
+    let Some((frontmatter_texts, body)) = split_frontmatter(input)? else {
         return Ok(ParsedTemplate {
-            frontmatter: None,
+            passes: Vec::new(),
             body: input.to_owned(),
         });
     };
 
-    let raw = serde_yaml::from_str::<RawFrontmatter>(frontmatter_text).map_err(|error| {
-        ConfigError::new(
-            DiagnosticCode::ErrConfigParse,
-            "failed to parse YAML frontmatter",
-        )
-        .with_source(error)
-    })?;
+    let mut passes = Vec::with_capacity(frontmatter_texts.len());
+    let mut seen_explicit_pass_numbers = BTreeSet::new();
+    for frontmatter_text in frontmatter_texts {
+        let raw = serde_yaml::from_str::<RawFrontmatter>(frontmatter_text).map_err(|error| {
+            ConfigError::new(
+                DiagnosticCode::ErrConfigParse,
+                "failed to parse YAML frontmatter",
+            )
+            .with_recovery_hint(RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
+                key: "frontmatter".to_owned(),
+            }))
+            .with_source(error)
+        })?;
 
-    let frontmatter = normalize_frontmatter(raw)?;
+        let has_explicit_pass = raw.pass.is_some();
+        let frontmatter = normalize_frontmatter(raw)?;
+        if has_explicit_pass && !seen_explicit_pass_numbers.insert(frontmatter.pass_number()) {
+            return Err(ValidationError::invalid_input_value(
+                DiagnosticCode::ErrConfigParse,
+                format!(
+                    "duplicate explicit pass number in stacked frontmatter: {}",
+                    frontmatter.pass_number()
+                ),
+            )
+            .into());
+        }
+        passes.push(frontmatter);
+    }
 
     Ok(ParsedTemplate {
-        frontmatter: Some(frontmatter),
+        passes,
         body: body.to_owned(),
     })
 }
 
-fn split_frontmatter(input: &str) -> Result<Option<(&str, &str)>, ComposeError> {
-    let delimiter_len = if input.starts_with("---\n") {
-        4
-    } else if input.starts_with("---\r\n") {
-        5
+fn split_frontmatter(input: &str) -> Result<Option<(Vec<&str>, &str)>, ComposeError> {
+    let mut cursor = 0usize;
+    let mut headers = Vec::new();
+
+    while let Some(open_len) = opening_delimiter_len(input, cursor) {
+        let content_start = cursor + open_len;
+        let mut line_cursor = content_start;
+        let mut closing = None;
+
+        while line_cursor < input.len() {
+            let line_end = next_line_end(input, line_cursor);
+            let line = &input[line_cursor..line_end];
+            let trimmed = line.trim_end_matches(['\n', '\r']);
+            if matches!(trimmed, "---" | "...") {
+                closing = Some((line_cursor, line_end));
+                break;
+            }
+            line_cursor = line_end;
+        }
+
+        let Some((content_end, after_close)) = closing else {
+            return Err(ConfigError::new(
+                DiagnosticCode::ErrConfigParse,
+                "frontmatter block started with `---` but no closing delimiter was found",
+            )
+            .with_recovery_hint(RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
+                key: "frontmatter".to_owned(),
+            }))
+            .into());
+        };
+
+        headers.push(&input[content_start..content_end]);
+        cursor = after_close;
+    }
+
+    if headers.is_empty() {
+        Ok(None)
     } else {
-        return Ok(None);
-    };
-
-    let rest = &input[delimiter_len..];
-    let mut scanned = 0usize;
-
-    for line in rest.split_inclusive('\n') {
-        let trimmed = line.trim_end_matches(['\n', '\r']);
-        if matches!(trimmed, "---" | "...") {
-            let frontmatter_text = &rest[..scanned];
-            let body = &rest[scanned + line.len()..];
-            return Ok(Some((frontmatter_text, body)));
-        }
-        scanned += line.len();
+        Ok(Some((headers, &input[cursor..])))
     }
+}
 
-    if !rest.is_empty() {
-        let trimmed = rest.trim_end_matches(['\n', '\r']);
-        if matches!(trimmed, "---" | "...") {
-            return Ok(Some(("", "")));
-        }
+fn opening_delimiter_len(input: &str, cursor: usize) -> Option<usize> {
+    let remainder = input.get(cursor..)?;
+    if remainder.starts_with("---\r\n") {
+        Some(5)
+    } else if remainder.starts_with("---\n") {
+        Some(4)
+    } else if remainder == "---" {
+        Some(3)
+    } else {
+        None
     }
+}
 
-    Err(ConfigError::new(
-        DiagnosticCode::ErrConfigParse,
-        "frontmatter block started with `---` but no closing delimiter was found",
-    )
-    .into())
+fn next_line_end(input: &str, cursor: usize) -> usize {
+    match input[cursor..].find('\n') {
+        Some(offset) => cursor + offset + 1,
+        None => input.len(),
+    }
 }
 
 fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeError> {
@@ -159,6 +234,11 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
                 DiagnosticCode::ErrConfigParse,
                 format!("invalid frontmatter {section_name} variable name: {error}"),
             )
+            .with_recovery_hint(RecoveryHint::new(
+                RecoveryHintKind::ReviewConfiguration {
+                    key: section_name.to_owned(),
+                },
+            ))
         })?;
         let input_value = input_value_from_yaml(value).map_err(|error| {
             ValidationError::invalid_input_value(error.code(), error.to_string())
@@ -166,14 +246,27 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
         Ok((variable, input_value))
     };
 
-    let mut required_variables = Vec::with_capacity(raw.required_variables.len());
+    let RawFrontmatter {
+        pass,
+        required_variables: raw_required_variables,
+        defaults: raw_defaults,
+        input_defaults: raw_input_defaults,
+        metadata: raw_metadata,
+    } = raw;
+
+    let mut required_variables = Vec::with_capacity(raw_required_variables.len());
     let mut seen = BTreeSet::new();
-    for variable in raw.required_variables {
+    for variable in raw_required_variables {
         let variable = VariableName::new(variable).map_err(|error| {
             ConfigError::new(
                 DiagnosticCode::ErrConfigParse,
                 format!("invalid frontmatter variable name: {error}"),
             )
+            .with_recovery_hint(RecoveryHint::new(
+                RecoveryHintKind::ReviewConfiguration {
+                    key: "required_variables".to_owned(),
+                },
+            ))
         })?;
         if !seen.insert(variable.clone()) {
             return Err(ValidationError::duplicate_variable(&variable).into());
@@ -183,12 +276,12 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
 
     let mut diagnostics = Vec::new();
     let mut defaults = BTreeMap::new();
-    for (name, value) in raw.defaults {
+    for (name, value) in raw_defaults {
         let (variable, input_value) = parse_default_entry("default", name, value)?;
         defaults.insert(variable, input_value);
     }
 
-    if !defaults.is_empty() && !raw.input_defaults.is_empty() {
+    if !defaults.is_empty() && !raw_input_defaults.is_empty() {
         diagnostics.push(Diagnostic::new(
             DiagnosticSeverity::Warning,
             DiagnosticCode::WarnValConflictingDefaultSections,
@@ -196,21 +289,98 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
         ));
     }
 
-    for (name, value) in raw.input_defaults {
+    for (name, value) in raw_input_defaults {
         let (variable, input_value) = parse_default_entry("input_defaults", name, value)?;
         defaults.insert(variable, input_value);
     }
 
-    let metadata = raw
-        .metadata
+    let metadata = raw_metadata
         .into_iter()
         .map(|(key, value)| (key, MetadataValue::new(value)))
         .collect();
 
     Ok(Frontmatter {
+        pass_number: match pass {
+            Some(0) | None => default_pass_number(),
+            Some(pass_number) => pass_number,
+        },
         required_variables,
         defaults,
         metadata,
         diagnostics,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_template_document;
+
+    #[test]
+    fn parses_document_without_frontmatter() {
+        let parsed = parse_template_document("hello world").unwrap();
+
+        assert!(parsed.passes().is_empty());
+        assert_eq!(parsed.body(), "hello world");
+        assert!(parsed.frontmatter().is_none());
+    }
+
+    #[test]
+    fn parses_single_header_with_explicit_pass() {
+        let parsed = parse_template_document("---\npass: 2\n---\nbody").unwrap();
+
+        assert_eq!(parsed.passes().len(), 1);
+        assert_eq!(parsed.passes()[0].pass_number(), 2);
+        assert_eq!(parsed.frontmatter().unwrap().pass_number(), 2);
+        assert_eq!(parsed.body(), "body");
+    }
+
+    #[test]
+    fn parses_stacked_empty_headers_with_default_pass_numbers() {
+        let parsed = parse_template_document("---\n---\n---\n---\nbody").unwrap();
+
+        assert_eq!(parsed.passes().len(), 2);
+        assert_eq!(parsed.passes()[0].pass_number(), 1);
+        assert_eq!(parsed.passes()[1].pass_number(), 1);
+        assert_eq!(parsed.body(), "body");
+    }
+
+    #[test]
+    fn supports_dot_delimiter_in_stacked_headers() {
+        let parsed = parse_template_document("---\n...\n---\n...\nbody").unwrap();
+
+        assert_eq!(parsed.passes().len(), 2);
+        assert_eq!(parsed.body(), "body");
+    }
+
+    #[test]
+    fn preserves_later_body_delimiters_after_leading_header_stack() {
+        let parsed =
+            parse_template_document("---\ndefaults: {name: world}\n---\nhello\n---\nrule").unwrap();
+
+        assert_eq!(parsed.passes().len(), 1);
+        assert_eq!(parsed.body(), "hello\n---\nrule");
+    }
+
+    #[test]
+    fn malformed_yaml_fails_closed() {
+        let error = parse_template_document("---\ndefaults: [\n---\nbody").unwrap_err();
+
+        assert!(
+            error
+                .to_string()
+                .contains("failed to parse YAML frontmatter")
+        );
+    }
+
+    #[test]
+    fn duplicate_explicit_pass_numbers_fail_closed() {
+        let error =
+            parse_template_document("---\npass: 2\n---\n---\npass: 2\n---\nbody").unwrap_err();
+
+        assert!(
+            error
+                .to_string()
+                .contains("duplicate explicit pass number in stacked frontmatter")
+        );
+    }
 }
