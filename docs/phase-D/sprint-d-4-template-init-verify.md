@@ -159,8 +159,8 @@ pub struct VerifyResult {
 pub fn verify(
     template_path: impl AsRef<Path>,
     deployed_path: impl AsRef<Path>,
-    contexts: &[(u8, HashMap<String, InputValue>)],
-    overrides: Option<HashMap<String, String>>, // builtin var overrides
+    contexts: &[(u8, BTreeMap<VariableName, InputValue>)],
+    overrides: Option<BTreeMap<String, String>>, // builtin var overrides
 ) -> Result<VerifyResult, ComposeError>;
 ```
 

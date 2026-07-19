@@ -59,7 +59,9 @@ silently dropped or partially deferred.
   - Observer events emitted per pass (command lifecycle + pass-start/pass-end)
 
 - `D2` — Programmatic `render_all()` API
-  - Public function `sc_composer::render_all(parsed: &ParsedTemplate, contexts: &[(u8, HashMap<...>)]) -> Result<String>`
+  - Public function `sc_composer::render_all(parsed: &ParsedTemplate, contexts: &[(u8, BTreeMap<VariableName, InputValue>)]) -> Result<String>`
+    — canonical `contexts` type per [ADR-0009](../adrs/0009-phase-d-python-binding-parity-sequencing.md),
+    matching D.4's `verify()` signature
   - Validates that context count matches pass count
   - Renders all passes in sequence, returns final output
   - Used by both `compose()` and future `verify()` (D.4)
