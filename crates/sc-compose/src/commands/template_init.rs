@@ -412,10 +412,7 @@ mod tests {
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use super::{
-        InitPass, build_stacked_frontmatter, normalize_pass_number, serialize_header,
-        template_init_file,
-    };
+    use super::{InitPass, normalize_pass_number, serialize_header, template_init_file};
     use sc_composer::VariableName;
     use serde::ser::{Error as _, Serializer};
 

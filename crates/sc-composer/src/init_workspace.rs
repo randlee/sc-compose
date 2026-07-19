@@ -233,8 +233,8 @@ mod tests {
 
         match error {
             ComposeError::Config(error) => {
-                assert_eq!(error.code(), DiagnosticCode::ErrConfigParse);
-                assert!(error.message().contains("failed to read gitignore"));
+                assert_eq!(error.code(), DiagnosticCode::ErrConfigRead);
+                assert!(error.message().contains("failed to read text file"));
             }
             other => panic!("unexpected error: {other}"),
         }
