@@ -12,7 +12,7 @@ pub(crate) use request::{PyComposeRequest, PyLoadedTemplateRequest, PyNamedTempl
 pub(crate) use results::{
     PyComposeResult, PyDiagnostic, PyExpandedTemplate, PyFrontmatter, PyFrontmatterInitResult,
     PyInitResult, PyParsedTemplate, PyRenderedArtifact, PyRenderer, PyResolveResult,
-    PyValidationReport,
+    PyValidationReport, PyVerifyResult,
 };
 
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -28,6 +28,7 @@ pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<PyResolveResult>()?;
     module.add_class::<PyComposeResult>()?;
     module.add_class::<PyValidationReport>()?;
+    module.add_class::<PyVerifyResult>()?;
     module.add_class::<PyNamedTemplateAsset>()?;
     module.add_class::<PyLoadedTemplateRequest>()?;
     module.add_class::<PyRenderedArtifact>()?;
