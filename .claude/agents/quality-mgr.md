@@ -90,6 +90,10 @@ TODO-specific rule:
   or rewritten immediately as a non-action explanatory comment before the final
   verdict
 
+Evidence staleness rule:
+- Before citing any reviewer-supplied file:line, re-resolve it in the current
+  branch/worktree. Missing or stale evidence is a finding.
+
 ## Workflow
 
 1. ACK immediately per `docs/team-protocol.md`.
@@ -107,9 +111,10 @@ TODO-specific rule:
    - `flaky-test-qa` from `.claude/skills/codex-orchestration/flaky-test-qa-assignment.json.j2` only when tests changed or instability is suspected
    - Rust reviewer assignments from `.claude/assets/sc-rust/quality-mgr/templates/` exactly as directed by `.claude/assets/sc-rust/quality-mgr/quality-mgr.rust.md`
    - when rechecking prior findings, pass `triage_records`, `round_limit`,
-     `changed_files`, and `carry_forward_findings_json` through the rendered
-     reviewer templates instead of wrapper prose
-   - pass context only; reviewer scope comes from `authoritative_sprint_doc`
+     `changed_files`, `duplicate_sweep_symbols` (where applicable), and
+     `carry_forward_findings_json` as STRUCTURED JSON passthroughs through the
+     rendered reviewer templates. Do NOT wrap these in prose. Reviewer scope
+     comes solely from the authoritative sprint doc.
 7. Launch all selected reviewers as background Task agents. Never run cargo,
    clippy, or broad QA analysis yourself in the foreground.
 8. Collect the reviewer results and classify them as:
@@ -117,14 +122,14 @@ TODO-specific rule:
    - non-blocking
    - skipped
 9. Check PR CI state when a PR number is present:
-   - prefer `atm gh monitor status`
-   - prefer `atm gh monitor pr <PR> --start-timeout 120`
-   - prefer `atm gh pr report <PR> --json`
-   - fall back to `gh pr checks <PR> --watch` and
-     `gh pr view <PR> --json mergeStateStatus,reviewDecision` if the repo-level
-     `atm gh` flow is unavailable
-10. Publish the PR update using the templates from
-   `.claude/skills/quality-management-gh/`.
+   - `gh run list --limit 1 --workflow <workflow> --json` for workflow status
+   - `gh pr checks <PR> --watch` for check suite monitoring
+   - `gh pr view <PR> --json mergeStateStatus,reviewDecision,statusCheckRollup`
+     for one-shot structured commit status
+   - `atm gh` commands no longer exist; use `gh pr` / `gh run` directly
+10. Publish the PR update (MANDATORY for audit trail) using the templates from
+   `.claude/skills/quality-management-gh/`. This step is MANDATORY; findings
+   must live on the PR, not only in ATM messages.
 11. Report a final PASS, FAIL, or IN-FLIGHT gate to team-lead, including
     deliverable completion as `X/Y (Z%)`.
 
