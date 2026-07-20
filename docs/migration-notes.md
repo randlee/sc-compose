@@ -79,6 +79,31 @@ Consumer impact for the `1.1.0` line:
 
 ## Breaking Changes
 
+### 1.3.0: `Renderer::with_delimiters` is now fallible
+
+As of the 1.3.0 Phase D line, `sc_composer::Renderer::with_delimiters(open, close)`
+changed from:
+
+```rust
+fn with_delimiters(open: &str, close: &str) -> Self
+```
+
+to:
+
+```rust
+fn with_delimiters(open: &str, close: &str) -> Result<Self, RenderError>
+```
+
+Consumer impact:
+
+- external Rust callers must now handle `RenderError` when constructing a
+  renderer with custom delimiters,
+- invalid delimiter pairs now report a typed error instead of panicking,
+- no additional version bump beyond 1.3.0 was taken because the crate remains
+  in alpha maturity (`Development Status :: 3 - Alpha` in the Python package
+  metadata), where source-breaking changes within a minor release are still
+  acceptable when they are explicitly documented.
+
 This is a breaking-change release relative to the last ATM-published version. Consumers
 should expect:
 

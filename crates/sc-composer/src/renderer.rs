@@ -83,27 +83,6 @@ impl Renderer {
         Ok(Self { env })
     }
 
-    fn render_with_supporting_templates(
-        mut env: Environment<'static>,
-        request: LoadedTemplateRequest,
-    ) -> Result<RenderedArtifact, RenderError> {
-        for asset in request.supporting_templates {
-            env.add_template_owned(asset.template_name, asset.template_text)
-                .map_err(RenderError::render)?;
-        }
-        env.add_template_owned(request.template_name.clone(), request.template_text.clone())
-            .map_err(RenderError::render)?;
-        let rendered = env
-            .get_template(&request.template_name)
-            .map_err(RenderError::render)?
-            .render(&request.context)
-            .map_err(RenderError::render)?;
-        Ok(RenderedArtifact {
-            rendered,
-            template_name: request.template_name,
-        })
-    }
-
     /// Render a template string with the provided serializable context.
     ///
     /// # Errors
@@ -168,7 +147,21 @@ pub fn render_loaded_template(
     let mut env = Environment::new();
     env.set_trim_blocks(true);
     env.set_lstrip_blocks(true);
-    Renderer::render_with_supporting_templates(env, request)
+    for asset in request.supporting_templates {
+        env.add_template_owned(asset.template_name, asset.template_text)
+            .map_err(RenderError::render)?;
+    }
+    env.add_template_owned(request.template_name.clone(), request.template_text.clone())
+        .map_err(RenderError::render)?;
+    let rendered = env
+        .get_template(&request.template_name)
+        .map_err(RenderError::render)?
+        .render(&request.context)
+        .map_err(RenderError::render)?;
+    Ok(RenderedArtifact {
+        rendered,
+        template_name: request.template_name,
+    })
 }
 
 #[cfg(test)]
@@ -231,12 +224,9 @@ mod tests {
         let error = Renderer::with_delimiters("", "}}").unwrap_err();
 
         assert_eq!(error.code(), None);
-        assert!(
-            error
-                .to_string()
-                .contains("empty delimiters are not allowed")
-                || error.to_string().contains("delimiter"),
-            "expected delimiter-construction failure, got: {error}"
+        assert_eq!(
+            error.to_string(),
+            "template rendering failed: invalid custom delimiters"
         );
     }
 }

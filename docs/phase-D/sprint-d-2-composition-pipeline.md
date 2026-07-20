@@ -32,7 +32,7 @@ is deferred to [D.3](sprint-d-3-cli-surface.md).
 ## Exact Targets
 
 - `crates/sc-composer/src/composer.rs` — multi-pass compose loop
-- `crates/sc-composer/src/renderer.rs` — verify `with_delimiters` public API (no changes needed)
+- `crates/sc-composer/src/renderer.rs` — multi-pass renderer construction seam and delimiter error handling
 - `crates/sc-composer/src/lib.rs` — re-export `render_all`, `protect_higher_braces`
 - `crates/sc-composer/tests/` — new or extended integration tests
 - `docs/phase-D/sprint-d-2-composition-pipeline.md` — this document
@@ -113,7 +113,8 @@ fn compose_multi_pass(
         let brace_count = pass_header.pass_number as usize + 1;
         let open = "{".repeat(brace_count);
         let close = "}".repeat(brace_count);
-        let renderer = Renderer::with_delimiters(&open, &close);
+        let renderer = Renderer::with_delimiters(&open, &close)
+            .map_err(ComposeError::Render)?;
 
         // Protect higher-brace-count variables in this pass's body
         let protected_body = protect_higher_braces(&body, brace_count);
@@ -207,7 +208,8 @@ fn protect_higher_braces(text: &str, brace_count: usize) -> String {
 - `AC5` backward compat guard
   - Existing `compose()` callers see zero behavioral change for single-header
     templates
-  - `Renderer` API unchanged
+  - Valid delimiter callers keep the same successful rendering behavior; invalid
+    delimiter construction now fails with `RenderError` instead of panicking
   - `ComposeRequest` default behavior unchanged
 
 ## Required Validation
