@@ -248,6 +248,10 @@ fn build_pass_contexts(
                     .get(&pass.pass_number)
                     .cloned()
                     .unwrap_or_default();
+                // Multi-pass contexts currently receive the full flattened validation context.
+                // That is intentionally harmless today because each render pass only resolves
+                // its own brace width, so same-name values from other passes stay inert unless
+                // we ever add a cross-pass surface that ignores delimiter isolation.
                 for (name, value) in &state.context {
                     context.insert(name.clone(), value.clone());
                 }
@@ -263,6 +267,8 @@ fn build_pass_contexts(
         .iter()
         .map(|pass| {
             let mut context = pass.defaults().clone();
+            // See note above: whole-context merging is loose, but currently inert because
+            // lower/higher pass delimiters prevent cross-pass names from resolving here.
             for (name, value) in &state.context {
                 context.insert(name.clone(), value.clone());
             }

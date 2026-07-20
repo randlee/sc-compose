@@ -318,16 +318,15 @@ fn default_usage_diagnostics(state: &ValidationState) -> Vec<Diagnostic> {
 }
 
 fn undeclared_referenced_variables(state: &ValidationState) -> Vec<VariableName> {
-    if state.referenced_variables_by_pass.is_empty() {
+    let Some(referenced_variables_by_pass) = per_pass_referenced_variables(state) else {
         return state
             .referenced_variables
             .difference(&state.declared_variables)
             .cloned()
             .collect();
-    }
+    };
 
-    state
-        .referenced_variables_by_pass
+    referenced_variables_by_pass
         .iter()
         .flat_map(|(pass_number, variables)| {
             let declared = state
@@ -342,17 +341,16 @@ fn undeclared_referenced_variables(state: &ValidationState) -> Vec<VariableName>
 }
 
 fn default_used_by_reference(state: &ValidationState, variable: &VariableName) -> bool {
-    if state.referenced_variables_by_pass.is_empty() {
+    let Some(referenced_variables_by_pass) = per_pass_referenced_variables(state) else {
         return state
             .referenced_variables
             .iter()
             .any(|referenced| default_satisfies_path(variable, referenced));
-    }
+    };
 
     if let Some(pass_numbers) = state.default_pass_numbers.get(variable) {
         return pass_numbers.iter().any(|pass_number| {
-            state
-                .referenced_variables_by_pass
+            referenced_variables_by_pass
                 .get(pass_number)
                 .into_iter()
                 .flatten()
@@ -360,8 +358,7 @@ fn default_used_by_reference(state: &ValidationState, variable: &VariableName) -
         });
     }
 
-    state
-        .referenced_variables_by_pass
+    referenced_variables_by_pass
         .values()
         .flatten()
         .any(|referenced| default_satisfies_path(variable, referenced))
@@ -373,6 +370,12 @@ fn default_satisfies_path(default_variable: &VariableName, referenced: &Variable
             .as_str()
             .strip_prefix(default_variable.as_str())
             .is_some_and(|suffix| suffix.starts_with('.'))
+}
+
+fn per_pass_referenced_variables(
+    state: &ValidationState,
+) -> Option<&BTreeMap<usize, BTreeSet<VariableName>>> {
+    (!state.referenced_variables_by_pass.is_empty()).then_some(&state.referenced_variables_by_pass)
 }
 
 fn missing_required_diagnostic(
@@ -576,11 +579,6 @@ fn populate_pass_validation_maps(state: &mut ValidationState, expanded: &Expande
     let parsed = crate::frontmatter::ParsedTemplate::from_parts(root_passes, expanded.text.clone());
 
     let referenced_variables_by_pass = discover_all_pass_tokens(&parsed);
-    if referenced_variables_by_pass.is_empty() {
-        state.referenced_variables = discover_tokens(&expanded.text);
-        return;
-    }
-
     let root_pass_declared = parsed
         .passes()
         .iter()
