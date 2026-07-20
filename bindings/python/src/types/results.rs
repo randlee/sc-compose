@@ -535,10 +535,10 @@ impl PyRenderer {
     }
 
     #[classmethod]
-    fn with_delimiters(_cls: &Bound<'_, PyType>, open: &str, close: &str) -> Self {
-        Self {
-            inner: Renderer::with_delimiters(open, close),
-        }
+    fn with_delimiters(_cls: &Bound<'_, PyType>, open: &str, close: &str) -> PyResult<Self> {
+        Renderer::with_delimiters(open, close)
+            .map(|inner| Self { inner })
+            .map_err(render_error_to_pyerr)
     }
 
     fn render(&self, template: &str, context: &Bound<'_, PyAny>) -> PyResult<String> {

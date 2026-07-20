@@ -268,6 +268,9 @@ fn execute_custom_delimiter_render(
     let parsed = ParsedTemplate::from_parts_validated(root_passes.clone(), expanded.text.clone())
         .map_err(CommandError::compose)?;
     let rendered_text = Renderer::with_delimiters(&open, &close)
+        .map_err(|error| {
+            CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
+        })?
         .render(
             parsed.body(),
             build_custom_render_context(request, &resolve_result.resolved_path, &root_passes),

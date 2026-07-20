@@ -365,6 +365,9 @@ def render_all(
     parsed: ParsedTemplate,
     contexts: list[tuple[int, dict[str, Any]]],
 ) -> str: ...
+# Expects fully resolved per-pass contexts and does not merge frontmatter
+# defaults. Use compose() for request/policy-driven default merging, or
+# pre-merge defaults into each pass context before calling render_all().
 def expand_includes(
     template_path: str | PathLike[str],
     root: str | PathLike[str],
