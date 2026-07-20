@@ -30,7 +30,10 @@ and planning index needed to record the boundary decision.
 
 ## Exact Targets
 
-- `bindings/python/src/types.rs`
+- `bindings/python/src/types/mod.rs`
+- `bindings/python/src/types/policy.rs`
+- `bindings/python/src/types/request.rs`
+- `bindings/python/src/types/results.rs`
 - `bindings/python/src/functions.rs`
 - `bindings/python/python/sc_compose/__init__.py`
 - `bindings/python/python/sc_compose/_native.pyi`
