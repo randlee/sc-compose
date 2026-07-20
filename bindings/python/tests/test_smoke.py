@@ -38,6 +38,7 @@ def test_import_surface_exposes_c2_api() -> None:
         "InitResult",
         "LoadedTemplateRequest",
         "NamedTemplateAsset",
+        "PassConfig",
         "ParsedTemplate",
         "ProfileKind",
         "ProfileName",
@@ -58,7 +59,9 @@ def test_import_surface_exposes_c2_api() -> None:
         "VariableSource",
         "compose",
         "compose_file",
+        "discover_all_pass_tokens",
         "discover_tokens",
+        "discover_tokens_with_brace_count",
         "expand_includes",
         "frontmatter_init",
         "init_workspace",
@@ -190,6 +193,8 @@ def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
     assert isinstance(parsed, sc_compose.ParsedTemplate)
     assert parsed.frontmatter is not None
     assert [str(name) for name in parsed.frontmatter.required_variables] == ["name"]
+    assert parsed.frontmatter.pass_number == 1
+    assert len(parsed.passes) == 1
     assert parsed.body == "hello {{ name }}\n"
 
     expanded = sc_compose.expand_includes(tmp_path / "include-root.md.j2", tmp_path)
@@ -247,6 +252,58 @@ def test_expanded_template_exposes_full_frontmatter_passes(tmp_path: Path) -> No
     tokens = sc_compose.discover_tokens("{{ name }} {{ report.title }}")
     assert [str(token) for token in tokens] == ["name", "report.title"]
     assert "TEMPLATE_NAME" in sc_compose.BUILTIN_VARIABLE_NAMES
+
+
+def test_multi_pass_bindings_expose_d1_py_surface() -> None:
+    parsed = sc_compose.parse_template_document(
+        "---\n"
+        "pass: 2\n"
+        "required_variables:\n"
+        "  - team\n"
+        "---\n"
+        "---\n"
+        "metadata:\n"
+        "  stage: final\n"
+        "---\n"
+        "{{ second }} {{{ first }}}\n"
+    )
+
+    assert parsed.frontmatter is not None
+    assert parsed.frontmatter.pass_number == 2
+    assert len(parsed.passes) == 2
+    assert parsed.passes[0].pass_number == 2
+    assert parsed.passes[1].pass_number == 1
+    assert [str(name) for name in parsed.passes[0].required_variables] == ["team"]
+    assert parsed.passes[1].metadata["stage"] == "final"
+
+    config = sc_compose.PassConfig(
+        0,
+        required_variables=["team", sc_compose.VariableName("role")],
+        defaults={"region": "west"},
+        metadata={"labels": ["fast", "safe"], "rank": 2},
+    )
+    assert config.pass_number == 1
+    assert [str(name) for name in config.required_variables] == ["team", "role"]
+    assert config.defaults == {"region": "west"}
+    assert config.metadata == {"labels": ["fast", "safe"], "rank": 2}
+
+    triple = sc_compose.discover_tokens_with_brace_count(
+        "{{{ outer }}} {{ inner }}", 3
+    )
+    assert [str(token) for token in triple] == ["outer"]
+
+    per_pass = sc_compose.discover_all_pass_tokens(parsed)
+    assert {pass_number: [str(token) for token in tokens] for pass_number, tokens in per_pass.items()} == {
+        1: ["second"],
+        2: ["first"],
+    }
+
+
+def test_headerless_templates_keep_phase_c_behavior() -> None:
+    parsed = sc_compose.parse_template_document("hello")
+
+    assert parsed.frontmatter is None
+    assert parsed.passes == []
 
 
 @pytest.mark.parametrize(
