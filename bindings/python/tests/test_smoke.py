@@ -327,7 +327,7 @@ def test_d2_py_render_all_and_policy_passes_round_trip(tmp_path: Path) -> None:
             (1, {"task": "test"}),
         ],
     )
-    assert rendered == "wyvern test\n"
+    assert rendered == "wyvern test"
 
 
 def test_d2_py_render_all_maps_context_shape_failures() -> None:
@@ -368,7 +368,7 @@ def test_d2_py_compose_renders_stacked_headers_with_policy_passes(tmp_path: Path
     )
 
     result = sc_compose.compose(request)
-    assert result.rendered_text == "wyvern test\n"
+    assert result.rendered_text == "wyvern test"
 
 
 def test_headerless_templates_keep_phase_c_behavior() -> None:
