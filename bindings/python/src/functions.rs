@@ -12,7 +12,7 @@ use crate::errors::{
 use crate::types::{
     PyComposePolicy, PyComposeRequest, PyComposeResult, PyExpandedTemplate,
     PyFrontmatterInitResult, PyInitResult, PyLoadedTemplateRequest, PyParsedTemplate,
-    PyRenderedArtifact, PyResolveResult, PyValidationReport, PyVariableName,
+    PyRenderedArtifact, PyResolveResult, PyValidationReport, PyVariableName, PyVerifyResult,
 };
 
 #[pyfunction]
@@ -105,6 +105,21 @@ fn render_all(
 ) -> PyResult<String> {
     let contexts = extract_pass_contexts(contexts)?;
     sc_composer::render_all(&parsed.inner, &contexts).map_err(compose_error_to_pyerr)
+}
+
+#[pyfunction]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracted arguments use owned PyRef values."
+)]
+fn verify(
+    request: PyRef<'_, PyComposeRequest>,
+    deployed_path: &Bound<'_, PyAny>,
+) -> PyResult<PyVerifyResult> {
+    let deployed_path = coerce_path_like(deployed_path)?;
+    sc_composer::verify(&request.inner, deployed_path)
+        .map(|inner| PyVerifyResult { inner })
+        .map_err(compose_error_to_pyerr)
 }
 
 #[pyfunction]
@@ -225,6 +240,7 @@ pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(render_loaded_template, module)?)?;
     module.add_function(wrap_pyfunction!(parse_template_document, module)?)?;
     module.add_function(wrap_pyfunction!(render_all, module)?)?;
+    module.add_function(wrap_pyfunction!(verify, module)?)?;
     module.add_function(wrap_pyfunction!(expand_includes, module)?)?;
     module.add_function(wrap_pyfunction!(frontmatter_init, module)?)?;
     module.add_function(wrap_pyfunction!(init_workspace, module)?)?;

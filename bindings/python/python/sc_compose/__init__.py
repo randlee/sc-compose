@@ -33,6 +33,7 @@ from ._native import (
     ValidationReport,
     VariableName,
     VariableSource,
+    VerifyResult,
     compose,
     compose_file,
     discover_all_pass_tokens,
@@ -51,6 +52,7 @@ from ._native import (
     to_forward_slash,
     validate,
     validate_input_value,
+    verify,
 )
 
 __all__ = [
@@ -88,6 +90,7 @@ __all__ = [
     "ValidationReport",
     "VariableName",
     "VariableSource",
+    "VerifyResult",
     "compose",
     "compose_file",
     "discover_all_pass_tokens",
@@ -106,4 +109,5 @@ __all__ = [
     "to_forward_slash",
     "validate",
     "validate_input_value",
+    "verify",
 ]

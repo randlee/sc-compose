@@ -7,7 +7,7 @@ use sc_composer::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot, Diagnostic,
     ExpandedTemplate, Frontmatter, FrontmatterInitResult, InitResult, LoadedTemplateRequest,
     NamedTemplateAsset, ParsedTemplate, PassConfig, RenderedArtifact, Renderer, ResolveResult,
-    ResolverPolicy, ValidationReport, VariableName,
+    ResolverPolicy, ValidationReport, VariableName, VerifyResult,
 };
 
 use crate::convert::{
@@ -702,6 +702,65 @@ impl PyValidationReport {
     }
 }
 
+#[pyclass(name = "VerifyResult", skip_from_py_object)]
+#[derive(Clone, Debug)]
+pub(crate) struct PyVerifyResult {
+    pub(crate) inner: VerifyResult,
+}
+
+#[pymethods]
+impl PyVerifyResult {
+    #[getter]
+    fn clean(&self) -> bool {
+        self.inner.clean
+    }
+
+    #[getter]
+    fn resolved_template_path(&self) -> String {
+        self.inner.resolved_template_path.display().to_string()
+    }
+
+    #[getter]
+    fn deployed_path(&self) -> String {
+        self.inner.deployed_path.display().to_string()
+    }
+
+    #[getter]
+    fn rendered_text(&self) -> String {
+        self.inner.rendered_text.clone()
+    }
+
+    #[getter]
+    fn deployed_text(&self) -> String {
+        self.inner.deployed_text.clone()
+    }
+
+    #[getter]
+    fn diff(&self) -> Option<String> {
+        self.inner.diff.clone()
+    }
+
+    #[getter]
+    fn warnings(&self) -> Vec<PyDiagnostic> {
+        self.inner
+            .warnings
+            .iter()
+            .cloned()
+            .map(|inner| PyDiagnostic { inner })
+            .collect()
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "VerifyResult(clean={}, resolved_template_path={:?}, deployed_path={:?}, diff={})",
+            python_bool_repr(self.inner.clean),
+            self.inner.resolved_template_path.display().to_string(),
+            self.inner.deployed_path.display().to_string(),
+            python_bool_repr(self.inner.diff.is_some()),
+        )
+    }
+}
+
 #[pyclass(name = "NamedTemplateAsset", skip_from_py_object)]
 #[derive(Clone, Debug)]
 pub(crate) struct PyNamedTemplateAsset {
@@ -1085,6 +1144,7 @@ pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<PyResolveResult>()?;
     module.add_class::<PyComposeResult>()?;
     module.add_class::<PyValidationReport>()?;
+    module.add_class::<PyVerifyResult>()?;
     module.add_class::<PyNamedTemplateAsset>()?;
     module.add_class::<PyLoadedTemplateRequest>()?;
     module.add_class::<PyRenderedArtifact>()?;

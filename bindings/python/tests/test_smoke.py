@@ -57,6 +57,7 @@ def test_import_surface_exposes_c2_api() -> None:
         "ValidationReport",
         "VariableName",
         "VariableSource",
+        "VerifyResult",
         "compose",
         "compose_file",
         "discover_all_pass_tokens",
@@ -75,6 +76,7 @@ def test_import_surface_exposes_c2_api() -> None:
         "to_forward_slash",
         "validate",
         "validate_input_value",
+        "verify",
     ]
 
     for name in required:
@@ -393,6 +395,56 @@ def test_d3_py_python_surface_remains_library_only() -> None:
     assert not hasattr(sc_compose, "template_init_cli")
     assert not hasattr(sc_compose, "brace_count")
     assert not hasattr(sc_compose, "variable_delimiters")
+
+
+def test_d4_py_verify_reports_clean_and_builtin_override(tmp_path: Path) -> None:
+    write(tmp_path / "verify.md.j2", "Date={{ RENDER_DATE }}\nStamp={{ RENDER_TIMESTAMP }}\n")
+    write(tmp_path / "deployed.md", "Date=2026-01-01\nStamp=2026-01-01T00:00:00Z")
+
+    request = make_file_request(
+        tmp_path,
+        "verify.md.j2",
+        vars_input={
+            "RENDER_DATE": "2026-01-01",
+            "RENDER_TIMESTAMP": "2026-01-01T00:00:00Z",
+        },
+    )
+
+    result = sc_compose.verify(request, tmp_path / "deployed.md")
+    assert isinstance(result, sc_compose.VerifyResult)
+    assert result.clean is True
+    assert result.diff is None
+    assert result.resolved_template_path.endswith("verify.md.j2")
+    assert result.deployed_path.endswith("deployed.md")
+    assert result.rendered_text == "Date=2026-01-01\nStamp=2026-01-01T00:00:00Z"
+    assert result.deployed_text == "Date=2026-01-01\nStamp=2026-01-01T00:00:00Z"
+    assert "clean=True" in repr(result)
+
+
+def test_d4_py_verify_reports_drift_and_diff(tmp_path: Path) -> None:
+    write(tmp_path / "verify.md.j2", "hello {{ name }}\n")
+    write(tmp_path / "deployed.md", "hello drifted")
+
+    request = make_file_request(tmp_path, "verify.md.j2", vars_input={"name": "world"})
+
+    result = sc_compose.verify(request, tmp_path / "deployed.md")
+    assert result.clean is False
+    assert result.diff is not None
+    assert "--- " in result.diff
+    assert "+++ " in result.diff
+    assert "-hello drifted" in result.diff
+    assert "+hello world" in result.diff
+
+
+def test_d4_py_verify_missing_deployed_file_maps_existing_error(tmp_path: Path) -> None:
+    write(tmp_path / "verify.md.j2", "hello {{ name }}\n")
+
+    request = make_file_request(tmp_path, "verify.md.j2", vars_input={"name": "world"})
+
+    with pytest.raises(sc_compose.ScConfigError) as exc_info:
+        sc_compose.verify(request, tmp_path / "missing.md")
+
+    assert exc_info.value.code == sc_compose.DiagnosticCode.ERR_RESOLVE_NOT_FOUND
 
 
 def test_headerless_templates_keep_phase_c_behavior() -> None:

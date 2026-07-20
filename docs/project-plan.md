@@ -377,6 +377,7 @@ Sprint entries:
 - [Sprint D.3 — Multi-Pass CLI Surface](phase-D/sprint-d-3-cli-surface.md)
 - [Sprint D.3-py — Python Bindings — Multi-Pass CLI Surface Parity Check](phase-D/sprint-d-3-py-bindings.md)
 - [Sprint D.4 — template-init + verify](phase-D/sprint-d-4-template-init-verify.md)
+- [Sprint D.4-py — Python Bindings — template-init + verify](phase-D/sprint-d-4-py-bindings.md)
 - [Phase D README](phase-D/README.md)
 
 These sprint plans define the first implementation path for multi-pass
