@@ -375,6 +375,7 @@ Sprint entries:
 - [Sprint D.2 — Multi-Pass Composition Pipeline](phase-D/sprint-d-2-composition-pipeline.md)
 - [Sprint D.2-py — Python Bindings — Multi-Pass Composition Pipeline](phase-D/sprint-d-2-py-bindings.md)
 - [Sprint D.3 — Multi-Pass CLI Surface](phase-D/sprint-d-3-cli-surface.md)
+- [Sprint D.3-py — Python Bindings — Multi-Pass CLI Surface Parity Check](phase-D/sprint-d-3-py-bindings.md)
 - [Sprint D.4 — template-init + verify](phase-D/sprint-d-4-template-init-verify.md)
 - [Phase D README](phase-D/README.md)
 

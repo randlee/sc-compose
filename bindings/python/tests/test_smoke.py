@@ -371,6 +371,12 @@ def test_d2_py_compose_renders_stacked_headers_with_policy_passes(tmp_path: Path
     assert result.rendered_text == "wyvern test"
 
 
+def test_d3_py_python_surface_remains_library_only() -> None:
+    assert not hasattr(sc_compose, "parse_pass_inputs")
+    assert not hasattr(sc_compose, "filtered_args_for_clap")
+    assert not hasattr(sc_compose, "run_template_init")
+
+
 def test_headerless_templates_keep_phase_c_behavior() -> None:
     parsed = sc_compose.parse_template_document("hello")
 
