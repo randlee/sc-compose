@@ -371,6 +371,30 @@ def test_d2_py_compose_renders_stacked_headers_with_policy_passes(tmp_path: Path
     assert result.rendered_text == "wyvern test"
 
 
+def test_d3_py_multi_pass_surface_remains_importable_and_library_shaped() -> None:
+    policy = sc_compose.ComposePolicy(passes=[sc_compose.PassConfig(2), sc_compose.PassConfig(1)])
+    parsed = sc_compose.parse_template_document(
+        "---\npass: 2\n---\n---\npass: 1\n---\n{{{ team }}} {{ task }}\n"
+    )
+
+    assert [pass_config.pass_number for pass_config in policy.passes] == [2, 1]
+    assert parsed.passes[0].pass_number == 2
+    assert [str(token) for token in sc_compose.discover_tokens_with_brace_count("{{{ team }}}", 3)] == ["team"]
+    assert {pass_number: [str(token) for token in tokens] for pass_number, tokens in sc_compose.discover_all_pass_tokens(parsed).items()} == {
+        1: ["task"],
+        2: ["team"],
+    }
+    assert sc_compose.render_all(parsed, [(2, {"team": "wyvern"}), (1, {"task": "test"})]) == "wyvern test"
+
+
+def test_d3_py_python_surface_remains_library_only() -> None:
+    assert not hasattr(sc_compose, "parse_pass_inputs")
+    assert not hasattr(sc_compose, "filtered_args_for_clap")
+    assert not hasattr(sc_compose, "template_init_cli")
+    assert not hasattr(sc_compose, "brace_count")
+    assert not hasattr(sc_compose, "variable_delimiters")
+
+
 def test_headerless_templates_keep_phase_c_behavior() -> None:
     parsed = sc_compose.parse_template_document("hello")
 
