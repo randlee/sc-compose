@@ -292,8 +292,9 @@ Exit gate:
     `templates add`, and `templates <name>`
   - Phase D adds multi-pass `render --all`, pass-scoped `--pass N` / `--var`
     groups, `verify`, and `template-init`
-  - Phase D hardens custom-delimiter CLI rendering against invalid delimiter
-    panics
+  - Follow-on delimiter-hardening for custom variable delimiters remains
+    pending on a separate in-flight Phase D fix branch and is not yet part of
+    this branch's landed scope
 - FR-7b:
   - Phase D assigns `verify` drift to exit code `1`
   - Phase D keeps render and validation failures on `2`
