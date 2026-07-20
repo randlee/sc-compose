@@ -309,7 +309,11 @@ fn render_all_with_observer(
         let close = "}".repeat(brace_count);
         let renderer = Renderer::with_delimiters(&open, &close);
         let protected_body = protect_higher_braces(&body, brace_count);
-        let render_context = variables
+        let mut merged_variables = frontmatter.defaults().clone();
+        for (name, value) in variables {
+            merged_variables.insert(name.clone(), value.clone());
+        }
+        let render_context = merged_variables
             .iter()
             .map(|(name, value)| (name.to_string(), value.clone()))
             .collect::<BTreeMap<_, _>>();
