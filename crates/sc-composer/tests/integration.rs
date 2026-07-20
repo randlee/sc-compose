@@ -79,6 +79,18 @@ fn render_all_renders_two_pass_template() {
 }
 
 #[test]
+fn render_all_merges_frontmatter_defaults_for_direct_callers() {
+    let parsed = parse_template_document(
+        "---\npass: 2\ndefaults:\n  install_dir: /opt/tools\n---\n---\npass: 1\ndefaults:\n  script_name: run.sh\n---\nPath={{{ install_dir }}}\nScript={{ script_name }}\n",
+    )
+    .unwrap();
+
+    let rendered = render_all(&parsed, &[(2, BTreeMap::new()), (1, BTreeMap::new())]).unwrap();
+
+    assert_eq!(rendered, "Path=/opt/tools\nScript=run.sh");
+}
+
+#[test]
 fn render_all_renders_three_pass_template() {
     let parsed = parse_template_document(
         "---\npass: 3\n---\n---\npass: 2\n---\n---\npass: 1\n---\nOrg={{{{ org }}}}\nTeam={{{ team }}}\nUser={{ user }}\n",
@@ -175,6 +187,32 @@ fn compose_single_pass_backward_compat_output_is_unchanged() {
     .unwrap();
 
     assert_eq!(rendered.rendered_text, "hello world");
+}
+
+#[test]
+fn compose_multi_pass_output_is_unchanged_when_render_all_reapplies_defaults() {
+    let root = temp_root("multi-pass-compose-default-idempotent");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\npass: 2\ndefaults:\n  install_dir: /opt/tools\n---\n---\npass: 1\ndefaults:\n  script_name: run.sh\n---\nPath={{{ install_dir }}}\nScript={{ script_name }}\n",
+    );
+
+    let rendered = compose(&ComposeRequest {
+        runtime: None,
+        mode: ComposeMode::File {
+            template_path: PathBuf::from("template.md.j2"),
+        },
+        root: ConfiningRoot::new(&root).unwrap(),
+        vars_input: BTreeMap::default(),
+        vars_env: BTreeMap::default(),
+        vars_defaults: BTreeMap::default(),
+        guidance_block: None,
+        user_prompt: None,
+        policy: ComposePolicy::default(),
+    })
+    .unwrap();
+
+    assert_eq!(rendered.rendered_text, "Path=/opt/tools\nScript=run.sh");
 }
 
 #[test]
