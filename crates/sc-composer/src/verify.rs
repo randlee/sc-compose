@@ -128,7 +128,9 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use crate::observer::{CompositionObserver, VerifyEndEvent, VerifyStartEvent};
-    use crate::types::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot};
+    use crate::types::{
+        ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, PassConfig, VariableName,
+    };
     use crate::{DiagnosticCode, verify, verify_with_observer};
 
     #[derive(Default)]
@@ -211,6 +213,65 @@ mod tests {
         assert!(diff.contains("+++ "));
         assert!(diff.contains("-hello drift"));
         assert!(diff.contains("+hello world"));
+    }
+
+    #[test]
+    fn verify_reports_multi_pass_drift_without_expanding_higher_brace_literals() {
+        let root = temp_root("verify-multi-pass-drift");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\npass: 1\ndefaults:\n  team: platform\n---\n---\npass: 2\ndefaults:\n  feature: nested templates\n---\nrelease {{{ feature }}} for {{ team }}\n",
+        );
+        write_file(
+            &root.join("deployed.md"),
+            "release nested templates for wrong-team\n",
+        );
+
+        let mut pass_two_defaults = BTreeMap::new();
+        pass_two_defaults.insert(
+            VariableName::new("feature").unwrap(),
+            "nested templates".into(),
+        );
+        let policy = ComposePolicy {
+            passes: vec![
+                PassConfig::default(),
+                PassConfig {
+                    pass_number: 2,
+                    defaults: pass_two_defaults,
+                    ..PassConfig::default()
+                },
+            ],
+            ..ComposePolicy::default()
+        };
+
+        let result = verify(
+            &ComposeRequest {
+                runtime: None,
+                mode: ComposeMode::File {
+                    template_path: PathBuf::from("template.md.j2"),
+                },
+                root: ConfiningRoot::new(&root).unwrap(),
+                vars_input: BTreeMap::default(),
+                vars_env: BTreeMap::default(),
+                vars_defaults: BTreeMap::default(),
+                guidance_block: None,
+                user_prompt: None,
+                policy,
+            },
+            root.join("deployed.md"),
+        )
+        .unwrap();
+
+        assert!(!result.clean);
+        assert_eq!(
+            result.rendered_text,
+            "release nested templates for platform"
+        );
+        let diff = result.diff.unwrap();
+        assert!(diff.contains("-release nested templates for wrong-team"));
+        assert!(diff.contains("+release nested templates for platform"));
+        assert!(!diff.contains("{% raw %}"));
+        assert!(!diff.contains("{{{ feature }}}"));
     }
 
     #[test]
