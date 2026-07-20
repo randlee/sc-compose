@@ -62,7 +62,10 @@ behavior, and it does not expose CLI-only multi-pass flags.
 ## Exact Targets
 
 - `bindings/python/src/convert.rs`
-- `bindings/python/src/types.rs`
+- `bindings/python/src/types/mod.rs`
+- `bindings/python/src/types/policy.rs`
+- `bindings/python/src/types/request.rs`
+- `bindings/python/src/types/results.rs`
 - `bindings/python/src/functions.rs`
 - `bindings/python/python/sc_compose/__init__.py`
 - `bindings/python/python/sc_compose/_native.pyi`
