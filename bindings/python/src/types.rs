@@ -12,8 +12,8 @@ use sc_composer::{
 
 use crate::convert::{
     coerce_path_like, extract_allowed_roots, extract_json_context, extract_metadata_map,
-    extract_profile_name, extract_runtime_kind, extract_string_map, extract_supporting_templates,
-    extract_var_map, extract_variable_names, json_to_py,
+    extract_pass_configs, extract_profile_name, extract_runtime_kind, extract_string_map,
+    extract_supporting_templates, extract_var_map, extract_variable_names, json_to_py,
 };
 use crate::enums::{
     diagnostic_severity_str, parse_profile_kind, parse_unknown_variable_policy, profile_kind_str,
@@ -217,12 +217,13 @@ pub(crate) struct PyComposePolicy {
 #[pymethods]
 impl PyComposePolicy {
     #[new]
-    #[pyo3(signature = (strict_undeclared_variables=false, unknown_variable_policy="ignore", max_include_depth=32, allowed_roots=None))]
+    #[pyo3(signature = (strict_undeclared_variables=false, unknown_variable_policy="ignore", max_include_depth=32, allowed_roots=None, passes=None))]
     fn new(
         strict_undeclared_variables: bool,
         unknown_variable_policy: &str,
         max_include_depth: u16,
         allowed_roots: Option<&Bound<'_, PyAny>>,
+        passes: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<Self> {
         Ok(Self {
             inner: ComposePolicy {
@@ -231,7 +232,7 @@ impl PyComposePolicy {
                 max_include_depth: sc_composer::IncludeDepth::new(max_include_depth),
                 allowed_roots: extract_allowed_roots(allowed_roots)?,
                 resolver_policy: ResolverPolicy::default(),
-                passes: Vec::new(),
+                passes: extract_pass_configs(passes)?,
             },
         })
     }
@@ -267,9 +268,19 @@ impl PyComposePolicy {
         }
     }
 
+    #[getter]
+    fn passes(&self) -> Vec<PyPassConfig> {
+        self.inner
+            .passes
+            .iter()
+            .cloned()
+            .map(|inner| PyPassConfig { inner })
+            .collect()
+    }
+
     fn __repr__(&self) -> String {
         format!(
-            "ComposePolicy(strict_undeclared_variables={}, unknown_variable_policy={}, max_include_depth={}, allowed_roots={:?}, resolver_policy={})",
+            "ComposePolicy(strict_undeclared_variables={}, unknown_variable_policy={}, max_include_depth={}, allowed_roots={:?}, resolver_policy={}, passes={})",
             python_bool_repr(self.inner.strict_undeclared_variables),
             python_string_repr(unknown_variable_policy_str(
                 self.inner.unknown_variable_policy
@@ -279,7 +290,8 @@ impl PyComposePolicy {
             PyResolverPolicy {
                 inner: self.inner.resolver_policy.clone(),
             }
-            .__repr__()
+            .__repr__(),
+            self.inner.passes.len()
         )
     }
 }

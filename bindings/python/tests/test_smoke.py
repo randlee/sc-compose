@@ -67,6 +67,7 @@ def test_import_surface_exposes_c2_api() -> None:
         "init_workspace",
         "input_value_from_yaml",
         "parse_template_document",
+        "render_all",
         "render_loaded_template",
         "render_template",
         "resolve_profile",
@@ -107,6 +108,7 @@ def test_repr_surface_is_informative(tmp_path: Path) -> None:
     assert "unknown_variable_policy='error'" in policy_repr
     assert "allowed_roots=[" in policy_repr
     assert "resolver_policy=ResolverPolicy(" in policy_repr
+    assert "passes=0" in policy_repr
     assert "ComposeRequest(" in request_repr
     assert "mode=ComposeMode.profile(kind='agent', name='reviewer')" in request_repr
     assert "runtime='claude'" in request_repr
@@ -297,6 +299,76 @@ def test_multi_pass_bindings_expose_d1_py_surface() -> None:
         1: ["second"],
         2: ["first"],
     }
+
+
+def test_d2_py_render_all_and_policy_passes_round_trip(tmp_path: Path) -> None:
+    parsed = sc_compose.parse_template_document(
+        "---\n"
+        "pass: 2\n"
+        "---\n"
+        "---\n"
+        "pass: 1\n"
+        "---\n"
+        "{{{ team }}} {{ task }}\n"
+    )
+    passes = [
+        sc_compose.PassConfig(2, defaults={"team": "wyvern"}),
+        sc_compose.PassConfig(1, defaults={"task": "test"}),
+    ]
+    policy = sc_compose.ComposePolicy(passes=passes, allowed_roots=[tmp_path])
+
+    assert [pass_config.pass_number for pass_config in policy.passes] == [2, 1]
+    assert "passes=2" in repr(policy)
+
+    rendered = sc_compose.render_all(
+        parsed,
+        [
+            (2, {"team": "wyvern"}),
+            (1, {"task": "test"}),
+        ],
+    )
+    assert rendered == "wyvern test\n"
+
+
+def test_d2_py_render_all_maps_context_shape_failures() -> None:
+    parsed = sc_compose.parse_template_document(
+        "---\npass: 2\n---\n---\npass: 1\n---\n{{{ team }}} {{ task }}\n"
+    )
+
+    with pytest.raises(sc_compose.ScConfigError) as count_error:
+        sc_compose.render_all(parsed, [(2, {"team": "wyvern"})])
+    assert count_error.value.code == sc_compose.DiagnosticCode.ERR_CONFIG_PARSE
+
+    with pytest.raises(sc_compose.ScConfigError) as pass_error:
+        sc_compose.render_all(parsed, [(1, {"team": "wyvern"}), (2, {"task": "test"})])
+    assert pass_error.value.code == sc_compose.DiagnosticCode.ERR_CONFIG_PARSE
+
+
+def test_d2_py_compose_renders_stacked_headers_with_policy_passes(tmp_path: Path) -> None:
+    write(
+        tmp_path / "stacked.md.j2",
+        "---\n"
+        "pass: 2\n"
+        "---\n"
+        "---\n"
+        "pass: 1\n"
+        "---\n"
+        "{{{ team }}} {{ task }}\n",
+    )
+
+    request = make_file_request(
+        tmp_path,
+        "stacked.md.j2",
+        policy=sc_compose.ComposePolicy(
+            passes=[
+                sc_compose.PassConfig(2, defaults={"team": "wyvern"}),
+                sc_compose.PassConfig(1, defaults={"task": "test"}),
+            ]
+        ),
+    )
+
+    result = sc_compose.compose(request)
+    assert result.rendered_text == "wyvern test\n"
 
 
 def test_headerless_templates_keep_phase_c_behavior() -> None:

@@ -9,7 +9,9 @@ use sc_composer::{
 
 use crate::enums::parse_runtime_kind;
 use crate::errors::{config_error, validation_error};
-use crate::types::{PyConfiningRoot, PyNamedTemplateAsset, PyProfileName, PyVariableName};
+use crate::types::{
+    PyConfiningRoot, PyNamedTemplateAsset, PyPassConfig, PyProfileName, PyVariableName,
+};
 
 pub(crate) fn extract_supporting_templates(
     value: Option<&Bound<'_, PyAny>>,
@@ -159,6 +161,55 @@ pub(crate) fn extract_metadata_map(
         metadata.insert(key, metadata_value);
     }
     Ok(metadata)
+}
+
+pub(crate) fn extract_pass_configs(
+    value: Option<&Bound<'_, PyAny>>,
+) -> PyResult<Vec<sc_composer::PassConfig>> {
+    let Some(value) = value else {
+        return Ok(Vec::new());
+    };
+    let mut passes = Vec::new();
+    for item in value.try_iter()? {
+        let item = item?;
+        let pass = item
+            .extract::<PyRef<'_, PyPassConfig>>()
+            .map_err(|_error| {
+                validation_error(
+                    "passes entries must be PassConfig instances".to_owned(),
+                    None,
+                )
+            })?;
+        passes.push(pass.inner.clone());
+    }
+    Ok(passes)
+}
+
+pub(crate) fn extract_pass_contexts(
+    value: &Bound<'_, PyAny>,
+) -> PyResult<Vec<(u8, BTreeMap<VariableName, InputValue>)>> {
+    let mut contexts = Vec::new();
+    for item in value.try_iter()? {
+        let item = item?;
+        let pair = item.cast::<pyo3::types::PyTuple>().map_err(|_error| {
+            validation_error(
+                "contexts entries must be (pass_number, variables) tuples".to_owned(),
+                None,
+            )
+        })?;
+        if pair.len() != 2 {
+            return Err(validation_error(
+                "contexts entries must contain exactly two items".to_owned(),
+                None,
+            ));
+        }
+        let pass_number = pair.get_item(0)?.extract::<u8>().map_err(|_error| {
+            validation_error("context pass numbers must be integers".to_owned(), None)
+        })?;
+        let variables = extract_var_map(Some(&pair.get_item(1)?))?;
+        contexts.push((pass_number, variables));
+    }
+    Ok(contexts)
 }
 
 pub(crate) fn extract_json_context(value: &Bound<'_, PyAny>) -> PyResult<InputValue> {

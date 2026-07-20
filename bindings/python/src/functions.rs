@@ -3,7 +3,9 @@ use std::path::Path;
 
 use pyo3::prelude::*;
 
-use crate::convert::{coerce_path_like, extract_json_context, json_to_py, py_to_json_value};
+use crate::convert::{
+    coerce_path_like, extract_json_context, extract_pass_contexts, json_to_py, py_to_json_value,
+};
 use crate::errors::{
     compose_error_to_pyerr, config_error, render_error_to_pyerr, validation_error,
 };
@@ -90,6 +92,19 @@ fn parse_template_document(input: &str) -> PyResult<PyParsedTemplate> {
     sc_composer::parse_template_document(input)
         .map(|inner| PyParsedTemplate { inner })
         .map_err(compose_error_to_pyerr)
+}
+
+#[pyfunction]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracted arguments use owned PyRef values."
+)]
+fn render_all(
+    parsed: PyRef<'_, PyParsedTemplate>,
+    contexts: &Bound<'_, PyAny>,
+) -> PyResult<String> {
+    let contexts = extract_pass_contexts(contexts)?;
+    sc_composer::render_all(&parsed.inner, &contexts).map_err(compose_error_to_pyerr)
 }
 
 #[pyfunction]
@@ -209,6 +224,7 @@ pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(render_template, module)?)?;
     module.add_function(wrap_pyfunction!(render_loaded_template, module)?)?;
     module.add_function(wrap_pyfunction!(parse_template_document, module)?)?;
+    module.add_function(wrap_pyfunction!(render_all, module)?)?;
     module.add_function(wrap_pyfunction!(expand_includes, module)?)?;
     module.add_function(wrap_pyfunction!(frontmatter_init, module)?)?;
     module.add_function(wrap_pyfunction!(init_workspace, module)?)?;
@@ -274,6 +290,31 @@ mod tests {
                     .collect::<Vec<_>>(),
                 vec!["role"]
             );
+        });
+    }
+
+    #[test]
+    fn render_all_wrapper_renders_multi_pass_template() {
+        let parsed = sc_composer::parse_template_document(
+            "---\npass: 2\n---\n---\npass: 1\n---\n{{{ team }}} {{ task }}\n",
+        )
+        .unwrap();
+        let wrapper = PyParsedTemplate { inner: parsed };
+
+        Python::initialize();
+        Python::attach(|py| {
+            let contexts = pyo3::types::PyList::empty(py);
+            let outer = pyo3::types::PyDict::new(py);
+            outer.set_item("team", "wyvern").unwrap();
+            let inner = pyo3::types::PyDict::new(py);
+            inner.set_item("task", "test").unwrap();
+            contexts.append((2_u8, outer)).unwrap();
+            contexts.append((1_u8, inner)).unwrap();
+
+            let parsed_ref = Py::new(py, wrapper.clone()).unwrap();
+            let rendered = render_all(parsed_ref.bind(py).borrow(), contexts.as_any()).unwrap();
+
+            assert_eq!(rendered, "wyvern test");
         });
     }
 }
