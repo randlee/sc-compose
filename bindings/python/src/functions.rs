@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use pyo3::prelude::*;
@@ -169,6 +170,36 @@ fn discover_tokens(text: &str) -> Vec<PyVariableName> {
         .collect()
 }
 
+#[pyfunction]
+fn discover_tokens_with_brace_count(text: &str, brace_count: usize) -> Vec<PyVariableName> {
+    sc_composer::discover_tokens_with_brace_count(text, brace_count)
+        .into_iter()
+        .map(|inner| PyVariableName { inner })
+        .collect()
+}
+
+#[pyfunction]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracted arguments use owned PyRef values."
+)]
+fn discover_all_pass_tokens(
+    parsed: PyRef<'_, PyParsedTemplate>,
+) -> BTreeMap<usize, Vec<PyVariableName>> {
+    sc_composer::discover_all_pass_tokens(&parsed.inner)
+        .into_iter()
+        .map(|(pass, tokens)| {
+            (
+                pass,
+                tokens
+                    .into_iter()
+                    .map(|inner| PyVariableName { inner })
+                    .collect(),
+            )
+        })
+        .collect()
+}
+
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(compose, module)?)?;
     module.add_function(wrap_pyfunction!(compose_file, module)?)?;
@@ -185,6 +216,8 @@ pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(input_value_from_yaml, module)?)?;
     module.add_function(wrap_pyfunction!(to_forward_slash, module)?)?;
     module.add_function(wrap_pyfunction!(discover_tokens, module)?)?;
+    module.add_function(wrap_pyfunction!(discover_tokens_with_brace_count, module)?)?;
+    module.add_function(wrap_pyfunction!(discover_all_pass_tokens, module)?)?;
     Ok(())
 }
 
@@ -201,5 +234,46 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(values, vec!["name", "report.title"]);
+    }
+
+    #[test]
+    fn discover_tokens_with_brace_count_wrapper_uses_requested_delimiter_width() {
+        let tokens = discover_tokens_with_brace_count("{{{ outer }}} {{ inner }}", 3);
+        let values = tokens
+            .into_iter()
+            .map(|token| token.inner.to_string())
+            .collect::<Vec<_>>();
+
+        assert_eq!(values, vec!["outer"]);
+    }
+
+    #[test]
+    fn discover_all_pass_tokens_wrapper_returns_per_pass_map() {
+        let parsed = sc_composer::parse_template_document(
+            "---\npass: 1\n---\n---\npass: 2\n---\n{{ name }} {{{ role }}}\n",
+        )
+        .unwrap();
+        let wrapper = PyParsedTemplate { inner: parsed };
+
+        Python::initialize();
+        Python::attach(|py| {
+            let parsed_ref = Py::new(py, wrapper.clone()).unwrap();
+            let values = discover_all_pass_tokens(parsed_ref.bind(py).borrow());
+
+            assert_eq!(
+                values[&1]
+                    .iter()
+                    .map(|token| token.inner.to_string())
+                    .collect::<Vec<_>>(),
+                vec!["name"]
+            );
+            assert_eq!(
+                values[&2]
+                    .iter()
+                    .map(|token| token.inner.to_string())
+                    .collect::<Vec<_>>(),
+                vec!["role"]
+            );
+        });
     }
 }

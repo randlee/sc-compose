@@ -6,14 +6,14 @@ use pyo3::types::{PyDict, PyType};
 use sc_composer::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot, Diagnostic,
     ExpandedTemplate, Frontmatter, FrontmatterInitResult, InitResult, LoadedTemplateRequest,
-    NamedTemplateAsset, ParsedTemplate, RenderedArtifact, Renderer, ResolveResult, ResolverPolicy,
-    ValidationReport, VariableName,
+    NamedTemplateAsset, ParsedTemplate, PassConfig, RenderedArtifact, Renderer, ResolveResult,
+    ResolverPolicy, ValidationReport, VariableName,
 };
 
 use crate::convert::{
-    coerce_path_like, extract_allowed_roots, extract_json_context, extract_profile_name,
-    extract_runtime_kind, extract_string_map, extract_supporting_templates, extract_var_map,
-    json_to_py,
+    coerce_path_like, extract_allowed_roots, extract_json_context, extract_metadata_map,
+    extract_profile_name, extract_runtime_kind, extract_string_map, extract_supporting_templates,
+    extract_var_map, extract_variable_names, json_to_py,
 };
 use crate::enums::{
     diagnostic_severity_str, parse_profile_kind, parse_unknown_variable_policy, profile_kind_str,
@@ -280,6 +280,91 @@ impl PyComposePolicy {
                 inner: self.inner.resolver_policy.clone(),
             }
             .__repr__()
+        )
+    }
+}
+
+#[pyclass(name = "PassConfig", skip_from_py_object)]
+#[derive(Clone, Debug)]
+pub(crate) struct PyPassConfig {
+    pub(crate) inner: PassConfig,
+}
+
+#[pymethods]
+impl PyPassConfig {
+    #[new]
+    #[pyo3(signature = (pass_number, required_variables=None, defaults=None, metadata=None))]
+    fn new(
+        pass_number: u8,
+        required_variables: Option<&Bound<'_, PyAny>>,
+        defaults: Option<&Bound<'_, PyAny>>,
+        metadata: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<Self> {
+        Ok(Self {
+            inner: PassConfig {
+                pass_number: if pass_number == 0 {
+                    PassConfig::default().pass_number
+                } else {
+                    pass_number
+                },
+                required_variables: extract_variable_names(required_variables)?,
+                defaults: extract_var_map(defaults)?,
+                metadata: extract_metadata_map(metadata)?,
+            },
+        })
+    }
+
+    #[getter]
+    fn pass_number(&self) -> u8 {
+        self.inner.pass_number
+    }
+
+    #[getter]
+    fn required_variables(&self) -> Vec<PyVariableName> {
+        self.inner
+            .required_variables
+            .iter()
+            .cloned()
+            .map(|inner| PyVariableName { inner })
+            .collect()
+    }
+
+    #[getter]
+    fn defaults(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let dict = PyDict::new(py);
+        for (key, value) in &self.inner.defaults {
+            dict.set_item(key.as_str(), json_to_py(py, value)?)?;
+        }
+        Ok(dict.into_any().unbind())
+    }
+
+    #[getter]
+    fn metadata(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let dict = PyDict::new(py);
+        for (key, value) in &self.inner.metadata {
+            dict.set_item(
+                key,
+                json_to_py(
+                    py,
+                    &value.to_json_value().map_err(|error| {
+                        config_error(error.to_string(), Some("ERR_CONFIG_PARSE"))
+                    })?,
+                )?,
+            )?;
+        }
+        Ok(dict.into_any().unbind())
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "PassConfig(pass_number={}, required_variables={:?}, defaults={}, metadata={})",
+            self.inner.pass_number,
+            self.required_variables()
+                .into_iter()
+                .map(|variable| variable.inner.to_string())
+                .collect::<Vec<_>>(),
+            self.inner.defaults.len(),
+            self.inner.metadata.len()
         )
     }
 }
@@ -689,6 +774,11 @@ pub(crate) struct PyFrontmatter {
 #[pymethods]
 impl PyFrontmatter {
     #[getter]
+    fn pass_number(&self) -> u8 {
+        self.inner.pass_number()
+    }
+
+    #[getter]
     fn required_variables(&self) -> Vec<PyVariableName> {
         self.inner
             .required_variables()
@@ -749,6 +839,16 @@ impl PyParsedTemplate {
             .frontmatter()
             .cloned()
             .map(|inner| PyFrontmatter { inner })
+    }
+
+    #[getter]
+    fn passes(&self) -> Vec<PyFrontmatter> {
+        self.inner
+            .passes()
+            .iter()
+            .cloned()
+            .map(|inner| PyFrontmatter { inner })
+            .collect()
     }
 
     #[getter]
@@ -967,6 +1067,7 @@ pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<PyResolverPolicy>()?;
     module.add_class::<PyComposeMode>()?;
     module.add_class::<PyComposePolicy>()?;
+    module.add_class::<PyPassConfig>()?;
     module.add_class::<PyComposeRequest>()?;
     module.add_class::<PyDiagnostic>()?;
     module.add_class::<PyResolveResult>()?;
