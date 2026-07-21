@@ -880,6 +880,35 @@ fn render_variable_delimiters_uses_explicit_delimiter_pair() {
 }
 
 #[test]
+fn render_variable_delimiters_reports_invalid_delimiters_without_panicking() {
+    let root = temp_root("variable-delimiters-invalid");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--variable-delimiters")
+        .arg("")
+        .arg(">>")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("name=world")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("ERR_CONFIG_PARSE"));
+    assert!(stderr.contains("invalid custom delimiters: invalid custom delimiters"));
+    assert!(!stderr.contains("panicked at"));
+    assert!(!stderr.contains("stack backtrace"));
+}
+
+#[test]
 fn render_all_warns_and_falls_back_for_single_pass_template() {
     let root = temp_root("render-all-single-pass");
     write_file(&root.join("template.md.j2"), "hello {{ name }}\n");

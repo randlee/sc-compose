@@ -43,7 +43,7 @@ Covered by the 6 user stories in
 | GAP-1 | Stacked header parsing (single → Vec\<Frontmatter\>) | D.1 | sc-composer |
 | GAP-2 | Brace-count aware validation/discovery | D.1 | sc-composer |
 | GAP-3 | Multi-pass compose loop | D.2 | sc-composer |
-| GAP-4 | Renderer::with_delimiters public | ✅ Closed (C.2) | sc-composer |
+| GAP-4 | Renderer::with_delimiters public (now fallible on invalid delimiters) | ✅ Closed (C.2) | sc-composer |
 | GAP-5 | Pass config types | D.1 | sc-composer |
 | GAP-6 | verify entry point (library) | D.4 | sc-composer |
 | GAP-7 | --all flag and --pass N args | D.3 | sc-compose |

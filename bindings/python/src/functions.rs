@@ -15,6 +15,12 @@ use crate::types::{
     PyRenderedArtifact, PyResolveResult, PyValidationReport, PyVariableName, PyVerifyResult,
 };
 
+/// Render a parsed multi-pass template from fully resolved per-pass contexts.
+///
+/// This low-level helper does not merge frontmatter defaults. Callers that
+/// want the same default-merging behavior as the high-level composition flow
+/// should use `compose()` or pre-merge per-pass defaults into `contexts`
+/// before calling `render_all()`.
 #[pyfunction]
 #[allow(
     clippy::needless_pass_by_value,

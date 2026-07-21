@@ -313,7 +313,7 @@ fn render_all_with_observer(
         let brace_count = usize::from(header_pass_number) + 1;
         let open = "{".repeat(brace_count);
         let close = "}".repeat(brace_count);
-        let renderer = Renderer::with_delimiters(&open, &close);
+        let renderer = Renderer::with_delimiters(&open, &close)?;
         let protected_body = protect_higher_braces(&body, brace_count);
         let mut merged_variables = frontmatter.defaults().clone();
         for (name, value) in variables {

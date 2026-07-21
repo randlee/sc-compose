@@ -228,6 +228,9 @@ def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
     assert renderer.render("hello [[ name ]]", {"name": "python"}) == "hello python"
     assert renderer.render_named("inline", "hey [[ name ]]", {"name": "api"}) == "hey api"
 
+    with pytest.raises(sc_compose.ScRenderError):
+        sc_compose.Renderer.with_delimiters("", "]]")
+
 
 def test_expanded_template_exposes_full_frontmatter_passes(tmp_path: Path) -> None:
     write(
