@@ -99,10 +99,9 @@ Consumer impact:
 - external Rust callers must now handle `RenderError` when constructing a
   renderer with custom delimiters,
 - invalid delimiter pairs now report a typed error instead of panicking,
-- no additional version bump beyond 1.3.0 was taken because the crate remains
-  in alpha maturity (`Development Status :: 3 - Alpha` in the Python package
-  metadata), where source-breaking changes within a minor release are still
-  acceptable when they are explicitly documented.
+- this ships in `1.3.0` under the narrow stability-policy exception documented
+  in [ADR-0010](adrs/0010-renderer-delimiter-fallibility-minor-exception.md),
+  rather than as a major-version bump.
 
 This is a breaking-change release relative to the last ATM-published version. Consumers
 should expect:

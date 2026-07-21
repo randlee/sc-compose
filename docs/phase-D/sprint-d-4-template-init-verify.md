@@ -217,7 +217,8 @@ let frontmatter_text = build_stacked_frontmatter(passes)?;
 - `verify` builtin variable override persistence (builtin vars reset after
   verify; no config file persistence)
 - `template-init` for non-text files (binary files out of scope)
-- Python bindings for verify and template-init
+- Multi-pass `template-init` Python exposure remains out of scope; `verify`
+  Python bindings were closed by D.4-py
 - Multi-pass `frontmatter-init` deprecation (old command retained for backward
   compat alongside new `template-init`)
 

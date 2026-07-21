@@ -1496,6 +1496,12 @@ Boundary rules:
 - After `1.0`, patch releases contain backward-compatible bug fixes only.
 - After `1.0`, minor releases contain backward-compatible new features.
 - After `1.0`, major releases contain breaking changes.
+- Exception: the `1.3.0` change to
+  `Renderer::with_delimiters(open, close) -> Result<Self, RenderError>` ships
+  under the narrow carve-out documented in
+  [ADR-0010](adrs/0010-renderer-delimiter-fallibility-minor-exception.md);
+  this exception is limited to that one constructor change and does not weaken
+  the general major-version rule.
 - `render_template()` is a stable convenience API for one-shot rendering.
 - `Renderer` is the primary stable API for repeated rendering and long-lived
   library use.
