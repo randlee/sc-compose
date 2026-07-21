@@ -17,10 +17,11 @@ use crate::types::{
 
 /// Render a parsed multi-pass template from fully resolved per-pass contexts.
 ///
-/// This low-level helper does not merge frontmatter defaults. Callers that
-/// want the same default-merging behavior as the high-level composition flow
-/// should use `compose()` or pre-merge per-pass defaults into `contexts`
-/// before calling `render_all()`.
+/// This low-level helper still applies each pass header's frontmatter defaults
+/// beneath the caller-supplied per-pass context, matching the native
+/// `sc_composer::render_all()` behavior. Callers that want request/policy
+/// resolution, validation, and variable-source tracking should use
+/// `compose()` instead.
 #[pyfunction]
 #[allow(
     clippy::needless_pass_by_value,

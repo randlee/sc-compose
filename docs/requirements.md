@@ -1502,6 +1502,9 @@ Boundary rules:
   [ADR-0010](adrs/0010-renderer-delimiter-fallibility-minor-exception.md);
   this exception is limited to that one constructor change and does not weaken
   the general major-version rule.
+- [ADR-0009](adrs/0009-phase-d-python-binding-parity-sequencing.md) governs
+  Phase D delivery sequencing and Python parity scope; it is intentionally out
+  of scope for this Section 6 stability policy.
 - `render_template()` is a stable convenience API for one-shot rendering.
 - `Renderer` is the primary stable API for repeated rendering and long-lived
   library use.

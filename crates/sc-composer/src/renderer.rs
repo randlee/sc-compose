@@ -56,11 +56,24 @@ impl Renderer {
     /// Create a renderer with additional environment configuration.
     #[must_use]
     pub(crate) fn with_options(configure: impl FnOnce(&mut Environment<'static>)) -> Self {
+        Self::try_with_options(configure).expect("default renderer options must stay valid")
+    }
+
+    /// Create a renderer with additional environment configuration that may
+    /// fail while applying syntax changes.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError`] when `configure` installs invalid renderer
+    /// syntax for the underlying template engine.
+    pub(crate) fn try_with_options(
+        configure: impl FnOnce(&mut Environment<'static>) -> Result<(), RenderError>,
+    ) -> Result<Self, RenderError> {
         let mut env = Environment::new();
         env.set_trim_blocks(true);
         env.set_lstrip_blocks(true);
-        configure(&mut env);
-        Self { env }
+        configure(&mut env)?;
+        Ok(Self { env })
     }
 
     /// Create a renderer with non-default variable delimiters.
@@ -72,15 +85,14 @@ impl Renderer {
     pub fn with_delimiters(open: &str, close: &str) -> Result<Self, RenderError> {
         let open = open.to_owned();
         let close = close.to_owned();
-        let mut env = Environment::new();
-        env.set_trim_blocks(true);
-        env.set_lstrip_blocks(true);
-        let syntax = minijinja::syntax::SyntaxConfig::builder()
-            .variable_delimiters(open, close)
-            .build()
-            .map_err(RenderError::render)?;
-        env.set_syntax(syntax);
-        Ok(Self { env })
+        Self::try_with_options(|env| {
+            let syntax = minijinja::syntax::SyntaxConfig::builder()
+                .variable_delimiters(open, close)
+                .build()
+                .map_err(RenderError::render)?;
+            env.set_syntax(syntax);
+            Ok(())
+        })
     }
 
     /// Render a template string with the provided serializable context.

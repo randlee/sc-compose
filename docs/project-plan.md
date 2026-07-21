@@ -292,9 +292,9 @@ Exit gate:
     `templates add`, and `templates <name>`
   - Phase D adds multi-pass `render --all`, pass-scoped `--pass N` / `--var`
     groups, `verify`, and `template-init`
-  - Follow-on delimiter-hardening for custom variable delimiters remains
-    pending on a separate in-flight Phase D fix branch and is not yet part of
-    this branch's landed scope
+  - Phase D also lands delimiter hardening for custom variable delimiters:
+    `Renderer::with_delimiters` is now fallible on invalid delimiters and ships
+    in `1.3.0` under the narrow ADR-0010 stability exception
 - FR-7b:
   - Phase D assigns `verify` drift to exit code `1`
   - Phase D keeps render and validation failures on `2`

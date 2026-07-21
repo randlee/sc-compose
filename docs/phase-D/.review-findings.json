@@ -4,7 +4,7 @@
     "reviewed_commit": "6b4c4b2",
     "reviewer": "critical-plan-reviewer",
     "sprint_count": 8,
-    "overall_assessment": "PASS — phase-ending documentation and review artifacts reconciled against the full eight-sprint Phase D landing state on integrate/phase-d"
+    "overall_assessment": "PASS — point-in-time phase-ending assessment at reviewed_commit 6b4c4b2; later integrate/phase-d fixes from PRs #141, #143, and #144 plus ADR-0010 are not reflected in this snapshot"
   },
   "sprint_scores": [
     {
@@ -105,7 +105,7 @@
     },
     "adr_coverage": {
       "status": "PASS",
-      "detail": "The multi-pass design decisions are covered by ADR-0002 through ADR-0009 and linked from the Phase D README."
+      "detail": "At reviewed_commit 6b4c4b2, the multi-pass design decisions were covered by ADR-0002 through ADR-0009 and linked from the Phase D README. Later ADR-0010 coverage for Renderer::with_delimiters fallibility landed after this snapshot."
     },
     "architecture_alignment": {
       "status": "PASS",
