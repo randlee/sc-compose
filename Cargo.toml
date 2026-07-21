@@ -10,7 +10,7 @@ license = "MIT"
 # integration depends on sc-observability 1.2.0.
 rust-version = "1.94.1"
 repository = "https://github.com/randlee/sc-compose"
-homepage = "https://github.com/randlee/sc-compose"
+homepage = "https://randlee.github.io/sc-compose"
 
 [workspace.dependencies]
 anyhow = "1"

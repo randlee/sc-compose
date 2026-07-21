@@ -61,9 +61,15 @@ silently dropped or partially deferred.
 
 - `D2` — Programmatic `render_all()` API
   - Public function `sc_composer::render_all(parsed: &ParsedTemplate, contexts: &[(u8, BTreeMap<VariableName, InputValue>)]) -> Result<String>`
-    — canonical `contexts` type per [ADR-0009](../adrs/0009-phase-d-python-binding-parity-sequencing.md),
-    matching D.4's `verify()` signature
+    — canonical `contexts` type per
+    [ADR-0009](../adrs/0009-phase-d-python-binding-parity-sequencing.md) for
+    `render_all()` / multi-pass composition; `verify()` takes a
+    `ComposeRequest` and receives any per-pass context data through
+    `ComposePolicy.passes`
   - Validates that context count matches pass count
+  - Merges each header's `frontmatter.defaults()` beneath caller-supplied pass
+    context values inside the per-pass primitive itself, so direct `render_all()`
+    callers observe the same defaulting semantics as `compose()` (caller wins)
   - Renders all passes in sequence, returns final output
   - Used by both `compose()` and future `verify()` (D.4)
 
@@ -83,6 +89,11 @@ silently dropped or partially deferred.
     → parse-time error)
   - Defaults merging: provided variables override header defaults
   - Higher-brace protection: `{{{ }}}` in pass 1 body renders as literal text
+  - Validation parity: undeclared-token discovery runs per pass using that
+    pass's brace count; higher-pass variables are not invisible to validation
+  - Default-used diagnostics are pass-truthful: a default is reported as used
+    only when that pass actually references or requires the value satisfied by
+    that default
 
 ## Required Work
 
@@ -91,6 +102,10 @@ silently dropped or partially deferred.
 - Implement `protect_higher_braces()` with the same algorithm as the
   Python prototype (confirmed correct in the committed prototype test suite)
 - Implement `render_all()` public API
+- Keep multi-pass validation aligned with the render pipeline by discovering
+  referenced tokens per pass (`brace_count = pass_number + 1`) and validating
+  each pass against its own declarations plus shared built-ins/include-derived
+  declarations
 - Wire observer callbacks for pass lifecycle events
 - Write integration tests
 - Verify `cargo test --workspace` passes with zero regressions
@@ -196,6 +211,8 @@ fn protect_higher_braces(text: &str, brace_count: usize) -> String {
     literal text for pass N-1
 - `AC2` for `D2`
   - `render_all(parsed, contexts)` returns correct output for 2-pass template
+  - `render_all(parsed, contexts_with_empty_maps)` still applies per-header
+    defaults for direct callers
   - `render_all` errors if context count != pass count
   - `render_all` errors on pass_number mismatch
 - `AC3` for `D3`
@@ -205,6 +222,8 @@ fn protect_higher_braces(text: &str, brace_count: usize) -> String {
   - All new compose paths covered by integration tests
   - Observer events verified per pass
   - Single-header backward compat: golden output unchanged
+  - Strict and non-strict validation both catch undeclared tokens in passes
+    above pass 1
 - `AC5` backward compat guard
   - Existing `compose()` callers see zero behavioral change for single-header
     templates

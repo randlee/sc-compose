@@ -248,6 +248,10 @@ fn build_pass_contexts(
                     .get(&pass.pass_number)
                     .cloned()
                     .unwrap_or_default();
+                // Multi-pass contexts currently receive the full flattened validation context.
+                // That is intentionally harmless today because each render pass only resolves
+                // its own brace width, so same-name values from other passes stay inert unless
+                // we ever add a cross-pass surface that ignores delimiter isolation.
                 for (name, value) in &state.context {
                     context.insert(name.clone(), value.clone());
                 }
@@ -263,6 +267,8 @@ fn build_pass_contexts(
         .iter()
         .map(|pass| {
             let mut context = pass.defaults().clone();
+            // See note above: whole-context merging is loose, but currently inert because
+            // lower/higher pass delimiters prevent cross-pass names from resolving here.
             for (name, value) in &state.context {
                 context.insert(name.clone(), value.clone());
             }
@@ -309,7 +315,11 @@ fn render_all_with_observer(
         let close = "}".repeat(brace_count);
         let renderer = Renderer::with_delimiters(&open, &close)?;
         let protected_body = protect_higher_braces(&body, brace_count);
-        let render_context = variables
+        let mut merged_variables = frontmatter.defaults().clone();
+        for (name, value) in variables {
+            merged_variables.insert(name.clone(), value.clone());
+        }
+        let render_context = merged_variables
             .iter()
             .map(|(name, value)| (name.to_string(), value.clone()))
             .collect::<BTreeMap<_, _>>();

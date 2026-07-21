@@ -335,6 +335,26 @@ def test_d2_py_render_all_and_policy_passes_round_trip(tmp_path: Path) -> None:
     assert rendered == "wyvern test"
 
 
+def test_d2_py_render_all_applies_frontmatter_defaults_for_direct_callers() -> None:
+    parsed = sc_compose.parse_template_document(
+        "---\n"
+        "pass: 2\n"
+        "defaults:\n"
+        "  team: wyvern\n"
+        "---\n"
+        "---\n"
+        "pass: 1\n"
+        "defaults:\n"
+        "  task: test\n"
+        "---\n"
+        "{{{ team }}} {{ task }}\n"
+    )
+
+    rendered = sc_compose.render_all(parsed, [(2, {}), (1, {})])
+
+    assert rendered == "wyvern test"
+
+
 def test_d2_py_render_all_maps_context_shape_failures() -> None:
     parsed = sc_compose.parse_template_document(
         "---\npass: 2\n---\n---\npass: 1\n---\n{{{ team }}} {{ task }}\n"
@@ -374,6 +394,36 @@ def test_d2_py_compose_renders_stacked_headers_with_policy_passes(tmp_path: Path
 
     result = sc_compose.compose(request)
     assert result.rendered_text == "wyvern test"
+
+
+def test_d2_py_validate_catches_higher_pass_undeclared_tokens(tmp_path: Path) -> None:
+    write(
+        tmp_path / "stacked.md.j2",
+        "---\n"
+        "pass: 2\n"
+        "---\n"
+        "---\n"
+        "pass: 1\n"
+        "defaults:\n"
+        "  task: test\n"
+        "---\n"
+        "{{{ missing_team }}} {{ task }}\n",
+    )
+
+    request = make_file_request(
+        tmp_path,
+        "stacked.md.j2",
+        policy=sc_compose.ComposePolicy(strict_undeclared_variables=True),
+    )
+
+    report = sc_compose.validate(request)
+
+    assert not report.ok
+    assert any(
+        diagnostic.code == sc_compose.DiagnosticCode.ERR_VAL_UNDECLARED_TOKEN
+        and "missing_team" in diagnostic.message
+        for diagnostic in report.errors
+    )
 
 
 def test_d3_py_python_surface_remains_library_only() -> None:

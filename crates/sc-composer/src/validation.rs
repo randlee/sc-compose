@@ -47,8 +47,11 @@ pub(crate) struct ValidationState {
     pub(crate) required_origins: BTreeMap<VariableName, PathBuf>,
     required_include_chains: BTreeMap<VariableName, Vec<PathBuf>>,
     default_origins: BTreeMap<VariableName, Option<PathBuf>>,
+    default_pass_numbers: BTreeMap<VariableName, BTreeSet<usize>>,
     pub(crate) declared_variables: BTreeSet<VariableName>,
     pub(crate) referenced_variables: BTreeSet<VariableName>,
+    referenced_variables_by_pass: BTreeMap<usize, BTreeSet<VariableName>>,
+    declared_variables_by_pass: BTreeMap<usize, BTreeSet<VariableName>>,
 }
 
 pub(crate) fn validate_expanded(
@@ -77,12 +80,7 @@ pub(crate) fn validate_expanded(
     warnings.extend(default_usage_diagnostics(&state));
     errors.extend(missing_required_path_diagnostics(&state));
 
-    for variable in state
-        .referenced_variables
-        .difference(&state.declared_variables)
-        .cloned()
-        .collect::<Vec<_>>()
-    {
+    for variable in undeclared_referenced_variables(&state) {
         let diagnostic = Diagnostic::new(
             if request.policy.strict_undeclared_variables {
                 DiagnosticSeverity::Error
@@ -284,15 +282,11 @@ fn default_usage_diagnostics(state: &ValidationState) -> Vec<Diagnostic> {
             ) {
                 return None;
             }
-            let top_level = top_level_variable_name(variable);
-            let used_by_reference = state
-                .referenced_variables
-                .iter()
-                .any(|referenced| top_level_variable_name(referenced) == top_level);
+            let used_by_reference = default_used_by_reference(state, variable);
             let used_by_required = state
                 .required_origins
                 .keys()
-                .any(|required| top_level_variable_name(required) == top_level);
+                .any(|required| default_satisfies_path(variable, required));
             if !used_by_reference && !used_by_required {
                 return None;
             }
@@ -321,6 +315,67 @@ fn default_usage_diagnostics(state: &ValidationState) -> Vec<Diagnostic> {
             })
         })
         .collect()
+}
+
+fn undeclared_referenced_variables(state: &ValidationState) -> Vec<VariableName> {
+    let Some(referenced_variables_by_pass) = per_pass_referenced_variables(state) else {
+        return state
+            .referenced_variables
+            .difference(&state.declared_variables)
+            .cloned()
+            .collect();
+    };
+
+    referenced_variables_by_pass
+        .iter()
+        .flat_map(|(pass_number, variables)| {
+            let declared = state
+                .declared_variables_by_pass
+                .get(pass_number)
+                .unwrap_or(&state.declared_variables);
+            variables.difference(declared).cloned()
+        })
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
+fn default_used_by_reference(state: &ValidationState, variable: &VariableName) -> bool {
+    let Some(referenced_variables_by_pass) = per_pass_referenced_variables(state) else {
+        return state
+            .referenced_variables
+            .iter()
+            .any(|referenced| default_satisfies_path(variable, referenced));
+    };
+
+    if let Some(pass_numbers) = state.default_pass_numbers.get(variable) {
+        return pass_numbers.iter().any(|pass_number| {
+            referenced_variables_by_pass
+                .get(pass_number)
+                .into_iter()
+                .flatten()
+                .any(|referenced| default_satisfies_path(variable, referenced))
+        });
+    }
+
+    referenced_variables_by_pass
+        .values()
+        .flatten()
+        .any(|referenced| default_satisfies_path(variable, referenced))
+}
+
+fn default_satisfies_path(default_variable: &VariableName, referenced: &VariableName) -> bool {
+    referenced == default_variable
+        || referenced
+            .as_str()
+            .strip_prefix(default_variable.as_str())
+            .is_some_and(|suffix| suffix.starts_with('.'))
+}
+
+fn per_pass_referenced_variables(
+    state: &ValidationState,
+) -> Option<&BTreeMap<usize, BTreeSet<VariableName>>> {
+    (!state.referenced_variables_by_pass.is_empty()).then_some(&state.referenced_variables_by_pass)
 }
 
 fn missing_required_diagnostic(
@@ -500,9 +555,76 @@ pub(crate) fn collect_validation_state(
             .insert(name.clone(), VariableSource::ExplicitInput);
     }
 
-    state.referenced_variables = discover_tokens(&expanded.text);
     declare_builtin_variables(&mut state);
+    populate_pass_validation_maps(&mut state, expanded);
     state
+}
+
+fn populate_pass_validation_maps(state: &mut ValidationState, expanded: &ExpandedTemplate) {
+    let root_path = expanded.resolved_files.first();
+    let root_passes = expanded
+        .frontmatters
+        .iter()
+        .find_map(|(path, passes)| {
+            root_path
+                .is_some_and(|root| path == root)
+                .then(|| passes.clone())
+        })
+        .unwrap_or_default();
+    if root_passes.is_empty() {
+        state.referenced_variables = discover_tokens(&expanded.text);
+        return;
+    }
+
+    let parsed = crate::frontmatter::ParsedTemplate::from_parts(root_passes, expanded.text.clone());
+
+    let referenced_variables_by_pass = discover_all_pass_tokens(&parsed);
+    let root_pass_declared = parsed
+        .passes()
+        .iter()
+        .flat_map(|pass| {
+            pass.required_variables()
+                .iter()
+                .chain(pass.defaults().keys())
+                .cloned()
+        })
+        .collect::<BTreeSet<_>>();
+    let shared_declared = state
+        .declared_variables
+        .difference(&root_pass_declared)
+        .cloned()
+        .collect::<BTreeSet<_>>();
+
+    state.referenced_variables = referenced_variables_by_pass
+        .values()
+        .flatten()
+        .cloned()
+        .collect();
+    state.referenced_variables_by_pass = referenced_variables_by_pass;
+    state.declared_variables_by_pass = parsed
+        .passes()
+        .iter()
+        .map(|pass| {
+            let declared = shared_declared
+                .iter()
+                .cloned()
+                .chain(pass.required_variables().iter().cloned())
+                .chain(pass.defaults().keys().cloned())
+                .collect::<BTreeSet<_>>();
+            (usize::from(pass.pass_number()), declared)
+        })
+        .collect();
+
+    for pass in parsed.passes() {
+        let pass_number = usize::from(pass.pass_number());
+        for variable in pass.defaults().keys() {
+            state
+                .default_pass_numbers
+                .entry(variable.clone())
+                .or_default()
+                .insert(pass_number);
+        }
+    }
 }
 
 pub(crate) fn inject_builtin_vars(state: &mut ValidationState, template_path: &Path) {
@@ -912,6 +1034,61 @@ mod tests {
 
         assert!(!report.ok);
         assert_eq!(report.errors[0].code, DiagnosticCode::ErrValUndeclaredToken);
+    }
+
+    #[test]
+    fn per_pass_validation_is_independent_for_higher_brace_tokens() {
+        let root = temp_root("validation_multipass_independent");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\npass: 2\ndefaults:\n  team: wyvern\n---\n---\npass: 1\ndefaults:\n  task: smoke\n---\nouter={{{ missing_team }}}\ninner={{ task }}\n",
+        );
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty(), "{report:?}");
+        assert!(report.warnings.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUndeclaredToken
+                && diagnostic.message.contains("missing_team")
+        }));
+        assert!(
+            !report.warnings.iter().any(|diagnostic| {
+                diagnostic.code == DiagnosticCode::InfoValDefaultUsed
+                    && diagnostic.message.contains("variable team not provided")
+            }),
+            "{report:?}"
+        );
+    }
+
+    #[test]
+    fn strict_mode_errors_on_undeclared_higher_pass_variable() {
+        let root = temp_root("validation_multipass_strict");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\npass: 2\n---\n---\npass: 1\n---\nouter={{{ missing_team }}}\ninner={{ task }}\n",
+        );
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                strict_undeclared_variables: true,
+                ..ComposePolicy::default()
+            },
+        ))
+        .unwrap();
+
+        assert!(!report.ok, "{report:?}");
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUndeclaredToken
+                && diagnostic.message.contains("missing_team")
+        }));
     }
 
     #[test]
