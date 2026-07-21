@@ -47,8 +47,11 @@ pub(crate) struct ValidationState {
     pub(crate) required_origins: BTreeMap<VariableName, PathBuf>,
     required_include_chains: BTreeMap<VariableName, Vec<PathBuf>>,
     default_origins: BTreeMap<VariableName, Option<PathBuf>>,
+    default_pass_numbers: BTreeMap<VariableName, BTreeSet<usize>>,
     pub(crate) declared_variables: BTreeSet<VariableName>,
     pub(crate) referenced_variables: BTreeSet<VariableName>,
+    referenced_variables_by_pass: BTreeMap<usize, BTreeSet<VariableName>>,
+    declared_variables_by_pass: BTreeMap<usize, BTreeSet<VariableName>>,
 }
 
 pub(crate) fn validate_expanded(
@@ -77,12 +80,7 @@ pub(crate) fn validate_expanded(
     warnings.extend(default_usage_diagnostics(&state));
     errors.extend(missing_required_path_diagnostics(&state));
 
-    for variable in state
-        .referenced_variables
-        .difference(&state.declared_variables)
-        .cloned()
-        .collect::<Vec<_>>()
-    {
+    for variable in undeclared_referenced_variables(&state) {
         let diagnostic = Diagnostic::new(
             if request.policy.strict_undeclared_variables {
                 DiagnosticSeverity::Error
@@ -214,8 +212,8 @@ fn missing_frontmatter_warnings(
     expanded
         .frontmatters
         .iter()
-        .filter_map(|(path, frontmatter)| {
-            if frontmatter.is_some() || !file_references_variables(path) {
+        .filter_map(|(path, frontmatters)| {
+            if !frontmatters.is_empty() || !file_references_variables(path) {
                 return None;
             }
             let message = if *path == resolve_result.resolved_path {
@@ -255,8 +253,8 @@ fn frontmatter_diagnostics(expanded: &ExpandedTemplate) -> Vec<Diagnostic> {
     expanded
         .frontmatters
         .iter()
-        .flat_map(|(path, frontmatter)| {
-            frontmatter
+        .flat_map(|(path, frontmatters)| {
+            frontmatters
                 .iter()
                 .flat_map(|frontmatter| frontmatter.diagnostics().iter())
                 .cloned()
@@ -284,15 +282,11 @@ fn default_usage_diagnostics(state: &ValidationState) -> Vec<Diagnostic> {
             ) {
                 return None;
             }
-            let top_level = top_level_variable_name(variable);
-            let used_by_reference = state
-                .referenced_variables
-                .iter()
-                .any(|referenced| top_level_variable_name(referenced) == top_level);
+            let used_by_reference = default_used_by_reference(state, variable);
             let used_by_required = state
                 .required_origins
                 .keys()
-                .any(|required| top_level_variable_name(required) == top_level);
+                .any(|required| default_satisfies_path(variable, required));
             if !used_by_reference && !used_by_required {
                 return None;
             }
@@ -321,6 +315,67 @@ fn default_usage_diagnostics(state: &ValidationState) -> Vec<Diagnostic> {
             })
         })
         .collect()
+}
+
+fn undeclared_referenced_variables(state: &ValidationState) -> Vec<VariableName> {
+    let Some(referenced_variables_by_pass) = per_pass_referenced_variables(state) else {
+        return state
+            .referenced_variables
+            .difference(&state.declared_variables)
+            .cloned()
+            .collect();
+    };
+
+    referenced_variables_by_pass
+        .iter()
+        .flat_map(|(pass_number, variables)| {
+            let declared = state
+                .declared_variables_by_pass
+                .get(pass_number)
+                .unwrap_or(&state.declared_variables);
+            variables.difference(declared).cloned()
+        })
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
+fn default_used_by_reference(state: &ValidationState, variable: &VariableName) -> bool {
+    let Some(referenced_variables_by_pass) = per_pass_referenced_variables(state) else {
+        return state
+            .referenced_variables
+            .iter()
+            .any(|referenced| default_satisfies_path(variable, referenced));
+    };
+
+    if let Some(pass_numbers) = state.default_pass_numbers.get(variable) {
+        return pass_numbers.iter().any(|pass_number| {
+            referenced_variables_by_pass
+                .get(pass_number)
+                .into_iter()
+                .flatten()
+                .any(|referenced| default_satisfies_path(variable, referenced))
+        });
+    }
+
+    referenced_variables_by_pass
+        .values()
+        .flatten()
+        .any(|referenced| default_satisfies_path(variable, referenced))
+}
+
+fn default_satisfies_path(default_variable: &VariableName, referenced: &VariableName) -> bool {
+    referenced == default_variable
+        || referenced
+            .as_str()
+            .strip_prefix(default_variable.as_str())
+            .is_some_and(|suffix| suffix.starts_with('.'))
+}
+
+fn per_pass_referenced_variables(
+    state: &ValidationState,
+) -> Option<&BTreeMap<usize, BTreeSet<VariableName>>> {
+    (!state.referenced_variables_by_pass.is_empty()).then_some(&state.referenced_variables_by_pass)
 }
 
 fn missing_required_diagnostic(
@@ -468,13 +523,15 @@ pub(crate) fn collect_validation_state(
 ) -> ValidationState {
     let mut state = ValidationState::default();
 
-    for (path, frontmatter) in &expanded.frontmatters {
-        if let Some(frontmatter) = frontmatter {
+    for (path, frontmatters) in &expanded.frontmatters {
+        if !frontmatters.is_empty() {
             let is_root = expanded
                 .resolved_files
                 .first()
                 .is_some_and(|root| root == path);
-            merge_frontmatter(path, frontmatter, expanded, &mut state, is_root);
+            for frontmatter in frontmatters {
+                merge_frontmatter(path, frontmatter, expanded, &mut state, is_root);
+            }
         }
     }
 
@@ -498,9 +555,76 @@ pub(crate) fn collect_validation_state(
             .insert(name.clone(), VariableSource::ExplicitInput);
     }
 
-    state.referenced_variables = discover_tokens(&expanded.text);
     declare_builtin_variables(&mut state);
+    populate_pass_validation_maps(&mut state, expanded);
     state
+}
+
+fn populate_pass_validation_maps(state: &mut ValidationState, expanded: &ExpandedTemplate) {
+    let root_path = expanded.resolved_files.first();
+    let root_passes = expanded
+        .frontmatters
+        .iter()
+        .find_map(|(path, passes)| {
+            root_path
+                .is_some_and(|root| path == root)
+                .then(|| passes.clone())
+        })
+        .unwrap_or_default();
+    if root_passes.is_empty() {
+        state.referenced_variables = discover_tokens(&expanded.text);
+        return;
+    }
+
+    let parsed = crate::frontmatter::ParsedTemplate::from_parts(root_passes, expanded.text.clone());
+
+    let referenced_variables_by_pass = discover_all_pass_tokens(&parsed);
+    let root_pass_declared = parsed
+        .passes()
+        .iter()
+        .flat_map(|pass| {
+            pass.required_variables()
+                .iter()
+                .chain(pass.defaults().keys())
+                .cloned()
+        })
+        .collect::<BTreeSet<_>>();
+    let shared_declared = state
+        .declared_variables
+        .difference(&root_pass_declared)
+        .cloned()
+        .collect::<BTreeSet<_>>();
+
+    state.referenced_variables = referenced_variables_by_pass
+        .values()
+        .flatten()
+        .cloned()
+        .collect();
+    state.referenced_variables_by_pass = referenced_variables_by_pass;
+    state.declared_variables_by_pass = parsed
+        .passes()
+        .iter()
+        .map(|pass| {
+            let declared = shared_declared
+                .iter()
+                .cloned()
+                .chain(pass.required_variables().iter().cloned())
+                .chain(pass.defaults().keys().cloned())
+                .collect::<BTreeSet<_>>();
+            (usize::from(pass.pass_number()), declared)
+        })
+        .collect();
+
+    for pass in parsed.passes() {
+        let pass_number = usize::from(pass.pass_number());
+        for variable in pass.defaults().keys() {
+            state
+                .default_pass_numbers
+                .entry(variable.clone())
+                .or_default()
+                .insert(pass_number);
+        }
+    }
 }
 
 pub(crate) fn inject_builtin_vars(state: &mut ValidationState, template_path: &Path) {
@@ -641,27 +765,41 @@ fn merge_frontmatter(
 
 /// Discover declared template variable tokens without running full validation.
 ///
-/// Returns the set of variable names referenced by `text`.
+/// Returns the set of variable names referenced by `text` using the standard
+/// double-brace `{{ name }}` expression delimiters.
 #[must_use]
 pub fn discover_tokens(text: &str) -> BTreeSet<VariableName> {
+    discover_tokens_with_brace_count(text, 2)
+}
+
+/// Discover declared template variable tokens for a caller-provided brace count.
+#[must_use]
+pub fn discover_tokens_with_brace_count(text: &str, brace_count: usize) -> BTreeSet<VariableName> {
+    if brace_count < 2 {
+        return BTreeSet::new();
+    }
+
     let mut tokens = BTreeSet::new();
     let mut scopes = Vec::<LoopScope>::new();
     let mut cursor = text;
+    let expression_delimiters = ExpressionDelimiters::new(brace_count);
 
-    while let Some((delimiter, start)) = next_delimiter(cursor) {
+    while let Some((delimiter, start)) = next_delimiter(cursor, &expression_delimiters) {
         let start_delimiter = match delimiter {
-            Delimiter::Expression => "{{",
+            Delimiter::Expression => expression_delimiters.open.as_str(),
             Delimiter::Statement => "{%",
         };
         let end_delimiter = match delimiter {
-            Delimiter::Expression => "}}",
+            Delimiter::Expression => expression_delimiters.close.as_str(),
             Delimiter::Statement => "%}",
         };
 
         let after_start = &cursor[start + start_delimiter.len()..];
-        let Some(end) = after_start.find(end_delimiter) else {
-            break;
+        let end = match delimiter {
+            Delimiter::Expression => find_expression_close(after_start, end_delimiter),
+            Delimiter::Statement => after_start.find(end_delimiter),
         };
+        let Some(end) = end else { break };
         let expression = after_start[..end].trim();
         match delimiter {
             Delimiter::Expression => collect_identifiers(expression, &scopes, &mut tokens),
@@ -680,14 +818,53 @@ pub fn discover_tokens(text: &str) -> BTreeSet<VariableName> {
     tokens
 }
 
+/// Discover tokens for every parsed pass using that pass's brace count.
+#[must_use]
+pub fn discover_all_pass_tokens(
+    parsed: &crate::frontmatter::ParsedTemplate,
+) -> BTreeMap<usize, BTreeSet<VariableName>> {
+    parsed
+        .passes()
+        .iter()
+        .map(|frontmatter| {
+            let pass_number = usize::from(frontmatter.pass_number());
+            let brace_count = pass_number + 1;
+            (
+                pass_number,
+                discover_tokens_with_brace_count(parsed.body(), brace_count),
+            )
+        })
+        .collect()
+}
+
 #[derive(Clone, Copy)]
 enum Delimiter {
     Expression,
     Statement,
 }
 
-fn next_delimiter(text: &str) -> Option<(Delimiter, usize)> {
-    match (text.find("{{"), text.find("{%")) {
+struct ExpressionDelimiters {
+    open: String,
+    close: String,
+}
+
+impl ExpressionDelimiters {
+    fn new(brace_count: usize) -> Self {
+        Self {
+            open: "{".repeat(brace_count),
+            close: "}".repeat(brace_count),
+        }
+    }
+}
+
+fn next_delimiter(
+    text: &str,
+    expression_delimiters: &ExpressionDelimiters,
+) -> Option<(Delimiter, usize)> {
+    match (
+        find_expression_open(text, expression_delimiters.open.as_str()),
+        text.find("{%"),
+    ) {
         (Some(expression), Some(statement)) if expression <= statement => {
             Some((Delimiter::Expression, expression))
         }
@@ -695,6 +872,33 @@ fn next_delimiter(text: &str) -> Option<(Delimiter, usize)> {
         (Some(expression), None) => Some((Delimiter::Expression, expression)),
         (None, None) => None,
     }
+}
+
+fn find_expression_open(text: &str, open_delimiter: &str) -> Option<usize> {
+    find_exact_delimiter(text, open_delimiter, b'{')
+}
+
+fn find_expression_close(text: &str, close_delimiter: &str) -> Option<usize> {
+    find_exact_delimiter(text, close_delimiter, b'}')
+}
+
+fn find_exact_delimiter(text: &str, delimiter: &str, repeated_byte: u8) -> Option<usize> {
+    let mut cursor = 0usize;
+    while cursor < text.len() {
+        let found = text[cursor..].find(delimiter)?;
+        let absolute = cursor + found;
+        let after = absolute + delimiter.len();
+        if text
+            .as_bytes()
+            .get(after)
+            .is_some_and(|byte| *byte == repeated_byte)
+        {
+            cursor = after;
+            continue;
+        }
+        return Some(absolute);
+    }
+    None
 }
 
 fn parse_for_loop_scope(
@@ -781,12 +985,12 @@ mod tests {
 
     use serde_json::json;
 
-    use crate::ExpandedTemplate;
     use crate::types::{
         ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, ResolveResult,
         UnknownVariablePolicy,
     };
     use crate::{DiagnosticCode, DiagnosticSeverity, validate};
+    use crate::{ExpandedTemplate, parse_template_document};
 
     use super::{collect_validation_state, inject_builtin_vars, missing_frontmatter_warnings};
 
@@ -830,6 +1034,61 @@ mod tests {
 
         assert!(!report.ok);
         assert_eq!(report.errors[0].code, DiagnosticCode::ErrValUndeclaredToken);
+    }
+
+    #[test]
+    fn per_pass_validation_is_independent_for_higher_brace_tokens() {
+        let root = temp_root("validation_multipass_independent");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\npass: 2\ndefaults:\n  team: wyvern\n---\n---\npass: 1\ndefaults:\n  task: smoke\n---\nouter={{{ missing_team }}}\ninner={{ task }}\n",
+        );
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty(), "{report:?}");
+        assert!(report.warnings.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUndeclaredToken
+                && diagnostic.message.contains("missing_team")
+        }));
+        assert!(
+            !report.warnings.iter().any(|diagnostic| {
+                diagnostic.code == DiagnosticCode::InfoValDefaultUsed
+                    && diagnostic.message.contains("variable team not provided")
+            }),
+            "{report:?}"
+        );
+    }
+
+    #[test]
+    fn strict_mode_errors_on_undeclared_higher_pass_variable() {
+        let root = temp_root("validation_multipass_strict");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\npass: 2\n---\n---\npass: 1\n---\nouter={{{ missing_team }}}\ninner={{ task }}\n",
+        );
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                strict_undeclared_variables: true,
+                ..ComposePolicy::default()
+            },
+        ))
+        .unwrap();
+
+        assert!(!report.ok, "{report:?}");
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUndeclaredToken
+                && diagnostic.message.contains("missing_team")
+        }));
     }
 
     #[test]
@@ -1074,9 +1333,9 @@ mod tests {
                 frontmatters: vec![
                     (
                         root.join("template.md.j2"),
-                        Some(crate::Frontmatter::empty()),
+                        vec![crate::Frontmatter::empty()],
                     ),
-                    (root.join("partials/body.md.j2"), None),
+                    (root.join("partials/body.md.j2"), Vec::new()),
                 ],
                 include_chains: BTreeMap::default(),
             },
@@ -1419,6 +1678,52 @@ mod tests {
         assert!(!tokens.contains(&crate::VariableName::new("finding.id").unwrap()));
         assert!(!tokens.contains(&crate::VariableName::new("sprint").unwrap()));
         assert!(!tokens.contains(&crate::VariableName::new("sprint.title").unwrap()));
+    }
+
+    #[test]
+    fn discover_tokens_with_brace_count_finds_standard_and_higher_brace_tokens() {
+        let double = super::discover_tokens_with_brace_count("{{ a }}", 2);
+        let triple = super::discover_tokens_with_brace_count("{{{ a }}}", 3);
+
+        assert_eq!(double, [crate::VariableName::new("a").unwrap()].into());
+        assert_eq!(triple, [crate::VariableName::new("a").unwrap()].into());
+    }
+
+    #[test]
+    fn discover_tokens_with_brace_count_does_not_match_lower_brace_inside_higher_brace() {
+        let tokens = super::discover_tokens_with_brace_count("{{{ outer }}} {{ inner }}", 3);
+
+        assert_eq!(tokens, [crate::VariableName::new("outer").unwrap()].into());
+        assert!(
+            super::discover_tokens_with_brace_count("{{ a }}", 3).is_empty(),
+            "double-brace expression should not be matched by triple-brace discovery"
+        );
+    }
+
+    #[test]
+    fn discover_tokens_with_brace_count_ignores_higher_brace_when_scanning_lower_brace() {
+        let tokens = super::discover_tokens_with_brace_count("{{{ outer }}} {{ inner }}", 2);
+
+        assert_eq!(tokens, [crate::VariableName::new("inner").unwrap()].into());
+    }
+
+    #[test]
+    fn discover_all_pass_tokens_returns_per_pass_maps() {
+        let parsed = parse_template_document(
+            "---\npass: 1\n---\n---\npass: 2\n---\n{{ inner }} {{{ outer }}}",
+        )
+        .unwrap();
+
+        let tokens = super::discover_all_pass_tokens(&parsed);
+
+        assert_eq!(
+            tokens.get(&1).cloned().unwrap_or_default(),
+            [crate::VariableName::new("inner").unwrap()].into()
+        );
+        assert_eq!(
+            tokens.get(&2).cloned().unwrap_or_default(),
+            [crate::VariableName::new("outer").unwrap()].into()
+        );
     }
 
     #[test]

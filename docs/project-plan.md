@@ -290,6 +290,16 @@ Exit gate:
   - Sprint 4 validates release behavior
   - Sprint S7 adds `examples list`, `examples <name>`, `templates list`,
     `templates add`, and `templates <name>`
+  - Phase D adds multi-pass `render --all`, pass-scoped `--pass N` / `--var`
+    groups, `verify`, and `template-init`
+  - Phase D also lands delimiter hardening for custom variable delimiters:
+    `Renderer::with_delimiters` is now fallible on invalid delimiters and ships
+    in `1.3.0` under the narrow ADR-0010 stability exception
+- FR-7b:
+  - Phase D assigns `verify` drift to exit code `1`
+  - Phase D keeps render and validation failures on `2`
+  - Phase D keeps usage and configuration failures, including `template-init`
+    literal-miss cases, on `3`
 - FR-8 and FR-8a:
   - Sprint 1 finalizes command and health schemas
   - Sprint 2 implements the logger-facing command output
@@ -365,15 +375,19 @@ initial Python scope.
 
 Status:
 
-- planned follow-on multi-pass template rendering after the shipped Phase C
-  Python bindings (v1.2.0)
+- complete on `integrate/phase-d`; all eight D-track sprints have passed QA
+  and merged, and PR #140 is open to promote the phase to `develop`
 
 Sprint entries:
 
 - [Sprint D.1 — Multi-Pass Library Foundation](phase-D/sprint-d-1-library-foundation.md)
+- [Sprint D.1-py — Python Bindings — Multi-Pass Library Foundation](phase-D/sprint-d-1-py-bindings.md)
 - [Sprint D.2 — Multi-Pass Composition Pipeline](phase-D/sprint-d-2-composition-pipeline.md)
+- [Sprint D.2-py — Python Bindings — Multi-Pass Composition Pipeline](phase-D/sprint-d-2-py-bindings.md)
 - [Sprint D.3 — Multi-Pass CLI Surface](phase-D/sprint-d-3-cli-surface.md)
+- [Sprint D.3-py — Python Bindings — Multi-Pass CLI Surface Parity Check](phase-D/sprint-d-3-py-bindings.md)
 - [Sprint D.4 — template-init + verify](phase-D/sprint-d-4-template-init-verify.md)
+- [Sprint D.4-py — Python Bindings — template-init + verify](phase-D/sprint-d-4-py-bindings.md)
 - [Phase D README](phase-D/README.md)
 
 These sprint plans define the first implementation path for multi-pass

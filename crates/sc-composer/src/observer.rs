@@ -9,6 +9,14 @@ use crate::{Diagnostic, DiagnosticCode};
 /// Structured event emitted through an [`ObservationSink`].
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum ObservationEvent {
+    /// Pass start notification.
+    PassStart(PassStartEvent),
+    /// Pass end notification.
+    PassEnd(PassEndEvent),
+    /// Verify start notification.
+    VerifyStart(VerifyStartEvent),
+    /// Verify end notification.
+    VerifyEnd(VerifyEndEvent),
     /// Resolver attempt notification.
     ResolveAttempt(ResolveAttemptEvent),
     /// Resolver outcome notification.
@@ -32,6 +40,18 @@ pub trait ObservationSink {
 
 /// Open observer trait used by embedded hosts and the CLI.
 pub trait CompositionObserver {
+    /// Called when a pass starts.
+    fn on_pass_start(&mut self, _event: &PassStartEvent) {}
+
+    /// Called when a pass ends.
+    fn on_pass_end(&mut self, _event: &PassEndEvent) {}
+
+    /// Called when verify starts.
+    fn on_verify_start(&mut self, _event: &VerifyStartEvent) {}
+
+    /// Called when verify ends.
+    fn on_verify_end(&mut self, _event: &VerifyEndEvent) {}
+
     /// Called when resolution starts.
     fn on_resolve_attempt(&mut self, _event: &ResolveAttemptEvent) {}
 
@@ -57,6 +77,44 @@ impl CompositionObserver for NoopObserver {}
 impl ObservationSink for NoopObserver {
     fn emit(&mut self, _event: &ObservationEvent) {}
 }
+
+/// Event emitted when a render pass starts.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct PassStartEvent {
+    /// The pass number about to render.
+    pub pass_number: u8,
+}
+
+impl PassStartEvent {
+    /// Create a pass-start event for the given pass number.
+    #[must_use]
+    pub fn new(pass_number: u8) -> Self {
+        Self { pass_number }
+    }
+}
+
+/// Event emitted when a render pass ends.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct PassEndEvent {
+    /// The pass number that finished rendering.
+    pub pass_number: u8,
+}
+
+impl PassEndEvent {
+    /// Create a pass-end event for the given pass number.
+    #[must_use]
+    pub fn new(pass_number: u8) -> Self {
+        Self { pass_number }
+    }
+}
+
+/// Event emitted when verify starts.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct VerifyStartEvent;
+
+/// Event emitted when verify ends.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct VerifyEndEvent;
 
 /// Event emitted when resolution starts.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -116,7 +174,8 @@ mod tests {
 
     use super::{
         CompositionObserver, IncludeOutcomeEvent, NoopObserver, ObservationEvent, ObservationSink,
-        RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
+        PassEndEvent, PassStartEvent, RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent,
+        ValidationOutcomeEvent, VerifyEndEvent, VerifyStartEvent,
     };
 
     #[test]
@@ -158,6 +217,10 @@ mod tests {
         let resolve_attempt = ResolveAttemptEvent {
             template: "template.md.j2".to_owned(),
         };
+        let pass_start = PassStartEvent::new(1);
+        let pass_end = PassEndEvent::new(1);
+        let verify_start = VerifyStartEvent;
+        let verify_end = VerifyEndEvent;
         let resolve_outcome = ResolveOutcomeEvent {
             resolved_path: Some(PathBuf::from("template.md.j2")),
             attempted_paths: vec![PathBuf::from("template.md.j2")],
@@ -177,11 +240,19 @@ mod tests {
             code: None,
         };
 
+        observer.on_pass_start(&pass_start);
+        observer.on_pass_end(&pass_end);
+        observer.on_verify_start(&verify_start);
+        observer.on_verify_end(&verify_end);
         observer.on_resolve_attempt(&resolve_attempt);
         observer.on_resolve_outcome(&resolve_outcome);
         observer.on_include_outcome(&include_outcome);
         observer.on_validation_outcome(&validation_outcome);
         observer.on_render_outcome(&render_outcome);
+        observer.emit(&ObservationEvent::PassStart(pass_start));
+        observer.emit(&ObservationEvent::PassEnd(pass_end));
+        observer.emit(&ObservationEvent::VerifyStart(verify_start));
+        observer.emit(&ObservationEvent::VerifyEnd(verify_end));
         observer.emit(&ObservationEvent::ResolveAttempt(resolve_attempt));
         observer.emit(&ObservationEvent::ResolveOutcome(resolve_outcome));
         observer.emit(&ObservationEvent::IncludeExpandOutcome(include_outcome));

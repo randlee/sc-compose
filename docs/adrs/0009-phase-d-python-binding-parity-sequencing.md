@@ -34,10 +34,13 @@ shape.
 - A `D.#-py` sprint does not itself block the next Rust sprint. Python parity
   is contingent on the Rust sprint it wraps, but non-blocking for later Rust
   implementation work.
-- The canonical Rust per-pass `contexts` type for both `render_all` and
-  `verify` is `&[(u8, BTreeMap<VariableName, InputValue>)]`. Python bindings
-  may expose that as `list[tuple[int, dict[str, Any]]]`, but that is an adapter
+- The canonical Rust per-pass `contexts` type for `render_all` is
+  `&[(u8, BTreeMap<VariableName, InputValue>)]`. Python bindings may expose
+  that as `list[tuple[int, dict[str, Any]]]`, but that is an adapter
   representation over the same Rust contract rather than a second logical API.
+- `verify` does not take a standalone `contexts` parameter. It accepts a
+  `ComposeRequest`, and any multi-pass context data flows through
+  `ComposePolicy.passes` inside that request.
 - Included/supporting-template stacked-frontmatter exposure is not part of
   D.1/D.1-py. Until a later Rust sprint explicitly changes
   `ExpandedTemplate.frontmatters`, the docs must describe that surface as
@@ -47,8 +50,10 @@ shape.
 
 - README and sprint docs must distinguish dispatch-readiness from mere draft
   completeness.
-- D.2-py and D.4-py must reuse one shared `contexts` convention rather than
-  documenting independent guesses.
+- D.2-py must document one shared `contexts` convention for `render_all()`,
+  while D.4-py must describe `verify()` in terms of `ComposeRequest` /
+  `ComposePolicy.passes` rather than inventing a separate `contexts`
+  parameter.
 - Reviews can treat `ExpandedTemplate.frontmatters` / `PyExpandedTemplate`
   stacked-pass exposure as intentionally deferred unless and until a later
   sprint explicitly targets `crates/sc-composer/src/include.rs` and the

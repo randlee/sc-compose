@@ -14,19 +14,18 @@ mod template_store;
 mod var_file;
 
 use anyhow::Result;
-use clap::Parser;
 use mimalloc::MiMalloc;
 use sc_composer::Diagnostic;
 use serde::Serialize;
 
-use crate::cli::{Cli, command_wants_json};
+use crate::cli::{command_wants_json, parse_cli};
 pub(crate) use crate::command_error::CommandError;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() {
-    let cli = Cli::parse();
+    let cli = parse_cli();
     let wants_json = command_wants_json(&cli.command);
     let mut observer =
         match observability::build_logger(wants_json).map(observer_impl::CliObserver::new) {
