@@ -56,7 +56,11 @@ impl Renderer {
     /// Create a renderer with additional environment configuration.
     #[must_use]
     pub(crate) fn with_options(configure: impl FnOnce(&mut Environment<'static>)) -> Self {
-        Self::try_with_options(configure).expect("default renderer options must stay valid")
+        Self::try_with_options(|env| {
+            configure(env);
+            Ok(())
+        })
+        .expect("default renderer options must stay valid")
     }
 
     /// Create a renderer with additional environment configuration that may
