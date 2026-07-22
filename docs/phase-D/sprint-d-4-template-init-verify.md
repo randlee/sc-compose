@@ -1,9 +1,9 @@
 ---
 id: D.4
 title: template-init + verify
-status: planned
+status: complete
 branch: sprint/d-4-template-init-verify
-target: develop
+target: integrate/phase-d
 ---
 
 # Sprint D.4 — template-init + verify
@@ -52,7 +52,7 @@ continues.
 - `crates/sc-composer/src/types.rs` — `VerifyResult` type
 - `crates/sc-composer/Cargo.toml` — add `similar` dependency for diff output
 - `crates/sc-compose/src/commands/verify.rs` — NEW: verify CLI command
-- `crates/sc-compose/src/commands/template_init.rs` — extended: multi-pass support
+- `crates/sc-compose/src/commands/template_init.rs` — extended: multi-pass support and CLI-owned conversion algorithm
 - `crates/sc-compose/src/cli.rs` — verify subcommand, template-init args
 - `crates/sc-compose/tests/cli.rs` — verify + template-init CLI tests
 - `docs/phase-D/sprint-d-4-template-init-verify.md` — this document
@@ -65,14 +65,12 @@ sprint must be split before implementation begins. No deliverable may be
 silently dropped or partially deferred.
 
 - `D1` — verify library entry point (GAP-6)
-  - `sc_composer::verify(template_path, deployed_path, contexts) -> Result<VerifyResult, ComposeError>`
-  - Renders template through all passes with provided per-pass contexts
+  - `sc_composer::verify(request, deployed_path) -> Result<VerifyResult, ComposeError>`
+  - Renders the caller-supplied `ComposeRequest` through all passes declared in `request.policy.passes`
   - Reads deployed file from disk
-  - Diffs rendered output against deployed content using `similar` or
-    hand-rolled unified diff
-  - Returns `VerifyResult { clean: bool, diff: Option<String>, exit_code: u8 }`
-  - Builtin variables (`RENDER_DATE`, `RENDER_TIMESTAMP`) are overridable for
-    deterministic output
+  - Diffs rendered output against deployed content using `similar`
+  - Returns `VerifyResult { clean, resolved_template_path, deployed_path, rendered_text, deployed_text, diff, warnings }`
+  - Builtin variables (`RENDER_DATE`, `RENDER_TIMESTAMP`) remain overridable through the request context before calling `verify()`
   - Observer integration: emits verify-start and verify-end events
 
 - `D2` — verify CLI command (GAP-9)
@@ -94,13 +92,17 @@ silently dropped or partially deferred.
     - Pass 1 value → `{{ name }}`
   - Generates stacked `---...---` headers with `pass: N`, `required_variables`,
     and `defaults`
-  - If the output is effectively single-pass, omits `pass: 1` so the result
-    remains compatible with the shipped `1.2.x` single-pass format
-  - Longest-match-first: longest values replaced first to prevent substring
-    collisions (e.g., `/home/wyvern/worktrees/wyvern` before `wyvern`)
+  - If the output is effectively single-pass, emits the legacy single-header
+    shape (`required_variables`, `defaults: {}`, `metadata: {}`) with no
+    `pass: 1` so the result remains compatible with the shipped `1.2.x`
+    single-pass format
+  - Global longest-match-first: all literals across all passes are sorted by
+    value length descending, with higher pass numbers breaking ties, to prevent
+    substring collisions (e.g., `/home/wyvern/worktrees/wyvern` before `wyvern`)
   - `--force` overwrites existing file
   - `--dry-run` prints what would change without writing
-  - Exit 1 if any value not found in file
+  - Exit 3 if any value not found in file because the missing literal is a
+    usage/configuration failure, not a successful drift result
 
 - `D4` — Integration test coverage
   - verify: clean template, drift detected, quiet mode, file not found
@@ -131,9 +133,10 @@ silently dropped or partially deferred.
 - For each pass, scan file for each variable's value
 - Replace with appropriate brace-count variable (`"{" * (pass_number + 1) } name }}`)
 - Generate stacked YAML headers in outer-to-inner order
-- Normalize single-pass output back to the current single-header shape by
-  omitting `pass: 1`
-- Implement longest-match-first replacement ordering
+- Normalize single-pass output back to the legacy single-header shape:
+  `required_variables`, `defaults: {}`, `metadata: {}`, and no `pass: 1`
+- Implement global longest-match-first replacement ordering against the
+  immutable original text so inserted tokens are never rewritten
 - Preserve existing single-pass `frontmatter-init` behavior as backward compat
 
 ## Explicit Code Samples
@@ -141,26 +144,31 @@ silently dropped or partially deferred.
 ### verify library signature (GAP-6)
 
 ```rust
-/// Result of a drift check between a template and its deployed output.
+/// Result of a drift check between a rendered request and its deployed output.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct VerifyResult {
-    /// True if the template renders to exactly the deployed content.
+    /// True if the request renders to the deployed content after line-ending normalization.
     pub clean: bool,
+    /// Final resolved template path used for rendering.
+    pub resolved_template_path: PathBuf,
+    /// Concrete deployed file path compared against the rendered output.
+    pub deployed_path: PathBuf,
+    /// Rendered template output used for comparison.
+    pub rendered_text: String,
+    /// Concrete deployed file contents as read from disk.
+    pub deployed_text: String,
     /// Unified diff if drift detected, None if clean.
     pub diff: Option<String>,
-    /// Suggested exit code: 0 if clean, 1 if drift.
-    pub exit_code: u8,
+    /// Non-fatal diagnostics emitted while rendering.
+    pub warnings: Vec<Diagnostic>,
 }
 
-/// Verify that a deployed file matches its multi-pass template source.
+/// Verify that a deployed file matches a rendered compose request.
 ///
-/// Renders the template through all passes with the provided per-pass
-/// contexts, then diffs the rendered output against the deployed file.
+/// Renders `request`, then diffs the rendered output against the deployed file.
 pub fn verify(
-    template_path: impl AsRef<Path>,
+    request: &ComposeRequest,
     deployed_path: impl AsRef<Path>,
-    contexts: &[(u8, BTreeMap<VariableName, InputValue>)],
-    overrides: Option<BTreeMap<String, String>>, // builtin var overrides
 ) -> Result<VerifyResult, ComposeError>;
 ```
 
@@ -169,7 +177,7 @@ pub fn verify(
 ```rust
 // In sc-compose/src/commands/template_init.rs (CLI crate)
 /// Convert a concrete file into a multi-pass stacked template.
-pub fn template_init(
+fn template_init_file(
     file_path: impl AsRef<Path>,
     passes: &[InitPass],
     force: bool,
@@ -177,34 +185,31 @@ pub fn template_init(
 ) -> Result<FrontmatterInitResult, ComposeError>;
 
 /// One pass's worth of variable replacements for template-init.
-pub struct InitPass {
+struct InitPass {
     pub pass_number: u8,
-    pub variables: HashMap<String, String>, // var name → concrete value
+    pub variables: Vec<(VariableName, String)>, // var name → concrete value
 }
 ```
 
 ### Longest-match-first replacement order
 
 ```rust
-// Sort passes outer-to-inner (highest pass_number first) so
-// outer-pass variables (longer, more specific values) are
-// replaced before inner-pass variables (shorter, more general).
-let mut ordered_passes: Vec<_> = passes.iter().collect();
-ordered_passes.sort_by_key(|p| std::cmp::Reverse(p.pass_number));
+// Collect every pass-scoped literal replacement into one global list,
+// then sort by value length descending so longer/more-specific spans are
+// reserved before shorter substrings anywhere in the file.
+let mut replacements = plan_replacements(passes);
+replacements.sort_by(|left, right| {
+    right
+        .value
+        .len()
+        .cmp(&left.value.len())
+        .then_with(|| right.pass_number.cmp(&left.pass_number))
+});
 
-// Within each pass, sort variable replacements by value length descending
-// so "/home/wyvern/worktrees/wyvern" is replaced before "wyvern".
-for pass in &ordered_passes {
-    let mut vars: Vec<_> = pass.variables.iter().collect();
-    vars.sort_by_key(|(_, val)| std::cmp::Reverse(val.len()));
-    for (name, value) in vars {
-        let brace_count = pass.pass_number + 1;
-        let open = "{".repeat(brace_count);
-        let close = "}".repeat(brace_count);
-        let replacement = format!("{open} {name} {close}");
-        content = content.replace(value, &replacement);
-    }
-}
+// Apply substitutions against the immutable original text so later
+// replacements cannot rewrite inside already-inserted tokens.
+let rewritten = apply_replacements(&original, &replacements)?;
+let frontmatter_text = build_stacked_frontmatter(passes)?;
 ```
 
 ## This Sprint Does Not Close
@@ -212,19 +217,19 @@ for pass in &ordered_passes {
 - `verify` builtin variable override persistence (builtin vars reset after
   verify; no config file persistence)
 - `template-init` for non-text files (binary files out of scope)
-- `template-init` value ambiguity detection (two different variables with the
-  same concrete value; warning only)
-- Python bindings for verify and template-init
+- Multi-pass `template-init` Python exposure remains out of scope; `verify`
+  Python bindings were closed by D.4-py
 - Multi-pass `frontmatter-init` deprecation (old command retained for backward
   compat alongside new `template-init`)
 
 ## Acceptance Criteria
 
 - `AC1` for `D1`
-  - `verify(template, deployed, contexts)` returns `VerifyResult { clean: true, .. }`
-    when rendered output matches deployed file
-  - `verify(..., overrides)` with builtin var overrides produces deterministic output
-  - `verify()` returns `VerifyResult { clean: false, diff: Some(...), exit_code: 1 }`
+  - `verify(request, deployed)` returns `VerifyResult { clean: true, .. }`
+    when rendered output matches the deployed file after line-ending normalization
+  - Callers can override builtin variables before `verify()` by populating
+    `request.vars_input`
+  - `verify()` returns `VerifyResult { clean: false, diff: Some(..), .. }`
     on drift
   - Observer events: verify-start and verify-end emitted
 - `AC2` for `D2`
@@ -234,15 +239,18 @@ for pass in &ordered_passes {
   - `--builtin-var RENDER_DATE=2026-01-01` overrides builtin
   - Missing `--against` flag produces a stable missing-argument error
   - File not found produces a stable `deployed file not found` or
-    `template file not found` message
+    `template path not found` message
 - `AC3` for `D3`
   - `sc-compose template-init agent.md --pass 2 --var team=wyvern --pass 1 --var task=test`
     converts file to 2-pass template
   - `--dry-run` prints what would change, does not modify file
   - `--force` overwrites existing file
-  - Single-pass output omits `pass: 1`
+  - Single-pass output matches the legacy frontmatter-init header shape:
+    `required_variables`, `defaults: {}`, `metadata: {}`, and no `pass: 1`
   - Longest-match-first: `/home/wyvern/worktrees/wyvern` replaced before `wyvern`
-  - Value not found → exit 1 with `values not found in file`
+  - Value not found → exit 3 with `values not found in file`
+  - Duplicate literal assignments or overlapping substitutions fail explicitly
+    instead of silently dropping replacements or corrupting inserted tokens
   - Existing single-pass `frontmatter-init` behavior preserved
 - `AC4` for `D4`
   - End-to-end round-trip: `template-init → parse → render_all → verify` produces clean

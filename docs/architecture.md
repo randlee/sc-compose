@@ -430,8 +430,8 @@ Required library surface:
 - `frontmatter_init(path, options) -> FrontmatterInitResult`
 - `Renderer::render(compiled, context) -> Result<String, RenderError>` as the
   primary repeated-render API
-- `Renderer::with_delimiters(open, close) -> Self` as the only public
-  renderer-customization seam
+- `Renderer::with_delimiters(open, close) -> Result<Self, RenderError>` as the
+  only public renderer-customization seam
 - `render_loaded_template(request) -> Result<RenderedArtifact, RenderError>` as
   the runtime-agnostic entry point for callers that already loaded template
   text outside `sc-composer`
@@ -452,7 +452,7 @@ The rendering and composition surfaces have distinct responsibilities.
 
 | Surface | Owns | Does not own |
 | --- | --- | --- |
-| `Renderer` | reusable template-engine environment setup plus inline/named rendering over caller-supplied template text and context, including delimiter customization through `with_delimiters(open, close)` | profile resolution, include expansion, variable validation, block assembly, repository bootstrap, arbitrary third-party engine configuration |
+| `Renderer` | reusable template-engine environment setup plus inline/named rendering over caller-supplied template text and context, including delimiter customization through `with_delimiters(open, close) -> Result<Self, RenderError>` | profile resolution, include expansion, variable validation, block assembly, repository bootstrap, arbitrary third-party engine configuration |
 | `compose()` | top-level composition orchestration: resolve, include expansion, validation, built-in context injection, render, and block assembly | direct CLI UX decisions |
 | `render_template()` | one-shot rendering entry point for callers that already have template text and context | profile resolution, repository scanning, include expansion, validation, workspace bootstrap |
 | `validate()` | validation phase only; returns structured diagnostics without writing output | output generation or file writing |
@@ -566,24 +566,18 @@ Compatibility rule:
 - `changed: bool`
 - `would_change: bool`
 
-`TemplateInitPlan`
-
-- `passes: Vec<InitPass>`
-- `single_pass_compatible: bool`
-- `replacements: Vec<PlannedReplacement>`
-
 Template-init contract:
 
 - `template-init` consumes an input file plus one or more pass-scoped variable
   maps from the CLI wrapper.
-- Replacement planning sorts passes outer-to-inner and, within each pass,
-  sorts literal values longest-first so specific strings are replaced before
-  substrings.
+- Replacement planning is CLI-owned in `sc-compose` and sorts all pass-scoped
+  literal values globally longest-first, with higher pass numbers breaking ties,
+  so specific strings are reserved before substrings anywhere in the file.
 - Generated headers are emitted in outer-to-inner order and include `pass: N`
   only when the output must remain genuinely multi-pass.
 - If the resulting template is effectively single-pass, the emitted header is
-  normalized back to the shipped `1.2.x` single-header shape by omitting
-  `pass: 1`.
+  normalized back to the shipped `1.2.x` single-header shape:
+  `required_variables`, `defaults: {}`, `metadata: {}`, and no `pass: 1`.
 - `template-init` remains CLI-owned in `sc-compose`; `sc-composer` owns only
   the reusable workspace/helper types needed to support the conversion.
 
@@ -748,7 +742,9 @@ Command mapping:
 - `resolve` -> `resolve_profile`
 - `validate` -> `validate`
 - `frontmatter-init` -> `frontmatter_init`
+- `template-init` -> CLI-owned `template_init_file` rewrite path
 - `init` -> `init_workspace`
+- `verify` -> `verify`
 - `observability-health` -> CLI logger initialization, then `Logger::health()`
 - `examples list` -> list bundled example packs
 - `examples <name>` -> resolve the bundled example-pack file, merge pack
@@ -790,8 +786,27 @@ Command-specific rules:
 - `frontmatter-init`
   - rewrites or inserts frontmatter for a single target file,
   - uses token discovery but does not render the file.
+- `template-init`
+  - rewrites a single target file into a single-pass or multi-pass template,
+  - accepts one or more `--pass N` groups with pass-scoped `--var` and
+    `--var-file` inputs,
+  - honors `--force` for existing frontmatter/template rewrites,
+  - honors `--dry-run` without writing the rewritten file,
+  - returns exit code `3` when requested literal values are not found because
+    that outcome is a usage/configuration failure rather than a successful
+    drift result.
 - `init`
   - performs repository bootstrap and validation-oriented scanning.
+- `verify`
+  - compares one deployed file against the rendered output of `--against
+    <template>`,
+  - accepts `--quiet` to suppress diff body output,
+  - accepts `--builtin-var KEY=VALUE` overrides for deterministic builtin
+    values,
+  - accepts pass-scoped `--pass N` groups with per-pass `--var` and
+    `--var-file` inputs when `--all` is used,
+  - returns exit `0` when clean, exit `1` when drift is detected, and exit
+    `2` or `3` for genuine validation/render or usage/configuration failures.
 - `observability-health`
   - reads logger health state without mutating composition behavior,
   - prints a human-readable health summary by default,
@@ -907,6 +922,17 @@ The schemas below define the `payload` shape for each command.
     ".agents/agents/example.md.j2"
   ],
   "found": true
+}
+```
+
+`template-init --json`
+
+```json
+{
+  "template_path": "path/to/template.md",
+  "template_added": true,
+  "would_change": true,
+  "vars": ["task"]
 }
 ```
 
@@ -1443,6 +1469,7 @@ Canonical failures must map to stable error families and stable codes.
 | Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
 | Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |
 | Command or helper invoked in incompatible mode | `ConfigError` | `ERR_CONFIG_MODE` |
+| Text/config file exists but is not readable as valid text | `ConfigError` | `ERR_CONFIG_READ` |
 | Config file missing or malformed | `ConfigError` | `ERR_CONFIG_PARSE` |
 | Invalid var-file shape | `ConfigError` | `ERR_CONFIG_VARFILE` |
 | Malformed object from structured input source | `ValidationError` | `ERR_VAL_OBJECT_SHAPE` |

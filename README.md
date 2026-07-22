@@ -1,156 +1,69 @@
 # sc-compose
 
-sc-compose is a standalone CLI for teams whose templates have outgrown copy-paste. It started with agent workflows — authoring agent profiles once and dispatching per-run dev and QA task assignments with declared inputs that fail loudly when missing — and the same machinery turned out to fit anywhere shared fragments should live in one place: pytest fixtures, .NET benchmark harnesses, HTML reports, service configs. Templates are Jinja2 with YAML frontmatter; shared fragments are pulled in by @-include; required inputs are declared up front and validated at render time. For AI agent workflows specifically, a single profile resolves across Claude Code, Codex, Gemini, and OpenCode through each runtime's native search chain — with a shared `.agents/` fallback so you only override the runtimes that genuinely need it.
+<p align="center">
+  <strong>Compose once. Render deterministically. Ship everywhere.</strong>
+</p>
 
-**About this document.** This README explains what sc-compose is and how people use it. It is not a task prompt. Code blocks labelled as example template content are examples, not instructions for an AI agent.
+<p align="center">
+  <a href="#install"><img src="https://img.shields.io/badge/install-brew%20%7C%20winget%20%7C%20cargo%20%7C%20pip-4c1" alt="Install: brew | winget | cargo | pip"></a>
+  <a href="https://crates.io/crates/sc-compose"><img src="https://img.shields.io/crates/v/sc-compose?label=crates.io" alt="crates.io"></a>
+  <a href="https://pypi.org/project/sc-compose/"><img src="https://img.shields.io/pypi/v/sc-compose?label=PyPI" alt="PyPI"></a>
+  <a href="https://github.com/randlee/sc-compose/actions"><img src="https://img.shields.io/github/actions/workflow/status/randlee/sc-compose/ci.yml?branch=develop&label=CI" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a>
+</p>
 
 ---
 
-## Install
+**sc-compose** is a standalone CLI and library for teams whose templates have
+outgrown copy-paste. Compose templates from shared, version-controlled
+fragments, declare inputs up front, and render deterministic output across any
+runtime — AI agent profiles, pytest fixtures, .NET harnesses, HTML reports, and
+service configs.
 
-### Homebrew (macOS)
+**One engine, everywhere.** A single Rust library (`sc-composer`) drives the
+CLI (`sc-compose`), Python bindings, and any embedded host. Templates are
+Jinja2 with YAML frontmatter. Shared fragments use `@`-include. Required inputs
+fail loudly at render time — no guessing, no silent defaulting.
+
+For AI agent workflows, one profile resolves across Claude Code, Codex, Gemini,
+and OpenCode through each runtime's native search chain, with a shared
+`.agents/` fallback so you override only the runtimes that genuinely need it.
+
+---
+
+## Quickstart
 
 ```bash
-brew install randlee/tap/sc-compose
-```
+# Install
+brew install randlee/tap/sc-compose        # macOS
+winget install randlee.sc-compose           # Windows
+cargo install sc-compose                    # from source
+pip install sc-compose                      # Python
 
-Bundled examples are installed to `$(brew --prefix)/share/sc-compose/examples/` and discovered automatically.
-
-### Winget (Windows)
-
-```powershell
-winget install randlee.sc-compose
-```
-
-### From source
-
-```bash
-cargo install --path crates/sc-compose
-```
-
-`cargo install` ships the binary only. Bundled examples are guaranteed in
-Homebrew, `winget`, and GitHub Release installs. `SC_COMPOSE_DATA_DIR` can
-override the examples location for CI, custom installs, and `cargo install`
-users.
-
-Or build without installing:
-
-```bash
-cargo build --release -p sc-compose
-./target/release/sc-compose --help
-```
-
-### Python bindings (PyPI)
-
-The composition engine is also published as a native extension module for
-Python 3.11+:
-
-```bash
-pip install sc-compose
-```
-
-```python
-from sc_compose import Renderer, compose, render_template
-
-result = render_template("Hello {{ name }}", {"name": "world"})
-```
-
-Wheels are built with [maturin](https://www.maturin.rs/) from
-`bindings/python`. Pre-release builds are published to
-[TestPyPI](https://test.pypi.org/project/sc-compose/) for rehearsal before
-each production release:
-
-```bash
-pip install -i https://test.pypi.org/simple/ sc-compose
+# Render your first template
+echo 'Hello {{ name }}!' > hello.txt.j2
+sc-compose render --file hello.txt.j2 --var name=World
+# → Hello World!
 ```
 
 ---
 
-## Common commands
+## Feature Highlights
 
-| Command | What it does |
-|---------|-------------|
-| `render` | Render a template or resolved profile to stdout or a file. |
-| `resolve` | Print the resolved profile path and search trace. |
-| `validate` | Expand includes and analyze variables without writing output. |
-| `frontmatter-init` | Discover referenced variables and prepend minimal frontmatter. |
-| `init` | Create `.prompts/`, add it to `.gitignore`, and scan templates. |
-| `observability-health` | Report process-local structured logging health. |
-| `examples list` | List bundled starter templates shipped with sc-compose. |
-| `examples <name>` | Render a bundled example with optional `--var` / `--var-file`. |
-| `templates list` | List your saved personal templates. |
-| `templates add <src> [name]` | Save a file or directory to your local template store. |
-| `templates <name>` | Render a saved template with optional `--var` / `--var-file`. |
-| `reports init` | Create the shared report scaffold and starter catalog. |
-| `reports smoke` | Render the built-in smoke report fixture and emit report artifacts. |
-| `reports finalize` | Materialize metadata and optional archives for producer-owned report outputs. |
-| `reports render-spec` | Render a semantic report spec into shared report artifacts. |
-| `reports index` | Summarize the current latest report artifacts from the report catalog. |
-| `reports verify` | Verify that required report evidence is present. |
-| `reports publish-manifest` | Write the machine-readable publish handoff manifest for current report outputs. |
+### Compose Templates from Shared Fragments
 
----
+Place shared conventions in one file. Reference them from everywhere. Edit
+once, every downstream template picks up the change.
 
-## Library usage
-
-For embedded hosts and programmatic use, depend on `sc-composer` directly:
-
-```toml
-[dependencies]
-sc-composer = "1.2.0"
+```
+@<_includes/house-style.md>
 ```
 
-The crate root re-exports the main entry points — `compose`, `compose_with_observer`, `validate_with_observer`, `resolve_profile_with_observer`, `frontmatter_init`, `init_workspace` — plus request/result types and the diagnostic envelope. See `crates/sc-composer/src/lib.rs` and `docs/architecture.md`.
+Includes nest, cycles are detected, paths are confined to the workspace root.
 
----
+### Declare Inputs Up Front
 
-## Status
-
-| | |
-|-|-|
-| Version | 1.2.0 |
-| MSRV | Rust 1.94.1 |
-| Rust edition | 2024 |
-| Platforms | macOS, Linux, Windows |
-| Stability | stable 1.2 release line |
-
-## Documentation
-
-- `docs/requirements.md` — normative behavior, JSON schemas, exit codes.
-- `docs/architecture.md` — library module layout and the library/CLI boundary.
-- `docs/error-code-registry.md` — stable `ERR_*` diagnostic codes.
-- `docs/cross-platform-guidelines.md` — platform-specific behavior and testing rules.
-- `docs/publishing.md` — release procedures for integrators.
-- `docs/atm-adapter-notes.md` — adapter boundary and integration ownership.
-- `docs/phase-A/phase-A-plan.md` — follow-on reusable reporting and
-  report-pack planning line after the shipped `1.1` baseline.
-
-Contributor references: `docs/git-workflows.md`, `.claude/skills/rust-development/guidelines.txt`.
-
----
-
-## Why this exists
-
-Prompt files drift across repos, tasks, and runtimes. Teams end up with several copies of the same prompt: `.claude/agents/foo.md`, `.codex/agents/foo.md`, a Slack paste, a gist, and a shell-history version. Those copies diverge. Agent behavior diverges with them. Debugging turns into prompt diffing.
-
-`sc-compose` treats prompts as source code you compose, not text you copy. Compose once. Render deterministically. Keep shared fragments in one place and include them by reference. Pass task context as variables. Validate required inputs at render time so missing data fails fast instead of being guessed.
-
-The workspace provides two crates:
-
-- **sc-composer** — a Rust library with the render, include-expansion, validation, and diagnostics pipeline.
-- **sc-compose** — a CLI wrapper over the library for scripts, shells, and agent-invocable workflows.
-
-Both are standalone. Neither is coupled to any particular orchestration system.
-
----
-
-## Mental model
-
-The model is simple: templates, frontmatter, profiles, and outputs.
-
-**Templates** are Jinja2 source files, usually named `*.md.j2` or `*.xml.j2`. The `.j2` suffix is stripped on render. Templates may contain Jinja variable references (`{{ task_id }}`), control flow (`{% if %}`), and sc-compose's include directive (`@<path>`, described below). A template can also exist without the `.j2` suffix. A plain `.md` file with no dynamic content is still valid.
-
-**Frontmatter** is an optional YAML block at the top of a template, delimited by `---`:
+YAML frontmatter makes required inputs explicit:
 
 ```yaml
 ---
@@ -159,68 +72,195 @@ required_variables:
   - branch
 defaults:
   pr_target: develop
-metadata:
-  owner: platform-team
 ---
 ```
 
-- `required_variables` — names the caller must supply. Render fails loud if missing.
-- `defaults` — scalar fallbacks used when a variable isn't otherwise provided.
-- `metadata` — arbitrary descriptive data; does not affect the rendered output.
+Missing a required variable? `sc-compose` fails with an actionable diagnostic
+that names the missing variable, the file that declared it, and the include
+chain.
 
-**Profiles** are templates stored under runtime-specific directories. They are looked up by name and kind, not path. `sc-compose render --mode profile --kind agent --agent rust-developer --runtime claude` resolves the profile through the Claude search chain and renders the winning file.
+### One Profile Across Four Runtimes
 
-**Rendered outputs** go to stdout by default or to an explicit `--output` path. `sc-compose init` creates `.prompts/` and adds it to `.gitignore` for workflows that want a gitignored render directory. Given the same template, variables, include graph, and policy flags, the output is reproducible.
-
----
-
-## Includes: the reuse lever
-
-The include directive is a single line of the form `@<path>`, where `path` is
-resolved relative to the including file or to the workspace root:
-
-```
-@<_includes/house-style.md>
-```
-
-At render time the directive is replaced by the target file's contents. Includes may nest. The engine tracks the chain, detects cycles, enforces a depth limit, and keeps every resolved path inside the workspace root. Included files can also declare frontmatter. Their `required_variables` merge upward into the caller-visible set, and their `defaults` apply behind any defaults the parent already declared.
-
-This is the main reuse mechanism. Put your definition of done, review checklist, error conventions, or testing policy in one includable file. Reference it from every agent profile. Edit it once. Every downstream agent picks up the change.
-
----
-
-## Why one engine across runtimes
-
-Each runtime has its own prompt layout. Claude Code looks in `.claude/agents/`. Codex looks in `.codex/agents/`. Gemini and OpenCode have their own conventions. Without a shared resolver, copies drift. `sc-compose` resolves each runtime's search chain and a shared fallback under `.agents/`. Author a profile once under `.agents/agents/foo.md`. Override only the runtimes that need a specialized copy.
-
----
-
-## Repo layout
-
-A workspace that uses `sc-compose` typically looks like this:
+Author an agent profile once under `.agents/agents/`. Override only the
+runtimes that need specialization:
 
 ```
 your-repo/
-├── .agents/                  # shared-across-runtimes fallback
-│   ├── agents/
-│   │   └── reviewer.md       # works for every runtime
-│   ├── commands/
-│   └── skills/
-├── .claude/                  # Claude Code native layout
-│   └── agents/
-│       └── rust-developer.md
-├── .codex/                   # Codex-specific overrides (optional)
-├── .gemini/                  # Gemini-specific overrides (optional)
-├── .opencode/                # OpenCode-specific overrides (optional)
-├── _includes/                # shared fragments referenced via @-includes
-│   └── house-style.md
-├── .prompts/                 # gitignored render output
-└── .gitignore
+├── .agents/agents/reviewer.md    ← works for Claude, Codex, Gemini, OpenCode
+├── .claude/agents/               ← Claude-only overrides (optional)
+├── .codex/agents/                ← Codex-only overrides (optional)
 ```
 
-`sc-compose init` bootstraps `.prompts/` and adds it to `.gitignore`. Everything else is a convention. If you do not want the profile layout, place templates anywhere and render them with `--mode file --file <path>`.
+`sc-compose render --mode profile --kind agent --agent reviewer --runtime claude`
 
-Per-kind search chains used by the resolver (source of truth: `crates/sc-composer/src/resolver.rs`):
+### Multi-Pass Nested Templates (v1.3.0)
+
+Progressive resolution: deploy-time → install-time → invocation-time variables
+in one file. Outer passes use more braces; inner passes use fewer. Shared
+fragments (`@`-include) work at every pass.
+
+```bash
+# Render all three passes
+sc-compose render config.yaml.2.j2 --all \
+  --pass 3 --var-file deploy.json \
+  --pass 2 --var-file install.json \
+  --pass 1 --var-file invoke.json
+
+# Verify deployed config hasn't drifted
+sc-compose verify deployed.yaml --against config.yaml.2.j2 --all --pass ...
+```
+
+### Bundled Examples & Personal Templates
+
+```bash
+sc-compose examples list                    # discover starter templates
+sc-compose examples pytest-fixture          # generate test stubs
+sc-compose templates add my-template.md.j2  # save for reuse
+sc-compose templates my-template            # render by name
+```
+
+### Reporting Subsystem
+
+Produce compliance evidence from declarative specs:
+
+```bash
+sc-compose reports init              # scaffold report catalog
+sc-compose reports smoke             # render smoke report fixture
+sc-compose reports render-spec spec  # render from semantic spec
+sc-compose reports finalize          # materialize metadata
+sc-compose reports publish-manifest  # CI handoff manifest
+```
+
+### Python Bindings
+
+```python
+from sc_compose import compose, render_template, Renderer
+
+result = render_template("Hello {{ name }}", {"name": "world"})
+# Multi-pass rendering:
+# compose(request) — full pipeline with ComposePolicy.passes
+```
+
+Pre-built wheels for macOS, Linux, Windows (Python 3.11+).
+
+---
+
+## Install Matrix
+
+| Platform | Method | Command |
+|----------|--------|---------|
+| macOS | Homebrew | `brew install randlee/tap/sc-compose` |
+| Windows | Winget | `winget install randlee.sc-compose` |
+| Any (Rust) | crates.io | `cargo install sc-compose` |
+| Any (Python) | PyPI | `pip install sc-compose` |
+| Any (source) | cargo | `cargo build --release -p sc-compose` |
+| Rust lib | Cargo.toml | `sc-composer = "1.3.0"` |
+
+Bundled examples are guaranteed in Homebrew, Winget, and GitHub Release
+installs. `cargo install` ships the binary only — set `SC_COMPOSE_DATA_DIR` for
+examples.
+
+---
+
+## Status
+
+| | |
+|---|---|
+| Version | 1.3.0 |
+| MSRV | Rust 1.94.1 |
+| Rust edition | 2024 |
+| Platforms | macOS, Linux, Windows |
+| Stability | stable 1.x release line |
+
+---
+
+## Documentation
+
+- [docs/requirements.md](docs/requirements.md) — normative behavior, JSON schemas, exit codes
+- [docs/architecture.md](docs/architecture.md) — library module layout, crate boundary
+- [docs/error-code-registry.md](docs/error-code-registry.md) — stable `ERR_*` diagnostic codes
+- [docs/publishing.md](docs/publishing.md) — release procedures for integrators
+- [docs/git-workflows.md](docs/git-workflows.md) — branching and review rules
+- [docs/cross-platform-guidelines.md](docs/cross-platform-guidelines.md) — platform testing rules
+- [docs/atm-adapter-notes.md](docs/atm-adapter-notes.md) — adapter boundary and integration
+- [RELEASING.md](RELEASING.md) — step-by-step release checklist
+
+---
+
+## Why sc-compose?
+
+Prompt files drift across repos, tasks, and runtimes. Teams end up with several
+copies of the same prompt: `.claude/agents/foo.md`, `.codex/agents/foo.md`, a
+Slack paste, a gist, and a shell-history version. Those copies diverge. Agent
+behavior diverges with them. Debugging turns into prompt diffing.
+
+`sc-compose` treats prompts as source code you compose, not text you copy.
+Compose once. Render deterministically. Keep shared fragments in one place and
+include them by reference. Pass task context as variables. Validate required
+inputs at render time so missing data fails fast instead of being guessed.
+
+The workspace provides three packages:
+
+- **sc-composer** — a Rust library with the render, include-expansion, validation, and diagnostics pipeline
+- **sc-compose** — a CLI wrapper over the library for scripts, shells, and agent-invocable workflows
+- **sc-compose (PyPI)** — Python native extension for `pip install`
+
+All three are standalone. None is coupled to any particular orchestration
+system.
+
+---
+
+## CLI Reference
+
+| Command | What it does |
+|---------|-------------|
+| `render` | Render a template or resolved profile to stdout or a file |
+| `resolve` | Print the resolved profile path and search trace |
+| `validate` | Expand includes and analyze variables without writing output |
+| `frontmatter-init` | Discover referenced variables and prepend minimal frontmatter |
+| `init` | Create `.prompts/`, add it to `.gitignore`, and scan templates |
+| `observability-health` | Report process-local structured logging health |
+| `examples list` | List bundled starter templates |
+| `examples <name>` | Render a bundled example with `--var` / `--var-file` |
+| `templates list` | List your saved personal templates |
+| `templates add <src> [name]` | Save a file or directory to your local template store |
+| `templates <name>` | Render a saved template with `--var` / `--var-file` |
+| `template-init` | Convert a concrete file into a multi-pass stacked template |
+| `verify` | Verify a deployed file matches its multi-pass template source |
+| `reports init` | Create the shared report scaffold and starter catalog |
+| `reports smoke` | Render the built-in smoke report fixture |
+| `reports finalize` | Materialize metadata and archives for producer-owned outputs |
+| `reports render-spec` | Render a semantic report spec into shared artifacts |
+| `reports index` | Summarize current latest report artifacts |
+| `reports verify` | Verify required report evidence is present |
+| `reports publish-manifest` | Write machine-readable publish handoff manifest |
+
+Key flags:
+
+| Flag | Purpose |
+|------|---------|
+| `--mode <file\|profile>` | Template lookup mode (default: `file`) |
+| `--kind <agent\|command\|skill>` | Profile kind in profile mode |
+| `--agent <name>` | Profile name in profile mode |
+| `--runtime <claude\|codex\|gemini\|opencode>` | Runtime selector |
+| `--file <path>` | Template path in file mode |
+| `--var key=value` | Input variable (repeatable) |
+| `--var-file <path>` | JSON/YAML variable file (`-` for stdin) |
+| `--env-prefix <PREFIX_>` | Absorb env vars matching prefix |
+| `--guidance <text>` / `--guidance-file <path>` | Append guidance block |
+| `--prompt <text>` / `--prompt-file <path>` | Append user prompt block |
+| `--output <path>` | Write rendered output to file |
+| `--dry-run` | Report without modifying files |
+| `--json` | Machine-readable output with diagnostics envelope |
+| `--strict` | Fail on undeclared referenced variables |
+| `--all` | Render all passes (multi-pass templates) |
+| `--pass N --var ...` | Per-pass variable inputs |
+
+Run `sc-compose <command> --help` for the full flag surface.
+
+---
+
+## Resolver Search Chains
 
 | Runtime | Agents | Commands | Skills |
 |---------|--------|----------|--------|
@@ -229,248 +269,17 @@ Per-kind search chains used by the resolver (source of truth: `crates/sc-compose
 | Gemini | `.gemini/agents`, `.agents/agents`, `.claude/agents` | `.gemini/commands`, `.agents/commands`, `.claude/commands` | `.gemini/skills`, `.agents/skills`, `.claude/skills` |
 | OpenCode | `.opencode/agents`, `.agents/agents`, `.claude/agents` | same pattern | same pattern |
 
-Claude is the universal fallback because it is the most common author target in practice.
-
----
-
-## Authoring a template
-
-Two shapes come up most often: an agent profile in Markdown and a structured task template in XML or JSON. Both follow the same frontmatter, body, and include rules.
-
-### Example: a static Markdown agent profile
-
-Excerpt from `.claude/agents/rust-developer.md` (example template content):
-
-```markdown
----
-name: rust-developer
-description: Implements Rust code changes by following project conventions
-tools: Glob, Grep, LS, Read, Write, Edit, NotebookRead, Bash
-model: sonnet
----
-
-You are a senior Rust developer who implements code changes that are
-idiomatic, safe, and aligned with project conventions.
-
-MUST READ: `.claude/skills/rust-development/guidelines.txt` before making
-changes. All code must conform to these guidelines.
-```
-
-This profile has no `required_variables`. It is static text. From sc-compose's perspective, its frontmatter is metadata and passes through untouched. Claude Code consumes those fields separately at load time. sc-compose still adds uniform rendering, include support, and validation.
-
-### Example: a parameterized template with variables
-
-Excerpt from `.claude/skills/codex-orchestration/dev-template.xml.j2` (example template content):
-
-```xml
----
-name: dev-task
-required_variables:
-  - task_id
-  - sprint
-  - description
-  - worktree_path
-  - branch
-  - pr_target
-  - deliverables
-  - acceptance_criteria
----
-<atm-task id="{{ task_id }}" sprint="{{ sprint }}">
-  <description>{{ description }}</description>
-  <worktree>{{ worktree_path }}</worktree>
-  <branch>{{ branch }}</branch>
-  <pr-target>{{ pr_target }}</pr-target>
-  <deliverables>
-{{ deliverables }}
-  </deliverables>
-  <acceptance-criteria>
-{{ acceptance_criteria }}
-  </acceptance-criteria>
-</atm-task>
-```
-
-Any caller that invokes this template must provide all eight required variables. Miss one and the render fails with a diagnostic that names it.
-
-### Example: a list-driven template
-
-Templates accept arrays of scalars via `--var-file`. A bundled example generates pytest test stubs from a list of test names (example template content):
-
-```python
-{%- for name in test_names %}
-def test_{{ name }}():
-    ...
-{%- endfor %}
-```
-
-Pass the list in a JSON var-file:
-
-```json
-{ "test_names": ["login", "logout", "signup"] }
-```
-
-```bash
-sc-compose examples pytest-fixture --var-file vars.json --output tests/test_auth.py
-```
-
-Arrays of scalars are accepted in `--var-file`.
-
-### Adding an include
-
-Put a shared snippet in `_includes/house-style.md` and reference it from any template:
-
-```
-Before making changes, review the house style.
-
-@<_includes/house-style.md>
-
-Then proceed with the task described below.
-```
-
-At render time the `@<_includes/house-style.md>` line is replaced by that
-file's contents. Edit `house-style.md` once. Every template that includes it
-picks up the change on the next render.
-
----
-
-## Bundled examples and personal templates
-
-`sc-compose` ships with starter templates and a personal template store.
-
-### Bundled examples
-
-Installed alongside the binary:
-
-```bash
-sc-compose examples list           # show available examples
-sc-compose examples pytest-fixture --var-file vars.json --output tests/test_auth.py
-sc-compose examples service-config --var-file svc.json --output deploy/config.yaml
-sc-compose examples sprint-report-html --var-file examples/sprint-report-html.sample-vars.json --output sprint-report.html
-```
-
-The examples directory is located automatically from the binary path (`../share/sc-compose/examples/` relative to the binary, following Homebrew and FHS conventions). Override with `SC_COMPOSE_DATA_DIR` if needed.
-
-`.html.j2` templates render like any other file-mode template. `sc-compose` does not enable automatic HTML escaping, so template authors remain responsible for escaping untrusted values.
-
-### Personal templates
-
-Save and reuse your own templates:
-
-```bash
-sc-compose templates add my-template.md.j2             # save a single file pack
-sc-compose templates add my-pack-dir my-pack           # import a directory pack
-sc-compose templates list                              # list saved templates
-sc-compose templates my-template --var-file data.json  # render
-```
-
-Templates are stored under the platform user-data root in `sc-compose/templates/`:
-
-- Linux: `~/.local/share/sc-compose/templates/`
-- macOS: `~/Library/Application Support/sc-compose/templates/`
-- Windows: `%APPDATA%\\sc-compose\\templates\\`
-
-Override with `SC_COMPOSE_TEMPLATE_DIR`.
-
----
-
-## Using it from a host wrapper or session hook
-
-`sc-compose` is usually one layer inside a larger agent workflow. This repo owns composition semantics. The host runtime owns session lifecycle, delivery, runtime-specific hooks, and transport.
-
-Preferred flow:
-
-1. Use `resolve` to inspect which profile wins for a runtime.
-2. Use `validate` or `render --dry-run` to catch missing inputs before launch.
-3. Use `render` to stdout or `--output` for the launcher, wrapper, or hook to consume.
-
-Rendered output always uses the same block order: rendered profile body, optional guidance block, then optional user prompt.
-
-Embedded hosts should depend on `sc-composer` and call it in-process. Scripts, CI jobs, agents, and humans can use the `sc-compose` CLI directly for local validation, debugging, non-embedded automation, or repo bootstrap tasks. Manual inspection or paste is a fallback, not the core integration path.
-
-Session lifecycle and runtime hooks live outside this repo. Inside this repo, the integration seam is the observer/sink API in `sc-composer` plus the CLI's observer wiring in `sc-compose`.
-
----
-
-## Passing task context in
-
-Keep stable instructions in the profile. Pass per-run data through variables. Pass ephemeral task text through guidance and prompt blocks.
-
-Three ways to get variables into a render, highest precedence first:
-
-1. `--var key=value` on the command line (repeatable). Values are passed as strings.
-2. `--var-file path.yaml` or `path.json`. Use `-` to read from stdin; useful for piping. Arrays of scalars are accepted.
-3. `--env-prefix TASK_` to absorb any environment variables matching the prefix (e.g. `TASK_TICKET=ENG-4712` becomes variable `ticket`).
-
-For named template renders, optional user-template `template.json` `input_defaults` fill in behind those three sources. Frontmatter defaults fill in behind `input_defaults`. `--strict` turns any referenced-but-undeclared variable into a hard error. `--unknown-var-mode error|warn|ignore` controls what happens to caller-provided variables the template does not reference.
-
----
-
-## Authoring reference
-
-### Frontmatter fields
-
-| Field | Type | Purpose |
-|-------|------|---------|
-| `required_variables` | list of strings | Variables the caller must supply; render fails if any are missing. |
-| `defaults` | map of scalar values or arrays of scalars | Fallback values used when the caller does not provide a value. |
-| `metadata` | map of arbitrary YAML | Descriptive data; preserved by the renderer but does not affect output. |
-
-Any other frontmatter field is preserved as metadata.
-
-### Include syntax
-
-- Directive: a line of the form `@<path>` (for example,
-  `@<_includes/house-style.md>`).
-- Resolution order: first relative to the including file, then relative to the workspace root.
-- Nested includes are supported. Cycles and depth overruns fail with a diagnostic.
-- All resolved paths are confined to the workspace root. Paths that escape via `..` are rejected.
-- Included-file frontmatter participates in validation: its `required_variables` merge upward, and its `defaults` apply unless overridden.
-
-### Variable precedence
-
-From highest to lowest:
-
-1. `--var key=value` and entries loaded via `--var-file`.
-2. Environment-derived variables via `--env-prefix PREFIX_`.
-3. User-template `template.json` `input_defaults` for `sc-compose templates <name>`.
-4. Parent-file frontmatter defaults.
-5. Included-file frontmatter defaults, in include order.
-
-For full semantics (including diagnostic codes, exit codes, and JSON schemas), see `docs/requirements.md`.
-
----
-
-## CLI reference
-
-Most-used flags:
-
-| Flag | Purpose |
-|------|---------|
-| `--mode <file\|profile>` | Template lookup mode (default: `file`). |
-| `--kind <agent\|command\|skill>` | Profile kind in profile mode (default: `agent`). |
-| `--agent <name>` | Profile name in profile mode. |
-| `--runtime <claude\|codex\|gemini\|opencode>` | Runtime selector; controls the search chain. |
-| `--file <path>` | Template path in file mode. |
-| `--var key=value` | Input variable; repeatable. Values are passed as strings. |
-| `--var-file <path>` | JSON or YAML variable file (`-` reads stdin). Arrays of scalars accepted. |
-| `--env-prefix <PREFIX_>` | Absorb env vars matching the prefix. |
-| `--guidance <text>` / `--guidance-file <path>` | Append a guidance block after the rendered profile body. |
-| `--prompt <text>` / `--prompt-file <path>` | Append a user prompt block after the guidance block. |
-| `--strict` | Fail on undeclared referenced variables. |
-| `--unknown-var-mode <error\|warn\|ignore>` | Handling of extra caller variables (default: `ignore`). |
-| `--output <path>` | Write rendered output to a file (`render` only). |
-| `--dry-run` | Report what would be rendered or written without modifying files. |
-| `--json` | Machine-readable output with diagnostics envelope. |
-
-Run `sc-compose <command> --help` for the full flag surface, or see `docs/requirements.md` for the normative specification.
-
-Publishing to crates.io is tracked in `docs/publishing.md`.
+Claude is the universal fallback because it is the most common author target in
+practice.
 
 ---
 
 ## Contributing
 
-`main` is protected. Create feature branches from `develop` and follow `docs/git-workflows.md` for branching and review rules. Adhere to the Pragmatic Rust Guidelines for code style.
+`main` is protected. Create feature branches from `develop` and follow
+[docs/git-workflows.md](docs/git-workflows.md) for branching and review rules.
+Adhere to the Pragmatic Rust Guidelines for code style.
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [LICENSE](LICENSE).

@@ -2,7 +2,9 @@ pub(crate) mod compose;
 pub(crate) mod dispatch;
 pub(crate) mod examples;
 pub(crate) mod reports;
+pub(crate) mod template_init;
 pub(crate) mod templates;
+pub(crate) mod verify;
 pub(crate) mod workspace;
 
 use std::path::PathBuf;

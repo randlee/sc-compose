@@ -1,15 +1,23 @@
 {
   "review": {
     "phase": "D",
-    "reviewed_commit": "96c3ceb",
+    "reviewed_commit": "6b4c4b2",
     "reviewer": "critical-plan-reviewer",
-    "sprint_count": 4,
-    "overall_assessment": "PASS — prior blocking and important findings resolved in the current follow-up plan update"
+    "sprint_count": 8,
+    "overall_assessment": "PASS — point-in-time phase-ending assessment at reviewed_commit 6b4c4b2; later integrate/phase-d fixes from PRs #141, #143, and #144 plus ADR-0010 are not reflected in this snapshot"
   },
   "sprint_scores": [
     {
       "sprint": "D.1",
       "file": "docs/phase-D/sprint-d-1-library-foundation.md",
+      "production_ready": true,
+      "score": "PASS",
+      "blocking_findings": [],
+      "important_findings": []
+    },
+    {
+      "sprint": "D.1-py",
+      "file": "docs/phase-D/sprint-d-1-py-bindings.md",
       "production_ready": true,
       "score": "PASS",
       "blocking_findings": [],
@@ -24,8 +32,24 @@
       "important_findings": []
     },
     {
+      "sprint": "D.2-py",
+      "file": "docs/phase-D/sprint-d-2-py-bindings.md",
+      "production_ready": true,
+      "score": "PASS",
+      "blocking_findings": [],
+      "important_findings": []
+    },
+    {
       "sprint": "D.3",
       "file": "docs/phase-D/sprint-d-3-cli-surface.md",
+      "production_ready": true,
+      "score": "PASS",
+      "blocking_findings": [],
+      "important_findings": []
+    },
+    {
+      "sprint": "D.3-py",
+      "file": "docs/phase-D/sprint-d-3-py-bindings.md",
       "production_ready": true,
       "score": "PASS",
       "blocking_findings": [],
@@ -38,46 +62,54 @@
       "score": "PASS",
       "blocking_findings": [],
       "important_findings": []
+    },
+    {
+      "sprint": "D.4-py",
+      "file": "docs/phase-D/sprint-d-4-py-bindings.md",
+      "production_ready": true,
+      "score": "PASS",
+      "blocking_findings": [],
+      "important_findings": []
     }
   ],
   "findings": [],
   "minor_wording": [],
   "compliance_checks": {
-    "sprint_numbering_contiguous": {
+    "sprint_pairing_complete": {
       "status": "PASS",
-      "detail": "Sprints D.1, D.2, D.3, D.4 are contiguous with no gaps."
+      "detail": "Rust sprints D.1-D.4 and tandem Python sprints D.1-py-D.4-py are all present and complete."
     },
     "filenames_kebab_case": {
       "status": "PASS",
-      "detail": "All sprint filenames follow sprint-d-#-<description>.md kebab-case convention."
+      "detail": "All eight sprint filenames follow the sprint-d-#-<description>.md / sprint-d-#-py-<description>.md kebab-case convention."
     },
     "docs_only_sprints_flagged": {
       "status": "PASS",
-      "detail": "All four sprints are implementation sprints with code deliverables. No docs-only sprints detected."
+      "detail": "All eight sprints are implementation sprints with code deliverables. No docs-only sprints detected."
     },
     "required_validation_present": {
       "status": "PASS",
-      "detail": "All four sprints include cargo fmt, cargo clippy, cargo test --workspace, and git diff --check."
+      "detail": "All eight sprints include the required Rust/Python validation set or inherit it through their sprint-specific acceptance criteria."
     },
     "acceptance_criteria_present": {
       "status": "PASS",
-      "detail": "All four sprints have structured AC sections with per-deliverable criteria."
+      "detail": "All eight sprints have structured acceptance criteria with per-deliverable closure conditions."
     },
     "non_closure_sections_present": {
       "status": "PASS",
-      "detail": "All four sprints have explicit 'This Sprint Does Not Close' sections."
+      "detail": "All eight sprints have explicit scope-boundary or 'This Sprint Does Not Close' sections."
     },
     "code_samples_present": {
       "status": "PASS",
-      "detail": "All four sprints include code samples for key types and functions."
+      "detail": "All eight sprints include code samples or concrete API signatures for key types and functions."
     },
     "adr_coverage": {
       "status": "PASS",
-      "detail": "The multi-pass design decisions are covered by ADR-0002 through ADR-0008 and linked from the Phase D README."
+      "detail": "At reviewed_commit 6b4c4b2, the multi-pass design decisions were covered by ADR-0002 through ADR-0009 and linked from the Phase D README. Later ADR-0010 coverage for Renderer::with_delimiters fallibility landed after this snapshot."
     },
     "architecture_alignment": {
       "status": "PASS",
-      "detail": "Architecture.md now includes the Phase D module additions, multi-pass ComposePolicy and ParsedTemplate shapes, template-init output contract, and the observer/event surface expected by the plan."
+      "detail": "Architecture.md and the Phase D README align on the landed multi-pass compose loop, verify boundary, template-init behavior, and tandem Python parity surface."
     }
   }
 }

@@ -1,9 +1,10 @@
 ---
 id: D.1
 title: Multi-Pass Library Foundation
-status: planned
+status: complete
 branch: sprint/d-1-library-foundation
-target: develop
+target: integrate/phase-d
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/d-1-library-foundation
 ---
 
 # Sprint D.1 — Multi-Pass Library Foundation
@@ -35,7 +36,7 @@ backward compat is verified but multi-pass composition (GAP-3) is deferred to
 - `crates/sc-composer/src/frontmatter.rs` — stacked header parsing, `ParsedTemplate` type change
 - `crates/sc-composer/src/validation.rs` — brace-count-aware `discover_tokens`, `next_delimiter`
 - `crates/sc-composer/src/types.rs` — `PassConfig` struct, `ComposePolicy` extension
-- `crates/sc-composer/src/observer.rs` — add `on_pass_start()`, `on_pass_end()` trait methods
+- `crates/sc-composer/src/observer.rs` — add `on_pass_start()`, `on_pass_end()`, `on_verify_start()`, and `on_verify_end()` trait methods
 - `crates/sc-composer/src/lib.rs` — re-exports
 - `crates/sc-composer/Cargo.toml` — no dependency changes expected
 - `docs/phase-D/sprint-d-1-library-foundation.md` — this document

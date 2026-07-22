@@ -61,35 +61,21 @@ The only committed seam is:
 impl Renderer {
     /// Create a renderer with non-default block/variable delimiters.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if `open` or `close` are not valid delimiter tokens accepted
-    /// by the underlying template engine. This narrow internal seam is
-    /// infallible-by-signature and does not surface a `RenderError`; callers
-    /// must pass validated delimiter tokens.
-    #[must_use]
-    pub fn with_delimiters(open: &str, close: &str) -> Self {
-        Self::with_options(|env| {
-            env.set_syntax(
-                minijinja::syntax::SyntaxConfig::builder()
-                    .variable_delimiters(open, close)
-                    .build()
-                    .expect("valid delimiter configuration"),
-            );
-        })
+    /// Returns `RenderError` if `open` or `close` are not valid delimiter
+    /// tokens accepted by the underlying template engine.
+    pub fn with_delimiters(open: &str, close: &str) -> Result<Self, RenderError> {
+        // ...
     }
 }
 ```
 
 `with_options` itself stays `pub(crate)`. `with_delimiters` is the only public
-customization entry point. Unlike the rest of this sprint's public
-constructors, `with_delimiters` does not raise `ScValidationError` or
-`ScConfigError` on malformed delimiter tokens — invalid tokens currently
-panic. This is an accepted narrow exception to the
-"constructors validate and raise ... rather than accepting malformed values
-silently" contract stated in
-[Wrapper Class Code Samples](#wrapper-class-code-samples), scoped to this one
-internal engine-configuration seam.
+customization entry point. Invalid delimiter tokens are now reported as
+`RenderError`/`ScRenderError` rather than panicking, which keeps the Rust and
+Python adapter surfaces aligned with the rest of the constructor-validation
+contract described in [Wrapper Class Code Samples](#wrapper-class-code-samples).
 
 ## Deliverables
 
@@ -117,7 +103,7 @@ C.2 commits exactly these deliverables:
     `[workspace.dependencies]` rather than through per-crate `[features]`
     tables, and `minijinja::syntax::SyntaxConfig` is gated behind that
     minijinja `custom_syntax` feature
-  - add `Renderer::with_delimiters(open: &str, close: &str) -> Self` to
+  - add `Renderer::with_delimiters(open: &str, close: &str) -> Result<Self, RenderError>` to
     `sc-composer`'s public API per [Renderer Seam Decision](#renderer-seam-decision)
     and wrap the reusable `Renderer` class for Python, including constructor,
     render helpers, and delimiter customization
@@ -134,8 +120,8 @@ C.2 commits exactly these deliverables:
 - `D6`
   - update `docs/architecture.md` so the normative architecture baseline does
     not drift from the newly shipped `sc-composer` public surface: add
-    `Renderer::with_delimiters(open: &str, close: &str) -> Self` to the
-    Public API Shape section (§8) and its `Renderer` entry in the API
+    `Renderer::with_delimiters(open: &str, close: &str) -> Result<Self, RenderError>`
+    to the Public API Shape section (§8) and its `Renderer` entry in the API
     Ownership Matrix (§8.1), and document `discover_tokens` as a public
     `validation` module function in the Module Architecture section (§4)
 
@@ -462,7 +448,7 @@ This sprint does not include:
     [`ResolverPolicy`](#resolverpolicy): no public constructor, no
     Python-side extension of resolution behavior
 - `AC3` for `D3`
-  - `sc-composer` exposes `Renderer::with_delimiters(open: &str, close: &str) -> Self`
+  - `sc-composer` exposes `Renderer::with_delimiters(open: &str, close: &str) -> Result<Self, RenderError>`
     as its only public renderer-customization seam
   - `minijinja::Environment` does not appear in any public signature in
     `crates/sc-composer`
@@ -482,7 +468,7 @@ This sprint does not include:
     pipeline
 - `AC6` for `D6`
   - `docs/architecture.md` §8 (Public API Shape) lists
-    `Renderer::with_delimiters(open: &str, close: &str) -> Self`
+    `Renderer::with_delimiters(open: &str, close: &str) -> Result<Self, RenderError>`
   - `docs/architecture.md` §8.1 (API Ownership Matrix) reflects the
     `Renderer` row's expanded seam
   - `docs/architecture.md` §4 (Module Architecture) documents
