@@ -1,0 +1,19 @@
+repo:
+  name: sc-compose
+  description: "Synaptic Canvas composition engine — Rust workspace with CLI and composer crate"
+
+modules:
+  - crates/sc-compose
+  - crates/sc-composer
+
+annotated:
+  - path: bindings/python
+    label: "Maturin FFI bindings — unreachable to Rust call graph"
+  - path: prototype
+    label: "Product management prototypes — experimental, not production"
+  - path: scripts
+    label: "Standalone utility scripts"
+
+diagrams:
+  - type: crate-dependency
+    description: "Crate dependency graph: sc-compose CLI ↔ sc-composer engine"
