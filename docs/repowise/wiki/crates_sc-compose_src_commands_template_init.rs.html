@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/commands/template_init.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/commands/template_init.rs</h1>
+<p>I’ll verify the repository’s documentation protocol and relevant procedural context, then produce the requested file-level wiki page.</p>
+<h2>Overview</h2>
+<p><code>template_init.rs</code> is the CLI-layer command adapter for template initialization: it consumes parsed <code>template-init</code>/<code>frontmatter-init</code> arguments and template files, then produces frontmatter-prefixed templates with literal values replaced by pass-specific MiniJinja variable tokens.</p>
+<p>It exposes the command handlers dispatched by <code>commands::dispatch</code> and delegates document parsing and result types to <code>sc-composer</code>. <code>frontmatter-init</code> uses the library’s existing initializer, while <code>template-init</code> implements multi-pass initialization locally: it validates pass-group input, rewrites matching literals, builds YAML frontmatter, optionally writes the result, and formats CLI or JSON output.</p>
+<p>This is a high-activity, high-complexity hotspot. Changes to replacement ordering, overlap detection, frontmatter shape, error codes, or dry-run/JSON behavior can affect both template correctness and CLI contract compatibility.</p>
+<h2>Public API</h2>
+<ul>
+<li><code>run_frontmatter_init(args: &amp;FrontmatterInitArgs) -&gt; Result&lt;i32, CommandError&gt;</code></li>
+<li>CLI entry point for <code>frontmatter-init</code>.</li>
+<li>Calls <code>sc_composer::frontmatter_init</code>.</li>
+<li>
+<p>In dry-run mode, prints generated frontmatter; with <code>--json</code>, emits an output envelope containing affected path, change state, and discovered variables.</p>
+</li>
+<li>
+<p><code>run_template_init(args: &amp;TemplateInitArgs) -&gt; Result&lt;i32, CommandError&gt;</code></p>
+</li>
+<li>CLI entry point for <code>template-init</code>.</li>
+<li>Reads grouped <code>--pass N</code> and <code>--var key=value</code> inputs through <code>parse_pass_inputs</code>.</li>
+<li>Validates variable names, normalizes pass <code>0</code> to the default pass, invokes file initialization, and selects human-readable, dry-run, or JSON output.</li>
+</ul>
+<p>Internal implementation types:</p>
+<ul>
+<li><code>InitPass</code></li>
+<li>
+<p>Represents one rendering pass and its <code>(VariableName, literal_value)</code> replacements.</p>
+</li>
+<li>
+<p><code>PlannedReplacement</code></p>
+</li>
+<li>Stores a replacement’s pass, variable name, source literal, and brace count.</li>
+<li>
+<p><code>render_token</code> creates <code>{{ name }}</code>-style tokens; pass <code>N</code> uses <code>N + 1</code> braces on each side.</p>
+</li>
+<li>
+<p><code>MultiPassHeader</code></p>
+</li>
+<li>YAML serialization model for a multi-pass frontmatter block, containing <code>pass</code>, <code>required_variables</code>, and literal <code>defaults</code>.</li>
+</ul>
+<p>Core helpers:</p>
+<ul>
+<li><code>template_init_file</code></li>
+<li>Canonicalizes and reads the target file, rejects existing frontmatter unless <code>--force</code> is supplied, applies substitutions, prepends frontmatter, and conditionally writes the result.</li>
+<li>
+<p>Returns <code>FrontmatterInitResult</code>, including generated text, discovered variable names, and <code>changed</code>/<code>would_change</code> status.</p>
+</li>
+<li>
+<p><code>plan_replacements</code></p>
+</li>
+<li>
+<p>Converts pass variables into replacements and sorts them by descending literal length, then descending pass number.</p>
+</li>
+<li>
+<p><code>apply_replacements</code></p>
+</li>
+<li>
+<p>Verifies every requested literal exists, identifies non-overlapping source spans, and rewrites the original text once.</p>
+</li>
+<li>
+<p><code>build_stacked_frontmatter</code></p>
+</li>
+<li>Produces either the legacy single-pass header or one YAML document per initialization pass.</li>
+</ul>
+<h2>Dependencies</h2>
+<table>
+<thead>
+<tr>
+<th>Dependency</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>crate::cli</code></td>
+<td>Supplies <code>FrontmatterInitArgs</code>, <code>TemplateInitArgs</code>, and grouped-pass parsing.</td>
+</tr>
+<tr>
+<td><code>crate::commands::dispatch</code></td>
+<td>Calls the public command handlers as part of CLI command dispatch.</td>
+</tr>
+<tr>
+<td><code>crate::path_utils::to_forward_slash</code></td>
+<td>Normalizes output paths for portable JSON output.</td>
+</tr>
+<tr>
+<td><code>crate::{CommandError, print_json}</code></td>
+<td>Provides structured CLI errors and JSON-envelope output.</td>
+</tr>
+<tr>
+<td><code>sc_composer</code></td>
+<td>Parses template documents, initializes legacy frontmatter, defines validated variable names, results, diagnostics, and recovery hints.</td>
+</tr>
+<tr>
+<td><code>sc_composer::types::default_pass_number</code></td>
+<td>Defines the default rendering pass used when the supplied pass is zero.</td>
+</tr>
+<tr>
+<td><code>serde_yaml</code> / <code>serde</code></td>
+<td>Serializes multi-pass header data into YAML.</td>
+</tr>
+<tr>
+<td><code>std::fs</code> / <code>std::path</code></td>
+<td>Canonicalizes, reads, and conditionally rewrites template files.</td>
+</tr>
+</tbody>
+</table>
+<p>The module deliberately keeps CLI concerns here—argument interpretation, filesystem mutation, output formatting, and <code>CommandError</code> mapping—while relying on <code>sc-composer</code> for document parsing and shared domain types.</p>
+<h2>Usage Notes</h2>
+<p>A single-pass initialization replaces supplied literals and preserves the legacy frontmatter format:</p>
+<pre><code class="language-sh">sc-compose template-init agent.md \
+  --pass 1 \
+  --var task=test \
+  --var team=wyvern
+</code></pre>
+<p>For a file containing <code>deploy test for wyvern</code>, the body becomes:</p>
+<pre><code class="language-jinja">deploy {{ task }} for {{ team }}
+</code></pre>
+<p>The generated header uses the compatibility shape:</p>
+<pre><code class="language-yaml">---
+required_variables:
+  - task
+  - team
+defaults: {}
+metadata: {}
+---
+</code></pre>
+<p>Multi-pass initialization emits one frontmatter document per pass and assigns brace depth from the pass number:</p>
+<pre><code class="language-sh">sc-compose template-init agent.md \
+  --pass 2 --var worktree_path=/home/wyvern/worktrees/wyvern \
+  --pass 1 --var team=wyvern
+</code></pre>
+<p>This produces a pass-2 token such as <code>{{{ worktree_path }}}</code> and a pass-1 token such as <code>{{ team }}</code>. Multi-pass headers include each pass’s required variables and literal defaults.</p>
+<p>Important behavior and safeguards:</p>
+<ul>
+<li>At least one <code>--pass N</code> group is required. Each <code>--var</code> must belong to a preceding pass group.</li>
+<li>Variable names are validated by <code>VariableName</code>; allowed characters are ASCII letters, digits, <code>.</code>, <code>_</code>, and <code>-</code>.</li>
+<li>Pass <code>0</code> is normalized to the configured default pass number.</li>
+<li>Existing frontmatter is rejected unless <code>--force</code> is given. <code>--force</code> permits rewriting the file’s header, but substitutions still operate over the original complete content.</li>
+<li>Every specified literal must appear in the source. Missing values fail with <code>ErrConfigParse</code>.</li>
+<li>Literal replacements are planned longest-first. This prevents a short value such as <code>wyvern</code> from being substituted inside a longer value such as <code>/home/wyvern/worktrees/wyvern</code>.</li>
+<li>Replacements use source spans calculated before rewriting. Inserted variable tokens are therefore never scanned and modified by later replacements.</li>
+<li>Duplicate or overlapping literal assignments that cannot receive distinct source spans fail rather than silently assigning the same text to multiple variables.</li>
+<li><code>--dry-run</code> does not write the file; it prints generated template text or, with <code>--json</code>, reports <code>would_affect</code> and <code>would_change</code>.</li>
+<li>JSON output normalizes path separators and uses the project’s standard envelope format.</li>
+<li>YAML serialization failures are converted to structured command errors instead of panicking.</li>
+</ul>
+<p>The test suite covers multi-pass output, legacy single-pass compatibility, longest-first substitution, duplicate-literal rejection, inserted-token safety, missing-value diagnostics, default-pass normalization, and structured serialization failures.</p>
+</body>
+</html>

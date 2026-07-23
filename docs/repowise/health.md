@@ -179,8 +179,8 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 | Finding Count | 9 |
 | Reason | 6 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects |
 
-- **extract_helper**: Extract code at  → `suggested extract()`
-- **extract_helper**: Extract code at  → `suggested extract()`
+- **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/reporting/output.rs', 'line_start': 115, 'line_end': 122}, {'file': 'crates/sc-compose/src/reporting/
+- **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/reporting/output.rs', 'line_start': 184, 'line_end': 191}, {'file': 'crates/sc-compose/src/reporting/
 
 ### #3: `crates/sc-compose/src/render_request.rs` (4.0/10, 204 NLOC)
 
@@ -193,7 +193,7 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 | Finding Count | 9 |
 | Reason | Hotspot with no paired test file and no coverage data — 4 dependents |
 
-- **extract_helper**: Extract code at  → `suggested extract()`
+- **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/render_request.rs', 'line_start': 146, 'line_end': 153}, {'file': 'crates/sc-compose/src/render_reque
 
 ### #4: `crates/sc-compose/src/reporting/mod.rs` (8.1/10, 13 NLOC)
 
@@ -217,8 +217,8 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 | Finding Count | 6 |
 | Reason | 12 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects |
 
-- **extract_helper**: Extract code at  → `suggested extract()`
-- **extract_helper**: Extract code at  → `suggested extract()`
+- **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/reporting/catalog.rs', 'line_start': 138, 'line_end': 162}, {'file': 'crates/sc-compose/src/reporting
+- **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/reporting/catalog.rs', 'line_start': 33, 'line_end': 40}, {'file': 'crates/sc-compose/src/reporting/i
 
 ### #6: `crates/sc-compose/src/main.rs` (6.5/10, 72 NLOC)
 
@@ -264,7 +264,7 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 | Finding Count | 2 |
 | Reason | 3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects |
 
-- **extract_helper**: Extract code at  → `suggested extract()`
+- **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/commands/examples.rs', 'line_start': 16, 'line_end': 28}, {'file': 'crates/sc-compose/src/commands/te
 
 ### #10: `prototype/multipass/parser.py` (6.9/10, 103 NLOC)
 
@@ -277,8 +277,8 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 | Finding Count | 3 |
 | Reason | Hotspot with no paired test file and no coverage data — 6 dependents |
 
-- **extract_method**: Extract method at 'span': {'start': 117, 'end': 128}
-- **extract_method**: Extract method at 'span': {'start': 71, 'end': 77}
+- **extract_method**: {'span': {'start': 117, 'end': 128}, 'params': ['data', 'v'], 'returns': ['defaults'], 'suggested_name': None}
+- **extract_method**: {'span': {'start': 71, 'end': 77}, 'params': ['cursor', 'headers', 'text'], 'returns': ['body'], 'suggested_name': None}
 
 ## Dead Code Analysis
 

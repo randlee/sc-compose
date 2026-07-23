@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/reporting/path.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/reporting/path.rs</h1>
+<h2>Overview</h2>
+<p><code>resolve_relative_path</code> is an Application-layer path resolver that consumes a workspace root and report path, producing a canonical absolute <code>PathBuf</code> for reporting commands. It resolves relative paths against the workspace root, leaves absolute inputs rooted as provided, and converts filesystem-resolution failures into configuration-parse usage errors.</p>
+<h2>Public API</h2>
+<h3><code>resolve_relative_path</code></h3>
+<pre><code class="language-rust">pub(crate) fn resolve_relative_path(
+    workspace_root: &amp;Path,
+    path: &amp;Path,
+) -&gt; Result&lt;PathBuf, CommandError&gt;
+</code></pre>
+<p>Returns the canonical filesystem path for <code>path</code>.</p>
+<ul>
+<li>Relative paths are joined to <code>workspace_root</code>.</li>
+<li>Absolute paths are used directly.</li>
+<li>The resulting path is canonicalized, so it must exist and the returned value has normalized filesystem components.</li>
+<li>Canonicalization failures become <code>CommandError::usage_with_code</code> errors with <code>DiagnosticCode::ErrConfigParse</code> and context identifying the path that could not be resolved.</li>
+</ul>
+<p>The function is crate-visible and is used by <code>reporting::init::run_smoke_report</code> and <code>reporting::spec::run_render_spec_report</code>.</p>
+<h2>Dependencies</h2>
+<ul>
+<li><code>std::path::{Path, PathBuf}</code> supplies the input and resolved-path types.</li>
+<li><code>std::fs::canonicalize</code> validates and canonicalizes the selected path.</li>
+<li><code>anyhow::anyhow</code> adds contextual error information.</li>
+<li><code>sc_composer::DiagnosticCode</code> classifies failures as <code>ErrConfigParse</code>.</li>
+<li><code>crate::CommandError</code> adapts resolution failures into CLI/application usage errors.</li>
+</ul>
+<p>The test module uses temporary directories and files to verify both relative and absolute input behavior.</p>
+<h2>Usage Notes</h2>
+<p>Reporting workflows should pass the workspace root together with a user-supplied report path before reading report inputs. This ensures relative configuration paths are interpreted consistently from the workspace rather than the process working directory.</p>
+<p>Because canonicalization is performed, callers cannot use this helper for paths that have not been created yet. Missing paths, inaccessible paths, and invalid path components produce a configuration-parse usage error.</p>
+<p>Tests cover:</p>
+<ul>
+<li>Resolving <code>reports/smoke/sample.txt</code> relative to a temporary workspace root.</li>
+<li>Preserving an already canonical absolute path.</li>
+</ul>
+</body>
+</html>

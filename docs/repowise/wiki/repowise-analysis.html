@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Repository Overview: repowise-analysis</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Repository Overview: repowise-analysis</h1>
+<p>I’ll inspect the repository’s stated architecture and entry points so the overview reflects the actual codebase, then provide the requested Markdown page.</p>
+<h2>Project Summary</h2>
+<p>sc-compose consumes Jinja2-compatible template and profile files, YAML frontmatter, shared include fragments, and caller-supplied variables; it resolves and validates them through a deterministic composition pipeline and produces rendered text, structured diagnostics, verification results, report artifacts, and Python-callable results.</p>
+<p>This Rust workspace provides a standalone template-composition toolchain for reusable prompts, configuration files, fixtures, reports, and other text assets. It supports explicit template paths and runtime-aware profile lookup, recursive <code>@&lt;path&gt;</code> includes, required-variable validation, multi-pass rendering, drift verification, and JSON-capable CLI output.</p>
+<p>The repository ships the same composition semantics through three delivery surfaces:</p>
+<ul>
+<li><code>sc-composer</code>: the reusable Rust library and semantic source of truth.</li>
+<li><code>sc-compose</code>: the command-line application for local, scripted, and CI workflows.</li>
+<li><code>bindings/python</code>: PyO3/maturin bindings exposing the library to Python 3.11+.</li>
+</ul>
+<p>The core is intentionally independent of orchestration runtimes: integrations construct composition requests outside this repository rather than adding runtime-specific dependencies to the renderer.</p>
+<h2>Technology Stack</h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Technologies</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Core implementation</td>
+<td>Rust 2024 edition, workspace MSRV Rust 1.94.1</td>
+</tr>
+<tr>
+<td>Template engine</td>
+<td>MiniJinja with custom syntax support</td>
+</tr>
+<tr>
+<td>Data formats</td>
+<td>YAML frontmatter, JSON input/output, TOML configuration</td>
+</tr>
+<tr>
+<td>CLI</td>
+<td>Clap, Anyhow</td>
+</tr>
+<tr>
+<td>Serialization</td>
+<td>Serde, <code>serde_json</code>, <code>serde_yaml</code></td>
+</tr>
+<tr>
+<td>Errors and diagnostics</td>
+<td>Thiserror plus crate-owned stable diagnostic codes</td>
+</tr>
+<tr>
+<td>Python integration</td>
+<td>PyO3, maturin, typed Python package</td>
+</tr>
+<tr>
+<td>Observability</td>
+<td><code>sc-observability</code> integration at the CLI boundary</td>
+</tr>
+<tr>
+<td>Testing and quality</td>
+<td>Cargo unit/integration tests, Python smoke tests, Clippy, rustfmt</td>
+</tr>
+<tr>
+<td>Documentation</td>
+<td>Markdown product, architecture, requirements, release, and workflow documentation</td>
+</tr>
+</tbody>
+</table>
+<h2>Entry Points</h2>
+<table>
+<thead>
+<tr>
+<th>Entry point</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>crates/sc-compose/src/main.rs</code></td>
+<td>CLI process bootstrap: parses arguments, initializes logging/observers, dispatches commands, formats errors, and exits with stable codes.</td>
+</tr>
+<tr>
+<td><code>crates/sc-compose/src/reporting/index.rs</code></td>
+<td>Builds and verifies report indexes from declarative catalogs, generated metadata, and produced artifacts.</td>
+</tr>
+<tr>
+<td><code>crates/sc-composer/src/lib.rs</code></td>
+<td>Public Rust API surface for composition, rendering, resolution, validation, includes, verification, diagnostics, and observer interfaces.</td>
+</tr>
+<tr>
+<td><code>bindings/python/src/lib.rs</code></td>
+<td>PyO3 native-module initializer that registers Python-visible functions, types, enums, and errors.</td>
+</tr>
+<tr>
+<td><code>bindings/python/python/sc_compose/__init__.py</code></td>
+<td>Python package façade that re-exports the native extension API.</td>
+</tr>
+<tr>
+<td><code>docs/index.md</code></td>
+<td>Documentation navigation entry point for users and maintainers.</td>
+</tr>
+</tbody>
+</table>
+<p>The CLI’s primary command families are <code>render</code>, <code>resolve</code>, <code>validate</code>, <code>verify</code>, workspace/frontmatter initialization, bundled and personal template management, and report lifecycle commands.</p>
+<h2>Architecture</h2>
+<pre><code class="language-text">Template/profile files + variables + policy
+                  │
+                  ▼
+            sc-composer
+ resolve → expand includes → parse frontmatter → validate → render/verify
+                  │
+      ┌───────────┴───────────┐
+      ▼                       ▼
+ sc-compose CLI         Python bindings
+ commands, files,       PyO3 request/result
+ JSON/terminal output   wrappers for Python callers
+      │                       │
+      └───────────┬───────────┘
+                  ▼
+ rendered text, diagnostics, artifacts, verification results
+</code></pre>
+<h3>Core library: <code>sc-composer</code></h3>
+<p><code>sc-composer</code> owns the composition semantics and is designed for direct embedding. Its main pipeline is implemented by <code>compose</code>:</p>
+<ol>
+<li>Resolve either an explicit file or a runtime-aware profile path.</li>
+<li>Expand recursive <code>@&lt;path&gt;</code> includes within the configured workspace root.</li>
+<li>Parse YAML frontmatter and build the variable context.</li>
+<li>Validate declared, discovered, required, missing, and unknown variables.</li>
+<li>Render one or more template passes.</li>
+<li>Assemble optional guidance and user-prompt blocks.</li>
+<li>Return rendered output, resolved-file metadata, variable sources, warnings, or structured errors.</li>
+</ol>
+<p>Key modules separate these responsibilities:</p>
+<ul>
+<li><code>resolver</code>: profile lookup policies and search traces.</li>
+<li><code>include</code>: include expansion, workspace confinement, cycle detection, and depth limits.</li>
+<li><code>frontmatter</code>: typed frontmatter parsing and normalization.</li>
+<li><code>validation</code> and <code>validate</code>: variable discovery, precedence rules, and validation reports.</li>
+<li><code>renderer</code>: MiniJinja-backed one-shot and long-lived rendering APIs.</li>
+<li><code>composer</code>: end-to-end orchestration and multi-pass execution.</li>
+<li><code>verify</code>: rendered-output comparison for drift detection.</li>
+<li><code>diagnostics</code> and <code>error</code>: stable machine-readable diagnostic and error contracts.</li>
+<li><code>observer</code>: library-local lifecycle events for host-provided telemetry without coupling the core to a logging implementation.</li>
+</ul>
+<h3>CLI layer: <code>sc-compose</code></h3>
+<p><code>sc-compose</code> is a thin UX and operational wrapper over <code>sc-composer</code>. It owns argument parsing, command routing, output formatting, exit-code behavior, output-file interactions, template-pack storage, bundled examples, and report workflows.</p>
+<p>Command dispatch delegates composition work to the library while attaching a CLI-owned observer for structured logging. JSON output is wrapped in a consistent envelope so scripts and CI systems can consume diagnostics alongside command payloads.</p>
+<p>The reporting subsystem is a separate CLI-facing workflow: it scaffolds report catalogs, renders specifications, materializes metadata, indexes current artifacts, verifies required evidence, and writes publish manifests for downstream handoff.</p>
+<h3>Python adapter: <code>bindings/python</code></h3>
+<p>The Python package is an adapter, not a second implementation. Its Rust extension converts Python values into <code>sc-composer</code> request and result types, registers Python exceptions and enums, and exposes core functions such as rendering, composition, validation, resolution, include expansion, workspace initialization, and verification.</p>
+<p>The package-level <code>sc_compose</code> module re-exports this native API, allowing Python applications to use the same validation and rendering behavior as the CLI.</p>
+<h3>Dependency boundaries</h3>
+<p>The intended dependency direction is:</p>
+<pre><code class="language-text">sc-compose ───────► sc-composer
+bindings/python ──► sc-composer
+</code></pre>
+<p><code>sc-composer</code> must remain independent of the CLI, Python bindings, observability implementation details, and any external orchestration runtime. This preserves deterministic, reusable composition behavior across command-line, Python, and future embedded hosts.</p>
+</body>
+</html>

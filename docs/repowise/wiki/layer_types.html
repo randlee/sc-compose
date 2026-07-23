@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Layer: Types</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Layer: Types</h1>
+<p>I’ll inspect the Types module and its immediate consumers to ground the architecture page in the actual interfaces and flow.</p>
+<h2>Overview</h2>
+<p>The Types layer is the Python binding’s boundary-model layer, translating Python-facing configuration, requests, and results into validated <code>sc_composer</code> domain values and back into Python objects. It defines the PyO3 classes that make the native composition library usable through a stable, typed Python API, while keeping rendering and orchestration in the Application layer.</p>
+<h2>Key Components</h2>
+<ul>
+<li><code>bindings/python/src/types/mod.rs</code> is the layer’s edge connector. It re-exports all Python wrapper types internally and registers every class on the <code>_native</code> PyO3 module.</li>
+<li><code>policy.rs</code> wraps configuration and identity concepts: <code>VariableName</code>, <code>ProfileName</code>, <code>ConfiningRoot</code>, <code>ResolverPolicy</code>, <code>ComposeMode</code>, <code>ComposePolicy</code>, and <code>PassConfig</code>. Constructors validate Python inputs, normalize path-like values, and convert invalid domain values into Python errors.</li>
+<li><code>request.rs</code> defines input envelopes for native operations. <code>ComposeRequest</code> carries root confinement, composition mode, variable maps, optional guidance and prompts, policy, and runtime; <code>LoadedTemplateRequest</code> and <code>NamedTemplateAsset</code> support in-memory template rendering.</li>
+<li><code>results.rs</code> defines read-only Python views over <code>sc_composer</code> outputs, including resolution, composition, validation, parsing, expansion, initialization, verification, diagnostics, and rendering results. It also exposes the standalone <code>Renderer</code> wrapper.</li>
+</ul>
+<h2>Data Flow</h2>
+<ol>
+<li>Python callers construct Types-layer objects such as <code>ComposeMode</code>, <code>ComposePolicy</code>, and <code>ComposeRequest</code>.</li>
+<li>Constructors and conversion helpers validate names, paths, JSON-compatible values, variable maps, pass metadata, runtime kinds, and confinement roots before storing native <code>sc_composer</code> values in each wrapper’s <code>inner</code> field.</li>
+<li>The Application layer (<code>functions.rs</code>) accepts these typed request wrappers and calls <code>sc_composer</code> operations such as <code>compose</code>, <code>validate</code>, <code>resolve_template_path</code>, <code>expand_includes</code>, <code>render_loaded_template</code>, and <code>verify</code>.</li>
+<li>Native results are wrapped as Types-layer result classes before crossing back into Python. Getters expose paths as strings, diagnostics as <code>Diagnostic</code> objects, variable provenance as string maps, and JSON-like data as Python dictionaries.</li>
+<li>Errors encountered during input conversion or native execution are mapped by the surrounding conversion and error facilities into Python exceptions rather than leaking Rust-specific error types.</li>
+</ol>
+<h2>Architecture Notes</h2>
+<p>The layer depends on the Application layer’s shared conversion, enum, and error adapters, while the Application layer depends on Types for the request and result objects used by exported functions. This bidirectional relationship is intentional at the binding boundary: Types owns API shapes, while Application owns operation dispatch.</p>
+<p><code>mod.rs</code> is the public registration seam. Adding a new Python wrapper requires both implementing its PyO3 class and registering it there; otherwise the type remains unavailable from <code>_native</code>.</p>
+<p>Types wrappers generally clone native values at API boundaries. This keeps Python objects independent of temporary Rust references and presents immutable, getter-oriented result objects to callers.</p>
+<p>The layer preserves compatibility where native behavior has evolved. For example, <code>ExpandedTemplate.frontmatters</code> retains a legacy single-frontmatter view, while <code>frontmatter_passes</code> exposes the full multi-pass representation.</p>
+</body>
+</html>

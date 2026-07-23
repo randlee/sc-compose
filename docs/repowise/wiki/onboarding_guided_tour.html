@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Guided Tour</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Guided Tour</h1>
+<h2>How to take this tour</h2>
+<p>This is an ordered walk from the repository’s entry points inward, descending from CLI and application surfaces toward shared types, tooling, and verification. Each stop builds on the earlier ones so you can follow how inputs become typed operations and observable results.</p>
+<h2>The tour</h2>
+<h3>Step 1: README.md</h3>
+<p>The overview introduces the repository’s end-to-end shape before you encounter individual implementation boundaries. Use it as the map for the entry points and layers explored in the remaining steps; begin at <code>README.md</code>.</p>
+<h3>Step 2: main.rs</h3>
+<p>The orchestrator is the CLI application entry point: it parses command-line input, initializes observability, dispatches commands, selects human or JSON output, and exits with the selected code. With the repository map from Step 1 in mind, this is the first concrete place to trace a user invocation into the application; open <code>crates/sc-compose/src/main.rs</code>.</p>
+<h3>Step 3: lib.rs</h3>
+<p>The public library entry point exposes composition APIs for rendering, resolution, validation, verification, diagnostics, and workspace initialization. Where Step 2 controls a process-level CLI run, this file provides the reusable composition surface that callers—including other bindings—can invoke directly; inspect <code>crates/sc-composer/src/lib.rs</code>.</p>
+<h3>Step 4: cli.rs</h3>
+<p>The parser converts process arguments into typed <code>Cli</code> command configurations for dispatch and related operations. It supplies the structured command input that the Step 2 orchestrator needs, while its typed configurations form the CLI-side counterpart to the composition APIs introduced in Step 3; continue in <code>crates/sc-compose/src/cli.rs</code>.</p>
+<h3>Step 5: lib.rs</h3>
+<p>The adapter is the Python <code>_native</code> extension-module entry point, building a PyO3 module that exposes <code>sc-composer</code> functions, errors, enums, types, and built-in variable names. It shows a second application edge beside the Rust CLI: instead of Step 4’s process arguments, Python callers reach the public capabilities surfaced in Step 3; visit <code>bindings/python/src/lib.rs</code>.</p>
+<h3>Step 6: diagnostics.rs</h3>
+<p>The diagnostics connector defines stable <code>ERR_*</code>, <code>WARN_*</code>, and <code>INFO_*</code> records plus versioned machine-readable payload envelopes. It gives both the Step 2 CLI flow and the Step 5 Python boundary a common way to communicate structured outcomes across layers; read <code>crates/sc-composer/src/diagnostics.rs</code>.</p>
+<h3>Step 7: path_utils.rs</h3>
+<p>The path-boundary connector validates relative paths and serializes <code>PathBuf</code> values as forward-slash strings for CLI, reporting, and JSON consumers. This centralizes a concern that otherwise would be repeated throughout the Step 4 command configurations and Step 2 output paths; examine <code>crates/sc-compose/src/path_utils.rs</code>.</p>
+<h3>Step 8: types.rs</h3>
+<p>The contract module defines the validated request, policy, trace, diagnostic, and result types shared across <code>sc-composer</code> and cross-layer callers. It is the common vocabulary beneath the public API in Step 3, the diagnostics in Step 6, and the CLI inputs produced in Step 4; open <code>crates/sc-composer/src/types.rs</code>.</p>
+<h3>Step 9: atm-nudge.py</h3>
+<p>The tooling dispatcher resolves an agent’s authoritative tmux pane and produces post-send tmux keystrokes, structured diagnostics, and hook results. After following the runtime-facing Rust and Python edges, this stop marks the shift into Docs &amp; Tooling infrastructure that supports repository workflows; see <code>scripts/atm-nudge.py</code>.</p>
+<h3>Step 10: policy.rs</h3>
+<p>The Python types adapter exposes validated <code>sc_composer</code> policy, mode, naming, confinement, and pass-configuration values as PyO3 classes. It carries the shared contracts from Step 8 across the Python boundary introduced in Step 5, using shared coercion helpers to keep Python-facing values aligned; inspect <code>bindings/python/src/types/policy.rs</code>.</p>
+<h3>Step 11: mod.rs</h3>
+<p>The reports command module parses <code>reports</code> subcommands into typed arguments and re-exports handlers for command dispatch. It is a focused command-family extension of the parsing and dispatch path established by Steps 4 and 2, while also serving as the CLI layer’s dependency anchor; visit <code>crates/sc-compose/src/commands/reports/mod.rs</code>.</p>
+<h3>Step 12: repo_boundaries.rs</h3>
+<p>The boundary test suite verifies repository-level behavior and constraints, with the Python tests living alongside it. It closes the tour by checking the edges you have traced—from the CLI flow in Steps 2 and 4 through the library and Python surfaces in Steps 3 and 5; read <code>crates/sc-compose/tests/repo_boundaries.rs</code>.</p>
+<h2>Where to go next</h2>
+<ul>
+<li>Explore the layer pages to see the CLI → Types → Application → Docs &amp; Tooling dependency spine.</li>
+<li>Follow module pages from the files above for more detailed call and import relationships.</li>
+<li>Use search to trace a type from Step 8 or a diagnostic from Step 6 across its callers.</li>
+</ul>
+</body>
+</html>

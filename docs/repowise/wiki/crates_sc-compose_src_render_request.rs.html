@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/render_request.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/render_request.rs</h1>
+<p>I’ll verify the repository guidance and source details, then produce the requested wiki page.</p>
+<h2>Overview</h2>
+<p><code>render_request.rs</code> is the Application-layer edge connector that translates CLI arguments, template-pack metadata, and input sources into <code>sc_composer::ComposeRequest</code> values consumed by rendering, resolving, validation, verification, examples, and template commands. Because cross-layer callers import it, it forms part of the CLI application’s effective interface to the pure <code>sc-composer</code> library.</p>
+<p>This is a high-activity, high-complexity hotspot. Changes here can alter request semantics, security confinement, input precedence, multi-pass behavior, and diagnostics across several commands.</p>
+<p>The module centralizes conversion from CLI-specific types (<code>CommonArgs</code>, <code>InputArgs</code>, <code>RenderBehaviorArgs</code>, and <code>PassInputArgs</code>) to composer-domain types. It also owns validation that must happen before composition: mode-specific required options, profile-name validation, mutually exclusive text sources, and the single-read constraint for standard input.</p>
+<h2>Public API</h2>
+<p>All exposed functions are <code>pub(crate)</code>, intended for command modules within <code>sc-compose</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Produces</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>build_request</code></td>
+<td><code>ComposeRequest</code></td>
+<td>Builds a normal file- or profile-mode request from common CLI arguments, supplied blocks, and template defaults.</td>
+</tr>
+<tr>
+<td><code>build_multi_pass_request</code></td>
+<td><code>ComposeRequest</code></td>
+<td>Builds a request with per-pass <code>PassConfig</code> defaults and a union of pass inputs.</td>
+</tr>
+<tr>
+<td><code>build_named_request</code></td>
+<td><code>ComposeRequest</code></td>
+<td>Builds a file-mode request from a resolved <code>TemplatePack</code>; runtime is deliberately unset because the pack supplies the template context.</td>
+</tr>
+<tr>
+<td><code>read_block_pair</code></td>
+<td><code>(Option&lt;String&gt;, Option&lt;String&gt;)</code></td>
+<td>Reads optional guidance and prompt blocks.</td>
+</tr>
+<tr>
+<td><code>read_block_pair_with_extra_stdin_reads</code></td>
+<td><code>(Option&lt;String&gt;, Option&lt;String&gt;)</code></td>
+<td>Performs the same read while accounting for another caller that may consume stdin.</td>
+</tr>
+</tbody>
+</table>
+<p><code>build_request</code> and <code>build_multi_pass_request</code> perform the same core assembly:</p>
+<ol>
+<li>Canonicalize the requested root into <code>ConfiningRoot</code>.</li>
+<li>Convert CLI mode and runtime enums into composer equivalents.</li>
+<li>Load direct variables, variable files, and environment-derived variables.</li>
+<li>Attach caller-provided defaults and optional guidance/prompt content.</li>
+<li>Derive <code>ComposePolicy</code> from strictness and unknown-variable flags.</li>
+</ol>
+<p><code>build_multi_pass_request</code> additionally creates one <code>PassConfig</code> per pass. A pass number of <code>0</code> is replaced with the composer’s default pass number. Its <code>vars_input</code> is the merged union of all pass variables, while each pass’s loaded variables are retained as that pass’s defaults.</p>
+<h2>Dependencies</h2>
+<ul>
+<li><code>sc_composer</code> provides the request model and domain validation: <code>ComposeRequest</code>, <code>ComposeMode</code>, <code>ComposePolicy</code>, <code>ConfiningRoot</code>, profile/runtime types, variable types, diagnostics, and recovery hints.</li>
+<li><code>cli</code> provides the CLI-layer argument enums and structs converted by this module.</li>
+<li><code>template_store::TemplatePack</code> supplies a resolved template path, root, and input defaults for named-template execution.</li>
+<li><code>var_file</code> loads or parses structured variable input from files or stdin.</li>
+<li><code>CommandError</code> converts filesystem, parsing, and configuration failures into CLI-facing diagnostics.</li>
+<li><code>anyhow</code> adds contextual error messages, especially for root canonicalization.</li>
+<li>Standard-library I/O and filesystem APIs read stdin, text blocks, and environment variables.</li>
+</ul>
+<p>Primary callers include <code>commands/compose.rs</code> (<code>run_render</code>, <code>run_resolve</code>, and <code>run_validate</code>), <code>commands/verify.rs</code>, plus examples and template command paths. Those callers should treat successful construction as the boundary after which they can invoke the composer without reinterpreting CLI input.</p>
+<h2>Usage Notes</h2>
+<h3>Request construction and mode validation</h3>
+<p><code>compose_mode</code> enforces the CLI contract before constructing a request:</p>
+<ul>
+<li><code>Mode::File</code> requires <code>--file</code>; missing it returns <code>ErrConfigMode</code> with a configuration recovery hint.</li>
+<li><code>Mode::Profile</code> requires either <code>--agent</code> or <code>--agent-type</code>; <code>--agent</code> takes precedence when both are present.</li>
+<li>Profile names are validated through <code>ProfileName::new</code>, so callers should not bypass this module with unchecked strings.</li>
+<li><code>confining_root</code> canonicalizes the root before handing it to the composer. This makes template resolution operate within a validated filesystem boundary rather than a raw path.</li>
+</ul>
+<h3>Variable source precedence</h3>
+<p>For ordinary inputs, inline <code>--var</code> entries are loaded first and each subsequent variable file is extended into the same <code>BTreeMap</code>. Later sources therefore overwrite earlier entries with the same normalized variable name.</p>
+<p>For a pass, inline pass variables are loaded before that pass’s variable files, with the same overwrite behavior. In multi-pass mode, <code>collect_pass_union</code> iterates passes in order; variables from later passes overwrite matching variables from earlier passes in the request-wide union.</p>
+<p>Environment variables are separate in <code>vars_env</code>, rather than merged into file or inline inputs. Only variables whose names start with <code>env_prefix</code> are included. Built-in variable names preserve their case; all other stripped names are lowercased before validation. This distinction is important when diagnosing collisions or deciding which input channel should supply a value.</p>
+<h3>Guidance, prompt, and stdin</h3>
+<p>Guidance and prompt content can come from either an inline argument or a file, but not both for the same block. The module reports <code>ErrConfigParse</code> if <code>--guidance</code> is combined with <code>--guidance-file</code>, or if <code>--prompt</code> is combined with <code>--prompt-file</code>.</p>
+<p><code>-</code> means stdin for variable files, guidance files, and prompt files. Since stdin is a one-shot stream, <code>read_block_pair_with_extra_stdin_reads</code> counts all requested reads and rejects any total above one with <code>CommandError::stdin_double_read()</code>.</p>
+<p>For example, this is valid because only one source reads stdin:</p>
+<pre><code class="language-text">sc-compose render --var-file - --guidance &quot;Review the following&quot;
+</code></pre>
+<p>This is rejected because both sources attempt to consume stdin:</p>
+<pre><code class="language-text">sc-compose render --var-file - --prompt-file -
+</code></pre>
+<p>A caller that already plans to read stdin should use <code>read_block_pair_with_extra_stdin_reads(..., 1)</code> so block selection cannot accidentally consume it again.</p>
+<h3>Error behavior</h3>
+<p>Configuration and input failures are consistently converted to <code>CommandError</code> with diagnostic codes:</p>
+<ul>
+<li>Invalid roots, block reads, environment-derived names, and variable-file reads use <code>ErrConfigParse</code>.</li>
+<li>Missing mode-specific arguments use <code>ErrConfigMode</code>.</li>
+<li>Invalid inline variable names include a recovery hint describing the permitted characters.</li>
+</ul>
+<p>When modifying this hotspot, preserve those mappings and hints: callers and JSON-oriented CLI tests may rely on structured diagnostic behavior, not only message text.</p>
+</body>
+</html>

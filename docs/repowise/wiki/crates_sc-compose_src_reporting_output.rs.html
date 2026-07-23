@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/reporting/output.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/reporting/output.rs</h1>
+<p>I’m using the repository’s memory protocol and team documentation to align this file reference with local conventions before producing the wiki page.</p>
+<h2>Overview</h2>
+<p><code>reporting/output.rs</code> is an Application-layer edge connector that materializes report outputs by consuming report-finalization requests and producing <code>report.json</code> metadata, latest artifact listings, and optional timestamped archive copies. It provides the reporting subsystem’s shared filesystem boundary for callers such as report initialization and publish commands, while enforcing that all report artifacts remain inside the report’s <code>reports/latest/&lt;report-id&gt;</code> directory.</p>
+<p>The module maintains two output layouts:</p>
+<ul>
+<li>Latest outputs live under <code>reports/latest/&lt;report_id&gt;</code>.</li>
+<li>Archived outputs, when requested, live under <code>reports/archive/&lt;UTC timestamp&gt;/&lt;report_id&gt;</code>.</li>
+</ul>
+<p>It writes metadata with an RFC 3339 <code>produced_at</code> timestamp, but uses a filesystem-safe UTC timestamp (<code>YYYY-MM-DDTHH-MM-SSZ</code>) for archive directory names. Metadata artifact paths are normalized to forward slashes for portable serialized output.</p>
+<p><code>finalize_report_outputs</code> is the primary entry point for most reporting workflows. It validates and deduplicates the entrypoint artifact, adds <code>report.json</code> at the latest report root, then delegates persistence and optional archival to <code>write_report_metadata_and_archive</code>.</p>
+<h2>Public API</h2>
+<p>All items are <code>pub(crate)</code>: they are available throughout the <code>sc-compose</code> crate but are not part of its external crate API.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LATEST_ROOT_RELATIVE_PATH</code></td>
+<td>Relative root for current report outputs: <code>reports/latest</code>.</td>
+</tr>
+<tr>
+<td><code>ARCHIVE_ROOT_RELATIVE_PATH</code></td>
+<td>Relative root for archived report snapshots: <code>reports/archive</code>.</td>
+</tr>
+<tr>
+<td><code>ReportMetadata</code></td>
+<td>Serializable on-disk metadata schema written as <code>report.json</code>. Contains report identity, kind, status, production time, entrypoint, and artifact paths.</td>
+</tr>
+<tr>
+<td><code>ReportOutputRequest</code></td>
+<td>Lower-level request for writing metadata and optionally copying a supplied list of latest artifacts into an archive. The caller supplies <code>metadata_path</code>.</td>
+</tr>
+<tr>
+<td><code>FinalizeReportRequest</code></td>
+<td>Higher-level request for finalizing a report. The module derives the metadata path as <code>&lt;latest report root&gt;/report.json</code>.</td>
+</tr>
+<tr>
+<td><code>MaterializedReport</code></td>
+<td>Serializable result describing the completed report: metadata path, latest artifacts, and any archived copies.</td>
+</tr>
+<tr>
+<td><code>OutputError</code></td>
+<td>Error type for timestamp formatting, invalid paths, directory creation, copying, metadata writing, and JSON serialization failures. Implements <code>Display</code> and <code>std::error::Error</code>.</td>
+</tr>
+<tr>
+<td><code>finalize_report_outputs</code></td>
+<td>Validates a completed report’s entrypoint and artifacts, ensures the entrypoint appears once, creates metadata, and optionally archives all outputs.</td>
+</tr>
+<tr>
+<td><code>write_report_metadata_and_archive</code></td>
+<td>Lower-level materialization function that writes metadata and copies artifacts into the archive tree when <code>archive</code> is enabled.</td>
+</tr>
+</tbody>
+</table>
+<p><code>MaterializedReport</code> serializes paths through <code>crate::path_utils</code> helpers. Its <code>latest_artifacts</code> field is emitted as JSON key <code>artifacts</code>; <code>archived_artifacts</code> retains its Rust field name.</p>
+<h2>Dependencies</h2>
+<ul>
+<li><code>std::fs</code> operations create parent directories, write metadata, and copy artifacts.</li>
+<li><code>std::path::{Path, PathBuf}</code> represents paths relative to the supplied workspace <code>root</code>.</li>
+<li><code>serde</code> derives serialization and deserialization for metadata and serializes materialization results.</li>
+<li><code>serde_json</code> encodes <code>ReportMetadata</code> as pretty-printed JSON.</li>
+<li><code>time</code> supplies UTC timestamps and formatting:</li>
+<li><code>Rfc3339</code> for metadata’s <code>produced_at</code>.</li>
+<li>A custom format description for archive directory names.</li>
+<li><code>crate::path_utils::to_forward_slash</code> normalizes serialized metadata paths.</li>
+</ul>
+<p>Important relationships:</p>
+<ul>
+<li><code>reporting/init.rs</code> calls <code>write_report_metadata_and_archive</code> when emitting smoke-report outputs.</li>
+<li><code>commands/reports/publish.rs</code> is a cross-layer consumer, making this module an Application-layer boundary used by command handling.</li>
+<li><code>reporting/publish_manifest.rs</code> relies on the same latest/archive root conventions when locating report material.</li>
+<li><code>reporting/templates.rs</code>, scaffolding, specification, and indexing code consume the report-output types or directory layout exposed here.</li>
+</ul>
+<h2>Usage Notes</h2>
+<p>Use <code>finalize_report_outputs</code> when the report artifacts have already been generated beneath the current report directory:</p>
+<pre><code class="language-rust">let result = finalize_report_outputs(
+    workspace_root,
+    &amp;FinalizeReportRequest {
+        report_id: &quot;weekly-summary&quot;.to_owned(),
+        kind: &quot;summary&quot;.to_owned(),
+        status: &quot;success&quot;.to_owned(),
+        entrypoint: PathBuf::from(&quot;reports/latest/weekly-summary/index.html&quot;),
+        artifacts: vec![
+            PathBuf::from(&quot;reports/latest/weekly-summary/index.html&quot;),
+            PathBuf::from(&quot;reports/latest/weekly-summary/data.json&quot;),
+        ],
+        archive: true,
+    },
+)?;
+</code></pre>
+<p>This performs the following sequence:</p>
+<ol>
+<li>Confirms the entrypoint is below <code>reports/latest/weekly-summary</code>.</li>
+<li>Starts the latest artifact list with the entrypoint.</li>
+<li>Adds other artifacts only if they are under the same report root; a duplicate entrypoint is skipped.</li>
+<li>Writes <code>reports/latest/weekly-summary/report.json</code>.</li>
+<li>If archiving is enabled, copies every latest artifact plus <code>report.json</code> into a single timestamped archive directory.</li>
+<li>Returns a <code>MaterializedReport</code> with both latest and archived relative paths.</li>
+</ol>
+<p>Use <code>write_report_metadata_and_archive</code> only when a caller needs to control the metadata destination explicitly. Its <code>latest_artifacts</code> list must still consist of paths under the report root inferred from <code>entrypoint</code>; its <code>metadata_path</code> is also archived and must satisfy that same containment rule.</p>
+<p>Path validation is intentionally lexical:</p>
+<ul>
+<li><code>entrypoint.starts_with(reports/latest/&lt;report_id&gt;)</code> must be true.</li>
+<li>Every additional artifact must have the same prefix.</li>
+<li>Archive copy destinations are derived by stripping that latest report root and appending the relative suffix below the archive root.</li>
+</ul>
+<p>As a result, callers should provide clean, workspace-relative paths. Absolute paths, artifacts from another report ID, and paths outside <code>reports/latest/&lt;report_id&gt;</code> produce <code>OutputError::InvalidPath</code>. The module does not canonicalize paths or resolve symlinks, so callers should avoid relying on <code>..</code> segments or symlink traversal for containment semantics.</p>
+<p>Metadata is written before archival begins. If archival fails after metadata has been written, the filesystem may contain a valid latest report and a partially copied archive; <code>MaterializedReport</code> is not returned in that case. Similarly, copies are ordinary <code>std::fs::copy</code> operations: existing archive files may be overwritten if the same timestamped destination is reused.</p>
+<p>Archive labels have second-level UTC precision. Two writes for the same report within the same second target the same archive directory, so the later operation can overwrite files with matching relative names. Callers requiring immutable or collision-free archives need coordination above this module.</p>
+<p><code>ReportMetadata.artifacts</code> includes all latest artifacts plus the metadata file itself. <code>MaterializedReport.latest_artifacts</code> follows the same convention, while <code>archived_artifacts</code> is empty when <code>archive</code> is <code>false</code>.</p>
+</body>
+</html>

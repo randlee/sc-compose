@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Circular Dependency: scc-147</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Circular Dependency: scc-147</h1>
+<p>I’ll inspect the repository’s team protocol and the involved modules so the wiki page reflects the actual dependency roles, then provide the requested Markdown.</p>
+<h2>Cycle Description</h2>
+<p>SCC <code>scc-147</code> couples Python binding conversion helpers with the Python-facing type definitions:</p>
+<p><code>convert.rs → types/mod.rs → {policy.rs, request.rs, results.rs} → convert.rs</code></p>
+<p><code>types/mod.rs</code> is both a module registry and a re-export façade. <code>convert.rs</code> imports wrapper types through that façade, while the individual type modules import conversion helpers back from <code>convert.rs</code>. <code>results.rs</code> also reaches into the façade and directly into <code>policy.rs</code>, creating additional paths within the same strongly connected component.</p>
+<p>The cycle covers 192 symbols. It does not necessarily prevent Rust compilation, but it makes ownership of Python-boundary conversion logic unclear and causes small changes to wrappers, registration, or conversions to fan out across the component.</p>
+<h2>Files Involved</h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Role in the cycle</th>
+<th>Key dependencies</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bindings/python/src/convert.rs</code></td>
+<td>Converts Python values to and from <code>sc_composer</code> domain values.</td>
+<td>Imports re-exported wrapper types from <code>crate::types</code>.</td>
+</tr>
+<tr>
+<td><code>bindings/python/src/types/mod.rs</code></td>
+<td>Declares type submodules, re-exports their public crate-level wrappers, and registers PyO3 classes.</td>
+<td>Owns <code>policy</code>, <code>request</code>, and <code>results</code> module inclusion and re-exports.</td>
+</tr>
+<tr>
+<td><code>bindings/python/src/types/policy.rs</code></td>
+<td>Defines policy-related PyO3 wrappers and representation helpers.</td>
+<td>Imports path, metadata, pass, profile, variable, and JSON conversion helpers from <code>convert</code>.</td>
+</tr>
+<tr>
+<td><code>bindings/python/src/types/request.rs</code></td>
+<td>Defines request-related PyO3 wrappers and request display helpers.</td>
+<td>Imports policy wrappers/helpers and request-input conversion helpers from <code>convert</code>.</td>
+</tr>
+<tr>
+<td><code>bindings/python/src/types/results.rs</code></td>
+<td>Defines result-related PyO3 wrappers.</td>
+<td>Imports JSON conversion helpers from <code>convert</code>, <code>PyVariableName</code> through <code>types</code>, and <code>python_bool_repr</code> from <code>policy</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2>Why This Exists</h2>
+<p>The cycle reflects a reasonable but overlapping responsibility split:</p>
+<ul>
+<li><code>convert.rs</code> needs concrete Python wrapper types such as <code>PyVariableName</code>, <code>PyProfileName</code>, <code>PyConfiningRoot</code>, <code>PyPassConfig</code>, and <code>PyNamedTemplateAsset</code> to extract typed Python inputs.</li>
+<li>Policy, request, and result wrappers need shared conversion functions to translate Python collections and JSON-like data into <code>sc_composer</code> values.</li>
+<li><code>types/mod.rs</code> centralizes public(crate) re-exports and class registration, so importing <code>crate::types::*</code> implicitly depends on every declared type module.</li>
+<li><code>results.rs</code> uses cross-type presentation utilities (<code>PyVariableName</code> and <code>python_bool_repr</code>) rather than owning or importing a narrower shared utility surface.</li>
+</ul>
+<p>In short, conversion code and wrapper definitions are mutually dependent, while the <code>types</code> façade broadens otherwise narrow dependencies into a five-file SCC.</p>
+<h2>Refactoring Suggestions</h2>
+<ol>
+<li>Introduce a lower-level conversion module that does not import PyO3 wrapper structs.</li>
+</ol>
+<p>Move generic conversions—JSON conversion, string/map extraction, path coercion, and primitive validation—into a module such as <code>bindings/python/src/conversion/primitives.rs</code>. <code>policy.rs</code>, <code>request.rs</code>, and <code>results.rs</code> can depend on it directly without requiring <code>convert.rs</code> to import <code>types</code>.</p>
+<ol>
+<li>Move wrapper-specific extraction next to the wrapper types.</li>
+</ol>
+<p>Functions such as extracting <code>PyNamedTemplateAsset</code>, <code>PyProfileName</code>, <code>PyConfiningRoot</code>, <code>PyPassConfig</code>, and <code>PyVariableName</code> should live in their owning type modules or in narrowly scoped modules such as <code>types/assets.rs</code> and <code>types/names.rs</code>. This removes <code>convert.rs → types/mod.rs</code>.</p>
+<ol>
+<li>Avoid importing the <code>types</code> façade from internal modules.</li>
+</ol>
+<p>Replace <code>use crate::types::PyVariableName</code> in <code>results.rs</code> with a direct sibling import, such as <code>use super::policy::PyVariableName</code>, if that matches ownership. Internal code should import defining modules directly; reserve <code>types/mod.rs</code> re-exports for the crate’s external internal-facing API and registration.</p>
+<ol>
+<li>Extract representation helpers from <code>policy.rs</code>.</li>
+</ol>
+<p>Move <code>python_bool_repr</code>, <code>python_string_repr</code>, and <code>python_option_string_repr</code> into a dependency-neutral formatting module, for example <code>python_repr.rs</code>. Then <code>request.rs</code> and <code>results.rs</code> no longer depend on <code>policy.rs</code> for formatting-only behavior.</p>
+<ol>
+<li>Reduce <code>types/mod.rs</code> to module declaration and registration.</li>
+</ol>
+<p>Keep <code>mod</code> declarations and <code>register</code>, but avoid using its broad re-export layer from implementation modules. If re-exports remain useful, treat them as a façade for top-level callers only.</p>
+<p>A target dependency direction would be:</p>
+<pre><code class="language-text">conversion primitives / representation helpers
+        ↑              ↑
+ policy.rs   request.rs   results.rs
+        ↑       ↑          ↑
+     types/mod.rs (registration and optional façade)
+</code></pre>
+<p>This makes conversion utilities independently reusable, keeps wrapper ownership local, and removes the back-edge from conversion code into the aggregate <code>types</code> module.</p>
+</body>
+</html>

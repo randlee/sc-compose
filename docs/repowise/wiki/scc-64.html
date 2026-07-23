@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Circular Dependency: scc-64</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Circular Dependency: scc-64</h1>
+<p>I’ll inspect the report-command module boundaries so the refactoring guidance reflects the actual shared APIs rather than only the import graph.</p>
+<h2>Cycle Description</h2>
+<p>SCC <code>scc-64</code> is a parent/child Rust module cycle in the <code>reports</code> command layer:</p>
+<pre><code class="language-text">reports/mod.rs
+  ├─ declares and re-exports publish.rs
+  ├─ declares and re-exports render.rs
+  └─ declares and re-exports scaffold.rs
+
+publish.rs, render.rs, scaffold.rs
+  └─ import CLI argument types from reports/mod.rs
+</code></pre>
+<p>The cycle is structural rather than behavioral: <code>mod.rs</code> owns the shared Clap argument definitions and exposes each child module’s command runner, while each child imports its associated argument types from the parent.</p>
+<p>Although the SCC includes all four files, the direct cycles are:</p>
+<pre><code class="language-text">mod.rs ↔ publish.rs
+mod.rs ↔ render.rs
+mod.rs ↔ scaffold.rs
+</code></pre>
+<p>There is no direct sibling-to-sibling import between <code>publish.rs</code>, <code>render.rs</code>, and <code>scaffold.rs</code>.</p>
+<h2>Files Involved</h2>
+<ul>
+<li>
+<p><code>crates/sc-compose/src/commands/reports/mod.rs</code><br />
+  Declares report submodules, re-exports runner functions, and defines <code>ReportsArgs</code>, <code>ReportsSubcommand</code>, and the report-command argument structs.</p>
+</li>
+<li>
+<p><code>crates/sc-compose/src/commands/reports/publish.rs</code><br />
+  Implements <code>run_reports_finalize</code> and <code>run_reports_publish_manifest</code>; imports <code>ReportsFinalizeArgs</code> and <code>ReportsPublishManifestArgs</code> from the parent module.</p>
+</li>
+<li>
+<p><code>crates/sc-compose/src/commands/reports/render.rs</code><br />
+  Implements <code>run_reports_render_spec</code>, <code>run_report_catalog</code>, and <code>run_report_render_many</code>; imports <code>ReportsRenderSpecArgs</code>, <code>ReportCatalogArgs</code>, and <code>ReportRenderManyArgs</code> from the parent module.</p>
+</li>
+<li>
+<p><code>crates/sc-compose/src/commands/reports/scaffold.rs</code><br />
+  Implements <code>run_reports_init</code>, <code>run_reports_smoke</code>, <code>run_reports_index</code>, and <code>run_reports_verify</code>; imports <code>ReportsInitArgs</code>, <code>ReportsSmokeArgs</code>, <code>ReportsIndexArgs</code>, and <code>ReportsVerifyArgs</code> from the parent module.</p>
+</li>
+</ul>
+<p>The SCC contains 65 symbols overall. Its key coupling is the set of shared command-argument types and the parent module’s runner-function re-exports.</p>
+<h2>Why This Exists</h2>
+<p><code>mod.rs</code> acts as both the public module façade and the location for all report CLI schemas. This is convenient because the <code>ReportsSubcommand</code> enum can directly reference every argument type, and callers can import runners from one place.</p>
+<p>Each implementation file then needs the matching argument type to translate parsed CLI input into calls to the reporting services. That creates a bidirectional dependency:</p>
+<ul>
+<li>Parent → child: module declaration and public runner re-export.</li>
+<li>Child → parent: command-argument type import.</li>
+</ul>
+<p>Rust permits this module layout, so it is not necessarily a compilation problem. It is nevertheless an architectural cycle: the façade and implementations cannot evolve independently, and adding or moving a command type risks touching both sides of the boundary.</p>
+<h2>Refactoring Suggestions</h2>
+<ol>
+<li>Extract all report CLI argument types into a dedicated leaf module, such as <code>crates/sc-compose/src/commands/reports/args.rs</code>.</li>
+</ol>
+<p>```rust
+   // reports/mod.rs
+   mod args;
+   pub(crate) mod publish;
+   pub(crate) mod render;
+   pub(crate) mod scaffold;</p>
+<p>pub(crate) use args::*;
+   ```</p>
+<p>Then each implementation imports from <code>super::args</code>, not <code>crate::commands::reports</code>:</p>
+<p><code>rust
+   use super::args::{ReportsFinalizeArgs, ReportsPublishManifestArgs};</code></p>
+<p>This removes the child → façade edge while retaining the existing external API through re-exports.</p>
+<ol>
+<li>
+<p>Keep <code>mod.rs</code> intentionally thin: module declarations, selected re-exports, <code>ReportsArgs</code>, and <code>ReportsSubcommand</code>. Move all individual <code>Args</code> structs to <code>args.rs</code>.</p>
+</li>
+<li>
+<p>Consider grouping arguments by implementation area if <code>args.rs</code> becomes large:</p>
+</li>
+</ol>
+<p><code>text
+   reports/
+     mod.rs
+     publish.rs
+     publish_args.rs
+     render.rs
+     render_args.rs
+     scaffold.rs
+     scaffold_args.rs</code></p>
+<p><code>mod.rs</code> can assemble the top-level <code>ReportsSubcommand</code> from these leaf types without becoming the owner of every command schema.</p>
+<ol>
+<li>
+<p>Avoid moving reporting business logic into <code>mod.rs</code>. The existing <code>crate::reporting::*</code> services are the correct lower-level dependency; command modules should remain adapters that parse arguments, call services, and format output.</p>
+</li>
+<li>
+<p>Add an architectural check that prevents command implementation modules from importing <code>crate::commands::reports::{...}</code>. Allow imports only from <code>reports::args</code> or sibling-local argument modules, ensuring this SCC does not return as new report commands are added.</p>
+</li>
+</ol>
+</body>
+</html>

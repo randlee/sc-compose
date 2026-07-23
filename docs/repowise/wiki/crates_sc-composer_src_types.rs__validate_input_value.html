@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Symbol: crates.sc-composer.src.types.validate_input_value</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Symbol: crates.sc-composer.src.types.validate_input_value</h1>
+<h2>Purpose</h2>
+<p><code>validate_input_value</code> checks that an [<code>InputValue</code>] can be represented in the supported render-context model before it is used for template rendering.</p>
+<p>It delegates validation to an internal recursive validator beginning at the top-level array context. This permits top-level arrays of objects, while rejecting unsupported structures deeper in the value tree, including nested arrays and arrays of objects at non-top-level paths.</p>
+<h2>Signature</h2>
+<pre><code class="language-rust">fn validate_input_value(value: &amp;InputValue) -&gt; Result&lt;(), InvalidInputValueError&gt;
+</code></pre>
+<h2>Parameters</h2>
+<ul>
+<li><code>value: &amp;InputValue</code><br />
+  The caller-provided input value to validate. The value is borrowed and is not modified.</li>
+</ul>
+<p>The validation begins with <code>ArrayContext::TopLevel</code>, which is significant because top-level arrays of objects are accepted even though the same shape is invalid when nested inside another value.</p>
+<h2>Returns</h2>
+<p>Returns:</p>
+<pre><code class="language-rust">Result&lt;(), InvalidInputValueError&gt;
+</code></pre>
+<ul>
+<li><code>Ok(())</code> when <code>value</code> fits the supported render-context model.</li>
+<li><code>Err(InvalidInputValueError)</code> when <code>value</code> contains an unsupported array structure, such as:</li>
+<li>nested arrays;</li>
+<li>an array of objects below the top level.</li>
+</ul>
+<p>Top-level arrays of objects remain valid.</p>
+<h2>Example Usage</h2>
+<pre><code class="language-rust">use sc_composer::types::{validate_input_value, InputValue};
+
+let input = InputValue::from_json(r#&quot;
+[
+  { &quot;name&quot;: &quot;Ada&quot;, &quot;role&quot;: &quot;engineer&quot; },
+  { &quot;name&quot;: &quot;Lin&quot;, &quot;role&quot;: &quot;designer&quot; }
+]
+&quot;#)?;
+
+validate_input_value(&amp;input)?;
+</code></pre>
+<p>A nested array is rejected:</p>
+<pre><code class="language-rust">use sc_composer::types::{validate_input_value, InputValue};
+
+let input = InputValue::from_json(r#&quot;
+{
+  &quot;groups&quot;: [
+    [&quot;alpha&quot;, &quot;beta&quot;]
+  ]
+}
+&quot;#)?;
+
+assert!(validate_input_value(&amp;input).is_err());
+</code></pre>
+</body>
+</html>

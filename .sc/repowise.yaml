@@ -17,3 +17,16 @@ annotated:
 diagrams:
   - type: crate-dependency
     description: "Crate dependency graph: sc-compose CLI ↔ sc-composer engine"
+
+# Standard repowise artifact layout (randlee repos):
+#   .sc/repowise/repowise.yaml          — this config
+#   .sc/repowise/generate-report.py      — generation script (reproducible)
+#   .sc/repowise/data/*.json             — raw JSON exports from repowise
+#   docs/repowise/health.md              — comprehensive report (generated)
+#   docs/repowise/health-<module>.md     — per-module reports (generated)
+#   docs/repowise/risk.json              — risk assessment (generated)
+#   docs/repowise/badge.md               — health badge (generated)
+#   docs/repowise/architecture.html      — crate dependency diagram (generated)
+#
+# To regenerate: python3 .sc/repowise/generate-report.py
+# Raw data refresh: repowise health --format json > .sc/repowise/data/health.json etc.

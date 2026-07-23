@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Layer: Test</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Layer: Test</h1>
+<p>I’ll trace the listed tests and their application-facing seams so the overview reflects the repository’s actual verification architecture.</p>
+<h2>Overview</h2>
+<p>The Test layer is the verification layer that exercises the application-facing CLI, composition library, Python bindings, experimental multipass prototype, and generated test evidence. It protects observable contracts: rendered output, validation and resolution failures, exit codes, JSON schemas, report artifacts, cross-platform path handling, and the repository’s standalone boundary.</p>
+<h2>Key Components</h2>
+<ul>
+<li><code>crates/sc-compose/tests/cli.rs</code> runs the compiled <code>sc-compose</code> executable against isolated temporary workspaces. It covers rendering, validation, verification, template initialization, variable-file parsing, multi-pass rendering, examples, template packs, and report lifecycle commands.</li>
+<li><code>crates/sc-compose/tests/json_cli.rs</code> verifies the machine-readable CLI contract. It checks the versioned <code>{ schema_version, payload, diagnostics }</code> envelope, clean stdout in JSON mode, diagnostic codes, dry-run payloads, and reporting command responses.</li>
+<li><code>crates/sc-compose/tests/support/mod.rs</code> provides reusable fixture construction, temporary roots and logs, command invocation, JSON parsing, path normalization, and report/template fixture helpers.</li>
+<li><code>crates/sc-compose/tests/repo_boundaries.rs</code> is an architectural guardrail. It recursively scans Rust sources and manifests to reject ATM environment references, ATM or agent-team-mail imports, and prohibited dependency families.</li>
+<li><code>crates/sc-composer/tests/integration.rs</code> calls the pure <code>sc-composer</code> API directly. It validates multi-pass parsing/rendering, defaults, context/pass mismatches, higher-brace preservation, backward compatibility, and observer event sequences.</li>
+<li><code>bindings/python/tests/test_smoke.py</code> validates the Python extension’s public surface: exported types, informative representations, composition, validation, resolution, rendering, include expansion, initialization, diagnostics, and multi-pass access.</li>
+<li><code>prototype/multipass/test_integration.py</code> and <code>test_multipass.py</code> test the separate Python prototype’s parser, token discovery, staged renderer, template conversion, verification, and single-pass compatibility behavior.</li>
+<li><code>reports/inputs/test/matrix.md</code> and <code>results.md</code> are report-source inputs that describe compatibility coverage and workspace-test evidence for the reporting pipeline.</li>
+</ul>
+<h2>Data Flow</h2>
+<pre><code class="language-text">Fixtures / temporary workspaces / report metadata
+                |
+                v
+Test entry points
+  ├─ Rust CLI tests ─────&gt; compiled sc-compose application
+  ├─ Rust library tests ─&gt; sc-composer public API
+  ├─ Python smoke tests ─&gt; sc_compose bindings
+  └─ Prototype tests ────&gt; multipass prototype modules
+                |
+                v
+Render, resolve, validate, verify, initialize, or report operations
+                |
+                v
+Files, stdout/stderr, exit status, JSON envelopes, events, Python objects
+                |
+                v
+Assertions on compatibility, diagnostics, artifacts, and architectural boundaries
+</code></pre>
+<p>CLI tests inject templates, variables, catalogs, and expected files into fresh directories, invoke the binary, then inspect process status and produced artifacts. JSON tests parse stdout into structured values and assert envelope and diagnostic stability. Library tests supply <code>ComposeRequest</code> values directly and capture observer events. Binding tests make the same capabilities available through Python objects. Report inputs flow into the reporting subsystem as publishable evidence about these checks.</p>
+<h2>Architecture Notes</h2>
+<p>The Test layer depends outward on the Application layer: it invokes the <code>sc-compose</code> binary and imports the <code>sc-composer</code> library APIs, but production code does not depend on tests.</p>
+<p>The layer intentionally verifies behavior at several boundaries rather than duplicating unit coverage. CLI tests own process-level concerns such as flags, exit codes, filesystem writes, and JSON output; library integration tests own public composition semantics and observability; Python tests own binding completeness and type conversion.</p>
+<p>Fixtures are deliberately filesystem-backed and temporary, which makes path confinement, include behavior, report generation, dry-run semantics, and normalization observable without mutating repository content. The shared support module also normalizes Windows extended-path prefixes and separators to keep assertions portable.</p>
+<p><code>repo_boundaries.rs</code> is a policy test as well as a functional test: it enforces that this standalone toolchain remains independent of the ATM runtime and its dependency family. The multipass tests document and validate a prototype path; they should be treated separately from the Rust production-contract suites.</p>
+</body>
+</html>

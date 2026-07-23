@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-composer/src/renderer.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-composer/src/renderer.rs</h1>
+<p>I’m checking the repository’s documentation protocol and memory guidance so the page matches local conventions.
+I’m applying the repository’s CASS memory workflow; it returned no file-specific history, so the page will be grounded in the supplied source and call graph.</p>
+<h2>Overview</h2>
+<p><code>renderer.rs</code> is the Application-layer template rendering adapter that consumes template text, serializable context, and optional named supporting templates to produce rendered text or a <code>RenderedArtifact</code>.</p>
+<p>It wraps MiniJinja behind the crate’s <code>RenderError</code> type and keeps composition entry points independent of direct template-engine APIs. <code>Renderer</code> owns a reusable <code>minijinja::Environment</code>, while the free functions provide one-shot and pre-loaded-template workflows.</p>
+<p>The module configures every environment with <code>trim_blocks</code> and <code>lstrip_blocks</code>, making whitespace normalization consistent across standard rendering, custom-delimiter rendering, and pre-loaded rendering. Named rendering preserves template identities for diagnostics and enables template references to be resolved by name.</p>
+<p><code>render_loaded_template</code> is deliberately scoped to rendering already-discovered content: callers such as the composer remain responsible for filesystem discovery and repository traversal, while this module registers the supplied main and supporting templates and renders the requested named template.</p>
+<h2>Public API</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NamedTemplateAsset</code></td>
+<td>A named supporting template with <code>template_name</code> and <code>template_text</code>; used for <code>{% include %}</code> and <code>{% extends %}</code> resolution.</td>
+</tr>
+<tr>
+<td><code>LoadedTemplateRequest</code></td>
+<td>Input for rendering pre-loaded content: main template identity/text, a <code>BTreeMap&lt;String, Value&gt;</code> context, and optional supporting templates.</td>
+</tr>
+<tr>
+<td><code>RenderedArtifact</code></td>
+<td>Result of <code>render_loaded_template</code>, containing the rendered text and the rendered template’s stable name.</td>
+</tr>
+<tr>
+<td><code>Renderer::new()</code></td>
+<td>Creates a renderer with the default MiniJinja environment and whitespace settings.</td>
+</tr>
+<tr>
+<td><code>Renderer::with_delimiters(open, close)</code></td>
+<td>Creates a renderer using custom variable delimiters, returning <code>RenderError</code> if MiniJinja rejects the syntax.</td>
+</tr>
+<tr>
+<td><code>Renderer::render(template, context)</code></td>
+<td>Renders inline template text under the synthetic name <code>"inline"</code>.</td>
+</tr>
+<tr>
+<td><code>Renderer::render_named(template_name, template, context)</code></td>
+<td>Renders one template string under an explicit name, improving error attribution and template identity.</td>
+</tr>
+<tr>
+<td><code>render_template(template, context)</code></td>
+<td>Stable one-shot convenience API; creates a default <code>Renderer</code> and invokes <code>render</code>.</td>
+</tr>
+<tr>
+<td><code>render_loaded_template(request)</code></td>
+<td>Registers caller-provided supporting templates and the main template, then renders the main template by name.</td>
+</tr>
+</tbody>
+</table>
+<p><code>Renderer::with_options</code> and <code>Renderer::try_with_options</code> are crate-private construction hooks. They allow internal callers to configure MiniJinja while centralizing the default whitespace behavior; the fallible variant is required for configuration operations, such as syntax installation, that MiniJinja can reject.</p>
+<p>All render paths convert MiniJinja parsing, lookup, and execution failures into <code>RenderError::render(...)</code>.</p>
+<h2>Dependencies</h2>
+<ul>
+<li><code>minijinja::Environment</code> provides parsing, template registration, named-template lookup, syntax configuration, and rendering.</li>
+<li><code>serde::Serialize</code> lets <code>Renderer::render</code>, <code>Renderer::render_named</code>, and <code>render_template</code> accept arbitrary serializable contexts.</li>
+<li><code>serde_json::Value</code> and <code>BTreeMap&lt;String, Value&gt;</code> define the concrete, deterministic context shape used by <code>LoadedTemplateRequest</code>.</li>
+<li><code>crate::RenderError</code> is the module’s error boundary, preventing MiniJinja errors from leaking through the public composer API.</li>
+<li><code>composer.rs</code> uses <code>Renderer::new</code> and <code>Renderer::with_delimiters</code> during composition, so CLI-validated delimiter choices flow into the rendering environment.</li>
+<li><code>lib.rs</code>, the CLI, tests, and Python bindings expose or consume the rendering APIs without needing to instantiate MiniJinja directly.</li>
+</ul>
+<h2>Usage Notes</h2>
+<p>For a simple one-off render, use <code>render_template</code>:</p>
+<pre><code class="language-rust">use sc_composer::render_template;
+use serde_json::json;
+
+let rendered = render_template(
+    &quot;Hello {{ name }}!&quot;,
+    json!({ &quot;name&quot;: &quot;Ada&quot; }),
+)?;
+
+assert_eq!(rendered, &quot;Hello Ada!&quot;);
+</code></pre>
+<p>For repeated independent renders using the same environment configuration, retain a <code>Renderer</code>:</p>
+<pre><code class="language-rust">use sc_composer::Renderer;
+use serde_json::json;
+
+let renderer = Renderer::new();
+
+let greeting = renderer.render(&quot;Hello {{ name }}&quot;, json!({ &quot;name&quot;: &quot;Ada&quot; }))?;
+let farewell = renderer.render(&quot;Bye {{ name }}&quot;, json!({ &quot;name&quot;: &quot;Ada&quot; }))?;
+</code></pre>
+<p>Use <code>render_named</code> when template identity matters for diagnostics or when matching an externally meaningful template name:</p>
+<pre><code class="language-rust">let output = renderer.render_named(
+    &quot;reports/summary.html.j2&quot;,
+    &quot;&lt;h1&gt;{{ title }}&lt;/h1&gt;&quot;,
+    serde_json::json!({ &quot;title&quot;: &quot;Status&quot; }),
+)?;
+</code></pre>
+<p>To support inheritance or inclusion, register every dependency in <code>supporting_templates</code> and ensure names match the paths referenced from the main template:</p>
+<pre><code class="language-rust">use std::collections::BTreeMap;
+use sc_composer::{
+    render_loaded_template, LoadedTemplateRequest, NamedTemplateAsset,
+};
+use serde_json::{json, Value};
+
+let context: BTreeMap&lt;String, Value&gt; = json!({ &quot;title&quot;: &quot;Monthly report&quot; })
+    .as_object()
+    .unwrap()
+    .clone()
+    .into_iter()
+    .collect();
+
+let artifact = render_loaded_template(LoadedTemplateRequest {
+    template_name: &quot;reports/monthly.html.j2&quot;.to_owned(),
+    template_text: r#&quot;
+        {% extends &quot;shared/base.html.j2&quot; %}
+        {% block body %}{{ title }}{% endblock %}
+    &quot;#.to_owned(),
+    context,
+    supporting_templates: vec![NamedTemplateAsset {
+        template_name: &quot;shared/base.html.j2&quot;.to_owned(),
+        template_text: &quot;&lt;main&gt;{% block body %}{% endblock %}&lt;/main&gt;&quot;.to_owned(),
+    }],
+})?;
+
+assert_eq!(artifact.template_name, &quot;reports/monthly.html.j2&quot;);
+</code></pre>
+<p>Important behavior and pitfalls:</p>
+<ul>
+<li><code>supporting_templates</code> are parsed when registered. A malformed partial, base template, or include target fails before the main template is rendered.</li>
+<li>Template references must use the same names supplied in <code>NamedTemplateAsset</code>; this module does not resolve filesystem paths or infer aliases.</li>
+<li><code>render</code> always uses the name <code>"inline"</code>. Use <code>render_named</code> when errors need to identify a specific source template.</li>
+<li>Whitespace is intentionally normalized: block-only lines are trimmed and leading indentation before block tags is stripped. MiniJinja’s <code>{%+ ... %}</code> modifier can opt out of left-stripping where preserved indentation is required.</li>
+<li><code>with_delimiters</code> changes variable delimiters only. It does not alter block or comment delimiters.</li>
+<li>Custom delimiters are validated by MiniJinja; invalid tokens return a typed <code>RenderError</code> instead of panicking.</li>
+<li><code>render_loaded_template</code> accepts a JSON-object-shaped context rather than a generic <code>Serialize</code> value, which makes the pre-loaded boundary straightforward for callers such as bindings and orchestration code.</li>
+</ul>
+</body>
+</html>

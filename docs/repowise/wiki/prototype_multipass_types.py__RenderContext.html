@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Symbol: prototype.multipass.types.RenderContext</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Symbol: prototype.multipass.types.RenderContext</h1>
+<h2>Purpose</h2>
+<p><code>RenderContext</code> stores the values available during one template-rendering pass in the multipass prototype. It pairs the current pass number with a mutable dictionary of render variables.</p>
+<h2>Signature</h2>
+<pre><code class="language-python">@dataclass
+class RenderContext:
+    pass_number: int
+    variables: dict[str, Any] = field(default_factory=dict)
+</code></pre>
+<h2>Parameters</h2>
+<ul>
+<li>
+<p><code>pass_number: int</code><br />
+  The ordinal number of the current rendering pass.</p>
+</li>
+<li>
+<p><code>variables: dict[str, Any]</code><br />
+  Variables supplied to that pass. Defaults to a new empty dictionary for each instance.</p>
+</li>
+</ul>
+<h2>Returns</h2>
+<p>Constructing <code>RenderContext</code> returns a context object with:</p>
+<ul>
+<li><code>pass_number</code> set to the provided pass identifier.</li>
+<li><code>variables</code> set to the supplied mapping or a fresh empty dictionary.</li>
+</ul>
+<p>Because <code>variables</code> uses <code>default_factory=dict</code>, separate contexts do not share the same default dictionary.</p>
+<h2>Example Usage</h2>
+<pre><code class="language-python">from prototype.multipass.types import RenderContext
+
+context = RenderContext(
+    pass_number=1,
+    variables={
+        &quot;environment&quot;: &quot;production&quot;,
+        &quot;service_name&quot;: &quot;api&quot;,
+    },
+)
+
+assert context.pass_number == 1
+assert context.variables[&quot;service_name&quot;] == &quot;api&quot;
+</code></pre>
+<p>A later pass can use its own context and variable set:</p>
+<pre><code class="language-python">next_context = RenderContext(
+    pass_number=2,
+    variables={&quot;generated_config&quot;: &quot;…&quot;},
+)
+</code></pre>
+</body>
+</html>
