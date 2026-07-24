@@ -2,27 +2,49 @@ repowise health —
 /Users/randlee/Documents/github/sc-compose-worktrees/repowise-analysis
 {
   "kpis": {
-    "hotspot_health": 5.22,
-    "average_health": 8.22,
-    "worst_performer_path": "crates/sc-composer/src/validation.rs",
-    "worst_performer_score": 2.58,
-    "file_count": 266,
-    "maintainability_average": 9.09,
-    "maintainability_hotspot": 7.29,
-    "performance_average": 9.78,
-    "performance_hotspot": 9.39
+    "hotspot_health": 4.67,
+    "average_health": 7.88,
+    "worst_performer_path": "crates/sc-compose/src/cli.rs",
+    "worst_performer_score": 1.55,
+    "file_count": 286,
+    "maintainability_average": 8.96,
+    "maintainability_hotspot": 7.38,
+    "performance_average": 9.76,
+    "performance_hotspot": 9.38
   },
   "metrics": [
     {
+      "file_path": "crates/sc-compose/src/cli.rs",
+      "score": 1.55,
+      "max_ccn": 17,
+      "max_nesting": 4,
+      "nloc": 489,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 27.7
+    },
+    {
       "file_path": "crates/sc-composer/src/validation.rs",
-      "score": 2.58,
+      "score": 2.37,
       "max_ccn": 11,
       "max_nesting": 4,
-      "nloc": 1388,
+      "nloc": 1655,
       "has_test_file": true,
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
-      "duplication_pct": 28.14
+      "duplication_pct": 25.2
+    },
+    {
+      "file_path": "crates/sc-composer/src/types.rs",
+      "score": 3.04,
+      "max_ccn": 11,
+      "max_nesting": 6,
+      "nloc": 561,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 26.9
     },
     {
       "file_path": "crates/sc-compose/src/reporting/output.rs",
@@ -40,11 +62,22 @@ repowise health —
       "score": 4.0,
       "max_ccn": 6,
       "max_nesting": 4,
-      "nloc": 204,
+      "nloc": 323,
       "has_test_file": false,
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
-      "duplication_pct": 7.84
+      "duplication_pct": 4.95
+    },
+    {
+      "file_path": "crates/sc-composer/src/diagnostics.rs",
+      "score": 4.04,
+      "max_ccn": 2,
+      "max_nesting": 1,
+      "nloc": 150,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 29.76
     },
     {
       "file_path": "crates/sc-compose/src/reporting/catalog.rs",
@@ -56,6 +89,17 @@ repowise health —
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
       "duplication_pct": 27.36
+    },
+    {
+      "file_path": "crates/sc-compose/src/commands/compose.rs",
+      "score": 4.43,
+      "max_ccn": 8,
+      "max_nesting": 2,
+      "nloc": 536,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 19.59
     },
     {
       "file_path": "crates/sc-compose/src/path_utils.rs",
@@ -73,55 +117,66 @@ repowise health —
       "score": 4.75,
       "max_ccn": 4,
       "max_nesting": 3,
-      "nloc": 2586,
+      "nloc": 3339,
       "has_test_file": true,
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
-      "duplication_pct": 61.04
+      "duplication_pct": 64.94
     },
     {
-      "file_path": "crates/sc-composer/src/types.rs",
-      "score": 4.82,
-      "max_ccn": 11,
-      "max_nesting": 6,
-      "nloc": 496,
+      "file_path": "crates/sc-composer/src/frontmatter.rs",
+      "score": 4.78,
+      "max_ccn": 8,
+      "max_nesting": 3,
+      "nloc": 372,
       "has_test_file": true,
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
-      "duplication_pct": 21.78
+      "duplication_pct": 9.7
     },
     {
       "file_path": "crates/sc-composer/src/composer.rs",
       "score": 4.92,
-      "max_ccn": 3,
+      "max_ccn": 5,
       "max_nesting": 2,
-      "nloc": 430,
+      "nloc": 584,
       "has_test_file": true,
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
-      "duplication_pct": 55.18
+      "duplication_pct": 49.18
     },
     {
       "file_path": "crates/sc-compose/src/observer_impl.rs",
       "score": 4.97,
       "max_ccn": 8,
       "max_nesting": 2,
-      "nloc": 815,
+      "nloc": 819,
       "has_test_file": true,
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
-      "duplication_pct": 15.23
+      "duplication_pct": 16.23
+    },
+    {
+      "file_path": "crates/sc-composer/src/init_workspace.rs",
+      "score": 5.13,
+      "max_ccn": 13,
+      "max_nesting": 3,
+      "nloc": 221,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 15.95
     },
     {
       "file_path": "crates/sc-compose/tests/json_cli.rs",
       "score": 5.4,
       "max_ccn": 2,
       "max_nesting": 1,
-      "nloc": 1640,
+      "nloc": 1671,
       "has_test_file": true,
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
-      "duplication_pct": 76.37
+      "duplication_pct": 75.79
     },
     {
       "file_path": "crates/sc-compose/src/reporting/init.rs",
@@ -133,6 +188,17 @@ repowise health —
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
       "duplication_pct": 38.56
+    },
+    {
+      "file_path": "crates/sc-composer/src/renderer.rs",
+      "score": 5.75,
+      "max_ccn": 2,
+      "max_nesting": 1,
+      "nloc": 169,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
     },
     {
       "file_path": "crates/sc-compose/src/reporting/publish_manifest.rs",
@@ -150,22 +216,11 @@ repowise health —
       "score": 6.05,
       "max_ccn": 4,
       "max_nesting": 2,
-      "nloc": 560,
+      "nloc": 583,
       "has_test_file": true,
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
-      "duplication_pct": 56.43
-    },
-    {
-      "file_path": "crates/sc-composer/src/renderer.rs",
-      "score": 6.09,
-      "max_ccn": 2,
-      "max_nesting": 1,
-      "nloc": 152,
-      "has_test_file": true,
-      "line_coverage_pct": null,
-      "branch_coverage_pct": null,
-      "duplication_pct": null
+      "duplication_pct": 56.41
     },
     {
       "file_path": "crates/sc-compose/src/reporting/index.rs",
@@ -201,6 +256,17 @@ repowise health —
       "duplication_pct": 17.68
     },
     {
+      "file_path": "crates/sc-compose/src/commands/mod.rs",
+      "score": 6.35,
+      "max_ccn": 4,
+      "max_nesting": 3,
+      "nloc": 81,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 9.88
+    },
+    {
       "file_path": "crates/sc-compose/src/template_store.rs",
       "score": 6.49,
       "max_ccn": 5,
@@ -216,7 +282,7 @@ repowise health —
       "score": 6.5,
       "max_ccn": 5,
       "max_nesting": 2,
-      "nloc": 72,
+      "nloc": 71,
       "has_test_file": true,
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
@@ -245,26 +311,15 @@ repowise health —
       "duplication_pct": null
     },
     {
-      "file_path": "crates/sc-compose/src/commands/mod.rs",
-      "score": 6.5,
-      "max_ccn": 4,
-      "max_nesting": 3,
-      "nloc": 79,
-      "has_test_file": false,
-      "line_coverage_pct": null,
-      "branch_coverage_pct": null,
-      "duplication_pct": null
-    },
-    {
       "file_path": "crates/sc-composer/src/lib.rs",
       "score": 6.5,
       "max_ccn": 1,
       "max_nesting": 0,
-      "nloc": 177,
+      "nloc": 185,
       "has_test_file": true,
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
-      "duplication_pct": null
+      "duplication_pct": 3.92
     },
     {
       "file_path": "crates/sc-compose/src/reporting/spec.rs",
@@ -278,17 +333,6 @@ repowise health —
       "duplication_pct": 29.11
     },
     {
-      "file_path": "crates/sc-compose/src/cli.rs",
-      "score": 6.64,
-      "max_ccn": 15,
-      "max_nesting": 3,
-      "nloc": 285,
-      "has_test_file": false,
-      "line_coverage_pct": null,
-      "branch_coverage_pct": null,
-      "duplication_pct": 36.59
-    },
-    {
       "file_path": "crates/sc-composer/src/resolver.rs",
       "score": 6.87,
       "max_ccn": 7,
@@ -300,15 +344,26 @@ repowise health —
       "duplication_pct": 22.15
     },
     {
-      "file_path": "crates/sc-composer/src/diagnostics.rs",
-      "score": 6.95,
-      "max_ccn": 2,
-      "max_nesting": 1,
-      "nloc": 146,
-      "has_test_file": false,
+      "file_path": "crates/sc-composer/src/include.rs",
+      "score": 7.01,
+      "max_ccn": 8,
+      "max_nesting": 3,
+      "nloc": 442,
+      "has_test_file": true,
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
-      "duplication_pct": 27.14
+      "duplication_pct": 34.51
+    },
+    {
+      "file_path": "crates/sc-composer/src/observer.rs",
+      "score": 7.19,
+      "max_ccn": 2,
+      "max_nesting": 1,
+      "nloc": 191,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 48.35
     },
     {
       "file_path": "crates/sc-compose/tests/support/mod.rs",
@@ -322,15 +377,15 @@ repowise health —
       "duplication_pct": 11.11
     },
     {
-      "file_path": "crates/sc-composer/src/include.rs",
-      "score": 7.41,
-      "max_ccn": 8,
-      "max_nesting": 3,
-      "nloc": 429,
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "score": 7.35,
+      "max_ccn": 2,
+      "max_nesting": 1,
+      "nloc": 332,
       "has_test_file": true,
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
-      "duplication_pct": 35.52
+      "duplication_pct": 58.13
     },
     {
       "file_path": "crates/sc-composer/src/validate.rs",
@@ -344,37 +399,26 @@ repowise health —
       "duplication_pct": 67.7
     },
     {
-      "file_path": "crates/sc-composer/src/frontmatter.rs",
-      "score": 7.54,
-      "max_ccn": 7,
+      "file_path": "crates/sc-compose/src/commands/template_init.rs",
+      "score": 7.69,
+      "max_ccn": 9,
       "max_nesting": 2,
-      "nloc": 170,
-      "has_test_file": false,
-      "line_coverage_pct": null,
-      "branch_coverage_pct": null,
-      "duplication_pct": null
-    },
-    {
-      "file_path": "crates/sc-composer/src/init_workspace.rs",
-      "score": 7.82,
-      "max_ccn": 13,
-      "max_nesting": 3,
-      "nloc": 195,
+      "nloc": 580,
       "has_test_file": true,
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
-      "duplication_pct": 13.93
+      "duplication_pct": 10.86
     },
     {
-      "file_path": "crates/sc-compose/src/commands/compose.rs",
-      "score": 8.06,
-      "max_ccn": 7,
-      "max_nesting": 2,
-      "nloc": 219,
+      "file_path": "crates/sc-compose/src/commands/dispatch.rs",
+      "score": 8.05,
+      "max_ccn": 15,
+      "max_nesting": 3,
+      "nloc": 179,
       "has_test_file": false,
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
-      "duplication_pct": 6.39
+      "duplication_pct": 10.06
     },
     {
       "file_path": "crates/sc-compose/src/commands/reports/mod.rs",
@@ -399,17 +443,6 @@ repowise health —
       "duplication_pct": 100.0
     },
     {
-      "file_path": "crates/sc-compose/src/commands/dispatch.rs",
-      "score": 8.33,
-      "max_ccn": 13,
-      "max_nesting": 3,
-      "nloc": 169,
-      "has_test_file": false,
-      "line_coverage_pct": null,
-      "branch_coverage_pct": null,
-      "duplication_pct": 10.65
-    },
-    {
       "file_path": "crates/sc-compose/src/commands/reports/scaffold.rs",
       "score": 8.41,
       "max_ccn": 5,
@@ -430,17 +463,6 @@ repowise health —
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
       "duplication_pct": 34.21
-    },
-    {
-      "file_path": "crates/sc-composer/src/observer.rs",
-      "score": 8.45,
-      "max_ccn": 2,
-      "max_nesting": 1,
-      "nloc": 146,
-      "has_test_file": true,
-      "line_coverage_pct": null,
-      "branch_coverage_pct": null,
-      "duplication_pct": 27.62
     },
     {
       "file_path": "crates/sc-compose/src/main_tests.rs",
@@ -465,6 +487,17 @@ repowise health —
       "duplication_pct": 14.77
     },
     {
+      "file_path": "crates/sc-composer/src/frontmatter_init.rs",
+      "score": 8.65,
+      "max_ccn": 6,
+      "max_nesting": 1,
+      "nloc": 128,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 15.56
+    },
+    {
       "file_path": "crates/sc-compose/src/reporting/mermaid.rs",
       "score": 8.85,
       "max_ccn": 11,
@@ -487,6 +520,17 @@ repowise health —
       "duplication_pct": 29.21
     },
     {
+      "file_path": "crates/sc-composer/src/verify.rs",
+      "score": 8.95,
+      "max_ccn": 5,
+      "max_nesting": 2,
+      "nloc": 378,
+      "has_test_file": true,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 39.54
+    },
+    {
       "file_path": "crates/sc-compose/src/reporting/source_entry.rs",
       "score": 9.15,
       "max_ccn": 5,
@@ -496,17 +540,6 @@ repowise health —
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
       "duplication_pct": 14.08
-    },
-    {
-      "file_path": "crates/sc-composer/src/frontmatter_init.rs",
-      "score": 9.15,
-      "max_ccn": 6,
-      "max_nesting": 1,
-      "nloc": 127,
-      "has_test_file": true,
-      "line_coverage_pct": null,
-      "branch_coverage_pct": null,
-      "duplication_pct": 15.67
     },
     {
       "file_path": "crates/sc-compose/tests/repo_boundaries.rs",
@@ -553,6 +586,17 @@ repowise health —
       "duplication_pct": 18.71
     },
     {
+      "file_path": "crates/sc-compose/src/commands/workspace.rs",
+      "score": 9.7,
+      "max_ccn": 6,
+      "max_nesting": 2,
+      "nloc": 104,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": null
+    },
+    {
       "file_path": "crates/sc-compose/src/reporting/scaffold.rs",
       "score": 9.7,
       "max_ccn": 3,
@@ -573,6 +617,17 @@ repowise health —
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
       "duplication_pct": 10.07
+    },
+    {
+      "file_path": "crates/sc-compose/src/commands/verify.rs",
+      "score": 9.85,
+      "max_ccn": 7,
+      "max_nesting": 2,
+      "nloc": 124,
+      "has_test_file": false,
+      "line_coverage_pct": null,
+      "branch_coverage_pct": null,
+      "duplication_pct": 12.9
     },
     {
       "file_path": "crates/sc-compose/src/reporting/path.rs",
@@ -619,22 +674,11 @@ repowise health —
       "duplication_pct": null
     },
     {
-      "file_path": "crates/sc-compose/src/commands/workspace.rs",
-      "score": 10.0,
-      "max_ccn": 6,
-      "max_nesting": 2,
-      "nloc": 136,
-      "has_test_file": false,
-      "line_coverage_pct": null,
-      "branch_coverage_pct": null,
-      "duplication_pct": null
-    },
-    {
       "file_path": "crates/sc-composer/Cargo.toml",
       "score": 10.0,
       "max_ccn": 1,
       "max_nesting": 0,
-      "nloc": 21,
+      "nloc": 22,
       "has_test_file": false,
       "line_coverage_pct": null,
       "branch_coverage_pct": null,
@@ -643,17 +687,83 @@ repowise health —
   ],
   "findings": [
     {
+      "biomarker_type": "brain_method",
+      "severity": "high",
+      "file_path": "crates/sc-compose/src/cli.rs",
+      "function_name": "parse_pass_inputs",
+      "health_impact": 0.6,
+      "details": {
+        "ccn": 14,
+        "nloc": 90,
+        "max_nesting": 4,
+        "dependents_count": 9,
+        "centrality_floor": 5
+      },
+      "reason": "Brain Method: parse_pass_inputs is 90 lines, CCN 14, in a file imported by 9 others"
+    },
+    {
+      "biomarker_type": "nested_complexity",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/src/cli.rs",
+      "function_name": "parse_pass_inputs",
+      "health_impact": 0.938,
+      "details": {
+        "max_nesting": 4,
+        "ccn": 14,
+        "cognitive": 38
+      },
+      "reason": "parse_pass_inputs nests 4 levels deep"
+    },
+    {
       "biomarker_type": "complex_method",
       "severity": "high",
       "file_path": "crates/sc-compose/src/cli.rs",
       "function_name": "command_wants_json",
-      "health_impact": 1.452,
+      "health_impact": 0.542,
       "details": {
-        "ccn": 15,
-        "cognitive": 32,
-        "nloc": 30
+        "ccn": 17,
+        "cognitive": 36,
+        "nloc": 32
       },
-      "reason": "command_wants_json has cyclomatic complexity 15"
+      "reason": "command_wants_json has cyclomatic complexity 17"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/src/cli.rs",
+      "function_name": "filtered_args_for_clap",
+      "health_impact": 0.316,
+      "details": {
+        "ccn": 11,
+        "cognitive": 17,
+        "nloc": 44
+      },
+      "reason": "filtered_args_for_clap has cyclomatic complexity 11"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/src/cli.rs",
+      "function_name": "parse_pass_inputs",
+      "health_impact": 0.316,
+      "details": {
+        "ccn": 14,
+        "cognitive": 38,
+        "nloc": 90
+      },
+      "reason": "parse_pass_inputs has cyclomatic complexity 14"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/src/cli.rs",
+      "function_name": "parse_pass_inputs",
+      "health_impact": 0.326,
+      "details": {
+        "nloc": 90,
+        "ccn": 14
+      },
+      "reason": "parse_pass_inputs is 90 lines long"
     },
     {
       "biomarker_type": "dry_violation",
@@ -662,13 +772,13 @@ repowise health —
       "function_name": null,
       "health_impact": 0.35,
       "details": {
-        "duplication_pct": 36.59,
-        "clone_pair_count": 9,
+        "duplication_pct": 27.7,
+        "clone_pair_count": 16,
         "worst_clone_lines": 45,
         "worst_clone_partner": "crates/sc-compose/src/commands/reports/mod.rs",
         "worst_clone_co_change": 0
       },
-      "reason": "37% of file duplicated; worst clone shares 45 lines with crates/sc-compose/src/commands/reports/mod.rs"
+      "reason": "28% of file duplicated; worst clone shares 45 lines with crates/sc-compose/src/commands/reports/mod.rs"
     },
     {
       "biomarker_type": "untested_hotspot",
@@ -679,11 +789,81 @@ repowise health —
       "details": {
         "line_coverage_pct": null,
         "branch_coverage_pct": null,
-        "dependents_count": 7,
-        "commit_count_90d": 1,
+        "dependents_count": 9,
+        "commit_count_90d": 5,
         "has_test_file": false
       },
-      "reason": "Hotspot with no paired test file and no coverage data \u2014 7 dependents"
+      "reason": "Hotspot with no paired test file and no coverage data \u2014 9 dependents"
+    },
+    {
+      "biomarker_type": "function_hotspot",
+      "severity": "high",
+      "file_path": "crates/sc-compose/src/cli.rs",
+      "function_name": "command_wants_json",
+      "health_impact": 1.046,
+      "details": {
+        "modification_count": 2,
+        "repo_p80": 2,
+        "ccn": 17,
+        "max_nesting": 3
+      },
+      "reason": "command_wants_json has been modified across 2 commits (repo p80=2) and carries CCN=17 / nesting=3"
+    },
+    {
+      "biomarker_type": "function_hotspot",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/src/cli.rs",
+      "function_name": "filtered_args_for_clap",
+      "health_impact": 0.61,
+      "details": {
+        "modification_count": 2,
+        "repo_p80": 2,
+        "ccn": 11,
+        "max_nesting": 3
+      },
+      "reason": "filtered_args_for_clap has been modified across 2 commits (repo p80=2) and carries CCN=11 / nesting=3"
+    },
+    {
+      "biomarker_type": "function_hotspot",
+      "severity": "high",
+      "file_path": "crates/sc-compose/src/cli.rs",
+      "function_name": "parse_pass_inputs",
+      "health_impact": 1.046,
+      "details": {
+        "modification_count": 4,
+        "repo_p80": 2,
+        "ccn": 14,
+        "max_nesting": 4
+      },
+      "reason": "parse_pass_inputs has been modified across 4 commits (repo p80=2) and carries CCN=14 / nesting=4"
+    },
+    {
+      "biomarker_type": "churn_risk",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/cli.rs",
+      "function_name": null,
+      "health_impact": 0.271,
+      "details": {
+        "relative_churn": 1.24,
+        "churn_percentile": 0.802,
+        "lines_added_90d": 568,
+        "lines_deleted_90d": 37,
+        "commit_count_90d": 5,
+        "nloc": 489
+      },
+      "reason": "90-day churn rewrote 1.2x the file's size (605 lines over 489 NLOC, top 20% of repo churn)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/src/cli.rs",
+      "function_name": null,
+      "health_impact": 0.526,
+      "details": {
+        "prior_defect_count": 2,
+        "window_days": 180
+      },
+      "reason": "2 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
     },
     {
       "biomarker_type": "dry_violation",
@@ -707,25 +887,10 @@ repowise health —
       "function_name": null,
       "health_impact": 0.21,
       "details": {
-        "partner": "crates/sc-composer/src/renderer.rs",
-        "correlation": 0.556,
-        "co_change_count": 5,
-        "self_commits": 54,
-        "partner_commits": 9
-      },
-      "reason": "crates/sc-composer/src/renderer.rs co-changes with this file 5 times (56% of shared commits) but no static dependency exists"
-    },
-    {
-      "biomarker_type": "hidden_coupling",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/src/main.rs",
-      "function_name": null,
-      "health_impact": 0.21,
-      "details": {
         "partner": "crates/sc-compose/src/reporting/templates.rs",
         "correlation": 0.5,
         "co_change_count": 6,
-        "self_commits": 54,
+        "self_commits": 55,
         "partner_commits": 12
       },
       "reason": "crates/sc-compose/src/reporting/templates.rs co-changes with this file 6 times (50% of shared commits) but no static dependency exists"
@@ -740,10 +905,25 @@ repowise health —
         "partner": "crates/sc-compose/src/reporting/output.rs",
         "correlation": 0.5,
         "co_change_count": 5,
-        "self_commits": 54,
+        "self_commits": 55,
         "partner_commits": 10
       },
       "reason": "crates/sc-compose/src/reporting/output.rs co-changes with this file 5 times (50% of shared commits) but no static dependency exists"
+    },
+    {
+      "biomarker_type": "hidden_coupling",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/src/main.rs",
+      "function_name": null,
+      "health_impact": 0.21,
+      "details": {
+        "partner": "crates/sc-compose/src/reporting/index.rs",
+        "correlation": 0.5,
+        "co_change_count": 3,
+        "self_commits": 55,
+        "partner_commits": 6
+      },
+      "reason": "crates/sc-compose/src/reporting/index.rs co-changes with this file 3 times (50% of shared commits) but no static dependency exists"
     },
     {
       "biomarker_type": "churn_risk",
@@ -752,14 +932,14 @@ repowise health —
       "function_name": null,
       "health_impact": 0.719,
       "details": {
-        "relative_churn": 50.01,
-        "churn_percentile": 0.988,
-        "lines_added_90d": 926,
-        "lines_deleted_90d": 2675,
-        "commit_count_90d": 27,
-        "nloc": 72
+        "relative_churn": 50.79,
+        "churn_percentile": 0.989,
+        "lines_added_90d": 928,
+        "lines_deleted_90d": 2678,
+        "commit_count_90d": 28,
+        "nloc": 71
       },
-      "reason": "90-day churn rewrote 50.0x the file's size (3601 lines over 72 NLOC, top 1% of repo churn)"
+      "reason": "90-day churn rewrote 50.8x the file's size (3606 lines over 71 NLOC, top 1% of repo churn)"
     },
     {
       "biomarker_type": "change_entropy",
@@ -768,9 +948,9 @@ repowise health —
       "function_name": null,
       "health_impact": 0.905,
       "details": {
-        "change_entropy": 11.8118,
-        "change_entropy_pct": 0.955,
-        "commit_count_90d": 27
+        "change_entropy": 12.1684,
+        "change_entropy_pct": 0.96,
+        "commit_count_90d": 28
       },
       "reason": "changes are scattered across noisy commits (top 4% change entropy); a strong history-based fault predictor"
     },
@@ -782,7 +962,7 @@ repowise health —
       "health_impact": 0.647,
       "details": {
         "scatter": 44,
-        "commit_count_90d": 27
+        "commit_count_90d": 28
       },
       "reason": "co-changes with 44 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
     },
@@ -793,10 +973,10 @@ repowise health —
       "function_name": null,
       "health_impact": 0.599,
       "details": {
-        "prior_defect_count": 29,
+        "prior_defect_count": 30,
         "window_days": 180
       },
-      "reason": "29 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+      "reason": "30 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
     },
     {
       "biomarker_type": "dry_violation",
@@ -806,7 +986,7 @@ repowise health —
       "health_impact": 0.35,
       "details": {
         "duplication_pct": 56.52,
-        "clone_pair_count": 8,
+        "clone_pair_count": 10,
         "worst_clone_lines": 27,
         "worst_clone_partner": "crates/sc-composer/src/composer.rs",
         "worst_clone_co_change": 0
@@ -865,11 +1045,11 @@ repowise health —
       "function_name": null,
       "health_impact": 0.857,
       "details": {
-        "change_entropy": 4.6153,
-        "change_entropy_pct": 0.896,
+        "change_entropy": 4.5787,
+        "change_entropy_pct": 0.853,
         "commit_count_90d": 19
       },
-      "reason": "changes are scattered across noisy commits (top 10% change entropy); a strong history-based fault predictor"
+      "reason": "changes are scattered across noisy commits (top 15% change entropy); a strong history-based fault predictor"
     },
     {
       "biomarker_type": "co_change_scatter",
@@ -938,13 +1118,13 @@ repowise health —
       "function_name": null,
       "health_impact": 0.15,
       "details": {
-        "duplication_pct": 15.23,
-        "clone_pair_count": 12,
+        "duplication_pct": 16.23,
+        "clone_pair_count": 13,
         "worst_clone_lines": 14,
         "worst_clone_partner": "crates/sc-compose/src/observer_impl.rs",
         "worst_clone_co_change": 0
       },
-      "reason": "15% of file duplicated; worst clone shares 14 lines with crates/sc-compose/src/observer_impl.rs"
+      "reason": "16% of file duplicated; worst clone shares 14 lines with crates/sc-compose/src/observer_impl.rs"
     },
     {
       "biomarker_type": "change_entropy",
@@ -953,9 +1133,9 @@ repowise health —
       "function_name": null,
       "health_impact": 1.062,
       "details": {
-        "change_entropy": 5.7417,
-        "change_entropy_pct": 0.925,
-        "commit_count_90d": 12
+        "change_entropy": 6.1463,
+        "change_entropy_pct": 0.933,
+        "commit_count_90d": 13
       },
       "reason": "changes are scattered across noisy commits (top 7% change entropy); a strong history-based fault predictor"
     },
@@ -966,10 +1146,10 @@ repowise health —
       "function_name": null,
       "health_impact": 1.266,
       "details": {
-        "scatter": 20,
-        "commit_count_90d": 12
+        "scatter": 21,
+        "commit_count_90d": 13
       },
-      "reason": "co-changes with 20 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+      "reason": "co-changes with 21 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
     },
     {
       "biomarker_type": "prior_defect",
@@ -978,10 +1158,10 @@ repowise health —
       "function_name": null,
       "health_impact": 1.172,
       "details": {
-        "prior_defect_count": 16,
+        "prior_defect_count": 17,
         "window_days": 180
       },
-      "reason": "16 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+      "reason": "17 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
     },
     {
       "biomarker_type": "error_handling",
@@ -1069,11 +1249,11 @@ repowise health —
       "details": {
         "line_coverage_pct": null,
         "branch_coverage_pct": null,
-        "dependents_count": 16,
+        "dependents_count": 18,
         "commit_count_90d": 24,
         "has_test_file": false
       },
-      "reason": "Hotspot with no paired test file and no coverage data \u2014 16 dependents"
+      "reason": "Hotspot with no paired test file and no coverage data \u2014 18 dependents"
     },
     {
       "biomarker_type": "change_entropy",
@@ -1082,8 +1262,8 @@ repowise health —
       "function_name": null,
       "health_impact": 1.25,
       "details": {
-        "change_entropy": 5.38,
-        "change_entropy_pct": 0.91,
+        "change_entropy": 5.3372,
+        "change_entropy_pct": 0.907,
         "commit_count_90d": 24
       },
       "reason": "changes are scattered across noisy commits (top 9% change entropy); a strong history-based fault predictor"
@@ -1134,96 +1314,136 @@ repowise health —
       "details": {
         "line_coverage_pct": null,
         "branch_coverage_pct": null,
-        "dependents_count": 4,
-        "commit_count_90d": 9,
+        "dependents_count": 5,
+        "commit_count_90d": 12,
         "has_test_file": false
       },
-      "reason": "Hotspot with no paired test file and no coverage data \u2014 4 dependents"
+      "reason": "Hotspot with no paired test file and no coverage data \u2014 5 dependents"
     },
     {
       "biomarker_type": "function_hotspot",
-      "severity": "medium",
+      "severity": "high",
       "file_path": "crates/sc-compose/src/render_request.rs",
       "function_name": "load_env",
-      "health_impact": 0.497,
+      "health_impact": 0.605,
       "details": {
-        "modification_count": 3,
+        "modification_count": 4,
         "repo_p80": 2,
         "ccn": 5,
         "max_nesting": 4
       },
-      "reason": "load_env has been modified across 3 commits (repo p80=2) and carries CCN=5 / nesting=4"
-    },
-    {
-      "biomarker_type": "function_hotspot",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/src/render_request.rs",
-      "function_name": "build_request",
-      "health_impact": 0.497,
-      "details": {
-        "modification_count": 2,
-        "repo_p80": 2,
-        "ccn": 4,
-        "max_nesting": 3
-      },
-      "reason": "build_request has been modified across 2 commits (repo p80=2) and carries CCN=4 / nesting=3"
+      "reason": "load_env has been modified across 4 commits (repo p80=2) and carries CCN=5 / nesting=4"
     },
     {
       "biomarker_type": "churn_risk",
+      "severity": "high",
+      "file_path": "crates/sc-compose/src/render_request.rs",
+      "function_name": null,
+      "health_impact": 0.626,
+      "details": {
+        "relative_churn": 2.72,
+        "churn_percentile": 0.923,
+        "lines_added_90d": 288,
+        "lines_deleted_90d": 590,
+        "commit_count_90d": 12,
+        "nloc": 323
+      },
+      "reason": "90-day churn rewrote 2.7x the file's size (878 lines over 323 NLOC, top 8% of repo churn)"
+    },
+    {
+      "biomarker_type": "change_entropy",
       "severity": "medium",
       "file_path": "crates/sc-compose/src/render_request.rs",
       "function_name": null,
-      "health_impact": 0.514,
+      "health_impact": 0.46,
       "details": {
-        "relative_churn": 2.47,
-        "churn_percentile": 0.867,
-        "lines_added_90d": 34,
-        "lines_deleted_90d": 469,
-        "commit_count_90d": 9,
-        "nloc": 204
+        "change_entropy": 3.8865,
+        "change_entropy_pct": 0.813,
+        "commit_count_90d": 12
       },
-      "reason": "90-day churn rewrote 2.5x the file's size (503 lines over 204 NLOC, top 13% of repo churn)"
+      "reason": "changes are scattered across noisy commits (top 19% change entropy); a strong history-based fault predictor"
     },
     {
       "biomarker_type": "co_change_scatter",
-      "severity": "medium",
+      "severity": "high",
       "file_path": "crates/sc-compose/src/render_request.rs",
       "function_name": null,
-      "health_impact": 0.77,
+      "health_impact": 0.939,
       "details": {
-        "scatter": 11,
-        "commit_count_90d": 9
+        "scatter": 15,
+        "commit_count_90d": 12
       },
-      "reason": "co-changes with 11 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+      "reason": "co-changes with 15 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
     },
     {
       "biomarker_type": "prior_defect",
       "severity": "critical",
       "file_path": "crates/sc-compose/src/render_request.rs",
       "function_name": null,
-      "health_impact": 1.223,
+      "health_impact": 0.87,
       "details": {
-        "prior_defect_count": 9,
+        "prior_defect_count": 11,
         "window_days": 180
       },
-      "reason": "9 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+      "reason": "11 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "io_in_loop",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/src/render_request.rs",
+      "function_name": "load_vars",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "cross_function": true,
+        "path": [
+          "crates/sc-compose/src/render_request.rs::load_vars",
+          "crates/sc-compose/src/render_request.rs::load_var_source",
+          "crates/sc-compose/src/var_file.rs::load_var_file"
+        ]
+      },
+      "reason": "a filesystem call is reached once per loop iteration through load_vars -> load_var_source -> load_var_file (cross-function N+1)"
+    },
+    {
+      "biomarker_type": "io_in_loop",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/src/render_request.rs",
+      "function_name": "load_pass_vars",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "cross_function": true,
+        "path": [
+          "crates/sc-compose/src/render_request.rs::load_pass_vars",
+          "crates/sc-compose/src/render_request.rs::load_var_source",
+          "crates/sc-compose/src/var_file.rs::load_var_file"
+        ]
+      },
+      "reason": "a filesystem call is reached once per loop iteration through load_pass_vars -> load_var_source -> load_var_file (cross-function N+1)"
+    },
+    {
+      "biomarker_type": "io_in_loop",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/src/render_request.rs",
+      "function_name": "collect_pass_union",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem",
+        "cross_function": true,
+        "path": [
+          "crates/sc-compose/src/render_request.rs::collect_pass_union",
+          "crates/sc-compose/src/render_request.rs::load_pass_vars",
+          "crates/sc-compose/src/render_request.rs::load_var_source",
+          "crates/sc-compose/src/var_file.rs::load_var_file"
+        ]
+      },
+      "reason": "a filesystem call is reached once per loop iteration through collect_pass_union -> load_pass_vars -> load_var_source -> load_var_file (cross-function N+1)"
     },
     {
       "biomarker_type": "hot_path_sync_io",
       "severity": "low",
       "file_path": "crates/sc-compose/src/render_request.rs",
       "function_name": "read_block",
-      "health_impact": 0.0,
-      "details": {
-        "boundary_kind": "filesystem"
-      },
-      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
-    },
-    {
-      "biomarker_type": "hot_path_sync_io",
-      "severity": "low",
-      "file_path": "crates/sc-compose/src/render_request.rs",
-      "function_name": "load_vars",
       "health_impact": 0.0,
       "details": {
         "boundary_kind": "filesystem"
@@ -1325,7 +1545,7 @@ repowise health —
         "correlation": 0.667,
         "co_change_count": 4,
         "self_commits": 6,
-        "partner_commits": 11
+        "partner_commits": 12
       },
       "reason": "crates/sc-compose/src/commands/mod.rs co-changes with this file 4 times (67% of shared commits) but no static dependency exists"
     },
@@ -1337,13 +1557,13 @@ repowise health —
       "health_impact": 1.321,
       "details": {
         "relative_churn": 6.39,
-        "churn_percentile": 0.807,
+        "churn_percentile": 0.758,
         "lines_added_90d": 588,
         "lines_deleted_90d": 0,
         "commit_count_90d": 6,
         "nloc": 92
       },
-      "reason": "90-day churn rewrote 6.4x the file's size (588 lines over 92 NLOC, top 19% of repo churn)"
+      "reason": "90-day churn rewrote 6.4x the file's size (588 lines over 92 NLOC, top 24% of repo churn)"
     },
     {
       "biomarker_type": "co_change_scatter",
@@ -1384,13 +1604,75 @@ repowise health —
       "biomarker_type": "large_method",
       "severity": "low",
       "file_path": "crates/sc-compose/src/commands/compose.rs",
-      "function_name": "execute_render",
-      "health_impact": 0.375,
+      "function_name": "build_custom_render_context",
+      "health_impact": 0.341,
       "details": {
         "nloc": 70,
+        "ccn": 6
+      },
+      "reason": "build_custom_render_context is 70 lines long"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/compose.rs",
+      "function_name": "emit_render_output",
+      "health_impact": 0.341,
+      "details": {
+        "nloc": 65,
         "ccn": 7
       },
-      "reason": "execute_render is 70 lines long"
+      "reason": "emit_render_output is 65 lines long"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/compose.rs",
+      "function_name": "execute_custom_delimiter_render",
+      "health_impact": 0.341,
+      "details": {
+        "nloc": 69,
+        "ccn": 3
+      },
+      "reason": "execute_custom_delimiter_render is 69 lines long"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/compose.rs",
+      "function_name": "run_validate",
+      "health_impact": 0.341,
+      "details": {
+        "nloc": 62,
+        "ccn": 8
+      },
+      "reason": "run_validate is 62 lines long"
+    },
+    {
+      "biomarker_type": "primitive_obsession",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/compose.rs",
+      "function_name": "emit_render_output",
+      "health_impact": 0.136,
+      "details": {
+        "param_count": 5
+      },
+      "reason": "emit_render_output takes 5 parameters"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/compose.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "duplication_pct": 19.59,
+        "clone_pair_count": 7,
+        "worst_clone_lines": 16,
+        "worst_clone_partner": "crates/sc-compose/src/commands/verify.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "20% of file duplicated; worst clone shares 16 lines with crates/sc-compose/src/commands/verify.rs"
     },
     {
       "biomarker_type": "untested_hotspot",
@@ -1402,16 +1684,55 @@ repowise health —
         "line_coverage_pct": null,
         "branch_coverage_pct": null,
         "dependents_count": 4,
-        "commit_count_90d": 1,
+        "commit_count_90d": 5,
         "has_test_file": false
       },
       "reason": "Hotspot with no paired test file and no coverage data \u2014 4 dependents"
     },
     {
+      "biomarker_type": "churn_risk",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/compose.rs",
+      "function_name": null,
+      "health_impact": 0.36,
+      "details": {
+        "relative_churn": 1.44,
+        "churn_percentile": 0.835,
+        "lines_added_90d": 666,
+        "lines_deleted_90d": 105,
+        "commit_count_90d": 5,
+        "nloc": 536
+      },
+      "reason": "90-day churn rewrote 1.4x the file's size (771 lines over 536 NLOC, top 16% of repo churn)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-compose/src/commands/compose.rs",
+      "function_name": null,
+      "health_impact": 2.0,
+      "details": {
+        "prior_defect_count": 3,
+        "window_days": 180
+      },
+      "reason": "3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
       "biomarker_type": "hot_path_sync_io",
       "severity": "low",
       "file_path": "crates/sc-compose/src/commands/compose.rs",
-      "function_name": "execute_render",
+      "function_name": "emit_render_output",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/compose.rs",
+      "function_name": "render_would_change",
       "health_impact": 0.0,
       "details": {
         "boundary_kind": "filesystem"
@@ -1420,28 +1741,28 @@ repowise health —
     },
     {
       "biomarker_type": "complex_method",
-      "severity": "medium",
+      "severity": "high",
       "file_path": "crates/sc-compose/src/commands/dispatch.rs",
       "function_name": "run",
-      "health_impact": 0.847,
+      "health_impact": 1.192,
       "details": {
-        "ccn": 13,
-        "cognitive": 26,
-        "nloc": 80
+        "ccn": 15,
+        "cognitive": 30,
+        "nloc": 88
       },
-      "reason": "run has cyclomatic complexity 13"
+      "reason": "run has cyclomatic complexity 15"
     },
     {
       "biomarker_type": "large_method",
       "severity": "low",
       "file_path": "crates/sc-compose/src/commands/dispatch.rs",
       "function_name": "run",
-      "health_impact": 0.375,
+      "health_impact": 0.308,
       "details": {
-        "nloc": 80,
-        "ccn": 13
+        "nloc": 88,
+        "ccn": 15
       },
-      "reason": "run is 80 lines long"
+      "reason": "run is 88 lines long"
     },
     {
       "biomarker_type": "dry_violation",
@@ -1450,13 +1771,13 @@ repowise health —
       "function_name": null,
       "health_impact": 0.15,
       "details": {
-        "duplication_pct": 10.65,
+        "duplication_pct": 10.06,
         "clone_pair_count": 1,
         "worst_clone_lines": 9,
         "worst_clone_partner": "crates/sc-compose/src/commands/dispatch.rs",
         "worst_clone_co_change": 0
       },
-      "reason": "11% of file duplicated; worst clone shares 9 lines with crates/sc-compose/src/commands/dispatch.rs"
+      "reason": "10% of file duplicated; worst clone shares 9 lines with crates/sc-compose/src/commands/dispatch.rs"
     },
     {
       "biomarker_type": "prior_defect",
@@ -1498,6 +1819,21 @@ repowise health —
       "reason": "3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
     },
     {
+      "biomarker_type": "dry_violation",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/mod.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "duplication_pct": 9.88,
+        "clone_pair_count": 1,
+        "worst_clone_lines": 13,
+        "worst_clone_partner": "crates/sc-compose/src/reporting/mod.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "10% of file duplicated; worst clone shares 13 lines with crates/sc-compose/src/reporting/mod.rs"
+    },
+    {
       "biomarker_type": "hidden_coupling",
       "severity": "medium",
       "file_path": "crates/sc-compose/src/commands/mod.rs",
@@ -1507,7 +1843,7 @@ repowise health —
         "partner": "crates/sc-compose/src/var_file.rs",
         "correlation": 0.667,
         "co_change_count": 4,
-        "self_commits": 11,
+        "self_commits": 12,
         "partner_commits": 6
       },
       "reason": "crates/sc-compose/src/var_file.rs co-changes with this file 4 times (67% of shared commits) but no static dependency exists"
@@ -1534,7 +1870,7 @@ repowise health —
       "health_impact": 0.924,
       "details": {
         "scatter": 8,
-        "commit_count_90d": 9
+        "commit_count_90d": 10
       },
       "reason": "co-changes with 8 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
     },
@@ -1549,6 +1885,119 @@ repowise health —
         "window_days": 180
       },
       "reason": "10 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/src/commands/template_init.rs",
+      "function_name": "apply_replacements",
+      "health_impact": 0.796,
+      "details": {
+        "ccn": 9,
+        "cognitive": 11,
+        "nloc": 58
+      },
+      "reason": "apply_replacements has cyclomatic complexity 9"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/template_init.rs",
+      "function_name": "template_init_file",
+      "health_impact": 0.352,
+      "details": {
+        "nloc": 67,
+        "ccn": 7
+      },
+      "reason": "template_init_file is 67 lines long"
+    },
+    {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/template_init.rs",
+      "function_name": "run_template_init",
+      "health_impact": 0.352,
+      "details": {
+        "nloc": 71,
+        "ccn": 6
+      },
+      "reason": "run_template_init is 71 lines long"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/template_init.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "duplication_pct": 10.86,
+        "clone_pair_count": 13,
+        "worst_clone_lines": 20,
+        "worst_clone_partner": "crates/sc-composer/src/init_workspace.rs",
+        "worst_clone_co_change": 2
+      },
+      "reason": "11% of file duplicated; worst clone shares 20 lines with crates/sc-composer/src/init_workspace.rs (co-changed 2x)"
+    },
+    {
+      "biomarker_type": "churn_risk",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/template_init.rs",
+      "function_name": null,
+      "health_impact": 0.36,
+      "details": {
+        "relative_churn": 1.17,
+        "churn_percentile": 0.769,
+        "lines_added_90d": 657,
+        "lines_deleted_90d": 23,
+        "commit_count_90d": 5,
+        "nloc": 580
+      },
+      "reason": "90-day churn rewrote 1.2x the file's size (680 lines over 580 NLOC, top 23% of repo churn)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/template_init.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/template_init.rs",
+      "function_name": "template_init_file",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/template_init.rs",
+      "function_name": "temp_root",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/template_init.rs",
+      "function_name": "write_file",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
     },
     {
       "biomarker_type": "dry_violation",
@@ -1579,13 +2028,40 @@ repowise health —
     },
     {
       "biomarker_type": "dry_violation",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/verify.rs",
+      "function_name": null,
+      "health_impact": 0.15,
+      "details": {
+        "duplication_pct": 12.9,
+        "clone_pair_count": 1,
+        "worst_clone_lines": 16,
+        "worst_clone_partner": "crates/sc-compose/src/commands/compose.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "13% of file duplicated; worst clone shares 16 lines with crates/sc-compose/src/commands/compose.rs"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-compose/src/commands/workspace.rs",
+      "function_name": null,
+      "health_impact": 0.3,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "dry_violation",
       "severity": "medium",
       "file_path": "crates/sc-compose/src/commands/reports/mod.rs",
       "function_name": null,
       "health_impact": 0.35,
       "details": {
         "duplication_pct": 70.87,
-        "clone_pair_count": 7,
+        "clone_pair_count": 10,
         "worst_clone_lines": 45,
         "worst_clone_partner": "crates/sc-compose/src/cli.rs",
         "worst_clone_co_change": 0
@@ -1738,11 +2214,11 @@ repowise health —
       "function_name": null,
       "health_impact": 0.857,
       "details": {
-        "change_entropy": 4.0587,
-        "change_entropy_pct": 0.866,
+        "change_entropy": 4.0264,
+        "change_entropy_pct": 0.827,
         "commit_count_90d": 13
       },
-      "reason": "changes are scattered across noisy commits (top 13% change entropy); a strong history-based fault predictor"
+      "reason": "changes are scattered across noisy commits (top 17% change entropy); a strong history-based fault predictor"
     },
     {
       "biomarker_type": "co_change_scatter",
@@ -1835,7 +2311,7 @@ repowise health —
         "correlation": 0.5,
         "co_change_count": 3,
         "self_commits": 6,
-        "partner_commits": 54
+        "partner_commits": 55
       },
       "reason": "crates/sc-compose/src/main.rs co-changes with this file 3 times (50% of shared commits) but no static dependency exists"
     },
@@ -1914,12 +2390,12 @@ repowise health —
       "health_impact": 0.251,
       "details": {
         "partner": "crates/sc-compose/src/reporting/templates.rs",
-        "correlation": 0.583,
-        "co_change_count": 7,
+        "correlation": 0.5,
+        "co_change_count": 6,
         "self_commits": 23,
         "partner_commits": 12
       },
-      "reason": "crates/sc-compose/src/reporting/templates.rs co-changes with this file 7 times (58% of shared commits) but no static dependency exists"
+      "reason": "crates/sc-compose/src/reporting/templates.rs co-changes with this file 6 times (50% of shared commits) but no static dependency exists"
     },
     {
       "biomarker_type": "hidden_coupling",
@@ -1944,7 +2420,7 @@ repowise health —
       "health_impact": 0.86,
       "details": {
         "relative_churn": 8.57,
-        "churn_percentile": 0.928,
+        "churn_percentile": 0.934,
         "lines_added_90d": 533,
         "lines_deleted_90d": 778,
         "commit_count_90d": 23,
@@ -1959,11 +2435,11 @@ repowise health —
       "function_name": null,
       "health_impact": 0.649,
       "details": {
-        "change_entropy": 6.6092,
-        "change_entropy_pct": 0.94,
+        "change_entropy": 6.5567,
+        "change_entropy_pct": 0.947,
         "commit_count_90d": 23
       },
-      "reason": "changes are scattered across noisy commits (top 6% change entropy); a strong history-based fault predictor"
+      "reason": "changes are scattered across noisy commits (top 5% change entropy); a strong history-based fault predictor"
     },
     {
       "biomarker_type": "co_change_scatter",
@@ -2044,12 +2520,12 @@ repowise health —
       "health_impact": 0.35,
       "details": {
         "duplication_pct": 100.0,
-        "clone_pair_count": 1,
-        "worst_clone_lines": 12,
-        "worst_clone_partner": "crates/sc-compose/src/reporting/mod.rs",
+        "clone_pair_count": 2,
+        "worst_clone_lines": 13,
+        "worst_clone_partner": "crates/sc-compose/src/commands/mod.rs",
         "worst_clone_co_change": 0
       },
-      "reason": "100% of file duplicated; worst clone shares 12 lines with crates/sc-compose/src/reporting/mod.rs"
+      "reason": "100% of file duplicated; worst clone shares 13 lines with crates/sc-compose/src/commands/mod.rs"
     },
     {
       "biomarker_type": "co_change_scatter",
@@ -2128,7 +2604,7 @@ repowise health —
         "correlation": 0.5,
         "co_change_count": 5,
         "self_commits": 10,
-        "partner_commits": 54
+        "partner_commits": 55
       },
       "reason": "crates/sc-compose/src/main.rs co-changes with this file 5 times (50% of shared commits) but no static dependency exists"
     },
@@ -2177,17 +2653,6 @@ repowise health —
       "severity": "low",
       "file_path": "crates/sc-compose/src/reporting/output.rs",
       "function_name": "write_report_metadata_and_archive",
-      "health_impact": 0.0,
-      "details": {
-        "boundary_kind": "filesystem"
-      },
-      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
-    },
-    {
-      "biomarker_type": "hot_path_sync_io",
-      "severity": "low",
-      "file_path": "crates/sc-compose/src/reporting/output.rs",
-      "function_name": "copy_relative_file",
       "health_impact": 0.0,
       "details": {
         "boundary_kind": "filesystem"
@@ -2384,13 +2849,13 @@ repowise health —
       "health_impact": 0.394,
       "details": {
         "relative_churn": 2.26,
-        "churn_percentile": 0.855,
+        "churn_percentile": 0.824,
         "lines_added_90d": 533,
         "lines_deleted_90d": 202,
         "commit_count_90d": 17,
         "nloc": 325
       },
-      "reason": "90-day churn rewrote 2.3x the file's size (735 lines over 325 NLOC, top 14% of repo churn)"
+      "reason": "90-day churn rewrote 2.3x the file's size (735 lines over 325 NLOC, top 18% of repo churn)"
     },
     {
       "biomarker_type": "change_entropy",
@@ -2399,11 +2864,11 @@ repowise health —
       "function_name": null,
       "health_impact": 0.496,
       "details": {
-        "change_entropy": 4.6126,
-        "change_entropy_pct": 0.881,
+        "change_entropy": 4.5759,
+        "change_entropy_pct": 0.84,
         "commit_count_90d": 17
       },
-      "reason": "changes are scattered across noisy commits (top 12% change entropy); a strong history-based fault predictor"
+      "reason": "changes are scattered across noisy commits (top 16% change entropy); a strong history-based fault predictor"
     },
     {
       "biomarker_type": "co_change_scatter",
@@ -2654,22 +3119,7 @@ repowise health —
       "severity": "medium",
       "file_path": "crates/sc-compose/src/reporting/templates.rs",
       "function_name": null,
-      "health_impact": 0.338,
-      "details": {
-        "partner": "crates/sc-compose/src/reporting/init.rs",
-        "correlation": 0.583,
-        "co_change_count": 7,
-        "self_commits": 12,
-        "partner_commits": 23
-      },
-      "reason": "crates/sc-compose/src/reporting/init.rs co-changes with this file 7 times (58% of shared commits) but no static dependency exists"
-    },
-    {
-      "biomarker_type": "hidden_coupling",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/src/reporting/templates.rs",
-      "function_name": null,
-      "health_impact": 0.338,
+      "health_impact": 0.457,
       "details": {
         "partner": "crates/sc-compose/src/reporting/publish_manifest.rs",
         "correlation": 0.571,
@@ -2684,51 +3134,37 @@ repowise health —
       "severity": "medium",
       "file_path": "crates/sc-compose/src/reporting/templates.rs",
       "function_name": null,
-      "health_impact": 0.338,
+      "health_impact": 0.457,
+      "details": {
+        "partner": "crates/sc-compose/src/reporting/init.rs",
+        "correlation": 0.5,
+        "co_change_count": 6,
+        "self_commits": 12,
+        "partner_commits": 23
+      },
+      "reason": "crates/sc-compose/src/reporting/init.rs co-changes with this file 6 times (50% of shared commits) but no static dependency exists"
+    },
+    {
+      "biomarker_type": "hidden_coupling",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/src/reporting/templates.rs",
+      "function_name": null,
+      "health_impact": 0.457,
       "details": {
         "partner": "crates/sc-compose/src/main.rs",
         "correlation": 0.5,
         "co_change_count": 6,
         "self_commits": 12,
-        "partner_commits": 54
+        "partner_commits": 55
       },
       "reason": "crates/sc-compose/src/main.rs co-changes with this file 6 times (50% of shared commits) but no static dependency exists"
-    },
-    {
-      "biomarker_type": "churn_risk",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/src/reporting/templates.rs",
-      "function_name": null,
-      "health_impact": 0.405,
-      "details": {
-        "relative_churn": 2.26,
-        "churn_percentile": 0.795,
-        "lines_added_90d": 541,
-        "lines_deleted_90d": 199,
-        "commit_count_90d": 12,
-        "nloc": 328
-      },
-      "reason": "90-day churn rewrote 2.3x the file's size (740 lines over 328 NLOC, top 20% of repo churn)"
-    },
-    {
-      "biomarker_type": "change_entropy",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/src/reporting/templates.rs",
-      "function_name": null,
-      "health_impact": 0.51,
-      "details": {
-        "change_entropy": 3.227,
-        "change_entropy_pct": 0.836,
-        "commit_count_90d": 12
-      },
-      "reason": "changes are scattered across noisy commits (top 16% change entropy); a strong history-based fault predictor"
     },
     {
       "biomarker_type": "co_change_scatter",
       "severity": "medium",
       "file_path": "crates/sc-compose/src/reporting/templates.rs",
       "function_name": null,
-      "health_impact": 0.608,
+      "health_impact": 0.823,
       "details": {
         "scatter": 14,
         "commit_count_90d": 12
@@ -2740,7 +3176,7 @@ repowise health —
       "severity": "critical",
       "file_path": "crates/sc-compose/src/reporting/templates.rs",
       "function_name": null,
-      "health_impact": 0.965,
+      "health_impact": 1.306,
       "details": {
         "prior_defect_count": 11,
         "window_days": 180
@@ -2787,13 +3223,13 @@ repowise health —
       "function_name": null,
       "health_impact": 0.6,
       "details": {
-        "duplication_pct": 61.04,
-        "clone_pair_count": 637,
+        "duplication_pct": 64.94,
+        "clone_pair_count": 730,
         "worst_clone_lines": 42,
         "worst_clone_partner": "crates/sc-compose/tests/json_cli.rs",
-        "worst_clone_co_change": 26
+        "worst_clone_co_change": 27
       },
-      "reason": "61% of file duplicated; worst clone shares 42 lines with crates/sc-compose/tests/json_cli.rs (co-changed 26x)"
+      "reason": "65% of file duplicated; worst clone shares 42 lines with crates/sc-compose/tests/json_cli.rs (co-changed 27x)"
     },
     {
       "biomarker_type": "change_entropy",
@@ -2802,9 +3238,9 @@ repowise health —
       "function_name": null,
       "health_impact": 1.472,
       "details": {
-        "change_entropy": 16.8138,
-        "change_entropy_pct": 0.985,
-        "commit_count_90d": 45
+        "change_entropy": 19.0702,
+        "change_entropy_pct": 0.987,
+        "commit_count_90d": 52
       },
       "reason": "changes are scattered across noisy commits (top 1% change entropy); a strong history-based fault predictor"
     },
@@ -2815,10 +3251,10 @@ repowise health —
       "function_name": null,
       "health_impact": 1.053,
       "details": {
-        "scatter": 37,
-        "commit_count_90d": 45
+        "scatter": 45,
+        "commit_count_90d": 52
       },
-      "reason": "co-changes with 37 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+      "reason": "co-changes with 45 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
     },
     {
       "biomarker_type": "prior_defect",
@@ -2827,17 +3263,17 @@ repowise health —
       "function_name": null,
       "health_impact": 0.975,
       "details": {
-        "prior_defect_count": 47,
+        "prior_defect_count": 50,
         "window_days": 180
       },
-      "reason": "47 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+      "reason": "50 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
           163,
@@ -2852,22 +3288,22 @@ repowise health —
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2434,
-          2435
+          3275,
+          3276
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 2434-2435 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 3275-3276 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
           249,
@@ -2882,7 +3318,7 @@ repowise health —
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
           276,
@@ -2897,765 +3333,1020 @@ repowise health —
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          294,
-          295
+          333,
+          335
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 294-295 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 333-335 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          401,
-          402
+          305,
+          306
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 401-402 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 305-306 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          308,
-          309
+          512,
+          513
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 308-309 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 512-513 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1998,
-          1999
+          363,
+          364
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 1998-1999 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 363-364 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          350,
-          351
+          388,
+          389
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 350-351 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 388-389 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          375,
-          382
+          486,
+          487
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 375-382 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 486-487 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          774,
-          775
+          539,
+          542
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 774-775 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 539-542 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          436,
-          439
+          759,
+          763
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 436-439 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 759-763 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1921,
-          1925
+          796,
+          800
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 1921-1925 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 796-800 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          612,
-          620
+          967,
+          971
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 612-620 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 967-971 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          497,
-          500
+          847,
+          851
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 497-500 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 847-851 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          580,
-          586
+          875,
+          879
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 580-586 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 875-879 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          683,
-          685
+          932,
+          940
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 683-685 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 932-940 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          727,
-          728
+          1064,
+          1068
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 727-728 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1064-1068 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          747,
-          748
+          1033,
+          1037
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 747-748 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1033-1037 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          995,
-          996
+          1092,
+          1096
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 995-996 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1092-1096 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1298,
-          1299
+          1117,
+          1121
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 1298-1299 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1117-1121 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1439,
-          1440
+          1135,
+          1136
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 1439-1440 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1135-1136 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2028,
-          2029
+          1242,
+          1243
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 2028-2029 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1242-1243 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2074,
-          2075
+          1149,
+          1150
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 2074-2075 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1149-1150 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2092,
-          2093
+          2839,
+          2840
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 2092-2093 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 2839-2840 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2113,
-          2114
+          1191,
+          1192
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 2113-2114 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1191-1192 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          938,
-          939
+          1216,
+          1223
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 938-939 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1216-1223 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          799,
-          803
+          1615,
+          1616
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 799-803 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1615-1616 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          819,
-          823
+          1277,
+          1280
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 819-823 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1277-1280 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1964,
-          1969
+          2762,
+          2766
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 1964-1969 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 2762-2766 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          854,
-          855
+          1453,
+          1461
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 854-855 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1453-1461 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          886,
-          887
+          1338,
+          1341
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 886-887 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1338-1341 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1097,
-          1118
+          1421,
+          1427
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 1097-1118 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1421-1427 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          956,
-          958
+          1524,
+          1526
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 956-958 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1524-1526 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2338,
-          2339
+          1568,
+          1569
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 2338-2339 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1568-1569 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1129,
-          1130
+          1588,
+          1589
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 1129-1130 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1588-1589 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1268,
-          1270
+          1836,
+          1837
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 1268-1270 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1836-1837 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1350,
-          1354
+          2139,
+          2140
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 1350-1354 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 2139-2140 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1570,
-          1572
+          2280,
+          2281
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 1570-1572 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 2280-2281 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1845,
-          1850
+          2869,
+          2870
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 1845-1850 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 2869-2870 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1606,
-          1607
+          2915,
+          2916
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 1606-1607 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 2915-2916 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1948,
-          1955
+          2933,
+          2934
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 1948-1955 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 2933-2934 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2047,
-          2054
+          2954,
+          2955
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 2047-2054 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 2954-2955 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2143,
-          2147
+          1779,
+          1780
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 2143-2147 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1779-1780 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2380,
-          2381
+          1640,
+          1644
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 2380-2381 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1640-1644 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2407,
-          2408
+          1660,
+          1664
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 2407-2408 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1660-1664 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2577,
-          2582
+          2805,
+          2810
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 2577-2582 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 2805-2810 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2516,
-          2534
+          1695,
+          1696
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 2516-2534 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1695-1696 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2644,
-          2649
+          1727,
+          1728
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 2644-2649 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1727-1728 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2593,
-          2601
+          1938,
+          1959
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 2593-2601 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1938-1959 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2680,
-          2704
+          1797,
+          1799
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 2680-2704 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1797-1799 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2494,
-          2501
+          3179,
+          3180
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 3179-3180 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1970,
+          1971
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 1970-1971 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          2109,
+          2111
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 2109-2111 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          2191,
+          2195
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 2191-2195 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          2411,
+          2413
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 2411-2413 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          2686,
+          2691
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 2686-2691 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          2447,
+          2448
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 2447-2448 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          2789,
+          2796
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 2789-2796 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          2888,
+          2895
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 2888-2895 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          2984,
+          2988
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 2984-2988 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          3221,
+          3222
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 3221-3222 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          3248,
+          3249
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 3248-3249 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          3418,
+          3423
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 3418-3423 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          3357,
+          3375
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 3357-3375 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          3485,
+          3490
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 3485-3490 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          3434,
+          3442
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 3434-3442 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          3521,
+          3545
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 3521-3545 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          3335,
+          3342
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 2494-2501 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 3335-3342 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2795,
-          2799
+          3636,
+          3640
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 2795-2799 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 3636-3640 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2842,
-          2845
+          3683,
+          3686
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 2842-2845 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 3683-3686 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
       "severity": "medium",
       "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": null,
-      "health_impact": 0.009,
+      "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          2240,
-          2244
+          3081,
+          3085
         ],
         "partner_file": "crates/sc-composer/src/composer.rs"
       },
-      "reason": "assertion block at lines 2240-2244 is duplicated in crates/sc-composer/src/composer.rs"
+      "reason": "assertion block at lines 3081-3085 is duplicated in crates/sc-composer/src/composer.rs"
     },
     {
       "biomarker_type": "error_handling",
@@ -3806,6 +4497,17 @@ repowise health —
       "biomarker_type": "hot_path_sync_io",
       "severity": "low",
       "file_path": "crates/sc-compose/tests/cli.rs",
+      "function_name": "verify_treats_crlf_deployed_file_as_clean",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-compose/tests/cli.rs",
       "function_name": "reports_smoke_writes_latest_smoke_artifact_set",
       "health_impact": 0.0,
       "details": {
@@ -3941,13 +4643,13 @@ repowise health —
       "function_name": null,
       "health_impact": 0.6,
       "details": {
-        "duplication_pct": 76.37,
-        "clone_pair_count": 536,
+        "duplication_pct": 75.79,
+        "clone_pair_count": 540,
         "worst_clone_lines": 42,
         "worst_clone_partner": "crates/sc-compose/tests/cli.rs",
-        "worst_clone_co_change": 26
+        "worst_clone_co_change": 27
       },
-      "reason": "76% of file duplicated; worst clone shares 42 lines with crates/sc-compose/tests/cli.rs (co-changed 26x)"
+      "reason": "76% of file duplicated; worst clone shares 42 lines with crates/sc-compose/tests/cli.rs (co-changed 27x)"
     },
     {
       "biomarker_type": "change_entropy",
@@ -3956,9 +4658,9 @@ repowise health —
       "function_name": null,
       "health_impact": 1.472,
       "details": {
-        "change_entropy": 12.4979,
-        "change_entropy_pct": 0.97,
-        "commit_count_90d": 36
+        "change_entropy": 12.7037,
+        "change_entropy_pct": 0.973,
+        "commit_count_90d": 37
       },
       "reason": "changes are scattered across noisy commits (top 3% change entropy); a strong history-based fault predictor"
     },
@@ -3970,7 +4672,7 @@ repowise health —
       "health_impact": 1.053,
       "details": {
         "scatter": 39,
-        "commit_count_90d": 36
+        "commit_count_90d": 37
       },
       "reason": "co-changes with 39 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
     },
@@ -3994,12 +4696,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          927,
-          932
+          403,
+          407
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 927-932 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 403-407 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4009,12 +4711,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          985,
-          995
+          961,
+          966
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 985-995 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 961-966 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4024,12 +4726,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          523,
-          524
+          1019,
+          1029
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 523-524 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1019-1029 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4039,12 +4741,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          609,
-          610
+          557,
+          558
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 609-610 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 557-558 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4054,12 +4756,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          613,
-          618
+          643,
+          644
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 613-618 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 643-644 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4069,12 +4771,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1730,
-          1737
+          647,
+          652
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 1730-1737 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 647-652 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4084,12 +4786,27 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1785,
-          1792
+          1764,
+          1771
         ],
         "partner_file": "crates/sc-compose/tests/cli.rs"
       },
-      "reason": "assertion block at lines 1785-1792 is duplicated in crates/sc-compose/tests/cli.rs"
+      "reason": "assertion block at lines 1764-1771 is duplicated in crates/sc-compose/tests/cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1819,
+          1826
+        ],
+        "partner_file": "crates/sc-compose/tests/cli.rs"
+      },
+      "reason": "assertion block at lines 1819-1826 is duplicated in crates/sc-compose/tests/cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4114,12 +4831,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1160,
-          1164
+          1194,
+          1198
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1160-1164 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 1194-1198 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4129,12 +4846,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1216,
-          1217
+          1250,
+          1251
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1216-1217 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 1250-1251 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4144,12 +4861,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1281,
-          1282
+          1315,
+          1316
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1281-1282 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 1315-1316 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4159,12 +4876,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1327,
-          1328
+          1361,
+          1362
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1327-1328 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 1361-1362 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4174,12 +4891,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1390,
-          1391
+          1424,
+          1425
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1390-1391 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 1424-1425 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4189,12 +4906,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1445,
-          1446
+          1479,
+          1480
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1445-1446 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 1479-1480 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4204,12 +4921,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1480,
-          1481
+          1514,
+          1515
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1480-1481 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 1514-1515 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4219,12 +4936,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1540,
-          1541
+          1574,
+          1575
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1540-1541 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 1574-1575 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4234,12 +4951,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1576,
-          1577
+          1610,
+          1611
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1576-1577 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 1610-1611 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4249,12 +4966,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1680,
-          1681
+          1714,
+          1715
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1680-1681 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 1714-1715 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4264,12 +4981,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1684,
-          1699
+          1718,
+          1733
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1684-1699 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 1718-1733 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4384,12 +5101,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          446,
-          450
+          480,
+          484
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 446-450 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 480-484 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4399,12 +5116,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          551,
-          555
+          585,
+          589
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 551-555 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 585-589 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4414,12 +5131,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          681,
-          685
+          715,
+          719
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 681-685 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 715-719 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4429,12 +5146,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          716,
-          720
+          750,
+          754
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 716-720 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 750-754 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4444,12 +5161,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          753,
-          757
+          787,
+          791
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 753-757 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 787-791 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4489,12 +5206,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          397,
-          401
+          431,
+          435
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 397-401 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 431-435 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4564,12 +5281,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          813,
-          817
+          847,
+          851
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 813-817 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 847-851 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -4594,402 +5311,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          423,
-          424
+          457,
+          458
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 423-424 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          837,
-          841
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 837-841 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          1182,
-          1186
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 1182-1186 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          505,
-          506
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 505-506 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          527,
-          536
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 527-536 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          947,
-          948
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 947-948 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          951,
-          961
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 951-961 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          981,
-          982
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 981-982 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          1015,
-          1016
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 1015-1016 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          1019,
-          1032
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 1019-1032 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          1049,
-          1050
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 1049-1050 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          1072,
-          1073
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 1072-1073 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          1076,
-          1085
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 1076-1085 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          1220,
-          1225
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 1220-1225 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          1285,
-          1298
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 1285-1298 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          1331,
-          1341
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 1331-1341 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          1394,
-          1396
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 1394-1396 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          1449,
-          1450
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 1449-1450 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          1544,
-          1556
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 1544-1556 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          1580,
-          1592
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 1580-1592 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          558,
-          562
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 558-562 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          596,
-          597
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 596-597 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          644,
-          648
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 644-648 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          652,
-          654
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 652-654 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          1253,
-          1257
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 1253-1257 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          902,
-          906
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 902-906 is duplicated in crates/sc-compose/tests/json_cli.rs"
-    },
-    {
-      "biomarker_type": "duplicated_assertion_block",
-      "severity": "medium",
-      "file_path": "crates/sc-compose/tests/json_cli.rs",
-      "function_name": null,
-      "health_impact": 0.007,
-      "details": {
-        "assertion_lines": [
-          786,
-          790
-        ],
-        "partner_file": "crates/sc-compose/tests/json_cli.rs"
-      },
-      "reason": "assertion block at lines 786-790 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 457-458 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -5014,12 +5341,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          922,
-          923
+          1216,
+          1220
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 922-923 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 1216-1220 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -5029,12 +5356,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1114,
-          1115
+          539,
+          540
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1114-1115 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 539-540 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -5044,12 +5371,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1136,
-          1137
+          561,
+          570
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1136-1137 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 561-570 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -5059,12 +5386,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1636,
-          1637
+          981,
+          982
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1636-1637 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 981-982 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -5074,12 +5401,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1726,
-          1727
+          985,
+          995
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1726-1727 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 985-995 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -5089,12 +5416,12 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1640,
-          1652
+          1015,
+          1016
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1640-1652 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 1015-1016 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "duplicated_assertion_block",
@@ -5104,12 +5431,402 @@ repowise health —
       "health_impact": 0.007,
       "details": {
         "assertion_lines": [
-          1781,
-          1782
+          1049,
+          1050
         ],
         "partner_file": "crates/sc-compose/tests/json_cli.rs"
       },
-      "reason": "assertion block at lines 1781-1782 is duplicated in crates/sc-compose/tests/json_cli.rs"
+      "reason": "assertion block at lines 1049-1050 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1053,
+          1066
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1053-1066 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1083,
+          1084
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1083-1084 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1106,
+          1107
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1106-1107 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1110,
+          1119
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1110-1119 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1254,
+          1259
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1254-1259 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1319,
+          1332
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1319-1332 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1365,
+          1375
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1365-1375 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1428,
+          1430
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1428-1430 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1483,
+          1484
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1483-1484 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1578,
+          1590
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1578-1590 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1614,
+          1626
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1614-1626 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          592,
+          596
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 592-596 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          630,
+          631
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 630-631 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          678,
+          682
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 678-682 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          686,
+          688
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 686-688 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1287,
+          1291
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1287-1291 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          936,
+          940
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 936-940 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          820,
+          824
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 820-824 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          905,
+          909
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 905-909 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          956,
+          957
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 956-957 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1148,
+          1149
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1148-1149 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1170,
+          1171
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1170-1171 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1670,
+          1671
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1670-1671 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1760,
+          1761
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1760-1761 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1674,
+          1686
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1674-1686 is duplicated in crates/sc-compose/tests/json_cli.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "function_name": null,
+      "health_impact": 0.007,
+      "details": {
+        "assertion_lines": [
+          1815,
+          1816
+        ],
+        "partner_file": "crates/sc-compose/tests/json_cli.rs"
+      },
+      "reason": "assertion block at lines 1815-1816 is duplicated in crates/sc-compose/tests/json_cli.rs"
     },
     {
       "biomarker_type": "hot_path_sync_io",
@@ -5243,12 +5960,12 @@ repowise health —
       "health_impact": 0.15,
       "details": {
         "duplication_pct": 11.11,
-        "clone_pair_count": 14,
+        "clone_pair_count": 19,
         "worst_clone_lines": 9,
-        "worst_clone_partner": "crates/sc-composer/src/composer.rs",
+        "worst_clone_partner": "crates/sc-compose/src/commands/template_init.rs",
         "worst_clone_co_change": 0
       },
-      "reason": "11% of file duplicated; worst clone shares 9 lines with crates/sc-composer/src/composer.rs"
+      "reason": "11% of file duplicated; worst clone shares 9 lines with crates/sc-compose/src/commands/template_init.rs"
     },
     {
       "biomarker_type": "prior_defect",
@@ -5382,10 +6099,10 @@ repowise health —
       "function_name": "compose_with_observer",
       "health_impact": 0.375,
       "details": {
-        "nloc": 71,
-        "ccn": 3
+        "nloc": 89,
+        "ccn": 4
       },
-      "reason": "compose_with_observer is 71 lines long"
+      "reason": "compose_with_observer is 89 lines long"
     },
     {
       "biomarker_type": "dry_violation",
@@ -5394,52 +6111,65 @@ repowise health —
       "function_name": null,
       "health_impact": 0.6,
       "details": {
-        "duplication_pct": 55.18,
-        "clone_pair_count": 46,
-        "worst_clone_lines": 31,
-        "worst_clone_partner": "crates/sc-composer/src/validate.rs",
-        "worst_clone_co_change": 5
+        "duplication_pct": 49.18,
+        "clone_pair_count": 103,
+        "worst_clone_lines": 20,
+        "worst_clone_partner": "crates/sc-composer/src/validation.rs",
+        "worst_clone_co_change": 6
       },
-      "reason": "55% of file duplicated; worst clone shares 31 lines with crates/sc-composer/src/validate.rs (co-changed 5x)"
+      "reason": "49% of file duplicated; worst clone shares 20 lines with crates/sc-composer/src/validation.rs (co-changed 6x)"
     },
     {
       "biomarker_type": "hidden_coupling",
       "severity": "medium",
       "file_path": "crates/sc-composer/src/composer.rs",
       "function_name": null,
-      "health_impact": 0.504,
+      "health_impact": 0.414,
       "details": {
         "partner": "crates/sc-composer/src/validate.rs",
         "correlation": 0.556,
         "co_change_count": 5,
-        "self_commits": 13,
+        "self_commits": 19,
         "partner_commits": 9
       },
       "reason": "crates/sc-composer/src/validate.rs co-changes with this file 5 times (56% of shared commits) but no static dependency exists"
+    },
+    {
+      "biomarker_type": "change_entropy",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/composer.rs",
+      "function_name": null,
+      "health_impact": 0.625,
+      "details": {
+        "change_entropy": 5.1444,
+        "change_entropy_pct": 0.88,
+        "commit_count_90d": 10
+      },
+      "reason": "changes are scattered across noisy commits (top 12% change entropy); a strong history-based fault predictor"
     },
     {
       "biomarker_type": "co_change_scatter",
       "severity": "high",
       "file_path": "crates/sc-composer/src/composer.rs",
       "function_name": null,
-      "health_impact": 1.556,
+      "health_impact": 1.278,
       "details": {
-        "scatter": 19,
-        "commit_count_90d": 4
+        "scatter": 22,
+        "commit_count_90d": 10
       },
-      "reason": "co-changes with 19 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+      "reason": "co-changes with 22 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
     },
     {
       "biomarker_type": "prior_defect",
       "severity": "critical",
       "file_path": "crates/sc-composer/src/composer.rs",
       "function_name": null,
-      "health_impact": 1.44,
+      "health_impact": 1.183,
       "details": {
-        "prior_defect_count": 5,
+        "prior_defect_count": 8,
         "window_days": 180
       },
-      "reason": "5 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+      "reason": "8 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
     },
     {
       "biomarker_type": "hot_path_sync_io",
@@ -5465,18 +6195,18 @@ repowise health —
     },
     {
       "biomarker_type": "dry_violation",
-      "severity": "medium",
+      "severity": "high",
       "file_path": "crates/sc-composer/src/diagnostics.rs",
       "function_name": null,
-      "health_impact": 0.35,
+      "health_impact": 0.6,
       "details": {
-        "duplication_pct": 27.14,
-        "clone_pair_count": 2,
-        "worst_clone_lines": 54,
-        "worst_clone_partner": "bindings/python/python/sc_compose/__init__.py",
-        "worst_clone_co_change": 0
+        "duplication_pct": 29.76,
+        "clone_pair_count": 3,
+        "worst_clone_lines": 61,
+        "worst_clone_partner": "crates/sc-composer/src/lib.rs",
+        "worst_clone_co_change": 5
       },
-      "reason": "27% of file duplicated; worst clone shares 54 lines with bindings/python/python/sc_compose/__init__.py"
+      "reason": "30% of file duplicated; worst clone shares 61 lines with crates/sc-composer/src/lib.rs (co-changed 5x)"
     },
     {
       "biomarker_type": "untested_hotspot",
@@ -5487,23 +6217,35 @@ repowise health —
       "details": {
         "line_coverage_pct": null,
         "branch_coverage_pct": null,
-        "dependents_count": 13,
-        "commit_count_90d": 1,
+        "dependents_count": 15,
+        "commit_count_90d": 3,
         "has_test_file": false
       },
-      "reason": "Hotspot with no paired test file and no coverage data \u2014 13 dependents"
+      "reason": "Hotspot with no paired test file and no coverage data \u2014 15 dependents"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/diagnostics.rs",
+      "function_name": null,
+      "health_impact": 2.16,
+      "details": {
+        "scatter": 18,
+        "commit_count_90d": 3
+      },
+      "reason": "co-changes with 18 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
     },
     {
       "biomarker_type": "prior_defect",
-      "severity": "medium",
+      "severity": "high",
       "file_path": "crates/sc-composer/src/diagnostics.rs",
       "function_name": null,
-      "health_impact": 0.7,
+      "health_impact": 1.2,
       "details": {
-        "prior_defect_count": 2,
+        "prior_defect_count": 3,
         "window_days": 180
       },
-      "reason": "2 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+      "reason": "3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
     },
     {
       "biomarker_type": "low_cohesion",
@@ -5514,10 +6256,10 @@ repowise health —
       "details": {
         "class_name": "ConfigError",
         "lcom4": 6,
-        "method_count": 6,
+        "method_count": 7,
         "field_count": 1
       },
-      "reason": "ConfigError has low cohesion (LCOM4=6): its 6 methods split into 6 groups that share no fields or calls"
+      "reason": "ConfigError has low cohesion (LCOM4=6): its 7 methods split into 6 groups that share no fields or calls"
     },
     {
       "biomarker_type": "low_cohesion",
@@ -5528,10 +6270,10 @@ repowise health —
       "details": {
         "class_name": "ValidationError",
         "lcom4": 9,
-        "method_count": 9,
+        "method_count": 10,
         "field_count": 0
       },
-      "reason": "ValidationError has low cohesion (LCOM4=9): its 9 methods split into 9 groups that share no fields or calls"
+      "reason": "ValidationError has low cohesion (LCOM4=9): its 10 methods split into 9 groups that share no fields or calls"
     },
     {
       "biomarker_type": "low_cohesion",
@@ -5568,7 +6310,7 @@ repowise health —
       "function_name": null,
       "health_impact": 0.35,
       "details": {
-        "duplication_pct": 56.43,
+        "duplication_pct": 56.41,
         "clone_pair_count": 11,
         "worst_clone_lines": 67,
         "worst_clone_partner": "crates/sc-composer/src/error.rs",
@@ -5583,10 +6325,24 @@ repowise health —
       "function_name": null,
       "health_impact": 1.2,
       "details": {
-        "prior_defect_count": 3,
+        "prior_defect_count": 4,
         "window_days": 180
       },
-      "reason": "3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+      "reason": "4 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "low_cohesion",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/frontmatter.rs",
+      "function_name": "ParsedTemplate",
+      "health_impact": 0.6,
+      "details": {
+        "class_name": "ParsedTemplate",
+        "lcom4": 4,
+        "method_count": 5,
+        "field_count": 0
+      },
+      "reason": "ParsedTemplate has low cohesion (LCOM4=4): its 5 methods split into 4 groups that share no fields or calls"
     },
     {
       "biomarker_type": "low_cohesion",
@@ -5596,38 +6352,92 @@ repowise health —
       "health_impact": 0.6,
       "details": {
         "class_name": "Frontmatter",
-        "lcom4": 5,
-        "method_count": 5,
+        "lcom4": 7,
+        "method_count": 7,
         "field_count": 0
       },
-      "reason": "Frontmatter has low cohesion (LCOM4=5): its 5 methods split into 5 groups that share no fields or calls"
+      "reason": "Frontmatter has low cohesion (LCOM4=7): its 7 methods split into 7 groups that share no fields or calls"
     },
     {
-      "biomarker_type": "untested_hotspot",
-      "severity": "high",
+      "biomarker_type": "large_method",
+      "severity": "low",
       "file_path": "crates/sc-composer/src/frontmatter.rs",
-      "function_name": null,
-      "health_impact": 1.56,
+      "function_name": "normalize_frontmatter",
+      "health_impact": 0.375,
       "details": {
-        "line_coverage_pct": null,
-        "branch_coverage_pct": null,
-        "dependents_count": 4,
-        "commit_count_90d": 0,
-        "has_test_file": false
+        "nloc": 80,
+        "ccn": 8
       },
-      "reason": "Hotspot with no paired test file and no coverage data \u2014 4 dependents"
+      "reason": "normalize_frontmatter is 80 lines long"
     },
     {
-      "biomarker_type": "prior_defect",
+      "biomarker_type": "dry_violation",
       "severity": "low",
       "file_path": "crates/sc-composer/src/frontmatter.rs",
       "function_name": null,
-      "health_impact": 0.3,
+      "health_impact": 0.15,
       "details": {
-        "prior_defect_count": 1,
+        "duplication_pct": 9.7,
+        "clone_pair_count": 2,
+        "worst_clone_lines": 21,
+        "worst_clone_partner": "crates/sc-composer/tests/integration.rs",
+        "worst_clone_co_change": 0
+      },
+      "reason": "10% of file duplicated; worst clone shares 21 lines with crates/sc-composer/tests/integration.rs"
+    },
+    {
+      "biomarker_type": "function_hotspot",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/frontmatter.rs",
+      "function_name": "split_frontmatter",
+      "health_impact": 0.533,
+      "details": {
+        "modification_count": 3,
+        "repo_p80": 2,
+        "ccn": 5,
+        "max_nesting": 3
+      },
+      "reason": "split_frontmatter has been modified across 3 commits (repo p80=2) and carries CCN=5 / nesting=3"
+    },
+    {
+      "biomarker_type": "churn_risk",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/frontmatter.rs",
+      "function_name": null,
+      "health_impact": 0.236,
+      "details": {
+        "relative_churn": 1.14,
+        "churn_percentile": 0.846,
+        "lines_added_90d": 336,
+        "lines_deleted_90d": 89,
+        "commit_count_90d": 6,
+        "nloc": 372
+      },
+      "reason": "90-day churn rewrote 1.1x the file's size (425 lines over 372 NLOC, top 15% of repo churn)"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/frontmatter.rs",
+      "function_name": null,
+      "health_impact": 1.418,
+      "details": {
+        "scatter": 16,
+        "commit_count_90d": 6
+      },
+      "reason": "co-changes with 16 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/frontmatter.rs",
+      "function_name": null,
+      "health_impact": 1.313,
+      "details": {
+        "prior_defect_count": 4,
         "window_days": 180
       },
-      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+      "reason": "4 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
     },
     {
       "biomarker_type": "dry_violation",
@@ -5636,8 +6446,8 @@ repowise health —
       "function_name": null,
       "health_impact": 0.15,
       "details": {
-        "duplication_pct": 15.67,
-        "clone_pair_count": 8,
+        "duplication_pct": 15.56,
+        "clone_pair_count": 11,
         "worst_clone_lines": 21,
         "worst_clone_partner": "crates/sc-composer/src/composer.rs",
         "worst_clone_co_change": 2
@@ -5646,15 +6456,15 @@ repowise health —
     },
     {
       "biomarker_type": "prior_defect",
-      "severity": "medium",
+      "severity": "high",
       "file_path": "crates/sc-composer/src/frontmatter_init.rs",
       "function_name": null,
-      "health_impact": 0.7,
+      "health_impact": 1.2,
       "details": {
-        "prior_defect_count": 2,
+        "prior_defect_count": 3,
         "window_days": 180
       },
-      "reason": "2 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+      "reason": "3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
     },
     {
       "biomarker_type": "hot_path_sync_io",
@@ -5730,13 +6540,13 @@ repowise health —
       "function_name": null,
       "health_impact": 0.6,
       "details": {
-        "duplication_pct": 35.52,
-        "clone_pair_count": 31,
+        "duplication_pct": 34.51,
+        "clone_pair_count": 40,
         "worst_clone_lines": 21,
         "worst_clone_partner": "crates/sc-composer/src/validation.rs",
-        "worst_clone_co_change": 3
+        "worst_clone_co_change": 4
       },
-      "reason": "36% of file duplicated; worst clone shares 21 lines with crates/sc-composer/src/validation.rs (co-changed 3x)"
+      "reason": "35% of file duplicated; worst clone shares 21 lines with crates/sc-composer/src/validation.rs (co-changed 4x)"
     },
     {
       "biomarker_type": "function_hotspot",
@@ -5754,15 +6564,15 @@ repowise health —
     },
     {
       "biomarker_type": "prior_defect",
-      "severity": "low",
+      "severity": "medium",
       "file_path": "crates/sc-composer/src/include.rs",
       "function_name": null,
-      "health_impact": 0.3,
+      "health_impact": 0.7,
       "details": {
-        "prior_defect_count": 1,
+        "prior_defect_count": 2,
         "window_days": 180
       },
-      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+      "reason": "2 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
     },
     {
       "biomarker_type": "io_in_loop",
@@ -5835,27 +6645,51 @@ repowise health —
       "function_name": null,
       "health_impact": 0.15,
       "details": {
-        "duplication_pct": 13.93,
-        "clone_pair_count": 8,
-        "worst_clone_lines": 28,
+        "duplication_pct": 15.95,
+        "clone_pair_count": 18,
+        "worst_clone_lines": 23,
         "worst_clone_partner": "crates/sc-composer/src/include.rs",
         "worst_clone_co_change": 2
       },
-      "reason": "14% of file duplicated; worst clone shares 28 lines with crates/sc-composer/src/include.rs (co-changed 2x)"
+      "reason": "16% of file duplicated; worst clone shares 23 lines with crates/sc-composer/src/include.rs (co-changed 2x)"
     },
     {
       "biomarker_type": "function_hotspot",
-      "severity": "medium",
+      "severity": "high",
       "file_path": "crates/sc-composer/src/init_workspace.rs",
       "function_name": "init_workspace",
-      "health_impact": 0.812,
+      "health_impact": 1.265,
       "details": {
-        "modification_count": 3,
+        "modification_count": 4,
         "repo_p80": 2,
         "ccn": 13,
         "max_nesting": 3
       },
-      "reason": "init_workspace has been modified across 3 commits (repo p80=2) and carries CCN=13 / nesting=3"
+      "reason": "init_workspace has been modified across 4 commits (repo p80=2) and carries CCN=13 / nesting=3"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/init_workspace.rs",
+      "function_name": null,
+      "health_impact": 1.963,
+      "details": {
+        "scatter": 16,
+        "commit_count_90d": 3
+      },
+      "reason": "co-changes with 16 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/init_workspace.rs",
+      "function_name": null,
+      "health_impact": 0.273,
+      "details": {
+        "prior_defect_count": 1,
+        "window_days": 180
+      },
+      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
     },
     {
       "biomarker_type": "io_in_loop",
@@ -5908,40 +6742,40 @@ repowise health —
     },
     {
       "biomarker_type": "change_entropy",
-      "severity": "medium",
+      "severity": "high",
       "file_path": "crates/sc-composer/src/lib.rs",
       "function_name": null,
-      "health_impact": 0.709,
+      "health_impact": 1.062,
       "details": {
-        "change_entropy": 3.1835,
-        "change_entropy_pct": 0.821,
-        "commit_count_90d": 6
+        "change_entropy": 5.345,
+        "change_entropy_pct": 0.92,
+        "commit_count_90d": 12
       },
-      "reason": "changes are scattered across noisy commits (top 18% change entropy); a strong history-based fault predictor"
+      "reason": "changes are scattered across noisy commits (top 8% change entropy); a strong history-based fault predictor"
     },
     {
       "biomarker_type": "co_change_scatter",
       "severity": "high",
       "file_path": "crates/sc-composer/src/lib.rs",
       "function_name": null,
-      "health_impact": 1.449,
+      "health_impact": 1.266,
       "details": {
-        "scatter": 24,
-        "commit_count_90d": 6
+        "scatter": 28,
+        "commit_count_90d": 12
       },
-      "reason": "co-changes with 24 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+      "reason": "co-changes with 28 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
     },
     {
       "biomarker_type": "prior_defect",
       "severity": "critical",
       "file_path": "crates/sc-composer/src/lib.rs",
       "function_name": null,
-      "health_impact": 1.342,
+      "health_impact": 1.172,
       "details": {
-        "prior_defect_count": 4,
+        "prior_defect_count": 6,
         "window_days": 180
       },
-      "reason": "4 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+      "reason": "6 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
     },
     {
       "biomarker_type": "dry_violation",
@@ -5950,13 +6784,25 @@ repowise health —
       "function_name": null,
       "health_impact": 0.35,
       "details": {
-        "duplication_pct": 27.62,
-        "clone_pair_count": 5,
-        "worst_clone_lines": 16,
+        "duplication_pct": 48.35,
+        "clone_pair_count": 7,
+        "worst_clone_lines": 22,
         "worst_clone_partner": "crates/sc-composer/src/observer.rs",
         "worst_clone_co_change": 0
       },
-      "reason": "28% of file duplicated; worst clone shares 16 lines with crates/sc-composer/src/observer.rs"
+      "reason": "48% of file duplicated; worst clone shares 22 lines with crates/sc-composer/src/observer.rs"
+    },
+    {
+      "biomarker_type": "co_change_scatter",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/observer.rs",
+      "function_name": null,
+      "health_impact": 1.26,
+      "details": {
+        "scatter": 12,
+        "commit_count_90d": 3
+      },
+      "reason": "co-changes with 12 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
     },
     {
       "biomarker_type": "prior_defect",
@@ -5965,10 +6811,10 @@ repowise health —
       "function_name": null,
       "health_impact": 1.2,
       "details": {
-        "prior_defect_count": 3,
+        "prior_defect_count": 4,
         "window_days": 180
       },
-      "reason": "3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+      "reason": "4 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
     },
     {
       "biomarker_type": "prior_defect",
@@ -5990,50 +6836,35 @@ repowise health —
       "health_impact": 0.6,
       "details": {
         "class_name": "Renderer",
-        "lcom4": 4,
-        "method_count": 5,
+        "lcom4": 5,
+        "method_count": 6,
         "field_count": 1
       },
-      "reason": "Renderer has low cohesion (LCOM4=4): its 5 methods split into 4 groups that share no fields or calls"
-    },
-    {
-      "biomarker_type": "hidden_coupling",
-      "severity": "medium",
-      "file_path": "crates/sc-composer/src/renderer.rs",
-      "function_name": null,
-      "health_impact": 0.7,
-      "details": {
-        "partner": "crates/sc-compose/src/main.rs",
-        "correlation": 0.556,
-        "co_change_count": 5,
-        "self_commits": 9,
-        "partner_commits": 54
-      },
-      "reason": "crates/sc-compose/src/main.rs co-changes with this file 5 times (56% of shared commits) but no static dependency exists"
+      "reason": "Renderer has low cohesion (LCOM4=5): its 6 methods split into 5 groups that share no fields or calls"
     },
     {
       "biomarker_type": "co_change_scatter",
-      "severity": "medium",
-      "file_path": "crates/sc-composer/src/renderer.rs",
-      "function_name": null,
-      "health_impact": 1.26,
-      "details": {
-        "scatter": 14,
-        "commit_count_90d": 4
-      },
-      "reason": "co-changes with 14 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
-    },
-    {
-      "biomarker_type": "prior_defect",
       "severity": "high",
       "file_path": "crates/sc-composer/src/renderer.rs",
       "function_name": null,
-      "health_impact": 1.2,
+      "health_impact": 1.817,
       "details": {
-        "prior_defect_count": 3,
+        "scatter": 17,
+        "commit_count_90d": 8
+      },
+      "reason": "co-changes with 17 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/renderer.rs",
+      "function_name": null,
+      "health_impact": 1.683,
+      "details": {
+        "prior_defect_count": 5,
         "window_days": 180
       },
-      "reason": "3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+      "reason": "5 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
     },
     {
       "biomarker_type": "error_handling",
@@ -6078,7 +6909,7 @@ repowise health —
       "health_impact": 0.35,
       "details": {
         "duplication_pct": 22.15,
-        "clone_pair_count": 38,
+        "clone_pair_count": 71,
         "worst_clone_lines": 29,
         "worst_clone_partner": "crates/sc-composer/src/composer.rs",
         "worst_clone_co_change": 3
@@ -6197,25 +7028,25 @@ repowise health —
     },
     {
       "biomarker_type": "dry_violation",
-      "severity": "low",
+      "severity": "medium",
       "file_path": "crates/sc-composer/src/types.rs",
       "function_name": null,
-      "health_impact": 0.15,
+      "health_impact": 0.35,
       "details": {
-        "duplication_pct": 21.78,
-        "clone_pair_count": 5,
+        "duplication_pct": 26.9,
+        "clone_pair_count": 7,
         "worst_clone_lines": 36,
         "worst_clone_partner": "crates/sc-composer/src/types.rs",
         "worst_clone_co_change": 0
       },
-      "reason": "22% of file duplicated; worst clone shares 36 lines with crates/sc-composer/src/types.rs"
+      "reason": "27% of file duplicated; worst clone shares 36 lines with crates/sc-composer/src/types.rs"
     },
     {
       "biomarker_type": "function_hotspot",
       "severity": "medium",
       "file_path": "crates/sc-composer/src/types.rs",
       "function_name": "input_value_from_yaml",
-      "health_impact": 0.812,
+      "health_impact": 0.491,
       "details": {
         "modification_count": 3,
         "repo_p80": 2,
@@ -6229,7 +7060,7 @@ repowise health —
       "severity": "medium",
       "file_path": "crates/sc-composer/src/types.rs",
       "function_name": "validate_input_value_at",
-      "health_impact": 0.812,
+      "health_impact": 0.491,
       "details": {
         "modification_count": 2,
         "repo_p80": 2,
@@ -6239,16 +7070,28 @@ repowise health —
       "reason": "validate_input_value_at has been modified across 2 commits (repo p80=2) and carries CCN=11 / nesting=6"
     },
     {
-      "biomarker_type": "prior_defect",
-      "severity": "low",
+      "biomarker_type": "co_change_scatter",
+      "severity": "high",
       "file_path": "crates/sc-composer/src/types.rs",
       "function_name": null,
-      "health_impact": 0.3,
+      "health_impact": 1.307,
       "details": {
-        "prior_defect_count": 1,
+        "scatter": 21,
+        "commit_count_90d": 7
+      },
+      "reason": "co-changes with 21 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "critical",
+      "file_path": "crates/sc-composer/src/types.rs",
+      "function_name": null,
+      "health_impact": 1.21,
+      "details": {
+        "prior_defect_count": 5,
         "window_days": 180
       },
-      "reason": "1 bug-fix touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+      "reason": "5 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
     },
     {
       "biomarker_type": "hot_path_sync_io",
@@ -6269,7 +7112,7 @@ repowise health —
       "health_impact": 0.6,
       "details": {
         "duplication_pct": 67.7,
-        "clone_pair_count": 23,
+        "clone_pair_count": 37,
         "worst_clone_lines": 31,
         "worst_clone_partner": "crates/sc-composer/src/composer.rs",
         "worst_clone_co_change": 5
@@ -6287,7 +7130,7 @@ repowise health —
         "correlation": 0.556,
         "co_change_count": 5,
         "self_commits": 9,
-        "partner_commits": 13
+        "partner_commits": 19
       },
       "reason": "crates/sc-composer/src/composer.rs co-changes with this file 5 times (56% of shared commits) but no static dependency exists"
     },
@@ -6307,14 +7150,14 @@ repowise health —
       "biomarker_type": "nested_complexity",
       "severity": "medium",
       "file_path": "crates/sc-composer/src/validation.rs",
-      "function_name": "discover_tokens",
+      "function_name": "discover_tokens_with_brace_count",
       "health_impact": 0.938,
       "details": {
         "max_nesting": 4,
-        "ccn": 8,
-        "cognitive": 18
+        "ccn": 10,
+        "cognitive": 21
       },
-      "reason": "discover_tokens nests 4 levels deep"
+      "reason": "discover_tokens_with_brace_count nests 4 levels deep"
     },
     {
       "biomarker_type": "nested_complexity",
@@ -6333,8 +7176,21 @@ repowise health —
       "biomarker_type": "complex_method",
       "severity": "medium",
       "file_path": "crates/sc-composer/src/validation.rs",
+      "function_name": "discover_tokens_with_brace_count",
+      "health_impact": 0.504,
+      "details": {
+        "ccn": 10,
+        "cognitive": 21,
+        "nloc": 40
+      },
+      "reason": "discover_tokens_with_brace_count has cyclomatic complexity 10"
+    },
+    {
+      "biomarker_type": "complex_method",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/validation.rs",
       "function_name": "required_variable_location",
-      "health_impact": 0.847,
+      "health_impact": 0.504,
       "details": {
         "ccn": 11,
         "cognitive": 16,
@@ -6343,11 +7199,23 @@ repowise health —
       "reason": "required_variable_location has cyclomatic complexity 11"
     },
     {
+      "biomarker_type": "large_method",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/validation.rs",
+      "function_name": "populate_pass_validation_maps",
+      "health_impact": 0.223,
+      "details": {
+        "nloc": 62,
+        "ccn": 4
+      },
+      "reason": "populate_pass_validation_maps is 62 lines long"
+    },
+    {
       "biomarker_type": "primitive_obsession",
       "severity": "low",
       "file_path": "crates/sc-composer/src/validation.rs",
       "function_name": "merge_frontmatter",
-      "health_impact": 0.15,
+      "health_impact": 0.089,
       "details": {
         "param_count": 5
       },
@@ -6358,7 +7226,7 @@ repowise health —
       "severity": "low",
       "file_path": "crates/sc-composer/src/validation.rs",
       "function_name": "required_path_diagnostic",
-      "health_impact": 0.15,
+      "health_impact": 0.089,
       "details": {
         "param_count": 5
       },
@@ -6369,7 +7237,7 @@ repowise health —
       "severity": "low",
       "file_path": "crates/sc-composer/src/validation.rs",
       "function_name": "push_extra_input_diagnostics",
-      "health_impact": 0.15,
+      "health_impact": 0.089,
       "details": {
         "param_count": 5
       },
@@ -6382,34 +7250,48 @@ repowise health —
       "function_name": null,
       "health_impact": 0.6,
       "details": {
-        "duplication_pct": 28.14,
-        "clone_pair_count": 31,
+        "duplication_pct": 25.2,
+        "clone_pair_count": 37,
         "worst_clone_lines": 20,
         "worst_clone_partner": "crates/sc-composer/src/composer.rs",
-        "worst_clone_co_change": 4
+        "worst_clone_co_change": 6
       },
-      "reason": "28% of file duplicated; worst clone shares 20 lines with crates/sc-composer/src/composer.rs (co-changed 4x)"
+      "reason": "25% of file duplicated; worst clone shares 20 lines with crates/sc-composer/src/composer.rs (co-changed 6x)"
     },
     {
       "biomarker_type": "function_hotspot",
-      "severity": "medium",
+      "severity": "high",
       "file_path": "crates/sc-composer/src/validation.rs",
-      "function_name": "discover_tokens",
-      "health_impact": 0.371,
+      "function_name": "discover_tokens_with_brace_count",
+      "health_impact": 0.477,
       "details": {
-        "modification_count": 3,
+        "modification_count": 4,
         "repo_p80": 2,
-        "ccn": 8,
+        "ccn": 10,
         "max_nesting": 4
       },
-      "reason": "discover_tokens has been modified across 3 commits (repo p80=2) and carries CCN=8 / nesting=4"
+      "reason": "discover_tokens_with_brace_count has been modified across 4 commits (repo p80=2) and carries CCN=10 / nesting=4"
+    },
+    {
+      "biomarker_type": "function_hotspot",
+      "severity": "high",
+      "file_path": "crates/sc-composer/src/validation.rs",
+      "function_name": "collect_validation_state",
+      "health_impact": 0.477,
+      "details": {
+        "modification_count": 8,
+        "repo_p80": 2,
+        "ccn": 7,
+        "max_nesting": 3
+      },
+      "reason": "collect_validation_state has been modified across 8 commits (repo p80=2) and carries CCN=7 / nesting=3"
     },
     {
       "biomarker_type": "function_hotspot",
       "severity": "medium",
       "file_path": "crates/sc-composer/src/validation.rs",
       "function_name": "required_variable_location",
-      "health_impact": 0.371,
+      "health_impact": 0.278,
       "details": {
         "modification_count": 2,
         "repo_p80": 2,
@@ -6420,54 +7302,54 @@ repowise health —
     },
     {
       "biomarker_type": "function_hotspot",
-      "severity": "medium",
+      "severity": "high",
       "file_path": "crates/sc-composer/src/validation.rs",
       "function_name": "default_usage_diagnostics",
-      "health_impact": 0.371,
+      "health_impact": 0.477,
       "details": {
-        "modification_count": 3,
+        "modification_count": 4,
         "repo_p80": 2,
         "ccn": 8,
         "max_nesting": 3
       },
-      "reason": "default_usage_diagnostics has been modified across 3 commits (repo p80=2) and carries CCN=8 / nesting=3"
+      "reason": "default_usage_diagnostics has been modified across 4 commits (repo p80=2) and carries CCN=8 / nesting=3"
     },
     {
       "biomarker_type": "change_entropy",
       "severity": "medium",
       "file_path": "crates/sc-composer/src/validation.rs",
       "function_name": null,
-      "health_impact": 0.483,
+      "health_impact": 0.363,
       "details": {
-        "change_entropy": 3.4602,
-        "change_entropy_pct": 0.851,
-        "commit_count_90d": 6
+        "change_entropy": 5.2122,
+        "change_entropy_pct": 0.893,
+        "commit_count_90d": 10
       },
-      "reason": "changes are scattered across noisy commits (top 15% change entropy); a strong history-based fault predictor"
+      "reason": "changes are scattered across noisy commits (top 11% change entropy); a strong history-based fault predictor"
     },
     {
       "biomarker_type": "co_change_scatter",
       "severity": "high",
       "file_path": "crates/sc-composer/src/validation.rs",
       "function_name": null,
-      "health_impact": 0.988,
+      "health_impact": 0.741,
       "details": {
-        "scatter": 24,
-        "commit_count_90d": 6
+        "scatter": 25,
+        "commit_count_90d": 10
       },
-      "reason": "co-changes with 24 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
+      "reason": "co-changes with 25 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)"
     },
     {
       "biomarker_type": "prior_defect",
       "severity": "critical",
       "file_path": "crates/sc-composer/src/validation.rs",
       "function_name": null,
-      "health_impact": 0.915,
+      "health_impact": 0.686,
       "details": {
-        "prior_defect_count": 6,
+        "prior_defect_count": 8,
         "window_days": 180
       },
-      "reason": "6 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+      "reason": "8 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
     },
     {
       "biomarker_type": "error_handling",
@@ -6551,6 +7433,207 @@ repowise health —
       "biomarker_type": "hot_path_sync_io",
       "severity": "low",
       "file_path": "crates/sc-composer/src/validation.rs",
+      "function_name": "write_file",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/verify.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 39.54,
+        "clone_pair_count": 127,
+        "worst_clone_lines": 10,
+        "worst_clone_partner": "crates/sc-compose/src/commands/template_init.rs",
+        "worst_clone_co_change": 2
+      },
+      "reason": "40% of file duplicated; worst clone shares 10 lines with crates/sc-compose/src/commands/template_init.rs (co-changed 2x)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/src/verify.rs",
+      "function_name": null,
+      "health_impact": 0.7,
+      "details": {
+        "prior_defect_count": 2,
+        "window_days": 180
+      },
+      "reason": "2 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/verify.rs",
+      "function_name": "temp_root",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/src/verify.rs",
+      "function_name": "write_file",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "low_cohesion",
+      "severity": "high",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": "CapturingObserver",
+      "health_impact": 0.6,
+      "details": {
+        "class_name": "CapturingObserver",
+        "lcom4": 7,
+        "method_count": 7,
+        "field_count": 6
+      },
+      "reason": "CapturingObserver has low cohesion (LCOM4=7): its 7 methods split into 7 groups that share no fields or calls"
+    },
+    {
+      "biomarker_type": "dry_violation",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.35,
+      "details": {
+        "duplication_pct": 58.13,
+        "clone_pair_count": 92,
+        "worst_clone_lines": 24,
+        "worst_clone_partner": "crates/sc-composer/src/composer.rs",
+        "worst_clone_co_change": 2
+      },
+      "reason": "58% of file duplicated; worst clone shares 24 lines with crates/sc-composer/src/composer.rs (co-changed 2x)"
+    },
+    {
+      "biomarker_type": "prior_defect",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.7,
+      "details": {
+        "prior_defect_count": 2,
+        "window_days": 180
+      },
+      "reason": "2 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.167,
+      "details": {
+        "assertion_lines": [
+          360,
+          362
+        ],
+        "partner_file": "crates/sc-compose/src/commands/template_init.rs"
+      },
+      "reason": "assertion block at lines 360-362 is duplicated in crates/sc-compose/src/commands/template_init.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.167,
+      "details": {
+        "assertion_lines": [
+          272,
+          288
+        ],
+        "partner_file": "crates/sc-composer/src/composer.rs"
+      },
+      "reason": "assertion block at lines 272-288 is duplicated in crates/sc-composer/src/composer.rs"
+    },
+    {
+      "biomarker_type": "duplicated_assertion_block",
+      "severity": "medium",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.167,
+      "details": {
+        "assertion_lines": [
+          222,
+          225
+        ],
+        "partner_file": "crates/sc-composer/src/frontmatter.rs"
+      },
+      "reason": "assertion block at lines 222-225 is duplicated in crates/sc-composer/src/frontmatter.rs"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.125,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.125,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.125,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "error_handling",
+      "severity": "low",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": null,
+      "health_impact": 0.125,
+      "details": {
+        "kind": "unsafe_unwrap"
+      },
+      "reason": "unwrap/expect turns a recoverable error into a crash"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/tests/integration.rs",
+      "function_name": "temp_root",
+      "health_impact": 0.0,
+      "details": {
+        "boundary_kind": "filesystem"
+      },
+      "reason": "a blocking filesystem call runs on a hot, request-reachable path; its latency is paid on every call through this function"
+    },
+    {
+      "biomarker_type": "hot_path_sync_io",
+      "severity": "low",
+      "file_path": "crates/sc-composer/tests/integration.rs",
       "function_name": "write_file",
       "health_impact": 0.0,
       "details": {

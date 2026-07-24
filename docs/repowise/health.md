@@ -1,27 +1,27 @@
 # sc-compose — Repowise Code Health Analysis
 
-**Version:** v1.2.0 | **Commit:** b5d9b47 | **Generated:** 2026-07-22
+**Version:** v1.2.0-85-g252f283 | **Commit:** 252f283 | **Generated:** 2026-07-23
 **Analyzed by:** repowise health + dead-code + refactoring-targets
 
 ## Quick Summary
 
 | Metric | Value |
 |---|---|
-| Overall Health | **8.2/10** |
-| Hotspot Health | 5.2/10 |
-| Worst File | `crates/sc-composer/src/validation.rs` (2.6/10) |
-| Files Indexed | 266 |
-| Biomarker Findings | 439 |
-| Dead Code Items | 57 |
+| Overall Health | **7.9/10** |
+| Hotspot Health | 4.7/10 |
+| Worst File | `crates/sc-compose/src/cli.rs` (1.6/10) |
+| Files Indexed | 286 |
+| Biomarker Findings | 516 |
+| Dead Code Items | 61 |
 | Refactoring Targets | 20 |
 
 ### Health Dimensions
 
 | Dimension | Average | Hotspot |
 |---|---|---|
-| Maintainability | 9.1/10 | 7.3/10 |
+| Maintainability | 9.0/10 | 7.4/10 |
 | Performance | 9.8/10 | 9.4/10 |
-| Overall | 8.2/10 | 5.2/10 |
+| Overall | 7.9/10 | 4.7/10 |
 
 *Interpretation:* 8.2/10 average with 5.2 hotspot health means most files are healthy but a concentrated few drag the score down. Maintainability (9.1) and performance (9.8) average are excellent, but the hotspot maintainability (7.3) reveals files needing modularization. The worst file (`validation.rs`) at 2.6/10 accounts for most of the hotspot drag.
 
@@ -29,26 +29,26 @@
 
 | Score | File | NLOC | CCN | Nest | Dup% |
 |---|---|---|---|---|---|
-| 2.6 | `crates/sc-composer/src/validation.rs` | 1388 | 11 | 4 | 28.1 |
+| 1.6 | `crates/sc-compose/src/cli.rs` | 489 | 17 | 4 | 27.7 |
+| 2.4 | `crates/sc-composer/src/validation.rs` | 1655 | 11 | 4 | 25.2 |
+| 3.0 | `crates/sc-composer/src/types.rs` | 561 | 11 | 6 | 26.9 |
 | 4.0 | `crates/sc-compose/src/reporting/output.rs` | 257 | 4 | 2 | 30.7 |
-| 4.0 | `crates/sc-compose/src/render_request.rs` | 204 | 6 | 4 | 7.8 |
+| 4.0 | `crates/sc-compose/src/render_request.rs` | 323 | 6 | 4 | 5.0 |
+| 4.0 | `crates/sc-composer/src/diagnostics.rs` | 150 | 2 | 1 | 29.8 |
 | 4.3 | `crates/sc-compose/src/reporting/catalog.rs` | 201 | 3 | 2 | 27.4 |
+| 4.4 | `crates/sc-compose/src/commands/compose.rs` | 536 | 8 | 2 | 19.6 |
 | 4.5 | `crates/sc-compose/src/path_utils.rs` | 69 | 6 | 2 | — |
-| 4.8 | `crates/sc-compose/tests/cli.rs` | 2586 | 4 | 3 | 61.0 |
-| 4.8 | `crates/sc-composer/src/types.rs` | 496 | 11 | 6 | 21.8 |
-| 4.9 | `crates/sc-composer/src/composer.rs` | 430 | 3 | 2 | 55.2 |
-| 5.0 | `crates/sc-compose/src/observer_impl.rs` | 815 | 8 | 2 | 15.2 |
-| 5.4 | `crates/sc-compose/tests/json_cli.rs` | 1640 | 2 | 1 | 76.4 |
+| 4.8 | `crates/sc-compose/tests/cli.rs` | 3339 | 4 | 3 | 64.9 |
+| 4.8 | `crates/sc-composer/src/frontmatter.rs` | 372 | 8 | 3 | 9.7 |
+| 4.9 | `crates/sc-composer/src/composer.rs` | 584 | 5 | 2 | 49.2 |
+| 5.0 | `crates/sc-compose/src/observer_impl.rs` | 819 | 8 | 2 | 16.2 |
+| 5.1 | `crates/sc-composer/src/init_workspace.rs` | 221 | 13 | 3 | 15.9 |
+| 5.4 | `crates/sc-compose/tests/json_cli.rs` | 1671 | 2 | 1 | 75.8 |
 | 5.8 | `crates/sc-compose/src/reporting/init.rs` | 153 | 1 | 0 | 38.6 |
+| 5.8 | `crates/sc-composer/src/renderer.rs` | 169 | 2 | 1 | — |
 | 5.8 | `crates/sc-compose/src/reporting/publish_manifest.rs` | 265 | 6 | 3 | 14.0 |
-| 6.0 | `crates/sc-composer/src/error.rs` | 560 | 4 | 2 | 56.4 |
-| 6.1 | `crates/sc-composer/src/renderer.rs` | 152 | 2 | 1 | — |
+| 6.0 | `crates/sc-composer/src/error.rs` | 583 | 4 | 2 | 56.4 |
 | 6.2 | `crates/sc-compose/src/reporting/index.rs` | 156 | 6 | 3 | 17.9 |
-| 6.2 | `crates/sc-compose/src/reporting/render_many.rs` | 325 | 3 | 2 | 12.8 |
-| 6.2 | `crates/sc-compose/src/reporting/templates.rs` | 328 | 4 | 2 | 17.7 |
-| 6.5 | `crates/sc-compose/src/template_store.rs` | 488 | 5 | 2 | 8.2 |
-| 6.5 | `crates/sc-compose/src/main.rs` | 72 | 5 | 2 | — |
-| 6.5 | `crates/sc-compose/src/observability.rs` | 188 | 6 | 2 | — |
 
 **Key observations:**
 - `validation.rs` (2.6/10, 1388 NLOC, CCN=11): the single biggest problem — large, complex, and duplicated (28% dup). This is a prime candidate for decomposition.
@@ -59,16 +59,16 @@
 
 | Score | File | NLOC |
 |---|---|---|
-| 10.0 | `crates/sc-composer/Cargo.toml` | 21 |
-| 10.0 | `crates/sc-compose/src/commands/workspace.rs` | 136 |
+| 10.0 | `crates/sc-composer/Cargo.toml` | 22 |
 | 10.0 | `crates/sc-compose/src/json_output.rs` | 48 |
 | 10.0 | `crates/sc-compose/src/exit_codes.rs` | 3 |
 | 10.0 | `crates/sc-compose/Cargo.toml` | 28 |
 | 9.8 | `crates/sc-compose/src/reporting/path.rs` | 56 |
+| 9.8 | `crates/sc-compose/src/commands/verify.rs` | 124 |
 | 9.8 | `crates/sc-compose/src/command_error.rs` | 149 |
 | 9.7 | `crates/sc-compose/src/reporting/scaffold.rs` | 134 |
+| 9.7 | `crates/sc-compose/src/commands/workspace.rs` | 104 |
 | 9.6 | `crates/sc-compose/src/reporting/report_context.rs` | 139 |
-| 9.3 | `crates/sc-compose/src/commands/reports/publish.rs` | 74 |
 
 ## Biomarker Findings
 
@@ -81,69 +81,71 @@
 | error_handling | 30 | Error handling gaps or inconsistencies |
 | hidden_coupling | 21 | Implicit dependencies between modules |
 | co_change_scatter | 21 | Files that change together → high coupling |
-| io_in_loop | 19 | |
-| change_entropy | 12 | |
-| function_hotspot | 12 | |
-| untested_hotspot | 11 | |
-| primitive_obsession | 9 | |
-| low_cohesion | 9 | |
-| large_method | 8 | |
-| complex_method | 7 | |
-| churn_risk | 6 | |
-| nested_complexity | 6 | |
+| io_in_loop | 22 | |
+| large_method | 16 | |
+| function_hotspot | 16 | |
+| change_entropy | 13 | |
+| complex_method | 11 | |
+| low_cohesion | 11 | |
+| untested_hotspot | 10 | |
+| primitive_obsession | 10 | |
+| churn_risk | 9 | |
+| nested_complexity | 7 | |
+| brain_method | 1 | |
 | bumpy_road | 1 | |
 | nested_loop_with_io | 1 | |
 
-### prior_defect (46 findings)
+### prior_defect (53 findings)
 
+- **critical** `crates/sc-compose/src/commands/compose.rs` `(top-level)`: 3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects
 - **critical** `crates/sc-compose/tests/support/mod.rs` `(top-level)`: 6 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects
 - **critical** `crates/sc-compose/src/reporting/output.rs` `(top-level)`: 6 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects
+- **critical** `crates/sc-composer/src/renderer.rs` `(top-level)`: 5 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects
 - **critical** `crates/sc-compose/src/observability.rs` `(top-level)`: 18 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects
 - **critical** `crates/sc-compose/src/reporting/catalog.rs` `(top-level)`: 12 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects
-- **critical** `crates/sc-compose/src/commands/mod.rs` `(top-level)`: 10 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects
-- **critical** `crates/sc-composer/src/composer.rs` `(top-level)`: 5 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects
-- *... and 40 more*
+- *... and 47 more*
 
-### untested_hotspot (11 findings)
+### untested_hotspot (10 findings)
 
-- **critical** `crates/sc-compose/src/path_utils.rs` `(top-level)`: Hotspot with no paired test file and no coverage data — 16 dependents
-- **critical** `crates/sc-composer/src/diagnostics.rs` `(top-level)`: Hotspot with no paired test file and no coverage data — 13 dependents
-- **high** `crates/sc-compose/src/cli.rs` `(top-level)`: Hotspot with no paired test file and no coverage data — 7 dependents
-- **high** `crates/sc-compose/src/render_request.rs` `(top-level)`: Hotspot with no paired test file and no coverage data — 4 dependents
+- **critical** `crates/sc-compose/src/path_utils.rs` `(top-level)`: Hotspot with no paired test file and no coverage data — 18 dependents
+- **critical** `crates/sc-composer/src/diagnostics.rs` `(top-level)`: Hotspot with no paired test file and no coverage data — 15 dependents
+- **high** `crates/sc-compose/src/cli.rs` `(top-level)`: Hotspot with no paired test file and no coverage data — 9 dependents
+- **high** `crates/sc-compose/src/render_request.rs` `(top-level)`: Hotspot with no paired test file and no coverage data — 5 dependents
 - **high** `crates/sc-compose/src/template_store.rs` `(top-level)`: Hotspot with no paired test file and no coverage data — 5 dependents
 - **high** `crates/sc-compose/src/commands/compose.rs` `(top-level)`: Hotspot with no paired test file and no coverage data — 4 dependents
-- *... and 5 more*
+- *... and 4 more*
 
-### co_change_scatter (21 findings)
+### co_change_scatter (26 findings)
 
-- **high** `crates/sc-composer/src/composer.rs` `(top-level)`: co-changes with 19 distinct files — editing this file tends to ripple across the codebase (shotgun surgery)
-- **high** `crates/sc-composer/src/lib.rs` `(top-level)`: co-changes with 24 distinct files — editing this file tends to ripple across the codebase (shotgun surgery)
-- **high** `crates/sc-compose/src/observer_impl.rs` `(top-level)`: co-changes with 20 distinct files — editing this file tends to ripple across the codebase (shotgun surgery)
-- **medium** `crates/sc-compose/src/reporting/mod.rs` `(top-level)`: co-changes with 8 distinct files — editing this file tends to ripple across the codebase (shotgun surgery)
-- **medium** `crates/sc-composer/src/renderer.rs` `(top-level)`: co-changes with 14 distinct files — editing this file tends to ripple across the codebase (shotgun surgery)
-- **medium** `crates/sc-compose/src/reporting/output.rs` `(top-level)`: co-changes with 10 distinct files — editing this file tends to ripple across the codebase (shotgun surgery)
-- *... and 15 more*
+- **high** `crates/sc-composer/src/diagnostics.rs` `(top-level)`: co-changes with 18 distinct files — editing this file tends to ripple across the codebase (shotgun surgery)
+- **high** `crates/sc-composer/src/init_workspace.rs` `(top-level)`: co-changes with 16 distinct files — editing this file tends to ripple across the codebase (shotgun surgery)
+- **high** `crates/sc-composer/src/renderer.rs` `(top-level)`: co-changes with 17 distinct files — editing this file tends to ripple across the codebase (shotgun surgery)
+- **high** `crates/sc-composer/src/frontmatter.rs` `(top-level)`: co-changes with 16 distinct files — editing this file tends to ripple across the codebase (shotgun surgery)
+- **high** `crates/sc-composer/src/types.rs` `(top-level)`: co-changes with 21 distinct files — editing this file tends to ripple across the codebase (shotgun surgery)
+- **high** `crates/sc-composer/src/composer.rs` `(top-level)`: co-changes with 22 distinct files — editing this file tends to ripple across the codebase (shotgun surgery)
+- *... and 20 more*
 
-### churn_risk (6 findings)
+### churn_risk (9 findings)
 
-- **critical** `crates/sc-compose/src/var_file.rs` `(top-level)`: 90-day churn rewrote 6.4x the file's size (588 lines over 92 NLOC, top 19% of repo churn)
+- **critical** `crates/sc-compose/src/var_file.rs` `(top-level)`: 90-day churn rewrote 6.4x the file's size (588 lines over 92 NLOC, top 24% of repo churn)
 - **critical** `crates/sc-compose/src/reporting/init.rs` `(top-level)`: 90-day churn rewrote 8.6x the file's size (1311 lines over 153 NLOC, top 7% of repo churn)
-- **critical** `crates/sc-compose/src/main.rs` `(top-level)`: 90-day churn rewrote 50.0x the file's size (3601 lines over 72 NLOC, top 1% of repo churn)
-- **medium** `crates/sc-compose/src/render_request.rs` `(top-level)`: 90-day churn rewrote 2.5x the file's size (503 lines over 204 NLOC, top 13% of repo churn)
-- **medium** `crates/sc-compose/src/reporting/templates.rs` `(top-level)`: 90-day churn rewrote 2.3x the file's size (740 lines over 328 NLOC, top 20% of repo churn)
-- **medium** `crates/sc-compose/src/reporting/render_many.rs` `(top-level)`: 90-day churn rewrote 2.3x the file's size (735 lines over 325 NLOC, top 14% of repo churn)
+- **critical** `crates/sc-compose/src/main.rs` `(top-level)`: 90-day churn rewrote 50.8x the file's size (3606 lines over 71 NLOC, top 1% of repo churn)
+- **high** `crates/sc-compose/src/render_request.rs` `(top-level)`: 90-day churn rewrote 2.7x the file's size (878 lines over 323 NLOC, top 8% of repo churn)
+- **medium** `crates/sc-compose/src/reporting/render_many.rs` `(top-level)`: 90-day churn rewrote 2.3x the file's size (735 lines over 325 NLOC, top 18% of repo churn)
+- **low** `crates/sc-compose/src/commands/compose.rs` `(top-level)`: 90-day churn rewrote 1.4x the file's size (771 lines over 536 NLOC, top 16% of repo churn)
+- *... and 3 more*
 
-### hidden_coupling (21 findings)
+### hidden_coupling (20 findings)
 
-- **medium** `crates/sc-composer/src/renderer.rs` `(top-level)`: crates/sc-compose/src/main.rs co-changes with this file 5 times (56% of shared commits) but no static dependency exists
 - **medium** `crates/sc-composer/src/validate.rs` `(top-level)`: crates/sc-composer/src/composer.rs co-changes with this file 5 times (56% of shared commits) but no static dependency exists
 - **medium** `crates/sc-compose/src/reporting/output.rs` `(top-level)`: crates/sc-compose/src/main.rs co-changes with this file 5 times (50% of shared commits) but no static dependency exists
 - **medium** `crates/sc-compose/src/commands/mod.rs` `(top-level)`: crates/sc-compose/src/var_file.rs co-changes with this file 4 times (67% of shared commits) but no static dependency exists
-- **medium** `crates/sc-composer/src/composer.rs` `(top-level)`: crates/sc-composer/src/validate.rs co-changes with this file 5 times (56% of shared commits) but no static dependency exists
 - **medium** `crates/sc-compose/src/reporting/index.rs` `(top-level)`: crates/sc-compose/src/reporting/render_many.rs co-changes with this file 3 times (50% of shared commits) but no static dependency exists
-- *... and 15 more*
+- **medium** `crates/sc-compose/src/reporting/index.rs` `(top-level)`: crates/sc-compose/src/reporting/templates.rs co-changes with this file 3 times (50% of shared commits) but no static dependency exists
+- **medium** `crates/sc-compose/src/reporting/index.rs` `(top-level)`: crates/sc-compose/src/main.rs co-changes with this file 3 times (50% of shared commits) but no static dependency exists
+- *... and 14 more*
 
-### error_handling (30 findings)
+### error_handling (34 findings)
 
 - **low** `crates/sc-compose/src/main_tests.rs` `(top-level)`: unwrap/expect turns a recoverable error into a crash
 - **low** `crates/sc-compose/src/main_tests.rs` `(top-level)`: unwrap/expect turns a recoverable error into a crash
@@ -151,13 +153,24 @@
 - **low** `crates/sc-composer/src/validation.rs` `(top-level)`: panic!/unreachable!/todo!/unimplemented! aborts the process unconditionally
 - **low** `crates/sc-compose/tests/repo_boundaries.rs` `(top-level)`: unwrap/expect turns a recoverable error into a crash
 - **low** `crates/sc-compose/tests/repo_boundaries.rs` `(top-level)`: unwrap/expect turns a recoverable error into a crash
-- *... and 24 more*
+- *... and 28 more*
 
 ## Refactoring Targets
 
 Prioritized by impact-per-effort ratio (highest ROI first).
 
-### #1: `crates/sc-compose/src/path_utils.rs` (4.5/10, 69 NLOC)
+### #1: `crates/sc-composer/src/diagnostics.rs` (4.0/10, 150 NLOC)
+
+| Metric | Value |
+|---|---|
+| Biomarker | **co_change_scatter** (high) |
+| Impact Score | 6.0 |
+| Effort | M |
+| ROI | 3.0 |
+| Finding Count | 4 |
+| Reason | co-changes with 18 distinct files — editing this file tends to ripple across the codebase (shotgun surgery) |
+
+### #2: `crates/sc-compose/src/path_utils.rs` (4.5/10, 69 NLOC)
 
 | Metric | Value |
 |---|---|
@@ -166,9 +179,9 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 | Effort | M |
 | ROI | 2.7 |
 | Finding Count | 4 |
-| Reason | Hotspot with no paired test file and no coverage data — 16 dependents |
+| Reason | Hotspot with no paired test file and no coverage data — 18 dependents |
 
-### #2: `crates/sc-compose/src/reporting/output.rs` (4.0/10, 257 NLOC)
+### #3: `crates/sc-compose/src/reporting/output.rs` (4.0/10, 257 NLOC)
 
 | Metric | Value |
 |---|---|
@@ -176,13 +189,13 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 | Impact Score | 6.0 |
 | Effort | L |
 | ROI | 2.0 |
-| Finding Count | 9 |
+| Finding Count | 8 |
 | Reason | 6 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects |
 
 - **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/reporting/output.rs', 'line_start': 115, 'line_end': 122}, {'file': 'crates/sc-compose/src/reporting/
 - **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/reporting/output.rs', 'line_start': 184, 'line_end': 191}, {'file': 'crates/sc-compose/src/reporting/
 
-### #3: `crates/sc-compose/src/render_request.rs` (4.0/10, 204 NLOC)
+### #4: `crates/sc-compose/src/render_request.rs` (4.0/10, 323 NLOC)
 
 | Metric | Value |
 |---|---|
@@ -190,12 +203,12 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 | Impact Score | 6.0 |
 | Effort | L |
 | ROI | 2.0 |
-| Finding Count | 9 |
-| Reason | Hotspot with no paired test file and no coverage data — 4 dependents |
+| Finding Count | 11 |
+| Reason | Hotspot with no paired test file and no coverage data — 5 dependents |
 
-- **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/render_request.rs', 'line_start': 146, 'line_end': 153}, {'file': 'crates/sc-compose/src/render_reque
+- **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/render_request.rs', 'line_start': 240, 'line_end': 247}, {'file': 'crates/sc-compose/src/render_reque
 
-### #4: `crates/sc-compose/src/reporting/mod.rs` (8.1/10, 13 NLOC)
+### #5: `crates/sc-compose/src/reporting/mod.rs` (8.1/10, 13 NLOC)
 
 | Metric | Value |
 |---|---|
@@ -206,7 +219,7 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 | Finding Count | 3 |
 | Reason | co-changes with 8 distinct files — editing this file tends to ripple across the codebase (shotgun surgery) |
 
-### #5: `crates/sc-compose/src/reporting/catalog.rs` (4.3/10, 201 NLOC)
+### #6: `crates/sc-compose/src/reporting/catalog.rs` (4.3/10, 201 NLOC)
 
 | Metric | Value |
 |---|---|
@@ -220,7 +233,20 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 - **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/reporting/catalog.rs', 'line_start': 138, 'line_end': 162}, {'file': 'crates/sc-compose/src/reporting
 - **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/reporting/catalog.rs', 'line_start': 33, 'line_end': 40}, {'file': 'crates/sc-compose/src/reporting/i
 
-### #6: `crates/sc-compose/src/main.rs` (6.5/10, 72 NLOC)
+### #7: `crates/sc-compose/src/commands/mod.rs` (6.3/10, 81 NLOC)
+
+| Metric | Value |
+|---|---|
+| Biomarker | **prior_defect** (critical) |
+| Impact Score | 3.6 |
+| Effort | M |
+| ROI | 1.8 |
+| Finding Count | 5 |
+| Reason | 10 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects |
+
+- **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/commands/mod.rs', 'line_start': 1, 'line_end': 8}, {'file': 'crates/sc-compose/src/reporting/mod.rs',
+
+### #8: `crates/sc-compose/src/main.rs` (6.5/10, 71 NLOC)
 
 | Metric | Value |
 |---|---|
@@ -231,7 +257,7 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 | Finding Count | 7 |
 | Reason | changes are scattered across noisy commits (top 4% change entropy); a strong history-based fault predictor |
 
-### #7: `crates/sc-compose/src/var_file.rs` (6.5/10, 92 NLOC)
+### #9: `crates/sc-compose/src/var_file.rs` (6.5/10, 92 NLOC)
 
 | Metric | Value |
 |---|---|
@@ -240,45 +266,18 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 | Effort | M |
 | ROI | 1.8 |
 | Finding Count | 5 |
-| Reason | 90-day churn rewrote 6.4x the file's size (588 lines over 92 NLOC, top 19% of repo churn) |
+| Reason | 90-day churn rewrote 6.4x the file's size (588 lines over 92 NLOC, top 24% of repo churn) |
 
-### #8: `crates/sc-compose/src/commands/mod.rs` (6.5/10, 79 NLOC)
-
-| Metric | Value |
-|---|---|
-| Biomarker | **prior_defect** (critical) |
-| Impact Score | 3.5 |
-| Effort | M |
-| ROI | 1.8 |
-| Finding Count | 4 |
-| Reason | 10 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects |
-
-### #9: `crates/sc-compose/src/commands/examples.rs` (8.4/10, 38 NLOC)
+### #10: `crates/sc-composer/src/frontmatter.rs` (4.8/10, 372 NLOC)
 
 | Metric | Value |
 |---|---|
-| Biomarker | **prior_defect** (high) |
-| Impact Score | 1.6 |
-| Effort | S |
-| ROI | 1.6 |
-| Finding Count | 2 |
-| Reason | 3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects |
-
-- **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/commands/examples.rs', 'line_start': 16, 'line_end': 28}, {'file': 'crates/sc-compose/src/commands/te
-
-### #10: `prototype/multipass/parser.py` (6.9/10, 103 NLOC)
-
-| Metric | Value |
-|---|---|
-| Biomarker | **untested_hotspot** (high) |
-| Impact Score | 3.1 |
-| Effort | M |
-| ROI | 1.5 |
-| Finding Count | 3 |
-| Reason | Hotspot with no paired test file and no coverage data — 6 dependents |
-
-- **extract_method**: {'span': {'start': 117, 'end': 128}, 'params': ['data', 'v'], 'returns': ['defaults'], 'suggested_name': None}
-- **extract_method**: {'span': {'start': 71, 'end': 77}, 'params': ['cursor', 'headers', 'text'], 'returns': ['body'], 'suggested_name': None}
+| Biomarker | **co_change_scatter** (high) |
+| Impact Score | 5.2 |
+| Effort | L |
+| ROI | 1.7 |
+| Finding Count | 8 |
+| Reason | co-changes with 16 distinct files — editing this file tends to ripple across the codebase (shotgun surgery) |
 
 ## Dead Code Analysis
 
@@ -287,7 +286,7 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 | Kind | Total | Actionable | Action |
 |---|---|---|---|
 | unreachable_file | 5 | 4 | Review — may be dead or scripts/prototypes |
-| unused_export | 51 | 24 | 24 clean-up candidates |
+| unused_export | 55 | 24 | 24 clean-up candidates |
 | zombie_package | 1 | 1 | Review prototype/ package |
 
 ### Unreachable Files

@@ -9,7 +9,7 @@ repowise dead-code —
     "reason": "File has no importers (in_degree=0)",
     "safe_to_delete": false,
     "risk_factors": [],
-    "lines": 1210,
+    "lines": 1430,
     "primary_owner": "Rand Lee"
   },
   {
@@ -228,6 +228,17 @@ repowise dead-code —
   {
     "kind": "unused_export",
     "file_path": "bindings/python/python/sc_compose/_native.pyi",
+    "symbol_name": "verify",
+    "confidence": 0.7,
+    "reason": "Public symbol 'verify' has no importers",
+    "safe_to_delete": true,
+    "risk_factors": [],
+    "lines": 3,
+    "primary_owner": "Rand Lee"
+  },
+  {
+    "kind": "unused_export",
+    "file_path": "bindings/python/python/sc_compose/_native.pyi",
     "symbol_name": "resolve_template_path",
     "confidence": 0.7,
     "reason": "Public symbol 'resolve_template_path' has no importers",
@@ -278,6 +289,17 @@ repowise dead-code —
     "safe_to_delete": true,
     "risk_factors": [],
     "lines": 0,
+    "primary_owner": "Rand Lee"
+  },
+  {
+    "kind": "unused_export",
+    "file_path": "bindings/python/python/sc_compose/_native.pyi",
+    "symbol_name": "render_all",
+    "confidence": 0.7,
+    "reason": "Public symbol 'render_all' has no importers",
+    "safe_to_delete": true,
+    "risk_factors": [],
+    "lines": 3,
     "primary_owner": "Rand Lee"
   },
   {
@@ -352,6 +374,28 @@ repowise dead-code —
     "symbol_name": "discover_tokens",
     "confidence": 0.7,
     "reason": "Public symbol 'discover_tokens' has no importers",
+    "safe_to_delete": true,
+    "risk_factors": [],
+    "lines": 0,
+    "primary_owner": "Rand Lee"
+  },
+  {
+    "kind": "unused_export",
+    "file_path": "bindings/python/python/sc_compose/_native.pyi",
+    "symbol_name": "discover_tokens_with_brace_count",
+    "confidence": 0.7,
+    "reason": "Public symbol 'discover_tokens_with_brace_count' has no importers",
+    "safe_to_delete": true,
+    "risk_factors": [],
+    "lines": 2,
+    "primary_owner": "Rand Lee"
+  },
+  {
+    "kind": "unused_export",
+    "file_path": "bindings/python/python/sc_compose/_native.pyi",
+    "symbol_name": "discover_all_pass_tokens",
+    "confidence": 0.7,
+    "reason": "Public symbol 'discover_all_pass_tokens' has no importers",
     "safe_to_delete": true,
     "risk_factors": [],
     "lines": 0,
