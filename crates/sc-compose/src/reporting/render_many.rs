@@ -456,14 +456,10 @@ mod tests {
 
         let error = render_many(&request(&root, "reports/templates/panel.html.j2")).unwrap_err();
 
-        assert!(
-            error
-                .to_string()
-                .contains(&format!(
-                    "failed to render source entry {}",
-                    crate::path_utils::to_forward_slash(Path::new("docs").join("b.txt"))
-                ))
-        );
+        assert!(error.to_string().contains(&format!(
+            "failed to render source entry {}",
+            crate::path_utils::to_forward_slash(&Path::new("docs").join("b.txt"))
+        )));
         let first_output = fs::read_to_string(
             root.join("reports")
                 .join("latest")
