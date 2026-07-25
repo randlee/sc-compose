@@ -23,15 +23,7 @@ pub(crate) fn build_logger_for_root(
     log_root: PathBuf,
     wants_json: bool,
 ) -> Result<Logger, CommandError> {
-    let service_name = ServiceName::new(SERVICE_NAME).map_err(|error| {
-        CommandError::usage(anyhow!("invalid observability service name: {error}"))
-    })?;
-    let mut config = LoggerConfig::default_for(service_name, log_root);
-    config.enable_console_sink = false;
-    // Keep logger-managed retained-log maintenance enabled using
-    // sc-observability 1.2.0 defaults rather than adding a repo-local policy.
-    config.retained_log_policy = RetainedLogPolicy::default();
-    let mut builder = Logger::builder(config).map_err(|error| {
+    let mut builder = Logger::builder(build_logger_config(log_root)?).map_err(|error| {
         CommandError::usage(anyhow!(error).context("failed to initialize observability logger"))
     })?;
     if !wants_json {
@@ -41,34 +33,8 @@ pub(crate) fn build_logger_for_root(
 }
 
 pub(crate) fn print_observability_health(health: &LoggingHealthReport) {
-    println!("state: {:?}", health.state);
-    println!(
-        "active_log_path: {}",
-        to_forward_slash(&health.active_log_path)
-    );
-    println!("dropped_events_total: {}", health.dropped_events_total);
-    println!("flush_errors_total: {}", health.flush_errors_total);
-
-    match &health.query {
-        Some(query) => println!("query_state: {:?}", query.state),
-        None => println!("query_state: unavailable"),
-    }
-
-    match &health.maintenance {
-        Some(maintenance) => println!("maintenance_state: {:?}", maintenance.state),
-        None => println!("maintenance_state: unavailable"),
-    }
-
-    if health.sink_statuses.is_empty() {
-        println!("sinks: none");
-    } else {
-        for sink in &health.sink_statuses {
-            println!("sink {}: {:?}", sink.name, sink.state);
-        }
-    }
-
-    if let Some(last_error) = &health.last_error {
-        println!("last_error: {}", last_error.message);
+    for line in render_health_text_lines(health) {
+        println!("{line}");
     }
 }
 
@@ -79,6 +45,21 @@ pub(crate) fn health_json_value(health: &LoggingHealthReport) -> Value {
 
 fn default_log_root() -> Result<PathBuf, CommandError> {
     default_log_root_with(std::env::current_dir)
+}
+
+fn build_service_name() -> Result<ServiceName, CommandError> {
+    ServiceName::new(SERVICE_NAME).map_err(|error| {
+        CommandError::usage(anyhow!("invalid observability service name: {error}"))
+    })
+}
+
+fn build_logger_config(log_root: PathBuf) -> Result<LoggerConfig, CommandError> {
+    let mut config = LoggerConfig::default_for(build_service_name()?, log_root);
+    config.enable_console_sink = false;
+    // Keep logger-managed retained-log maintenance enabled using
+    // sc-observability 1.2.0 defaults rather than adding a repo-local policy.
+    config.retained_log_policy = RetainedLogPolicy::default();
+    Ok(config)
 }
 
 fn default_log_root_with(
@@ -99,6 +80,51 @@ fn default_log_root_with(
 
 fn serialize_health_value<T: Serialize>(value: &T) -> Result<Value, serde_json::Error> {
     serde_json::to_value(value)
+}
+
+fn render_health_text_lines(health: &LoggingHealthReport) -> Vec<String> {
+    let mut lines = vec![
+        format!("state: {:?}", health.state),
+        format!(
+            "active_log_path: {}",
+            to_forward_slash(&health.active_log_path)
+        ),
+        format!("dropped_events_total: {}", health.dropped_events_total),
+        format!("flush_errors_total: {}", health.flush_errors_total),
+        format!("query_state: {}", query_state_text(health)),
+        format!("maintenance_state: {}", maintenance_state_text(health)),
+    ];
+
+    if health.sink_statuses.is_empty() {
+        lines.push("sinks: none".to_owned());
+    } else {
+        lines.extend(
+            health
+                .sink_statuses
+                .iter()
+                .map(|sink| format!("sink {}: {:?}", sink.name, sink.state)),
+        );
+    }
+
+    if let Some(last_error) = &health.last_error {
+        lines.push(format!("last_error: {}", last_error.message));
+    }
+
+    lines
+}
+
+fn query_state_text(health: &LoggingHealthReport) -> String {
+    match &health.query {
+        Some(query) => format!("{:?}", query.state),
+        None => "unavailable".to_owned(),
+    }
+}
+
+fn maintenance_state_text(health: &LoggingHealthReport) -> String {
+    match &health.maintenance {
+        Some(maintenance) => format!("{:?}", maintenance.state),
+        None => "unavailable".to_owned(),
+    }
 }
 
 fn health_json_from_serialized(
@@ -147,11 +173,23 @@ mod tests {
     use std::path::PathBuf;
 
     use sc_observability_types::{
-        LoggingHealthReport, LoggingHealthState, QueryHealthReport, QueryHealthState, WriterState,
+        DiagnosticSummary, LoggingHealthReport, LoggingHealthState, QueryHealthReport,
+        QueryHealthState, Timestamp, WriterState,
     };
     use serde::Serialize;
 
-    use super::{default_log_root_with, health_json_from_serialized, health_json_value};
+    use super::{
+        build_logger_config, default_log_root_with, health_json_from_serialized, health_json_value,
+        render_health_text_lines,
+    };
+
+    #[test]
+    fn build_logger_config_disables_console_sink_and_keeps_default_retention() {
+        let config = build_logger_config(PathBuf::from("logs")).expect("logger config");
+
+        assert!(!config.enable_console_sink);
+        assert_eq!(config.log_root, PathBuf::from("logs"));
+    }
 
     #[test]
     fn health_json_value_nulls_unavailable_query_state() {
@@ -195,6 +233,27 @@ mod tests {
             panic!("default_log_root_with should fail");
         };
         assert!(format!("{error}").contains("failed to determine current directory"));
+    }
+
+    #[test]
+    fn render_health_text_lines_formats_unavailable_sections_and_last_error() {
+        let mut health = sample_health();
+        health.last_error = Some(DiagnosticSummary {
+            code: None,
+            message: "flush failed".to_owned(),
+            at: Timestamp::UNIX_EPOCH,
+        });
+
+        let lines = render_health_text_lines(&health);
+
+        assert!(lines.iter().any(|line| line == "query_state: Unavailable"));
+        assert!(
+            lines
+                .iter()
+                .any(|line| line == "maintenance_state: unavailable")
+        );
+        assert!(lines.iter().any(|line| line == "sinks: none"));
+        assert!(lines.iter().any(|line| line == "last_error: flush failed"));
     }
 
     fn sample_health() -> LoggingHealthReport {
