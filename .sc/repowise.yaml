@@ -20,7 +20,8 @@ diagrams:
 
 # Standard repowise artifact layout (randlee repos):
 #   .sc/repowise/repowise.yaml          — this config
-#   .sc/repowise/generate-report.py      — generation script (reproducible)
+#   .sc/repowise/generate-report.py      — health report (reproducible)
+#   .sc/repowise/generate-architecture.py — architecture diagram (reproducible)
 #   .sc/repowise/data/*.json             — raw JSON exports from repowise
 #   docs/repowise/health.md              — comprehensive report (generated)
 #   docs/repowise/health-<module>.md     — per-module reports (generated)

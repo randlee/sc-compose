@@ -1,4 +1,78 @@
-<!DOCTYPE html>
+#!/usr/bin/env python3
+"""Generate the sc-compose crate dependency architecture diagram.
+
+Reads Cargo workspace metadata and repowise knowledge graph to produce
+a dark-themed SVG architecture diagram at site/repowise/architecture.html.
+
+Usage:
+    python3 .sc/repowise/generate-architecture.py
+"""
+import json, subprocess, sys
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent.parent
+
+# ── Git metadata ──────────────────────────────────────────────────────────────
+def _git(*args):
+    return subprocess.check_output(["git", "-C", str(REPO), *args], text=True).strip()
+
+VERSION  = _git("describe", "--tags", "--always")
+COMMIT   = _git("rev-parse", "--short", "HEAD")
+GENERATED = _git("log", "-1", "--format=%cs")
+
+# ── Workspace metadata ───────────────────────────────────────────────────────
+# Read workspace version from Cargo.toml
+cargo_toml = REPO / "Cargo.toml"
+ws_version = "unknown"
+for line in cargo_toml.read_text().splitlines():
+    if line.strip().startswith("version = "):
+        ws_version = line.split('"')[1]
+        break
+
+# ── Knowledge graph stats ────────────────────────────────────────────────────
+kg_file = REPO / ".repowise" / "knowledge-graph.json"
+file_count = symbol_count = node_count = edge_count = 0
+if kg_file.exists():
+    kg = json.loads(kg_file.read_text())
+    nodes = kg.get("nodes", [])
+    edges = kg.get("edges", [])
+    node_count = len(nodes)
+    edge_count = len(edges)
+    # Count unique files
+    file_paths = set()
+    for n in nodes:
+        fp = n.get("filePath")
+        if fp:
+            file_paths.add(fp)
+    file_count = len(file_paths)
+    symbol_count = sum(1 for n in nodes if n.get("type") == "function")
+
+# ── Crate info from Cargo.tomls ──────────────────────────────────────────────
+def crate_name_version(path):
+    """Parse [package] name and version from a Cargo.toml."""
+    toml = (REPO / path).read_text()
+    name = version = "unknown"
+    for line in toml.splitlines():
+        s = line.strip()
+        if s.startswith("name = "):
+            name = s.split('"')[1]
+        elif s.startswith("version") and "workspace" not in s:
+            version = s.split('"')[1]
+        elif s.startswith("version.workspace"):
+            version = ws_version
+    return name, version
+
+composer_name, composer_version = crate_name_version("crates/sc-composer/Cargo.toml")
+compose_name, compose_version = crate_name_version("crates/sc-compose/Cargo.toml")
+
+# Python binding version
+py_version = ws_version
+
+# ── HTML generation ──────────────────────────────────────────────────────────
+OUT_DIR = REPO / "site" / "repowise"
+OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -6,60 +80,60 @@
   <title>sc-compose Architecture Diagram</title>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{
       font-family: 'JetBrains Mono', monospace;
       background: #020617;
       min-height: 100vh;
       padding: 2rem;
       color: white;
-    }
-    .container { max-width: 1000px; margin: 0 auto; }
-    .header { margin-bottom: 2rem; }
-    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
-    .pulse-dot {
+    }}
+    .container {{ max-width: 1000px; margin: 0 auto; }}
+    .header {{ margin-bottom: 2rem; }}
+    .header-row {{ display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }}
+    .pulse-dot {{
       width: 12px; height: 12px;
       background: #22d3ee;
       border-radius: 50%;
       animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
-    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
-    .diagram-container {
+    }}
+    @keyframes pulse {{
+      0%, 100% {{ opacity: 1; }}
+      50% {{ opacity: 0.5; }}
+    }}
+    h1 {{ font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }}
+    .subtitle {{ color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }}
+    .diagram-container {{
       background: rgba(15, 23, 42, 0.5);
       border-radius: 1rem;
       border: 1px solid #1e293b;
       padding: 1.5rem;
       overflow-x: auto;
-    }
-    svg { width: 100%; min-width: 800px; display: block; }
-    .cards {
+    }}
+    svg {{ width: 100%; min-width: 800px; display: block; }}
+    .cards {{
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 1rem;
       margin-top: 2rem;
-    }
-    .card {
+    }}
+    .card {{
       background: rgba(15, 23, 42, 0.5);
       border-radius: 0.75rem;
       border: 1px solid #1e293b;
       padding: 1.25rem;
-    }
-    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
-    .card-dot { width: 8px; height: 8px; border-radius: 50%; }
-    .card-dot.cyan { background: #22d3ee; }
-    .card-dot.emerald { background: #34d399; }
-    .card-dot.violet { background: #a78bfa; }
-    .card-dot.amber { background: #fbbf24; }
-    .card-dot.slate { background: #94a3b8; }
-    .card h3 { font-size: 0.875rem; font-weight: 600; }
-    .card ul { list-style: none; color: #94a3b8; font-size: 0.75rem; }
-    .card li { margin-bottom: 0.375rem; }
-    .footer { text-align: center; margin-top: 1.5rem; color: #475569; font-size: 0.75rem; }
+    }}
+    .card-header {{ display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }}
+    .card-dot {{ width: 8px; height: 8px; border-radius: 50%; }}
+    .card-dot.cyan {{ background: #22d3ee; }}
+    .card-dot.emerald {{ background: #34d399; }}
+    .card-dot.violet {{ background: #a78bfa; }}
+    .card-dot.amber {{ background: #fbbf24; }}
+    .card-dot.slate {{ background: #94a3b8; }}
+    .card h3 {{ font-size: 0.875rem; font-weight: 600; }}
+    .card ul {{ list-style: none; color: #94a3b8; font-size: 0.75rem; }}
+    .card li {{ margin-bottom: 0.375rem; }}
+    .footer {{ text-align: center; margin-top: 1.5rem; color: #475569; font-size: 0.75rem; }}
   </style>
 </head>
 <body>
@@ -96,18 +170,18 @@
         <rect x="100" y="160" width="260" height="120" rx="8" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
         <rect x="100" y="160" width="260" height="120" rx="8" fill="#0f172a"/>
         <rect x="100" y="160" width="260" height="120" rx="8" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
-        <text x="230" y="190" fill="white" font-size="13" font-weight="600" text-anchor="middle">sc-composer</text>
+        <text x="230" y="190" fill="white" font-size="13" font-weight="600" text-anchor="middle">{composer_name}</text>
         <text x="230" y="208" fill="#34d399" font-size="9" text-anchor="middle">Rust Library Crate</text>
         <text x="230" y="226" fill="#94a3b8" font-size="8" text-anchor="middle">Jinja2 renderer · &#64;-includes</text>
         <text x="230" y="242" fill="#94a3b8" font-size="8" text-anchor="middle">YAML frontmatter · validation</text>
         <text x="230" y="258" fill="#94a3b8" font-size="8" text-anchor="middle">Multi-pass resolution · verify</text>
-        <text x="230" y="274" fill="#34d399" font-size="7" text-anchor="middle">crates.io: sc-composer</text>
+        <text x="230" y="274" fill="#34d399" font-size="7" text-anchor="middle">crates.io: {composer_name}</text>
 
         <!-- sc-compose CLI -->
         <rect x="450" y="80" width="150" height="110" rx="8" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
         <rect x="450" y="80" width="150" height="110" rx="8" fill="#0f172a"/>
         <rect x="450" y="80" width="150" height="110" rx="8" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
-        <text x="525" y="108" fill="white" font-size="13" font-weight="600" text-anchor="middle">sc-compose</text>
+        <text x="525" y="108" fill="white" font-size="13" font-weight="600" text-anchor="middle">{compose_name}</text>
         <text x="525" y="126" fill="#22d3ee" font-size="9" text-anchor="middle">Rust CLI Binary</text>
         <text x="525" y="142" fill="#94a3b8" font-size="8" text-anchor="middle">render · resolve · validate</text>
         <text x="525" y="158" fill="#94a3b8" font-size="8" text-anchor="middle">examples · templates · reports</text>
@@ -118,12 +192,12 @@
         <rect x="640" y="200" width="140" height="120" rx="8" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
         <rect x="640" y="200" width="140" height="120" rx="8" fill="#0f172a"/>
         <rect x="640" y="200" width="140" height="120" rx="8" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
-        <text x="710" y="228" fill="white" font-size="12" font-weight="600" text-anchor="middle">sc-compose</text>
+        <text x="710" y="228" fill="white" font-size="12" font-weight="600" text-anchor="middle">{compose_name}</text>
         <text x="710" y="246" fill="#94a3b8" font-size="9" text-anchor="middle">Python Package</text>
         <text x="710" y="262" fill="#94a3b8" font-size="8" text-anchor="middle">Maturin FFI bindings</text>
         <text x="710" y="278" fill="#94a3b8" font-size="8" text-anchor="middle">wheels: macOS/Linux/Win</text>
         <text x="710" y="294" fill="#94a3b8" font-size="8" text-anchor="middle">Python 3.11+</text>
-        <text x="710" y="312" fill="#fbbf24" font-size="7" text-anchor="middle">PyPI: sc-compose</text>
+        <text x="710" y="312" fill="#fbbf24" font-size="7" text-anchor="middle">PyPI: {compose_name}</text>
 
         <!-- Template Files -->
         <rect x="100" y="60" width="120" height="50" rx="6" fill="rgba(76, 29, 149, 0.3)" stroke="#a78bfa" stroke-width="1.5"/>
@@ -160,7 +234,7 @@
       <div class="card">
         <div class="card-header">
           <div class="card-dot emerald"></div>
-          <h3>sc-composer (Library)</h3>
+          <h3>{composer_name} (Library)</h3>
         </div>
         <ul>
           <li>• Core rendering engine (Jinja2 + &#64;-include)</li>
@@ -174,7 +248,7 @@
       <div class="card">
         <div class="card-header">
           <div class="card-dot cyan"></div>
-          <h3>sc-compose (CLI)</h3>
+          <h3>{compose_name} (CLI)</h3>
         </div>
         <ul>
           <li>• render · resolve · validate · verify</li>
@@ -201,8 +275,15 @@
     </div>
 
     <p class="footer">
-      SC Compose 1.3.0 · v1.2.0-88-g3646089 @ 3646089 · Generated: 2026-07-24
+      SC Compose {ws_version} · {VERSION} @ {COMMIT} · Generated: {GENERATED}
     </p>
   </div>
 </body>
 </html>
+"""
+
+out_path = OUT_DIR / "architecture.html"
+out_path.write_text(html)
+print(f"Wrote architecture diagram to {out_path}")
+print(f"  version={ws_version}  git={VERSION}  commit={COMMIT}")
+print(f"  kg: {node_count} nodes, {edge_count} edges, {file_count} files, {symbol_count} symbols")

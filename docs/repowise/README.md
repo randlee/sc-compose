@@ -34,7 +34,7 @@ after significant code changes before refreshing any derived data.
 | Command | Output | What It Produces |
 |---|---|---|
 | `python3 .sc/repowise/generate-report.py` | `docs/repowise/health.md` | Comprehensive report: scores, worst files, biomarkers, refactoring targets, dead code, recommendations |
-| *(manual)* | `site/repowise/architecture.html` | Crate dependency diagram (dark-themed SVG, built from `.repowise/knowledge-graph.json` using the `architecture-diagram` skill) |
+| `python3 .sc/repowise/generate-architecture.py` | `site/repowise/architecture.html` | Crate dependency diagram (reads `.repowise/knowledge-graph.json` and `Cargo.toml`, resolves version from git) |
 | `repowise init` (full, with LLM) then `repowise export --format html -o site/repowise/wiki/` | `site/repowise/wiki/` | Per-file LLM-generated documentation (requires API key configured in repowise; optional) |
 
 ## Output Artifacts
@@ -45,7 +45,7 @@ after significant code changes before refreshing any derived data.
 | `risk.json` | 2 | Risk assessment at HEAD |
 | `badge.md` | 2 | Markdown health badge |
 | `../site/repowise/architecture.html` | 3 | Crate dependency diagram (web-facing) |
-| `wiki/` | `site/repowise/wiki/` (web-facing) | 3 (LLM) | Per-file documentation (70 pages; optional) |
+| `../site/repowise/wiki/` | 3 (LLM) | Per-file documentation (69 pages; optional) |
 
 ## Regeneration (full pipeline)
 
@@ -65,12 +65,9 @@ repowise dead-code --format json \
 repowise health --badge > docs/repowise/badge.md 2>&1
 repowise risk --format json > docs/repowise/risk.json 2>&1
 
-# Phase 3: Compile the comprehensive report
+# Phase 3: Compile reports
 python3 .sc/repowise/generate-report.py
-
-# Phase 3 (optional): Regenerate architecture diagram
-# Use the architecture-diagram skill with .repowise/knowledge-graph.json
-# Output to site/repowise/architecture.html
+python3 .sc/repowise/generate-architecture.py
 
 # Phase 3 (optional, requires LLM): Regenerate wiki
 repowise init                    # full init with LLM page generation
