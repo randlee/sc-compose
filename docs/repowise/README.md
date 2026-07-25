@@ -35,7 +35,7 @@ after significant code changes before refreshing any derived data.
 |---|---|---|
 | `python3 .sc/repowise/generate-report.py` | `docs/repowise/health.md` | Comprehensive report: scores, worst files, biomarkers, refactoring targets, dead code, recommendations |
 | *(manual)* | `site/repowise/architecture.html` | Crate dependency diagram (dark-themed SVG, built from `.repowise/knowledge-graph.json` using the `architecture-diagram` skill) |
-| `repowise init` (full, with LLM) then `repowise export --format html -o docs/repowise/wiki/` | `docs/repowise/wiki/` | Per-file LLM-generated documentation (requires API key configured in repowise; optional) |
+| `repowise init` (full, with LLM) then `repowise export --format html -o site/repowise/wiki/` | `site/repowise/wiki/` | Per-file LLM-generated documentation (requires API key configured in repowise; optional) |
 
 ## Output Artifacts
 
@@ -45,7 +45,7 @@ after significant code changes before refreshing any derived data.
 | `risk.json` | 2 | Risk assessment at HEAD |
 | `badge.md` | 2 | Markdown health badge |
 | `../site/repowise/architecture.html` | 3 | Crate dependency diagram (web-facing) |
-| `wiki/` | 3 (LLM) | Per-file documentation (70 pages; optional) |
+| `wiki/` | `site/repowise/wiki/` (web-facing) | 3 (LLM) | Per-file documentation (70 pages; optional) |
 
 ## Regeneration (full pipeline)
 
@@ -74,7 +74,7 @@ python3 .sc/repowise/generate-report.py
 
 # Phase 3 (optional, requires LLM): Regenerate wiki
 repowise init                    # full init with LLM page generation
-repowise export --format html -o docs/repowise/wiki/
+repowise export --format html -o site/repowise/wiki/
 ```
 
 The `generate-report.py` script resolves version, commit, and date from git

@@ -28,6 +28,7 @@ diagrams:
 #   docs/repowise/badge.md               — health badge (generated)
 #   docs/repowise/README.md              — workflow documentation
 #   site/repowise/architecture.html      — crate dependency diagram (web-facing)
+#   site/repowise/wiki/                  — per-file LLM docs (web-facing)
 #
 # To regenerate: python3 .sc/repowise/generate-report.py
 # Raw data refresh: repowise health --format json > .sc/repowise/data/health.json etc.
