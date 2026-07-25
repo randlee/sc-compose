@@ -6,50 +6,79 @@ codebase intelligence tool. The analysis uses a repo-specific config
 (`.sc/repowise.yaml`) to avoid false positives in prototype code, FFI
 bindings, and utility scripts.
 
-## What Was Analyzed
+## Analysis Pipeline
 
-Three repowise modes were run in sequence:
+The full pipeline runs in three phases:
 
-| Mode | Output | What It Produces |
+### Phase 1 — Index (prerequisite)
+
+```bash
+repowise init --index-only -y
+```
+
+Builds the knowledge graph, AST index, and git history. Must be re-run
+after significant code changes before refreshing any derived data.
+
+### Phase 2 — Raw data export
+
+| Command | Output | What It Produces |
 |---|---|---|
-| `health --format json --module` | `.sc/repowise/data/repowise-health-compose.json` | Per-file scores, KPIs, biomarker findings |
-| `health --format json --refactoring-targets` | `.sc/repowise/data/repowise-refactoring-targets.json` | Ranked refactoring targets with plans and ROI |
-| `dead-code --format json` | `.sc/repowise/data/repowise-dead-code.json` | Unreachable files, unused exports, zombie packages |
-| `health --badge` | `badge.md` | Markdown health badge |
-| `risk --format json` | `risk.json` | HEAD vs recent commit risk delta |
+| `repowise health --format json --module crates/sc-compose` | `.sc/repowise/data/repowise-health-compose.json` | Per-file scores, KPIs, biomarker findings |
+| `repowise health --format json --refactoring-targets` | `.sc/repowise/data/repowise-refactoring-targets.json` | Ranked refactoring targets with plans and ROI |
+| `repowise dead-code --format json` | `.sc/repowise/data/repowise-dead-code.json` | Unreachable files, unused exports, zombie packages |
+| `repowise health --badge` | `docs/repowise/badge.md` | Markdown health badge (for README embedding) |
+| `repowise risk --format json` | `docs/repowise/risk.json` | HEAD vs recent commit risk delta |
 
-These raw JSON exports are then compiled into a rich markdown report by
-`.sc/repowise/generate-report.py`.
+### Phase 3 — Compile reports
+
+| Command | Output | What It Produces |
+|---|---|---|
+| `python3 .sc/repowise/generate-report.py` | `docs/repowise/health.md` | Comprehensive report: scores, worst files, biomarkers, refactoring targets, dead code, recommendations |
+| *(manual)* | `site/repowise/architecture.html` | Crate dependency diagram (dark-themed SVG, built from `.repowise/knowledge-graph.json` using the `architecture-diagram` skill) |
+| `repowise init` (full, with LLM) then `repowise export --format html -o docs/repowise/wiki/` | `docs/repowise/wiki/` | Per-file LLM-generated documentation (requires API key configured in repowise; optional) |
 
 ## Output Artifacts
 
-| File | Description |
-|---|---|
-| `health.md` | Comprehensive report: scores, worst files, biomarkers, refactoring targets, dead code, recommendations |
-| `risk.json` | Risk assessment at HEAD |
-| `badge.md` | Markdown health badge for README embedding |
-| `architecture.html` | Crate dependency diagram (also at `site/repowise/architecture.html`) |
-| `wiki/` | Per-file LLM-generated documentation (70 pages) |
+| File | Phase | Description |
+|---|---|---|
+| `health.md` | 3 | Comprehensive report with interpretation and recommendations |
+| `risk.json` | 2 | Risk assessment at HEAD |
+| `badge.md` | 2 | Markdown health badge |
+| `../site/repowise/architecture.html` | 3 | Crate dependency diagram (web-facing) |
+| `wiki/` | 3 (LLM) | Per-file documentation (70 pages; optional) |
 
-## Regeneration
-
-### Refresh raw data (after code changes)
+## Regeneration (full pipeline)
 
 ```bash
 cd <worktree-root>
-repowise health --format json --module crates/sc-compose > .sc/repowise/data/repowise-health-compose.json 2>&1
-repowise health --format json --refactoring-targets > .sc/repowise/data/repowise-refactoring-targets.json 2>&1
-repowise dead-code --format json > .sc/repowise/data/repowise-dead-code.json 2>&1
-```
 
-### Regenerate the report from raw data
+# Phase 1: Re-index (after code changes)
+repowise init --index-only -y
 
-```bash
+# Phase 2: Export raw data
+repowise health --format json --module crates/sc-compose \
+  > .sc/repowise/data/repowise-health-compose.json 2>&1
+repowise health --format json --refactoring-targets \
+  > .sc/repowise/data/repowise-refactoring-targets.json 2>&1
+repowise dead-code --format json \
+  > .sc/repowise/data/repowise-dead-code.json 2>&1
+repowise health --badge > docs/repowise/badge.md 2>&1
+repowise risk --format json > docs/repowise/risk.json 2>&1
+
+# Phase 3: Compile the comprehensive report
 python3 .sc/repowise/generate-report.py
+
+# Phase 3 (optional): Regenerate architecture diagram
+# Use the architecture-diagram skill with .repowise/knowledge-graph.json
+# Output to site/repowise/architecture.html
+
+# Phase 3 (optional, requires LLM): Regenerate wiki
+repowise init                    # full init with LLM page generation
+repowise export --format html -o docs/repowise/wiki/
 ```
 
-This reads the JSON files in `.sc/repowise/data/` and writes `health.md`.
-Version, commit, and date are resolved from git at run time.
+The `generate-report.py` script resolves version, commit, and date from git
+at run time — no hardcoded metadata.
 
 ## Config
 

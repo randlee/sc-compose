@@ -184,6 +184,7 @@ examples.
 - [docs/cross-platform-guidelines.md](docs/cross-platform-guidelines.md) — platform testing rules
 - [docs/atm-adapter-notes.md](docs/atm-adapter-notes.md) — adapter boundary and integration
 - [RELEASING.md](RELEASING.md) — step-by-step release checklist
+- [docs/repowise/README.md](docs/repowise/README.md) — code health analysis pipeline and regeneration
 
 ---
 
