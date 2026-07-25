@@ -93,11 +93,6 @@ pub(crate) enum RenderManyError {
 }
 
 impl RenderManyRequest {
-    pub(crate) fn output_extension(&self) -> Result<String, RenderManyError> {
-        let template = self.resolve_template()?;
-        Ok(template.output_extension)
-    }
-
     fn resolve_template(&self) -> Result<ResolvedTemplate, RenderManyError> {
         if let Some(family) = &self.source_set.template_family {
             return resolve_template_family(&self.root, family)
@@ -116,17 +111,21 @@ impl RenderManyRequest {
 pub(crate) fn render_many(
     request: &RenderManyRequest,
 ) -> Result<RenderManyResult, RenderManyError> {
+    let resolved_template = request.resolve_template()?;
     let output_root = request.root.join(&request.source_set.output_dir);
     std::fs::create_dir_all(&output_root).map_err(|source| RenderManyError::CreateOutputDir {
         path: output_root.clone(),
         source,
     })?;
 
-    let render_jobs = collect_render_jobs(request)?;
-    let mut entries = Vec::with_capacity(render_jobs.len());
-    let mut generated_outputs = Vec::with_capacity(render_jobs.len() + 1);
+    let mut discovered = discover_sources(request, &resolved_template.output_extension)?;
+    discovered.sort_by(|left, right| left.record.source_path.cmp(&right.record.source_path));
 
-    for job in render_jobs {
+    let mut entries = Vec::with_capacity(discovered.len());
+    let mut generated_outputs = Vec::with_capacity(discovered.len() + 1);
+
+    for source_entry in discovered {
+        let job = render_job(source_entry, &request.source_set.id, &resolved_template)?;
         write_rendered_entry(&request.root, &job)?;
         generated_outputs.push(job.source_entry.record.output_path.clone());
         entries.push(manifest_entry_from_source(&job.source_entry));
@@ -142,28 +141,10 @@ pub(crate) fn render_many(
     })
 }
 
-fn collect_render_jobs(request: &RenderManyRequest) -> Result<Vec<RenderJob>, RenderManyError> {
-    let resolved_template = request.resolve_template()?;
-    let mut discovered = discover_sources(request)?;
-    discovered.sort_by(|left, right| left.record.source_path.cmp(&right.record.source_path));
-
-    discovered
-        .into_iter()
-        .map(|source_entry| {
-            let rendered = render_entry(&source_entry, &request.source_set.id, &resolved_template)
-                .map_err(|source| RenderManyError::Render {
-                    source_path: source_entry.record.source_path.clone(),
-                    source: Box::new(source),
-                })?;
-            Ok(RenderJob {
-                source_entry,
-                rendered,
-            })
-        })
-        .collect()
-}
-
-fn discover_sources(request: &RenderManyRequest) -> Result<Vec<SourceEntry>, RenderManyError> {
+fn discover_sources(
+    request: &RenderManyRequest,
+    output_extension: &str,
+) -> Result<Vec<SourceEntry>, RenderManyError> {
     let canonical_root =
         request
             .root
@@ -177,7 +158,6 @@ fn discover_sources(request: &RenderManyRequest) -> Result<Vec<SourceEntry>, Ren
         glob: request.source_set.glob.clone(),
         message: error.to_string(),
     })?;
-    let output_extension = request.output_extension()?;
 
     let mut entries = Vec::new();
     for path in paths {
@@ -190,7 +170,7 @@ fn discover_sources(request: &RenderManyRequest) -> Result<Vec<SourceEntry>, Ren
         let output_path = derive_output_path(
             &request.source_set.output_dir,
             relative_source,
-            &output_extension,
+            output_extension,
         );
         entries.push(
             SourceEntry::load(&absolute_source, relative_source, output_path)
@@ -198,6 +178,23 @@ fn discover_sources(request: &RenderManyRequest) -> Result<Vec<SourceEntry>, Ren
         );
     }
     Ok(entries)
+}
+
+fn render_job(
+    source_entry: SourceEntry,
+    template_name: &str,
+    template: &ResolvedTemplate,
+) -> Result<RenderJob, RenderManyError> {
+    let rendered = render_entry(&source_entry, template_name, template).map_err(|source| {
+        RenderManyError::Render {
+            source_path: source_entry.record.source_path.clone(),
+            source: Box::new(source),
+        }
+    })?;
+    Ok(RenderJob {
+        source_entry,
+        rendered,
+    })
 }
 
 fn write_rendered_entry(root: &Path, job: &RenderJob) -> Result<(), RenderManyError> {
@@ -385,3 +382,111 @@ impl fmt::Display for RenderManyError {
 }
 
 impl std::error::Error for RenderManyError {}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use super::{RenderManyRequest, SourceSetDefinition, render_many};
+
+    fn temp_root(label: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "sc-compose-render-many-{label}-{}-{nanos}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        root
+    }
+
+    fn write_file(path: &Path, contents: &str) {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+        fs::write(path, contents).unwrap();
+    }
+
+    fn request(root: &Path, template_selector: &str) -> RenderManyRequest {
+        RenderManyRequest {
+            root: root.to_path_buf(),
+            source_set: SourceSetDefinition {
+                id: "panels".to_owned(),
+                glob: "docs/*.txt".to_owned(),
+                template_selector: template_selector.to_owned(),
+                template_family: None,
+                output_dir: PathBuf::from("reports/latest/panels"),
+            },
+        }
+    }
+
+    #[test]
+    fn template_resolution_failure_does_not_create_output_root() {
+        let root = temp_root("template-resolution-failure");
+        write_file(
+            &root.join("docs").join("a.txt"),
+            "# title: Alpha\nalpha body\n",
+        );
+
+        let error = render_many(&request(&root, "reports/templates/missing.html.j2")).unwrap_err();
+
+        assert!(error.to_string().contains("failed to read report template"));
+        assert!(!root.join("reports").join("latest").join("panels").exists());
+    }
+
+    #[test]
+    fn render_failure_preserves_already_written_outputs() {
+        let root = temp_root("partial-write-on-render-failure");
+        write_file(
+            &root.join("reports").join("templates").join("panel.html.j2"),
+            "<article>{{ metadata.title }}|{% include metadata.partial %}|{{ body }}</article>\n",
+        );
+        write_file(
+            &root.join("docs").join("a.txt"),
+            "# title: Alpha\n# partial: base/report.html.j2\nalpha body\n",
+        );
+        write_file(
+            &root.join("docs").join("b.txt"),
+            "# title: Bravo\n# partial: missing/report.html.j2\nbravo body\n",
+        );
+
+        let error = render_many(&request(&root, "reports/templates/panel.html.j2")).unwrap_err();
+
+        assert!(
+            error
+                .to_string()
+                .contains("failed to render source entry docs/b.txt")
+        );
+        let first_output = fs::read_to_string(
+            root.join("reports")
+                .join("latest")
+                .join("panels")
+                .join("docs")
+                .join("a.html"),
+        )
+        .unwrap();
+        assert!(first_output.contains("Alpha"));
+        assert!(first_output.contains("alpha body"));
+        assert!(
+            !root
+                .join("reports")
+                .join("latest")
+                .join("panels")
+                .join("docs")
+                .join("b.html")
+                .exists()
+        );
+        assert!(
+            !root
+                .join("reports")
+                .join("latest")
+                .join("panels")
+                .join("manifest.json")
+                .exists()
+        );
+    }
+}
