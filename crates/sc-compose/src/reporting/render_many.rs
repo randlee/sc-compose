@@ -50,6 +50,12 @@ pub(crate) struct RenderManyResult {
 }
 
 #[derive(Debug)]
+struct RenderJob {
+    source_entry: SourceEntry,
+    rendered: RenderedArtifact,
+}
+
+#[derive(Debug)]
 pub(crate) enum RenderManyError {
     InvalidGlob {
         glob: String,
@@ -110,57 +116,23 @@ impl RenderManyRequest {
 pub(crate) fn render_many(
     request: &RenderManyRequest,
 ) -> Result<RenderManyResult, RenderManyError> {
-    let resolved_template = request.resolve_template()?;
     let output_root = request.root.join(&request.source_set.output_dir);
     std::fs::create_dir_all(&output_root).map_err(|source| RenderManyError::CreateOutputDir {
         path: output_root.clone(),
         source,
     })?;
 
-    let mut discovered = discover_sources(request)?;
-    discovered.sort_by(|left, right| left.record.source_path.cmp(&right.record.source_path));
+    let render_jobs = collect_render_jobs(request)?;
+    let mut entries = Vec::with_capacity(render_jobs.len());
+    let mut generated_outputs = Vec::with_capacity(render_jobs.len() + 1);
 
-    let mut entries = Vec::with_capacity(discovered.len());
-    let mut generated_outputs = Vec::with_capacity(discovered.len());
-    for entry in discovered {
-        let rendered =
-            render_entry(&entry, &request.source_set.id, &resolved_template).map_err(|source| {
-                RenderManyError::Render {
-                    source_path: entry.record.source_path.clone(),
-                    source: Box::new(source),
-                }
-            })?;
-        let absolute_output = request.root.join(&entry.record.output_path);
-        if let Some(parent) = absolute_output.parent() {
-            std::fs::create_dir_all(parent).map_err(|source| RenderManyError::CreateOutputDir {
-                path: parent.to_path_buf(),
-                source,
-            })?;
-        }
-        std::fs::write(&absolute_output, rendered.rendered).map_err(|source| {
-            RenderManyError::WriteOutput {
-                path: absolute_output.clone(),
-                source,
-            }
-        })?;
-        generated_outputs.push(entry.record.output_path.clone());
-        entries.push(RenderManyManifestEntry {
-            source_path: entry.record.source_path.clone(),
-            output_path: entry.record.output_path.clone(),
-            metadata: entry.record.metadata.clone(),
-            sets: entry.record.sets.clone(),
-        });
+    for job in render_jobs {
+        write_rendered_entry(&request.root, &job)?;
+        generated_outputs.push(job.source_entry.record.output_path.clone());
+        entries.push(manifest_entry_from_source(&job.source_entry));
     }
 
-    let manifest_path = request.source_set.output_dir.join("manifest.json");
-    let manifest_bytes = serde_json::to_vec_pretty(&entries)
-        .map_err(|source| RenderManyError::SerializeManifest { source })?;
-    std::fs::write(request.root.join(&manifest_path), manifest_bytes).map_err(|source| {
-        RenderManyError::WriteManifest {
-            path: request.root.join(&manifest_path),
-            source,
-        }
-    })?;
+    let manifest_path = write_manifest(&request.root, &request.source_set.output_dir, &entries)?;
     generated_outputs.push(manifest_path.clone());
 
     Ok(RenderManyResult {
@@ -168,6 +140,27 @@ pub(crate) fn render_many(
         entries,
         generated_outputs,
     })
+}
+
+fn collect_render_jobs(request: &RenderManyRequest) -> Result<Vec<RenderJob>, RenderManyError> {
+    let resolved_template = request.resolve_template()?;
+    let mut discovered = discover_sources(request)?;
+    discovered.sort_by(|left, right| left.record.source_path.cmp(&right.record.source_path));
+
+    discovered
+        .into_iter()
+        .map(|source_entry| {
+            let rendered = render_entry(&source_entry, &request.source_set.id, &resolved_template)
+                .map_err(|source| RenderManyError::Render {
+                    source_path: source_entry.record.source_path.clone(),
+                    source: Box::new(source),
+                })?;
+            Ok(RenderJob {
+                source_entry,
+                rendered,
+            })
+        })
+        .collect()
 }
 
 fn discover_sources(request: &RenderManyRequest) -> Result<Vec<SourceEntry>, RenderManyError> {
@@ -205,6 +198,48 @@ fn discover_sources(request: &RenderManyRequest) -> Result<Vec<SourceEntry>, Ren
         );
     }
     Ok(entries)
+}
+
+fn write_rendered_entry(root: &Path, job: &RenderJob) -> Result<(), RenderManyError> {
+    let absolute_output = root.join(&job.source_entry.record.output_path);
+    if let Some(parent) = absolute_output.parent() {
+        std::fs::create_dir_all(parent).map_err(|source| RenderManyError::CreateOutputDir {
+            path: parent.to_path_buf(),
+            source,
+        })?;
+    }
+    std::fs::write(&absolute_output, &job.rendered.rendered).map_err(|source| {
+        RenderManyError::WriteOutput {
+            path: absolute_output,
+            source,
+        }
+    })
+}
+
+fn manifest_entry_from_source(source_entry: &SourceEntry) -> RenderManyManifestEntry {
+    RenderManyManifestEntry {
+        source_path: source_entry.record.source_path.clone(),
+        output_path: source_entry.record.output_path.clone(),
+        metadata: source_entry.record.metadata.clone(),
+        sets: source_entry.record.sets.clone(),
+    }
+}
+
+fn write_manifest(
+    root: &Path,
+    output_dir: &Path,
+    entries: &[RenderManyManifestEntry],
+) -> Result<PathBuf, RenderManyError> {
+    let manifest_path = output_dir.join("manifest.json");
+    let manifest_bytes = serde_json::to_vec_pretty(entries)
+        .map_err(|source| RenderManyError::SerializeManifest { source })?;
+    std::fs::write(root.join(&manifest_path), manifest_bytes).map_err(|source| {
+        RenderManyError::WriteManifest {
+            path: root.join(&manifest_path),
+            source,
+        }
+    })?;
+    Ok(manifest_path)
 }
 
 fn derive_output_path(output_dir: &Path, source_path: &Path, extension: &str) -> PathBuf {
