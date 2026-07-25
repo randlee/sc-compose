@@ -459,7 +459,10 @@ mod tests {
         assert!(
             error
                 .to_string()
-                .contains("failed to render source entry docs/b.txt")
+                .contains(&format!(
+                    "failed to render source entry {}",
+                    crate::path_utils::to_forward_slash(Path::new("docs").join("b.txt"))
+                ))
         );
         let first_output = fs::read_to_string(
             root.join("reports")
