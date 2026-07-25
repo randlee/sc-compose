@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/reporting/render_many.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/reporting/render_many.rs</h1>
+<p>I’ll verify the repository guidance and source context, then produce the requested wiki page.</p>
+<h2>Overview</h2>
+<p><code>render_many</code> is the Application-layer edge connector for batch report rendering: it consumes a source-set definition and repository root, discovers matching text assets, renders each with a resolved template, and produces generated files plus a JSON manifest. It is imported across layer boundaries by the report-render command and reporting modules, making its request/result types part of the application-facing contract.</p>
+<p>This is a hotspot for both change frequency and complexity. Changes can affect source discovery, path safety, template selection, rendering context, output layout, manifest compatibility, and CLI-visible errors at once.</p>
+<p>The module supports two template modes:</p>
+<ul>
+<li>A shared-report template receives the canonical report context built by <code>context_from_source_entry</code>, including a title derived by <code>entry_title</code>.</li>
+<li>A regular loaded template receives an explicit JSON-compatible context containing <code>source_path</code>, <code>output_path</code>, <code>metadata</code>, <code>sets</code>, <code>raw_source</code>, and parsed <code>body</code>.</li>
+</ul>
+<p><code>render_many</code> first resolves a template, ensures the output root exists, discovers all globbed sources, sorts them deterministically by recorded source path, renders and writes each output, then writes <code>&lt;output_dir&gt;/manifest.json</code>. The result returns that manifest path, its entries, and every generated path including the manifest.</p>
+<h2>Public API</h2>
+<p>All symbols are <code>pub(crate)</code>: accessible throughout <code>sc-compose</code>, but not exposed as a public Rust-library API.</p>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SourceSetDefinition</code></td>
+<td>Batch-render configuration: source-set <code>id</code>, source <code>glob</code>, <code>template_selector</code>, optional <code>template_family</code>, and relative <code>output_dir</code>.</td>
+</tr>
+<tr>
+<td><code>RenderManyRequest</code></td>
+<td>Input to the batch renderer; combines the repository <code>root</code> with one source-set definition.</td>
+</tr>
+<tr>
+<td><code>RenderManyRequest::output_extension</code></td>
+<td>Resolves the selected template and returns its output extension.</td>
+</tr>
+<tr>
+<td><code>RenderManyManifestEntry</code></td>
+<td>Serializable manifest record containing relative source/output paths, source metadata, and optional set membership.</td>
+</tr>
+<tr>
+<td><code>RenderManyResult</code></td>
+<td>Successful batch result containing the manifest path, manifest entries, and all generated outputs.</td>
+</tr>
+<tr>
+<td><code>RenderManyError</code></td>
+<td>Error boundary for invalid globs, glob traversal, invalid/canonicalization paths, directory creation, output and manifest writes, JSON serialization, rendering, source loading, and template resolution.</td>
+</tr>
+<tr>
+<td><code>render_many</code></td>
+<td>Main orchestration function for discovery, rendering, output persistence, and manifest creation.</td>
+</tr>
+</tbody>
+</table>
+<p>Important internal helpers:</p>
+<ul>
+<li><code>discover_sources</code> canonicalizes the root, expands the configured glob, loads each <code>SourceEntry</code>, and derives its output path.</li>
+<li><code>derive_output_path</code> preserves the matched source’s relative directory structure below <code>output_dir</code>, replacing only its extension.</li>
+<li><code>canonical_source_path</code> and <code>relative_source_path</code> ensure matched inputs resolve beneath the canonical root.</li>
+<li><code>render_entry</code> selects the shared-context or generic-context rendering path.</li>
+</ul>
+<h2>Dependencies</h2>
+<table>
+<thead>
+<tr>
+<th>Dependency</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>glob::glob</code></td>
+<td>Expands the source-set glob pattern. Invalid patterns and per-entry traversal failures are reported separately.</td>
+</tr>
+<tr>
+<td><code>sc_composer::render_loaded_template</code></td>
+<td>Renders ordinary templates from a <code>LoadedTemplateRequest</code> and returns a <code>RenderedArtifact</code>.</td>
+</tr>
+<tr>
+<td><code>serde</code> / <code>serde_json</code></td>
+<td>Serializes the manifest and represents generic template context values.</td>
+</tr>
+<tr>
+<td><code>path_utils::to_forward_slash</code></td>
+<td>Normalizes glob and template-context paths to forward-slash form for cross-platform consistency.</td>
+</tr>
+<tr>
+<td><code>report_context</code></td>
+<td>Builds the standard report context and title for templates that opt into shared report context.</td>
+</tr>
+<tr>
+<td><code>source_entry</code></td>
+<td>Loads source files, metadata, body content, and output records.</td>
+</tr>
+<tr>
+<td><code>templates</code></td>
+<td>Resolves template families or selectors and renders shared-report templates.</td>
+</tr>
+</tbody>
+</table>
+<p>The principal caller is <code>commands/reports/render.rs</code>, whose <code>run_report_render_many</code> command delegates batch work to <code>render_many</code>. The module also serves reporting catalog, index, initialization, and manifest-publication flows through its types and results.</p>
+<h2>Usage Notes</h2>
+<p>A caller constructs a request with paths relative to the report root:</p>
+<pre><code class="language-rust">let request = RenderManyRequest {
+    root: project_root,
+    source_set: SourceSetDefinition {
+        id: &quot;diagrams&quot;.to_owned(),
+        glob: &quot;reports/diagrams/**/*.mmd&quot;.to_owned(),
+        template_selector: &quot;templates/diagram.md.j2&quot;.to_owned(),
+        template_family: None,
+        output_dir: PathBuf::from(&quot;generated/diagrams&quot;),
+    },
+};
+
+let result = render_many(&amp;request)?;
+</code></pre>
+<p>For a source such as <code>reports/diagrams/system.mmd</code>, a template whose extension resolves to <code>md</code> produces <code>generated/diagrams/reports/diagrams/system.md</code>. The relative source hierarchy is intentionally retained; callers should account for this when choosing <code>output_dir</code>.</p>
+<p>Template-family resolution takes precedence over <code>template_selector</code>. If <code>template_family</code> is set, the selector is ignored by <code>RenderManyRequest::resolve_template</code>.</p>
+<p>The output manifest is pretty-printed JSON at <code>&lt;output_dir&gt;/manifest.json</code>. Each entry preserves the source record’s paths, metadata, and optional <code>sets</code>; <code>generated_outputs</code> additionally includes the manifest itself. Consumers should use <code>manifest_path</code> for the canonical manifest location and not assume <code>entries.len()</code> equals <code>generated_outputs.len()</code>.</p>
+<p>Source discovery canonicalizes both the root and every glob result, then strips the canonical root prefix. This rejects paths that cannot be canonicalized or that resolve outside the configured root, including potential symlink escapes. The current error variant name, <code>InvalidTemplatePath</code>, covers these path-validation failures even though they may originate from source discovery.</p>
+<p>Rendering order is deterministic because discovered entries are sorted by source path after glob expansion. This stabilizes manifest ordering and makes generated-output behavior more predictable across platforms and filesystems.</p>
+<p>Generic templates receive:</p>
+<pre><code class="language-text">source_path, output_path, metadata, sets, raw_source, body
+</code></pre>
+<p><code>sets</code> is JSON <code>null</code> when no sets are present. Templates must therefore handle both <code>null</code> and an array. Shared-report templates receive the richer context produced elsewhere, so their available variables should be understood from <code>report_context</code>, not inferred from the generic list.</p>
+<p>Filesystem writes are not transactional: outputs are written one at a time, and the manifest is written last. A failure can leave a partially generated output tree without a manifest, or with earlier outputs from the same run. Callers that require all-or-nothing publication should render into a staging directory and promote it separately.</p>
+<p>Because this module is a high-activity hotspot, preserve these invariants when modifying it:</p>
+<ul>
+<li>Keep path normalization and canonical-root containment checks intact.</li>
+<li>Keep deterministic source ordering before manifest construction.</li>
+<li>Preserve the manifest’s path serialization behavior.</li>
+<li>Update both template modes when adding context fields or changing rendering semantics.</li>
+<li>Treat <code>template_family</code> precedence and the manifest’s inclusion in <code>generated_outputs</code> as compatibility behavior.</li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/reporting/spec.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/reporting/spec.rs</h1>
+<h2>Overview</h2>
+<p><code>reporting/spec.rs</code> is the Application-layer edge connector for semantic report specifications: it parses TOML into typed state-machine or SQL-query models, renders Mermaid output, and materializes report artifacts and metadata for command-layer callers.</p>
+<p>The module is the central boundary between user-authored semantic-spec TOML and the reporting pipeline. <code>commands/reports/render.rs</code> uses its execution entry point, while reporting peers consume its parsed <code>ReportSpec</code> model to validate, inspect, and render specs. It deliberately keeps the supported spec kinds explicit and finite:</p>
+<ul>
+<li><code>state_machine</code> maps directly to <code>StateMachineSpec</code>.</li>
+<li><code>sql_query</code> maps through the private <code>RawSqlQuerySpec</code> wire format, then is normalized into <code>SqlQuerySpec</code>.</li>
+</ul>
+<p>A spec must define a <code>[spec]</code> table with a supported <code>kind</code>. Documents without that table or without <code>spec.kind</code> are treated as non-spec inputs (<code>Ok(None)</code>), while malformed TOML and unknown kinds are reported as errors.</p>
+<h2>Public API</h2>
+<p>All items are <code>pub(crate)</code>: available throughout the <code>sc-compose</code> crate but not exported as a public library API.</p>
+<h3>Data models</h3>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SpecHeader</code></td>
+<td>Common identity and presentation fields: <code>kind</code>, <code>id</code>, <code>title</code>, and optional <code>renderer_targets</code>.</td>
+</tr>
+<tr>
+<td><code>ReportSpecMetadata</code></td>
+<td>Optional shared metadata: <code>owners</code>, <code>tags</code>, <code>renderer_targets</code>, and <code>sets</code>.</td>
+</tr>
+<tr>
+<td><code>StateMachineState</code></td>
+<td>A state identifier, optional display label, and terminal-state flag.</td>
+</tr>
+<tr>
+<td><code>StateMachineTransition</code></td>
+<td>Directed state transition with optional event, guard, actor, and effect annotations.</td>
+</tr>
+<tr>
+<td><code>StateMachineSpec</code></td>
+<td>State-machine report body: header, states, transitions, and metadata.</td>
+</tr>
+<tr>
+<td><code>SqlQuerySpec</code></td>
+<td>Normalized SQL-query report body: purpose, table access, filtering, ordering, cardinality, transactional assumptions, and metadata.</td>
+</tr>
+<tr>
+<td><code>ReportSpec</code></td>
+<td>Tagged union over supported report kinds: <code>StateMachine</code> and <code>SqlQuery</code>.</td>
+</tr>
+<tr>
+<td><code>ReportSpecError</code></td>
+<td>Parsing, unsupported-kind, and JSON-serialization failures.</td>
+</tr>
+</tbody>
+</table>
+<p><code>RawSqlQuerySpec</code> and <code>SqlQueryFields</code> are private deserialization helpers. They accept SQL-query details nested beneath <code>[sql_query]</code>, then flatten those values into the public-internal <code>SqlQuerySpec</code> structure.</p>
+<h3><code>parse_report_spec</code></h3>
+<pre><code class="language-rust">pub(crate) fn parse_report_spec(
+    raw_source: &amp;str,
+) -&gt; Result&lt;Option&lt;ReportSpec&gt;, ReportSpecError&gt;
+</code></pre>
+<p>Parses semantic-spec TOML.</p>
+<p>Behavior:</p>
+<ol>
+<li>Parses <code>raw_source</code> as <code>toml::Value</code>.</li>
+<li>Looks for <code>[spec]</code> and <code>spec.kind</code>.</li>
+<li>Returns <code>Ok(None)</code> when either is absent.</li>
+<li>Deserializes supported kinds into a <code>ReportSpec</code>.</li>
+<li>Returns <code>UnsupportedKind</code> for an unrecognized <code>kind</code>.</li>
+</ol>
+<p>Callers such as <code>reporting::source_entry</code> use the <code>Option</code> result to distinguish ordinary TOML sources from semantic report specs. The command execution path treats <code>None</code> as invalid because rendering specifically requires a semantic spec.</p>
+<h3><code>run_render_spec_report</code></h3>
+<pre><code class="language-rust">pub(crate) fn run_render_spec_report(
+    root: &amp;Path,
+    spec_path: &amp;Path,
+    archive: bool,
+) -&gt; Result&lt;ReportsSmokeResult, CommandError&gt;
+</code></pre>
+<p>Executes the complete single-spec rendering workflow:</p>
+<ol>
+<li>Canonicalizes <code>root</code>.</li>
+<li>Resolves <code>spec_path</code> safely relative to that workspace.</li>
+<li>Reads and parses the TOML spec.</li>
+<li>Renders Mermaid via <code>reporting::mermaid::render_mermaid</code>.</li>
+<li>Writes <code>reports/latest/&lt;report-id&gt;/index.mmd</code>.</li>
+<li>Writes metadata and, when requested, archives artifacts through <code>write_report_metadata_and_archive</code>.</li>
+<li>Returns the resulting <code>ReportsSmokeResult</code>.</li>
+</ol>
+<p>Filesystem, parsing, rendering, and output-materialization failures are converted to <code>CommandError</code> values with diagnostic codes appropriate for command handling.</p>
+<h3><code>ReportSpec</code> helpers</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>report_id()</code></td>
+<td>Returns the common <code>spec.id</code>.</td>
+</tr>
+<tr>
+<td><code>title()</code></td>
+<td>Returns the common <code>spec.title</code>.</td>
+</tr>
+<tr>
+<td><code>kind_name()</code></td>
+<td>Returns <code>"state_machine"</code> or <code>"sql_query"</code>.</td>
+</tr>
+<tr>
+<td><code>renderer_targets()</code></td>
+<td>Returns effective renderer targets. Metadata targets override header targets when non-empty.</td>
+</tr>
+<tr>
+<td><code>report_metadata()</code></td>
+<td>Produces a deterministic <code>BTreeMap&lt;String, serde_json::Value&gt;</code> containing title, kind, ID, effective targets, and a JSON copy of the complete spec.</td>
+</tr>
+<tr>
+<td><code>sets()</code></td>
+<td>Returns <code>None</code> for no configured sets, otherwise a cloned list of metadata sets.</td>
+</tr>
+</tbody>
+</table>
+<p><code>report_metadata()</code> can fail only when serializing renderer targets or the full <code>ReportSpec</code> to JSON.</p>
+<h2>Dependencies</h2>
+<h3>Internal reporting collaborators</h3>
+<ul>
+<li><code>reporting::mermaid::render_mermaid</code> converts the parsed <code>ReportSpec</code> into Mermaid text. Its validation errors are surfaced by <code>run_render_spec_report</code> as command errors.</li>
+<li><code>reporting::path::resolve_relative_path</code> resolves the requested spec path under the canonical workspace root.</li>
+<li><code>reporting::output::write_report_metadata_and_archive</code> records report metadata and handles optional archival.</li>
+<li><code>reporting::init::ReportsSmokeResult</code> is the execution result returned to the caller.</li>
+<li><code>CommandError</code> standardizes CLI/application error classification.</li>
+</ul>
+<h3>External crates and standard library</h3>
+<ul>
+<li><code>toml</code> parses the input document and deserializes typed spec structures.</li>
+<li><code>serde</code> derives TOML/JSON serialization and deserialization behavior.</li>
+<li><code>serde_json</code> builds report metadata and embeds the complete spec as JSON.</li>
+<li><code>sc_composer::DiagnosticCode</code> supplies diagnostic codes for configuration-related errors.</li>
+<li><code>anyhow</code> adds contextual error messages.</li>
+<li><code>BTreeMap</code> provides stable key ordering for metadata.</li>
+<li><code>Path</code> and <code>PathBuf</code> represent workspace-relative and materialized artifact paths.</li>
+</ul>
+<h2>Usage Notes</h2>
+<h3>State-machine spec example</h3>
+<pre><code class="language-toml">[spec]
+kind = &quot;state_machine&quot;
+id = &quot;checkout-flow&quot;
+title = &quot;Checkout lifecycle&quot;
+renderer_targets = [&quot;mermaid&quot;]
+
+[[states]]
+id = &quot;pending&quot;
+label = &quot;Pending&quot;
+
+[[states]]
+id = &quot;paid&quot;
+terminal = true
+
+[[transitions]]
+from = &quot;pending&quot;
+to = &quot;paid&quot;
+event = &quot;payment_captured&quot;
+
+[metadata]
+owners = [&quot;payments&quot;]
+tags = [&quot;checkout&quot;, &quot;state-machine&quot;]
+sets = [&quot;commerce&quot;]
+</code></pre>
+<p>Parsing this source produces <code>ReportSpec::StateMachine</code>. Rendering writes Mermaid to:</p>
+<pre><code class="language-text">reports/latest/checkout-flow/index.mmd
+</code></pre>
+<p>The output helper additionally creates report metadata, including the original normalized spec in the <code>copy_json</code> field.</p>
+<h3>SQL-query spec example</h3>
+<pre><code class="language-toml">[spec]
+kind = &quot;sql_query&quot;
+id = &quot;active-orders&quot;
+title = &quot;Active orders query&quot;
+
+[sql_query]
+purpose = &quot;List currently active orders&quot;
+tables_read = [&quot;orders&quot;]
+tables_written = []
+filters = [&quot;status = 'active'&quot;]
+ordering = [&quot;created_at DESC&quot;]
+cardinality = &quot;many&quot;
+transactional_assumptions = [&quot;Read committed is sufficient&quot;]
+
+[metadata]
+renderer_targets = [&quot;mermaid&quot;]
+tags = [&quot;orders&quot;, &quot;sql&quot;]
+</code></pre>
+<p>Although the input uses a nested <code>[sql_query]</code> table, the parser normalizes it into a flat <code>SqlQuerySpec</code> payload under <code>ReportSpec::SqlQuery</code>. This makes downstream consumers independent of the TOML nesting used for deserialization.</p>
+<h3>Renderer-target precedence</h3>
+<p><code>metadata.renderer_targets</code> takes precedence over <code>spec.renderer_targets</code>, but only if the metadata list is non-empty. An empty metadata list does not clear header targets; it falls back to the header value.</p>
+<p>This is important when generating metadata or selecting renderers: use <code>ReportSpec::renderer_targets()</code> rather than reading either source field directly.</p>
+<h3>Input and error handling pitfalls</h3>
+<ul>
+<li><code>parse_report_spec</code> returning <code>Ok(None)</code> does not mean the document is valid for rendering. It only means it is not recognized as a semantic spec. <code>run_render_spec_report</code> rejects this case.</li>
+<li>An unknown <code>spec.kind</code> is an error, not an ignored document. This protects users from silently misspelled kinds.</li>
+<li><code>state_machine</code> requires the layout expected by <code>StateMachineSpec</code>; Mermaid rendering performs additional semantic validation, such as requiring states.</li>
+<li>SQL query fields such as <code>purpose</code> and <code>cardinality</code> are required by the deserialization model, while list fields use serde defaults and may be omitted.</li>
+<li>Report IDs become path segments beneath <code>reports/latest</code>; callers should ensure IDs are suitable for the project’s expected report naming conventions.</li>
+<li>Output failures are reported separately as render-write or configuration-related command errors, retaining path-specific context for CLI diagnostics.</li>
+</ul>
+</body>
+</html>

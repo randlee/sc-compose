@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-composer/src/lib.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-composer/src/lib.rs</h1>
+<h2>Overview</h2>
+<p><code>sc-composer</code>’s <code>lib.rs</code> is the Application-layer public entry point and edge connector for the composition subsystem, exposing rendering, composition, resolution, validation, verification, diagnostics, and workspace-initialization APIs to the CLI and Python bindings. It is central to the dependency graph because downstream callers import this single crate surface instead of reaching into individual implementation modules.</p>
+<p>The file establishes the crate’s public contract in three ways:</p>
+<ul>
+<li>Declares the subsystem modules that implement composition behavior.</li>
+<li>Re-exports selected functions, types, traits, and constants as a stable flat API.</li>
+<li>Hosts focused regression tests for rendering errors and frontmatter normalization.</li>
+</ul>
+<p>Most behavior is implemented in sibling modules; this file intentionally contains little runtime logic. Its architectural value is API curation: it determines what consumers of <code>sc_composer</code> may depend on without coupling them to internal module paths such as <code>composer</code>, <code>renderer</code>, or <code>resolver</code>.</p>
+<p>The crate-level <code>#![deny(missing_docs)]</code> makes undocumented public items compile-time errors. This is particularly important for this boundary because it is consumed by the <code>sc-compose</code> CLI, integration tests, and Python bindings.</p>
+<h2>Public API</h2>
+<h3>Composition and rendering</h3>
+<ul>
+<li><code>compose</code>, <code>compose_with_observer</code>, and <code>render_all</code> provide end-to-end template composition.</li>
+<li><code>protect_higher_braces</code> supports handling template syntax that uses deeper brace nesting.</li>
+<li><code>Renderer</code>, <code>render_template</code>, and <code>render_loaded_template</code> expose direct rendering operations.</li>
+<li><code>LoadedTemplateRequest</code>, <code>NamedTemplateAsset</code>, and <code>RenderedArtifact</code> model loaded-template rendering inputs and outputs.</li>
+</ul>
+<p>Consumers that need lifecycle visibility should use the <code>*_with_observer</code> variants rather than duplicating orchestration around the base operations.</p>
+<h3>Template preparation</h3>
+<ul>
+<li><code>parse_template_document</code> parses a template document into <code>ParsedTemplate</code> and optional <code>Frontmatter</code>.</li>
+<li><code>expand_includes</code> recursively expands include directives and returns <code>ExpandedTemplate</code>.</li>
+<li><code>frontmatter_init</code> initializes frontmatter-related template state.</li>
+<li><code>init_workspace</code> and <code>read_optional_text_file</code> support workspace bootstrap and optional configuration loading.</li>
+<li><code>to_forward_slash</code> provides normalized slash-separated path formatting.</li>
+</ul>
+<p>Frontmatter defaults support scalar, object, array, and array-of-object values. <code>input_defaults</code> is accepted as an alias for <code>defaults</code>; if both sections are present, the parsed defaults use <code>input_defaults</code> values and emit <code>WarnValConflictingDefaultSections</code>.</p>
+<h3>Resolution, validation, and verification</h3>
+<ul>
+<li><code>resolve_profile</code>, <code>resolve_profile_with_observer</code>, and <code>resolve_template_path</code> resolve runtime-aware profiles and template paths.</li>
+<li><code>validate</code> and <code>validate_with_observer</code> provide public validation entry points.</li>
+<li><code>verify</code> and <code>verify_with_observer</code> provide drift-verification entry points.</li>
+<li><code>discover_tokens</code>, <code>discover_tokens_with_brace_count</code>, and <code>discover_all_pass_tokens</code> expose variable-token discovery helpers.</li>
+<li><code>BUILTIN_VARIABLE_NAMES</code> identifies variables supplied by the system rather than template input.</li>
+</ul>
+<p>The corresponding model types include <code>ComposeRequest</code>, <code>ComposeResult</code>, <code>ComposePolicy</code>, <code>ResolverPolicy</code>, <code>ValidationReport</code>, <code>VerifyResult</code>, <code>ProfileName</code>, <code>VariableName</code>, and <code>InputValue</code>.</p>
+<h3>Errors and diagnostics</h3>
+<p>The crate exports canonical, crate-owned error types:</p>
+<ul>
+<li><code>ComposeError</code></li>
+<li><code>ConfigError</code></li>
+<li><code>IncludeError</code></li>
+<li><code>RenderError</code></li>
+<li><code>ResolveError</code></li>
+<li><code>ValidationError</code></li>
+</ul>
+<p>It also exports recovery metadata through <code>RecoveryHint</code> and <code>RecoveryHintKind</code>.</p>
+<p>Diagnostics are exposed through <code>Diagnostic</code>, <code>DiagnosticCode</code>, <code>DiagnosticEnvelope</code>, <code>DiagnosticSeverity</code>, and <code>DIAGNOSTIC_SCHEMA_VERSION</code>. This lets outer layers—especially CLI JSON output and language bindings—serialize structured failure and warning information without depending on internal diagnostics implementation details.</p>
+<h3>Observation API</h3>
+<p><code>CompositionObserver</code>, <code>ObservationSink</code>, and <code>NoopObserver</code> define the observability boundary. Event payload types cover composition passes, resolution attempts and outcomes, include outcomes, rendering outcomes, validation, and verification:</p>
+<ul>
+<li><code>PassStartEvent</code> / <code>PassEndEvent</code></li>
+<li><code>ResolveAttemptEvent</code> / <code>ResolveOutcomeEvent</code></li>
+<li><code>IncludeOutcomeEvent</code></li>
+<li><code>RenderOutcomeEvent</code></li>
+<li><code>ValidationOutcomeEvent</code></li>
+<li><code>VerifyStartEvent</code> / <code>VerifyEndEvent</code></li>
+<li><code>ObservationEvent</code></li>
+</ul>
+<p>The CLI’s composition command uses this surface to report progress and outcomes while keeping observer implementation outside the pure composition library.</p>
+<h2>Dependencies</h2>
+<p><code>lib.rs</code> depends only on crate-local modules and standard test dependencies:</p>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Modules</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Composition pipeline</td>
+<td><code>composer</code>, <code>include</code>, <code>renderer</code>, <code>resolver</code></td>
+<td>Compose templates, expand includes, render content, and locate profiles/templates.</td>
+</tr>
+<tr>
+<td>Data and parsing</td>
+<td><code>types</code>, <code>frontmatter</code>, <code>frontmatter_init</code></td>
+<td>Define request/result models and parse or initialize frontmatter.</td>
+</tr>
+<tr>
+<td>Quality and reporting</td>
+<td><code>validation</code>, <code>validate</code>, <code>verify</code>, <code>diagnostics</code>, <code>error</code></td>
+<td>Discover variables, validate inputs, verify drift, and return structured failures.</td>
+</tr>
+<tr>
+<td>Integration support</td>
+<td><code>observer</code>, <code>init_workspace</code>, <code>path_utils</code></td>
+<td>Emit lifecycle events, initialize workspaces, and normalize paths.</td>
+</tr>
+</tbody>
+</table>
+<p><code>path_utils</code> is deliberately private (<code>mod path_utils</code>), but <code>to_forward_slash</code> is re-exported. This permits consumers to use the supported path-normalization operation while preserving freedom to reorganize its implementation.</p>
+<p>The primary dependents are:</p>
+<ul>
+<li><code>crates/sc-compose</code>, which adapts library operations into CLI commands, JSON output, reporting, and command-specific error handling.</li>
+<li><code>bindings/python</code>, which converts exported types and errors into Python-facing equivalents.</li>
+<li><code>crates/sc-composer/tests/integration.rs</code>, which validates the public library surface rather than private implementation details.</li>
+</ul>
+<p>This dependency pattern preserves the intended direction: outer interfaces depend on <code>sc-composer</code>; the composition library does not import CLI or binding code.</p>
+<h2>Usage Notes</h2>
+<p>Use the root re-exports for application code. This keeps imports concise and avoids tying callers to internal file layout.</p>
+<pre><code class="language-rust">use sc_composer::{ComposeRequest, compose};
+
+let request = ComposeRequest::default();
+let result = compose(request)?;
+</code></pre>
+<p>For a simple inline rendering operation, use <code>render_template</code> with JSON-compatible input:</p>
+<pre><code class="language-rust">use sc_composer::render_template;
+use serde_json::json;
+
+let output = render_template(
+    &quot;Hello {{ name }}&quot;,
+    json!({ &quot;name&quot;: &quot;world&quot; }),
+)?;
+
+assert_eq!(output, &quot;Hello world&quot;);
+</code></pre>
+<p>For document templates, parse frontmatter before rendering or validation:</p>
+<pre><code class="language-rust">use sc_composer::parse_template_document;
+
+let parsed = parse_template_document(
+    &quot;---\nrequired_variables:\n  - name\n---\nHello {{ name }}\n&quot;,
+)?;
+
+let frontmatter = parsed.frontmatter();
+</code></pre>
+<p>When a template provides both <code>defaults</code> and the legacy-compatible <code>input_defaults</code>, treat the resulting diagnostic as actionable. The parser accepts both forms, but conflicting values are normalized toward <code>input_defaults</code>, which can silently change expected input values if diagnostics are ignored.</p>
+<p>Use observer-aware entry points for user-facing workflows:</p>
+<pre><code class="language-rust">use sc_composer::{compose_with_observer, CompositionObserver};
+
+// Implement CompositionObserver in the CLI, UI, or binding layer,
+// then pass it to compose_with_observer.
+</code></pre>
+<p>Avoid importing private implementation paths such as <code>sc_composer::path_utils</code>; only the root-level re-export is part of the supported contract. Likewise, prefer exported error families and diagnostics when translating failures at boundaries, so source errors, backtraces, recovery hints, and stable diagnostic codes remain available.</p>
+<p>The unit tests in this file protect several contract-level edge cases:</p>
+<ul>
+<li>Invalid template syntax produces a <code>RenderError</code> that retains its source error and backtrace.</li>
+<li>Omitted frontmatter defaults and metadata normalize to empty maps.</li>
+<li>Default values preserve structured JSON-like objects and arrays.</li>
+<li><code>input_defaults</code> remains supported as an alias.</li>
+<li>Conflicting default sections emit a warning diagnostic.</li>
+</ul>
+</body>
+</html>

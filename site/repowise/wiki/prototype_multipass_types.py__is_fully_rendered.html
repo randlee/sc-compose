@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Symbol: prototype.multipass.types.ParsedTemplate.is_fully_rendered</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Symbol: prototype.multipass.types.ParsedTemplate.is_fully_rendered</h1>
+<h2>Purpose</h2>
+<p><code>is_fully_rendered</code> reports whether a <code>ParsedTemplate</code> has completed all remaining render passes and is ready for deployment. It is a read-only boolean property.</p>
+<h2>Signature</h2>
+<pre><code class="language-python">@property
+def is_fully_rendered(self) -&gt; bool
+</code></pre>
+<h2>Parameters</h2>
+<p>This property takes no explicit parameters.</p>
+<p>It evaluates the instance’s <code>passes</code> collection.</p>
+<h2>Returns</h2>
+<p><code>bool</code></p>
+<ul>
+<li><code>True</code> when <code>self.passes</code> is empty, meaning no rendering passes remain.</li>
+<li><code>False</code> when one or more passes are still pending.</li>
+</ul>
+<p>Its behavior is equivalent to:</p>
+<pre><code class="language-python">len(self.passes) == 0
+</code></pre>
+<h2>Example Usage</h2>
+<pre><code class="language-python">template = ParsedTemplate(
+    # ...
+    passes=[],
+)
+
+if template.is_fully_rendered:
+    deploy(template)
+else:
+    continue_rendering(template)
+</code></pre>
+<p>A template with pending work is not fully rendered:</p>
+<pre><code class="language-python">template.passes = [&quot;resolve_environment_values&quot;]
+
+assert template.is_fully_rendered is False
+</code></pre>
+</body>
+</html>

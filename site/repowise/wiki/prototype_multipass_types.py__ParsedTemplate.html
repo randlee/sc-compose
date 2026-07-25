@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Symbol: prototype.multipass.types.ParsedTemplate</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Symbol: prototype.multipass.types.ParsedTemplate</h1>
+<h2>Purpose</h2>
+<p><code>ParsedTemplate</code> represents a template after its stacked pass headers have been separated from its renderable body. It keeps the remaining render-pass metadata alongside the body text so parsing, rendering, validation, and deployment checks can operate on one value.</p>
+<p>The class is a dataclass with two convenience properties:</p>
+<ul>
+<li><code>pass_count</code> reports how many render passes remain.</li>
+<li><code>is_fully_rendered</code> reports whether no passes remain and the template is ready for deployment.</li>
+</ul>
+<h2>Signature</h2>
+<pre><code class="language-python">@dataclass
+class ParsedTemplate:
+    passes: list[PassHeader]
+    body: str
+
+    @property
+    def pass_count(self) -&gt; int: ...
+
+    @property
+    def is_fully_rendered(self) -&gt; bool: ...
+</code></pre>
+<h2>Parameters</h2>
+<ul>
+<li>
+<p><code>passes: list[PassHeader]</code><br />
+  The ordered collection of parsed pass headers still associated with the template. Each header describes a rendering pass that must be applied before the template is complete.</p>
+</li>
+<li>
+<p><code>body: str</code><br />
+  The template content after its stacked headers have been parsed out.</p>
+</li>
+</ul>
+<h2>Returns</h2>
+<p>Constructing <code>ParsedTemplate</code> returns an object containing the parsed headers and body.</p>
+<p>Its properties return:</p>
+<ul>
+<li>
+<p><code>pass_count -&gt; int</code><br />
+  The number of entries in <code>passes</code>.</p>
+</li>
+<li>
+<p><code>is_fully_rendered -&gt; bool</code><br />
+<code>True</code> when <code>passes</code> is empty; otherwise <code>False</code>.</p>
+</li>
+</ul>
+<h2>Example Usage</h2>
+<pre><code class="language-python">from prototype.multipass.types import ParsedTemplate, PassHeader
+
+template = ParsedTemplate(
+    passes=[
+        PassHeader(name=&quot;base&quot;),
+        PassHeader(name=&quot;environment&quot;),
+    ],
+    body=&quot;service: {{ service_name }}&quot;,
+)
+
+assert template.pass_count == 2
+assert template.is_fully_rendered is False
+
+# After all pass headers have been consumed by rendering:
+rendered = ParsedTemplate(
+    passes=[],
+    body=&quot;service: catalog&quot;,
+)
+
+assert rendered.pass_count == 0
+assert rendered.is_fully_rendered is True
+</code></pre>
+</body>
+</html>

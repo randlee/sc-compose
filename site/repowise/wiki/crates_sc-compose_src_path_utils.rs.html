@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/path_utils.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/path_utils.rs</h1>
+<p>I’ll verify the repository’s documentation conventions and use the supplied source to produce the wiki page.</p>
+<h2>Overview</h2>
+<p><code>path_utils</code> is an Application-layer edge connector that validates relative paths and serializes <code>PathBuf</code> values into forward-slash strings for cross-layer CLI, reporting, and JSON consumers. It centralizes path-boundary rules so command handlers, observers, and reporting modules share the same portable representation and reject unsafe or ambiguous relative paths.</p>
+<p>The module re-exports <code>sc_composer::to_forward_slash</code> for internal crate consumers, while its serializers adapt paths for Serde field attributes. Its validation helpers distinguish a path that is already normalized from one that must be checked and reconstructed.</p>
+<h2>Public API</h2>
+<p>All APIs are <code>pub(crate)</code>: available throughout <code>sc-compose</code>, but not part of its external crate API.</p>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>to_forward_slash</code></td>
+<td>Re-exported conversion helper from <code>sc-composer</code>; produces a slash-separated string representation of a path.</td>
+</tr>
+<tr>
+<td><code>serialize_path</code></td>
+<td>Serde <code>serialize_with</code> callback for a required <code>PathBuf</code>; emits a string with forward slashes.</td>
+</tr>
+<tr>
+<td><code>serialize_opt_path</code></td>
+<td>Serde callback for <code>Option&lt;PathBuf&gt;</code>; emits a slash-separated string for <code>Some</code>, or a serializer null/none value for <code>None</code>.</td>
+</tr>
+<tr>
+<td><code>serialize_paths</code></td>
+<td>Serde callback for a slice of paths; emits a sequence of forward-slash strings.</td>
+</tr>
+<tr>
+<td><code>is_normalized_relative_path</code></td>
+<td>Returns whether a path is non-empty, non-absolute, and consists only of normal path components.</td>
+</tr>
+<tr>
+<td><code>normalize_relative_path</code></td>
+<td>Validates and rebuilds a normalized relative path, returning <code>Result&lt;PathBuf, String&gt;</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><code>normalize_relative_path</code> rejects:</p>
+<ul>
+<li>Empty paths, including paths that normalize to no components.</li>
+<li>Absolute paths.</li>
+<li><code>.</code> components.</li>
+<li><code>..</code> components.</li>
+<li>Root and platform-prefix components, including Windows drive/UNC-style prefixes.</li>
+</ul>
+<p>A successful result contains only <code>Component::Normal</code> segments, preserving component values while removing no input syntax implicitly—the function rejects invalid syntax instead of silently rewriting it.</p>
+<h2>Dependencies</h2>
+<ul>
+<li><code>std::path::{Path, PathBuf}</code> provides platform-aware parsing and component iteration.</li>
+<li><code>sc_composer::to_forward_slash</code> supplies the shared path-to-string conversion used by all serialization helpers.</li>
+<li><code>serde::Serializer</code> is consumed through generic bounds to integrate with Serde without defining custom serializer types.</li>
+</ul>
+<p>The module is consumed broadly by <code>main</code>, command modules, observability/observer code, and reporting code. Notable call paths include:</p>
+<ul>
+<li><code>reporting/catalog.rs</code> uses <code>is_normalized_relative_path</code> when assessing catalog path values.</li>
+<li><code>commands/template_init.rs</code> calls <code>normalize_relative_path</code> while accepting template-init path input.</li>
+<li><code>reporting/publish_manifest.rs</code> calls <code>normalize_relative_path</code> before writing manifest path data.</li>
+<li>Serde-driven report and CLI JSON output uses the three serialization callbacks to keep emitted paths portable.</li>
+</ul>
+<h2>Usage Notes</h2>
+<p>Use the serializers through Serde’s <code>serialize_with</code> attribute when an output schema requires <code>/</code> separators regardless of the host operating system:</p>
+<pre><code class="language-rust">#[derive(serde::Serialize)]
+struct Report {
+    #[serde(serialize_with = &quot;crate::path_utils::serialize_path&quot;)]
+    output_path: std::path::PathBuf,
+
+    #[serde(serialize_with = &quot;crate::path_utils::serialize_opt_path&quot;)]
+    source_path: Option&lt;std::path::PathBuf&gt;,
+}
+</code></pre>
+<p>For collections, apply <code>serialize_paths</code> to a <code>Vec&lt;PathBuf&gt;</code> or compatible slice-backed field. It serializes each element independently and preserves sequence ordering.</p>
+<p>Validate user- or configuration-provided relative paths before combining them with a workspace or output root:</p>
+<pre><code class="language-rust">let relative = crate::path_utils::normalize_relative_path(user_value.as_ref())
+    .map_err(anyhow::Error::msg)?;
+
+let destination = workspace_root.join(relative);
+</code></pre>
+<p>This validation should occur before <code>join</code>. Relying on <code>PathBuf::join</code> alone would permit <code>..</code> segments or absolute input to change the intended destination. The helper intentionally does not collapse <code>.</code> or resolve <code>..</code>; it rejects them so callers can surface a clear, stable error and avoid filesystem-dependent canonicalization.</p>
+<p>Use <code>is_normalized_relative_path</code> when a boolean predicate is sufficient, such as filtering or asserting an already-validated internal value. Use <code>normalize_relative_path</code> when error messages are needed or when callers should receive a reconstructed <code>PathBuf</code>.</p>
+<p>Do not use these helpers for paths that are intentionally absolute, paths that must permit parent traversal, or filesystem resolution. They enforce a logical path contract, not existence, symlink safety, or canonical filesystem identity.</p>
+</body>
+</html>

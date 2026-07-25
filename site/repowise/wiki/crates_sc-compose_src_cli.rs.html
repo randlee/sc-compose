@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/cli.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/cli.rs</h1>
+<h2>Overview</h2>
+<p><code>cli.rs</code> is the Application-layer command-line parser and edge connector that consumes process arguments and produces typed <code>Cli</code> command configurations for dispatch, rendering, validation, verification, workspace setup, template-pack management, and reports. It is imported across layer boundaries by command handlers and request-building code, so its argument types form the CLI-facing contract for much of <code>sc-compose</code>.</p>
+<p>This is a hotspot for both change frequency and complexity. Changes to flag names, defaults, conflicts, flattening, or parsing behavior can affect multiple commands at once and can break scripting compatibility.</p>
+<p>The module uses <code>clap</code> derives to define the visible CLI surface:</p>
+<ul>
+<li><code>Cli</code> is the root parser for the <code>sc-compose</code> executable.</li>
+<li><code>Command</code> selects one top-level workflow.</li>
+<li>Reusable argument groups (<code>InputArgs</code>, <code>CommonArgs</code>, and <code>RenderBehaviorArgs</code>) keep shared behavior consistent across commands.</li>
+<li>Value enums constrain resolution mode, profile kind, AI runtime, and handling of unknown input variables.</li>
+<li><code>parse_cli</code> applies preprocessing before Clap parses arguments.</li>
+<li><code>parse_pass_inputs</code> separately extracts pass-scoped inputs, which are intentionally not represented in Clap’s normal argument grammar.</li>
+<li><code>command_wants_json</code> provides a single dispatch-friendly way to identify JSON output requests, including nested subcommands.</li>
+</ul>
+<h2>Public API</h2>
+<p>All items are <code>pub(crate)</code>: they are available throughout the <code>sc-compose</code> crate but are not exported as a public library API.</p>
+<h3>Root command model</h3>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Cli</code></td>
+<td>Root Clap parser containing the selected <code>Command</code>.</td>
+</tr>
+<tr>
+<td><code>Command</code></td>
+<td>Top-level subcommand enum: <code>Render</code>, <code>Resolve</code>, <code>Validate</code>, <code>Verify</code>, <code>TemplateInit</code>, <code>FrontmatterInit</code>, <code>Init</code>, <code>ObservabilityHealth</code>, <code>Examples</code>, <code>Templates</code>, and <code>Reports</code>.</td>
+</tr>
+<tr>
+<td><code>parse_cli()</code></td>
+<td>Parses filtered process arguments into <code>Cli</code>.</td>
+</tr>
+<tr>
+<td><code>command_wants_json(&amp;Command)</code></td>
+<td>Returns whether the selected command/subcommand requested machine-readable JSON output.</td>
+</tr>
+</tbody>
+</table>
+<p>Two hidden variants, <code>ReportRenderMany</code> and <code>ReportCatalog</code>, support report workflows without advertising those commands in normal help output.</p>
+<h3>Shared argument groups</h3>
+<p><code>InputArgs</code> collects values supplied to template rendering:</p>
+<ul>
+<li><code>--var key=value</code> appends explicit variables.</li>
+<li><code>--var-file PATH</code> appends JSON or YAML variable-object sources.</li>
+<li><code>--env-prefix PREFIX</code> imports matching environment variables.</li>
+<li><code>--strict</code> rejects undeclared referenced variables.</li>
+<li><code>--unknown-var-mode error|warn|ignore</code> controls reporting for supplied variables that are not consumed.</li>
+</ul>
+<p><code>CommonArgs</code> defines source resolution for render-like operations:</p>
+<ul>
+<li><code>--mode file|profile</code>, defaulting to <code>file</code>.</li>
+<li><code>--kind agent|command|skill</code>, used in profile mode and defaulting to <code>agent</code>.</li>
+<li><code>--agent NAME</code> and alias <code>--agent-type NAME</code>.</li>
+<li><code>--runtime</code> / <code>--ai</code> runtime selector.</li>
+<li>Flattened <code>InputArgs</code>.</li>
+<li><code>--root PATH</code>, defaulting to the current directory.</li>
+<li><code>--file PATH</code>, used in file mode.</li>
+</ul>
+<p><code>RenderBehaviorArgs</code> defines output presentation:</p>
+<ul>
+<li><code>--output PATH</code> writes instead of stdout.</li>
+<li><code>--guidance</code> / <code>--guidance-file</code> append guidance content.</li>
+<li><code>--prompt</code> / <code>--prompt-file</code> append prompt content.</li>
+<li><code>--json</code> selects machine-readable output.</li>
+<li><code>--dry-run</code> reports the target without writing it.</li>
+</ul>
+<h3>Command-specific argument types</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Command</th>
+<th>Additional behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RenderArgs</code></td>
+<td><code>render</code></td>
+<td>Supports <code>--all</code>, custom <code>--brace-count</code>, explicit <code>--variable-delimiters</code>, and flattened render behavior. Delimiter options conflict with <code>--all</code> and with each other.</td>
+</tr>
+<tr>
+<td><code>ResolveArgs</code></td>
+<td><code>resolve</code></td>
+<td>Resolves a file/profile input to a concrete template path; supports <code>--json</code>.</td>
+</tr>
+<tr>
+<td><code>ValidateArgs</code></td>
+<td><code>validate</code></td>
+<td>Validates one or all stacked passes; supports <code>--all</code> and <code>--json</code>.</td>
+</tr>
+<tr>
+<td><code>VerifyArgs</code></td>
+<td><code>verify</code></td>
+<td>Compares deployed output with rendered content; supports <code>--against</code>, <code>--all</code>, <code>--quiet</code>, repeatable <code>--builtin-var</code>, <code>--json</code>, and a required deployed-file positional argument.</td>
+</tr>
+<tr>
+<td><code>TemplateInitArgs</code></td>
+<td><code>template-init</code></td>
+<td>Converts a concrete file to a template; supports <code>--force</code>, <code>--json</code>, and <code>--dry-run</code>.</td>
+</tr>
+<tr>
+<td><code>FrontmatterInitArgs</code></td>
+<td><code>frontmatter-init</code></td>
+<td>Adds minimal variable frontmatter; supports <code>--force</code>, <code>--json</code>, and <code>--dry-run</code>.</td>
+</tr>
+<tr>
+<td><code>InitArgs</code></td>
+<td><code>init</code></td>
+<td>Bootstraps a workspace under <code>--root</code>; supports <code>--json</code> and <code>--dry-run</code>.</td>
+</tr>
+<tr>
+<td><code>ObservabilityHealthArgs</code></td>
+<td><code>observability-health</code></td>
+<td>Reports process-local logging health, optionally as JSON.</td>
+</tr>
+<tr>
+<td><code>ExamplesArgs</code></td>
+<td><code>examples</code></td>
+<td>Either renders a named bundled example or runs <code>examples list</code>. Positional arguments conflict with subcommands.</td>
+</tr>
+<tr>
+<td><code>TemplatesArgs</code></td>
+<td><code>templates</code></td>
+<td>Either renders a named user pack or runs <code>templates list</code> / <code>templates add</code>. Positional arguments conflict with subcommands.</td>
+</tr>
+<tr>
+<td><code>TemplatesAddArgs</code></td>
+<td><code>templates add</code></td>
+<td>Imports a source file/directory and optionally overrides the pack name.</td>
+</tr>
+<tr>
+<td><code>ListArgs</code></td>
+<td>list subcommands</td>
+<td>Enables <code>--json</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3>Supporting enums and parsers</h3>
+<ul>
+<li><code>Mode</code>: <code>Profile</code> or <code>File</code>.</li>
+<li><code>Kind</code>: <code>Agent</code>, <code>Command</code>, or <code>Skill</code>.</li>
+<li><code>Ai</code>: <code>Claude</code>, <code>Codex</code>, <code>Gemini</code>, or <code>Opencode</code>.</li>
+<li><code>UnknownVarMode</code>: <code>Error</code>, <code>Warn</code>, or <code>Ignore</code>.</li>
+<li><code>PassInputArgs</code>: one <code>--pass</code> group with its pass number, explicit variables, and variable files.</li>
+<li><code>parse_var(input)</code>: parses one <code>key=value</code> pair, rejecting an input without <code>=</code>.</li>
+<li><code>parse_pass_inputs(command_name)</code>: scans raw process arguments for repeated pass-specific input groups.</li>
+<li><code>filtered_args_for_clap()</code>: removes pass-scoped syntax before invoking Clap.</li>
+</ul>
+<h2>Dependencies</h2>
+<ul>
+<li><code>clap</code> supplies <code>Parser</code>, <code>Subcommand</code>, <code>Args</code>, and <code>ValueEnum</code> derives, plus argument actions, validators, aliases, conflicts, and generated help.</li>
+<li><code>anyhow::Result</code> is used for the local parser result signature.</li>
+<li><code>std::ffi::OsString</code> preserves native argument encoding while filtering raw process arguments.</li>
+<li><code>std::path::PathBuf</code> represents workspace, template, output, deployed-file, and import paths.</li>
+<li><code>crate::commands::reports</code> supplies report command argument types and subcommands.</li>
+</ul>
+<p>The module is consumed by <code>main.rs</code> and multiple command/request modules:</p>
+<ul>
+<li><code>commands::dispatch</code> consumes <code>Cli</code> to route execution.</li>
+<li><code>commands::compose</code> uses render/output and delimiter options.</li>
+<li><code>render_request</code> converts common/input/render fields into concrete rendering requests, variable sources, and confined roots.</li>
+<li><code>commands::verify</code> adapts common arguments for verification.</li>
+<li><code>commands::examples</code>, <code>commands::templates</code>, <code>commands::template_init</code>, and <code>commands::workspace</code> consume their corresponding argument types.</li>
+</ul>
+<h2>Usage Notes</h2>
+<h3>Basic file rendering</h3>
+<pre><code class="language-bash">sc-compose render --file templates/agent.md --var name=Riley
+</code></pre>
+<p><code>RenderArgs</code> combines <code>CommonArgs</code> with <code>RenderBehaviorArgs</code>, so the command resolves the file under the default workspace root, supplies <code>name</code>, and emits rendered text to stdout.</p>
+<p>To write a target instead:</p>
+<pre><code class="language-bash">sc-compose render \
+  --file templates/agent.md \
+  --var name=Riley \
+  --output generated/agent.md
+</code></pre>
+<h3>Profile-based resolution</h3>
+<pre><code class="language-bash">sc-compose resolve \
+  --mode profile \
+  --kind agent \
+  --agent reviewer \
+  --runtime codex \
+  --root .
+</code></pre>
+<p><code>--agent-type</code> is accepted as an alias for <code>--agent</code>. Callers should avoid supplying ambiguous combinations of profile-only inputs and file-mode inputs unless downstream command semantics explicitly support them.</p>
+<h3>Input precedence and validation</h3>
+<pre><code class="language-bash">sc-compose validate \
+  --file templates/prompt.md \
+  --var audience=engineers \
+  --var-file inputs/common.yaml \
+  --env-prefix SC_ \
+  --strict \
+  --unknown-var-mode warn
+</code></pre>
+<p>This module only captures the input sources and policies. <code>render_request</code> and related code load files/environment variables and enforce their operational meaning. <code>parse_var</code> intentionally splits only at the first <code>=</code>, so values may themselves contain equals signs:</p>
+<pre><code class="language-bash">sc-compose render --file template.md --var callback=https://example.test/?a=b
+</code></pre>
+<p>An empty key or value is not rejected here if the input contains <code>=</code>; later validation, if any, owns that policy.</p>
+<h3>Multi-pass arguments</h3>
+<p>Pass-specific values use raw-argument scanning:</p>
+<pre><code class="language-bash">sc-compose render \
+  --file templates/stacked.md \
+  --pass 1 --var title=Draft --var-file inputs/pass-1.yaml \
+  --pass 2 --var title=Final --var-file inputs/pass-2.yaml
+</code></pre>
+<p><code>filtered_args_for_clap</code> removes <code>--pass</code>, the following pass number, and <code>--var</code> / <code>--var-file</code> values inside a pass group before ordinary Clap parsing. <code>parse_pass_inputs("render")</code> then reconstructs groups from the original argument list.</p>
+<p>Important constraints:</p>
+<ul>
+<li><code>--var</code> and <code>--var-file</code> in a pass group must follow <code>--pass</code>; otherwise <code>parse_pass_inputs</code> returns an error.</li>
+<li>Both separated (<code>--pass 2</code>) and equals (<code>--pass=2</code>) forms are accepted.</li>
+<li>Pass numbers must parse as <code>u8</code>.</li>
+<li>The filtering logic recognizes pass groups only after <code>render</code>, <code>validate</code>, <code>verify</code>, or <code>template-init</code>.</li>
+<li>Unrelated flags terminate the current pass-group filtering state, so changes to argument ordering or new flags near pass syntax require regression tests.</li>
+</ul>
+<p>This split parsing is a compatibility-sensitive implementation detail: Clap should receive only the normal command grammar, while pass-specific data remains available to multi-pass handlers.</p>
+<h3>Custom delimiters</h3>
+<pre><code class="language-bash">sc-compose render --file template.md --brace-count 3
+</code></pre>
+<p>or:</p>
+<pre><code class="language-bash">sc-compose render \
+  --file template.md \
+  --variable-delimiters '&lt;&lt;' '&gt;&gt;'
+</code></pre>
+<p>These choices are mutually exclusive, and both conflict with <code>--all</code>. The conflict declarations prevent combinations whose semantics would be unclear when rendering stacked template passes.</p>
+<h3>JSON output</h3>
+<p>Use JSON consistently for automation:</p>
+<pre><code class="language-bash">sc-compose templates list --json
+sc-compose reports index --json
+sc-compose verify --file template.md deployed/output.md --json
+</code></pre>
+<p><code>command_wants_json</code> centralizes the decision across top-level commands, nested <code>examples</code>/<code>templates</code> subcommands, report subcommands, and hidden report helpers. When adding a new command or a new JSON-bearing nested subcommand, update this match or dispatch may choose the wrong output/error format.</p>
+<h3>Examples and template packs</h3>
+<pre><code class="language-bash">sc-compose examples list
+sc-compose examples starter --var project=sc-compose
+sc-compose templates add ./my-pack my-pack
+sc-compose templates list --json
+sc-compose templates my-pack --output generated.md
+</code></pre>
+<p><code>ExamplesArgs</code> and <code>TemplatesArgs</code> use <code>args_conflicts_with_subcommands</code>, which prevents a positional pack name from being accidentally interpreted alongside <code>list</code> or <code>add</code>. Their no-subcommand mode means “render the named pack”; their subcommand mode means management/listing behavior.</p>
+<h3>Maintenance guidance</h3>
+<p>Because this file is a high-activity, high-complexity public edge of the application:</p>
+<ul>
+<li>Preserve existing flag names, aliases, defaults, and output-mode behavior unless intentionally making a CLI compatibility change.</li>
+<li>Add tests for both Clap parsing and raw pass parsing whenever modifying <code>--pass</code>, <code>--var</code>, <code>--var-file</code>, or supported command names.</li>
+<li>Keep argument-group flattening aligned with consumers in <code>render_request</code>, <code>compose</code>, and <code>verify</code>.</li>
+<li>Ensure every new JSON-capable command path is represented in <code>command_wants_json</code>.</li>
+<li>Prefer explicit Clap conflicts and value parsers over relying on downstream handlers to reject invalid combinations.</li>
+</ul>
+</body>
+</html>

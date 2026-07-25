@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-composer/src/validation.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-composer/src/validation.rs</h1>
+<p>I’m applying the repository’s required team protocol and Cass context check before producing the file-level documentation.</p>
+<h2>Overview</h2>
+<p>The Application-layer validation module is the template-variable discovery and validation orchestrator: it consumes a <code>ComposeRequest</code>, expanded template, and resolution result to produce a <code>ValidationReport</code> plus internal <code>ValidationState</code>.</p>
+<p>It merges declarations, required paths, and defaults from root and included frontmatter; overlays template defaults, environment values, explicit input, and render-time built-ins; then emits diagnostics for empty bodies, malformed frontmatter, missing required values, undeclared references, unused defaults, and extra inputs.</p>
+<p>This is a high-activity, high-complexity hotspot. Changes can alter validation behavior across the Rust library, CLI, and Python bindings; preserve diagnostic codes, precedence rules, include-chain attribution, and per-pass token semantics.</p>
+<p><code>ValidationState</code> keeps both the effective render context and provenance metadata. Provenance supports informational “default used” diagnostics, while origin and include-chain maps let required-variable failures point back to the declaring template.</p>
+<p>Token discovery is intentionally lightweight rather than a full template parser. It scans expression and statement delimiters, recognizes <code>{% for … in … %}</code> scopes, excludes loop-bound locals, and collects valid <code>VariableName</code> references. Multi-pass templates are scanned independently using the brace count associated with each pass, preventing <code>{{ … }}</code> and <code>{{{ … }}}</code> expressions from being confused.</p>
+<p>Required-variable validation supports dotted paths such as <code>pr.number</code>. It traverses JSON objects, applies the same path requirement to every array member, distinguishes absent top-level values from missing nested fields, and reports scalar/object shape mismatches separately.</p>
+<h2>Public API</h2>
+<ul>
+<li><code>BUILTIN_VARIABLE_NAMES: [&amp;str; 5]</code> exposes the render-context names injected for every render:</li>
+<li><code>TEMPLATE_NAME</code></li>
+<li><code>HOSTNAME</code></li>
+<li><code>USERNAME</code></li>
+<li><code>RENDER_DATE</code></li>
+<li>
+<p><code>RENDER_TIMESTAMP</code></p>
+</li>
+<li>
+<p><code>discover_tokens(text: &amp;str) -&gt; BTreeSet&lt;VariableName&gt;</code> discovers references in standard <code>{{ ... }}</code> expressions.</p>
+</li>
+<li>
+<p><code>discover_tokens_with_brace_count(text, brace_count) -&gt; BTreeSet&lt;VariableName&gt;</code> discovers references for a specified expression-delimiter width. Counts below two return an empty set. Exact-delimiter handling prevents a lower-brace scan from matching a higher-brace expression.</p>
+</li>
+<li>
+<p><code>discover_all_pass_tokens(parsed) -&gt; BTreeMap&lt;usize, BTreeSet&lt;VariableName&gt;&gt;</code> returns references per parsed pass. Each pass uses <code>pass_number + 1</code> braces.</p>
+</li>
+</ul>
+<p>Internal application entry points include:</p>
+<ul>
+<li><code>validate_expanded</code>, which constructs the report and partitions diagnostics into warnings and errors.</li>
+<li><code>collect_validation_state</code>, which computes effective values, declarations, sources, origins, and pass-scoped metadata.</li>
+<li><code>inject_builtin_vars</code>, which supplies runtime values after validation-state collection.</li>
+<li><code>validate_required_path</code>, which checks dotted required paths against JSON input values.</li>
+</ul>
+<h2>Dependencies</h2>
+<p>The module depends on:</p>
+<ul>
+<li><code>types</code> for requests, policies, variable names/sources, input values, and validation reports.</li>
+<li><code>frontmatter</code> for parsed template passes and defaults/required-variable declarations.</li>
+<li><code>diagnostics</code> for structured severity, code, path, location, and include-chain reporting.</li>
+<li><code>ExpandedTemplate</code> and <code>ResolveResult</code> from the composition pipeline.</li>
+<li><code>serde_json</code> for structured input traversal and default serialization.</li>
+<li><code>time</code> for date and RFC 3339 timestamp built-ins.</li>
+<li>Standard ordered collections (<code>BTreeMap</code>, <code>BTreeSet</code>) for deterministic state and diagnostic behavior.</li>
+</ul>
+<p>It is called as part of the broader validation flow exposed by the library and consumed by the CLI and Python bindings.</p>
+<h2>Usage Notes</h2>
+<p>A normal validation flow is:</p>
+<ol>
+<li>Resolve and expand the requested template, including nested includes.</li>
+<li>Call the library validation entry point, which invokes this module’s <code>validate_expanded</code>.</li>
+<li>Inspect <code>ValidationReport.ok</code>, <code>errors</code>, and <code>warnings</code>.</li>
+<li>If rendering proceeds, inject built-ins into the collected state so the renderer receives the completed context.</li>
+</ol>
+<p>Variable precedence is ordered so later sources replace earlier ones:</p>
+<ol>
+<li>Included and root frontmatter defaults establish initial values.</li>
+<li>Request-level defaults replace frontmatter values.</li>
+<li>Environment values replace defaults.</li>
+<li>Explicit input replaces environment values.</li>
+<li>Built-ins replace defaults but preserve environment and explicit-input values.</li>
+</ol>
+<p>Structured values replace whole top-level values; they are not deep-merged. For example, input <code>{ "pr": { "number": 43 } }</code> replaces a default <code>pr</code> object rather than retaining default sibling fields.</p>
+<p>Unknown provided variables are compared at the top-level boundary. Supplying <code>pr.url</code> data within a declared <code>pr</code> object is allowed, while an unrelated top-level input can be ignored, warned about, or rejected according to <code>UnknownVariablePolicy</code>.</p>
+<p>For required array paths such as <code>sprints.id</code>, every array member must satisfy the nested path. An empty array is considered satisfied because no member violates the requirement.</p>
+<p>Be careful when extending identifier collection: it is lexical and scope-aware, not a full MiniJinja AST traversal. New statement forms, binding syntax, or identifier-like literals may require updates to <code>KEYWORDS</code>, loop-scope parsing, and delimiter tests.</p>
+</body>
+</html>

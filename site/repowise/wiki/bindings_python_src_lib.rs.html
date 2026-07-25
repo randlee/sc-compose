@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: bindings/python/src/lib.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: bindings/python/src/lib.rs</h1>
+<h2>Overview</h2>
+<p><code>native</code> is the Application-layer entry point and orchestrator for the Python <code>_native</code> extension module, producing a populated PyO3 module that exposes built-in variable names, errors, enums, types, and callable functions from <code>sc-composer</code>.</p>
+<p>The module is intentionally thin: it composes registration routines owned by focused sibling modules rather than implementing Python-facing behavior itself. At extension-import time, <code>native</code> adds <code>BUILTIN_VARIABLE_NAMES</code> from <code>sc_composer::validation</code> as a Python list, then delegates registration of the remaining bindings.</p>
+<p>This is a hotspot file with high change frequency and complexity. Changes here can affect Python import behavior, the public native-module surface, and the initialization order of every registered binding.</p>
+<h2>Public API</h2>
+<h3>Python extension module: <code>_native</code></h3>
+<p>The <code>#[pymodule]</code> and <code>#[pyo3(name = "_native")]</code> attributes export this Rust module to Python as <code>_native</code>.</p>
+<p>The module initializer returns <code>PyResult&lt;()&gt;</code>; any failure while building the exported list or registering a submodule aborts module initialization and surfaces as a Python import error.</p>
+<h3><code>BUILTIN_VARIABLE_NAMES</code></h3>
+<p><code>native</code> exports <code>BUILTIN_VARIABLE_NAMES</code> as a Python <code>list</code>.</p>
+<p>Its contents originate from <code>sc_composer::BUILTIN_VARIABLE_NAMES</code>, keeping the Python binding aligned with the core library’s validation vocabulary rather than duplicating the names in the binding layer.</p>
+<h3>Registered binding groups</h3>
+<p>The initializer delegates exports to these internal modules:</p>
+<ul>
+<li><code>errors::register(module)</code> — installs Python-visible error types or error conversions.</li>
+<li><code>enums::register(module)</code> — installs enum bindings.</li>
+<li><code>types::register(module)</code> — installs Python classes and related type bindings.</li>
+<li><code>functions::register(module)</code> — installs Python-callable functions.</li>
+</ul>
+<p>Each registration routine receives the same bound <code>PyModule</code>, so all symbols become direct attributes of <code>_native</code>.</p>
+<h2>Dependencies</h2>
+<table>
+<thead>
+<tr>
+<th>Dependency</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pyo3::prelude::*</code></td>
+<td>Supplies PyO3 types, the <code>#[pymodule]</code> attribute, and <code>PyResult</code>.</td>
+</tr>
+<tr>
+<td><code>pyo3::types::PyList</code></td>
+<td>Converts the Rust built-in-variable collection into a Python list.</td>
+</tr>
+<tr>
+<td><code>sc_composer::BUILTIN_VARIABLE_NAMES</code></td>
+<td>Provides the canonical built-in variable names consumed by the Python API.</td>
+</tr>
+<tr>
+<td><code>convert</code></td>
+<td>Internal conversion helpers used by the binding implementation.</td>
+</tr>
+<tr>
+<td><code>enums</code></td>
+<td>Registers Python enum exports.</td>
+</tr>
+<tr>
+<td><code>errors</code></td>
+<td>Registers Python error exports.</td>
+</tr>
+<tr>
+<td><code>functions</code></td>
+<td>Registers Python-callable operations.</td>
+</tr>
+<tr>
+<td><code>types</code></td>
+<td>Registers Python type/class exports.</td>
+</tr>
+</tbody>
+</table>
+<p>The only direct cross-crate data dependency in this file is <code>BUILTIN_VARIABLE_NAMES</code>; the remaining application-level API is assembled through local registration modules.</p>
+<h2>Usage Notes</h2>
+<p>Python normally reaches this file by importing the compiled extension module:</p>
+<pre><code class="language-python">from sc_compose import _native
+
+print(_native.BUILTIN_VARIABLE_NAMES)
+</code></pre>
+<p>A typical consumer can use the exported constant to inspect names recognized by the underlying composer:</p>
+<pre><code class="language-python">from sc_compose import _native
+
+if &quot;environment&quot; in _native.BUILTIN_VARIABLE_NAMES:
+    print(&quot;The native layer recognizes the environment variable.&quot;)
+</code></pre>
+<p>When extending the Python API, add the implementation to the appropriate sibling module and ensure its <code>register</code> function is called from <code>native</code>. Keep exports grouped by responsibility:</p>
+<ol>
+<li>Add conversion-only logic to <code>convert</code>.</li>
+<li>Add a new Python class to <code>types</code>, an enum to <code>enums</code>, an exception to <code>errors</code>, or a callable to <code>functions</code>.</li>
+<li>Register the new item from that module’s <code>register</code> routine.</li>
+<li>If introducing a new binding group, add its module declaration and call its registration routine in <code>native</code>.</li>
+<li>Verify that importing <code>_native</code> succeeds, because one failing registration prevents the entire extension module from loading.</li>
+</ol>
+<p>Registration order is observable during initialization. If a type, exception, or enum must already exist before another module creates references to it, preserve or deliberately adjust the current order:</p>
+<ol>
+<li>Export <code>BUILTIN_VARIABLE_NAMES</code>.</li>
+<li>Register errors.</li>
+<li>Register enums.</li>
+<li>Register types.</li>
+<li>Register functions.</li>
+</ol>
+<p>Potential pitfalls:</p>
+<ul>
+<li>Do not duplicate <code>BUILTIN_VARIABLE_NAMES</code> in the Python binding; it must remain sourced from <code>sc_composer</code> to avoid validation/API drift.</li>
+<li>Treat every <code>?</code> as import-critical: a failure in <code>PyList::new</code> or any <code>register</code> call makes <code>_native</code> unavailable.</li>
+<li>Avoid moving CLI concerns or composition logic into this file. Its role is module assembly in the Application layer, while the pure <code>sc-composer</code> library remains the source of core behavior.</li>
+<li>Because this is a hotspot and subsystem entry point, review changes for accidental removal, renaming, or reordering of exports that downstream Python code may import directly.</li>
+</ul>
+</body>
+</html>

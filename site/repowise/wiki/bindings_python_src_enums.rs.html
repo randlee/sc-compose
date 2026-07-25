@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: bindings/python/src/enums.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: bindings/python/src/enums.rs</h1>
+<p>I’ll verify the repository’s collaboration guidance and the source context, then produce the requested wiki page.</p>
+<h2>Overview</h2>
+<p>Application-layer edge connector <code>enums.rs</code> adapts <code>sc_composer</code> enum values into Python-facing string constant classes and converts Python inputs back into core enum types.</p>
+<p>It registers six PyO3 classes—<code>RuntimeKind</code>, <code>ProfileKind</code>, <code>UnknownVariablePolicy</code>, <code>VariableSource</code>, <code>DiagnosticSeverity</code>, and <code>DiagnosticCode</code>—on the extension module. The file also centralizes bidirectional mappings between selected <code>sc_composer</code> enums and their stable Python string representations.</p>
+<p>Invalid runtime kinds, profile kinds, and unknown-variable policies are reported through the binding layer’s <code>ScConfigError</code> constructor rather than raw conversion errors.</p>
+<h2>Public API</h2>
+<p>All Rust items are <code>pub(crate)</code>, but <code>register</code> exposes the following Python classes when invoked by the module initializer:</p>
+<table>
+<thead>
+<tr>
+<th>Python class</th>
+<th>Constants</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RuntimeKind</code></td>
+<td><code>CLAUDE</code>, <code>CODEX</code>, <code>GEMINI</code>, <code>OPENCODE</code></td>
+</tr>
+<tr>
+<td><code>ProfileKind</code></td>
+<td><code>AGENT</code>, <code>COMMAND</code>, <code>SKILL</code></td>
+</tr>
+<tr>
+<td><code>UnknownVariablePolicy</code></td>
+<td><code>ERROR</code>, <code>WARN</code>, <code>IGNORE</code></td>
+</tr>
+<tr>
+<td><code>VariableSource</code></td>
+<td><code>EXPLICIT_INPUT</code>, <code>ENVIRONMENT</code>, <code>BUILTIN</code>, <code>TEMPLATE_INPUT_DEFAULT</code>, <code>FRONTMATTER_DEFAULT</code>, <code>INCLUDED_DEFAULT</code></td>
+</tr>
+<tr>
+<td><code>DiagnosticSeverity</code></td>
+<td><code>ERROR</code>, <code>WARNING</code>, <code>INFO</code></td>
+</tr>
+<tr>
+<td><code>DiagnosticCode</code></td>
+<td>Resolver, include, validation, rendering, and configuration diagnostic-code strings</td>
+</tr>
+</tbody>
+</table>
+<p>Key functions:</p>
+<ul>
+<li><code>register(module)</code> adds all six Python classes to a <code>PyModule</code>.</li>
+<li><code>parse_runtime_kind(value)</code> extracts a Python string and returns <code>RuntimeKind</code>.</li>
+<li><code>parse_profile_kind(value)</code> extracts a Python string and returns <code>ProfileKind</code>.</li>
+<li><code>parse_unknown_variable_policy(value)</code> converts a Rust string to <code>UnknownVariablePolicy</code>.</li>
+<li><code>runtime_kind_str</code>, <code>profile_kind_str</code>, <code>unknown_variable_policy_str</code>, <code>variable_source_str</code>, and <code>diagnostic_severity_str</code> serialize core enum values to canonical static strings.</li>
+</ul>
+<h2>Dependencies</h2>
+<ul>
+<li><code>pyo3::prelude::*</code> supplies Python binding types, <code>#[pyclass]</code>, <code>#[pymethods]</code>, and module registration support.</li>
+<li><code>sc_composer</code> supplies the domain enums: <code>RuntimeKind</code>, <code>ProfileKind</code>, <code>UnknownVariablePolicy</code>, <code>VariableSource</code>, and <code>DiagnosticSeverity</code>.</li>
+<li><code>crate::errors::config_error</code> converts invalid binding inputs into the package’s configuration exception.</li>
+</ul>
+<p>Consumers include:</p>
+<ul>
+<li><code>convert.rs</code>, whose runtime extraction path calls <code>parse_runtime_kind</code>.</li>
+<li><code>types/policy.rs</code>, which uses profile and unknown-variable-policy parsing.</li>
+<li><code>types/results.rs</code>, which uses the string serializers for Python result objects.</li>
+<li><code>lib.rs</code>, which invokes <code>register</code> during Python module setup.</li>
+</ul>
+<h2>Usage Notes</h2>
+<p>Use the Python class constants instead of hard-coded literals when constructing API inputs:</p>
+<pre><code class="language-python">from sc_compose import RuntimeKind, UnknownVariablePolicy
+
+runtime = RuntimeKind.CODEX
+policy = UnknownVariablePolicy.WARN
+</code></pre>
+<p>The parser functions accept only the documented lowercase strings. Unknown values produce <code>ScConfigError</code> messages such as <code>unknown runtime kind: &lt;value&gt;</code> or <code>unknown unknown-variable policy: &lt;value&gt;</code>.</p>
+<p>The string serializer functions are intentionally exhaustive over their corresponding Rust enums; add a matching parser arm, serializer arm, and Python class constant whenever a supported enum variant becomes part of the Python API.</p>
+</body>
+</html>

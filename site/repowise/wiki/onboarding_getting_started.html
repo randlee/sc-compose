@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Getting Started</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Getting Started</h1>
+<p>I’ll ground this strictly in the supplied README excerpts and repository onboarding rules.</p>
+<h2>Prerequisites</h2>
+<ul>
+<li>Git</li>
+<li>A recent Rust toolchain with Cargo, for building from source</li>
+<li>Python, if working with the Python bindings</li>
+</ul>
+<h2>Clone &amp; install</h2>
+<ol>
+<li>Clone the repository and enter the checkout.</li>
+</ol>
+<p><code>sh
+   git clone &lt;repository-url&gt;
+   cd repowise-analysis</code></p>
+<ol>
+<li>Build the CLI from source.</li>
+</ol>
+<p><code>sh
+   cargo build --release -p sc-compose</code></p>
+<h2>Run</h2>
+<p>The CLI entry point is <code>crates/sc-compose/src/main.rs</code>.</p>
+<pre><code class="language-sh">cargo run -p sc-compose --
+</code></pre>
+<p>Library entry points include <code>crates/sc-composer/src/lib.rs</code> and <code>bindings/python/src/lib.rs</code>.</p>
+<h2>Test</h2>
+<pre><code class="language-sh">cargo test --workspace
+</code></pre>
+<h2>Troubleshooting</h2>
+<ul>
+<li><code>cargo install sc-compose</code> ships only the binary; set <code>SC_COMPOSE_DATA_DIR</code> to use examples.</li>
+</ul>
+</body>
+</html>

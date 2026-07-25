@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-composer/src/types.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-composer/src/types.rs</h1>
+<h2>Overview</h2>
+<p><code>types.rs</code> is the Application-layer edge-connector contract module: it consumes caller configuration and render inputs and produces the validated request, policy, trace, diagnostic, and result types shared across <code>sc-composer</code> and cross-layer consumers. It is a high-activity, high-complexity hotspot, so changes can affect composition, validation, resolution, frontmatter processing, verification, workspace initialization, and CLI commands.</p>
+<p>The module establishes the library’s stable public data model:</p>
+<ul>
+<li>Input validation: <code>InputValue</code>, YAML conversion, and shape-validation errors.</li>
+<li>Safe identifiers and paths: <code>VariableName</code>, <code>ProfileName</code>, <code>IncludeDepth</code>, and <code>ConfiningRoot</code>.</li>
+<li>Composition configuration: runtime/profile selection, <code>ComposeMode</code>, resolver and variable policies, and multi-pass settings.</li>
+<li>Request and outcome contracts: <code>ComposeRequest</code>, <code>ComposeResult</code>, <code>ValidationReport</code>, <code>ResolveResult</code>, <code>VerifyResult</code>, and initialization results.</li>
+<li>Provenance and diagnostics: <code>VariableSource</code> plus typed validation errors and <code>Diagnostic</code> collections.</li>
+</ul>
+<p><code>default_pass_number()</code> centralizes pass numbering at <code>1</code>. Both <code>PassConfig::default</code> and deserialization use it; a serialized <code>pass_number: 0</code> is normalized to that default. This prevents frontmatter and request policy from interpreting omitted or zero-valued passes differently.</p>
+<p>Input values are intentionally narrower than arbitrary JSON/YAML. Scalars and objects are supported, as are top-level arrays of objects, but nested arrays and arrays of objects below the top level are rejected. YAML mappings must have string keys, and YAML is converted to <code>serde_json::Value</code> before use as render input.</p>
+<h2>Public API</h2>
+<h3>Input and metadata</h3>
+<ul>
+<li><code>type InputValue = serde_json::Value</code> is the caller-provided render-context value.</li>
+<li><code>validate_input_value(&amp;InputValue)</code> validates supported JSON shapes before rendering.</li>
+<li><code>input_value_from_yaml(serde_yaml::Value)</code> converts supported YAML into <code>InputValue</code>, rejecting non-string keys and unsupported nesting.</li>
+<li><code>MetadataValue</code> wraps YAML values used only for descriptive frontmatter metadata; <code>to_json_value()</code> exposes a JSON-compatible representation when possible.</li>
+<li><code>InvalidInputValueError</code> carries a stable <code>DiagnosticCode</code> and human-readable message.</li>
+</ul>
+<h3>Validated value objects</h3>
+<ul>
+<li><code>VariableName::new(...)</code> accepts only non-empty ASCII alphanumeric names plus <code>_</code>, <code>-</code>, and <code>.</code>. It implements <code>Display</code> and <code>TryFrom&lt;String&gt;</code> / <code>TryFrom&lt;&amp;str&gt;</code>.</li>
+<li><code>ProfileName::new(...)</code> accepts non-empty names without <code>/</code> or <code>\</code>, preventing path traversal through profile-mode resolution.</li>
+<li><code>IncludeDepth</code> wraps a non-negative <code>u16</code> depth limit.</li>
+<li><code>ConfiningRoot::new(...)</code> canonicalizes a filesystem root for include and template-resolution confinement. <code>from_path_buf(...)</code> is for callers that already hold a canonical path.</li>
+</ul>
+<h3>Requests and policy</h3>
+<ul>
+<li><code>RuntimeKind</code> selects a runtime layout: <code>Claude</code>, <code>Codex</code>, <code>Gemini</code>, or <code>Opencode</code>.</li>
+<li><code>ProfileKind</code> selects <code>Agent</code>, <code>Command</code>, or <code>Skill</code> prompt profiles.</li>
+<li><code>ComposeMode</code> selects either:</li>
+<li><code>Profile { kind, name }</code> for profile lookup, or</li>
+<li><code>File { template_path }</code> for direct template composition.</li>
+<li><code>UnknownVariablePolicy</code> controls extra caller variables: <code>Error</code>, <code>Warn</code>, or <code>Ignore</code> (default).</li>
+<li><code>ResolverPolicy</code> holds ordered candidate directories, filename probes, and ambiguity behavior.</li>
+<li><code>PassConfig</code> supplies per-pass required variables, defaults, and metadata.</li>
+<li><code>ComposePolicy</code> bundles undeclared-variable behavior, unknown-variable policy, include depth, allowed roots, resolver policy, and pass configuration.</li>
+<li><code>ComposeRequest</code> is the main input to compose and validation entry points. It carries the mode, root, optional runtime, variable maps from explicit/environment/default sources, optional appended guidance and user prompt blocks, and policy.</li>
+</ul>
+<h3>Results and tracing</h3>
+<ul>
+<li><code>VariableSource</code> records which source won during variable resolution.</li>
+<li><code>ResolveResult</code> records the final path, all attempted paths, and ambiguity candidates.</li>
+<li><code>ComposeResult</code> returns rendered text, resolved files, resolution trace, variable provenance, and warnings.</li>
+<li><code>ValidationReport</code> returns validation status, warnings, errors, and resolution trace without rendered output.</li>
+<li><code>VerifyResult</code> reports template drift, compared paths and contents, optional unified diff, and warnings.</li>
+<li><code>FrontmatterInitResult</code> and <code>InitResult</code> define result contracts for initialization-oriented helpers.</li>
+</ul>
+<h2>Dependencies</h2>
+<p>The module depends on:</p>
+<ul>
+<li><code>serde</code> for serializing public request/result contracts and deserializing policy/frontmatter data.</li>
+<li><code>serde_json</code> as the render-context representation behind <code>InputValue</code>.</li>
+<li><code>serde_yaml</code> for frontmatter and metadata conversion.</li>
+<li><code>crate::diagnostics::{Diagnostic, DiagnosticCode}</code> for stable diagnostics embedded in errors and result collections.</li>
+<li>Standard-library <code>BTreeMap</code> for deterministic variable/default/provenance maps and <code>PathBuf</code>/<code>Path</code> for filesystem-facing request and resolution data.</li>
+</ul>
+<p>It is imported by the composer, resolver, frontmatter, include, validation, verification, workspace-initialization, and error modules. The CLI’s <code>template_init</code> command also imports it across the layer boundary, making API changes here externally consequential.</p>
+<h2>Usage Notes</h2>
+<p>Construct names and roots through their validating constructors rather than their internal representations:</p>
+<pre><code class="language-rust">use sc_composer::{ConfiningRoot, ProfileName, VariableName};
+
+let root = ConfiningRoot::new(&quot;./prompts&quot;)?;
+let profile = ProfileName::new(&quot;release-notes&quot;)?;
+let variable = VariableName::new(&quot;pr.number&quot;)?;
+</code></pre>
+<p>Validate every externally supplied JSON input before placing it into a request. This is especially important for CLI variable files and manifest defaults, which call into this module’s validator.</p>
+<pre><code class="language-rust">use sc_composer::{validate_input_value, InputValue};
+
+let value: InputValue = serde_json::json!({
+    &quot;pr&quot;: {
+        &quot;number&quot;: 43,
+        &quot;labels&quot;: [&quot;bug&quot;, &quot;release&quot;]
+    }
+});
+
+validate_input_value(&amp;value)?;
+</code></pre>
+<p>Top-level arrays of objects are valid, enabling batch-style render inputs. Do not rely on nested arrays, including arrays inside object members; they fail with <code>ErrValNestedArrayUnsupported</code>. YAML callers should use <code>input_value_from_yaml</code> so that mapping-key and nesting rules are enforced during conversion.</p>
+<p>Compose requests should keep variable sources separate. Put direct user input in <code>vars_input</code>, inherited environment values in <code>vars_env</code>, and CLI or pack defaults in <code>vars_defaults</code>; the returned <code>variable_sources</code> map then explains which source supplied each resolved value.</p>
+<p>When deserializing <code>PassConfig</code>, treat <code>0</code> as equivalent to an omitted pass number. If code needs an explicit default, call <code>default_pass_number()</code> instead of duplicating <code>1</code>; this is relied on by frontmatter normalization and the CLI initialization flow.</p>
+<p>Configure <code>allowed_roots</code> with canonical <code>ConfiningRoot</code> values whenever file resolution crosses user-controlled paths. <code>ProfileName</code> rejects path separators, but file-mode composition still needs root confinement through <code>ComposeRequest.root</code> and policy roots.</p>
+</body>
+</html>

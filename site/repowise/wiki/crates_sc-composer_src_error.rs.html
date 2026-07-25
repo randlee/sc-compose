@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-composer/src/error.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-composer/src/error.rs</h1>
+<h2>Overview</h2>
+<p><code>error.rs</code> is the Application-layer error adapter that converts resolution, include, validation, rendering, and configuration failures into stable crate-owned error values consumed by <code>sc-composer</code> entry points and callers. It centralizes diagnostic codes, contextual failure data, chained sources, captured backtraces, and structured recovery guidance so the composition pipeline exposes one coherent failure contract.</p>
+<p>The module defines five domain-specific families:</p>
+<ul>
+<li><code>ResolveError</code> records failed profile/file resolution, including every attempted path.</li>
+<li><code>IncludeError</code> records include-expansion failures and the include chain that produced them.</li>
+<li><code>ValidationError</code> preserves a full set of <code>Diagnostic</code> values and optional recovery hints.</li>
+<li><code>RenderError</code> wraps template-engine failures without exposing engine-specific error types.</li>
+<li><code>ConfigError</code> represents configuration and parsing failures, optionally with recovery hints.</li>
+</ul>
+<p><code>ComposeError</code> is the public top-level sum type returned by compose, validate, and related helper entry points. It carries one of the five families and provides a uniform <code>code()</code> accessor and standard Rust error chaining through <code>std::error::Error</code>.</p>
+<p>All error families capture a <code>Backtrace</code> when constructed. Resolution, include, validation, and configuration errors use the shared display formatter, which prints the message, recursively enumerates source causes, and appends the backtrace. Rendering intentionally uses a shorter display form—<code>template rendering failed: …</code>—while retaining the original source as its <code>Error::source()</code>.</p>
+<p>Validation failures can be constructed from individual conditions or from an entire diagnostics collection. <code>ValidationError::from_diagnostics</code> chooses the first diagnostic’s code (or <code>ErrValEmpty</code> for an empty collection), formats all diagnostics into the message, preserves the original collection, and adds an <code>InspectPath</code> recovery hint when any diagnostic has a path.</p>
+<h2>Public API</h2>
+<h3><code>RecoveryHint</code> and <code>RecoveryHintKind</code></h3>
+<p><code>RecoveryHint</code> is a public, cloneable structured recommendation attached to configuration and validation failures.</p>
+<pre><code class="language-rust">pub struct RecoveryHint {
+    pub kind: RecoveryHintKind,
+}
+</code></pre>
+<p><code>RecoveryHint::new(kind)</code> constructs a hint. The payload enum distinguishes actionable next steps:</p>
+<table>
+<thead>
+<tr>
+<th>Variant</th>
+<th>Payload</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RunCommand</code></td>
+<td><code>command: String</code></td>
+<td>Suggest a command to run.</td>
+</tr>
+<tr>
+<td><code>InspectPath</code></td>
+<td><code>path: PathBuf</code></td>
+<td>Direct the caller to inspect a relevant file or path.</td>
+</tr>
+<tr>
+<td><code>ProvideVariable</code></td>
+<td><code>variable: VariableName</code></td>
+<td>Identify a missing input variable.</td>
+</tr>
+<tr>
+<td><code>ReviewConfiguration</code></td>
+<td><code>key: String</code></td>
+<td>Point to a configuration key needing correction.</td>
+</tr>
+</tbody>
+</table>
+<p>Consumers should pattern-match on <code>hint.kind</code> instead of parsing error text. This keeps remediation workflows stable even if human-readable messages change.</p>
+<h3><code>ResolveError</code></h3>
+<p>Represents resolution failures, such as a missing template or profile.</p>
+<p>Public inspection methods:</p>
+<pre><code class="language-rust">error.code() -&gt; DiagnosticCode
+error.attempted_paths() -&gt; &amp;[PathBuf]
+error.message() -&gt; &amp;str
+error.backtrace() -&gt; &amp;Backtrace
+</code></pre>
+<p>Its constructors are <code>pub(crate)</code>, so other crate modules create it with a diagnostic code, message, and attempted paths; external callers receive it through <code>ComposeError</code> or a public API result. <code>with_source</code> attaches an underlying I/O or related error while retaining the resolution-specific context.</p>
+<h3><code>IncludeError</code></h3>
+<p>Represents include expansion failures, including root-escape or nested include problems.</p>
+<pre><code class="language-rust">error.code() -&gt; DiagnosticCode
+error.include_chain() -&gt; &amp;[PathBuf]
+error.message() -&gt; &amp;str
+error.backtrace() -&gt; &amp;Backtrace
+</code></pre>
+<p>The include chain is distinct from a generic source chain: it explains the template inclusion path that led to the failure. Use it to render a template-level trace for users.</p>
+<h3><code>ValidationError</code></h3>
+<p>Represents invalid frontmatter, variable declarations, input-value shapes, and aggregated validation diagnostics.</p>
+<pre><code class="language-rust">error.code() -&gt; DiagnosticCode
+error.recovery_hints() -&gt; &amp;[RecoveryHint]
+error.diagnostics() -&gt; &amp;[Diagnostic]
+error.message() -&gt; &amp;str
+error.backtrace() -&gt; &amp;Backtrace
+</code></pre>
+<p>Internally available constructors include:</p>
+<pre><code class="language-rust">ValidationError::new(code, message)
+ValidationError::from_diagnostics(diagnostics)
+ValidationError::duplicate_variable(&amp;variable)
+ValidationError::invalid_input_value(code, message)
+</code></pre>
+<p><code>from_diagnostics</code> is the preferred path when validation discovers multiple issues. It preserves every diagnostic rather than collapsing them into one text-only error.</p>
+<p><code>duplicate_variable</code> specifically emits <code>ErrValDuplicate</code> and adds:</p>
+<pre><code class="language-rust">RecoveryHintKind::ReviewConfiguration {
+    key: &quot;required_variables&quot;.to_owned(),
+}
+</code></pre>
+<h3><code>RenderError</code></h3>
+<p>Represents template compilation or rendering failures.</p>
+<pre><code class="language-rust">error.backtrace() -&gt; &amp;Backtrace
+error.code() -&gt; Option&lt;DiagnosticCode&gt;
+error.message() -&gt; &amp;str
+</code></pre>
+<p><code>RenderError</code> is deliberately opaque to external callers. Its crate-private <code>render(source)</code> constructor accepts any thread-safe standard error, snapshots its string message, and boxes the original error as the source. Its diagnostic code is currently absent by default (<code>None</code>), so callers must handle render failures that have no stable <code>DiagnosticCode</code>.</p>
+<h3><code>ConfigError</code></h3>
+<p>Represents configuration and parsing failures.</p>
+<pre><code class="language-rust">error.code() -&gt; DiagnosticCode
+error.recovery_hints() -&gt; &amp;[RecoveryHint]
+error.message() -&gt; &amp;str
+error.backtrace() -&gt; &amp;Backtrace
+</code></pre>
+<p>Crate modules construct it with <code>new</code>, may add a source through <code>with_source</code>, and may attach one or more structured recovery hints with <code>with_recovery_hint</code>.</p>
+<h3><code>ComposeError</code></h3>
+<p>The top-level error enum unifies the library’s public failure paths:</p>
+<pre><code class="language-rust">pub enum ComposeError {
+    Resolve(ResolveError),
+    Include(IncludeError),
+    Validation(Box&lt;ValidationError&gt;),
+    Render(RenderError),
+    Config(ConfigError),
+}
+</code></pre>
+<p>All five concrete error types implement <code>From&lt;T&gt; for ComposeError</code>, allowing crate code to use <code>?</code> when a function returns <code>Result&lt;_, ComposeError&gt;</code>.</p>
+<pre><code class="language-rust">fn run() -&gt; Result&lt;(), ComposeError&gt; {
+    let result = perform_composition()?;
+    consume(result);
+    Ok(())
+}
+</code></pre>
+<p><code>ComposeError::code()</code> returns:</p>
+<ul>
+<li><code>Some(code)</code> for resolve, include, validation, and configuration errors.</li>
+<li>The render error’s optional code, currently normally <code>None</code>.</li>
+</ul>
+<p>The <code>Validation</code> variant boxes <code>ValidationError</code>, reducing the enum’s inline size and avoiding a large top-level error value because validation errors retain vectors of diagnostics and recovery hints.</p>
+<h2>Dependencies</h2>
+<p>The module depends only on standard-library error infrastructure and internal Application-layer types:</p>
+<ul>
+<li><code>std::error::Error</code>, <code>std::fmt</code>, and <code>Box&lt;dyn Error + Send + Sync&gt;</code> provide standard error interoperability, formatting, and source storage.</li>
+<li><code>std::backtrace::Backtrace</code> captures failure-origin context at construction time.</li>
+<li><code>std::path::PathBuf</code> stores attempted resolver paths, include chains, diagnostic paths, and path-oriented hints.</li>
+<li><code>crate::diagnostics::DiagnosticCode</code> supplies stable machine-readable error identities.</li>
+<li><code>crate::Diagnostic</code> supplies full validation diagnostics, including message, path, line, column, and include-chain context.</li>
+<li><code>crate::types::VariableName</code> provides validated variable identifiers for recovery hints and duplicate-variable validation errors.</li>
+</ul>
+<p>Upstream modules use the families according to their responsibility:</p>
+<ul>
+<li><code>resolver.rs</code> constructs <code>ResolveError</code> values with candidate paths.</li>
+<li><code>include.rs</code> constructs <code>IncludeError</code> values with include chains.</li>
+<li><code>frontmatter.rs</code>, <code>validation.rs</code>, and <code>verify.rs</code> produce validation and configuration failures.</li>
+<li><code>renderer.rs</code> converts engine failures into <code>RenderError</code>.</li>
+<li><code>composer.rs</code> and <code>lib.rs</code> expose unified <code>ComposeError</code> results.</li>
+<li><code>sc-compose</code>’s CLI entry point can inspect the top-level error and render user-facing diagnostics without depending on template-engine error types.</li>
+</ul>
+<h2>Usage Notes</h2>
+<h3>Handle failures by variant, then prefer structured fields</h3>
+<p>Use <code>ComposeError</code> for broad control flow, then inspect the variant-specific data when presenting diagnostics or deciding remediation.</p>
+<pre><code class="language-rust">match error {
+    ComposeError::Resolve(error) =&gt; {
+        eprintln!(&quot;{} ({})&quot;, error.message(), error.code().as_str());
+
+        for path in error.attempted_paths() {
+            eprintln!(&quot;  tried {}&quot;, path.display());
+        }
+    }
+    ComposeError::Include(error) =&gt; {
+        eprintln!(&quot;{} ({})&quot;, error.message(), error.code().as_str());
+
+        for path in error.include_chain() {
+            eprintln!(&quot;  included from {}&quot;, path.display());
+        }
+    }
+    ComposeError::Validation(error) =&gt; {
+        for diagnostic in error.diagnostics() {
+            eprintln!(&quot;{}: {}&quot;, diagnostic.code.as_str(), diagnostic.message);
+        }
+
+        for hint in error.recovery_hints() {
+            match &amp;hint.kind {
+                RecoveryHintKind::InspectPath { path } =&gt; {
+                    eprintln!(&quot;Inspect {}&quot;, path.display());
+                }
+                RecoveryHintKind::ProvideVariable { variable } =&gt; {
+                    eprintln!(&quot;Provide {variable}&quot;);
+                }
+                RecoveryHintKind::ReviewConfiguration { key } =&gt; {
+                    eprintln!(&quot;Review configuration key {key}&quot;);
+                }
+                RecoveryHintKind::RunCommand { command } =&gt; {
+                    eprintln!(&quot;Run: {command}&quot;);
+                }
+            }
+        }
+    }
+    ComposeError::Render(error) =&gt; {
+        eprintln!(&quot;{}&quot;, error.message());
+    }
+    ComposeError::Config(error) =&gt; {
+        eprintln!(&quot;{} ({})&quot;, error.message(), error.code().as_str());
+    }
+}
+</code></pre>
+<p>Do not infer attempted paths, include ancestry, or recovery steps from <code>Display</code> output. Those details have dedicated accessors intended for programmatic consumers.</p>
+<h3>Preserve all validation diagnostics</h3>
+<p>For validation workflows, <code>ValidationError::diagnostics()</code> is more authoritative than <code>message()</code>. The message is a formatted summary, while the diagnostics slice retains structured fields such as code, location, path, and include chain.</p>
+<p>An empty diagnostics set is valid at construction time. In that case, <code>from_diagnostics</code> assigns <code>DiagnosticCode::ErrValEmpty</code> and produces an empty message. Consumers that render validation output should therefore handle an empty diagnostics slice rather than assuming at least one entry.</p>
+<h3>Understand diagnostic-code availability</h3>
+<p>Most concrete families guarantee a <code>DiagnosticCode</code>. <code>RenderError</code> does not: <code>RenderError::code()</code> returns <code>Option&lt;DiagnosticCode&gt;</code> and currently defaults to <code>None</code>.</p>
+<pre><code class="language-rust">if let Some(code) = error.code() {
+    telemetry.record_code(code.as_str());
+} else {
+    telemetry.record_unclassified_failure();
+}
+</code></pre>
+<p>Avoid treating a missing code as a success condition or as an unreachable state; it is the expected representation of an engine-originated render failure that has not been classified.</p>
+<h3>Use standard error chaining for root-cause reporting</h3>
+<p>All families implement <code>std::error::Error</code>, and their optional boxed source errors are exposed through <code>source()</code>. Generic Rust error-reporting tools can traverse the chain without knowing this module’s concrete types.</p>
+<p><code>ResolveError</code>, <code>IncludeError</code>, <code>ValidationError</code>, and <code>ConfigError</code> include the chain and captured backtrace in their <code>Display</code> output. This is useful for terminal diagnostics but can be verbose; structured accessors are preferable for compact or machine-readable output.</p>
+<p><code>RenderError</code> is an important exception: its display text does not include its captured backtrace. Obtain it explicitly through <code>backtrace()</code> if a renderer or telemetry sink needs it.</p>
+<h3>Build a validation remediation flow</h3>
+<p>A robust caller can combine diagnostics and recovery hints in stages:</p>
+<ol>
+<li>Read <code>ValidationError::diagnostics()</code> to report every invalid condition.</li>
+<li>Use each <code>Diagnostic</code>’s location and include-chain data to identify the source template.</li>
+<li>Match <code>RecoveryHintKind</code> to generate focused next actions.</li>
+<li>Fall back to <code>message()</code> only for a concise plain-text summary.</li>
+</ol>
+<pre><code class="language-rust">fn remediation(error: &amp;ValidationError) -&gt; Vec&lt;String&gt; {
+    let mut actions = Vec::new();
+
+    for hint in error.recovery_hints() {
+        match &amp;hint.kind {
+            RecoveryHintKind::InspectPath { path } =&gt; {
+                actions.push(format!(&quot;Open {}&quot;, path.display()));
+            }
+            RecoveryHintKind::ProvideVariable { variable } =&gt; {
+                actions.push(format!(&quot;Supply required variable `{variable}`&quot;));
+            }
+            RecoveryHintKind::ReviewConfiguration { key } =&gt; {
+                actions.push(format!(&quot;Review `{key}`&quot;));
+            }
+            RecoveryHintKind::RunCommand { command } =&gt; {
+                actions.push(format!(&quot;Run `{command}`&quot;));
+            }
+        }
+    }
+
+    actions
+}
+</code></pre>
+<h3>Avoid constructing public errors outside the crate</h3>
+<p>The concrete error constructors are intentionally <code>pub(crate)</code>. External integrations should not attempt to recreate resolver, include, validation, render, or configuration errors from strings. Instead, consume <code>ComposeError</code> from the library’s public operations, preserving the crate’s diagnostic-code and contextual-data invariants.</p>
+</body>
+</html>

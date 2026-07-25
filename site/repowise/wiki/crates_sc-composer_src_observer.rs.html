@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-composer/src/observer.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-composer/src/observer.rs</h1>
+<h2>Overview</h2>
+<p><code>observer.rs</code> is the Application-layer edge connector for composition telemetry: it defines the event payloads consumed by embedded hosts and the CLI, plus observer interfaces that receive lifecycle notifications from resolution, include expansion, validation, verification, and rendering.</p>
+<p>The module is the public telemetry boundary of <code>sc-composer</code>. Core composition code emits typed, serializable events without depending on CLI presentation or host-specific logging; cross-layer consumers implement one or both traits to collect, display, or forward those events.</p>
+<p><code>ObservationEvent</code> is a tagged event stream covering the full composition lifecycle:</p>
+<ul>
+<li>Pass boundaries: <code>PassStart</code>, <code>PassEnd</code></li>
+<li>Verification boundaries: <code>VerifyStart</code>, <code>VerifyEnd</code></li>
+<li>Resolution: <code>ResolveAttempt</code>, <code>ResolveOutcome</code></li>
+<li>Include expansion: <code>IncludeExpandOutcome</code></li>
+<li>Validation: <code>ValidationOutcome</code></li>
+<li>Rendering: <code>RenderOutcome</code></li>
+</ul>
+<p>Every payload derives <code>Serialize</code>, allowing a consumer to turn the event stream into structured output such as JSON without introducing serialization logic into the composer pipeline.</p>
+<p>The module exposes two complementary integration styles:</p>
+<ul>
+<li><code>CompositionObserver</code> provides named callback hooks. Each method has a default no-op implementation, so consumers override only the lifecycle events they need.</li>
+<li><code>ObservationSink</code> provides a single <code>emit(&amp;ObservationEvent)</code> entry point for consumers that prefer a uniform event stream.</li>
+</ul>
+<p><code>NoopObserver</code> implements both traits and is the default safe substitute when no host observer is injected. This keeps normal composition functional and makes telemetry opt-in rather than a required runtime dependency.</p>
+<h2>Public API</h2>
+<h3><code>ObservationEvent</code></h3>
+<p><code>ObservationEvent</code> is the unified, serializable envelope for telemetry. Consumers matching on this enum can process all lifecycle notifications through one dispatch point.</p>
+<table>
+<thead>
+<tr>
+<th>Variant</th>
+<th>Payload</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PassStart</code></td>
+<td><code>PassStartEvent</code></td>
+<td>A render pass is about to begin.</td>
+</tr>
+<tr>
+<td><code>PassEnd</code></td>
+<td><code>PassEndEvent</code></td>
+<td>A render pass has completed.</td>
+</tr>
+<tr>
+<td><code>VerifyStart</code></td>
+<td><code>VerifyStartEvent</code></td>
+<td>Verification has begun.</td>
+</tr>
+<tr>
+<td><code>VerifyEnd</code></td>
+<td><code>VerifyEndEvent</code></td>
+<td>Verification has completed.</td>
+</tr>
+<tr>
+<td><code>ResolveAttempt</code></td>
+<td><code>ResolveAttemptEvent</code></td>
+<td>Resolution has started for a template or profile identifier.</td>
+</tr>
+<tr>
+<td><code>ResolveOutcome</code></td>
+<td><code>ResolveOutcomeEvent</code></td>
+<td>Resolution succeeded or failed.</td>
+</tr>
+<tr>
+<td><code>IncludeExpandOutcome</code></td>
+<td><code>IncludeOutcomeEvent</code></td>
+<td>Include expansion succeeded or failed.</td>
+</tr>
+<tr>
+<td><code>ValidationOutcome</code></td>
+<td><code>ValidationOutcomeEvent</code></td>
+<td>Validation completed with warnings and/or errors.</td>
+</tr>
+<tr>
+<td><code>RenderOutcome</code></td>
+<td><code>RenderOutcomeEvent</code></td>
+<td>Rendering succeeded or failed.</td>
+</tr>
+</tbody>
+</table>
+<p>It derives <code>Clone</code>, <code>Debug</code>, <code>PartialEq</code>, and <code>Serialize</code>, making it suitable for capturing in tests, diagnostic output, and structured telemetry pipelines.</p>
+<h3><code>ObservationSink</code></h3>
+<pre><code class="language-rust">pub trait ObservationSink {
+    fn emit(&amp;mut self, event: &amp;ObservationEvent);
+}
+</code></pre>
+<p>Implement this trait when the consumer wants a single event-stream interface. The event is borrowed, so sinks should copy or serialize data if they need to retain it after the callback returns.</p>
+<p>The documentation explicitly distinguishes this method from deprecated downstream logger APIs that may also use the name <code>emit</code>.</p>
+<h3><code>CompositionObserver</code></h3>
+<p><code>CompositionObserver</code> is a callback-oriented extension point. All callback methods are optional and default to no-ops:</p>
+<pre><code class="language-rust">pub trait CompositionObserver {
+    fn on_pass_start(&amp;mut self, event: &amp;PassStartEvent) {}
+    fn on_pass_end(&amp;mut self, event: &amp;PassEndEvent) {}
+    fn on_verify_start(&amp;mut self, event: &amp;VerifyStartEvent) {}
+    fn on_verify_end(&amp;mut self, event: &amp;VerifyEndEvent) {}
+    fn on_resolve_attempt(&amp;mut self, event: &amp;ResolveAttemptEvent) {}
+    fn on_resolve_outcome(&amp;mut self, event: &amp;ResolveOutcomeEvent) {}
+    fn on_include_outcome(&amp;mut self, event: &amp;IncludeOutcomeEvent) {}
+    fn on_validation_outcome(&amp;mut self, event: &amp;ValidationOutcomeEvent) {}
+    fn on_render_outcome(&amp;mut self, event: &amp;RenderOutcomeEvent) {}
+}
+</code></pre>
+<p>Use this interface when a consumer benefits from type-specific handlers—for example, printing resolution failures differently from validation diagnostics.</p>
+<p>The composer invokes this trait from its observed composition paths, while CLI command paths and integration tests supply implementations such as <code>CliObserver</code> and capturing observers.</p>
+<h3><code>NoopObserver</code></h3>
+<p><code>NoopObserver</code> is a zero-sized, <code>Default</code> no-op implementation of both <code>CompositionObserver</code> and <code>ObservationSink</code>.</p>
+<p>Use it when generic code requires an observer but no telemetry output is desired. Its presence guarantees that observer callbacks do not change composition results or introduce side effects.</p>
+<h3>Event payloads</h3>
+<h4>Pass and verification events</h4>
+<ul>
+<li><code>PassStartEvent { pub pass_number: u8 }</code></li>
+<li><code>PassEndEvent { pub pass_number: u8 }</code></li>
+<li><code>VerifyStartEvent</code></li>
+<li><code>VerifyEndEvent</code></li>
+</ul>
+<p><code>PassStartEvent::new(pass_number)</code> and <code>PassEndEvent::new(pass_number)</code> construct pass-boundary events. The <code>u8</code> pass number should be treated as an ordinal supplied by the composition workflow, not as a count derived by the observer.</p>
+<h4>Resolution events</h4>
+<pre><code class="language-rust">pub struct ResolveAttemptEvent {
+    pub template: String,
+}
+
+pub struct ResolveOutcomeEvent {
+    pub resolved_path: Option&lt;PathBuf&gt;,
+    pub attempted_paths: Vec&lt;PathBuf&gt;,
+    pub code: Option&lt;DiagnosticCode&gt;,
+}
+</code></pre>
+<p><code>ResolveOutcomeEvent</code> represents both success and failure:</p>
+<ul>
+<li>On success, <code>resolved_path</code> is expected to contain the selected path.</li>
+<li>On failure, <code>code</code> can carry a stable diagnostic code.</li>
+<li><code>attempted_paths</code> preserves the candidates considered and is useful even when resolution succeeds.</li>
+</ul>
+<p>Consumers should not infer failure solely from an empty <code>attempted_paths</code>; inspect <code>resolved_path</code> and <code>code</code> according to the reporting behavior they need.</p>
+<h4>Include-expansion event</h4>
+<pre><code class="language-rust">pub struct IncludeOutcomeEvent {
+    pub resolved_files: Vec&lt;PathBuf&gt;,
+    pub include_chain: Vec&lt;PathBuf&gt;,
+    pub code: Option&lt;DiagnosticCode&gt;,
+}
+</code></pre>
+<p>A successful expansion can provide all resolved files. A failed expansion can provide the include chain and diagnostic code. Either vector may be empty, so consumers should not use vector length alone as the success signal.</p>
+<h4>Validation event</h4>
+<pre><code class="language-rust">pub struct ValidationOutcomeEvent {
+    pub warnings: Vec&lt;Diagnostic&gt;,
+    pub errors: Vec&lt;Diagnostic&gt;,
+}
+</code></pre>
+<p>Warnings and errors are deliberately separate. A consumer that only checks <code>errors</code> can preserve non-fatal diagnostic reporting; a consumer that treats any diagnostic as a failure should combine both lists explicitly.</p>
+<p>This type derives <code>PartialEq</code> but not <code>Eq</code>, consistent with its <code>Diagnostic</code> payload.</p>
+<h4>Render event</h4>
+<pre><code class="language-rust">pub struct RenderOutcomeEvent {
+    pub rendered_bytes: Option&lt;usize&gt;,
+    pub code: Option&lt;DiagnosticCode&gt;,
+}
+</code></pre>
+<p><code>rendered_bytes</code> reports output size when rendering succeeds; <code>code</code> records a stable diagnostic code when rendering fails. Consumers should handle the possibility that either optional field is absent rather than assuming they are strict inverses.</p>
+<h2>Dependencies</h2>
+<p>The production module depends only on:</p>
+<ul>
+<li><code>std::path::PathBuf</code> for filesystem-oriented resolution and include metadata.</li>
+<li><code>serde::Serialize</code> so event envelopes and payloads can be emitted as structured telemetry.</li>
+<li><code>crate::Diagnostic</code> and <code>crate::DiagnosticCode</code> for validation details and stable failure classification.</li>
+</ul>
+<p>It does not import the CLI, logging framework, runtime integration, or composition engine. This preserves <code>sc-composer</code> as a reusable library and keeps host-specific policy at the boundary.</p>
+<p>The module is consumed by the composer, resolver, validation, verification, frontmatter handling, and the <code>sc-compose</code> command layer. In particular, composition flows such as <code>compose_with_observer</code> and error-notification paths use <code>CompositionObserver</code> to report outcomes without coupling internal operations to a concrete reporter.</p>
+<p>Test-only dependencies create temporary template roots and invoke <code>compose</code> directly. These tests verify that composition still works with no injected observer, that <code>NoopObserver</code> satisfies both traits, and that each callback/event variant can be accepted without side effects.</p>
+<h2>Usage Notes</h2>
+<p>Implement <code>CompositionObserver</code> when you only need selected lifecycle callbacks:</p>
+<pre><code class="language-rust">use sc_composer::{
+    CompositionObserver, ResolveOutcomeEvent, ValidationOutcomeEvent,
+};
+
+struct DiagnosticsObserver;
+
+impl CompositionObserver for DiagnosticsObserver {
+    fn on_resolve_outcome(&amp;mut self, event: &amp;ResolveOutcomeEvent) {
+        if let Some(code) = &amp;event.code {
+            eprintln!(&quot;resolution failed: {code:?}&quot;);
+            for attempted in &amp;event.attempted_paths {
+                eprintln!(&quot;  attempted: {}&quot;, attempted.display());
+            }
+        }
+    }
+
+    fn on_validation_outcome(&amp;mut self, event: &amp;ValidationOutcomeEvent) {
+        for warning in &amp;event.warnings {
+            eprintln!(&quot;warning: {warning:?}&quot;);
+        }
+    }
+}
+</code></pre>
+<p>Implement <code>ObservationSink</code> when forwarding all telemetry through one pipeline:</p>
+<pre><code class="language-rust">use sc_composer::{ObservationEvent, ObservationSink};
+
+struct JsonSink;
+
+impl ObservationSink for JsonSink {
+    fn emit(&amp;mut self, event: &amp;ObservationEvent) {
+        match serde_json::to_string(event) {
+            Ok(line) =&gt; println!(&quot;{line}&quot;),
+            Err(error) =&gt; eprintln!(&quot;failed to serialize observation: {error}&quot;),
+        }
+    }
+}
+</code></pre>
+<p>For a host that needs both semantic callbacks and a generic event collector, implement both traits on the same type. Do not assume implementing one trait automatically adapts to the other; <code>NoopObserver</code> implements both, but the traits are intentionally independent.</p>
+<p>When storing events, clone them inside the callback or sink because all APIs provide borrowed references:</p>
+<pre><code class="language-rust">use sc_composer::{ObservationEvent, ObservationSink};
+
+#[derive(Default)]
+struct CapturingSink {
+    events: Vec&lt;ObservationEvent&gt;,
+}
+
+impl ObservationSink for CapturingSink {
+    fn emit(&amp;mut self, event: &amp;ObservationEvent) {
+        self.events.push(event.clone());
+    }
+}
+</code></pre>
+<p>Avoid using telemetry as the authoritative source of composition state. Events describe lifecycle outcomes and diagnostic context, but the composition result and returned errors remain the primary control-flow interface. In particular:</p>
+<ul>
+<li>Treat <code>DiagnosticCode</code> as stable classification data, not user-facing prose.</li>
+<li>Preserve <code>attempted_paths</code> and <code>include_chain</code> order when presenting failures, since order conveys traversal context.</li>
+<li>Keep observer implementations lightweight or buffer work for later; callbacks may be emitted from performance-sensitive composition paths.</li>
+<li>Use <code>NoopObserver</code> or omit observer injection when instrumentation is unnecessary; the module’s tests establish that composition remains fully functional in that configuration.</li>
+</ul>
+</body>
+</html>

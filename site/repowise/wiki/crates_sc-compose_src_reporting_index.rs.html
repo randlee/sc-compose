@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/reporting/index.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/reporting/index.rs</h1>
+<p>I’m checking the repository’s collaboration and memory guidance so the wiki page reflects the local conventions as well as the supplied source.</p>
+<h2>Overview</h2>
+<p><code>reporting/index.rs</code> is the Application-layer entry point and cross-layer edge connector for report-evidence indexing: it consumes the report catalog and report metadata beneath a repository root and produces serializable report-index and required-report verification results. It is called by the reports CLI commands and publish-manifest writer, giving those consumers one consistent view of each configured report’s declared paths, metadata-derived state, artifacts, and missing evidence.</p>
+<p>The module joins two sources of truth:</p>
+<ul>
+<li>The catalog supplies the report identity, kind, required flag, entrypoint path, and metadata path.</li>
+<li>The metadata JSON supplies the runtime <code>status</code>, <code>produced_at</code> timestamp, and artifact paths—but is read only after the declared entrypoint and metadata file both exist.</li>
+</ul>
+<p>Each <code>ReportIndexEntry</code> preserves catalog information even when evidence is incomplete. Instead of failing immediately for absent entrypoints, metadata files, or artifacts, indexing records relative paths in <code>missing_paths</code>. This permits index consumers to display the complete report inventory, including broken or incomplete entries. Strict enforcement is deferred to <code>verify_required_reports</code>, which fails only when a required report has missing evidence.</p>
+<p>All paths stored in index output are relative <code>PathBuf</code> values and are serialized through the project’s path helpers, allowing JSON output to use platform-independent path formatting.</p>
+<h2>Public API</h2>
+<h3><code>ReportIndexEntry</code></h3>
+<p>A serializable, per-report evidence record.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Source</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>report_id</code></td>
+<td>catalog</td>
+<td>Configured report identifier.</td>
+</tr>
+<tr>
+<td><code>kind</code></td>
+<td>catalog</td>
+<td>Catalog-defined report type.</td>
+</tr>
+<tr>
+<td><code>required</code></td>
+<td>catalog</td>
+<td>Whether missing evidence must cause verification failure.</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>metadata</td>
+<td>Metadata status when the entrypoint and metadata file are present; otherwise <code>None</code>.</td>
+</tr>
+<tr>
+<td><code>produced_at</code></td>
+<td>metadata</td>
+<td>Metadata production timestamp when metadata is readable and valid; otherwise <code>None</code>.</td>
+</tr>
+<tr>
+<td><code>entrypoint</code></td>
+<td>catalog</td>
+<td>Relative path to the report’s primary evidence file.</td>
+</tr>
+<tr>
+<td><code>metadata</code></td>
+<td>catalog</td>
+<td>Relative path to the report metadata JSON file.</td>
+</tr>
+<tr>
+<td><code>artifacts</code></td>
+<td>metadata</td>
+<td>Relative paths declared by metadata; empty when prerequisite files are missing.</td>
+</tr>
+<tr>
+<td><code>missing_paths</code></td>
+<td>indexer</td>
+<td>Missing declared or metadata-listed paths, relative to <code>root</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><code>status</code>, <code>produced_at</code>, and <code>artifacts</code> are not independently best-effort fields. If either the configured entrypoint or configured metadata file is absent, the module skips metadata parsing entirely and leaves all three in their empty/<code>None</code> form.</p>
+<h3><code>ReportIndex</code></h3>
+<p>A serializable wrapper around the complete catalog-derived index:</p>
+<pre><code class="language-rust">pub(crate) struct ReportIndex {
+    pub(crate) entries: Vec&lt;ReportIndexEntry&gt;,
+}
+</code></pre>
+<p>Entries retain catalog iteration order. The module does not sort, deduplicate, or filter the catalog; catalog validation is delegated to <code>ReportCatalog::load</code>.</p>
+<h3><code>ReportVerifyResult</code></h3>
+<p>A serializable verification summary:</p>
+<pre><code class="language-rust">pub(crate) struct ReportVerifyResult {
+    pub(crate) required_count: usize,
+    pub(crate) verified_count: usize,
+}
+</code></pre>
+<p>On success, <code>verified_count</code> equals <code>required_count</code>. If an invalid required entry is found, verification returns an error immediately instead of producing a partial result.</p>
+<h3><code>ReportIndexError</code></h3>
+<p>The module’s error type covers four failure classes:</p>
+<ul>
+<li><code>Catalog(Box&lt;CatalogError&gt;)</code> — the report catalog cannot be loaded or validated.</li>
+<li><code>ReadMetadata { path, source }</code> — a metadata file expected to exist cannot be read.</li>
+<li><code>ParseMetadata { path, source }</code> — metadata exists but is not valid <code>ReportMetadata</code> JSON.</li>
+<li><code>MissingRequiredEvidence { report_id, missing_paths }</code> — verification found absent evidence for a required report.</li>
+</ul>
+<p><code>Display</code> retains file paths and underlying I/O or JSON errors. <code>MissingRequiredEvidence</code> formats every missing path as a comma-separated list. The type implements <code>std::error::Error</code>, allowing command-layer callers to convert it into their diagnostic mechanism.</p>
+<h3><code>build_report_index</code></h3>
+<pre><code class="language-rust">pub(crate) fn build_report_index(root: &amp;Path) -&gt; Result&lt;ReportIndex, ReportIndexError&gt;
+</code></pre>
+<p>Loads the report catalog rooted at <code>root</code>, indexes every report definition, and returns all entries.</p>
+<p>Processing for each report is:</p>
+<ol>
+<li>Check whether <code>root / entrypoint</code> exists.</li>
+<li>Check whether <code>root / metadata</code> exists.</li>
+<li>If either is missing, record the missing declared path or paths and do not parse metadata.</li>
+<li>Otherwise, read and deserialize metadata.</li>
+<li>Copy its <code>status</code>, <code>produced_at</code>, and artifact paths into the index entry.</li>
+<li>Check every metadata artifact path under <code>root</code> and append absent artifacts to <code>missing_paths</code>.</li>
+</ol>
+<p>The function surfaces malformed or unreadable metadata as errors rather than representing it as “missing.” This distinction matters operationally: an absent evidence path is an indexable state, while inaccessible or invalid metadata means the report’s declared evidence cannot be interpreted safely.</p>
+<h3><code>verify_required_reports</code></h3>
+<pre><code class="language-rust">pub(crate) fn verify_required_reports(root: &amp;Path) -&gt; Result&lt;ReportVerifyResult, ReportIndexError&gt;
+</code></pre>
+<p>Builds the full index, filters it to required entries, and confirms that each has an empty <code>missing_paths</code> list.</p>
+<p>The first required entry with missing evidence causes <code>MissingRequiredEvidence</code>; later required entries are not examined. Optional reports remain part of <code>build_report_index</code> output but cannot fail this verification operation.</p>
+<h3>Internal helpers</h3>
+<p><code>index_entry</code> performs the per-definition filesystem and metadata checks. It is private so callers cannot bypass catalog loading or construct a partial index workflow.</p>
+<p><code>read_metadata</code> reads <code>root.join(relative_path)</code> as bytes and deserializes <code>ReportMetadata</code> with <code>serde_json::from_slice</code>. It preserves the resolved path in either read or parse errors.</p>
+<h2>Dependencies</h2>
+<h3>Internal modules</h3>
+<ul>
+<li><code>reporting::catalog::{CatalogError, ReportCatalog}</code> provides validated report definitions. Catalog validation establishes constraints such as supported report kinds, unique IDs, and normalized relative entrypoint and metadata paths before this module accesses the filesystem.</li>
+<li><code>reporting::output::ReportMetadata</code> defines the JSON schema emitted for materialized reports. This module consumes its <code>status</code>, <code>produced_at</code>, and <code>artifacts</code> fields.</li>
+<li><code>path_utils::serialize_path</code> and <code>path_utils::serialize_paths</code> are referenced by Serde attributes to normalize serialized path representation.</li>
+</ul>
+<h3>External and standard-library dependencies</h3>
+<ul>
+<li><code>serde::Serialize</code> makes all public result records suitable for CLI JSON output and manifest generation.</li>
+<li><code>serde_json</code> parses report metadata.</li>
+<li><code>std::path::{Path, PathBuf}</code> represents the repository root and catalog-relative evidence paths.</li>
+<li><code>std::fs::read</code> reads metadata files.</li>
+<li><code>std::fmt</code> and <code>std::error::Error</code> provide diagnostic integration.</li>
+</ul>
+<h3>Consumers</h3>
+<ul>
+<li><code>commands/reports/scaffold.rs</code> calls <code>build_report_index</code> for the reports index command and <code>verify_required_reports</code> for the reports verification command.</li>
+<li><code>reporting/publish_manifest.rs</code> calls <code>build_report_index</code> before writing the publish manifest.</li>
+<li><code>reporting/mod.rs</code> exposes the module within the reporting subsystem.</li>
+<li><code>main.rs</code> reaches this functionality indirectly through command dispatch.</li>
+</ul>
+<h2>Usage Notes</h2>
+<h3>Index reports for presentation or downstream generation</h3>
+<p>Use <code>build_report_index</code> when a caller needs visibility into both complete and incomplete reports.</p>
+<pre><code class="language-rust">let index = build_report_index(repo_root)?;
+
+for entry in &amp;index.entries {
+    println!(&quot;{}: {} missing paths&quot;, entry.report_id, entry.missing_paths.len());
+
+    if let Some(status) = &amp;entry.status {
+        println!(&quot;  status: {status}&quot;);
+    }
+}
+</code></pre>
+<p>This is appropriate for a JSON index command or publish-manifest preparation because consumers can inspect all catalog entries and decide how to represent optional missing evidence.</p>
+<h3>Verify required evidence before a gated workflow</h3>
+<p>Use <code>verify_required_reports</code> when only required reports should block progress.</p>
+<pre><code class="language-rust">match verify_required_reports(repo_root) {
+    Ok(result) =&gt; {
+        println!(
+            &quot;verified {}/{} required reports&quot;,
+            result.verified_count,
+            result.required_count
+        );
+    }
+    Err(ReportIndexError::MissingRequiredEvidence {
+        report_id,
+        missing_paths,
+    }) =&gt; {
+        eprintln!(&quot;required report {report_id} is incomplete: {missing_paths:?}&quot;);
+    }
+    Err(error) =&gt; return Err(error.into()),
+}
+</code></pre>
+<p>A successful verification result does not imply optional reports are complete. To audit those too, build and inspect the full index.</p>
+<h3>Interpret <code>missing_paths</code> correctly</h3>
+<p><code>missing_paths</code> can contain:</p>
+<ul>
+<li>the catalog-defined entrypoint;</li>
+<li>the catalog-defined metadata path;</li>
+<li>artifact paths listed inside valid metadata.</li>
+</ul>
+<p>If the entrypoint or metadata path is missing, artifacts are intentionally not discovered, because metadata parsing is skipped. Consequently, the list reports directly observable missing evidence only; it is not a speculative list of artifacts that might have been present in unavailable metadata.</p>
+<h3>Treat parsing failures differently from absent files</h3>
+<p>A missing metadata file is recorded in <code>missing_paths</code> and can be tolerated for optional reports. A metadata file that exists but cannot be read or parsed returns an error from <code>build_report_index</code>, including for optional reports. Callers that need a resilient user-facing command should render <code>ReportIndexError</code> as a configuration/evidence diagnostic rather than silently omitting the report.</p>
+<h3>Preserve root-relative semantics</h3>
+<p>The catalog is responsible for enforcing normalized relative paths. This module joins each configured or metadata-derived path to <code>root</code>; callers should pass the intended repository root, not an individual report directory. Passing the wrong root can make otherwise valid relative paths appear missing.</p>
+<h3>Be aware of early-exit verification</h3>
+<p><code>verify_required_reports</code> stops at the first required entry with missing evidence. It is efficient for command gating but does not aggregate all required-report failures. A caller that needs a complete remediation report should call <code>build_report_index</code>, filter <code>entry.required &amp;&amp; !entry.missing_paths.is_empty()</code>, and collect every failure itself.</p>
+</body>
+</html>
