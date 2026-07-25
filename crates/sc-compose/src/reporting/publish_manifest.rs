@@ -307,7 +307,10 @@ mod tests {
 
         let message = error.to_string();
         assert!(message.contains("invalid publish-manifest artifact path for smoke"));
-        assert!(message.contains("artifact must remain under reports/latest/smoke"));
+        assert!(message.contains(&format!(
+            "artifact must remain under {}",
+            latest_report_root.display()
+        )));
     }
 
     #[test]
