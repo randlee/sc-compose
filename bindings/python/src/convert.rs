@@ -326,7 +326,7 @@ mod tests {
         root
     }
 
-    fn py_error_details(py: Python<'_>, err: PyErr) -> (String, String, Option<String>) {
+    fn py_error_details(py: Python<'_>, err: &PyErr) -> (String, String, Option<String>) {
         let exc = err.value(py);
         (
             exc.get_type().name().unwrap().to_string(),
@@ -410,8 +410,10 @@ mod tests {
             let roots = PyList::empty(py);
             roots.append(missing.display().to_string()).unwrap();
 
-            let (ty, message, code) =
-                py_error_details(py, extract_allowed_roots(Some(roots.as_any())).unwrap_err());
+            let (ty, message, code) = py_error_details(
+                py,
+                &extract_allowed_roots(Some(roots.as_any())).unwrap_err(),
+            );
 
             assert_eq!(ty, "ScConfigError");
             assert!(message.contains("No such file or directory"));
@@ -425,7 +427,7 @@ mod tests {
         Python::attach(|py| {
             let list = PyList::empty(py);
             let (ty, message, code) =
-                py_error_details(py, extract_string_map(list.as_any()).unwrap_err());
+                py_error_details(py, &extract_string_map(list.as_any()).unwrap_err());
             assert_eq!(ty, "ScValidationError");
             assert_eq!(message, "context must be a Python dict");
             assert_eq!(code, None);
@@ -433,7 +435,7 @@ mod tests {
             let dict = PyDict::new(py);
             dict.set_item("nested", vec![vec!["nope"]]).unwrap();
             let (ty, message, code) =
-                py_error_details(py, extract_string_map(dict.as_any()).unwrap_err());
+                py_error_details(py, &extract_string_map(dict.as_any()).unwrap_err());
             assert_eq!(ty, "ScValidationError");
             assert!(message.contains("nested arrays"));
             assert_eq!(code.as_deref(), Some("ERR_VAL_NESTED_ARRAY_UNSUPPORTED"));
@@ -448,7 +450,7 @@ mod tests {
             dict.set_item("items", vec![vec!["nope"]]).unwrap();
 
             let (ty, message, code) =
-                py_error_details(py, extract_json_context(dict.as_any()).unwrap_err());
+                py_error_details(py, &extract_json_context(dict.as_any()).unwrap_err());
 
             assert_eq!(ty, "ScValidationError");
             assert!(message.contains("nested arrays"));
@@ -463,7 +465,7 @@ mod tests {
             let dict = PyDict::new(py);
             dict.set_item(7, "value").unwrap();
             let (ty, message, code) =
-                py_error_details(py, py_to_json_value(dict.as_any()).unwrap_err());
+                py_error_details(py, &py_to_json_value(dict.as_any()).unwrap_err());
             assert_eq!(ty, "ScValidationError");
             assert_eq!(message, "object keys must be strings");
             assert_eq!(code, None);
@@ -471,7 +473,7 @@ mod tests {
             let inf = py
                 .eval(pyo3::ffi::c_str!("float('inf')"), None, None)
                 .unwrap();
-            let (ty, message, code) = py_error_details(py, py_to_json_value(&inf).unwrap_err());
+            let (ty, message, code) = py_error_details(py, &py_to_json_value(&inf).unwrap_err());
             assert_eq!(ty, "ScValidationError");
             assert_eq!(message, "floating-point values must be finite");
             assert_eq!(code, None);
@@ -479,7 +481,8 @@ mod tests {
             let complex = py
                 .eval(pyo3::ffi::c_str!("complex(1, 2)"), None, None)
                 .unwrap();
-            let (ty, message, code) = py_error_details(py, py_to_json_value(&complex).unwrap_err());
+            let (ty, message, code) =
+                py_error_details(py, &py_to_json_value(&complex).unwrap_err());
             assert_eq!(ty, "ScValidationError");
             assert!(message.contains("unsupported Python value type"));
             assert_eq!(code, None);
