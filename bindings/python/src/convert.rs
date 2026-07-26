@@ -50,16 +50,7 @@ pub(crate) fn extract_allowed_roots(
     };
     let mut roots = Vec::new();
     for item in value.try_iter()? {
-        let item = item?;
-        if let Ok(root) = item.extract::<PyRef<'_, PyConfiningRoot>>() {
-            roots.push(root.inner.clone());
-        } else {
-            let path = coerce_path_like(&item)?;
-            roots.push(
-                ConfiningRoot::new(path)
-                    .map_err(|error| config_error(error.to_string(), Some("ERR_CONFIG_PARSE")))?,
-            );
-        }
+        roots.push(extract_allowed_root(&item?)?);
     }
     Ok(roots)
 }
@@ -67,18 +58,11 @@ pub(crate) fn extract_allowed_roots(
 pub(crate) fn extract_string_map(
     value: &Bound<'_, PyAny>,
 ) -> PyResult<BTreeMap<String, InputValue>> {
-    let dict = value
-        .cast::<PyDict>()
-        .map_err(|_error| validation_error("context must be a Python dict".to_owned(), None))?;
+    let dict = expect_dict(value, "context must be a Python dict")?;
     let mut vars = BTreeMap::new();
     for (key, value) in dict.iter() {
-        let key = key
-            .extract::<String>()
-            .map_err(|_error| validation_error("context keys must be strings".to_owned(), None))?;
-        let value = py_to_json_value(&value)?;
-        sc_composer::validate_input_value(&value).map_err(|error| {
-            validation_error(error.message().to_owned(), Some(error.code().as_str()))
-        })?;
+        let key = extract_string_key(&key, "context keys must be strings")?;
+        let value = validated_input_value(&value)?;
         vars.insert(key, value);
     }
     Ok(vars)
@@ -90,24 +74,14 @@ pub(crate) fn extract_var_map(
     let Some(value) = value else {
         return Ok(BTreeMap::new());
     };
-    let dict = value.cast::<PyDict>().map_err(|_error| {
-        validation_error(
-            "variable maps must be Python dict instances".to_owned(),
-            None,
-        )
-    })?;
+    let dict = expect_dict(value, "variable maps must be Python dict instances")?;
     let mut vars = BTreeMap::new();
     for (key, value) in dict.iter() {
-        let key = key.extract::<String>().map_err(|_error| {
-            validation_error("variable names must be strings".to_owned(), None)
-        })?;
+        let key = extract_string_key(&key, "variable names must be strings")?;
         let variable = VariableName::new(key.clone()).map_err(|error| {
             validation_error(format!("invalid variable name `{key}`: {error}"), None)
         })?;
-        let input = py_to_json_value(&value)?;
-        sc_composer::validate_input_value(&input).map_err(|error| {
-            validation_error(error.message().to_owned(), Some(error.code().as_str()))
-        })?;
+        let input = validated_input_value(&value)?;
         vars.insert(variable, input);
     }
     Ok(vars)
@@ -147,14 +121,10 @@ pub(crate) fn extract_metadata_map(
     let Some(value) = value else {
         return Ok(BTreeMap::new());
     };
-    let dict = value.cast::<PyDict>().map_err(|_error| {
-        validation_error("metadata must be a Python dict instance".to_owned(), None)
-    })?;
+    let dict = expect_dict(value, "metadata must be a Python dict instance")?;
     let mut metadata = BTreeMap::new();
     for (key, value) in dict.iter() {
-        let key = key
-            .extract::<String>()
-            .map_err(|_error| validation_error("metadata keys must be strings".to_owned(), None))?;
+        let key = extract_string_key(&key, "metadata keys must be strings")?;
         let json = py_to_json_value(&value)?;
         let metadata_value = serde_json::from_value::<MetadataValue>(json)
             .map_err(|error| config_error(error.to_string(), Some("ERR_CONFIG_PARSE")))?;
@@ -213,11 +183,7 @@ pub(crate) fn extract_pass_contexts(
 }
 
 pub(crate) fn extract_json_context(value: &Bound<'_, PyAny>) -> PyResult<InputValue> {
-    let json = py_to_json_value(value)?;
-    sc_composer::validate_input_value(&json).map_err(|error| {
-        validation_error(error.message().to_owned(), Some(error.code().as_str()))
-    })?;
-    Ok(json)
+    validated_input_value(value)
 }
 
 pub(crate) fn coerce_path_like(value: &Bound<'_, PyAny>) -> PyResult<String> {
@@ -309,9 +275,68 @@ pub(crate) fn py_to_json_value(value: &Bound<'_, PyAny>) -> PyResult<serde_json:
     ))
 }
 
+fn extract_allowed_root(value: &Bound<'_, PyAny>) -> PyResult<ConfiningRoot> {
+    if let Ok(root) = value.extract::<PyRef<'_, PyConfiningRoot>>() {
+        return Ok(root.inner.clone());
+    }
+    let path = coerce_path_like(value)?;
+    ConfiningRoot::new(path)
+        .map_err(|error| config_error(error.to_string(), Some("ERR_CONFIG_PARSE")))
+}
+
+fn expect_dict<'py>(
+    value: &'py Bound<'py, PyAny>,
+    message: &str,
+) -> PyResult<&'py Bound<'py, PyDict>> {
+    value
+        .cast::<PyDict>()
+        .map_err(|_error| validation_error(message.to_owned(), None))
+}
+
+fn extract_string_key(value: &Bound<'_, PyAny>, message: &str) -> PyResult<String> {
+    value
+        .extract::<String>()
+        .map_err(|_error| validation_error(message.to_owned(), None))
+}
+
+fn validated_input_value(value: &Bound<'_, PyAny>) -> PyResult<InputValue> {
+    let json = py_to_json_value(value)?;
+    sc_composer::validate_input_value(&json).map_err(|error| {
+        validation_error(error.message().to_owned(), Some(error.code().as_str()))
+    })?;
+    Ok(json)
+}
+
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
     use super::*;
+    fn temp_root(label: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "sc-compose-py-convert-{label}-{}-{nanos}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        root
+    }
+
+    fn py_error_details(py: Python<'_>, err: PyErr) -> (String, String, Option<String>) {
+        let exc = err.value(py);
+        (
+            exc.get_type().name().unwrap().to_string(),
+            exc.getattr("message").unwrap().extract::<String>().unwrap(),
+            exc.getattr("code")
+                .unwrap()
+                .extract::<Option<String>>()
+                .unwrap(),
+        )
+    }
 
     #[test]
     fn py_value_round_trips_nested_json_shapes() {
@@ -337,6 +362,127 @@ mod tests {
 
             let roundtrip = py_to_json_value(json_to_py(py, &json).unwrap().bind(py)).unwrap();
             assert_eq!(roundtrip, json);
+        });
+    }
+
+    #[test]
+    fn extract_allowed_roots_accepts_pathlike_and_wrapper_instances() {
+        Python::initialize();
+        Python::attach(|py| {
+            let first_root = temp_root("allowed-roots-a");
+            let second_root = temp_root("allowed-roots-b");
+            let pathlib = py.import("pathlib").unwrap();
+            let second_path = pathlib
+                .getattr("Path")
+                .unwrap()
+                .call1((second_root.display().to_string(),))
+                .unwrap();
+            let wrapped = Py::new(
+                py,
+                PyConfiningRoot {
+                    inner: ConfiningRoot::new(&first_root).unwrap(),
+                },
+            )
+            .unwrap();
+            let roots = PyList::empty(py);
+            roots.append(wrapped.bind(py)).unwrap();
+            roots.append(second_path).unwrap();
+
+            let extracted = extract_allowed_roots(Some(roots.as_any())).unwrap();
+
+            assert_eq!(extracted.len(), 2);
+            assert_eq!(extracted[0].as_path(), first_root.canonicalize().unwrap());
+            assert_eq!(extracted[1].as_path(), second_root.canonicalize().unwrap());
+        });
+    }
+
+    #[test]
+    fn extract_allowed_roots_rejects_unconfinable_paths() {
+        Python::initialize();
+        Python::attach(|py| {
+            let missing = std::env::temp_dir().join(format!(
+                "sc-compose-py-missing-{}",
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            ));
+            let roots = PyList::empty(py);
+            roots.append(missing.display().to_string()).unwrap();
+
+            let (ty, message, code) =
+                py_error_details(py, extract_allowed_roots(Some(roots.as_any())).unwrap_err());
+
+            assert_eq!(ty, "ScConfigError");
+            assert!(message.contains("No such file or directory"));
+            assert_eq!(code.as_deref(), Some("ERR_CONFIG_PARSE"));
+        });
+    }
+
+    #[test]
+    fn extract_string_map_rejects_non_dict_and_invalid_values() {
+        Python::initialize();
+        Python::attach(|py| {
+            let list = PyList::empty(py);
+            let (ty, message, code) =
+                py_error_details(py, extract_string_map(list.as_any()).unwrap_err());
+            assert_eq!(ty, "ScValidationError");
+            assert_eq!(message, "context must be a Python dict");
+            assert_eq!(code, None);
+
+            let dict = PyDict::new(py);
+            dict.set_item("nested", vec![vec!["nope"]]).unwrap();
+            let (ty, message, code) =
+                py_error_details(py, extract_string_map(dict.as_any()).unwrap_err());
+            assert_eq!(ty, "ScValidationError");
+            assert!(message.contains("nested arrays"));
+            assert_eq!(code.as_deref(), Some("ERR_VAL_NESTED_ARRAY_UNSUPPORTED"));
+        });
+    }
+
+    #[test]
+    fn extract_json_context_rejects_invalid_nested_arrays() {
+        Python::initialize();
+        Python::attach(|py| {
+            let dict = PyDict::new(py);
+            dict.set_item("items", vec![vec!["nope"]]).unwrap();
+
+            let (ty, message, code) =
+                py_error_details(py, extract_json_context(dict.as_any()).unwrap_err());
+
+            assert_eq!(ty, "ScValidationError");
+            assert!(message.contains("nested arrays"));
+            assert_eq!(code.as_deref(), Some("ERR_VAL_NESTED_ARRAY_UNSUPPORTED"));
+        });
+    }
+
+    #[test]
+    fn py_to_json_value_rejects_non_string_object_keys_non_finite_and_unsupported_types() {
+        Python::initialize();
+        Python::attach(|py| {
+            let dict = PyDict::new(py);
+            dict.set_item(7, "value").unwrap();
+            let (ty, message, code) =
+                py_error_details(py, py_to_json_value(dict.as_any()).unwrap_err());
+            assert_eq!(ty, "ScValidationError");
+            assert_eq!(message, "object keys must be strings");
+            assert_eq!(code, None);
+
+            let inf = py
+                .eval(pyo3::ffi::c_str!("float('inf')"), None, None)
+                .unwrap();
+            let (ty, message, code) = py_error_details(py, py_to_json_value(&inf).unwrap_err());
+            assert_eq!(ty, "ScValidationError");
+            assert_eq!(message, "floating-point values must be finite");
+            assert_eq!(code, None);
+
+            let complex = py
+                .eval(pyo3::ffi::c_str!("complex(1, 2)"), None, None)
+                .unwrap();
+            let (ty, message, code) = py_error_details(py, py_to_json_value(&complex).unwrap_err());
+            assert_eq!(ty, "ScValidationError");
+            assert!(message.contains("unsupported Python value type"));
+            assert_eq!(code, None);
         });
     }
 
