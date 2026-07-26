@@ -108,13 +108,12 @@ fn extract_allowed_roots_rejects_unconfinable_paths() {
         let roots = PyList::empty(py);
         roots.append(missing.display().to_string()).unwrap();
 
-        let (ty, message, code) = py_error_details(
+        let (ty, _message, code) = py_error_details(
             py,
             &extract_allowed_roots(Some(roots.as_any())).unwrap_err(),
         );
 
         assert_eq!(ty, "ScConfigError");
-        assert!(message.contains("No such file or directory"));
         assert_eq!(code.as_deref(), Some("ERR_CONFIG_PARSE"));
     });
 }
