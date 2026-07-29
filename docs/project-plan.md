@@ -417,6 +417,23 @@ implementation slices needed to close the remaining production-readiness gaps.
 The accepted cleanup findings and sprint ownership are tracked in
 [docs/issues-inventory.md](issues-inventory.md).
 
+### Phase D Sprint Plans
+
+Status:
+
+- draft follow-on work for recursive structured inputs and adversarial rendering
+  validation
+
+Sprint entries:
+
+- [Phase D plan](phase-D/phase-D-plan.md)
+- [Sprint D.1 — Recursive Structured Input Support](phase-D/sprint-d-1-recursive-structured-input.md)
+- [Sprint D.2 — Adversarial Fuzzing Workflow](phase-D/sprint-d-2-adversarial-fuzzing.md)
+
+These sprints are intentionally separate: D.1 changes the runtime input
+contract, while D.2 creates the multi-agent QA workflow that attacks the
+expanded contract and promotes confirmed failures into regression tests.
+
 ### Known Limitations
 
 - Undeclared-token diagnostics currently attribute the warning or error to the
