@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fuzz case: boundary-001</title>
+  <style type="text/css">
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; max-width: 900px; }
+    header h1 { margin: 0 0 4px 0; font-size: 26px; }
+    header .subtitle { margin: 0 0 6px 0; color: #4b5563; font-size: 15px; }
+    header .generated { margin: 0 0 12px 0; color: #6b7280; font-size: 13px; }
+    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 13px; }
+    .status-error { color: #991b1b; background: #fee2e2; border: 1px solid #ef4444; }
+    .summary-block { border: 1px solid #ef4444; border-left: 6px solid #ef4444; border-radius: 8px; padding: 12px 16px; margin-top: 16px; background: #fef2f2; }
+    .summary-block .warning { color: #991b1b; margin: 0; }
+    .section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
+    .section-error { border-color: #ef4444; }
+    .section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .section-head h2 { margin: 0; font-size: 20px; }
+    .section-actions { display: flex; gap: 8px; }
+    .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
+    .icon-button:hover { background: #f1f5f9; }
+    pre { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; overflow-x: auto; font-size: 13px; }
+    code { background: #f1f5f9; border-radius: 4px; padding: 1px 4px; font-size: 13px; }
+    .warning { background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; margin: 12px 0; color: #991b1b; border-radius: 0 6px 6px 0; }
+    .warning h3 { margin-top: 0; }
+    .action { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px; color: #92400e; border-radius: 0 6px 6px 0; margin: 0; }
+    .recommendations { margin-top: 16px; }
+    .fragments { margin-top: 16px; font-size: 13px; color: #4b5563; }
+    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 13px; }
+    h3 { font-size: 15px; margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Fuzz case: boundary-001</h1>
+    <p class="subtitle">One confirmed bug from the E.3 adversarial campaign</p>
+    <p class="generated">Generated: 2026-07-29</p>
+    <p class="status status-error">ERROR</p>
+  </header>
+
+  <div class="summary-block">
+    <p class="warning">A BOM-prefixed frontmatter template reproduced a stable output leak across three runs.</p>
+  </div>
+
+  <section class="section section-error" id="case-summary">
+    <div class="section-head">
+      <div>
+        <h2>boundary-001</h2>
+        <p class="status status-error">ERROR</p>
+      </div>
+      <div class="section-actions">
+        <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;campaign_id&quot;:&quot;e3-20260729-0002&quot;,&quot;finding_id&quot;:&quot;boundary-001&quot;,&quot;case_id&quot;:&quot;boundary-001&quot;,&quot;worker_correlation_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;command&quot;:&quot;sc-compose render --mode file --file c03.md.j2 --var name=x&quot;,&quot;minimal_template&quot;:&quot;UTF-8 bytes EF BB BF followed by ---\\nvariables:\\n  name:\\n    required: false\\n---\\nHello {{name}}\\n&quot;,&quot;minimal_input&quot;:&quot;name=x&quot;,&quot;expected_oracle&quot;:&quot;UTF-8 BOM is accepted before frontmatter; output contains only the rendered body&quot;,&quot;observed_result&quot;:&quot;exit 0; stdout includes the complete frontmatter block before Hello x&quot;,&quot;diagnostic_code&quot;:null,&quot;reproduction_count&quot;:3,&quot;recommended_test&quot;:&quot;Add a CLI regression test for BOM-prefixed frontmatter parsing.&quot;}">{}</button>
+        <button type="button" class="icon-button" title="Copy Context" data-copy-text="Campaign e3-20260729-0002; boundary-probe; confirmed finding boundary-001. A BOM-prefixed frontmatter document leaked its frontmatter block into rendered output in 3 reproductions.">⎘</button>
+      </div>
+    </div>
+    <p>Campaign <code>e3-20260729-0002</code>, worker <code>boundary-probe</code>. A real user would run <code>sc-compose render --mode file --file c03.md.j2 --var name=x</code> using this exact UTF-8 template:</p><pre>UTF-8 bytes: EF BB BF followed by
+---
+variables:
+  name:
+    required: false
+---
+Hello {{name}}
+</pre><p>Input: <code>name=x</code></p><div class="warning"><h3>Expected versus observed</h3><p><strong>Expected:</strong> UTF-8 BOM is accepted before frontmatter; output contains only the rendered body.</p><p><strong>Observed:</strong> exit 0; stdout includes the complete frontmatter block before Hello x.</p></div><h3>Requirement / ADR trace</h3><p>No requirement or ADR currently covers this BOM-frontmatter behavior; the campaign applied the parser boundary oracle recorded in the E.3 evidence.</p><h3>Requirement / ADR follow-up</h3><p>Assess whether BOM-prefixed frontmatter is a supported user contract. If yes, create or update the requirement/ADR before implementing the parser fix; if no, document the intentional boundary rather than creating a needless ADR.</p><h3>Root-cause analysis</h3><p>The file-frontmatter path does not strip the leading UTF-8 BOM before detecting the frontmatter delimiter, so the delimiter is rendered as ordinary template content.</p><h3>Recommended fix</h3><p>Add a CLI regression test for BOM-prefixed frontmatter parsing, then implement the requirement/ADR decision above and normalize a leading UTF-8 BOM if the behavior is supported.</p>
+  </section>
+
+  <section class="recommendations">
+    <h3>Recommendations</h3>
+    <p class="action">Do not create an ADR solely because the finding lacks a reference; first decide whether the behavior is a supported contract and whether the gap is genuine. If supported, create or update the requirement/ADR before implementation.</p>
+  </section>
+
+  <section class="fragments">
+    <h3>Section fragments</h3>
+    <p>Deep-context fragment (auto-generated) for section <code>case-summary</code>: <a href="failure-fuzz-report.xhtml">failure-fuzz-report.xhtml</a></p>
+  </section>
+
+  <footer>
+    <p>Source: <code>docs/phase-E/evidence/e-3-adversarial-campaign.json</code></p>
+  </footer>
+
+  <script>
+    document.addEventListener("click", async function (event) {
+      const button = event.target.closest("[data-copy-text]");
+      if (!button) return;
+      const text = button.getAttribute("data-copy-text") || "";
+      try {
+        await navigator.clipboard.writeText(text);
+        button.setAttribute("title", "Copied");
+      } catch (err) {
+        button.setAttribute("title", "Copy failed");
+      }
+    });
+  </script>
+</body>
+</html>

@@ -114,8 +114,10 @@ a reusable Jinja2 template plus a documented data contract that any future
 3. Failed-run mode renders, in addition to case identity: a failure/expected-
    vs-observed section, a requirement/ADR-trace prose section (must handle
    the "no requirement covers this" case explicitly — do not fabricate a
-   requirement reference when none exists), a root-cause-analysis section,
-   and a recommended-fix section.
+   requirement reference when none exists), a requirement-gap assessment that
+   recommends creating/updating an ADR or requirement only for a genuine
+   supported-contract gap, a root-cause-analysis section, and a recommended-
+   fix section.
 4. Copy-JSON and copy-context icon-only buttons per section, wired to
    `json_payload` / `context_text`, per SKILL.md — reuse the existing
    report-shell copy-button partial if `html-report-generator`'s existing

@@ -1,0 +1,56 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-case fuzz-case-confirmed_bug">
+  <header class="fuzz-case-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz case</p>
+      <h2>boundary-001</h2>
+      <p class="case-meta">Campaign e3-20260729-0002 · Worker boundary-probe</p>
+    </div>
+    <div class="case-actions" aria-label="Copy case data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;campaign_id&quot;:&quot;e3-20260729-0002&quot;,&quot;finding_id&quot;:&quot;boundary-001&quot;,&quot;case_id&quot;:&quot;boundary-001&quot;,&quot;worker_correlation_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;minimal_input&quot;:&quot;name=x&quot;,&quot;expected_oracle&quot;:&quot;UTF-8 BOM is accepted before frontmatter; output contains only the rendered body&quot;,&quot;observed_result&quot;:&quot;exit 0; stdout includes the complete frontmatter block before Hello x&quot;,&quot;reproduction_count&quot;:3}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Campaign e3-20260729-0002; boundary-probe; confirmed finding boundary-001. A BOM-prefixed frontmatter document leaked its frontmatter block into rendered output in 3 reproductions.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">confirmed_bug</p>
+  <p class="summary">A BOM-prefixed frontmatter template reproduced a stable output leak across three runs.</p>
+
+  <section class="input-variables">
+    <h3>Input variables</h3>
+    <table>
+      <thead><tr><th scope="col">Name</th><th scope="col">Value</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">name</th><td><code>x</code></td></tr>
+        <tr><th scope="row">reproduction_count</th><td><code>3</code></td></tr>
+        <tr><th scope="row">diagnostic_code</th><td><code>none</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="failure-details">
+    <h3>Expected versus observed</h3>
+    <dl>
+      <dt>Expected</dt><dd>UTF-8 BOM is accepted before frontmatter; output contains only the rendered body.</dd>
+      <dt>Observed</dt><dd>exit 0; stdout includes the complete frontmatter block before Hello x.</dd>
+    </dl>
+  </section>
+
+  <section class="requirement-trace">
+    <h3>Requirement / ADR trace</h3>
+    <p>No requirement or ADR currently covers this BOM-frontmatter behavior; the campaign applied the parser boundary oracle recorded in the E.3 evidence.</p>
+  </section>
+
+  <section class="requirement-follow-up">
+    <h3>Requirement / ADR follow-up</h3>
+    <p>Assess whether BOM-prefixed frontmatter is a supported user contract. If yes, create or update the requirement/ADR before implementing the parser fix; if no, document the intentional boundary rather than creating a needless ADR.</p>
+  </section>
+
+  <section class="root-cause">
+    <h3>Root-cause analysis</h3>
+    <p>The file-frontmatter path does not strip the leading UTF-8 BOM before detecting the frontmatter delimiter, so the delimiter is rendered as ordinary template content.</p>
+  </section>
+
+  <section class="recommended-fix">
+    <h3>Recommended fix</h3>
+    <p>Add a CLI regression test for BOM-prefixed frontmatter parsing, then implement the requirement/ADR decision above and normalize a leading UTF-8 BOM if the behavior is supported.</p>
+  </section>
+</section>

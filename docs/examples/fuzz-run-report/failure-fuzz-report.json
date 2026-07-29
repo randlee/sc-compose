@@ -1,0 +1,43 @@
+{
+  "report": {
+    "title": "Fuzz case: boundary-001",
+    "subtitle": "One confirmed bug from the E.3 adversarial campaign",
+    "status": "ERROR",
+    "generated_at": "2026-07-29",
+    "source_label": "docs/phase-E/evidence/e-3-adversarial-campaign.json",
+    "summary": "A BOM-prefixed frontmatter template reproduced a stable output leak across three runs.",
+    "html_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/failure-fuzz-report.html"
+  },
+  "sections": [
+    {
+      "id": "case-summary",
+      "title": "boundary-001",
+      "status": "ERROR",
+      "context_text": "Campaign e3-20260729-0002; boundary-probe; confirmed finding boundary-001. A BOM-prefixed frontmatter document leaked its frontmatter block into rendered output in 3 reproductions.",
+      "json_payload": {
+        "campaign_id": "e3-20260729-0002",
+        "finding_id": "boundary-001",
+        "case_id": "boundary-001",
+        "worker_correlation_id": "boundary-probe",
+        "classification": "confirmed_bug",
+        "command": "sc-compose render --mode file --file c03.md.j2 --var name=x",
+        "minimal_template": "UTF-8 bytes EF BB BF followed by ---\\nvariables:\\n  name:\\n    required: false\\n---\\nHello {{name}}\\n",
+        "minimal_input": "name=x",
+        "expected_oracle": "UTF-8 BOM is accepted before frontmatter; output contains only the rendered body",
+        "observed_result": "exit 0; stdout includes the complete frontmatter block before Hello x",
+        "diagnostic_code": null,
+        "reproduction_count": 3,
+        "recommended_test": "Add a CLI regression test for BOM-prefixed frontmatter parsing."
+      },
+      "xhtml_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/failure-fuzz-report.xhtml",
+      "fragment_source": "auto-generated",
+      "requirement_trace": "No requirement or ADR currently covers this BOM-frontmatter behavior; the campaign applied the parser boundary oracle recorded in the E.3 evidence.",
+      "root_cause": "The file-frontmatter path does not strip the leading UTF-8 BOM before detecting the frontmatter delimiter, so the delimiter is rendered as ordinary template content.",
+      "requirement_follow_up": "Assess whether BOM-prefixed frontmatter is a supported user contract. If yes, create or update the requirement/ADR before implementing the parser fix; if no, document the intentional boundary rather than creating a needless ADR.",
+      "recommended_fix": "Add a CLI regression test for BOM-prefixed frontmatter parsing, then implement the requirement/ADR decision above and normalize a leading UTF-8 BOM if the behavior is supported."
+    }
+  ],
+  "recommendations": [
+    "Do not create an ADR solely because the finding lacks a reference; first decide whether the behavior is a supported contract and whether the gap is genuine."
+  ]
+}

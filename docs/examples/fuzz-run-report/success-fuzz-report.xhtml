@@ -1,0 +1,30 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-case fuzz-case-pass">
+  <header class="fuzz-case-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz case</p>
+      <h2>shape-probe-002</h2>
+      <p class="case-meta">Campaign e3-20260729-0002 · Worker shape-probe</p>
+    </div>
+    <div class="case-actions" aria-label="Copy case data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;campaign_id&quot;:&quot;e3-20260729-0002&quot;,&quot;case_id&quot;:&quot;shape-probe-002&quot;,&quot;worker_correlation_id&quot;:&quot;shape-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;template&quot;:&quot;examples&#x2f;jagged-array-values.md.j2&quot;,&quot;var_file&quot;:&quot;examples&#x2f;jagged-array-values.sample-vars.json&quot;,&quot;input&quot;:{&quot;rows&quot;:[[1,2,3],[4,5]]},&quot;expected_output&quot;:&quot;1, 2, 3\n4, 5&quot;,&quot;finding_ids&quot;:[]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Campaign e3-20260729-0002; shape-probe; case shape-probe-002 passed. Render examples&#x2f;jagged-array-values.md.j2 with rows [[1, 2, 3], [4, 5]].">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">pass</p>
+  <p class="summary">A real structured-input case renders the checked-in jagged-array fixture examples/jagged-array-values.md.j2 with examples/jagged-array-values.sample-vars.json: rows [[1, 2, 3], [4, 5]] should render as two comma-separated rows. The E.3 evidence records this shape-probe batch as successful; no finding is attached to this case ID.</p>
+
+  <section class="input-variables">
+    <h3>Input variables</h3>
+    <table>
+      <thead><tr><th scope="col">Name</th><th scope="col">Value</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">template</th><td><code>examples/jagged-array-values.md.j2</code></td></tr>
+        <tr><th scope="row">var_file</th><td><code>examples/jagged-array-values.sample-vars.json</code></td></tr>
+        <tr><th scope="row">rows</th><td><code>[[1, 2, 3], [4, 5]]</code></td></tr>
+        <tr><th scope="row">expected_output</th><td><code>1, 2, 3\n4, 5</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>

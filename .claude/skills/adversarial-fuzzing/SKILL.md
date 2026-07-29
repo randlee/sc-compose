@@ -76,6 +76,22 @@ after the campaign unless a failure artifact is being preserved.
    and boundary checks when a regression test was added.
 9. Return the coordinator's fenced JSON report and summarize confirmed bugs,
    promoted tests, unresolved candidates, and campaign limits.
+10. After the campaign summary is complete, generate one per-case report for
+    every case in the durable evidence envelope. Use the reusable
+    `.claude/skills/html-report/templates/fuzz-run-case.xhtml.j2` contract for
+    the case fragment and delegate the main HTML/JSON package to the
+    `html-report-generator` background agent. Keep `json_payload` equal to the
+    original case/finding envelope and provide the required `context_text`;
+    do not invent a second campaign schema. Write real campaign artifacts to
+    `site/reports/`, assigning a 1-based sequence in deterministic case order
+    and resetting it for each campaign day. The filename stem must be
+    `YYYYMMDD-N-fuzz-report`, for example
+    `site/reports/20260729-1-fuzz-report.html`; write the matching `.json`
+    sidecar and, for failed or inconclusive cases, the matching `.xhtml`
+    fragment. The report generator must validate each HTML output with
+    `html-validate` and each XHTML fragment with `xmllint --noout` before the
+    campaign is reported complete. Review-only examples belong under
+    `docs/examples/fuzz-run-report/`, not `site/reports/`.
 
 ## Worker portfolio
 
@@ -92,6 +108,15 @@ four for `full`:
 Each worker must stay within its target, use bounded generation, and return a
 standard fenced JSON envelope. Workers may create temporary inputs and logs,
 but must not edit production code, commit changes, or delete user files.
+
+When a finding cannot be traced to an existing requirement or ADR, record that
+absence explicitly and assess whether it is a genuine contract gap. The
+recommended action must be one of: create or update a requirement/ADR before
+implementation when the behavior is supported and the gap is real; document
+why no new requirement/ADR is needed when the behavior is intentionally
+unsupported or too narrow; or leave the assessment pending with a named owner
+when product intent is not yet established. Do not create documentation merely
+because a finding lacks a reference.
 
 ## Oracle and triage rules
 
@@ -126,6 +151,8 @@ For every candidate, require:
   "observed": "...",
   "expected_oracle": "...",
   "diagnostic": "optional code",
+  "requirement_trace": "existing requirement/ADR, or explicit no-coverage statement",
+  "requirement_follow_up": "create/update, no-new-doc rationale, or named decision owner",
   "reproduction_count": 3,
   "recommended_test": "..."
 }

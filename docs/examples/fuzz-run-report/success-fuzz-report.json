@@ -1,0 +1,29 @@
+{
+  "title": "Fuzz case: shape-probe-002",
+  "subtitle": "One successful case from the E.3 adversarial campaign",
+  "status": "PASS",
+  "generated_at": "2026-07-29",
+  "source_label": "docs/phase-E/evidence/e-3-adversarial-campaign.json",
+  "summary": "A real structured-input case renders the checked-in jagged-array fixture with nested rows and produces the expected two-row output. The E.3 evidence records this shape-probe batch as successful and attaches no finding to this case ID.",
+  "sections": [
+    {
+      "id": "case-summary",
+      "title": "shape-probe-002",
+      "status": "PASS",
+      "context_text": "Campaign e3-20260729-0002; shape-probe; case shape-probe-002 passed. Render examples/jagged-array-values.md.j2 with rows [[1, 2, 3], [4, 5]].",
+      "json_payload": {
+        "campaign_id": "e3-20260729-0002",
+        "case_id": "shape-probe-002",
+        "worker_correlation_id": "shape-probe",
+        "classification": "pass",
+        "template": "examples/jagged-array-values.md.j2",
+        "var_file": "examples/jagged-array-values.sample-vars.json",
+        "input": { "rows": [[1, 2, 3], [4, 5]] },
+        "expected_output": "1, 2, 3\\n4, 5",
+        "finding_ids": []
+      },
+      "xhtml_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/success-fuzz-report.xhtml",
+      "fragment_source": "auto-generated"
+    }
+  ]
+}
