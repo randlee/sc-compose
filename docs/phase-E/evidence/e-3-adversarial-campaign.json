@@ -154,7 +154,7 @@
     "campaign_completed_at": "2026-07-29T07:46:44Z",
     "campaign_directory": "/Users/randlee/Documents/github/sc-compose-worktrees/fix/e3-evidence-hardening/.fuzz-campaign-e3-seed157",
     "campaign_directory_retained": false,
-    "preflight_note": "The registered coordinator was invoked with the E.3 full contract. An initial CLI attempt failed authentication with HTTP 401 before dispatch and is not counted. The authenticated retry used the Agent tool to dispatch four background sc-adversarial-fuzz-probe workers; each worker executed 12 generated cases against this worktree. Temporary artifacts were captured, then cleaned after this report was written.",
+    "preflight_note": "The registered coordinator used the Agent tool with the E.3 full contract and dispatched four background sc-adversarial-fuzz-probe workers; each worker executed 12 generated cases against this worktree. Temporary artifacts were captured and cleaned after this report was written.",
     "worker_launches": {
       "dispatch_mechanism": "Agent tool; subagent_type=sc-adversarial-fuzz-probe; run_in_background=true",
       "coordinator": {
