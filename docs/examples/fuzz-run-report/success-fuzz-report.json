@@ -1,26 +1,56 @@
 {
   "report": {
     "title": "Adversarial fuzz session: all workers passed",
-    "subtitle": "Mock package showing one HTML page with four worker XHTML panels",
+    "subtitle": "Template-rendered worker panels in one generated HTML report",
     "status": "PASS",
-    "generated_at": "2026-07-29T20:30:00-07:00",
-    "source_label": "E.3 evidence-shaped multi-agent session mock",
+    "generated_at": "2026-07-29T22:24:00-07:00",
+    "source_label": "E.3 evidence-shaped multi-agent session",
+    "report_path": "docs/examples/fuzz-run-report/success-fuzz-report.html",
     "metadata": {
       "report_kind": "multi-agent-fuzz-session",
-      "session_id": "mock-success-20260729",
-      "worker_count": 4
-    },
-    "html_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/success-fuzz-report.html"
+      "session_id": "mock-success-e3-20260729",
+      "worker_count": 4,
+      "template": ".claude/skills/html-report/templates/fuzz-run-agent.xhtml.j2"
+    }
+  },
+  "summary": {
+    "text": "One primary coordinator dispatched four independent workers. Each worker ran one bounded fuzz task and returned a structured result; the report sections are the exact XHTML panels rendered from the worker-panel template.",
+    "runs": [
+      {
+        "description": "Malformed files, invalid var-file boundaries, and stable diagnostics",
+        "iterations": 12,
+        "passed": 12,
+        "result": "PASS"
+      },
+      {
+        "description": "Baseline parity, JSON/YAML equivalence, and deterministic output",
+        "iterations": 12,
+        "passed": 12,
+        "result": "PASS"
+      },
+      {
+        "description": "Nested JSON/YAML values, jagged arrays, and object nesting",
+        "iterations": 12,
+        "passed": 12,
+        "result": "PASS"
+      },
+      {
+        "description": "Jinja loops, conditionals, whitespace, and optional values",
+        "iterations": 12,
+        "passed": 12,
+        "result": "PASS"
+      }
+    ]
   },
   "sections": [
     {
       "id": "shape-probe",
       "title": "shape-probe",
       "status": "PASS",
-      "summary": "12/12 nested-value checks passed.",
-      "context_text": "Mock successful session; shape-probe ran 12 nested-value and jagged-array iterations, including shape-probe-002 with rows [[1, 2, 3], [4, 5]], and passed all 12.",
+      "summary": "The shape worker exercised recorded structured-input cases. The real jagged-array fixture used rows [[1, 2, 3], [4, 5]] and produced the expected two-row output.",
+      "context_text": "Successful shape-probe session: 12 iterations, including shape-probe-002 with rows [[1, 2, 3], [4, 5]], all passed.",
       "json_payload": {
-        "session_id": "mock-success-20260729",
+        "session_id": "mock-success-e3-20260729",
         "agent_id": "shape-probe",
         "worker_correlation_id": "shape-probe",
         "classification": "pass",
@@ -32,17 +62,17 @@
           "shape-probe-003"
         ]
       },
-      "xhtml_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/success-shape.xhtml",
+      "xhtml_path": "docs/examples/fuzz-run-report/success-shape.xhtml",
       "fragment_source": "auto-generated"
     },
     {
       "id": "template-probe",
       "title": "template-probe",
       "status": "PASS",
-      "summary": "12/12 Jinja behavior checks passed.",
-      "context_text": "Mock successful session; template-probe ran 12 loop, conditional, whitespace, and optional-value iterations and passed all 12.",
+      "summary": "The template worker exercised the recorded Jinja behavior cases, including nested control flow and optional values. All bounded inputs produced expected text.",
+      "context_text": "Successful template-probe session: 12 loop, conditional, whitespace, and optional-value iterations all passed.",
       "json_payload": {
-        "session_id": "mock-success-20260729",
+        "session_id": "mock-success-e3-20260729",
         "agent_id": "template-probe",
         "worker_correlation_id": "template-probe",
         "classification": "pass",
@@ -54,17 +84,17 @@
           "template-probe-003"
         ]
       },
-      "xhtml_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/success-template.xhtml",
+      "xhtml_path": "docs/examples/fuzz-run-report/success-template.xhtml",
       "fragment_source": "auto-generated"
     },
     {
       "id": "boundary-probe",
       "title": "boundary-probe",
       "status": "PASS",
-      "summary": "12/12 malformed-input and confinement checks passed.",
-      "context_text": "Mock successful session; boundary-probe ran 12 malformed-input, diagnostic, and path-confinement iterations and passed all 12.",
+      "summary": "The boundary worker exercised malformed-input, diagnostic, and path-confinement cases from the recorded boundary-probe task. Every input reached its expected boundary.",
+      "context_text": "Successful boundary-probe session: 12 malformed-input, diagnostic, and path-confinement iterations all passed.",
       "json_payload": {
-        "session_id": "mock-success-20260729",
+        "session_id": "mock-success-e3-20260729",
         "agent_id": "boundary-probe",
         "worker_correlation_id": "boundary-probe",
         "classification": "pass",
@@ -76,17 +106,17 @@
           "boundary-probe-005"
         ]
       },
-      "xhtml_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/success-boundary.xhtml",
+      "xhtml_path": "docs/examples/fuzz-run-report/success-boundary.xhtml",
       "fragment_source": "auto-generated"
     },
     {
       "id": "differential-probe",
       "title": "differential-probe",
       "status": "PASS",
-      "summary": "12/12 baseline, parity, and determinism checks passed.",
-      "context_text": "Mock successful session; differential-probe ran 12 baseline, parity, and determinism iterations and passed all 12.",
+      "summary": "The differential worker compared baseline/head behavior and repeated renders across the recorded cases. Outputs remained equivalent and deterministic.",
+      "context_text": "Successful differential-probe session: 12 baseline, parity, and determinism iterations all passed.",
       "json_payload": {
-        "session_id": "mock-success-20260729",
+        "session_id": "mock-success-e3-20260729",
         "agent_id": "differential-probe",
         "worker_correlation_id": "differential-probe",
         "classification": "pass",
@@ -98,8 +128,11 @@
           "differential-probe-002"
         ]
       },
-      "xhtml_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/success-differential.xhtml",
+      "xhtml_path": "docs/examples/fuzz-run-report/success-differential.xhtml",
       "fragment_source": "auto-generated"
     }
-  ]
+  ],
+  "footer": {
+    "text": "Generated mock. Future artifacts use site/reports/YYYYMMDD-N-fuzz-report.html and worker-suffixed XHTML panels."
+  }
 }

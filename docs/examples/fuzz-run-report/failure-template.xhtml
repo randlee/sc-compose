@@ -1,83 +1,39 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Adversarial fuzz session: failures require review &#8212; template-probe panel</title>
-  <style type="text/css">
-
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
-    h1 { margin: 0 0 4px 0; font-size: 1.3rem; }
-    .meta-line { margin: 0 0 12px 0; color: #6b7280; font-size: 0.85rem; }
-    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 0.85rem; }
-    .status-pass { color: #065f46; background: #d1fae5; border: 1px solid #6ee7b7; }
-    .status-drift { color: #92400e; background: #fef3c7; border: 1px solid #f59e0b; }
-    .status-error { color: #991b1b; background: #fee2e2; border: 1px solid #ef4444; }
-    .status-info { color: #1e40af; background: #dbeafe; border: 1px solid #3b82f6; }
-    .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
-    .actions { display: flex; gap: 8px; }
-    .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
-    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
-    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; font-size: 0.85rem; vertical-align: top; }
-    thead th { background: #f3f4f6; }
-    tbody th { font-weight: 600; white-space: nowrap; }
-    .finding { border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 16px; margin-top: 16px; }
-    .finding h2 { margin: 0 0 8px 0; font-size: 1.05rem; }
-    code, pre { background: #f3f4f6; border-radius: 4px; font-size: 0.85em; }
-    code { padding: 1px 4px; }
-    pre { padding: 8px 10px; overflow-x: auto; white-space: pre-wrap; }
-  </style>
-</head>
-<body>
-  <div class="head">
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
     <div>
-      <h1>template-probe <span class="status status-info">INFO</span></h1>
-      <p class="meta-line">Worker panel &#183; auto-generated &#183; session mock-failure-20260729</p>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session mock-failure-e3-20260729 · Worker template-probe</p>
     </div>
-    <div class="actions">
-      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-20260729&quot;,&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;worker_correlation_id&quot;:&quot;template-probe&quot;,&quot;classification&quot;:&quot;inconclusive&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:11,&quot;failed&quot;:1,&quot;cases&quot;:[&quot;template-001&quot;,&quot;template-probe-002&quot;],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;template-001&quot;,&quot;minimal_template&quot;:&quot;{% if n == 157 %}X{% elif n &gt; 0 %}Y{% else %}Z{% endif %}\\n&quot;,&quot;minimal_input&quot;:&quot;--var n=157 (CLI variables are string-typed)&quot;,&quot;expected_oracle&quot;:&quot;X if --var numeric coercion is part of the contract&quot;,&quot;observed_result&quot;:&quot;exit 0 with Y; var-file numeric input produces X&quot;,&quot;requirement_trace&quot;:&quot;No requirement/ADR currently states whether CLI scalar variables are coerced to numbers.&quot;,&quot;requirement_follow_up&quot;:&quot;Have product ownership decide whether CLI scalar typing is intentional; create or update a requirement/ADR only if the decision establishes a supported contract.&quot;,&quot;root_cause&quot;:&quot;CLI variables arrive as strings while var-file numbers arrive as numeric values.&quot;,&quot;recommended_fix&quot;:&quot;Record the product decision, then add a focused coercion/parity test or document the intentional distinction.&quot;}]}">{}</button><button type="button" class="icon-button" title="Copy Context" data-copy-text="Mock failed session; template-probe ran 12 Jinja behavior iterations and found template-001 inconclusive because CLI and var-file scalar typing differ.">&#9086;</button>
+    <div class="agent-actions">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed session&#x27;s template-probe panel: 12 Jinja behavior iterations passed.">⎘</button>
     </div>
-  </div>
-  <p>11/12 passed; template-001 is inconclusive pending a scalar-typing decision.</p>
-  <table>
+  </header>
+
+  <p class="status">pass</p>
+  <p class="summary">The template worker completed its Jinja behavior checks. The failure in this session was isolated to the boundary worker.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
     <tbody>
-      <tr><th scope="row">Session</th><td>mock-failure-20260729</td></tr>
-      <tr><th scope="row">Agent</th><td>template-probe</td></tr>
-      <tr><th scope="row">Worker correlation id</th><td>template-probe</td></tr>
-      <tr><th scope="row">Classification</th><td>inconclusive</td></tr>
-      <tr><th scope="row">Iterations</th><td>12</td></tr>
-      <tr><th scope="row">Passed</th><td>11</td></tr>
-      <tr><th scope="row">Failed</th><td>1</td></tr>
-      <tr><th scope="row">Cases</th><td>template-001, template-probe-002</td></tr>
+      <tr>
+        <th scope="row">Jinja loops, conditionals, whitespace, and optional values</th>
+        <td>12</td>
+        <td>12/12</td>
+        <td>PASS</td>
+      </tr>
     </tbody>
   </table>
-  <div class="finding">
-    <h2>Finding <code>template-001</code></h2>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
     <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
       <tbody>
-        <tr><th scope="row">Minimal template</th><td><pre>{% if n == 157 %}X{% elif n &gt; 0 %}Y{% else %}Z{% endif %}\n</pre></td></tr>
-        <tr><th scope="row">Minimal input</th><td><pre>--var n=157 (CLI variables are string-typed)</pre></td></tr>
-        <tr><th scope="row">Expected oracle</th><td>X if --var numeric coercion is part of the contract</td></tr>
-        <tr><th scope="row">Observed result</th><td>exit 0 with Y; var-file numeric input produces X</td></tr>
-        <tr><th scope="row">Requirement trace</th><td>No requirement/ADR currently states whether CLI scalar variables are coerced to numbers.</td></tr>
-        <tr><th scope="row">Requirement follow-up</th><td>Have product ownership decide whether CLI scalar typing is intentional; create or update a requirement/ADR only if the decision establishes a supported contract.</td></tr>
-        <tr><th scope="row">Root cause</th><td>CLI variables arrive as strings while var-file numbers arrive as numeric values.</td></tr>
-        <tr><th scope="row">Recommended fix</th><td>Record the product decision, then add a focused coercion/parity test or document the intentional distinction.</td></tr>
+        <tr><th scope="row">template-probe-002</th><td><code>nested loop and optional-value rendering</code></td><td>PASS; expected text</td></tr>
       </tbody>
     </table>
-  </div>
-  <script type="text/javascript">
-    document.addEventListener("click", async function (event) {
-      const button = event.target.closest("[data-copy-text]");
-      if (!button) return;
-      const text = button.getAttribute("data-copy-text") || "";
-      try {
-        await navigator.clipboard.writeText(text);
-        button.setAttribute("title", "Copied");
-      } catch (err) {
-        button.setAttribute("title", "Copy failed");
-      }
-    });
-  </script>
-</body>
-</html>
+  </section>
+
+</section>

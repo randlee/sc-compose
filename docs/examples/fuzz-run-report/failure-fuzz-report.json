@@ -1,96 +1,100 @@
 {
   "report": {
-    "title": "Adversarial fuzz session: failures require review",
-    "subtitle": "Mock package showing four worker XHTML panels and primary-agent investigation",
+    "title": "Adversarial fuzz session: failure requires review",
+    "subtitle": "Template-rendered worker panels in one generated HTML report",
     "status": "ERROR",
-    "generated_at": "2026-07-29T20:30:00-07:00",
-    "source_label": "E.3 evidence-shaped multi-agent session mock",
-    "metadata": {
-      "report_kind": "multi-agent-fuzz-session",
-      "session_id": "mock-failure-20260729",
-      "worker_count": 4
-    },
-    "html_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/failure-fuzz-report.html"
+    "generated_at": "2026-07-29T22:24:00-07:00",
+    "source_label": "E.3 evidence-shaped multi-agent session",
+    "report_path": "docs/examples/fuzz-run-report/failure-fuzz-report.html",
+    "summary": "One primary coordinator dispatched four independent workers. Each worker ran one bounded fuzz task and returned a structured result; the report sections are the exact XHTML panels rendered from the worker-panel template.",
+    "run_totals": [
+      {
+        "description": "Malformed files, invalid var-file boundaries, and stable diagnostics",
+        "iterations": 12,
+        "passed": 9,
+        "result": "FAIL"
+      },
+      {
+        "description": "Baseline parity, JSON/YAML equivalence, and deterministic output",
+        "iterations": 12,
+        "passed": 12,
+        "result": "PASS"
+      },
+      {
+        "description": "Nested JSON/YAML values, jagged arrays, and object nesting",
+        "iterations": 12,
+        "passed": 12,
+        "result": "PASS"
+      },
+      {
+        "description": "Jinja loops, conditionals, whitespace, and optional values",
+        "iterations": 12,
+        "passed": 12,
+        "result": "PASS"
+      }
+    ],
+    "recommendations": "Review boundary-001's requirement decision before promoting a parser fix; create or update documentation only for a genuine supported-contract gap.",
+    "footer": "Generated mock. Future artifacts use site/reports/YYYYMMDD-N-fuzz-report.html and worker-suffixed XHTML panels."
+  },
+  "metadata": {
+    "report_kind": "multi-agent-fuzz-session",
+    "session_id": "mock-failure-e3-20260729",
+    "worker_count": 4,
+    "template": ".claude/skills/html-report/templates/fuzz-run-agent.xhtml.j2"
   },
   "sections": [
     {
       "id": "shape-probe",
       "title": "shape-probe",
-      "status": "ERROR",
-      "summary": "11/12 passed; shape-001 found JSON/YAML duplicate-key divergence.",
-      "context_text": "Mock failed session; shape-probe ran 12 nested-value iterations and found shape-001: duplicate-key JSON/YAML inputs diverge before rendering.",
+      "status": "PASS",
+      "summary": "The shape worker completed its structured-input checks. The failure in this session was isolated to the boundary worker.",
+      "context_text": "Failed session's shape-probe panel: 12 structured-input iterations passed.",
+      "xhtml_path": "docs/examples/fuzz-run-report/failure-shape.xhtml",
+      "fragment_source": "auto-generated",
       "json_payload": {
-        "session_id": "mock-failure-20260729",
+        "session_id": "mock-failure-e3-20260729",
         "agent_id": "shape-probe",
         "worker_correlation_id": "shape-probe",
-        "classification": "confirmed_bug",
+        "classification": "pass",
         "iterations": 12,
-        "passed": 11,
-        "failed": 1,
+        "passed": 12,
+        "failed": 0,
         "cases": [
-          "shape-001",
           "shape-probe-002"
-        ],
-        "findings": [
-          {
-            "finding_id": "shape-001",
-            "minimal_template": "{{ a }}\\n",
-            "minimal_input": "JSON: {a: 1, a: 2}; YAML: a: 1\\na: 2\\n",
-            "expected_oracle": "JSON and YAML duplicate-key inputs have documented equivalent behavior",
-            "observed_result": "JSON exits 0 and renders 2; YAML exits 2 with ERR_CONFIG_PARSE duplicate entry",
-            "requirement_trace": "No existing requirement/ADR selects the duplicate-key policy across JSON and YAML.",
-            "requirement_follow_up": "Ask the product owner to choose reject-or-last-value semantics; create or update the requirement/ADR only after that supported behavior is decided.",
-            "root_cause": "The JSON and YAML loaders apply different duplicate-key policies before values reach the renderer.",
-            "recommended_fix": "Document the duplicate-key policy, align both loaders, and add JSON/YAML parity regression tests."
-          }
         ]
-      },
-      "xhtml_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/failure-shape.xhtml",
-      "fragment_source": "auto-generated"
+      }
     },
     {
       "id": "template-probe",
       "title": "template-probe",
-      "status": "INFO",
-      "summary": "11/12 passed; template-001 is inconclusive pending a scalar-typing decision.",
-      "context_text": "Mock failed session; template-probe ran 12 Jinja behavior iterations and found template-001 inconclusive because CLI and var-file scalar typing differ.",
+      "status": "PASS",
+      "summary": "The template worker completed its Jinja behavior checks. The failure in this session was isolated to the boundary worker.",
+      "context_text": "Failed session's template-probe panel: 12 Jinja behavior iterations passed.",
+      "xhtml_path": "docs/examples/fuzz-run-report/failure-template.xhtml",
+      "fragment_source": "auto-generated",
       "json_payload": {
-        "session_id": "mock-failure-20260729",
+        "session_id": "mock-failure-e3-20260729",
         "agent_id": "template-probe",
         "worker_correlation_id": "template-probe",
-        "classification": "inconclusive",
+        "classification": "pass",
         "iterations": 12,
-        "passed": 11,
-        "failed": 1,
+        "passed": 12,
+        "failed": 0,
         "cases": [
-          "template-001",
           "template-probe-002"
-        ],
-        "findings": [
-          {
-            "finding_id": "template-001",
-            "minimal_template": "{% if n == 157 %}X{% elif n > 0 %}Y{% else %}Z{% endif %}\\n",
-            "minimal_input": "--var n=157 (CLI variables are string-typed)",
-            "expected_oracle": "X if --var numeric coercion is part of the contract",
-            "observed_result": "exit 0 with Y; var-file numeric input produces X",
-            "requirement_trace": "No requirement/ADR currently states whether CLI scalar variables are coerced to numbers.",
-            "requirement_follow_up": "Have product ownership decide whether CLI scalar typing is intentional; create or update a requirement/ADR only if the decision establishes a supported contract.",
-            "root_cause": "CLI variables arrive as strings while var-file numbers arrive as numeric values.",
-            "recommended_fix": "Record the product decision, then add a focused coercion/parity test or document the intentional distinction."
-          }
         ]
-      },
-      "xhtml_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/failure-template.xhtml",
-      "fragment_source": "auto-generated"
+      }
     },
     {
       "id": "boundary-probe",
       "title": "boundary-probe",
       "status": "ERROR",
-      "summary": "9/12 passed; boundary-001, boundary-002, and boundary-003 reproduced three confirmed bugs.",
-      "context_text": "Mock failed session; boundary-probe ran 12 malformed-input and diagnostic iterations. boundary-001, boundary-002, and boundary-003 reproduced three failures; exact templates, inputs, root causes, and requirement follow-ups are in the companion panel.",
+      "summary": "Three boundary inputs reproduced stable product bugs. The exact minimized templates, frontmatter, and inputs are preserved for review.",
+      "context_text": "Failed boundary-probe session: 12 iterations, boundary-001 through boundary-003 reproduced three bugs; exact inputs and primary-agent investigation are shown.",
+      "xhtml_path": "docs/examples/fuzz-run-report/failure-boundary.xhtml",
+      "fragment_source": "auto-generated",
       "json_payload": {
-        "session_id": "mock-failure-20260729",
+        "session_id": "mock-failure-e3-20260729",
         "agent_id": "boundary-probe",
         "worker_correlation_id": "boundary-probe",
         "classification": "confirmed_bug",
@@ -104,51 +108,27 @@
         ],
         "findings": [
           {
-            "finding_id": "boundary-001",
-            "minimal_template": "UTF-8 bytes EF BB BF followed by ---\\nvariables:\\n  name:\\n    required: false\\n---\\nHello {{name}}\\n",
-            "minimal_input": "name=x",
-            "expected_oracle": "UTF-8 BOM is accepted before frontmatter; output contains only the rendered body",
-            "observed_result": "exit 0; stdout includes the complete frontmatter block before Hello x",
-            "requirement_trace": "No requirement or ADR currently covers this BOM-frontmatter behavior.",
-            "requirement_follow_up": "Assess support first; create/update the requirement/ADR only for a genuine supported-contract gap.",
-            "root_cause": "The file-frontmatter path does not strip the leading UTF-8 BOM before delimiter detection.",
-            "recommended_fix": "Add a CLI regression test and normalize a leading BOM if supported."
+            "finding_id": "boundary-001"
           },
           {
-            "finding_id": "boundary-002",
-            "minimal_template": "---\\n---\\nbad \\xff\\xfe bytes\\n",
-            "minimal_input": "invalid UTF-8 bytes ff fe in the template body",
-            "expected_oracle": "nonzero exit with a template/config UTF-8 diagnostic",
-            "observed_result": "exit 2 with ERR_INCLUDE_NOT_FOUND naming the template itself",
-            "requirement_trace": "No requirement or ADR currently covers the exact invalid-UTF-8 diagnostic wording.",
-            "requirement_follow_up": "Confirm the supported diagnostic boundary; create/update an ADR only if stable UTF-8 diagnostics are a supported contract.",
-            "root_cause": "The invalid byte path is classified by include resolution before template decoding.",
-            "recommended_fix": "Add a regression test and align error classification with the documented boundary."
+            "finding_id": "boundary-002"
           },
           {
-            "finding_id": "boundary-003",
-            "minimal_template": "---\\nvariables:\\n  needed:\\n    required: true\\n---\\nX {{needed}}\\n",
-            "minimal_input": "no value supplied for needed",
-            "expected_oracle": "missing declared required variable reports ERR_VAL_MISSING_REQUIRED",
-            "observed_result": "exit 2 with ERR_VAL_UNDECLARED_TOKEN for needed",
-            "requirement_trace": "The required-variable diagnostic contract needs reconciliation in existing documents.",
-            "requirement_follow_up": "Update an existing requirement/ADR if one defines the behavior; create a new one only for a genuine supported-contract gap.",
-            "root_cause": "Required-variable metadata is not applied before undeclared-token validation.",
-            "recommended_fix": "Reconcile validation ordering and add a CLI regression test."
+            "finding_id": "boundary-003"
           }
         ]
-      },
-      "xhtml_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/failure-boundary.xhtml",
-      "fragment_source": "auto-generated"
+      }
     },
     {
       "id": "differential-probe",
       "title": "differential-probe",
       "status": "PASS",
-      "summary": "12/12 baseline, parity, and determinism checks passed.",
-      "context_text": "Mock failed session; differential-probe ran 12 baseline, parity, and determinism iterations and passed all 12.",
+      "summary": "The differential worker completed its baseline, parity, and determinism checks. The failure in this session was isolated to the boundary worker.",
+      "context_text": "Failed session's differential-probe panel: 12 baseline, parity, and determinism iterations passed.",
+      "xhtml_path": "docs/examples/fuzz-run-report/failure-differential.xhtml",
+      "fragment_source": "auto-generated",
       "json_payload": {
-        "session_id": "mock-failure-20260729",
+        "session_id": "mock-failure-e3-20260729",
         "agent_id": "differential-probe",
         "worker_correlation_id": "differential-probe",
         "classification": "pass",
@@ -156,12 +136,9 @@
         "passed": 12,
         "failed": 0,
         "cases": [
-          "differential-probe-001",
-          "differential-probe-002"
+          "differential-probe-001"
         ]
-      },
-      "xhtml_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/failure-differential.xhtml",
-      "fragment_source": "auto-generated"
+      }
     }
   ]
 }

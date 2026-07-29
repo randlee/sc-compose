@@ -1,69 +1,39 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Adversarial fuzz session: failures require review &#8212; differential-probe panel</title>
-  <style type="text/css">
-
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
-    h1 { margin: 0 0 4px 0; font-size: 1.3rem; }
-    .meta-line { margin: 0 0 12px 0; color: #6b7280; font-size: 0.85rem; }
-    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 0.85rem; }
-    .status-pass { color: #065f46; background: #d1fae5; border: 1px solid #6ee7b7; }
-    .status-drift { color: #92400e; background: #fef3c7; border: 1px solid #f59e0b; }
-    .status-error { color: #991b1b; background: #fee2e2; border: 1px solid #ef4444; }
-    .status-info { color: #1e40af; background: #dbeafe; border: 1px solid #3b82f6; }
-    .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
-    .actions { display: flex; gap: 8px; }
-    .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
-    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
-    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; font-size: 0.85rem; vertical-align: top; }
-    thead th { background: #f3f4f6; }
-    tbody th { font-weight: 600; white-space: nowrap; }
-    .finding { border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 16px; margin-top: 16px; }
-    .finding h2 { margin: 0 0 8px 0; font-size: 1.05rem; }
-    code, pre { background: #f3f4f6; border-radius: 4px; font-size: 0.85em; }
-    code { padding: 1px 4px; }
-    pre { padding: 8px 10px; overflow-x: auto; white-space: pre-wrap; }
-  </style>
-</head>
-<body>
-  <div class="head">
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
     <div>
-      <h1>differential-probe <span class="status status-pass">PASS</span></h1>
-      <p class="meta-line">Worker panel &#183; auto-generated &#183; session mock-failure-20260729</p>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>differential-probe</h2>
+      <p class="agent-meta">Session mock-failure-e3-20260729 · Worker differential-probe</p>
     </div>
-    <div class="actions">
-      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-20260729&quot;,&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;worker_correlation_id&quot;:&quot;differential-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;cases&quot;:[&quot;differential-probe-001&quot;,&quot;differential-probe-002&quot;]}">{}</button><button type="button" class="icon-button" title="Copy Context" data-copy-text="Mock failed session; differential-probe ran 12 baseline, parity, and determinism iterations and passed all 12.">&#9086;</button>
+    <div class="agent-actions">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed session&#x27;s differential-probe panel: 12 baseline, parity, and determinism iterations passed.">⎘</button>
     </div>
-  </div>
-  <p>12/12 baseline, parity, and determinism checks passed.</p>
-  <table>
+  </header>
+
+  <p class="status">pass</p>
+  <p class="summary">The differential worker completed its baseline, parity, and determinism checks. The failure in this session was isolated to the boundary worker.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
     <tbody>
-      <tr><th scope="row">Session</th><td>mock-failure-20260729</td></tr>
-      <tr><th scope="row">Agent</th><td>differential-probe</td></tr>
-      <tr><th scope="row">Worker correlation id</th><td>differential-probe</td></tr>
-      <tr><th scope="row">Classification</th><td>pass</td></tr>
-      <tr><th scope="row">Iterations</th><td>12</td></tr>
-      <tr><th scope="row">Passed</th><td>12</td></tr>
-      <tr><th scope="row">Failed</th><td>0</td></tr>
-      <tr><th scope="row">Cases</th><td>differential-probe-001, differential-probe-002</td></tr>
+      <tr>
+        <th scope="row">Baseline parity, JSON/YAML equivalence, and deterministic output</th>
+        <td>12</td>
+        <td>12/12</td>
+        <td>PASS</td>
+      </tr>
     </tbody>
   </table>
-  <p>No findings recorded; all iterations passed. The representative inputs above are the worker's complete reported case list.</p>
-  <script type="text/javascript">
-    document.addEventListener("click", async function (event) {
-      const button = event.target.closest("[data-copy-text]");
-      if (!button) return;
-      const text = button.getAttribute("data-copy-text") || "";
-      try {
-        await navigator.clipboard.writeText(text);
-        button.setAttribute("title", "Copied");
-      } catch (err) {
-        button.setAttribute("title", "Copy failed");
-      }
-    });
-  </script>
-</body>
-</html>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">differential-probe-001</th><td><code>baseline/head render comparison</code></td><td>PASS; output unchanged</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>

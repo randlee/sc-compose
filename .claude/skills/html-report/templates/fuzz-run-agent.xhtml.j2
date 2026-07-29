@@ -17,13 +17,13 @@ required_variables:
   - agent.context_text
 ---
 <section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-{{ agent.classification | lower }}">
-  <header class="fuzz-agent-header">
+  <header class="agent-header fuzz-agent-header">
     <div>
       <p class="eyebrow">Adversarial fuzz worker</p>
       <h2>{{ agent.agent_id }}</h2>
       <p class="agent-meta">Session {{ agent.session_id }} · Worker {{ agent.worker_correlation_id }}</p>
     </div>
-    <div class="agent-actions" aria-label="Copy worker data">
+    <div class="agent-actions">
       <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{{ agent.copy_json | e }}">{}</button>
       <button type="button" class="icon-button" title="Copy Context" data-copy-text="{{ agent.context_text | e }}">⎘</button>
     </div>

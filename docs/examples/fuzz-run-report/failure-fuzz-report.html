@@ -2,99 +2,335 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Adversarial fuzz session: failures require review</title>
+  <title>Adversarial fuzz session: failure requires review</title>
   <style type="text/css">
-
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
-    header h1 { margin: 0 0 4px 0; font-size: 1.5rem; }
-    header .subtitle { margin: 0 0 8px 0; color: #4b5563; }
-    header .meta-line { margin: 0 0 12px 0; color: #6b7280; font-size: 0.85rem; }
-    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 0.85rem; }
-    .status-pass { color: #065f46; background: #d1fae5; border: 1px solid #6ee7b7; }
-    .status-drift { color: #92400e; background: #fef3c7; border: 1px solid #f59e0b; }
-    .status-error { color: #991b1b; background: #fee2e2; border: 1px solid #ef4444; }
-    .status-info { color: #1e40af; background: #dbeafe; border: 1px solid #3b82f6; }
-    .summary { margin-top: 16px; }
-    .summary table { border-collapse: collapse; width: 100%; margin-top: 12px; }
-    .summary th, .summary td { border: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; font-size: 0.9rem; }
-    .summary thead th { background: #f3f4f6; }
-    .summary tbody th { font-weight: 600; }
-    .section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
-    .section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
-    .section-head h2 { margin: 0; font-size: 1.15rem; }
-    .section-summary { color: #4b5563; margin: 8px 0 0 0; font-size: 0.9rem; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; max-width: 980px; margin-left: auto; margin-right: auto; }
+    h1 { margin: 0 0 4px 0; font-size: 1.6em; }
+    h2 { margin: 0 0 8px 0; font-size: 1.2em; }
+    h3 { margin: 16px 0 8px 0; font-size: 1.05em; }
+    h4 { margin: 12px 0 6px 0; font-size: 1em; }
+    p { line-height: 1.5; }
+    .subtitle { color: #4b5563; margin: 0 0 8px 0; }
+    .report-meta { color: #6b7280; font-size: 0.85em; margin: 0 0 12px 0; }
+    .status-badge { font-weight: 700; padding: 4px 12px; border-radius: 999px; display: inline-block; font-size: 0.85em; letter-spacing: 0.04em; }
+    .status-pass { color: #065f46; background: #ecfdf5; border: 1px solid #6ee7b7; }
+    .status-error { color: #991b1b; background: #fef2f2; border: 1px solid #ef4444; }
+    .status-drift { color: #92400e; background: #fffbeb; border: 1px solid #f59e0b; }
+    .status-info { color: #1e40af; background: #eff6ff; border: 1px solid #3b82f6; }
+    .summary-block { border: 1px solid #e5e7eb; border-left: 4px solid #ef4444; border-radius: 10px; padding: 16px; margin-top: 20px; }
+    table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; font-size: 0.92em; vertical-align: top; }
+    thead th { background: #f9fafb; }
+    code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; font-size: 0.9em; }
+    .report-section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 20px; }
+    .report-section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .report-section-head .fragment-link { color: #1e40af; font-size: 0.85em; }
     .section-actions { display: flex; gap: 8px; align-items: center; }
     .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
     .icon-button:hover { background: #f1f5f9; }
-    .panel-link { margin-top: 12px; font-size: 0.85rem; color: #4b5563; }
-    .panel-link code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; }
-    code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 0.85em; }
-    .recommendations { border-left: 4px solid #f59e0b; background: #fffbeb; padding: 12px 16px; margin-top: 24px; border-radius: 0 8px 8px 0; }
-    .recommendations h2 { margin: 0 0 8px 0; font-size: 1.05rem; color: #92400e; }
-    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 0.85rem; }
+    .agent-actions { display: flex; gap: 8px; }
+    .fuzz-agent { border-radius: 8px; }
+    .fuzz-agent-pass { border-left: 4px solid #6ee7b7; padding-left: 12px; }
+    .fuzz-agent-confirmed_bug { border-left: 4px solid #ef4444; padding-left: 12px; }
+    .fuzz-agent-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72em; color: #6b7280; margin: 0; }
+    .agent-meta { color: #6b7280; font-size: 0.85em; margin: 4px 0 0 0; }
+    .fuzz-agent-pass .status { color: #065f46; font-weight: 700; text-transform: uppercase; }
+    .fuzz-agent-confirmed_bug .status { color: #991b1b; font-weight: 700; text-transform: uppercase; }
+    .finding { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-top: 12px; }
+    .finding dl { margin: 0; }
+    .finding dt { font-weight: 600; margin-top: 8px; color: #374151; }
+    .finding dd { margin: 2px 0 0 0; }
+    .recommendations { border: 1px solid #f59e0b; background: #fffbeb; border-radius: 10px; padding: 16px; margin-top: 20px; color: #92400e; }
+    .fragments-block { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 20px; }
+    footer { margin-top: 24px; color: #6b7280; font-size: 0.85em; border-top: 1px solid #e5e7eb; padding-top: 12px; }
   </style>
 </head>
 <body>
   <header>
-    <h1>Adversarial fuzz session: failures require review</h1>
-    <p class="subtitle">Mock package showing four worker XHTML panels and primary-agent investigation</p>
-    <p class="meta-line">Generated 2026-07-29T20:30:00-07:00 &middot; E.3 evidence-shaped multi-agent session mock</p>
-    <p class="status status-error">ERROR</p>
+    <h1>Adversarial fuzz session: failure requires review</h1>
+    <p class="subtitle">Template-rendered worker panels in one generated HTML report</p>
+    <p class="report-meta">Generated 2026-07-29T22:24:00-07:00 · Source: E.3 evidence-shaped multi-agent session · Session mock-failure-e3-20260729</p>
+    <p class="status-badge status-error">ERROR</p>
   </header>
-  <section class="summary">
-    <p>Four independent workers each ran one bounded fuzz task. The primary agent investigated candidate failures with requirement/root-cause follow-up before packaging this report.</p><table><thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead><tbody><tr><th scope="row">Nested JSON/YAML values, jagged arrays, and object nesting</th><td>12</td><td>11/12</td><td>FAIL</td></tr><tr><th scope="row">Jinja loops, conditionals, whitespace, and optional values</th><td>12</td><td>11/12</td><td>FAIL</td></tr><tr><th scope="row">Malformed files, invalid var-file boundaries, and stable diagnostics</th><td>12</td><td>9/12</td><td>FAIL</td></tr><tr><th scope="row">Baseline parity, JSON/YAML equivalence, and deterministic output</th><td>12</td><td>12/12</td><td>PASS</td></tr></tbody></table>
+
+  <section class="summary-block" aria-label="Session summary">
+    <h2>Summary</h2>
+    <p>One primary coordinator dispatched four independent workers. Each worker ran one bounded fuzz task and returned a structured result; the sections below are the exact XHTML panels rendered from the worker-panel template.</p>
+    <table>
+      <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Malformed files, invalid var-file boundaries, and stable diagnostics</th><td>12</td><td>9/12</td><td>FAIL</td></tr>
+        <tr><th scope="row">Baseline parity, JSON/YAML equivalence, and deterministic output</th><td>12</td><td>12/12</td><td>PASS</td></tr>
+        <tr><th scope="row">Nested JSON/YAML values, jagged arrays, and object nesting</th><td>12</td><td>12/12</td><td>PASS</td></tr>
+        <tr><th scope="row">Jinja loops, conditionals, whitespace, and optional values</th><td>12</td><td>12/12</td><td>PASS</td></tr>
+      </tbody>
+    </table>
   </section>
-  <section class="section" id="shape-probe">
-    <div class="section-head">
-      <div>
-        <h2>shape-probe <span class="status status-error">ERROR</span></h2>
-        <p class="section-summary">11/12 passed; shape-001 found JSON/YAML duplicate-key divergence.</p>
+
+  <section class="report-section" id="shape-probe">
+    <div class="report-section-head">
+      <p class="status-badge status-pass">PASS</p>
+      <div class="section-actions" role="group" aria-label="Copy section data">
+        <span class="fragment-link">Fragment: failure-shape.xhtml</span>
+        <button type="button" class="icon-button" title="Copy JSON" data-copy-text='{"session_id":"mock-failure-e3-20260729","agent_id":"shape-probe","worker_correlation_id":"shape-probe","classification":"pass","iterations":12,"passed":12,"failed":0,"cases":["shape-probe-002"]}'>{}</button>
+        <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed session's shape-probe panel: 12 structured-input iterations passed.">⎘</button>
       </div>
-      <div class="section-actions"><button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-20260729&quot;,&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;worker_correlation_id&quot;:&quot;shape-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:11,&quot;failed&quot;:1,&quot;cases&quot;:[&quot;shape-001&quot;,&quot;shape-probe-002&quot;],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;shape-001&quot;,&quot;minimal_template&quot;:&quot;{{ a }}\\n&quot;,&quot;minimal_input&quot;:&quot;JSON: {a: 1, a: 2}; YAML: a: 1\\na: 2\\n&quot;,&quot;expected_oracle&quot;:&quot;JSON and YAML duplicate-key inputs have documented equivalent behavior&quot;,&quot;observed_result&quot;:&quot;JSON exits 0 and renders 2; YAML exits 2 with ERR_CONFIG_PARSE duplicate entry&quot;,&quot;requirement_trace&quot;:&quot;No existing requirement/ADR selects the duplicate-key policy across JSON and YAML.&quot;,&quot;requirement_follow_up&quot;:&quot;Ask the product owner to choose reject-or-last-value semantics; create or update the requirement/ADR only after that supported behavior is decided.&quot;,&quot;root_cause&quot;:&quot;The JSON and YAML loaders apply different duplicate-key policies before values reach the renderer.&quot;,&quot;recommended_fix&quot;:&quot;Document the duplicate-key policy, align both loaders, and add JSON/YAML parity regression tests.&quot;}]}">{}</button><button type="button" class="icon-button" title="Copy Context" data-copy-text="Mock failed session; shape-probe ran 12 nested-value iterations and found shape-001: duplicate-key JSON/YAML inputs diverge before rendering.">&#9086;</button></div>
     </div>
-    <p><strong>11/12; FAIL.</strong> <code>shape-001</code> used template <code>{{ a }}\n</code> with JSON <code>{a: 1, a: 2}</code> versus YAML <code>a: 1\na: 2</code>. JSON exited 0 and rendered 2; YAML exited 2 with <code>ERR_CONFIG_PARSE</code> duplicate entry.</p><p><strong>Primary investigation:</strong> no requirement/ADR selects the duplicate-key policy. Root cause is different JSON/YAML loader policies. Recommended change: decide and document the policy, align loaders, and add parity tests. Create/update an ADR only if the decision establishes a genuine supported contract.</p>
-    <p class="panel-link">Companion panel (auto-generated): <a href="failure-shape.xhtml"><code>failure-shape.xhtml</code></a></p>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>shape-probe</h2>
+      <p class="agent-meta">Session mock-failure-e3-20260729 · Worker shape-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed session&#x27;s shape-probe panel: 12 structured-input iterations passed.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">pass</p>
+  <p class="summary">The shape worker completed its structured-input checks. The failure in this session was isolated to the boundary worker.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Nested JSON/YAML values, jagged arrays, and object nesting</th>
+        <td>12</td>
+        <td>12/12</td>
+        <td>PASS</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">shape-probe-002</th><td><code>examples/jagged-array-values.md.j2; rows=[[1,2,3],[4,5]]</code></td><td>PASS; expected output</td></tr>
+      </tbody>
+    </table>
   </section>
-  <section class="section" id="template-probe">
-    <div class="section-head">
-      <div>
-        <h2>template-probe <span class="status status-info">INFO</span></h2>
-        <p class="section-summary">11/12 passed; template-001 is inconclusive pending a scalar-typing decision.</p>
+
+</section>
+  </section>
+
+  <section class="report-section" id="template-probe">
+    <div class="report-section-head">
+      <p class="status-badge status-pass">PASS</p>
+      <div class="section-actions" role="group" aria-label="Copy section data">
+        <span class="fragment-link">Fragment: failure-template.xhtml</span>
+        <button type="button" class="icon-button" title="Copy JSON" data-copy-text='{"session_id":"mock-failure-e3-20260729","agent_id":"template-probe","worker_correlation_id":"template-probe","classification":"pass","iterations":12,"passed":12,"failed":0,"cases":["template-probe-002"]}'>{}</button>
+        <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed session's template-probe panel: 12 Jinja behavior iterations passed.">⎘</button>
       </div>
-      <div class="section-actions"><button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-20260729&quot;,&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;worker_correlation_id&quot;:&quot;template-probe&quot;,&quot;classification&quot;:&quot;inconclusive&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:11,&quot;failed&quot;:1,&quot;cases&quot;:[&quot;template-001&quot;,&quot;template-probe-002&quot;],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;template-001&quot;,&quot;minimal_template&quot;:&quot;{% if n == 157 %}X{% elif n &gt; 0 %}Y{% else %}Z{% endif %}\\n&quot;,&quot;minimal_input&quot;:&quot;--var n=157 (CLI variables are string-typed)&quot;,&quot;expected_oracle&quot;:&quot;X if --var numeric coercion is part of the contract&quot;,&quot;observed_result&quot;:&quot;exit 0 with Y; var-file numeric input produces X&quot;,&quot;requirement_trace&quot;:&quot;No requirement/ADR currently states whether CLI scalar variables are coerced to numbers.&quot;,&quot;requirement_follow_up&quot;:&quot;Have product ownership decide whether CLI scalar typing is intentional; create or update a requirement/ADR only if the decision establishes a supported contract.&quot;,&quot;root_cause&quot;:&quot;CLI variables arrive as strings while var-file numbers arrive as numeric values.&quot;,&quot;recommended_fix&quot;:&quot;Record the product decision, then add a focused coercion/parity test or document the intentional distinction.&quot;}]}">{}</button><button type="button" class="icon-button" title="Copy Context" data-copy-text="Mock failed session; template-probe ran 12 Jinja behavior iterations and found template-001 inconclusive because CLI and var-file scalar typing differ.">&#9086;</button></div>
     </div>
-    <p><strong>11/12; FAIL for review.</strong> <code>template-001</code> used <code>{% if n == 157 %}X{% elif n &gt; 0 %}Y{% endif %}</code> with <code>--var n=157</code>. CLI string typing produced Y while a numeric var-file value produced X.</p><p><strong>Primary investigation:</strong> product ownership must decide whether CLI scalar typing is intentional. Root cause is the different types entering Jinja. Recommended change: record the decision, then add a coercion/parity test or document the distinction. Do not create an ADR solely because the reference is currently missing.</p>
-    <p class="panel-link">Companion panel (auto-generated): <a href="failure-template.xhtml"><code>failure-template.xhtml</code></a></p>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session mock-failure-e3-20260729 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed session&#x27;s template-probe panel: 12 Jinja behavior iterations passed.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">pass</p>
+  <p class="summary">The template worker completed its Jinja behavior checks. The failure in this session was isolated to the boundary worker.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Jinja loops, conditionals, whitespace, and optional values</th>
+        <td>12</td>
+        <td>12/12</td>
+        <td>PASS</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">template-probe-002</th><td><code>nested loop and optional-value rendering</code></td><td>PASS; expected text</td></tr>
+      </tbody>
+    </table>
   </section>
-  <section class="section" id="boundary-probe">
-    <div class="section-head">
-      <div>
-        <h2>boundary-probe <span class="status status-error">ERROR</span></h2>
-        <p class="section-summary">9/12 passed; boundary-001, boundary-002, and boundary-003 reproduced three confirmed bugs.</p>
+
+</section>
+  </section>
+
+  <section class="report-section" id="boundary-probe">
+    <div class="report-section-head">
+      <p class="status-badge status-error">ERROR</p>
+      <div class="section-actions" role="group" aria-label="Copy section data">
+        <span class="fragment-link">Fragment: failure-boundary.xhtml</span>
+        <button type="button" class="icon-button" title="Copy JSON" data-copy-text='{"session_id":"mock-failure-e3-20260729","agent_id":"boundary-probe","worker_correlation_id":"boundary-probe","classification":"confirmed_bug","iterations":12,"passed":9,"failed":3,"cases":["boundary-001","boundary-002","boundary-003"],"findings":[{"finding_id":"boundary-001"},{"finding_id":"boundary-002"},{"finding_id":"boundary-003"}]}'>{}</button>
+        <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed boundary-probe session: 12 iterations, boundary-001 through boundary-003 reproduced three bugs; exact inputs and primary-agent investigation are shown.">⎘</button>
       </div>
-      <div class="section-actions"><button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-20260729&quot;,&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;worker_correlation_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:9,&quot;failed&quot;:3,&quot;cases&quot;:[&quot;boundary-001&quot;,&quot;boundary-002&quot;,&quot;boundary-003&quot;],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;boundary-001&quot;,&quot;minimal_template&quot;:&quot;UTF-8 bytes EF BB BF followed by ---\\nvariables:\\n  name:\\n    required: false\\n---\\nHello {{name}}\\n&quot;,&quot;minimal_input&quot;:&quot;name=x&quot;,&quot;expected_oracle&quot;:&quot;UTF-8 BOM is accepted before frontmatter; output contains only the rendered body&quot;,&quot;observed_result&quot;:&quot;exit 0; stdout includes the complete frontmatter block before Hello x&quot;,&quot;requirement_trace&quot;:&quot;No requirement or ADR currently covers this BOM-frontmatter behavior.&quot;,&quot;requirement_follow_up&quot;:&quot;Assess support first; create/update the requirement/ADR only for a genuine supported-contract gap.&quot;,&quot;root_cause&quot;:&quot;The file-frontmatter path does not strip the leading UTF-8 BOM before delimiter detection.&quot;,&quot;recommended_fix&quot;:&quot;Add a CLI regression test and normalize a leading BOM if supported.&quot;},{&quot;finding_id&quot;:&quot;boundary-002&quot;,&quot;minimal_template&quot;:&quot;---\\n---\\nbad \\xff\\xfe bytes\\n&quot;,&quot;minimal_input&quot;:&quot;invalid UTF-8 bytes ff fe in the template body&quot;,&quot;expected_oracle&quot;:&quot;nonzero exit with a template/config UTF-8 diagnostic&quot;,&quot;observed_result&quot;:&quot;exit 2 with ERR_INCLUDE_NOT_FOUND naming the template itself&quot;,&quot;requirement_trace&quot;:&quot;No requirement or ADR currently covers the exact invalid-UTF-8 diagnostic wording.&quot;,&quot;requirement_follow_up&quot;:&quot;Confirm the supported diagnostic boundary; create/update an ADR only if stable UTF-8 diagnostics are a supported contract.&quot;,&quot;root_cause&quot;:&quot;The invalid byte path is classified by include resolution before template decoding.&quot;,&quot;recommended_fix&quot;:&quot;Add a regression test and align error classification with the documented boundary.&quot;},{&quot;finding_id&quot;:&quot;boundary-003&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  needed:\\n    required: true\\n---\\nX {{needed}}\\n&quot;,&quot;minimal_input&quot;:&quot;no value supplied for needed&quot;,&quot;expected_oracle&quot;:&quot;missing declared required variable reports ERR_VAL_MISSING_REQUIRED&quot;,&quot;observed_result&quot;:&quot;exit 2 with ERR_VAL_UNDECLARED_TOKEN for needed&quot;,&quot;requirement_trace&quot;:&quot;The required-variable diagnostic contract needs reconciliation in existing documents.&quot;,&quot;requirement_follow_up&quot;:&quot;Update an existing requirement/ADR if one defines the behavior; create a new one only for a genuine supported-contract gap.&quot;,&quot;root_cause&quot;:&quot;Required-variable metadata is not applied before undeclared-token validation.&quot;,&quot;recommended_fix&quot;:&quot;Reconcile validation ordering and add a CLI regression test.&quot;}]}">{}</button><button type="button" class="icon-button" title="Copy Context" data-copy-text="Mock failed session; boundary-probe ran 12 malformed-input and diagnostic iterations. boundary-001, boundary-002, and boundary-003 reproduced three failures; exact templates, inputs, root causes, and requirement follow-ups are in the companion panel.">&#9086;</button></div>
     </div>
-    <p><strong>9/12; FAIL.</strong> Three exact boundary inputs failed: <code>boundary-001</code> used a UTF-8 BOM before frontmatter with <code>name=x</code> and leaked the frontmatter; <code>boundary-002</code> used invalid bytes <code>ff fe</code> and returned <code>ERR_INCLUDE_NOT_FOUND</code>; <code>boundary-003</code> declared <code>needed.required=true</code> with no value and returned <code>ERR_VAL_UNDECLARED_TOKEN</code>.</p><p><strong>Primary investigation:</strong> the worker panel records requirement/ADR follow-up, root causes, and recommended tests for all three. The BOM case explicitly asks whether this is a supported contract before creating or updating documentation.</p>
-    <p class="panel-link">Companion panel (auto-generated): <a href="failure-boundary.xhtml"><code>failure-boundary.xhtml</code></a></p>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session mock-failure-e3-20260729 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:9,&quot;failed&quot;:3}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed boundary-probe session: 12 iterations, boundary-001 through boundary-003 reproduced three bugs; exact inputs and primary-agent investigation are shown.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">confirmed_bug</p>
+  <p class="summary">Three boundary inputs reproduced stable product bugs. The exact minimized templates, frontmatter, and inputs are preserved for review.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Malformed files, invalid var-file boundaries, and stable diagnostics</th>
+        <td>12</td>
+        <td>9/12</td>
+        <td>FAIL</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">boundary-001</th><td><code>UTF-8 BOM + variables.name.required=false frontmatter; input name=x</code></td><td>FAIL; frontmatter leaked into stdout (3 reproductions)</td></tr>
+        <tr><th scope="row">boundary-002</th><td><code>empty frontmatter + invalid UTF-8 bytes ff fe</code></td><td>FAIL; wrong diagnostic (3 reproductions)</td></tr>
+        <tr><th scope="row">boundary-003</th><td><code>variables.needed.required=true with no value</code></td><td>FAIL; wrong diagnostic (3 reproductions)</td></tr>
+      </tbody>
+    </table>
   </section>
-  <section class="section" id="differential-probe">
-    <div class="section-head">
-      <div>
-        <h2>differential-probe <span class="status status-pass">PASS</span></h2>
-        <p class="section-summary">12/12 baseline, parity, and determinism checks passed.</p>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>boundary-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>UTF-8 bytes EF BB BF followed by ---\nvariables:\n  name:\n    required: false\n---\nHello {{name}}\n</code></dd>
+        <dt>Input</dt><dd><code>name=x</code></dd>
+        <dt>Expected</dt><dd>UTF-8 BOM is accepted before frontmatter; output contains only the rendered body</dd>
+        <dt>Observed</dt><dd>exit 0; stdout includes the complete frontmatter block before Hello x</dd>
+        <dt>Requirement / ADR</dt><dd>No requirement or ADR currently covers this BOM-frontmatter behavior; the E.3 evidence records the parser boundary oracle.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Assess whether BOM-prefixed frontmatter is a supported user contract. If yes, create or update the requirement/ADR before implementing the parser fix; if no, document the intentional boundary rather than creating a needless ADR.</dd>
+        <dt>Root cause</dt><dd>The file-frontmatter path does not strip the leading UTF-8 BOM before detecting the frontmatter delimiter.</dd>
+        <dt>Recommended fix</dt><dd>Add a CLI regression test, then normalize a leading UTF-8 BOM if the product decision accepts it.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>boundary-002</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>---\n---\nbad \xff\xfe bytes\n</code></dd>
+        <dt>Input</dt><dd><code>invalid UTF-8 bytes ff fe in the template body</code></dd>
+        <dt>Expected</dt><dd>nonzero exit with a template/config UTF-8 diagnostic</dd>
+        <dt>Observed</dt><dd>exit 2 with ERR_INCLUDE_NOT_FOUND naming the template itself</dd>
+        <dt>Requirement / ADR</dt><dd>No requirement or ADR currently covers the exact invalid-UTF-8 diagnostic wording.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Confirm the supported diagnostic boundary; create or update documentation only if stable UTF-8 diagnostics are a supported contract.</dd>
+        <dt>Root cause</dt><dd>The invalid-byte path is classified by include resolution before template decoding.</dd>
+        <dt>Recommended fix</dt><dd>Add a regression test and align error classification with the documented boundary.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>boundary-003</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>---\nvariables:\n  needed:\n    required: true\n---\nX {{needed}}\n</code></dd>
+        <dt>Input</dt><dd><code>no value supplied for needed</code></dd>
+        <dt>Expected</dt><dd>missing declared required variable reports ERR_VAL_MISSING_REQUIRED</dd>
+        <dt>Observed</dt><dd>exit 2 with ERR_VAL_UNDECLARED_TOKEN for needed</dd>
+        <dt>Requirement / ADR</dt><dd>The required-variable diagnostic contract needs reconciliation in existing documents.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Update an existing requirement/ADR if one defines the behavior; create a new one only for a genuine supported-contract gap.</dd>
+        <dt>Root cause</dt><dd>Required-variable metadata is not applied before undeclared-token validation.</dd>
+        <dt>Recommended fix</dt><dd>Reconcile validation ordering and add a CLI regression test.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+  </section>
+
+  <section class="report-section" id="differential-probe">
+    <div class="report-section-head">
+      <p class="status-badge status-pass">PASS</p>
+      <div class="section-actions" role="group" aria-label="Copy section data">
+        <span class="fragment-link">Fragment: failure-differential.xhtml</span>
+        <button type="button" class="icon-button" title="Copy JSON" data-copy-text='{"session_id":"mock-failure-e3-20260729","agent_id":"differential-probe","worker_correlation_id":"differential-probe","classification":"pass","iterations":12,"passed":12,"failed":0,"cases":["differential-probe-001"]}'>{}</button>
+        <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed session's differential-probe panel: 12 baseline, parity, and determinism iterations passed.">⎘</button>
       </div>
-      <div class="section-actions"><button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-20260729&quot;,&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;worker_correlation_id&quot;:&quot;differential-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;cases&quot;:[&quot;differential-probe-001&quot;,&quot;differential-probe-002&quot;]}">{}</button><button type="button" class="icon-button" title="Copy Context" data-copy-text="Mock failed session; differential-probe ran 12 baseline, parity, and determinism iterations and passed all 12.">&#9086;</button></div>
     </div>
-    <p><strong>12/12 PASS.</strong> Baseline/head output stayed equivalent, selected JSON/YAML parity held, and repeated renders were byte-stable. Representative inputs include <code>differential-probe-001</code> and <code>differential-probe-002</code>.</p><p>See the companion XHTML panel for the worker's complete input table.</p>
-    <p class="panel-link">Companion panel (auto-generated): <a href="failure-differential.xhtml"><code>failure-differential.xhtml</code></a></p>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>differential-probe</h2>
+      <p class="agent-meta">Session mock-failure-e3-20260729 · Worker differential-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed session&#x27;s differential-probe panel: 12 baseline, parity, and determinism iterations passed.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">pass</p>
+  <p class="summary">The differential worker completed its baseline, parity, and determinism checks. The failure in this session was isolated to the boundary worker.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Baseline parity, JSON/YAML equivalence, and deterministic output</th>
+        <td>12</td>
+        <td>12/12</td>
+        <td>PASS</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">differential-probe-001</th><td><code>baseline/head render comparison</code></td><td>PASS; output unchanged</td></tr>
+      </tbody>
+    </table>
   </section>
-  <section class="recommendations">
+
+</section>
+  </section>
+
+  <section class="recommendations" aria-label="Recommendations">
     <h2>Recommendations</h2>
-    <p>Primary-agent follow-up: review the requirement/ADR/NFR traces in the failed worker panels, decide genuine supported-contract gaps, then promote only confirmed bugs to regression tests.</p>
+    <p>Review boundary-001's requirement decision before promoting a parser fix; create or update documentation only for a genuine supported-contract gap.</p>
   </section>
+
+  <section class="fragments-block" aria-label="Section fragments">
+    <h2>Section XHTML fragments</h2>
+    <ul>
+      <li><a href="failure-shape.xhtml">failure-shape.xhtml</a> — shape-probe (auto-generated)</li>
+      <li><a href="failure-template.xhtml">failure-template.xhtml</a> — template-probe (auto-generated)</li>
+      <li><a href="failure-boundary.xhtml">failure-boundary.xhtml</a> — boundary-probe (auto-generated)</li>
+      <li><a href="failure-differential.xhtml">failure-differential.xhtml</a> — differential-probe (auto-generated)</li>
+    </ul>
+  </section>
+
   <footer>
-    <p>Mock only. Real session output uses <code>site/reports/YYYYMMDD-N-fuzz-report.html</code> plus one worker-suffixed XHTML panel per agent.</p>
+    <p>Generated mock. Future artifacts use site/reports/YYYYMMDD-N-fuzz-report.html and worker-suffixed XHTML panels.</p>
   </footer>
+
   <script>
     document.addEventListener("click", async function (event) {
       const button = event.target.closest("[data-copy-text]");

@@ -3,94 +3,241 @@
 <head>
   <meta charset="UTF-8">
   <title>Adversarial fuzz session: all workers passed</title>
-  <style type="text/css">
-
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
-    header h1 { margin: 0 0 4px 0; font-size: 1.5rem; }
-    header .subtitle { margin: 0 0 8px 0; color: #4b5563; }
-    header .meta-line { margin: 0 0 12px 0; color: #6b7280; font-size: 0.85rem; }
-    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 0.85rem; }
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #f8fafc; }
+    main { max-width: 960px; margin: 0 auto; }
+    header.report-header { max-width: 960px; margin: 0 auto 8px auto; }
+    h1 { margin: 0 0 4px 0; font-size: 1.6rem; }
+    .subtitle { margin: 0 0 8px 0; color: #475569; }
+    .meta-line { margin: 0 0 12px 0; color: #64748b; font-size: 0.9rem; }
+    .status { font-weight: 700; padding: 4px 12px; border-radius: 999px; display: inline-block; font-size: 0.85rem; letter-spacing: 0.04em; }
     .status-pass { color: #065f46; background: #d1fae5; border: 1px solid #6ee7b7; }
-    .status-drift { color: #92400e; background: #fef3c7; border: 1px solid #f59e0b; }
-    .status-error { color: #991b1b; background: #fee2e2; border: 1px solid #ef4444; }
-    .status-info { color: #1e40af; background: #dbeafe; border: 1px solid #3b82f6; }
-    .summary { margin-top: 16px; }
-    .summary table { border-collapse: collapse; width: 100%; margin-top: 12px; }
-    .summary th, .summary td { border: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; font-size: 0.9rem; }
-    .summary thead th { background: #f3f4f6; }
-    .summary tbody th { font-weight: 600; }
-    .section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
-    .section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
-    .section-head h2 { margin: 0; font-size: 1.15rem; }
-    .section-summary { color: #4b5563; margin: 8px 0 0 0; font-size: 0.9rem; }
-    .section-actions { display: flex; gap: 8px; align-items: center; }
+    .summary-block { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; font-size: 0.92rem; }
+    thead th { background: #f1f5f9; }
+    section.report-section { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
+    .fuzz-agent { border-left: 4px solid #6ee7b7; padding-left: 12px; }
+    .fuzz-agent-pass .status { color: #065f46; background: #d1fae5; border: 1px solid #6ee7b7; text-transform: uppercase; }
+    .agent-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .agent-header h2 { margin: 0; font-size: 1.2rem; }
+    .eyebrow { margin: 0; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72rem; color: #64748b; }
+    .agent-meta { margin: 4px 0 0 0; color: #64748b; font-size: 0.85rem; }
+    .agent-actions { display: flex; gap: 8px; }
     .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
     .icon-button:hover { background: #f1f5f9; }
-    .panel-link { margin-top: 12px; font-size: 0.85rem; color: #4b5563; }
-    .panel-link code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; }
-    code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 0.85em; }
-    .recommendations { border-left: 4px solid #f59e0b; background: #fffbeb; padding: 12px 16px; margin-top: 24px; border-radius: 0 8px 8px 0; }
-    .recommendations h2 { margin: 0 0 8px 0; font-size: 1.05rem; color: #92400e; }
-    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 0.85rem; }
+    .summary { color: #1f2937; }
+    .test-inputs h3 { margin: 16px 0 4px 0; font-size: 1rem; }
+    code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: 0.86rem; }
+    .fragment-ref { margin-top: 12px; color: #64748b; font-size: 0.85rem; }
+    footer { max-width: 960px; margin: 24px auto 0 auto; color: #64748b; font-size: 0.85rem; border-top: 1px solid #e5e7eb; padding-top: 12px; }
   </style>
 </head>
 <body>
-  <header>
+  <header class="report-header">
     <h1>Adversarial fuzz session: all workers passed</h1>
-    <p class="subtitle">Mock package showing one HTML page with four worker XHTML panels</p>
-    <p class="meta-line">Generated 2026-07-29T20:30:00-07:00 &middot; E.3 evidence-shaped multi-agent session mock</p>
+    <p class="subtitle">Template-rendered worker panels in one generated HTML report</p>
+    <p class="meta-line">Generated 2026-07-29T22:24:00-07:00 · E.3 evidence-shaped multi-agent session · Session mock-success-e3-20260729</p>
     <p class="status status-pass">PASS</p>
   </header>
-  <section class="summary">
-    <p>Four independent workers each ran one bounded fuzz task. The table is the session-level view; the four sections below are the worker panels.</p><table><thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead><tbody><tr><th scope="row">Nested JSON/YAML values, jagged arrays, and object nesting</th><td>12</td><td>12/12</td><td>PASS</td></tr><tr><th scope="row">Jinja loops, conditionals, whitespace, and optional values</th><td>12</td><td>12/12</td><td>PASS</td></tr><tr><th scope="row">Malformed files, invalid var-file boundaries, and stable diagnostics</th><td>12</td><td>12/12</td><td>PASS</td></tr><tr><th scope="row">Baseline parity, JSON/YAML equivalence, and deterministic output</th><td>12</td><td>12/12</td><td>PASS</td></tr></tbody></table>
-  </section>
-  <section class="section" id="shape-probe">
-    <div class="section-head">
-      <div>
-        <h2>shape-probe <span class="status status-pass">PASS</span></h2>
-        <p class="section-summary">12/12 nested-value checks passed.</p>
-      </div>
-      <div class="section-actions"><button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-20260729&quot;,&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;worker_correlation_id&quot;:&quot;shape-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;cases&quot;:[&quot;shape-probe-002&quot;,&quot;shape-probe-003&quot;]}">{}</button><button type="button" class="icon-button" title="Copy Context" data-copy-text="Mock successful session; shape-probe ran 12 nested-value and jagged-array iterations, including shape-probe-002 with rows [[1, 2, 3], [4, 5]], and passed all 12.">&#9086;</button></div>
+
+  <main>
+    <section class="summary-block">
+      <h2>Session summary</h2>
+      <p>One primary coordinator dispatched four independent workers. Each worker ran one bounded fuzz task and returned a structured result; the sections below are the exact XHTML panels rendered from the worker-panel template.</p>
+<table>
+  <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+  <tbody>
+    <tr><th scope="row">Malformed files, invalid var-file boundaries, and stable diagnostics</th><td>12</td><td>12/12</td><td>PASS</td></tr>
+    <tr><th scope="row">Baseline parity, JSON/YAML equivalence, and deterministic output</th><td>12</td><td>12/12</td><td>PASS</td></tr>
+    <tr><th scope="row">Nested JSON/YAML values, jagged arrays, and object nesting</th><td>12</td><td>12/12</td><td>PASS</td></tr>
+    <tr><th scope="row">Jinja loops, conditionals, whitespace, and optional values</th><td>12</td><td>12/12</td><td>PASS</td></tr>
+  </tbody>
+</table>
+    </section>
+
+    <section class="report-section" id="shape-probe">
+<section class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>shape-probe</h2>
+      <p class="agent-meta">Session mock-success-e3-20260729 · Worker shape-probe</p>
     </div>
-    <p><strong>12/12 PASS.</strong> Nested JSON/YAML values and jagged arrays were exercised. Concrete examples: <code>shape-probe-002</code> used <code>examples/jagged-array-values.md.j2</code> with <code>rows=[[1,2,3],[4,5]]</code>; the expected output was <code>1, 2, 3\n4, 5</code>.</p><p>See the companion XHTML panel for the worker's complete input table.</p>
-    <p class="panel-link">Companion panel (auto-generated): <a href="success-shape.xhtml"><code>success-shape.xhtml</code></a></p>
-  </section>
-  <section class="section" id="template-probe">
-    <div class="section-head">
-      <div>
-        <h2>template-probe <span class="status status-pass">PASS</span></h2>
-        <p class="section-summary">12/12 Jinja behavior checks passed.</p>
-      </div>
-      <div class="section-actions"><button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-20260729&quot;,&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;worker_correlation_id&quot;:&quot;template-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;cases&quot;:[&quot;template-probe-002&quot;,&quot;template-probe-003&quot;]}">{}</button><button type="button" class="icon-button" title="Copy Context" data-copy-text="Mock successful session; template-probe ran 12 loop, conditional, whitespace, and optional-value iterations and passed all 12.">&#9086;</button></div>
+    <div class="agent-actions">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-e3-20260729&quot;,&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Successful shape-probe session: 12 iterations, including shape-probe-002 with rows [[1, 2, 3], [4, 5]], all passed.">⎘</button>
     </div>
-    <p><strong>12/12 PASS.</strong> Nested loops, conditionals, whitespace, and optional-value cases produced the expected text without a diagnostic or panic. Representative inputs include <code>template-probe-002</code> and <code>template-probe-003</code>.</p><p>See the companion XHTML panel for the worker's complete input table.</p>
-    <p class="panel-link">Companion panel (auto-generated): <a href="success-template.xhtml"><code>success-template.xhtml</code></a></p>
+  </header>
+
+  <p class="status">pass</p>
+  <p class="summary">The shape worker exercised recorded structured-input cases. The real jagged-array fixture used rows [[1, 2, 3], [4, 5]] and produced the expected two-row output.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Nested JSON/YAML values, jagged arrays, and object nesting</th>
+        <td>12</td>
+        <td>12/12</td>
+        <td>PASS</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">shape-probe-002</th><td><code>examples/jagged-array-values.md.j2; rows=[[1,2,3],[4,5]]</code></td><td>PASS; output 1, 2, 3\n4, 5</td></tr>
+        <tr><th scope="row">shape-probe-003</th><td><code>nested object and mixed-array value ingress</code></td><td>PASS; shape preserved</td></tr>
+      </tbody>
+    </table>
   </section>
-  <section class="section" id="boundary-probe">
-    <div class="section-head">
-      <div>
-        <h2>boundary-probe <span class="status status-pass">PASS</span></h2>
-        <p class="section-summary">12/12 malformed-input and confinement checks passed.</p>
-      </div>
-      <div class="section-actions"><button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-20260729&quot;,&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;worker_correlation_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;cases&quot;:[&quot;boundary-probe-004&quot;,&quot;boundary-probe-005&quot;]}">{}</button><button type="button" class="icon-button" title="Copy Context" data-copy-text="Mock successful session; boundary-probe ran 12 malformed-input, diagnostic, and path-confinement iterations and passed all 12.">&#9086;</button></div>
+
+</section>
+      <p class="fragment-ref">Companion fragment: <code>success-shape.xhtml</code> (auto-generated)</p>
+    </section>
+
+    <section class="report-section" id="template-probe">
+<section class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session mock-success-e3-20260729 · Worker template-probe</p>
     </div>
-    <p><strong>12/12 PASS.</strong> Malformed var-files, stable diagnostics, and path-confinement boundaries behaved as expected. Representative inputs include <code>boundary-probe-004</code> and <code>boundary-probe-005</code>.</p><p>See the companion XHTML panel for the worker's complete input table.</p>
-    <p class="panel-link">Companion panel (auto-generated): <a href="success-boundary.xhtml"><code>success-boundary.xhtml</code></a></p>
-  </section>
-  <section class="section" id="differential-probe">
-    <div class="section-head">
-      <div>
-        <h2>differential-probe <span class="status status-pass">PASS</span></h2>
-        <p class="section-summary">12/12 baseline, parity, and determinism checks passed.</p>
-      </div>
-      <div class="section-actions"><button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-20260729&quot;,&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;worker_correlation_id&quot;:&quot;differential-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;cases&quot;:[&quot;differential-probe-001&quot;,&quot;differential-probe-002&quot;]}">{}</button><button type="button" class="icon-button" title="Copy Context" data-copy-text="Mock successful session; differential-probe ran 12 baseline, parity, and determinism iterations and passed all 12.">&#9086;</button></div>
+    <div class="agent-actions">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-e3-20260729&quot;,&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Successful template-probe session: 12 loop, conditional, whitespace, and optional-value iterations all passed.">⎘</button>
     </div>
-    <p><strong>12/12 PASS.</strong> Baseline/head output stayed equivalent, JSON/YAML parity held for the selected inputs, and repeated renders were byte-stable. Representative inputs include <code>differential-probe-001</code> and <code>differential-probe-002</code>.</p><p>See the companion XHTML panel for the worker's complete input table.</p>
-    <p class="panel-link">Companion panel (auto-generated): <a href="success-differential.xhtml"><code>success-differential.xhtml</code></a></p>
+  </header>
+
+  <p class="status">pass</p>
+  <p class="summary">The template worker exercised the recorded Jinja behavior cases, including nested control flow and optional values. All bounded inputs produced expected text.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Jinja loops, conditionals, whitespace, and optional values</th>
+        <td>12</td>
+        <td>12/12</td>
+        <td>PASS</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">template-probe-002</th><td><code>conditional branch with a numeric var-file value</code></td><td>PASS; expected branch selected</td></tr>
+        <tr><th scope="row">template-probe-003</th><td><code>nested loop over an object containing an empty list</code></td><td>PASS; deterministic empty rendering</td></tr>
+      </tbody>
+    </table>
   </section>
+
+</section>
+      <p class="fragment-ref">Companion fragment: <code>success-template.xhtml</code> (auto-generated)</p>
+    </section>
+
+    <section class="report-section" id="boundary-probe">
+<section class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session mock-success-e3-20260729 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-e3-20260729&quot;,&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Successful boundary-probe session: 12 malformed-input, diagnostic, and path-confinement iterations all passed.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">pass</p>
+  <p class="summary">The boundary worker exercised malformed-input, diagnostic, and path-confinement cases from the recorded boundary-probe task. Every input reached its expected boundary.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Malformed files, invalid var-file boundaries, and stable diagnostics</th>
+        <td>12</td>
+        <td>12/12</td>
+        <td>PASS</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">boundary-probe-004</th><td><code>malformed var-file at the configuration boundary</code></td><td>PASS; stable configuration diagnostic</td></tr>
+        <tr><th scope="row">boundary-probe-005</th><td><code>path outside the workspace root</code></td><td>PASS; confinement held</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+      <p class="fragment-ref">Companion fragment: <code>success-boundary.xhtml</code> (auto-generated)</p>
+    </section>
+
+    <section class="report-section" id="differential-probe">
+<section class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>differential-probe</h2>
+      <p class="agent-meta">Session mock-success-e3-20260729 · Worker differential-probe</p>
+    </div>
+    <div class="agent-actions">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-e3-20260729&quot;,&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Successful differential-probe session: 12 baseline, parity, and determinism iterations all passed.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">pass</p>
+  <p class="summary">The differential worker compared baseline/head behavior and repeated renders across the recorded cases. Outputs remained equivalent and deterministic.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Baseline parity, JSON/YAML equivalence, and deterministic output</th>
+        <td>12</td>
+        <td>12/12</td>
+        <td>PASS</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">differential-probe-001</th><td><code>JSON/YAML var-file parity for the same scalar tree</code></td><td>PASS; equivalent output</td></tr>
+        <tr><th scope="row">differential-probe-002</th><td><code>repeat render with unchanged inputs</code></td><td>PASS; byte-stable output</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+      <p class="fragment-ref">Companion fragment: <code>success-differential.xhtml</code> (auto-generated)</p>
+    </section>
+  </main>
+
   <footer>
-    <p>Mock only. Real session output uses <code>site/reports/YYYYMMDD-N-fuzz-report.html</code> plus one worker-suffixed XHTML panel per agent.</p>
+    <p>Generated mock. Future artifacts use site/reports/YYYYMMDD-N-fuzz-report.html and worker-suffixed XHTML panels.</p>
+    <p>JSON sidecar: <code>success-fuzz-report.json</code> · Worker-panel template: <code>.claude/skills/html-report/templates/fuzz-run-agent.xhtml.j2</code></p>
   </footer>
+
   <script>
     document.addEventListener("click", async function (event) {
       const button = event.target.closest("[data-copy-text]");
