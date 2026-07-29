@@ -1,5 +1,6 @@
 ---
 name: adversarial-fuzzing
+version: 1.1.0
 description: Generate and triage adversarial templates, var-files, and rendering inputs against sc-compose by coordinating bounded background agents, differential and metamorphic checks, minimization, and regression-test promotion. Use when trying to break a rendering subsystem, validating a risky change, hunting parser/validator/rendering edge cases, or turning a confirmed fuzz failure into a unit or CLI test.
 ---
 
@@ -187,6 +188,93 @@ Use `success: true` when the campaign completed even if findings exist. Use
 `success: false` for invalid input, coordinator failure, or a malformed worker
 contract. Represent timeouts as recoverable worker failures and do not retry
 more than once.
+
+## First-Campaign Checklist And Evidence
+
+Use this checklist for the first real campaign (owned by E.3) and for later
+independent quality-mgr passes:
+
+1. Confirm the requested worktree is an existing approved absolute path and
+   record the baseline ref. Do not claim E.1 is merged unless the target
+   integration branch actually contains it.
+2. Record the seed, target, worker cap, cases per worker, timeout, promotion
+   flag, campaign ID, and generated campaign directory before launching.
+3. Run the full target with the four registered workers when `target` is
+   `full`; record every correlation ID, worker target, case count, status,
+   timeout, and error.
+4. Record every candidate with the exact command, minimized input/template,
+   expected oracle, observed result, diagnostic, and reproduction count.
+5. Record classification and promotion decisions. A confirmed bug needs three
+   reproductions and a durable owning-crate test; an unresolved confirmed bug
+   needs a next owner. Do not claim the pipeline is proven in E.2.
+6. Run the relevant validation gates and preserve the report outside temporary
+   files when E.3 or quality-mgr requires durable evidence.
+
+The durable report must be a JSON object matching this contract:
+
+```json
+{
+  "schema_version": "adversarial-fuzzing/v1",
+  "campaign": {
+    "campaign_id": "e3-20260729-0001",
+    "worktree_path": "/absolute/approved/worktree",
+    "target": "full",
+    "baseline_ref": "optional git ref",
+    "seed": 157,
+    "max_workers": 4,
+    "cases_per_worker": 100,
+    "per_worker_timeout_s": 120,
+    "promote_regressions": true
+  },
+  "workers": [
+    {
+      "correlation_id": "shape-probe",
+      "target": "var-file",
+      "status": "success | failed | timed_out",
+      "cases_run": 100,
+      "finding_ids": ["FUZZ-001"],
+      "error": null
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": "FUZZ-001",
+      "worker_correlation_id": "shape-probe",
+      "classification": "confirmed_bug | intentional_boundary | inconclusive",
+      "command": "cargo run ...",
+      "minimal_template": "...",
+      "minimal_input": "...",
+      "expected_oracle": "...",
+      "observed_result": "...",
+      "diagnostic_code": null,
+      "reproduction_count": 3
+    }
+  ],
+  "promoted_tests": [
+    {
+      "finding_id": "FUZZ-001",
+      "test_path": "crates/sc-compose/tests/cli.rs"
+    }
+  ],
+  "unresolved_candidates": [
+    {
+      "finding_id": "FUZZ-002",
+      "next_owner": "team-lead"
+    }
+  ],
+  "summary": {
+    "all_successful": true,
+    "confirmed_bugs": 0,
+    "intentional_boundaries": 0,
+    "inconclusive": 0,
+    "failed_workers": 0
+  }
+}
+```
+
+Order workers and findings deterministically by correlation ID and finding ID.
+`all_successful` is false for any worker failure or timeout. A report with no
+findings but incomplete execution is not a passing no-finding campaign.
 
 ## Safety and cleanup
 
