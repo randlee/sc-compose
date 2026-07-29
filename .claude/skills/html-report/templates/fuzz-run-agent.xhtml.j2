@@ -16,12 +16,12 @@ required_variables:
   - agent.json_payload
   - agent.context_text
 ---
-<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-{{ agent.classification | lower }}">
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-{{ agent.classification | lower | e }}">
   <header class="agent-header fuzz-agent-header">
     <div>
       <p class="eyebrow">Adversarial fuzz worker</p>
-      <h2>{{ agent.agent_id }}</h2>
-      <p class="agent-meta">Session {{ agent.session_id }} · Worker {{ agent.worker_correlation_id }}</p>
+      <h2>{{ agent.agent_id | e }}</h2>
+      <p class="agent-meta">Session {{ agent.session_id | e }} · Worker {{ agent.worker_correlation_id | e }}</p>
     </div>
     <div class="agent-actions">
       <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{{ agent.copy_json | e }}">{}</button>
@@ -29,17 +29,17 @@ required_variables:
     </div>
   </header>
 
-  <p class="status">{{ agent.classification }}</p>
-  <p class="summary">{{ agent.summary }}</p>
+  <p class="status">{{ agent.classification | e }}</p>
+  <p class="summary">{{ agent.summary | e }}</p>
 
   <table class="agent-results">
     <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
     <tbody>
       <tr>
-        <th scope="row">{{ agent.fuzz_run_description }}</th>
-        <td>{{ agent.iterations }}</td>
-        <td>{{ agent.passed }}/{{ agent.iterations }}</td>
-        <td>{{ agent.result }}</td>
+        <th scope="row">{{ agent.fuzz_run_description | e }}</th>
+        <td>{{ agent.iterations | e }}</td>
+        <td>{{ agent.passed | e }}/{{ agent.iterations | e }}</td>
+        <td>{{ agent.result | e }}</td>
       </tr>
     </tbody>
   </table>
@@ -50,7 +50,7 @@ required_variables:
       <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
       <tbody>
 {% for item in agent.test_inputs %}
-        <tr><th scope="row">{{ item.case_id }}</th><td><code>{{ item.description }}</code></td><td>{{ item.outcome }}</td></tr>
+        <tr><th scope="row">{{ item.case_id | e }}</th><td><code>{{ item.description | e }}</code></td><td>{{ item.outcome | e }}</td></tr>
 {% endfor %}
       </tbody>
     </table>
@@ -61,16 +61,16 @@ required_variables:
     <h3>Findings</h3>
 {% for finding in agent.findings %}
     <article class="finding">
-      <h4>{{ finding.finding_id }}</h4>
+      <h4>{{ finding.finding_id | e }}</h4>
       <dl>
-        <dt>Minimal template / frontmatter</dt><dd><code>{{ finding.minimal_template }}</code></dd>
-        <dt>Input</dt><dd><code>{{ finding.minimal_input }}</code></dd>
-        <dt>Expected</dt><dd>{{ finding.expected_oracle }}</dd>
-        <dt>Observed</dt><dd>{{ finding.observed_result }}</dd>
-        <dt>Requirement / ADR</dt><dd>{{ finding.requirement_trace }}</dd>
-        <dt>Requirement / ADR follow-up</dt><dd>{{ finding.requirement_follow_up }}</dd>
-        <dt>Root cause</dt><dd>{{ finding.root_cause }}</dd>
-        <dt>Recommended fix</dt><dd>{{ finding.recommended_fix }}</dd>
+        <dt>Minimal template / frontmatter</dt><dd><code>{{ finding.minimal_template | e }}</code></dd>
+        <dt>Input</dt><dd><code>{{ finding.minimal_input | e }}</code></dd>
+        <dt>Expected</dt><dd>{{ finding.expected_oracle | e }}</dd>
+        <dt>Observed</dt><dd>{{ finding.observed_result | e }}</dd>
+        <dt>Requirement / ADR</dt><dd>{{ finding.requirement_trace | e }}</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>{{ finding.requirement_follow_up | e }}</dd>
+        <dt>Root cause</dt><dd>{{ finding.root_cause | e }}</dd>
+        <dt>Recommended fix</dt><dd>{{ finding.recommended_fix | e }}</dd>
       </dl>
     </article>
 {% endfor %}
