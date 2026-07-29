@@ -417,6 +417,23 @@ implementation slices needed to close the remaining production-readiness gaps.
 The accepted cleanup findings and sprint ownership are tracked in
 [docs/issues-inventory.md](issues-inventory.md).
 
+### Phase E Sprint Plans
+
+Status:
+
+- draft follow-on work for recursive structured inputs and adversarial rendering
+  validation after the completed Phase D multi-pass delivery
+
+Sprint entries:
+
+- [Phase E plan](phase-E/phase-E-plan.md)
+- [Sprint E.1 — Recursive Structured Input Support](phase-E/sprint-e-1-recursive-structured-input.md)
+- [Sprint E.2 — Adversarial Fuzzing Workflow](phase-E/sprint-e-2-adversarial-fuzzing.md)
+- [Sprint E.3 — First Adversarial Campaign And Regression Closure](phase-E/sprint-e-3-first-adversarial-campaign.md)
+
+E.1 changes the runtime input contract, E.2 defines the multi-agent QA
+workflow, and E.3 proves that workflow against the expanded contract.
+
 ### Known Limitations
 
 - Undeclared-token diagnostics currently attribute the warning or error to the
@@ -788,15 +805,18 @@ Deliverables:
 - scope-tracker chosen over a MiniJinja AST dependency for loop-body
   discovery; the decision is documented in `architecture.md` section 21.5
 - frontmatter-init discovery for nested references inside loop bodies
-- nested arrays explicitly remain out of scope for H1/H2 and are rejected with
-  `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
+- the historical H2 nested-array restriction is superseded by Sprint E.1;
+  the current phase index names the implementation Sprint E.1 to avoid
+  colliding with the completed multi-pass Phase D identifiers
 - unit and integration tests for arrays of objects
 
 Acceptance Criteria:
 
 - arrays of objects render end-to-end through Jinja loops
 - frontmatter-init discovers loop-body variable references from array members
-- nested arrays are rejected with `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
+- nested arrays are rejected with `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` in the
+  historical H2 contract; Sprint E.1 defines the planned recursive-value
+  replacement
 - at least 10 tests cover arrays-of-objects behavior and failure cases
 - the `sprint-report-html` input shape is representable by the implemented value
   model

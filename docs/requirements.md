@@ -584,6 +584,9 @@ Pack root policy:
   top-level variable boundary, object values.
 - Nested arrays remain invalid and must report
   `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`.
+- Historical H2 note (2026-07-29): this restriction is superseded by Sprint E.1;
+  the current phase index names the recursive-input implementation Sprint E.1
+  to avoid colliding with completed Phase D identifiers.
 - Arrays of objects are valid per FR-13 when the array is the variable value
   itself.
 
@@ -1038,6 +1041,9 @@ Implemented in Phase HTML-Report.
 - Nested arrays are out of scope for H1 and H2. Callers who pass an array that
   contains another array, or an object that contains an array at a nested
   field, must receive `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`.
+- Historical H2 note (2026-07-29): this restriction is superseded by Sprint E.1;
+  the current phase index names the recursive-input implementation Sprint E.1
+  to avoid colliding with completed Phase D identifiers.
 - Missing nested fields inside array members must report stable field-path
   diagnostics using `ERR_VAL_MISSING_NESTED_FIELD`.
 - `frontmatter-init` must discover variable references inside `for` loop
