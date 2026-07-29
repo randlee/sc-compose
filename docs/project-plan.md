@@ -725,7 +725,7 @@ Release blocker inventory:
 | ID | Blocker | Status | Sprint | Closure condition |
 | --- | --- | --- | --- | --- |
 | HRB-01 | The current input model cannot express structured records such as PR objects and nested field access. | Closed — PR #45, `2280bd1`. All 11 H1 acceptance tests pass including `frontmatter_defaults_accept_object_value` (`crates/sc-composer/src/lib.rs:107`), `render_accepts_object_values_in_json_var_file` (`crates/sc-compose/tests/cli.rs:818`), and `template_json_object_input_defaults_obey_precedence` (`crates/sc-compose/tests/cli.rs:581`). | H1 | Object/map input values render end-to-end with stable field-path diagnostics. |
-| HRB-02 | The current input model cannot express repeated report sections as arrays of structured records. | Closed — H2 implements arrays-of-objects ingress, nested-array diagnostics, and loop-body discovery with dedicated unit/integration coverage. | H2 | Arrays of objects render, validate, and support loop-body discovery end-to-end. |
+| HRB-02 | The current input model cannot express repeated report sections as arrays of structured records. | Closed — H2 implements arrays-of-objects ingress and loop-body discovery; E.1 removes the historical nested-array restriction with recursive validation and regression coverage. | H2/E.1 | Recursive arrays and arrays of objects render, validate, and support loop-body discovery end-to-end. |
 | HRB-03 | There is no bundled HTML report example proving `sc-compose` can generate a useful clickable report artifact. | Closed — H3 adds `examples/sprint-report-html.html.j2`, realistic sample vars, and named-render coverage for `sprint-report-html.html.j2 -> sprint-report-html.html`. | H3 | `sprint-report-html` renders a self-contained HTML report from realistic structured input. |
 
 #### Sprint H1: Structured Object Input Support
@@ -814,9 +814,8 @@ Acceptance Criteria:
 
 - arrays of objects render end-to-end through Jinja loops
 - frontmatter-init discovers loop-body variable references from array members
-- nested arrays are rejected with `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` in the
-  historical H2 contract; Sprint E.1 defines the planned recursive-value
-  replacement
+- recursive arrays, nested arrays of objects, and jagged arrays render through
+  the E.1 recursive-value contract without emitting the reserved legacy code
 - at least 10 tests cover arrays-of-objects behavior and failure cases
 - the `sprint-report-html` input shape is representable by the implemented value
   model

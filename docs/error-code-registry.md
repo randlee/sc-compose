@@ -23,8 +23,8 @@ by `sc-composer` and `sc-compose`.
 | `ERR_INCLUDE_ESCAPE` | `IncludeError` | error | include path escapes confinement root | include engine |
 | `ERR_INCLUDE_CYCLE` | `IncludeError` | error | include graph revisits a file already on the active include stack | include engine |
 | `ERR_INCLUDE_DEPTH` | `IncludeError` | error | include depth exceeds configured maximum | include engine |
-| `ERR_VAL_OBJECT_SHAPE` | `ValidationError` | error | structured input object uses an unsupported shape such as a non-string key or array/object nesting not yet supported | structured input parsing, validation pipeline |
-| `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` | `ValidationError` | error | structured input used a nested array shape that H2 still forbids | structured input parsing, validation pipeline |
+| `ERR_VAL_OBJECT_SHAPE` | `ValidationError` | error | structured input object uses an unsupported shape such as a non-string key | structured input parsing, validation pipeline |
+| `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` | `ValidationError` | reserved | legacy H2 nested-array restriction; retained for compatibility and not emitted for recursive JSON/YAML-compatible values | compatibility only |
 | `ERR_VAL_DUPLICATE` | `ValidationError` | error | duplicate frontmatter variable declaration | frontmatter normalization, validation pipeline |
 | `WARN_VAL_CONFLICTING_DEFAULT_SECTIONS` | `ValidationError` | warning | frontmatter declared both `defaults` and `input_defaults`; `input_defaults` overrides overlaps | frontmatter normalization, validation pipeline |
 | `ERR_VAL_EMPTY` | `ValidationError` | error | template body is empty where composition requires content | validation pipeline |
@@ -67,8 +67,8 @@ minimum logical structure:
   validation work across Sprint 3 and Sprint 4.
 - `ERR_VAL_OBJECT_SHAPE`, `ERR_VAL_SHAPE_MISMATCH`, and
   `ERR_VAL_MISSING_NESTED_FIELD` are owned by Phase HTML-Report / Sprint H1.
-- `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` remains H2-reserved on the H1 branch, so
-  its registry entry is deferred until the H2 implementation lands.
+- `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` is retained as a reserved compatibility
+  code after E.1; recursive JSON/YAML-compatible values must not emit it.
 - `RenderError` CLI-facing codes are owned by the Sprint 4 release-gate
   command/output verification work.
 - `ConfigError` codes are shared between Sprint 2 type/error work and Sprint 4

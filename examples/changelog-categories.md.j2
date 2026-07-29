@@ -4,11 +4,10 @@ version: 1.0.0
 description: >-
   Feature-request repro: a Keep a Changelog entry grouped by category, where
   each category owns its own list of change items (summary + optional PR
-  link). This is the natural shape for the data (categories[].items[]) but
-  currently fails var-file loading with ERR_VAL_NESTED_ARRAY_UNSUPPORTED
-  ("arrays of objects are not supported at nested paths"), because `items`
-  is an array of objects nested inside `categories`, which is itself an
-  array of objects.
+  link). This is the natural shape for the data (categories[].items[]) and is
+  accepted by recursive structured-input validation because `items` is an
+  array of objects nested inside `categories`, which is itself an array of
+  objects.
 format: markdown
 required_variables:
   - version
