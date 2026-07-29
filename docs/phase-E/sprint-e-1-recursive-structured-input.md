@@ -1,10 +1,10 @@
 ---
 id: E.1
 title: Recursive Structured Input Support
-status: planned
+status: complete
 branch: sprint/e-1-recursive-structured-input
 worktree: ../sc-compose-worktrees/sprint/e-1-recursive-structured-input
-target: develop
+target: integrate/phase-e
 ---
 
 # Sprint E.1 — Recursive Structured Input Support
@@ -158,9 +158,9 @@ stable diagnostic codes for preserved negative boundaries.
 - Existing top-level-object, YAML string-key, malformed-input, and variable
   validation boundaries remain enforced with their stable diagnostics.
 - No supported recursive value emits `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`.
-- The five historical H2 restriction locations carry explicit supersession
-  notes naming the historical issue-plan label; the current phase index calls
-  this work E.1 to avoid collision with completed Phase D.
+- The five historical H2 restriction locations explicitly reference the
+  canonical ADR-E1 decision; the current phase index calls this work E.1 to
+  avoid collision with completed Phase D.
 - A dated architecture decision-record entry explicitly supersedes the H2
   restriction and is linked from the affected architecture sections.
 - README and CHANGELOG are checked and updated when they describe the old
@@ -180,3 +180,16 @@ cargo clippy --all-targets --all-features -- -D warnings
 Also run the concrete repository boundary suite
 `cargo test -p sc-compose --test repo_boundaries`, both issue fixture commands,
 and the new YAML/default-source regression tests.
+
+## Closure Notes
+
+- E1-D1 removed the depth-sensitive `ArrayContext` policy and now recursively
+  validates every finite JSON/YAML-compatible array and object value.
+- E1-D2 and E1-D3 cover JSON/YAML var-files, frontmatter defaults,
+  `template.json` defaults, the nested categories/items fixture, and jagged
+  scalar-array fixture.
+- E1-D4 retains `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` as a reserved compatibility
+  code and no longer emits it for supported recursive values.
+- E1-D5 and E1-D6 align the contract docs, registry, CHANGELOG, examples, and
+  dated architecture decision record. README search found no user-facing
+  nested-array restriction requiring a change.

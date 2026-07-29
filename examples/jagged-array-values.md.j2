@@ -3,17 +3,15 @@ name: jagged-array-values
 version: 1.0.0
 description: >-
   Feature-request repro: a plain array of arrays of scalars (no objects
-  involved at all). Currently rejected by var-file loading with
-  ERR_VAL_NESTED_ARRAY_UNSUPPORTED ("nested arrays are not supported"),
-  even though every element is a scalar.
+  involved at all). Recursive structured-input validation accepts this shape,
+  including the uneven row lengths.
 format: markdown
 required_variables:
   - rows
 metadata:
   purpose: >-
-    Narrowest possible repro of the nested-array var-file restriction,
-    isolated from the array-of-objects case in changelog-categories.md.j2.
+    Regression example for jagged scalar arrays, isolated from the
+    array-of-objects case in changelog-categories.md.j2.
 ---
-{% for row in rows %}
-{% for value in row %}{{ value }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% endfor %}
+{% for row in rows +%}{% for value in row %}{{ value }}{% if not loop.last %}, {% endif %}{% endfor +%}
+{% endfor +%}

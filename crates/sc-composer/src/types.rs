@@ -35,62 +35,20 @@ where
 ///
 /// # Errors
 ///
-/// Returns [`InvalidInputValueError`] when the value contains unsupported
-/// nested arrays or arrays of objects at non-top-level paths. Top-level
-/// arrays of objects are valid render inputs.
+/// Returns [`InvalidInputValueError`] when the value contains a shape that
+/// cannot be represented by the structured-input contract.
 pub fn validate_input_value(value: &InputValue) -> Result<(), InvalidInputValueError> {
-    validate_input_value_at(value, ArrayContext::TopLevel)
+    validate_input_value_at(value)
 }
 
-#[derive(Clone, Copy)]
-enum ArrayContext {
-    TopLevel,
-    Nested,
-}
-
-fn validate_input_value_at(
-    value: &InputValue,
-    array_context: ArrayContext,
-) -> Result<(), InvalidInputValueError> {
+fn validate_input_value_at(value: &InputValue) -> Result<(), InvalidInputValueError> {
     match value {
         serde_json::Value::Null
         | serde_json::Value::Bool(_)
         | serde_json::Value::Number(_)
         | serde_json::Value::String(_) => Ok(()),
-        serde_json::Value::Array(values) => {
-            for element in values {
-                match element {
-                    serde_json::Value::Null
-                    | serde_json::Value::Bool(_)
-                    | serde_json::Value::Number(_)
-                    | serde_json::Value::String(_) => {}
-                    serde_json::Value::Array(_) => {
-                        return Err(InvalidInputValueError::new(
-                            DiagnosticCode::ErrValNestedArrayUnsupported,
-                            "nested arrays are not supported",
-                        ));
-                    }
-                    serde_json::Value::Object(object) => {
-                        if !matches!(array_context, ArrayContext::TopLevel) {
-                            return Err(InvalidInputValueError::new(
-                                DiagnosticCode::ErrValNestedArrayUnsupported,
-                                "arrays of objects are not supported at nested paths",
-                            ));
-                        }
-                        for value in object.values() {
-                            validate_input_value_at(value, ArrayContext::Nested)?;
-                        }
-                    }
-                }
-            }
-            Ok(())
-        }
-        serde_json::Value::Object(object) => {
-            for value in object.values() {
-                validate_input_value_at(value, ArrayContext::Nested)?;
-            }
-            Ok(())
-        }
+        serde_json::Value::Array(values) => values.iter().try_for_each(validate_input_value_at),
+        serde_json::Value::Object(object) => object.values().try_for_each(validate_input_value_at),
     }
 }
 
@@ -99,7 +57,7 @@ fn validate_input_value_at(
 /// # Errors
 ///
 /// Returns [`InvalidInputValueError`] when the YAML value uses non-string
-/// object keys, nested arrays, or arrays of objects.
+/// object keys or contains an unsupported scalar representation.
 pub fn input_value_from_yaml(
     value: serde_yaml::Value,
 ) -> Result<InputValue, InvalidInputValueError> {
@@ -111,7 +69,7 @@ pub fn input_value_from_yaml(
                 Ok(serde_json::Value::Number(number)) => Ok(serde_json::Value::Number(number)),
                 _ => Err(InvalidInputValueError::new(
                     DiagnosticCode::ErrValObjectShape,
-                    "expected a scalar value or array of scalars, found unsupported number",
+                    "expected a JSON-compatible number",
                 )),
             }
         }
@@ -754,12 +712,52 @@ mod tests {
     }
 
     #[test]
-    fn validate_input_value_rejects_nested_array_with_reserved_code() {
-        let value = json!([["nested"]]);
+    fn validate_input_value_accepts_recursive_arrays_and_objects() {
+        let value = json!({
+            "categories": [
+                {
+                    "name": "Added",
+                    "items": [
+                        {"summary": "new feature", "prs": [588, 589]},
+                        {"summary": "documentation", "prs": []}
+                    ]
+                }
+            ],
+            "rows": [[1, 2, 3], [4, 5]],
+            "mixed": [null, true, {"nested": [["value"]]}]
+        });
 
-        let error = validate_input_value(&value).unwrap_err();
+        validate_input_value(&value).unwrap();
+    }
 
-        assert_eq!(error.code(), DiagnosticCode::ErrValNestedArrayUnsupported);
+    #[test]
+    fn input_value_from_yaml_accepts_recursive_arrays_and_objects() {
+        let yaml = from_str::<serde_yaml::Value>(
+            "categories:\n  - name: Added\n    items:\n      - summary: new feature\n        prs: [588, 589]\nrows:\n  - [1, 2, 3]\n  - [4, 5]\n",
+        )
+        .unwrap();
+
+        let value = input_value_from_yaml(yaml).unwrap();
+
+        assert_eq!(
+            value,
+            json!({
+                "categories": [{
+                    "name": "Added",
+                    "items": [{"summary": "new feature", "prs": [588, 589]}]
+                }],
+                "rows": [[1, 2, 3], [4, 5]]
+            })
+        );
+    }
+
+    #[test]
+    fn input_value_from_yaml_rejects_non_string_map_keys() {
+        let yaml = from_str::<serde_yaml::Value>("1: invalid-key\n").unwrap();
+
+        let error = input_value_from_yaml(yaml).unwrap_err();
+
+        assert_eq!(error.code(), DiagnosticCode::ErrValObjectShape);
     }
 
     #[test]

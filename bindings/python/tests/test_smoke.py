@@ -498,11 +498,6 @@ def test_headerless_templates_keep_phase_c_behavior() -> None:
             None,
         ),
         (
-            lambda root: sc_compose.validate_input_value({"bad": [[1]]}),
-            sc_compose.ScValidationError,
-            sc_compose.DiagnosticCode.ERR_VAL_NESTED_ARRAY_UNSUPPORTED,
-        ),
-        (
             lambda root: sc_compose.resolve_template_path(
                 make_file_request(root, "missing.md.j2")
             ),
