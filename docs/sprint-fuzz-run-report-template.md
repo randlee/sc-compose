@@ -28,6 +28,32 @@ This is a template-authoring sprint, not a one-off report. The deliverable is
 a reusable Jinja2 template plus a documented data contract that any future
 `sc-adversarial-fuzz-probe`/coordinator run can feed real case data into.
 
+## Integration Point (amended)
+
+- The report is generated **after** a run of
+  `.claude/skills/adversarial-fuzzing/`, not as a standalone/manual step.
+  Add a report-generation step to that skill's `## Workflow` (after step 9,
+  which currently ends the workflow at "summarize confirmed bugs, promoted
+  tests, unresolved candidates, and campaign limits") that emits one report
+  per case using this sprint's template, via the `html-report-generator`
+  pipeline.
+- Output location: `site/reports/` (repo-relative, not the scratch/example
+  location used for this sprint's own review mocks — see below).
+- Filename convention: `<datecode>-<index>-fuzz-report.html`, where
+  `<datecode>` is `YYYYMMDD` and `<index>` is a per-day, per-campaign
+  1-based sequence number reset each day. Example: `20260729-1-fuzz-report.html`.
+  The JSON sidecar and any XHTML fragment for a given case use the same
+  stem (e.g. `20260729-1-fuzz-report.json`,
+  `20260729-1-fuzz-report.xhtml`) so the triad stays associated by filename
+  alone.
+- This sprint's own **review mocks** (the two examples for team-lead/user
+  sign-off before merge) still live under `docs/examples/fuzz-run-report/`
+  as originally scoped — they are design-review artifacts, not real
+  campaign output, and must not be written into `site/reports/`. Once the
+  template is approved, the *real* integration wired into the
+  adversarial-fuzzing skill is what writes to `site/reports/` using the
+  datecode-index filename convention.
+
 ## Hard Dependencies
 
 - `~/.claude/skills/html-report/SKILL.md` — the authoritative generic
@@ -50,6 +76,8 @@ a reusable Jinja2 template plus a documented data contract that any future
 
 ## Exact Targets
 
+- `.claude/skills/adversarial-fuzzing/SKILL.md` — add the report-generation
+  step to `## Workflow` as described under Integration Point above.
 - A new Jinja2 XHTML fragment template under
   `.claude/skills/html-report/templates/` (or the existing report template
   directory used by `html-report-generator` — inspect that agent's prompt
@@ -110,6 +138,11 @@ a reusable Jinja2 template plus a documented data contract that any future
   documented in-repo, not only implied by the template source.
 - No existing `html-report` contract fields are renamed or removed; this
   sprint only adds a new template consumer of the existing contract.
+- `.claude/skills/adversarial-fuzzing/SKILL.md`'s workflow now includes a
+  report-generation step that writes real per-case reports to
+  `site/reports/` using the `<datecode>-<index>-fuzz-report.html` filename
+  convention (with matching `.json` sidecar and, for failures, `.xhtml`
+  fragment).
 
 ## Non-Goals
 
