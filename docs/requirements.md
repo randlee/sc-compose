@@ -578,9 +578,10 @@ Pack root policy:
 - Object/map values with string keys are valid per FR-12.
 - Sequence values in variable files may contain scalars, objects, arrays, and
   any finite combination of those values at any nesting depth.
-- Historical H2 note (2026-07-29): this restriction is superseded by Sprint E.1;
-  the current phase index names the recursive-input implementation Sprint E.1
-  to avoid colliding with completed Phase D identifiers.
+- Historical H2 note (2026-07-29): [ADR-E1](architecture.md#61-adr-e1-recursive-structured-input-contract-2026-07-29)
+  supersedes this restriction; the current phase index names the
+  recursive-input implementation Sprint E.1 to avoid colliding with completed
+  Phase D identifiers.
 - Arrays of objects are valid per FR-13 when the array is the variable value
   itself.
 
@@ -1032,9 +1033,10 @@ Implemented in Phase HTML-Report.
 - Empty arrays remain valid inputs.
 - Arrays of objects may contain nested object fields and arrays, including
   jagged arrays and arrays nested inside object fields.
-- Historical H2 note (2026-07-29): this restriction is superseded by Sprint E.1;
-  the current phase index names the recursive-input implementation Sprint E.1
-  to avoid colliding with completed Phase D identifiers.
+- Historical H2 note (2026-07-29): [ADR-E1](architecture.md#61-adr-e1-recursive-structured-input-contract-2026-07-29)
+  supersedes this restriction; the current phase index names the
+  recursive-input implementation Sprint E.1 to avoid colliding with completed
+  Phase D identifiers.
 - Missing nested fields inside array members must report stable field-path
   diagnostics using `ERR_VAL_MISSING_NESTED_FIELD`.
 - `frontmatter-init` must discover variable references inside `for` loop

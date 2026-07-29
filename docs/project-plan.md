@@ -805,7 +805,8 @@ Deliverables:
 - scope-tracker chosen over a MiniJinja AST dependency for loop-body
   discovery; the decision is documented in `architecture.md` section 21.5
 - frontmatter-init discovery for nested references inside loop bodies
-- the historical H2 nested-array restriction is superseded by Sprint E.1;
+- the historical H2 nested-array restriction is superseded by
+  [ADR-E1](architecture.md#61-adr-e1-recursive-structured-input-contract-2026-07-29);
   the current phase index names the implementation Sprint E.1 to avoid
   colliding with the completed multi-pass Phase D identifiers
 - unit and integration tests for arrays of objects
