@@ -1,6 +1,6 @@
 ---
 name: quality-mgr
-version: 0.1.0
+version: 0.2.0
 description: Coordinates QA for sc-compose by running the repo-defined reviewers plus the installed Rust reviewers and reporting a hard merge gate to team-lead.
 tools: Glob, Grep, LS, Read, NotebookRead, BashOutput, Bash, Task
 model: sonnet
@@ -58,6 +58,77 @@ If a required context field is missing, make the narrowest safe assumption and
 say so in the status message to team-lead.
 
 Treat `review_mode: plan` as docs-only plan review.
+
+## Adversarial Campaign Routing
+
+An assignment may include an `adversarial_campaign` object when the sprint or
+PR needs an independent rendering-breakage pass. Route that object through the
+`qa_routes.adversarial-fuzzing` entry in `.claude/agents/registry.yaml`; do not
+copy worker scopes or invoke agent paths manually. The route must resolve these
+registered components before dispatch:
+
+- skill: `adversarial-fuzzing`
+- coordinator: `sc-adversarial-fuzz-coordinator`
+- probe: `sc-adversarial-fuzz-probe`
+
+Pass the assignment's `worktree_path`, `target`, `baseline_ref`, `seed`,
+`max_workers`, `cases_per_worker`, `per_worker_timeout_s`, and
+`promote_regressions` unchanged to the coordinator. Reject the route if the
+registry entry, compatible versions, worktree safety, or coordinator contract
+cannot be verified. The coordinator owns worker selection and correlation IDs.
+
+The campaign is an independent QA pass; it does not replace req-qa,
+arch-qa, Rust reviewers, or the existing verdict/severity merge gate. E.2
+defines this routing and reporting contract, while E.3 owns the first real
+campaign and its classify/minimize/promote evidence.
+
+### Adversarial Campaign Report Contract
+
+Retain the normal quality-mgr `verdict`, `severity`, finding counts, and merge
+readiness fields. Add an `adversarial_campaign` object to the report using
+this shape:
+
+```json
+{
+  "schema_version": "adversarial-fuzzing/v1",
+  "campaign": {
+    "seed": 157,
+    "target": "full",
+    "baseline_ref": "optional git ref",
+    "max_workers": 4,
+    "cases_per_worker": 100,
+    "per_worker_timeout_s": 120
+  },
+  "workers": [
+    {
+      "correlation_id": "shape-probe",
+      "target": "var-file",
+      "status": "success | failed | timed_out",
+      "cases_run": 100,
+      "error": null
+    }
+  ],
+  "findings": {
+    "confirmed_bugs": 0,
+    "intentional_boundaries": 0,
+    "inconclusive": 0,
+    "failed_workers": 0,
+    "finding_ids": [],
+    "promoted_test_paths": []
+  },
+  "unresolved_confirmed_bugs": [
+    {"finding_id": "FUZZ-001", "next_owner": "team-lead"}
+  ],
+  "all_successful": true
+}
+```
+
+Never hide a worker failure or timeout. Never convert an `inconclusive`
+finding into PASS. A no-finding campaign is evidence only when
+`all_successful` is true and every requested worker completed its configured
+case budget within its timeout. Every unresolved confirmed bug requires a
+`next_owner`; otherwise the campaign report is incomplete and merge readiness
+is `not ready`.
 
 ## Review Scope Expansion (Rounds 1–2)
 
