@@ -122,24 +122,20 @@ Schema rules:
 
 ### FR-1b: Value Types
 
-The render-context value model remains intentionally narrow even after H1
-structured-input support lands.
+The render-context value model accepts any finite JSON/YAML-compatible tree
+that the existing `serde_json::Value` and Minijinja context can represent.
 
 - Variables used by template rendering must be one of:
   - string
   - number
   - boolean
   - null
-  - an object/map with string keys; object fields may nest objects and arrays
-    of scalars
-  - a sequence of scalar values
-  - a top-level sequence of objects
-- Sequence values may contain supported scalar values or, at the top-level
-  variable boundary, object values.
-- Nested sequences remain out of scope.
-- Arrays of objects are only supported when the array is the variable value
-  itself; object fields within array members may be nested objects, but an
-  object field whose value is itself an array of objects remains out of scope.
+  - an object/map with string keys, recursively containing supported values
+  - a sequence recursively containing supported values, including arrays,
+    objects, scalars, `null`, and jagged shapes
+- The top-level `--var-file` document remains a JSON/YAML object and YAML map
+  keys remain strings; these ingress boundaries are independent of nesting
+  depth.
 - `metadata` may contain arbitrary YAML values because it is descriptive only
   and does not participate in rendering semantics.
 

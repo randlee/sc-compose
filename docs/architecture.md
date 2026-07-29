@@ -302,6 +302,17 @@ Semantic rules:
 - When a referenced or required variable is satisfied by a default instead of
   explicit caller input, validation emits `INFO_VAL_DEFAULT_USED`.
 
+### 6.1. ADR-E1: Recursive Structured Input Contract (2026-07-29)
+
+The historical H2 nested-array restriction is superseded by Sprint E.1. The
+shipped contract accepts finite JSON/YAML-compatible arrays and objects at any
+depth because `InputValue` already uses `serde_json::Value` and Minijinja can
+traverse those values. The top-level var-file object boundary, YAML
+string-key rule, and string-only `--var` interface remain unchanged.
+
+Sections 15 and 18 link here for the template-pack and diagnostic implications;
+they intentionally do not repeat this decision record.
+
 `InputValue` in H1/H2/E.1 means one of:
 
 - string
@@ -1165,10 +1176,9 @@ Manifest rules:
   - empty arrays are valid,
   - arrays of objects are valid when the array is the variable value itself,
   - recursive arrays and objects are accepted at any finite depth
-- Architecture decision record (2026-07-29): the historical H2 nested-array
-  restriction is superseded by Sprint E.1; the current phase index names the
-  recursive-input implementation Sprint E.1 to avoid colliding with completed
-  Phase D identifiers. E.1 now implements that contract.
+- Recursive structured-input behavior is governed by
+  [ADR-E1](#61-adr-e1-recursive-structured-input-contract-2026-07-29); no
+  separate template-pack restriction applies.
 - no manifest field selects entrypoints, paths, hooks, or alternate execution
   behavior in the initial release.
 
@@ -1474,10 +1484,9 @@ Canonical failures must map to stable error families and stable codes.
 | Named pack is not renderable because a bundled example name is ambiguous or a template pack has zero or multiple root-level `*.j2` files | `ConfigError` | `ERR_CONFIG_PACK_NOT_RENDERABLE` |
 | `templates add` target name already exists | `ConfigError` | `ERR_CONFIG_TEMPLATE_EXISTS` |
 
-Historical error-table note (2026-07-29): the H2 restriction represented by
-`ERR_VAL_NESTED_ARRAY_UNSUPPORTED` is superseded by Sprint E.1; the current
-  recursive-input implementation is delivered by Sprint E.1. The code remains
-reserved for compatibility and must not reject values accepted by the new
+The legacy `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` code is governed by
+[ADR-E1](#61-adr-e1-recursive-structured-input-contract-2026-07-29). It remains
+reserved for compatibility and must not reject values accepted by the
 recursive contract.
 
 ## 19. Observability Integration (FR-9, FR-10, FR-11)
@@ -1710,9 +1719,8 @@ Trait openness decisions:
 - `ResolverPolicy` is open because caller-specific path policy is an explicit
   product requirement,
 - value-model and metadata extension points remain narrow by design:
-  scalar values plus simple sequences are open in the initial release, but
-  hooks, arbitrary manifest-driven behavior, and nested mappings remain
-  deferred.
+  finite recursive JSON/YAML-compatible values are open in the initial release,
+  but hooks and arbitrary manifest-driven behavior remain deferred.
 
 ## 21. Structured Input And HTML Report Architecture
 

@@ -1784,8 +1784,7 @@ fn render_accepts_issue_157_jagged_array_fixture() {
         String::from_utf8_lossy(&output.stderr)
     );
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("1, 2, 3"));
-    assert!(stdout.contains("4, 5"));
+    assert_eq!(stdout.trim(), "1, 2, 3\n4, 5");
 }
 
 #[test]

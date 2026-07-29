@@ -13,6 +13,5 @@ metadata:
     Regression example for jagged scalar arrays, isolated from the
     array-of-objects case in changelog-categories.md.j2.
 ---
-{% for row in rows %}
-{% for value in row %}{{ value }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% endfor %}
+{% for row in rows +%}{% for value in row %}{{ value }}{% if not loop.last %}, {% endif %}{% endfor +%}
+{% endfor +%}

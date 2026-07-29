@@ -158,9 +158,9 @@ stable diagnostic codes for preserved negative boundaries.
 - Existing top-level-object, YAML string-key, malformed-input, and variable
   validation boundaries remain enforced with their stable diagnostics.
 - No supported recursive value emits `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`.
-- The five historical H2 restriction locations carry explicit supersession
-  notes naming Sprint E.1; the current phase index calls this work E.1 to avoid
-  collision with completed Phase D.
+- The five historical H2 restriction locations explicitly reference the
+  canonical ADR-E1 decision; the current phase index calls this work E.1 to
+  avoid collision with completed Phase D.
 - A dated architecture decision-record entry explicitly supersedes the H2
   restriction and is linked from the affected architecture sections.
 - README and CHANGELOG are checked and updated when they describe the old
