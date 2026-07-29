@@ -430,9 +430,11 @@ Sprint entries:
 - [Sprint E.1 — Recursive Structured Input Support](phase-E/sprint-e-1-recursive-structured-input.md)
 - [Sprint E.2 — Adversarial Fuzzing Workflow](phase-E/sprint-e-2-adversarial-fuzzing.md)
 - [Sprint E.3 — First Adversarial Campaign And Regression Closure](phase-E/sprint-e-3-first-adversarial-campaign.md)
+- [Sprint 157 — Multi-Agent Fuzz-Session Report Template](sprint-fuzz-run-report-template.md)
 
 E.1 changes the runtime input contract, E.2 defines the multi-agent QA
-workflow, and E.3 proves that workflow against the expanded contract.
+workflow, E.3 proves that workflow against the expanded contract, and Sprint
+157 defines the single-page multi-panel report package emitted by a session.
 
 ### Known Limitations
 

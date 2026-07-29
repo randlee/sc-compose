@@ -1,28 +1,104 @@
 {
-  "title": "Fuzz case: shape-probe-002",
-  "subtitle": "One successful case from the E.3 adversarial campaign",
-  "status": "PASS",
-  "generated_at": "2026-07-29",
-  "source_label": "docs/phase-E/evidence/e-3-adversarial-campaign.json",
-  "summary": "A real structured-input case renders the checked-in jagged-array fixture with nested rows and produces the expected two-row output. The E.3 evidence records this shape-probe batch as successful and attaches no finding to this case ID.",
+  "report": {
+    "title": "Adversarial fuzz session: all workers passed",
+    "subtitle": "Mock package showing one HTML page with four worker XHTML panels",
+    "status": "PASS",
+    "generated_at": "2026-07-29T20:30:00-07:00",
+    "source_label": "E.3 evidence-shaped multi-agent session mock",
+    "metadata": {
+      "report_kind": "multi-agent-fuzz-session",
+      "session_id": "mock-success-20260729",
+      "worker_count": 4
+    },
+    "html_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/success-fuzz-report.html"
+  },
   "sections": [
     {
-      "id": "case-summary",
-      "title": "shape-probe-002",
+      "id": "shape-probe",
+      "title": "shape-probe",
       "status": "PASS",
-      "context_text": "Campaign e3-20260729-0002; shape-probe; case shape-probe-002 passed. Render examples/jagged-array-values.md.j2 with rows [[1, 2, 3], [4, 5]].",
+      "summary": "12/12 nested-value checks passed.",
+      "context_text": "Mock successful session; shape-probe ran 12 nested-value and jagged-array iterations, including shape-probe-002 with rows [[1, 2, 3], [4, 5]], and passed all 12.",
       "json_payload": {
-        "campaign_id": "e3-20260729-0002",
-        "case_id": "shape-probe-002",
+        "session_id": "mock-success-20260729",
+        "agent_id": "shape-probe",
         "worker_correlation_id": "shape-probe",
         "classification": "pass",
-        "template": "examples/jagged-array-values.md.j2",
-        "var_file": "examples/jagged-array-values.sample-vars.json",
-        "input": { "rows": [[1, 2, 3], [4, 5]] },
-        "expected_output": "1, 2, 3\\n4, 5",
-        "finding_ids": []
+        "iterations": 12,
+        "passed": 12,
+        "failed": 0,
+        "cases": [
+          "shape-probe-002",
+          "shape-probe-003"
+        ]
       },
-      "xhtml_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/success-fuzz-report.xhtml",
+      "xhtml_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/success-shape.xhtml",
+      "fragment_source": "auto-generated"
+    },
+    {
+      "id": "template-probe",
+      "title": "template-probe",
+      "status": "PASS",
+      "summary": "12/12 Jinja behavior checks passed.",
+      "context_text": "Mock successful session; template-probe ran 12 loop, conditional, whitespace, and optional-value iterations and passed all 12.",
+      "json_payload": {
+        "session_id": "mock-success-20260729",
+        "agent_id": "template-probe",
+        "worker_correlation_id": "template-probe",
+        "classification": "pass",
+        "iterations": 12,
+        "passed": 12,
+        "failed": 0,
+        "cases": [
+          "template-probe-002",
+          "template-probe-003"
+        ]
+      },
+      "xhtml_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/success-template.xhtml",
+      "fragment_source": "auto-generated"
+    },
+    {
+      "id": "boundary-probe",
+      "title": "boundary-probe",
+      "status": "PASS",
+      "summary": "12/12 malformed-input and confinement checks passed.",
+      "context_text": "Mock successful session; boundary-probe ran 12 malformed-input, diagnostic, and path-confinement iterations and passed all 12.",
+      "json_payload": {
+        "session_id": "mock-success-20260729",
+        "agent_id": "boundary-probe",
+        "worker_correlation_id": "boundary-probe",
+        "classification": "pass",
+        "iterations": 12,
+        "passed": 12,
+        "failed": 0,
+        "cases": [
+          "boundary-probe-004",
+          "boundary-probe-005"
+        ]
+      },
+      "xhtml_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/success-boundary.xhtml",
+      "fragment_source": "auto-generated"
+    },
+    {
+      "id": "differential-probe",
+      "title": "differential-probe",
+      "status": "PASS",
+      "summary": "12/12 baseline, parity, and determinism checks passed.",
+      "context_text": "Mock successful session; differential-probe ran 12 baseline, parity, and determinism iterations and passed all 12.",
+      "json_payload": {
+        "session_id": "mock-success-20260729",
+        "agent_id": "differential-probe",
+        "worker_correlation_id": "differential-probe",
+        "classification": "pass",
+        "iterations": 12,
+        "passed": 12,
+        "failed": 0,
+        "cases": [
+          "differential-probe-001",
+          "differential-probe-002"
+        ]
+      },
+      "xhtml_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/success-differential.xhtml",
       "fragment_source": "auto-generated"
     }
   ]

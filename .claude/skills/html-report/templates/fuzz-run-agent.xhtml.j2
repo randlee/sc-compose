@@ -1,0 +1,79 @@
+---
+metadata:
+  name: fuzz-run-agent
+  description: One adversarial-fuzz worker's copyable XHTML panel.
+required_variables:
+  - agent.session_id
+  - agent.agent_id
+  - agent.fuzz_run_description
+  - agent.worker_correlation_id
+  - agent.classification
+  - agent.iterations
+  - agent.passed
+  - agent.failed
+  - agent.summary
+  - agent.test_inputs
+  - agent.json_payload
+  - agent.context_text
+---
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-{{ agent.classification | lower }}">
+  <header class="fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>{{ agent.agent_id }}</h2>
+      <p class="agent-meta">Session {{ agent.session_id }} · Worker {{ agent.worker_correlation_id }}</p>
+    </div>
+    <div class="agent-actions" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{{ agent.copy_json | e }}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="{{ agent.context_text | e }}">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">{{ agent.classification }}</p>
+  <p class="summary">{{ agent.summary }}</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">{{ agent.fuzz_run_description }}</th>
+        <td>{{ agent.iterations }}</td>
+        <td>{{ agent.passed }}/{{ agent.iterations }}</td>
+        <td>{{ agent.result }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+{% for item in agent.test_inputs %}
+        <tr><th scope="row">{{ item.case_id }}</th><td><code>{{ item.description }}</code></td><td>{{ item.outcome }}</td></tr>
+{% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+{% if agent.classification not in ["pass", "success", "successful", "ok"] %}
+  <section class="findings">
+    <h3>Findings</h3>
+{% for finding in agent.findings %}
+    <article class="finding">
+      <h4>{{ finding.finding_id }}</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>{{ finding.minimal_template }}</code></dd>
+        <dt>Input</dt><dd><code>{{ finding.minimal_input }}</code></dd>
+        <dt>Expected</dt><dd>{{ finding.expected_oracle }}</dd>
+        <dt>Observed</dt><dd>{{ finding.observed_result }}</dd>
+        <dt>Requirement / ADR</dt><dd>{{ finding.requirement_trace }}</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>{{ finding.requirement_follow_up }}</dd>
+        <dt>Root cause</dt><dd>{{ finding.root_cause }}</dd>
+        <dt>Recommended fix</dt><dd>{{ finding.recommended_fix }}</dd>
+      </dl>
+    </article>
+{% endfor %}
+  </section>
+{% endif %}
+</section>

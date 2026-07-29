@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Adversarial fuzz session: failures require review &#8212; boundary-probe panel</title>
+  <style type="text/css">
+
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
+    h1 { margin: 0 0 4px 0; font-size: 1.3rem; }
+    .meta-line { margin: 0 0 12px 0; color: #6b7280; font-size: 0.85rem; }
+    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 0.85rem; }
+    .status-pass { color: #065f46; background: #d1fae5; border: 1px solid #6ee7b7; }
+    .status-drift { color: #92400e; background: #fef3c7; border: 1px solid #f59e0b; }
+    .status-error { color: #991b1b; background: #fee2e2; border: 1px solid #ef4444; }
+    .status-info { color: #1e40af; background: #dbeafe; border: 1px solid #3b82f6; }
+    .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .actions { display: flex; gap: 8px; }
+    .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; font-size: 0.85rem; vertical-align: top; }
+    thead th { background: #f3f4f6; }
+    tbody th { font-weight: 600; white-space: nowrap; }
+    .finding { border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 16px; margin-top: 16px; }
+    .finding h2 { margin: 0 0 8px 0; font-size: 1.05rem; }
+    code, pre { background: #f3f4f6; border-radius: 4px; font-size: 0.85em; }
+    code { padding: 1px 4px; }
+    pre { padding: 8px 10px; overflow-x: auto; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="head">
+    <div>
+      <h1>boundary-probe <span class="status status-error">ERROR</span></h1>
+      <p class="meta-line">Worker panel &#183; auto-generated &#183; session mock-failure-20260729</p>
+    </div>
+    <div class="actions">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-20260729&quot;,&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;worker_correlation_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:9,&quot;failed&quot;:3,&quot;cases&quot;:[&quot;boundary-001&quot;,&quot;boundary-002&quot;,&quot;boundary-003&quot;],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;boundary-001&quot;,&quot;minimal_template&quot;:&quot;UTF-8 bytes EF BB BF followed by ---\\nvariables:\\n  name:\\n    required: false\\n---\\nHello {{name}}\\n&quot;,&quot;minimal_input&quot;:&quot;name=x&quot;,&quot;expected_oracle&quot;:&quot;UTF-8 BOM is accepted before frontmatter; output contains only the rendered body&quot;,&quot;observed_result&quot;:&quot;exit 0; stdout includes the complete frontmatter block before Hello x&quot;,&quot;requirement_trace&quot;:&quot;No requirement or ADR currently covers this BOM-frontmatter behavior.&quot;,&quot;requirement_follow_up&quot;:&quot;Assess support first; create/update the requirement/ADR only for a genuine supported-contract gap.&quot;,&quot;root_cause&quot;:&quot;The file-frontmatter path does not strip the leading UTF-8 BOM before delimiter detection.&quot;,&quot;recommended_fix&quot;:&quot;Add a CLI regression test and normalize a leading BOM if supported.&quot;},{&quot;finding_id&quot;:&quot;boundary-002&quot;,&quot;minimal_template&quot;:&quot;---\\n---\\nbad \\xff\\xfe bytes\\n&quot;,&quot;minimal_input&quot;:&quot;invalid UTF-8 bytes ff fe in the template body&quot;,&quot;expected_oracle&quot;:&quot;nonzero exit with a template/config UTF-8 diagnostic&quot;,&quot;observed_result&quot;:&quot;exit 2 with ERR_INCLUDE_NOT_FOUND naming the template itself&quot;,&quot;requirement_trace&quot;:&quot;No requirement or ADR currently covers the exact invalid-UTF-8 diagnostic wording.&quot;,&quot;requirement_follow_up&quot;:&quot;Confirm the supported diagnostic boundary; create/update an ADR only if stable UTF-8 diagnostics are a supported contract.&quot;,&quot;root_cause&quot;:&quot;The invalid byte path is classified by include resolution before template decoding.&quot;,&quot;recommended_fix&quot;:&quot;Add a regression test and align error classification with the documented boundary.&quot;},{&quot;finding_id&quot;:&quot;boundary-003&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  needed:\\n    required: true\\n---\\nX {{needed}}\\n&quot;,&quot;minimal_input&quot;:&quot;no value supplied for needed&quot;,&quot;expected_oracle&quot;:&quot;missing declared required variable reports ERR_VAL_MISSING_REQUIRED&quot;,&quot;observed_result&quot;:&quot;exit 2 with ERR_VAL_UNDECLARED_TOKEN for needed&quot;,&quot;requirement_trace&quot;:&quot;The required-variable diagnostic contract needs reconciliation in existing documents.&quot;,&quot;requirement_follow_up&quot;:&quot;Update an existing requirement/ADR if one defines the behavior; create a new one only for a genuine supported-contract gap.&quot;,&quot;root_cause&quot;:&quot;Required-variable metadata is not applied before undeclared-token validation.&quot;,&quot;recommended_fix&quot;:&quot;Reconcile validation ordering and add a CLI regression test.&quot;}]}">{}</button><button type="button" class="icon-button" title="Copy Context" data-copy-text="Mock failed session; boundary-probe ran 12 malformed-input and diagnostic iterations. boundary-001, boundary-002, and boundary-003 reproduced three failures; exact templates, inputs, root causes, and requirement follow-ups are in the companion panel.">&#9086;</button>
+    </div>
+  </div>
+  <p>9/12 passed; boundary-001, boundary-002, and boundary-003 reproduced three confirmed bugs.</p>
+  <table>
+    <tbody>
+      <tr><th scope="row">Session</th><td>mock-failure-20260729</td></tr>
+      <tr><th scope="row">Agent</th><td>boundary-probe</td></tr>
+      <tr><th scope="row">Worker correlation id</th><td>boundary-probe</td></tr>
+      <tr><th scope="row">Classification</th><td>confirmed_bug</td></tr>
+      <tr><th scope="row">Iterations</th><td>12</td></tr>
+      <tr><th scope="row">Passed</th><td>9</td></tr>
+      <tr><th scope="row">Failed</th><td>3</td></tr>
+      <tr><th scope="row">Cases</th><td>boundary-001, boundary-002, boundary-003</td></tr>
+    </tbody>
+  </table>
+  <div class="finding">
+    <h2>Finding <code>boundary-001</code></h2>
+    <table>
+      <tbody>
+        <tr><th scope="row">Minimal template</th><td><pre>UTF-8 bytes EF BB BF followed by ---\nvariables:\n  name:\n    required: false\n---\nHello {{name}}\n</pre></td></tr>
+        <tr><th scope="row">Minimal input</th><td><pre>name=x</pre></td></tr>
+        <tr><th scope="row">Expected oracle</th><td>UTF-8 BOM is accepted before frontmatter; output contains only the rendered body</td></tr>
+        <tr><th scope="row">Observed result</th><td>exit 0; stdout includes the complete frontmatter block before Hello x</td></tr>
+        <tr><th scope="row">Requirement trace</th><td>No requirement or ADR currently covers this BOM-frontmatter behavior.</td></tr>
+        <tr><th scope="row">Requirement follow-up</th><td>Assess support first; create/update the requirement/ADR only for a genuine supported-contract gap.</td></tr>
+        <tr><th scope="row">Root cause</th><td>The file-frontmatter path does not strip the leading UTF-8 BOM before delimiter detection.</td></tr>
+        <tr><th scope="row">Recommended fix</th><td>Add a CLI regression test and normalize a leading BOM if supported.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="finding">
+    <h2>Finding <code>boundary-002</code></h2>
+    <table>
+      <tbody>
+        <tr><th scope="row">Minimal template</th><td><pre>---\n---\nbad \xff\xfe bytes\n</pre></td></tr>
+        <tr><th scope="row">Minimal input</th><td><pre>invalid UTF-8 bytes ff fe in the template body</pre></td></tr>
+        <tr><th scope="row">Expected oracle</th><td>nonzero exit with a template/config UTF-8 diagnostic</td></tr>
+        <tr><th scope="row">Observed result</th><td>exit 2 with ERR_INCLUDE_NOT_FOUND naming the template itself</td></tr>
+        <tr><th scope="row">Requirement trace</th><td>No requirement or ADR currently covers the exact invalid-UTF-8 diagnostic wording.</td></tr>
+        <tr><th scope="row">Requirement follow-up</th><td>Confirm the supported diagnostic boundary; create/update an ADR only if stable UTF-8 diagnostics are a supported contract.</td></tr>
+        <tr><th scope="row">Root cause</th><td>The invalid byte path is classified by include resolution before template decoding.</td></tr>
+        <tr><th scope="row">Recommended fix</th><td>Add a regression test and align error classification with the documented boundary.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="finding">
+    <h2>Finding <code>boundary-003</code></h2>
+    <table>
+      <tbody>
+        <tr><th scope="row">Minimal template</th><td><pre>---\nvariables:\n  needed:\n    required: true\n---\nX {{needed}}\n</pre></td></tr>
+        <tr><th scope="row">Minimal input</th><td><pre>no value supplied for needed</pre></td></tr>
+        <tr><th scope="row">Expected oracle</th><td>missing declared required variable reports ERR_VAL_MISSING_REQUIRED</td></tr>
+        <tr><th scope="row">Observed result</th><td>exit 2 with ERR_VAL_UNDECLARED_TOKEN for needed</td></tr>
+        <tr><th scope="row">Requirement trace</th><td>The required-variable diagnostic contract needs reconciliation in existing documents.</td></tr>
+        <tr><th scope="row">Requirement follow-up</th><td>Update an existing requirement/ADR if one defines the behavior; create a new one only for a genuine supported-contract gap.</td></tr>
+        <tr><th scope="row">Root cause</th><td>Required-variable metadata is not applied before undeclared-token validation.</td></tr>
+        <tr><th scope="row">Recommended fix</th><td>Reconcile validation ordering and add a CLI regression test.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <script type="text/javascript">
+    document.addEventListener("click", async function (event) {
+      const button = event.target.closest("[data-copy-text]");
+      if (!button) return;
+      const text = button.getAttribute("data-copy-text") || "";
+      try {
+        await navigator.clipboard.writeText(text);
+        button.setAttribute("title", "Copied");
+      } catch (err) {
+        button.setAttribute("title", "Copy failed");
+      }
+    });
+  </script>
+</body>
+</html>

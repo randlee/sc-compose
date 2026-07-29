@@ -17,10 +17,18 @@ Run this before selecting agents or executing a fuzz campaign:
 ```bash
 which cargo && cargo --version
 which git && git --version
+
+for p in "$HOME/.cargo/bin/cargo" "/opt/homebrew/bin/cargo" "/usr/local/bin/cargo"; do
+  [ -x "$p" ] && echo "Found cargo at: $p" && break
+done
+for p in "$HOME/.local/bin/git" "/opt/homebrew/bin/git" "/usr/local/bin/git"; do
+  [ -x "$p" ] && echo "Found git at: $p" && break
+done
 ```
 
 If either command is unavailable, stop and read
-`references/installation-and-troubleshooting.md` before proceeding. Do not
+`references/installation-and-troubleshooting.md` before proceeding. If a
+binary is found outside `PATH`, use its full path for the campaign. Do not
 silently run a degraded campaign.
 
 ## Campaign contract
@@ -57,16 +65,21 @@ after the campaign unless a failure artifact is being preserved.
 2. Inspect the target subsystem, current tests, repository boundary rules, and
    the requested baseline. Keep the user's existing changes intact.
 3. Use the Agent Runner to invoke the registered
-   `sc-adversarial-fuzz-coordinator` agent with the campaign contract. Do not
-   invoke an unregistered agent path.
-4. Have the coordinator spawn focused workers in the background with
-   `run_in_background: true`, one target per worker and a unique
-   `correlation_id`.
+   `sc-adversarial-fuzz-coordinator` agent as the primary coordinator with the
+   campaign contract. Do not invoke an unregistered agent path.
+4. Have the primary coordinator spawn a swarm of focused workers in the
+   background with `run_in_background: true`. Each worker gets a distinct fuzz
+   task, runs one bounded fuzz test, and returns exactly one structured JSON
+   result with its test inputs, iteration count, pass/fail counts, and any
+   candidate finding.
 5. Aggregate worker results in correlation-ID order. Surface partial failures;
    never discard a timeout, malformed response, or worker error.
-6. Reproduce each candidate failure in the coordinator's worktree, minimize the
-   template and input while retaining the failure, and classify the outcome
-   using the oracle rules below.
+6. Reproduce each candidate failure in the primary coordinator's worktree,
+   minimize the template and input while retaining the failure, and classify
+   the outcome using the oracle rules below. For every candidate that remains
+   plausible, the primary may deploy background explore agents to locate the
+   relevant requirement, ADR, or NFR, establish root cause, and recommend the
+   next change. Merge their conclusions into the worker's structured result.
 7. When a candidate is a confirmed product bug and `promote_regressions` is
    true, add the smallest durable test to the nearest existing test suite.
    Prefer inline fixtures for small cases and checked-in fixtures for complex
@@ -76,22 +89,31 @@ after the campaign unless a failure artifact is being preserved.
    and boundary checks when a regression test was added.
 9. Return the coordinator's fenced JSON report and summarize confirmed bugs,
    promoted tests, unresolved candidates, and campaign limits.
-10. After the campaign summary is complete, generate one per-case report for
-    every case in the durable evidence envelope. Use the reusable
-    `.claude/skills/html-report/templates/fuzz-run-case.xhtml.j2` contract for
-    the case fragment and delegate the main HTML/JSON package to the
-    `html-report-generator` background agent. Keep `json_payload` equal to the
-    original case/finding envelope and provide the required `context_text`;
-    do not invent a second campaign schema. Write real campaign artifacts to
-    `site/reports/`, assigning a 1-based sequence in deterministic case order
-    and resetting it for each campaign day. The filename stem must be
-    `YYYYMMDD-N-fuzz-report`, for example
+10. After the campaign summary is complete, have the primary coordinator
+    investigate every candidate failure before producing the report. It may
+    deploy background explore agents to locate the relevant requirement, ADR,
+    or NFR; establish the evidence-backed root cause; and identify the
+    recommended change. Preserve those conclusions in the worker's structured
+    JSON envelope. Then generate one report package for the fuzz session. Each
+    swarm worker runs one bounded fuzz test and returns one structured result;
+    the package contains one XHTML panel per worker. Use the reusable
+    `.claude/skills/html-report/templates/fuzz-run-agent.xhtml.j2` template for
+    those panels and delegate the single main HTML/JSON package to the
+    `html-report-generator` background agent. Its top-level `summary_html` must
+    be a compact table with the fuzz-run description, iteration count, pass
+    fraction (`passed/iterations`), and a simple PASS/FAIL result. Keep each
+    panel's `json_payload` equal to the worker's durable evidence envelope and
+    provide `context_text`; do not invent a second campaign schema. Write real
+    session artifacts to `site/reports/`, assigning a 1-based sequence in
+    deterministic session order and resetting it for each campaign day. The
+    filename stem must be `YYYYMMDD-N-fuzz-report`, for example
     `site/reports/20260729-1-fuzz-report.html`; write the matching `.json`
-    sidecar and, for failed or inconclusive cases, the matching `.xhtml`
-    fragment. The report generator must validate each HTML output with
-    `html-validate` and each XHTML fragment with `xmllint --noout` before the
-    campaign is reported complete. Review-only examples belong under
-    `docs/examples/fuzz-run-report/`, not `site/reports/`.
+    sidecar and one companion `.xhtml` panel per worker, using a deterministic
+    worker suffix when more than one panel is present. The report generator
+    must validate the HTML output with `html-validate` and every XHTML panel
+    with `xmllint --noout` before the session is reported complete. Review-only
+    examples belong under `docs/examples/fuzz-run-report/`, not
+    `site/reports/`.
 
 ## Worker portfolio
 
