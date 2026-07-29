@@ -1175,6 +1175,10 @@ Manifest rules:
   - empty arrays are valid,
   - arrays of objects are valid when the array is the variable value itself,
   - nested arrays are rejected with `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
+- Architecture decision record (2026-07-29): the historical H2 nested-array
+  restriction is superseded by Sprint D.1; the current phase index names the
+  recursive-input implementation Sprint E.1 to avoid colliding with completed
+  Phase D identifiers.
 - no manifest field selects entrypoints, paths, hooks, or alternate execution
   behavior in the initial release.
 
@@ -1479,6 +1483,12 @@ Canonical failures must map to stable error families and stable codes.
 | Example or template pack name not found | `ConfigError` | `ERR_CONFIG_PACK_NOT_FOUND` |
 | Named pack is not renderable because a bundled example name is ambiguous or a template pack has zero or multiple root-level `*.j2` files | `ConfigError` | `ERR_CONFIG_PACK_NOT_RENDERABLE` |
 | `templates add` target name already exists | `ConfigError` | `ERR_CONFIG_TEMPLATE_EXISTS` |
+
+Historical error-table note (2026-07-29): the H2 restriction represented by
+`ERR_VAL_NESTED_ARRAY_UNSUPPORTED` is superseded by Sprint D.1; the current
+recursive-input implementation is planned as Sprint E.1. The code remains
+reserved for compatibility and must not reject values accepted by the new
+recursive contract.
 
 ## 19. Observability Integration (FR-9, FR-10, FR-11)
 

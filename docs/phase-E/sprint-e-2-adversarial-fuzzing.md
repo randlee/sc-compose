@@ -1,13 +1,13 @@
 ---
-id: D.2
+id: E.2
 title: Adversarial Fuzzing Workflow
 status: planned
-branch: sprint/d-2-adversarial-fuzzing
-worktree: ../sc-compose-worktrees/sprint/d-2-adversarial-fuzzing
+branch: sprint/e-2-adversarial-fuzzing
+worktree: ../sc-compose-worktrees/sprint/e-2-adversarial-fuzzing
 target: develop
 ---
 
-# Sprint D.2 — Adversarial Fuzzing Workflow
+# Sprint E.2 — Adversarial Fuzzing Workflow
 
 ## Goal
 
@@ -25,14 +25,14 @@ new runtime feature.
 
 ## Hard Dependencies
 
-- [Phase D plan](./phase-D-plan.md)
-- [Sprint D.1 — Recursive Structured Input Support](./sprint-d-1-recursive-structured-input.md)
+- [Phase E plan](./phase-E-plan.md)
+- [Sprint E.1 — Recursive Structured Input Support](./sprint-e-1-recursive-structured-input.md)
 - [Claude Code skills and agents guidelines](https://github.com/randlee/synaptic-canvas/blob/main/docs/claude-code-skills-agents-guidelines.md)
 - `.claude/agents/registry.yaml`
 - `.claude/agents/quality-mgr.md`
 - `.claude/skills/quality-management-gh/SKILL.md`
 
-D.1 is a hard dependency because the first campaign must know the expanded
+E.1 is a hard dependency because the first campaign must know the expanded
 recursive-input contract and must not classify the former nested-array
 restriction as a valid oracle.
 
@@ -45,33 +45,48 @@ restriction as a valid oracle.
 - `.claude/agents/sc-adversarial-fuzz-probe.md`
 - `.claude/agents/quality-mgr.md`
 - `.claude/agents/registry.yaml`
-- `docs/phase-D/sprint-d-2-adversarial-fuzzing.md`
+- `docs/phase-E/sprint-e-2-adversarial-fuzzing.md`
 
 All exact targets are skill, agent, registry, or planning files. No product
-crate or runtime file is in scope for D.2.
+crate or runtime file is in scope for E.2.
+
+## Current Implementation State
+
+The initial skill, coordinator, probe, registry, and installation-reference
+artifacts already landed before this sprint on commit `5fb6cb2` and are present
+on this branch as commit `63d3c83`. Those artifacts correspond to the initial
+skill/coordinator/probe deliverables; they are not falsely treated as the
+closure of the sprint.
+
+E.2 remains open for quality-mgr routing, adversarial campaign evidence, and
+the real classify/minimize/promote workflow owned by E.3. Any E.2 edits must
+build on the pre-existing implementation rather than silently replacing it or
+rewriting its history.
 
 ## Deliverables
 
-- `D1` — a discoverable `adversarial-fuzzing` skill whose description names
+- `E2-D1` — a discoverable `adversarial-fuzzing` skill whose description names
   rendering-breakage, risky-change validation, regression-hunting, and test
   promotion triggers.
-- `D2` — a primary coordinator agent that validates campaign inputs, selects
+- `E2-D2` — a primary coordinator agent that validates campaign inputs, selects
   focused workers, spawns at most four background agents with deterministic
   correlation IDs and timeouts, aggregates partial failures, and returns a
   fenced JSON envelope.
-- `D3` — a single-responsibility probe agent contract covering value/ingress,
+- `E2-D3` — a single-responsibility probe agent contract covering value/ingress,
   template behavior, negative boundaries, and differential/metamorphic checks
   through coordinator-assigned focus.
-- `D4` — a promotion contract requiring reproduction, minimization, explicit
+- `E2-D4` — a promotion contract requiring reproduction, minimization, explicit
   expected oracles, and a durable test in the owning crate test suite before
   a failure is called a confirmed bug.
-- `D5` — quality-mgr routing and registry metadata that make the skill and
+- `E2-D5` — quality-mgr routing and registry metadata that make the skill and
   agents versioned, discoverable, and reviewable without arbitrary agent paths.
-- `D6` — a first-campaign checklist and structured report contract that record
+- `E2-D6` — a first-campaign checklist and structured report contract that record
   seed, worker correlation, limits, findings, promoted tests, and unresolved
   candidates.
 
-The deliverable list above is authoritative for D.2 closure.
+The deliverable list above is authoritative for E.2 closure. E.3 owns the
+first real campaign and its promoted tests; E.2 does not claim that campaign
+has already run.
 
 ## Coordinator contract
 
@@ -140,6 +155,7 @@ Return a standard envelope:
     "per_task_timeout_s": 120,
     "results": [],
     "summary": {
+      "all_successful": true,
       "confirmed_bugs": 0,
       "promoted_tests": 0,
       "inconclusive": 0,
@@ -195,21 +211,28 @@ case budget, and worker execution all completed successfully.
   bugs produce deterministic tests in the owning crate suite.
 - Intentional boundaries and inconclusive results remain visible in the final
   report and cannot be reported as PASS.
-- D.2 leaves product runtime code unchanged and passes the required structural
+- E.2 leaves product runtime code unchanged and passes the required structural
   and repository validation.
+- The classify/minimize/promote pipeline is not considered proven until the
+  first real campaign passes the E.3 exit gate.
 
 ## Required Validation
 
-Run from the D.2 worktree:
+Run from the E.2 worktree:
 
 ```bash
-python3 /Users/randlee/.codex/skills/.system/skill-creator/scripts/quick_validate.py .claude/skills/adversarial-fuzzing
-cargo fmt --all --check
-cargo test --workspace
-cargo clippy --all-targets --all-features -- -D warnings
+python3 <skill-creator-root>/scripts/quick_validate.py .claude/skills/adversarial-fuzzing
+git diff --check
 ```
 
-Also parse `.claude/agents/registry.yaml`, verify every registered path exists,
-check skill/agent versions against registry entries, and run one bounded dry
-campaign that exercises coordinator aggregation and a worker timeout without
-mutating production code.
+The `skill-creator-root` placeholder is operator-specific and this structural
+validator is non-gating when the skill-creator package is unavailable; report
+that fact explicitly rather than using a hardcoded workstation path. The
+gating checks are registry parsing, registered-path existence, version
+compatibility, fenced-contract review, and `git diff --check`.
+
+Run the full repository `cargo fmt --all --check`, `cargo test --workspace`,
+and clippy gates in E.3 because E.3 owns promoted Rust/CLI regression tests;
+E.2 has no Rust Exact Targets and does not claim to have executed a real
+campaign. E.3's first campaign is the end-to-end proof of classify → minimize
+→ promote → test.
