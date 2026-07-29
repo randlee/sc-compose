@@ -63,19 +63,19 @@ the real classify/minimize/promote workflow owned by E.3. Any E.2 edits must
 build on the pre-existing implementation rather than silently replacing it or
 rewriting its history.
 
-At closure, E.1 remains a separate PR until its changes are confirmed on
-`integrate/phase-e`; E.2 does not claim that the recursive-input runtime
-contract has merged or that the first campaign has run.
+At closure: E.1 merged into `integrate/phase-e` via PR #159 (commit `42b784b`),
+confirming the recursive-input runtime contract before E.3's campaign started.
+E.3 subsequently ran its first campaign against that merged contract and
+merged via PR #161 (commit `ca40c6b`).
 
-### Phase-plan dependency exception
+### Phase-plan dependency exception (historical)
 
-E.2 is a parallel workflow-authoring sprint. Its `complete` status covers the
-skill, agent, registry, and report-contract deliverables listed here; it does
-not require E.1's runtime changes to be merged into `integrate/phase-e`.
-E.1 remains `planned` in its authoritative sprint document until the E.1 PR is
-merged, and E.3 must not start its first campaign until that merge is
-confirmed. This explicit exception resolves the phase-plan status mismatch
-without weakening E.1's hard dependency for campaign execution.
+E.2 was a parallel workflow-authoring sprint. Its `complete` status covered
+the skill, agent, registry, and report-contract deliverables listed here, and
+did not require E.1's runtime changes to be merged into `integrate/phase-e`
+at the time E.2 itself closed. That exception is now resolved: E.1 merged
+first (PR #159), and E.3 confirmed the merge before starting its campaign,
+satisfying E.1's hard dependency for campaign execution.
 
 ## Deliverables
 

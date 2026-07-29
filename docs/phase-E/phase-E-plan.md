@@ -1,9 +1,9 @@
 ---
 id: phase-E
 title: Recursive Inputs And Adversarial Validation
-status: draft
-branch: plan/phase-E
-worktree: ../sc-compose-worktrees/plan/phase-E
+status: complete
+branch: integrate/phase-e
+worktree: ../sc-compose-worktrees/integrate/phase-e
 ---
 
 # Phase E — Recursive Inputs And Adversarial Validation
