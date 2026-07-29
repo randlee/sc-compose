@@ -1,0 +1,921 @@
+{
+  "schema_version": "adversarial-fuzzing/v1",
+  "campaign": {
+    "campaign_id": "e3-20260729-0001",
+    "worktree_path": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign",
+    "target": "full",
+    "baseline_ref": "42b784b",
+    "seed": 157,
+    "max_workers": 4,
+    "cases_per_worker": 12,
+    "per_worker_timeout_s": 120,
+    "promote_regressions": true
+  },
+  "workers": [
+    {
+      "correlation_id": "boundary-probe",
+      "target": "validation/cli",
+      "status": "success",
+      "cases_run": 12,
+      "finding_ids": [
+        "FUZZ-001",
+        "FUZZ-002",
+        "FUZZ-003"
+      ],
+      "error": null
+    },
+    {
+      "correlation_id": "differential-probe",
+      "target": "regression oracle",
+      "status": "success",
+      "cases_run": 12,
+      "finding_ids": [],
+      "error": null
+    },
+    {
+      "correlation_id": "shape-probe",
+      "target": "var-file",
+      "status": "success",
+      "cases_run": 12,
+      "finding_ids": [],
+      "error": null
+    },
+    {
+      "correlation_id": "template-probe",
+      "target": "renderer",
+      "status": "success",
+      "cases_run": 12,
+      "finding_ids": [],
+      "error": null
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": "FUZZ-001",
+      "worker_correlation_id": "boundary-probe",
+      "classification": "intentional_boundary",
+      "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-000 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-000/vars.json",
+      "minimal_template": "{{ value }}\\n",
+      "minimal_input": "{\"rows\": [}",
+      "expected_oracle": "nonzero exit with ERR_CONFIG_PARSE",
+      "observed_result": [
+        {
+          "case_id": "boundary-probe-000",
+          "exit_status": 3,
+          "diagnostic_present": true
+        },
+        {
+          "case_id": "boundary-probe-003",
+          "exit_status": 3,
+          "diagnostic_present": true
+        },
+        {
+          "case_id": "boundary-probe-006",
+          "exit_status": 3,
+          "diagnostic_present": true
+        },
+        {
+          "case_id": "boundary-probe-009",
+          "exit_status": 3,
+          "diagnostic_present": true
+        }
+      ],
+      "diagnostic_code": "ERR_CONFIG_PARSE",
+      "reproduction_count": 4
+    },
+    {
+      "finding_id": "FUZZ-002",
+      "worker_correlation_id": "boundary-probe",
+      "classification": "intentional_boundary",
+      "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-001 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-001/vars.json",
+      "minimal_template": "{{ value }}\\n",
+      "minimal_input": "[1, 2, 3]\n",
+      "expected_oracle": "nonzero exit with ERR_CONFIG_VARFILE",
+      "observed_result": [
+        {
+          "case_id": "boundary-probe-001",
+          "exit_status": 3,
+          "diagnostic_present": true
+        },
+        {
+          "case_id": "boundary-probe-004",
+          "exit_status": 3,
+          "diagnostic_present": true
+        },
+        {
+          "case_id": "boundary-probe-007",
+          "exit_status": 3,
+          "diagnostic_present": true
+        },
+        {
+          "case_id": "boundary-probe-010",
+          "exit_status": 3,
+          "diagnostic_present": true
+        }
+      ],
+      "diagnostic_code": "ERR_CONFIG_VARFILE",
+      "reproduction_count": 4
+    },
+    {
+      "finding_id": "FUZZ-003",
+      "worker_correlation_id": "boundary-probe",
+      "classification": "intentional_boundary",
+      "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-002 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-002/vars.yaml",
+      "minimal_template": "{{ value }}\\n",
+      "minimal_input": "value:\n  1: invalid-key\n",
+      "expected_oracle": "nonzero exit with ERR_VAL_OBJECT_SHAPE",
+      "observed_result": [
+        {
+          "case_id": "boundary-probe-002",
+          "exit_status": 3,
+          "diagnostic_present": true
+        },
+        {
+          "case_id": "boundary-probe-005",
+          "exit_status": 3,
+          "diagnostic_present": true
+        },
+        {
+          "case_id": "boundary-probe-008",
+          "exit_status": 3,
+          "diagnostic_present": true
+        },
+        {
+          "case_id": "boundary-probe-011",
+          "exit_status": 3,
+          "diagnostic_present": true
+        }
+      ],
+      "diagnostic_code": "ERR_VAL_OBJECT_SHAPE",
+      "reproduction_count": 4
+    }
+  ],
+  "promoted_tests": [],
+  "unresolved_candidates": [],
+  "summary": {
+    "all_successful": true,
+    "confirmed_bugs": 0,
+    "intentional_boundaries": 3,
+    "inconclusive": 0,
+    "failed_workers": 0
+  },
+  "execution": {
+    "campaign_started_at": null,
+    "campaign_completed_at": null,
+    "campaign_directory": null,
+    "preflight_note": null,
+    "worker_launches": null,
+    "case_batches": [
+      {
+        "correlation_id": "boundary-probe",
+        "target": "validation/cli",
+        "cases": [
+          {
+            "case_id": "boundary-probe-000",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-000 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-000/vars.json",
+            "exit_status": 3,
+            "timed_out": false,
+            "duration_ms": 6.399,
+            "expected_oracle": "preserved documented boundary emits ERR_CONFIG_PARSE",
+            "boundary_kind": "malformed-json"
+          },
+          {
+            "case_id": "boundary-probe-001",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-001 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-001/vars.json",
+            "exit_status": 3,
+            "timed_out": false,
+            "duration_ms": 6.003,
+            "expected_oracle": "preserved documented boundary emits ERR_CONFIG_VARFILE",
+            "boundary_kind": "top-level-json-sequence"
+          },
+          {
+            "case_id": "boundary-probe-002",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-002 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-002/vars.yaml",
+            "exit_status": 3,
+            "timed_out": false,
+            "duration_ms": 6.143,
+            "expected_oracle": "preserved documented boundary emits ERR_VAL_OBJECT_SHAPE",
+            "boundary_kind": "non-string-yaml-key"
+          },
+          {
+            "case_id": "boundary-probe-003",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-003 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-003/vars.json",
+            "exit_status": 3,
+            "timed_out": false,
+            "duration_ms": 5.037,
+            "expected_oracle": "preserved documented boundary emits ERR_CONFIG_PARSE",
+            "boundary_kind": "malformed-json"
+          },
+          {
+            "case_id": "boundary-probe-004",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-004 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-004/vars.json",
+            "exit_status": 3,
+            "timed_out": false,
+            "duration_ms": 4.969,
+            "expected_oracle": "preserved documented boundary emits ERR_CONFIG_VARFILE",
+            "boundary_kind": "top-level-json-sequence"
+          },
+          {
+            "case_id": "boundary-probe-005",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-005 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-005/vars.yaml",
+            "exit_status": 3,
+            "timed_out": false,
+            "duration_ms": 6.165,
+            "expected_oracle": "preserved documented boundary emits ERR_VAL_OBJECT_SHAPE",
+            "boundary_kind": "non-string-yaml-key"
+          },
+          {
+            "case_id": "boundary-probe-006",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-006 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-006/vars.json",
+            "exit_status": 3,
+            "timed_out": false,
+            "duration_ms": 5.717,
+            "expected_oracle": "preserved documented boundary emits ERR_CONFIG_PARSE",
+            "boundary_kind": "malformed-json"
+          },
+          {
+            "case_id": "boundary-probe-007",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-007 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-007/vars.json",
+            "exit_status": 3,
+            "timed_out": false,
+            "duration_ms": 5.384,
+            "expected_oracle": "preserved documented boundary emits ERR_CONFIG_VARFILE",
+            "boundary_kind": "top-level-json-sequence"
+          },
+          {
+            "case_id": "boundary-probe-008",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-008 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-008/vars.yaml",
+            "exit_status": 3,
+            "timed_out": false,
+            "duration_ms": 5.344,
+            "expected_oracle": "preserved documented boundary emits ERR_VAL_OBJECT_SHAPE",
+            "boundary_kind": "non-string-yaml-key"
+          },
+          {
+            "case_id": "boundary-probe-009",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-009 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-009/vars.json",
+            "exit_status": 3,
+            "timed_out": false,
+            "duration_ms": 5.103,
+            "expected_oracle": "preserved documented boundary emits ERR_CONFIG_PARSE",
+            "boundary_kind": "malformed-json"
+          },
+          {
+            "case_id": "boundary-probe-010",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-010 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-010/vars.json",
+            "exit_status": 3,
+            "timed_out": false,
+            "duration_ms": 5.935,
+            "expected_oracle": "preserved documented boundary emits ERR_CONFIG_VARFILE",
+            "boundary_kind": "top-level-json-sequence"
+          },
+          {
+            "case_id": "boundary-probe-011",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-011 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/boundary-probe/case-011/vars.yaml",
+            "exit_status": 3,
+            "timed_out": false,
+            "duration_ms": 5.852,
+            "expected_oracle": "preserved documented boundary emits ERR_VAL_OBJECT_SHAPE",
+            "boundary_kind": "non-string-yaml-key"
+          }
+        ]
+      },
+      {
+        "correlation_id": "differential-probe",
+        "target": "regression oracle",
+        "cases": [
+          {
+            "case_id": "differential-probe-000",
+            "observed_oracle_holds": true,
+            "expected_oracle": "baseline, unused-field variant, and YAML outputs are identical",
+            "commands": [
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-000 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-000/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 8.356,
+                "expected_oracle": "baseline render succeeds"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-000/variant --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-000/variant/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 6.746,
+                "expected_oracle": "adding unused nested field preserves output"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-000/yaml --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-000/yaml/vars.yaml",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 6.387,
+                "expected_oracle": "JSON/YAML recursive input parity"
+              }
+            ]
+          },
+          {
+            "case_id": "differential-probe-001",
+            "observed_oracle_holds": true,
+            "expected_oracle": "baseline, unused-field variant, and YAML outputs are identical",
+            "commands": [
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-001 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-001/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 6.314,
+                "expected_oracle": "baseline render succeeds"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-001/variant --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-001/variant/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 8.631,
+                "expected_oracle": "adding unused nested field preserves output"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-001/yaml --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-001/yaml/vars.yaml",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 6.469,
+                "expected_oracle": "JSON/YAML recursive input parity"
+              }
+            ]
+          },
+          {
+            "case_id": "differential-probe-002",
+            "observed_oracle_holds": true,
+            "expected_oracle": "baseline, unused-field variant, and YAML outputs are identical",
+            "commands": [
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-002 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-002/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 6.364,
+                "expected_oracle": "baseline render succeeds"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-002/variant --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-002/variant/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 6.703,
+                "expected_oracle": "adding unused nested field preserves output"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-002/yaml --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-002/yaml/vars.yaml",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.934,
+                "expected_oracle": "JSON/YAML recursive input parity"
+              }
+            ]
+          },
+          {
+            "case_id": "differential-probe-003",
+            "observed_oracle_holds": true,
+            "expected_oracle": "baseline, unused-field variant, and YAML outputs are identical",
+            "commands": [
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-003 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-003/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 6.439,
+                "expected_oracle": "baseline render succeeds"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-003/variant --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-003/variant/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.567,
+                "expected_oracle": "adding unused nested field preserves output"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-003/yaml --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-003/yaml/vars.yaml",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.569,
+                "expected_oracle": "JSON/YAML recursive input parity"
+              }
+            ]
+          },
+          {
+            "case_id": "differential-probe-004",
+            "observed_oracle_holds": true,
+            "expected_oracle": "baseline, unused-field variant, and YAML outputs are identical",
+            "commands": [
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-004 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-004/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.127,
+                "expected_oracle": "baseline render succeeds"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-004/variant --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-004/variant/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 6.9,
+                "expected_oracle": "adding unused nested field preserves output"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-004/yaml --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-004/yaml/vars.yaml",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.033,
+                "expected_oracle": "JSON/YAML recursive input parity"
+              }
+            ]
+          },
+          {
+            "case_id": "differential-probe-005",
+            "observed_oracle_holds": true,
+            "expected_oracle": "baseline, unused-field variant, and YAML outputs are identical",
+            "commands": [
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-005 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-005/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.004,
+                "expected_oracle": "baseline render succeeds"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-005/variant --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-005/variant/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.207,
+                "expected_oracle": "adding unused nested field preserves output"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-005/yaml --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-005/yaml/vars.yaml",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.981,
+                "expected_oracle": "JSON/YAML recursive input parity"
+              }
+            ]
+          },
+          {
+            "case_id": "differential-probe-006",
+            "observed_oracle_holds": true,
+            "expected_oracle": "baseline, unused-field variant, and YAML outputs are identical",
+            "commands": [
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-006 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-006/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.313,
+                "expected_oracle": "baseline render succeeds"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-006/variant --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-006/variant/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.472,
+                "expected_oracle": "adding unused nested field preserves output"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-006/yaml --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-006/yaml/vars.yaml",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.268,
+                "expected_oracle": "JSON/YAML recursive input parity"
+              }
+            ]
+          },
+          {
+            "case_id": "differential-probe-007",
+            "observed_oracle_holds": true,
+            "expected_oracle": "baseline, unused-field variant, and YAML outputs are identical",
+            "commands": [
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-007 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-007/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 6.857,
+                "expected_oracle": "baseline render succeeds"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-007/variant --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-007/variant/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.43,
+                "expected_oracle": "adding unused nested field preserves output"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-007/yaml --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-007/yaml/vars.yaml",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.27,
+                "expected_oracle": "JSON/YAML recursive input parity"
+              }
+            ]
+          },
+          {
+            "case_id": "differential-probe-008",
+            "observed_oracle_holds": true,
+            "expected_oracle": "baseline, unused-field variant, and YAML outputs are identical",
+            "commands": [
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-008 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-008/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.147,
+                "expected_oracle": "baseline render succeeds"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-008/variant --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-008/variant/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 6.798,
+                "expected_oracle": "adding unused nested field preserves output"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-008/yaml --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-008/yaml/vars.yaml",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 6.925,
+                "expected_oracle": "JSON/YAML recursive input parity"
+              }
+            ]
+          },
+          {
+            "case_id": "differential-probe-009",
+            "observed_oracle_holds": true,
+            "expected_oracle": "baseline, unused-field variant, and YAML outputs are identical",
+            "commands": [
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-009 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-009/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.289,
+                "expected_oracle": "baseline render succeeds"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-009/variant --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-009/variant/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 6.849,
+                "expected_oracle": "adding unused nested field preserves output"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-009/yaml --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-009/yaml/vars.yaml",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 6.871,
+                "expected_oracle": "JSON/YAML recursive input parity"
+              }
+            ]
+          },
+          {
+            "case_id": "differential-probe-010",
+            "observed_oracle_holds": true,
+            "expected_oracle": "baseline, unused-field variant, and YAML outputs are identical",
+            "commands": [
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-010 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-010/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.147,
+                "expected_oracle": "baseline render succeeds"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-010/variant --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-010/variant/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.033,
+                "expected_oracle": "adding unused nested field preserves output"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-010/yaml --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-010/yaml/vars.yaml",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 7.0,
+                "expected_oracle": "JSON/YAML recursive input parity"
+              }
+            ]
+          },
+          {
+            "case_id": "differential-probe-011",
+            "observed_oracle_holds": true,
+            "expected_oracle": "baseline, unused-field variant, and YAML outputs are identical",
+            "commands": [
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-011 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-011/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 6.59,
+                "expected_oracle": "baseline render succeeds"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-011/variant --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-011/variant/vars.json",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 6.593,
+                "expected_oracle": "adding unused nested field preserves output"
+              },
+              {
+                "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-011/yaml --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/differential-probe/case-011/yaml/vars.yaml",
+                "exit_status": 0,
+                "timed_out": false,
+                "duration_ms": 6.451,
+                "expected_oracle": "JSON/YAML recursive input parity"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "correlation_id": "shape-probe",
+        "target": "var-file",
+        "cases": [
+          {
+            "case_id": "shape-probe-000",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-000 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-000/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 6.79,
+            "expected_oracle": "exact recursive JSON render equals 'Group 0:Item 0-0\\n0,1,2\\n3'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "shape-probe-001",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-001 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-001/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 8.591,
+            "expected_oracle": "exact recursive JSON render equals 'Group 1:Item 1-0|Item 1-1\\n1,2,3\\n4'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "shape-probe-002",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-002 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-002/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 7.145,
+            "expected_oracle": "exact recursive JSON render equals 'Group 2:Item 2-0|Item 2-1|Item 2-2\\n2,3,4\\n5'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "shape-probe-003",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-003 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-003/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 7.878,
+            "expected_oracle": "exact recursive JSON render equals 'Group 3:Item 3-0\\n3,4,5\\n6'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "shape-probe-004",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-004 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-004/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 7.447,
+            "expected_oracle": "exact recursive JSON render equals 'Group 4:Item 4-0|Item 4-1\\n4,5,6\\n7'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "shape-probe-005",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-005 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-005/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 6.575,
+            "expected_oracle": "exact recursive JSON render equals 'Group 5:Item 5-0|Item 5-1|Item 5-2\\n5,6,7\\n8'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "shape-probe-006",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-006 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-006/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 7.26,
+            "expected_oracle": "exact recursive JSON render equals 'Group 6:Item 6-0\\n6,7,8\\n9'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "shape-probe-007",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-007 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-007/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 7.349,
+            "expected_oracle": "exact recursive JSON render equals 'Group 7:Item 7-0|Item 7-1\\n7,8,9\\n10'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "shape-probe-008",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-008 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-008/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 7.835,
+            "expected_oracle": "exact recursive JSON render equals 'Group 8:Item 8-0|Item 8-1|Item 8-2\\n8,9,10\\n11'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "shape-probe-009",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-009 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-009/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 7.155,
+            "expected_oracle": "exact recursive JSON render equals 'Group 9:Item 9-0\\n9,10,11\\n12'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "shape-probe-010",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-010 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-010/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 7.776,
+            "expected_oracle": "exact recursive JSON render equals 'Group 10:Item 10-0|Item 10-1\\n10,11,12\\n13'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "shape-probe-011",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-011 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/shape-probe/case-011/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 7.372,
+            "expected_oracle": "exact recursive JSON render equals 'Group 11:Item 11-0|Item 11-1|Item 11-2\\n11,12,13\\n14'",
+            "boundary_kind": null
+          }
+        ]
+      },
+      {
+        "correlation_id": "template-probe",
+        "target": "renderer",
+        "cases": [
+          {
+            "case_id": "template-probe-000",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-000 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-000/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 8.213,
+            "expected_oracle": "exact nested control-flow render equals '✓-0=α0|β0\\nempty-0=<empty>'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "template-probe-001",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-001 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-001/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 7.419,
+            "expected_oracle": "exact nested control-flow render equals '✓-1=α1|β1\\nempty-1=<empty>'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "template-probe-002",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-002 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-002/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 6.961,
+            "expected_oracle": "exact nested control-flow render equals '✓-2=α2|β2\\nempty-2=<empty>'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "template-probe-003",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-003 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-003/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 8.559,
+            "expected_oracle": "exact nested control-flow render equals '✓-3=α3|β3\\nempty-3=<empty>'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "template-probe-004",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-004 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-004/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 6.872,
+            "expected_oracle": "exact nested control-flow render equals '✓-4=α4|β4\\nempty-4=<empty>'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "template-probe-005",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-005 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-005/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 6.399,
+            "expected_oracle": "exact nested control-flow render equals '✓-5=α5|β5\\nempty-5=<empty>'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "template-probe-006",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-006 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-006/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 7.431,
+            "expected_oracle": "exact nested control-flow render equals '✓-6=α6|β6\\nempty-6=<empty>'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "template-probe-007",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-007 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-007/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 7.52,
+            "expected_oracle": "exact nested control-flow render equals '✓-7=α7|β7\\nempty-7=<empty>'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "template-probe-008",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-008 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-008/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 7.299,
+            "expected_oracle": "exact nested control-flow render equals '✓-8=α8|β8\\nempty-8=<empty>'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "template-probe-009",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-009 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-009/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 7.073,
+            "expected_oracle": "exact nested control-flow render equals '✓-9=α9|β9\\nempty-9=<empty>'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "template-probe-010",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-010 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-010/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 6.874,
+            "expected_oracle": "exact nested control-flow render equals '✓-10=α10|β10\\nempty-10=<empty>'",
+            "boundary_kind": null
+          },
+          {
+            "case_id": "template-probe-011",
+            "observed_oracle_holds": true,
+            "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-011 --file template.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/.e3-adversarial-2iy7i6qu/template-probe/case-011/vars.json",
+            "exit_status": 0,
+            "timed_out": false,
+            "duration_ms": 6.615,
+            "expected_oracle": "exact nested control-flow render equals '✓-11=α11|β11\\nempty-11=<empty>'",
+            "boundary_kind": null
+          }
+        ]
+      }
+    ]
+  },
+  "fixture_checks":
+  [
+    {
+      "name": "examples/changelog-categories.md.j2",
+      "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign --file examples/changelog-categories.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/examples/changelog-categories.sample-vars.json",
+      "exit_status": 0,
+      "duration_ms": 1387.054,
+      "stdout": "## [0.55.0] - 2026-07-27\n\n### Added\n\n- Deconstruct methods and matching constructors on SerialNumber. (#588)\n- CalibrationException under Radiant.Calibration. (#588)\n\n### Changed\n\n- Bumped from 0.54.0 to 0.55.0 (MINOR).\n"
+    },
+    {
+      "name": "examples/jagged-array-values.md.j2",
+      "command": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign --file examples/jagged-array-values.md.j2 --var-file /Users/randlee/Documents/github/sc-compose-worktrees/sprint/e-3-first-adversarial-campaign/examples/jagged-array-values.sample-vars.json",
+      "exit_status": 0,
+      "duration_ms": 26.994,
+      "stdout": "1, 2, 3\n4, 5\n"
+    }
+  ],
+  "validation": {
+    "cargo_fmt_all_check": "pass",
+    "cargo_test_workspace": "pass",
+    "cargo_clippy_all_targets_all_features": "pass",
+    "repo_boundaries": "pass",
+    "fixture_commands": "pass",
+    "git_diff_check": "pass",
+    "registry_and_path_checks": "pass",
+    "skill_creator_quick_validate": {
+      "status": "incompatible-validator",
+      "detail": "The installed generic validator rejects the top-level version key required by the merged E.2 contract; equivalent structural validation passed and the E.2 key remains unchanged."
+    }
+  }
+}
