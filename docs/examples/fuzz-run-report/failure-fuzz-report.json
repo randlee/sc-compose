@@ -1,47 +1,12 @@
 {
-  "report": {
-    "title": "Adversarial fuzz session: failure requires review",
-    "subtitle": "Template-rendered worker panels in one generated HTML report",
-    "status": "ERROR",
-    "generated_at": "2026-07-29T22:24:00-07:00",
-    "source_label": "E.3 evidence-shaped multi-agent session",
-    "report_path": "docs/examples/fuzz-run-report/failure-fuzz-report.html",
-    "summary": "One primary coordinator dispatched four independent workers. Each worker ran one bounded fuzz task and returned a structured result; the report sections are the exact XHTML panels rendered from the worker-panel template.",
-    "run_totals": [
-      {
-        "description": "Malformed files, invalid var-file boundaries, and stable diagnostics",
-        "iterations": 12,
-        "passed": 9,
-        "result": "FAIL"
-      },
-      {
-        "description": "Baseline parity, JSON/YAML equivalence, and deterministic output",
-        "iterations": 12,
-        "passed": 12,
-        "result": "PASS"
-      },
-      {
-        "description": "Nested JSON/YAML values, jagged arrays, and object nesting",
-        "iterations": 12,
-        "passed": 12,
-        "result": "PASS"
-      },
-      {
-        "description": "Jinja loops, conditionals, whitespace, and optional values",
-        "iterations": 12,
-        "passed": 12,
-        "result": "PASS"
-      }
-    ],
-    "recommendations": "Review boundary-001's requirement decision before promoting a parser fix; create or update documentation only for a genuine supported-contract gap.",
-    "footer": "Generated mock. Future artifacts use site/reports/YYYYMMDD-N-fuzz-report.html and worker-suffixed XHTML panels."
-  },
-  "metadata": {
-    "report_kind": "multi-agent-fuzz-session",
-    "session_id": "mock-failure-e3-20260729",
-    "worker_count": 4,
-    "template": ".claude/skills/html-report/templates/fuzz-run-agent.xhtml.j2"
-  },
+  "output_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/failure-fuzz-report.html",
+  "json_output_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/failure-fuzz-report.json",
+  "title": "Adversarial fuzz session: failure requires review",
+  "subtitle": "Template-rendered worker panels in one generated HTML report",
+  "status": "ERROR",
+  "generated_at": "2026-07-29T22:24:00-07:00",
+  "source_label": "E.3 evidence-shaped multi-agent session",
+  "summary_html": "<p>One primary coordinator dispatched four independent workers. Each worker ran one bounded fuzz task and returned a structured result; the report sections are the exact XHTML panels rendered from the worker-panel template.</p><table class=\"session-summary\"><thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead><tbody><tr><th scope=\"row\">Malformed files, invalid var-file boundaries, and stable diagnostics</th><td>12</td><td>9/12</td><td><span class=\"status status-error\">FAIL</span></td></tr><tr><th scope=\"row\">Baseline parity, JSON/YAML equivalence, and deterministic output</th><td>12</td><td>12/12</td><td><span class=\"status status-pass\">PASS</span></td></tr><tr><th scope=\"row\">Nested JSON/YAML values, jagged arrays, and object nesting</th><td>12</td><td>12/12</td><td><span class=\"status status-pass\">PASS</span></td></tr><tr><th scope=\"row\">Jinja loops, conditionals, whitespace, and optional values</th><td>12</td><td>12/12</td><td><span class=\"status status-pass\">PASS</span></td></tr></tbody></table>",
   "sections": [
     {
       "id": "shape-probe",
@@ -49,8 +14,6 @@
       "status": "PASS",
       "summary": "The shape worker completed its structured-input checks. The failure in this session was isolated to the boundary worker.",
       "context_text": "Failed session's shape-probe panel: 12 structured-input iterations passed.",
-      "xhtml_path": "docs/examples/fuzz-run-report/failure-shape.xhtml",
-      "fragment_source": "auto-generated",
       "json_payload": {
         "session_id": "mock-failure-e3-20260729",
         "agent_id": "shape-probe",
@@ -62,7 +25,10 @@
         "cases": [
           "shape-probe-002"
         ]
-      }
+      },
+      "xhtml_path": "docs/examples/fuzz-run-report/failure-shape.xhtml",
+      "fragment_source": "auto-generated",
+      "body_html": "<p class=\"status\">pass</p>\n  <p class=\"summary\">The shape worker completed its structured-input checks. The failure in this session was isolated to the boundary worker.</p>\n\n  <table class=\"agent-results\">\n    <thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead>\n    <tbody>\n      <tr>\n        <th scope=\"row\">Nested JSON/YAML values, jagged arrays, and object nesting</th>\n        <td>12</td>\n        <td>12/12</td>\n        <td>PASS</td>\n      </tr>\n    </tbody>\n  </table>\n\n  <section class=\"test-inputs\">\n    <h3>Inputs exercised</h3>\n    <table>\n      <thead><tr><th scope=\"col\">Case</th><th scope=\"col\">Template / input</th><th scope=\"col\">Outcome</th></tr></thead>\n      <tbody>\n        <tr><th scope=\"row\">shape-probe-002</th><td><code>examples/jagged-array-values.md.j2; rows=[[1,2,3],[4,5]]</code></td><td>PASS; expected output</td></tr>\n      </tbody>\n    </table>\n  </section>"
     },
     {
       "id": "template-probe",
@@ -70,8 +36,6 @@
       "status": "PASS",
       "summary": "The template worker completed its Jinja behavior checks. The failure in this session was isolated to the boundary worker.",
       "context_text": "Failed session's template-probe panel: 12 Jinja behavior iterations passed.",
-      "xhtml_path": "docs/examples/fuzz-run-report/failure-template.xhtml",
-      "fragment_source": "auto-generated",
       "json_payload": {
         "session_id": "mock-failure-e3-20260729",
         "agent_id": "template-probe",
@@ -83,7 +47,10 @@
         "cases": [
           "template-probe-002"
         ]
-      }
+      },
+      "xhtml_path": "docs/examples/fuzz-run-report/failure-template.xhtml",
+      "fragment_source": "auto-generated",
+      "body_html": "<p class=\"status\">pass</p>\n  <p class=\"summary\">The template worker completed its Jinja behavior checks. The failure in this session was isolated to the boundary worker.</p>\n\n  <table class=\"agent-results\">\n    <thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead>\n    <tbody>\n      <tr>\n        <th scope=\"row\">Jinja loops, conditionals, whitespace, and optional values</th>\n        <td>12</td>\n        <td>12/12</td>\n        <td>PASS</td>\n      </tr>\n    </tbody>\n  </table>\n\n  <section class=\"test-inputs\">\n    <h3>Inputs exercised</h3>\n    <table>\n      <thead><tr><th scope=\"col\">Case</th><th scope=\"col\">Template / input</th><th scope=\"col\">Outcome</th></tr></thead>\n      <tbody>\n        <tr><th scope=\"row\">template-probe-002</th><td><code>nested loop and optional-value rendering</code></td><td>PASS; expected text</td></tr>\n      </tbody>\n    </table>\n  </section>"
     },
     {
       "id": "boundary-probe",
@@ -91,8 +58,6 @@
       "status": "ERROR",
       "summary": "Three boundary inputs reproduced stable product bugs. The exact minimized templates, frontmatter, and inputs are preserved for review.",
       "context_text": "Failed boundary-probe session: 12 iterations, boundary-001 through boundary-003 reproduced three bugs; exact inputs and primary-agent investigation are shown.",
-      "xhtml_path": "docs/examples/fuzz-run-report/failure-boundary.xhtml",
-      "fragment_source": "auto-generated",
       "json_payload": {
         "session_id": "mock-failure-e3-20260729",
         "agent_id": "boundary-probe",
@@ -117,7 +82,10 @@
             "finding_id": "boundary-003"
           }
         ]
-      }
+      },
+      "xhtml_path": "docs/examples/fuzz-run-report/failure-boundary.xhtml",
+      "fragment_source": "auto-generated",
+      "body_html": "<p class=\"status\">confirmed_bug</p>\n  <p class=\"summary\">Three boundary inputs reproduced stable product bugs. The exact minimized templates, frontmatter, and inputs are preserved for review.</p>\n\n  <table class=\"agent-results\">\n    <thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead>\n    <tbody>\n      <tr>\n        <th scope=\"row\">Malformed files, invalid var-file boundaries, and stable diagnostics</th>\n        <td>12</td>\n        <td>9/12</td>\n        <td>FAIL</td>\n      </tr>\n    </tbody>\n  </table>\n\n  <section class=\"test-inputs\">\n    <h3>Inputs exercised</h3>\n    <table>\n      <thead><tr><th scope=\"col\">Case</th><th scope=\"col\">Template / input</th><th scope=\"col\">Outcome</th></tr></thead>\n      <tbody>\n        <tr><th scope=\"row\">boundary-001</th><td><code>UTF-8 BOM + variables.name.required=false frontmatter; input name=x</code></td><td>FAIL; frontmatter leaked into stdout (3 reproductions)</td></tr>\n        <tr><th scope=\"row\">boundary-002</th><td><code>empty frontmatter + invalid UTF-8 bytes ff fe</code></td><td>FAIL; wrong diagnostic (3 reproductions)</td></tr>\n        <tr><th scope=\"row\">boundary-003</th><td><code>variables.needed.required=true with no value</code></td><td>FAIL; wrong diagnostic (3 reproductions)</td></tr>\n      </tbody>\n    </table>\n  </section>\n\n  <section class=\"findings\">\n    <h3>Findings</h3>\n    <article class=\"finding\">\n      <h4>boundary-001</h4>\n      <dl>\n        <dt>Minimal template / frontmatter</dt><dd><code>UTF-8 bytes EF BB BF followed by ---\\nvariables:\\n  name:\\n    required: false\\n---\\nHello {{name}}\\n</code></dd>\n        <dt>Input</dt><dd><code>name=x</code></dd>\n        <dt>Expected</dt><dd>UTF-8 BOM is accepted before frontmatter; output contains only the rendered body</dd>\n        <dt>Observed</dt><dd>exit 0; stdout includes the complete frontmatter block before Hello x</dd>\n        <dt>Requirement / ADR</dt><dd>No requirement or ADR currently covers this BOM-frontmatter behavior; the E.3 evidence records the parser boundary oracle.</dd>\n        <dt>Requirement / ADR follow-up</dt><dd>Assess whether BOM-prefixed frontmatter is a supported user contract. If yes, create or update the requirement/ADR before implementing the parser fix; if no, document the intentional boundary rather than creating a needless ADR.</dd>\n        <dt>Root cause</dt><dd>The file-frontmatter path does not strip the leading UTF-8 BOM before detecting the frontmatter delimiter.</dd>\n        <dt>Recommended fix</dt><dd>Add a CLI regression test, then normalize a leading UTF-8 BOM if the product decision accepts it.</dd>\n      </dl>\n    </article>\n    <article class=\"finding\">\n      <h4>boundary-002</h4>\n      <dl>\n        <dt>Minimal template / frontmatter</dt><dd><code>---\\n---\\nbad \\xff\\xfe bytes\\n</code></dd>\n        <dt>Input</dt><dd><code>invalid UTF-8 bytes ff fe in the template body</code></dd>\n        <dt>Expected</dt><dd>nonzero exit with a template/config UTF-8 diagnostic</dd>\n        <dt>Observed</dt><dd>exit 2 with ERR_INCLUDE_NOT_FOUND naming the template itself</dd>\n        <dt>Requirement / ADR</dt><dd>No requirement or ADR currently covers the exact invalid-UTF-8 diagnostic wording.</dd>\n        <dt>Requirement / ADR follow-up</dt><dd>Confirm the supported diagnostic boundary; create or update documentation only if stable UTF-8 diagnostics are a supported contract.</dd>\n        <dt>Root cause</dt><dd>The invalid-byte path is classified by include resolution before template decoding.</dd>\n        <dt>Recommended fix</dt><dd>Add a regression test and align error classification with the documented boundary.</dd>\n      </dl>\n    </article>\n    <article class=\"finding\">\n      <h4>boundary-003</h4>\n      <dl>\n        <dt>Minimal template / frontmatter</dt><dd><code>---\\nvariables:\\n  needed:\\n    required: true\\n---\\nX {{needed}}\\n</code></dd>\n        <dt>Input</dt><dd><code>no value supplied for needed</code></dd>\n        <dt>Expected</dt><dd>missing declared required variable reports ERR_VAL_MISSING_REQUIRED</dd>\n        <dt>Observed</dt><dd>exit 2 with ERR_VAL_UNDECLARED_TOKEN for needed</dd>\n        <dt>Requirement / ADR</dt><dd>The required-variable diagnostic contract needs reconciliation in existing documents.</dd>\n        <dt>Requirement / ADR follow-up</dt><dd>Update an existing requirement/ADR if one defines the behavior; create a new one only for a genuine supported-contract gap.</dd>\n        <dt>Root cause</dt><dd>Required-variable metadata is not applied before undeclared-token validation.</dd>\n        <dt>Recommended fix</dt><dd>Reconcile validation ordering and add a CLI regression test.</dd>\n      </dl>\n    </article>\n  </section>"
     },
     {
       "id": "differential-probe",
@@ -125,8 +93,6 @@
       "status": "PASS",
       "summary": "The differential worker completed its baseline, parity, and determinism checks. The failure in this session was isolated to the boundary worker.",
       "context_text": "Failed session's differential-probe panel: 12 baseline, parity, and determinism iterations passed.",
-      "xhtml_path": "docs/examples/fuzz-run-report/failure-differential.xhtml",
-      "fragment_source": "auto-generated",
       "json_payload": {
         "session_id": "mock-failure-e3-20260729",
         "agent_id": "differential-probe",
@@ -138,7 +104,19 @@
         "cases": [
           "differential-probe-001"
         ]
-      }
+      },
+      "xhtml_path": "docs/examples/fuzz-run-report/failure-differential.xhtml",
+      "fragment_source": "auto-generated",
+      "body_html": "<p class=\"status\">pass</p>\n  <p class=\"summary\">The differential worker completed its baseline, parity, and determinism checks. The failure in this session was isolated to the boundary worker.</p>\n\n  <table class=\"agent-results\">\n    <thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead>\n    <tbody>\n      <tr>\n        <th scope=\"row\">Baseline parity, JSON/YAML equivalence, and deterministic output</th>\n        <td>12</td>\n        <td>12/12</td>\n        <td>PASS</td>\n      </tr>\n    </tbody>\n  </table>\n\n  <section class=\"test-inputs\">\n    <h3>Inputs exercised</h3>\n    <table>\n      <thead><tr><th scope=\"col\">Case</th><th scope=\"col\">Template / input</th><th scope=\"col\">Outcome</th></tr></thead>\n      <tbody>\n        <tr><th scope=\"row\">differential-probe-001</th><td><code>baseline/head render comparison</code></td><td>PASS; output unchanged</td></tr>\n      </tbody>\n    </table>\n  </section>"
     }
-  ]
+  ],
+  "recommendations_html": "Review boundary-001's requirement decision before promoting a parser fix; create or update documentation only for a genuine supported-contract gap.",
+  "footer_html": "Generated mock. Future artifacts use site/reports/YYYYMMDD-N-fuzz-report.html and worker-suffixed XHTML panels.",
+  "copy_actions": true,
+  "metadata": {
+    "report_kind": "multi-agent-fuzz-session",
+    "session_id": "mock-failure-e3-20260729",
+    "worker_count": 4,
+    "template": ".claude/skills/html-report/templates/fuzz-run-agent.xhtml.j2"
+  }
 }

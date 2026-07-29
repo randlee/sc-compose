@@ -2,94 +2,70 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Adversarial fuzz session: failure requires review</title>
   <style type="text/css">
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; max-width: 980px; margin-left: auto; margin-right: auto; }
-    h1 { margin: 0 0 4px 0; font-size: 1.6em; }
-    h2 { margin: 0 0 8px 0; font-size: 1.2em; }
-    h3 { margin: 16px 0 8px 0; font-size: 1.05em; }
-    h4 { margin: 12px 0 6px 0; font-size: 1em; }
-    p { line-height: 1.5; }
-    .subtitle { color: #4b5563; margin: 0 0 8px 0; }
-    .report-meta { color: #6b7280; font-size: 0.85em; margin: 0 0 12px 0; }
-    .status-badge { font-weight: 700; padding: 4px 12px; border-radius: 999px; display: inline-block; font-size: 0.85em; letter-spacing: 0.04em; }
-    .status-pass { color: #065f46; background: #ecfdf5; border: 1px solid #6ee7b7; }
-    .status-error { color: #991b1b; background: #fef2f2; border: 1px solid #ef4444; }
-    .status-drift { color: #92400e; background: #fffbeb; border: 1px solid #f59e0b; }
-    .status-info { color: #1e40af; background: #eff6ff; border: 1px solid #3b82f6; }
-    .summary-block { border: 1px solid #e5e7eb; border-left: 4px solid #ef4444; border-radius: 10px; padding: 16px; margin-top: 20px; }
-    table { border-collapse: collapse; width: 100%; margin: 12px 0; }
-    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; font-size: 0.92em; vertical-align: top; }
-    thead th { background: #f9fafb; }
-    code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; font-size: 0.9em; }
-    .report-section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 20px; }
-    .report-section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
-    .report-section-head .fragment-link { color: #1e40af; font-size: 0.85em; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
+    header h1 { margin: 0 0 4px 0; font-size: 1.6em; }
+    header .subtitle { margin: 0 0 8px 0; color: #4b5563; }
+    header .meta { margin: 0 0 12px 0; color: #6b7280; font-size: 0.9em; }
+    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 0.85em; }
+    .status-pass { color: #065f46; background: #d1fae5; border: 1px solid #6ee7b7; }
+    .status-drift { color: #92400e; background: #fef3c7; border: 1px solid #f59e0b; }
+    .status-error { color: #991b1b; background: #fee2e2; border: 1px solid #ef4444; }
+    .status-info { color: #1e40af; background: #dbeafe; border: 1px solid #3b82f6; }
+    .summary-block { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; background: #f9fafb; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+    th, td { border: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; vertical-align: top; }
+    thead th { background: #f3f4f6; }
+    tbody th[scope="row"] { font-weight: 500; background: #fafafa; }
+    .section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
+    .section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .section-head h2 { margin: 0; font-size: 1.2em; }
     .section-actions { display: flex; gap: 8px; align-items: center; }
     .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
     .icon-button:hover { background: #f1f5f9; }
-    .agent-actions { display: flex; gap: 8px; }
-    .fuzz-agent { border-radius: 8px; }
-    .fuzz-agent-pass { border-left: 4px solid #6ee7b7; padding-left: 12px; }
-    .fuzz-agent-confirmed_bug { border-left: 4px solid #ef4444; padding-left: 12px; }
-    .fuzz-agent-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-    .eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72em; color: #6b7280; margin: 0; }
-    .agent-meta { color: #6b7280; font-size: 0.85em; margin: 4px 0 0 0; }
-    .fuzz-agent-pass .status { color: #065f46; font-weight: 700; text-transform: uppercase; }
-    .fuzz-agent-confirmed_bug .status { color: #991b1b; font-weight: 700; text-transform: uppercase; }
-    .finding { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-top: 12px; }
+    .section .status { margin-top: 8px; }
+    .section p.status { text-transform: uppercase; font-size: 0.8em; letter-spacing: 0.04em; color: #334155; background: #f1f5f9; border: 1px solid #cbd5e1; }
+    code { background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; padding: 1px 5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88em; word-break: break-word; }
+    .finding { border: 1px solid #fecaca; border-left: 4px solid #ef4444; border-radius: 8px; padding: 12px 16px; margin-top: 12px; background: #fff7f7; }
+    .finding h4 { margin: 0 0 8px 0; color: #991b1b; }
     .finding dl { margin: 0; }
-    .finding dt { font-weight: 600; margin-top: 8px; color: #374151; }
+    .finding dt { font-weight: 700; margin-top: 8px; color: #374151; }
     .finding dd { margin: 2px 0 0 0; }
-    .recommendations { border: 1px solid #f59e0b; background: #fffbeb; border-radius: 10px; padding: 16px; margin-top: 20px; color: #92400e; }
-    .fragments-block { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 20px; }
-    footer { margin-top: 24px; color: #6b7280; font-size: 0.85em; border-top: 1px solid #e5e7eb; padding-top: 12px; }
+    .fragment-ref { margin-top: 12px; font-size: 0.9em; color: #4b5563; }
+    .recommendations { border: 1px solid #f59e0b; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin-top: 16px; background: #fffbeb; color: #92400e; }
+    .recommendations h2 { margin: 0 0 8px 0; font-size: 1.1em; color: #92400e; }
+    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 0.85em; }
   </style>
 </head>
 <body>
   <header>
     <h1>Adversarial fuzz session: failure requires review</h1>
     <p class="subtitle">Template-rendered worker panels in one generated HTML report</p>
-    <p class="report-meta">Generated 2026-07-29T22:24:00-07:00 · Source: E.3 evidence-shaped multi-agent session · Session mock-failure-e3-20260729</p>
-    <p class="status-badge status-error">ERROR</p>
+    <p class="meta">Generated 2026-07-29T22:24:00-07:00 &middot; E.3 evidence-shaped multi-agent session</p>
+    <p class="status status-error">ERROR</p>
   </header>
-
-  <section class="summary-block" aria-label="Session summary">
-    <h2>Summary</h2>
-    <p>One primary coordinator dispatched four independent workers. Each worker ran one bounded fuzz task and returned a structured result; the sections below are the exact XHTML panels rendered from the worker-panel template.</p>
-    <table>
-      <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
-      <tbody>
-        <tr><th scope="row">Malformed files, invalid var-file boundaries, and stable diagnostics</th><td>12</td><td>9/12</td><td>FAIL</td></tr>
-        <tr><th scope="row">Baseline parity, JSON/YAML equivalence, and deterministic output</th><td>12</td><td>12/12</td><td>PASS</td></tr>
-        <tr><th scope="row">Nested JSON/YAML values, jagged arrays, and object nesting</th><td>12</td><td>12/12</td><td>PASS</td></tr>
-        <tr><th scope="row">Jinja loops, conditionals, whitespace, and optional values</th><td>12</td><td>12/12</td><td>PASS</td></tr>
-      </tbody>
-    </table>
+  <section class="summary-block">
+    <h2>Session summary</h2>
+    <p>One primary coordinator dispatched four independent workers. Each worker ran one bounded fuzz task and returned a structured result; the report sections are the exact XHTML panels rendered from the worker-panel template.</p><table class="session-summary"><thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead><tbody><tr><th scope="row">Malformed files, invalid var-file boundaries, and stable diagnostics</th><td>12</td><td>9/12</td><td><span class="status status-error">FAIL</span></td></tr><tr><th scope="row">Baseline parity, JSON/YAML equivalence, and deterministic output</th><td>12</td><td>12/12</td><td><span class="status status-pass">PASS</span></td></tr><tr><th scope="row">Nested JSON/YAML values, jagged arrays, and object nesting</th><td>12</td><td>12/12</td><td><span class="status status-pass">PASS</span></td></tr><tr><th scope="row">Jinja loops, conditionals, whitespace, and optional values</th><td>12</td><td>12/12</td><td><span class="status status-pass">PASS</span></td></tr></tbody></table>
   </section>
-
-  <section class="report-section" id="shape-probe">
-    <div class="report-section-head">
-      <p class="status-badge status-pass">PASS</p>
-      <div class="section-actions" role="group" aria-label="Copy section data">
-        <span class="fragment-link">Fragment: failure-shape.xhtml</span>
-        <button type="button" class="icon-button" title="Copy JSON" data-copy-text='{"session_id":"mock-failure-e3-20260729","agent_id":"shape-probe","worker_correlation_id":"shape-probe","classification":"pass","iterations":12,"passed":12,"failed":0,"cases":["shape-probe-002"]}'>{}</button>
-        <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed session's shape-probe panel: 12 structured-input iterations passed.">⎘</button>
-      </div>
+  <section class="section" id="shape-probe">
+    <div class="section-head">
+      <h2>shape-probe <span class="status status-pass">PASS</span></h2>
+      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{
+  &quot;session_id&quot;: &quot;mock-failure-e3-20260729&quot;,
+  &quot;agent_id&quot;: &quot;shape-probe&quot;,
+  &quot;worker_correlation_id&quot;: &quot;shape-probe&quot;,
+  &quot;classification&quot;: &quot;pass&quot;,
+  &quot;iterations&quot;: 12,
+  &quot;passed&quot;: 12,
+  &quot;failed&quot;: 0,
+  &quot;cases&quot;: [
+    &quot;shape-probe-002&quot;
+  ]
+}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Failed session&#x27;s shape-probe panel: 12 structured-input iterations passed.">&#9112;</button></div>
     </div>
-<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
-  <header class="agent-header fuzz-agent-header">
-    <div>
-      <p class="eyebrow">Adversarial fuzz worker</p>
-      <h2>shape-probe</h2>
-      <p class="agent-meta">Session mock-failure-e3-20260729 · Worker shape-probe</p>
-    </div>
-    <div class="agent-actions" role="group" aria-label="Copy worker data">
-      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0}">{}</button>
-      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed session&#x27;s shape-probe panel: 12 structured-input iterations passed.">⎘</button>
-    </div>
-  </header>
-
   <p class="status">pass</p>
   <p class="summary">The shape worker completed its structured-input checks. The failure in this session was isolated to the boundary worker.</p>
 
@@ -114,32 +90,24 @@
       </tbody>
     </table>
   </section>
-
-</section>
+    <p class="fragment-ref">Companion fragment (auto-generated): <a href="failure-shape.xhtml"><code>docs/examples/fuzz-run-report/failure-shape.xhtml</code></a></p>
   </section>
-
-  <section class="report-section" id="template-probe">
-    <div class="report-section-head">
-      <p class="status-badge status-pass">PASS</p>
-      <div class="section-actions" role="group" aria-label="Copy section data">
-        <span class="fragment-link">Fragment: failure-template.xhtml</span>
-        <button type="button" class="icon-button" title="Copy JSON" data-copy-text='{"session_id":"mock-failure-e3-20260729","agent_id":"template-probe","worker_correlation_id":"template-probe","classification":"pass","iterations":12,"passed":12,"failed":0,"cases":["template-probe-002"]}'>{}</button>
-        <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed session's template-probe panel: 12 Jinja behavior iterations passed.">⎘</button>
-      </div>
+  <section class="section" id="template-probe">
+    <div class="section-head">
+      <h2>template-probe <span class="status status-pass">PASS</span></h2>
+      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{
+  &quot;session_id&quot;: &quot;mock-failure-e3-20260729&quot;,
+  &quot;agent_id&quot;: &quot;template-probe&quot;,
+  &quot;worker_correlation_id&quot;: &quot;template-probe&quot;,
+  &quot;classification&quot;: &quot;pass&quot;,
+  &quot;iterations&quot;: 12,
+  &quot;passed&quot;: 12,
+  &quot;failed&quot;: 0,
+  &quot;cases&quot;: [
+    &quot;template-probe-002&quot;
+  ]
+}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Failed session&#x27;s template-probe panel: 12 Jinja behavior iterations passed.">&#9112;</button></div>
     </div>
-<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
-  <header class="agent-header fuzz-agent-header">
-    <div>
-      <p class="eyebrow">Adversarial fuzz worker</p>
-      <h2>template-probe</h2>
-      <p class="agent-meta">Session mock-failure-e3-20260729 · Worker template-probe</p>
-    </div>
-    <div class="agent-actions" role="group" aria-label="Copy worker data">
-      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0}">{}</button>
-      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed session&#x27;s template-probe panel: 12 Jinja behavior iterations passed.">⎘</button>
-    </div>
-  </header>
-
   <p class="status">pass</p>
   <p class="summary">The template worker completed its Jinja behavior checks. The failure in this session was isolated to the boundary worker.</p>
 
@@ -164,32 +132,37 @@
       </tbody>
     </table>
   </section>
-
-</section>
+    <p class="fragment-ref">Companion fragment (auto-generated): <a href="failure-template.xhtml"><code>docs/examples/fuzz-run-report/failure-template.xhtml</code></a></p>
   </section>
-
-  <section class="report-section" id="boundary-probe">
-    <div class="report-section-head">
-      <p class="status-badge status-error">ERROR</p>
-      <div class="section-actions" role="group" aria-label="Copy section data">
-        <span class="fragment-link">Fragment: failure-boundary.xhtml</span>
-        <button type="button" class="icon-button" title="Copy JSON" data-copy-text='{"session_id":"mock-failure-e3-20260729","agent_id":"boundary-probe","worker_correlation_id":"boundary-probe","classification":"confirmed_bug","iterations":12,"passed":9,"failed":3,"cases":["boundary-001","boundary-002","boundary-003"],"findings":[{"finding_id":"boundary-001"},{"finding_id":"boundary-002"},{"finding_id":"boundary-003"}]}'>{}</button>
-        <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed boundary-probe session: 12 iterations, boundary-001 through boundary-003 reproduced three bugs; exact inputs and primary-agent investigation are shown.">⎘</button>
-      </div>
+  <section class="section" id="boundary-probe">
+    <div class="section-head">
+      <h2>boundary-probe <span class="status status-error">ERROR</span></h2>
+      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{
+  &quot;session_id&quot;: &quot;mock-failure-e3-20260729&quot;,
+  &quot;agent_id&quot;: &quot;boundary-probe&quot;,
+  &quot;worker_correlation_id&quot;: &quot;boundary-probe&quot;,
+  &quot;classification&quot;: &quot;confirmed_bug&quot;,
+  &quot;iterations&quot;: 12,
+  &quot;passed&quot;: 9,
+  &quot;failed&quot;: 3,
+  &quot;cases&quot;: [
+    &quot;boundary-001&quot;,
+    &quot;boundary-002&quot;,
+    &quot;boundary-003&quot;
+  ],
+  &quot;findings&quot;: [
+    {
+      &quot;finding_id&quot;: &quot;boundary-001&quot;
+    },
+    {
+      &quot;finding_id&quot;: &quot;boundary-002&quot;
+    },
+    {
+      &quot;finding_id&quot;: &quot;boundary-003&quot;
+    }
+  ]
+}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Failed boundary-probe session: 12 iterations, boundary-001 through boundary-003 reproduced three bugs; exact inputs and primary-agent investigation are shown.">&#9112;</button></div>
     </div>
-<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
-  <header class="agent-header fuzz-agent-header">
-    <div>
-      <p class="eyebrow">Adversarial fuzz worker</p>
-      <h2>boundary-probe</h2>
-      <p class="agent-meta">Session mock-failure-e3-20260729 · Worker boundary-probe</p>
-    </div>
-    <div class="agent-actions" role="group" aria-label="Copy worker data">
-      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:9,&quot;failed&quot;:3}">{}</button>
-      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed boundary-probe session: 12 iterations, boundary-001 through boundary-003 reproduced three bugs; exact inputs and primary-agent investigation are shown.">⎘</button>
-    </div>
-  </header>
-
   <p class="status">confirmed_bug</p>
   <p class="summary">Three boundary inputs reproduced stable product bugs. The exact minimized templates, frontmatter, and inputs are preserved for review.</p>
 
@@ -259,31 +232,24 @@
       </dl>
     </article>
   </section>
-</section>
+    <p class="fragment-ref">Companion fragment (auto-generated): <a href="failure-boundary.xhtml"><code>docs/examples/fuzz-run-report/failure-boundary.xhtml</code></a></p>
   </section>
-
-  <section class="report-section" id="differential-probe">
-    <div class="report-section-head">
-      <p class="status-badge status-pass">PASS</p>
-      <div class="section-actions" role="group" aria-label="Copy section data">
-        <span class="fragment-link">Fragment: failure-differential.xhtml</span>
-        <button type="button" class="icon-button" title="Copy JSON" data-copy-text='{"session_id":"mock-failure-e3-20260729","agent_id":"differential-probe","worker_correlation_id":"differential-probe","classification":"pass","iterations":12,"passed":12,"failed":0,"cases":["differential-probe-001"]}'>{}</button>
-        <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed session's differential-probe panel: 12 baseline, parity, and determinism iterations passed.">⎘</button>
-      </div>
+  <section class="section" id="differential-probe">
+    <div class="section-head">
+      <h2>differential-probe <span class="status status-pass">PASS</span></h2>
+      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{
+  &quot;session_id&quot;: &quot;mock-failure-e3-20260729&quot;,
+  &quot;agent_id&quot;: &quot;differential-probe&quot;,
+  &quot;worker_correlation_id&quot;: &quot;differential-probe&quot;,
+  &quot;classification&quot;: &quot;pass&quot;,
+  &quot;iterations&quot;: 12,
+  &quot;passed&quot;: 12,
+  &quot;failed&quot;: 0,
+  &quot;cases&quot;: [
+    &quot;differential-probe-001&quot;
+  ]
+}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Failed session&#x27;s differential-probe panel: 12 baseline, parity, and determinism iterations passed.">&#9112;</button></div>
     </div>
-<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
-  <header class="agent-header fuzz-agent-header">
-    <div>
-      <p class="eyebrow">Adversarial fuzz worker</p>
-      <h2>differential-probe</h2>
-      <p class="agent-meta">Session mock-failure-e3-20260729 · Worker differential-probe</p>
-    </div>
-    <div class="agent-actions" role="group" aria-label="Copy worker data">
-      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0}">{}</button>
-      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed session&#x27;s differential-probe panel: 12 baseline, parity, and determinism iterations passed.">⎘</button>
-    </div>
-  </header>
-
   <p class="status">pass</p>
   <p class="summary">The differential worker completed its baseline, parity, and determinism checks. The failure in this session was isolated to the boundary worker.</p>
 
@@ -308,29 +274,15 @@
       </tbody>
     </table>
   </section>
-
-</section>
+    <p class="fragment-ref">Companion fragment (auto-generated): <a href="failure-differential.xhtml"><code>docs/examples/fuzz-run-report/failure-differential.xhtml</code></a></p>
   </section>
-
-  <section class="recommendations" aria-label="Recommendations">
+  <section class="recommendations">
     <h2>Recommendations</h2>
-    <p>Review boundary-001's requirement decision before promoting a parser fix; create or update documentation only for a genuine supported-contract gap.</p>
+    <p>Review boundary-001&#x27;s requirement decision before promoting a parser fix; create or update documentation only for a genuine supported-contract gap.</p>
   </section>
-
-  <section class="fragments-block" aria-label="Section fragments">
-    <h2>Section XHTML fragments</h2>
-    <ul>
-      <li><a href="failure-shape.xhtml">failure-shape.xhtml</a> — shape-probe (auto-generated)</li>
-      <li><a href="failure-template.xhtml">failure-template.xhtml</a> — template-probe (auto-generated)</li>
-      <li><a href="failure-boundary.xhtml">failure-boundary.xhtml</a> — boundary-probe (auto-generated)</li>
-      <li><a href="failure-differential.xhtml">failure-differential.xhtml</a> — differential-probe (auto-generated)</li>
-    </ul>
-  </section>
-
   <footer>
     <p>Generated mock. Future artifacts use site/reports/YYYYMMDD-N-fuzz-report.html and worker-suffixed XHTML panels.</p>
   </footer>
-
   <script>
     document.addEventListener("click", async function (event) {
       const button = event.target.closest("[data-copy-text]");

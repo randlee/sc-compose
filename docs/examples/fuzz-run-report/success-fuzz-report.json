@@ -1,47 +1,12 @@
 {
-  "report": {
-    "title": "Adversarial fuzz session: all workers passed",
-    "subtitle": "Template-rendered worker panels in one generated HTML report",
-    "status": "PASS",
-    "generated_at": "2026-07-29T22:24:00-07:00",
-    "source_label": "E.3 evidence-shaped multi-agent session",
-    "report_path": "docs/examples/fuzz-run-report/success-fuzz-report.html",
-    "metadata": {
-      "report_kind": "multi-agent-fuzz-session",
-      "session_id": "mock-success-e3-20260729",
-      "worker_count": 4,
-      "template": ".claude/skills/html-report/templates/fuzz-run-agent.xhtml.j2"
-    }
-  },
-  "summary": {
-    "text": "One primary coordinator dispatched four independent workers. Each worker ran one bounded fuzz task and returned a structured result; the report sections are the exact XHTML panels rendered from the worker-panel template.",
-    "runs": [
-      {
-        "description": "Malformed files, invalid var-file boundaries, and stable diagnostics",
-        "iterations": 12,
-        "passed": 12,
-        "result": "PASS"
-      },
-      {
-        "description": "Baseline parity, JSON/YAML equivalence, and deterministic output",
-        "iterations": 12,
-        "passed": 12,
-        "result": "PASS"
-      },
-      {
-        "description": "Nested JSON/YAML values, jagged arrays, and object nesting",
-        "iterations": 12,
-        "passed": 12,
-        "result": "PASS"
-      },
-      {
-        "description": "Jinja loops, conditionals, whitespace, and optional values",
-        "iterations": 12,
-        "passed": 12,
-        "result": "PASS"
-      }
-    ]
-  },
+  "output_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/success-fuzz-report.html",
+  "json_output_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/success-fuzz-report.json",
+  "title": "Adversarial fuzz session: all workers passed",
+  "subtitle": "Template-rendered worker panels in one generated HTML report",
+  "status": "PASS",
+  "generated_at": "2026-07-29T22:24:00-07:00",
+  "source_label": "E.3 evidence-shaped multi-agent session",
+  "summary_html": "<p>One primary coordinator dispatched four independent workers. Each worker ran one bounded fuzz task and returned a structured result; the report sections are the exact XHTML panels rendered from the worker-panel template.</p><table class=\"session-summary\"><thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead><tbody><tr><th scope=\"row\">Malformed files, invalid var-file boundaries, and stable diagnostics</th><td>12</td><td>12/12</td><td><span class=\"status status-pass\">PASS</span></td></tr><tr><th scope=\"row\">Baseline parity, JSON/YAML equivalence, and deterministic output</th><td>12</td><td>12/12</td><td><span class=\"status status-pass\">PASS</span></td></tr><tr><th scope=\"row\">Nested JSON/YAML values, jagged arrays, and object nesting</th><td>12</td><td>12/12</td><td><span class=\"status status-pass\">PASS</span></td></tr><tr><th scope=\"row\">Jinja loops, conditionals, whitespace, and optional values</th><td>12</td><td>12/12</td><td><span class=\"status status-pass\">PASS</span></td></tr></tbody></table>",
   "sections": [
     {
       "id": "shape-probe",
@@ -63,7 +28,8 @@
         ]
       },
       "xhtml_path": "docs/examples/fuzz-run-report/success-shape.xhtml",
-      "fragment_source": "auto-generated"
+      "fragment_source": "auto-generated",
+      "body_html": "<p class=\"status\">pass</p>\n  <p class=\"summary\">The shape worker exercised recorded structured-input cases. The real jagged-array fixture used rows [[1, 2, 3], [4, 5]] and produced the expected two-row output.</p>\n\n  <table class=\"agent-results\">\n    <thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead>\n    <tbody>\n      <tr>\n        <th scope=\"row\">Nested JSON/YAML values, jagged arrays, and object nesting</th>\n        <td>12</td>\n        <td>12/12</td>\n        <td>PASS</td>\n      </tr>\n    </tbody>\n  </table>\n\n  <section class=\"test-inputs\">\n    <h3>Inputs exercised</h3>\n    <table>\n      <thead><tr><th scope=\"col\">Case</th><th scope=\"col\">Template / input</th><th scope=\"col\">Outcome</th></tr></thead>\n      <tbody>\n        <tr><th scope=\"row\">shape-probe-002</th><td><code>examples/jagged-array-values.md.j2; rows=[[1,2,3],[4,5]]</code></td><td>PASS; output 1, 2, 3\\n4, 5</td></tr>\n        <tr><th scope=\"row\">shape-probe-003</th><td><code>nested object and mixed-array value ingress</code></td><td>PASS; shape preserved</td></tr>\n      </tbody>\n    </table>\n  </section>"
     },
     {
       "id": "template-probe",
@@ -85,7 +51,8 @@
         ]
       },
       "xhtml_path": "docs/examples/fuzz-run-report/success-template.xhtml",
-      "fragment_source": "auto-generated"
+      "fragment_source": "auto-generated",
+      "body_html": "<p class=\"status\">pass</p>\n  <p class=\"summary\">The template worker exercised the recorded Jinja behavior cases, including nested control flow and optional values. All bounded inputs produced expected text.</p>\n\n  <table class=\"agent-results\">\n    <thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead>\n    <tbody>\n      <tr>\n        <th scope=\"row\">Jinja loops, conditionals, whitespace, and optional values</th>\n        <td>12</td>\n        <td>12/12</td>\n        <td>PASS</td>\n      </tr>\n    </tbody>\n  </table>\n\n  <section class=\"test-inputs\">\n    <h3>Inputs exercised</h3>\n    <table>\n      <thead><tr><th scope=\"col\">Case</th><th scope=\"col\">Template / input</th><th scope=\"col\">Outcome</th></tr></thead>\n      <tbody>\n        <tr><th scope=\"row\">template-probe-002</th><td><code>conditional branch with a numeric var-file value</code></td><td>PASS; expected branch selected</td></tr>\n        <tr><th scope=\"row\">template-probe-003</th><td><code>nested loop over an object containing an empty list</code></td><td>PASS; deterministic empty rendering</td></tr>\n      </tbody>\n    </table>\n  </section>"
     },
     {
       "id": "boundary-probe",
@@ -107,7 +74,8 @@
         ]
       },
       "xhtml_path": "docs/examples/fuzz-run-report/success-boundary.xhtml",
-      "fragment_source": "auto-generated"
+      "fragment_source": "auto-generated",
+      "body_html": "<p class=\"status\">pass</p>\n  <p class=\"summary\">The boundary worker exercised malformed-input, diagnostic, and path-confinement cases from the recorded boundary-probe task. Every input reached its expected boundary.</p>\n\n  <table class=\"agent-results\">\n    <thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead>\n    <tbody>\n      <tr>\n        <th scope=\"row\">Malformed files, invalid var-file boundaries, and stable diagnostics</th>\n        <td>12</td>\n        <td>12/12</td>\n        <td>PASS</td>\n      </tr>\n    </tbody>\n  </table>\n\n  <section class=\"test-inputs\">\n    <h3>Inputs exercised</h3>\n    <table>\n      <thead><tr><th scope=\"col\">Case</th><th scope=\"col\">Template / input</th><th scope=\"col\">Outcome</th></tr></thead>\n      <tbody>\n        <tr><th scope=\"row\">boundary-probe-004</th><td><code>malformed var-file at the configuration boundary</code></td><td>PASS; stable configuration diagnostic</td></tr>\n        <tr><th scope=\"row\">boundary-probe-005</th><td><code>path outside the workspace root</code></td><td>PASS; confinement held</td></tr>\n      </tbody>\n    </table>\n  </section>"
     },
     {
       "id": "differential-probe",
@@ -129,10 +97,17 @@
         ]
       },
       "xhtml_path": "docs/examples/fuzz-run-report/success-differential.xhtml",
-      "fragment_source": "auto-generated"
+      "fragment_source": "auto-generated",
+      "body_html": "<p class=\"status\">pass</p>\n  <p class=\"summary\">The differential worker compared baseline/head behavior and repeated renders across the recorded cases. Outputs remained equivalent and deterministic.</p>\n\n  <table class=\"agent-results\">\n    <thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead>\n    <tbody>\n      <tr>\n        <th scope=\"row\">Baseline parity, JSON/YAML equivalence, and deterministic output</th>\n        <td>12</td>\n        <td>12/12</td>\n        <td>PASS</td>\n      </tr>\n    </tbody>\n  </table>\n\n  <section class=\"test-inputs\">\n    <h3>Inputs exercised</h3>\n    <table>\n      <thead><tr><th scope=\"col\">Case</th><th scope=\"col\">Template / input</th><th scope=\"col\">Outcome</th></tr></thead>\n      <tbody>\n        <tr><th scope=\"row\">differential-probe-001</th><td><code>JSON/YAML var-file parity for the same scalar tree</code></td><td>PASS; equivalent output</td></tr>\n        <tr><th scope=\"row\">differential-probe-002</th><td><code>repeat render with unchanged inputs</code></td><td>PASS; byte-stable output</td></tr>\n      </tbody>\n    </table>\n  </section>"
     }
   ],
-  "footer": {
-    "text": "Generated mock. Future artifacts use site/reports/YYYYMMDD-N-fuzz-report.html and worker-suffixed XHTML panels."
+  "recommendations_html": "",
+  "footer_html": "Generated mock. Future artifacts use site/reports/YYYYMMDD-N-fuzz-report.html and worker-suffixed XHTML panels.",
+  "copy_actions": true,
+  "metadata": {
+    "report_kind": "multi-agent-fuzz-session",
+    "session_id": "mock-success-e3-20260729",
+    "worker_count": 4,
+    "template": ".claude/skills/html-report/templates/fuzz-run-agent.xhtml.j2"
   }
 }
