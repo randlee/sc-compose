@@ -1,10 +1,10 @@
 ---
 id: E.2
 title: Adversarial Fuzzing Workflow
-status: planned
+status: complete
 branch: sprint/e-2-adversarial-fuzzing
 worktree: ../sc-compose-worktrees/sprint/e-2-adversarial-fuzzing
-target: develop
+target: integrate/phase-e
 ---
 
 # Sprint E.2 — Adversarial Fuzzing Workflow
@@ -63,6 +63,20 @@ the real classify/minimize/promote workflow owned by E.3. Any E.2 edits must
 build on the pre-existing implementation rather than silently replacing it or
 rewriting its history.
 
+At closure: E.1 merged into `integrate/phase-e` via PR #159 (commit `42b784b`),
+confirming the recursive-input runtime contract before E.3's campaign started.
+E.3 subsequently ran its first campaign against that merged contract and
+merged via PR #161 (commit `ca40c6b`).
+
+### Phase-plan dependency exception (historical)
+
+E.2 was a parallel workflow-authoring sprint. Its `complete` status covered
+the skill, agent, registry, and report-contract deliverables listed here, and
+did not require E.1's runtime changes to be merged into `integrate/phase-e`
+at the time E.2 itself closed. That exception is now resolved: E.1 merged
+first (PR #159), and E.3 confirmed the merge before starting its campaign,
+satisfying E.1's hard dependency for campaign execution.
+
 ## Deliverables
 
 - `E2-D1` — a discoverable `adversarial-fuzzing` skill whose description names
@@ -80,9 +94,9 @@ rewriting its history.
   a failure is called a confirmed bug.
 - `E2-D5` — quality-mgr routing and registry metadata that make the skill and
   agents versioned, discoverable, and reviewable without arbitrary agent paths.
-- `E2-D6` — a first-campaign checklist and structured report contract that record
-  seed, worker correlation, limits, findings, promoted tests, and unresolved
-  candidates.
+- `E2-D6` — a first-campaign checklist and structured report contract that
+  records seed, worker correlation, limits, findings, promoted tests,
+  unresolved candidates, and next owners for unfixed confirmed bugs.
 
 The deliverable list above is authoritative for E.2 closure. E.3 owns the
 first real campaign and its promoted tests; E.2 does not claim that campaign
@@ -203,7 +217,8 @@ case budget, and worker execution all completed successfully.
   single responsibilities, fenced JSON output, explicit error semantics, and
   repository/path safety constraints.
 - Registry entries resolve both agents and the skill with compatible versions;
-  quality-mgr can route an adversarial pass without copying scope manually.
+  the `qa_routes.adversarial-fuzzing` entry lets quality-mgr route an
+  adversarial pass without copying scope manually.
 - A full campaign is bounded to four concurrent workers, deterministic seed and
   correlation ordering, explicit timeouts, partial-failure reporting, and no
   silent retries.
@@ -211,6 +226,9 @@ case budget, and worker execution all completed successfully.
   bugs produce deterministic tests in the owning crate suite.
 - Intentional boundaries and inconclusive results remain visible in the final
   report and cannot be reported as PASS.
+- The report contract records campaign metadata, every worker correlation and
+  limit, finding IDs, promoted test paths, failed-worker counts, unresolved
+  candidates, and next owners.
 - E.2 leaves product runtime code unchanged and passes the required structural
   and repository validation.
 - The classify/minimize/promote pipeline is not considered proven until the
@@ -236,3 +254,14 @@ and clippy gates in E.3 because E.3 owns promoted Rust/CLI regression tests;
 E.2 has no Rust Exact Targets and does not claim to have executed a real
 campaign. E.3's first campaign is the end-to-end proof of classify → minimize
 → promote → test.
+
+## Closure Notes
+
+- E2-D1 through E2-D4 remain based on the previously landed skill, coordinator,
+  probe, and registry artifacts; this sprint did not rewrite their history.
+- E2-D5 adds the versioned `qa_routes.adversarial-fuzzing` registry route and
+  quality-mgr rules for safe coordinator dispatch and non-lossy QA reporting.
+- E2-D6 adds the reusable first-campaign checklist and
+  `adversarial-fuzzing/v1` durable evidence contract in the skill.
+- The first real campaign, regression promotion, and end-to-end pipeline proof
+  remain owned by E.3 and are intentionally not claimed here.

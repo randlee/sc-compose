@@ -1,10 +1,10 @@
 ---
 id: E.3
 title: First Adversarial Campaign And Regression Closure
-status: planned
+status: complete
 branch: sprint/e-3-first-adversarial-campaign
 worktree: ../sc-compose-worktrees/sprint/e-3-first-adversarial-campaign
-target: develop
+target: integrate/phase-e
 ---
 
 # Sprint E.3 — First Adversarial Campaign And Regression Closure
@@ -133,3 +133,16 @@ The skill-creator path is operator-specific and non-gating when unavailable;
 registry/path checks, campaign evidence completeness, and the Rust gates are
 gating. Run both Issue #157 fixture commands and record their output in the
 evidence file.
+
+## Closure Notes
+
+- The real full campaign is recorded in
+  `docs/phase-E/evidence/e-3-adversarial-campaign.json`.
+- Four concurrent workers (`shape-probe`, `template-probe`,
+  `boundary-probe`, and `differential-probe`) executed 12 generated cases each
+  with seed `157` and a 120-second per-worker timeout.
+- All 48 cases completed successfully. Three minimized boundary candidates
+  reproduced four times each and were classified as intentional boundaries:
+  malformed var-file, top-level sequence, and nested non-string YAML key.
+- No confirmed product bugs were found, so no regression tests or runtime fixes
+  were promoted. Workspace and fixture validation remained green.

@@ -177,6 +177,25 @@ def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
 
     assert sc_compose.render_template("hi {{ name }}", {"name": "dev"}) == "hi dev"
 
+    recursive_template = (
+        "{% for group in groups %}"
+        "{{ group.name }}:"
+        "{% for row in group.rows %}"
+        "[{% for value in row %}{{ value }}{% if not loop.last %},{% endif %}{% endfor %}]"
+        "{% endfor %};"
+        "{% endfor %}"
+    )
+    recursive_context = {
+        "groups": [
+            {"name": "one", "rows": [["a", "b"], ["c"]]},
+            {"name": "two", "rows": [[]]},
+        ]
+    }
+    assert (
+        sc_compose.render_template(recursive_template, recursive_context)
+        == "one:[a,b][c];two:[];"
+    )
+
     loaded = sc_compose.LoadedTemplateRequest(
         template_name="page.j2",
         template_text='{% include "partials/greeting.j2" %}',
@@ -496,11 +515,6 @@ def test_headerless_templates_keep_phase_c_behavior() -> None:
             lambda root: sc_compose.render_template("{% if true %}", {}),
             sc_compose.ScRenderError,
             None,
-        ),
-        (
-            lambda root: sc_compose.validate_input_value({"bad": [[1]]}),
-            sc_compose.ScValidationError,
-            sc_compose.DiagnosticCode.ERR_VAL_NESTED_ARRAY_UNSUPPORTED,
         ),
         (
             lambda root: sc_compose.resolve_template_path(

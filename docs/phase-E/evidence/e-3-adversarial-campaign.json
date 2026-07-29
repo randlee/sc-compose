@@ -1,0 +1,206 @@
+{
+  "schema_version": "adversarial-fuzzing/v1",
+  "campaign": {
+    "campaign_id": "e3-20260729-0002",
+    "worktree_path": "/Users/randlee/Documents/github/sc-compose-worktrees/fix/e3-evidence-hardening",
+    "target": "full",
+    "baseline_ref": "42b784b",
+    "seed": 157,
+    "max_workers": 4,
+    "cases_per_worker": 12,
+    "per_worker_timeout_s": 120,
+    "promote_regressions": false,
+    "notes": "Registered coordinator rerun for evidence hardening; candidate fixes are outside this task scope."
+  },
+  "workers": [
+    {
+      "correlation_id": "boundary-probe",
+      "target": "validation/cli",
+      "status": "success",
+      "cases_run": 12,
+      "finding_ids": ["boundary-001", "boundary-002", "boundary-003"],
+      "error": null
+    },
+    {
+      "correlation_id": "differential-probe",
+      "target": "regression oracle",
+      "status": "success",
+      "cases_run": 12,
+      "finding_ids": [],
+      "error": null
+    },
+    {
+      "correlation_id": "shape-probe",
+      "target": "var-file",
+      "status": "success",
+      "cases_run": 12,
+      "finding_ids": ["shape-001"],
+      "error": null
+    },
+    {
+      "correlation_id": "template-probe",
+      "target": "renderer",
+      "status": "success",
+      "cases_run": 12,
+      "finding_ids": ["template-001"],
+      "error": null
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": "boundary-001",
+      "worker_correlation_id": "boundary-probe",
+      "classification": "confirmed_bug",
+      "command": "/Users/randlee/Documents/github/sc-compose-worktrees/fix/e3-evidence-hardening/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/fix/e3-evidence-hardening/.fuzz-campaign-e3-seed157/boundary-probe/root --file c03.md.j2 --var name=x",
+      "minimal_template": "UTF-8 bytes EF BB BF followed by ---\\nvariables:\\n  name:\\n    required: false\\n---\\nHello {{name}}\\n",
+      "minimal_input": "name=x",
+      "expected_oracle": "UTF-8 BOM is accepted before frontmatter; output contains only the rendered body",
+      "observed_result": "exit 0; stdout includes the complete frontmatter block before Hello x",
+      "diagnostic_code": null,
+      "reproduction_count": 3,
+      "recommended_test": "Add a CLI regression test for BOM-prefixed frontmatter parsing."
+    },
+    {
+      "finding_id": "boundary-002",
+      "worker_correlation_id": "boundary-probe",
+      "classification": "confirmed_bug",
+      "command": "/Users/randlee/Documents/github/sc-compose-worktrees/fix/e3-evidence-hardening/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/fix/e3-evidence-hardening/.fuzz-campaign-e3-seed157/boundary-probe/root --file c09.md.j2",
+      "minimal_template": "---\\n---\\nbad \\xff\\xfe bytes\\n",
+      "minimal_input": "invalid UTF-8 bytes ff fe in the template body",
+      "expected_oracle": "nonzero exit with a template/config UTF-8 diagnostic",
+      "observed_result": "exit 2 with ERR_INCLUDE_NOT_FOUND naming the template itself",
+      "diagnostic_code": "ERR_INCLUDE_NOT_FOUND",
+      "reproduction_count": 3,
+      "recommended_test": "Add a CLI regression test for invalid UTF-8 diagnostics."
+    },
+    {
+      "finding_id": "boundary-003",
+      "worker_correlation_id": "boundary-probe",
+      "classification": "confirmed_bug",
+      "command": "/Users/randlee/Documents/github/sc-compose-worktrees/fix/e3-evidence-hardening/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/fix/e3-evidence-hardening/.fuzz-campaign-e3-seed157/boundary-probe/root --file c06.md.j2",
+      "minimal_template": "---\\nvariables:\\n  needed:\\n    required: true\\n---\\nX {{needed}}\\n",
+      "minimal_input": "no value supplied for needed",
+      "expected_oracle": "missing declared required variable reports ERR_VAL_MISSING_REQUIRED",
+      "observed_result": "exit 2 with ERR_VAL_UNDECLARED_TOKEN for needed",
+      "diagnostic_code": "ERR_VAL_UNDECLARED_TOKEN",
+      "reproduction_count": 3,
+      "recommended_test": "Reconcile required-variable frontmatter diagnostics and add a CLI regression test."
+    },
+    {
+      "finding_id": "shape-001",
+      "worker_correlation_id": "shape-probe",
+      "classification": "confirmed_bug",
+      "command": "Run the same template with c10.json and c10.yaml var-files under /Users/randlee/Documents/github/sc-compose-worktrees/fix/e3-evidence-hardening/.fuzz-campaign-e3-seed157/shape-probe",
+      "minimal_template": "{{ a }}\\n",
+      "minimal_input": "JSON: {\"a\": 1, \"a\": 2}; YAML: a: 1\\na: 2\\n",
+      "expected_oracle": "JSON and YAML duplicate-key inputs have documented equivalent behavior",
+      "observed_result": "JSON exits 0 and renders 2; YAML exits 2 with ERR_CONFIG_PARSE duplicate entry",
+      "diagnostic_code": "ERR_CONFIG_PARSE",
+      "reproduction_count": 3,
+      "recommended_test": "Choose and document duplicate-key parity, then add a var-file regression test."
+    },
+    {
+      "finding_id": "template-001",
+      "worker_correlation_id": "template-probe",
+      "classification": "inconclusive",
+      "command": "/Users/randlee/Documents/github/sc-compose-worktrees/fix/e3-evidence-hardening/target/debug/sc-compose render --mode file --root /Users/randlee/Documents/github/sc-compose-worktrees/fix/e3-evidence-hardening/.fuzz-campaign-e3-seed157/template-probe/cases/c02 --file template.j2 --var n=157",
+      "minimal_template": "{% if n == 157 %}X{% elif n > 0 %}Y{% else %}Z{% endif %}\\n",
+      "minimal_input": "--var n=157 (CLI variables are string-typed)",
+      "expected_oracle": "X if --var numeric coercion is part of the contract",
+      "observed_result": "exit 0 with Y; var-file numeric input produces X",
+      "diagnostic_code": null,
+      "reproduction_count": 3,
+      "recommended_test": "Quality-mgr/design review must decide whether CLI scalar typing is intentional."
+    }
+  ],
+  "promoted_tests": [],
+  "unresolved_candidates": [
+    {
+      "finding_id": "boundary-001",
+      "next_owner": "quality-mgr",
+      "reason": "Confirmed candidate needs a separately scoped runtime-fix sprint."
+    },
+    {
+      "finding_id": "boundary-002",
+      "next_owner": "quality-mgr",
+      "reason": "Confirmed candidate needs a separately scoped runtime-fix sprint."
+    },
+    {
+      "finding_id": "boundary-003",
+      "next_owner": "quality-mgr",
+      "reason": "Confirmed candidate needs a separately scoped runtime-fix sprint."
+    },
+    {
+      "finding_id": "shape-001",
+      "next_owner": "quality-mgr",
+      "reason": "Confirmed candidate needs a product-contract decision and separately scoped fix."
+    },
+    {
+      "finding_id": "template-001",
+      "next_owner": "quality-mgr",
+      "reason": "Inconclusive until CLI scalar typing is classified as contract or boundary."
+    }
+  ],
+  "summary": {
+    "all_successful": true,
+    "confirmed_bugs": 4,
+    "promoted_tests": 0,
+    "intentional_boundaries": 0,
+    "inconclusive": 1,
+    "failed_workers": 0
+  },
+  "execution": {
+    "campaign_started_at": "2026-07-29T07:43:15Z",
+    "campaign_completed_at": "2026-07-29T07:46:44Z",
+    "campaign_directory": "/Users/randlee/Documents/github/sc-compose-worktrees/fix/e3-evidence-hardening/.fuzz-campaign-e3-seed157",
+    "campaign_directory_retained": false,
+    "preflight_note": "The registered coordinator used the Agent tool with the E.3 full contract and dispatched four background sc-adversarial-fuzz-probe workers; each worker executed 12 generated cases against this worktree. Temporary artifacts were captured and cleaned after this report was written.",
+    "worker_launches": {
+      "dispatch_mechanism": "Agent tool; subagent_type=sc-adversarial-fuzz-probe; run_in_background=true",
+      "coordinator": {
+        "agent": "sc-adversarial-fuzz-coordinator",
+        "status": "completed"
+      },
+      "workers": [
+        {"correlation_id": "boundary-probe", "agent": "sc-adversarial-fuzz-probe", "status": "completed", "cases_run": 12},
+        {"correlation_id": "differential-probe", "agent": "sc-adversarial-fuzz-probe", "status": "completed", "cases_run": 12},
+        {"correlation_id": "shape-probe", "agent": "sc-adversarial-fuzz-probe", "status": "completed", "cases_run": 12},
+        {"correlation_id": "template-probe", "agent": "sc-adversarial-fuzz-probe", "status": "completed", "cases_run": 12}
+      ]
+    },
+    "case_batches": [
+      {"correlation_id": "boundary-probe", "cases": ["boundary-probe-001", "boundary-probe-002", "boundary-probe-003", "boundary-probe-004", "boundary-probe-005", "boundary-probe-006", "boundary-probe-007", "boundary-probe-008", "boundary-probe-009", "boundary-probe-010", "boundary-probe-011", "boundary-probe-012"], "status": "success"},
+      {"correlation_id": "differential-probe", "cases": ["differential-probe-001", "differential-probe-002", "differential-probe-003", "differential-probe-004", "differential-probe-005", "differential-probe-006", "differential-probe-007", "differential-probe-008", "differential-probe-009", "differential-probe-010", "differential-probe-011", "differential-probe-012"], "status": "success"},
+      {"correlation_id": "shape-probe", "cases": ["shape-probe-001", "shape-probe-002", "shape-probe-003", "shape-probe-004", "shape-probe-005", "shape-probe-006", "shape-probe-007", "shape-probe-008", "shape-probe-009", "shape-probe-010", "shape-probe-011", "shape-probe-012"], "status": "success"},
+      {"correlation_id": "template-probe", "cases": ["template-probe-001", "template-probe-002", "template-probe-003", "template-probe-004", "template-probe-005", "template-probe-006", "template-probe-007", "template-probe-008", "template-probe-009", "template-probe-010", "template-probe-011", "template-probe-012"], "status": "success"}
+    ]
+  },
+  "fixture_checks": [
+    {
+      "name": "examples/changelog-categories.md.j2",
+      "command": "target/debug/sc-compose render --mode file --root . --file examples/changelog-categories.md.j2 --var-file examples/changelog-categories.sample-vars.json",
+      "exit_status": 0,
+      "stdout": "## [0.55.0] - 2026-07-27\\n\\n### Added\\n\\n- Deconstruct methods and matching constructors on SerialNumber. (#588)\\n- CalibrationException under Radiant.Calibration. (#588)\\n\\n### Changed\\n\\n- Bumped from 0.54.0 to 0.55.0 (MINOR).\\n"
+    },
+    {
+      "name": "examples/jagged-array-values.md.j2",
+      "command": "target/debug/sc-compose render --mode file --root . --file examples/jagged-array-values.md.j2 --var-file examples/jagged-array-values.sample-vars.json",
+      "exit_status": 0,
+      "stdout": "1, 2, 3\\n4, 5\\n"
+    }
+  ],
+  "validation": {
+    "cargo_fmt_all_check": "pass",
+    "cargo_test_workspace": "pass",
+    "cargo_clippy_all_targets_all_features": "pass",
+    "repo_boundaries": "pass",
+    "fixture_commands": "pass",
+    "git_diff_check": "pass",
+    "registry_and_path_checks": "pass",
+    "python_recursive_array_render": "pass (19 smoke tests)",
+    "skill_creator_quick_validate": {
+      "status": "incompatible-validator",
+      "detail": "The installed generic validator rejects the top-level version key required by the merged E.2 contract; equivalent structural validation remains separate from this evidence fix."
+    }
+  }
+}
