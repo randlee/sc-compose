@@ -97,33 +97,33 @@ impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
         formatter.write_str("a JSON value without duplicate object keys")
     }
 
-    fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E> {
-        Ok(serde_json::Value::Bool(value))
+    fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E> {
+        Ok(serde_json::Value::Bool(v))
     }
 
-    fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E> {
-        Ok(serde_json::Value::Number(value.into()))
+    fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E> {
+        Ok(serde_json::Value::Number(v.into()))
     }
 
-    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E> {
-        Ok(serde_json::Value::Number(value.into()))
+    fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> {
+        Ok(serde_json::Value::Number(v.into()))
     }
 
-    fn visit_f64<E>(self, value: f64) -> Result<Self::Value, E>
+    fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
     where
         E: DeError,
     {
-        serde_json::Number::from_f64(value)
+        serde_json::Number::from_f64(v)
             .map(serde_json::Value::Number)
             .ok_or_else(|| E::custom("JSON number is not finite"))
     }
 
-    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E> {
-        Ok(serde_json::Value::String(value.to_owned()))
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E> {
+        Ok(serde_json::Value::String(v.to_owned()))
     }
 
-    fn visit_string<E>(self, value: String) -> Result<Self::Value, E> {
-        Ok(serde_json::Value::String(value))
+    fn visit_string<E>(self, v: String) -> Result<Self::Value, E> {
+        Ok(serde_json::Value::String(v))
     }
 
     fn visit_none<E>(self) -> Result<Self::Value, E> {
@@ -134,29 +134,29 @@ impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
         Ok(serde_json::Value::Null)
     }
 
-    fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: SeqAccess<'de>,
     {
         let mut values = Vec::new();
-        while let Some(value) = sequence.next_element_seed(Self)? {
+        while let Some(value) = seq.next_element_seed(Self)? {
             values.push(value);
         }
         Ok(serde_json::Value::Array(values))
     }
 
-    fn visit_map<A>(self, mut map_access: A) -> Result<Self::Value, A::Error>
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
     where
         A: MapAccess<'de>,
     {
         let mut object = serde_json::Map::new();
-        while let Some(key) = map_access.next_key::<String>()? {
+        while let Some(key) = map.next_key::<String>()? {
             if object.contains_key(&key) {
                 return Err(A::Error::custom(format!(
                     "duplicate entry with key \"{key}\""
                 )));
             }
-            object.insert(key, map_access.next_value_seed(Self)?);
+            object.insert(key, map.next_value_seed(Self)?);
         }
         Ok(serde_json::Value::Object(object))
     }
