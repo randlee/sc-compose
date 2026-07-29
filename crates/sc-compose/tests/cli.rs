@@ -1826,6 +1826,123 @@ fn render_accepts_recursive_values_in_yaml_var_file() {
 }
 
 #[test]
+fn render_strips_utf8_bom_before_frontmatter() {
+    let root = temp_root("frontmatter-utf8-bom");
+    fs::write(
+        root.join("template.md.j2"),
+        b"\xef\xbb\xbf---\nrequired_variables:\n  - name\n---\nHello {{name}}\n",
+    )
+    .unwrap();
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("name=x")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "Hello x\n");
+}
+
+#[test]
+fn render_reports_invalid_template_utf8_as_config_read() {
+    let root = temp_root("template-invalid-utf8");
+    fs::write(
+        root.join("template.md.j2"),
+        b"---\n---\nbad \xff\xfe bytes\n",
+    )
+    .unwrap();
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(stderr.contains("ERR_CONFIG_READ"), "stderr: {stderr}");
+    assert!(
+        !stderr.contains("ERR_INCLUDE_NOT_FOUND"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
+fn render_reports_declared_required_variable_as_missing() {
+    let root = temp_root("declared-required-variable");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nvariables:\n  needed:\n    required: true\n---\nX {{needed}}\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(
+        stderr.contains("ERR_VAL_MISSING_REQUIRED"),
+        "stderr: {stderr}"
+    );
+    assert!(
+        !stderr.contains("ERR_VAL_UNDECLARED_TOKEN"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
+fn render_rejects_duplicate_json_and_yaml_var_file_keys() {
+    let root = temp_root("duplicate-var-file-keys");
+    write_file(&root.join("template.md.j2"), "{{ a }}\n");
+    let inputs = [
+        ("vars.json", r#"{"a": 1, "a": 2}"#),
+        ("vars.yaml", "a: 1\na: 2\n"),
+    ];
+
+    for (filename, contents) in inputs {
+        let vars_file = root.join(filename);
+        write_file(&vars_file, contents);
+        let output = sc_compose()
+            .arg("render")
+            .arg("--mode")
+            .arg("file")
+            .arg("--root")
+            .arg(&root)
+            .arg("--file")
+            .arg("template.md.j2")
+            .arg("--var-file")
+            .arg(&vars_file)
+            .output()
+            .unwrap();
+        let stderr = String::from_utf8_lossy(&output.stderr);
+
+        assert_eq!(output.status.code(), Some(3), "{filename}: {stderr}");
+        assert!(stderr.contains("ERR_CONFIG_PARSE"), "{filename}: {stderr}");
+    }
+}
+
+#[test]
 fn render_rejects_non_string_nested_yaml_map_keys() {
     let root = temp_root("recursive-yaml-invalid-key");
     write_file(&root.join("template.md.j2"), "{{ value }}\n");

@@ -104,6 +104,9 @@ Schema rules:
 - `required_variables` is optional.
 - `defaults` is optional.
 - `input_defaults` is accepted as an alias for `defaults` in frontmatter.
+- For compatibility with existing template metadata, a frontmatter
+  `variables` map with `{ required: true }` declarations is accepted as an
+  equivalent spelling of `required_variables`.
 - `metadata` is optional.
 - If a frontmatter block exists and a field is omitted, it defaults to:
   - `required_variables: []`
@@ -218,6 +221,9 @@ HTML-Report follow-on design track:
   a referenced or required variable is satisfied by a default value rather than
   explicit caller input.
 - Explicit CLI `--var key=value` inputs are always strings.
+- This string-only behavior is intentional: CLI text inputs are not coerced
+  based on their spelling. Callers that need numeric, boolean, null, object,
+  or sequence values must use `--var-file` or template-owned defaults.
 - Variables loaded through `--var-file` may be any supported render-context
   value type.
 - Variables loaded through `--env-prefix` are always strings.
@@ -1011,6 +1017,8 @@ Implemented in Phase HTML-Report.
   `pr.number`.
 - Malformed object input must fail with stable diagnostics using
   `ERR_VAL_OBJECT_SHAPE`.
+- Duplicate keys in JSON and YAML var-files must fail with
+  `ERR_CONFIG_PARSE`; var-files do not use silent last-value-wins semantics.
 - Nested required-path traversal that encounters a scalar where an object is
   required must fail with `ERR_VAL_SHAPE_MISMATCH`.
 - `--var key=value` remains string-only in this phase. Structured input comes

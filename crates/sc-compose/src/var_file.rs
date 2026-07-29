@@ -5,6 +5,8 @@ use anyhow::anyhow;
 use sc_composer::{
     DiagnosticCode, InputValue, VariableName, input_value_from_yaml, validate_input_value,
 };
+use serde::Deserializer;
+use serde::de::{DeserializeSeed, Error as DeError, MapAccess, SeqAccess, Visitor};
 
 use crate::CommandError;
 
@@ -23,7 +25,7 @@ pub(crate) fn load_var_file(
 pub(crate) fn parse_var_file_contents(
     contents: &str,
 ) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
-    if let Ok(value) = serde_json::from_str::<serde_json::Value>(contents) {
+    if let Ok(value) = parse_json_value_rejecting_duplicate_keys(contents) {
         return parse_json_object_value(&value);
     }
     let value = serde_yaml::from_str::<serde_yaml::Value>(contents).map_err(|error| {
@@ -63,6 +65,101 @@ pub(crate) fn parse_var_file_contents(
         );
     }
     Ok(vars)
+}
+
+fn parse_json_value_rejecting_duplicate_keys(
+    contents: &str,
+) -> Result<serde_json::Value, serde_json::Error> {
+    let mut deserializer = serde_json::Deserializer::from_str(contents);
+    let value = deserializer.deserialize_any(DuplicateAwareValueVisitor)?;
+    deserializer.end()?;
+    Ok(value)
+}
+
+#[derive(Clone, Copy)]
+struct DuplicateAwareValueVisitor;
+
+impl<'de> DeserializeSeed<'de> for DuplicateAwareValueVisitor {
+    type Value = serde_json::Value;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(self)
+    }
+}
+
+impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
+    type Value = serde_json::Value;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("a JSON value without duplicate object keys")
+    }
+
+    fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E> {
+        Ok(serde_json::Value::Bool(value))
+    }
+
+    fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E> {
+        Ok(serde_json::Value::Number(value.into()))
+    }
+
+    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E> {
+        Ok(serde_json::Value::Number(value.into()))
+    }
+
+    fn visit_f64<E>(self, value: f64) -> Result<Self::Value, E>
+    where
+        E: DeError,
+    {
+        serde_json::Number::from_f64(value)
+            .map(serde_json::Value::Number)
+            .ok_or_else(|| E::custom("JSON number is not finite"))
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E> {
+        Ok(serde_json::Value::String(value.to_owned()))
+    }
+
+    fn visit_string<E>(self, value: String) -> Result<Self::Value, E> {
+        Ok(serde_json::Value::String(value))
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E> {
+        Ok(serde_json::Value::Null)
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E> {
+        Ok(serde_json::Value::Null)
+    }
+
+    fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut values = Vec::new();
+        while let Some(value) = sequence.next_element_seed(Self)? {
+            values.push(value);
+        }
+        Ok(serde_json::Value::Array(values))
+    }
+
+    fn visit_map<A>(self, mut map_access: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut object = serde_json::Map::new();
+        while let Some(key) = map_access.next_key::<String>()? {
+            if object.contains_key(&key) {
+                return Err(A::Error::custom(format!(
+                    "duplicate entry with key \"{key}\""
+                )));
+            }
+            object.insert(key, map_access.next_value_seed(Self)?);
+        }
+        Ok(serde_json::Value::Object(object))
+    }
 }
 
 fn parse_json_object_value(
