@@ -8,13 +8,14 @@ required_variables:
   - agent.fuzz_run_description
   - agent.worker_correlation_id
   - agent.classification
+  - agent.copy_json
   - agent.iterations
   - agent.passed
-  - agent.failed
+  - agent.result
   - agent.summary
   - agent.test_inputs
-  - agent.json_payload
   - agent.context_text
+  - agent.findings
 ---
 <section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-{{ agent.classification | lower | e }}">
   <header class="agent-header fuzz-agent-header">
@@ -23,7 +24,7 @@ required_variables:
       <h2>{{ agent.agent_id | e }}</h2>
       <p class="agent-meta">Session {{ agent.session_id | e }} · Worker {{ agent.worker_correlation_id | e }}</p>
     </div>
-    <div class="agent-actions">
+    <div class="agent-actions" aria-label="Copy worker data">
       <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{{ agent.copy_json | e }}">{}</button>
       <button type="button" class="icon-button" title="Copy Context" data-copy-text="{{ agent.context_text | e }}">⎘</button>
     </div>
