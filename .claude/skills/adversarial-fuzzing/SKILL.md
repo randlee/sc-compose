@@ -17,18 +17,10 @@ Run this before selecting agents or executing a fuzz campaign:
 ```bash
 which cargo && cargo --version
 which git && git --version
-
-for p in "$HOME/.cargo/bin/cargo" "/opt/homebrew/bin/cargo" "/usr/local/bin/cargo"; do
-  [ -x "$p" ] && echo "Found cargo at: $p" && break
-done
-for p in "$HOME/.local/bin/git" "/opt/homebrew/bin/git" "/usr/local/bin/git"; do
-  [ -x "$p" ] && echo "Found git at: $p" && break
-done
 ```
 
 If either command is unavailable, stop and read
-`references/installation-and-troubleshooting.md` before proceeding. If a
-binary is found outside `PATH`, use its full path for the campaign. Do not
+`references/installation-and-troubleshooting.md` before proceeding. Do not
 silently run a degraded campaign.
 
 ## Campaign contract
