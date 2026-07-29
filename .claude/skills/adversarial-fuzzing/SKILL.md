@@ -1,5 +1,6 @@
 ---
 name: adversarial-fuzzing
+version: 1.1.0
 description: Generate and triage adversarial templates, var-files, and rendering inputs against sc-compose by coordinating bounded background agents, differential and metamorphic checks, minimization, and regression-test promotion. Use when trying to break a rendering subsystem, validating a risky change, hunting parser/validator/rendering edge cases, or turning a confirmed fuzz failure into a unit or CLI test.
 ---
 
@@ -231,13 +232,36 @@ The durable report must be a JSON object matching this contract:
       "target": "var-file",
       "status": "success | failed | timed_out",
       "cases_run": 100,
-      "findings": [],
+      "finding_ids": ["FUZZ-001"],
       "error": null
     }
   ],
-  "findings": [],
-  "promoted_tests": [],
-  "unresolved_candidates": [],
+  "findings": [
+    {
+      "finding_id": "FUZZ-001",
+      "worker_correlation_id": "shape-probe",
+      "classification": "confirmed_bug | intentional_boundary | inconclusive",
+      "command": "cargo run ...",
+      "minimal_template": "...",
+      "minimal_input": "...",
+      "expected_oracle": "...",
+      "observed_result": "...",
+      "diagnostic_code": null,
+      "reproduction_count": 3
+    }
+  ],
+  "promoted_tests": [
+    {
+      "finding_id": "FUZZ-001",
+      "test_path": "crates/sc-compose/tests/cli.rs"
+    }
+  ],
+  "unresolved_candidates": [
+    {
+      "finding_id": "FUZZ-002",
+      "next_owner": "team-lead"
+    }
+  ],
   "summary": {
     "all_successful": true,
     "confirmed_bugs": 0,

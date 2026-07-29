@@ -67,6 +67,16 @@ At closure, E.1 remains a separate PR until its changes are confirmed on
 `integrate/phase-e`; E.2 does not claim that the recursive-input runtime
 contract has merged or that the first campaign has run.
 
+### Phase-plan dependency exception
+
+E.2 is a parallel workflow-authoring sprint. Its `complete` status covers the
+skill, agent, registry, and report-contract deliverables listed here; it does
+not require E.1's runtime changes to be merged into `integrate/phase-e`.
+E.1 remains `planned` in its authoritative sprint document until the E.1 PR is
+merged, and E.3 must not start its first campaign until that merge is
+confirmed. This explicit exception resolves the phase-plan status mismatch
+without weakening E.1's hard dependency for campaign execution.
+
 ## Deliverables
 
 - `E2-D1` — a discoverable `adversarial-fuzzing` skill whose description names

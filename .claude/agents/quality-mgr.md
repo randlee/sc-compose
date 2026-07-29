@@ -85,19 +85,24 @@ campaign and its classify/minimize/promote evidence.
 ### Adversarial Campaign Report Contract
 
 Retain the normal quality-mgr `verdict`, `severity`, finding counts, and merge
-readiness fields. Add an `adversarial_campaign` object to the report using
-this shape:
+readiness fields. Add an `adversarial_campaign` object to the report using the
+canonical durable report shape defined by the adversarial-fuzzing skill. The
+object below is an exact copy of that contract; quality-mgr adds no derived or
+alternative `adversarial-fuzzing/v1` schema:
 
 ```json
 {
   "schema_version": "adversarial-fuzzing/v1",
   "campaign": {
+    "campaign_id": "e3-20260729-0001",
+    "worktree_path": "/absolute/approved/worktree",
     "seed": 157,
     "target": "full",
     "baseline_ref": "optional git ref",
     "max_workers": 4,
     "cases_per_worker": 100,
-    "per_worker_timeout_s": 120
+    "per_worker_timeout_s": 120,
+    "promote_regressions": true
   },
   "workers": [
     {
@@ -105,21 +110,43 @@ this shape:
       "target": "var-file",
       "status": "success | failed | timed_out",
       "cases_run": 100,
+      "finding_ids": ["FUZZ-001"],
       "error": null
     }
   ],
-  "findings": {
+  "findings": [
+    {
+      "finding_id": "FUZZ-001",
+      "worker_correlation_id": "shape-probe",
+      "classification": "confirmed_bug | intentional_boundary | inconclusive",
+      "command": "cargo run ...",
+      "minimal_template": "...",
+      "minimal_input": "...",
+      "expected_oracle": "...",
+      "observed_result": "...",
+      "diagnostic_code": null,
+      "reproduction_count": 3
+    }
+  ],
+  "promoted_tests": [
+    {
+      "finding_id": "FUZZ-001",
+      "test_path": "crates/sc-compose/tests/cli.rs"
+    }
+  ],
+  "unresolved_candidates": [
+    {
+      "finding_id": "FUZZ-002",
+      "next_owner": "team-lead"
+    }
+  ],
+  "summary": {
+    "all_successful": true,
     "confirmed_bugs": 0,
     "intentional_boundaries": 0,
     "inconclusive": 0,
-    "failed_workers": 0,
-    "finding_ids": [],
-    "promoted_test_paths": []
-  },
-  "unresolved_confirmed_bugs": [
-    {"finding_id": "FUZZ-001", "next_owner": "team-lead"}
-  ],
-  "all_successful": true
+    "failed_workers": 0
+  }
 }
 ```
 
