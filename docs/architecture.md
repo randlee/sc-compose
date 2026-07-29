@@ -1176,7 +1176,7 @@ Manifest rules:
   - arrays of objects are valid when the array is the variable value itself,
   - nested arrays are rejected with `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
 - Architecture decision record (2026-07-29): the historical H2 nested-array
-  restriction is superseded by Sprint D.1; the current phase index names the
+  restriction is superseded by Sprint E.1; the current phase index names the
   recursive-input implementation Sprint E.1 to avoid colliding with completed
   Phase D identifiers.
 - no manifest field selects entrypoints, paths, hooks, or alternate execution
@@ -1485,7 +1485,7 @@ Canonical failures must map to stable error families and stable codes.
 | `templates add` target name already exists | `ConfigError` | `ERR_CONFIG_TEMPLATE_EXISTS` |
 
 Historical error-table note (2026-07-29): the H2 restriction represented by
-`ERR_VAL_NESTED_ARRAY_UNSUPPORTED` is superseded by Sprint D.1; the current
+`ERR_VAL_NESTED_ARRAY_UNSUPPORTED` is superseded by Sprint E.1; the current
 recursive-input implementation is planned as Sprint E.1. The code remains
 reserved for compatibility and must not reject values accepted by the new
 recursive contract.
