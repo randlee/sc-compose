@@ -119,7 +119,7 @@ fn extract_allowed_roots_rejects_unconfinable_paths() {
 }
 
 #[test]
-fn extract_string_map_rejects_non_dict_and_invalid_values() {
+fn extract_string_map_rejects_non_dict_and_accepts_recursive_values() {
     Python::initialize();
     Python::attach(|py| {
         let list = PyList::empty(py);
@@ -131,27 +131,23 @@ fn extract_string_map_rejects_non_dict_and_invalid_values() {
 
         let dict = PyDict::new(py);
         dict.set_item("nested", vec![vec!["nope"]]).unwrap();
-        let (ty, message, code) =
-            py_error_details(py, &extract_string_map(dict.as_any()).unwrap_err());
-        assert_eq!(ty, "ScValidationError");
-        assert!(message.contains("nested arrays"));
-        assert_eq!(code.as_deref(), Some("ERR_VAL_NESTED_ARRAY_UNSUPPORTED"));
+        let extracted = extract_string_map(dict.as_any()).unwrap();
+        assert_eq!(
+            extracted.get("nested"),
+            Some(&serde_json::json!([["nope"]]))
+        );
     });
 }
 
 #[test]
-fn extract_json_context_rejects_invalid_nested_arrays() {
+fn extract_json_context_accepts_recursive_arrays() {
     Python::initialize();
     Python::attach(|py| {
         let dict = PyDict::new(py);
         dict.set_item("items", vec![vec!["nope"]]).unwrap();
 
-        let (ty, message, code) =
-            py_error_details(py, &extract_json_context(dict.as_any()).unwrap_err());
-
-        assert_eq!(ty, "ScValidationError");
-        assert!(message.contains("nested arrays"));
-        assert_eq!(code.as_deref(), Some("ERR_VAL_NESTED_ARRAY_UNSUPPORTED"));
+        let extracted = extract_json_context(dict.as_any()).unwrap();
+        assert_eq!(extracted, serde_json::json!({"items": [["nope"]]}));
     });
 }
 
