@@ -25,6 +25,21 @@ Each `sections[]` entry is one worker panel. It must include `id`, `title`,
 `templates/fuzz-run-agent.xhtml.j2`; do not concatenate multiple workers into
 one fragment.
 
+## Two-template rendering
+
+The report package uses two checked-in templates:
+
+1. `templates/fuzz-run-agent.xhtml.j2` renders one worker panel per worker.
+2. `templates/fuzz-run-report.html.j2` renders the complete top-level HTML
+   shell through `sc-compose render --file ... --var-file ... --output ...`.
+
+The shell receives top-level arrays only. `rows` and `metadata_rows` are
+arrays of objects; `sections` is an array of already-rendered worker-panel
+strings inserted into the shell. Pre-render nested worker data into those
+strings before shell rendering rather than relying on nested array-of-object
+traversal. This keeps the shell deterministic and makes the two-template
+boundary explicit; the generator must not hand-assemble the HTML document.
+
 ## Worker panel fields
 
 | Field | Required | Source / meaning |

@@ -431,6 +431,7 @@ Sprint entries:
 - [Sprint E.2 — Adversarial Fuzzing Workflow](phase-E/sprint-e-2-adversarial-fuzzing.md)
 - [Sprint E.3 — First Adversarial Campaign And Regression Closure](phase-E/sprint-e-3-first-adversarial-campaign.md)
 - [Sprint 157 — Multi-Agent Fuzz-Session Report Template](sprint-fuzz-run-report-template.md)
+- [Sprint — Top-Level Report Shell Template](sprint-fuzz-run-report-shell-template.md)
 - [Sprint — Per-Report Artifact Subdirectory Layout](sprint-fuzz-report-artifact-layout.md)
 - [Sprint — Top-Level Report Shell Template](sprint-fuzz-run-report-shell-template.md)
 

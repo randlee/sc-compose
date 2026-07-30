@@ -1,7 +1,7 @@
 ---
 id: fuzz-run-report-shell-template
 title: Top-Level Report Shell Template (fuzz-run-report.html.j2)
-status: in-progress
+status: complete
 branch: feature/fuzz-run-report-template
 worktree: ../sc-compose-worktrees/feature/fuzz-run-report-template
 target: develop
@@ -112,4 +112,25 @@ the closing metadata table.
 - sprint doc deliverables gate:
   - this doc exists
   - this doc's frontmatter sets `status: complete`
-  - this doc's frontmatter sets `branch:` and `worktree:`
+- this doc's frontmatter sets `branch:` and `worktree:`
+
+## Completion Evidence
+
+The shell template rendered successfully from a generated var-file containing
+four top-level `rows` objects, four top-level `sections` strings, and eleven
+top-level `metadata_rows` objects. The exact proof command completed with exit
+code 0:
+
+```bash
+target/debug/sc-compose render --root . \
+  --file .claude/skills/html-report/templates/fuzz-run-report.html.j2 \
+  --var-file /tmp/sc-compose-fuzz-run-shell-vars.json \
+  --output site/reports/20260729-3-fuzz-report.html
+```
+
+The var-file was derived from
+`site/reports/20260729-3-fuzz-report/20260729-3-fuzz-report.json` and the
+existing four worker panel artifacts. No worker panel or JSON sidecar was
+rewritten. The only generated report artifact touched by this sprint was
+`site/reports/20260729-3-fuzz-report.html`, and it was produced by the
+`sc-compose render` command above rather than hand-edited.

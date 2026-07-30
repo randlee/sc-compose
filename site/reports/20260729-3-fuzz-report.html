@@ -63,7 +63,7 @@
     <h1>Adversarial fuzz confirmation: e3confirm-20260729-0001 (frontmatter)</h1>
     <p class="subtitle">Post-PR-#163 (cd54074) confirmation run, corrected pre-fix baseline fa675cf</p>
     <p class="generated-at">Generated: 2026-07-29T00:00:00Z</p>
-    <p class="source-label">Source: adversarial-fuzzing/v1 campaign-report.json, campaign_id e3confirm-20260729-0001</p>
+    <p class="source-label">Source: adversarial-fuzzing&#x2f;v1 campaign-report.json, campaign_id e3confirm-20260729-0001</p>
     <div class="top-status"><span class="status status-error">ERROR</span></div>
   </header>
 
@@ -71,20 +71,52 @@
     <div class="section-head">
       <h2>Summary</h2>
       <div class="section-actions" role="group" aria-label="Copy summary data">
-        <button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;generated_at&quot;: &quot;2026-07-29T00:00:00Z&quot;, &quot;metadata&quot;: {&quot;campaign_id&quot;: &quot;e3confirm-20260729-0001&quot;, &quot;confirmed_bugs&quot;: 8, &quot;inconclusive&quot;: 2, &quot;intentional_boundaries&quot;: 1, &quot;promoted_tests&quot;: 0, &quot;regressions_attributable_to_cd54074&quot;: 1, &quot;report_kind&quot;: &quot;multi-agent-fuzz-session&quot;, &quot;session_id&quot;: &quot;e3confirm-20260729-0001&quot;, &quot;template&quot;: &quot;.claude/skills/html-report/templates/fuzz-run-agent.xhtml.j2&quot;, &quot;total_cases_run&quot;: 388, &quot;worker_count&quot;: 4}, &quot;sections&quot;: [{&quot;id&quot;: &quot;boundary-probe&quot;, &quot;status&quot;: &quot;ERROR&quot;, &quot;summary&quot;: &quot;boundary-probe ran 99 bounded cases against the frontmatter subsystem and confirmed 5 product bug(s): FUZZ-001, FUZZ-002, FUZZ-003, FUZZ-004, FUZZ-005. All reproduced at least 3 times; exact minimized templates and inputs are preserved below.&quot;, &quot;title&quot;: &quot;boundary-probe&quot;}, {&quot;id&quot;: &quot;differential-probe&quot;, &quot;status&quot;: &quot;ERROR&quot;, &quot;summary&quot;: &quot;differential-probe ran 97 bounded cases against the frontmatter subsystem and confirmed 1 product bug(s): FUZZ-006. All reproduced at least 3 times; exact minimized templates and inputs are preserved below.&quot;, &quot;title&quot;: &quot;differential-probe&quot;}, {&quot;id&quot;: &quot;shape-probe&quot;, &quot;status&quot;: &quot;ERROR&quot;, &quot;summary&quot;: &quot;shape-probe ran 86 bounded cases against the frontmatter subsystem and confirmed 2 product bug(s): FUZZ-008, FUZZ-009. All reproduced at least 3 times; exact minimized templates and inputs are preserved below.&quot;, &quot;title&quot;: &quot;shape-probe&quot;}, {&quot;id&quot;: &quot;template-probe&quot;, &quot;status&quot;: &quot;PASS&quot;, &quot;summary&quot;: &quot;template-probe ran 106 bounded cases against the frontmatter subsystem with zero panics, timeouts, hangs, or confinement bypasses. One case (FUZZ-010, trailing CR/blank-line/whitespace normalization) was filed as inconclusive, not a confirmed bug: assemble_output()&#x27;s trim_end() is deliberate code, the render-&gt;verify round-trip is self-consistent, and no doc states whether the normalization is intended, so no defect could be established. No confirmed_bug is attributable to template-probe.&quot;, &quot;title&quot;: &quot;template-probe&quot;}], &quot;source_label&quot;: &quot;adversarial-fuzzing/v1 campaign-report.json, campaign_id e3confirm-20260729-0001&quot;, &quot;status&quot;: &quot;ERROR&quot;, &quot;title&quot;: &quot;Adversarial fuzz confirmation: e3confirm-20260729-0001 (frontmatter)&quot;}">{}</button>
-        <button class="icon-button" type="button" title="Copy Context" data-copy-text="&lt;p&gt;Confirmation campaign &lt;code&gt;e3confirm-20260729-0001&lt;/code&gt; re-ran four bounded adversarial workers against the frontmatter subsystem (388 total cases: boundary-probe 99, differential-probe 97, shape-probe 86, template-probe 106) on HEAD &lt;code&gt;d2acdb1&lt;/code&gt; (contains fix &lt;code&gt;cd54074&lt;/code&gt; / PR #163), using the corrected pre-fix baseline &lt;code&gt;fa675cf&lt;/code&gt; (cd54074^). At the worker-execution level every worker completed cleanly: zero panics, hangs, timeouts, confinement bypasses, or nondeterminism.&lt;/p&gt;&lt;table class=&quot;session-summary&quot;&gt;&lt;thead&gt;&lt;tr&gt;&lt;th scope=&quot;col&quot;&gt;Fuzz run description&lt;/th&gt;&lt;th scope=&quot;col&quot;&gt;Iterations&lt;/th&gt;&lt;th scope=&quot;col&quot;&gt;Pass&lt;/th&gt;&lt;th scope=&quot;col&quot;&gt;Result&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&lt;tr&gt;&lt;th scope=&quot;row&quot;&gt;Malformed files, invalid var-file boundaries, path confinement, and stable diagnostics (frontmatter target)&lt;/th&gt;&lt;td&gt;99&lt;/td&gt;&lt;td&gt;99/99&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;status status-pass&quot;&gt;PASS&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;th scope=&quot;row&quot;&gt;Baseline-vs-head parity, JSON/YAML equivalence, and deterministic output (frontmatter target, corrected baseline fa675cf)&lt;/th&gt;&lt;td&gt;97&lt;/td&gt;&lt;td&gt;97/97&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;status status-pass&quot;&gt;PASS&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;th scope=&quot;row&quot;&gt;Recursive JSON/YAML frontmatter structures, duplicate-key handling, and BOM edge cases&lt;/th&gt;&lt;td&gt;86&lt;/td&gt;&lt;td&gt;86/86&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;status status-pass&quot;&gt;PASS&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;th scope=&quot;row&quot;&gt;Jinja whitespace/newline normalization and output-formatting edge cases&lt;/th&gt;&lt;td&gt;106&lt;/td&gt;&lt;td&gt;106/106&lt;/td&gt;&lt;td&gt;&lt;span class=&quot;status status-pass&quot;&gt;PASS&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;p&gt;&lt;strong&gt;This is execution health, not a clean campaign outcome.&lt;/strong&gt; The campaign confirmed 8 product bugs (FUZZ-001, 002, 003, 004, 005, 006, 008, 009), 1 intentional boundary (FUZZ-007), and 2 inconclusive items (FUZZ-004 relates to a new gap shipped with cd54074; FUZZ-010 and FUZZ-011 need a product ruling, not a code fix). Zero regression tests were promoted by design: every confirmed bug is currently unfixed, so no passing durable test could be written without either failing CI or enshrining the defect as intended behavior.&lt;/p&gt;">⎘</button>
+        <button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;generated_at&quot;:&quot;2026-07-29T00:00:00Z&quot;,&quot;metadata&quot;:{&quot;report_kind&quot;:&quot;multi-agent-fuzz-session&quot;,&quot;session_id&quot;:&quot;e3confirm-20260729-0001&quot;,&quot;worker_count&quot;:4,&quot;template&quot;:&quot;.claude&#x2f;skills&#x2f;html-report&#x2f;templates&#x2f;fuzz-run-agent.xhtml.j2&quot;,&quot;campaign_id&quot;:&quot;e3confirm-20260729-0001&quot;,&quot;total_cases_run&quot;:388,&quot;confirmed_bugs&quot;:8,&quot;intentional_boundaries&quot;:1,&quot;inconclusive&quot;:2,&quot;promoted_tests&quot;:0,&quot;regressions_attributable_to_cd54074&quot;:1},&quot;sections&quot;:[{&quot;id&quot;:&quot;boundary-probe&quot;,&quot;status&quot;:&quot;ERROR&quot;,&quot;summary&quot;:&quot;boundary-probe ran 99 bounded cases against the frontmatter subsystem and confirmed 5 product bug(s): FUZZ-001, FUZZ-002, FUZZ-003, FUZZ-004, FUZZ-005. All reproduced at least 3 times; exact minimized templates and inputs are preserved below.&quot;,&quot;title&quot;:&quot;boundary-probe&quot;},{&quot;id&quot;:&quot;differential-probe&quot;,&quot;status&quot;:&quot;ERROR&quot;,&quot;summary&quot;:&quot;differential-probe ran 97 bounded cases against the frontmatter subsystem and confirmed 1 product bug(s): FUZZ-006. All reproduced at least 3 times; exact minimized templates and inputs are preserved below.&quot;,&quot;title&quot;:&quot;differential-probe&quot;},{&quot;id&quot;:&quot;shape-probe&quot;,&quot;status&quot;:&quot;ERROR&quot;,&quot;summary&quot;:&quot;shape-probe ran 86 bounded cases against the frontmatter subsystem and confirmed 2 product bug(s): FUZZ-008, FUZZ-009. All reproduced at least 3 times; exact minimized templates and inputs are preserved below.&quot;,&quot;title&quot;:&quot;shape-probe&quot;},{&quot;id&quot;:&quot;template-probe&quot;,&quot;status&quot;:&quot;PASS&quot;,&quot;summary&quot;:&quot;template-probe ran 106 bounded cases against the frontmatter subsystem with zero panics, timeouts, hangs, or confinement bypasses. One case (FUZZ-010, trailing CR&#x2f;blank-line&#x2f;whitespace normalization) was filed as inconclusive, not a confirmed bug: assemble_output()&#x27;s trim_end() is deliberate code, the render-&gt;verify round-trip is self-consistent, and no doc states whether the normalization is intended, so no defect could be established. No confirmed_bug is attributable to template-probe.&quot;,&quot;title&quot;:&quot;template-probe&quot;}],&quot;source_label&quot;:&quot;adversarial-fuzzing&#x2f;v1 campaign-report.json, campaign_id e3confirm-20260729-0001&quot;,&quot;status&quot;:&quot;ERROR&quot;,&quot;title&quot;:&quot;Adversarial fuzz confirmation: e3confirm-20260729-0001 (frontmatter)&quot;}">{}</button>
+        <button class="icon-button" type="button" title="Copy Context" data-copy-text="&lt;p&gt;Confirmation campaign &lt;code&gt;e3confirm-20260729-0001&lt;&#x2f;code&gt; re-ran four bounded adversarial workers against the frontmatter subsystem (388 total cases: boundary-probe 99, differential-probe 97, shape-probe 86, template-probe 106) on HEAD &lt;code&gt;d2acdb1&lt;&#x2f;code&gt; (contains fix &lt;code&gt;cd54074&lt;&#x2f;code&gt; &#x2f; PR #163), using the corrected pre-fix baseline &lt;code&gt;fa675cf&lt;&#x2f;code&gt; (cd54074^). At the worker-execution level every worker completed cleanly: zero panics, hangs, timeouts, confinement bypasses, or nondeterminism.&lt;&#x2f;p&gt;&lt;table class=&quot;session-summary&quot;&gt;&lt;thead&gt;&lt;tr&gt;&lt;th scope=&quot;col&quot;&gt;Fuzz run description&lt;&#x2f;th&gt;&lt;th scope=&quot;col&quot;&gt;Iterations&lt;&#x2f;th&gt;&lt;th scope=&quot;col&quot;&gt;Pass&lt;&#x2f;th&gt;&lt;th scope=&quot;col&quot;&gt;Result&lt;&#x2f;th&gt;&lt;&#x2f;tr&gt;&lt;&#x2f;thead&gt;&lt;tbody&gt;&lt;tr&gt;&lt;th scope=&quot;row&quot;&gt;Malformed files, invalid var-file boundaries, path confinement, and stable diagnostics (frontmatter target)&lt;&#x2f;th&gt;&lt;td&gt;99&lt;&#x2f;td&gt;&lt;td&gt;99&#x2f;99&lt;&#x2f;td&gt;&lt;td&gt;&lt;span class=&quot;status status-pass&quot;&gt;PASS&lt;&#x2f;span&gt;&lt;&#x2f;td&gt;&lt;&#x2f;tr&gt;&lt;tr&gt;&lt;th scope=&quot;row&quot;&gt;Baseline-vs-head parity, JSON&#x2f;YAML equivalence, and deterministic output (frontmatter target, corrected baseline fa675cf)&lt;&#x2f;th&gt;&lt;td&gt;97&lt;&#x2f;td&gt;&lt;td&gt;97&#x2f;97&lt;&#x2f;td&gt;&lt;td&gt;&lt;span class=&quot;status status-pass&quot;&gt;PASS&lt;&#x2f;span&gt;&lt;&#x2f;td&gt;&lt;&#x2f;tr&gt;&lt;tr&gt;&lt;th scope=&quot;row&quot;&gt;Recursive JSON&#x2f;YAML frontmatter structures, duplicate-key handling, and BOM edge cases&lt;&#x2f;th&gt;&lt;td&gt;86&lt;&#x2f;td&gt;&lt;td&gt;86&#x2f;86&lt;&#x2f;td&gt;&lt;td&gt;&lt;span class=&quot;status status-pass&quot;&gt;PASS&lt;&#x2f;span&gt;&lt;&#x2f;td&gt;&lt;&#x2f;tr&gt;&lt;tr&gt;&lt;th scope=&quot;row&quot;&gt;Jinja whitespace&#x2f;newline normalization and output-formatting edge cases&lt;&#x2f;th&gt;&lt;td&gt;106&lt;&#x2f;td&gt;&lt;td&gt;106&#x2f;106&lt;&#x2f;td&gt;&lt;td&gt;&lt;span class=&quot;status status-pass&quot;&gt;PASS&lt;&#x2f;span&gt;&lt;&#x2f;td&gt;&lt;&#x2f;tr&gt;&lt;&#x2f;tbody&gt;&lt;&#x2f;table&gt;&lt;p&gt;&lt;strong&gt;This is execution health, not a clean campaign outcome.&lt;&#x2f;strong&gt; The campaign confirmed 8 product bugs (FUZZ-001, 002, 003, 004, 005, 006, 008, 009), 1 intentional boundary (FUZZ-007), and 2 inconclusive items (FUZZ-004 relates to a new gap shipped with cd54074; FUZZ-010 and FUZZ-011 need a product ruling, not a code fix). Zero regression tests were promoted by design: every confirmed bug is currently unfixed, so no passing durable test could be written without either failing CI or enshrining the defect as intended behavior.&lt;&#x2f;p&gt;">⎘</button>
       </div>
     </div>
-    <p>Confirmation campaign <code>e3confirm-20260729-0001</code> re-ran four bounded adversarial workers against the frontmatter subsystem (388 total cases: boundary-probe 99, differential-probe 97, shape-probe 86, template-probe 106) on HEAD <code>d2acdb1</code> (contains fix <code>cd54074</code> / PR #163), using the corrected pre-fix baseline <code>fa675cf</code> (cd54074^). At the worker-execution level every worker completed cleanly: zero panics, hangs, timeouts, confinement bypasses, or nondeterminism.</p><table class="session-summary"><thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead><tbody><tr><th scope="row">Malformed files, invalid var-file boundaries, path confinement, and stable diagnostics (frontmatter target)</th><td>99</td><td>99/99</td><td><span class="status status-pass">PASS</span></td></tr><tr><th scope="row">Baseline-vs-head parity, JSON/YAML equivalence, and deterministic output (frontmatter target, corrected baseline fa675cf)</th><td>97</td><td>97/97</td><td><span class="status status-pass">PASS</span></td></tr><tr><th scope="row">Recursive JSON/YAML frontmatter structures, duplicate-key handling, and BOM edge cases</th><td>86</td><td>86/86</td><td><span class="status status-pass">PASS</span></td></tr><tr><th scope="row">Jinja whitespace/newline normalization and output-formatting edge cases</th><td>106</td><td>106/106</td><td><span class="status status-pass">PASS</span></td></tr></tbody></table><p><strong>This is execution health, not a clean campaign outcome.</strong> The campaign confirmed 8 product bugs (FUZZ-001, 002, 003, 004, 005, 006, 008, 009), 1 intentional boundary (FUZZ-007), and 2 inconclusive items (FUZZ-004 relates to a new gap shipped with cd54074; FUZZ-010 and FUZZ-011 need a product ruling, not a code fix). Zero regression tests were promoted by design: every confirmed bug is currently unfixed, so no passing durable test could be written without either failing CI or enshrining the defect as intended behavior.</p>
+    <p>Confirmation campaign <code>e3confirm-20260729-0001</code> re-ran four bounded adversarial workers against the frontmatter subsystem (388 total cases: boundary-probe 99, differential-probe 97, shape-probe 86, template-probe 106) on HEAD <code>d2acdb1</code> (contains fix <code>cd54074</code> / PR #163), using the corrected pre-fix baseline <code>fa675cf</code> (cd54074^). At the worker-execution level every worker completed cleanly: zero panics, hangs, timeouts, confinement bypasses, or nondeterminism.</p>
+    <table class="session-summary">
+      <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">Malformed files, invalid var-file boundaries, path confinement, and stable diagnostics (frontmatter target)</th>
+          <td>99</td>
+          <td>99&#x2f;99</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Baseline-vs-head parity, JSON&#x2f;YAML equivalence, and deterministic output (frontmatter target, corrected baseline fa675cf)</th>
+          <td>97</td>
+          <td>97&#x2f;97</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Recursive JSON&#x2f;YAML frontmatter structures, duplicate-key handling, and BOM edge cases</th>
+          <td>86</td>
+          <td>86&#x2f;86</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Jinja whitespace&#x2f;newline normalization and output-formatting edge cases</th>
+          <td>106</td>
+          <td>106&#x2f;106</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p><strong>This is execution health, not a clean campaign outcome.</strong> The campaign confirmed 8 product bugs (FUZZ-001, 002, 003, 004, 005, 006, 008, 009), 1 intentional boundary (FUZZ-007), and 2 inconclusive items (FUZZ-004 relates to a new gap shipped with cd54074; FUZZ-010 and FUZZ-011 need a product ruling, not a code fix). Zero regression tests were promoted by design: every confirmed bug is currently unfixed, so no passing durable test could be written without either failing CI or enshrining the defect as intended behavior.</p>
   </section>
 
   <nav class="toc">
     <strong>Worker Sections</strong>
     <ul>
-      <li><a href="#boundary-probe">boundary-probe</a> <span class="status status-error">ERROR</span></li><li><a href="#differential-probe">differential-probe</a> <span class="status status-error">ERROR</span></li><li><a href="#shape-probe">shape-probe</a> <span class="status status-error">ERROR</span></li><li><a href="#template-probe">template-probe</a> <span class="status status-pass">PASS</span></li>
+      <li><a href="#boundary-probe">boundary-probe</a> <span class="status status-error">ERROR</span></li>
+      <li><a href="#differential-probe">differential-probe</a> <span class="status status-error">ERROR</span></li>
+      <li><a href="#shape-probe">shape-probe</a> <span class="status status-error">ERROR</span></li>
+      <li><a href="#template-probe">template-probe</a> <span class="status status-pass">PASS</span></li>
     </ul>
   </nav>
-
 
   <section class="section" id="boundary-probe">
     <div class="section-head">
@@ -243,7 +275,6 @@ body
 </section>
     </div>
   </section>
-
   <section class="section" id="differential-probe">
     <div class="section-head">
       <h2>differential-probe <span class="status status-error">ERROR</span></h2>
@@ -354,7 +385,6 @@ Hello {{name}}
 </section>
     </div>
   </section>
-
   <section class="section" id="shape-probe">
     <div class="section-head">
       <h2>shape-probe <span class="status status-error">ERROR</span></h2>
@@ -465,7 +495,6 @@ BODY:{{a}}
 </section>
     </div>
   </section>
-
   <section class="section" id="template-probe">
     <div class="section-head">
       <h2>template-probe <span class="status status-pass">PASS</span></h2>
@@ -536,9 +565,24 @@ BODY:{{a}}
 
   <section class="section metadata">
     <h2>Metadata</h2>
-    <table class="metadata-table"><tbody><tr><th scope="row">report_kind</th><td>multi-agent-fuzz-session</td></tr><tr><th scope="row">session_id</th><td>e3confirm-20260729-0001</td></tr><tr><th scope="row">worker_count</th><td>4</td></tr><tr><th scope="row">template</th><td>.claude/skills/html-report/templates/fuzz-run-agent.xhtml.j2</td></tr><tr><th scope="row">campaign_id</th><td>e3confirm-20260729-0001</td></tr><tr><th scope="row">total_cases_run</th><td>388</td></tr><tr><th scope="row">confirmed_bugs</th><td>8</td></tr><tr><th scope="row">intentional_boundaries</th><td>1</td></tr><tr><th scope="row">inconclusive</th><td>2</td></tr><tr><th scope="row">promoted_tests</th><td>0</td></tr><tr><th scope="row">regressions_attributable_to_cd54074</th><td>1</td></tr></tbody></table>
+    <table class="metadata-table"><tbody>
+      <tr><th scope="row">report_kind</th><td>multi-agent-fuzz-session</td></tr>
+      <tr><th scope="row">session_id</th><td>e3confirm-20260729-0001</td></tr>
+      <tr><th scope="row">worker_count</th><td>4</td></tr>
+      <tr><th scope="row">template</th><td>.claude&#x2f;skills&#x2f;html-report&#x2f;templates&#x2f;fuzz-run-agent.xhtml.j2</td></tr>
+      <tr><th scope="row">campaign_id</th><td>e3confirm-20260729-0001</td></tr>
+      <tr><th scope="row">total_cases_run</th><td>388</td></tr>
+      <tr><th scope="row">confirmed_bugs</th><td>8</td></tr>
+      <tr><th scope="row">intentional_boundaries</th><td>1</td></tr>
+      <tr><th scope="row">inconclusive</th><td>2</td></tr>
+      <tr><th scope="row">promoted_tests</th><td>0</td></tr>
+      <tr><th scope="row">regressions_attributable_to_cd54074</th><td>1</td></tr>
+    </tbody></table>
   </section>
-  <footer><p>Durable source: /tmp/sc-fuzz-e3confirm-20260729-0001/campaign-report.json (schema adversarial-fuzzing/v1). No production code was modified and no regression tests were promoted or committed for this session, per the campaign's promotion_decision (all 8 confirmed bugs are currently unfixed).</p></footer>
+
+  <footer>
+    <p>Durable source: /tmp/sc-fuzz-e3confirm-20260729-0001/campaign-report.json (schema adversarial-fuzzing/v1). No production code was modified and no regression tests were promoted or committed for this session, per the campaign's promotion_decision (all 8 confirmed bugs are currently unfixed).</p>
+  </footer>
 
   <script>
     document.addEventListener("click", async function (event) {
