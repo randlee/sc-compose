@@ -6,12 +6,14 @@
       <p class="agent-meta">Session mock-failure-e3-20260729 · Worker differential-probe</p>
     </div>
     <div class="agent-actions" aria-label="Copy worker data">
-      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0}">{}</button>
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;worker_correlation_id&quot;:&quot;differential-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;differential-probe-001&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;differential-probe-001&quot;,&quot;description&quot;:&quot;Compare baseline and head renders for the same scalar tree&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  value:\\n    required: true\\n---\\n{{ value }}&quot;,&quot;minimal_input&quot;:&quot;JSON: {\&quot;value\&quot;:\&quot;same\&quot;}; YAML: value: same&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS; output unchanged&quot;}]}">{}</button>
       <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed session&#x27;s differential-probe panel: 12 baseline, parity, and determinism iterations passed.">⎘</button>
     </div>
   </header>
 
-  <p class="status">pass</p>
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
   <p class="summary">The differential worker completed its baseline, parity, and determinism checks. The failure in this session was isolated to the boundary worker.</p>
 
   <table class="agent-results">
@@ -21,7 +23,7 @@
         <th scope="row">Baseline parity, JSON/YAML equivalence, and deterministic output</th>
         <td>12</td>
         <td>12/12</td>
-        <td>PASS</td>
+        <td><span class="status status-pass">PASS</span></td>
       </tr>
     </tbody>
   </table>
@@ -29,9 +31,15 @@
   <section class="test-inputs">
     <h3>Inputs exercised</h3>
     <table>
-      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <thead><tr><th scope="col">Case</th><th scope="col">Description</th><th scope="col">Template / frontmatter</th><th scope="col">Input</th><th scope="col">Outcome</th></tr></thead>
       <tbody>
-        <tr><th scope="row">differential-probe-001</th><td><code>baseline/head render comparison</code></td><td>PASS; output unchanged</td></tr>
+        <tr>
+          <th scope="row">differential-probe-001</th>
+          <td>Compare baseline and head renders for the same scalar tree</td>
+          <td><code>---\nvariables:\n  value:\n    required: true\n---\n{{ value }}</code></td>
+          <td><code>JSON: {"value":"same"}; YAML: value: same</code></td>
+          <td><span class="status status-pass">PASS; output unchanged</span></td>
+        </tr>
       </tbody>
     </table>
   </section>

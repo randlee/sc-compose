@@ -6,12 +6,14 @@
       <p class="agent-meta">Session mock-success-e3-20260729 · Worker boundary-probe</p>
     </div>
     <div class="agent-actions" aria-label="Copy worker data">
-      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-e3-20260729&quot;,&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0}">{}</button>
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-e3-20260729&quot;,&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;worker_correlation_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;boundary-probe-004&quot;,&quot;boundary-probe-005&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;boundary-probe-004&quot;,&quot;description&quot;:&quot;Reject a malformed var-file at the configuration boundary&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  name:\\n    required: true\\n---\\nHello {{name}}&quot;,&quot;minimal_input&quot;:&quot;malformed var-file: { \&quot;name\&quot;:&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS; stable configuration diagnostic&quot;},{&quot;case_id&quot;:&quot;boundary-probe-005&quot;,&quot;description&quot;:&quot;Constrain an include path outside the workspace root&quot;,&quot;minimal_template&quot;:&quot;---\\n---\\n@&lt;outside/workspace.md&gt;&quot;,&quot;minimal_input&quot;:&quot;include path=/tmp/outside-workspace.md&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS; confinement held&quot;}]}">{}</button>
       <button type="button" class="icon-button" title="Copy Context" data-copy-text="Successful boundary-probe session: 12 malformed-input, diagnostic, and path-confinement iterations all passed.">⎘</button>
     </div>
   </header>
 
-  <p class="status">pass</p>
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
   <p class="summary">The boundary worker exercised malformed-input, diagnostic, and path-confinement cases from the recorded boundary-probe task. Every input reached its expected boundary.</p>
 
   <table class="agent-results">
@@ -21,7 +23,7 @@
         <th scope="row">Malformed files, invalid var-file boundaries, and stable diagnostics</th>
         <td>12</td>
         <td>12/12</td>
-        <td>PASS</td>
+        <td><span class="status status-pass">PASS</span></td>
       </tr>
     </tbody>
   </table>
@@ -29,10 +31,22 @@
   <section class="test-inputs">
     <h3>Inputs exercised</h3>
     <table>
-      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <thead><tr><th scope="col">Case</th><th scope="col">Description</th><th scope="col">Template / frontmatter</th><th scope="col">Input</th><th scope="col">Outcome</th></tr></thead>
       <tbody>
-        <tr><th scope="row">boundary-probe-004</th><td><code>malformed var-file at the configuration boundary</code></td><td>PASS; stable configuration diagnostic</td></tr>
-        <tr><th scope="row">boundary-probe-005</th><td><code>path outside the workspace root</code></td><td>PASS; confinement held</td></tr>
+        <tr>
+          <th scope="row">boundary-probe-004</th>
+          <td>Reject a malformed var-file at the configuration boundary</td>
+          <td><code>---\nvariables:\n  name:\n    required: true\n---\nHello {{name}}</code></td>
+          <td><code>malformed var-file: { "name":</code></td>
+          <td><span class="status status-pass">PASS; stable configuration diagnostic</span></td>
+        </tr>
+        <tr>
+          <th scope="row">boundary-probe-005</th>
+          <td>Constrain an include path outside the workspace root</td>
+          <td><code>---\n---\n@&lt;outside/workspace.md&gt;</code></td>
+          <td><code>include path=/tmp/outside-workspace.md</code></td>
+          <td><span class="status status-pass">PASS; confinement held</span></td>
+        </tr>
       </tbody>
     </table>
   </section>

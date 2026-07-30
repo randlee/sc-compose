@@ -39,7 +39,7 @@ one fragment.
 | `failed` | yes | Number of inputs not satisfying the oracle |
 | `result` | yes | `PASS` only when `failed` is zero; otherwise `FAIL` |
 | `summary` | yes | What this worker tested and what happened |
-| `test_inputs` | yes | Compact `{case_id, description, outcome}` rows showing real inputs |
+| `test_inputs` | yes | Rows containing `case_id`, a prose `description`, literal `minimal_template`/frontmatter, literal `minimal_input`, boolean `passed`, and `outcome` |
 | `json_payload` | yes | Full worker evidence envelope used by copy-JSON |
 | `copy_json` | yes | Deterministic escaped JSON serialization |
 | `context_text` | yes | Human-readable worker context used by copy-context |

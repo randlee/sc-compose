@@ -22,9 +22,28 @@
         "iterations": 12,
         "passed": 12,
         "failed": 0,
+        "result": "PASS",
         "cases": [
           "shape-probe-002",
           "shape-probe-003"
+        ],
+        "test_inputs": [
+          {
+            "case_id": "shape-probe-002",
+            "description": "Render a jagged array from a JSON var-file",
+            "minimal_template": "---\\nvariables:\\n  rows:\\n    required: true\\n---\\n{% for row in rows %}{{ row | join(\",\") }}\\n{% endfor %}",
+            "minimal_input": "rows=[[1,2,3],[4,5]]",
+            "passed": true,
+            "outcome": "PASS; expected two-row output"
+          },
+          {
+            "case_id": "shape-probe-003",
+            "description": "Preserve nested objects and mixed arrays",
+            "minimal_template": "---\\nvariables:\\n  data:\\n    required: true\\n---\\n{{ data }}",
+            "minimal_input": "data={\"items\":[],\"mixed\":[1,\"two\",{\"ok\":true}]}",
+            "passed": true,
+            "outcome": "PASS; input shape preserved"
+          }
         ]
       },
       "xhtml_path": "docs/examples/fuzz-run-report/success-shape.xhtml",
@@ -45,9 +64,28 @@
         "iterations": 12,
         "passed": 12,
         "failed": 0,
+        "result": "PASS",
         "cases": [
           "template-probe-002",
           "template-probe-003"
+        ],
+        "test_inputs": [
+          {
+            "case_id": "template-probe-002",
+            "description": "Select a conditional branch for a numeric var-file value",
+            "minimal_template": "---\\nvariables:\\n  count:\\n    required: true\\n---\\n{% if count > 2 %}many{% else %}few{% endif %}",
+            "minimal_input": "count=3",
+            "passed": true,
+            "outcome": "PASS; expected branch selected"
+          },
+          {
+            "case_id": "template-probe-003",
+            "description": "Render a nested loop containing an empty list",
+            "minimal_template": "---\\nvariables:\\n  groups:\\n    required: true\\n---\\n{% for name, members in groups %}{{ name }}={{ members | length }}\\n{% endfor %}",
+            "minimal_input": "groups={\"empty\":[],\"active\":[\"one\"]}",
+            "passed": true,
+            "outcome": "PASS; deterministic empty rendering"
+          }
         ]
       },
       "xhtml_path": "docs/examples/fuzz-run-report/success-template.xhtml",
@@ -68,9 +106,28 @@
         "iterations": 12,
         "passed": 12,
         "failed": 0,
+        "result": "PASS",
         "cases": [
           "boundary-probe-004",
           "boundary-probe-005"
+        ],
+        "test_inputs": [
+          {
+            "case_id": "boundary-probe-004",
+            "description": "Reject a malformed var-file at the configuration boundary",
+            "minimal_template": "---\\nvariables:\\n  name:\\n    required: true\\n---\\nHello {{name}}",
+            "minimal_input": "malformed var-file: { \"name\":",
+            "passed": true,
+            "outcome": "PASS; stable configuration diagnostic"
+          },
+          {
+            "case_id": "boundary-probe-005",
+            "description": "Constrain an include path outside the workspace root",
+            "minimal_template": "---\\n---\\n@<outside/workspace.md>",
+            "minimal_input": "include path=/tmp/outside-workspace.md",
+            "passed": true,
+            "outcome": "PASS; confinement held"
+          }
         ]
       },
       "xhtml_path": "docs/examples/fuzz-run-report/success-boundary.xhtml",
@@ -91,9 +148,28 @@
         "iterations": 12,
         "passed": 12,
         "failed": 0,
+        "result": "PASS",
         "cases": [
           "differential-probe-001",
           "differential-probe-002"
+        ],
+        "test_inputs": [
+          {
+            "case_id": "differential-probe-001",
+            "description": "Compare JSON and YAML var-file inputs for the same scalar tree",
+            "minimal_template": "---\\nvariables:\\n  value:\\n    required: true\\n---\\n{{ value }}",
+            "minimal_input": "JSON: {\"value\":\"same\"}; YAML: value: same",
+            "passed": true,
+            "outcome": "PASS; equivalent output"
+          },
+          {
+            "case_id": "differential-probe-002",
+            "description": "Repeat a render with unchanged template and input",
+            "minimal_template": "---\\n---\\nstable output",
+            "minimal_input": "repeat=3; environment=unchanged",
+            "passed": true,
+            "outcome": "PASS; byte-stable output"
+          }
         ]
       },
       "xhtml_path": "docs/examples/fuzz-run-report/success-differential.xhtml",

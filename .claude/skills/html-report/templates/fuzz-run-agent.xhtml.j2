@@ -18,6 +18,7 @@ required_variables:
   - agent.findings
 ---
 <section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-{{ agent.classification | lower | e }}">
+{% set agent_is_pass = agent.classification in ["pass", "success", "successful", "ok"] %}
   <header class="agent-header fuzz-agent-header">
     <div>
       <p class="eyebrow">Adversarial fuzz worker</p>
@@ -30,7 +31,13 @@ required_variables:
     </div>
   </header>
 
-  <p class="status">{{ agent.classification | e }}</p>
+  <p class="status">
+{% if agent_is_pass %}
+    <span class="status status-pass">PASS</span>
+{% else %}
+    <span class="status status-error">FAIL</span>
+{% endif %}
+  </p>
   <p class="summary">{{ agent.summary | e }}</p>
 
   <table class="agent-results">
@@ -40,7 +47,13 @@ required_variables:
         <th scope="row">{{ agent.fuzz_run_description | e }}</th>
         <td>{{ agent.iterations | e }}</td>
         <td>{{ agent.passed | e }}/{{ agent.iterations | e }}</td>
-        <td>{{ agent.result | e }}</td>
+        <td>
+{% if agent_is_pass %}
+          <span class="status status-pass">{{ agent.result | e }}</span>
+{% else %}
+          <span class="status status-error">{{ agent.result | e }}</span>
+{% endif %}
+        </td>
       </tr>
     </tbody>
   </table>
@@ -48,16 +61,28 @@ required_variables:
   <section class="test-inputs">
     <h3>Inputs exercised</h3>
     <table>
-      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <thead><tr><th scope="col">Case</th><th scope="col">Description</th><th scope="col">Template / frontmatter</th><th scope="col">Input</th><th scope="col">Outcome</th></tr></thead>
       <tbody>
 {% for item in agent.test_inputs %}
-        <tr><th scope="row">{{ item.case_id | e }}</th><td><code>{{ item.description | e }}</code></td><td>{{ item.outcome | e }}</td></tr>
+        <tr>
+          <th scope="row">{{ item.case_id | e }}</th>
+          <td>{{ item.description | e }}</td>
+          <td><code>{{ item.minimal_template | e }}</code></td>
+          <td><code>{{ item.minimal_input | e }}</code></td>
+          <td>
+{% if item.passed %}
+            <span class="status status-pass">{{ item.outcome | e }}</span>
+{% else %}
+            <span class="status status-error">{{ item.outcome | e }}</span>
+{% endif %}
+          </td>
+        </tr>
 {% endfor %}
       </tbody>
     </table>
   </section>
 
-{% if agent.classification not in ["pass", "success", "successful", "ok"] %}
+{% if not agent_is_pass %}
   <section class="findings">
     <h3>Findings</h3>
 {% for finding in agent.findings %}
