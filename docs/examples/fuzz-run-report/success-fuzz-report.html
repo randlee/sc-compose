@@ -53,11 +53,9 @@
   <section class="section" id="shape-probe">
     <div class="section-head">
       <h2>shape-probe <span class="status status-pass">PASS</span></h2>
-      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-e3-20260729&quot;,&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;worker_correlation_id&quot;:&quot;shape-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;shape-probe-002&quot;,&quot;shape-probe-003&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;shape-probe-002&quot;,&quot;description&quot;:&quot;Render a jagged array from a JSON var-file&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  rows:\\n    required: true\\n---\\n{% for row in rows %}{{ row | join(\&quot;,\&quot;) }}\\n{% endfor %}&quot;,&quot;minimal_input&quot;:&quot;rows=[[1,2,3],[4,5]]&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS; expected two-row output&quot;},{&quot;case_id&quot;:&quot;shape-probe-003&quot;,&quot;description&quot;:&quot;Preserve nested objects and mixed arrays&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  data:\\n    required: true\\n---\\n{{ data }}&quot;,&quot;minimal_input&quot;:&quot;data={\&quot;items\&quot;:[],\&quot;mixed\&quot;:[1,\&quot;two\&quot;,{\&quot;ok\&quot;:true}]}&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS; input shape preserved&quot;}]}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Successful shape-probe session: 12 iterations, including shape-probe-002 with rows [[1, 2, 3], [4, 5]], all passed.">&#9112;</button></div>
+      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-e3-20260729&quot;,&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;worker_correlation_id&quot;:&quot;shape-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;shape-probe-002&quot;,&quot;shape-probe-003&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;shape-probe-002&quot;,&quot;description&quot;:&quot;Render a jagged array from a JSON var-file&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  rows:\\n    required: true\\n---\\n{% for row in rows %}{{ row | join(\&quot;,\&quot;) }}\\n{% endfor %}&quot;,&quot;minimal_input&quot;:&quot;rows=[[1,2,3],[4,5]]&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;expected two-row output&quot;},{&quot;case_id&quot;:&quot;shape-probe-003&quot;,&quot;description&quot;:&quot;Preserve nested objects and mixed arrays&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  data:\\n    required: true\\n---\\n{{ data }}&quot;,&quot;minimal_input&quot;:&quot;data={\&quot;items\&quot;:[],\&quot;mixed\&quot;:[1,\&quot;two\&quot;,{\&quot;ok\&quot;:true}]}&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;input shape preserved&quot;}]}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Successful shape-probe session: 12 iterations, including shape-probe-002 with rows [[1, 2, 3], [4, 5]], all passed.">&#9112;</button></div>
     </div>
-
-
-  <p class="status">
+<p class="status">
     <span class="status status-pass">PASS</span>
   </p>
   <p class="summary">The shape worker exercised recorded structured-input cases. The real jagged-array fixture used rows [[1, 2, 3], [4, 5]] and produced the expected two-row output.</p>
@@ -84,29 +82,26 @@
           <td>Render a jagged array from a JSON var-file</td>
           <td><code>---\nvariables:\n  rows:\n    required: true\n---\n{% for row in rows %}{{ row | join(",") }}\n{% endfor %}</code></td>
           <td><code>rows=[[1,2,3],[4,5]]</code></td>
-          <td><span class="status status-pass">PASS; expected two-row output</span></td>
+          <td><span class="status status-pass">PASS</span> <span class="outcome-detail">expected two-row output</span></td>
         </tr>
         <tr>
           <th scope="row">shape-probe-003</th>
           <td>Preserve nested objects and mixed arrays</td>
           <td><code>---\nvariables:\n  data:\n    required: true\n---\n{{ data }}</code></td>
           <td><code>data={"items":[],"mixed":[1,"two",{"ok":true}]}</code></td>
-          <td><span class="status status-pass">PASS; input shape preserved</span></td>
+          <td><span class="status status-pass">PASS</span> <span class="outcome-detail">input shape preserved</span></td>
         </tr>
       </tbody>
     </table>
   </section>
-
     <p class="fragment-ref">Companion fragment (auto-generated): <a href="success-shape.xhtml"><code>docs/examples/fuzz-run-report/success-shape.xhtml</code></a></p>
   </section>
   <section class="section" id="template-probe">
     <div class="section-head">
       <h2>template-probe <span class="status status-pass">PASS</span></h2>
-      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-e3-20260729&quot;,&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;worker_correlation_id&quot;:&quot;template-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;template-probe-002&quot;,&quot;template-probe-003&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;template-probe-002&quot;,&quot;description&quot;:&quot;Select a conditional branch for a numeric var-file value&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  count:\\n    required: true\\n---\\n{% if count &gt; 2 %}many{% else %}few{% endif %}&quot;,&quot;minimal_input&quot;:&quot;count=3&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS; expected branch selected&quot;},{&quot;case_id&quot;:&quot;template-probe-003&quot;,&quot;description&quot;:&quot;Render a nested loop containing an empty list&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  groups:\\n    required: true\\n---\\n{% for name, members in groups %}{{ name }}={{ members | length }}\\n{% endfor %}&quot;,&quot;minimal_input&quot;:&quot;groups={\&quot;empty\&quot;:[],\&quot;active\&quot;:[\&quot;one\&quot;]}&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS; deterministic empty rendering&quot;}]}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Successful template-probe session: 12 loop, conditional, whitespace, and optional-value iterations all passed.">&#9112;</button></div>
+      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-e3-20260729&quot;,&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;worker_correlation_id&quot;:&quot;template-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;template-probe-002&quot;,&quot;template-probe-003&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;template-probe-002&quot;,&quot;description&quot;:&quot;Select a conditional branch for a numeric var-file value&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  count:\\n    required: true\\n---\\n{% if count &gt; 2 %}many{% else %}few{% endif %}&quot;,&quot;minimal_input&quot;:&quot;count=3&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;expected branch selected&quot;},{&quot;case_id&quot;:&quot;template-probe-003&quot;,&quot;description&quot;:&quot;Render a nested loop containing an empty list&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  groups:\\n    required: true\\n---\\n{% for name, members in groups %}{{ name }}={{ members | length }}\\n{% endfor %}&quot;,&quot;minimal_input&quot;:&quot;groups={\&quot;empty\&quot;:[],\&quot;active\&quot;:[\&quot;one\&quot;]}&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;deterministic empty rendering&quot;}]}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Successful template-probe session: 12 loop, conditional, whitespace, and optional-value iterations all passed.">&#9112;</button></div>
     </div>
-
-
-  <p class="status">
+<p class="status">
     <span class="status status-pass">PASS</span>
   </p>
   <p class="summary">The template worker exercised the recorded Jinja behavior cases, including nested control flow and optional values. All bounded inputs produced expected text.</p>
@@ -133,29 +128,26 @@
           <td>Select a conditional branch for a numeric var-file value</td>
           <td><code>---\nvariables:\n  count:\n    required: true\n---\n{% if count &gt; 2 %}many{% else %}few{% endif %}</code></td>
           <td><code>count=3</code></td>
-          <td><span class="status status-pass">PASS; expected branch selected</span></td>
+          <td><span class="status status-pass">PASS</span> <span class="outcome-detail">expected branch selected</span></td>
         </tr>
         <tr>
           <th scope="row">template-probe-003</th>
           <td>Render a nested loop containing an empty list</td>
           <td><code>---\nvariables:\n  groups:\n    required: true\n---\n{% for name, members in groups %}{{ name }}={{ members | length }}\n{% endfor %}</code></td>
           <td><code>groups={"empty":[],"active":["one"]}</code></td>
-          <td><span class="status status-pass">PASS; deterministic empty rendering</span></td>
+          <td><span class="status status-pass">PASS</span> <span class="outcome-detail">deterministic empty rendering</span></td>
         </tr>
       </tbody>
     </table>
   </section>
-
     <p class="fragment-ref">Companion fragment (auto-generated): <a href="success-template.xhtml"><code>docs/examples/fuzz-run-report/success-template.xhtml</code></a></p>
   </section>
   <section class="section" id="boundary-probe">
     <div class="section-head">
       <h2>boundary-probe <span class="status status-pass">PASS</span></h2>
-      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-e3-20260729&quot;,&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;worker_correlation_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;boundary-probe-004&quot;,&quot;boundary-probe-005&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;boundary-probe-004&quot;,&quot;description&quot;:&quot;Reject a malformed var-file at the configuration boundary&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  name:\\n    required: true\\n---\\nHello {{name}}&quot;,&quot;minimal_input&quot;:&quot;malformed var-file: { \&quot;name\&quot;:&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS; stable configuration diagnostic&quot;},{&quot;case_id&quot;:&quot;boundary-probe-005&quot;,&quot;description&quot;:&quot;Constrain an include path outside the workspace root&quot;,&quot;minimal_template&quot;:&quot;---\\n---\\n@&lt;outside/workspace.md&gt;&quot;,&quot;minimal_input&quot;:&quot;include path=/tmp/outside-workspace.md&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS; confinement held&quot;}]}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Successful boundary-probe session: 12 malformed-input, diagnostic, and path-confinement iterations all passed.">&#9112;</button></div>
+      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-e3-20260729&quot;,&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;worker_correlation_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;boundary-probe-004&quot;,&quot;boundary-probe-005&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;boundary-probe-004&quot;,&quot;description&quot;:&quot;Reject a malformed var-file at the configuration boundary&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  name:\\n    required: true\\n---\\nHello {{name}}&quot;,&quot;minimal_input&quot;:&quot;malformed var-file: { \&quot;name\&quot;:&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;stable configuration diagnostic&quot;},{&quot;case_id&quot;:&quot;boundary-probe-005&quot;,&quot;description&quot;:&quot;Constrain an include path outside the workspace root&quot;,&quot;minimal_template&quot;:&quot;---\\n---\\n@&lt;outside/workspace.md&gt;&quot;,&quot;minimal_input&quot;:&quot;include path=/tmp/outside-workspace.md&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;confinement held&quot;}]}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Successful boundary-probe session: 12 malformed-input, diagnostic, and path-confinement iterations all passed.">&#9112;</button></div>
     </div>
-
-
-  <p class="status">
+<p class="status">
     <span class="status status-pass">PASS</span>
   </p>
   <p class="summary">The boundary worker exercised malformed-input, diagnostic, and path-confinement cases from the recorded boundary-probe task. Every input reached its expected boundary.</p>
@@ -182,29 +174,26 @@
           <td>Reject a malformed var-file at the configuration boundary</td>
           <td><code>---\nvariables:\n  name:\n    required: true\n---\nHello {{name}}</code></td>
           <td><code>malformed var-file: { "name":</code></td>
-          <td><span class="status status-pass">PASS; stable configuration diagnostic</span></td>
+          <td><span class="status status-pass">PASS</span> <span class="outcome-detail">stable configuration diagnostic</span></td>
         </tr>
         <tr>
           <th scope="row">boundary-probe-005</th>
           <td>Constrain an include path outside the workspace root</td>
           <td><code>---\n---\n@&lt;outside/workspace.md&gt;</code></td>
           <td><code>include path=/tmp/outside-workspace.md</code></td>
-          <td><span class="status status-pass">PASS; confinement held</span></td>
+          <td><span class="status status-pass">PASS</span> <span class="outcome-detail">confinement held</span></td>
         </tr>
       </tbody>
     </table>
   </section>
-
     <p class="fragment-ref">Companion fragment (auto-generated): <a href="success-boundary.xhtml"><code>docs/examples/fuzz-run-report/success-boundary.xhtml</code></a></p>
   </section>
   <section class="section" id="differential-probe">
     <div class="section-head">
       <h2>differential-probe <span class="status status-pass">PASS</span></h2>
-      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-e3-20260729&quot;,&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;worker_correlation_id&quot;:&quot;differential-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;differential-probe-001&quot;,&quot;differential-probe-002&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;differential-probe-001&quot;,&quot;description&quot;:&quot;Compare JSON and YAML var-file inputs for the same scalar tree&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  value:\\n    required: true\\n---\\n{{ value }}&quot;,&quot;minimal_input&quot;:&quot;JSON: {\&quot;value\&quot;:\&quot;same\&quot;}; YAML: value: same&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS; equivalent output&quot;},{&quot;case_id&quot;:&quot;differential-probe-002&quot;,&quot;description&quot;:&quot;Repeat a render with unchanged template and input&quot;,&quot;minimal_template&quot;:&quot;---\\n---\\nstable output&quot;,&quot;minimal_input&quot;:&quot;repeat=3; environment=unchanged&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS; byte-stable output&quot;}]}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Successful differential-probe session: 12 baseline, parity, and determinism iterations all passed.">&#9112;</button></div>
+      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-e3-20260729&quot;,&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;worker_correlation_id&quot;:&quot;differential-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;differential-probe-001&quot;,&quot;differential-probe-002&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;differential-probe-001&quot;,&quot;description&quot;:&quot;Compare JSON and YAML var-file inputs for the same scalar tree&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  value:\\n    required: true\\n---\\n{{ value }}&quot;,&quot;minimal_input&quot;:&quot;JSON: {\&quot;value\&quot;:\&quot;same\&quot;}; YAML: value: same&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;equivalent output&quot;},{&quot;case_id&quot;:&quot;differential-probe-002&quot;,&quot;description&quot;:&quot;Repeat a render with unchanged template and input&quot;,&quot;minimal_template&quot;:&quot;---\\n---\\nstable output&quot;,&quot;minimal_input&quot;:&quot;repeat=3; environment=unchanged&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;byte-stable output&quot;}]}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Successful differential-probe session: 12 baseline, parity, and determinism iterations all passed.">&#9112;</button></div>
     </div>
-
-
-  <p class="status">
+<p class="status">
     <span class="status status-pass">PASS</span>
   </p>
   <p class="summary">The differential worker compared baseline/head behavior and repeated renders across the recorded cases. Outputs remained equivalent and deterministic.</p>
@@ -231,19 +220,18 @@
           <td>Compare JSON and YAML var-file inputs for the same scalar tree</td>
           <td><code>---\nvariables:\n  value:\n    required: true\n---\n{{ value }}</code></td>
           <td><code>JSON: {"value":"same"}; YAML: value: same</code></td>
-          <td><span class="status status-pass">PASS; equivalent output</span></td>
+          <td><span class="status status-pass">PASS</span> <span class="outcome-detail">equivalent output</span></td>
         </tr>
         <tr>
           <th scope="row">differential-probe-002</th>
           <td>Repeat a render with unchanged template and input</td>
           <td><code>---\n---\nstable output</code></td>
           <td><code>repeat=3; environment=unchanged</code></td>
-          <td><span class="status status-pass">PASS; byte-stable output</span></td>
+          <td><span class="status status-pass">PASS</span> <span class="outcome-detail">byte-stable output</span></td>
         </tr>
       </tbody>
     </table>
   </section>
-
     <p class="fragment-ref">Companion fragment (auto-generated): <a href="success-differential.xhtml"><code>docs/examples/fuzz-run-report/success-differential.xhtml</code></a></p>
   </section>
   <footer>

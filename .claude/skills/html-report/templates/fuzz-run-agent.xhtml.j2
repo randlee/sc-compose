@@ -67,14 +67,19 @@ required_variables:
         <tr>
           <th scope="row">{{ item.case_id | e }}</th>
           <td>{{ item.description | e }}</td>
+{% if agent_is_pass %}
           <td><code>{{ item.minimal_template | e }}</code></td>
           <td><code>{{ item.minimal_input | e }}</code></td>
+{% else %}
+          <td colspan="2"><span class="input-reference">See finding {{ item.case_id | e }} below</span></td>
+{% endif %}
           <td>
 {% if item.passed %}
-            <span class="status status-pass">{{ item.outcome | e }}</span>
+            <span class="status status-pass">PASS</span>
 {% else %}
-            <span class="status status-error">{{ item.outcome | e }}</span>
+            <span class="status status-error">FAIL</span>
 {% endif %}
+            <span class="outcome-detail">{{ item.outcome | e }}</span>
           </td>
         </tr>
 {% endfor %}

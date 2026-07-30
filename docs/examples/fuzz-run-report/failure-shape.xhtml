@@ -6,7 +6,7 @@
       <p class="agent-meta">Session mock-failure-e3-20260729 · Worker shape-probe</p>
     </div>
     <div class="agent-actions" aria-label="Copy worker data">
-      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;worker_correlation_id&quot;:&quot;shape-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;shape-probe-002&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;shape-probe-002&quot;,&quot;description&quot;:&quot;Render a jagged array from a JSON var-file&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  rows:\\n    required: true\\n---\\n{% for row in rows %}{{ row | join(\&quot;,\&quot;) }}\\n{% endfor %}&quot;,&quot;minimal_input&quot;:&quot;rows=[[1,2,3],[4,5]]&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS; expected two-row output&quot;}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;worker_correlation_id&quot;:&quot;shape-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;shape-probe-002&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;shape-probe-002&quot;,&quot;description&quot;:&quot;Render a jagged array from a JSON var-file&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  rows:\\n    required: true\\n---\\n{% for row in rows %}{{ row | join(\&quot;,\&quot;) }}\\n{% endfor %}&quot;,&quot;minimal_input&quot;:&quot;rows=[[1,2,3],[4,5]]&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;expected two-row output&quot;}]}">{}</button>
       <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed session&#x27;s shape-probe panel: 12 structured-input iterations passed.">⎘</button>
     </div>
   </header>
@@ -38,7 +38,7 @@
           <td>Render a jagged array from a JSON var-file</td>
           <td><code>---\nvariables:\n  rows:\n    required: true\n---\n{% for row in rows %}{{ row | join(",") }}\n{% endfor %}</code></td>
           <td><code>rows=[[1,2,3],[4,5]]</code></td>
-          <td><span class="status status-pass">PASS; expected two-row output</span></td>
+          <td><span class="status status-pass">PASS</span> <span class="outcome-detail">expected two-row output</span></td>
         </tr>
       </tbody>
     </table>

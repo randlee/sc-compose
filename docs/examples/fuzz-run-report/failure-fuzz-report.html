@@ -53,11 +53,9 @@
   <section class="section" id="shape-probe">
     <div class="section-head">
       <h2>shape-probe <span class="status status-pass">PASS</span></h2>
-      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;worker_correlation_id&quot;:&quot;shape-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;shape-probe-002&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;shape-probe-002&quot;,&quot;description&quot;:&quot;Render a jagged array from a JSON var-file&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  rows:\\n    required: true\\n---\\n{% for row in rows %}{{ row | join(\&quot;,\&quot;) }}\\n{% endfor %}&quot;,&quot;minimal_input&quot;:&quot;rows=[[1,2,3],[4,5]]&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS; expected two-row output&quot;}]}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Failed session&#x27;s shape-probe panel: 12 structured-input iterations passed.">&#9112;</button></div>
+      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;worker_correlation_id&quot;:&quot;shape-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;shape-probe-002&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;shape-probe-002&quot;,&quot;description&quot;:&quot;Render a jagged array from a JSON var-file&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  rows:\\n    required: true\\n---\\n{% for row in rows %}{{ row | join(\&quot;,\&quot;) }}\\n{% endfor %}&quot;,&quot;minimal_input&quot;:&quot;rows=[[1,2,3],[4,5]]&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;expected two-row output&quot;}]}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Failed session&#x27;s shape-probe panel: 12 structured-input iterations passed.">&#9112;</button></div>
     </div>
-
-
-  <p class="status">
+<p class="status">
     <span class="status status-pass">PASS</span>
   </p>
   <p class="summary">The shape worker completed its structured-input checks. The failure in this session was isolated to the boundary worker.</p>
@@ -84,22 +82,19 @@
           <td>Render a jagged array from a JSON var-file</td>
           <td><code>---\nvariables:\n  rows:\n    required: true\n---\n{% for row in rows %}{{ row | join(",") }}\n{% endfor %}</code></td>
           <td><code>rows=[[1,2,3],[4,5]]</code></td>
-          <td><span class="status status-pass">PASS; expected two-row output</span></td>
+          <td><span class="status status-pass">PASS</span> <span class="outcome-detail">expected two-row output</span></td>
         </tr>
       </tbody>
     </table>
   </section>
-
     <p class="fragment-ref">Companion fragment (auto-generated): <a href="failure-shape.xhtml"><code>docs/examples/fuzz-run-report/failure-shape.xhtml</code></a></p>
   </section>
   <section class="section" id="template-probe">
     <div class="section-head">
       <h2>template-probe <span class="status status-pass">PASS</span></h2>
-      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;worker_correlation_id&quot;:&quot;template-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;template-probe-002&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;template-probe-002&quot;,&quot;description&quot;:&quot;Select a conditional branch for a numeric var-file value&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  count:\\n    required: true\\n---\\n{% if count &gt; 2 %}many{% else %}few{% endif %}&quot;,&quot;minimal_input&quot;:&quot;count=3&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS; expected branch selected&quot;}]}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Failed session&#x27;s template-probe panel: 12 Jinja behavior iterations passed.">&#9112;</button></div>
+      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;worker_correlation_id&quot;:&quot;template-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;template-probe-002&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;template-probe-002&quot;,&quot;description&quot;:&quot;Select a conditional branch for a numeric var-file value&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  count:\\n    required: true\\n---\\n{% if count &gt; 2 %}many{% else %}few{% endif %}&quot;,&quot;minimal_input&quot;:&quot;count=3&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;expected branch selected&quot;}]}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Failed session&#x27;s template-probe panel: 12 Jinja behavior iterations passed.">&#9112;</button></div>
     </div>
-
-
-  <p class="status">
+<p class="status">
     <span class="status status-pass">PASS</span>
   </p>
   <p class="summary">The template worker completed its Jinja behavior checks. The failure in this session was isolated to the boundary worker.</p>
@@ -126,22 +121,19 @@
           <td>Select a conditional branch for a numeric var-file value</td>
           <td><code>---\nvariables:\n  count:\n    required: true\n---\n{% if count &gt; 2 %}many{% else %}few{% endif %}</code></td>
           <td><code>count=3</code></td>
-          <td><span class="status status-pass">PASS; expected branch selected</span></td>
+          <td><span class="status status-pass">PASS</span> <span class="outcome-detail">expected branch selected</span></td>
         </tr>
       </tbody>
     </table>
   </section>
-
     <p class="fragment-ref">Companion fragment (auto-generated): <a href="failure-template.xhtml"><code>docs/examples/fuzz-run-report/failure-template.xhtml</code></a></p>
   </section>
   <section class="section" id="boundary-probe">
     <div class="section-head">
       <h2>boundary-probe <span class="status status-error">ERROR</span></h2>
-      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;worker_correlation_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:9,&quot;failed&quot;:3,&quot;result&quot;:&quot;FAIL&quot;,&quot;cases&quot;:[&quot;boundary-001&quot;,&quot;boundary-002&quot;,&quot;boundary-003&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;boundary-001&quot;,&quot;description&quot;:&quot;Accept a UTF-8 BOM before a template frontmatter block&quot;,&quot;minimal_template&quot;:&quot;UTF-8 bytes EF BB BF followed by ---\\nvariables:\\n  name:\\n    required: false\\n---\\nHello {{name}}\\n&quot;,&quot;minimal_input&quot;:&quot;name=x&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;FAIL; frontmatter leaked into stdout (3 reproductions)&quot;},{&quot;case_id&quot;:&quot;boundary-002&quot;,&quot;description&quot;:&quot;Classify invalid UTF-8 in the template body&quot;,&quot;minimal_template&quot;:&quot;---\\n---\\nbad \\xff\\xfe bytes\\n&quot;,&quot;minimal_input&quot;:&quot;invalid UTF-8 bytes ff fe in the template body&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;FAIL; wrong diagnostic (3 reproductions)&quot;},{&quot;case_id&quot;:&quot;boundary-003&quot;,&quot;description&quot;:&quot;Report a missing declared required variable&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  needed:\\n    required: true\\n---\\nX {{needed}}\\n&quot;,&quot;minimal_input&quot;:&quot;no value supplied for needed&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;FAIL; wrong diagnostic (3 reproductions)&quot;}],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;boundary-001&quot;,&quot;minimal_template&quot;:&quot;UTF-8 bytes EF BB BF followed by ---\\nvariables:\\n  name:\\n    required: false\\n---\\nHello {{name}}\\n&quot;,&quot;minimal_input&quot;:&quot;name=x&quot;,&quot;expected_oracle&quot;:&quot;UTF-8 BOM is accepted before frontmatter; output contains only the rendered body&quot;,&quot;observed_result&quot;:&quot;exit 0; stdout includes the complete frontmatter block before Hello x&quot;,&quot;requirement_trace&quot;:&quot;No requirement or ADR currently covers this BOM-frontmatter behavior; the E.3 evidence records the parser boundary oracle.&quot;,&quot;requirement_follow_up&quot;:&quot;Assess whether BOM-prefixed frontmatter is a supported user contract. If yes, create or update the requirement/ADR before implementing the parser fix; if no, document the intentional boundary rather than creating a needless ADR.&quot;,&quot;root_cause&quot;:&quot;The file-frontmatter path does not strip the leading UTF-8 BOM before detecting the frontmatter delimiter.&quot;,&quot;recommended_fix&quot;:&quot;Add a CLI regression test, then normalize a leading UTF-8 BOM if the product decision accepts it.&quot;},{&quot;finding_id&quot;:&quot;boundary-002&quot;,&quot;minimal_template&quot;:&quot;---\\n---\\nbad \\xff\\xfe bytes\\n&quot;,&quot;minimal_input&quot;:&quot;invalid UTF-8 bytes ff fe in the template body&quot;,&quot;expected_oracle&quot;:&quot;nonzero exit with a template/config UTF-8 diagnostic&quot;,&quot;observed_result&quot;:&quot;exit 2 with ERR_INCLUDE_NOT_FOUND naming the template itself&quot;,&quot;requirement_trace&quot;:&quot;No requirement or ADR currently covers the exact invalid-UTF-8 diagnostic wording.&quot;,&quot;requirement_follow_up&quot;:&quot;Confirm the supported diagnostic boundary; create or update documentation only if stable UTF-8 diagnostics are a supported contract.&quot;,&quot;root_cause&quot;:&quot;The invalid-byte path is classified by include resolution before template decoding.&quot;,&quot;recommended_fix&quot;:&quot;Add a regression test and align error classification with the documented boundary.&quot;},{&quot;finding_id&quot;:&quot;boundary-003&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  needed:\\n    required: true\\n---\\nX {{needed}}\\n&quot;,&quot;minimal_input&quot;:&quot;no value supplied for needed&quot;,&quot;expected_oracle&quot;:&quot;missing declared required variable reports ERR_VAL_MISSING_REQUIRED&quot;,&quot;observed_result&quot;:&quot;exit 2 with ERR_VAL_UNDECLARED_TOKEN for needed&quot;,&quot;requirement_trace&quot;:&quot;The required-variable diagnostic contract needs reconciliation in existing documents.&quot;,&quot;requirement_follow_up&quot;:&quot;Update an existing requirement/ADR if one defines the behavior; create a new one only for a genuine supported-contract gap.&quot;,&quot;root_cause&quot;:&quot;Required-variable metadata is not applied before undeclared-token validation.&quot;,&quot;recommended_fix&quot;:&quot;Reconcile validation ordering and add a CLI regression test.&quot;}]}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Failed boundary-probe session: 12 iterations, boundary-001 through boundary-003 reproduced three bugs; exact inputs and primary-agent investigation are shown.">&#9112;</button></div>
+      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;worker_correlation_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:9,&quot;failed&quot;:3,&quot;result&quot;:&quot;FAIL&quot;,&quot;cases&quot;:[&quot;boundary-001&quot;,&quot;boundary-002&quot;,&quot;boundary-003&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;boundary-001&quot;,&quot;description&quot;:&quot;Accept a UTF-8 BOM before a template frontmatter block&quot;,&quot;minimal_template&quot;:&quot;UTF-8 bytes EF BB BF followed by ---\\nvariables:\\n  name:\\n    required: false\\n---\\nHello {{name}}\\n&quot;,&quot;minimal_input&quot;:&quot;name=x&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;frontmatter leaked into stdout (3 reproductions)&quot;},{&quot;case_id&quot;:&quot;boundary-002&quot;,&quot;description&quot;:&quot;Classify invalid UTF-8 in the template body&quot;,&quot;minimal_template&quot;:&quot;---\\n---\\nbad \\xff\\xfe bytes\\n&quot;,&quot;minimal_input&quot;:&quot;invalid UTF-8 bytes ff fe in the template body&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;wrong diagnostic (3 reproductions)&quot;},{&quot;case_id&quot;:&quot;boundary-003&quot;,&quot;description&quot;:&quot;Report a missing declared required variable&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  needed:\\n    required: true\\n---\\nX {{needed}}\\n&quot;,&quot;minimal_input&quot;:&quot;no value supplied for needed&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;wrong diagnostic (3 reproductions)&quot;}],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;boundary-001&quot;,&quot;minimal_template&quot;:&quot;UTF-8 bytes EF BB BF followed by ---\\nvariables:\\n  name:\\n    required: false\\n---\\nHello {{name}}\\n&quot;,&quot;minimal_input&quot;:&quot;name=x&quot;,&quot;expected_oracle&quot;:&quot;UTF-8 BOM is accepted before frontmatter; output contains only the rendered body&quot;,&quot;observed_result&quot;:&quot;exit 0; stdout includes the complete frontmatter block before Hello x&quot;,&quot;requirement_trace&quot;:&quot;No requirement or ADR currently covers this BOM-frontmatter behavior; the E.3 evidence records the parser boundary oracle.&quot;,&quot;requirement_follow_up&quot;:&quot;Assess whether BOM-prefixed frontmatter is a supported user contract. If yes, create or update the requirement/ADR before implementing the parser fix; if no, document the intentional boundary rather than creating a needless ADR.&quot;,&quot;root_cause&quot;:&quot;The file-frontmatter path does not strip the leading UTF-8 BOM before detecting the frontmatter delimiter.&quot;,&quot;recommended_fix&quot;:&quot;Add a CLI regression test, then normalize a leading UTF-8 BOM if the product decision accepts it.&quot;},{&quot;finding_id&quot;:&quot;boundary-002&quot;,&quot;minimal_template&quot;:&quot;---\\n---\\nbad \\xff\\xfe bytes\\n&quot;,&quot;minimal_input&quot;:&quot;invalid UTF-8 bytes ff fe in the template body&quot;,&quot;expected_oracle&quot;:&quot;nonzero exit with a template/config UTF-8 diagnostic&quot;,&quot;observed_result&quot;:&quot;exit 2 with ERR_INCLUDE_NOT_FOUND naming the template itself&quot;,&quot;requirement_trace&quot;:&quot;No requirement or ADR currently covers the exact invalid-UTF-8 diagnostic wording.&quot;,&quot;requirement_follow_up&quot;:&quot;Confirm the supported diagnostic boundary; create or update documentation only if stable UTF-8 diagnostics are a supported contract.&quot;,&quot;root_cause&quot;:&quot;The invalid-byte path is classified by include resolution before template decoding.&quot;,&quot;recommended_fix&quot;:&quot;Add a regression test and align error classification with the documented boundary.&quot;},{&quot;finding_id&quot;:&quot;boundary-003&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  needed:\\n    required: true\\n---\\nX {{needed}}\\n&quot;,&quot;minimal_input&quot;:&quot;no value supplied for needed&quot;,&quot;expected_oracle&quot;:&quot;missing declared required variable reports ERR_VAL_MISSING_REQUIRED&quot;,&quot;observed_result&quot;:&quot;exit 2 with ERR_VAL_UNDECLARED_TOKEN for needed&quot;,&quot;requirement_trace&quot;:&quot;The required-variable diagnostic contract needs reconciliation in existing documents.&quot;,&quot;requirement_follow_up&quot;:&quot;Update an existing requirement/ADR if one defines the behavior; create a new one only for a genuine supported-contract gap.&quot;,&quot;root_cause&quot;:&quot;Required-variable metadata is not applied before undeclared-token validation.&quot;,&quot;recommended_fix&quot;:&quot;Reconcile validation ordering and add a CLI regression test.&quot;}]}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Failed boundary-probe session: 12 iterations, boundary-001 through boundary-003 reproduced three bugs; exact inputs and primary-agent investigation are shown.">&#9112;</button></div>
     </div>
-
-
-  <p class="status">
+<p class="status">
     <span class="status status-error">FAIL</span>
   </p>
   <p class="summary">Three boundary inputs reproduced stable product bugs. The exact minimized templates, frontmatter, and inputs are preserved for review.</p>
@@ -166,23 +158,20 @@
         <tr>
           <th scope="row">boundary-001</th>
           <td>Accept a UTF-8 BOM before a template frontmatter block</td>
-          <td><code>UTF-8 bytes EF BB BF followed by ---\nvariables:\n  name:\n    required: false\n---\nHello {{name}}\n</code></td>
-          <td><code>name=x</code></td>
-          <td><span class="status status-error">FAIL; frontmatter leaked into stdout (3 reproductions)</span></td>
+          <td colspan="2"><span class="input-reference">See finding boundary-001 below</span></td>
+          <td><span class="status status-error">FAIL</span> <span class="outcome-detail">frontmatter leaked into stdout (3 reproductions)</span></td>
         </tr>
         <tr>
           <th scope="row">boundary-002</th>
           <td>Classify invalid UTF-8 in the template body</td>
-          <td><code>---\n---\nbad \xff\xfe bytes\n</code></td>
-          <td><code>invalid UTF-8 bytes ff fe in the template body</code></td>
-          <td><span class="status status-error">FAIL; wrong diagnostic (3 reproductions)</span></td>
+          <td colspan="2"><span class="input-reference">See finding boundary-002 below</span></td>
+          <td><span class="status status-error">FAIL</span> <span class="outcome-detail">wrong diagnostic (3 reproductions)</span></td>
         </tr>
         <tr>
           <th scope="row">boundary-003</th>
           <td>Report a missing declared required variable</td>
-          <td><code>---\nvariables:\n  needed:\n    required: true\n---\nX {{needed}}\n</code></td>
-          <td><code>no value supplied for needed</code></td>
-          <td><span class="status status-error">FAIL; wrong diagnostic (3 reproductions)</span></td>
+          <td colspan="2"><span class="input-reference">See finding boundary-003 below</span></td>
+          <td><span class="status status-error">FAIL</span> <span class="outcome-detail">wrong diagnostic (3 reproductions)</span></td>
         </tr>
       </tbody>
     </table>
@@ -235,11 +224,9 @@
   <section class="section" id="differential-probe">
     <div class="section-head">
       <h2>differential-probe <span class="status status-pass">PASS</span></h2>
-      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;worker_correlation_id&quot;:&quot;differential-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;differential-probe-001&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;differential-probe-001&quot;,&quot;description&quot;:&quot;Compare baseline and head renders for the same scalar tree&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  value:\\n    required: true\\n---\\n{{ value }}&quot;,&quot;minimal_input&quot;:&quot;JSON: {\&quot;value\&quot;:\&quot;same\&quot;}; YAML: value: same&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS; output unchanged&quot;}]}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Failed session&#x27;s differential-probe panel: 12 baseline, parity, and determinism iterations passed.">&#9112;</button></div>
+      <div class="section-actions"><button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;worker_correlation_id&quot;:&quot;differential-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;differential-probe-001&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;differential-probe-001&quot;,&quot;description&quot;:&quot;Compare baseline and head renders for the same scalar tree&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  value:\\n    required: true\\n---\\n{{ value }}&quot;,&quot;minimal_input&quot;:&quot;JSON: {\&quot;value\&quot;:\&quot;same\&quot;}; YAML: value: same&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;output unchanged&quot;}]}">{}</button><button class="icon-button" type="button" title="Copy Context" data-copy-text="Failed session&#x27;s differential-probe panel: 12 baseline, parity, and determinism iterations passed.">&#9112;</button></div>
     </div>
-
-
-  <p class="status">
+<p class="status">
     <span class="status status-pass">PASS</span>
   </p>
   <p class="summary">The differential worker completed its baseline, parity, and determinism checks. The failure in this session was isolated to the boundary worker.</p>
@@ -266,12 +253,11 @@
           <td>Compare baseline and head renders for the same scalar tree</td>
           <td><code>---\nvariables:\n  value:\n    required: true\n---\n{{ value }}</code></td>
           <td><code>JSON: {"value":"same"}; YAML: value: same</code></td>
-          <td><span class="status status-pass">PASS; output unchanged</span></td>
+          <td><span class="status status-pass">PASS</span> <span class="outcome-detail">output unchanged</span></td>
         </tr>
       </tbody>
     </table>
   </section>
-
     <p class="fragment-ref">Companion fragment (auto-generated): <a href="failure-differential.xhtml"><code>docs/examples/fuzz-run-report/failure-differential.xhtml</code></a></p>
   </section>
   <section class="recommendations">
