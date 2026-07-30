@@ -432,6 +432,7 @@ Sprint entries:
 - [Sprint E.3 — First Adversarial Campaign And Regression Closure](phase-E/sprint-e-3-first-adversarial-campaign.md)
 - [Sprint 157 — Multi-Agent Fuzz-Session Report Template](sprint-fuzz-run-report-template.md)
 - [Sprint — Per-Report Artifact Subdirectory Layout](sprint-fuzz-report-artifact-layout.md)
+- [Sprint — Top-Level Report Shell Template](sprint-fuzz-run-report-shell-template.md)
 
 E.1 changes the runtime input contract, E.2 defines the multi-agent QA
 workflow, E.3 proves that workflow against the expanded contract, and Sprint
