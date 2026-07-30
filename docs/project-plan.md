@@ -436,6 +436,44 @@ E.1 changes the runtime input contract, E.2 defines the multi-agent QA
 workflow, E.3 proves that workflow against the expanded contract, and Sprint
 157 defines the single-page multi-panel report package emitted by a session.
 
+### Standalone Repowise Cleanup: Render Request Module Split
+
+Status:
+
+- complete
+
+Sprint entry:
+
+- [Render Request Module Split Cleanup](sprint-render-request-split.md)
+
+Branch:
+
+- `refactor/render-request-real-module` -> `develop`
+
+This completed cleanup replaces the render-request monolith with focused
+blocks, mode, request, vars, and test modules. The full workspace suite and
+standard Rust validation checks pass; the refactor is ready for independent
+regression QA.
+
+### Standalone Repowise Cleanup: Publish Manifest Module Split
+
+Status:
+
+- complete
+
+Sprint entry:
+
+- [Publish Manifest Module Split Cleanup](sprint-publish-manifest-split.md)
+
+Branch:
+
+- `refactor/publish-manifest-real-module` -> `develop`
+
+This completed cleanup replaces the publish-manifest monolith with focused
+archive, error, files, model, report, write, and test modules. The full
+workspace suite and standard Rust validation checks pass; the refactor is ready
+for independent regression QA.
+
 ### Known Limitations
 
 - Undeclared-token diagnostics currently attribute the warning or error to the
