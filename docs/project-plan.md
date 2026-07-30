@@ -417,6 +417,23 @@ implementation slices needed to close the remaining production-readiness gaps.
 The accepted cleanup findings and sprint ownership are tracked in
 [docs/issues-inventory.md](issues-inventory.md).
 
+### Phase E Sprint Plans
+
+Status:
+
+- draft follow-on work for recursive structured inputs and adversarial rendering
+  validation after the completed Phase D multi-pass delivery
+
+Sprint entries:
+
+- [Phase E plan](phase-E/phase-E-plan.md)
+- [Sprint E.1 — Recursive Structured Input Support](phase-E/sprint-e-1-recursive-structured-input.md)
+- [Sprint E.2 — Adversarial Fuzzing Workflow](phase-E/sprint-e-2-adversarial-fuzzing.md)
+- [Sprint E.3 — First Adversarial Campaign And Regression Closure](phase-E/sprint-e-3-first-adversarial-campaign.md)
+
+E.1 changes the runtime input contract, E.2 defines the multi-agent QA
+workflow, and E.3 proves that workflow against the expanded contract.
+
 ### Known Limitations
 
 - Undeclared-token diagnostics currently attribute the warning or error to the
@@ -708,7 +725,7 @@ Release blocker inventory:
 | ID | Blocker | Status | Sprint | Closure condition |
 | --- | --- | --- | --- | --- |
 | HRB-01 | The current input model cannot express structured records such as PR objects and nested field access. | Closed — PR #45, `2280bd1`. All 11 H1 acceptance tests pass including `frontmatter_defaults_accept_object_value` (`crates/sc-composer/src/lib.rs:107`), `render_accepts_object_values_in_json_var_file` (`crates/sc-compose/tests/cli.rs:818`), and `template_json_object_input_defaults_obey_precedence` (`crates/sc-compose/tests/cli.rs:581`). | H1 | Object/map input values render end-to-end with stable field-path diagnostics. |
-| HRB-02 | The current input model cannot express repeated report sections as arrays of structured records. | Closed — H2 implements arrays-of-objects ingress, nested-array diagnostics, and loop-body discovery with dedicated unit/integration coverage. | H2 | Arrays of objects render, validate, and support loop-body discovery end-to-end. |
+| HRB-02 | The current input model cannot express repeated report sections as arrays of structured records. | Closed — H2 implements arrays-of-objects ingress and loop-body discovery; E.1 removes the historical nested-array restriction with recursive validation and regression coverage. | H2/E.1 | Recursive arrays and arrays of objects render, validate, and support loop-body discovery end-to-end. |
 | HRB-03 | There is no bundled HTML report example proving `sc-compose` can generate a useful clickable report artifact. | Closed — H3 adds `examples/sprint-report-html.html.j2`, realistic sample vars, and named-render coverage for `sprint-report-html.html.j2 -> sprint-report-html.html`. | H3 | `sprint-report-html` renders a self-contained HTML report from realistic structured input. |
 
 #### Sprint H1: Structured Object Input Support
@@ -788,15 +805,18 @@ Deliverables:
 - scope-tracker chosen over a MiniJinja AST dependency for loop-body
   discovery; the decision is documented in `architecture.md` section 21.5
 - frontmatter-init discovery for nested references inside loop bodies
-- nested arrays explicitly remain out of scope for H1/H2 and are rejected with
-  `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
+- the historical H2 nested-array restriction is superseded by
+  [ADR-E1](architecture.md#61-adr-e1-recursive-structured-input-contract-2026-07-29);
+  the current phase index names the implementation Sprint E.1 to avoid
+  colliding with the completed multi-pass Phase D identifiers
 - unit and integration tests for arrays of objects
 
 Acceptance Criteria:
 
 - arrays of objects render end-to-end through Jinja loops
 - frontmatter-init discovers loop-body variable references from array members
-- nested arrays are rejected with `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
+- recursive arrays, nested arrays of objects, and jagged arrays render through
+  the E.1 recursive-value contract without emitting the reserved legacy code
 - at least 10 tests cover arrays-of-objects behavior and failure cases
 - the `sprint-report-html` input shape is representable by the implemented value
   model

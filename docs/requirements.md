@@ -104,6 +104,9 @@ Schema rules:
 - `required_variables` is optional.
 - `defaults` is optional.
 - `input_defaults` is accepted as an alias for `defaults` in frontmatter.
+- For compatibility with existing template metadata, a frontmatter
+  `variables` map with `{ required: true }` declarations is accepted as an
+  equivalent spelling of `required_variables`.
 - `metadata` is optional.
 - If a frontmatter block exists and a field is omitted, it defaults to:
   - `required_variables: []`
@@ -122,24 +125,20 @@ Schema rules:
 
 ### FR-1b: Value Types
 
-The render-context value model remains intentionally narrow even after H1
-structured-input support lands.
+The render-context value model accepts any finite JSON/YAML-compatible tree
+that the existing `serde_json::Value` and Minijinja context can represent.
 
 - Variables used by template rendering must be one of:
   - string
   - number
   - boolean
   - null
-  - an object/map with string keys; object fields may nest objects and arrays
-    of scalars
-  - a sequence of scalar values
-  - a top-level sequence of objects
-- Sequence values may contain supported scalar values or, at the top-level
-  variable boundary, object values.
-- Nested sequences remain out of scope.
-- Arrays of objects are only supported when the array is the variable value
-  itself; object fields within array members may be nested objects, but an
-  object field whose value is itself an array of objects remains out of scope.
+  - an object/map with string keys, recursively containing supported values
+  - a sequence recursively containing supported values, including arrays,
+    objects, scalars, `null`, and jagged shapes
+- The top-level `--var-file` document remains a JSON/YAML object and YAML map
+  keys remain strings; these ingress boundaries are independent of nesting
+  depth.
 - `metadata` may contain arbitrary YAML values because it is descriptive only
   and does not participate in rendering semantics.
 
@@ -222,6 +221,9 @@ HTML-Report follow-on design track:
   a referenced or required variable is satisfied by a default value rather than
   explicit caller input.
 - Explicit CLI `--var key=value` inputs are always strings.
+- This string-only behavior is intentional: CLI text inputs are not coerced
+  based on their spelling. Callers that need numeric, boolean, null, object,
+  or sequence values must use `--var-file` or template-owned defaults.
 - Variables loaded through `--var-file` may be any supported render-context
   value type.
 - Variables loaded through `--env-prefix` are always strings.
@@ -580,10 +582,12 @@ Pack root policy:
 - Variable-file keys must be strings.
 - Variable-file values must be supported render-context value types.
 - Object/map values with string keys are valid per FR-12.
-- Sequence values in variable files may contain scalar values or, at the
-  top-level variable boundary, object values.
-- Nested arrays remain invalid and must report
-  `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`.
+- Sequence values in variable files may contain scalars, objects, arrays, and
+  any finite combination of those values at any nesting depth.
+- Historical H2 note (2026-07-29): [ADR-E1](architecture.md#61-adr-e1-recursive-structured-input-contract-2026-07-29)
+  supersedes this restriction; the current phase index names the
+  recursive-input implementation Sprint E.1 to avoid colliding with completed
+  Phase D identifiers.
 - Arrays of objects are valid per FR-13 when the array is the variable value
   itself.
 
@@ -1013,6 +1017,8 @@ Implemented in Phase HTML-Report.
   `pr.number`.
 - Malformed object input must fail with stable diagnostics using
   `ERR_VAL_OBJECT_SHAPE`.
+- Duplicate keys in JSON and YAML var-files must fail with
+  `ERR_CONFIG_PARSE`; var-files do not use silent last-value-wins semantics.
 - Nested required-path traversal that encounters a scalar where an object is
   required must fail with `ERR_VAL_SHAPE_MISMATCH`.
 - `--var key=value` remains string-only in this phase. Structured input comes
@@ -1033,11 +1039,12 @@ Implemented in Phase HTML-Report.
   - frontmatter defaults,
   - user-template `template.json` `input_defaults`.
 - Empty arrays remain valid inputs.
-- Arrays of objects may contain nested object fields. Arrays of arrays remain a
-  separate decision and are not implied by this requirement.
-- Nested arrays are out of scope for H1 and H2. Callers who pass an array that
-  contains another array, or an object that contains an array at a nested
-  field, must receive `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`.
+- Arrays of objects may contain nested object fields and arrays, including
+  jagged arrays and arrays nested inside object fields.
+- Historical H2 note (2026-07-29): [ADR-E1](architecture.md#61-adr-e1-recursive-structured-input-contract-2026-07-29)
+  supersedes this restriction; the current phase index names the
+  recursive-input implementation Sprint E.1 to avoid colliding with completed
+  Phase D identifiers.
 - Missing nested fields inside array members must report stable field-path
   diagnostics using `ERR_VAL_MISSING_NESTED_FIELD`.
 - `frontmatter-init` must discover variable references inside `for` loop
@@ -1555,7 +1562,6 @@ Required integration coverage includes:
 - `prepare-hook` and `post-render-hook` execution
 - Named render for packs with multiple root-level `*.j2` entry candidates
 - Template deletion, update, sync, or remote registry features
-- Nested arrays, nested array-of-object fields, multi-panel HTML/XHTML report
-  expansion, and wrapper-level output viewing behavior remain deferred to the
-  follow-on design track in
+- Multi-panel HTML/XHTML report expansion and wrapper-level output viewing
+  behavior remain deferred to the follow-on design track in
   [docs/html-sprint-report-plan.md](html-sprint-report-plan.md)

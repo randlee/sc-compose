@@ -133,11 +133,19 @@ struct RawFrontmatter {
     #[serde(default)]
     required_variables: Vec<String>,
     #[serde(default)]
+    variables: BTreeMap<String, RawVariable>,
+    #[serde(default)]
     defaults: BTreeMap<String, serde_yaml::Value>,
     #[serde(default)]
     input_defaults: BTreeMap<String, serde_yaml::Value>,
     #[serde(default)]
     metadata: BTreeMap<String, serde_yaml::Value>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawVariable {
+    #[serde(default)]
+    required: bool,
 }
 
 /// Parse a full template document and normalize its frontmatter if present.
@@ -148,6 +156,7 @@ struct RawFrontmatter {
 /// terminating delimiter, or contains values outside the supported Sprint 2
 /// schema.
 pub fn parse_template_document(input: &str) -> Result<ParsedTemplate, ComposeError> {
+    let input = input.strip_prefix('\u{feff}').unwrap_or(input);
     let Some((frontmatter_texts, body)) = split_frontmatter(input)? else {
         return Ok(ParsedTemplate {
             passes: Vec::new(),
@@ -266,14 +275,16 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
     let RawFrontmatter {
         pass,
         required_variables: raw_required_variables,
+        variables: raw_variables,
         defaults: raw_defaults,
         input_defaults: raw_input_defaults,
         metadata: raw_metadata,
     } = raw;
 
-    let mut required_variables = Vec::with_capacity(raw_required_variables.len());
+    let mut required_variables =
+        Vec::with_capacity(raw_required_variables.len() + raw_variables.len());
     let mut seen = BTreeSet::new();
-    for variable in raw_required_variables {
+    let mut add_required_variable = |variable: String, section_name: &str| {
         let variable = VariableName::new(variable).map_err(|error| {
             ConfigError::new(
                 DiagnosticCode::ErrConfigParse,
@@ -281,7 +292,7 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
             )
             .with_recovery_hint(RecoveryHint::new(
                 RecoveryHintKind::ReviewConfiguration {
-                    key: "required_variables".to_owned(),
+                    key: section_name.to_owned(),
                 },
             ))
         })?;
@@ -289,6 +300,16 @@ fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, ComposeErro
             return Err(ValidationError::duplicate_variable(&variable).into());
         }
         required_variables.push(variable);
+        Ok::<(), ComposeError>(())
+    };
+
+    for variable in raw_required_variables {
+        add_required_variable(variable, "required_variables")?;
+    }
+    for (variable, declaration) in raw_variables {
+        if declaration.required {
+            add_required_variable(variable, "variables")?;
+        }
     }
 
     let mut diagnostics = Vec::new();
@@ -371,6 +392,31 @@ mod tests {
         assert_eq!(parsed.passes()[0].pass_number(), 2);
         assert_eq!(parsed.frontmatter().unwrap().pass_number(), 2);
         assert_eq!(parsed.body(), "body");
+    }
+
+    #[test]
+    fn strips_utf8_bom_before_parsing_frontmatter() {
+        let parsed = parse_template_document(
+            "\u{feff}---\nrequired_variables:\n  - name\n---\nHello {{name}}\n",
+        )
+        .unwrap();
+
+        assert_eq!(parsed.passes().len(), 1);
+        assert_eq!(parsed.body(), "Hello {{name}}\n");
+    }
+
+    #[test]
+    fn recognizes_declared_required_variables_map() {
+        let parsed = parse_template_document(
+            "---\nvariables:\n  name:\n    required: true\n---\nHello {{name}}\n",
+        )
+        .unwrap();
+
+        assert_eq!(parsed.frontmatter().unwrap().required_variables().len(), 1);
+        assert_eq!(
+            parsed.frontmatter().unwrap().required_variables()[0].as_str(),
+            "name"
+        );
     }
 
     #[test]
