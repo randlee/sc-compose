@@ -20,6 +20,15 @@ stated:
 
 This document records the completed closeout for that item.
 
+## Intentional Testability Addition
+
+This was not a pure relocation. As an intentional, narrowly scoped addition,
+`blocks.rs` introduces the `pub(super) read_optional_block_with` seam and the
+`read_stdin_to_string` / `read_file_to_string` helpers so unit tests can cover
+inline, file, and stdin success paths without touching process I/O. The
+production `read_optional_block` wrapper retains the pre-split observable
+behavior; the seam exists solely to make those paths directly testable.
+
 ## Deliverables
 
 - `blocks.rs` owns guidance/prompt input sources and stdin-read validation.
