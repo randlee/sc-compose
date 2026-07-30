@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Issue #157 recursive structured-input support: JSON/YAML var-files,
+  frontmatter defaults, and `template.json` defaults now accept finite nested
+  arrays, arrays of objects, and jagged arrays.
+
+### Changed
+
+- `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` remains a reserved compatibility code but
+  is no longer emitted for supported recursive input values.
+
 ## [1.3.0] - 2026-07-21
 
 ### Added

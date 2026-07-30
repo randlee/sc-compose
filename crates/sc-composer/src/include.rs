@@ -122,12 +122,18 @@ fn expand_file(
     }
 
     let raw = std::fs::read_to_string(path).map_err(|error| {
-        IncludeError::new(
-            DiagnosticCode::ErrIncludeNotFound,
-            format!("include file not found: {}", path.display()),
-            stack.clone(),
-        )
-        .with_source(error)
+        let (code, message) = if error.kind() == std::io::ErrorKind::InvalidData {
+            (
+                DiagnosticCode::ErrConfigRead,
+                format!("template file is not valid UTF-8: {}", path.display()),
+            )
+        } else {
+            (
+                DiagnosticCode::ErrIncludeNotFound,
+                format!("include file not found: {}", path.display()),
+            )
+        };
+        IncludeError::new(code, message, stack.clone()).with_source(error)
     })?;
     let parsed = parse_template_document(&raw).map_err(|error| match error {
         ComposeError::Config(error) => error.into(),
