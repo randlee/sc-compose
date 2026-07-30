@@ -453,6 +453,25 @@ blocks, mode, request, vars, and test modules. The full workspace suite and
 standard Rust validation checks pass; the refactor is ready for independent
 regression QA.
 
+### Standalone Repowise Cleanup: Publish Manifest Module Split
+
+Status:
+
+- complete
+
+Sprint entry:
+
+- [Publish Manifest Module Split Cleanup](sprint-publish-manifest-split.md)
+
+Branch:
+
+- `refactor/publish-manifest-real-module` -> `develop`
+
+This completed cleanup replaces the publish-manifest monolith with focused
+archive, error, files, model, report, write, and test modules. The full
+workspace suite and standard Rust validation checks pass; the refactor is ready
+for independent regression QA.
+
 ### Known Limitations
 
 - Undeclared-token diagnostics currently attribute the warning or error to the
