@@ -25,7 +25,7 @@ required_variables:
       <h2>{{ agent.agent_id | e }}</h2>
       <p class="agent-meta">Session {{ agent.session_id | e }} · Worker {{ agent.worker_correlation_id | e }}</p>
     </div>
-    <div class="agent-actions" aria-label="Copy worker data">
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
       <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{{ agent.copy_json | e }}">{}</button>
       <button type="button" class="icon-button" title="Copy Context" data-copy-text="{{ agent.context_text | e }}">⎘</button>
     </div>
@@ -38,7 +38,6 @@ required_variables:
     <span class="status status-error">FAIL</span>
 {% endif %}
   </p>
-  <p class="summary">{{ agent.summary | e }}</p>
 
   <table class="agent-results">
     <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
@@ -61,27 +60,10 @@ required_variables:
   <section class="test-inputs">
     <h3>Inputs exercised</h3>
     <table>
-      <thead><tr><th scope="col">Case</th><th scope="col">Description</th><th scope="col">Template / frontmatter</th><th scope="col">Input</th><th scope="col">Outcome</th></tr></thead>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
       <tbody>
 {% for item in agent.test_inputs %}
-        <tr>
-          <th scope="row">{{ item.case_id | e }}</th>
-          <td>{{ item.description | e }}</td>
-{% if agent_is_pass %}
-          <td><code>{{ item.minimal_template | e }}</code></td>
-          <td><code>{{ item.minimal_input | e }}</code></td>
-{% else %}
-          <td colspan="2"><span class="input-reference">See finding {{ item.case_id | e }} below</span></td>
-{% endif %}
-          <td>
-{% if item.passed %}
-            <span class="status status-pass">PASS</span>
-{% else %}
-            <span class="status status-error">FAIL</span>
-{% endif %}
-            <span class="outcome-detail">{{ item.outcome | e }}</span>
-          </td>
-        </tr>
+        <tr><th scope="row">{{ item.case_id | e }}</th><td><code>{{ item.description | e }}</code></td><td>{{ item.outcome | e }}</td></tr>
 {% endfor %}
       </tbody>
     </table>
