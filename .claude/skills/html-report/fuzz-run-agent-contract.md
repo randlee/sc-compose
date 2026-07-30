@@ -77,15 +77,17 @@ requirement.
 ## Output naming and placement
 
 Real session artifacts are written under `site/reports/` after the
-`adversarial-fuzzing` skill completes. The main HTML and JSON use one shared
-session stem:
+`adversarial-fuzzing` skill completes. The main HTML stays at the top level;
+its supporting artifacts use a directory named for the shared session stem:
 
 `YYYYMMDD-N-fuzz-report.html`
 
-Each companion panel uses the same designated stem plus the deterministic
-worker suffix, for example:
+The JSON sidecar is written to
+`site/reports/YYYYMMDD-N-fuzz-report/YYYYMMDD-N-fuzz-report.json`. Each
+companion panel uses the same designated stem plus the deterministic worker
+suffix inside that directory, for example:
 
-`20260729-1-fuzz-report-shape-probe.xhtml`
+`site/reports/20260729-1-fuzz-report/20260729-1-fuzz-report-shape-probe.xhtml`
 
 Review mocks remain under `docs/examples/fuzz-run-report/` and are not session
 output.

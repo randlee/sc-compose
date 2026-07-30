@@ -99,8 +99,9 @@ after the campaign unless a failure artifact is being preserved.
     session artifacts to `site/reports/`, assigning a 1-based sequence in
     deterministic session order and resetting it for each campaign day. The
     filename stem must be `YYYYMMDD-N-fuzz-report`, for example
-    `site/reports/20260729-1-fuzz-report.html`; write the matching `.json`
-    sidecar and one companion `.xhtml` panel per worker, using a deterministic
+    `site/reports/20260729-1-fuzz-report.html`; keep the matching `.json`
+    sidecar and one companion `.xhtml` panel per worker under the derived
+    `site/reports/20260729-1-fuzz-report/` directory, using a deterministic
     worker suffix when more than one panel is present. The report generator
     must validate the HTML output with `html-validate` and every XHTML panel
     with `xmllint --noout` before the session is reported complete. Review-only

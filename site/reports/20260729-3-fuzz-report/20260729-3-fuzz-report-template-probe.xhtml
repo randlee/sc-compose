@@ -1,0 +1,50 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session e3confirm-20260729-0001 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&#34;agent_id&#34;: &#34;template-probe&#34;, &#34;cases&#34;: [&#34;FUZZ-010&#34;], &#34;classification&#34;: &#34;pass&#34;, &#34;failed&#34;: 0, &#34;iterations&#34;: 106, &#34;passed&#34;: 106, &#34;result&#34;: &#34;PASS&#34;, &#34;session_id&#34;: &#34;e3confirm-20260729-0001&#34;, &#34;target&#34;: &#34;frontmatter&#34;, &#34;test_inputs&#34;: [{&#34;case_id&#34;: &#34;FUZZ-010&#34;, &#34;description&#34;: &#34;Cannot be established. assemble_output() calls profile_body.trim_end() deliberately, and no document in docs/ states whether trailing-whitespace normalization is intended.&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;a\\r\\n&#34;, &#34;outcome&#34;: &#34;inconclusive (not a defect) (3 reproductions): Trailing CR is dropped (stdout &#39;a\\n&#39;); trailing blank lines collapse (&#39;line2\\n\\n\\n&#39; -&gt; &#39;line2\\n&#39;); mid-body CRLF is correctly preserved. Separately, --output writes NO trailing newline while stdout appends one. Coordinat&#34;, &#34;passed&#34;: true}], &#34;worker_correlation_id&#34;: &#34;template-probe&#34;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="template-probe ran 106 bounded cases against the frontmatter subsystem with zero panics, timeouts, hangs, or confinement bypasses. One case (FUZZ-010, trailing CR/blank-line/whitespace normalization) was filed as inconclusive, not a confirmed bug: assemble_output()&#39;s trim_end() is deliberate code, the render-&gt;verify round-trip is self-consistent, and no doc states whether the normalization is intended, so no defect could be established. No confirmed_bug is attributable to template-probe.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+
+    <span class="status status-pass">PASS</span>
+
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Jinja whitespace/newline normalization and output-formatting edge cases</th>
+        <td>106</td>
+        <td>106/106</td>
+        <td>
+
+          <span class="status status-pass">PASS</span>
+
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+
+        <tr><th scope="row">FUZZ-010</th><td><code>Cannot be established. assemble_output() calls profile_body.trim_end() deliberately, and no document in docs/ states whether trailing-whitespace normalization is intended.</code></td><td>inconclusive (not a defect) (3 reproductions): Trailing CR is dropped (stdout &#39;a\n&#39;); trailing blank lines collapse (&#39;line2\n\n\n&#39; -&gt; &#39;line2\n&#39;); mid-body CRLF is correctly preserved. Separately, --output writes NO trailing newline while stdout appends one. Coordinat</td></tr>
+
+      </tbody>
+    </table>
+  </section>
+
+
+</section>
