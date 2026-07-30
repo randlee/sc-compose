@@ -302,47 +302,48 @@ Semantic rules:
 - When a referenced or required variable is satisfied by a default instead of
   explicit caller input, validation emits `INFO_VAL_DEFAULT_USED`.
 
-`InputValue` in H1/H2 means one of:
+### 6.1. ADR-E1: Recursive Structured Input Contract (2026-07-29)
+
+The historical H2 nested-array restriction is superseded by Sprint E.1. The
+shipped contract accepts finite JSON/YAML-compatible arrays and objects at any
+depth because `InputValue` already uses `serde_json::Value` and Minijinja can
+traverse those values. The top-level var-file object boundary, YAML
+string-key rule, and string-only `--var` interface remain unchanged.
+
+Sections 15 and 18 link here for the template-pack and diagnostic implications;
+they intentionally do not repeat this decision record.
+
+`InputValue` in H1/H2/E.1 means one of:
 
 - string
 - number
 - boolean
 - null
 - object/map with string keys
-- sequence of scalar values
+- finite recursive sequences and objects containing any supported value
 
 Rust type contract:
 
 - `InputValue` is represented as `serde_json::Value`,
 - object values with string keys may cross the CLI-to-library boundary,
-- nested sequences are rejected at parse time,
-- top-level arrays of objects are supported in H2,
-- object trees may contain scalar leaves, nested objects, and arrays of
-  scalars.
+- nested sequences are accepted at any depth,
+- arrays of objects and jagged arrays are supported in E.1,
+- object trees may contain scalar leaves, nested objects, and recursive arrays.
 
-Sequence values remain narrow in H1/H2:
+Sequence values are recursively validated in E.1:
 
-- top-level sequence members may contain scalar values or objects,
-- nested sequences are not supported,
-- object-valued sequence members are only supported at the top-level variable
-  boundary in H2.
+- sequence members may contain scalars, objects, arrays, or null,
+- nested sequences may be jagged and may occur inside object fields,
+- object-valued sequence members are supported at every variable path.
 
-Planned H2+ extension:
+Historical H2 boundary and E.1 decision:
 
-- The follow-on structured-input design is tracked in
-  [docs/html-sprint-report-plan.md](html-sprint-report-plan.md).
-- That design extends `InputValue` beyond the H1 boundary so templates can
-  consume report-shaped data instead of preflattened strings.
-- Planned allowed shapes:
-  - array of objects,
-  - object trees that contain arrays of objects in loop-friendly positions.
-- Planned continued exclusions:
-  - arrays of arrays as a first-class input shape,
-  - object trees that themselves contain nested arrays,
-  - arbitrary mixed recursive data without explicit validation rules.
-- The design motivation is HTML/XHTML report composition where one render input
-  needs repeated structured sections such as `sprints` plus nested object
-  fields for report metadata and links.
+- The dated E.1 architecture decision record supersedes the former H2 shape
+  restriction. The implementation follows the existing `serde_json::Value`
+  representation and Minijinja traversal capability rather than introducing a
+  second recursive value model.
+- The var-file document remains a top-level JSON/YAML object, YAML map keys
+  remain string-only, and `--var key=value` remains string-only.
 
 `MetadataValue` may be any YAML value:
 
@@ -1174,7 +1175,10 @@ Manifest rules:
   - arrays of scalars,
   - empty arrays are valid,
   - arrays of objects are valid when the array is the variable value itself,
-  - nested arrays are rejected with `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
+  - recursive arrays and objects are accepted at any finite depth
+- Recursive structured-input behavior is governed by
+  [ADR-E1](#61-adr-e1-recursive-structured-input-contract-2026-07-29); no
+  separate template-pack restriction applies.
 - no manifest field selects entrypoints, paths, hooks, or alternate execution
   behavior in the initial release.
 
@@ -1413,9 +1417,9 @@ Variable-file behavior:
 - `--var-file` loads a JSON or YAML object,
 - keys are strings,
 - values are `InputValue`,
-- object values with string keys are valid in H1,
-- top-level sequence values may contain scalar values or objects in H2,
-- nested sequences remain invalid in H2.
+- object values with string keys are valid,
+- sequence values may contain recursive JSON/YAML-compatible values at any
+  finite depth.
 
 ## 17. Safety Model (FR-4)
 
@@ -1473,12 +1477,17 @@ Canonical failures must map to stable error families and stable codes.
 | Config file missing or malformed | `ConfigError` | `ERR_CONFIG_PARSE` |
 | Invalid var-file shape | `ConfigError` | `ERR_CONFIG_VARFILE` |
 | Malformed object from structured input source | `ValidationError` | `ERR_VAL_OBJECT_SHAPE` |
-| Nested array shape supplied where H2 only allows top-level arrays of scalars or objects | `ValidationError` | `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` |
+| Legacy H2 nested-array restriction (retained code; not emitted for recursive values) | `ValidationError` | `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` |
 | Nested required path expects an object but receives a scalar, or vice versa | `ValidationError` | `ERR_VAL_SHAPE_MISMATCH` |
 | Nested required field absent inside a present object or array member | `ValidationError` | `ERR_VAL_MISSING_NESTED_FIELD` |
 | Example or template pack name not found | `ConfigError` | `ERR_CONFIG_PACK_NOT_FOUND` |
 | Named pack is not renderable because a bundled example name is ambiguous or a template pack has zero or multiple root-level `*.j2` files | `ConfigError` | `ERR_CONFIG_PACK_NOT_RENDERABLE` |
 | `templates add` target name already exists | `ConfigError` | `ERR_CONFIG_TEMPLATE_EXISTS` |
+
+The legacy `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` code is governed by
+[ADR-E1](#61-adr-e1-recursive-structured-input-contract-2026-07-29). It remains
+reserved for compatibility and must not reject values accepted by the
+recursive contract.
 
 ## 19. Observability Integration (FR-9, FR-10, FR-11)
 
@@ -1710,9 +1719,8 @@ Trait openness decisions:
 - `ResolverPolicy` is open because caller-specific path policy is an explicit
   product requirement,
 - value-model and metadata extension points remain narrow by design:
-  scalar values plus simple sequences are open in the initial release, but
-  hooks, arbitrary manifest-driven behavior, and nested mappings remain
-  deferred.
+  finite recursive JSON/YAML-compatible values are open in the initial release,
+  but hooks and arbitrary manifest-driven behavior remain deferred.
 
 ## 21. Structured Input And HTML Report Architecture
 
@@ -1726,12 +1734,12 @@ The shipped structured-input track expands `InputValue` to support:
 
 - object/map values with string keys,
 - arrays of objects,
-- nested object trees needed for report composition,
+- nested object trees and recursive arrays needed for report composition,
 - repeated report sections such as `sprints`.
 
-Nested arrays remain out of scope for H1 and H2. Examples such as
-`sprints[].checks[]` are illustrative prose for later design space, not H1/H2
-input grammar.
+Finite nested arrays are supported by E.1. Examples such as
+`sprints[].checks[]` are valid input shapes; bracket notation remains an
+illustrative template-data notation rather than `VariablePath` grammar.
 
 ### 21.2 Variable Resolver Behavior
 
@@ -1775,7 +1783,7 @@ Additional structured-input rules:
 
 - remains the primary structured-input ingress,
 - parses JSON or YAML objects,
-- carries object values and arrays of objects in this phase.
+- carries recursive JSON/YAML-compatible values in this phase.
 
 `--var key=value`
 
@@ -1786,20 +1794,20 @@ Frontmatter defaults
 
 - gain structured-value support in H1 using the same `InputValue` type and the
   same validation gate as `--var-file`,
-- accept objects and arrays of scalars after H1,
-- extend to arrays of objects in H2.
+- accept recursive JSON/YAML-compatible values at any finite depth.
 
 `template.json` `input_defaults`
 
-- gain structured-value support under the same rules as frontmatter defaults:
-  objects and arrays of scalars in H1, arrays of objects in H2.
+- gain structured-value support under the same recursive rules as frontmatter
+  defaults.
 
 ### 21.4 Validation Impact
 
 `validate`
 
 - must report missing nested field paths,
-- must reject malformed objects and unsupported nesting with stable diagnostics,
+- must reject malformed objects and unsupported scalar/key shapes with stable
+  diagnostics,
 - may validate field presence and supported shape without growing into a full
   schema language.
 

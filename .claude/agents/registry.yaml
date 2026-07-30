@@ -3,7 +3,7 @@ agents:
     version: 0.1.0
     path: .claude/agents/scrum-master.md
   quality-mgr:
-    version: 0.1.0
+    version: 0.2.0
     path: .claude/agents/quality-mgr.md
   req-qa:
     version: 0.1.0
@@ -53,6 +53,12 @@ agents:
   test-stability-auditor:
     version: 1.0.0
     path: .claude/agents/test-stability-auditor.md
+  sc-adversarial-fuzz-coordinator:
+    version: 1.0.0
+    path: .claude/agents/sc-adversarial-fuzz-coordinator.md
+  sc-adversarial-fuzz-probe:
+    version: 1.0.0
+    path: .claude/agents/sc-adversarial-fuzz-probe.md
 skills:
   team-lead:
     version: 0.2.0
@@ -113,3 +119,17 @@ skills:
       rust-code-reviewer: 0.x
       rust-code-explorer: 0.x
       rust-qa-agent: 0.x
+  adversarial-fuzzing:
+    version: 1.1.0
+    path: .claude/skills/adversarial-fuzzing/SKILL.md
+    depends_on:
+      sc-adversarial-fuzz-coordinator: 1.x
+      sc-adversarial-fuzz-probe: 1.x
+qa_routes:
+  adversarial-fuzzing:
+    version: 1.0.0
+    owner: quality-mgr
+    skill: adversarial-fuzzing
+    coordinator: sc-adversarial-fuzz-coordinator
+    probe: sc-adversarial-fuzz-probe
+    report_schema: adversarial-fuzzing/v1

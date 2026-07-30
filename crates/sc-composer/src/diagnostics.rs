@@ -49,8 +49,11 @@ pub enum DiagnosticCode {
     ErrIncludeDepth,
     /// Structured object input used an unsupported shape.
     ErrValObjectShape,
-    /// Structured input used either a literal nested array or an array of
-    /// objects at a non-top-level path.
+    /// Legacy code reserved for a retired nested-array validation restriction.
+    ///
+    /// Current recursive structured-input validation does not emit this code
+    /// for JSON/YAML-compatible values, but it remains part of the public
+    /// diagnostic enum for compatibility.
     ErrValNestedArrayUnsupported,
     /// Frontmatter declarations contained duplicate variables.
     ErrValDuplicate,
