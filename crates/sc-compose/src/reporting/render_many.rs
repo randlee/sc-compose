@@ -372,7 +372,7 @@ impl fmt::Display for RenderManyError {
                 write!(
                     f,
                     "failed to render source entry {}: {source}",
-                    source_path.display()
+                    to_forward_slash(source_path)
                 )
             }
             Self::SourceEntry(source) => write!(f, "{source}"),
