@@ -1729,11 +1729,225 @@ fn render_accepts_array_of_objects_in_yaml_var_file() {
 }
 
 #[test]
-fn render_rejects_nested_arrays_in_var_file_with_reserved_code() {
-    let root = temp_root("nested-array-var-file");
-    write_file(&root.join("template.md.j2"), "{{ sprints }}\n");
-    let vars_file = root.join("vars.json");
-    write_file(&vars_file, r#"{ "sprints": [["bad"]] }"#);
+fn render_accepts_issue_157_nested_categories_fixture() {
+    let vars_file = repo_root()
+        .join("examples")
+        .join("changelog-categories.sample-vars.json");
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(repo_root())
+        .arg("--file")
+        .arg("examples/changelog-categories.md.j2")
+        .arg("--var-file")
+        .arg(vars_file)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("### Added"));
+    assert!(
+        stdout.contains("Deconstruct methods and matching constructors on SerialNumber. (#588)")
+    );
+    assert!(stdout.contains("### Changed"));
+    assert!(stdout.contains("Bumped from 0.54.0 to 0.55.0 (MINOR)."));
+}
+
+#[test]
+fn render_accepts_issue_157_jagged_array_fixture() {
+    let vars_file = repo_root()
+        .join("examples")
+        .join("jagged-array-values.sample-vars.json");
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(repo_root())
+        .arg("--file")
+        .arg("examples/jagged-array-values.md.j2")
+        .arg("--var-file")
+        .arg(vars_file)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let normalized_stdout = stdout.replace("\r\n", "\n");
+    assert_eq!(normalized_stdout.trim(), "1, 2, 3\n4, 5");
+}
+
+#[test]
+fn render_accepts_recursive_values_in_yaml_var_file() {
+    let root = temp_root("recursive-yaml-var-file");
+    write_file(
+        &root.join("template.md.j2"),
+        "{% for category in categories %}{% for item in category.items %}{{ category.name }}:{{ item.summary }}\n{% endfor %}{% endfor %}{% for row in rows %}{{ row | join(',') }}\n{% endfor %}",
+    );
+    let vars_file = root.join("vars.yaml");
+    write_file(
+        &vars_file,
+        "categories:\n  - name: Added\n    items:\n      - summary: nested YAML item\nrows:\n  - [1, 2, 3]\n  - [4, 5]\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("Added:nested YAML item"));
+    assert!(stdout.contains("1,2,3"));
+    assert!(stdout.contains("4,5"));
+}
+
+#[test]
+fn render_strips_utf8_bom_before_frontmatter() {
+    let root = temp_root("frontmatter-utf8-bom");
+    fs::write(
+        root.join("template.md.j2"),
+        b"\xef\xbb\xbf---\nrequired_variables:\n  - name\n---\nHello {{name}}\n",
+    )
+    .unwrap();
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("name=x")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "Hello x\n");
+}
+
+#[test]
+fn render_reports_invalid_template_utf8_as_config_read() {
+    let root = temp_root("template-invalid-utf8");
+    fs::write(
+        root.join("template.md.j2"),
+        b"---\n---\nbad \xff\xfe bytes\n",
+    )
+    .unwrap();
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(stderr.contains("ERR_CONFIG_READ"), "stderr: {stderr}");
+    assert!(
+        !stderr.contains("ERR_INCLUDE_NOT_FOUND"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
+fn render_reports_declared_required_variable_as_missing() {
+    let root = temp_root("declared-required-variable");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nvariables:\n  needed:\n    required: true\n---\nX {{needed}}\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(
+        stderr.contains("ERR_VAL_MISSING_REQUIRED"),
+        "stderr: {stderr}"
+    );
+    assert!(
+        !stderr.contains("ERR_VAL_UNDECLARED_TOKEN"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
+fn render_rejects_duplicate_json_and_yaml_var_file_keys() {
+    let root = temp_root("duplicate-var-file-keys");
+    write_file(&root.join("template.md.j2"), "{{ a }}\n");
+    let inputs = [
+        ("vars.json", r#"{"a": 1, "a": 2}"#),
+        ("vars.yaml", "a: 1\na: 2\n"),
+    ];
+
+    for (filename, contents) in inputs {
+        let vars_file = root.join(filename);
+        write_file(&vars_file, contents);
+        let output = sc_compose()
+            .arg("render")
+            .arg("--mode")
+            .arg("file")
+            .arg("--root")
+            .arg(&root)
+            .arg("--file")
+            .arg("template.md.j2")
+            .arg("--var-file")
+            .arg(&vars_file)
+            .output()
+            .unwrap();
+        let stderr = String::from_utf8_lossy(&output.stderr);
+
+        assert_eq!(output.status.code(), Some(3), "{filename}: {stderr}");
+        assert!(stderr.contains("ERR_CONFIG_PARSE"), "{filename}: {stderr}");
+    }
+}
+
+#[test]
+fn render_rejects_non_string_nested_yaml_map_keys() {
+    let root = temp_root("recursive-yaml-invalid-key");
+    write_file(&root.join("template.md.j2"), "{{ value }}\n");
+    let vars_file = root.join("vars.yaml");
+    write_file(&vars_file, "value:\n  1: invalid-key\n");
 
     let output = sc_compose()
         .arg("render")
@@ -1749,8 +1963,90 @@ fn render_rejects_nested_arrays_in_var_file_with_reserved_code() {
         .unwrap();
 
     assert_eq!(output.status.code(), Some(3));
-    let stderr = String::from_utf8(output.stderr).unwrap();
-    assert!(stderr.contains("ERR_VAL_NESTED_ARRAY_UNSUPPORTED"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_VAL_OBJECT_SHAPE"));
+}
+
+#[test]
+fn render_rejects_top_level_yaml_sequence_var_file() {
+    let root = temp_root("recursive-yaml-top-level-sequence");
+    write_file(&root.join("template.md.j2"), "{{ value }}\n");
+    let vars_file = root.join("vars.yaml");
+    write_file(&vars_file, "- one\n- two\n");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_CONFIG_VARFILE"));
+}
+
+#[test]
+fn render_accepts_recursive_values_in_frontmatter_defaults() {
+    let root = temp_root("recursive-frontmatter-defaults");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - categories\ninput_defaults:\n  categories:\n    - name: Added\n      items:\n        - summary: frontmatter item\n---\n{% for category in categories %}{% for item in category.items %}{{ category.name }}:{{ item.summary }}\n{% endfor %}{% endfor %}",
+    );
+    write_file(&root.join("vars.json"), "{}\n");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(root.join("vars.json"))
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(String::from_utf8_lossy(&output.stdout).contains("Added:frontmatter item"));
+}
+
+#[test]
+fn templates_named_render_accepts_recursive_values_in_template_json_defaults() {
+    let root = temp_root("templates-recursive-defaults");
+    let templates_root = root.join("user-templates");
+    let pack = templates_root.join("nested-report");
+    write_file(
+        &pack.join("template.json"),
+        r#"{ "description": "Nested report", "version": "1.0.0", "input_defaults": { "categories": [ { "name": "Added", "items": [ { "summary": "template manifest item" } ] } ] } }"#,
+    );
+    write_file(
+        &pack.join("report.md.j2"),
+        "{% for category in categories %}{% for item in category.items %}{{ category.name }}:{{ item.summary }}\n{% endfor %}{% endfor %}",
+    );
+
+    let output = sc_compose()
+        .arg("templates")
+        .arg("nested-report")
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(String::from_utf8_lossy(&output.stdout).contains("Added:template manifest item"));
 }
 
 #[test]
