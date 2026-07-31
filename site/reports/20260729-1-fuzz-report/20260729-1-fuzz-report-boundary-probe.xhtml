@@ -1,0 +1,57 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-inconclusive">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session qa-fuzz-20260729-0001 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;inconclusive&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Live worker summary: relative and absolute --var-file escapes were reproduced 3&#x2f;3 times; literal &lt;root&gt;, &lt;abs-outside&gt;, and &amp;&amp; content was present.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">inconclusive</p>
+  <p class="summary">21&#x2f;22 boundary cases behaved correctly. --var-file path traversal escaped --root while --file remained confined; commands containing &lt;root&gt; and &amp;&amp; must remain valid XML text.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">CLI path confinement, malformed inputs, and &lt;root&gt; boundary cases</th>
+        <td>22</td>
+        <td>21/22</td>
+        <td>FAIL</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">bound-16a</th><td><code>render --mode profile --kind agent --agent &#x27;..&#x2f;..&#x2f;etc&#x2f;passwd&#x27; --root &lt;root&gt; --json</code></td><td>PASS; invalid agent rejected</td></tr>
+        <tr><th scope="row">bound-16b</th><td><code>cd &lt;root&gt; &amp;&amp; render --root . --file tpl.md.j2 --var-file ..&#x2f;outside&#x2f;secret_vars.yaml --json</code></td><td>FAIL; var-file escaped root</td></tr>
+        <tr><th scope="row">bound-16c</th><td><code>--file &lt;abs-outside&gt;&#x2f;secret.md.j2 (absolute escape)</code></td><td>PASS; file escape rejected</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-BOUND-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>Hello {{ name }}</code></dd>
+        <dt>Input</dt><dd><code>--root &lt;root&gt; --var-file ..&#x2f;outside&#x2f;secret_vars.yaml &amp;&amp; render</code></dd>
+        <dt>Expected</dt><dd>Both --file and --var-file paths remain confined beneath --root.</dd>
+        <dt>Observed</dt><dd>--var-file accepted relative traversal and absolute paths outside &lt;root&gt; with exit 0.</dd>
+        <dt>Requirement / ADR</dt><dd>The path-confinement requirement covers template files; var-file confinement is not explicitly stated.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Assess whether var-file confinement is a supported security contract before creating or updating an ADR.</dd>
+        <dt>Root cause</dt><dd>The CLI applies root confinement to --file resolution but reads --var-file paths through a separate unconstrained path.</dd>
+        <dt>Recommended fix</dt><dd>Resolve --var-file through the same confined-root helper and add traversal regression tests.</dd>
+      </dl>
+    </article>
+  </section>
+</section>

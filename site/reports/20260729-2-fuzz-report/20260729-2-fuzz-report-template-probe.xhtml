@@ -1,0 +1,72 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>qa-fuzz-20260729-0002-template-probe</h2>
+      <p class="agent-meta">Session qa-fuzz-20260729-0002 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;:&quot;template-probe&quot;,&quot;target&quot;:&quot;renderer&quot;,&quot;seed&quot;:261,&quot;iterations&quot;:20,&quot;passed&quot;:15,&quot;failed&quot;:5,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;findings&quot;:[{&quot;id&quot;:&quot;F1-template-probe-loop-builtin-strict-misclassification&quot;,&quot;status&quot;:&quot;confirmed_bug&quot;,&quot;duplicate_of&quot;:&quot;GH #167 (already filed from a prior campaign, out of scope for PR #165, not re-filed)&quot;,&quot;subsystem&quot;:&quot;renderer&quot;,&quot;command&quot;:&quot;cargo run -p sc-compose -- render --strict --template min-loop.j2 --var-file items.json&quot;,&quot;minimal_template&quot;:&quot;{% for x in items %}{{ loop.index }}:{{ x }}{% if loop.last %} (last){% endif %}{% endfor %}&quot;,&quot;minimal_input&quot;:&quot;{\&quot;items\&quot;: [\&quot;a\&quot;,\&quot;b\&quot;,\&quot;c\&quot;]}&quot;,&quot;observed_result&quot;:&quot;--strict flags loop.index&#x2f;loop.last as undeclared referenced tokens, causing a hard validation&#x2f;render failure; reproduces in the simplest single-loop template, 3&#x2f;3 deterministic&quot;,&quot;expected_oracle&quot;:&quot;loop.* is a standard Jinja&#x2f;minijinja builtin context object populated inside for-loops and must not be treated as an undeclared user variable under --strict&quot;,&quot;diagnostic_code&quot;:&quot;strict-mode undeclared-variable diagnostic&quot;,&quot;requirement_trace&quot;:&quot;Already tracked as GH #167 (filed from a prior campaign); out of scope for PR #165.&quot;,&quot;requirement_follow_up&quot;:&quot;No new requirement&#x2f;ADR needed this round -- duplicate of an already-triaged, already-filed issue; defer to the existing GH #167 owner.&quot;,&quot;root_cause&quot;:&quot;Strict-mode undeclared-variable validation walks referenced identifiers without special-casing the loop.* builtin namespace injected by minijinja at render time.&quot;,&quot;recommended_fix&quot;:&quot;Exempt the loop.* builtin namespace from strict undeclared-variable checks in the validation pass (tracked under GH #167, not part of this PR's scope).&quot;,&quot;reproduction_count&quot;:3},{&quot;id&quot;:&quot;F2-template-probe-dict-items-method-unsupported&quot;,&quot;status&quot;:&quot;intentional_boundary&quot;,&quot;subsystem&quot;:&quot;renderer&quot;,&quot;command&quot;:&quot;cargo run -p sc-compose -- render --template dict-items.j2 --var-file unicode-dict.json&quot;,&quot;minimal_template&quot;:&quot;{% for k in mydict %}{{ k }}{% endfor %} vs {% for k in mydict.items() %}{{ k }}{% endfor %}&quot;,&quot;minimal_input&quot;:&quot;{\&quot;mydict\&quot;: {\&quot;éclair\&quot;: 1, \&quot;café\&quot;: 2}}&quot;,&quot;observed_result&quot;:&quot;minijinja has no Python-style .items() method (render error); the |items filter and bare for k in dict both verified working correctly with Unicode keys&quot;,&quot;expected_oracle&quot;:&quot;not_a_bug -- .items() is not part of the documented minijinja surface; correct alternatives already work&quot;,&quot;diagnostic_code&quot;:null,&quot;requirement_trace&quot;:&quot;minijinja intentionally does not implement Python's dict.items() method; this is a documented engine-surface boundary, not a gap.&quot;,&quot;requirement_follow_up&quot;:&quot;No new documentation needed -- behavior is intentionally unsupported and correct alternatives (|items filter, bare for-in) already work.&quot;,&quot;root_cause&quot;:&quot;n/a (engine-surface difference from Python, not a defect)&quot;,&quot;recommended_fix&quot;:&quot;None required; optionally note the .items() vs |items distinction in user-facing template-authoring docs.&quot;,&quot;reproduction_count&quot;:1}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Fuzz session qa-fuzz-20260729-0002, worker template-probe (target: renderer, seed 261). 20 bounded Jinja rendering cases. 15/20 passed cleanly. Nested loops (3 levels, jagged/empty arrays), conditionals/elif chains, includes (single/multi-level, missing-file and path-traversal correctly rejected), custom delimiters, whitespace control, Unicode values/keys, and default()/missing-field handling all passed correctly. Of the 5 flagged: 4 were intentional boundaries (correct negative-contract rejections) and 1 was a self-corrected test-authoring error. 1 confirmed_bug finding: loop.index/loop.last misclassified as undeclared under --strict -- this reconfirms already-filed GH #167 (out of scope for PR #165, not re-filed). 1 not_a_bug note: minijinja has no .items() method; |items filter and bare for-in both verified working with Unicode keys.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">confirmed_bug</p>
+  <p class="summary">15&#x2f;20 cases passed cleanly. 1 confirmed_bug reconfirms already-filed GH #167 (loop.index&#x2f;loop.last misclassified as undeclared under --strict) -- not new, out of scope for PR #165. 1 not_a_bug note on minijinja's missing .items() method (verified alternatives work).</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Jinja rendering: loops, conditionals, includes, delimiters, and the loop.* builtin under --strict from the live campaign</th>
+        <td>20</td>
+        <td>15/20</td>
+        <td>FAIL</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">template-11</th><td><code>{% for x in items %}{{ loop.index }}{% endfor %} under --strict</code></td><td>FAIL; loop.index misclassified as undeclared (feeds F1&#x2f;GH #167 reconfirmation)</td></tr>
+        <tr><th scope="row">template-12</th><td><code>{% if loop.last %}...{% endif %} inside a single for-loop under --strict</code></td><td>FAIL; loop.last misclassified as undeclared (feeds F1&#x2f;GH #167 reconfirmation)</td></tr>
+        <tr><th scope="row">template-15</th><td><code>{% for k in mydict.items() %} with Unicode keys</code></td><td>FAIL; .items() unsupported (feeds F2, not_a_bug)</td></tr>
+        <tr><th scope="row">template-16, 17, 18, 19</th><td><code>include-cycle, include path-traversal escape, malformed custom-delimiter template, oversized nesting depth</code></td><td>FAIL (expected); correctly rejected as intentional boundaries</td></tr>
+        <tr><th scope="row">template-01..10, 13, 14, 20</th><td><code>Nested loops (3 levels, jagged&#x2f;empty arrays), elif chains, single&#x2f;multi-level includes, whitespace control, Unicode content, default()&#x2f;missing-field handling</code></td><td>PASS; correct</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>F1-template-probe-loop-builtin-strict-misclassification (duplicate of GH #167)</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>{% for x in items %}{{ loop.index }}:{{ x }}{% if loop.last %} (last){% endif %}{% endfor %}</code></dd>
+        <dt>Input</dt><dd><code>{"items": ["a","b","c"]}</code></dd>
+        <dt>Expected</dt><dd>loop.* is a standard Jinja&#x2f;minijinja builtin context object populated inside for-loops and must not be treated as an undeclared user variable under --strict.</dd>
+        <dt>Observed</dt><dd>--strict flags loop.index&#x2f;loop.last as undeclared referenced tokens, causing a hard validation&#x2f;render failure. Reproduces in the simplest single-loop template, 3&#x2f;3 deterministic.</dd>
+        <dt>Requirement / ADR</dt><dd>Already tracked as GH #167 (filed from a prior campaign); out of scope for PR #165.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new requirement&#x2f;ADR needed this round -- duplicate of an already-triaged, already-filed issue; defer to the existing GH #167 owner.</dd>
+        <dt>Root cause</dt><dd>Strict-mode undeclared-variable validation walks referenced identifiers without special-casing the loop.* builtin namespace injected by minijinja at render time.</dd>
+        <dt>Recommended fix</dt><dd>Exempt the loop.* builtin namespace from strict undeclared-variable checks in the validation pass (tracked under GH #167, not part of this PR's scope).</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>F2-template-probe-dict-items-method-unsupported (not_a_bug)</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>{% for k in mydict %}{{ k }}{% endfor %} vs {% for k in mydict.items() %}{{ k }}{% endfor %}</code></dd>
+        <dt>Input</dt><dd><code>{"mydict": {"éclair": 1, "café": 2}}</code></dd>
+        <dt>Expected</dt><dd>not_a_bug -- .items() is not part of the documented minijinja surface; correct alternatives already work.</dd>
+        <dt>Observed</dt><dd>minijinja has no Python-style .items() method (render error); the |items filter and bare for k in dict both verified working correctly with Unicode keys.</dd>
+        <dt>Requirement / ADR</dt><dd>minijinja intentionally does not implement Python's dict.items() method; this is a documented engine-surface boundary, not a gap.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new documentation needed -- behavior is intentionally unsupported and correct alternatives (|items filter, bare for-in) already work.</dd>
+        <dt>Root cause</dt><dd>n&#x2f;a (engine-surface difference from Python, not a defect)</dd>
+        <dt>Recommended fix</dt><dd>None required; optionally note the .items() vs |items distinction in user-facing template-authoring docs.</dd>
+      </dl>
+    </article>
+  </section>
+</section>

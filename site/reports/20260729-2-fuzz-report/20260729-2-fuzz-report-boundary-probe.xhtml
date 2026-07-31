@@ -1,0 +1,40 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>qa-fuzz-20260729-0002-boundary-probe</h2>
+      <p class="agent-meta">Session qa-fuzz-20260729-0002 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;:&quot;boundary-probe&quot;,&quot;target&quot;:&quot;cli&quot;,&quot;seed&quot;:261,&quot;iterations&quot;:29,&quot;passed&quot;:29,&quot;failed&quot;:0,&quot;classification&quot;:&quot;pass&quot;,&quot;findings&quot;:[],&quot;notes&quot;:[{&quot;id&quot;:&quot;FUZZ-B01&quot;,&quot;status&quot;:&quot;intentional_boundary&quot;,&quot;kind&quot;:&quot;documentation-gap&quot;,&quot;blocking&quot;:false,&quot;github_issue&quot;:null,&quot;subsystem&quot;:&quot;cli&quot;,&quot;command&quot;:&quot;cargo run -p sc-compose -- render --var key=cli-value --var-file override.json --template t.j2&quot;,&quot;observed_result&quot;:&quot;--var-file silently overrides a same-key --var flag (last-loaded-wins); matches actual deterministic code behavior in crates&#x2f;sc-compose&#x2f;src&#x2f;render_request.rs:267-274&quot;,&quot;expected_oracle&quot;:&quot;deterministic precedence should be documented so it is not a surprise, even though current behavior is correct and intentional&quot;,&quot;requirement_trace&quot;:&quot;docs&#x2f;requirements.md FR-2 does not document --var-file vs --var precedence.&quot;,&quot;requirement_follow_up&quot;:&quot;Document the last-loaded-wins precedence in docs&#x2f;requirements.md FR-2; not a bug, flagged in the QA report text rather than filed as a GH issue this round.&quot;,&quot;reproduction_count&quot;:3},{&quot;id&quot;:&quot;FUZZ-B02&quot;,&quot;status&quot;:&quot;intentional_boundary&quot;,&quot;kind&quot;:&quot;not_a_bug&quot;,&quot;blocking&quot;:false,&quot;github_issue&quot;:168,&quot;subsystem&quot;:&quot;cli&quot;,&quot;observed_result&quot;:&quot;var-file path confinement gap reconfirmed still present at baseline 749a3e0&quot;,&quot;requirement_trace&quot;:&quot;Already tracked as GH #168.&quot;,&quot;requirement_follow_up&quot;:&quot;Not re-filed -- already tracked; no new action this round.&quot;,&quot;reproduction_count&quot;:1}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Fuzz session qa-fuzz-20260729-0002, worker boundary-probe (target: cli, seed 261). 29 bounded negative-contract cases; 29/29 passed -- 0 unexpected failures, all negative-contract cases produced stable diagnostics as designed (ERR_CONFIG_VARFILE / ERR_CONFIG_PARSE, exit 3, no panics/hangs) across non-object top-level values, malformed-but-YAML-valid JSON, duplicate keys, invalid var names, missing files, YAML anchors/aliases, dangerous-but-inert YAML tags, and multi-var-file precedence. Two non-blocking notes recorded (not GH issues this round): FUZZ-B01, a documentation gap -- --var-file silently overrides a same-key --var flag (last-loaded-wins), matching deterministic code in render_request.rs:267-274 but undocumented in docs/requirements.md FR-2; and FUZZ-B02, reconfirming already-filed GH #168 (var-file path confinement gap) still present at baseline 749a3e0.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">pass</p>
+  <p class="summary">29&#x2f;29 cases passed with stable diagnostics and no panics&#x2f;hangs. Two non-blocking notes recorded in this report's text (not filed as new GH issues): an undocumented --var-file&#x2f;--var precedence rule (FUZZ-B01), and a reconfirmation that already-filed GH #168 (var-file path confinement gap) is still present at baseline (FUZZ-B02).</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">CLI negative-contract cases: malformed input, invalid var-files, path confinement, and flag precedence from the live campaign</th>
+        <td>29</td>
+        <td>29/29</td>
+        <td>PASS</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">boundary-04</th><td><code>--var key=cli-value --var-file override.json (same key, last-loaded-wins)</code></td><td>PASS (documented as FUZZ-B01, non-blocking doc-gap note -- undocumented precedence in render_request.rs:267-274)</td></tr>
+        <tr><th scope="row">boundary-09</th><td><code>--var-file ../../escape-attempt.json (path confinement probe)</code></td><td>PASS-as-reconfirmed (FUZZ-B02, GH #168 gap still present at baseline 749a3e0, not re-filed)</td></tr>
+        <tr><th scope="row">boundary-01,02,03,05,06,07,08,10-29</th><td><code>Non-object top-level values, malformed-but-YAML-valid JSON, duplicate keys, invalid var names, missing files, YAML anchors&#x2f;aliases, dangerous-but-inert YAML tags, multi-var-file precedence</code></td><td>PASS; correct stable diagnostics (ERR_CONFIG_VARFILE&#x2f;ERR_CONFIG_PARSE, exit 3), no panics&#x2f;hangs</td></tr>
+      </tbody>
+    </table>
+  </section>
+</section>

@@ -1,0 +1,72 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>qa-fuzz-20260729-0002-shape-probe</h2>
+      <p class="agent-meta">Session qa-fuzz-20260729-0002 · Worker shape-probe</p>
+    </div>
+    <div class="agent-actions" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;:&quot;shape-probe&quot;,&quot;target&quot;:&quot;var-file&quot;,&quot;seed&quot;:261,&quot;iterations&quot;:20,&quot;passed&quot;:16,&quot;failed&quot;:4,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;findings&quot;:[{&quot;id&quot;:&quot;F1-shape-probe-quadratic-recursion-latency&quot;,&quot;status&quot;:&quot;confirmed_bug&quot;,&quot;github_issue&quot;:169,&quot;subsystem&quot;:&quot;var-file&quot;,&quot;command&quot;:&quot;cargo run -p sc-compose -- render --template min.j2 --var-file deep-depth-N.yaml&quot;,&quot;minimal_template&quot;:&quot;{{ a.a.a.a }}&quot;,&quot;minimal_input&quot;:&quot;a: {a: {a: {a: ... (depth N nested maps) }}}&quot;,&quot;observed_result&quot;:&quot;Wall time before ERR_CONFIG_PARSE (recursion limit exceeded): depth 500=0.011s, 1000=0.019s, 2000=0.055s, 4000=0.190s, 8000=0.697s, 16000=2.653s, 50000=~25.6s -- quadratic O(depth^2) scaling&quot;,&quot;expected_oracle&quot;:&quot;recursion-limit rejection should be bounded/near-linear in nesting depth, not quadratic&quot;,&quot;diagnostic_code&quot;:&quot;ERR_CONFIG_PARSE&quot;,&quot;requirement_trace&quot;:&quot;No requirement or ADR currently covers this behavior.&quot;,&quot;requirement_follow_up&quot;:&quot;Create/update an NFR capping var-file ingestion latency before recursion-limit rejection; this is a genuine performance gap, not intentionally unsupported.&quot;,&quot;root_cause&quot;:&quot;crates/sc-compose/src/var_file.rs::parse_var_file_contents serde_yaml fallback path re-walks nested structure quadratically in depth before the recursion-limit check fires.&quot;,&quot;recommended_fix&quot;:&quot;Move the recursion-depth check to a single top-down pass, or replace the serde_yaml fallback with an iterative depth-tracked parser so depth-N rejection stays near O(N).&quot;,&quot;reproduction_count&quot;:3},{&quot;id&quot;:&quot;F2-shape-probe-silent-bignum-precision-loss&quot;,&quot;status&quot;:&quot;inconclusive&quot;,&quot;github_issue&quot;:170,&quot;subsystem&quot;:&quot;var-file&quot;,&quot;command&quot;:&quot;cargo run -p sc-compose -- render --template min.j2 --var-file bignum.json&quot;,&quot;minimal_template&quot;:&quot;{{ value }}&quot;,&quot;minimal_input&quot;:&quot;{\&quot;value\&quot;: 999999999999999999999999999999999999999999}&quot;,&quot;observed_result&quot;:&quot;Exit 0; value silently rendered as 999999999999999900000000000000000000000000.0 (lossy f64 downgrade of a 45-digit integer), no diagnostic&quot;,&quot;expected_oracle&quot;:&quot;exact-precision preservation, or an explicit numeric-fidelity diagnostic when a JSON integer literal exceeds u64::MAX&quot;,&quot;diagnostic_code&quot;:null,&quot;requirement_trace&quot;:&quot;No requirement or ADR currently covers this behavior.&quot;,&quot;requirement_follow_up&quot;:&quot;Named decision owner needed (team-lead/comp) to decide reject/warn/arbitrary-precision handling for out-of-u64-range JSON integers; document the choice as an ADR once decided.&quot;,&quot;root_cause&quot;:&quot;serde_json falls back to an f64 visit for JSON integers outside u64::MAX range; no magnitude/precision guard exists on the JSON var-file ingestion path (unlike the existing YAML NaN/Infinity guard).&quot;,&quot;recommended_fix&quot;:&quot;Add a JSON numeric-fidelity guard mirroring the YAML NaN/Infinity guard; file an ADR recording the chosen behavior.&quot;,&quot;reproduction_count&quot;:1}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Fuzz session qa-fuzz-20260729-0002, worker shape-probe (target: var-file, seed 261). 20 bounded JSON/YAML var-file cases. 16/20 passed (including 16 other nested/jagged JSON+YAML at moderate depth, empty values, numeric edges, mixed-type arrays -- all correct/intentional-boundary). 2 cases (depth 8000 and 16000) showed quadratic O(depth^2) latency before ERR_CONFIG_PARSE (recursion limit exceeded) fires -- filed as GH #169, confirmed_bug, reproduced 3/3. 2 cases exercised a 45-digit JSON integer literal beyond u64::MAX, silently downgraded to a lossy f64 with no diagnostic -- filed as GH #170, inconclusive pending a numeric-fidelity decision.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">confirmed_bug</p>
+  <p class="summary">16&#x2f;20 cases passed. Two depth-cap cases show quadratic-time latency before recursion-limit rejection (GH #169, confirmed_bug). Two bignum cases show silent lossy-f64 precision loss on out-of-range JSON integers with no diagnostic (GH #170, inconclusive).</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Var-file shapes: recursion depth latency and numeric edge cases from the live campaign</th>
+        <td>20</td>
+        <td>16/20</td>
+        <td>FAIL</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">shape-05</th><td><code>deep-depth-8000.yaml: recursive map nesting, depth 8000</code></td><td>FLAG; 0.697s before ERR_CONFIG_PARSE (feeds F1&#x2f;GH #169)</td></tr>
+        <tr><th scope="row">shape-06</th><td><code>deep-depth-16000.yaml: recursive map nesting, depth 16000</code></td><td>FLAG; 2.653s before ERR_CONFIG_PARSE (feeds F1&#x2f;GH #169)</td></tr>
+        <tr><th scope="row">shape-13</th><td><code>bignum-45digit.json: {"value": 999999999999999999999999999999999999999999}</code></td><td>FLAG; silently rendered as lossy f64, no diagnostic (feeds F2&#x2f;GH #170)</td></tr>
+        <tr><th scope="row">shape-14</th><td><code>bignum-45digit-negative.json: second 45-digit out-of-range integer literal</code></td><td>FLAG; silently rendered as lossy f64, no diagnostic (feeds F2&#x2f;GH #170)</td></tr>
+        <tr><th scope="row">shape-01,02,03,04,07,08,09,10,11,12,15,16,17,18,19,20</th><td><code>Nested&#x2f;jagged JSON+YAML at moderate depth, empty values, numeric edges, mixed-type arrays</code></td><td>PASS; correct / intentional boundary</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>F1-shape-probe-quadratic-recursion-latency (GH #169)</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>{{ a.a.a.a }}</code></dd>
+        <dt>Input</dt><dd><code>a: {a: {a: {a: ... (depth N nested maps) }}}</code></dd>
+        <dt>Expected</dt><dd>Recursion-limit rejection should be bounded/near-linear in nesting depth, not quadratic.</dd>
+        <dt>Observed</dt><dd>Wall time before <code>ERR_CONFIG_PARSE</code> (recursion limit exceeded): depth 500=0.011s, 1000=0.019s, 2000=0.055s, 4000=0.190s, 8000=0.697s, 16000=2.653s, 50000=~25.6s -- quadratic O(depth^2) scaling. Reproduced 3&#x2f;3 deterministic.</dd>
+        <dt>Requirement / ADR</dt><dd>No requirement or ADR currently covers this behavior.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Create/update an NFR capping var-file ingestion latency before recursion-limit rejection; this is a genuine performance gap, not intentionally unsupported.</dd>
+        <dt>Root cause</dt><dd><code>crates/sc-compose/src/var_file.rs::parse_var_file_contents</code> serde_yaml fallback path re-walks nested structure quadratically in depth before the recursion-limit check fires.</dd>
+        <dt>Recommended fix</dt><dd>Move the recursion-depth check to a single top-down pass, or replace the serde_yaml fallback with an iterative depth-tracked parser so depth-N rejection stays near O(N).</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>F2-shape-probe-silent-bignum-precision-loss (GH #170)</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>{{ value }}</code></dd>
+        <dt>Input</dt><dd><code>{"value": 999999999999999999999999999999999999999999}</code></dd>
+        <dt>Expected</dt><dd>Exact-precision preservation, or an explicit numeric-fidelity diagnostic when a JSON integer literal exceeds u64::MAX.</dd>
+        <dt>Observed</dt><dd>Exit 0; value silently rendered as 999999999999999900000000000000000000000000.0 (lossy f64 downgrade of a 45-digit integer), no diagnostic.</dd>
+        <dt>Requirement / ADR</dt><dd>No requirement or ADR currently covers this behavior.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Named decision owner needed (team-lead&#x2f;comp) to decide reject&#x2f;warn&#x2f;arbitrary-precision handling for out-of-u64-range JSON integers; document the choice as an ADR once decided.</dd>
+        <dt>Root cause</dt><dd>serde_json falls back to an f64 visit for JSON integers outside u64::MAX range; no magnitude&#x2f;precision guard exists on the JSON var-file ingestion path (unlike the existing YAML NaN&#x2f;Infinity guard).</dd>
+        <dt>Recommended fix</dt><dd>Add a JSON numeric-fidelity guard mirroring the YAML NaN&#x2f;Infinity guard; file an ADR recording the chosen behavior.</dd>
+      </dl>
+    </article>
+  </section>
+</section>

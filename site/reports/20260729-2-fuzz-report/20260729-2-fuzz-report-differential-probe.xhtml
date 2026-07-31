@@ -1,0 +1,39 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>qa-fuzz-20260729-0002-differential-probe</h2>
+      <p class="agent-meta">Session qa-fuzz-20260729-0002 · Worker differential-probe</p>
+    </div>
+    <div class="agent-actions" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;:&quot;differential-probe&quot;,&quot;target&quot;:&quot;full&quot;,&quot;seed&quot;:261,&quot;iterations&quot;:20,&quot;passed&quot;:20,&quot;failed&quot;:0,&quot;classification&quot;:&quot;pass&quot;,&quot;findings&quot;:[],&quot;baseline_ref&quot;:&quot;b763783&quot;,&quot;head_ref&quot;:&quot;749a3e0&quot;,&quot;diff_scope&quot;:&quot;docs&#x2f;examples&#x2f;skill-template files only; zero changes under crates&#x2f; or bindings&#x2f;&quot;,&quot;observed_result&quot;:&quot;20&#x2f;20 exit-code and stdout matches across JSON&#x2f;YAML var-file parity, jagged&#x2f;nested&#x2f;empty structures, numeric&#x2f;boolean&#x2f;null leaves, nested loops+conditionals, Unicode, includes, strict&#x2f;unknown-var error paths, custom delimiters, --all&#x2f;--json flags; fully deterministic across 3 reruns per case&quot;,&quot;conclusion&quot;:&quot;PR #165 is behavior-neutral for the rendering engine (byte-identical between baseline and head for this diff)&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Fuzz session qa-fuzz-20260729-0002, worker differential-probe (target: full, seed 261). Compared merge-base b763783 (baseline) vs head 749a3e0: confirmed the PR #165 diff touches only docs/examples/skill-template files, zero changes under crates/ or bindings/ -- engine is byte-identical between the two refs for this diff. 20/20 exit-code and stdout matches across JSON/YAML var-file parity, jagged/nested/empty structures, numeric/boolean/null leaves, nested loops+conditionals, Unicode, includes, strict/unknown-var error paths, custom delimiters, --all/--json flags. Fully deterministic across 3 reruns per case. No findings. Confirms PR #165 is behavior-neutral for the rendering engine.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">pass</p>
+  <p class="summary">20&#x2f;20 cases matched between baseline b763783 and head 749a3e0 across all probed dimensions, fully deterministic across 3 reruns per case, zero findings -- confirms PR #165 is behavior-neutral for the rendering engine.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Baseline-vs-head differential parity across the full rendering pipeline from the live campaign</th>
+        <td>20</td>
+        <td>20/20</td>
+        <td>PASS</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">diff-01</th><td><code>merge-base b763783 vs head 749a3e0: diff scope check (git diff --stat)</code></td><td>PASS; diff touches only docs&#x2f;examples&#x2f;skill-template files, zero changes under crates&#x2f; or bindings&#x2f;</td></tr>
+        <tr><th scope="row">diff-02..20</th><td><code>JSON&#x2f;YAML var-file parity, jagged&#x2f;nested&#x2f;empty structures, numeric&#x2f;boolean&#x2f;null leaves, nested loops+conditionals, Unicode, includes, strict&#x2f;unknown-var error paths, custom delimiters, --all&#x2f;--json flags, each rerun 3x</code></td><td>PASS; byte-identical exit code and stdout between baseline and head, deterministic across reruns</td></tr>
+      </tbody>
+    </table>
+  </section>
+</section>

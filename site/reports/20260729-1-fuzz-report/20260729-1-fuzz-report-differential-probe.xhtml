@@ -1,0 +1,40 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>differential-probe</h2>
+      <p class="agent-meta">Session qa-fuzz-20260729-0001 · Worker differential-probe</p>
+    </div>
+    <div class="agent-actions" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;:&quot;differential-probe&quot;,&quot;classification&quot;:&quot;pass&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Live worker summary: 20&#x2f;20 cases passed across three real example templates.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">pass</p>
+  <p class="summary">All 20 bounded parity, determinism, and metamorphic cases matched their expected output; JSON &amp; YAML inputs remained equivalent.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">JSON&#x2f;YAML parity, determinism, and metamorphic checks</th>
+        <td>20</td>
+        <td>20/20</td>
+        <td>PASS</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">diff-01</th><td><code>JSON vs YAML var-file parity for a jagged array</code></td><td>PASS; byte-equivalent output</td></tr>
+        <tr><th scope="row">diff-02</th><td><code>3x repeated render with unchanged inputs</code></td><td>PASS; deterministic output</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>

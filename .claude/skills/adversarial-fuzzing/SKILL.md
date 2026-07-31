@@ -57,16 +57,21 @@ after the campaign unless a failure artifact is being preserved.
 2. Inspect the target subsystem, current tests, repository boundary rules, and
    the requested baseline. Keep the user's existing changes intact.
 3. Use the Agent Runner to invoke the registered
-   `sc-adversarial-fuzz-coordinator` agent with the campaign contract. Do not
-   invoke an unregistered agent path.
-4. Have the coordinator spawn focused workers in the background with
-   `run_in_background: true`, one target per worker and a unique
-   `correlation_id`.
+   `sc-adversarial-fuzz-coordinator` agent as the primary coordinator with the
+   campaign contract. Do not invoke an unregistered agent path.
+4. Have the primary coordinator spawn a swarm of focused workers in the
+   background with `run_in_background: true`. Each worker gets a distinct fuzz
+   task, runs one bounded fuzz test, and returns exactly one structured JSON
+   result with its test inputs, iteration count, pass/fail counts, and any
+   candidate finding.
 5. Aggregate worker results in correlation-ID order. Surface partial failures;
    never discard a timeout, malformed response, or worker error.
-6. Reproduce each candidate failure in the coordinator's worktree, minimize the
-   template and input while retaining the failure, and classify the outcome
-   using the oracle rules below.
+6. Reproduce each candidate failure in the primary coordinator's worktree,
+   minimize the template and input while retaining the failure, and classify
+   the outcome using the oracle rules below. For every candidate that remains
+   plausible, the primary may deploy background explore agents to locate the
+   relevant requirement, ADR, or NFR, establish root cause, and recommend the
+   next change. Merge their conclusions into the worker's structured result.
 7. When a candidate is a confirmed product bug and `promote_regressions` is
    true, add the smallest durable test to the nearest existing test suite.
    Prefer inline fixtures for small cases and checked-in fixtures for complex
@@ -76,6 +81,32 @@ after the campaign unless a failure artifact is being preserved.
    and boundary checks when a regression test was added.
 9. Return the coordinator's fenced JSON report and summarize confirmed bugs,
    promoted tests, unresolved candidates, and campaign limits.
+10. After the campaign summary is complete, have the primary coordinator
+    investigate every candidate failure before producing the report. It may
+    deploy background explore agents to locate the relevant requirement, ADR,
+    or NFR; establish the evidence-backed root cause; and identify the
+    recommended change. Preserve those conclusions in the worker's structured
+    JSON envelope. Then generate one report package for the fuzz session. Each
+    swarm worker runs one bounded fuzz test and returns one structured result;
+    the package contains one XHTML panel per worker. Use the reusable
+    `.claude/skills/html-report/templates/fuzz-run-agent.xhtml.j2` template for
+    those panels and delegate the single main HTML/JSON package to the
+    `html-report-generator` background agent. Its top-level `summary_html` must
+    be a compact table with the fuzz-run description, iteration count, pass
+    fraction (`passed/iterations`), and a simple PASS/FAIL result. Keep each
+    panel's `json_payload` equal to the worker's durable evidence envelope and
+    provide `context_text`; do not invent a second campaign schema. Write real
+    session artifacts to `site/reports/`, assigning a 1-based sequence in
+    deterministic session order and resetting it for each campaign day. The
+    filename stem must be `YYYYMMDD-N-fuzz-report`, for example
+    `site/reports/20260729-1-fuzz-report.html`; keep the matching `.json`
+    sidecar and one companion `.xhtml` panel per worker under the derived
+    `site/reports/20260729-1-fuzz-report/` directory, using a deterministic
+    worker suffix when more than one panel is present. The report generator
+    must validate the HTML output with `html-validate` and every XHTML panel
+    with `xmllint --noout` before the session is reported complete. Review-only
+    examples belong under `docs/examples/fuzz-run-report/`, not
+    `site/reports/`.
 
 ## Worker portfolio
 
@@ -92,6 +123,15 @@ four for `full`:
 Each worker must stay within its target, use bounded generation, and return a
 standard fenced JSON envelope. Workers may create temporary inputs and logs,
 but must not edit production code, commit changes, or delete user files.
+
+When a finding cannot be traced to an existing requirement or ADR, record that
+absence explicitly and assess whether it is a genuine contract gap. The
+recommended action must be one of: create or update a requirement/ADR before
+implementation when the behavior is supported and the gap is real; document
+why no new requirement/ADR is needed when the behavior is intentionally
+unsupported or too narrow; or leave the assessment pending with a named owner
+when product intent is not yet established. Do not create documentation merely
+because a finding lacks a reference.
 
 ## Oracle and triage rules
 
@@ -126,6 +166,8 @@ For every candidate, require:
   "observed": "...",
   "expected_oracle": "...",
   "diagnostic": "optional code",
+  "requirement_trace": "existing requirement/ADR, or explicit no-coverage statement",
+  "requirement_follow_up": "create/update, no-new-doc rationale, or named decision owner",
   "reproduction_count": 3,
   "recommended_test": "..."
 }

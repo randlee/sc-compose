@@ -1,0 +1,189 @@
+{
+  "output_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/success-fuzz-report.html",
+  "json_output_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/docs/examples/fuzz-run-report/success-fuzz-report.json",
+  "title": "Adversarial fuzz session: all workers passed",
+  "subtitle": "Template-rendered worker panels in one generated HTML report",
+  "status": "PASS",
+  "generated_at": "2026-07-29T22:24:00-07:00",
+  "source_label": "E.3 evidence-shaped multi-agent session",
+  "summary_html": "<p>One primary coordinator dispatched four independent workers. Each worker ran one bounded fuzz task and returned a structured result; the report sections are the exact XHTML panels rendered from the worker-panel template.</p><table class=\"session-summary\"><thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead><tbody><tr><th scope=\"row\">Malformed files, invalid var-file boundaries, and stable diagnostics</th><td>12</td><td>12/12</td><td><span class=\"status status-pass\">PASS</span></td></tr><tr><th scope=\"row\">Baseline parity, JSON/YAML equivalence, and deterministic output</th><td>12</td><td>12/12</td><td><span class=\"status status-pass\">PASS</span></td></tr><tr><th scope=\"row\">Nested JSON/YAML values, jagged arrays, and object nesting</th><td>12</td><td>12/12</td><td><span class=\"status status-pass\">PASS</span></td></tr><tr><th scope=\"row\">Jinja loops, conditionals, whitespace, and optional values</th><td>12</td><td>12/12</td><td><span class=\"status status-pass\">PASS</span></td></tr></tbody></table>",
+  "sections": [
+    {
+      "id": "shape-probe",
+      "title": "shape-probe",
+      "status": "PASS",
+      "summary": "The shape worker exercised recorded structured-input cases. The real jagged-array fixture used rows [[1, 2, 3], [4, 5]] and produced the expected two-row output.",
+      "context_text": "Successful shape-probe session: 12 iterations, including shape-probe-002 with rows [[1, 2, 3], [4, 5]], all passed.",
+      "json_payload": {
+        "session_id": "mock-success-e3-20260729",
+        "agent_id": "shape-probe",
+        "worker_correlation_id": "shape-probe",
+        "classification": "pass",
+        "iterations": 12,
+        "passed": 12,
+        "failed": 0,
+        "result": "PASS",
+        "cases": [
+          "shape-probe-002",
+          "shape-probe-003"
+        ],
+        "test_inputs": [
+          {
+            "case_id": "shape-probe-002",
+            "description": "Render a jagged array from a JSON var-file",
+            "minimal_template": "---\\nvariables:\\n  rows:\\n    required: true\\n---\\n{% for row in rows %}{{ row | join(\",\") }}\\n{% endfor %}",
+            "minimal_input": "rows=[[1,2,3],[4,5]]",
+            "passed": true,
+            "outcome": "expected two-row output"
+          },
+          {
+            "case_id": "shape-probe-003",
+            "description": "Preserve nested objects and mixed arrays",
+            "minimal_template": "---\\nvariables:\\n  data:\\n    required: true\\n---\\n{{ data }}",
+            "minimal_input": "data={\"items\":[],\"mixed\":[1,\"two\",{\"ok\":true}]}",
+            "passed": true,
+            "outcome": "input shape preserved"
+          }
+        ]
+      },
+      "xhtml_path": "docs/examples/fuzz-run-report/success-shape.xhtml",
+      "fragment_source": "auto-generated",
+      "body_html": "<p class=\"status\">\n    <span class=\"status status-pass\">PASS</span>\n  </p>\n  <p class=\"summary\">The shape worker exercised recorded structured-input cases. The real jagged-array fixture used rows [[1, 2, 3], [4, 5]] and produced the expected two-row output.</p>\n\n  <table class=\"agent-results\">\n    <thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead>\n    <tbody>\n      <tr>\n        <th scope=\"row\">Nested JSON/YAML values, jagged arrays, and object nesting</th>\n        <td>12</td>\n        <td>12/12</td>\n        <td><span class=\"status status-pass\">PASS</span></td>\n      </tr>\n    </tbody>\n  </table>\n\n  <section class=\"test-inputs\">\n    <h3>Inputs exercised</h3>\n    <table>\n      <thead><tr><th scope=\"col\">Case</th><th scope=\"col\">Description</th><th scope=\"col\">Template / frontmatter</th><th scope=\"col\">Input</th><th scope=\"col\">Outcome</th></tr></thead>\n      <tbody>\n        <tr>\n          <th scope=\"row\">shape-probe-002</th>\n          <td>Render a jagged array from a JSON var-file</td>\n          <td><code>---\\nvariables:\\n  rows:\\n    required: true\\n---\\n{% for row in rows %}{{ row | join(\",\") }}\\n{% endfor %}</code></td>\n          <td><code>rows=[[1,2,3],[4,5]]</code></td>\n          <td><span class=\"status status-pass\">PASS</span> <span class=\"outcome-detail\">expected two-row output</span></td>\n        </tr>\n        <tr>\n          <th scope=\"row\">shape-probe-003</th>\n          <td>Preserve nested objects and mixed arrays</td>\n          <td><code>---\\nvariables:\\n  data:\\n    required: true\\n---\\n{{ data }}</code></td>\n          <td><code>data={\"items\":[],\"mixed\":[1,\"two\",{\"ok\":true}]}</code></td>\n          <td><span class=\"status status-pass\">PASS</span> <span class=\"outcome-detail\">input shape preserved</span></td>\n        </tr>\n      </tbody>\n    </table>\n  </section>"
+    },
+    {
+      "id": "template-probe",
+      "title": "template-probe",
+      "status": "PASS",
+      "summary": "The template worker exercised the recorded Jinja behavior cases, including nested control flow and optional values. All bounded inputs produced expected text.",
+      "context_text": "Successful template-probe session: 12 loop, conditional, whitespace, and optional-value iterations all passed.",
+      "json_payload": {
+        "session_id": "mock-success-e3-20260729",
+        "agent_id": "template-probe",
+        "worker_correlation_id": "template-probe",
+        "classification": "pass",
+        "iterations": 12,
+        "passed": 12,
+        "failed": 0,
+        "result": "PASS",
+        "cases": [
+          "template-probe-002",
+          "template-probe-003"
+        ],
+        "test_inputs": [
+          {
+            "case_id": "template-probe-002",
+            "description": "Select a conditional branch for a numeric var-file value",
+            "minimal_template": "---\\nvariables:\\n  count:\\n    required: true\\n---\\n{% if count > 2 %}many{% else %}few{% endif %}",
+            "minimal_input": "count=3",
+            "passed": true,
+            "outcome": "expected branch selected"
+          },
+          {
+            "case_id": "template-probe-003",
+            "description": "Render a nested loop containing an empty list",
+            "minimal_template": "---\\nvariables:\\n  groups:\\n    required: true\\n---\\n{% for name, members in groups %}{{ name }}={{ members | length }}\\n{% endfor %}",
+            "minimal_input": "groups={\"empty\":[],\"active\":[\"one\"]}",
+            "passed": true,
+            "outcome": "deterministic empty rendering"
+          }
+        ]
+      },
+      "xhtml_path": "docs/examples/fuzz-run-report/success-template.xhtml",
+      "fragment_source": "auto-generated",
+      "body_html": "<p class=\"status\">\n    <span class=\"status status-pass\">PASS</span>\n  </p>\n  <p class=\"summary\">The template worker exercised the recorded Jinja behavior cases, including nested control flow and optional values. All bounded inputs produced expected text.</p>\n\n  <table class=\"agent-results\">\n    <thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead>\n    <tbody>\n      <tr>\n        <th scope=\"row\">Jinja loops, conditionals, whitespace, and optional values</th>\n        <td>12</td>\n        <td>12/12</td>\n        <td><span class=\"status status-pass\">PASS</span></td>\n      </tr>\n    </tbody>\n  </table>\n\n  <section class=\"test-inputs\">\n    <h3>Inputs exercised</h3>\n    <table>\n      <thead><tr><th scope=\"col\">Case</th><th scope=\"col\">Description</th><th scope=\"col\">Template / frontmatter</th><th scope=\"col\">Input</th><th scope=\"col\">Outcome</th></tr></thead>\n      <tbody>\n        <tr>\n          <th scope=\"row\">template-probe-002</th>\n          <td>Select a conditional branch for a numeric var-file value</td>\n          <td><code>---\\nvariables:\\n  count:\\n    required: true\\n---\\n{% if count &gt; 2 %}many{% else %}few{% endif %}</code></td>\n          <td><code>count=3</code></td>\n          <td><span class=\"status status-pass\">PASS</span> <span class=\"outcome-detail\">expected branch selected</span></td>\n        </tr>\n        <tr>\n          <th scope=\"row\">template-probe-003</th>\n          <td>Render a nested loop containing an empty list</td>\n          <td><code>---\\nvariables:\\n  groups:\\n    required: true\\n---\\n{% for name, members in groups %}{{ name }}={{ members | length }}\\n{% endfor %}</code></td>\n          <td><code>groups={\"empty\":[],\"active\":[\"one\"]}</code></td>\n          <td><span class=\"status status-pass\">PASS</span> <span class=\"outcome-detail\">deterministic empty rendering</span></td>\n        </tr>\n      </tbody>\n    </table>\n  </section>"
+    },
+    {
+      "id": "boundary-probe",
+      "title": "boundary-probe",
+      "status": "PASS",
+      "summary": "The boundary worker exercised malformed-input, diagnostic, and path-confinement cases from the recorded boundary-probe task. Every input reached its expected boundary.",
+      "context_text": "Successful boundary-probe session: 12 malformed-input, diagnostic, and path-confinement iterations all passed.",
+      "json_payload": {
+        "session_id": "mock-success-e3-20260729",
+        "agent_id": "boundary-probe",
+        "worker_correlation_id": "boundary-probe",
+        "classification": "pass",
+        "iterations": 12,
+        "passed": 12,
+        "failed": 0,
+        "result": "PASS",
+        "cases": [
+          "boundary-probe-004",
+          "boundary-probe-005"
+        ],
+        "test_inputs": [
+          {
+            "case_id": "boundary-probe-004",
+            "description": "Reject a malformed var-file at the configuration boundary",
+            "minimal_template": "---\\nvariables:\\n  name:\\n    required: true\\n---\\nHello {{name}}",
+            "minimal_input": "malformed var-file: { \"name\":",
+            "passed": true,
+            "outcome": "stable configuration diagnostic"
+          },
+          {
+            "case_id": "boundary-probe-005",
+            "description": "Constrain an include path outside the workspace root",
+            "minimal_template": "---\\n---\\n@<outside/workspace.md>",
+            "minimal_input": "include path=/tmp/outside-workspace.md",
+            "passed": true,
+            "outcome": "confinement held"
+          }
+        ]
+      },
+      "xhtml_path": "docs/examples/fuzz-run-report/success-boundary.xhtml",
+      "fragment_source": "auto-generated",
+      "body_html": "<p class=\"status\">\n    <span class=\"status status-pass\">PASS</span>\n  </p>\n  <p class=\"summary\">The boundary worker exercised malformed-input, diagnostic, and path-confinement cases from the recorded boundary-probe task. Every input reached its expected boundary.</p>\n\n  <table class=\"agent-results\">\n    <thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead>\n    <tbody>\n      <tr>\n        <th scope=\"row\">Malformed files, invalid var-file boundaries, and stable diagnostics</th>\n        <td>12</td>\n        <td>12/12</td>\n        <td><span class=\"status status-pass\">PASS</span></td>\n      </tr>\n    </tbody>\n  </table>\n\n  <section class=\"test-inputs\">\n    <h3>Inputs exercised</h3>\n    <table>\n      <thead><tr><th scope=\"col\">Case</th><th scope=\"col\">Description</th><th scope=\"col\">Template / frontmatter</th><th scope=\"col\">Input</th><th scope=\"col\">Outcome</th></tr></thead>\n      <tbody>\n        <tr>\n          <th scope=\"row\">boundary-probe-004</th>\n          <td>Reject a malformed var-file at the configuration boundary</td>\n          <td><code>---\\nvariables:\\n  name:\\n    required: true\\n---\\nHello {{name}}</code></td>\n          <td><code>malformed var-file: { \"name\":</code></td>\n          <td><span class=\"status status-pass\">PASS</span> <span class=\"outcome-detail\">stable configuration diagnostic</span></td>\n        </tr>\n        <tr>\n          <th scope=\"row\">boundary-probe-005</th>\n          <td>Constrain an include path outside the workspace root</td>\n          <td><code>---\\n---\\n@&lt;outside/workspace.md&gt;</code></td>\n          <td><code>include path=/tmp/outside-workspace.md</code></td>\n          <td><span class=\"status status-pass\">PASS</span> <span class=\"outcome-detail\">confinement held</span></td>\n        </tr>\n      </tbody>\n    </table>\n  </section>"
+    },
+    {
+      "id": "differential-probe",
+      "title": "differential-probe",
+      "status": "PASS",
+      "summary": "The differential worker compared baseline/head behavior and repeated renders across the recorded cases. Outputs remained equivalent and deterministic.",
+      "context_text": "Successful differential-probe session: 12 baseline, parity, and determinism iterations all passed.",
+      "json_payload": {
+        "session_id": "mock-success-e3-20260729",
+        "agent_id": "differential-probe",
+        "worker_correlation_id": "differential-probe",
+        "classification": "pass",
+        "iterations": 12,
+        "passed": 12,
+        "failed": 0,
+        "result": "PASS",
+        "cases": [
+          "differential-probe-001",
+          "differential-probe-002"
+        ],
+        "test_inputs": [
+          {
+            "case_id": "differential-probe-001",
+            "description": "Compare JSON and YAML var-file inputs for the same scalar tree",
+            "minimal_template": "---\\nvariables:\\n  value:\\n    required: true\\n---\\n{{ value }}",
+            "minimal_input": "JSON: {\"value\":\"same\"}; YAML: value: same",
+            "passed": true,
+            "outcome": "equivalent output"
+          },
+          {
+            "case_id": "differential-probe-002",
+            "description": "Repeat a render with unchanged template and input",
+            "minimal_template": "---\\n---\\nstable output",
+            "minimal_input": "repeat=3; environment=unchanged",
+            "passed": true,
+            "outcome": "byte-stable output"
+          }
+        ]
+      },
+      "xhtml_path": "docs/examples/fuzz-run-report/success-differential.xhtml",
+      "fragment_source": "auto-generated",
+      "body_html": "<p class=\"status\">\n    <span class=\"status status-pass\">PASS</span>\n  </p>\n  <p class=\"summary\">The differential worker compared baseline/head behavior and repeated renders across the recorded cases. Outputs remained equivalent and deterministic.</p>\n\n  <table class=\"agent-results\">\n    <thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead>\n    <tbody>\n      <tr>\n        <th scope=\"row\">Baseline parity, JSON/YAML equivalence, and deterministic output</th>\n        <td>12</td>\n        <td>12/12</td>\n        <td><span class=\"status status-pass\">PASS</span></td>\n      </tr>\n    </tbody>\n  </table>\n\n  <section class=\"test-inputs\">\n    <h3>Inputs exercised</h3>\n    <table>\n      <thead><tr><th scope=\"col\">Case</th><th scope=\"col\">Description</th><th scope=\"col\">Template / frontmatter</th><th scope=\"col\">Input</th><th scope=\"col\">Outcome</th></tr></thead>\n      <tbody>\n        <tr>\n          <th scope=\"row\">differential-probe-001</th>\n          <td>Compare JSON and YAML var-file inputs for the same scalar tree</td>\n          <td><code>---\\nvariables:\\n  value:\\n    required: true\\n---\\n{{ value }}</code></td>\n          <td><code>JSON: {\"value\":\"same\"}; YAML: value: same</code></td>\n          <td><span class=\"status status-pass\">PASS</span> <span class=\"outcome-detail\">equivalent output</span></td>\n        </tr>\n        <tr>\n          <th scope=\"row\">differential-probe-002</th>\n          <td>Repeat a render with unchanged template and input</td>\n          <td><code>---\\n---\\nstable output</code></td>\n          <td><code>repeat=3; environment=unchanged</code></td>\n          <td><span class=\"status status-pass\">PASS</span> <span class=\"outcome-detail\">byte-stable output</span></td>\n        </tr>\n      </tbody>\n    </table>\n  </section>"
+    }
+  ],
+  "recommendations_html": "",
+  "footer_html": "Generated mock. Future artifacts use site/reports/YYYYMMDD-N-fuzz-report.html and worker-suffixed XHTML panels.",
+  "copy_actions": true,
+  "metadata": {
+    "report_kind": "multi-agent-fuzz-session",
+    "session_id": "mock-success-e3-20260729",
+    "worker_count": 4,
+    "template": ".claude/skills/html-report/templates/fuzz-run-agent.xhtml.j2"
+  }
+}
