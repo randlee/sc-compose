@@ -83,7 +83,8 @@ Standard GitHub CLI (preferred, authoritative):
 - `gh pr view <PR> --json mergeStateStatus,reviewDecision,statusCheckRollup`
   for one-shot structured status
 
-`atm gh` commands no longer exist; use `gh pr` / `gh run` directly.
+Use the standard `gh pr` / `gh run` commands directly; no custom wrapper is
+required.
 
 If monitoring cannot start, include the failure in QA status and proceed with
 one-shot PR report data.

@@ -139,7 +139,8 @@ After PR creation:
 - `gh pr checks <PR> --watch` for check suite monitoring
 - `gh pr view <PR> --json mergeStateStatus,reviewDecision,statusCheckRollup`
   for one-shot structured commit status
-- `atm gh` commands no longer exist; use `gh pr` / `gh run` directly
+- Use the standard `gh pr` / `gh run` commands directly; no custom wrapper is
+  required.
 
 ### Phase 6: CI Fix Loop
 

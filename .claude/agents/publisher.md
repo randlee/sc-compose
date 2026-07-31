@@ -157,8 +157,8 @@ Prefer standard GitHub CLI:
 - `gh release view v<X.Y.Z>`
 - `gh pr checks <PR> --watch` when a release-prep PR is involved
 
-`atm gh` commands no longer exist; use `gh pr` / `gh run` directly. The
-release gate order and channel-verification discipline remain the same
+Use the standard `gh pr` / `gh run` commands directly; no custom wrapper is
+required. The release gate order and channel-verification discipline remain the same
 regardless of the monitoring transport.
 
 ## Communication

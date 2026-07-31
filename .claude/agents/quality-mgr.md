@@ -224,7 +224,7 @@ Evidence staleness rule:
    - `gh pr checks <PR> --watch` for check suite monitoring
    - `gh pr view <PR> --json mergeStateStatus,reviewDecision,statusCheckRollup`
      for one-shot structured commit status
-   - `atm gh` commands no longer exist; use `gh pr` / `gh run` directly
+   - Use the standard `gh pr` / `gh run` commands listed above directly.
 10. Publish the PR update (MANDATORY for audit trail) using the templates from
    `.claude/skills/quality-management-gh/`. This step is MANDATORY; findings
    must live on the PR, not only in ATM messages.
