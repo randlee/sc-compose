@@ -262,6 +262,7 @@ dependencies = [
  "aho-corasick",
  "memo-map",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

@@ -1,8 +1,4 @@
 ---
-name: html-a-b-compare-viewer
-version: 1.0.0
-description: Generic local two-pane A/B comparison viewer for base64-embedded HTML variants.
-format: html
 required_variables:
   - title
   - variants
@@ -72,12 +68,7 @@ input_defaults:
   </div>
 
   <script>
-    var variants = [
-{% for v in variants %}
-      { label: "{{ v.label | e }}", b64: "{{ v.b64 }}" }{% if not loop.last %},{% endif %}
-
-{% endfor %}
-    ];
+    var variants = {{ variants | tojson }};
 
     function populate(select) {
       variants.forEach(function (v, i) {

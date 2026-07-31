@@ -1,9 +1,49 @@
 ---
-name: html-a-b-comparison
+name: html-a-b-comparing
 description: Build a local, self-contained HTML A/B comparison viewer for two or more generated HTML variants (e.g. different template revisions, different data sets, before/after fixes), so a human can pick between panes side-by-side without any external hosting.
 ---
 
 # HTML A/B Comparison
+
+## Step 1 -- Verify Installation
+
+Run this before deciding the comparison axis or generating any variants. The
+skill requires both `sc-compose` and `python3`:
+
+```bash
+set -eu
+
+resolve_cli() {
+  cli_name="$1"
+  cli_path="$(command -v "$cli_name" 2>/dev/null || true)"
+  if [ -z "$cli_path" ]; then
+    for candidate in \
+      "$HOME/.local/bin/$cli_name" \
+      "$HOME/.cargo/bin/$cli_name" \
+      "$PWD/target/release/$cli_name" \
+      "$PWD/target/debug/$cli_name" \
+      "/opt/homebrew/bin/$cli_name" \
+      "/usr/local/bin/$cli_name" \
+      "/usr/bin/$cli_name"; do
+      if [ -x "$candidate" ]; then
+        cli_path="$candidate"
+        break
+      fi
+    done
+  fi
+  [ -n "$cli_path" ] || return 1
+  printf '%s\n' "$cli_path"
+}
+
+export SC_COMPOSE_BIN="$(resolve_cli sc-compose)"
+export PYTHON3_BIN="$(resolve_cli python3)"
+"$SC_COMPOSE_BIN" --version
+"$PYTHON3_BIN" --version
+```
+
+If either lookup or version check fails, stop and read
+`references/installation-and-troubleshooting.md` before proceeding. Do not
+silently substitute a different renderer or skip base64 encoding.
 
 ## Purpose
 
@@ -41,14 +81,18 @@ Hold everything constant except the one thing under review.
    data object (see Template below). Label each entry with something a human
    can tell apart at a glance (template SHA, revision name, dataset id) —
    not "variant 1" / "variant 2".
-4. **Write the viewer file** to the caller's scratchpad directory (or
-   wherever the caller specifies) using the bundled template
-   (`compare-viewer.html.j2`) or by adapting it inline.
-5. **Open it locally**: `open <path>` on macOS. Do not upload it anywhere,
-   do not use the `Artifact` tool for this — this pattern exists specifically
-   because hosted-artifact URLs are not always usable for the intended
-   viewer, and the whole point is a file that opens with zero network
-   dependency.
+4. **Write the viewer file** under the caller's approved scratchpad or
+   repository output root using the bundled template
+   (`compare-viewer.html.j2`) or by adapting it inline. Validate the resolved
+   output path before writing: reject arbitrary absolute paths, `..`
+   traversal, and symlink escapes, and require the resolved path to remain
+   beneath the approved root. Create the parent only after this confinement
+   check. Never write to an unvalidated caller-specified path.
+5. **Open it locally** with the platform's file opener. On macOS use
+   `open <path>`, on Linux use `xdg-open <path>`, and on Windows use
+   `start "" <path>` from `cmd.exe` (or `Start-Process <path>` in
+   PowerShell). Do not upload it anywhere or use the `Artifact` tool — this
+   viewer is intentionally a zero-network local file.
 6. **Report the axis and the file path** back to the user; let them tell you
    which pane/variant they prefer rather than guessing from the diff
    yourself.
@@ -73,32 +117,41 @@ one-off) using a JSON var-file shaped like:
 
 Notes on the shape:
 
-- `variants` is a flat, top-level array of objects — this renders cleanly
-  through `sc-compose render --var-file` (top-level array-of-objects has
-  been supported since FR-13 / PR #50). Do not nest `variants` under another
-  key.
+- The var-file root must be an object. Its `variants` property is a flat array
+  of objects, which renders cleanly through `sc-compose render --var-file`
+  (top-level array values have been supported since FR-13 / PR #50). Do not
+  make the var-file itself an array or nest `variants` under another key.
 - `b64` values can be large; that's expected and fine — `sc-compose render`
   has no meaningful size limit on string variable values.
-- Keep `variants` to a number a human can actually compare — 2 is the normal
-  case, up to 4-5 is reasonable for a revision sweep. Beyond that, consider
-  narrowing the field first (e.g. drop candidates that are obviously out)
-  rather than dumping everything into one viewer.
+- The bundled viewer has exactly two panes, so provide exactly two variants
+  per viewer. For a larger revision sweep, narrow the candidates first or
+  create multiple viewers; do not pass 4-5 variants to this two-pane template.
 
 ## Producing the base64 payload
 
 From a shell, after each variant's HTML file exists on disk:
 
 ```bash
-python3 -c "import base64,sys; print(base64.b64encode(open(sys.argv[1],'rb').read()).decode())" variant.html
+"$PYTHON3_BIN" -c "import base64,sys; print(base64.b64encode(open(sys.argv[1],'rb').read()).decode())" variant.html
 ```
 
 Build the JSON var-file with each variant's `label` and `b64`, then:
 
 ```bash
-sc-compose render --file .claude/skills/html-a-b-comparison/compare-viewer.html.j2 \
-  --var-file /tmp/compare-vars.json --output /tmp/compare.html
-open /tmp/compare.html
+compare_dir="$("$PYTHON3_BIN" -c 'import tempfile; print(tempfile.mkdtemp(prefix="sc-compose-compare-"))')"
+vars_path="$compare_dir/compare-vars.json"
+viewer_path="$compare_dir/compare.html"
+# Write compare-vars.json only after validating that vars_path and viewer_path
+# resolve beneath compare_dir; use the same check for any caller-specified root.
+"$SC_COMPOSE_BIN" render --file .claude/skills/html-a-b-comparison/compare-viewer.html.j2 \
+  --var-file "$vars_path" --output "$viewer_path"
+open "$viewer_path"  # use xdg-open or Start-Process on other platforms
 ```
+
+The temporary directory above is created by Python's platform-appropriate
+temporary-directory API. If the caller supplies an output root instead, first
+resolve both paths and enforce that the output remains beneath that approved
+root; do not accept an arbitrary absolute path.
 
 ## Non-goals
 
