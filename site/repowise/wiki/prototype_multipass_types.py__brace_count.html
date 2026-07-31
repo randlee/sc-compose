@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Symbol: prototype.multipass.types.PassHeader.brace_count</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Symbol: prototype.multipass.types.PassHeader.brace_count</h1>
+<h2>Purpose</h2>
+<p><code>brace_count</code> exposes the number of opening and closing braces used to delimit variables for a given multipass rendering stage.</p>
+<p>It derives the delimiter width from <code>pass_number</code>:</p>
+<ul>
+<li>Pass 1 uses <code>{{ variable }}</code></li>
+<li>Pass 2 uses <code>{{{ variable }}}</code></li>
+<li>Pass 3 uses <code>{{{{ variable }}}}</code></li>
+</ul>
+<p>This allows each pass to target only the template expressions intended for that stage.</p>
+<h2>Signature</h2>
+<pre><code class="language-python">@property
+def brace_count(self) -&gt; int
+</code></pre>
+<p>Qualified name: <code>prototype.multipass.types.PassHeader.brace_count</code></p>
+<h2>Parameters</h2>
+<p>This property accepts no explicit parameters.</p>
+<p>It reads <code>self.pass_number</code>, which identifies the current rendering pass.</p>
+<h2>Returns</h2>
+<p>Returns an <code>int</code> equal to <code>self.pass_number + 1</code>.</p>
+<p>The returned value is the number of braces required on each side of a variable delimiter for the current pass.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;"><code>pass_number</code></th>
+<th style="text-align: right;"><code>brace_count</code></th>
+<th>Variable syntax</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
+<td><code>{{ variable }}</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">3</td>
+<td><code>{{{ variable }}}</code></td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">4</td>
+<td><code>{{{{ variable }}}}</code></td>
+</tr>
+</tbody>
+</table>
+<h2>Example Usage</h2>
+<pre><code class="language-python">from prototype.multipass.types import PassHeader
+
+header = PassHeader(pass_number=2)
+
+assert header.brace_count == 3
+
+variable_name = &quot;environment&quot;
+delimiter = &quot;{&quot; * header.brace_count
+
+template_expression = (
+    f&quot;{delimiter} {variable_name} &quot;
+    f&quot;{'}' * header.brace_count}&quot;
+)
+
+assert template_expression == &quot;{{{ environment }}}&quot;
+</code></pre>
+<p>Because <code>brace_count</code> is a property, access it without parentheses.</p>
+</body>
+</html>

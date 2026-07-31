@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-composer/src/init_workspace.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-composer/src/init_workspace.rs</h1>
+<h2>Overview</h2>
+<p><code>init_workspace</code> is an Application-layer workspace bootstrap orchestrator that creates and configures composed-output support while producing an <code>InitResult</code> containing discovered templates and validation diagnostics.</p>
+<p>It canonicalizes the supplied repository root, determines whether <code>.prompts/</code> and the <code>.prompts/</code> <code>.gitignore</code> entry are missing, and scans the workspace for Jinja templates (<code>*.j2</code>). In normal mode it creates the directory and appends the ignore rule as needed; in dry-run mode it performs no filesystem writes but still scans and validates templates.</p>
+<p>Each discovered template is converted into a file-mode <code>ComposeRequest</code> rooted at the canonical workspace, then passed to <code>crate::validate</code>. Validation warnings are accumulated as recommendations. Validation failures do not abort initialization: they set <code>validation_passed</code> to <code>false</code> and are converted into error-severity diagnostics.</p>
+<p>Template discovery recursively traverses the workspace while skipping the root <code>.git</code> and <code>target</code> directories. This prevents version-control metadata and build output from being treated as input templates.</p>
+<h2>Public API</h2>
+<h3><code>init_workspace</code></h3>
+<pre><code class="language-rust">pub fn init_workspace(
+    root: impl AsRef&lt;Path&gt;,
+    dry_run: bool,
+) -&gt; Result&lt;InitResult, ComposeError&gt;
+</code></pre>
+<p>Bootstraps a workspace and validates all discovered <code>.j2</code> templates.</p>
+<p>Behavior:</p>
+<ol>
+<li>Canonicalizes <code>root</code>; invalid or inaccessible roots return <code>ErrConfigParse</code>.</li>
+<li>Scans recursively for case-insensitive <code>.j2</code> extensions.</li>
+<li>Reads <code>.gitignore</code>, treating a missing file as empty.</li>
+<li>Determines whether <code>.prompts/</code> must be created and whether <code>.prompts/</code> must be added to <code>.gitignore</code>.</li>
+<li>In normal mode:</li>
+<li>creates <code>.prompts/</code> when absent;</li>
+<li>appends <code>.prompts/</code> to <code>.gitignore</code> when absent;</li>
+<li>rejects an already initialized workspace with <code>ErrConfigReadonly</code>.</li>
+<li>Validates every discovered template and returns aggregate results.</li>
+</ol>
+<p><code>InitResult</code> reports:</p>
+<ul>
+<li><code>prompts_dir</code>: canonical path to the workspace’s <code>.prompts</code> directory.</li>
+<li><code>gitignore_updated</code>: whether <code>.prompts/</code> was absent before the operation.</li>
+<li><code>scanned_templates</code>: absolute template paths discovered during traversal.</li>
+<li><code>recommendations</code>: validation warnings and converted validation errors.</li>
+<li><code>validation_passed</code>: <code>true</code> only when every template validates successfully.</li>
+</ul>
+<p>A dry run can return a successful result even when initialization would require writes, because it intentionally inspects planned work without changing the workspace.</p>
+<h3><code>read_optional_text_file</code></h3>
+<pre><code class="language-rust">pub fn read_optional_text_file(path: &amp;Path) -&gt; Result&lt;String, ComposeError&gt;
+</code></pre>
+<p>Reads a UTF-8 text file, returning an empty string when the file does not exist. Other read failures, including attempting to read a directory as text, return <code>ErrConfigRead</code>.</p>
+<p>This helper supports <code>.gitignore</code> handling without requiring callers to special-case a new workspace.</p>
+<h2>Dependencies</h2>
+<ul>
+<li><code>std::fs</code> provides canonicalization, directory traversal, directory creation, file reading, and <code>.gitignore</code> writes.</li>
+<li><code>std::path::{Path, PathBuf}</code> represents workspace roots and discovered template paths.</li>
+<li><code>std::collections::BTreeMap</code> supplies empty variable maps for validation requests.</li>
+<li><code>ComposeRequest</code>, <code>ComposeMode</code>, <code>ComposePolicy</code>, and <code>ConfiningRoot</code> construct confined file-mode validation requests.</li>
+<li><code>crate::validate</code> validates each discovered template.</li>
+<li><code>ComposeError</code>, <code>ConfigError</code>, <code>Diagnostic</code>, and <code>DiagnosticCode</code> provide structured errors and validation reporting.</li>
+<li><code>InitResult</code> is the operation’s aggregate output type.</li>
+</ul>
+<p><code>lib.rs</code> exposes this module’s public helpers to library consumers. CLI integration tests invoke the exported behavior through the <code>sc-compose</code> command surface.</p>
+<h2>Usage Notes</h2>
+<p>A normal initialization flow:</p>
+<pre><code class="language-rust">use sc_composer::init_workspace;
+
+let result = init_workspace(&quot;/path/to/repository&quot;, false)?;
+
+println!(&quot;Prompts directory: {}&quot;, result.prompts_dir.display());
+println!(&quot;Templates scanned: {}&quot;, result.scanned_templates.len());
+
+if !result.validation_passed {
+    for diagnostic in &amp;result.recommendations {
+        eprintln!(&quot;{diagnostic}&quot;);
+    }
+}
+</code></pre>
+<p>A safe inspection flow should use dry-run first:</p>
+<pre><code class="language-rust">let preview = init_workspace(&quot;/path/to/repository&quot;, true)?;
+
+// No `.prompts/` directory or `.gitignore` modification is made.
+for template in &amp;preview.scanned_templates {
+    println!(&quot;Would validate: {}&quot;, template.display());
+}
+</code></pre>
+<p>Important behavior and pitfalls:</p>
+<ul>
+<li>The root must already exist and be canonicalizable; relative roots are accepted but resolved to canonical paths.</li>
+<li>A normal run against a workspace that already has both <code>.prompts/</code> and the <code>.prompts/</code> ignore rule fails intentionally with <code>ErrConfigReadonly</code>. Use <code>dry_run: true</code> to inspect such a workspace.</li>
+<li>The <code>.gitignore</code> check compares trimmed lines exactly to <code>.prompts/</code>; alternate entries such as <code>/.prompts/</code> are not considered equivalent and will result in another appended rule.</li>
+<li>If <code>.gitignore</code> lacks a final newline, initialization inserts one before appending <code>.prompts/</code>.</li>
+<li>Missing <code>.gitignore</code> is normal; unreadable existing <code>.gitignore</code> files are reported rather than silently ignored.</li>
+<li>Template validation is best-effort across the whole scan: invalid templates become diagnostics instead of preventing the result from describing other templates.</li>
+<li>Discovered template paths are absolute because scanning begins from the canonical root. The validation request converts each path back to a root-relative path when possible.</li>
+<li>The scanner skips only root-level <code>.git</code> and <code>target</code> paths. Other directories are recursively traversed, so large workspaces may incur substantial traversal cost.</li>
+<li>Extension matching is case-insensitive, so both <code>example.j2</code> and <code>example.J2</code> are included.</li>
+</ul>
+</body>
+</html>

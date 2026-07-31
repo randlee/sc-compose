@@ -1,0 +1,4 @@
+interface:
+  display_name: "Adversarial Fuzzing"
+  short_description: "Break rendering code with focused fuzz agents"
+  default_prompt: "Use $adversarial-fuzzing to generate adversarial rendering cases and promote confirmed bugs into regression tests."

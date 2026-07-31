@@ -1,0 +1,98 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>differential-probe</h2>
+      <p class="agent-meta">Session e3confirm-20260729-0001 · Worker differential-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&#34;agent_id&#34;: &#34;differential-probe&#34;, &#34;cases&#34;: [&#34;FUZZ-006&#34;, &#34;FUZZ-007&#34;], &#34;classification&#34;: &#34;confirmed_bug&#34;, &#34;failed&#34;: 1, &#34;findings&#34;: [{&#34;expected_oracle&#34;: &#34;Equivalent JSON and YAML inputs must not produce different semantics without a documented reason. Either both reject an out-of-range integer or both preserve it losslessly.&#34;, &#34;finding_id&#34;: &#34;FUZZ-006&#34;, &#34;minimal_input&#34;: &#34;{\&#34;top\&#34;: 18446744073709551616}&#34;, &#34;minimal_template&#34;: &#34;---\nrequired_variables:\n  - top\n---\nVALUE=[[top]]\n&#34;, &#34;observed_result&#34;: &#34;JSON: exit 0, renders VALUE=18446744073709552000.0 -- the integer u64::MAX+1 is silently rounded through f64 into a different value, and `validate --json` reports {\&#34;valid\&#34;: true} with zero diagnostics. YAML with the same value: exit 3, ERR_CONFIG_PARSE. Control at exactly u64::MAX renders losslessly in both formats.&#34;, &#34;recommended_fix&#34;: &#34;Reject or losslessly preserve JSON integers beyond u64::MAX; never silently round to f64 while reporting valid:true.&#34;, &#34;requirement_follow_up&#34;: &#34;Reject or losslessly preserve JSON integers beyond u64::MAX; never silently round to f64 while reporting valid:true.&#34;, &#34;requirement_trace&#34;: &#34;Silent data corruption with an affirmative valid:true is the worst failure mode of the two paths.&#34;, &#34;root_cause&#34;: &#34;See observed_result; coordinator-established root cause recorded in campaign-report.json.&#34;}, {&#34;expected_oracle&#34;: &#34;ERR_VAL_DUPLICATE is a documented stable code for duplicate frontmatter variable declarations; once `variables:` is a real declaration source, both spellings feeding one `seen` set is consistent.&#34;, &#34;finding_id&#34;: &#34;FUZZ-007&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;---\nrequired_variables:\n  - name\nvariables:\n  name:\n    required: true\n---\nHello {{name}}\n&#34;, &#34;observed_result&#34;: &#34;HEAD exits 2 with ERR_VAL_DUPLICATE; pre-fix baseline ignored `variables:` so no duplicate was detected. A faithful consequence of intentional fix (c). Accounts for 12 of the 21 baseline-vs-HEAD sweep diffs.&#34;, &#34;recommended_fix&#34;: &#34;No further action recommended; see coordinator_note/attribution_note.&#34;, &#34;requirement_follow_up&#34;: &#34;Coordinator classified as non-actionable (intentional_boundary/inconclusive); no new requirement/ADR needed. Document the cross-section duplicate rule in requirements.md; currently only implied by code.&#34;, &#34;requirement_trace&#34;: &#34;Document the cross-section duplicate rule in requirements.md; currently only implied by code.&#34;, &#34;root_cause&#34;: &#34;See observed_result; coordinator-established root cause recorded in campaign-report.json.&#34;}], &#34;iterations&#34;: 97, &#34;passed&#34;: 96, &#34;result&#34;: &#34;FAIL&#34;, &#34;session_id&#34;: &#34;e3confirm-20260729-0001&#34;, &#34;target&#34;: &#34;frontmatter&#34;, &#34;test_inputs&#34;: [{&#34;case_id&#34;: &#34;FUZZ-006&#34;, &#34;description&#34;: &#34;Equivalent JSON and YAML inputs must not produce different semantics without a documented reason. Either both reject an out-of-range integer or both preserve it losslessly.&#34;, &#34;minimal_input&#34;: &#34;{\&#34;top\&#34;: 18446744073709551616}&#34;, &#34;minimal_template&#34;: &#34;---\nrequired_variables:\n  - top\n---\nVALUE=[[top]]\n&#34;, &#34;outcome&#34;: &#34;confirmed product bug (5 reproductions): JSON: exit 0, renders VALUE=18446744073709552000.0 -- the integer u64::MAX+1 is silently rounded through f64 into a different value, and `validate --json` reports {\&#34;valid\&#34;: true} with zero diagnostics. YAML with the same&#34;, &#34;passed&#34;: false}, {&#34;case_id&#34;: &#34;FUZZ-007&#34;, &#34;description&#34;: &#34;ERR_VAL_DUPLICATE is a documented stable code for duplicate frontmatter variable declarations; once `variables:` is a real declaration source, both spellings feeding one `seen` set&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;---\nrequired_variables:\n  - name\nvariables:\n  name:\n    required: true\n---\nHello {{name}}\n&#34;, &#34;outcome&#34;: &#34;intentional boundary (not a defect) (3 reproductions): HEAD exits 2 with ERR_VAL_DUPLICATE; pre-fix baseline ignored `variables:` so no duplicate was detected. A faithful consequence of intentional fix (c). Accounts for 12 of the 21 baseline-vs-HEAD sweep diffs.&#34;, &#34;passed&#34;: true}], &#34;worker_correlation_id&#34;: &#34;differential-probe&#34;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="differential-probe ran 97 bounded cases against the frontmatter subsystem and confirmed 1 product bug(s): FUZZ-006. All reproduced at least 3 times; exact minimized templates and inputs are preserved below. See findings for root cause and recommended fix per finding.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+
+    <span class="status status-error">FAIL</span>
+
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Baseline-vs-head parity, JSON/YAML equivalence, and deterministic output (frontmatter target, corrected baseline fa675cf)</th>
+        <td>97</td>
+        <td>96/97</td>
+        <td>
+
+          <span class="status status-error">FAIL</span>
+
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+
+        <tr><th scope="row">FUZZ-006</th><td><code>Equivalent JSON and YAML inputs must not produce different semantics without a documented reason. Either both reject an out-of-range integer or both preserve it losslessly.</code></td><td>confirmed product bug (5 reproductions): JSON: exit 0, renders VALUE=18446744073709552000.0 -- the integer u64::MAX+1 is silently rounded through f64 into a different value, and `validate --json` reports {&#34;valid&#34;: true} with zero diagnostics. YAML with the same</td></tr>
+
+        <tr><th scope="row">FUZZ-007</th><td><code>ERR_VAL_DUPLICATE is a documented stable code for duplicate frontmatter variable declarations; once `variables:` is a real declaration source, both spellings feeding one `seen` set</code></td><td>intentional boundary (not a defect) (3 reproductions): HEAD exits 2 with ERR_VAL_DUPLICATE; pre-fix baseline ignored `variables:` so no duplicate was detected. A faithful consequence of intentional fix (c). Accounts for 12 of the 21 baseline-vs-HEAD sweep diffs.</td></tr>
+
+      </tbody>
+    </table>
+  </section>
+
+
+  <section class="findings">
+    <h3>Findings</h3>
+
+    <article class="finding">
+      <h4>FUZZ-006</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>---
+required_variables:
+  - top
+---
+VALUE=[[top]]
+</code></dd>
+        <dt>Input</dt><dd><code>{&#34;top&#34;: 18446744073709551616}</code></dd>
+        <dt>Expected</dt><dd>Equivalent JSON and YAML inputs must not produce different semantics without a documented reason. Either both reject an out-of-range integer or both preserve it losslessly.</dd>
+        <dt>Observed</dt><dd>JSON: exit 0, renders VALUE=18446744073709552000.0 -- the integer u64::MAX+1 is silently rounded through f64 into a different value, and `validate --json` reports {&#34;valid&#34;: true} with zero diagnostics. YAML with the same value: exit 3, ERR_CONFIG_PARSE. Control at exactly u64::MAX renders losslessly in both formats.</dd>
+        <dt>Requirement / ADR</dt><dd>Silent data corruption with an affirmative valid:true is the worst failure mode of the two paths.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Reject or losslessly preserve JSON integers beyond u64::MAX; never silently round to f64 while reporting valid:true.</dd>
+        <dt>Root cause</dt><dd>See observed_result; coordinator-established root cause recorded in campaign-report.json.</dd>
+        <dt>Recommended fix</dt><dd>Reject or losslessly preserve JSON integers beyond u64::MAX; never silently round to f64 while reporting valid:true.</dd>
+      </dl>
+    </article>
+
+    <article class="finding">
+      <h4>FUZZ-007</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>---
+required_variables:
+  - name
+variables:
+  name:
+    required: true
+---
+Hello {{name}}
+</code></dd>
+        <dt>Input</dt><dd><code>(none)</code></dd>
+        <dt>Expected</dt><dd>ERR_VAL_DUPLICATE is a documented stable code for duplicate frontmatter variable declarations; once `variables:` is a real declaration source, both spellings feeding one `seen` set is consistent.</dd>
+        <dt>Observed</dt><dd>HEAD exits 2 with ERR_VAL_DUPLICATE; pre-fix baseline ignored `variables:` so no duplicate was detected. A faithful consequence of intentional fix (c). Accounts for 12 of the 21 baseline-vs-HEAD sweep diffs.</dd>
+        <dt>Requirement / ADR</dt><dd>Document the cross-section duplicate rule in requirements.md; currently only implied by code.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Coordinator classified as non-actionable (intentional_boundary/inconclusive); no new requirement/ADR needed. Document the cross-section duplicate rule in requirements.md; currently only implied by code.</dd>
+        <dt>Root cause</dt><dd>See observed_result; coordinator-established root cause recorded in campaign-report.json.</dd>
+        <dt>Recommended fix</dt><dd>No further action recommended; see coordinator_note/attribution_note.</dd>
+      </dl>
+    </article>
+
+  </section>
+
+</section>

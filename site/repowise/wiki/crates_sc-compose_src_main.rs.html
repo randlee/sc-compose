@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/main.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/main.rs</h1>
+<h2>Overview</h2>
+<p><code>main.rs</code> is the Application-layer CLI entry point and orchestrator: it parses command-line input, initializes observability, dispatches commands, emits human or JSON output, and terminates the process with the selected exit code. It is a high-activity, high-complexity hotspot, so changes here can affect every <code>sc-compose</code> command and its output contract.</p>
+<p>The file owns the binary’s process-wide setup:</p>
+<ul>
+<li>Registers <code>MiMalloc</code> as the global allocator.</li>
+<li>Parses the CLI through <code>cli::parse_cli</code>.</li>
+<li>Determines whether the selected command requests JSON output.</li>
+<li>Builds a <code>CliObserver</code> around the configured logger.</li>
+<li>Delegates command execution to <code>commands::dispatch::run</code>.</li>
+<li>Converts initialization and command failures into the appropriate output format and exit code.</li>
+<li>Explicitly shuts down the observer before calling <code>std::process::exit</code>.</li>
+</ul>
+<p>It also provides shared output helpers used by command implementations for diagnostics and JSON envelopes.</p>
+<h2>Public API</h2>
+<p>Although this is a binary entry point rather than a public library module, it exposes crate-visible helpers to sibling command modules.</p>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Visibility</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>main()</code></td>
+<td>private</td>
+<td>Executes the application lifecycle: parse, initialize logging, dispatch, shut down, and exit.</td>
+</tr>
+<tr>
+<td><code>print_diagnostic_messages(diagnostics)</code></td>
+<td><code>pub(crate)</code></td>
+<td>Prints each diagnostic’s message as a separate line to standard output.</td>
+</tr>
+<tr>
+<td><code>print_json(payload, diagnostics)</code></td>
+<td><code>pub(crate)</code></td>
+<td>Serializes a payload and diagnostics through <code>json_output::envelope</code>, pretty-prints it to standard output, and propagates serialization failures.</td>
+</tr>
+<tr>
+<td><code>CommandError</code></td>
+<td><code>pub(crate)</code> re-export</td>
+<td>Makes the shared command error type available through the crate root.</td>
+</tr>
+</tbody>
+</table>
+<h3>Execution flow</h3>
+<ol>
+<li><code>parse_cli()</code> creates the parsed CLI model.</li>
+<li><code>command_wants_json(&amp;cli.command)</code> chooses the error/output mode before logger setup.</li>
+<li><code>observability::build_logger(wants_json)</code> creates logging configuration, which is wrapped in <code>observer_impl::CliObserver</code>.</li>
+<li><code>commands::dispatch::run(cli, &amp;mut observer)</code> executes the selected subcommand.</li>
+<li>On completion, <code>observer.shutdown()</code> runs before process termination.</li>
+<li><code>std::process::exit(code)</code> returns the command’s final status to the shell.</li>
+</ol>
+<p>Logger initialization failures exit immediately after reporting; command-dispatch failures are reported and converted to their embedded <code>exit_code</code>.</p>
+<h2>Dependencies</h2>
+<h3>Internal modules</h3>
+<ul>
+<li><code>cli</code> supplies CLI parsing and JSON-mode detection.</li>
+<li><code>commands</code> supplies command dispatch and the implementations that call the shared output helpers.</li>
+<li><code>command_error</code> defines <code>CommandError</code>, including diagnostics and exit codes.</li>
+<li><code>observability</code> builds logging configuration.</li>
+<li><code>observer_impl</code> adapts logging into the command observer.</li>
+<li><code>json_output</code> wraps successful JSON results and diagnostics in a consistent envelope.</li>
+<li><code>exit_codes</code>, <code>path_utils</code>, <code>render_request</code>, <code>template_store</code>, <code>var_file</code>, and <code>reporting</code> are compiled as application modules for command-layer use.</li>
+<li><code>main_tests</code> is compiled only during tests.</li>
+</ul>
+<h3>External crates</h3>
+<ul>
+<li><code>anyhow</code> supplies the fallible return type for JSON serialization.</li>
+<li><code>mimalloc</code> supplies the binary-wide allocator.</li>
+<li><code>sc_composer</code> supplies <code>Diagnostic</code> values produced by the rendering library.</li>
+<li><code>serde</code> and <code>serde_json</code> serialize structured CLI output.</li>
+</ul>
+<h3>Callers and callees</h3>
+<p><code>main</code> calls CLI parsing, JSON-mode detection, logger construction, command dispatch, error reporting, observer shutdown, and process exit. Command handlers such as compose, template, verify, workspace, and report-scaffold commands call <code>print_json</code> or <code>print_diagnostic_messages</code> to maintain consistent output behavior.</p>
+<h2>Usage Notes</h2>
+<ul>
+<li>Keep <code>main</code> focused on orchestration. Command-specific behavior belongs under <code>commands</code>; rendering behavior belongs in <code>sc-composer</code>.</li>
+<li>Determine JSON mode before initializing observability so setup failures use the same format requested by the command.</li>
+<li><code>print_json</code> writes to standard output and pretty-prints the entire envelope. Commands should avoid writing additional non-JSON text to standard output when JSON mode is active.</li>
+<li><code>print_diagnostic_messages</code> prints only <code>Diagnostic::message</code>; it does not include structured metadata, severity, or source locations.</li>
+<li>In JSON error mode, <code>print_json_error</code> emits an empty payload plus cloned diagnostics. The <code>CommandError</code> text is only printed if JSON serialization itself fails. Error constructors therefore need meaningful diagnostics when callers require useful machine-readable failures.</li>
+<li><code>main</code> explicitly invokes <code>observer.shutdown()</code> because <code>std::process::exit</code> does not run normal stack unwinding or local destructors. Any new lifecycle-managed resource should be closed before that call.</li>
+<li>An observer-construction error exits before an observer exists, while dispatch errors still pass through shutdown. Preserve this distinction if restructuring initialization.</li>
+<li>This file is a hotspot: changes to exit sequencing, standard-output behavior, JSON envelopes, logging setup, or error reporting should be validated across both normal CLI and JSON CLI integration tests.</li>
+</ul>
+</body>
+</html>

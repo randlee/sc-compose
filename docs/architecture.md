@@ -302,47 +302,48 @@ Semantic rules:
 - When a referenced or required variable is satisfied by a default instead of
   explicit caller input, validation emits `INFO_VAL_DEFAULT_USED`.
 
-`InputValue` in H1/H2 means one of:
+### 6.1. ADR-E1: Recursive Structured Input Contract (2026-07-29)
+
+The historical H2 nested-array restriction is superseded by Sprint E.1. The
+shipped contract accepts finite JSON/YAML-compatible arrays and objects at any
+depth because `InputValue` already uses `serde_json::Value` and Minijinja can
+traverse those values. The top-level var-file object boundary, YAML
+string-key rule, and string-only `--var` interface remain unchanged.
+
+Sections 15 and 18 link here for the template-pack and diagnostic implications;
+they intentionally do not repeat this decision record.
+
+`InputValue` in H1/H2/E.1 means one of:
 
 - string
 - number
 - boolean
 - null
 - object/map with string keys
-- sequence of scalar values
+- finite recursive sequences and objects containing any supported value
 
 Rust type contract:
 
 - `InputValue` is represented as `serde_json::Value`,
 - object values with string keys may cross the CLI-to-library boundary,
-- nested sequences are rejected at parse time,
-- top-level arrays of objects are supported in H2,
-- object trees may contain scalar leaves, nested objects, and arrays of
-  scalars.
+- nested sequences are accepted at any depth,
+- arrays of objects and jagged arrays are supported in E.1,
+- object trees may contain scalar leaves, nested objects, and recursive arrays.
 
-Sequence values remain narrow in H1/H2:
+Sequence values are recursively validated in E.1:
 
-- top-level sequence members may contain scalar values or objects,
-- nested sequences are not supported,
-- object-valued sequence members are only supported at the top-level variable
-  boundary in H2.
+- sequence members may contain scalars, objects, arrays, or null,
+- nested sequences may be jagged and may occur inside object fields,
+- object-valued sequence members are supported at every variable path.
 
-Planned H2+ extension:
+Historical H2 boundary and E.1 decision:
 
-- The follow-on structured-input design is tracked in
-  [docs/html-sprint-report-plan.md](html-sprint-report-plan.md).
-- That design extends `InputValue` beyond the H1 boundary so templates can
-  consume report-shaped data instead of preflattened strings.
-- Planned allowed shapes:
-  - array of objects,
-  - object trees that contain arrays of objects in loop-friendly positions.
-- Planned continued exclusions:
-  - arrays of arrays as a first-class input shape,
-  - object trees that themselves contain nested arrays,
-  - arbitrary mixed recursive data without explicit validation rules.
-- The design motivation is HTML/XHTML report composition where one render input
-  needs repeated structured sections such as `sprints` plus nested object
-  fields for report metadata and links.
+- The dated E.1 architecture decision record supersedes the former H2 shape
+  restriction. The implementation follows the existing `serde_json::Value`
+  representation and Minijinja traversal capability rather than introducing a
+  second recursive value model.
+- The var-file document remains a top-level JSON/YAML object, YAML map keys
+  remain string-only, and `--var key=value` remains string-only.
 
 `MetadataValue` may be any YAML value:
 
@@ -430,8 +431,8 @@ Required library surface:
 - `frontmatter_init(path, options) -> FrontmatterInitResult`
 - `Renderer::render(compiled, context) -> Result<String, RenderError>` as the
   primary repeated-render API
-- `Renderer::with_delimiters(open, close) -> Self` as the only public
-  renderer-customization seam
+- `Renderer::with_delimiters(open, close) -> Result<Self, RenderError>` as the
+  only public renderer-customization seam
 - `render_loaded_template(request) -> Result<RenderedArtifact, RenderError>` as
   the runtime-agnostic entry point for callers that already loaded template
   text outside `sc-composer`
@@ -452,7 +453,7 @@ The rendering and composition surfaces have distinct responsibilities.
 
 | Surface | Owns | Does not own |
 | --- | --- | --- |
-| `Renderer` | reusable template-engine environment setup plus inline/named rendering over caller-supplied template text and context, including delimiter customization through `with_delimiters(open, close)` | profile resolution, include expansion, variable validation, block assembly, repository bootstrap, arbitrary third-party engine configuration |
+| `Renderer` | reusable template-engine environment setup plus inline/named rendering over caller-supplied template text and context, including delimiter customization through `with_delimiters(open, close) -> Result<Self, RenderError>` | profile resolution, include expansion, variable validation, block assembly, repository bootstrap, arbitrary third-party engine configuration |
 | `compose()` | top-level composition orchestration: resolve, include expansion, validation, built-in context injection, render, and block assembly | direct CLI UX decisions |
 | `render_template()` | one-shot rendering entry point for callers that already have template text and context | profile resolution, repository scanning, include expansion, validation, workspace bootstrap |
 | `validate()` | validation phase only; returns structured diagnostics without writing output | output generation or file writing |
@@ -566,24 +567,18 @@ Compatibility rule:
 - `changed: bool`
 - `would_change: bool`
 
-`TemplateInitPlan`
-
-- `passes: Vec<InitPass>`
-- `single_pass_compatible: bool`
-- `replacements: Vec<PlannedReplacement>`
-
 Template-init contract:
 
 - `template-init` consumes an input file plus one or more pass-scoped variable
   maps from the CLI wrapper.
-- Replacement planning sorts passes outer-to-inner and, within each pass,
-  sorts literal values longest-first so specific strings are replaced before
-  substrings.
+- Replacement planning is CLI-owned in `sc-compose` and sorts all pass-scoped
+  literal values globally longest-first, with higher pass numbers breaking ties,
+  so specific strings are reserved before substrings anywhere in the file.
 - Generated headers are emitted in outer-to-inner order and include `pass: N`
   only when the output must remain genuinely multi-pass.
 - If the resulting template is effectively single-pass, the emitted header is
-  normalized back to the shipped `1.2.x` single-header shape by omitting
-  `pass: 1`.
+  normalized back to the shipped `1.2.x` single-header shape:
+  `required_variables`, `defaults: {}`, `metadata: {}`, and no `pass: 1`.
 - `template-init` remains CLI-owned in `sc-compose`; `sc-composer` owns only
   the reusable workspace/helper types needed to support the conversion.
 
@@ -748,7 +743,9 @@ Command mapping:
 - `resolve` -> `resolve_profile`
 - `validate` -> `validate`
 - `frontmatter-init` -> `frontmatter_init`
+- `template-init` -> CLI-owned `template_init_file` rewrite path
 - `init` -> `init_workspace`
+- `verify` -> `verify`
 - `observability-health` -> CLI logger initialization, then `Logger::health()`
 - `examples list` -> list bundled example packs
 - `examples <name>` -> resolve the bundled example-pack file, merge pack
@@ -790,8 +787,27 @@ Command-specific rules:
 - `frontmatter-init`
   - rewrites or inserts frontmatter for a single target file,
   - uses token discovery but does not render the file.
+- `template-init`
+  - rewrites a single target file into a single-pass or multi-pass template,
+  - accepts one or more `--pass N` groups with pass-scoped `--var` and
+    `--var-file` inputs,
+  - honors `--force` for existing frontmatter/template rewrites,
+  - honors `--dry-run` without writing the rewritten file,
+  - returns exit code `3` when requested literal values are not found because
+    that outcome is a usage/configuration failure rather than a successful
+    drift result.
 - `init`
   - performs repository bootstrap and validation-oriented scanning.
+- `verify`
+  - compares one deployed file against the rendered output of `--against
+    <template>`,
+  - accepts `--quiet` to suppress diff body output,
+  - accepts `--builtin-var KEY=VALUE` overrides for deterministic builtin
+    values,
+  - accepts pass-scoped `--pass N` groups with per-pass `--var` and
+    `--var-file` inputs when `--all` is used,
+  - returns exit `0` when clean, exit `1` when drift is detected, and exit
+    `2` or `3` for genuine validation/render or usage/configuration failures.
 - `observability-health`
   - reads logger health state without mutating composition behavior,
   - prints a human-readable health summary by default,
@@ -907,6 +923,17 @@ The schemas below define the `payload` shape for each command.
     ".agents/agents/example.md.j2"
   ],
   "found": true
+}
+```
+
+`template-init --json`
+
+```json
+{
+  "template_path": "path/to/template.md",
+  "template_added": true,
+  "would_change": true,
+  "vars": ["task"]
 }
 ```
 
@@ -1148,7 +1175,10 @@ Manifest rules:
   - arrays of scalars,
   - empty arrays are valid,
   - arrays of objects are valid when the array is the variable value itself,
-  - nested arrays are rejected with `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
+  - recursive arrays and objects are accepted at any finite depth
+- Recursive structured-input behavior is governed by
+  [ADR-E1](#61-adr-e1-recursive-structured-input-contract-2026-07-29); no
+  separate template-pack restriction applies.
 - no manifest field selects entrypoints, paths, hooks, or alternate execution
   behavior in the initial release.
 
@@ -1387,9 +1417,9 @@ Variable-file behavior:
 - `--var-file` loads a JSON or YAML object,
 - keys are strings,
 - values are `InputValue`,
-- object values with string keys are valid in H1,
-- top-level sequence values may contain scalar values or objects in H2,
-- nested sequences remain invalid in H2.
+- object values with string keys are valid,
+- sequence values may contain recursive JSON/YAML-compatible values at any
+  finite depth.
 
 ## 17. Safety Model (FR-4)
 
@@ -1443,15 +1473,21 @@ Canonical failures must map to stable error families and stable codes.
 | Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
 | Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |
 | Command or helper invoked in incompatible mode | `ConfigError` | `ERR_CONFIG_MODE` |
+| Text/config file exists but is not readable as valid text | `ConfigError` | `ERR_CONFIG_READ` |
 | Config file missing or malformed | `ConfigError` | `ERR_CONFIG_PARSE` |
 | Invalid var-file shape | `ConfigError` | `ERR_CONFIG_VARFILE` |
 | Malformed object from structured input source | `ValidationError` | `ERR_VAL_OBJECT_SHAPE` |
-| Nested array shape supplied where H2 only allows top-level arrays of scalars or objects | `ValidationError` | `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` |
+| Legacy H2 nested-array restriction (retained code; not emitted for recursive values) | `ValidationError` | `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` |
 | Nested required path expects an object but receives a scalar, or vice versa | `ValidationError` | `ERR_VAL_SHAPE_MISMATCH` |
 | Nested required field absent inside a present object or array member | `ValidationError` | `ERR_VAL_MISSING_NESTED_FIELD` |
 | Example or template pack name not found | `ConfigError` | `ERR_CONFIG_PACK_NOT_FOUND` |
 | Named pack is not renderable because a bundled example name is ambiguous or a template pack has zero or multiple root-level `*.j2` files | `ConfigError` | `ERR_CONFIG_PACK_NOT_RENDERABLE` |
 | `templates add` target name already exists | `ConfigError` | `ERR_CONFIG_TEMPLATE_EXISTS` |
+
+The legacy `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` code is governed by
+[ADR-E1](#61-adr-e1-recursive-structured-input-contract-2026-07-29). It remains
+reserved for compatibility and must not reject values accepted by the
+recursive contract.
 
 ## 19. Observability Integration (FR-9, FR-10, FR-11)
 
@@ -1683,9 +1719,8 @@ Trait openness decisions:
 - `ResolverPolicy` is open because caller-specific path policy is an explicit
   product requirement,
 - value-model and metadata extension points remain narrow by design:
-  scalar values plus simple sequences are open in the initial release, but
-  hooks, arbitrary manifest-driven behavior, and nested mappings remain
-  deferred.
+  finite recursive JSON/YAML-compatible values are open in the initial release,
+  but hooks and arbitrary manifest-driven behavior remain deferred.
 
 ## 21. Structured Input And HTML Report Architecture
 
@@ -1699,12 +1734,12 @@ The shipped structured-input track expands `InputValue` to support:
 
 - object/map values with string keys,
 - arrays of objects,
-- nested object trees needed for report composition,
+- nested object trees and recursive arrays needed for report composition,
 - repeated report sections such as `sprints`.
 
-Nested arrays remain out of scope for H1 and H2. Examples such as
-`sprints[].checks[]` are illustrative prose for later design space, not H1/H2
-input grammar.
+Finite nested arrays are supported by E.1. Examples such as
+`sprints[].checks[]` are valid input shapes; bracket notation remains an
+illustrative template-data notation rather than `VariablePath` grammar.
 
 ### 21.2 Variable Resolver Behavior
 
@@ -1748,7 +1783,7 @@ Additional structured-input rules:
 
 - remains the primary structured-input ingress,
 - parses JSON or YAML objects,
-- carries object values and arrays of objects in this phase.
+- carries recursive JSON/YAML-compatible values in this phase.
 
 `--var key=value`
 
@@ -1759,20 +1794,20 @@ Frontmatter defaults
 
 - gain structured-value support in H1 using the same `InputValue` type and the
   same validation gate as `--var-file`,
-- accept objects and arrays of scalars after H1,
-- extend to arrays of objects in H2.
+- accept recursive JSON/YAML-compatible values at any finite depth.
 
 `template.json` `input_defaults`
 
-- gain structured-value support under the same rules as frontmatter defaults:
-  objects and arrays of scalars in H1, arrays of objects in H2.
+- gain structured-value support under the same recursive rules as frontmatter
+  defaults.
 
 ### 21.4 Validation Impact
 
 `validate`
 
 - must report missing nested field paths,
-- must reject malformed objects and unsupported nesting with stable diagnostics,
+- must reject malformed objects and unsupported scalar/key shapes with stable
+  diagnostics,
 - may validate field presence and supported shape without growing into a full
   schema language.
 

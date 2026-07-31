@@ -1,0 +1,41 @@
+{
+  "last_sync_commit": "252f283ab977febe473abafa2605abab5bcb6a23",
+  "docs_enabled": false,
+  "run_mode": "standard",
+  "git_tier": "full",
+  "include_submodules": false,
+  "phase_timings": {
+    "traverse": 0.79,
+    "parse": 0.09,
+    "co_change": 0.01,
+    "graph.imports": 0.01,
+    "graph.type_refs": 0.0,
+    "graph.heritage": 0.0,
+    "graph.calls": 0.02,
+    "git": 1.44,
+    "dynamic_hints": 0.04,
+    "graph.metrics": 0.18,
+    "graph.communities": 0.09,
+    "external_systems": 0.01,
+    "dead_code": 0.38,
+    "health": 2.8,
+    "decisions": 272.33,
+    "knowledge_graph.skeleton": 0.01,
+    "graph.flows": 0.0
+  },
+  "knowledge_graph": {
+    "version": "1.0.0",
+    "node_count": 922,
+    "layer_count": 6,
+    "tour_steps": 12,
+    "has_summaries": true,
+    "fingerprint": "a801b816217fd205"
+  },
+  "config_fingerprint": "64c31ef5e36169d07a55dfffd2d58a9afc7cee8fa1a0d573e4af24e186932c07",
+  "store_format_version": 1,
+  "written_by_version": "0.30.0",
+  "total_pages": 70,
+  "provider": "codex_cli",
+  "model": "codex_cli/default",
+  "total_tokens": 3011748
+}

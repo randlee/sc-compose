@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if page.title %}{{ page.title }} — {% endif %}{{ site.title }}</title>
+  <meta name="description" content="{% if page.description %}{{ page.description }}{% else %}{{ site.description }}{% endif %}">
+  <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a href="{{ '/' | relative_url }}" class="site-title">{{ site.title }}</a>
+      <nav class="site-nav">
+        <a href="{{ '/install' | relative_url }}">Install</a>
+        <a href="{{ '/examples' | relative_url }}">Examples</a>
+        <a href="https://github.com/randlee/sc-compose">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    {{ content }}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>
+        <a href="https://github.com/randlee/sc-compose">sc-compose</a> —
+        MIT licensed. Built with Rust, shipped everywhere.
+        <a href="https://crates.io/crates/sc-compose">crates.io</a> ·
+        <a href="https://pypi.org/project/sc-compose/">PyPI</a> ·
+        <a href="https://github.com/randlee/sc-compose/blob/develop/CHANGELOG.md">Changelog</a>
+      </p>
+    </div>
+  </footer>
+</body>
+</html>

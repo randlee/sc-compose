@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/command_error.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/command_error.rs</h1>
+<p>I’ll inspect the repository’s team protocol and the file context to ground the documentation accurately.</p>
+<h2>Overview</h2>
+<p><code>CommandError</code> is the Application-layer error adapter and cross-layer edge connector that consumes command and <code>sc_composer</code> failures and produces CLI exit codes, structured diagnostics, recovery hints, and display-ready error messages. It gives command handlers, reporting modules, observability setup, and <code>main.rs</code> one consistent failure representation while preserving the underlying <code>anyhow::Error</code>.</p>
+<p><code>compose</code> translates each <code>ComposeError</code> variant into the CLI’s exit-code policy and extracts diagnostics and applicable recovery hints. <code>Display</code> prefixes messages with an optional diagnostic code and appends each recovery action on a separate <code>recovery:</code> line.</p>
+<h2>Public API</h2>
+<p>All items are <code>pub(crate)</code>, so they are available throughout the <code>sc-compose</code> crate but are not part of its external library API.</p>
+<ul>
+<li><code>CommandError</code></li>
+<li><code>exit_code: i32</code> — process status to return.</li>
+<li><code>diagnostic_code: Option&lt;DiagnosticCode&gt;</code> — optional stable machine-readable error code.</li>
+<li><code>diagnostics: Vec&lt;Diagnostic&gt;</code> — structured diagnostics for JSON or other reporting.</li>
+<li><code>recovery_hints: Vec&lt;RecoveryHint&gt;</code> — actionable remediation guidance.</li>
+<li>
+<p><code>error: anyhow::Error</code> — underlying human-readable failure.</p>
+</li>
+<li>
+<p><code>CommandError::usage(error)</code> creates an unstructured usage failure with <code>USAGE_FAIL</code>.</p>
+</li>
+<li>
+<p><code>CommandError::usage_with_code(error, diagnostic_code)</code> creates a usage failure with one error diagnostic.</p>
+</li>
+<li>
+<p><code>CommandError::usage_with_code_and_hints(error, diagnostic_code, recovery_hints)</code> adds caller-provided remediation guidance to a coded usage failure.</p>
+</li>
+<li>
+<p><code>CommandError::compose(error)</code> adapts a <code>ComposeError</code>:</p>
+</li>
+<li>validation, render, and include errors use <code>VALIDATION_OR_RENDER_FAIL</code>;</li>
+<li>resolve and configuration errors use <code>USAGE_FAIL</code>;</li>
+<li>validation and configuration errors retain their recovery hints;</li>
+<li>
+<p>include errors retain their include chain in the emitted diagnostic.</p>
+</li>
+<li>
+<p><code>CommandError::render_write(error)</code> creates an <code>ErrRenderWrite</code> failure.</p>
+</li>
+<li>
+<p><code>CommandError::stdin_double_read()</code> reports <code>ErrRenderStdinDoubleRead</code> when both guidance and prompt attempt to consume standard input.</p>
+</li>
+</ul>
+<p><code>CommandError</code> implements <code>std::error::Error</code> and <code>Display</code>. A coded error renders as <code>&lt;diagnostic-code&gt;: &lt;error&gt;</code>; recovery hints render as <code>recovery: &lt;action&gt;</code>.</p>
+<h2>Dependencies</h2>
+<ul>
+<li><code>anyhow</code> supplies the erased <code>Error</code> type and converts <code>ComposeError</code> into the stored underlying error.</li>
+<li><code>sc_composer</code> supplies the domain error and diagnostic model: <code>ComposeError</code>, <code>Diagnostic</code>, <code>DiagnosticCode</code>, <code>DiagnosticSeverity</code>, <code>RecoveryHint</code>, and <code>RecoveryHintKind</code>.</li>
+<li><code>crate::exit_codes</code> supplies the CLI-specific process-status constants.</li>
+<li><code>std::fmt</code> supports the CLI-facing <code>Display</code> implementation.</li>
+</ul>
+<p>This module is consumed by <code>main.rs</code> for text and JSON error reporting, command dispatch and command implementations for failure construction, and reporting, rendering, variable-file, and observability paths that need to normalize failures.</p>
+<h2>Usage Notes</h2>
+<p>Command code should construct the most specific variant available:</p>
+<ul>
+<li>Use <code>compose</code> for failures received from <code>sc_composer</code>, so diagnostics, include chains, exit codes, and supported recovery hints are preserved.</li>
+<li>Use <code>usage_with_code_and_hints</code> for CLI argument or configuration mistakes where the caller knows the diagnostic code and corrective action.</li>
+<li>Use <code>render_write</code> for output-write failures and <code>stdin_double_read</code> for the explicit competing-stdin condition.</li>
+<li>Consumers that need machine-readable output should use <code>diagnostics</code>; terminal-oriented reporting can display the error directly and use <code>recovery_hints</code> as needed.</li>
+<li>Avoid wrapping a <code>ComposeError</code> with plain <code>usage</code>, because that discards its structured diagnostics and recovery metadata.</li>
+</ul>
+</body>
+</html>

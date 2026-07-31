@@ -11,8 +11,10 @@ use crate::commands::reports::{
     run_reports_index, run_reports_init, run_reports_publish_manifest, run_reports_render_spec,
     run_reports_smoke, run_reports_verify,
 };
+use crate::commands::template_init::{run_frontmatter_init, run_template_init};
 use crate::commands::templates::{run_templates_add, run_templates_list, run_templates_render};
-use crate::commands::workspace::{run_frontmatter_init, run_init, run_observability_health};
+use crate::commands::verify::run_verify;
+use crate::commands::workspace::{run_init, run_observability_health};
 use crate::observer_impl::{
     CliObserver, CommandEndEvent, CommandLifecycleObserver, CommandStartEvent,
 };
@@ -30,6 +32,14 @@ pub(crate) fn run(cli: Cli, observer: &mut CliObserver) -> Result<i32, CommandEr
         Command::Validate(args) => observe_command(observer, "validate", args.json, |observer| {
             run_validate(&args, observer)
         }),
+        Command::Verify(args) => observe_command(observer, "verify", args.json, |observer| {
+            run_verify(&args, observer)
+        }),
+        Command::TemplateInit(args) => {
+            observe_command(observer, "template-init", args.json, |_observer| {
+                run_template_init(&args)
+            })
+        }
         Command::FrontmatterInit(args) => {
             observe_command(observer, "frontmatter-init", args.json, |_observer| {
                 run_frontmatter_init(&args)

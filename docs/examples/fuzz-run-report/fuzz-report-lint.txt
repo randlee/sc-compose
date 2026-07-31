@@ -1,0 +1,29 @@
+Fuzz-session report mock validation evidence
+Validated: 2026-07-30
+
+Tool versions:
+- xmllint: libxml 2.9.13
+- html-validate: 11.6.0 (npx --no-install html-validate)
+
+XHTML panels:
+- xmllint --noout docs/examples/fuzz-run-report/failure-boundary.xhtml — PASS
+- xmllint --noout docs/examples/fuzz-run-report/failure-differential.xhtml — PASS
+- xmllint --noout docs/examples/fuzz-run-report/failure-shape.xhtml — PASS
+- xmllint --noout docs/examples/fuzz-run-report/failure-template.xhtml — PASS
+- xmllint --noout docs/examples/fuzz-run-report/success-boundary.xhtml — PASS
+- xmllint --noout docs/examples/fuzz-run-report/success-differential.xhtml — PASS
+- xmllint --noout docs/examples/fuzz-run-report/success-shape.xhtml — PASS
+- xmllint --noout docs/examples/fuzz-run-report/success-template.xhtml — PASS
+
+Composed HTML reports:
+- npx --no-install html-validate docs/examples/fuzz-run-report/failure-fuzz-report.html — PASS
+- npx --no-install html-validate docs/examples/fuzz-run-report/success-fuzz-report.html — PASS
+
+JSON sidecars:
+- jq empty docs/examples/fuzz-run-report/failure-fuzz-report.json — PASS
+- jq empty docs/examples/fuzz-run-report/success-fuzz-report.json — PASS
+
+Direct sidecar/body comparison:
+- Every sections[].body_html value byte-matches the body derived from its
+  companion XHTML panel after the worker header and outer fragment wrapper are
+  removed — PASS (8 of 8 panels).

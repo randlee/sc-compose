@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/reporting/mermaid.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/reporting/mermaid.rs</h1>
+<p>I’m using the repository’s Cass memory protocol and team documentation to ground the generated page in project conventions.</p>
+<h2>Overview</h2>
+<p>The Application-layer Mermaid renderer dispatches <code>ReportSpec</code> values into Mermaid state-diagram or flowchart text and returns rendering validation errors when required structural data is absent.</p>
+<p><code>render_mermaid</code> selects the renderer from the <code>ReportSpec</code> variant. State-machine specs produce <code>stateDiagram-v2</code> output with declared states, terminal-state edges, and annotated transitions. SQL-query specs produce <code>flowchart TD</code> output connecting the query to read/write tables and optional filter, ordering, transaction, and cardinality metadata.</p>
+<h2>Public API</h2>
+<ul>
+<li>
+<p><code>pub(crate) fn render_mermaid(spec: &amp;ReportSpec) -&gt; Result&lt;String, MermaidRenderError&gt;</code><br />
+  Application-facing dispatcher for Mermaid rendering. It accepts either <code>ReportSpec::StateMachine</code> or <code>ReportSpec::SqlQuery</code>.</p>
+</li>
+<li>
+<p><code>pub(crate) struct MermaidRenderError</code><br />
+  Renderer error type. Its <code>Display</code> implementation exposes the validation message, and it implements <code>std::error::Error</code>.</p>
+</li>
+</ul>
+<p>Internal helpers:</p>
+<ul>
+<li><code>render_state_machine</code> rejects specs with no states, renders labeled or unlabeled state declarations, and emits terminal and transition edges.</li>
+<li><code>render_sql_query</code> rejects specs with neither read nor written tables, then renders the query’s table relationships and optional metadata nodes.</li>
+<li><code>sanitize_node_id</code> converts all non-alphanumeric characters to <code>_</code> for Mermaid node identifiers. It is not collision-safe: for example, <code>build:ok</code> and <code>build/ok</code> both become <code>build_ok</code>.</li>
+</ul>
+<h2>Dependencies</h2>
+<ul>
+<li><code>std::fmt</code> supplies formatting support for <code>MermaidRenderError</code>.</li>
+<li><code>crate::reporting::spec::{ReportSpec, StateMachineSpec, SqlQuerySpec}</code> supplies the typed report specifications consumed by the renderer.</li>
+<li><code>crates/sc-compose/src/reporting/mod.rs</code> exposes this reporting component to the surrounding module.</li>
+<li>Reporting flows such as spec rendering and source-entry metadata parsing call <code>render_mermaid</code> to obtain Mermaid output.</li>
+</ul>
+<h2>Usage Notes</h2>
+<p>Call <code>render_mermaid</code> after parsing and validating a report specification:</p>
+<pre><code class="language-rust">let mermaid = render_mermaid(&amp;report_spec)?;
+</code></pre>
+<p>State-machine rendering requires at least one state. Transition labels concatenate available event, guard, actor, and effect fields.</p>
+<p>SQL-query rendering requires at least one table in <code>tables_read</code> or <code>tables_written</code>. Read/write relationships use solid edges; filters, ordering, transactional assumptions, and cardinality use dotted edges.</p>
+<p>Titles and metadata are interpolated directly into Mermaid labels. Callers should ensure supplied text is suitable for Mermaid syntax.</p>
+</body>
+</html>

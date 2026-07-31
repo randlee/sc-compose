@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Active Landscape</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Active Landscape</h1>
+<h2>Where work is concentrated</h2>
+<p>Work is concentrated in <code>crates/</code> (436 commits across 54 files, 15 hotspots), especially CLI tests, CLI entry points, and reporting-related source files. <code>bindings/</code> is the next active area (57 commits across 12 files), while <code>scripts/</code>, <code>prototype/</code>, and <code>.sc/</code> show much lower churn; the activity data alone does not distinguish refactoring, feature work, or bug-fixing.</p>
+<h2>Files in motion</h2>
+<ul>
+<li><code>crates/sc-compose/tests/cli.rs</code> — Rand Lee; the highest-churn file, indicating frequent changes to CLI test coverage.</li>
+<li><code>crates/sc-compose/tests/json_cli.rs</code> — Rand Lee; sustained test churn alongside the broader CLI activity.</li>
+<li><code>crates/sc-compose/src/main.rs</code> — Rand Lee; the CLI entry point is receiving repeated updates.</li>
+<li><code>crates/sc-compose/src/path_utils.rs</code> — Rand Lee; path-handling code is an active implementation area.</li>
+<li><code>crates/sc-compose/src/reporting/init.rs</code> — Rand Lee; reporting initialization is a flagged hotspot with frequent changes.</li>
+<li><code>crates/sc-compose/src/observability.rs</code> — Rand Lee; observability code has notable recent churn.</li>
+<li><code>crates/sc-compose/src/reporting/render_many.rs</code> — Rand Lee; a flagged reporting path with repeated updates.</li>
+<li><code>bindings/python/tests/test_smoke.py</code> — Rand Lee; Python smoke-test churn tracks activity in the bindings area.</li>
+<li><code>crates/sc-compose/src/reporting/catalog.rs</code> — Rand Lee; catalog-related reporting code remains active.</li>
+<li><code>crates/sc-compose/src/observer_impl.rs</code> — Rand Lee; a flagged hotspot in the observer implementation.</li>
+<li><code>crates/sc-compose/src/reporting/templates.rs</code> — Rand Lee; template-related reporting code is changing regularly.</li>
+<li><code>crates/sc-compose/src/render_request.rs</code> — Rand Lee; a flagged hotspot in request-rendering code.</li>
+</ul>
+<h2>Steady ground</h2>
+<p>There are no files untouched for 90+ days. This snapshot does not identify a stable corner to learn first; start with nearby documentation and tests before changing the active paths above.</p>
+<h2>Watch-outs</h2>
+<ul>
+<li>Treat the flagged hotspot files as likely to have concurrent or closely related changes, especially the CLI tests, reporting paths, observer implementation, and render request code.</li>
+<li><code>crates/sc-compose/tests/cli.rs</code> and <code>crates/sc-compose/tests/json_cli.rs</code> have the highest recent churn; validate test expectations carefully when working near CLI behavior.</li>
+<li>No live dead-code findings in the current hot set.</li>
+</ul>
+</body>
+</html>

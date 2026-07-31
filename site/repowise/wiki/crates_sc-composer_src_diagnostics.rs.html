@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-composer/src/diagnostics.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-composer/src/diagnostics.rs</h1>
+<p>I’ll inspect the repository guidance and supplied module context, then produce the wiki page.</p>
+<h2>Overview</h2>
+<p><code>diagnostics.rs</code> is the Application-layer edge connector for structured library diagnostics, producing stable <code>ERR_*</code>/<code>WARN_*</code>/<code>INFO_*</code> records and versioned machine-readable payload envelopes for cross-layer callers. It provides the public contract shared by rendering, validation, include resolution, configuration handling, CLI reporting, and external bindings.</p>
+<p>The module separates three concerns:</p>
+<ul>
+<li><code>DiagnosticSeverity</code> classifies a record as <code>Error</code>, <code>Warning</code>, or <code>Info</code>; its <code>Display</code> implementation emits lowercase text suitable for human-facing output.</li>
+<li><code>DiagnosticCode</code> supplies a finite, canonical taxonomy of machine-readable codes. <code>as_str()</code> maps each Rust variant to its stable all-caps identifier.</li>
+<li><code>Diagnostic</code> captures the code, severity, message, optional source location, and include provenance. <code>DiagnosticEnvelope&lt;T&gt;</code> packages arbitrary result data with diagnostics under a schema version.</li>
+</ul>
+<p>The source-location fields are intentionally optional: failures such as invalid caller input or output writes may not map to a template file, while parser and include failures often do. The include chain is always present as a vector, avoiding an additional optional nesting for consumers.</p>
+<h2>Public API</h2>
+<h3><code>DIAGNOSTIC_SCHEMA_VERSION</code></h3>
+<p><code>pub const DIAGNOSTIC_SCHEMA_VERSION: &amp;str = "1";</code></p>
+<p>The schema version embedded into every <code>DiagnosticEnvelope&lt;T&gt;</code>. Consumers of JSON output should use this field to select compatible decoding behavior rather than inferring schema shape from individual diagnostics.</p>
+<h3><code>DiagnosticSeverity</code></h3>
+<pre><code class="language-rust">pub enum DiagnosticSeverity {
+    Error,
+    Warning,
+    Info,
+}
+</code></pre>
+<p>A serializable, deserializable severity classification. Serde uses lowercase values: <code>"error"</code>, <code>"warning"</code>, and <code>"info"</code>.</p>
+<p><code>Display</code> emits the same lowercase strings. Use <code>Error</code> for fatal conditions, <code>Warning</code> for recoverable or fallback behavior that needs attention, and <code>Info</code> for non-failing observations such as default-value use.</p>
+<h3><code>DiagnosticCode</code></h3>
+<pre><code class="language-rust">pub enum DiagnosticCode { /* stable code variants */ }
+</code></pre>
+<p>The canonical diagnostic taxonomy. Serde serializes variants in screaming-snake-case, matching <code>as_str()</code>. The codes cover:</p>
+<ul>
+<li>Resolution: <code>ERR_RESOLVE_NOT_FOUND</code>, <code>ERR_RESOLVE_AMBIGUOUS</code></li>
+<li>Include safety and traversal: <code>ERR_INCLUDE_ESCAPE</code>, <code>ERR_INCLUDE_NOT_FOUND</code>, <code>ERR_INCLUDE_CYCLE</code>, <code>ERR_INCLUDE_DEPTH</code></li>
+<li>Template and input validation: <code>ERR_VAL_*</code>, <code>WARN_VAL_CONFLICTING_DEFAULT_SECTIONS</code>, <code>INFO_VAL_DEFAULT_USED</code></li>
+<li>Rendering and writes: <code>ERR_RENDER_STDIN_DOUBLE_READ</code>, <code>ERR_RENDER_WRITE</code></li>
+<li>Configuration and packs: <code>ERR_CONFIG_*</code> and <code>WARN_CONFIG_SINGLE_PASS_ALL_FALLBACK</code></li>
+</ul>
+<p><code>DiagnosticCode::as_str(self) -&gt; &amp;'static str</code> returns the stable identifier without allocating. Prefer this method when formatting a code for a CLI message, lookup table, or non-Serde integration.</p>
+<p>Adding a code extends a public machine-facing contract. Do not rename, remove, or repurpose an existing variant without considering JSON consumers, CLI tests, error-code documentation, and bindings.</p>
+<h3><code>Diagnostic</code></h3>
+<pre><code class="language-rust">pub struct Diagnostic {
+    pub severity: DiagnosticSeverity,
+    pub code: DiagnosticCode,
+    pub message: String,
+    pub path: Option&lt;PathBuf&gt;,
+    pub line: Option&lt;usize&gt;,
+    pub column: Option&lt;usize&gt;,
+    pub include_chain: Vec&lt;PathBuf&gt;,
+}
+</code></pre>
+<p>A complete emitted diagnostic. The required fields establish stable programmatic meaning (<code>severity</code>, <code>code</code>) plus human context (<code>message</code>). The builder-style methods preserve the record when attaching optional provenance:</p>
+<pre><code class="language-rust">let diagnostic = Diagnostic::new(
+    DiagnosticSeverity::Error,
+    DiagnosticCode::ErrIncludeNotFound,
+    &quot;could not resolve partial 'header.jinja'&quot;,
+)
+.with_path(&quot;templates/page.jinja&quot;)
+.with_location(12, 5)
+.with_include_chain(vec![
+    &quot;templates/page.jinja&quot;.into(),
+    &quot;templates/layout.jinja&quot;.into(),
+]);
+</code></pre>
+<p><code>with_location</code> expects one-based line and column values. Callers must not pass zero-based offsets from parsers or byte positions without converting them. <code>with_include_chain</code> replaces the current chain rather than appending, so build the complete provenance sequence before calling it.</p>
+<h3><code>DiagnosticEnvelope&lt;T&gt;</code></h3>
+<pre><code class="language-rust">pub struct DiagnosticEnvelope&lt;T&gt; {
+    pub schema_version: String,
+    pub payload: T,
+    pub diagnostics: Vec&lt;Diagnostic&gt;,
+}
+</code></pre>
+<p>A generic JSON-ready result wrapper. <code>DiagnosticEnvelope::new(payload, diagnostics)</code> sets <code>schema_version</code> from <code>DIAGNOSTIC_SCHEMA_VERSION</code>; callers supply their domain payload and all diagnostics emitted during the operation.</p>
+<p>This supports successful operations with warnings or informational records as well as failed operations that have structured partial results. Consumers should inspect diagnostics by severity and code rather than treating a non-empty diagnostic list as automatically fatal.</p>
+<h2>Dependencies</h2>
+<p>The module has minimal direct dependencies:</p>
+<ul>
+<li><code>serde::{Deserialize, Serialize}</code> derives JSON-compatible serialization for severities, codes, records, and envelopes.</li>
+<li><code>std::fmt</code> implements <code>Display</code> for <code>DiagnosticSeverity</code>.</li>
+<li><code>std::path::PathBuf</code> represents owned source paths and include chains portably.</li>
+</ul>
+<p>It is deliberately dependency-light because it forms a cross-layer public interface. It does not import rendering, parsing, filesystem, CLI, or error-framework types, preventing those concerns from leaking into the diagnostics contract.</p>
+<p>Key consumers include:</p>
+<ul>
+<li>Library internals: <code>composer.rs</code>, <code>validation.rs</code>, <code>include.rs</code>, <code>resolver.rs</code>, <code>frontmatter.rs</code>, <code>error.rs</code>, and <code>verify.rs</code> construct or inspect diagnostics while processing templates and inputs.</li>
+<li>CLI code: <code>main.rs</code>, compose commands, reporting modules, and command-error handling surface codes and records to users and JSON outputs.</li>
+<li>Tests: CLI and JSON CLI tests validate externally visible diagnostic behavior.</li>
+<li>Bindings: Python enum support derives a stable string form from <code>DiagnosticSeverity</code>.</li>
+</ul>
+<h2>Usage Notes</h2>
+<p>Create diagnostics at the point where the system has the most accurate classification and provenance. For example, validation code should emit a specific <code>ERR_VAL_*</code> code rather than collapsing distinct failures into a generic message:</p>
+<pre><code class="language-rust">let diagnostic = Diagnostic::new(
+    DiagnosticSeverity::Error,
+    DiagnosticCode::ErrValMissingRequired,
+    &quot;required variable 'title' is missing&quot;,
+)
+.with_path(template_path);
+</code></pre>
+<p>For a render operation that can succeed with warnings:</p>
+<pre><code class="language-rust">let result = render_template(input)?;
+let diagnostics = vec![Diagnostic::new(
+    DiagnosticSeverity::Info,
+    DiagnosticCode::InfoValDefaultUsed,
+    &quot;using default value for 'author'&quot;,
+)];
+
+let response = DiagnosticEnvelope::new(result, diagnostics);
+</code></pre>
+<p>When presenting an error to a human, use <code>message</code> for explanation and include <code>code.as_str()</code> so the output remains searchable and supportable. When writing automation, branch on <code>DiagnosticCode</code> or its stable string representation, not on message text; messages may evolve for clarity while codes are the compatibility boundary.</p>
+<p>For include-related failures, attach both the immediate source path and the full include chain when available. This distinguishes the file that triggered resolution from the route through which it was reached, which is essential for diagnosing cycles, depth limits, and confinement escapes.</p>
+<p><code>DiagnosticEnvelope&lt;T&gt;</code> stores the schema version as an owned <code>String</code>, even though its source constant is static. This makes the envelope straightforward to serialize and deserialize as ordinary payload data. Construct envelopes with <code>new</code> instead of manually setting the version so all outputs stay aligned with the current schema constant.</p>
+</body>
+</html>

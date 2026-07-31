@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Infrastructure: scripts/release_gate.sh</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Infrastructure: scripts/release_gate.sh</h1>
+<h2>Purpose</h2>
+<p><code>scripts/release_gate.sh</code> blocks releases that do not meet repository, branch, version, and documentation requirements.</p>
+<p>It ensures:</p>
+<ul>
+<li><code>develop</code> has been merged into <code>main</code>.</li>
+<li>Required Git refs are available and valid.</li>
+<li>The requested version has not already been published.</li>
+<li>The version in <code>README.md</code> matches the workspace version metadata.</li>
+</ul>
+<p>A failure exits with status <code>1</code> and writes a <code>release-gate: FAIL - ...</code> message to stderr.</p>
+<h2>Key Targets/Stages</h2>
+<ol>
+<li>
+<p><strong>Input validation</strong><br />
+   Requires a release version from positional argument 3 or <code>RELEASE_VERSION</code>.</p>
+</li>
+<li>
+<p><strong>Repository synchronization</strong><br />
+   Fetches <code>origin</code>, prunes stale remote refs, fetches tags, and explicitly fetches the develop branch.</p>
+</li>
+<li>
+<p><strong>Ref verification</strong><br />
+   Confirms the configured main and develop refs resolve locally.</p>
+</li>
+<li>
+<p><strong>Merge readiness</strong><br />
+   Uses <code>git merge-base --is-ancestor</code> to verify that every commit on develop is included in main.</p>
+</li>
+<li>
+<p><strong>Publication check</strong><br />
+   Calls <code>scripts/release_artifacts.py check-version-unpublished</code> to ensure the requested version is not already published according to the artifact manifest.</p>
+</li>
+<li>
+<p><strong>Documentation version check</strong><br />
+   Calls <code>scripts/release_artifacts.py verify-readme-version</code> to validate that <code>README.md</code> is aligned with <code>Cargo.toml</code>.</p>
+</li>
+</ol>
+<h2>Configuration</h2>
+<p>Invocation format:</p>
+<pre><code class="language-bash">scripts/release_gate.sh [main-ref] [develop-ref] [version] [manifest]
+</code></pre>
+<p>Defaults:</p>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>main-ref</code></td>
+<td><code>origin/main</code></td>
+</tr>
+<tr>
+<td><code>develop-ref</code></td>
+<td><code>origin/develop</code></td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td><code>$RELEASE_VERSION</code></td>
+</tr>
+<tr>
+<td><code>manifest</code></td>
+<td><code>release/publish-artifacts.toml</code></td>
+</tr>
+</tbody>
+</table>
+<p>Example:</p>
+<pre><code class="language-bash">RELEASE_VERSION=1.2.3 scripts/release_gate.sh
+</code></pre>
+<p>Or with explicit values:</p>
+<pre><code class="language-bash">scripts/release_gate.sh origin/main origin/develop 1.2.3 release/publish-artifacts.toml
+</code></pre>
+<h2>Operational Notes</h2>
+<ul>
+<li>Run this in a Git checkout with an <code>origin</code> remote and credentials sufficient to fetch branches and tags.</li>
+<li>The script runs with <code>set -euo pipefail</code>; unset variables, command failures, and failed pipelines stop execution.</li>
+<li>CI systems using shallow or single-branch checkouts are supported because the script explicitly fetches the configured develop branch.</li>
+<li>A failure stating that develop has commits not in main means the release branch is incomplete; merge <code>develop</code> into <code>main</code> before retrying.</li>
+<li>The Python 3 runtime and <code>scripts/release_artifacts.py</code> must be available in the repository checkout.</li>
+<li>The gate performs validation only; it does not create tags, publish artifacts, merge branches, or modify release files.</li>
+</ul>
+</body>
+</html>

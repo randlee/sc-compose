@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-composer/src/verify.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-composer/src/verify.rs</h1>
+<h2>Overview</h2>
+<p><code>verify.rs</code> is the Application-layer drift-verification adapter that renders a <code>ComposeRequest</code>, reads a deployed text file, compares normalized outputs, and produces a <code>VerifyResult</code> with an optional unified diff. It exposes a simple verification entry point and an observer-aware variant, reusing the composition pipeline rather than implementing rendering separately.</p>
+<p>Verification treats line-ending differences (<code>CRLF</code> versus <code>LF</code>) and a final trailing newline as equivalent. When content differs, it produces a line-oriented unified diff whose left header is the deployed file path and whose right header identifies the rendered template path.</p>
+<h2>Public API</h2>
+<h3><code>verify</code></h3>
+<pre><code class="language-rust">pub fn verify(
+    request: &amp;ComposeRequest,
+    deployed_path: impl AsRef&lt;Path&gt;,
+) -&gt; Result&lt;VerifyResult, ComposeError&gt;
+</code></pre>
+<p>Convenience entry point for callers that do not need lifecycle events. It creates a <code>NoopObserver</code> and delegates to <code>verify_with_observer</code>.</p>
+<p>Inputs:</p>
+<ul>
+<li><code>request</code>: the template composition request, including template mode, confined root, variables, and composition policy.</li>
+<li><code>deployed_path</code>: the deployed output file to check.</li>
+</ul>
+<p>Output:</p>
+<ul>
+<li><code>Ok(VerifyResult)</code> contains both source texts, their paths, propagated composition warnings, a <code>clean</code> flag, and <code>diff: Option&lt;String&gt;</code>.</li>
+<li><code>Err(ComposeError)</code> is returned if composition fails or the deployed file cannot be read as UTF-8 text.</li>
+</ul>
+<h3><code>verify_with_observer</code></h3>
+<pre><code class="language-rust">pub fn verify_with_observer(
+    request: &amp;ComposeRequest,
+    deployed_path: impl AsRef&lt;Path&gt;,
+    observer: &amp;mut dyn CompositionObserver,
+) -&gt; Result&lt;VerifyResult, ComposeError&gt;
+</code></pre>
+<p>Performs the same verification while emitting <code>on_verify_start</code> before work and <code>on_verify_end</code> after the attempt. The end event is emitted whether verification succeeds or fails because the core work is evaluated inside a closure before the end callback.</p>
+<p>The resulting <code>VerifyResult</code> includes:</p>
+<ul>
+<li><code>clean</code>: <code>true</code> when normalized deployed and rendered text match.</li>
+<li><code>resolved_template_path</code>: the final template path resolved by composition.</li>
+<li><code>deployed_path</code>: an owned copy of the input path.</li>
+<li><code>rendered_text</code> and <code>deployed_text</code>: original, unnormalized text.</li>
+<li><code>diff</code>: a unified diff only when drift is present.</li>
+<li><code>warnings</code>: warnings produced during composition.</li>
+</ul>
+<h3>Internal helpers</h3>
+<p><code>read_deployed_text</code> reads the file with <code>fs::read_to_string</code> and maps I/O failures into configuration-oriented <code>ComposeError</code> values:</p>
+<ul>
+<li>Missing file → <code>ErrResolveNotFound</code></li>
+<li>Invalid UTF-8 → <code>ErrConfigRead</code></li>
+<li>Other read failures → <code>ErrConfigParse</code></li>
+</ul>
+<p>Each mapped error includes an <code>InspectPath</code> recovery hint for the deployed path.</p>
+<p><code>render_diff</code> normalizes both texts, short-circuits on equality, and otherwise generates a <code>similar::TextDiff</code> unified diff.</p>
+<p><code>normalize_text_for_compare</code> uses <code>str::lines()</code> and rejoins with <code>\n</code>. This canonicalizes CRLF and LF endings and removes the significance of a single final newline.</p>
+<h2>Dependencies</h2>
+<ul>
+<li><code>compose_with_observer</code>: renders the requested template and supplies the resolved template path, rendered text, and warnings. Verification is intentionally downstream of composition.</li>
+<li><code>CompositionObserver</code>, <code>VerifyStartEvent</code>, <code>VerifyEndEvent</code>, and <code>NoopObserver</code>: support observable verification without requiring event handling from ordinary callers.</li>
+<li><code>ComposeRequest</code> and <code>VerifyResult</code>: define the verification input and result contract.</li>
+<li><code>ComposeError</code>, <code>ConfigError</code>, <code>DiagnosticCode</code>, and recovery hints: provide structured, actionable failures for deployed-file read problems.</li>
+<li><code>std::fs</code> and <code>std::path::Path</code>: read deployed output from the filesystem.</li>
+<li><code>similar::TextDiff</code>: produces human-readable, line-based unified diffs.</li>
+</ul>
+<p>The module is re-exported through <code>lib.rs</code>, making its public entry points available to library consumers and higher-level bindings.</p>
+<h2>Usage Notes</h2>
+<p>A basic verification flow renders the requested template and compares it with an existing deployment:</p>
+<pre><code class="language-rust">use std::collections::BTreeMap;
+use std::path::PathBuf;
+
+use sc_composer::{
+    verify, ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot,
+};
+
+let root = PathBuf::from(&quot;/workspace/templates&quot;);
+let request = ComposeRequest {
+    runtime: None,
+    mode: ComposeMode::File {
+        template_path: PathBuf::from(&quot;service.conf.j2&quot;),
+    },
+    root: ConfiningRoot::new(&amp;root)?,
+    vars_input: BTreeMap::default(),
+    vars_env: BTreeMap::default(),
+    vars_defaults: BTreeMap::default(),
+    guidance_block: None,
+    user_prompt: None,
+    policy: ComposePolicy::default(),
+};
+
+let result = verify(&amp;request, &quot;/etc/my-service/service.conf&quot;)?;
+
+if result.clean {
+    println!(&quot;deployment matches {}&quot;, result.resolved_template_path.display());
+} else if let Some(diff) = result.diff {
+    println!(&quot;deployment drift detected:\n{diff}&quot;);
+}
+</code></pre>
+<p>Use <code>verify_with_observer</code> when progress reporting, telemetry, or UI integration needs verification lifecycle callbacks:</p>
+<pre><code class="language-rust">let result = verify_with_observer(&amp;request, deployed_path, &amp;mut observer)?;
+</code></pre>
+<p>The observer receives exactly one start and one end event for a verification attempt, including attempts that fail while rendering or reading the deployed file. Observer implementations should therefore treat the end event as completion, not as proof of success.</p>
+<p>Comparison normalization is deliberately narrow:</p>
+<ul>
+<li>CRLF and LF line endings compare as equal.</li>
+<li>A trailing newline difference compares as equal.</li>
+<li>Whitespace within lines remains significant.</li>
+<li>Blank-line placement remains significant.</li>
+<li>The <code>VerifyResult</code> preserves original text, so consumers needing byte- or newline-sensitive analysis must inspect <code>deployed_text</code> and <code>rendered_text</code> directly rather than relying only on <code>clean</code>.</li>
+</ul>
+<p>A missing deployed file is reported as a not-found resolution diagnostic, while a non-UTF-8 deployed file is rejected rather than compared as bytes. This module is therefore suitable for text-template deployments, not arbitrary binary artifacts.</p>
+<p>Multi-pass rendering behavior is inherited from <code>compose_with_observer</code>. Verification compares the final rendered output, including correctly resolved multi-pass template values, rather than attempting a separate expansion path that could diverge from normal composition behavior.</p>
+</body>
+</html>

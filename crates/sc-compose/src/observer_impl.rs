@@ -306,6 +306,10 @@ impl ObservationSink for CliObserver {
     /// compatibility path; CLI logging writes happen through `Logger::log()`.
     fn emit(&mut self, event: &ObservationEvent) {
         match event {
+            ObservationEvent::PassStart(event) => self.on_pass_start(event),
+            ObservationEvent::PassEnd(event) => self.on_pass_end(event),
+            ObservationEvent::VerifyStart(event) => self.on_verify_start(event),
+            ObservationEvent::VerifyEnd(event) => self.on_verify_end(event),
             ObservationEvent::ResolveAttempt(event) => self.on_resolve_attempt(event),
             ObservationEvent::ResolveOutcome(event) => self.on_resolve_outcome(event),
             ObservationEvent::IncludeExpandOutcome(event) => self.on_include_outcome(event),

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-composer/src/include.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-composer/src/include.rs</h1>
+<p>I’m grounding the page in the repository guidance and the current source so the API and behavioral notes match the implementation.</p>
+<h2>Overview</h2>
+<p><code>include.rs</code> is the Application-layer include-expansion resolver that consumes a root template plus confinement policy and produces expanded template text, provenance metadata, parsed frontmatter, and include chains. It recursively replaces standalone <code>@&lt;path&gt;</code> directives, validates every target against the primary and explicitly allowed roots, and turns operational failures into structured <code>ComposeError::Include</code> diagnostics.</p>
+<p>The module is called by the end-to-end composer after template resolution and before validation/rendering. Validation also consumes its <code>ExpandedTemplate</code> output directly, so this module is the boundary where a multi-file template graph becomes a single renderable body while retaining file-level metadata.</p>
+<p>Expansion is depth-first and deterministic:</p>
+<ol>
+<li>Canonicalize and confinement-check the initial template.</li>
+<li>Read and parse its frontmatter/body.</li>
+<li>Scan the body line by line.</li>
+<li>Replace each directive line with the recursively expanded included file.</li>
+<li>Return the final text plus traversal and provenance data.</li>
+</ol>
+<h2>Public API</h2>
+<h3><code>expand_includes</code></h3>
+<pre><code class="language-rust">pub fn expand_includes(
+    template_path: impl AsRef&lt;Path&gt;,
+    root: &amp;ConfiningRoot,
+    policy: &amp;ComposePolicy,
+) -&gt; Result&lt;ExpandedTemplate, ComposeError&gt;
+</code></pre>
+<p>Expands a template file and every reachable include directive.</p>
+<p>Inputs:</p>
+<ul>
+<li><code>template_path</code> — the initial template path. It is canonicalized and must be inside <code>root</code> or <code>policy.allowed_roots</code>.</li>
+<li><code>root</code> — the canonical primary confinement root.</li>
+<li><code>policy</code> — supplies <code>max_include_depth</code> and additional permitted <code>allowed_roots</code>.</li>
+</ul>
+<p>Returns <code>ComposeError</code> when:</p>
+<ul>
+<li>a target cannot be read (<code>ErrIncludeNotFound</code>);</li>
+<li>a target is outside the permitted roots (<code>ErrIncludeEscape</code>);</li>
+<li>recursion exceeds <code>max_include_depth</code> (<code>ErrIncludeDepth</code>);</li>
+<li>the active include stack revisits a file (<code>ErrIncludeCycle</code>);</li>
+<li>frontmatter parsing fails; configuration parsing errors are converted into the include error family.</li>
+</ul>
+<h3><code>ExpandedTemplate</code></h3>
+<pre><code class="language-rust">pub struct ExpandedTemplate {
+    pub text: String,
+    pub resolved_files: Vec&lt;PathBuf&gt;,
+    pub frontmatters: Vec&lt;(PathBuf, Vec&lt;Frontmatter&gt;)&gt;,
+    pub include_chains: BTreeMap&lt;PathBuf, Vec&lt;PathBuf&gt;&gt;,
+}
+</code></pre>
+<p>The include engine returns both expanded content and the information later pipeline stages need.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+<th>Ordering / duplication behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>text</code></td>
+<td>Concatenated template body after directive replacement.</td>
+<td>Follows source order and depth-first expansion.</td>
+</tr>
+<tr>
+<td><code>resolved_files</code></td>
+<td>Canonical files encountered during expansion.</td>
+<td>First-seen order; each canonical path appears once.</td>
+</tr>
+<tr>
+<td><code>frontmatters</code></td>
+<td>Parsed frontmatter passes for each file read.</td>
+<td>Appended whenever a file is expanded, so repeated non-cyclic includes can produce repeated entries.</td>
+</tr>
+<tr>
+<td><code>include_chains</code></td>
+<td>The root-to-file path chain for each resolved file.</td>
+<td>Recorded only on first encounter; keys are canonical paths and are deterministically ordered by <code>BTreeMap</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><code>ExpandedTemplate</code> derives <code>Clone</code>, <code>Debug</code>, <code>Default</code>, and <code>PartialEq</code>, making it suitable for inspection, testing, and pipeline handoff.</p>
+<h2>Dependencies</h2>
+<ul>
+<li><code>types::{ComposePolicy, ConfiningRoot, IncludeDepth}</code> supplies the confinement and recursion policy. <code>ConfiningRoot::new</code> canonicalizes root paths before they reach this module.</li>
+<li><code>frontmatter::{parse_template_document, Frontmatter}</code> splits every included file into frontmatter passes and body text. Include directives are evaluated only from the parsed body, not from frontmatter.</li>
+<li><code>error::{ComposeError, IncludeError}</code> and <code>DiagnosticCode</code> provide stable, structured failure reporting and preserve the active include chain.</li>
+<li><code>std::fs</code> provides file reads and filesystem canonicalization.</li>
+<li><code>BTreeSet</code> tracks first-seen canonical paths; <code>BTreeMap</code> stores reproducibly ordered include-chain metadata.</li>
+<li><code>composer.rs</code> invokes <code>expand_includes</code> between template resolution and validation/rendering. <code>validation.rs</code> uses the resulting text and frontmatter provenance to analyze the fully composed template.</li>
+<li><code>lib.rs</code> re-exports <code>ExpandedTemplate</code> and <code>expand_includes</code> as public crate API.</li>
+</ul>
+<h2>Usage Notes</h2>
+<h3>Directive syntax</h3>
+<p>An include directive must occupy its own logical line after trimming whitespace:</p>
+<pre><code class="language-text">@&lt;partials/header.md&gt;
+</code></pre>
+<p>Leading and trailing whitespace around the entire directive is accepted:</p>
+<pre><code class="language-text">    @&lt;partials/header.md&gt;
+</code></pre>
+<p>The implementation does not recognize inline directives:</p>
+<pre><code class="language-text">Intro @&lt;partials/header.md&gt;
+</code></pre>
+<p>That line remains literal text. The directive target is not additionally trimmed, so avoid padding the path inside <code>&lt;</code> and <code>&gt;</code>.</p>
+<h3>Resolution order</h3>
+<p>For <code>@&lt;target&gt;</code>, the engine tries:</p>
+<ol>
+<li>A path relative to the including file’s parent directory.</li>
+<li>A path relative to the primary <code>root</code> if the first attempt does not produce an accepted canonical path.</li>
+</ol>
+<p>This lets nested partials use sibling-relative includes while allowing root-relative shared paths.</p>
+<p>For example:</p>
+<pre><code class="language-text">templates/
+├── report.md.j2
+├── shared/footer.md
+└── sections/
+    ├── summary.md
+    └── details.md
+</code></pre>
+<p><code>report.md.j2</code>:</p>
+<pre><code class="language-text">@&lt;sections/summary.md&gt;
+@&lt;shared/footer.md&gt;
+</code></pre>
+<p><code>sections/summary.md</code>:</p>
+<pre><code class="language-text">Summary
+@&lt;details.md&gt;
+</code></pre>
+<p>Calling <code>expand_includes</code> on <code>report.md.j2</code> produces body text in this order:</p>
+<pre><code class="language-text">Summary
+...contents of details.md...
+...contents of shared/footer.md...
+</code></pre>
+<p>and records first-seen files as <code>report.md.j2</code>, <code>sections/summary.md</code>, <code>sections/details.md</code>, then <code>shared/footer.md</code>.</p>
+<h3>Confinement and symlink safety</h3>
+<p>Every existing candidate is canonicalized before its location is accepted. Consequently, a symlink located inside the template tree but resolving outside it is rejected. Permitted locations are:</p>
+<ul>
+<li>the primary <code>root</code>;</li>
+<li>any canonical root listed in <code>ComposePolicy::allowed_roots</code>.</li>
+</ul>
+<p>For a nonexistent path, canonicalization cannot expose its final filesystem location. The module therefore lexically normalizes <code>.</code> and <code>..</code> components before deciding whether the request is an escape. This deliberately reports a nonexistent <code>../outside.md</code> as an escape rather than misleadingly reporting it as missing.</p>
+<h3>Cycles and depth</h3>
+<p>Cycle detection uses the current recursion stack, not the global visited set. A file may be included more than once in separate branches and its contents will be expanded each time; only re-entering a file already on the active chain is a cycle.</p>
+<p><code>resolved_files</code> and <code>include_chains</code> are first-seen metadata, while the final <code>text</code> preserves every valid inclusion occurrence. The root begins at depth <code>0</code>; each nested include increments depth, and the engine errors once the current depth is greater than <code>policy.max_include_depth</code>.</p>
+<p>The default policy allows depth <code>32</code>. Configure a lower limit when composing untrusted or unusually broad include trees:</p>
+<pre><code class="language-rust">use sc_composer::{ComposePolicy, ConfiningRoot, IncludeDepth, expand_includes};
+
+let root = ConfiningRoot::new(&quot;templates&quot;)?;
+let policy = ComposePolicy {
+    max_include_depth: IncludeDepth::new(8),
+    ..ComposePolicy::default()
+};
+
+let expanded = expand_includes(&quot;templates/report.md.j2&quot;, &amp;root, &amp;policy)?;
+</code></pre>
+<h3>Frontmatter behavior</h3>
+<p>Every file is parsed with <code>parse_template_document</code> before body expansion. Its frontmatter passes are retained in <code>ExpandedTemplate::frontmatters</code>; the body alone contributes to <code>text</code>. The composer subsequently identifies the root template’s saved frontmatter to construct the render pipeline, while validation can inspect frontmatter from included files for warnings and declarations.</p>
+<h3>Error handling</h3>
+<p>Consumers that need include-specific diagnostics should match the error family and inspect the stable code and chain:</p>
+<pre><code class="language-rust">match expand_includes(template_path, &amp;root, &amp;policy) {
+    Ok(expanded) =&gt; {
+        println!(&quot;{}&quot;, expanded.text);
+    }
+    Err(ComposeError::Include(error)) =&gt; {
+        eprintln!(&quot;{}: {}&quot;, error.code().as_str(), error.message());
+        for path in error.include_chain() {
+            eprintln!(&quot;  included from {}&quot;, path.display());
+        }
+    }
+    Err(other) =&gt; return Err(other),
+}
+</code></pre>
+<p>Do not treat <code>resolved_files</code> as a complete expansion event log: it intentionally de-duplicates paths. Use the expanded text for occurrence-sensitive behavior, and use <code>include_chains</code> for first-discovery provenance.</p>
+</body>
+</html>

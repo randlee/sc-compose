@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: prototype/multipass/renderer.py</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: prototype/multipass/renderer.py</h1>
+<h2>Overview</h2>
+<p><code>prototype/multipass/renderer.py</code> is an Application-layer multi-pass rendering orchestrator that consumes parsed stacked templates and per-pass contexts to produce fully rendered text through native <code>sc_compose</code> bindings. It applies each header-defined delimiter depth in order, merges header defaults with caller variables, and protects later-pass placeholders from premature evaluation.</p>
+<p>The module exposes single-pass and full-sequence rendering APIs. It also includes private helpers for shielding higher-brace expressions and reconstructing header-prefixed template text.</p>
+<h2>Public API</h2>
+<h3><code>render_pass(parsed, ctx) -&gt; tuple[str, ParsedTemplate]</code></h3>
+<p>Renders the first remaining template pass and consumes its corresponding header.</p>
+<ul>
+<li>Requires at least one remaining pass.</li>
+<li>Verifies that <code>ctx.pass_number</code> matches the first header’s declared pass number.</li>
+<li>Creates <code>sc_compose.Renderer</code> with delimiters based on the header’s <code>brace_count</code>.</li>
+<li>Merges <code>header.defaults</code> and <code>ctx.variables</code>, with context variables taking precedence.</li>
+<li>Returns the rendered body and a <code>ParsedTemplate</code> containing the unconsumed headers.</li>
+</ul>
+<p>Raises <code>ValueError</code> when no passes remain or when the context and header pass numbers differ.</p>
+<h3><code>render_all(parsed, contexts) -&gt; str</code></h3>
+<p>Renders every pass in order and returns the final text.</p>
+<ul>
+<li>Requires exactly one <code>RenderContext</code> per parsed header.</li>
+<li>Validates pass ordering before each render.</li>
+<li>Delegates each iteration to <code>render_pass</code>.</li>
+<li>Is called by the end-to-end demo and integration/full-render tests.</li>
+</ul>
+<p>Raises <code>ValueError</code> if the number of contexts differs from the number of headers or if pass ordering is inconsistent.</p>
+<h2>Dependencies</h2>
+<ul>
+<li><code>sc_compose.Renderer</code> provides the native rendering engine and supports per-pass custom variable delimiters through <code>with_delimiters</code>.</li>
+<li><code>ParsedTemplate</code> supplies the ordered pass headers and template body.</li>
+<li><code>RenderContext</code> supplies a pass number and its rendering variables.</li>
+<li><code>yaml</code> is imported locally by <code>_reconstruct</code> to serialize reconstructed header metadata.</li>
+</ul>
+<p><code>render_pass</code> calls <code>_protect_higher_braces</code> before native rendering. <code>render_all</code> sequences calls to <code>render_pass</code>.</p>
+<h2>Usage Notes</h2>
+<p>Passes are ordered outermost first. A pass with brace count 2 uses <code>{{ ... }}</code>, brace count 3 uses <code>{{{ ... }}}</code>, and so on; block delimiters remain <code>{% ... %}</code>.</p>
+<p>Higher-brace expressions are wrapped in <code>{% raw %}</code> / <code>{% endraw %}</code> before the current pass renders. This prevents a lower-brace parser from treating part of a future-pass expression as its own variable syntax.</p>
+<p>Provide contexts in the same order as parsed headers:</p>
+<pre><code class="language-python">output = render_all(
+    parsed_template,
+    [
+        RenderContext(pass_number=1, variables={&quot;environment&quot;: &quot;prod&quot;}),
+        RenderContext(pass_number=2, variables={&quot;service&quot;: &quot;api&quot;}),
+    ],
+)
+</code></pre>
+<p>For callers that need to inspect intermediate output or retain unconsumed headers, use <code>render_pass</code> repeatedly instead of <code>render_all</code>.</p>
+</body>
+</html>

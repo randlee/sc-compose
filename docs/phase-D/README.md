@@ -2,7 +2,9 @@
 
 ## Status
 
-Planned follow-on work after the shipped Phase C Python bindings (v1.2.0).
+Complete. All eight Phase D sprints (`D.1`-`D.4`, `D.1-py`-`D.4-py`) have
+passed QA and merged into `integrate/phase-d`. PR #140 is open to promote
+that phase-complete branch to `develop`.
 
 ## Objective
 
@@ -41,7 +43,7 @@ Covered by the 6 user stories in
 | GAP-1 | Stacked header parsing (single → Vec\<Frontmatter\>) | D.1 | sc-composer |
 | GAP-2 | Brace-count aware validation/discovery | D.1 | sc-composer |
 | GAP-3 | Multi-pass compose loop | D.2 | sc-composer |
-| GAP-4 | Renderer::with_delimiters public | ✅ Closed (C.2) | sc-composer |
+| GAP-4 | Renderer::with_delimiters public (now fallible on invalid delimiters) | ✅ Closed (C.2) | sc-composer |
 | GAP-5 | Pass config types | D.1 | sc-composer |
 | GAP-6 | verify entry point (library) | D.4 | sc-composer |
 | GAP-7 | --all flag and --pass N args | D.3 | sc-compose |
@@ -92,12 +94,12 @@ serially gate the next Rust sprint. The Python track is therefore contingent on
 the Rust track, but non-blocking with respect to subsequent Rust implementation
 work.
 
-**Current landing status:** as of Sunday, July 19, 2026, the Rust track
-`D.1`–`D.4` has passed QA and merged to `integrate/phase-d`
-(PR #129, #130, #131, and #133). The four `-py` sprint docs are now expected
-to remain at full sprint-doc rigor and are documentation-ready for dispatch.
-Actual assignment timing remains team-lead controlled and is not implied by
-this README alone.
+**Current landing status:** as of Monday, July 20, 2026, all eight Phase D
+sprints have passed QA and merged to `integrate/phase-d`: Rust track `D.1`–
+`D.4` via PRs #129, #130, #131, and #133, plus Python track `D.1-py`–
+`D.4-py` via PRs #134, #135, #136, and #137. PR #140 is the open
+`integrate/phase-d -> develop` promotion branch for the complete Phase D
+delivery.
 
 ## Python Binding Parity
 

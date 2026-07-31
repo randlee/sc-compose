@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: bindings/python/src/convert.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: bindings/python/src/convert.rs</h1>
+<p>I’m using the repository’s Cass Memory workflow and team protocol to keep this documentation aligned with local conventions.</p>
+<h2>Overview</h2>
+<p><code>convert.rs</code> is the Application-layer edge connector that translates Python binding inputs into validated <code>sc_composer</code> domain values and converts JSON-compatible results back into Python objects. It forms the shared conversion boundary for the Python API: request, policy, result, function, and module bindings consume its crate-private helpers to normalize Python values before entering the pure composer library.</p>
+<p>The module accepts both Python wrapper classes (<code>PyProfileName</code>, <code>PyConfiningRoot</code>, <code>PyNamedTemplateAsset</code>, <code>PyPassConfig</code>, and <code>PyVariableName</code>) and selected native Python representations such as strings, dictionaries, iterables, tuples, and <code>os.PathLike</code> objects. It preserves domain invariants by delegating name, root, runtime, and input validation to <code>sc_composer</code> and translating failures into binding-specific configuration or validation exceptions.</p>
+<p>It also implements a recursive JSON bridge. Python <code>None</code>, booleans, finite numbers, strings, dictionaries with string keys, and iterables are converted to <code>serde_json::Value</code>; JSON values are reconstructed as Python <code>None</code>, scalars, lists, and dictionaries. This allows Python callers to supply nested contexts without exposing Rust serialization details.</p>
+<h2>Public API</h2>
+<p>All functions are <code>pub(crate)</code>, so they are internal to the Python bindings crate rather than Python-callable exports themselves. Their consumers construct Python-facing objects and invoke composition operations.</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Produces</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>extract_supporting_templates</code></td>
+<td><code>Vec&lt;NamedTemplateAsset&gt;</code></td>
+<td>Converts an optional iterable of <code>PyNamedTemplateAsset</code> instances. Missing input becomes an empty vector.</td>
+</tr>
+<tr>
+<td><code>extract_profile_name</code></td>
+<td><code>ProfileName</code></td>
+<td>Accepts a <code>PyProfileName</code> wrapper or a string, validating string values through <code>ProfileName::new</code>.</td>
+</tr>
+<tr>
+<td><code>extract_runtime_kind</code></td>
+<td><code>Option&lt;RuntimeKind&gt;</code></td>
+<td>Delegates optional runtime parsing to <code>parse_runtime_kind</code>.</td>
+</tr>
+<tr>
+<td><code>extract_allowed_roots</code></td>
+<td><code>Vec&lt;ConfiningRoot&gt;</code></td>
+<td>Accepts wrapped roots or Python path-like values, normalizing the latter through <code>os.fspath</code> before domain validation.</td>
+</tr>
+<tr>
+<td><code>extract_string_map</code></td>
+<td><code>BTreeMap&lt;String, InputValue&gt;</code></td>
+<td>Converts a required Python dictionary with string keys into validated compose input values.</td>
+</tr>
+<tr>
+<td><code>extract_var_map</code></td>
+<td><code>BTreeMap&lt;VariableName, InputValue&gt;</code></td>
+<td>Converts an optional dictionary into validated variable names and validated JSON-compatible values.</td>
+</tr>
+<tr>
+<td><code>extract_variable_names</code></td>
+<td><code>Vec&lt;VariableName&gt;</code></td>
+<td>Converts an optional iterable of <code>PyVariableName</code> wrappers or strings into validated variable names.</td>
+</tr>
+<tr>
+<td><code>extract_metadata_map</code></td>
+<td><code>BTreeMap&lt;String, MetadataValue&gt;</code></td>
+<td>Converts optional metadata dictionaries through JSON and deserializes values into <code>MetadataValue</code>.</td>
+</tr>
+<tr>
+<td><code>extract_pass_configs</code></td>
+<td><code>Vec&lt;PassConfig&gt;</code></td>
+<td>Requires each iterable entry to be a <code>PyPassConfig</code> instance.</td>
+</tr>
+<tr>
+<td><code>extract_pass_contexts</code></td>
+<td><code>Vec&lt;(u8, BTreeMap&lt;VariableName, InputValue&gt;)&gt;</code></td>
+<td>Requires each entry to be a two-item <code>(pass_number, variables)</code> tuple and validates its variable map.</td>
+</tr>
+<tr>
+<td><code>extract_json_context</code></td>
+<td><code>InputValue</code></td>
+<td>Converts and validates one arbitrary JSON-compatible Python value.</td>
+</tr>
+<tr>
+<td><code>coerce_path_like</code></td>
+<td><code>String</code></td>
+<td>Invokes Python’s <code>os.fspath</code> protocol to obtain a path string.</td>
+</tr>
+<tr>
+<td><code>json_to_py</code></td>
+<td><code>Py&lt;PyAny&gt;</code></td>
+<td>Recursively converts <code>serde_json::Value</code> into Python scalars, lists, and dictionaries.</td>
+</tr>
+<tr>
+<td><code>py_to_json_value</code></td>
+<td><code>serde_json::Value</code></td>
+<td>Recursively converts supported Python values into JSON, rejecting unsupported types, non-string object keys, and non-finite floats.</td>
+</tr>
+</tbody>
+</table>
+<h3>Validation and error behavior</h3>
+<ul>
+<li>Missing optional collections consistently become empty collections; a supplied value must still satisfy the expected Python shape.</li>
+<li>Dictionary-oriented helpers use <code>BTreeMap</code>, providing deterministic key ordering in the Rust representation.</li>
+<li><code>extract_string_map</code>, <code>extract_var_map</code>, and <code>extract_json_context</code> call <code>sc_composer::validate_input_value</code>, so Python contexts obey the same input restrictions as other composer front ends.</li>
+<li>Invalid variable names are rejected at the binding boundary with <code>ScValidationError</code> rather than being allowed into later rendering stages.</li>
+<li>Metadata deserialization failures are configuration errors (<code>ERR_CONFIG_PARSE</code>), while malformed Python container shapes and unsupported values are validation errors.</li>
+<li><code>py_to_json_value</code> checks booleans before integers, preventing Python <code>bool</code> values from being represented as numeric JSON values.</li>
+<li>Python iterables that are not dictionaries are treated as JSON arrays. This includes tuples and other iterable objects; callers should avoid passing strings where an array is intended, because Python strings are extracted as scalars first.</li>
+</ul>
+<h3>Conversion examples</h3>
+<pre><code class="language-python">from pathlib import Path
+
+# Policy/root conversion accepts native path-like values.
+allowed_roots = [Path(&quot;templates&quot;), &quot;/srv/shared-templates&quot;]
+
+# Variable maps require string keys that satisfy VariableName validation.
+variables = {
+    &quot;environment&quot;: &quot;production&quot;,
+    &quot;feature_flags&quot;: {&quot;audit&quot;: True},
+    &quot;replicas&quot;: 3,
+}
+
+# Per-pass contexts must be exactly (u8 pass number, variables mapping).
+contexts = [
+    (1, {&quot;region&quot;: &quot;us-west&quot;}),
+    (2, {&quot;region&quot;: &quot;eu-central&quot;}),
+]
+</code></pre>
+<p>The equivalent Rust-side processing is:</p>
+<ol>
+<li>The binding object passes Python arguments to an extractor.</li>
+<li>The extractor verifies the required container or wrapper type.</li>
+<li>Nested values are converted by <code>py_to_json_value</code>.</li>
+<li>Domain constructors and <code>validate_input_value</code> enforce composer rules.</li>
+<li>Any failure is surfaced as a Python binding error with a user-facing message and, where available, an error code.</li>
+</ol>
+<h2>Dependencies</h2>
+<ul>
+<li><code>pyo3</code> supplies <code>Python</code>, <code>PyAny</code>, <code>PyDict</code>, <code>PyList</code>, <code>PyBool</code>, wrapper extraction, iteration, and Python exception propagation.</li>
+<li><code>sc_composer</code> provides the domain types (<code>ProfileName</code>, <code>VariableName</code>, <code>ConfiningRoot</code>, <code>RuntimeKind</code>, <code>InputValue</code>, <code>MetadataValue</code>, and <code>NamedTemplateAsset</code>) and input validation.</li>
+<li><code>crate::enums::parse_runtime_kind</code> centralizes Python-facing runtime-kind parsing.</li>
+<li><code>crate::errors::{config_error, validation_error}</code> maps Rust/domain failures into the binding’s Python exception model.</li>
+<li><code>crate::types</code> supplies Python wrapper classes whose <code>inner</code> values are cloned into domain objects.</li>
+<li><code>serde_json</code> is the intermediate representation for recursive Python context and metadata conversion.</li>
+<li><code>std::collections::BTreeMap</code> stores maps in a deterministic order.</li>
+</ul>
+<p>Key dependents include <code>functions.rs</code>, <code>lib.rs</code>, and Python binding types for policies, requests, and results. In particular, request construction uses the template, runtime, variable, pass, and context extractors, while policy construction uses profile and allowed-root extraction.</p>
+<h2>Usage Notes</h2>
+<ul>
+<li>Prefer the provided Python wrapper classes when an API exposes them; the extractors preserve their already-validated inner values.</li>
+<li>Use strings for profile and variable names only when callers need convenience construction. Those strings are validated immediately and may raise configuration or validation errors.</li>
+<li>Pass dictionaries—not mapping-like custom objects—to context, variables, and metadata parameters. The module explicitly requires <code>PyDict</code>.</li>
+<li>JSON object keys must be strings. Nested dictionaries with integer, enum, or arbitrary object keys are rejected.</li>
+<li>Only finite floating-point values are supported. Python <code>float("nan")</code>, positive infinity, and negative infinity cannot be represented in JSON and produce validation errors.</li>
+<li>For roots, <code>pathlib.Path</code> is supported through <code>os.fspath</code>; this is preferable to manually converting paths to strings in Python code.</li>
+<li><code>extract_pass_contexts</code> requires a strict two-item tuple and a pass number representable as <code>u8</code> (<code>0</code> through <code>255</code>).</li>
+<li><code>json_to_py</code> preserves the JSON data model, not Python-specific types: JSON arrays become lists and objects become dictionaries.</li>
+<li>The unit tests cover recursive JSON round-tripping and invalid variable-name rejection. Changes to recursive conversion ordering or error mapping should retain both guarantees.</li>
+</ul>
+</body>
+</html>

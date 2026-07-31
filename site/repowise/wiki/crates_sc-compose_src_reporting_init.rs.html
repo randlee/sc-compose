@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/reporting/init.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/reporting/init.rs</h1>
+<p>I’m using the repository’s memory protocol and team documentation to ground this hotspot page in the project’s established conventions.</p>
+<h2>Overview</h2>
+<p>This Application-layer edge connector is the reporting initialization and smoke-execution orchestrator: it consumes a workspace root, smoke fixture, variable file, archive option, and composition observer, and produces scaffold or materialized smoke-report results for command-layer callers.</p>
+<p><code>init.rs</code> connects the reporting command surface to the pure <code>sc_composer</code> rendering library and reporting output helpers. It has two workflows:</p>
+<ul>
+<li>Scaffold initialization canonicalizes the requested workspace and delegates creation of the report files to <code>write_report_scaffold</code>.</li>
+<li>Smoke reporting resolves and confines input paths, renders a file-mode composition, writes the rendered entrypoint, then materializes metadata and optional archived artifacts.</li>
+</ul>
+<p>This is a hotspot for both change frequency and complexity. Changes can affect workspace-boundary enforcement, diagnostic classification, observer behavior, report artifact layouts, and JSON-facing result structures.</p>
+<h2>Public API</h2>
+<p>All exposed items are <code>pub(crate)</code>, making them internal crate APIs rather than public library exports.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ReportsInitResult</code></td>
+<td>Serializable result of report-scaffold initialization. Contains the canonical <code>workspace_root</code> and the relative <code>created_paths</code> returned by the scaffold writer.</td>
+</tr>
+<tr>
+<td><code>ReportsSmokeResult</code></td>
+<td>Serializable result of a smoke report. Contains report identity, production timestamp, status, output paths, artifact lists, and non-serialized composition warnings.</td>
+</tr>
+<tr>
+<td><code>init_report_scaffold(root)</code></td>
+<td>Canonicalizes <code>root</code>, writes the report scaffold, and returns its created paths.</td>
+</tr>
+<tr>
+<td><code>run_smoke_report(root, fixture, vars, archive, observer)</code></td>
+<td>Renders a confined smoke fixture using the supplied variables, writes the smoke entrypoint, produces metadata and optional archives, and returns report details plus rendering warnings.</td>
+</tr>
+</tbody>
+</table>
+<p><code>ReportsSmokeResult.warnings</code> is deliberately excluded from serialization. Consumers that need machine-readable report metadata receive stable report fields and paths, while in-process callers can still inspect <code>Diagnostic</code> values.</p>
+<p><code>write_smoke_outputs</code> is private. It fixes the smoke report’s identity and layout:</p>
+<ul>
+<li><code>report_id</code>: <code>smoke</code></li>
+<li><code>kind</code>: <code>smoke</code></li>
+<li><code>status</code>: <code>pass</code></li>
+<li>entrypoint: <code>SMOKE_ENTRYPOINT_RELATIVE_PATH</code></li>
+<li>metadata: <code>SMOKE_METADATA_RELATIVE_PATH</code></li>
+</ul>
+<h2>Dependencies</h2>
+<ul>
+<li><code>sc_composer</code> supplies <code>ComposeRequest</code>, file composition mode, default policy, <code>ConfiningRoot</code>, diagnostics, and <code>compose_with_observer</code>. The module is an application-layer adapter over this rendering boundary.</li>
+<li><code>reporting::scaffold</code> owns scaffold creation and the canonical smoke output path constants.</li>
+<li><code>reporting::path::resolve_relative_path</code> resolves fixture and variable-file inputs against the canonical workspace.</li>
+<li><code>reporting::output::write_report_metadata_and_archive</code> writes report metadata, maintains latest artifacts, and optionally creates archived copies.</li>
+<li><code>var_file::load_var_file</code> parses the variables input for the composition request.</li>
+<li><code>CommandError</code> converts filesystem, configuration, and composition failures into CLI-appropriate errors and diagnostic codes.</li>
+<li><code>serde</code> plus <code>path_utils</code> provide JSON-safe serialization for filesystem paths.</li>
+</ul>
+<p>The primary cross-layer caller is <code>commands/reports/scaffold.rs</code>, through <code>run_reports_init</code>. Internal reporting modules also depend on this module’s result types and workflows.</p>
+<h2>Usage Notes</h2>
+<h3>Initialize a report workspace</h3>
+<p>The initialization path requires an existing root because <code>fs::canonicalize</code> resolves it before any scaffold files are written. A nonexistent or inaccessible root becomes a <code>CommandError::usage_with_code</code> carrying <code>ErrConfigParse</code>.</p>
+<pre><code class="language-rust">let result = init_report_scaffold(workspace_root)?;
+
+println!(&quot;workspace: {}&quot;, result.workspace_root.display());
+for path in result.created_paths {
+    println!(&quot;created: {path}&quot;);
+}
+</code></pre>
+<p>Treat <code>workspace_root</code> as canonical. Do not assume it preserves the spelling of the caller’s original path, especially when symlinks are involved.</p>
+<h3>Run a smoke report</h3>
+<p>A smoke run is a controlled file-rendering operation:</p>
+<ol>
+<li>Canonicalize the workspace root.</li>
+<li>Resolve <code>fixture</code> and <code>vars</code> relative to that root.</li>
+<li>Verify the resolved fixture remains below the workspace root.</li>
+<li>Build a <code>ComposeRequest</code> with <code>ComposeMode::File</code> and a <code>ConfiningRoot</code>.</li>
+<li>Load variables, render through the supplied observer, and write the rendered entrypoint.</li>
+<li>Materialize latest-report metadata and, when requested, archived artifacts.</li>
+</ol>
+<pre><code class="language-rust">let result = run_smoke_report(
+    workspace_root,
+    Path::new(&quot;fixtures/smoke.jinja&quot;),
+    Path::new(&quot;vars/smoke.json&quot;),
+    true,
+    observer,
+)?;
+
+assert_eq!(result.report_id, &quot;smoke&quot;);
+assert_eq!(result.status, &quot;pass&quot;);
+
+for warning in &amp;result.warnings {
+    // Consume in-process diagnostics; they are not serialized with the result.
+}
+</code></pre>
+<p><code>fixture</code> must resolve under the workspace root. The implementation strips the root prefix before creating <code>ComposeMode::File</code>, so the composer receives a workspace-relative template path rather than an unconstrained absolute path.</p>
+<p>The variable file is resolved through the same workspace-relative helper, but only the fixture is explicitly checked with <code>strip_prefix</code> in this module. Preserve this distinction when modifying path handling: changes should remain consistent with <code>resolve_relative_path</code>’s validation guarantees.</p>
+<p>Rendering warnings do not fail a successful smoke report. They are retained in <code>ReportsSmokeResult.warnings</code>, while the materialized report is still marked <code>pass</code> after successful composition and output writing.</p>
+<p>Any failure to write the rendered entrypoint is classified as a render-write error. Failures in canonicalization, confinement setup, fixture-root validation, or report-output materialization are translated to usage/configuration errors. Keep these mappings intact so CLI diagnostics remain actionable and consistently coded.</p>
+</body>
+</html>

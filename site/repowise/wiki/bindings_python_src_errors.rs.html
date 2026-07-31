@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: bindings/python/src/errors.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: bindings/python/src/errors.rs</h1>
+<p>I’m applying the repository’s documentation protocol and checking the source context for accuracy.</p>
+<h2>Overview</h2>
+<p><code>errors.rs</code> is the Application-layer edge connector that translates <code>sc_composer</code> failures into typed Python exceptions with <code>message</code> and optional diagnostic <code>code</code> attributes. It defines a Python exception hierarchy rooted at <code>ScComposeError</code>, registers those classes on the extension module, and preserves domain-specific error categories for Python callers.</p>
+<h2>Public API</h2>
+<p>Python-visible exception classes:</p>
+<ul>
+<li><code>ScComposeError</code>: base exception extending Python’s <code>Exception</code>; exposes read-only <code>message: str</code> and <code>code: str | None</code>.</li>
+<li><code>ScRenderError</code></li>
+<li><code>ScValidationError</code></li>
+<li><code>ScResolveError</code></li>
+<li><code>ScIncludeError</code></li>
+<li><code>ScConfigError</code></li>
+</ul>
+<p>Each subclass extends <code>ScComposeError</code> and accepts <code>(message, code=None)</code>.</p>
+<p>Crate-internal integration functions:</p>
+<ul>
+<li><code>register(module)</code>: adds all exception classes to the Python module.</li>
+<li><code>compose_error_to_pyerr(error)</code>: dispatches each <code>ComposeError</code> variant to its corresponding Python exception.</li>
+<li><code>resolve_error_to_pyerr</code>, <code>include_error_to_pyerr</code>, <code>validation_error_to_pyerr</code>, <code>render_error_to_pyerr</code>, <code>config_error_to_pyerr</code>: convert specific composer errors.</li>
+<li><code>validation_error</code> and <code>config_error</code>: construct categorized Python errors directly from dynamic messages and optional codes.</li>
+</ul>
+<h2>Dependencies</h2>
+<ul>
+<li><code>pyo3</code>: declares Python classes, inheritance, constructors, module registration, and <code>PyErr</code> creation.</li>
+<li><code>sc_composer</code>: supplies <code>ComposeError</code> and its resolve, include, validation, render, and configuration error types, including diagnostic codes.</li>
+<li>Dependent Python-binding modules such as <code>functions</code>, <code>convert</code>, <code>enums</code>, and request/result/policy types use these conversion helpers to expose consistent failures at the binding boundary.</li>
+</ul>
+<h2>Usage Notes</h2>
+<p>Call <code>register</code> while initializing the Python extension module so the exception types are importable and catchable from Python.</p>
+<p>Use <code>compose_error_to_pyerr</code> at boundaries that return a general <code>ComposeError</code>; it retains the concrete category instead of collapsing all failures into the base class. Use the specialized conversion helpers when a function already has a concrete composer error type.</p>
+<p>The converter copies the domain error’s message and diagnostic code into Python-visible attributes. Render errors may omit a code, while the other mapped error categories always pass their diagnostic code.</p>
+<p>Tests verify both attribute visibility and that a missing-template resolution failure becomes <code>ScResolveError</code> with <code>ERR_RESOLVE_NOT_FOUND</code>.</p>
+</body>
+</html>
