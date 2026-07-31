@@ -1,0 +1,60 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>shape-probe</h2>
+      <p class="agent-meta">Session qa-fuzz-20260729-0001 · Worker shape-probe</p>
+    </div>
+    <div class="agent-actions" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;:&quot;shape-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Live worker summary: YAML merge-key &lt;&lt;: *anchor was reproduced 3&#x2f;3 times; the rendered panel must preserve literal &lt;, &gt;, and &amp; characters as text.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">confirmed_bug</p>
+  <p class="summary">19&#x2f;20 cases passed. A YAML merge-key &lt;&lt;: *anchor inside an array-of-objects var-file silently produced empty fields instead of merged values or an explicit diagnostic.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Var-file shapes, YAML anchors, and mixed arrays from the live campaign</th>
+        <td>20</td>
+        <td>19/20</td>
+        <td>FAIL</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">shape-09</th><td><code>case08-yaml-anchors.yaml: YAML anchor + merge key (&lt;&lt;: *defaults) inside items[]</code></td><td>FAIL; empty id&#x2f;value fields</td></tr>
+        <tr><th scope="row">shape-10</th><td><code>base: &amp;base followed by - &lt;&lt;: *base</code></td><td>FAIL; literal merge key dropped</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-SHAPE-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>{% for item in items %}{{ item.id }}: {{ item.value }}{% endfor %}</code></dd>
+        <dt>Input</dt><dd><code>items:
+  - &lt;&lt;: *base
+base: &amp;base
+  id: 1
+  value: anchored</code></dd>
+        <dt>Expected</dt><dd>YAML merge-key semantics resolve &lt;&lt;: *base, or sc-compose emits an explicit unsupported-construct diagnostic.</dd>
+        <dt>Observed</dt><dd>Exit 0 with empty id&#x2f;value fields and zero diagnostics; literal &lt;&lt; and &amp;anchor content was silently dropped.</dd>
+        <dt>Requirement / ADR</dt><dd>No existing requirement&#x2f;ADR explicitly defines YAML 1.1 merge-key support.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Create or update docs&#x2f;requirements.md only if merge-key support is a genuine supported-contract gap.</dd>
+        <dt>Root cause</dt><dd>serde_yaml 0.9 leaves the literal &lt;&lt; mapping key intact and the var-file path performs no post-parse merge-key validation.</dd>
+        <dt>Recommended fix</dt><dd>Implement merge-key expansion or emit ERR_VAL_UNSUPPORTED_YAML_MERGE_KEY before rendering.</dd>
+      </dl>
+    </article>
+  </section>
+</section>

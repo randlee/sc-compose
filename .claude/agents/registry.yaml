@@ -59,6 +59,9 @@ agents:
   sc-adversarial-fuzz-probe:
     version: 1.0.0
     path: .claude/agents/sc-adversarial-fuzz-probe.md
+  html-report-generator:
+    version: 1.0.0
+    path: .claude/agents/html-report-generator.md
 skills:
   team-lead:
     version: 0.2.0

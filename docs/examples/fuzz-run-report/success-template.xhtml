@@ -1,0 +1,54 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session mock-success-e3-20260729 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-e3-20260729&quot;,&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;worker_correlation_id&quot;:&quot;template-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;template-probe-002&quot;,&quot;template-probe-003&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;template-probe-002&quot;,&quot;description&quot;:&quot;Select a conditional branch for a numeric var-file value&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  count:\\n    required: true\\n---\\n{% if count &gt; 2 %}many{% else %}few{% endif %}&quot;,&quot;minimal_input&quot;:&quot;count=3&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;expected branch selected&quot;},{&quot;case_id&quot;:&quot;template-probe-003&quot;,&quot;description&quot;:&quot;Render a nested loop containing an empty list&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  groups:\\n    required: true\\n---\\n{% for name, members in groups %}{{ name }}={{ members | length }}\\n{% endfor %}&quot;,&quot;minimal_input&quot;:&quot;groups={\&quot;empty\&quot;:[],\&quot;active\&quot;:[\&quot;one\&quot;]}&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;deterministic empty rendering&quot;}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Successful template-probe session: 12 loop, conditional, whitespace, and optional-value iterations all passed.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+  <p class="summary">The template worker exercised the recorded Jinja behavior cases, including nested control flow and optional values. All bounded inputs produced expected text.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Jinja loops, conditionals, whitespace, and optional values</th>
+        <td>12</td>
+        <td>12/12</td>
+        <td><span class="status status-pass">PASS</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Description</th><th scope="col">Template / frontmatter</th><th scope="col">Input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">template-probe-002</th>
+          <td>Select a conditional branch for a numeric var-file value</td>
+          <td><code>---\nvariables:\n  count:\n    required: true\n---\n{% if count &gt; 2 %}many{% else %}few{% endif %}</code></td>
+          <td><code>count=3</code></td>
+          <td><span class="status status-pass">PASS</span> <span class="outcome-detail">expected branch selected</span></td>
+        </tr>
+        <tr>
+          <th scope="row">template-probe-003</th>
+          <td>Render a nested loop containing an empty list</td>
+          <td><code>---\nvariables:\n  groups:\n    required: true\n---\n{% for name, members in groups %}{{ name }}={{ members | length }}\n{% endfor %}</code></td>
+          <td><code>groups={"empty":[],"active":["one"]}</code></td>
+          <td><span class="status status-pass">PASS</span> <span class="outcome-detail">deterministic empty rendering</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
