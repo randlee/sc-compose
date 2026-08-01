@@ -23,7 +23,6 @@ const FALLBACK_ACTION: &str = "degraded";
 const FALLBACK_OUTCOME: &str = "failure";
 
 struct LogRecord {
-    family: EventFamily,
     level: Level,
     target: &'static str,
     action: &'static str,
@@ -31,21 +30,6 @@ struct LogRecord {
     outcome: Option<&'static str>,
     diagnostic: Option<Diagnostic>,
     fields: Map<String, Value>,
-}
-
-#[derive(Clone, Copy)]
-enum EventFamily {
-    Pipeline,
-    Command,
-}
-
-impl EventFamily {
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::Pipeline => "pipeline",
-            Self::Command => "command",
-        }
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -113,7 +97,6 @@ impl CliObserver {
 
     fn emit_record(&self, record: LogRecord) {
         let LogRecord {
-            family,
             level,
             target,
             action,
@@ -122,7 +105,6 @@ impl CliObserver {
             diagnostic,
             mut fields,
         } = record;
-        fields.insert("event_family".to_owned(), json!(family.as_str()));
         let (target, action, outcome) =
             normalize_event_labels(target, action, outcome, &mut fields);
         let event = LogEvent {
@@ -146,20 +128,6 @@ impl CliObserver {
         if let Some(LoggerOrStopped::Running(logger)) = &self.logger {
             let _ignored = logger.log(event);
         }
-    }
-
-    fn emit_pipeline_record(&self, record: LogRecord) {
-        self.emit_record(LogRecord {
-            family: EventFamily::Pipeline,
-            ..record
-        });
-    }
-
-    fn emit_command_record(&self, record: LogRecord) {
-        self.emit_record(LogRecord {
-            family: EventFamily::Command,
-            ..record
-        });
     }
 }
 
@@ -213,8 +181,7 @@ impl CompositionObserver for CliObserver {
     fn on_resolve_attempt(&mut self, event: &ResolveAttemptEvent) {
         let mut fields = Map::new();
         fields.insert("template".to_owned(), json!(event.template));
-        self.emit_pipeline_record(LogRecord {
-            family: EventFamily::Pipeline,
+        self.emit_record(LogRecord {
             level: Level::Info,
             target: "compose.resolve",
             action: "attempt",
@@ -248,8 +215,7 @@ impl CompositionObserver for CliObserver {
         if let Some(code) = event.code {
             fields.insert("diagnostic_code".to_owned(), json!(code.as_str()));
         }
-        self.emit_pipeline_record(LogRecord {
-            family: EventFamily::Pipeline,
+        self.emit_record(LogRecord {
             level: if event.code.is_some() {
                 Level::Error
             } else {
@@ -304,8 +270,7 @@ impl CompositionObserver for CliObserver {
         if let Some(code) = event.code {
             fields.insert("diagnostic_code".to_owned(), json!(code.as_str()));
         }
-        self.emit_pipeline_record(LogRecord {
-            family: EventFamily::Pipeline,
+        self.emit_record(LogRecord {
             level: if event.code.is_some() {
                 Level::Error
             } else {
@@ -347,8 +312,7 @@ impl CompositionObserver for CliObserver {
                 json!(diagnostic.message.clone()),
             );
         }
-        self.emit_pipeline_record(LogRecord {
-            family: EventFamily::Pipeline,
+        self.emit_record(LogRecord {
             level: if failed {
                 Level::Error
             } else if warnings > 0 {
@@ -384,8 +348,7 @@ impl CompositionObserver for CliObserver {
         if let Some(code) = event.code {
             fields.insert("diagnostic_code".to_owned(), json!(code.as_str()));
         }
-        self.emit_pipeline_record(LogRecord {
-            family: EventFamily::Pipeline,
+        self.emit_record(LogRecord {
             level: if failed { Level::Error } else { Level::Info },
             target: "compose.render",
             action: if failed { "failed" } else { "completed" },
@@ -428,8 +391,7 @@ impl CommandLifecycleObserver for CliObserver {
         let mut fields = Map::new();
         fields.insert("command".to_owned(), json!(event.command_name));
         fields.insert("json_output".to_owned(), json!(event.json_output));
-        self.emit_command_record(LogRecord {
-            family: EventFamily::Command,
+        self.emit_record(LogRecord {
             level: Level::Info,
             target: "compose.command",
             action: "started",
@@ -453,8 +415,7 @@ impl CommandLifecycleObserver for CliObserver {
         if let Some(message) = &event.diagnostic_message {
             fields.insert("diagnostic_message".to_owned(), json!(message));
         }
-        self.emit_command_record(LogRecord {
-            family: EventFamily::Command,
+        self.emit_record(LogRecord {
             level: if success { Level::Info } else { Level::Error },
             target: "compose.command",
             action: if success { "completed" } else { "failed" },
@@ -629,10 +590,10 @@ mod tests {
     use serde_json::Map;
 
     use super::{
-        CliObserver, CommandEndEvent, CommandLifecycleObserver, CommandStartEvent, EventFamily,
-        LogRecord, RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent,
-        ValidationOutcomeEvent, action_name, normalize_event_labels, outcome_label, schema_version,
-        service_name, target_category,
+        CliObserver, CommandEndEvent, CommandLifecycleObserver, CommandStartEvent, LogRecord,
+        RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
+        action_name, normalize_event_labels, outcome_label, schema_version, service_name,
+        target_category,
     };
     use sc_composer::{
         CompositionObserver, Diagnostic, DiagnosticCode, DiagnosticSeverity, IncludeOutcomeEvent,
@@ -842,7 +803,6 @@ mod tests {
         let mut observer = CliObserver::new(logger);
 
         observer.emit_record(LogRecord {
-            family: EventFamily::Pipeline,
             level: Level::Info,
             target: "compose/invalid",
             action: "bad action",
@@ -903,7 +863,7 @@ mod tests {
     }
 
     #[test]
-    fn observer_callbacks_emit_failure_diagnostics_and_event_families() {
+    fn observer_callbacks_emit_failure_diagnostics() {
         let root = temp_root("observer-callback-diagnostics");
         let mut config = LoggerConfig::default_for(service_name(), root);
         config.enable_console_sink = false;
@@ -940,21 +900,17 @@ mod tests {
         let lines = read_log_lines(&observer.health().active_log_path);
         assert_eq!(lines.len(), 4);
 
-        assert_eq!(lines[0]["fields"]["event_family"], "pipeline");
         assert_eq!(lines[0]["action"], "failed");
         assert_eq!(lines[0]["diagnostic"]["code"], "ERR_RESOLVE_NOT_FOUND");
         assert_eq!(lines[0]["diagnostic"]["message"], "resolve failed");
 
-        assert_eq!(lines[1]["fields"]["event_family"], "pipeline");
         assert_eq!(lines[1]["action"], "expanded");
         assert!(lines[1]["diagnostic"].is_null());
 
-        assert_eq!(lines[2]["fields"]["event_family"], "pipeline");
         assert_eq!(lines[2]["action"], "failed");
         assert_eq!(lines[2]["diagnostic"]["code"], "ERR_VAL_MISSING_REQUIRED");
         assert_eq!(lines[2]["diagnostic"]["message"], "name is required");
 
-        assert_eq!(lines[3]["fields"]["event_family"], "pipeline");
         assert_eq!(lines[3]["action"], "failed");
         assert_eq!(lines[3]["diagnostic"]["code"], "ERR_RENDER_WRITE");
     }
