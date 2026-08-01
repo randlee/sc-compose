@@ -1,7 +1,7 @@
 ---
 id: F.5
 title: Observer Typed Event Builder
-status: planned
+status: complete
 branch: sprint/f-5-observer-event-builder
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-5-observer-event-builder
 target: develop
