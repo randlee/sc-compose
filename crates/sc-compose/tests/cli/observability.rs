@@ -1,5 +1,8 @@
 //! Capability-oriented integration tests. Shared mechanics live in `tests/support`.
-#![allow(unused_imports)]
+#![allow(
+    unused_imports,
+    reason = "shared support imports are selected by platform and test configuration"
+)]
 use crate::support::*;
 use serde_json::Value;
 use std::fs;

@@ -1,5 +1,8 @@
 //! Capability-oriented integration tests. Shared mechanics live in `tests/support`.
-#![allow(unused_imports)]
+#![allow(
+    unused_imports,
+    reason = "shared support imports are selected by platform and test configuration"
+)]
 use crate::support::*;
 use serde_json::Value;
 use std::fs;
@@ -624,7 +627,10 @@ fn f4_json_cli_regression_covers_var_file_shapes() {
     assert!(output.stderr.is_empty());
     let value = parse_stdout(&output);
     assert_envelope(&value);
-    assert_eq!(fs::read_to_string(output_path).unwrap(), "api:one=read,write");
+    assert_eq!(
+        fs::read_to_string(output_path).unwrap(),
+        "api:one=read,write"
+    );
 
     for (filename, contents, expected_code) in [
         (
