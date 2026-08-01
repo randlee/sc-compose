@@ -451,7 +451,7 @@ Sprint entries:
 | --- | --- | --- | --- | --- |
 | F.1 | [CLI Input Parsing and JSON Capability Seams](phase-F/sprint-f-1-cli-input-parsing.md) | planned | `sprint/f-1-cli-input-parsing` | `/Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-1-cli-input-parsing` |
 | F.2 | [Main Dispatch Runner and Process Boundary](phase-F/sprint-f-2-main-dispatch-runner.md) | planned | `sprint/f-2-main-dispatch-runner` | `/Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-2-main-dispatch-runner` |
-| F.3 | [CLI Integration Test Decomposition](phase-F/sprint-f-3-integration-test-decomposition.md) | planned | `sprint/f-3-integration-test-decomposition` | `/Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-3-integration-test-decomposition` |
+| F.3 | [CLI Integration Test Decomposition](phase-F/sprint-f-3-integration-test-decomposition.md) | complete | `sprint/f-3-integration-test-decomposition` | `/Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-3-integration-test-decomposition` |
 | F.4 | [Var-File Decode and Validation Split](phase-F/sprint-f-4-var-file-decode-split.md) | planned | `sprint/f-4-var-file-decode-split` | `/Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-4-var-file-decode-split` |
 | F.5 | [Observer Typed Event Builder](phase-F/sprint-f-5-observer-event-builder.md) | planned | `sprint/f-5-observer-event-builder` | `/Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-5-observer-event-builder` |
 
