@@ -14,7 +14,8 @@ target: develop
 - Reduce defect risk in the worst-health CLI module by separating process-argument normalization, repeated pass-group parsing, and JSON-output capability decisions into pure, testable seams without changing the public command line contract.
 ## Hard Dependencies
 
-- None. The existing sc-compose CLI contract, crates/sc-compose/src/cli.rs, crates/sc-compose/src/commands/compose.rs call sites, and current CLI integration tests are the implementation baseline.
+- F.1 is the first sprint in the Phase F test-file merge sequence: F.1 -> F.2 -> F.4 -> F.5 -> F.3. Start from develop, then merge this sprint before F.2; the later sprints must rebase onto the updated develop branch because they all touch the shared CLI integration suites.
+- The existing sc-compose CLI contract, crates/sc-compose/src/cli.rs, crates/sc-compose/src/commands/compose.rs call sites, and current CLI integration tests are the implementation baseline.
 - The sc-composer pure-library boundary is a hard constraint: pass parsing and JSON capability logic remain in sc-compose and must not move into sc-composer.
 ## Exact Targets
 
@@ -33,7 +34,7 @@ silently dropped or partially deferred.
 - F1-D2 — Keep filtered_args_for_clap as a distinct normalization step and make its behavior independently testable without changing which pass-scoped arguments Clap receives.
 - F1-D3 — Reduce command_wants_json's exhaustive decision logic to an explicit, maintainable capability seam while preserving every command and subcommand's current JSON behavior.
 - F1-D4 — Add focused unit coverage for valid groups, malformed/missing values, misplaced --var/--var-file, mixed equals syntax, multiple groups, and all JSON-capable commands; retain end-to-end CLI coverage.
-- F1-D5 — Rendered plan evidence: `sc-compose render --file .claude/skills/codex-orchestration/sprint-plan.md.j2 --var-file var-files/phase-f-1.json --output docs/phase-F/sprint-f-1-cli-input-parsing.md` exits 0.
+- F1-D5 — Plan artifact provenance is recorded honestly: the document was authored/edited outside the templated pipeline because `sc-compose validate --file .claude/skills/codex-orchestration/sprint-plan.md.j2 --json` reproducibly returns exit 3 while parsing the canonical template's nested Jinja frontmatter. The tooling defect is tracked as unnumbered Phase F follow-on work in `docs/project-plan.md`; this sprint does not claim templated-render evidence.
 ## Required Work
 
 - Define a parser input type or iterator boundary that does not read process-global argv, then adapt parse_pass_inputs at the CLI edge.

@@ -458,9 +458,26 @@ Sprint entries:
 F.1 through F.5 convert the five findings from the read-only Repowise review
 into one-file-or-boundary-owned implementation sprints. They preserve the
 sc-composer pure-library boundary, the Python adapter boundary, and the
-standalone observability dependency direction. F.3 is an L-sized but bounded
-test-only decomposition; implementation must split it before coding if the
-scope expands into runtime behavior or an additional boundary.
+standalone observability dependency direction.
+
+Required Phase F merge order:
+
+- `F.1 -> F.2 -> F.4 -> F.5 -> F.3`
+- F.2, F.4, and F.5 must rebase onto the preceding sprint's merged `develop`
+  state before implementation. F.3 is deliberately last because it
+  decomposes the shared `tests/cli.rs` and `tests/json_cli.rs` suites after all
+  earlier sprints' test additions have landed.
+
+Unnumbered Phase F follow-on work:
+
+- Add a text/JSON equivalence matrix after F.3; it is intentionally not part
+  of F.3's closed decomposition scope or acceptance gate.
+- Fix the canonical `.claude/skills/codex-orchestration/sprint-plan.md.j2`
+  tooling defect: its nested Jinja frontmatter makes the direct
+  `sc-compose validate --file .claude/skills/codex-orchestration/sprint-plan.md.j2 --json`
+  command return exit 3 before rendering. The
+  five Phase F docs record hand-authored provenance until that separate defect
+  is fixed; no Phase F implementation sprint owns the template repair.
 
 ### Standalone Repowise Cleanup: Render Request Module Split
 

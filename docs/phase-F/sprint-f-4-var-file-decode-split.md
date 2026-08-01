@@ -14,7 +14,8 @@ target: develop
 - Reduce concentrated churn and defect risk in the sc-compose var-file boundary by separating filesystem loading, JSON/YAML decoding, and common variable-map validation/conversion while preserving all current input and diagnostic semantics.
 ## Hard Dependencies
 
-- None. The current crates/sc-compose/src/var_file.rs, CommandError mapping, sc-composer InputValue/VariableName APIs, and CLI var-file tests are the baseline.
+- F.1 and F.2 must merge to develop before F.4 starts or rebases. F.4 is third in the Phase F test-file sequence: F.1 -> F.2 -> F.4 -> F.5 -> F.3; F.5 must rebase onto F.4 and F.3 must wait until all four earlier sprints are merged.
+- The current crates/sc-compose/src/var_file.rs, CommandError mapping, sc-composer InputValue/VariableName APIs, and CLI var-file tests are the baseline.
 - Do not duplicate semantic validation in sc-composer. The format-ingress and CLI diagnostic boundary remains owned by sc-compose.
 ## Exact Targets
 
@@ -34,7 +35,7 @@ silently dropped or partially deferred.
 - F4-D2 — Introduce one common validated conversion path for decoded object values, preserving string-key checks, VariableName validation, InputValue validation, and existing diagnostic codes/messages.
 - F4-D3 — Preserve JSON-first/YAML-fallback behavior and duplicate-key rejection, including nested duplicate objects and malformed input classification.
 - F4-D4 — Add focused unit and CLI regression coverage for nested arrays/objects, duplicate JSON/YAML keys, non-string nested YAML map keys, top-level non-object files, malformed input, and diagnostic preservation.
-- F4-D5 — Rendered plan evidence: `sc-compose render --file .claude/skills/codex-orchestration/sprint-plan.md.j2 --var-file var-files/phase-f-4.json --output docs/phase-F/sprint-f-4-var-file-decode-split.md` exits 0.
+- F4-D5 — Plan artifact provenance is recorded honestly: the document was authored/edited outside the templated pipeline because `sc-compose validate --file .claude/skills/codex-orchestration/sprint-plan.md.j2 --json` reproducibly returns exit 3 while parsing the canonical template's nested Jinja frontmatter. The tooling defect is tracked as unnumbered Phase F follow-on work in `docs/project-plan.md`; this sprint does not claim templated-render evidence.
 ## Required Work
 
 - Keep load_var_file responsible for read_to_string and filesystem error mapping; keep decoding/conversion independently callable for unit tests.

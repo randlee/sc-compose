@@ -14,7 +14,8 @@ target: develop
 - Reduce defect risk in the high-churn CLI observability adapter by separating event-family mapping from common log-envelope construction, while preserving the documented observer and sc-observability boundary.
 ## Hard Dependencies
 
-- None. The current crates/sc-compose/src/observer_impl.rs, sc-composer observer traits, sc-observability Logger API, and observer/CLI tests are the baseline.
+- F.1, F.2, and F.4 must merge to develop before F.5 starts or rebases. F.5 is fourth in the Phase F test-file sequence: F.1 -> F.2 -> F.4 -> F.5 -> F.3; F.3 must wait until F.5 is merged because it decomposes the final shared test-suite state.
+- The current crates/sc-compose/src/observer_impl.rs, sc-composer observer traits, sc-observability Logger API, and observer/CLI tests are the baseline.
 - The architecture boundary is mandatory: sc-composer keeps local observer interfaces and must not depend on sc-observability, sc-observability-types, or ATM.
 ## Exact Targets
 
@@ -33,7 +34,7 @@ silently dropped or partially deferred.
 - F5-D2 — Separate command-lifecycle mapping from composition-pipeline mapping while preserving target, action, outcome, level, message, fields, diagnostic, and schema-version behavior.
 - F5-D3 — Keep normalize_event_labels and fallback behavior explicit, validated, and observable when a requested label is invalid; do not hide contract failures by silently changing labels.
 - F5-D4 — Add table-driven coverage for resolve/include/validate/render, command start/end, success/failure/warning outcomes, diagnostic fields, JSON-mode cleanliness, logger degradation, and shutdown behavior.
-- F5-D5 — Rendered plan evidence: `sc-compose render --file .claude/skills/codex-orchestration/sprint-plan.md.j2 --var-file var-files/phase-f-5.json --output docs/phase-F/sprint-f-5-observer-event-builder.md` exits 0.
+- F5-D5 — Plan artifact provenance is recorded honestly: the document was authored/edited outside the templated pipeline because `sc-compose validate --file .claude/skills/codex-orchestration/sprint-plan.md.j2 --json` reproducibly returns exit 3 while parsing the canonical template's nested Jinja frontmatter. The tooling defect is tracked as unnumbered Phase F follow-on work in `docs/project-plan.md`; this sprint does not claim templated-render evidence.
 ## Required Work
 
 - Keep CliObserver implementing the existing sc-composer CompositionObserver, ObservationSink, and CommandLifecycleObserver traits; the refactor is internal to sc-compose.

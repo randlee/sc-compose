@@ -14,7 +14,8 @@ target: develop
 - Make the sc-compose process boundary intentionally thin by isolating startup, command dispatch, error routing, and logger shutdown from main.rs, reducing the historical shotgun-surgery and defect surface without changing runtime behavior.
 ## Hard Dependencies
 
-- None. The current main.rs, commands::dispatch, observability::build_logger, observer_impl::CliObserver, and main tests define the baseline.
+- F.1 must merge to develop before F.2 starts or rebases. F.2 is second in the Phase F test-file sequence: F.1 -> F.2 -> F.4 -> F.5 -> F.3. This ordering prevents the runner characterization changes from colliding with the earlier CLI-suite additions; F.4 and F.5 must rebase onto F.2's merged develop state.
+- The current main.rs, commands::dispatch, observability::build_logger, observer_impl::CliObserver, and main tests define the baseline.
 - The architecture boundary is normative: sc-compose owns CLI wiring and concrete observability; sc-composer remains a pure library and must not acquire process or logger concerns.
 ## Exact Targets
 
@@ -36,7 +37,7 @@ silently dropped or partially deferred.
 - F2-D2 — Make the reporting-related coordination currently hidden by main.rs explicit at the appropriate sc-compose dispatch boundary; do not create a static dependency from main.rs to reporting internals merely to mirror history.
 - F2-D3 — Preserve startup logger failure behavior, command failure behavior, JSON-vs-text error routing, observer shutdown before process exit, and all existing exit codes.
 - F2-D4 — Add characterization tests around successful command execution, logger construction failure, command errors in both output modes, and shutdown ordering without requiring process-wide test mutation.
-- F2-D5 — Rendered plan evidence: `sc-compose render --file .claude/skills/codex-orchestration/sprint-plan.md.j2 --var-file var-files/phase-f-2.json --output docs/phase-F/sprint-f-2-main-dispatch-runner.md` exits 0.
+- F2-D5 — Plan artifact provenance is recorded honestly: the document was authored/edited outside the templated pipeline because `sc-compose validate --file .claude/skills/codex-orchestration/sprint-plan.md.j2 --json` reproducibly returns exit 3 while parsing the canonical template's nested Jinja frontmatter. The tooling defect is tracked as unnumbered Phase F follow-on work in `docs/project-plan.md`; this sprint does not claim templated-render evidence.
 ## Required Work
 
 - Keep main.rs as the process boundary and move only orchestration responsibilities that can be expressed through explicit runner inputs/outputs; avoid a speculative framework or generic application abstraction.
