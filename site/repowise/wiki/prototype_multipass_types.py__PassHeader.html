@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Symbol: prototype.multipass.types.PassHeader</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Symbol: prototype.multipass.types.PassHeader</h1>
+<h2>Purpose</h2>
+<p><code>PassHeader</code> represents the YAML frontmatter configuration for one rendering pass in the multipass prototype. It stores the pass number, variables required by that pass, default values, and arbitrary metadata.</p>
+<p>Its <code>brace_count</code> property derives the number of braces used to delimit variables for the pass. This lets later passes use additional braces to avoid prematurely resolving placeholders intended for future passes.</p>
+<h2>Signature</h2>
+<pre><code class="language-python">@dataclass
+class PassHeader:
+    pass_number: int = 1
+    required_variables: list[str] = field(default_factory=list)
+    defaults: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def brace_count(self) -&gt; int:
+        ...
+</code></pre>
+<h2>Parameters</h2>
+<ul>
+<li>
+<p><code>pass_number: int = 1</code><br />
+  The one-based render-pass number associated with this header. It also determines <code>brace_count</code>.</p>
+</li>
+<li>
+<p><code>required_variables: list[str]</code><br />
+  Names of variables that must be available when this pass runs. Defaults to an empty list.</p>
+</li>
+<li>
+<p><code>defaults: dict[str, Any]</code><br />
+  Default values for variables used by the pass. Defaults to an empty dictionary.</p>
+</li>
+<li>
+<p><code>metadata: dict[str, Any]</code><br />
+  Additional pass-specific YAML frontmatter data that does not fit the standard fields. Defaults to an empty dictionary.</p>
+</li>
+</ul>
+<h2>Returns</h2>
+<p>Constructing <code>PassHeader</code> returns a dataclass instance describing one render pass.</p>
+<p><code>brace_count</code> returns an <code>int</code> equal to <code>pass_number + 1</code>:</p>
+<ul>
+<li>Pass 1 returns <code>2</code>, corresponding to <code>{{ variable }}</code>.</li>
+<li>Pass 2 returns <code>3</code>, corresponding to <code>{{{ variable }}}</code>.</li>
+<li>Pass 3 returns <code>4</code>, corresponding to <code>{{{{ variable }}}}</code>.</li>
+</ul>
+<h2>Example Usage</h2>
+<pre><code class="language-python">from prototype.multipass.types import PassHeader
+
+first_pass = PassHeader(
+    pass_number=1,
+    required_variables=[&quot;project_name&quot;],
+    defaults={&quot;project_name&quot;: &quot;sc-compose&quot;},
+    metadata={&quot;description&quot;: &quot;Initial template render&quot;},
+)
+
+assert first_pass.brace_count == 2
+
+second_pass = PassHeader(
+    pass_number=2,
+    required_variables=[&quot;generated_value&quot;],
+)
+
+assert second_pass.brace_count == 3
+</code></pre>
+<p>The first pass uses ordinary Jinja-style delimiters such as <code>{{ project_name }}</code>. A second pass can preserve a variable for later evaluation with three braces, such as <code>{{{ generated_value }}}</code>.</p>
+</body>
+</html>

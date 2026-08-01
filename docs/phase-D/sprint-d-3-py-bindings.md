@@ -1,8 +1,9 @@
 ---
 id: D.3-py
 title: Python Bindings — Multi-Pass CLI Surface Parity Check
-status: planned
+status: complete
 branch: sprint/d-3-py-bindings
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/d-3-py-bindings
 target: integrate/phase-d
 ---
 
@@ -35,6 +36,15 @@ the adapter already exports library-level wrappers such as `parse_template_docum
 `discover_tokens`, and the Phase C/Phase D foundational types, but it has no
 business exposing CLI-only pass-group parsing helpers from `sc-compose`.
 
+## Scope
+
+This sprint is a parity/audit sprint, not a stub and not a new binding-surface
+expansion. Work remains confined to `bindings/python` plus the sprint
+documentation and planning index needed to record the deliberate boundary.
+
+No `sc-compose` CLI modules, parsers, subprocess facades, or command grammar
+belong in the Python package.
+
 ## Hard Dependencies
 
 - [Sprint D.3 — Multi-Pass CLI Surface](sprint-d-3-cli-surface.md) — actual
@@ -46,79 +56,33 @@ business exposing CLI-only pass-group parsing helpers from `sc-compose`.
   surfaces whose import stability D.3-py must protect
 - [Phase D README](./README.md) — [Python Binding Parity](./README.md#python-binding-parity)
 - [docs/architecture.md](../architecture.md) — `bindings/python` remains a
-  library adapter, not a CLI façade
+  library adapter, not a CLI facade
 - [CLAUDE.md](../../CLAUDE.md) — boundary rules 3–5 (`bindings/python` may
   depend on `sc-composer` only)
 
 ## Exact Targets
 
-- `bindings/python/src/functions.rs` — audit call-sites against D.3's
-  consolidated `sc_composer` public re-exports; update import paths only if the
-  wrappers still reference pre-re-export internal paths
-- `bindings/python/src/types.rs` — same audit for wrapper-owned type imports
-  (`PassConfig`, `ParsedTemplate`, discovery helpers, etc.)
-- `bindings/python/python/sc_compose/__init__.py` — no net-new CLI symbols;
-  update only if the documented Python import surface needs clarification
-- `bindings/python/python/sc_compose/_native.pyi` — no CLI-only additions;
-  adjust type stubs only if D.3's library re-export consolidation changes the
-  surfaced names or signatures D.1-py / D.2-py rely on
-- `bindings/python/tests/test_smoke.py` — add parity regression tests proving
-  the documented Python surface remains library-only and that D.1-py/D.2-py
-  symbols still import and behave as expected
-- `docs/phase-D/sprint-d-3-py-bindings.md` — this document
+- `bindings/python/src/functions.rs`
+- `bindings/python/src/types/mod.rs`
+- `bindings/python/src/types/policy.rs`
+- `bindings/python/src/types/request.rs`
+- `bindings/python/src/types/results.rs`
+- `bindings/python/python/sc_compose/__init__.py`
+- `bindings/python/python/sc_compose/_native.pyi`
+- `bindings/python/tests/test_smoke.py`
+- `docs/project-plan.md`
 
 ## Deliverables
 
-Every listed deliverable is expected to land at a production-ready level for
-the scope this sprint claims. If that cannot be done cleanly in one sprint, the
-sprint must be split before implementation begins. No deliverable may be
-silently dropped or partially deferred.
-
-- `D1` — Re-export parity audit against D.3
-  - Confirm the Python adapter uses the stable `sc_composer` public API
-    exposed after D.3's GAP-11 re-export consolidation
-  - Update binding internals only if D.3's re-export shape makes any existing
-    import path stale
-  - No net-new Python symbol is required merely because D.3 consolidated Rust
-    re-exports
-
-- `D2` — Explicit library-vs-CLI boundary lock
-  - Record and test that Python does **not** expose the `sc-compose` CLI's
-    pass-grouping grammar (`--all`, `--pass`, `--var`, `--var-file`) or
-    delimiter flags
-  - Python's multi-pass story remains library-shaped:
-    `ComposePolicy.passes`, `render_all()`, `compose()`, and later `verify()`
-  - The adapter remains free of dependencies on `sc-compose` command modules
-
-- `D3` — Import surface and smoke regression coverage
-  - Add smoke tests exercising the D.1-py / D.2-py symbols most likely to be
-    impacted by D.3 re-export churn:
-    `PassConfig`, `ParsedTemplate`, `discover_tokens_with_brace_count`,
-    `discover_all_pass_tokens`, `render_all`, and `ComposePolicy.passes`
-  - Add a negative regression check that the Python package still does not
-    export CLI parser helpers or CLI-only pass-group interfaces
-
-- `D4` — Documentation-level closure of the "stub" state
-  - D.3-py is documented as a deliberate parity/audit sprint with explicit
-    acceptance criteria
-  - Future reviews can evaluate D.3-py on a concrete contract instead of
-    guessing whether "no new symbol" was intentional or accidental
-
-## Required Work
-
-- Audit the actual D.3 Rust landing and confirm which items are library-owned
-  versus CLI-only
-- Inspect `bindings/python/src/functions.rs` and `types.rs` for any direct
-  references that should instead flow through the stabilized `sc_composer`
-  public surface
-- Update `__init__.py` / `_native.pyi` only if needed for consistency with the
-  true library surface; do **not** add CLI-only names
-- Add smoke tests that:
-  - import and exercise the D.1-py / D.2-py multi-pass bindings
-  - assert the package does not expose CLI pass-parser helpers or a Python-side
-    clone of the `sc-compose` CLI grammar
-- Keep the adapter crate boundary clean: no `sc-compose` dependency, no CLI
-  command-module imports, no subprocess façade
+- Re-export parity audit confirming the adapter still targets stable
+  `sc_composer` public APIs.
+- Explicit regression coverage proving the Python package remains library-only.
+- Positive smoke coverage for the existing multi-pass Python symbols most
+  exposed to D.3 re-export churn:
+  `PassConfig`, `ParsedTemplate`, `discover_tokens_with_brace_count`,
+  `discover_all_pass_tokens`, `render_all`, and `ComposePolicy.passes`.
+- Documentation stating that omission of CLI grammar from Python is
+  intentional, not a gap.
 
 ## Explicit Code Samples
 
@@ -149,7 +113,7 @@ import sc_compose
 def test_python_surface_remains_library_only() -> None:
     assert not hasattr(sc_compose, "parse_pass_inputs")
     assert not hasattr(sc_compose, "filtered_args_for_clap")
-    assert not hasattr(sc_compose, "template_init_cli")
+    assert not hasattr(sc_compose, "run_template_init")
 ```
 
 ### Positive parity test
@@ -163,6 +127,14 @@ def test_d2_py_symbols_remain_importable_after_d3() -> None:
     assert len(policy.passes) == 2
     assert callable(render_all)
 ```
+
+## Backward Compatibility
+
+- No new Python public symbol is added unless D.3 introduced a genuinely new
+  library-owned `sc_composer` API worth binding.
+- Existing D.1-py and D.2-py exports remain importable and behaviorally
+  unchanged.
+- Python continues to wrap `sc-composer` only; it does not become a CLI facade.
 
 ## This Sprint Does Not Close
 
@@ -178,28 +150,18 @@ def test_d2_py_symbols_remain_importable_after_d3() -> None:
 
 ## Acceptance Criteria
 
-- `AC1` for `D1`
-  - The Python adapter compiles and tests cleanly against the stabilized D.3
-    `sc_composer` public surface
-  - No wrapper remains coupled to an obsolete pre-D.3 internal import path
+- The adapter compiles and tests cleanly against the stabilized D.3
+  `sc_composer` public surface.
+- The Python package does not expose CLI-only parser helpers or pass-group
+  grammar APIs.
+- Smoke tests prove D.1-py and D.2-py multi-pass symbols remain usable after
+  D.3.
+- This sprint is documented as a deliberate parity/audit sprint with explicit
+  success criteria.
+- The sprint doc matches the same full-rigor section structure as D.1-py,
+  D.2-py, and D.4-py.
 
-- `AC2` for `D2`
-  - The Python package exposes no CLI-only parser or flag-grammar API
-  - D.3-py's documentation states that this omission is intentional, not a
-    gap or oversight
-
-- `AC3` for `D3`
-  - Smoke tests prove the D.1-py / D.2-py multi-pass library symbols remain
-    importable and usable after D.3
-  - No net-new Python public symbol is added unless the D.3 Rust landing
-    genuinely introduced a new library-owned `sc_composer` API worth binding
-
-- `AC4` for `D4`
-  - The sprint doc matches the same full-rigor section structure as D.1-py,
-    D.2-py, and D.4-py
-  - Future reviewers can evaluate D.3-py on explicit success/failure criteria
-
-## Required Validation
+## Validation
 
 - `cargo fmt --all --check`
 - `cargo clippy --all-targets --all-features -- -D warnings`

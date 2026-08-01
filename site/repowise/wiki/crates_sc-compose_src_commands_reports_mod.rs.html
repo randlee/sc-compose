@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/commands/reports/mod.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/commands/reports/mod.rs</h1>
+<p>I’m using the repository’s CASS memory protocol to ground this documentation task in its local conventions.</p>
+<h2>Overview</h2>
+<p>Reports command module is the CLI-layer edge connector that parses <code>reports</code> subcommands into typed arguments and re-exports their handlers for command dispatch. It is imported across the CLI boundary by <code>cli.rs</code>, <code>commands::dispatch</code>, and the reports implementation modules.</p>
+<p>The module declares the <code>publish</code>, <code>render</code>, and <code>scaffold</code> command families, while centralizing their Clap argument schemas.</p>
+<h2>Public API</h2>
+<p>All exposed items are <code>pub(crate)</code>, making them available throughout the <code>sc-compose</code> crate but not to external crates.</p>
+<ul>
+<li><code>ReportsArgs</code> wraps the selected <code>ReportsSubcommand</code>.</li>
+<li><code>ReportsSubcommand</code> defines:</li>
+<li><code>Init</code> — initialize report scaffolding.</li>
+<li><code>Smoke</code> — run a fixture-based smoke report.</li>
+<li><code>Finalize</code> — record a producer result and optional artifacts.</li>
+<li><code>RenderSpec</code> — render a semantic diagram specification to Mermaid.</li>
+<li><code>Index</code> — summarize report entrypoints and sidecars.</li>
+<li><code>Verify</code> — verify required catalog evidence.</li>
+<li><code>PublishManifest</code> — generate a machine-readable manifest.</li>
+<li>Argument types:</li>
+<li><code>ReportsInitArgs</code></li>
+<li><code>ReportsSmokeArgs</code></li>
+<li><code>ReportsFinalizeArgs</code></li>
+<li><code>ReportsRenderSpecArgs</code></li>
+<li><code>ReportsIndexArgs</code></li>
+<li><code>ReportsVerifyArgs</code></li>
+<li><code>ReportsPublishManifestArgs</code></li>
+<li><code>ReportCatalogArgs</code></li>
+<li><code>ReportRenderManyArgs</code></li>
+<li>Re-exported handlers:</li>
+<li>Scaffold: <code>run_reports_init</code>, <code>run_reports_smoke</code>, <code>run_reports_index</code>, <code>run_reports_verify</code></li>
+<li>Rendering: <code>run_reports_render_spec</code>, <code>run_report_catalog</code>, <code>run_report_render_many</code></li>
+<li>Publishing: <code>run_reports_finalize</code>, <code>run_reports_publish_manifest</code></li>
+</ul>
+<h2>Dependencies</h2>
+<ul>
+<li><code>clap::{Args, Subcommand}</code> derives the command hierarchy and long-option parsing.</li>
+<li><code>std::path::PathBuf</code> represents filesystem inputs such as report roots, fixtures, specifications, entrypoints, artifacts, and output directories.</li>
+<li><code>reports::scaffold</code>, <code>reports::render</code>, and <code>reports::publish</code> contain the corresponding command implementations.</li>
+</ul>
+<h2>Usage Notes</h2>
+<ul>
+<li>All command argument types accept <code>--root</code>, defaulting to the current directory (<code>.</code>).</li>
+<li><code>--json</code> requests machine-readable output where supported.</li>
+<li><code>reports smoke</code> requires <code>--fixture</code> and <code>--vars</code>; <code>--archive</code> controls archival output.</li>
+<li><code>reports finalize</code> requires <code>--report-id</code>, <code>--kind</code>, and <code>--entrypoint</code>; it defaults <code>--status</code> to <code>pass</code> and accepts repeated <code>--artifact</code> options.</li>
+<li><code>reports render-spec</code> requires <code>--spec</code> and can archive its output.</li>
+<li><code>ReportRenderManyArgs</code> requires <code>--id</code>, <code>--glob</code>, and <code>--output-dir</code>. Its <code>--template</code> and <code>--template-family</code> selectors cannot be supplied together.</li>
+<li>Dispatch code consumes <code>ReportsSubcommand</code> and invokes the re-exported handlers, which in turn connect report operations to the reporting-layer routines such as smoke fixture execution and semantic-spec rendering.</li>
+</ul>
+</body>
+</html>

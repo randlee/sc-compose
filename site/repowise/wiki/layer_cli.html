@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Layer: CLI</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Layer: CLI</h1>
+<p>I’ll ground the CLI overview in the command modules and their dispatch boundary.</p>
+<h2>Overview</h2>
+<p>The CLI layer is the system’s presentation and command-orchestration layer: it turns shell arguments into typed operations, invokes application/composition services, and returns human-readable or JSON results with stable exit codes. It owns the <code>sc-compose</code> executable’s interaction contract, including Clap command definitions, command dispatch, output formatting, diagnostics, and lifecycle observability.</p>
+<p>It depends primarily on the Application layer (48 imports) for template composition, report generation, storage, and verification work. Application has one incoming dependency on this layer through the reports command boundary.</p>
+<h2>Key Components</h2>
+<ul>
+<li>
+<p><code>cli.rs</code> defines the command grammar and shared argument structures. It exposes top-level operations including render, resolve, validate, verify, template initialization, workspace setup, template/example packs, observability health, and reports.</p>
+</li>
+<li>
+<p><code>commands/dispatch.rs</code> is the execution router. It matches each parsed <code>Command</code> and delegates to the corresponding handler while wrapping execution in lifecycle events.</p>
+</li>
+<li>
+<p><code>commands/compose.rs</code> adapts render, resolve, and validate arguments into <code>sc_composer</code> requests. It handles multi-pass input, custom delimiters, output-target selection, warnings, and terminal/JSON response rendering.</p>
+</li>
+<li>
+<p><code>commands/verify.rs</code> builds verification requests, applies allowed builtin-variable overrides, compares rendered and deployed output, and reports drift.</p>
+</li>
+<li>
+<p><code>commands/template_init.rs</code> implements <code>template-init</code> and <code>frontmatter-init</code>: it validates pass-scoped replacements, rewrites template content when requested, and supports dry-run and JSON modes.</p>
+</li>
+<li>
+<p><code>commands/templates.rs</code> and <code>commands/examples.rs</code> provide list, add, lookup, and render workflows for user-managed template packs and bundled examples.</p>
+</li>
+<li>
+<p><code>commands/reports/mod.rs</code> is the CLI layer’s edge connector. It defines typed <code>reports</code> subcommands and re-exports their handlers, forming the public bridge used across the CLI/Application boundary.</p>
+</li>
+<li>
+<p><code>commands/reports/{scaffold,render,publish}.rs</code> adapt report operations—scaffold setup, smoke execution, index/verification, specification rendering, cataloging, finalization, and publish-manifest creation—into CLI output.</p>
+</li>
+<li>
+<p><code>commands/mod.rs</code>, referenced by the codebase tour as the CLI anchor, aggregates command modules and centralizes shared presentation/error adapters for template-pack failures.</p>
+</li>
+<li>
+<p><code>command_error.rs</code> converts application and composition failures into CLI-facing diagnostics, recovery hints, and exit codes.</p>
+</li>
+</ul>
+<h2>Data Flow</h2>
+<pre><code class="language-text">Shell arguments
+  → cli.rs parses typed Clap arguments
+  → main.rs creates logging/observer context
+  → commands/dispatch.rs selects a command handler
+  → command adapter builds requests or invokes application services
+  → sc-composer / reporting / template-store work executes
+  → CommandError or result is normalized
+  → terminal text or JSON envelope + process exit code
+</code></pre>
+<p>For composition commands, shared CLI inputs such as root path, resolution mode, variables, variable files, environment prefix, strictness, and output behavior are transformed into composition requests. <code>sc-composer</code> then resolves, validates, renders, or verifies templates; the CLI emits output, diagnostics, and warnings.</p>
+<p>For report commands, <code>reports/mod.rs</code> parses the nested subcommand first, then dispatch forwards the typed request to scaffold, rendering, catalog, indexing, verification, finalization, or publishing services. Those services return report metadata and artifact paths, which the CLI presents consistently in text or JSON.</p>
+<h2>Architecture Notes</h2>
+<ul>
+<li>
+<p>The CLI is intentionally an adapter, not the composition engine. Template semantics, rendering, validation, and report-domain work remain in the Application layer and <code>sc-composer</code>.</p>
+</li>
+<li>
+<p>Command handlers preserve a consistent interface: <code>Result&lt;i32, CommandError&gt;</code>. This keeps command-specific logic separate from standardized exit behavior.</p>
+</li>
+<li>
+<p>JSON is treated as a first-class output mode. Successful payloads and errors use a common envelope, allowing automation to consume diagnostics without scraping terminal text.</p>
+</li>
+<li>
+<p>Observability surrounds dispatch rather than individual business operations. <code>observe_command</code> records start/end events, elapsed time, success state, output mode, exit code, and diagnostic context while forwarding composition events to the observer.</p>
+</li>
+<li>
+<p>The reports module is the layer’s explicit edge connector. Keep its typed subcommand definitions and handler re-exports stable when evolving cross-layer report workflows.</p>
+</li>
+<li>
+<p><code>commands/mod.rs</code> is the practical CLI anchor because it exposes the command surface and shared terminal-facing adapters; changes there can affect multiple command families.</p>
+</li>
+</ul>
+</body>
+</html>

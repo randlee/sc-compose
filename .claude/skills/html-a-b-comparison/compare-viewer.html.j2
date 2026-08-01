@@ -1,0 +1,105 @@
+---
+required_variables:
+  - title
+  - variants
+input_defaults:
+  default_left: 0
+  default_right: 1
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ title | e }}</title>
+<style>
+  :root {
+    --bg:#f6f5f2; --panel-bg:#fff; --border:#d9d5cc; --text:#2a2621; --muted:#6b6459; --accent:#3b6ea5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#1c1a17; --panel-bg:#262320; --border:#3a352e; --text:#ece7de; --muted:#a89e8f; --accent:#7aa7d9; }
+  }
+  :root[data-theme="dark"] { --bg:#1c1a17; --panel-bg:#262320; --border:#3a352e; --text:#ece7de; --muted:#a89e8f; --accent:#7aa7d9; }
+  :root[data-theme="light"] { --bg:#f6f5f2; --panel-bg:#fff; --border:#d9d5cc; --text:#2a2621; --muted:#6b6459; --accent:#3b6ea5; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--text);
+    display: flex; flex-direction: column;
+  }
+  header { padding: 14px 20px; border-bottom: 1px solid var(--border); flex: 0 0 auto; }
+  header h1 { margin: 0 0 4px; font-size: 1.05rem; }
+  header p { margin: 0; color: var(--muted); font-size: 0.85rem; }
+  .panes { flex: 1 1 auto; display: flex; min-height: 0; }
+  .pane { flex: 1 1 50%; display: flex; flex-direction: column; min-width: 0; }
+  .pane + .pane { border-left: 1px solid var(--border); }
+  .pane-bar {
+    flex: 0 0 auto; padding: 8px 12px; border-bottom: 1px solid var(--border);
+    background: var(--panel-bg); display: flex; align-items: center; gap: 8px;
+  }
+  .pane-bar label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+  .pane-bar select {
+    flex: 1 1 auto; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--panel-bg); color: var(--text); font-size: 0.85rem;
+  }
+  .pane iframe { flex: 1 1 auto; width: 100%; border: 0; background: #fff; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>{{ title | e }}</h1>
+    <p>Local A/B comparison — pick a variant per pane. No network requests; safe to open offline.</p>
+  </header>
+  <div class="panes">
+    <div class="pane">
+      <div class="pane-bar">
+        <label for="left-select">Left</label>
+        <select id="left-select"></select>
+      </div>
+      <iframe id="left-frame" title="Left variant"></iframe>
+    </div>
+    <div class="pane">
+      <div class="pane-bar">
+        <label for="right-select">Right</label>
+        <select id="right-select"></select>
+      </div>
+      <iframe id="right-frame" title="Right variant"></iframe>
+    </div>
+  </div>
+
+  <script>
+    var variants = {{ variants | tojson }};
+
+    function populate(select) {
+      variants.forEach(function (v, i) {
+        var opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = v.label;
+        select.appendChild(opt);
+      });
+    }
+
+    function setFrame(select, frame) {
+      var v = variants[Number(select.value)];
+      frame.src = v ? ("data:text/html;base64," + v.b64) : "about:blank";
+    }
+
+    var leftSelect = document.getElementById("left-select");
+    var rightSelect = document.getElementById("right-select");
+    var leftFrame = document.getElementById("left-frame");
+    var rightFrame = document.getElementById("right-frame");
+
+    populate(leftSelect);
+    populate(rightSelect);
+
+    leftSelect.value = String(Math.min({{ default_left }}, variants.length - 1));
+    rightSelect.value = String(Math.min({{ default_right }}, variants.length - 1));
+
+    setFrame(leftSelect, leftFrame);
+    setFrame(rightSelect, rightFrame);
+
+    leftSelect.addEventListener("change", function () { setFrame(leftSelect, leftFrame); });
+    rightSelect.addEventListener("change", function () { setFrame(rightSelect, rightFrame); });
+  </script>
+</body>
+</html>

@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Adversarial fuzz confirmation: e3confirm-20260729-0001 (frontmatter)</title>
+  <style type="text/css">
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0b1220; color: #e5e7eb; }
+      .section { background: #111827; border-color: #1f2937; }
+      table { background: #0f172a; }
+      th, td { border-color: #1f2937 !important; }
+      .icon-button { background: #1f2937; color: #cbd5e1; border-color: #374151; }
+      code { background: #1f2937; color: #e5e7eb; }
+      a { color: #93c5fd; }
+    }
+    :root[data-theme="dark"] body { background: #0b1220; color: #e5e7eb; }
+    :root[data-theme="dark"] .section { background: #111827; border-color: #1f2937; }
+    :root[data-theme="light"] body { background: #ffffff; color: #1f2937; }
+    header { border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 20px; }
+    h1 { margin: 0 0 6px 0; font-size: 1.6rem; }
+    .subtitle { margin: 0 0 4px 0; color: #6b7280; }
+    .generated-at, .source-label { margin: 2px 0; font-size: 0.85rem; color: #6b7280; }
+    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 0.85em; border: 1px solid transparent; }
+    .status-pass { color: #065f46; background: #d1fae5; border-color: #6ee7b7; }
+    .status-drift { color: #92400e; background: #fef3c7; border-color: #f59e0b; }
+    .status-error { color: #991b1b; background: #fee2e2; border-color: #ef4444; }
+    .status-info { color: #1e40af; background: #dbeafe; border-color: #3b82f6; }
+    .top-status { margin-top: 8px; }
+    nav.toc { margin: 16px 0; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 10px; }
+    nav.toc ul { margin: 8px 0 0 0; padding-left: 20px; }
+    .summary-block { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin: 16px 0; }
+    .section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
+    .section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .section-head h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 10px; }
+    .section-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
+    .icon-button:hover { filter: brightness(0.95); }
+    .section-summary { color: #374151; font-style: italic; }
+    .fragment-link { font-size: 0.9rem; }
+    .fragment-source { color: #6b7280; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; vertical-align: top; font-size: 0.9rem; }
+    thead th { background: #f3f4f6; }
+    :root[data-theme="dark"] thead th { background: #1f2937; }
+    @media (prefers-color-scheme: dark) { thead th { background: #1f2937; } }
+    code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 0.9em; white-space: pre-wrap; word-break: break-word; }
+    .finding { border-top: 1px dashed #e5e7eb; padding-top: 10px; margin-top: 10px; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; }
+    dt { font-weight: 600; }
+    dd { margin: 0; }
+    .scratchpad { background: #f9fafb; border-left: 4px solid #3b82f6; padding: 12px; margin-top: 12px; border-radius: 4px; }
+    :root[data-theme="dark"] .scratchpad { background: #0f172a; }
+    .recommendations ul { padding-left: 20px; }
+    .metadata-table th { width: 260px; }
+    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 0.85rem; color: #6b7280; }
+    table { display: block; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Adversarial fuzz confirmation: e3confirm-20260729-0001 (frontmatter)</h1>
+    <p class="subtitle">Post-PR-#163 (cd54074) confirmation run, corrected pre-fix baseline fa675cf</p>
+    <p class="generated-at">Generated: 2026-07-29T00:00:00Z</p>
+    <p class="source-label">Source: adversarial-fuzzing&#x2f;v1 campaign-report.json, campaign_id e3confirm-20260729-0001</p>
+    <div class="top-status"><span class="status status-error">ERROR</span></div>
+  </header>
+
+  <section class="summary-block">
+    <div class="section-head">
+      <h2>Summary</h2>
+      <div class="section-actions" role="group" aria-label="Copy summary data">
+        <button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;generated_at&quot;:&quot;2026-07-29T00:00:00Z&quot;,&quot;metadata&quot;:{&quot;report_kind&quot;:&quot;multi-agent-fuzz-session&quot;,&quot;session_id&quot;:&quot;e3confirm-20260729-0001&quot;,&quot;worker_count&quot;:4,&quot;template&quot;:&quot;.claude&#x2f;skills&#x2f;html-report&#x2f;templates&#x2f;fuzz-run-agent.xhtml.j2&quot;,&quot;campaign_id&quot;:&quot;e3confirm-20260729-0001&quot;,&quot;total_cases_run&quot;:388,&quot;confirmed_bugs&quot;:8,&quot;intentional_boundaries&quot;:1,&quot;inconclusive&quot;:2,&quot;promoted_tests&quot;:0,&quot;regressions_attributable_to_cd54074&quot;:1},&quot;sections&quot;:[{&quot;id&quot;:&quot;boundary-probe&quot;,&quot;status&quot;:&quot;ERROR&quot;,&quot;summary&quot;:&quot;boundary-probe ran 99 bounded cases against the frontmatter subsystem and confirmed 5 product bug(s): FUZZ-001, FUZZ-002, FUZZ-003, FUZZ-004, FUZZ-005. All reproduced at least 3 times; exact minimized templates and inputs are preserved below.&quot;,&quot;title&quot;:&quot;boundary-probe&quot;},{&quot;id&quot;:&quot;differential-probe&quot;,&quot;status&quot;:&quot;ERROR&quot;,&quot;summary&quot;:&quot;differential-probe ran 97 bounded cases against the frontmatter subsystem and confirmed 1 product bug(s): FUZZ-006. All reproduced at least 3 times; exact minimized templates and inputs are preserved below.&quot;,&quot;title&quot;:&quot;differential-probe&quot;},{&quot;id&quot;:&quot;shape-probe&quot;,&quot;status&quot;:&quot;ERROR&quot;,&quot;summary&quot;:&quot;shape-probe ran 86 bounded cases against the frontmatter subsystem and confirmed 2 product bug(s): FUZZ-008, FUZZ-009. All reproduced at least 3 times; exact minimized templates and inputs are preserved below.&quot;,&quot;title&quot;:&quot;shape-probe&quot;},{&quot;id&quot;:&quot;template-probe&quot;,&quot;status&quot;:&quot;PASS&quot;,&quot;summary&quot;:&quot;template-probe ran 106 bounded cases against the frontmatter subsystem with zero panics, timeouts, hangs, or confinement bypasses. One case (FUZZ-010, trailing CR&#x2f;blank-line&#x2f;whitespace normalization) was filed as inconclusive, not a confirmed bug: assemble_output()&#x27;s trim_end() is deliberate code, the render-&gt;verify round-trip is self-consistent, and no doc states whether the normalization is intended, so no defect could be established. No confirmed_bug is attributable to template-probe.&quot;,&quot;title&quot;:&quot;template-probe&quot;}],&quot;source_label&quot;:&quot;adversarial-fuzzing&#x2f;v1 campaign-report.json, campaign_id e3confirm-20260729-0001&quot;,&quot;status&quot;:&quot;ERROR&quot;,&quot;title&quot;:&quot;Adversarial fuzz confirmation: e3confirm-20260729-0001 (frontmatter)&quot;}">{}</button>
+        <button class="icon-button" type="button" title="Copy Context" data-copy-text="&lt;p&gt;Confirmation campaign &lt;code&gt;e3confirm-20260729-0001&lt;&#x2f;code&gt; re-ran four bounded adversarial workers against the frontmatter subsystem (388 total cases: boundary-probe 99, differential-probe 97, shape-probe 86, template-probe 106) on HEAD &lt;code&gt;d2acdb1&lt;&#x2f;code&gt; (contains fix &lt;code&gt;cd54074&lt;&#x2f;code&gt; &#x2f; PR #163), using the corrected pre-fix baseline &lt;code&gt;fa675cf&lt;&#x2f;code&gt; (cd54074^). At the worker-execution level every worker completed cleanly: zero panics, hangs, timeouts, confinement bypasses, or nondeterminism.&lt;&#x2f;p&gt;&lt;table class=&quot;session-summary&quot;&gt;&lt;thead&gt;&lt;tr&gt;&lt;th scope=&quot;col&quot;&gt;Fuzz run description&lt;&#x2f;th&gt;&lt;th scope=&quot;col&quot;&gt;Iterations&lt;&#x2f;th&gt;&lt;th scope=&quot;col&quot;&gt;Pass&lt;&#x2f;th&gt;&lt;th scope=&quot;col&quot;&gt;Result&lt;&#x2f;th&gt;&lt;&#x2f;tr&gt;&lt;&#x2f;thead&gt;&lt;tbody&gt;&lt;tr&gt;&lt;th scope=&quot;row&quot;&gt;Malformed files, invalid var-file boundaries, path confinement, and stable diagnostics (frontmatter target)&lt;&#x2f;th&gt;&lt;td&gt;99&lt;&#x2f;td&gt;&lt;td&gt;99&#x2f;99&lt;&#x2f;td&gt;&lt;td&gt;&lt;span class=&quot;status status-pass&quot;&gt;PASS&lt;&#x2f;span&gt;&lt;&#x2f;td&gt;&lt;&#x2f;tr&gt;&lt;tr&gt;&lt;th scope=&quot;row&quot;&gt;Baseline-vs-head parity, JSON&#x2f;YAML equivalence, and deterministic output (frontmatter target, corrected baseline fa675cf)&lt;&#x2f;th&gt;&lt;td&gt;97&lt;&#x2f;td&gt;&lt;td&gt;97&#x2f;97&lt;&#x2f;td&gt;&lt;td&gt;&lt;span class=&quot;status status-pass&quot;&gt;PASS&lt;&#x2f;span&gt;&lt;&#x2f;td&gt;&lt;&#x2f;tr&gt;&lt;tr&gt;&lt;th scope=&quot;row&quot;&gt;Recursive JSON&#x2f;YAML frontmatter structures, duplicate-key handling, and BOM edge cases&lt;&#x2f;th&gt;&lt;td&gt;86&lt;&#x2f;td&gt;&lt;td&gt;86&#x2f;86&lt;&#x2f;td&gt;&lt;td&gt;&lt;span class=&quot;status status-pass&quot;&gt;PASS&lt;&#x2f;span&gt;&lt;&#x2f;td&gt;&lt;&#x2f;tr&gt;&lt;tr&gt;&lt;th scope=&quot;row&quot;&gt;Jinja whitespace&#x2f;newline normalization and output-formatting edge cases&lt;&#x2f;th&gt;&lt;td&gt;106&lt;&#x2f;td&gt;&lt;td&gt;106&#x2f;106&lt;&#x2f;td&gt;&lt;td&gt;&lt;span class=&quot;status status-pass&quot;&gt;PASS&lt;&#x2f;span&gt;&lt;&#x2f;td&gt;&lt;&#x2f;tr&gt;&lt;&#x2f;tbody&gt;&lt;&#x2f;table&gt;&lt;p&gt;&lt;strong&gt;This is execution health, not a clean campaign outcome.&lt;&#x2f;strong&gt; The campaign confirmed 8 product bugs (FUZZ-001, 002, 003, 004, 005, 006, 008, 009), 1 intentional boundary (FUZZ-007), and 2 inconclusive items (FUZZ-004 relates to a new gap shipped with cd54074; FUZZ-010 and FUZZ-011 need a product ruling, not a code fix). Zero regression tests were promoted by design: every confirmed bug is currently unfixed, so no passing durable test could be written without either failing CI or enshrining the defect as intended behavior.&lt;&#x2f;p&gt;">⎘</button>
+      </div>
+    </div>
+    <p>Confirmation campaign <code>e3confirm-20260729-0001</code> re-ran four bounded adversarial workers against the frontmatter subsystem (388 total cases: boundary-probe 99, differential-probe 97, shape-probe 86, template-probe 106) on HEAD <code>d2acdb1</code> (contains fix <code>cd54074</code> / PR #163), using the corrected pre-fix baseline <code>fa675cf</code> (cd54074^). At the worker-execution level every worker completed cleanly: zero panics, hangs, timeouts, confinement bypasses, or nondeterminism.</p>
+    <table class="session-summary">
+      <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">Malformed files, invalid var-file boundaries, path confinement, and stable diagnostics (frontmatter target)</th>
+          <td>99</td>
+          <td>99&#x2f;99</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Baseline-vs-head parity, JSON&#x2f;YAML equivalence, and deterministic output (frontmatter target, corrected baseline fa675cf)</th>
+          <td>97</td>
+          <td>97&#x2f;97</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Recursive JSON&#x2f;YAML frontmatter structures, duplicate-key handling, and BOM edge cases</th>
+          <td>86</td>
+          <td>86&#x2f;86</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Jinja whitespace&#x2f;newline normalization and output-formatting edge cases</th>
+          <td>106</td>
+          <td>106&#x2f;106</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p><strong>This is execution health, not a clean campaign outcome.</strong> The campaign confirmed 8 product bugs (FUZZ-001, 002, 003, 004, 005, 006, 008, 009), 1 intentional boundary (FUZZ-007), and 2 inconclusive items (FUZZ-004 relates to a new gap shipped with cd54074; FUZZ-010 and FUZZ-011 need a product ruling, not a code fix). Zero regression tests were promoted by design: every confirmed bug is currently unfixed, so no passing durable test could be written without either failing CI or enshrining the defect as intended behavior.</p>
+  </section>
+
+  <nav class="toc">
+    <strong>Worker Sections</strong>
+    <ul>
+      <li><a href="#boundary-probe">boundary-probe</a> <span class="status status-error">ERROR</span></li>
+      <li><a href="#differential-probe">differential-probe</a> <span class="status status-error">ERROR</span></li>
+      <li><a href="#shape-probe">shape-probe</a> <span class="status status-error">ERROR</span></li>
+      <li><a href="#template-probe">template-probe</a> <span class="status status-pass">PASS</span></li>
+    </ul>
+  </nav>
+
+  <section class="section" id="boundary-probe">
+    <div class="section-head">
+      <h2>boundary-probe <span class="status status-error">ERROR</span></h2>
+      <div class="section-actions" role="group" aria-label="Copy boundary-probe data">
+        <button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;: &quot;boundary-probe&quot;, &quot;classification&quot;: &quot;confirmed_bug&quot;, &quot;failed&quot;: 5, &quot;findings&quot;: [{&quot;expected_oracle&quot;: &quot;FR-7b: exit 3 for usage/configuration/contract error. ERR_CONFIG_READ is a documented ConfigError-family code, so it should exit 3.&quot;, &quot;finding_id&quot;: &quot;FUZZ-001&quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;\\xa0&quot;, &quot;observed_result&quot;: &quot;Exits 2 (validation/render family) with ERR_CONFIG_READ, while the equivalent invalid-UTF-8 --var-file failure exits 3. Exit-code family disagrees with the diagnostic family.&quot;, &quot;recommended_fix&quot;: &quot;Map ERR_CONFIG_READ to exit 3 per FR-7b.&quot;, &quot;requirement_follow_up&quot;: &quot;Map ERR_CONFIG_READ to exit 3 per FR-7b.&quot;, &quot;requirement_trace&quot;: &quot;No requirement/ADR currently traces this exact behavior; classified via the adversarial-fuzzing oracle rules (stable diagnostic/top-level boundary).&quot;, &quot;root_cause&quot;: &quot;See observed_result; coordinator-established root cause recorded in campaign-report.json.&quot;}, {&quot;expected_oracle&quot;: &quot;A security-relevant confinement refusal must not be reported with a not-found code; the engine already has a dedicated ERR_INCLUDE_ESCAPE for the identical condition during include expansion.&quot;, &quot;finding_id&quot;: &quot;FUZZ-002&quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;a file existing one level above --root&quot;, &quot;observed_result&quot;: &quot;Refused correctly (no read occurs, exit 3) but with ERR_RESOLVE_NOT_FOUND and message &#x27;template path escapes configured roots&#x27;, i.e. an escape reported under a not-found code. Confirmed for ../ traversal, absolute path, and symlink-outside-root.&quot;, &quot;recommended_fix&quot;: &quot;Introduce/reuse an escape-specific code for top-level --file confinement refusals; register it in the error-code registry.&quot;, &quot;requirement_follow_up&quot;: &quot;Introduce/reuse an escape-specific code for top-level --file confinement refusals; register it in the error-code registry.&quot;, &quot;requirement_trace&quot;: &quot;No confinement bypass: every escape attempt was correctly refused and nothing outside --root was read. This is a diagnostic-accuracy defect only.&quot;, &quot;root_cause&quot;: &quot;See observed_result; coordinator-established root cause recorded in campaign-report.json.&quot;}, {&quot;expected_oracle&quot;: &quot;No include is in play for a top-level --file, and the sibling nonexistent-path case correctly returns ERR_RESOLVE_NOT_FOUND with exit 3.&quot;, &quot;finding_id&quot;: &quot;FUZZ-003&quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;an empty directory passed as --file&quot;, &quot;observed_result&quot;: &quot;Returns ERR_INCLUDE_NOT_FOUND &#x27;include file not found: &lt;dir&gt;&#x27; with exit 2; the nonexistent-path sibling returns ERR_RESOLVE_NOT_FOUND with exit 3. Both code and exit family are inconsistent for the same argument.&quot;, &quot;recommended_fix&quot;: &quot;Return ERR_RESOLVE_NOT_FOUND (or a not-a-file code) with exit 3 when --file names a directory.&quot;, &quot;requirement_follow_up&quot;: &quot;Return ERR_RESOLVE_NOT_FOUND (or a not-a-file code) with exit 3 when --file names a directory.&quot;, &quot;requirement_trace&quot;: &quot;No requirement/ADR currently traces this exact behavior; classified via the adversarial-fuzzing oracle rules (stable diagnostic/top-level boundary).&quot;, &quot;root_cause&quot;: &quot;See observed_result; coordinator-established root cause recorded in campaign-report.json.&quot;}, {&quot;expected_oracle&quot;: &quot;FR-8: diagnostics must include source file path, line and column when available. The equivalent `required_variables: [x]` declaration proves line/column ARE computable for the same file, so the two declaration styles must yield identically shaped diagnostics.&quot;, &quot;finding_id&quot;: &quot;FUZZ-004&quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;---\nvariables:\n  x:\n    required: true\n---\n{{x}}\n&quot;, &quot;observed_result&quot;: &quot;Both styles give code ERR_VAL_MISSING_REQUIRED, exit 2, and the same message naming x. But `required_variables` yields line=3 column=5, while `variables: {x: {required: true}}` yields line=null column=null. (Coordinator correction to the worker&#x27;s report: `path` IS populated in both styles; only line/column are lost.)&quot;, &quot;recommended_fix&quot;: &quot;Thread line/column into ERR_VAL_MISSING_REQUIRED for the `variables:` declaration style so both styles match. Highest priority: this gap shipped with cd54074.&quot;, &quot;requirement_follow_up&quot;: &quot;Thread line/column into ERR_VAL_MISSING_REQUIRED for the `variables:` declaration style so both styles match. Highest priority: this gap shipped with cd54074.&quot;, &quot;requirement_trace&quot;: &quot;The `variables:` map is the feature ADDED by cd54074. Pre-fix it was ignored entirely, so this incomplete diagnostic shape ships WITH the fix rather than predating it. This is the only finding attributable to cd54074 itself.&quot;, &quot;root_cause&quot;: &quot;The `variables:` map is the feature ADDED by cd54074. Pre-fix it was ignored entirely, so this incomplete diagnostic shape ships WITH the fix rather than predating it. This is the only finding attributable to cd54074 itself.&quot;}, {&quot;expected_oracle&quot;: &quot;FR-8: diagnostics must include path, line and column when available. Human-mode output proves the location is known.&quot;, &quot;finding_id&quot;: &quot;FUZZ-005&quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;---\nfoo:\n  bar: 1\n baz: 2\n---\nbody\n&quot;, &quot;observed_result&quot;: &quot;Human mode prints &#x27;did not find expected key at line 3 column 2&#x27;. The --json diagnostic for the identical failure carries ERR_CONFIG_PARSE with path=null, line=null, column=null. Machine consumers get strictly less information than humans for the same failure. Reproduced across tab indentation, unclosed quote, unclosed flow map, and non-map frontmatter shapes.&quot;, &quot;recommended_fix&quot;: &quot;Propagate serde_yaml::Error::location() and the template path into ConfigError -&gt; Diagnostic so --json matches human output.&quot;, &quot;requirement_follow_up&quot;: &quot;Propagate serde_yaml::Error::location() and the template path into ConfigError -&gt; Diagnostic so --json matches human output.&quot;, &quot;requirement_trace&quot;: &quot;No requirement/ADR currently traces this exact behavior; classified via the adversarial-fuzzing oracle rules (stable diagnostic/top-level boundary).&quot;, &quot;root_cause&quot;: &quot;See observed_result; coordinator-established root cause recorded in campaign-report.json.&quot;}], &quot;iterations&quot;: 99, &quot;passed&quot;: 94, &quot;result&quot;: &quot;FAIL&quot;, &quot;session_id&quot;: &quot;e3confirm-20260729-0001&quot;, &quot;test_inputs&quot;: [{&quot;case_id&quot;: &quot;FUZZ-001&quot;, &quot;description&quot;: &quot;FR-7b: exit 3 for usage/configuration/contract error. ERR_CONFIG_READ is a documented ConfigError-family code, so it should exit 3.&quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;\\xa0&quot;, &quot;outcome&quot;: &quot;confirmed product bug (3 reproductions): Exits 2 (validation/render family) with ERR_CONFIG_READ, while the equivalent invalid-UTF-8 --var-file failure exits 3. Exit-code family disagrees with the diagnostic family.&quot;, &quot;passed&quot;: false}, {&quot;case_id&quot;: &quot;FUZZ-002&quot;, &quot;description&quot;: &quot;A security-relevant confinement refusal must not be reported with a not-found code; the engine already has a dedicated ERR_INCLUDE_ESCAPE for the identical condition during include&quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;a file existing one level above --root&quot;, &quot;outcome&quot;: &quot;confirmed product bug (3 reproductions): Refused correctly (no read occurs, exit 3) but with ERR_RESOLVE_NOT_FOUND and message &#x27;template path escapes configured roots&#x27;, i.e. an escape reported under a not-found code. Confirmed for ../ traversal, absolute path, &quot;, &quot;passed&quot;: false}, {&quot;case_id&quot;: &quot;FUZZ-003&quot;, &quot;description&quot;: &quot;No include is in play for a top-level --file, and the sibling nonexistent-path case correctly returns ERR_RESOLVE_NOT_FOUND with exit 3.&quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;an empty directory passed as --file&quot;, &quot;outcome&quot;: &quot;confirmed product bug (3 reproductions): Returns ERR_INCLUDE_NOT_FOUND &#x27;include file not found: &lt;dir&gt;&#x27; with exit 2; the nonexistent-path sibling returns ERR_RESOLVE_NOT_FOUND with exit 3. Both code and exit family are inconsistent for the same argument.&quot;, &quot;passed&quot;: false}, {&quot;case_id&quot;: &quot;FUZZ-004&quot;, &quot;description&quot;: &quot;FR-8: diagnostics must include source file path, line and column when available. The equivalent `required_variables: [x]` declaration proves line/column ARE computable for the same&quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;---\nvariables:\n  x:\n    required: true\n---\n{{x}}\n&quot;, &quot;outcome&quot;: &quot;confirmed product bug (3 reproductions): Both styles give code ERR_VAL_MISSING_REQUIRED, exit 2, and the same message naming x. But `required_variables` yields line=3 column=5, while `variables: {x: {required: true}}` yields line=null column=null. (Coordinator &quot;, &quot;passed&quot;: false}, {&quot;case_id&quot;: &quot;FUZZ-005&quot;, &quot;description&quot;: &quot;FR-8: diagnostics must include path, line and column when available. Human-mode output proves the location is known.&quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;---\nfoo:\n  bar: 1\n baz: 2\n---\nbody\n&quot;, &quot;outcome&quot;: &quot;confirmed product bug (3 reproductions): Human mode prints &#x27;did not find expected key at line 3 column 2&#x27;. The --json diagnostic for the identical failure carries ERR_CONFIG_PARSE with path=null, line=null, column=null. Machine consumers get strictly less infor&quot;, &quot;passed&quot;: false}], &quot;worker_correlation_id&quot;: &quot;boundary-probe&quot;}">{}</button>
+        <button class="icon-button" type="button" title="Copy Context" data-copy-text="boundary-probe ran 99 bounded cases against the frontmatter subsystem and confirmed 5 product bug(s): FUZZ-001, FUZZ-002, FUZZ-003, FUZZ-004, FUZZ-005. All reproduced at least 3 times; exact minimized templates and inputs are preserved below. See findings for root cause and recommended fix per finding.">⎘</button>
+      </div>
+    </div>
+    <p class="fragment-link">Detailed context fragment: <a href="20260729-3-fuzz-report/20260729-3-fuzz-report-boundary-probe.xhtml">20260729-3-fuzz-report/20260729-3-fuzz-report-boundary-probe.xhtml</a> <span class="fragment-source">(auto-generated)</span></p>
+    <div class="section-body">
+      <section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session e3confirm-20260729-0001 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&#34;agent_id&#34;: &#34;boundary-probe&#34;, &#34;cases&#34;: [&#34;FUZZ-001&#34;, &#34;FUZZ-002&#34;, &#34;FUZZ-003&#34;, &#34;FUZZ-004&#34;, &#34;FUZZ-005&#34;], &#34;classification&#34;: &#34;confirmed_bug&#34;, &#34;failed&#34;: 5, &#34;findings&#34;: [{&#34;expected_oracle&#34;: &#34;FR-7b: exit 3 for usage/configuration/contract error. ERR_CONFIG_READ is a documented ConfigError-family code, so it should exit 3.&#34;, &#34;finding_id&#34;: &#34;FUZZ-001&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;\\xa0&#34;, &#34;observed_result&#34;: &#34;Exits 2 (validation/render family) with ERR_CONFIG_READ, while the equivalent invalid-UTF-8 --var-file failure exits 3. Exit-code family disagrees with the diagnostic family.&#34;, &#34;recommended_fix&#34;: &#34;Map ERR_CONFIG_READ to exit 3 per FR-7b.&#34;, &#34;requirement_follow_up&#34;: &#34;Map ERR_CONFIG_READ to exit 3 per FR-7b.&#34;, &#34;requirement_trace&#34;: &#34;No requirement/ADR currently traces this exact behavior; classified via the adversarial-fuzzing oracle rules (stable diagnostic/top-level boundary).&#34;, &#34;root_cause&#34;: &#34;See observed_result; coordinator-established root cause recorded in campaign-report.json.&#34;}, {&#34;expected_oracle&#34;: &#34;A security-relevant confinement refusal must not be reported with a not-found code; the engine already has a dedicated ERR_INCLUDE_ESCAPE for the identical condition during include expansion.&#34;, &#34;finding_id&#34;: &#34;FUZZ-002&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;a file existing one level above --root&#34;, &#34;observed_result&#34;: &#34;Refused correctly (no read occurs, exit 3) but with ERR_RESOLVE_NOT_FOUND and message &#39;template path escapes configured roots&#39;, i.e. an escape reported under a not-found code. Confirmed for ../ traversal, absolute path, and symlink-outside-root.&#34;, &#34;recommended_fix&#34;: &#34;Introduce/reuse an escape-specific code for top-level --file confinement refusals; register it in the error-code registry.&#34;, &#34;requirement_follow_up&#34;: &#34;Introduce/reuse an escape-specific code for top-level --file confinement refusals; register it in the error-code registry.&#34;, &#34;requirement_trace&#34;: &#34;No confinement bypass: every escape attempt was correctly refused and nothing outside --root was read. This is a diagnostic-accuracy defect only.&#34;, &#34;root_cause&#34;: &#34;See observed_result; coordinator-established root cause recorded in campaign-report.json.&#34;}, {&#34;expected_oracle&#34;: &#34;No include is in play for a top-level --file, and the sibling nonexistent-path case correctly returns ERR_RESOLVE_NOT_FOUND with exit 3.&#34;, &#34;finding_id&#34;: &#34;FUZZ-003&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;an empty directory passed as --file&#34;, &#34;observed_result&#34;: &#34;Returns ERR_INCLUDE_NOT_FOUND &#39;include file not found: &lt;dir&gt;&#39; with exit 2; the nonexistent-path sibling returns ERR_RESOLVE_NOT_FOUND with exit 3. Both code and exit family are inconsistent for the same argument.&#34;, &#34;recommended_fix&#34;: &#34;Return ERR_RESOLVE_NOT_FOUND (or a not-a-file code) with exit 3 when --file names a directory.&#34;, &#34;requirement_follow_up&#34;: &#34;Return ERR_RESOLVE_NOT_FOUND (or a not-a-file code) with exit 3 when --file names a directory.&#34;, &#34;requirement_trace&#34;: &#34;No requirement/ADR currently traces this exact behavior; classified via the adversarial-fuzzing oracle rules (stable diagnostic/top-level boundary).&#34;, &#34;root_cause&#34;: &#34;See observed_result; coordinator-established root cause recorded in campaign-report.json.&#34;}, {&#34;expected_oracle&#34;: &#34;FR-8: diagnostics must include source file path, line and column when available. The equivalent `required_variables: [x]` declaration proves line/column ARE computable for the same file, so the two declaration styles must yield identically shaped diagnostics.&#34;, &#34;finding_id&#34;: &#34;FUZZ-004&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;---\nvariables:\n  x:\n    required: true\n---\n{{x}}\n&#34;, &#34;observed_result&#34;: &#34;Both styles give code ERR_VAL_MISSING_REQUIRED, exit 2, and the same message naming x. But `required_variables` yields line=3 column=5, while `variables: {x: {required: true}}` yields line=null column=null. (Coordinator correction to the worker&#39;s report: `path` IS populated in both styles; only line/column are lost.)&#34;, &#34;recommended_fix&#34;: &#34;Thread line/column into ERR_VAL_MISSING_REQUIRED for the `variables:` declaration style so both styles match. Highest priority: this gap shipped with cd54074.&#34;, &#34;requirement_follow_up&#34;: &#34;Thread line/column into ERR_VAL_MISSING_REQUIRED for the `variables:` declaration style so both styles match. Highest priority: this gap shipped with cd54074.&#34;, &#34;requirement_trace&#34;: &#34;The `variables:` map is the feature ADDED by cd54074. Pre-fix it was ignored entirely, so this incomplete diagnostic shape ships WITH the fix rather than predating it. This is the only finding attributable to cd54074 itself.&#34;, &#34;root_cause&#34;: &#34;The `variables:` map is the feature ADDED by cd54074. Pre-fix it was ignored entirely, so this incomplete diagnostic shape ships WITH the fix rather than predating it. This is the only finding attributable to cd54074 itself.&#34;}, {&#34;expected_oracle&#34;: &#34;FR-8: diagnostics must include path, line and column when available. Human-mode output proves the location is known.&#34;, &#34;finding_id&#34;: &#34;FUZZ-005&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;---\nfoo:\n  bar: 1\n baz: 2\n---\nbody\n&#34;, &#34;observed_result&#34;: &#34;Human mode prints &#39;did not find expected key at line 3 column 2&#39;. The --json diagnostic for the identical failure carries ERR_CONFIG_PARSE with path=null, line=null, column=null. Machine consumers get strictly less information than humans for the same failure. Reproduced across tab indentation, unclosed quote, unclosed flow map, and non-map frontmatter shapes.&#34;, &#34;recommended_fix&#34;: &#34;Propagate serde_yaml::Error::location() and the template path into ConfigError -&gt; Diagnostic so --json matches human output.&#34;, &#34;requirement_follow_up&#34;: &#34;Propagate serde_yaml::Error::location() and the template path into ConfigError -&gt; Diagnostic so --json matches human output.&#34;, &#34;requirement_trace&#34;: &#34;No requirement/ADR currently traces this exact behavior; classified via the adversarial-fuzzing oracle rules (stable diagnostic/top-level boundary).&#34;, &#34;root_cause&#34;: &#34;See observed_result; coordinator-established root cause recorded in campaign-report.json.&#34;}], &#34;iterations&#34;: 99, &#34;passed&#34;: 94, &#34;result&#34;: &#34;FAIL&#34;, &#34;session_id&#34;: &#34;e3confirm-20260729-0001&#34;, &#34;target&#34;: &#34;frontmatter&#34;, &#34;test_inputs&#34;: [{&#34;case_id&#34;: &#34;FUZZ-001&#34;, &#34;description&#34;: &#34;FR-7b: exit 3 for usage/configuration/contract error. ERR_CONFIG_READ is a documented ConfigError-family code, so it should exit 3.&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;\\xa0&#34;, &#34;outcome&#34;: &#34;confirmed product bug (3 reproductions): Exits 2 (validation/render family) with ERR_CONFIG_READ, while the equivalent invalid-UTF-8 --var-file failure exits 3. Exit-code family disagrees with the diagnostic family.&#34;, &#34;passed&#34;: false}, {&#34;case_id&#34;: &#34;FUZZ-002&#34;, &#34;description&#34;: &#34;A security-relevant confinement refusal must not be reported with a not-found code; the engine already has a dedicated ERR_INCLUDE_ESCAPE for the identical condition during include&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;a file existing one level above --root&#34;, &#34;outcome&#34;: &#34;confirmed product bug (3 reproductions): Refused correctly (no read occurs, exit 3) but with ERR_RESOLVE_NOT_FOUND and message &#39;template path escapes configured roots&#39;, i.e. an escape reported under a not-found code. Confirmed for ../ traversal, absolute path, &#34;, &#34;passed&#34;: false}, {&#34;case_id&#34;: &#34;FUZZ-003&#34;, &#34;description&#34;: &#34;No include is in play for a top-level --file, and the sibling nonexistent-path case correctly returns ERR_RESOLVE_NOT_FOUND with exit 3.&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;an empty directory passed as --file&#34;, &#34;outcome&#34;: &#34;confirmed product bug (3 reproductions): Returns ERR_INCLUDE_NOT_FOUND &#39;include file not found: &lt;dir&gt;&#39; with exit 2; the nonexistent-path sibling returns ERR_RESOLVE_NOT_FOUND with exit 3. Both code and exit family are inconsistent for the same argument.&#34;, &#34;passed&#34;: false}, {&#34;case_id&#34;: &#34;FUZZ-004&#34;, &#34;description&#34;: &#34;FR-8: diagnostics must include source file path, line and column when available. The equivalent `required_variables: [x]` declaration proves line/column ARE computable for the same&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;---\nvariables:\n  x:\n    required: true\n---\n{{x}}\n&#34;, &#34;outcome&#34;: &#34;confirmed product bug (3 reproductions): Both styles give code ERR_VAL_MISSING_REQUIRED, exit 2, and the same message naming x. But `required_variables` yields line=3 column=5, while `variables: {x: {required: true}}` yields line=null column=null. (Coordinator &#34;, &#34;passed&#34;: false}, {&#34;case_id&#34;: &#34;FUZZ-005&#34;, &#34;description&#34;: &#34;FR-8: diagnostics must include path, line and column when available. Human-mode output proves the location is known.&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;---\nfoo:\n  bar: 1\n baz: 2\n---\nbody\n&#34;, &#34;outcome&#34;: &#34;confirmed product bug (3 reproductions): Human mode prints &#39;did not find expected key at line 3 column 2&#39;. The --json diagnostic for the identical failure carries ERR_CONFIG_PARSE with path=null, line=null, column=null. Machine consumers get strictly less infor&#34;, &#34;passed&#34;: false}], &#34;worker_correlation_id&#34;: &#34;boundary-probe&#34;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="boundary-probe ran 99 bounded cases against the frontmatter subsystem and confirmed 5 product bug(s): FUZZ-001, FUZZ-002, FUZZ-003, FUZZ-004, FUZZ-005. All reproduced at least 3 times; exact minimized templates and inputs are preserved below. See findings for root cause and recommended fix per finding.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+
+    <span class="status status-error">FAIL</span>
+
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Malformed files, invalid var-file boundaries, path confinement, and stable diagnostics (frontmatter target)</th>
+        <td>99</td>
+        <td>94/99</td>
+        <td>
+
+          <span class="status status-error">FAIL</span>
+
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+
+        <tr><th scope="row">FUZZ-001</th><td><code>FR-7b: exit 3 for usage/configuration/contract error. ERR_CONFIG_READ is a documented ConfigError-family code, so it should exit 3.</code></td><td>confirmed product bug (3 reproductions): Exits 2 (validation/render family) with ERR_CONFIG_READ, while the equivalent invalid-UTF-8 --var-file failure exits 3. Exit-code family disagrees with the diagnostic family.</td></tr>
+
+        <tr><th scope="row">FUZZ-002</th><td><code>A security-relevant confinement refusal must not be reported with a not-found code; the engine already has a dedicated ERR_INCLUDE_ESCAPE for the identical condition during include</code></td><td>confirmed product bug (3 reproductions): Refused correctly (no read occurs, exit 3) but with ERR_RESOLVE_NOT_FOUND and message &#39;template path escapes configured roots&#39;, i.e. an escape reported under a not-found code. Confirmed for ../ traversal, absolute path, </td></tr>
+
+        <tr><th scope="row">FUZZ-003</th><td><code>No include is in play for a top-level --file, and the sibling nonexistent-path case correctly returns ERR_RESOLVE_NOT_FOUND with exit 3.</code></td><td>confirmed product bug (3 reproductions): Returns ERR_INCLUDE_NOT_FOUND &#39;include file not found: &lt;dir&gt;&#39; with exit 2; the nonexistent-path sibling returns ERR_RESOLVE_NOT_FOUND with exit 3. Both code and exit family are inconsistent for the same argument.</td></tr>
+
+        <tr><th scope="row">FUZZ-004</th><td><code>FR-8: diagnostics must include source file path, line and column when available. The equivalent `required_variables: [x]` declaration proves line/column ARE computable for the same</code></td><td>confirmed product bug (3 reproductions): Both styles give code ERR_VAL_MISSING_REQUIRED, exit 2, and the same message naming x. But `required_variables` yields line=3 column=5, while `variables: {x: {required: true}}` yields line=null column=null. (Coordinator </td></tr>
+
+        <tr><th scope="row">FUZZ-005</th><td><code>FR-8: diagnostics must include path, line and column when available. Human-mode output proves the location is known.</code></td><td>confirmed product bug (3 reproductions): Human mode prints &#39;did not find expected key at line 3 column 2&#39;. The --json diagnostic for the identical failure carries ERR_CONFIG_PARSE with path=null, line=null, column=null. Machine consumers get strictly less infor</td></tr>
+
+      </tbody>
+    </table>
+  </section>
+
+
+  <section class="findings">
+    <h3>Findings</h3>
+
+    <article class="finding">
+      <h4>FUZZ-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>\xa0</code></dd>
+        <dt>Input</dt><dd><code>(none)</code></dd>
+        <dt>Expected</dt><dd>FR-7b: exit 3 for usage/configuration/contract error. ERR_CONFIG_READ is a documented ConfigError-family code, so it should exit 3.</dd>
+        <dt>Observed</dt><dd>Exits 2 (validation/render family) with ERR_CONFIG_READ, while the equivalent invalid-UTF-8 --var-file failure exits 3. Exit-code family disagrees with the diagnostic family.</dd>
+        <dt>Requirement / ADR</dt><dd>No requirement/ADR currently traces this exact behavior; classified via the adversarial-fuzzing oracle rules (stable diagnostic/top-level boundary).</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Map ERR_CONFIG_READ to exit 3 per FR-7b.</dd>
+        <dt>Root cause</dt><dd>See observed_result; coordinator-established root cause recorded in campaign-report.json.</dd>
+        <dt>Recommended fix</dt><dd>Map ERR_CONFIG_READ to exit 3 per FR-7b.</dd>
+      </dl>
+    </article>
+
+    <article class="finding">
+      <h4>FUZZ-002</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>a file existing one level above --root</code></dd>
+        <dt>Input</dt><dd><code>(none)</code></dd>
+        <dt>Expected</dt><dd>A security-relevant confinement refusal must not be reported with a not-found code; the engine already has a dedicated ERR_INCLUDE_ESCAPE for the identical condition during include expansion.</dd>
+        <dt>Observed</dt><dd>Refused correctly (no read occurs, exit 3) but with ERR_RESOLVE_NOT_FOUND and message &#39;template path escapes configured roots&#39;, i.e. an escape reported under a not-found code. Confirmed for ../ traversal, absolute path, and symlink-outside-root.</dd>
+        <dt>Requirement / ADR</dt><dd>No confinement bypass: every escape attempt was correctly refused and nothing outside --root was read. This is a diagnostic-accuracy defect only.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Introduce/reuse an escape-specific code for top-level --file confinement refusals; register it in the error-code registry.</dd>
+        <dt>Root cause</dt><dd>See observed_result; coordinator-established root cause recorded in campaign-report.json.</dd>
+        <dt>Recommended fix</dt><dd>Introduce/reuse an escape-specific code for top-level --file confinement refusals; register it in the error-code registry.</dd>
+      </dl>
+    </article>
+
+    <article class="finding">
+      <h4>FUZZ-003</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>an empty directory passed as --file</code></dd>
+        <dt>Input</dt><dd><code>(none)</code></dd>
+        <dt>Expected</dt><dd>No include is in play for a top-level --file, and the sibling nonexistent-path case correctly returns ERR_RESOLVE_NOT_FOUND with exit 3.</dd>
+        <dt>Observed</dt><dd>Returns ERR_INCLUDE_NOT_FOUND &#39;include file not found: &lt;dir&gt;&#39; with exit 2; the nonexistent-path sibling returns ERR_RESOLVE_NOT_FOUND with exit 3. Both code and exit family are inconsistent for the same argument.</dd>
+        <dt>Requirement / ADR</dt><dd>No requirement/ADR currently traces this exact behavior; classified via the adversarial-fuzzing oracle rules (stable diagnostic/top-level boundary).</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Return ERR_RESOLVE_NOT_FOUND (or a not-a-file code) with exit 3 when --file names a directory.</dd>
+        <dt>Root cause</dt><dd>See observed_result; coordinator-established root cause recorded in campaign-report.json.</dd>
+        <dt>Recommended fix</dt><dd>Return ERR_RESOLVE_NOT_FOUND (or a not-a-file code) with exit 3 when --file names a directory.</dd>
+      </dl>
+    </article>
+
+    <article class="finding">
+      <h4>FUZZ-004</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>---
+variables:
+  x:
+    required: true
+---
+{{x}}
+</code></dd>
+        <dt>Input</dt><dd><code>(none)</code></dd>
+        <dt>Expected</dt><dd>FR-8: diagnostics must include source file path, line and column when available. The equivalent `required_variables: [x]` declaration proves line/column ARE computable for the same file, so the two declaration styles must yield identically shaped diagnostics.</dd>
+        <dt>Observed</dt><dd>Both styles give code ERR_VAL_MISSING_REQUIRED, exit 2, and the same message naming x. But `required_variables` yields line=3 column=5, while `variables: {x: {required: true}}` yields line=null column=null. (Coordinator correction to the worker&#39;s report: `path` IS populated in both styles; only line/column are lost.)</dd>
+        <dt>Requirement / ADR</dt><dd>The `variables:` map is the feature ADDED by cd54074. Pre-fix it was ignored entirely, so this incomplete diagnostic shape ships WITH the fix rather than predating it. This is the only finding attributable to cd54074 itself.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Thread line/column into ERR_VAL_MISSING_REQUIRED for the `variables:` declaration style so both styles match. Highest priority: this gap shipped with cd54074.</dd>
+        <dt>Root cause</dt><dd>The `variables:` map is the feature ADDED by cd54074. Pre-fix it was ignored entirely, so this incomplete diagnostic shape ships WITH the fix rather than predating it. This is the only finding attributable to cd54074 itself.</dd>
+        <dt>Recommended fix</dt><dd>Thread line/column into ERR_VAL_MISSING_REQUIRED for the `variables:` declaration style so both styles match. Highest priority: this gap shipped with cd54074.</dd>
+      </dl>
+    </article>
+
+    <article class="finding">
+      <h4>FUZZ-005</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>---
+foo:
+  bar: 1
+ baz: 2
+---
+body
+</code></dd>
+        <dt>Input</dt><dd><code>(none)</code></dd>
+        <dt>Expected</dt><dd>FR-8: diagnostics must include path, line and column when available. Human-mode output proves the location is known.</dd>
+        <dt>Observed</dt><dd>Human mode prints &#39;did not find expected key at line 3 column 2&#39;. The --json diagnostic for the identical failure carries ERR_CONFIG_PARSE with path=null, line=null, column=null. Machine consumers get strictly less information than humans for the same failure. Reproduced across tab indentation, unclosed quote, unclosed flow map, and non-map frontmatter shapes.</dd>
+        <dt>Requirement / ADR</dt><dd>No requirement/ADR currently traces this exact behavior; classified via the adversarial-fuzzing oracle rules (stable diagnostic/top-level boundary).</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Propagate serde_yaml::Error::location() and the template path into ConfigError -&gt; Diagnostic so --json matches human output.</dd>
+        <dt>Root cause</dt><dd>See observed_result; coordinator-established root cause recorded in campaign-report.json.</dd>
+        <dt>Recommended fix</dt><dd>Propagate serde_yaml::Error::location() and the template path into ConfigError -&gt; Diagnostic so --json matches human output.</dd>
+      </dl>
+    </article>
+
+  </section>
+
+</section>
+    </div>
+  </section>
+  <section class="section" id="differential-probe">
+    <div class="section-head">
+      <h2>differential-probe <span class="status status-error">ERROR</span></h2>
+      <div class="section-actions" role="group" aria-label="Copy differential-probe data">
+        <button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;: &quot;differential-probe&quot;, &quot;classification&quot;: &quot;confirmed_bug&quot;, &quot;failed&quot;: 1, &quot;findings&quot;: [{&quot;expected_oracle&quot;: &quot;Equivalent JSON and YAML inputs must not produce different semantics without a documented reason. Either both reject an out-of-range integer or both preserve it losslessly.&quot;, &quot;finding_id&quot;: &quot;FUZZ-006&quot;, &quot;minimal_input&quot;: &quot;{\&quot;top\&quot;: 18446744073709551616}&quot;, &quot;minimal_template&quot;: &quot;---\nrequired_variables:\n  - top\n---\nVALUE=[[top]]\n&quot;, &quot;observed_result&quot;: &quot;JSON: exit 0, renders VALUE=18446744073709552000.0 -- the integer u64::MAX+1 is silently rounded through f64 into a different value, and `validate --json` reports {\&quot;valid\&quot;: true} with zero diagnostics. YAML with the same value: exit 3, ERR_CONFIG_PARSE. Control at exactly u64::MAX renders losslessly in both formats.&quot;, &quot;recommended_fix&quot;: &quot;Reject or losslessly preserve JSON integers beyond u64::MAX; never silently round to f64 while reporting valid:true.&quot;, &quot;requirement_follow_up&quot;: &quot;Reject or losslessly preserve JSON integers beyond u64::MAX; never silently round to f64 while reporting valid:true.&quot;, &quot;requirement_trace&quot;: &quot;Silent data corruption with an affirmative valid:true is the worst failure mode of the two paths.&quot;, &quot;root_cause&quot;: &quot;See observed_result; coordinator-established root cause recorded in campaign-report.json.&quot;}, {&quot;expected_oracle&quot;: &quot;ERR_VAL_DUPLICATE is a documented stable code for duplicate frontmatter variable declarations; once `variables:` is a real declaration source, both spellings feeding one `seen` set is consistent.&quot;, &quot;finding_id&quot;: &quot;FUZZ-007&quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;---\nrequired_variables:\n  - name\nvariables:\n  name:\n    required: true\n---\nHello {{name}}\n&quot;, &quot;observed_result&quot;: &quot;HEAD exits 2 with ERR_VAL_DUPLICATE; pre-fix baseline ignored `variables:` so no duplicate was detected. A faithful consequence of intentional fix (c). Accounts for 12 of the 21 baseline-vs-HEAD sweep diffs.&quot;, &quot;recommended_fix&quot;: &quot;No further action recommended; see coordinator_note/attribution_note.&quot;, &quot;requirement_follow_up&quot;: &quot;Coordinator classified as non-actionable (intentional_boundary/inconclusive); no new requirement/ADR needed. Document the cross-section duplicate rule in requirements.md; currently only implied by code.&quot;, &quot;requirement_trace&quot;: &quot;Document the cross-section duplicate rule in requirements.md; currently only implied by code.&quot;, &quot;root_cause&quot;: &quot;See observed_result; coordinator-established root cause recorded in campaign-report.json.&quot;}], &quot;iterations&quot;: 97, &quot;passed&quot;: 96, &quot;result&quot;: &quot;FAIL&quot;, &quot;session_id&quot;: &quot;e3confirm-20260729-0001&quot;, &quot;test_inputs&quot;: [{&quot;case_id&quot;: &quot;FUZZ-006&quot;, &quot;description&quot;: &quot;Equivalent JSON and YAML inputs must not produce different semantics without a documented reason. Either both reject an out-of-range integer or both preserve it losslessly.&quot;, &quot;minimal_input&quot;: &quot;{\&quot;top\&quot;: 18446744073709551616}&quot;, &quot;minimal_template&quot;: &quot;---\nrequired_variables:\n  - top\n---\nVALUE=[[top]]\n&quot;, &quot;outcome&quot;: &quot;confirmed product bug (5 reproductions): JSON: exit 0, renders VALUE=18446744073709552000.0 -- the integer u64::MAX+1 is silently rounded through f64 into a different value, and `validate --json` reports {\&quot;valid\&quot;: true} with zero diagnostics. YAML with the same&quot;, &quot;passed&quot;: false}, {&quot;case_id&quot;: &quot;FUZZ-007&quot;, &quot;description&quot;: &quot;ERR_VAL_DUPLICATE is a documented stable code for duplicate frontmatter variable declarations; once `variables:` is a real declaration source, both spellings feeding one `seen` set&quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;---\nrequired_variables:\n  - name\nvariables:\n  name:\n    required: true\n---\nHello {{name}}\n&quot;, &quot;outcome&quot;: &quot;intentional boundary (not a defect) (3 reproductions): HEAD exits 2 with ERR_VAL_DUPLICATE; pre-fix baseline ignored `variables:` so no duplicate was detected. A faithful consequence of intentional fix (c). Accounts for 12 of the 21 baseline-vs-HEAD sweep diffs.&quot;, &quot;passed&quot;: true}], &quot;worker_correlation_id&quot;: &quot;differential-probe&quot;}">{}</button>
+        <button class="icon-button" type="button" title="Copy Context" data-copy-text="differential-probe ran 97 bounded cases against the frontmatter subsystem and confirmed 1 product bug(s): FUZZ-006. All reproduced at least 3 times; exact minimized templates and inputs are preserved below. See findings for root cause and recommended fix per finding.">⎘</button>
+      </div>
+    </div>
+    <p class="fragment-link">Detailed context fragment: <a href="20260729-3-fuzz-report/20260729-3-fuzz-report-differential-probe.xhtml">20260729-3-fuzz-report/20260729-3-fuzz-report-differential-probe.xhtml</a> <span class="fragment-source">(auto-generated)</span></p>
+    <div class="section-body">
+      <section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>differential-probe</h2>
+      <p class="agent-meta">Session e3confirm-20260729-0001 · Worker differential-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&#34;agent_id&#34;: &#34;differential-probe&#34;, &#34;cases&#34;: [&#34;FUZZ-006&#34;, &#34;FUZZ-007&#34;], &#34;classification&#34;: &#34;confirmed_bug&#34;, &#34;failed&#34;: 1, &#34;findings&#34;: [{&#34;expected_oracle&#34;: &#34;Equivalent JSON and YAML inputs must not produce different semantics without a documented reason. Either both reject an out-of-range integer or both preserve it losslessly.&#34;, &#34;finding_id&#34;: &#34;FUZZ-006&#34;, &#34;minimal_input&#34;: &#34;{\&#34;top\&#34;: 18446744073709551616}&#34;, &#34;minimal_template&#34;: &#34;---\nrequired_variables:\n  - top\n---\nVALUE=[[top]]\n&#34;, &#34;observed_result&#34;: &#34;JSON: exit 0, renders VALUE=18446744073709552000.0 -- the integer u64::MAX+1 is silently rounded through f64 into a different value, and `validate --json` reports {\&#34;valid\&#34;: true} with zero diagnostics. YAML with the same value: exit 3, ERR_CONFIG_PARSE. Control at exactly u64::MAX renders losslessly in both formats.&#34;, &#34;recommended_fix&#34;: &#34;Reject or losslessly preserve JSON integers beyond u64::MAX; never silently round to f64 while reporting valid:true.&#34;, &#34;requirement_follow_up&#34;: &#34;Reject or losslessly preserve JSON integers beyond u64::MAX; never silently round to f64 while reporting valid:true.&#34;, &#34;requirement_trace&#34;: &#34;Silent data corruption with an affirmative valid:true is the worst failure mode of the two paths.&#34;, &#34;root_cause&#34;: &#34;See observed_result; coordinator-established root cause recorded in campaign-report.json.&#34;}, {&#34;expected_oracle&#34;: &#34;ERR_VAL_DUPLICATE is a documented stable code for duplicate frontmatter variable declarations; once `variables:` is a real declaration source, both spellings feeding one `seen` set is consistent.&#34;, &#34;finding_id&#34;: &#34;FUZZ-007&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;---\nrequired_variables:\n  - name\nvariables:\n  name:\n    required: true\n---\nHello {{name}}\n&#34;, &#34;observed_result&#34;: &#34;HEAD exits 2 with ERR_VAL_DUPLICATE; pre-fix baseline ignored `variables:` so no duplicate was detected. A faithful consequence of intentional fix (c). Accounts for 12 of the 21 baseline-vs-HEAD sweep diffs.&#34;, &#34;recommended_fix&#34;: &#34;No further action recommended; see coordinator_note/attribution_note.&#34;, &#34;requirement_follow_up&#34;: &#34;Coordinator classified as non-actionable (intentional_boundary/inconclusive); no new requirement/ADR needed. Document the cross-section duplicate rule in requirements.md; currently only implied by code.&#34;, &#34;requirement_trace&#34;: &#34;Document the cross-section duplicate rule in requirements.md; currently only implied by code.&#34;, &#34;root_cause&#34;: &#34;See observed_result; coordinator-established root cause recorded in campaign-report.json.&#34;}], &#34;iterations&#34;: 97, &#34;passed&#34;: 96, &#34;result&#34;: &#34;FAIL&#34;, &#34;session_id&#34;: &#34;e3confirm-20260729-0001&#34;, &#34;target&#34;: &#34;frontmatter&#34;, &#34;test_inputs&#34;: [{&#34;case_id&#34;: &#34;FUZZ-006&#34;, &#34;description&#34;: &#34;Equivalent JSON and YAML inputs must not produce different semantics without a documented reason. Either both reject an out-of-range integer or both preserve it losslessly.&#34;, &#34;minimal_input&#34;: &#34;{\&#34;top\&#34;: 18446744073709551616}&#34;, &#34;minimal_template&#34;: &#34;---\nrequired_variables:\n  - top\n---\nVALUE=[[top]]\n&#34;, &#34;outcome&#34;: &#34;confirmed product bug (5 reproductions): JSON: exit 0, renders VALUE=18446744073709552000.0 -- the integer u64::MAX+1 is silently rounded through f64 into a different value, and `validate --json` reports {\&#34;valid\&#34;: true} with zero diagnostics. YAML with the same&#34;, &#34;passed&#34;: false}, {&#34;case_id&#34;: &#34;FUZZ-007&#34;, &#34;description&#34;: &#34;ERR_VAL_DUPLICATE is a documented stable code for duplicate frontmatter variable declarations; once `variables:` is a real declaration source, both spellings feeding one `seen` set&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;---\nrequired_variables:\n  - name\nvariables:\n  name:\n    required: true\n---\nHello {{name}}\n&#34;, &#34;outcome&#34;: &#34;intentional boundary (not a defect) (3 reproductions): HEAD exits 2 with ERR_VAL_DUPLICATE; pre-fix baseline ignored `variables:` so no duplicate was detected. A faithful consequence of intentional fix (c). Accounts for 12 of the 21 baseline-vs-HEAD sweep diffs.&#34;, &#34;passed&#34;: true}], &#34;worker_correlation_id&#34;: &#34;differential-probe&#34;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="differential-probe ran 97 bounded cases against the frontmatter subsystem and confirmed 1 product bug(s): FUZZ-006. All reproduced at least 3 times; exact minimized templates and inputs are preserved below. See findings for root cause and recommended fix per finding.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+
+    <span class="status status-error">FAIL</span>
+
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Baseline-vs-head parity, JSON/YAML equivalence, and deterministic output (frontmatter target, corrected baseline fa675cf)</th>
+        <td>97</td>
+        <td>96/97</td>
+        <td>
+
+          <span class="status status-error">FAIL</span>
+
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+
+        <tr><th scope="row">FUZZ-006</th><td><code>Equivalent JSON and YAML inputs must not produce different semantics without a documented reason. Either both reject an out-of-range integer or both preserve it losslessly.</code></td><td>confirmed product bug (5 reproductions): JSON: exit 0, renders VALUE=18446744073709552000.0 -- the integer u64::MAX+1 is silently rounded through f64 into a different value, and `validate --json` reports {&#34;valid&#34;: true} with zero diagnostics. YAML with the same</td></tr>
+
+        <tr><th scope="row">FUZZ-007</th><td><code>ERR_VAL_DUPLICATE is a documented stable code for duplicate frontmatter variable declarations; once `variables:` is a real declaration source, both spellings feeding one `seen` set</code></td><td>intentional boundary (not a defect) (3 reproductions): HEAD exits 2 with ERR_VAL_DUPLICATE; pre-fix baseline ignored `variables:` so no duplicate was detected. A faithful consequence of intentional fix (c). Accounts for 12 of the 21 baseline-vs-HEAD sweep diffs.</td></tr>
+
+      </tbody>
+    </table>
+  </section>
+
+
+  <section class="findings">
+    <h3>Findings</h3>
+
+    <article class="finding">
+      <h4>FUZZ-006</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>---
+required_variables:
+  - top
+---
+VALUE=[[top]]
+</code></dd>
+        <dt>Input</dt><dd><code>{&#34;top&#34;: 18446744073709551616}</code></dd>
+        <dt>Expected</dt><dd>Equivalent JSON and YAML inputs must not produce different semantics without a documented reason. Either both reject an out-of-range integer or both preserve it losslessly.</dd>
+        <dt>Observed</dt><dd>JSON: exit 0, renders VALUE=18446744073709552000.0 -- the integer u64::MAX+1 is silently rounded through f64 into a different value, and `validate --json` reports {&#34;valid&#34;: true} with zero diagnostics. YAML with the same value: exit 3, ERR_CONFIG_PARSE. Control at exactly u64::MAX renders losslessly in both formats.</dd>
+        <dt>Requirement / ADR</dt><dd>Silent data corruption with an affirmative valid:true is the worst failure mode of the two paths.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Reject or losslessly preserve JSON integers beyond u64::MAX; never silently round to f64 while reporting valid:true.</dd>
+        <dt>Root cause</dt><dd>See observed_result; coordinator-established root cause recorded in campaign-report.json.</dd>
+        <dt>Recommended fix</dt><dd>Reject or losslessly preserve JSON integers beyond u64::MAX; never silently round to f64 while reporting valid:true.</dd>
+      </dl>
+    </article>
+
+    <article class="finding">
+      <h4>FUZZ-007</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>---
+required_variables:
+  - name
+variables:
+  name:
+    required: true
+---
+Hello {{name}}
+</code></dd>
+        <dt>Input</dt><dd><code>(none)</code></dd>
+        <dt>Expected</dt><dd>ERR_VAL_DUPLICATE is a documented stable code for duplicate frontmatter variable declarations; once `variables:` is a real declaration source, both spellings feeding one `seen` set is consistent.</dd>
+        <dt>Observed</dt><dd>HEAD exits 2 with ERR_VAL_DUPLICATE; pre-fix baseline ignored `variables:` so no duplicate was detected. A faithful consequence of intentional fix (c). Accounts for 12 of the 21 baseline-vs-HEAD sweep diffs.</dd>
+        <dt>Requirement / ADR</dt><dd>Document the cross-section duplicate rule in requirements.md; currently only implied by code.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Coordinator classified as non-actionable (intentional_boundary/inconclusive); no new requirement/ADR needed. Document the cross-section duplicate rule in requirements.md; currently only implied by code.</dd>
+        <dt>Root cause</dt><dd>See observed_result; coordinator-established root cause recorded in campaign-report.json.</dd>
+        <dt>Recommended fix</dt><dd>No further action recommended; see coordinator_note/attribution_note.</dd>
+      </dl>
+    </article>
+
+  </section>
+
+</section>
+    </div>
+  </section>
+  <section class="section" id="shape-probe">
+    <div class="section-head">
+      <h2>shape-probe <span class="status status-error">ERROR</span></h2>
+      <div class="section-actions" role="group" aria-label="Copy shape-probe data">
+        <button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;: &quot;shape-probe&quot;, &quot;classification&quot;: &quot;confirmed_bug&quot;, &quot;failed&quot;: 2, &quot;findings&quot;: [{&quot;expected_oracle&quot;: &quot;Top-level boundary: raw frontmatter text and --- delimiters must never leak into rendered body output. This is precisely the BOM-frontmatter-leak class cd54074 targeted for the single-BOM case.&quot;, &quot;finding_id&quot;: &quot;FUZZ-008&quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;\\xEF\\xBB\\xBF\\xEF\\xBB\\xBF---\nrequired_variables:\n  - name\n---\nHello {{name}}\n&quot;, &quot;observed_result&quot;: &quot;Exit 0. Rendered stdout is &#x27;\\uFEFF---~required_variables:~  - name~---~Hello World&#x27; -- one BOM plus the entire raw frontmatter header leaks into the body. Root cause: parse_template_document calls strip_prefix(&#x27;\\u{feff}&#x27;) exactly ONCE, so a second BOM defeats opening_delimiter_len and split_frontmatter returns None, treating the whole document as body. Single-BOM control renders correctly as &#x27;Hello World&#x27;.&quot;, &quot;recommended_fix&quot;: &quot;Strip all leading BOMs (loop or trim_start_matches) instead of exactly one, or fail closed on a repeated BOM prefix.&quot;, &quot;requirement_follow_up&quot;: &quot;Strip all leading BOMs (loop or trim_start_matches) instead of exactly one, or fail closed on a repeated BOM prefix.&quot;, &quot;requirement_trace&quot;: &quot;Not a regression -- the pre-fix baseline leaks too (with both BOMs). But it means the BOM-frontmatter-leak defect CLASS is only closed for exactly one leading BOM, not closed in general.&quot;, &quot;root_cause&quot;: &quot;parse_template_document calls strip_prefix(&#x27;\\u{feff}&#x27;) exactly ONCE, so a second BOM defeats opening_delimiter_len and split_frontmatter returns None, treating the whole document as body. Single-BOM control renders correctly as &#x27;Hello World&#x27;.&quot;}, {&quot;expected_oracle&quot;: &quot;Duplicate-key handling is the defect class cd54074 targeted. Duplicate keys are fail-closed at the var-file ingress (exit 3, ERR_CONFIG_PARSE) and in the `required_variables` list (exit 2, ERR_VAL_DUPLICATE); the frontmatter map sections must not silently diverge.&quot;, &quot;finding_id&quot;: &quot;FUZZ-009&quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;---\nvariables:\n  a:\n    required: true\n  a:\n    required: false\n---\nBODY:{{a}}\n&quot;, &quot;observed_result&quot;: &quot;Exit 0, renders &#x27;BODY:&#x27; -- the duplicate `a:` key silently collapses last-wins BEFORE the Rust duplicate-tracking code runs, so the `required: true` declaration is silently DISCARDED and no ERR_VAL_DUPLICATE or ERR_VAL_MISSING_REQUIRED fires. Same root cause for `defaults:` (dup key renders &#x27;BODY:2&#x27; silently). Cause: RawFrontmatter&#x27;s BTreeMap&lt;String, _&gt; fields inherit serde&#x27;s permissive map deserialization rather than serde_yaml::Value&#x27;s duplicate detection.&quot;, &quot;recommended_fix&quot;: &quot;Apply duplicate-key detection to frontmatter defaults:/input_defaults:/metadata:/variables: maps, matching the var-file boundary.&quot;, &quot;requirement_follow_up&quot;: &quot;Apply duplicate-key detection to frontmatter defaults:/input_defaults:/metadata:/variables: maps, matching the var-file boundary.&quot;, &quot;requirement_trace&quot;: &quot;Not a regression -- reproduces pre-fix. But it means the duplicate-key defect CLASS is closed only at the var-file boundary, not at the frontmatter boundary. Silent loss of a `required: true` declaration is the most consequential instance.&quot;, &quot;root_cause&quot;: &quot;RawFrontmatter&#x27;s BTreeMap&lt;String, _&gt; fields inherit serde&#x27;s permissive map deserialization rather than serde_yaml::Value&#x27;s duplicate detection.&quot;}], &quot;iterations&quot;: 86, &quot;passed&quot;: 84, &quot;result&quot;: &quot;FAIL&quot;, &quot;session_id&quot;: &quot;e3confirm-20260729-0001&quot;, &quot;test_inputs&quot;: [{&quot;case_id&quot;: &quot;FUZZ-008&quot;, &quot;description&quot;: &quot;Top-level boundary: raw frontmatter text and --- delimiters must never leak into rendered body output. This is precisely the BOM-frontmatter-leak class cd54074 targeted for the sin&quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;\\xEF\\xBB\\xBF\\xEF\\xBB\\xBF---\nrequired_variables:\n  - name\n---\nHello {{name}}\n&quot;, &quot;outcome&quot;: &quot;confirmed product bug (3 reproductions): Exit 0. Rendered stdout is &#x27;\\uFEFF---~required_variables:~  - name~---~Hello World&#x27; -- one BOM plus the entire raw frontmatter header leaks into the body. Root cause: parse_template_document calls strip_prefix(&#x27;\\u{feff}&#x27;&quot;, &quot;passed&quot;: false}, {&quot;case_id&quot;: &quot;FUZZ-009&quot;, &quot;description&quot;: &quot;Duplicate-key handling is the defect class cd54074 targeted. Duplicate keys are fail-closed at the var-file ingress (exit 3, ERR_CONFIG_PARSE) and in the `required_variables` list &quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;---\nvariables:\n  a:\n    required: true\n  a:\n    required: false\n---\nBODY:{{a}}\n&quot;, &quot;outcome&quot;: &quot;confirmed product bug (3 reproductions): Exit 0, renders &#x27;BODY:&#x27; -- the duplicate `a:` key silently collapses last-wins BEFORE the Rust duplicate-tracking code runs, so the `required: true` declaration is silently DISCARDED and no ERR_VAL_DUPLICATE or ERR_VAL_M&quot;, &quot;passed&quot;: false}], &quot;worker_correlation_id&quot;: &quot;shape-probe&quot;}">{}</button>
+        <button class="icon-button" type="button" title="Copy Context" data-copy-text="shape-probe ran 86 bounded cases against the frontmatter subsystem and confirmed 2 product bug(s): FUZZ-008, FUZZ-009. All reproduced at least 3 times; exact minimized templates and inputs are preserved below. See findings for root cause and recommended fix per finding.">⎘</button>
+      </div>
+    </div>
+    <p class="fragment-link">Detailed context fragment: <a href="20260729-3-fuzz-report/20260729-3-fuzz-report-shape-probe.xhtml">20260729-3-fuzz-report/20260729-3-fuzz-report-shape-probe.xhtml</a> <span class="fragment-source">(auto-generated)</span></p>
+    <div class="section-body">
+      <section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>shape-probe</h2>
+      <p class="agent-meta">Session e3confirm-20260729-0001 · Worker shape-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&#34;agent_id&#34;: &#34;shape-probe&#34;, &#34;cases&#34;: [&#34;FUZZ-008&#34;, &#34;FUZZ-009&#34;], &#34;classification&#34;: &#34;confirmed_bug&#34;, &#34;failed&#34;: 2, &#34;findings&#34;: [{&#34;expected_oracle&#34;: &#34;Top-level boundary: raw frontmatter text and --- delimiters must never leak into rendered body output. This is precisely the BOM-frontmatter-leak class cd54074 targeted for the single-BOM case.&#34;, &#34;finding_id&#34;: &#34;FUZZ-008&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;\\xEF\\xBB\\xBF\\xEF\\xBB\\xBF---\nrequired_variables:\n  - name\n---\nHello {{name}}\n&#34;, &#34;observed_result&#34;: &#34;Exit 0. Rendered stdout is &#39;\\uFEFF---~required_variables:~  - name~---~Hello World&#39; -- one BOM plus the entire raw frontmatter header leaks into the body. Root cause: parse_template_document calls strip_prefix(&#39;\\u{feff}&#39;) exactly ONCE, so a second BOM defeats opening_delimiter_len and split_frontmatter returns None, treating the whole document as body. Single-BOM control renders correctly as &#39;Hello World&#39;.&#34;, &#34;recommended_fix&#34;: &#34;Strip all leading BOMs (loop or trim_start_matches) instead of exactly one, or fail closed on a repeated BOM prefix.&#34;, &#34;requirement_follow_up&#34;: &#34;Strip all leading BOMs (loop or trim_start_matches) instead of exactly one, or fail closed on a repeated BOM prefix.&#34;, &#34;requirement_trace&#34;: &#34;Not a regression -- the pre-fix baseline leaks too (with both BOMs). But it means the BOM-frontmatter-leak defect CLASS is only closed for exactly one leading BOM, not closed in general.&#34;, &#34;root_cause&#34;: &#34;parse_template_document calls strip_prefix(&#39;\\u{feff}&#39;) exactly ONCE, so a second BOM defeats opening_delimiter_len and split_frontmatter returns None, treating the whole document as body. Single-BOM control renders correctly as &#39;Hello World&#39;.&#34;}, {&#34;expected_oracle&#34;: &#34;Duplicate-key handling is the defect class cd54074 targeted. Duplicate keys are fail-closed at the var-file ingress (exit 3, ERR_CONFIG_PARSE) and in the `required_variables` list (exit 2, ERR_VAL_DUPLICATE); the frontmatter map sections must not silently diverge.&#34;, &#34;finding_id&#34;: &#34;FUZZ-009&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;---\nvariables:\n  a:\n    required: true\n  a:\n    required: false\n---\nBODY:{{a}}\n&#34;, &#34;observed_result&#34;: &#34;Exit 0, renders &#39;BODY:&#39; -- the duplicate `a:` key silently collapses last-wins BEFORE the Rust duplicate-tracking code runs, so the `required: true` declaration is silently DISCARDED and no ERR_VAL_DUPLICATE or ERR_VAL_MISSING_REQUIRED fires. Same root cause for `defaults:` (dup key renders &#39;BODY:2&#39; silently). Cause: RawFrontmatter&#39;s BTreeMap&lt;String, _&gt; fields inherit serde&#39;s permissive map deserialization rather than serde_yaml::Value&#39;s duplicate detection.&#34;, &#34;recommended_fix&#34;: &#34;Apply duplicate-key detection to frontmatter defaults:/input_defaults:/metadata:/variables: maps, matching the var-file boundary.&#34;, &#34;requirement_follow_up&#34;: &#34;Apply duplicate-key detection to frontmatter defaults:/input_defaults:/metadata:/variables: maps, matching the var-file boundary.&#34;, &#34;requirement_trace&#34;: &#34;Not a regression -- reproduces pre-fix. But it means the duplicate-key defect CLASS is closed only at the var-file boundary, not at the frontmatter boundary. Silent loss of a `required: true` declaration is the most consequential instance.&#34;, &#34;root_cause&#34;: &#34;RawFrontmatter&#39;s BTreeMap&lt;String, _&gt; fields inherit serde&#39;s permissive map deserialization rather than serde_yaml::Value&#39;s duplicate detection.&#34;}], &#34;iterations&#34;: 86, &#34;passed&#34;: 84, &#34;result&#34;: &#34;FAIL&#34;, &#34;session_id&#34;: &#34;e3confirm-20260729-0001&#34;, &#34;target&#34;: &#34;frontmatter&#34;, &#34;test_inputs&#34;: [{&#34;case_id&#34;: &#34;FUZZ-008&#34;, &#34;description&#34;: &#34;Top-level boundary: raw frontmatter text and --- delimiters must never leak into rendered body output. This is precisely the BOM-frontmatter-leak class cd54074 targeted for the sin&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;\\xEF\\xBB\\xBF\\xEF\\xBB\\xBF---\nrequired_variables:\n  - name\n---\nHello {{name}}\n&#34;, &#34;outcome&#34;: &#34;confirmed product bug (3 reproductions): Exit 0. Rendered stdout is &#39;\\uFEFF---~required_variables:~  - name~---~Hello World&#39; -- one BOM plus the entire raw frontmatter header leaks into the body. Root cause: parse_template_document calls strip_prefix(&#39;\\u{feff}&#39;&#34;, &#34;passed&#34;: false}, {&#34;case_id&#34;: &#34;FUZZ-009&#34;, &#34;description&#34;: &#34;Duplicate-key handling is the defect class cd54074 targeted. Duplicate keys are fail-closed at the var-file ingress (exit 3, ERR_CONFIG_PARSE) and in the `required_variables` list &#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;---\nvariables:\n  a:\n    required: true\n  a:\n    required: false\n---\nBODY:{{a}}\n&#34;, &#34;outcome&#34;: &#34;confirmed product bug (3 reproductions): Exit 0, renders &#39;BODY:&#39; -- the duplicate `a:` key silently collapses last-wins BEFORE the Rust duplicate-tracking code runs, so the `required: true` declaration is silently DISCARDED and no ERR_VAL_DUPLICATE or ERR_VAL_M&#34;, &#34;passed&#34;: false}], &#34;worker_correlation_id&#34;: &#34;shape-probe&#34;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="shape-probe ran 86 bounded cases against the frontmatter subsystem and confirmed 2 product bug(s): FUZZ-008, FUZZ-009. All reproduced at least 3 times; exact minimized templates and inputs are preserved below. See findings for root cause and recommended fix per finding.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+
+    <span class="status status-error">FAIL</span>
+
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Recursive JSON/YAML frontmatter structures, duplicate-key handling, and BOM edge cases</th>
+        <td>86</td>
+        <td>84/86</td>
+        <td>
+
+          <span class="status status-error">FAIL</span>
+
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+
+        <tr><th scope="row">FUZZ-008</th><td><code>Top-level boundary: raw frontmatter text and --- delimiters must never leak into rendered body output. This is precisely the BOM-frontmatter-leak class cd54074 targeted for the sin</code></td><td>confirmed product bug (3 reproductions): Exit 0. Rendered stdout is &#39;\uFEFF---~required_variables:~  - name~---~Hello World&#39; -- one BOM plus the entire raw frontmatter header leaks into the body. Root cause: parse_template_document calls strip_prefix(&#39;\u{feff}&#39;</td></tr>
+
+        <tr><th scope="row">FUZZ-009</th><td><code>Duplicate-key handling is the defect class cd54074 targeted. Duplicate keys are fail-closed at the var-file ingress (exit 3, ERR_CONFIG_PARSE) and in the `required_variables` list </code></td><td>confirmed product bug (3 reproductions): Exit 0, renders &#39;BODY:&#39; -- the duplicate `a:` key silently collapses last-wins BEFORE the Rust duplicate-tracking code runs, so the `required: true` declaration is silently DISCARDED and no ERR_VAL_DUPLICATE or ERR_VAL_M</td></tr>
+
+      </tbody>
+    </table>
+  </section>
+
+
+  <section class="findings">
+    <h3>Findings</h3>
+
+    <article class="finding">
+      <h4>FUZZ-008</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>\xEF\xBB\xBF\xEF\xBB\xBF---
+required_variables:
+  - name
+---
+Hello {{name}}
+</code></dd>
+        <dt>Input</dt><dd><code>(none)</code></dd>
+        <dt>Expected</dt><dd>Top-level boundary: raw frontmatter text and --- delimiters must never leak into rendered body output. This is precisely the BOM-frontmatter-leak class cd54074 targeted for the single-BOM case.</dd>
+        <dt>Observed</dt><dd>Exit 0. Rendered stdout is &#39;\uFEFF---~required_variables:~  - name~---~Hello World&#39; -- one BOM plus the entire raw frontmatter header leaks into the body. Root cause: parse_template_document calls strip_prefix(&#39;\u{feff}&#39;) exactly ONCE, so a second BOM defeats opening_delimiter_len and split_frontmatter returns None, treating the whole document as body. Single-BOM control renders correctly as &#39;Hello World&#39;.</dd>
+        <dt>Requirement / ADR</dt><dd>Not a regression -- the pre-fix baseline leaks too (with both BOMs). But it means the BOM-frontmatter-leak defect CLASS is only closed for exactly one leading BOM, not closed in general.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Strip all leading BOMs (loop or trim_start_matches) instead of exactly one, or fail closed on a repeated BOM prefix.</dd>
+        <dt>Root cause</dt><dd>parse_template_document calls strip_prefix(&#39;\u{feff}&#39;) exactly ONCE, so a second BOM defeats opening_delimiter_len and split_frontmatter returns None, treating the whole document as body. Single-BOM control renders correctly as &#39;Hello World&#39;.</dd>
+        <dt>Recommended fix</dt><dd>Strip all leading BOMs (loop or trim_start_matches) instead of exactly one, or fail closed on a repeated BOM prefix.</dd>
+      </dl>
+    </article>
+
+    <article class="finding">
+      <h4>FUZZ-009</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>---
+variables:
+  a:
+    required: true
+  a:
+    required: false
+---
+BODY:{{a}}
+</code></dd>
+        <dt>Input</dt><dd><code>(none)</code></dd>
+        <dt>Expected</dt><dd>Duplicate-key handling is the defect class cd54074 targeted. Duplicate keys are fail-closed at the var-file ingress (exit 3, ERR_CONFIG_PARSE) and in the `required_variables` list (exit 2, ERR_VAL_DUPLICATE); the frontmatter map sections must not silently diverge.</dd>
+        <dt>Observed</dt><dd>Exit 0, renders &#39;BODY:&#39; -- the duplicate `a:` key silently collapses last-wins BEFORE the Rust duplicate-tracking code runs, so the `required: true` declaration is silently DISCARDED and no ERR_VAL_DUPLICATE or ERR_VAL_MISSING_REQUIRED fires. Same root cause for `defaults:` (dup key renders &#39;BODY:2&#39; silently). Cause: RawFrontmatter&#39;s BTreeMap&lt;String, _&gt; fields inherit serde&#39;s permissive map deserialization rather than serde_yaml::Value&#39;s duplicate detection.</dd>
+        <dt>Requirement / ADR</dt><dd>Not a regression -- reproduces pre-fix. But it means the duplicate-key defect CLASS is closed only at the var-file boundary, not at the frontmatter boundary. Silent loss of a `required: true` declaration is the most consequential instance.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Apply duplicate-key detection to frontmatter defaults:/input_defaults:/metadata:/variables: maps, matching the var-file boundary.</dd>
+        <dt>Root cause</dt><dd>RawFrontmatter&#39;s BTreeMap&lt;String, _&gt; fields inherit serde&#39;s permissive map deserialization rather than serde_yaml::Value&#39;s duplicate detection.</dd>
+        <dt>Recommended fix</dt><dd>Apply duplicate-key detection to frontmatter defaults:/input_defaults:/metadata:/variables: maps, matching the var-file boundary.</dd>
+      </dl>
+    </article>
+
+  </section>
+
+</section>
+    </div>
+  </section>
+  <section class="section" id="template-probe">
+    <div class="section-head">
+      <h2>template-probe <span class="status status-pass">PASS</span></h2>
+      <div class="section-actions" role="group" aria-label="Copy template-probe data">
+        <button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;: &quot;template-probe&quot;, &quot;classification&quot;: &quot;pass&quot;, &quot;failed&quot;: 0, &quot;iterations&quot;: 106, &quot;passed&quot;: 106, &quot;result&quot;: &quot;PASS&quot;, &quot;session_id&quot;: &quot;e3confirm-20260729-0001&quot;, &quot;test_inputs&quot;: [{&quot;case_id&quot;: &quot;FUZZ-010&quot;, &quot;description&quot;: &quot;Cannot be established. assemble_output() calls profile_body.trim_end() deliberately, and no document in docs/ states whether trailing-whitespace normalization is intended.&quot;, &quot;minimal_input&quot;: &quot;(none)&quot;, &quot;minimal_template&quot;: &quot;a\\r\\n&quot;, &quot;outcome&quot;: &quot;inconclusive (not a defect) (3 reproductions): Trailing CR is dropped (stdout &#x27;a\\n&#x27;); trailing blank lines collapse (&#x27;line2\\n\\n\\n&#x27; -&gt; &#x27;line2\\n&#x27;); mid-body CRLF is correctly preserved. Separately, --output writes NO trailing newline while stdout appends one. Coordinat&quot;, &quot;passed&quot;: true}], &quot;worker_correlation_id&quot;: &quot;template-probe&quot;}">{}</button>
+        <button class="icon-button" type="button" title="Copy Context" data-copy-text="template-probe ran 106 bounded cases against the frontmatter subsystem with zero panics, timeouts, hangs, or confinement bypasses. One case (FUZZ-010, trailing CR/blank-line/whitespace normalization) was filed as inconclusive, not a confirmed bug: assemble_output()&#x27;s trim_end() is deliberate code, the render-&gt;verify round-trip is self-consistent, and no doc states whether the normalization is intended, so no defect could be established. No confirmed_bug is attributable to template-probe.">⎘</button>
+      </div>
+    </div>
+    <p class="fragment-link">Detailed context fragment: <a href="20260729-3-fuzz-report/20260729-3-fuzz-report-template-probe.xhtml">20260729-3-fuzz-report/20260729-3-fuzz-report-template-probe.xhtml</a> <span class="fragment-source">(auto-generated)</span></p>
+    <div class="section-body">
+      <section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session e3confirm-20260729-0001 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&#34;agent_id&#34;: &#34;template-probe&#34;, &#34;cases&#34;: [&#34;FUZZ-010&#34;], &#34;classification&#34;: &#34;pass&#34;, &#34;failed&#34;: 0, &#34;iterations&#34;: 106, &#34;passed&#34;: 106, &#34;result&#34;: &#34;PASS&#34;, &#34;session_id&#34;: &#34;e3confirm-20260729-0001&#34;, &#34;target&#34;: &#34;frontmatter&#34;, &#34;test_inputs&#34;: [{&#34;case_id&#34;: &#34;FUZZ-010&#34;, &#34;description&#34;: &#34;Cannot be established. assemble_output() calls profile_body.trim_end() deliberately, and no document in docs/ states whether trailing-whitespace normalization is intended.&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;a\\r\\n&#34;, &#34;outcome&#34;: &#34;inconclusive (not a defect) (3 reproductions): Trailing CR is dropped (stdout &#39;a\\n&#39;); trailing blank lines collapse (&#39;line2\\n\\n\\n&#39; -&gt; &#39;line2\\n&#39;); mid-body CRLF is correctly preserved. Separately, --output writes NO trailing newline while stdout appends one. Coordinat&#34;, &#34;passed&#34;: true}], &#34;worker_correlation_id&#34;: &#34;template-probe&#34;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="template-probe ran 106 bounded cases against the frontmatter subsystem with zero panics, timeouts, hangs, or confinement bypasses. One case (FUZZ-010, trailing CR/blank-line/whitespace normalization) was filed as inconclusive, not a confirmed bug: assemble_output()&#39;s trim_end() is deliberate code, the render-&gt;verify round-trip is self-consistent, and no doc states whether the normalization is intended, so no defect could be established. No confirmed_bug is attributable to template-probe.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+
+    <span class="status status-pass">PASS</span>
+
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Jinja whitespace/newline normalization and output-formatting edge cases</th>
+        <td>106</td>
+        <td>106/106</td>
+        <td>
+
+          <span class="status status-pass">PASS</span>
+
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+
+        <tr><th scope="row">FUZZ-010</th><td><code>Cannot be established. assemble_output() calls profile_body.trim_end() deliberately, and no document in docs/ states whether trailing-whitespace normalization is intended.</code></td><td>inconclusive (not a defect) (3 reproductions): Trailing CR is dropped (stdout &#39;a\n&#39;); trailing blank lines collapse (&#39;line2\n\n\n&#39; -&gt; &#39;line2\n&#39;); mid-body CRLF is correctly preserved. Separately, --output writes NO trailing newline while stdout appends one. Coordinat</td></tr>
+
+      </tbody>
+    </table>
+  </section>
+
+
+</section>
+    </div>
+  </section>
+
+  <section class="section recommendations">
+    <h2>Recommendations</h2>
+    <ul><li><strong>FUZZ-004</strong> (highest priority — shipped with cd54074): thread line/column into ERR_VAL_MISSING_REQUIRED for the <code>variables:</code> declaration style so it matches <code>required_variables</code>. Owner: comp.</li><li><strong>FUZZ-006</strong>: reject or losslessly preserve JSON integers beyond u64::MAX; never silently round to f64 while <code>validate --json</code> reports <code>valid: true</code>. Owner: comp.</li><li><strong>FUZZ-008</strong> (partial-fix gap in cd54074/PR #163, not a full regression): strip all leading BOMs (loop or trim_start_matches) instead of exactly one. Owner: comp.</li><li><strong>FUZZ-009</strong> (partial-fix gap in cd54074/PR #163, not a full regression): apply duplicate-key detection to frontmatter <code>variables:</code>/<code>defaults:</code> maps, matching the var-file boundary. Owner: comp.</li><li><strong>FUZZ-001/002/003/005</strong>: diagnostic-code/exit-family consistency fixes (map ERR_CONFIG_READ to exit 3; give path-confinement refusals a dedicated code; return ERR_RESOLVE_NOT_FOUND for a directory passed as --file; propagate serde_yaml error location into --json diagnostics). Owner: comp.</li><li><strong>FUZZ-010</strong>: product ruling needed on trailing CR/blank-line normalization (deliberate code, self-consistent round-trip, no documented intent). Owner: team-lead.</li><li><strong>FUZZ-011</strong>: cosmetic duplicated diagnostic-code prefix in human-mode ValidationError output; registry disclaims human-message stability so no contract is violated. Owner: comp.</li><li>FUZZ-007 is an intentional consequence of fix (c) (both required_variables and variables: now feed one duplicate-detection set); document the cross-section duplicate rule in requirements.md.</li></ul>
+  </section>
+
+  <section class="section metadata">
+    <h2>Metadata</h2>
+    <table class="metadata-table"><tbody>
+      <tr><th scope="row">report_kind</th><td>multi-agent-fuzz-session</td></tr>
+      <tr><th scope="row">session_id</th><td>e3confirm-20260729-0001</td></tr>
+      <tr><th scope="row">worker_count</th><td>4</td></tr>
+      <tr><th scope="row">template</th><td>.claude&#x2f;skills&#x2f;html-report&#x2f;templates&#x2f;fuzz-run-agent.xhtml.j2</td></tr>
+      <tr><th scope="row">campaign_id</th><td>e3confirm-20260729-0001</td></tr>
+      <tr><th scope="row">total_cases_run</th><td>388</td></tr>
+      <tr><th scope="row">confirmed_bugs</th><td>8</td></tr>
+      <tr><th scope="row">intentional_boundaries</th><td>1</td></tr>
+      <tr><th scope="row">inconclusive</th><td>2</td></tr>
+      <tr><th scope="row">promoted_tests</th><td>0</td></tr>
+      <tr><th scope="row">regressions_attributable_to_cd54074</th><td>1</td></tr>
+    </tbody></table>
+  </section>
+
+  <footer>
+    <p>Durable source: /tmp/sc-fuzz-e3confirm-20260729-0001/campaign-report.json (schema adversarial-fuzzing/v1). No production code was modified and no regression tests were promoted or committed for this session, per the campaign's promotion_decision (all 8 confirmed bugs are currently unfixed).</p>
+  </footer>
+
+  <script>
+    document.addEventListener("click", async function (event) {
+      var button = event.target.closest("[data-copy-text]");
+      if (!button) return;
+      var text = button.getAttribute("data-copy-text") || "";
+      try {
+        await navigator.clipboard.writeText(text);
+        button.setAttribute("title", "Copied");
+      } catch (err) {
+        button.setAttribute("title", "Copy failed");
+      }
+    });
+  </script>
+</body>
+</html>

@@ -290,6 +290,16 @@ Exit gate:
   - Sprint 4 validates release behavior
   - Sprint S7 adds `examples list`, `examples <name>`, `templates list`,
     `templates add`, and `templates <name>`
+  - Phase D adds multi-pass `render --all`, pass-scoped `--pass N` / `--var`
+    groups, `verify`, and `template-init`
+  - Phase D also lands delimiter hardening for custom variable delimiters:
+    `Renderer::with_delimiters` is now fallible on invalid delimiters and ships
+    in `1.3.0` under the narrow ADR-0010 stability exception
+- FR-7b:
+  - Phase D assigns `verify` drift to exit code `1`
+  - Phase D keeps render and validation failures on `2`
+  - Phase D keeps usage and configuration failures, including `template-init`
+    literal-miss cases, on `3`
 - FR-8 and FR-8a:
   - Sprint 1 finalizes command and health schemas
   - Sprint 2 implements the logger-facing command output
@@ -365,15 +375,19 @@ initial Python scope.
 
 Status:
 
-- planned follow-on multi-pass template rendering after the shipped Phase C
-  Python bindings (v1.2.0)
+- complete on `integrate/phase-d`; all eight D-track sprints have passed QA
+  and merged, and PR #140 is open to promote the phase to `develop`
 
 Sprint entries:
 
 - [Sprint D.1 — Multi-Pass Library Foundation](phase-D/sprint-d-1-library-foundation.md)
+- [Sprint D.1-py — Python Bindings — Multi-Pass Library Foundation](phase-D/sprint-d-1-py-bindings.md)
 - [Sprint D.2 — Multi-Pass Composition Pipeline](phase-D/sprint-d-2-composition-pipeline.md)
+- [Sprint D.2-py — Python Bindings — Multi-Pass Composition Pipeline](phase-D/sprint-d-2-py-bindings.md)
 - [Sprint D.3 — Multi-Pass CLI Surface](phase-D/sprint-d-3-cli-surface.md)
+- [Sprint D.3-py — Python Bindings — Multi-Pass CLI Surface Parity Check](phase-D/sprint-d-3-py-bindings.md)
 - [Sprint D.4 — template-init + verify](phase-D/sprint-d-4-template-init-verify.md)
+- [Sprint D.4-py — Python Bindings — template-init + verify](phase-D/sprint-d-4-py-bindings.md)
 - [Phase D README](phase-D/README.md)
 
 These sprint plans define the first implementation path for multi-pass
@@ -402,6 +416,108 @@ not change the completed Phase B execution record; they capture the next
 implementation slices needed to close the remaining production-readiness gaps.
 The accepted cleanup findings and sprint ownership are tracked in
 [docs/issues-inventory.md](issues-inventory.md).
+
+### Phase E Sprint Plans
+
+Status:
+
+- draft follow-on work for recursive structured inputs and adversarial rendering
+  validation after the completed Phase D multi-pass delivery
+
+Sprint entries:
+
+- [Phase E plan](phase-E/phase-E-plan.md)
+- [Sprint E.1 — Recursive Structured Input Support](phase-E/sprint-e-1-recursive-structured-input.md)
+- [Sprint E.2 — Adversarial Fuzzing Workflow](phase-E/sprint-e-2-adversarial-fuzzing.md)
+- [Sprint E.3 — First Adversarial Campaign And Regression Closure](phase-E/sprint-e-3-first-adversarial-campaign.md)
+- [Sprint 157 — Multi-Agent Fuzz-Session Report Template](sprint-fuzz-run-report-template.md)
+- [Sprint — Top-Level Report Shell Template](sprint-fuzz-run-report-shell-template.md)
+- [Sprint — Per-Report Artifact Subdirectory Layout](sprint-fuzz-report-artifact-layout.md)
+
+E.1 changes the runtime input contract, E.2 defines the multi-agent QA
+workflow, E.3 proves that workflow against the expanded contract, and Sprint
+157 defines the single-page multi-panel report package emitted by a session.
+
+### Phase F Sprint Plans
+
+Status:
+
+- complete on `integrate/phase-f` at
+  `0360fb790fdc52541d6ff4e3faebd0618b2ff370`; PRs #174-#178 are merged and
+  format, clippy, manifest-validation, workspace tests, and Python-wheel CI
+  checks are green on macOS, Ubuntu, and Windows.
+
+Sprint entries:
+
+| ID | Sprint | Status | Branch | Worktree |
+| --- | --- | --- | --- | --- |
+| F.1 | [CLI Input Parsing and JSON Capability Seams](phase-F/sprint-f-1-cli-input-parsing.md) | complete | `sprint/f-1-cli-input-parsing` | `/Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-1-cli-input-parsing` |
+| F.2 | [Main Dispatch Runner and Process Boundary](phase-F/sprint-f-2-main-dispatch-runner.md) | complete | `sprint/f-2-main-dispatch-runner` | `/Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-2-main-dispatch-runner` |
+| F.3 | [CLI Integration Test Decomposition](phase-F/sprint-f-3-integration-test-decomposition.md) | complete | `sprint/f-3-integration-test-decomposition` | `/Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-3-integration-test-decomposition` |
+| F.4 | [Var-File Decode and Validation Split](phase-F/sprint-f-4-var-file-decode-split.md) | complete | `sprint/f-4-var-file-decode-split` | `/Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-4-var-file-decode-split` |
+| F.5 | [Observer Typed Event Builder](phase-F/sprint-f-5-observer-event-builder.md) | complete | `sprint/f-5-observer-event-builder` | `/Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-5-observer-event-builder` |
+
+F.1 through F.5 convert the five findings from the read-only Repowise review
+into one-file-or-boundary-owned implementation sprints. They preserve the
+sc-composer pure-library boundary, the Python adapter boundary, and the
+standalone observability dependency direction.
+
+Required Phase F merge order:
+
+- `F.1 -> F.2 -> F.4 -> F.5 -> F.3`
+- F.2, F.4, and F.5 must rebase onto the preceding sprint's merged `develop`
+  state before implementation. F.3 is deliberately last because it
+  decomposes the shared `tests/cli.rs` and `tests/json_cli.rs` suites after all
+  earlier sprints' test additions have landed.
+
+Unnumbered Phase F follow-on work:
+
+- Add a text/JSON equivalence matrix after F.3; it is intentionally not part
+  of F.3's closed decomposition scope or acceptance gate.
+- Fix the canonical `.claude/skills/codex-orchestration/sprint-plan.md.j2`
+  tooling defect: its nested Jinja frontmatter makes the direct
+  `sc-compose validate --file .claude/skills/codex-orchestration/sprint-plan.md.j2 --json`
+  command return exit 3 before rendering. The
+  five Phase F docs record hand-authored provenance until that separate defect
+  is fixed; no Phase F implementation sprint owns the template repair.
+
+### Standalone Repowise Cleanup: Render Request Module Split
+
+Status:
+
+- complete
+
+Sprint entry:
+
+- [Render Request Module Split Cleanup](sprint-render-request-split.md)
+
+Branch:
+
+- `refactor/render-request-real-module` -> `develop`
+
+This completed cleanup replaces the render-request monolith with focused
+blocks, mode, request, vars, and test modules. The full workspace suite and
+standard Rust validation checks pass; the refactor is ready for independent
+regression QA.
+
+### Standalone Repowise Cleanup: Publish Manifest Module Split
+
+Status:
+
+- complete
+
+Sprint entry:
+
+- [Publish Manifest Module Split Cleanup](sprint-publish-manifest-split.md)
+
+Branch:
+
+- `refactor/publish-manifest-real-module` -> `develop`
+
+This completed cleanup replaces the publish-manifest monolith with focused
+archive, error, files, model, report, write, and test modules. The full
+workspace suite and standard Rust validation checks pass; the refactor is ready
+for independent regression QA.
 
 ### Known Limitations
 
@@ -694,7 +810,7 @@ Release blocker inventory:
 | ID | Blocker | Status | Sprint | Closure condition |
 | --- | --- | --- | --- | --- |
 | HRB-01 | The current input model cannot express structured records such as PR objects and nested field access. | Closed — PR #45, `2280bd1`. All 11 H1 acceptance tests pass including `frontmatter_defaults_accept_object_value` (`crates/sc-composer/src/lib.rs:107`), `render_accepts_object_values_in_json_var_file` (`crates/sc-compose/tests/cli.rs:818`), and `template_json_object_input_defaults_obey_precedence` (`crates/sc-compose/tests/cli.rs:581`). | H1 | Object/map input values render end-to-end with stable field-path diagnostics. |
-| HRB-02 | The current input model cannot express repeated report sections as arrays of structured records. | Closed — H2 implements arrays-of-objects ingress, nested-array diagnostics, and loop-body discovery with dedicated unit/integration coverage. | H2 | Arrays of objects render, validate, and support loop-body discovery end-to-end. |
+| HRB-02 | The current input model cannot express repeated report sections as arrays of structured records. | Closed — H2 implements arrays-of-objects ingress and loop-body discovery; E.1 removes the historical nested-array restriction with recursive validation and regression coverage. | H2/E.1 | Recursive arrays and arrays of objects render, validate, and support loop-body discovery end-to-end. |
 | HRB-03 | There is no bundled HTML report example proving `sc-compose` can generate a useful clickable report artifact. | Closed — H3 adds `examples/sprint-report-html.html.j2`, realistic sample vars, and named-render coverage for `sprint-report-html.html.j2 -> sprint-report-html.html`. | H3 | `sprint-report-html` renders a self-contained HTML report from realistic structured input. |
 
 #### Sprint H1: Structured Object Input Support
@@ -774,15 +890,18 @@ Deliverables:
 - scope-tracker chosen over a MiniJinja AST dependency for loop-body
   discovery; the decision is documented in `architecture.md` section 21.5
 - frontmatter-init discovery for nested references inside loop bodies
-- nested arrays explicitly remain out of scope for H1/H2 and are rejected with
-  `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
+- the historical H2 nested-array restriction is superseded by
+  [ADR-E1](architecture.md#61-adr-e1-recursive-structured-input-contract-2026-07-29);
+  the current phase index names the implementation Sprint E.1 to avoid
+  colliding with the completed multi-pass Phase D identifiers
 - unit and integration tests for arrays of objects
 
 Acceptance Criteria:
 
 - arrays of objects render end-to-end through Jinja loops
 - frontmatter-init discovers loop-body variable references from array members
-- nested arrays are rejected with `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
+- recursive arrays, nested arrays of objects, and jagged arrays render through
+  the E.1 recursive-value contract without emitting the reserved legacy code
 - at least 10 tests cover arrays-of-objects behavior and failure cases
 - the `sprint-report-html` input shape is representable by the implemented value
   model

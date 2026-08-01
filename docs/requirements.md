@@ -104,6 +104,9 @@ Schema rules:
 - `required_variables` is optional.
 - `defaults` is optional.
 - `input_defaults` is accepted as an alias for `defaults` in frontmatter.
+- For compatibility with existing template metadata, a frontmatter
+  `variables` map with `{ required: true }` declarations is accepted as an
+  equivalent spelling of `required_variables`.
 - `metadata` is optional.
 - If a frontmatter block exists and a field is omitted, it defaults to:
   - `required_variables: []`
@@ -122,24 +125,20 @@ Schema rules:
 
 ### FR-1b: Value Types
 
-The render-context value model remains intentionally narrow even after H1
-structured-input support lands.
+The render-context value model accepts any finite JSON/YAML-compatible tree
+that the existing `serde_json::Value` and Minijinja context can represent.
 
 - Variables used by template rendering must be one of:
   - string
   - number
   - boolean
   - null
-  - an object/map with string keys; object fields may nest objects and arrays
-    of scalars
-  - a sequence of scalar values
-  - a top-level sequence of objects
-- Sequence values may contain supported scalar values or, at the top-level
-  variable boundary, object values.
-- Nested sequences remain out of scope.
-- Arrays of objects are only supported when the array is the variable value
-  itself; object fields within array members may be nested objects, but an
-  object field whose value is itself an array of objects remains out of scope.
+  - an object/map with string keys, recursively containing supported values
+  - a sequence recursively containing supported values, including arrays,
+    objects, scalars, `null`, and jagged shapes
+- The top-level `--var-file` document remains a JSON/YAML object and YAML map
+  keys remain strings; these ingress boundaries are independent of nesting
+  depth.
 - `metadata` may contain arbitrary YAML values because it is descriptive only
   and does not participate in rendering semantics.
 
@@ -222,6 +221,9 @@ HTML-Report follow-on design track:
   a referenced or required variable is satisfied by a default value rather than
   explicit caller input.
 - Explicit CLI `--var key=value` inputs are always strings.
+- This string-only behavior is intentional: CLI text inputs are not coerced
+  based on their spelling. Callers that need numeric, boolean, null, object,
+  or sequence values must use `--var-file` or template-owned defaults.
 - Variables loaded through `--var-file` may be any supported render-context
   value type.
 - Variables loaded through `--env-prefix` are always strings.
@@ -413,7 +415,9 @@ Each block may be empty. Ordering is never caller-defined.
 - `resolve`
 - `validate`
 - `frontmatter-init`
+- `template-init`
 - `init`
+- `verify`
 - `observability-health`
 - `examples`
 - `templates`
@@ -441,6 +445,11 @@ The CLI must support:
 - `--prompt-file <path|->`
 - `--json`
 - `--dry-run`
+- `--force` where applicable
+- `--pass N` repeatably where applicable
+- `--against <path>` where applicable
+- `--quiet` where applicable
+- `--builtin-var KEY=VALUE` repeatably where applicable
 
 Command behavior:
 
@@ -463,6 +472,15 @@ Command behavior:
   - discovers referenced variables,
   - prepends minimal frontmatter,
   - fails if frontmatter already exists unless `--force` is provided.
+- `template-init`
+  - converts a concrete file into a templated file using one or more pass
+    groups declared with `--pass N`,
+  - accepts `--var key=value` replacements within each pass group,
+  - accepts `--force` to overwrite an existing frontmatter/template header,
+  - supports `--dry-run` without writing the rewritten file,
+  - exits with code `3` when declared literal values are not found in the
+    source file because that outcome is a usage/configuration failure rather
+    than a successful drift result.
 - `init`
   - creates `.prompts/`,
   - ensures `.prompts/` is ignored by Git,
@@ -505,6 +523,16 @@ Command behavior:
   - owns the shared reporting runtime surface rather than repo-specific
     producer command bodies,
   - keeps publish upload and browser-open behavior outside the command family.
+- `verify`
+  - compares a deployed file against the rendered output of `--against
+    <template>`,
+  - supports pass-scoped `--pass N` groups with per-pass `--var` and
+    `--var-file` inputs when `--all` is used,
+  - accepts `--builtin-var KEY=VALUE` for deterministic builtin overrides,
+  - accepts `--quiet` to suppress diff body output while preserving exit
+    status,
+  - exits `0` when clean, `1` when drift is detected, and `2` or `3` for
+    genuine validation/render or usage/configuration failures.
 
 `--dry-run` behavior:
 
@@ -554,10 +582,12 @@ Pack root policy:
 - Variable-file keys must be strings.
 - Variable-file values must be supported render-context value types.
 - Object/map values with string keys are valid per FR-12.
-- Sequence values in variable files may contain scalar values or, at the
-  top-level variable boundary, object values.
-- Nested arrays remain invalid and must report
-  `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`.
+- Sequence values in variable files may contain scalars, objects, arrays, and
+  any finite combination of those values at any nesting depth.
+- Historical H2 note (2026-07-29): [ADR-E1](architecture.md#61-adr-e1-recursive-structured-input-contract-2026-07-29)
+  supersedes this restriction; the current phase index names the
+  recursive-input implementation Sprint E.1 to avoid colliding with completed
+  Phase D identifiers.
 - Arrays of objects are valid per FR-13 when the array is the variable value
   itself.
 
@@ -566,8 +596,13 @@ Pack root policy:
 CLI exit codes must be:
 
 - `0` for success
+- `1` reserved exclusively for `verify` when drift is detected after a
+  successful comparison run
 - `2` for validation or render failure
 - `3` for usage, configuration, or contract error
+
+All other commands, including `template-init`, continue to use only `0`, `2`,
+and `3`.
 
 ### FR-7c: Template Whitespace Control
 
@@ -646,6 +681,29 @@ Schema rules:
   file content at the derived output path; missing output files count as
   `true`.
 - `rendered_preview` is a preview string.
+
+`template-init --json`
+
+```json
+{
+  "schema_version": "1",
+  "payload": {
+    "template_path": "path/to/template.md",
+    "template_added": true,
+    "would_change": true,
+    "vars": ["task"]
+  },
+  "diagnostics": []
+}
+```
+
+Schema rules:
+
+- `template_path` is the rewritten template path as a string.
+- `template_added` is `true` when the command wrote a changed template to disk.
+- `would_change` records whether the generated template differed from the
+  original file content.
+- `vars` is the ordered list of discovered variable names used in the rewrite.
 
 `resolve --json`
 
@@ -959,6 +1017,8 @@ Implemented in Phase HTML-Report.
   `pr.number`.
 - Malformed object input must fail with stable diagnostics using
   `ERR_VAL_OBJECT_SHAPE`.
+- Duplicate keys in JSON and YAML var-files must fail with
+  `ERR_CONFIG_PARSE`; var-files do not use silent last-value-wins semantics.
 - Nested required-path traversal that encounters a scalar where an object is
   required must fail with `ERR_VAL_SHAPE_MISMATCH`.
 - `--var key=value` remains string-only in this phase. Structured input comes
@@ -979,11 +1039,12 @@ Implemented in Phase HTML-Report.
   - frontmatter defaults,
   - user-template `template.json` `input_defaults`.
 - Empty arrays remain valid inputs.
-- Arrays of objects may contain nested object fields. Arrays of arrays remain a
-  separate decision and are not implied by this requirement.
-- Nested arrays are out of scope for H1 and H2. Callers who pass an array that
-  contains another array, or an object that contains an array at a nested
-  field, must receive `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`.
+- Arrays of objects may contain nested object fields and arrays, including
+  jagged arrays and arrays nested inside object fields.
+- Historical H2 note (2026-07-29): [ADR-E1](architecture.md#61-adr-e1-recursive-structured-input-contract-2026-07-29)
+  supersedes this restriction; the current phase index names the
+  recursive-input implementation Sprint E.1 to avoid colliding with completed
+  Phase D identifiers.
 - Missing nested fields inside array members must report stable field-path
   diagnostics using `ERR_VAL_MISSING_NESTED_FIELD`.
 - `frontmatter-init` must discover variable references inside `for` loop
@@ -1442,6 +1503,15 @@ Boundary rules:
 - After `1.0`, patch releases contain backward-compatible bug fixes only.
 - After `1.0`, minor releases contain backward-compatible new features.
 - After `1.0`, major releases contain breaking changes.
+- Exception: the `1.3.0` change to
+  `Renderer::with_delimiters(open, close) -> Result<Self, RenderError>` ships
+  under the narrow carve-out documented in
+  [ADR-0010](adrs/0010-renderer-delimiter-fallibility-minor-exception.md);
+  this exception is limited to that one constructor change and does not weaken
+  the general major-version rule.
+- [ADR-0009](adrs/0009-phase-d-python-binding-parity-sequencing.md) governs
+  Phase D delivery sequencing and Python parity scope; it is intentionally out
+  of scope for this Section 6 stability policy.
 - `render_template()` is a stable convenience API for one-shot rendering.
 - `Renderer` is the primary stable API for repeated rendering and long-lived
   library use.
@@ -1492,7 +1562,6 @@ Required integration coverage includes:
 - `prepare-hook` and `post-render-hook` execution
 - Named render for packs with multiple root-level `*.j2` entry candidates
 - Template deletion, update, sync, or remote registry features
-- Nested arrays, nested array-of-object fields, multi-panel HTML/XHTML report
-  expansion, and wrapper-level output viewing behavior remain deferred to the
-  follow-on design track in
+- Multi-panel HTML/XHTML report expansion and wrapper-level output viewing
+  behavior remain deferred to the follow-on design track in
   [docs/html-sprint-report-plan.md](html-sprint-report-plan.md)

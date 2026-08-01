@@ -31,7 +31,14 @@ reports/archive/
 .tmp/
 docs/phase-D/.review-findings.json
 
-# RustRover
+# Repowise build caches (keep knowledge-graph.json and config in git)
+.repowise/centrality_cache.pkl
+.repowise/duplication_cache.pkl
+.repowise/duplication_pairs.pkl
+.repowise/parse_cache.pkl
+.repowise/wiki.db
+.repowise/lancedb/
+.repowise/jobs/
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear

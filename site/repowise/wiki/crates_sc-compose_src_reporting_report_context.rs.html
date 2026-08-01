@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/reporting/report_context.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/reporting/report_context.rs</h1>
+<p>I’ll verify the repository’s collaboration guidance and memory context, then produce the requested wiki page.</p>
+<h2>Overview</h2>
+<p><code>report_context.rs</code> is an Application-layer adapter that converts a <code>SourceEntry</code> into serializable <code>ReportTemplateContext</code> and <code>ReportPanel</code> data consumed by report rendering templates.</p>
+<p>It prepares a single-panel context with a report title, source body, optional copy and fragment metadata, and normalized path metadata. Panel IDs derive from normalized source paths so the same logical path produces a consistent identifier across separator styles.</p>
+<h2>Public API</h2>
+<ul>
+<li><code>ReportPanel</code> — crate-private serializable template panel containing:</li>
+<li><code>panel_id</code></li>
+<li><code>title</code></li>
+<li><code>body</code></li>
+<li><code>copy_text</code></li>
+<li>optional <code>copy_json</code></li>
+<li>
+<p>optional <code>fragment_href</code></p>
+</li>
+<li>
+<p><code>ReportTemplateContext</code> — crate-private serializable report context containing a title, panels, and optional metadata map.</p>
+</li>
+<li>
+<p><code>context_from_source_entry(entry, report_title)</code> — builds a one-panel template context. Uses <code>report_title</code> when supplied; otherwise derives the title from entry metadata or the source filename.</p>
+</li>
+<li>
+<p><code>entry_title(entry)</code> — resolves <code>"title"</code> metadata, falling back to the source file stem and finally <code>"report-panel"</code>.</p>
+</li>
+<li>
+<p><code>stable_path_key(path)</code> — converts a path to forward slashes, then replaces every non-alphanumeric character with <code>-</code> for use as a stable panel ID.</p>
+</li>
+</ul>
+<h2>Dependencies</h2>
+<ul>
+<li><code>reporting::source_entry::SourceEntry</code> supplies source/output paths, metadata, sets, and rendered body content.</li>
+<li><code>path_utils::to_forward_slash</code> normalizes path separators before metadata or ID generation.</li>
+<li><code>serde::Serialize</code> makes context structures available to the template serialization pipeline.</li>
+<li><code>serde_json::Value</code> preserves structured metadata and serializes optional <code>copy_json</code>.</li>
+<li><code>BTreeMap</code> stores report metadata in deterministic key order.</li>
+</ul>
+<p><code>render_many.rs</code> calls <code>context_from_source_entry</code> while rendering entries, and <code>templates.rs</code> consumes the resulting context fields to construct render data.</p>
+<h2>Usage Notes</h2>
+<ul>
+<li><code>report_metadata</code> always includes normalized <code>source_path</code> and <code>output_path</code>; it includes <code>sets</code> only when present on the source record.</li>
+<li><code>copy_json</code> serializes the entire metadata value under <code>"copy_json"</code>; serialization failure falls back to the JSON literal <code>"null"</code>.</li>
+<li><code>fragment_href</code> prefers <code>"fragment_href"</code> metadata and falls back to <code>"fragment"</code>.</li>
+<li>The public surface is <code>pub(crate)</code>, so these types and helpers are intended for internal reporting workflows rather than external crate consumers.</li>
+<li>Tests verify that slash and backslash paths yield identical keys and that generated panel IDs remain stable.</li>
+</ul>
+</body>
+</html>

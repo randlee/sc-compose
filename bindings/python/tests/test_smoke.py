@@ -38,6 +38,7 @@ def test_import_surface_exposes_c2_api() -> None:
         "InitResult",
         "LoadedTemplateRequest",
         "NamedTemplateAsset",
+        "PassConfig",
         "ParsedTemplate",
         "ProfileKind",
         "ProfileName",
@@ -56,14 +57,18 @@ def test_import_surface_exposes_c2_api() -> None:
         "ValidationReport",
         "VariableName",
         "VariableSource",
+        "VerifyResult",
         "compose",
         "compose_file",
+        "discover_all_pass_tokens",
         "discover_tokens",
+        "discover_tokens_with_brace_count",
         "expand_includes",
         "frontmatter_init",
         "init_workspace",
         "input_value_from_yaml",
         "parse_template_document",
+        "render_all",
         "render_loaded_template",
         "render_template",
         "resolve_profile",
@@ -71,6 +76,7 @@ def test_import_surface_exposes_c2_api() -> None:
         "to_forward_slash",
         "validate",
         "validate_input_value",
+        "verify",
     ]
 
     for name in required:
@@ -104,6 +110,7 @@ def test_repr_surface_is_informative(tmp_path: Path) -> None:
     assert "unknown_variable_policy='error'" in policy_repr
     assert "allowed_roots=[" in policy_repr
     assert "resolver_policy=ResolverPolicy(" in policy_repr
+    assert "passes=0" in policy_repr
     assert "ComposeRequest(" in request_repr
     assert "mode=ComposeMode.profile(kind='agent', name='reviewer')" in request_repr
     assert "runtime='claude'" in request_repr
@@ -170,6 +177,25 @@ def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
 
     assert sc_compose.render_template("hi {{ name }}", {"name": "dev"}) == "hi dev"
 
+    recursive_template = (
+        "{% for group in groups %}"
+        "{{ group.name }}:"
+        "{% for row in group.rows %}"
+        "[{% for value in row %}{{ value }}{% if not loop.last %},{% endif %}{% endfor %}]"
+        "{% endfor %};"
+        "{% endfor %}"
+    )
+    recursive_context = {
+        "groups": [
+            {"name": "one", "rows": [["a", "b"], ["c"]]},
+            {"name": "two", "rows": [[]]},
+        ]
+    }
+    assert (
+        sc_compose.render_template(recursive_template, recursive_context)
+        == "one:[a,b][c];two:[];"
+    )
+
     loaded = sc_compose.LoadedTemplateRequest(
         template_name="page.j2",
         template_text='{% include "partials/greeting.j2" %}',
@@ -190,6 +216,8 @@ def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
     assert isinstance(parsed, sc_compose.ParsedTemplate)
     assert parsed.frontmatter is not None
     assert [str(name) for name in parsed.frontmatter.required_variables] == ["name"]
+    assert parsed.frontmatter.pass_number == 1
+    assert len(parsed.passes) == 1
     assert parsed.body == "hello {{ name }}\n"
 
     expanded = sc_compose.expand_includes(tmp_path / "include-root.md.j2", tmp_path)
@@ -219,9 +247,265 @@ def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
     assert renderer.render("hello [[ name ]]", {"name": "python"}) == "hello python"
     assert renderer.render_named("inline", "hey [[ name ]]", {"name": "api"}) == "hey api"
 
+    with pytest.raises(sc_compose.ScRenderError):
+        sc_compose.Renderer.with_delimiters("", "]]")
+
+
+def test_expanded_template_exposes_full_frontmatter_passes(tmp_path: Path) -> None:
+    write(
+        tmp_path / "stacked.md.j2",
+        "---\n"
+        "pass: 1\n"
+        "metadata:\n"
+        "  stage: outer\n"
+        "---\n"
+        "---\n"
+        "pass: 2\n"
+        "metadata:\n"
+        "  stage: inner\n"
+        "---\n"
+        "body\n",
+    )
+
+    expanded = sc_compose.expand_includes(tmp_path / "stacked.md.j2", tmp_path)
+
+    assert expanded.frontmatters[0][1] is not None
+    assert expanded.frontmatters[0][1].metadata["stage"] == "outer"
+    assert len(expanded.frontmatter_passes[0][1]) == 2
+    assert expanded.frontmatter_passes[0][1][0].metadata["stage"] == "outer"
+    assert expanded.frontmatter_passes[0][1][1].metadata["stage"] == "inner"
+
     tokens = sc_compose.discover_tokens("{{ name }} {{ report.title }}")
     assert [str(token) for token in tokens] == ["name", "report.title"]
     assert "TEMPLATE_NAME" in sc_compose.BUILTIN_VARIABLE_NAMES
+
+
+def test_multi_pass_bindings_expose_d1_py_surface() -> None:
+    parsed = sc_compose.parse_template_document(
+        "---\n"
+        "pass: 2\n"
+        "required_variables:\n"
+        "  - team\n"
+        "---\n"
+        "---\n"
+        "metadata:\n"
+        "  stage: final\n"
+        "---\n"
+        "{{ second }} {{{ first }}}\n"
+    )
+
+    assert parsed.frontmatter is not None
+    assert parsed.frontmatter.pass_number == 2
+    assert len(parsed.passes) == 2
+    assert parsed.passes[0].pass_number == 2
+    assert parsed.passes[1].pass_number == 1
+    assert [str(name) for name in parsed.passes[0].required_variables] == ["team"]
+    assert parsed.passes[1].metadata["stage"] == "final"
+
+    config = sc_compose.PassConfig(
+        0,
+        required_variables=["team", sc_compose.VariableName("role")],
+        defaults={"region": "west"},
+        metadata={"labels": ["fast", "safe"], "rank": 2},
+    )
+    assert config.pass_number == 1
+    assert [str(name) for name in config.required_variables] == ["team", "role"]
+    assert config.defaults == {"region": "west"}
+    assert config.metadata == {"labels": ["fast", "safe"], "rank": 2}
+
+    triple = sc_compose.discover_tokens_with_brace_count(
+        "{{{ outer }}} {{ inner }}", 3
+    )
+    assert [str(token) for token in triple] == ["outer"]
+
+    per_pass = sc_compose.discover_all_pass_tokens(parsed)
+    assert {pass_number: [str(token) for token in tokens] for pass_number, tokens in per_pass.items()} == {
+        1: ["second"],
+        2: ["first"],
+    }
+
+
+def test_d2_py_render_all_and_policy_passes_round_trip(tmp_path: Path) -> None:
+    parsed = sc_compose.parse_template_document(
+        "---\n"
+        "pass: 2\n"
+        "---\n"
+        "---\n"
+        "pass: 1\n"
+        "---\n"
+        "{{{ team }}} {{ task }}\n"
+    )
+    passes = [
+        sc_compose.PassConfig(2, defaults={"team": "wyvern"}),
+        sc_compose.PassConfig(1, defaults={"task": "test"}),
+    ]
+    policy = sc_compose.ComposePolicy(passes=passes, allowed_roots=[tmp_path])
+
+    assert [pass_config.pass_number for pass_config in policy.passes] == [2, 1]
+    assert "passes=2" in repr(policy)
+
+    rendered = sc_compose.render_all(
+        parsed,
+        [
+            (2, {"team": "wyvern"}),
+            (1, {"task": "test"}),
+        ],
+    )
+    assert rendered == "wyvern test"
+
+
+def test_d2_py_render_all_applies_frontmatter_defaults_for_direct_callers() -> None:
+    parsed = sc_compose.parse_template_document(
+        "---\n"
+        "pass: 2\n"
+        "defaults:\n"
+        "  team: wyvern\n"
+        "---\n"
+        "---\n"
+        "pass: 1\n"
+        "defaults:\n"
+        "  task: test\n"
+        "---\n"
+        "{{{ team }}} {{ task }}\n"
+    )
+
+    rendered = sc_compose.render_all(parsed, [(2, {}), (1, {})])
+
+    assert rendered == "wyvern test"
+
+
+def test_d2_py_render_all_maps_context_shape_failures() -> None:
+    parsed = sc_compose.parse_template_document(
+        "---\npass: 2\n---\n---\npass: 1\n---\n{{{ team }}} {{ task }}\n"
+    )
+
+    with pytest.raises(sc_compose.ScConfigError) as count_error:
+        sc_compose.render_all(parsed, [(2, {"team": "wyvern"})])
+    assert count_error.value.code == sc_compose.DiagnosticCode.ERR_CONFIG_PARSE
+
+    with pytest.raises(sc_compose.ScConfigError) as pass_error:
+        sc_compose.render_all(parsed, [(1, {"team": "wyvern"}), (2, {"task": "test"})])
+    assert pass_error.value.code == sc_compose.DiagnosticCode.ERR_CONFIG_PARSE
+
+
+def test_d2_py_compose_renders_stacked_headers_with_policy_passes(tmp_path: Path) -> None:
+    write(
+        tmp_path / "stacked.md.j2",
+        "---\n"
+        "pass: 2\n"
+        "---\n"
+        "---\n"
+        "pass: 1\n"
+        "---\n"
+        "{{{ team }}} {{ task }}\n",
+    )
+
+    request = make_file_request(
+        tmp_path,
+        "stacked.md.j2",
+        policy=sc_compose.ComposePolicy(
+            passes=[
+                sc_compose.PassConfig(2, defaults={"team": "wyvern"}),
+                sc_compose.PassConfig(1, defaults={"task": "test"}),
+            ]
+        ),
+    )
+
+    result = sc_compose.compose(request)
+    assert result.rendered_text == "wyvern test"
+
+
+def test_d2_py_validate_catches_higher_pass_undeclared_tokens(tmp_path: Path) -> None:
+    write(
+        tmp_path / "stacked.md.j2",
+        "---\n"
+        "pass: 2\n"
+        "---\n"
+        "---\n"
+        "pass: 1\n"
+        "defaults:\n"
+        "  task: test\n"
+        "---\n"
+        "{{{ missing_team }}} {{ task }}\n",
+    )
+
+    request = make_file_request(
+        tmp_path,
+        "stacked.md.j2",
+        policy=sc_compose.ComposePolicy(strict_undeclared_variables=True),
+    )
+
+    report = sc_compose.validate(request)
+
+    assert not report.ok
+    assert any(
+        diagnostic.code == sc_compose.DiagnosticCode.ERR_VAL_UNDECLARED_TOKEN
+        and "missing_team" in diagnostic.message
+        for diagnostic in report.errors
+    )
+
+
+def test_d3_py_python_surface_remains_library_only() -> None:
+    assert not hasattr(sc_compose, "parse_pass_inputs")
+    assert not hasattr(sc_compose, "filtered_args_for_clap")
+    assert not hasattr(sc_compose, "run_template_init")
+
+
+def test_d4_py_verify_reports_clean_and_builtin_override(tmp_path: Path) -> None:
+    write(tmp_path / "verify.md.j2", "Date={{ RENDER_DATE }}\nStamp={{ RENDER_TIMESTAMP }}\n")
+    write(tmp_path / "deployed.md", "Date=2026-01-01\nStamp=2026-01-01T00:00:00Z")
+
+    request = make_file_request(
+        tmp_path,
+        "verify.md.j2",
+        vars_input={
+            "RENDER_DATE": "2026-01-01",
+            "RENDER_TIMESTAMP": "2026-01-01T00:00:00Z",
+        },
+    )
+
+    result = sc_compose.verify(request, tmp_path / "deployed.md")
+    assert isinstance(result, sc_compose.VerifyResult)
+    assert result.clean is True
+    assert result.diff is None
+    assert result.resolved_template_path.endswith("verify.md.j2")
+    assert result.deployed_path.endswith("deployed.md")
+    assert result.rendered_text == "Date=2026-01-01\nStamp=2026-01-01T00:00:00Z"
+    assert result.deployed_text == "Date=2026-01-01\nStamp=2026-01-01T00:00:00Z"
+    assert "clean=True" in repr(result)
+
+
+def test_d4_py_verify_reports_drift_and_diff(tmp_path: Path) -> None:
+    write(tmp_path / "verify.md.j2", "hello {{ name }}\n")
+    write(tmp_path / "deployed.md", "hello drifted")
+
+    request = make_file_request(tmp_path, "verify.md.j2", vars_input={"name": "world"})
+
+    result = sc_compose.verify(request, tmp_path / "deployed.md")
+    assert result.clean is False
+    assert result.diff is not None
+    assert "--- " in result.diff
+    assert "+++ " in result.diff
+    assert "-hello drifted" in result.diff
+    assert "+hello world" in result.diff
+
+
+def test_d4_py_verify_missing_deployed_file_maps_existing_error(tmp_path: Path) -> None:
+    write(tmp_path / "verify.md.j2", "hello {{ name }}\n")
+
+    request = make_file_request(tmp_path, "verify.md.j2", vars_input={"name": "world"})
+
+    with pytest.raises(sc_compose.ScConfigError) as exc_info:
+        sc_compose.verify(request, tmp_path / "missing.md")
+
+    assert exc_info.value.code == sc_compose.DiagnosticCode.ERR_RESOLVE_NOT_FOUND
+
+
+def test_headerless_templates_keep_phase_c_behavior() -> None:
+    parsed = sc_compose.parse_template_document("hello")
+
+    assert parsed.frontmatter is None
+    assert parsed.passes == []
 
 
 @pytest.mark.parametrize(
@@ -231,11 +515,6 @@ def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
             lambda root: sc_compose.render_template("{% if true %}", {}),
             sc_compose.ScRenderError,
             None,
-        ),
-        (
-            lambda root: sc_compose.validate_input_value({"bad": [[1]]}),
-            sc_compose.ScValidationError,
-            sc_compose.DiagnosticCode.ERR_VAL_NESTED_ARRAY_UNSUPPORTED,
         ),
         (
             lambda root: sc_compose.resolve_template_path(

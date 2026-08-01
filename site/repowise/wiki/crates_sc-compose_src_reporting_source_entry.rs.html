@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/reporting/source_entry.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/reporting/source_entry.rs</h1>
+<h2>Overview</h2>
+<p><code>source_entry.rs</code> is the Application-layer source-entry loader and metadata parser that consumes report source files and produces normalized <code>SourceEntry</code> records, renderable bodies, and path-aware validation errors.</p>
+<p>It provides the boundary between discovered input files and the reporting pipeline. <code>render_many::discover_sources</code> calls <code>SourceEntry::load</code> for each source, while downstream reporting code uses the resulting record, original source text, and parsed body to build report context and render output.</p>
+<p>The module supports three input forms:</p>
+<ul>
+<li>A <code>.toml</code> report specification, parsed by <code>parse_report_spec</code> and rendered to Mermaid text through <code>render_mermaid</code>.</li>
+<li>A leading <code>/* ... */</code> metadata block containing YAML.</li>
+<li>Consecutive leading comment lines using <code>#</code>, <code>//</code>, <code>--</code>, or <code>;</code>, also containing YAML.</li>
+</ul>
+<p>When no recognized metadata form is present, the whole file remains the body and metadata is empty. This lets ordinary source files participate in reporting without requiring a front-matter convention.</p>
+<h2>Public API</h2>
+<h3><code>SourceEntry</code></h3>
+<p>A crate-visible, immutable-style container for one discovered reporting source.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>record: SourceEntryRecord</code></td>
+<td>Serializable source/output paths plus normalized metadata and optional set membership.</td>
+</tr>
+<tr>
+<td><code>raw_source: String</code></td>
+<td>Exact file contents as read from disk.</td>
+</tr>
+<tr>
+<td><code>body: String</code></td>
+<td>Source content after metadata extraction, or generated Mermaid text for TOML report specs.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>SourceEntry::load</code></h4>
+<pre><code class="language-rust">pub(crate) fn load(
+    absolute_source_path: &amp;Path,
+    source_path: &amp;Path,
+    output_path: PathBuf,
+) -&gt; Result&lt;SourceEntry, SourceEntryError&gt;
+</code></pre>
+<p>Reads <code>absolute_source_path</code>, parses its metadata/body, and associates the logical <code>source_path</code> and intended <code>output_path</code> with the result.</p>
+<p>The two source-path parameters intentionally serve different roles:</p>
+<ul>
+<li><code>absolute_source_path</code> is used for filesystem I/O.</li>
+<li><code>source_path</code> is retained in records and errors, so diagnostics use the reporting-relative or user-facing path rather than a machine-specific absolute path.</li>
+</ul>
+<h3><code>SourceEntryRecord</code></h3>
+<p>A serializable description of a source entry:</p>
+<pre><code class="language-rust">pub(crate) struct SourceEntryRecord {
+    pub(crate) source_path: PathBuf,
+    pub(crate) output_path: PathBuf,
+    pub(crate) metadata: BTreeMap&lt;String, serde_json::Value&gt;,
+    pub(crate) sets: Option&lt;Vec&lt;String&gt;&gt;,
+}
+</code></pre>
+<p>Both paths use <code>crate::path_utils::serialize_path</code>, ensuring path representation is handled consistently when records are serialized. Metadata is sorted by key through <code>BTreeMap</code>, which makes serialized/report-context ordering deterministic.</p>
+<p><code>sets</code> is extracted from metadata instead of being retained inside <code>metadata</code>; consumers can therefore use set membership directly without interpreting arbitrary JSON metadata.</p>
+<h3><code>SourceEntryError</code></h3>
+<p>Error type returned by loading and metadata processing.</p>
+<ul>
+<li><code>Read { path, source }</code> wraps filesystem read errors.</li>
+<li><code>InvalidMetadata { path, message }</code> reports malformed YAML, invalid metadata shapes, invalid TOML report specs, or Mermaid rendering failures.</li>
+</ul>
+<p>Its <code>Display</code> implementation includes the logical source path, and it implements <code>std::error::Error</code>.</p>
+<h3>Metadata parsing behavior</h3>
+<p><code>parse_metadata</code> is private but defines the module’s core precedence rules:</p>
+<ol>
+<li>If the file extension is exactly <code>toml</code>, try parsing it as a report spec.</li>
+<li>If a report spec is recognized, derive metadata and sets from the spec, then generate the body with <code>render_mermaid</code>.</li>
+<li>Otherwise, inspect for a leading block-comment metadata section.</li>
+<li>Otherwise, inspect consecutive leading line comments.</li>
+<li>Otherwise, return empty metadata and the original source as the body.</li>
+</ol>
+<p>A TOML file that does not match a report-spec shape is not automatically rejected; parsing proceeds to the comment-based formats and finally falls back to raw content. A TOML file recognized as a report spec, however, fails loading if its metadata extraction or Mermaid rendering fails.</p>
+<h3>YAML metadata requirements</h3>
+<p>Parsed YAML must be a mapping with string keys.</p>
+<ul>
+<li>All fields except <code>sets</code> are converted to <code>serde_json::Value</code> and added to <code>metadata</code>.</li>
+<li><code>sets</code> must be a YAML sequence containing only strings.</li>
+<li>Empty metadata comments are valid and produce empty metadata.</li>
+<li>A scalar, sequence, or non-string mapping key produces <code>InvalidMetadata</code>.</li>
+</ul>
+<p>Example block metadata:</p>
+<pre><code class="language-text">/*
+title: Release report
+owner: docs
+sets:
+  - weekly
+  - internal
+*/
+# Report content starts here
+</code></pre>
+<p>Equivalent prefix-comment metadata:</p>
+<pre><code class="language-text"># title: Release report
+# owner: docs
+# sets:
+#   - weekly
+#   - internal
+# Report content starts here
+</code></pre>
+<p>For prefix comments, metadata ends at the first non-comment line. Comment-looking lines later in the body are preserved as body content.</p>
+<h2>Dependencies</h2>
+<table>
+<thead>
+<tr>
+<th>Dependency</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>std::fs::read_to_string</code></td>
+<td>Loads complete source files as UTF-8 text. Non-UTF-8 content fails as a read error.</td>
+</tr>
+<tr>
+<td><code>std::path::{Path, PathBuf}</code></td>
+<td>Separates physical read paths from logical/reporting paths.</td>
+</tr>
+<tr>
+<td><code>std::collections::BTreeMap</code></td>
+<td>Stores metadata in deterministic key order.</td>
+</tr>
+<tr>
+<td><code>serde::Serialize</code></td>
+<td>Enables <code>SourceEntryRecord</code> serialization.</td>
+</tr>
+<tr>
+<td><code>serde_json::Value</code></td>
+<td>Provides a JSON-compatible representation for arbitrary metadata values.</td>
+</tr>
+<tr>
+<td><code>serde_yaml</code></td>
+<td>Parses comment-embedded YAML and converts values for JSON storage.</td>
+</tr>
+<tr>
+<td><code>reporting::spec::parse_report_spec</code></td>
+<td>Detects and parses TOML-based reporting specifications.</td>
+</tr>
+<tr>
+<td><code>reporting::mermaid::render_mermaid</code></td>
+<td>Converts a recognized report specification into generated Mermaid body text.</td>
+</tr>
+<tr>
+<td><code>path_utils::serialize_path</code></td>
+<td>Serializes source and output paths consistently.</td>
+</tr>
+</tbody>
+</table>
+<p>The module is consumed by <code>reporting::render_many</code>, which discovers and loads sources, and by <code>reporting::report_context</code> and <code>reporting::mod</code>, which use normalized source-entry data during report assembly.</p>
+<h2>Usage Notes</h2>
+<p>A normal caller should construct entries through <code>SourceEntry::load</code>, rather than parsing content independently:</p>
+<pre><code class="language-rust">let entry = SourceEntry::load(
+    &amp;workspace_root.join(&quot;reports/system.md&quot;),
+    Path::new(&quot;reports/system.md&quot;),
+    PathBuf::from(&quot;generated/system.html&quot;),
+)?;
+
+let title = entry.record.metadata.get(&quot;title&quot;);
+let body = &amp;entry.body;
+</code></pre>
+<p>For a TOML report specification, the loaded entry retains the original TOML in <code>raw_source</code>, but <code>body</code> contains Mermaid generated from the parsed spec:</p>
+<pre><code class="language-rust">let entry = SourceEntry::load(
+    &amp;workspace_root.join(&quot;reports/dependencies.toml&quot;),
+    Path::new(&quot;reports/dependencies.toml&quot;),
+    PathBuf::from(&quot;generated/dependencies.html&quot;),
+)?;
+
+// Preserve original TOML for inspection or hashing.
+assert!(!entry.raw_source.is_empty());
+
+// Render the generated Mermaid representation.
+render_report_body(&amp;entry.body)?;
+</code></pre>
+<p>Be careful with the following edge cases:</p>
+<ul>
+<li>Block metadata is recognized only when the first non-whitespace content begins with <code>/*</code>. Leading spaces, tabs, and blank lines are allowed.</li>
+<li>The block parser removes only leading newlines after <code>*/</code>; spaces after the closing delimiter remain in the body.</li>
+<li>Prefix metadata accepts indented comment markers because each line is left-trimmed before prefix detection.</li>
+<li>Prefix comment markers are limited to <code>#</code>, <code>//</code>, <code>--</code>, and <code>;</code>; unsupported markers cause the file to fall back to raw-body behavior.</li>
+<li>A blank line ends prefix metadata, even if subsequent lines are comments.</li>
+<li>The <code>sets</code> key is reserved. It is not copied into <code>record.metadata</code>, and values such as <code>sets: all</code> or numeric list items are errors.</li>
+<li>YAML keys must be strings. YAML allows other mapping-key types, but this module deliberately rejects them because metadata is represented as <code>BTreeMap&lt;String, Value&gt;</code>.</li>
+<li><code>raw_source</code> and <code>body</code> may differ substantially for TOML specs; downstream code should choose deliberately between original content and report-renderable content.</li>
+<li>Errors expose <code>source_path</code>, not <code>absolute_source_path</code>, so callers should pass the logical path that users expect to see in diagnostics.</li>
+</ul>
+</body>
+</html>

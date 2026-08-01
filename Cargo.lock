@@ -262,6 +262,7 @@ dependencies = [
  "aho-corasick",
  "memo-map",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -427,7 +428,7 @@ checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
 
 [[package]]
 name = "sc-compose"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -446,7 +447,7 @@ dependencies = [
 
 [[package]]
 name = "sc-compose-py"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "pyo3",
  "sc-composer",
@@ -456,12 +457,13 @@ dependencies = [
 
 [[package]]
 name = "sc-composer"
-version = "1.2.0"
+version = "1.3.0"
 dependencies = [
  "minijinja",
  "serde",
  "serde_json",
  "serde_yaml",
+ "similar",
  "thiserror",
  "time",
 ]
@@ -561,6 +563,12 @@ name = "shlex"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
+
+[[package]]
+name = "similar"
+version = "2.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
 
 [[package]]
 name = "strsim"

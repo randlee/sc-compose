@@ -1,0 +1,145 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session e3confirm-20260729-0001 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&#34;agent_id&#34;: &#34;boundary-probe&#34;, &#34;cases&#34;: [&#34;FUZZ-001&#34;, &#34;FUZZ-002&#34;, &#34;FUZZ-003&#34;, &#34;FUZZ-004&#34;, &#34;FUZZ-005&#34;], &#34;classification&#34;: &#34;confirmed_bug&#34;, &#34;failed&#34;: 5, &#34;findings&#34;: [{&#34;expected_oracle&#34;: &#34;FR-7b: exit 3 for usage/configuration/contract error. ERR_CONFIG_READ is a documented ConfigError-family code, so it should exit 3.&#34;, &#34;finding_id&#34;: &#34;FUZZ-001&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;\\xa0&#34;, &#34;observed_result&#34;: &#34;Exits 2 (validation/render family) with ERR_CONFIG_READ, while the equivalent invalid-UTF-8 --var-file failure exits 3. Exit-code family disagrees with the diagnostic family.&#34;, &#34;recommended_fix&#34;: &#34;Map ERR_CONFIG_READ to exit 3 per FR-7b.&#34;, &#34;requirement_follow_up&#34;: &#34;Map ERR_CONFIG_READ to exit 3 per FR-7b.&#34;, &#34;requirement_trace&#34;: &#34;No requirement/ADR currently traces this exact behavior; classified via the adversarial-fuzzing oracle rules (stable diagnostic/top-level boundary).&#34;, &#34;root_cause&#34;: &#34;See observed_result; coordinator-established root cause recorded in campaign-report.json.&#34;}, {&#34;expected_oracle&#34;: &#34;A security-relevant confinement refusal must not be reported with a not-found code; the engine already has a dedicated ERR_INCLUDE_ESCAPE for the identical condition during include expansion.&#34;, &#34;finding_id&#34;: &#34;FUZZ-002&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;a file existing one level above --root&#34;, &#34;observed_result&#34;: &#34;Refused correctly (no read occurs, exit 3) but with ERR_RESOLVE_NOT_FOUND and message &#39;template path escapes configured roots&#39;, i.e. an escape reported under a not-found code. Confirmed for ../ traversal, absolute path, and symlink-outside-root.&#34;, &#34;recommended_fix&#34;: &#34;Introduce/reuse an escape-specific code for top-level --file confinement refusals; register it in the error-code registry.&#34;, &#34;requirement_follow_up&#34;: &#34;Introduce/reuse an escape-specific code for top-level --file confinement refusals; register it in the error-code registry.&#34;, &#34;requirement_trace&#34;: &#34;No confinement bypass: every escape attempt was correctly refused and nothing outside --root was read. This is a diagnostic-accuracy defect only.&#34;, &#34;root_cause&#34;: &#34;See observed_result; coordinator-established root cause recorded in campaign-report.json.&#34;}, {&#34;expected_oracle&#34;: &#34;No include is in play for a top-level --file, and the sibling nonexistent-path case correctly returns ERR_RESOLVE_NOT_FOUND with exit 3.&#34;, &#34;finding_id&#34;: &#34;FUZZ-003&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;an empty directory passed as --file&#34;, &#34;observed_result&#34;: &#34;Returns ERR_INCLUDE_NOT_FOUND &#39;include file not found: &lt;dir&gt;&#39; with exit 2; the nonexistent-path sibling returns ERR_RESOLVE_NOT_FOUND with exit 3. Both code and exit family are inconsistent for the same argument.&#34;, &#34;recommended_fix&#34;: &#34;Return ERR_RESOLVE_NOT_FOUND (or a not-a-file code) with exit 3 when --file names a directory.&#34;, &#34;requirement_follow_up&#34;: &#34;Return ERR_RESOLVE_NOT_FOUND (or a not-a-file code) with exit 3 when --file names a directory.&#34;, &#34;requirement_trace&#34;: &#34;No requirement/ADR currently traces this exact behavior; classified via the adversarial-fuzzing oracle rules (stable diagnostic/top-level boundary).&#34;, &#34;root_cause&#34;: &#34;See observed_result; coordinator-established root cause recorded in campaign-report.json.&#34;}, {&#34;expected_oracle&#34;: &#34;FR-8: diagnostics must include source file path, line and column when available. The equivalent `required_variables: [x]` declaration proves line/column ARE computable for the same file, so the two declaration styles must yield identically shaped diagnostics.&#34;, &#34;finding_id&#34;: &#34;FUZZ-004&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;---\nvariables:\n  x:\n    required: true\n---\n{{x}}\n&#34;, &#34;observed_result&#34;: &#34;Both styles give code ERR_VAL_MISSING_REQUIRED, exit 2, and the same message naming x. But `required_variables` yields line=3 column=5, while `variables: {x: {required: true}}` yields line=null column=null. (Coordinator correction to the worker&#39;s report: `path` IS populated in both styles; only line/column are lost.)&#34;, &#34;recommended_fix&#34;: &#34;Thread line/column into ERR_VAL_MISSING_REQUIRED for the `variables:` declaration style so both styles match. Highest priority: this gap shipped with cd54074.&#34;, &#34;requirement_follow_up&#34;: &#34;Thread line/column into ERR_VAL_MISSING_REQUIRED for the `variables:` declaration style so both styles match. Highest priority: this gap shipped with cd54074.&#34;, &#34;requirement_trace&#34;: &#34;The `variables:` map is the feature ADDED by cd54074. Pre-fix it was ignored entirely, so this incomplete diagnostic shape ships WITH the fix rather than predating it. This is the only finding attributable to cd54074 itself.&#34;, &#34;root_cause&#34;: &#34;The `variables:` map is the feature ADDED by cd54074. Pre-fix it was ignored entirely, so this incomplete diagnostic shape ships WITH the fix rather than predating it. This is the only finding attributable to cd54074 itself.&#34;}, {&#34;expected_oracle&#34;: &#34;FR-8: diagnostics must include path, line and column when available. Human-mode output proves the location is known.&#34;, &#34;finding_id&#34;: &#34;FUZZ-005&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;---\nfoo:\n  bar: 1\n baz: 2\n---\nbody\n&#34;, &#34;observed_result&#34;: &#34;Human mode prints &#39;did not find expected key at line 3 column 2&#39;. The --json diagnostic for the identical failure carries ERR_CONFIG_PARSE with path=null, line=null, column=null. Machine consumers get strictly less information than humans for the same failure. Reproduced across tab indentation, unclosed quote, unclosed flow map, and non-map frontmatter shapes.&#34;, &#34;recommended_fix&#34;: &#34;Propagate serde_yaml::Error::location() and the template path into ConfigError -&gt; Diagnostic so --json matches human output.&#34;, &#34;requirement_follow_up&#34;: &#34;Propagate serde_yaml::Error::location() and the template path into ConfigError -&gt; Diagnostic so --json matches human output.&#34;, &#34;requirement_trace&#34;: &#34;No requirement/ADR currently traces this exact behavior; classified via the adversarial-fuzzing oracle rules (stable diagnostic/top-level boundary).&#34;, &#34;root_cause&#34;: &#34;See observed_result; coordinator-established root cause recorded in campaign-report.json.&#34;}], &#34;iterations&#34;: 99, &#34;passed&#34;: 94, &#34;result&#34;: &#34;FAIL&#34;, &#34;session_id&#34;: &#34;e3confirm-20260729-0001&#34;, &#34;target&#34;: &#34;frontmatter&#34;, &#34;test_inputs&#34;: [{&#34;case_id&#34;: &#34;FUZZ-001&#34;, &#34;description&#34;: &#34;FR-7b: exit 3 for usage/configuration/contract error. ERR_CONFIG_READ is a documented ConfigError-family code, so it should exit 3.&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;\\xa0&#34;, &#34;outcome&#34;: &#34;confirmed product bug (3 reproductions): Exits 2 (validation/render family) with ERR_CONFIG_READ, while the equivalent invalid-UTF-8 --var-file failure exits 3. Exit-code family disagrees with the diagnostic family.&#34;, &#34;passed&#34;: false}, {&#34;case_id&#34;: &#34;FUZZ-002&#34;, &#34;description&#34;: &#34;A security-relevant confinement refusal must not be reported with a not-found code; the engine already has a dedicated ERR_INCLUDE_ESCAPE for the identical condition during include&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;a file existing one level above --root&#34;, &#34;outcome&#34;: &#34;confirmed product bug (3 reproductions): Refused correctly (no read occurs, exit 3) but with ERR_RESOLVE_NOT_FOUND and message &#39;template path escapes configured roots&#39;, i.e. an escape reported under a not-found code. Confirmed for ../ traversal, absolute path, &#34;, &#34;passed&#34;: false}, {&#34;case_id&#34;: &#34;FUZZ-003&#34;, &#34;description&#34;: &#34;No include is in play for a top-level --file, and the sibling nonexistent-path case correctly returns ERR_RESOLVE_NOT_FOUND with exit 3.&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;an empty directory passed as --file&#34;, &#34;outcome&#34;: &#34;confirmed product bug (3 reproductions): Returns ERR_INCLUDE_NOT_FOUND &#39;include file not found: &lt;dir&gt;&#39; with exit 2; the nonexistent-path sibling returns ERR_RESOLVE_NOT_FOUND with exit 3. Both code and exit family are inconsistent for the same argument.&#34;, &#34;passed&#34;: false}, {&#34;case_id&#34;: &#34;FUZZ-004&#34;, &#34;description&#34;: &#34;FR-8: diagnostics must include source file path, line and column when available. The equivalent `required_variables: [x]` declaration proves line/column ARE computable for the same&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;---\nvariables:\n  x:\n    required: true\n---\n{{x}}\n&#34;, &#34;outcome&#34;: &#34;confirmed product bug (3 reproductions): Both styles give code ERR_VAL_MISSING_REQUIRED, exit 2, and the same message naming x. But `required_variables` yields line=3 column=5, while `variables: {x: {required: true}}` yields line=null column=null. (Coordinator &#34;, &#34;passed&#34;: false}, {&#34;case_id&#34;: &#34;FUZZ-005&#34;, &#34;description&#34;: &#34;FR-8: diagnostics must include path, line and column when available. Human-mode output proves the location is known.&#34;, &#34;minimal_input&#34;: &#34;(none)&#34;, &#34;minimal_template&#34;: &#34;---\nfoo:\n  bar: 1\n baz: 2\n---\nbody\n&#34;, &#34;outcome&#34;: &#34;confirmed product bug (3 reproductions): Human mode prints &#39;did not find expected key at line 3 column 2&#39;. The --json diagnostic for the identical failure carries ERR_CONFIG_PARSE with path=null, line=null, column=null. Machine consumers get strictly less infor&#34;, &#34;passed&#34;: false}], &#34;worker_correlation_id&#34;: &#34;boundary-probe&#34;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="boundary-probe ran 99 bounded cases against the frontmatter subsystem and confirmed 5 product bug(s): FUZZ-001, FUZZ-002, FUZZ-003, FUZZ-004, FUZZ-005. All reproduced at least 3 times; exact minimized templates and inputs are preserved below. See findings for root cause and recommended fix per finding.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+
+    <span class="status status-error">FAIL</span>
+
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Malformed files, invalid var-file boundaries, path confinement, and stable diagnostics (frontmatter target)</th>
+        <td>99</td>
+        <td>94/99</td>
+        <td>
+
+          <span class="status status-error">FAIL</span>
+
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+
+        <tr><th scope="row">FUZZ-001</th><td><code>FR-7b: exit 3 for usage/configuration/contract error. ERR_CONFIG_READ is a documented ConfigError-family code, so it should exit 3.</code></td><td>confirmed product bug (3 reproductions): Exits 2 (validation/render family) with ERR_CONFIG_READ, while the equivalent invalid-UTF-8 --var-file failure exits 3. Exit-code family disagrees with the diagnostic family.</td></tr>
+
+        <tr><th scope="row">FUZZ-002</th><td><code>A security-relevant confinement refusal must not be reported with a not-found code; the engine already has a dedicated ERR_INCLUDE_ESCAPE for the identical condition during include</code></td><td>confirmed product bug (3 reproductions): Refused correctly (no read occurs, exit 3) but with ERR_RESOLVE_NOT_FOUND and message &#39;template path escapes configured roots&#39;, i.e. an escape reported under a not-found code. Confirmed for ../ traversal, absolute path, </td></tr>
+
+        <tr><th scope="row">FUZZ-003</th><td><code>No include is in play for a top-level --file, and the sibling nonexistent-path case correctly returns ERR_RESOLVE_NOT_FOUND with exit 3.</code></td><td>confirmed product bug (3 reproductions): Returns ERR_INCLUDE_NOT_FOUND &#39;include file not found: &lt;dir&gt;&#39; with exit 2; the nonexistent-path sibling returns ERR_RESOLVE_NOT_FOUND with exit 3. Both code and exit family are inconsistent for the same argument.</td></tr>
+
+        <tr><th scope="row">FUZZ-004</th><td><code>FR-8: diagnostics must include source file path, line and column when available. The equivalent `required_variables: [x]` declaration proves line/column ARE computable for the same</code></td><td>confirmed product bug (3 reproductions): Both styles give code ERR_VAL_MISSING_REQUIRED, exit 2, and the same message naming x. But `required_variables` yields line=3 column=5, while `variables: {x: {required: true}}` yields line=null column=null. (Coordinator </td></tr>
+
+        <tr><th scope="row">FUZZ-005</th><td><code>FR-8: diagnostics must include path, line and column when available. Human-mode output proves the location is known.</code></td><td>confirmed product bug (3 reproductions): Human mode prints &#39;did not find expected key at line 3 column 2&#39;. The --json diagnostic for the identical failure carries ERR_CONFIG_PARSE with path=null, line=null, column=null. Machine consumers get strictly less infor</td></tr>
+
+      </tbody>
+    </table>
+  </section>
+
+
+  <section class="findings">
+    <h3>Findings</h3>
+
+    <article class="finding">
+      <h4>FUZZ-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>\xa0</code></dd>
+        <dt>Input</dt><dd><code>(none)</code></dd>
+        <dt>Expected</dt><dd>FR-7b: exit 3 for usage/configuration/contract error. ERR_CONFIG_READ is a documented ConfigError-family code, so it should exit 3.</dd>
+        <dt>Observed</dt><dd>Exits 2 (validation/render family) with ERR_CONFIG_READ, while the equivalent invalid-UTF-8 --var-file failure exits 3. Exit-code family disagrees with the diagnostic family.</dd>
+        <dt>Requirement / ADR</dt><dd>No requirement/ADR currently traces this exact behavior; classified via the adversarial-fuzzing oracle rules (stable diagnostic/top-level boundary).</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Map ERR_CONFIG_READ to exit 3 per FR-7b.</dd>
+        <dt>Root cause</dt><dd>See observed_result; coordinator-established root cause recorded in campaign-report.json.</dd>
+        <dt>Recommended fix</dt><dd>Map ERR_CONFIG_READ to exit 3 per FR-7b.</dd>
+      </dl>
+    </article>
+
+    <article class="finding">
+      <h4>FUZZ-002</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>a file existing one level above --root</code></dd>
+        <dt>Input</dt><dd><code>(none)</code></dd>
+        <dt>Expected</dt><dd>A security-relevant confinement refusal must not be reported with a not-found code; the engine already has a dedicated ERR_INCLUDE_ESCAPE for the identical condition during include expansion.</dd>
+        <dt>Observed</dt><dd>Refused correctly (no read occurs, exit 3) but with ERR_RESOLVE_NOT_FOUND and message &#39;template path escapes configured roots&#39;, i.e. an escape reported under a not-found code. Confirmed for ../ traversal, absolute path, and symlink-outside-root.</dd>
+        <dt>Requirement / ADR</dt><dd>No confinement bypass: every escape attempt was correctly refused and nothing outside --root was read. This is a diagnostic-accuracy defect only.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Introduce/reuse an escape-specific code for top-level --file confinement refusals; register it in the error-code registry.</dd>
+        <dt>Root cause</dt><dd>See observed_result; coordinator-established root cause recorded in campaign-report.json.</dd>
+        <dt>Recommended fix</dt><dd>Introduce/reuse an escape-specific code for top-level --file confinement refusals; register it in the error-code registry.</dd>
+      </dl>
+    </article>
+
+    <article class="finding">
+      <h4>FUZZ-003</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>an empty directory passed as --file</code></dd>
+        <dt>Input</dt><dd><code>(none)</code></dd>
+        <dt>Expected</dt><dd>No include is in play for a top-level --file, and the sibling nonexistent-path case correctly returns ERR_RESOLVE_NOT_FOUND with exit 3.</dd>
+        <dt>Observed</dt><dd>Returns ERR_INCLUDE_NOT_FOUND &#39;include file not found: &lt;dir&gt;&#39; with exit 2; the nonexistent-path sibling returns ERR_RESOLVE_NOT_FOUND with exit 3. Both code and exit family are inconsistent for the same argument.</dd>
+        <dt>Requirement / ADR</dt><dd>No requirement/ADR currently traces this exact behavior; classified via the adversarial-fuzzing oracle rules (stable diagnostic/top-level boundary).</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Return ERR_RESOLVE_NOT_FOUND (or a not-a-file code) with exit 3 when --file names a directory.</dd>
+        <dt>Root cause</dt><dd>See observed_result; coordinator-established root cause recorded in campaign-report.json.</dd>
+        <dt>Recommended fix</dt><dd>Return ERR_RESOLVE_NOT_FOUND (or a not-a-file code) with exit 3 when --file names a directory.</dd>
+      </dl>
+    </article>
+
+    <article class="finding">
+      <h4>FUZZ-004</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>---
+variables:
+  x:
+    required: true
+---
+{{x}}
+</code></dd>
+        <dt>Input</dt><dd><code>(none)</code></dd>
+        <dt>Expected</dt><dd>FR-8: diagnostics must include source file path, line and column when available. The equivalent `required_variables: [x]` declaration proves line/column ARE computable for the same file, so the two declaration styles must yield identically shaped diagnostics.</dd>
+        <dt>Observed</dt><dd>Both styles give code ERR_VAL_MISSING_REQUIRED, exit 2, and the same message naming x. But `required_variables` yields line=3 column=5, while `variables: {x: {required: true}}` yields line=null column=null. (Coordinator correction to the worker&#39;s report: `path` IS populated in both styles; only line/column are lost.)</dd>
+        <dt>Requirement / ADR</dt><dd>The `variables:` map is the feature ADDED by cd54074. Pre-fix it was ignored entirely, so this incomplete diagnostic shape ships WITH the fix rather than predating it. This is the only finding attributable to cd54074 itself.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Thread line/column into ERR_VAL_MISSING_REQUIRED for the `variables:` declaration style so both styles match. Highest priority: this gap shipped with cd54074.</dd>
+        <dt>Root cause</dt><dd>The `variables:` map is the feature ADDED by cd54074. Pre-fix it was ignored entirely, so this incomplete diagnostic shape ships WITH the fix rather than predating it. This is the only finding attributable to cd54074 itself.</dd>
+        <dt>Recommended fix</dt><dd>Thread line/column into ERR_VAL_MISSING_REQUIRED for the `variables:` declaration style so both styles match. Highest priority: this gap shipped with cd54074.</dd>
+      </dl>
+    </article>
+
+    <article class="finding">
+      <h4>FUZZ-005</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>---
+foo:
+  bar: 1
+ baz: 2
+---
+body
+</code></dd>
+        <dt>Input</dt><dd><code>(none)</code></dd>
+        <dt>Expected</dt><dd>FR-8: diagnostics must include path, line and column when available. Human-mode output proves the location is known.</dd>
+        <dt>Observed</dt><dd>Human mode prints &#39;did not find expected key at line 3 column 2&#39;. The --json diagnostic for the identical failure carries ERR_CONFIG_PARSE with path=null, line=null, column=null. Machine consumers get strictly less information than humans for the same failure. Reproduced across tab indentation, unclosed quote, unclosed flow map, and non-map frontmatter shapes.</dd>
+        <dt>Requirement / ADR</dt><dd>No requirement/ADR currently traces this exact behavior; classified via the adversarial-fuzzing oracle rules (stable diagnostic/top-level boundary).</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Propagate serde_yaml::Error::location() and the template path into ConfigError -&gt; Diagnostic so --json matches human output.</dd>
+        <dt>Root cause</dt><dd>See observed_result; coordinator-established root cause recorded in campaign-report.json.</dd>
+        <dt>Recommended fix</dt><dd>Propagate serde_yaml::Error::location() and the template path into ConfigError -&gt; Diagnostic so --json matches human output.</dd>
+      </dl>
+    </article>
+
+  </section>
+
+</section>

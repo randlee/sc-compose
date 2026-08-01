@@ -1,0 +1,54 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>differential-probe</h2>
+      <p class="agent-meta">Session mock-success-e3-20260729 · Worker differential-probe</p>
+    </div>
+    <div class="agent-actions" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-success-e3-20260729&quot;,&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;worker_correlation_id&quot;:&quot;differential-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;cases&quot;:[&quot;differential-probe-001&quot;,&quot;differential-probe-002&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;differential-probe-001&quot;,&quot;description&quot;:&quot;Compare JSON and YAML var-file inputs for the same scalar tree&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  value:\\n    required: true\\n---\\n{{ value }}&quot;,&quot;minimal_input&quot;:&quot;JSON: {\&quot;value\&quot;:\&quot;same\&quot;}; YAML: value: same&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;equivalent output&quot;},{&quot;case_id&quot;:&quot;differential-probe-002&quot;,&quot;description&quot;:&quot;Repeat a render with unchanged template and input&quot;,&quot;minimal_template&quot;:&quot;---\\n---\\nstable output&quot;,&quot;minimal_input&quot;:&quot;repeat=3; environment=unchanged&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;byte-stable output&quot;}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Successful differential-probe session: 12 baseline, parity, and determinism iterations all passed.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+  <p class="summary">The differential worker compared baseline/head behavior and repeated renders across the recorded cases. Outputs remained equivalent and deterministic.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Baseline parity, JSON/YAML equivalence, and deterministic output</th>
+        <td>12</td>
+        <td>12/12</td>
+        <td><span class="status status-pass">PASS</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Description</th><th scope="col">Template / frontmatter</th><th scope="col">Input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">differential-probe-001</th>
+          <td>Compare JSON and YAML var-file inputs for the same scalar tree</td>
+          <td><code>---\nvariables:\n  value:\n    required: true\n---\n{{ value }}</code></td>
+          <td><code>JSON: {"value":"same"}; YAML: value: same</code></td>
+          <td><span class="status status-pass">PASS</span> <span class="outcome-detail">equivalent output</span></td>
+        </tr>
+        <tr>
+          <th scope="row">differential-probe-002</th>
+          <td>Repeat a render with unchanged template and input</td>
+          <td><code>---\n---\nstable output</code></td>
+          <td><code>repeat=3; environment=unchanged</code></td>
+          <td><span class="status status-pass">PASS</span> <span class="outcome-detail">byte-stable output</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>

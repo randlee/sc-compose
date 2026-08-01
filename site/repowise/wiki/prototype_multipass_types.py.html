@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: prototype/multipass/types.py</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: prototype/multipass/types.py</h1>
+<h2>Overview</h2>
+<p><code>prototype.multipass.types</code> is the central Application-layer type model for the multi-pass template pipeline, producing shared pass-header, parsed-template, and render-context values consumed by parsing, rendering, validation, discovery, and verification. Its high dependency-graph centrality reflects its role as the common contract between components that progress a template through stacked rendering passes.</p>
+<p><code>PassHeader</code> describes one YAML frontmatter pass, including its ordinal position, required variables, defaults, and arbitrary metadata. <code>ParsedTemplate</code> combines the remaining pass headers with the template body. <code>RenderContext</code> supplies variables for a specific rendering pass.</p>
+<h2>Public API</h2>
+<h3><code>PassHeader</code></h3>
+<pre><code class="language-python">@dataclass
+class PassHeader:
+    pass_number: int = 1
+    required_variables: list[str] = field(default_factory=list)
+    defaults: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
+</code></pre>
+<p>Represents the configuration parsed from one pass-specific YAML frontmatter header.</p>
+<ul>
+<li><code>pass_number</code> is one-based and defaults to <code>1</code>.</li>
+<li><code>required_variables</code> identifies values expected for the pass.</li>
+<li><code>defaults</code> provides fallback variable values.</li>
+<li><code>metadata</code> holds additional pass-specific configuration.</li>
+</ul>
+<h4><code>brace_count</code></h4>
+<pre><code class="language-python">@property
+def brace_count(self) -&gt; int
+</code></pre>
+<p>Returns <code>pass_number + 1</code>, which selects progressively deeper variable delimiters for later passes:</p>
+<ul>
+<li>Pass 1: <code>{{ ... }}</code></li>
+<li>Pass 2: <code>{{{ ... }}}</code></li>
+<li>Pass 3: <code>{{{{ ... }}}}</code></li>
+</ul>
+<h3><code>ParsedTemplate</code></h3>
+<pre><code class="language-python">@dataclass
+class ParsedTemplate:
+    passes: list[PassHeader]
+    body: str
+</code></pre>
+<p>Represents a template after stacked pass headers have been separated from its renderable body.</p>
+<h4><code>pass_count</code></h4>
+<pre><code class="language-python">@property
+def pass_count(self) -&gt; int
+</code></pre>
+<p>Returns the number of remaining render passes.</p>
+<h4><code>is_fully_rendered</code></h4>
+<pre><code class="language-python">@property
+def is_fully_rendered(self) -&gt; bool
+</code></pre>
+<p>Returns <code>True</code> when <code>passes</code> is empty, indicating the template is ready for deployment or final output handling.</p>
+<h3><code>RenderContext</code></h3>
+<pre><code class="language-python">@dataclass
+class RenderContext:
+    pass_number: int
+    variables: dict[str, Any] = field(default_factory=dict)
+</code></pre>
+<p>Carries the active pass number and its variable values into a rendering operation.</p>
+<h2>Dependencies</h2>
+<p>The module depends only on Python standard-library facilities:</p>
+<ul>
+<li><code>dataclasses.dataclass</code> defines the three lightweight value objects.</li>
+<li><code>dataclasses.field</code> creates independent mutable defaults for lists and dictionaries.</li>
+<li><code>typing.Any</code> permits YAML-derived defaults, metadata, and rendering variables to hold heterogeneous values.</li>
+</ul>
+<p>It introduces no parser, renderer, YAML, CLI, or filesystem dependency, keeping the shared model portable across the multipass Application-layer modules.</p>
+<p>Key consumers include:</p>
+<ul>
+<li><code>parser.py</code>, which constructs <code>PassHeader</code> and <code>ParsedTemplate</code>.</li>
+<li><code>renderer.py</code>, which consumes and returns <code>ParsedTemplate</code> values as passes are rendered.</li>
+<li><code>e2e_demo.py</code> and test modules, which create <code>RenderContext</code> values.</li>
+<li><code>discover.py</code>, <code>validate_passes.py</code>, and <code>verify.py</code>, which use these types as pipeline contracts.</li>
+</ul>
+<h2>Usage Notes</h2>
+<p>Construct <code>PassHeader</code> values when parsing each YAML frontmatter block. Use <code>brace_count</code> to configure delimiters so a pass resolves only the placeholders intended for that stage.</p>
+<pre><code class="language-python">header = PassHeader(
+    pass_number=2,
+    required_variables=[&quot;environment&quot;],
+    defaults={&quot;region&quot;: &quot;us-west-2&quot;},
+)
+
+assert header.brace_count == 3
+</code></pre>
+<p>Keep the parsed body and outstanding headers together in <code>ParsedTemplate</code>. Rendering code can remove or replace completed passes, then use <code>is_fully_rendered</code> to determine whether processing is complete.</p>
+<pre><code class="language-python">template = ParsedTemplate(passes=[header], body=&quot;service: {{{ name }}}&quot;)
+
+if template.pass_count == 1:
+    context = RenderContext(pass_number=2, variables={&quot;name&quot;: &quot;api&quot;})
+</code></pre>
+<p>Because collection fields use <code>default_factory</code>, each instance receives its own mutable list or dictionary; callers may safely add required variables, defaults, metadata, or context variables without affecting other instances.</p>
+</body>
+</html>

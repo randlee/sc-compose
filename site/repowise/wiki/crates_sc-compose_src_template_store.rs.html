@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/template_store.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/template_store.rs</h1>
+<p>I’ll inspect the repository guidance and current file to ensure the wiki page reflects the implemented behavior precisely.</p>
+<h2>Overview</h2>
+<p><code>template_store.rs</code> is the Application-layer edge-connector and filesystem-backed template-pack resolver, producing <code>TemplateMeta</code> inventories and render-ready <code>TemplatePack</code> values for CLI commands and <code>render_request</code>. It separates bundled examples from user-managed templates while presenting both through a common <code>TemplateStore</code> interface.</p>
+<p>The module has two storage modes:</p>
+<ul>
+<li><code>StoreKind::Examples</code> reads bundled, flat <code>*.j2</code> files from <code>&lt;data-dir&gt;/examples</code>.</li>
+<li><code>StoreKind::Templates</code> reads user template-pack directories from the platform data directory or <code>SC_COMPOSE_TEMPLATE_DIR</code>.</li>
+</ul>
+<p>It is consumed by <code>commands/examples.rs</code> and <code>commands/templates.rs</code> for list, render, and add commands, and by <code>render_request.rs</code> through <code>TemplatePack</code>. A resolved pack supplies the confinement root, exactly one render entrypoint, and validated manifest defaults used to construct a <code>ComposeRequest</code>.</p>
+<p>Template discovery is intentionally strict:</p>
+<ul>
+<li>Example names are derived from root-level <code>*.j2</code> filenames, with a possible secondary extension removed (<code>example.md.j2</code> becomes <code>example</code>).</li>
+<li>A user template is a directory whose name is the pack name.</li>
+<li>Rendering a user pack requires exactly one root-level <code>*.j2</code> file.</li>
+<li>Nested templates and assets may be copied into a pack but cannot be its render entrypoint.</li>
+<li><code>template.json</code>, when present, supplies listing metadata and input defaults.</li>
+</ul>
+<h2>Public API</h2>
+<p>All interfaces are <code>pub(crate)</code>: they form the CLI crate’s internal application API rather than a public library contract.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TemplateStore::examples() -&gt; Result&lt;TemplateStore&gt;</code></td>
+<td>Creates a store rooted at <code>data_dir()/examples</code> for bundled examples.</td>
+</tr>
+<tr>
+<td><code>TemplateStore::templates() -&gt; Result&lt;TemplateStore&gt;</code></td>
+<td>Creates a store rooted at <code>user_templates_dir()</code> for user packs.</td>
+</tr>
+<tr>
+<td><code>TemplateStore::ensure_templates_root()</code></td>
+<td>For a template store, creates the root directory and writes <code>README.md</code> if absent. It is a no-op for an example store.</td>
+</tr>
+<tr>
+<td><code>TemplateStore::list() -&gt; Result&lt;Vec&lt;TemplateMeta&gt;&gt;</code></td>
+<td>Lists packs for the active store kind, sorted lexicographically by name. A missing root yields an empty list.</td>
+</tr>
+<tr>
+<td><code>TemplateStore::get_example(name)</code></td>
+<td>Resolves one bundled example into a <code>TemplatePack</code>, or <code>None</code> if absent. Fails if multiple files map to the same logical example name.</td>
+</tr>
+<tr>
+<td><code>TemplateStore::get_template(name)</code></td>
+<td>Resolves a user pack into a validated, renderable <code>TemplatePack</code>, or <code>None</code> if the named directory does not exist. Separates parse failures from non-renderable layout failures.</td>
+</tr>
+<tr>
+<td><code>TemplateStore::add(source, requested_name)</code></td>
+<td>Imports a file or directory as a new user template pack. Refuses to overwrite an existing destination.</td>
+</tr>
+<tr>
+<td><code>data_dir()</code></td>
+<td>Resolves bundled data location from <code>SC_COMPOSE_DATA_DIR</code>, otherwise from <code>../share/sc-compose</code> relative to the executable directory.</td>
+</tr>
+<tr>
+<td><code>user_templates_dir()</code></td>
+<td>Resolves user template root from <code>SC_COMPOSE_TEMPLATE_DIR</code>, otherwise from the platform user-data directory plus <code>sc-compose/templates</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3>Data types</h3>
+<ul>
+<li><code>TemplateMeta</code> is a list-facing record containing <code>name</code>, filesystem <code>path</code>, and optional manifest <code>description</code> and <code>version</code>.</li>
+<li><code>TemplatePack</code> is the rendering handoff. <code>root</code> is the pack directory, <code>template_path</code> is relative to that root, and <code>input_defaults</code> contains validated manifest defaults keyed by <code>VariableName</code>.</li>
+<li><code>TemplateAddResult</code> reports the imported pack’s effective name, canonical source, destination, and whether state changed. Successful additions always set <code>changed</code> to <code>true</code>.</li>
+<li><code>AddError::AlreadyExists</code> preserves the destination path so CLI callers can produce a dedicated conflict diagnostic. Other failures are wrapped as <code>AddError::Other</code>.</li>
+<li><code>GetTemplateError::Parse</code> covers manifest, filesystem enumeration, and default-validation errors. <code>GetTemplateError::NotRenderable</code> identifies an existing pack that lacks a unique root-level template entrypoint.</li>
+</ul>
+<p>Methods assert their intended store kind. Calling <code>get_example</code> on a template store, or <code>get_template</code>/<code>add</code> on an example store, is a programmer error and panics.</p>
+<h2>Dependencies</h2>
+<ul>
+<li><code>std::fs</code>, <code>Path</code>, and <code>PathBuf</code> provide all persistence, discovery, copying, and path construction. No database or external storage abstraction is involved.</li>
+<li><code>anyhow</code> adds context to filesystem, manifest, and environment-resolution errors; specialized enums preserve CLI-relevant error categories.</li>
+<li><code>serde::Deserialize</code> and <code>serde_json</code> parse the optional <code>template.json</code> manifest.</li>
+<li><code>sc_composer::{VariableName, InputValue, validate_input_value}</code> keeps manifest defaults consistent with the composer’s accepted variable-name and JSON-value model.</li>
+<li><code>BTreeMap</code> provides deterministic storage for discovered example collisions and validated default values.</li>
+</ul>
+<p>The principal downstream flow is:</p>
+<pre><code class="language-text">commands/examples.rs or commands/templates.rs
+                │
+                ▼
+          TemplateStore
+     ┌──────────┴──────────┐
+     ▼                     ▼
+filesystem discovery   template.json validation
+     │                     │
+     └──────────┬──────────┘
+                ▼
+           TemplatePack
+                │
+                ▼
+render_request::build_named_request
+                │
+                ▼
+ sc_composer::ComposeRequest
+</code></pre>
+<h2>Usage Notes</h2>
+<h3>Bundled examples</h3>
+<p>Examples are flat files under the resolved data directory:</p>
+<pre><code class="language-text">&lt;data-dir&gt;/
+└── examples/
+    ├── greeting.j2
+    └── report.md.j2
+</code></pre>
+<p><code>TemplateStore::list()</code> reports the names <code>greeting</code> and <code>report</code>. <code>get_example("report")</code> returns a pack rooted at <code>&lt;data-dir&gt;/examples</code> with <code>template_path</code> set to <code>report.md.j2</code>.</p>
+<p>Only immediate child files with a case-insensitive <code>.j2</code> extension are considered. Directories and non-template files are ignored. Name derivation can collide: <code>report.j2</code> and <code>report.md.j2</code> both derive <code>report</code>, causing both listing and retrieval to fail with an ambiguity error rather than selecting one arbitrarily.</p>
+<h3>User template packs</h3>
+<p>A renderable user pack has one directory and one root-level entrypoint:</p>
+<pre><code class="language-text">&lt;template-root&gt;/
+└── invoice/
+    ├── invoice.md.j2
+    ├── template.json
+    └── assets/
+        └── logo.svg
+</code></pre>
+<p>A suitable <code>template.json</code> is:</p>
+<pre><code class="language-json">{
+  &quot;description&quot;: &quot;Markdown invoice&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;input_defaults&quot;: {
+    &quot;currency&quot;: &quot;USD&quot;,
+    &quot;paid&quot;: false
+  }
+}
+</code></pre>
+<p>When <code>get_template("invoice")</code> is called, the module:</p>
+<ol>
+<li>Finds <code>&lt;template-root&gt;/invoice</code> only if it is a directory.</li>
+<li>Reads and deserializes <code>template.json</code> when it exists.</li>
+<li>Validates each <code>input_defaults</code> key as a composer <code>VariableName</code>.</li>
+<li>Validates each default value with <code>sc_composer::validate_input_value</code>.</li>
+<li>Scans only the pack root for <code>*.j2</code> files.</li>
+<li>Returns a <code>TemplatePack</code> if exactly one entrypoint exists.</li>
+</ol>
+<p><code>build_named_request</code> then uses <code>TemplatePack.root</code> as a <code>ConfiningRoot</code>, renders the relative <code>template_path</code>, and passes <code>input_defaults</code> as composition defaults.</p>
+<p>A pack can be listed even when it is not renderable: listing only requires a directory and a parseable manifest. Rendering subsequently reports <code>NotRenderable</code> if there are zero or multiple root-level templates. This distinction lets <code>templates list</code> surface installed packs while <code>templates &lt;name&gt;</code> gives a layout-specific error.</p>
+<h3>Adding template packs</h3>
+<p><code>TemplateStore::add</code> supports either a source file or a source directory:</p>
+<pre><code class="language-text">sc-compose templates add ./welcome.md.j2 welcome
+sc-compose templates add ./invoice-pack invoice
+</code></pre>
+<p>For a file source, the store creates <code>&lt;template-root&gt;/&lt;name&gt;/</code> and copies the file into it. For a directory source, it recursively copies every file and nested directory, preserving the source tree. The source is canonicalized first, and the resulting <code>TemplateAddResult.source</code> is therefore absolute.</p>
+<p>Without an explicit name, a directory uses its basename. A <code>.j2</code> file uses the same logical-name rule as examples, so <code>welcome.md.j2</code> defaults to <code>welcome</code>; other files use their stem. The requested name is joined directly beneath the template root, so CLI validation should constrain names appropriately before calling this API.</p>
+<p>The operation does not merge or overwrite packs. If the destination already exists, it returns <code>AddError::AlreadyExists</code>; callers should present this as a conflict and leave the existing pack untouched. A copy failure can leave a partially created destination, so retrying may require inspecting or removing that incomplete pack manually.</p>
+<h3>Location overrides and portability</h3>
+<p><code>SC_COMPOSE_DATA_DIR</code> overrides the bundled data root, and <code>SC_COMPOSE_TEMPLATE_DIR</code> overrides the user template root. Relative override values are converted to absolute paths using the process’s current working directory, not the executable location.</p>
+<p>Without overrides, user template locations are:</p>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Base directory</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Windows</td>
+<td><code>APPDATA</code>, falling back to <code>LOCALAPPDATA</code></td>
+</tr>
+<tr>
+<td>macOS</td>
+<td><code>$HOME/Library/Application Support</code></td>
+</tr>
+<tr>
+<td>Other platforms</td>
+<td><code>XDG_DATA_HOME</code>, falling back to <code>$HOME/.local/share</code></td>
+</tr>
+</tbody>
+</table>
+<p>The final user root is always <code>&lt;base&gt;/sc-compose/templates</code>. <code>ensure_templates_root</code> creates it lazily and writes a short README only when one does not already exist.</p>
+</body>
+</html>

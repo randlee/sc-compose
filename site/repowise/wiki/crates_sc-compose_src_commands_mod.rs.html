@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/commands/mod.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/commands/mod.rs</h1>
+<p>I’ll inspect the repository guidance and the target module to ground the wiki page in the current source.</p>
+<h2>Overview</h2>
+<p><code>commands/mod.rs</code> is the CLI-layer command-module aggregator and shared presentation/error adapter, exposing command submodules while converting template-pack data and failures into consistent terminal or JSON output. <code>main.rs</code> consumes this module as the CLI entry point; <code>examples.rs</code> and <code>templates.rs</code> consume its shared helpers to keep equivalent command paths behaviorally aligned.</p>
+<p>The module declares the command surface for composition, dispatch, examples, reports, template initialization, templates, verification, and workspace operations. Its private helpers centralize repeated CLI concerns that would otherwise diverge across subcommands:</p>
+<ul>
+<li>Formatting template-pack lists for human-readable and JSON output.</li>
+<li>Assigning stable diagnostic codes to expected configuration and template-store failures.</li>
+<li>Attaching actionable recovery hints, such as a list command, environment-variable guidance, or a path to inspect.</li>
+<li>Preserving the original <code>anyhow::Error</code> as the underlying command error.</li>
+</ul>
+<p>Although the helper functions are private to the <code>commands</code> module, Rust descendant-module visibility allows <code>examples.rs</code> and <code>templates.rs</code> to import and reuse them.</p>
+<h2>Public API</h2>
+<h3>Command submodules</h3>
+<p>All submodules are <code>pub(crate)</code>, so they are callable within the <code>sc-compose</code> crate but are not library API for external crates.</p>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>compose</code></td>
+<td>Implements rendering/composition command behavior.</td>
+</tr>
+<tr>
+<td><code>dispatch</code></td>
+<td>Routes parsed CLI commands to their command handlers.</td>
+</tr>
+<tr>
+<td><code>examples</code></td>
+<td>Lists and renders bundled example packs.</td>
+</tr>
+<tr>
+<td><code>reports</code></td>
+<td>Implements reporting-related commands.</td>
+</tr>
+<tr>
+<td><code>template_init</code></td>
+<td>Initializes template-related files or pack content.</td>
+</tr>
+<tr>
+<td><code>templates</code></td>
+<td>Lists, renders, and adds user template packs.</td>
+</tr>
+<tr>
+<td><code>verify</code></td>
+<td>Implements verification commands.</td>
+</tr>
+<tr>
+<td><code>workspace</code></td>
+<td>Implements workspace-oriented commands.</td>
+</tr>
+</tbody>
+</table>
+<h3>Shared internal helpers</h3>
+<h4><code>print_pack_list(packs: &amp;[TemplateMeta], json: bool) -&gt; anyhow::Result&lt;()&gt;</code></h4>
+<p>Renders a collection of template metadata in one of two output formats:</p>
+<ul>
+<li>With <code>json == true</code>, emits one JSON object through the crate-wide <code>print_json</code> path:</li>
+</ul>
+<p><code>json
+  {
+    "packs": [
+      { "name": "example-name", "path": "normalized/path" }
+    ]
+  }</code></p>
+<ul>
+<li>With <code>json == false</code>, prints one pack per line. The line includes whichever optional metadata is available:</li>
+</ul>
+<p><code>text
+  name - description (version)
+  name - description
+  name (version)
+  name</code></p>
+<p>The JSON representation intentionally includes only <code>name</code> and <code>path</code>; descriptions and versions are presentation-only in the current text format. Paths are passed through <code>to_forward_slash</code>, ensuring JSON output is stable across Windows and Unix-like systems.</p>
+<p>Callers:</p>
+<ul>
+<li><code>run_examples_list</code></li>
+<li><code>run_templates_list</code></li>
+</ul>
+<p>Both map any output failure to <code>CommandError::usage</code>.</p>
+<h4><code>pack_not_found_error(kind, name, list_command) -&gt; CommandError</code></h4>
+<p>Builds a structured usage error for an absent example or template pack:</p>
+<ul>
+<li>Diagnostic code: <code>ErrConfigPackNotFound</code></li>
+<li>Error message: <code>"{kind} pack</code>{name}<code>was not found"</code></li>
+<li>Recovery hint: run the supplied list command</li>
+</ul>
+<p>Examples and templates provide distinct values for <code>kind</code> and <code>list_command</code>, allowing one helper to produce context-specific guidance:</p>
+<pre><code class="language-text">example pack `starter` was not found
+recovery: run `sc-compose examples list`
+</code></pre>
+<h4><code>store_root_error(error, env_var) -&gt; CommandError</code></h4>
+<p>Converts failure while resolving a template-store root into a configuration parse error:</p>
+<ul>
+<li>Diagnostic code: <code>ErrConfigParse</code></li>
+<li>Recovery hint: review configuration by setting the named environment variable</li>
+</ul>
+<p><code>examples</code> supplies <code>SC_COMPOSE_DATA_DIR</code>; <code>templates</code> supplies <code>SC_COMPOSE_TEMPLATE_DIR</code>. The <code>&amp;'static str</code> parameter makes these environment-variable labels fixed program constants rather than dynamically sourced values.</p>
+<h4><code>pack_not_renderable_error(error) -&gt; CommandError</code></h4>
+<p>Converts a pack-discovery or pack-loading error into a non-renderable-pack error:</p>
+<ul>
+<li>Diagnostic code: <code>ErrConfigPackNotRenderable</code></li>
+<li>Recovery hint: add a <code>.j2</code> file to the template-pack directory</li>
+</ul>
+<p>This is used where a store can find a pack directory but cannot produce a usable renderable pack from it.</p>
+<h4><code>template_exists_error(destination: PathBuf) -&gt; CommandError</code></h4>
+<p>Builds the error returned when adding a user template would overwrite an existing pack:</p>
+<ul>
+<li>Diagnostic code: <code>ErrConfigTemplateExists</code></li>
+<li>Error message includes the destination path.</li>
+<li>Recovery hints instruct the user to inspect that path, then delete the existing template or choose a different name.</li>
+</ul>
+<p><code>PathBuf</code> is accepted by value because the same destination is moved into the <code>InspectPath</code> recovery hint after it is rendered into the error message.</p>
+<h2>Dependencies</h2>
+<table>
+<thead>
+<tr>
+<th>Dependency</th>
+<th>Purpose in this module</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>commands::{compose, dispatch, examples, reports, template_init, templates, verify, workspace}</code></td>
+<td>Defines the CLI command namespace and makes implementations available crate-wide.</td>
+</tr>
+<tr>
+<td><code>crate::template_store::TemplateMeta</code></td>
+<td>Supplies names, paths, descriptions, and versions for pack-list output.</td>
+</tr>
+<tr>
+<td><code>crate::path_utils::to_forward_slash</code></td>
+<td>Normalizes pack paths before JSON serialization.</td>
+</tr>
+<tr>
+<td><code>crate::print_json</code></td>
+<td>Uses the application’s shared JSON-output mechanism rather than writing JSON directly.</td>
+</tr>
+<tr>
+<td><code>crate::CommandError</code></td>
+<td>Represents CLI-facing failures with exit-code, diagnostic, and recovery-hint metadata.</td>
+</tr>
+<tr>
+<td><code>sc_composer::{DiagnosticCode, RecoveryHint, RecoveryHintKind}</code></td>
+<td>Supplies stable error codes and structured remediation guidance.</td>
+</tr>
+<tr>
+<td><code>anyhow</code></td>
+<td>Carries contextual underlying errors into <code>CommandError</code>.</td>
+</tr>
+<tr>
+<td><code>std::path::PathBuf</code></td>
+<td>Owns a conflicting template destination for diagnostic output and path inspection.</td>
+</tr>
+</tbody>
+</table>
+<p>The most important downstream relationship is with <code>CommandError::usage_with_code_and_hints</code>. Each error factory calls it so that failure reporting retains a common exit category, machine-readable diagnostic code, formatted diagnostic text, and user-facing remediation.</p>
+<h2>Usage Notes</h2>
+<h3>Listing packs</h3>
+<p>A list command resolves a <code>TemplateStore</code>, retrieves metadata, and delegates output formatting:</p>
+<ol>
+<li><code>run_examples_list</code> or <code>run_templates_list</code> creates the relevant store.</li>
+<li>Store-root resolution failures are mapped with <code>store_root_error</code>.</li>
+<li>The store returns <code>Vec&lt;TemplateMeta&gt;</code>.</li>
+<li><code>print_pack_list</code> selects text or JSON based on <code>ListArgs.json</code>.</li>
+<li>Output failures become generic usage errors at the caller boundary.</li>
+</ol>
+<p>For text output, optional fields determine the printed form. Consumers should not parse this format as a stable data interface; use <code>--json</code> where automation needs structured data.</p>
+<h3>JSON path portability</h3>
+<p>The list JSON uses slash-normalized paths even on platforms where <code>PathBuf::display()</code> would use backslashes. This makes output easier to compare in scripts, snapshots, and cross-platform documentation.</p>
+<p>A potential pitfall is assuming JSON path strings preserve native filesystem separators. They deliberately do not; they are normalized for output consistency.</p>
+<h3>Error classification and recovery</h3>
+<p>Expected user-correctable failures should flow through the appropriate factory instead of being wrapped as an unclassified <code>CommandError::usage</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Helper</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Requested example/template is absent</td>
+<td><code>pack_not_found_error</code></td>
+<td><code>ErrConfigPackNotFound</code> plus a command to list available packs.</td>
+</tr>
+<tr>
+<td>Store root cannot be resolved</td>
+<td><code>store_root_error</code></td>
+<td><code>ErrConfigParse</code> plus environment-variable guidance.</td>
+</tr>
+<tr>
+<td>Pack contains no renderable template</td>
+<td><code>pack_not_renderable_error</code></td>
+<td><code>ErrConfigPackNotRenderable</code> plus <code>.j2</code> guidance.</td>
+</tr>
+<tr>
+<td>Adding a template collides with an existing destination</td>
+<td><code>template_exists_error</code></td>
+<td><code>ErrConfigTemplateExists</code> plus path inspection and replacement guidance.</td>
+</tr>
+</tbody>
+</table>
+<p>This distinction matters for both CLI users and machine consumers: the diagnostic code identifies the failure category, while recovery hints provide the recommended next action.</p>
+<h3>Extending commands</h3>
+<p>When adding a command module:</p>
+<ol>
+<li>Add a <code>pub(crate) mod &lt;name&gt;;</code> declaration here.</li>
+<li>Keep command-specific control flow in its own module.</li>
+<li>Reuse these shared helpers when the new command has equivalent pack-list or template-store failure semantics.</li>
+<li>Add a new helper only when it represents a distinct, reusable diagnostic contract with its own code and recovery guidance.</li>
+</ol>
+<p>Avoid putting command parsing, rendering-library logic, or template-store implementation in this file. Its responsibility is command namespace composition and shared CLI adaptation, not command execution.</p>
+<h3>Empty and partial metadata</h3>
+<p><code>print_pack_list</code> handles an empty slice without special output: text mode prints no lines, and JSON mode emits <code>{"packs":[]}</code>. For individual packs, absent descriptions or versions do not create placeholder text; only available metadata is shown. This avoids exposing <code>Option</code>-style implementation details to users.</p>
+</body>
+</html>

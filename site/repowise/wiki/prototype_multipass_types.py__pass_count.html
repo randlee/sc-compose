@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Symbol: prototype.multipass.types.ParsedTemplate.pass_count</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Symbol: prototype.multipass.types.ParsedTemplate.pass_count</h1>
+<h2>Purpose</h2>
+<p><code>ParsedTemplate.pass_count</code> reports how many render passes remain in a parsed multipass template. It is a read-only property derived from the template’s <code>passes</code> collection.</p>
+<h2>Signature</h2>
+<pre><code class="language-python">@property
+def pass_count(self) -&gt; int
+</code></pre>
+<h2>Parameters</h2>
+<p>This property takes no explicit parameters.</p>
+<ul>
+<li><code>self</code>: The <code>ParsedTemplate</code> instance whose remaining passes are counted.</li>
+</ul>
+<h2>Returns</h2>
+<p>Returns an <code>int</code> equal to the number of entries in <code>self.passes</code>.</p>
+<ul>
+<li><code>0</code> means no render passes remain.</li>
+<li>A positive value indicates the number of passes still available.</li>
+</ul>
+<p>Its implementation is constant in structure and delegates the count to Python’s <code>len</code>:</p>
+<pre><code class="language-python">return len(self.passes)
+</code></pre>
+<h2>Example Usage</h2>
+<pre><code class="language-python">from prototype.multipass.types import ParsedTemplate
+
+parsed = ParsedTemplate(
+    # ... template fields ...
+    passes=[&quot;first-pass&quot;, &quot;second-pass&quot;],
+)
+
+if parsed.pass_count &gt; 0:
+    print(f&quot;{parsed.pass_count} render passes remaining&quot;)
+</code></pre>
+<p>Example output:</p>
+<pre><code class="language-text">2 render passes remaining
+</code></pre>
+<p>Because <code>pass_count</code> is a property, access it without parentheses:</p>
+<pre><code class="language-python">remaining = parsed.pass_count
+</code></pre>
+</body>
+</html>

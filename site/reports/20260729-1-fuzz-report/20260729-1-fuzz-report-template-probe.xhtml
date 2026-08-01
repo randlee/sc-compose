@@ -1,0 +1,56 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session qa-fuzz-20260729-0001 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;:&quot;template-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Live worker summary: @&lt;path&gt; and &lt;&lt; delimiter examples are literal test inputs and must remain well-formed XML text.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">confirmed_bug</p>
+  <p class="summary">Two cases falsely flagged the standard Jinja loop context as an undeclared token under --strict; include syntax @&lt;path&gt; and delimiter text were also exercised.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Jinja loops, recursive @&lt;path&gt; includes, and custom &lt;&lt; delimiters</th>
+        <td>18</td>
+        <td>16/18</td>
+        <td>FAIL</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">tmpl-08</th><td><code>escape.md.j2 @&lt;..&#x2f;outside-escape.md&gt;: include path escaping confinement root</code></td><td>PASS; correctly rejected</td></tr>
+        <tr><th scope="row">tmpl-10</th><td><code>--variable-delimiters &#x27;&lt;&lt;&#x27; &#x27;&gt;&gt;&#x27; --var name=Rand</code></td><td>PASS; custom delimiters accepted</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-TP-01</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>{% for item in items %}{{ loop.index }}: {{ item }}{% endfor %}</code></dd>
+        <dt>Input</dt><dd><code>items: [&lt;one&gt;, &lt;two&gt;] &amp; optional marker</code></dd>
+        <dt>Expected</dt><dd>The loop.* Jinja builtin validates and renders under default and --strict modes.</dd>
+        <dt>Observed</dt><dd>Default mode warns and --strict mode fails with an undeclared referenced token diagnostic for loop.index.</dd>
+        <dt>Requirement / ADR</dt><dd>Existing renderer validation requirements cover declared variables but do not document loop.* builtin handling.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Update the existing requirement or add an ADR only if loop.* support is a genuine supported contract.</dd>
+        <dt>Root cause</dt><dd>The token validator treats the Jinja loop context object as an undeclared variable inside for-loops.</dd>
+        <dt>Recommended fix</dt><dd>Exclude documented loop.* builtins from undeclared-token validation and add strict-mode regression coverage.</dd>
+      </dl>
+    </article>
+  </section>
+</section>

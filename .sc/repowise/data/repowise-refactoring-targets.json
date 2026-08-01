@@ -1,0 +1,3403 @@
+repowise health — 
+/Users/randlee/Documents/github/sc-compose-worktrees/repowise-analysis
+{
+  "targets": [
+    {
+      "file_path": "crates/sc-composer/src/diagnostics.rs",
+      "score": 4.04,
+      "nloc": 150,
+      "primary_biomarker": "co_change_scatter",
+      "primary_severity": "high",
+      "primary_reason": "co-changes with 18 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)",
+      "total_impact": 5.96,
+      "effort_bucket": "M",
+      "impact_per_effort": 2.98,
+      "finding_count": 4,
+      "plans": []
+    },
+    {
+      "file_path": "crates/sc-compose/src/path_utils.rs",
+      "score": 4.5,
+      "nloc": 69,
+      "primary_biomarker": "untested_hotspot",
+      "primary_severity": "critical",
+      "primary_reason": "Hotspot with no paired test file and no coverage data \u2014 18 dependents",
+      "total_impact": 5.499,
+      "effort_bucket": "M",
+      "impact_per_effort": 2.749,
+      "finding_count": 4,
+      "plans": []
+    },
+    {
+      "file_path": "crates/sc-compose/src/reporting/output.rs",
+      "score": 3.96,
+      "nloc": 257,
+      "primary_biomarker": "prior_defect",
+      "primary_severity": "critical",
+      "primary_reason": "6 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects",
+      "total_impact": 6.036,
+      "effort_bucket": "L",
+      "impact_per_effort": 2.012,
+      "finding_count": 8,
+      "plans": [
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/reporting/output.rs",
+          "target_symbol": "output.rs:115-122",
+          "line_start": 115,
+          "line_end": 122,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/reporting/output.rs",
+                "line_start": 115,
+                "line_end": 122
+              },
+              {
+                "file": "crates/sc-compose/src/reporting/output.rs",
+                "line_start": 184,
+                "line_end": 191
+              },
+              {
+                "file": "crates/sc-compose/src/reporting/render_many.rs",
+                "line_start": 133,
+                "line_end": 140
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src/reporting"
+            },
+            "duplicated_lines": 8
+          },
+          "evidence": {
+            "occurrence_count": 3,
+            "duplicated_lines": 8,
+            "token_count": 600,
+            "co_change_count": 2,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [
+              "crates/sc-compose/src/reporting/render_many.rs"
+            ],
+            "file_count": 1,
+            "co_change_count": 2,
+            "callers": 2
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/reporting/output.rs",
+          "target_symbol": "output.rs:184-191",
+          "line_start": 184,
+          "line_end": 191,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/reporting/output.rs",
+                "line_start": 184,
+                "line_end": 191
+              },
+              {
+                "file": "crates/sc-compose/src/reporting/render_many.rs",
+                "line_start": 133,
+                "line_end": 140
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src/reporting"
+            },
+            "duplicated_lines": 8
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 8,
+            "token_count": 450,
+            "co_change_count": 2,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [
+              "crates/sc-compose/src/reporting/render_many.rs"
+            ],
+            "file_count": 1,
+            "co_change_count": 2,
+            "callers": 2
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        }
+      ]
+    },
+    {
+      "file_path": "crates/sc-compose/src/render_request.rs",
+      "score": 4.0,
+      "nloc": 323,
+      "primary_biomarker": "untested_hotspot",
+      "primary_severity": "high",
+      "primary_reason": "Hotspot with no paired test file and no coverage data \u2014 5 dependents",
+      "total_impact": 5.998,
+      "effort_bucket": "L",
+      "impact_per_effort": 1.999,
+      "finding_count": 11,
+      "plans": [
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/render_request.rs",
+          "target_symbol": "render_request.rs:240-247",
+          "line_start": 240,
+          "line_end": 247,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/render_request.rs",
+                "line_start": 240,
+                "line_end": 247
+              },
+              {
+                "file": "crates/sc-compose/src/render_request.rs",
+                "line_start": 313,
+                "line_end": 320
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src"
+            },
+            "duplicated_lines": 8
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 8,
+            "token_count": 150,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        }
+      ]
+    },
+    {
+      "file_path": "crates/sc-compose/src/reporting/mod.rs",
+      "score": 8.09,
+      "nloc": 13,
+      "primary_biomarker": "co_change_scatter",
+      "primary_severity": "medium",
+      "primary_reason": "co-changes with 8 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)",
+      "total_impact": 1.91,
+      "effort_bucket": "S",
+      "impact_per_effort": 1.91,
+      "finding_count": 3,
+      "plans": []
+    },
+    {
+      "file_path": "crates/sc-compose/src/reporting/catalog.rs",
+      "score": 4.34,
+      "nloc": 201,
+      "primary_biomarker": "prior_defect",
+      "primary_severity": "critical",
+      "primary_reason": "12 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects",
+      "total_impact": 5.66,
+      "effort_bucket": "L",
+      "impact_per_effort": 1.887,
+      "finding_count": 6,
+      "plans": [
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/reporting/catalog.rs",
+          "target_symbol": "catalog.rs:138-162",
+          "line_start": 138,
+          "line_end": 162,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/reporting/catalog.rs",
+                "line_start": 138,
+                "line_end": 162
+              },
+              {
+                "file": "crates/sc-compose/src/reporting/source_entry.rs",
+                "line_start": 62,
+                "line_end": 75
+              },
+              {
+                "file": "crates/sc-compose/src/reporting/templates.rs",
+                "line_start": 310,
+                "line_end": 329
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src/reporting"
+            },
+            "duplicated_lines": 25
+          },
+          "evidence": {
+            "occurrence_count": 3,
+            "duplicated_lines": 25,
+            "token_count": 2150,
+            "co_change_count": 4,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.6,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [
+              "crates/sc-compose/src/reporting/source_entry.rs",
+              "crates/sc-compose/src/reporting/templates.rs"
+            ],
+            "file_count": 2,
+            "co_change_count": 4,
+            "callers": 0
+          },
+          "confidence": "high",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/reporting/catalog.rs",
+          "target_symbol": "catalog.rs:33-40",
+          "line_start": 33,
+          "line_end": 40,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/reporting/catalog.rs",
+                "line_start": 33,
+                "line_end": 40
+              },
+              {
+                "file": "crates/sc-compose/src/reporting/init.rs",
+                "line_start": 27,
+                "line_end": 34
+              },
+              {
+                "file": "crates/sc-compose/src/reporting/output.rs",
+                "line_start": 37,
+                "line_end": 44
+              },
+              {
+                "file": "crates/sc-compose/src/reporting/report_context.rs",
+                "line_start": 10,
+                "line_end": 15
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src/reporting"
+            },
+            "duplicated_lines": 8
+          },
+          "evidence": {
+            "occurrence_count": 4,
+            "duplicated_lines": 8,
+            "token_count": 200,
+            "co_change_count": 4,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [
+              "crates/sc-compose/src/reporting/init.rs",
+              "crates/sc-compose/src/reporting/output.rs",
+              "crates/sc-compose/src/reporting/report_context.rs"
+            ],
+            "file_count": 3,
+            "co_change_count": 4,
+            "callers": 10
+          },
+          "confidence": "high",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/reporting/catalog.rs",
+          "target_symbol": "catalog.rs:20-27",
+          "line_start": 20,
+          "line_end": 27,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/reporting/catalog.rs",
+                "line_start": 20,
+                "line_end": 27
+              },
+              {
+                "file": "crates/sc-compose/src/reporting/init.rs",
+                "line_start": 20,
+                "line_end": 27
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src/reporting"
+            },
+            "duplicated_lines": 8
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 8,
+            "token_count": 250,
+            "co_change_count": 4,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [
+              "crates/sc-compose/src/reporting/init.rs"
+            ],
+            "file_count": 1,
+            "co_change_count": 4,
+            "callers": 3
+          },
+          "confidence": "high",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/reporting/catalog.rs",
+          "target_symbol": "catalog.rs:44-57",
+          "line_start": 44,
+          "line_end": 57,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/reporting/catalog.rs",
+                "line_start": 44,
+                "line_end": 57
+              },
+              {
+                "file": "crates/sc-compose/src/reporting/templates.rs",
+                "line_start": 33,
+                "line_end": 46
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src/reporting"
+            },
+            "duplicated_lines": 14
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 14,
+            "token_count": 350,
+            "co_change_count": 4,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [
+              "crates/sc-compose/src/reporting/templates.rs"
+            ],
+            "file_count": 1,
+            "co_change_count": 4,
+            "callers": 0
+          },
+          "confidence": "high",
+          "source_biomarker": "dry_violation"
+        }
+      ]
+    },
+    {
+      "file_path": "crates/sc-compose/src/commands/mod.rs",
+      "score": 6.35,
+      "nloc": 81,
+      "primary_biomarker": "prior_defect",
+      "primary_severity": "critical",
+      "primary_reason": "10 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects",
+      "total_impact": 3.65,
+      "effort_bucket": "M",
+      "impact_per_effort": 1.825,
+      "finding_count": 5,
+      "plans": [
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/commands/mod.rs",
+          "target_symbol": "mod.rs:1-8",
+          "line_start": 1,
+          "line_end": 8,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/commands/mod.rs",
+                "line_start": 1,
+                "line_end": 8
+              },
+              {
+                "file": "crates/sc-compose/src/reporting/mod.rs",
+                "line_start": 1,
+                "line_end": 13
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src"
+            },
+            "duplicated_lines": 13
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 13,
+            "token_count": 2100,
+            "co_change_count": 0,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.15,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [
+              "crates/sc-compose/src/reporting/mod.rs"
+            ],
+            "file_count": 1,
+            "co_change_count": 0,
+            "callers": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        }
+      ]
+    },
+    {
+      "file_path": "crates/sc-compose/src/main.rs",
+      "score": 6.5,
+      "nloc": 71,
+      "primary_biomarker": "change_entropy",
+      "primary_severity": "critical",
+      "primary_reason": "changes are scattered across noisy commits (top 4% change entropy); a strong history-based fault predictor",
+      "total_impact": 3.5,
+      "effort_bucket": "M",
+      "impact_per_effort": 1.75,
+      "finding_count": 7,
+      "plans": []
+    },
+    {
+      "file_path": "crates/sc-compose/src/var_file.rs",
+      "score": 6.5,
+      "nloc": 92,
+      "primary_biomarker": "churn_risk",
+      "primary_severity": "critical",
+      "primary_reason": "90-day churn rewrote 6.4x the file's size (588 lines over 92 NLOC, top 24% of repo churn)",
+      "total_impact": 3.5,
+      "effort_bucket": "M",
+      "impact_per_effort": 1.75,
+      "finding_count": 5,
+      "plans": []
+    },
+    {
+      "file_path": "crates/sc-composer/src/frontmatter.rs",
+      "score": 4.78,
+      "nloc": 372,
+      "primary_biomarker": "co_change_scatter",
+      "primary_severity": "high",
+      "primary_reason": "co-changes with 16 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)",
+      "total_impact": 5.225,
+      "effort_bucket": "L",
+      "impact_per_effort": 1.742,
+      "finding_count": 8,
+      "plans": []
+    },
+    {
+      "file_path": "crates/sc-compose/src/cli.rs",
+      "score": 1.55,
+      "nloc": 489,
+      "primary_biomarker": "untested_hotspot",
+      "primary_severity": "high",
+      "primary_reason": "Hotspot with no paired test file and no coverage data \u2014 9 dependents",
+      "total_impact": 8.447,
+      "effort_bucket": "XL",
+      "impact_per_effort": 1.689,
+      "finding_count": 13,
+      "plans": [
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/cli.rs",
+          "target_symbol": "cli.rs:222-245",
+          "line_start": 222,
+          "line_end": 245,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/cli.rs",
+                "line_start": 222,
+                "line_end": 245
+              },
+              {
+                "file": "crates/sc-compose/src/cli.rs",
+                "line_start": 247,
+                "line_end": 257
+              },
+              {
+                "file": "crates/sc-compose/src/commands/reports/mod.rs",
+                "line_start": 54,
+                "line_end": 62
+              },
+              {
+                "file": "crates/sc-compose/src/commands/reports/mod.rs",
+                "line_start": 74,
+                "line_end": 82
+              },
+              {
+                "file": "crates/sc-compose/src/commands/reports/mod.rs",
+                "line_start": 86,
+                "line_end": 95
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src"
+            },
+            "duplicated_lines": 24
+          },
+          "evidence": {
+            "occurrence_count": 5,
+            "duplicated_lines": 24,
+            "token_count": 1250,
+            "co_change_count": 0,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.35,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [
+              "crates/sc-compose/src/commands/reports/mod.rs"
+            ],
+            "file_count": 1,
+            "co_change_count": 0,
+            "callers": 6
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/cli.rs",
+          "target_symbol": "cli.rs:237-294",
+          "line_start": 237,
+          "line_end": 294,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/cli.rs",
+                "line_start": 237,
+                "line_end": 294
+              },
+              {
+                "file": "crates/sc-compose/src/commands/reports/mod.rs",
+                "line_start": 54,
+                "line_end": 62
+              },
+              {
+                "file": "crates/sc-compose/src/commands/reports/mod.rs",
+                "line_start": 74,
+                "line_end": 82
+              },
+              {
+                "file": "crates/sc-compose/src/commands/reports/mod.rs",
+                "line_start": 86,
+                "line_end": 130
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src"
+            },
+            "duplicated_lines": 58
+          },
+          "evidence": {
+            "occurrence_count": 4,
+            "duplicated_lines": 58,
+            "token_count": 11950,
+            "co_change_count": 0,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.35,
+          "effort_bucket": "M",
+          "blast_radius": {
+            "files": [
+              "crates/sc-compose/src/commands/reports/mod.rs"
+            ],
+            "file_count": 1,
+            "co_change_count": 0,
+            "callers": 6
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_method",
+          "file_path": "crates/sc-compose/src/cli.rs",
+          "target_symbol": "filtered_args_for_clap",
+          "line_start": 450,
+          "line_end": 498,
+          "plan": {
+            "span": {
+              "start": 464,
+              "end": 471
+            },
+            "params": [
+              "arg",
+              "arg_text",
+              "filtered"
+            ],
+            "returns": [],
+            "suggested_name": null
+          },
+          "evidence": {
+            "slice_nloc": 8,
+            "ccn_removed": 1
+          },
+          "impact_delta": 0.316,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "callers_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "complex_method"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/cli.rs",
+          "target_symbol": "cli.rs:150-176",
+          "line_start": 150,
+          "line_end": 176,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/cli.rs",
+                "line_start": 150,
+                "line_end": 176
+              },
+              {
+                "file": "crates/sc-compose/src/cli.rs",
+                "line_start": 228,
+                "line_end": 237
+              },
+              {
+                "file": "crates/sc-compose/src/cli.rs",
+                "line_start": 248,
+                "line_end": 257
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src"
+            },
+            "duplicated_lines": 27
+          },
+          "evidence": {
+            "occurrence_count": 3,
+            "duplicated_lines": 27,
+            "token_count": 1400,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/cli.rs",
+          "target_symbol": "cli.rs:374-383",
+          "line_start": 374,
+          "line_end": 383,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/cli.rs",
+                "line_start": 374,
+                "line_end": 383
+              },
+              {
+                "file": "crates/sc-compose/src/cli.rs",
+                "line_start": 388,
+                "line_end": 397
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src"
+            },
+            "duplicated_lines": 10
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 10,
+            "token_count": 450,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/cli.rs",
+          "target_symbol": "cli.rs:502-510",
+          "line_start": 502,
+          "line_end": 510,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/cli.rs",
+                "line_start": 502,
+                "line_end": 510
+              },
+              {
+                "file": "crates/sc-compose/src/cli.rs",
+                "line_start": 520,
+                "line_end": 526
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src"
+            },
+            "duplicated_lines": 9
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 9,
+            "token_count": 6850,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        }
+      ]
+    },
+    {
+      "file_path": "crates/sc-composer/src/init_workspace.rs",
+      "score": 5.13,
+      "nloc": 221,
+      "primary_biomarker": "co_change_scatter",
+      "primary_severity": "high",
+      "primary_reason": "co-changes with 16 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)",
+      "total_impact": 4.873,
+      "effort_bucket": "L",
+      "impact_per_effort": 1.624,
+      "finding_count": 10,
+      "plans": [
+        {
+          "refactoring_type": "extract_method",
+          "file_path": "crates/sc-composer/src/init_workspace.rs",
+          "target_symbol": "init_workspace",
+          "line_start": 14,
+          "line_end": 107,
+          "plan": {
+            "span": {
+              "start": 66,
+              "end": 98
+            },
+            "params": [
+              "canonical_root",
+              "recommendations",
+              "templates"
+            ],
+            "returns": [
+              "validation_passed"
+            ],
+            "suggested_name": null
+          },
+          "evidence": {
+            "slice_nloc": 33,
+            "ccn_removed": 3
+          },
+          "impact_delta": 0.847,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "callers_count": 0
+          },
+          "confidence": "high",
+          "source_biomarker": "complex_method"
+        }
+      ]
+    },
+    {
+      "file_path": "crates/sc-compose/src/commands/examples.rs",
+      "score": 8.45,
+      "nloc": 38,
+      "primary_biomarker": "prior_defect",
+      "primary_severity": "high",
+      "primary_reason": "3 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects",
+      "total_impact": 1.55,
+      "effort_bucket": "S",
+      "impact_per_effort": 1.55,
+      "finding_count": 2,
+      "plans": [
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/commands/examples.rs",
+          "target_symbol": "examples.rs:16-28",
+          "line_start": 16,
+          "line_end": 28,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/commands/examples.rs",
+                "line_start": 16,
+                "line_end": 28
+              },
+              {
+                "file": "crates/sc-compose/src/commands/templates.rs",
+                "line_start": 20,
+                "line_end": 32
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src/commands"
+            },
+            "duplicated_lines": 13
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 13,
+            "token_count": 1600,
+            "co_change_count": 0,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.35,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [
+              "crates/sc-compose/src/commands/templates.rs"
+            ],
+            "file_count": 1,
+            "co_change_count": 0,
+            "callers": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        }
+      ]
+    },
+    {
+      "file_path": "prototype/multipass/parser.py",
+      "score": 6.94,
+      "nloc": 103,
+      "primary_biomarker": "untested_hotspot",
+      "primary_severity": "high",
+      "primary_reason": "Hotspot with no paired test file and no coverage data \u2014 6 dependents",
+      "total_impact": 3.06,
+      "effort_bucket": "M",
+      "impact_per_effort": 1.53,
+      "finding_count": 3,
+      "plans": [
+        {
+          "refactoring_type": "extract_method",
+          "file_path": "prototype/multipass/parser.py",
+          "target_symbol": "_parse_header",
+          "line_start": 91,
+          "line_end": 141,
+          "plan": {
+            "span": {
+              "start": 117,
+              "end": 128
+            },
+            "params": [
+              "data",
+              "v"
+            ],
+            "returns": [
+              "defaults"
+            ],
+            "suggested_name": null
+          },
+          "evidence": {
+            "slice_nloc": 10,
+            "ccn_removed": 3
+          },
+          "impact_delta": 0.75,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "callers_count": 0
+          },
+          "confidence": "high",
+          "source_biomarker": "complex_method"
+        },
+        {
+          "refactoring_type": "extract_method",
+          "file_path": "prototype/multipass/parser.py",
+          "target_symbol": "parse_template",
+          "line_start": 21,
+          "line_end": 88,
+          "plan": {
+            "span": {
+              "start": 71,
+              "end": 77
+            },
+            "params": [
+              "cursor",
+              "headers",
+              "text"
+            ],
+            "returns": [
+              "body"
+            ],
+            "suggested_name": null
+          },
+          "evidence": {
+            "slice_nloc": 6,
+            "ccn_removed": 1
+          },
+          "impact_delta": 0.75,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "callers_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "complex_method"
+        }
+      ]
+    },
+    {
+      "file_path": "crates/sc-composer/src/validation.rs",
+      "score": 2.37,
+      "nloc": 1655,
+      "primary_biomarker": "nested_complexity",
+      "primary_severity": "medium",
+      "primary_reason": "discover_tokens_with_brace_count nests 4 levels deep",
+      "total_impact": 7.623,
+      "effort_bucket": "XL",
+      "impact_per_effort": 1.525,
+      "finding_count": 23,
+      "plans": [
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "validation.rs:936-955",
+          "line_start": 936,
+          "line_end": 955,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 936,
+                "line_end": 955
+              },
+              {
+                "file": "prototype/multipass/discover.py",
+                "line_start": 25,
+                "line_end": 44
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": null
+            },
+            "duplicated_lines": 20
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 20,
+            "token_count": 1550,
+            "co_change_count": 0,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [
+              "prototype/multipass/discover.py"
+            ],
+            "file_count": 1,
+            "co_change_count": 0,
+            "callers": 5
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_method",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "populate_pass_validation_maps",
+          "line_start": 563,
+          "line_end": 628,
+          "plan": {
+            "span": {
+              "start": 579,
+              "end": 627
+            },
+            "params": [
+              "expanded",
+              "root_passes",
+              "state"
+            ],
+            "returns": [],
+            "suggested_name": null
+          },
+          "evidence": {
+            "slice_nloc": 46,
+            "ccn_removed": 2
+          },
+          "impact_delta": 0.223,
+          "effort_bucket": "M",
+          "blast_radius": {
+            "callers_count": 0
+          },
+          "confidence": "high",
+          "source_biomarker": "large_method"
+        },
+        {
+          "refactoring_type": "extract_method",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "discover_tokens_with_brace_count",
+          "line_start": 777,
+          "line_end": 819,
+          "plan": {
+            "span": {
+              "start": 803,
+              "end": 815
+            },
+            "params": [
+              "after_start",
+              "delimiter",
+              "end",
+              "scopes",
+              "tokens"
+            ],
+            "returns": [],
+            "suggested_name": null
+          },
+          "evidence": {
+            "slice_nloc": 13,
+            "ccn_removed": 4
+          },
+          "impact_delta": 0.504,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "callers_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "complex_method"
+        },
+        {
+          "refactoring_type": "split_file",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "validation.rs -> 5 files",
+          "line_start": null,
+          "line_end": null,
+          "plan": {
+            "groups": [
+              {
+                "name": "discover",
+                "symbols": [
+                  "discover_all_pass_tokens",
+                  "discover_tokens",
+                  "discover_tokens_with_brace_count",
+                  "find_exact_delimiter",
+                  "find_expression_close",
+                  "find_expression_open",
+                  "frontmatter_diagnostics",
+                  "next_delimiter",
+                  "parse_for_loop_scope",
+                  "top_level_boundary_names",
+                  "validate_required_value"
+                ],
+                "suggested_file": "crates/sc-composer/src/discover.rs"
+              },
+              {
+                "name": "diagnostics",
+                "symbols": [
+                  "collect_validation_state",
+                  "default_usage_diagnostics",
+                  "file_references_variables",
+                  "merge_frontmatter",
+                  "missing_frontmatter_warnings",
+                  "missing_required_diagnostic",
+                  "missing_required_path_diagnostics",
+                  "push_extra_input_diagnostics",
+                  "required_path_diagnostic",
+                  "validate_expanded"
+                ],
+                "suggested_file": "crates/sc-composer/src/diagnostics.rs"
+              },
+              {
+                "name": "current",
+                "symbols": [
+                  "current_hostname",
+                  "current_username",
+                  "format_render_date",
+                  "format_render_timestamp",
+                  "inject_builtin_vars",
+                  "render_date_fallback",
+                  "render_timestamp_fallback"
+                ],
+                "suggested_file": "crates/sc-composer/src/current.rs"
+              },
+              {
+                "name": "builtin",
+                "symbols": [
+                  "collect_identifiers",
+                  "declare_builtin_variables",
+                  "insert_builtin_var",
+                  "required_variable_location",
+                  "top_level_variable_name",
+                  "validate_required_path"
+                ],
+                "suggested_file": "crates/sc-composer/src/builtin.rs"
+              },
+              {
+                "name": "default",
+                "symbols": [
+                  "default_satisfies_path",
+                  "default_used_by_reference",
+                  "per_pass_referenced_variables",
+                  "populate_pass_validation_maps",
+                  "undeclared_referenced_variables"
+                ],
+                "suggested_file": "crates/sc-composer/src/default.rs"
+              }
+            ],
+            "residual": null,
+            "shim_required": true
+          },
+          "evidence": {
+            "file_nloc": 1655,
+            "symbol_count": 39,
+            "group_count": 5,
+            "modularity": 0.468,
+            "intra_edges": 120,
+            "cut_edges": 71,
+            "cochange_edges": 91,
+            "import_edges": 114
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "XL",
+          "blast_radius": {
+            "dependent_files": [
+              "bindings/python/src/lib.rs",
+              "bindings/python/src/types/results.rs",
+              "crates/sc-composer/src/frontmatter_init.rs",
+              "crates/sc-composer/src/lib.rs",
+              "crates/sc-composer/src/renderer.rs"
+            ],
+            "dependent_count": 5,
+            "import_rewrites": 5
+          },
+          "confidence": "high",
+          "source_biomarker": ""
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "validation.rs:1044-1055",
+          "line_start": 1044,
+          "line_end": 1055,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1044,
+                "line_end": 1055
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1457,
+                "line_end": 1468
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1487,
+                "line_end": 1498
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 12
+          },
+          "evidence": {
+            "occurrence_count": 3,
+            "duplicated_lines": 12,
+            "token_count": 450,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "validation.rs:1106-1121",
+          "line_start": 1106,
+          "line_end": 1121,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1106,
+                "line_end": 1121
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1150,
+                "line_end": 1159
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1190,
+                "line_end": 1200
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1242,
+                "line_end": 1257
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 16
+          },
+          "evidence": {
+            "occurrence_count": 4,
+            "duplicated_lines": 16,
+            "token_count": 6300,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "validation.rs:1150-1165",
+          "line_start": 1150,
+          "line_end": 1165,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1150,
+                "line_end": 1165
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1190,
+                "line_end": 1200
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1242,
+                "line_end": 1257
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 16
+          },
+          "evidence": {
+            "occurrence_count": 3,
+            "duplicated_lines": 16,
+            "token_count": 3700,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "validation.rs:1191-1206",
+          "line_start": 1191,
+          "line_end": 1206,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1191,
+                "line_end": 1206
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1242,
+                "line_end": 1257
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 16
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 16,
+            "token_count": 1900,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "validation.rs:1355-1377",
+          "line_start": 1355,
+          "line_end": 1377,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1355,
+                "line_end": 1377
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1388,
+                "line_end": 1410
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 23
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 23,
+            "token_count": 4400,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "validation.rs:1457-1475",
+          "line_start": 1457,
+          "line_end": 1475,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1457,
+                "line_end": 1475
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1487,
+                "line_end": 1503
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 19
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 19,
+            "token_count": 2400,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "validation.rs:1512-1522",
+          "line_start": 1512,
+          "line_end": 1522,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1512,
+                "line_end": 1522
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1535,
+                "line_end": 1542
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1558,
+                "line_end": 1567
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1734,
+                "line_end": 1741
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 11
+          },
+          "evidence": {
+            "occurrence_count": 4,
+            "duplicated_lines": 11,
+            "token_count": 2450,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "validation.rs:1524-1552",
+          "line_start": 1524,
+          "line_end": 1552,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1524,
+                "line_end": 1552
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1594,
+                "line_end": 1605
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1734,
+                "line_end": 1741
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 29
+          },
+          "evidence": {
+            "occurrence_count": 3,
+            "duplicated_lines": 29,
+            "token_count": 1800,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "validation.rs:1561-1575",
+          "line_start": 1561,
+          "line_end": 1575,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1561,
+                "line_end": 1575
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1734,
+                "line_end": 1740
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 15
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 15,
+            "token_count": 1100,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "validation.rs:1582-1593",
+          "line_start": 1582,
+          "line_end": 1593,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1582,
+                "line_end": 1593
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1605,
+                "line_end": 1612
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1631,
+                "line_end": 1641
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 12
+          },
+          "evidence": {
+            "occurrence_count": 3,
+            "duplicated_lines": 12,
+            "token_count": 4350,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "validation.rs:1605-1615",
+          "line_start": 1605,
+          "line_end": 1615,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1605,
+                "line_end": 1615
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1631,
+                "line_end": 1641
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 11
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 11,
+            "token_count": 2200,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "validation.rs:1617-1625",
+          "line_start": 1617,
+          "line_end": 1625,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1617,
+                "line_end": 1625
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1643,
+                "line_end": 1651
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 9
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 9,
+            "token_count": 650,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "validation.rs:390-400",
+          "line_start": 390,
+          "line_end": 400,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 390,
+                "line_end": 400
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 406,
+                "line_end": 416
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 11
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 11,
+            "token_count": 400,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/validation.rs",
+          "target_symbol": "validation.rs:999-1009",
+          "line_start": 999,
+          "line_end": 1009,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 999,
+                "line_end": 1009
+              },
+              {
+                "file": "crates/sc-composer/src/validation.rs",
+                "line_start": 1295,
+                "line_end": 1306
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 12
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 12,
+            "token_count": 300,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        }
+      ]
+    },
+    {
+      "file_path": "bindings/python/python/sc_compose/__init__.py",
+      "score": 7.14,
+      "nloc": 112,
+      "primary_biomarker": "untested_hotspot",
+      "primary_severity": "high",
+      "primary_reason": "Hotspot with no paired test file and no coverage data \u2014 5 dependents",
+      "total_impact": 2.86,
+      "effort_bucket": "M",
+      "impact_per_effort": 1.43,
+      "finding_count": 3,
+      "plans": [
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "bindings/python/python/sc_compose/__init__.py",
+          "target_symbol": "__init__.py:2-55",
+          "line_start": 2,
+          "line_end": 55,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "bindings/python/python/sc_compose/__init__.py",
+                "line_start": 2,
+                "line_end": 55
+              },
+              {
+                "file": "crates/sc-composer/src/diagnostics.rs",
+                "line_start": 39,
+                "line_end": 96
+              },
+              {
+                "file": "crates/sc-composer/src/lib.rs",
+                "line_start": 74,
+                "line_end": 79
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": null
+            },
+            "duplicated_lines": 58
+          },
+          "evidence": {
+            "occurrence_count": 3,
+            "duplicated_lines": 58,
+            "token_count": 42050,
+            "co_change_count": 0,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "M",
+          "blast_radius": {
+            "files": [
+              "crates/sc-composer/src/diagnostics.rs",
+              "crates/sc-composer/src/lib.rs"
+            ],
+            "file_count": 2,
+            "co_change_count": 0,
+            "callers": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        }
+      ]
+    },
+    {
+      "file_path": "crates/sc-compose/src/reporting/init.rs",
+      "score": 5.75,
+      "nloc": 153,
+      "primary_biomarker": "churn_risk",
+      "primary_severity": "critical",
+      "primary_reason": "90-day churn rewrote 8.6x the file's size (1311 lines over 153 NLOC, top 7% of repo churn)",
+      "total_impact": 4.251,
+      "effort_bucket": "L",
+      "impact_per_effort": 1.417,
+      "finding_count": 10,
+      "plans": [
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/reporting/init.rs",
+          "target_symbol": "init.rs:127-138",
+          "line_start": 127,
+          "line_end": 138,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/reporting/init.rs",
+                "line_start": 127,
+                "line_end": 138
+              },
+              {
+                "file": "crates/sc-compose/src/reporting/spec.rs",
+                "line_start": 244,
+                "line_end": 255
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src/reporting"
+            },
+            "duplicated_lines": 12
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 12,
+            "token_count": 450,
+            "co_change_count": 2,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [
+              "crates/sc-compose/src/reporting/spec.rs"
+            ],
+            "file_count": 1,
+            "co_change_count": 2,
+            "callers": 4
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/reporting/init.rs",
+          "target_symbol": "init.rs:47-58",
+          "line_start": 47,
+          "line_end": 58,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/reporting/init.rs",
+                "line_start": 47,
+                "line_end": 58
+              },
+              {
+                "file": "crates/sc-compose/src/reporting/init.rs",
+                "line_start": 71,
+                "line_end": 81
+              },
+              {
+                "file": "crates/sc-compose/src/reporting/spec.rs",
+                "line_start": 158,
+                "line_end": 167
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src/reporting"
+            },
+            "duplicated_lines": 12
+          },
+          "evidence": {
+            "occurrence_count": 3,
+            "duplicated_lines": 12,
+            "token_count": 950,
+            "co_change_count": 2,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [
+              "crates/sc-compose/src/reporting/spec.rs"
+            ],
+            "file_count": 1,
+            "co_change_count": 2,
+            "callers": 4
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/reporting/init.rs",
+          "target_symbol": "init.rs:72-82",
+          "line_start": 72,
+          "line_end": 82,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/reporting/init.rs",
+                "line_start": 72,
+                "line_end": 82
+              },
+              {
+                "file": "crates/sc-compose/src/reporting/spec.rs",
+                "line_start": 158,
+                "line_end": 168
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src/reporting"
+            },
+            "duplicated_lines": 11
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 11,
+            "token_count": 800,
+            "co_change_count": 2,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [
+              "crates/sc-compose/src/reporting/spec.rs"
+            ],
+            "file_count": 1,
+            "co_change_count": 2,
+            "callers": 4
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        }
+      ]
+    },
+    {
+      "file_path": "crates/sc-composer/src/renderer.rs",
+      "score": 5.75,
+      "nloc": 169,
+      "primary_biomarker": "co_change_scatter",
+      "primary_severity": "high",
+      "primary_reason": "co-changes with 17 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)",
+      "total_impact": 4.25,
+      "effort_bucket": "L",
+      "impact_per_effort": 1.417,
+      "finding_count": 4,
+      "plans": []
+    },
+    {
+      "file_path": "crates/sc-compose/src/reporting/publish_manifest.rs",
+      "score": 5.78,
+      "nloc": 265,
+      "primary_biomarker": "prior_defect",
+      "primary_severity": "critical",
+      "primary_reason": "6 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects",
+      "total_impact": 4.225,
+      "effort_bucket": "L",
+      "impact_per_effort": 1.408,
+      "finding_count": 8,
+      "plans": []
+    },
+    {
+      "file_path": "crates/sc-composer/src/types.rs",
+      "score": 3.04,
+      "nloc": 561,
+      "primary_biomarker": "nested_complexity",
+      "primary_severity": "high",
+      "primary_reason": "validate_input_value_at nests 6 levels deep",
+      "total_impact": 6.957,
+      "effort_bucket": "XL",
+      "impact_per_effort": 1.391,
+      "finding_count": 9,
+      "plans": [
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/types.rs",
+          "target_symbol": "types.rs:194-229",
+          "line_start": 194,
+          "line_end": 229,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/types.rs",
+                "line_start": 194,
+                "line_end": 229
+              },
+              {
+                "file": "crates/sc-composer/src/types.rs",
+                "line_start": 325,
+                "line_end": 358
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 36
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 36,
+            "token_count": 5450,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.35,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/types.rs",
+          "target_symbol": "types.rs:173-185",
+          "line_start": 173,
+          "line_end": 185,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/types.rs",
+                "line_start": 173,
+                "line_end": 185
+              },
+              {
+                "file": "crates/sc-composer/src/types.rs",
+                "line_start": 249,
+                "line_end": 259
+              },
+              {
+                "file": "crates/sc-composer/src/types.rs",
+                "line_start": 309,
+                "line_end": 321
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 13
+          },
+          "evidence": {
+            "occurrence_count": 3,
+            "duplicated_lines": 13,
+            "token_count": 800,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/types.rs",
+          "target_symbol": "types.rs:246-259",
+          "line_start": 246,
+          "line_end": 259,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/types.rs",
+                "line_start": 246,
+                "line_end": 259
+              },
+              {
+                "file": "crates/sc-composer/src/types.rs",
+                "line_start": 306,
+                "line_end": 320
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 15
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 15,
+            "token_count": 500,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/types.rs",
+          "target_symbol": "types.rs:419-431",
+          "line_start": 419,
+          "line_end": 431,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/types.rs",
+                "line_start": 419,
+                "line_end": 431
+              },
+              {
+                "file": "crates/sc-composer/src/types.rs",
+                "line_start": 449,
+                "line_end": 461
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 13
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 13,
+            "token_count": 100,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/types.rs",
+          "target_symbol": "types.rs:502-515",
+          "line_start": 502,
+          "line_end": 515,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/types.rs",
+                "line_start": 502,
+                "line_end": 515
+              },
+              {
+                "file": "crates/sc-composer/src/types.rs",
+                "line_start": 566,
+                "line_end": 579
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 14
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 14,
+            "token_count": 100,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-composer/src/types.rs",
+          "target_symbol": "types.rs:665-676",
+          "line_start": 665,
+          "line_end": 676,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-composer/src/types.rs",
+                "line_start": 665,
+                "line_end": 676
+              },
+              {
+                "file": "crates/sc-composer/src/types.rs",
+                "line_start": 769,
+                "line_end": 780
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-composer/src"
+            },
+            "duplicated_lines": 12
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 12,
+            "token_count": 500,
+            "co_change_count": 0,
+            "is_intra_file": true
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [],
+            "file_count": 0,
+            "co_change_count": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        }
+      ]
+    }
+  ],
+  "refactoring_plans": [
+    {
+      "refactoring_type": "extract_helper",
+      "file_path": "crates/sc-compose/src/reporting/catalog.rs",
+      "target_symbol": "catalog.rs:138-162",
+      "line_start": 138,
+      "line_end": 162,
+      "plan": {
+        "occurrences": [
+          {
+            "file": "crates/sc-compose/src/reporting/catalog.rs",
+            "line_start": 138,
+            "line_end": 162
+          },
+          {
+            "file": "crates/sc-compose/src/reporting/source_entry.rs",
+            "line_start": 62,
+            "line_end": 75
+          },
+          {
+            "file": "crates/sc-compose/src/reporting/templates.rs",
+            "line_start": 310,
+            "line_end": 329
+          }
+        ],
+        "suggested_site": {
+          "module": null,
+          "directory": "crates/sc-compose/src/reporting"
+        },
+        "duplicated_lines": 25
+      },
+      "evidence": {
+        "occurrence_count": 3,
+        "duplicated_lines": 25,
+        "token_count": 2150,
+        "co_change_count": 4,
+        "is_intra_file": false
+      },
+      "impact_delta": 0.6,
+      "effort_bucket": "S",
+      "blast_radius": {
+        "files": [
+          "crates/sc-compose/src/reporting/source_entry.rs",
+          "crates/sc-compose/src/reporting/templates.rs"
+        ],
+        "file_count": 2,
+        "co_change_count": 4,
+        "callers": 0
+      },
+      "confidence": "high",
+      "source_biomarker": "dry_violation"
+    },
+    {
+      "refactoring_type": "extract_helper",
+      "file_path": "crates/sc-compose/src/reporting/index.rs",
+      "target_symbol": "index.rs:15-26",
+      "line_start": 15,
+      "line_end": 26,
+      "plan": {
+        "occurrences": [
+          {
+            "file": "crates/sc-compose/src/reporting/index.rs",
+            "line_start": 15,
+            "line_end": 26
+          },
+          {
+            "file": "crates/sc-compose/src/reporting/init.rs",
+            "line_start": 34,
+            "line_end": 42
+          },
+          {
+            "file": "crates/sc-compose/src/reporting/output.rs",
+            "line_start": 50,
+            "line_end": 56
+          }
+        ],
+        "suggested_site": {
+          "module": null,
+          "directory": "crates/sc-compose/src/reporting"
+        },
+        "duplicated_lines": 12
+      },
+      "evidence": {
+        "occurrence_count": 3,
+        "duplicated_lines": 12,
+        "token_count": 1700,
+        "co_change_count": 3,
+        "is_intra_file": false
+      },
+      "impact_delta": 0.35,
+      "effort_bucket": "S",
+      "blast_radius": {
+        "files": [
+          "crates/sc-compose/src/reporting/init.rs",
+          "crates/sc-compose/src/reporting/output.rs"
+        ],
+        "file_count": 2,
+        "co_change_count": 3,
+        "callers": 10
+      },
+      "confidence": "high",
+      "source_biomarker": "dry_violation"
+    },
+    {
+      "refactoring_type": "extract_helper",
+      "file_path": "crates/sc-compose/src/reporting/catalog.rs",
+      "target_symbol": "catalog.rs:33-40",
+      "line_start": 33,
+      "line_end": 40,
+      "plan": {
+        "occurrences": [
+          {
+            "file": "crates/sc-compose/src/reporting/catalog.rs",
+            "line_start": 33,
+            "line_end": 40
+          },
+          {
+            "file": "crates/sc-compose/src/reporting/init.rs",
+            "line_start": 27,
+            "line_end": 34
+          },
+          {
+            "file": "crates/sc-compose/src/reporting/output.rs",
+            "line_start": 37,
+            "line_end": 44
+          },
+          {
+            "file": "crates/sc-compose/src/reporting/report_context.rs",
+            "line_start": 10,
+            "line_end": 15
+          }
+        ],
+        "suggested_site": {
+          "module": null,
+          "directory": "crates/sc-compose/src/reporting"
+        },
+        "duplicated_lines": 8
+      },
+      "evidence": {
+        "occurrence_count": 4,
+        "duplicated_lines": 8,
+        "token_count": 200,
+        "co_change_count": 4,
+        "is_intra_file": false
+      },
+      "impact_delta": 0.0,
+      "effort_bucket": "S",
+      "blast_radius": {
+        "files": [
+          "crates/sc-compose/src/reporting/init.rs",
+          "crates/sc-compose/src/reporting/output.rs",
+          "crates/sc-compose/src/reporting/report_context.rs"
+        ],
+        "file_count": 3,
+        "co_change_count": 4,
+        "callers": 10
+      },
+      "confidence": "high",
+      "source_biomarker": "dry_violation"
+    },
+    {
+      "refactoring_type": "extract_helper",
+      "file_path": "bindings/python/src/errors.rs",
+      "target_symbol": "errors.rs:243-254",
+      "line_start": 243,
+      "line_end": 254,
+      "plan": {
+        "occurrences": [
+          {
+            "file": "bindings/python/src/errors.rs",
+            "line_start": 243,
+            "line_end": 254
+          },
+          {
+            "file": "crates/sc-composer/src/composer.rs",
+            "line_start": 532,
+            "line_end": 540
+          },
+          {
+            "file": "crates/sc-composer/src/composer.rs",
+            "line_start": 561,
+            "line_end": 569
+          },
+          {
+            "file": "crates/sc-composer/src/composer.rs",
+            "line_start": 595,
+            "line_end": 603
+          },
+          {
+            "file": "crates/sc-composer/src/composer.rs",
+            "line_start": 633,
+            "line_end": 642
+          },
+          {
+            "file": "crates/sc-composer/src/resolver.rs",
+            "line_start": 428,
+            "line_end": 436
+          },
+          {
+            "file": "crates/sc-composer/src/resolver.rs",
+            "line_start": 450,
+            "line_end": 458
+          },
+          {
+            "file": "crates/sc-composer/src/resolver.rs",
+            "line_start": 479,
+            "line_end": 490
+          },
+          {
+            "file": "crates/sc-composer/src/validate.rs",
+            "line_start": 136,
+            "line_end": 145
+          },
+          {
+            "file": "crates/sc-composer/src/verify.rs",
+            "line_start": 165,
+            "line_end": 173
+          },
+          {
+            "file": "crates/sc-composer/src/verify.rs",
+            "line_start": 196,
+            "line_end": 204
+          },
+          {
+            "file": "crates/sc-composer/src/verify.rs",
+            "line_start": 251,
+            "line_end": 259
+          },
+          {
+            "file": "crates/sc-composer/src/verify.rs",
+            "line_start": 291,
+            "line_end": 299
+          },
+          {
+            "file": "crates/sc-composer/src/verify.rs",
+            "line_start": 323,
+            "line_end": 331
+          },
+          {
+            "file": "crates/sc-composer/src/verify.rs",
+            "line_start": 354,
+            "line_end": 362
+          },
+          {
+            "file": "crates/sc-composer/src/verify.rs",
+            "line_start": 390,
+            "line_end": 399
+          }
+        ],
+        "suggested_site": {
+          "module": null,
+          "directory": null
+        },
+        "duplicated_lines": 12
+      },
+      "evidence": {
+        "occurrence_count": 16,
+        "duplicated_lines": 12,
+        "token_count": 2500,
+        "co_change_count": 0,
+        "is_intra_file": false
+      },
+      "impact_delta": 0.0,
+      "effort_bucket": "S",
+      "blast_radius": {
+        "files": [
+          "crates/sc-composer/src/composer.rs",
+          "crates/sc-composer/src/resolver.rs",
+          "crates/sc-composer/src/validate.rs",
+          "crates/sc-composer/src/verify.rs"
+        ],
+        "file_count": 4,
+        "co_change_count": 0,
+        "callers": 1
+      },
+      "confidence": "medium",
+      "source_biomarker": "dry_violation"
+    },
+    {
+      "refactoring_type": "break_cycle",
+      "file_path": "bindings/python/src/convert.rs",
+      "target_symbol": "cycle[5]: convert.rs->mod.rs, mod.rs->results.rs",
+      "line_start": null,
+      "line_end": null,
+      "plan": {
+        "cycle": [
+          "bindings/python/src/convert.rs",
+          "bindings/python/src/types/mod.rs",
+          "bindings/python/src/types/policy.rs",
+          "bindings/python/src/types/request.rs",
+          "bindings/python/src/types/results.rs"
+        ],
+        "cut_edges": [
+          {
+            "from": "bindings/python/src/convert.rs",
+            "to": "bindings/python/src/types/mod.rs"
+          },
+          {
+            "from": "bindings/python/src/types/mod.rs",
+            "to": "bindings/python/src/types/results.rs"
+          }
+        ]
+      },
+      "evidence": {
+        "cycle_size": 5,
+        "edge_count": 9,
+        "cut_count": 2
+      },
+      "impact_delta": 0.0,
+      "effort_bucket": "L",
+      "blast_radius": {
+        "files": [
+          "bindings/python/src/convert.rs",
+          "bindings/python/src/types/mod.rs",
+          "bindings/python/src/types/policy.rs",
+          "bindings/python/src/types/request.rs",
+          "bindings/python/src/types/results.rs"
+        ],
+        "file_count": 5,
+        "callers": 8
+      },
+      "confidence": "medium",
+      "source_biomarker": ""
+    },
+    {
+      "refactoring_type": "extract_helper",
+      "file_path": "crates/sc-compose/src/commands/template_init.rs",
+      "target_symbol": "template_init.rs:614-634",
+      "line_start": 614,
+      "line_end": 634,
+      "plan": {
+        "occurrences": [
+          {
+            "file": "crates/sc-compose/src/commands/template_init.rs",
+            "line_start": 614,
+            "line_end": 634
+          },
+          {
+            "file": "crates/sc-composer/src/composer.rs",
+            "line_start": 652,
+            "line_end": 672
+          },
+          {
+            "file": "crates/sc-composer/src/frontmatter_init.rs",
+            "line_start": 133,
+            "line_end": 153
+          },
+          {
+            "file": "crates/sc-composer/src/include.rs",
+            "line_start": 484,
+            "line_end": 502
+          },
+          {
+            "file": "crates/sc-composer/src/init_workspace.rs",
+            "line_start": 241,
+            "line_end": 260
+          },
+          {
+            "file": "crates/sc-composer/src/resolver.rs",
+            "line_start": 498,
+            "line_end": 518
+          },
+          {
+            "file": "crates/sc-composer/src/validate.rs",
+            "line_start": 159,
+            "line_end": 179
+          },
+          {
+            "file": "crates/sc-composer/src/validation.rs",
+            "line_start": 1831,
+            "line_end": 1850
+          },
+          {
+            "file": "crates/sc-composer/src/verify.rs",
+            "line_start": 405,
+            "line_end": 414
+          }
+        ],
+        "suggested_site": {
+          "module": null,
+          "directory": "crates"
+        },
+        "duplicated_lines": 21
+      },
+      "evidence": {
+        "occurrence_count": 9,
+        "duplicated_lines": 21,
+        "token_count": 4300,
+        "co_change_count": 2,
+        "is_intra_file": false
+      },
+      "impact_delta": 0.15,
+      "effort_bucket": "S",
+      "blast_radius": {
+        "files": [
+          "crates/sc-composer/src/composer.rs",
+          "crates/sc-composer/src/frontmatter_init.rs",
+          "crates/sc-composer/src/include.rs",
+          "crates/sc-composer/src/init_workspace.rs",
+          "crates/sc-composer/src/resolver.rs",
+          "crates/sc-composer/src/validate.rs",
+          "crates/sc-composer/src/validation.rs",
+          "crates/sc-composer/src/verify.rs"
+        ],
+        "file_count": 8,
+        "co_change_count": 2,
+        "callers": 9
+      },
+      "confidence": "medium",
+      "source_biomarker": "dry_violation"
+    },
+    {
+      "refactoring_type": "break_cycle",
+      "file_path": "crates/sc-compose/src/commands/reports/mod.rs",
+      "target_symbol": "cycle[4]: publish.rs->mod.rs, render.rs->mod.rs, scaffold.rs->mod.rs",
+      "line_start": null,
+      "line_end": null,
+      "plan": {
+        "cycle": [
+          "crates/sc-compose/src/commands/reports/mod.rs",
+          "crates/sc-compose/src/commands/reports/publish.rs",
+          "crates/sc-compose/src/commands/reports/render.rs",
+          "crates/sc-compose/src/commands/reports/scaffold.rs"
+        ],
+        "cut_edges": [
+          {
+            "from": "crates/sc-compose/src/commands/reports/publish.rs",
+            "to": "crates/sc-compose/src/commands/reports/mod.rs"
+          },
+          {
+            "from": "crates/sc-compose/src/commands/reports/render.rs",
+            "to": "crates/sc-compose/src/commands/reports/mod.rs"
+          },
+          {
+            "from": "crates/sc-compose/src/commands/reports/scaffold.rs",
+            "to": "crates/sc-compose/src/commands/reports/mod.rs"
+          }
+        ]
+      },
+      "evidence": {
+        "cycle_size": 4,
+        "edge_count": 6,
+        "cut_count": 3
+      },
+      "impact_delta": 0.0,
+      "effort_bucket": "M",
+      "blast_radius": {
+        "files": [
+          "crates/sc-compose/src/commands/reports/mod.rs",
+          "crates/sc-compose/src/commands/reports/publish.rs",
+          "crates/sc-compose/src/commands/reports/render.rs",
+          "crates/sc-compose/src/commands/reports/scaffold.rs"
+        ],
+        "file_count": 4,
+        "callers": 8
+      },
+      "confidence": "medium",
+      "source_biomarker": ""
+    },
+    {
+      "refactoring_type": "extract_helper",
+      "file_path": "crates/sc-compose/src/cli.rs",
+      "target_symbol": "cli.rs:222-245",
+      "line_start": 222,
+      "line_end": 245,
+      "plan": {
+        "occurrences": [
+          {
+            "file": "crates/sc-compose/src/cli.rs",
+            "line_start": 222,
+            "line_end": 245
+          },
+          {
+            "file": "crates/sc-compose/src/cli.rs",
+            "line_start": 247,
+            "line_end": 257
+          },
+          {
+            "file": "crates/sc-compose/src/commands/reports/mod.rs",
+            "line_start": 54,
+            "line_end": 62
+          },
+          {
+            "file": "crates/sc-compose/src/commands/reports/mod.rs",
+            "line_start": 74,
+            "line_end": 82
+          },
+          {
+            "file": "crates/sc-compose/src/commands/reports/mod.rs",
+            "line_start": 86,
+            "line_end": 95
+          }
+        ],
+        "suggested_site": {
+          "module": null,
+          "directory": "crates/sc-compose/src"
+        },
+        "duplicated_lines": 24
+      },
+      "evidence": {
+        "occurrence_count": 5,
+        "duplicated_lines": 24,
+        "token_count": 1250,
+        "co_change_count": 0,
+        "is_intra_file": false
+      },
+      "impact_delta": 0.35,
+      "effort_bucket": "S",
+      "blast_radius": {
+        "files": [
+          "crates/sc-compose/src/commands/reports/mod.rs"
+        ],
+        "file_count": 1,
+        "co_change_count": 0,
+        "callers": 6
+      },
+      "confidence": "medium",
+      "source_biomarker": "dry_violation"
+    },
+    {
+      "refactoring_type": "extract_helper",
+      "file_path": "crates/sc-compose/src/cli.rs",
+      "target_symbol": "cli.rs:237-294",
+      "line_start": 237,
+      "line_end": 294,
+      "plan": {
+        "occurrences": [
+          {
+            "file": "crates/sc-compose/src/cli.rs",
+            "line_start": 237,
+            "line_end": 294
+          },
+          {
+            "file": "crates/sc-compose/src/commands/reports/mod.rs",
+            "line_start": 54,
+            "line_end": 62
+          },
+          {
+            "file": "crates/sc-compose/src/commands/reports/mod.rs",
+            "line_start": 74,
+            "line_end": 82
+          },
+          {
+            "file": "crates/sc-compose/src/commands/reports/mod.rs",
+            "line_start": 86,
+            "line_end": 130
+          }
+        ],
+        "suggested_site": {
+          "module": null,
+          "directory": "crates/sc-compose/src"
+        },
+        "duplicated_lines": 58
+      },
+      "evidence": {
+        "occurrence_count": 4,
+        "duplicated_lines": 58,
+        "token_count": 11950,
+        "co_change_count": 0,
+        "is_intra_file": false
+      },
+      "impact_delta": 0.35,
+      "effort_bucket": "M",
+      "blast_radius": {
+        "files": [
+          "crates/sc-compose/src/commands/reports/mod.rs"
+        ],
+        "file_count": 1,
+        "co_change_count": 0,
+        "callers": 6
+      },
+      "confidence": "medium",
+      "source_biomarker": "dry_violation"
+    },
+    {
+      "refactoring_type": "extract_method",
+      "file_path": "prototype/multipass/discover.py",
+      "target_symbol": "_discover_tokens_py",
+      "line_start": 86,
+      "line_end": 137,
+      "plan": {
+        "span": {
+          "start": 116,
+          "end": 126
+        },
+        "params": [
+          "cursor",
+          "scopes",
+          "stmt_end",
+          "stmt_pos",
+          "tokens"
+        ],
+        "returns": [],
+        "suggested_name": null
+      },
+      "evidence": {
+        "slice_nloc": 11,
+        "ccn_removed": 4
+      },
+      "impact_delta": 1.452,
+      "effort_bucket": "S",
+      "blast_radius": {
+        "callers_count": 0
+      },
+      "confidence": "medium",
+      "source_biomarker": "complex_method"
+    },
+    {
+      "refactoring_type": "extract_method",
+      "file_path": "prototype/multipass/parser.py",
+      "target_symbol": "_parse_header",
+      "line_start": 91,
+      "line_end": 141,
+      "plan": {
+        "span": {
+          "start": 117,
+          "end": 128
+        },
+        "params": [
+          "data",
+          "v"
+        ],
+        "returns": [
+          "defaults"
+        ],
+        "suggested_name": null
+      },
+      "evidence": {
+        "slice_nloc": 10,
+        "ccn_removed": 3
+      },
+      "impact_delta": 0.75,
+      "effort_bucket": "S",
+      "blast_radius": {
+        "callers_count": 0
+      },
+      "confidence": "high",
+      "source_biomarker": "complex_method"
+    },
+    {
+      "refactoring_type": "extract_method",
+      "file_path": "prototype/multipass/validate_passes.py",
+      "target_symbol": "validate_passes",
+      "line_start": 65,
+      "line_end": 155,
+      "plan": {
+        "span": {
+          "start": 100,
+          "end": 154
+        },
+        "params": [
+          "contexts",
+          "diagnostics",
+          "parsed",
+          "strict"
+        ],
+        "returns": [
+          "errors"
+        ],
+        "suggested_name": null
+      },
+      "evidence": {
+        "slice_nloc": 53,
+        "ccn_removed": 13
+      },
+      "impact_delta": 1.452,
+      "effort_bucket": "M",
+      "blast_radius": {
+        "callers_count": 0
+      },
+      "confidence": "high",
+      "source_biomarker": "complex_method"
+    },
+    {
+      "refactoring_type": "break_cycle",
+      "file_path": "crates/sc-compose/src/reporting/mermaid.rs",
+      "target_symbol": "cycle[2]: spec.rs->mermaid.rs",
+      "line_start": null,
+      "line_end": null,
+      "plan": {
+        "cycle": [
+          "crates/sc-compose/src/reporting/mermaid.rs",
+          "crates/sc-compose/src/reporting/spec.rs"
+        ],
+        "cut_edges": [
+          {
+            "from": "crates/sc-compose/src/reporting/spec.rs",
+            "to": "crates/sc-compose/src/reporting/mermaid.rs"
+          }
+        ]
+      },
+      "evidence": {
+        "cycle_size": 2,
+        "edge_count": 2,
+        "cut_count": 1
+      },
+      "impact_delta": 0.0,
+      "effort_bucket": "S",
+      "blast_radius": {
+        "files": [
+          "crates/sc-compose/src/reporting/mermaid.rs",
+          "crates/sc-compose/src/reporting/spec.rs"
+        ],
+        "file_count": 2,
+        "callers": 7
+      },
+      "confidence": "high",
+      "source_biomarker": ""
+    },
+    {
+      "refactoring_type": "extract_helper",
+      "file_path": "crates/sc-compose/src/reporting/catalog.rs",
+      "target_symbol": "catalog.rs:20-27",
+      "line_start": 20,
+      "line_end": 27,
+      "plan": {
+        "occurrences": [
+          {
+            "file": "crates/sc-compose/src/reporting/catalog.rs",
+            "line_start": 20,
+            "line_end": 27
+          },
+          {
+            "file": "crates/sc-compose/src/reporting/init.rs",
+            "line_start": 20,
+            "line_end": 27
+          }
+        ],
+        "suggested_site": {
+          "module": null,
+          "directory": "crates/sc-compose/src/reporting"
+        },
+        "duplicated_lines": 8
+      },
+      "evidence": {
+        "occurrence_count": 2,
+        "duplicated_lines": 8,
+        "token_count": 250,
+        "co_change_count": 4,
+        "is_intra_file": false
+      },
+      "impact_delta": 0.0,
+      "effort_bucket": "S",
+      "blast_radius": {
+        "files": [
+          "crates/sc-compose/src/reporting/init.rs"
+        ],
+        "file_count": 1,
+        "co_change_count": 4,
+        "callers": 3
+      },
+      "confidence": "high",
+      "source_biomarker": "dry_violation"
+    },
+    {
+      "refactoring_type": "extract_helper",
+      "file_path": "crates/sc-compose/src/reporting/catalog.rs",
+      "target_symbol": "catalog.rs:44-57",
+      "line_start": 44,
+      "line_end": 57,
+      "plan": {
+        "occurrences": [
+          {
+            "file": "crates/sc-compose/src/reporting/catalog.rs",
+            "line_start": 44,
+            "line_end": 57
+          },
+          {
+            "file": "crates/sc-compose/src/reporting/templates.rs",
+            "line_start": 33,
+            "line_end": 46
+          }
+        ],
+        "suggested_site": {
+          "module": null,
+          "directory": "crates/sc-compose/src/reporting"
+        },
+        "duplicated_lines": 14
+      },
+      "evidence": {
+        "occurrence_count": 2,
+        "duplicated_lines": 14,
+        "token_count": 350,
+        "co_change_count": 4,
+        "is_intra_file": false
+      },
+      "impact_delta": 0.0,
+      "effort_bucket": "S",
+      "blast_radius": {
+        "files": [
+          "crates/sc-compose/src/reporting/templates.rs"
+        ],
+        "file_count": 1,
+        "co_change_count": 4,
+        "callers": 0
+      },
+      "confidence": "high",
+      "source_biomarker": "dry_violation"
+    },
+    {
+      "refactoring_type": "extract_helper",
+      "file_path": "bindings/python/python/sc_compose/__init__.py",
+      "target_symbol": "__init__.py:2-55",
+      "line_start": 2,
+      "line_end": 55,
+      "plan": {
+        "occurrences": [
+          {
+            "file": "bindings/python/python/sc_compose/__init__.py",
+            "line_start": 2,
+            "line_end": 55
+          },
+          {
+            "file": "crates/sc-composer/src/diagnostics.rs",
+            "line_start": 39,
+            "line_end": 96
+          },
+          {
+            "file": "crates/sc-composer/src/lib.rs",
+            "line_start": 74,
+            "line_end": 79
+          }
+        ],
+        "suggested_site": {
+          "module": null,
+          "directory": null
+        },
+        "duplicated_lines": 58
+      },
+      "evidence": {
+        "occurrence_count": 3,
+        "duplicated_lines": 58,
+        "token_count": 42050,
+        "co_change_count": 0,
+        "is_intra_file": false
+      },
+      "impact_delta": 0.0,
+      "effort_bucket": "M",
+      "blast_radius": {
+        "files": [
+          "crates/sc-composer/src/diagnostics.rs",
+          "crates/sc-composer/src/lib.rs"
+        ],
+        "file_count": 2,
+        "co_change_count": 0,
+        "callers": 0
+      },
+      "confidence": "medium",
+      "source_biomarker": "dry_violation"
+    },
+    {
+      "refactoring_type": "extract_method",
+      "file_path": "prototype/multipass/template_init.py",
+      "target_symbol": "template_init",
+      "line_start": 31,
+      "line_end": 137,
+      "plan": {
+        "span": {
+          "start": 87,
+          "end": 111
+        },
+        "params": [
+          "all_replacements",
+          "content",
+          "passes"
+        ],
+        "returns": [
+          "template_text"
+        ],
+        "suggested_name": null
+      },
+      "evidence": {
+        "slice_nloc": 22,
+        "ccn_removed": 4
+      },
+      "impact_delta": 1.192,
+      "effort_bucket": "S",
+      "blast_radius": {
+        "callers_count": 0
+      },
+      "confidence": "high",
+      "source_biomarker": "complex_method"
+    },
+    {
+      "refactoring_type": "extract_class",
+      "file_path": "crates/sc-composer/src/composer.rs",
+      "target_symbol": "CapturingObserver",
+      "line_start": 384,
+      "line_end": 404,
+      "plan": {
+        "groups": [
+          {
+            "name": null,
+            "methods": [
+              "on_resolve_attempt"
+            ],
+            "fields": [
+              "attempts"
+            ]
+          },
+          {
+            "name": null,
+            "methods": [
+              "on_resolve_outcome"
+            ],
+            "fields": [
+              "resolve"
+            ]
+          },
+          {
+            "name": null,
+            "methods": [
+              "on_include_outcome"
+            ],
+            "fields": [
+              "include"
+            ]
+          },
+          {
+            "name": null,
+            "methods": [
+              "on_validation_outcome"
+            ],
+            "fields": [
+              "validation"
+            ]
+          },
+          {
+            "name": null,
+            "methods": [
+              "on_render_outcome"
+            ],
+            "fields": [
+              "render"
+            ]
+          }
+        ]
+      },
+      "evidence": {
+        "lcom4": 5,
+        "method_count": 5,
+        "field_count": 5,
+        "wmc": 5,
+        "tcc": 0.0
+      },
+      "impact_delta": 0.6,
+      "effort_bucket": "S",
+      "blast_radius": {
+        "dependents_count": 1
+      },
+      "confidence": "high",
+      "source_biomarker": "low_cohesion"
+    },
+    {
+      "refactoring_type": "extract_method",
+      "file_path": "crates/sc-compose/src/reporting/mermaid.rs",
+      "target_symbol": "render_state_machine",
+      "line_start": 25,
+      "line_end": 73,
+      "plan": {
+        "span": {
+          "start": 32,
+          "end": 71
+        },
+        "params": [
+          "spec"
+        ],
+        "returns": [
+          "lines"
+        ],
+        "suggested_name": null
+      },
+      "evidence": {
+        "slice_nloc": 40,
+        "ccn_removed": 9
+      },
+      "impact_delta": 0.847,
+      "effort_bucket": "S",
+      "blast_radius": {
+        "callers_count": 0
+      },
+      "confidence": "high",
+      "source_biomarker": "complex_method"
+    },
+    {
+      "refactoring_type": "break_cycle",
+      "file_path": "crates/sc-compose/src/commands/dispatch.rs",
+      "target_symbol": "cycle[4]: mod.rs->dispatch.rs, mod.rs->examples.rs, templates.rs->mod.rs",
+      "line_start": null,
+      "line_end": null,
+      "plan": {
+        "cycle": [
+          "crates/sc-compose/src/commands/dispatch.rs",
+          "crates/sc-compose/src/commands/examples.rs",
+          "crates/sc-compose/src/commands/mod.rs",
+          "crates/sc-compose/src/commands/templates.rs"
+        ],
+        "cut_edges": [
+          {
+            "from": "crates/sc-compose/src/commands/mod.rs",
+            "to": "crates/sc-compose/src/commands/dispatch.rs"
+          },
+          {
+            "from": "crates/sc-compose/src/commands/mod.rs",
+            "to": "crates/sc-compose/src/commands/examples.rs"
+          },
+          {
+            "from": "crates/sc-compose/src/commands/templates.rs",
+            "to": "crates/sc-compose/src/commands/mod.rs"
+          }
+        ]
+      },
+      "evidence": {
+        "cycle_size": 4,
+        "edge_count": 7,
+        "cut_count": 3
+      },
+      "impact_delta": 0.0,
+      "effort_bucket": "M",
+      "blast_radius": {
+        "files": [
+          "crates/sc-compose/src/commands/dispatch.rs",
+          "crates/sc-compose/src/commands/examples.rs",
+          "crates/sc-compose/src/commands/mod.rs",
+          "crates/sc-compose/src/commands/templates.rs"
+        ],
+        "file_count": 4,
+        "callers": 7
+      },
+      "confidence": "medium",
+      "source_biomarker": ""
+    }
+  ]
+}

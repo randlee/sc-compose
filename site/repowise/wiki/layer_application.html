@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Layer: Application</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Layer: Application</h1>
+<p>I’ll ground the layer overview in the repository’s collaboration and memory guidance, then produce the requested Markdown page.</p>
+<h2>Overview</h2>
+<p>The Application layer is the template-composition orchestration layer: it turns caller inputs, template files, configuration, and profiles into validated rendered artifacts, structured results, and stable diagnostics for the CLI and Python binding surfaces.</p>
+<p>Its central public boundary is <code>sc-composer</code>, a pure Rust library that exposes composition, rendering, resolution, validation, verification, frontmatter parsing, include expansion, workspace initialization, and observation APIs. The layer owns the application-facing contracts that make these capabilities usable consistently across interfaces: typed requests and results, policies, validation rules, diagnostic envelopes, error families, and portable path serialization.</p>
+<p>The layer has six edge connectors. <code>crates/sc-composer/src/lib.rs</code> is the primary library façade; <code>types.rs</code> and <code>diagnostics.rs</code> define the shared machine-facing contract; <code>crates/sc-compose/src/path_utils.rs</code> and <code>command_error.rs</code> adapt that contract to CLI output and process exit behavior; and <code>bindings/python/src/errors.rs</code> adapts failures to typed Python exceptions. The Python package initializer re-exports the native binding surface as the Python-facing API.</p>
+<h2>Key Components</h2>
+<ul>
+<li>
+<p><code>crates/sc-composer/src/lib.rs</code><br />
+  Public application entry point. It re-exports the composition pipeline—<code>compose</code>, <code>render_all</code>, <code>validate</code>, <code>verify</code>, profile resolution, include expansion, frontmatter support, observers, diagnostics, errors, and typed contracts—so callers depend on a coherent library API instead of internal modules.</p>
+</li>
+<li>
+<p><code>crates/sc-composer/src/types.rs</code><br />
+  Defines the value model that crosses the layer boundary: <code>ComposeRequest</code>, <code>ComposeResult</code>, policies, modes, profile and runtime types, pass configuration, validation reports, resolution and verification results, and validated names and confinement roots. It also validates structured input values and converts YAML inputs into supported render-context values.</p>
+</li>
+<li>
+<p><code>crates/sc-composer/src/diagnostics.rs</code><br />
+  Provides versioned, machine-readable diagnostics through <code>Diagnostic</code>, <code>DiagnosticEnvelope</code>, severity levels, and stable <code>ERR_*</code>, <code>WARN_*</code>, and <code>INFO_*</code> codes. This keeps automation and user interfaces independent of unstable human-readable error text.</p>
+</li>
+<li>
+<p><code>crates/sc-composer/src/error.rs</code><br />
+  Normalizes failures from resolution, includes, validation, rendering, and configuration into crate-owned <code>ComposeError</code> variants. These errors preserve domain context and can expose a stable diagnostic code and recovery guidance.</p>
+</li>
+<li>
+<p><code>crates/sc-composer/src/path_utils.rs</code><br />
+  Converts paths to forward-slash strings, removing platform-specific path representations from serialized output, diagnostics, and binding-facing values.</p>
+</li>
+<li>
+<p><code>crates/sc-compose/src/path_utils.rs</code><br />
+  Applies CLI-specific path rules: relative-path validation, normalization, and serde serialization of individual and optional paths or path collections.</p>
+</li>
+<li>
+<p><code>crates/sc-compose/src/command_error.rs</code><br />
+  Converts application errors into CLI behavior: exit codes, diagnostic collections, and recovery hints. It distinguishes usage/configuration failures from validation or rendering failures while preserving structured diagnostics.</p>
+</li>
+<li>
+<p><code>bindings/python/src/errors.rs</code> and <code>bindings/python/python/sc_compose/__init__.py</code><br />
+  Translate library failures into typed Python exception classes such as <code>ScValidationError</code> and <code>ScResolveError</code>, exposing <code>message</code> and optional <code>code</code> attributes. The package initializer then presents the native composition API as a stable Python import surface.</p>
+</li>
+<li>
+<p><code>prototype/multipass/types.py</code><br />
+  Documents the conceptual multi-pass model: pass headers describe required variables, defaults, metadata, and delimiter depth; parsed templates retain stacked headers and body content; render contexts carry pass-specific variables. This aligns with the Rust layer’s pass configuration and staged rendering concepts.</p>
+</li>
+</ul>
+<h2>Data Flow</h2>
+<ol>
+<li>
+<p>A caller enters through the CLI, Python bindings, or directly through the <code>sc-composer</code> library façade.</p>
+</li>
+<li>
+<p>The Application layer converts raw inputs into typed contracts. Configuration, profile names, variable names, render values, paths, composition mode, and policy are validated before pipeline execution.</p>
+</li>
+<li>
+<p>The composition pipeline resolves the requested template or profile, parses frontmatter, expands includes within confinement rules, and merges caller inputs with defaults and pass-specific context.</p>
+</li>
+<li>
+<p>Validation discovers referenced variables and checks required inputs, undeclared tokens, supported value shapes, and policy constraints. Diagnostics may be emitted for defaults used, conflicting declarations, or invalid content.</p>
+</li>
+<li>
+<p>Rendering executes the resolved template for the selected pass or passes, producing rendered artifacts and composition results. Verification can compare or assess generated output as a subsequent application operation.</p>
+</li>
+<li>
+<p>Successful results are returned through shared Rust types and serialized with portable forward-slash paths. Observers can receive pass, resolution, include, render, validation, and verification events without changing the core workflow.</p>
+</li>
+<li>
+<p>Failures flow through <code>ComposeError</code> and structured diagnostics. The CLI maps them to exit codes and recovery hints; the Python binding maps them to typed <code>Sc*Error</code> exceptions; direct library consumers retain the crate-owned error and diagnostic model.</p>
+</li>
+</ol>
+<h2>Architecture Notes</h2>
+<p>The Application layer is deliberately interface-neutral at its core. <code>sc-composer</code> remains a pure rendering and composition library, while CLI parsing and process concerns stay in <code>sc-compose</code>, and Python exception mechanics stay in the binding crate. This preserves the intended dependency direction: interface layers consume the library rather than embedding interface concerns inside it.</p>
+<p>The layer depends lightly on the CLI and Types layers, while the CLI is its primary consumer, followed by Types and tests. That import pattern reflects its role as the execution and contract boundary between input-facing interfaces and lower-level template-processing behavior.</p>
+<p>Stable diagnostics are a first-class architectural contract. Consumers should use diagnostic codes, severity, envelope schema version, and structured fields for automation; messages remain useful for people but should not become the only integration point.</p>
+<p>Path handling is intentionally split. The library provides canonical forward-slash formatting for cross-platform output, while the CLI owns stricter relative-path normalization and serialization rules. This lets all consumers receive stable paths without forcing CLI-specific filesystem policy into the pure library.</p>
+<p>The multi-pass model treats each pass as a distinct rendering context with a corresponding delimiter depth. Parsed templates retain remaining pass headers until fully rendered, allowing staged composition while keeping pass requirements and defaults explicit.</p>
+</body>
+</html>

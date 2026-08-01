@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/commands/compose.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/commands/compose.rs</h1>
+<p>Acknowledged — I’m reviewing the repository documentation rules and source context, then will produce the wiki page.</p>
+<h2>Overview</h2>
+<p><code>compose.rs</code> is the CLI-layer command orchestrator for render, resolve, and validate operations; it consumes parsed command arguments and composition requests, invokes <code>sc-composer</code>, and produces terminal or JSON output, rendered files, diagnostics, and process exit codes.</p>
+<p>This high-activity, high-complexity hotspot centralizes behavior that would otherwise diverge across the <code>render</code>, <code>resolve</code>, and <code>validate</code> subcommands. <code>commands::dispatch::run</code> calls its public crate-level entry points, while this module delegates request construction to <code>render_request</code> and composition semantics to the pure <code>sc-composer</code> library.</p>
+<p>Its main responsibilities are:</p>
+<ul>
+<li>Build single-pass or multi-pass <code>ComposeRequest</code> values from CLI arguments and stdin/file inputs.</li>
+<li>Enforce CLI-only rules, including profile-only resolution and correct <code>--all</code>/<code>--pass</code> grouping.</li>
+<li>Preflight templates to inspect stacked frontmatter passes before rendering or validation.</li>
+<li>Invoke observer-aware library operations so progress/outcome telemetry remains available.</li>
+<li>Support a custom-delimiter rendering path without changing the library’s normal rendering behavior.</li>
+<li>Format success payloads, dry-run previews, warnings, validation errors, and exit statuses consistently.</li>
+</ul>
+<h2>Public API</h2>
+<p>All externally callable symbols are <code>pub(crate)</code>, so they are internal CLI command APIs rather than public crate exports.</p>
+<h3><code>run_render</code></h3>
+<pre><code class="language-rust">pub(crate) fn run_render(
+    args: &amp;RenderArgs,
+    observer: &amp;mut dyn CompositionObserver,
+) -&gt; Result&lt;i32, CommandError&gt;
+</code></pre>
+<p>Primary render command entry point.</p>
+<p>It selects one of three flows:</p>
+<ol>
+<li><code>--all</code>: parses repeated <code>--pass N</code> input groups, counts additional stdin reads needed by <code>--var-file -</code>, builds a multi-pass request, and preflights the root template.</li>
+<li>Custom delimiters: when <code>--brace-count</code> or <code>--variable-delimiters</code> is present, builds a normal request and takes the dedicated custom rendering path.</li>
+<li>Standard render: builds a request and delegates to <code>execute_render</code>.</li>
+</ol>
+<p>For multi-pass templates, <code>--all</code> requires exactly one pass-input group for every root-template pass. A template without stacked headers remains valid with <code>--all</code>, but emits <code>WarnConfigSinglePassAllFallback</code> and proceeds as a single-pass render.</p>
+<p>Potential pitfall: <code>--all</code> validation depends on the root template’s frontmatter passes, not just the number of supplied <code>--pass</code> groups. Includes do not alter this root-pass count.</p>
+<h3><code>execute_render</code></h3>
+<pre><code class="language-rust">pub(crate) fn execute_render(
+    request: &amp;ComposeRequest,
+    args: &amp;RenderBehaviorArgs,
+    observer: &amp;mut dyn CompositionObserver,
+) -&gt; Result&lt;i32, CommandError&gt;
+</code></pre>
+<p>Shared standard-render executor. It calls <code>sc_composer::compose_with_observer</code>, combines library warnings with any caller-supplied warnings, emits output, and returns the success exit code.</p>
+<p><code>execute_render_with_extra_warnings</code> is the private implementation used to attach the single-pass <code>--all</code> fallback warning without changing normal composition results.</p>
+<h3><code>run_resolve</code></h3>
+<pre><code class="language-rust">pub(crate) fn run_resolve(
+    args: &amp;ResolveArgs,
+    observer: &amp;mut dyn CompositionObserver,
+) -&gt; Result&lt;i32, CommandError&gt;
+</code></pre>
+<p>Resolve command entry point. It only accepts profile mode; file mode returns a usage error with <code>ErrConfigMode</code>.</p>
+<p>On success:</p>
+<ul>
+<li>Text mode prints the resolved template path followed by every searched path.</li>
+<li>JSON mode emits <code>resolved_path</code>, <code>search_trace</code>, and <code>found: true</code>.</li>
+<li>Paths are normalized with <code>to_forward_slash</code> in JSON output for cross-platform stability.</li>
+</ul>
+<h3><code>run_validate</code></h3>
+<pre><code class="language-rust">pub(crate) fn run_validate(
+    args: &amp;ValidateArgs,
+    observer: &amp;mut dyn CompositionObserver,
+) -&gt; Result&lt;i32, CommandError&gt;
+</code></pre>
+<p>Validation command entry point. It mirrors render’s multi-pass request construction when <code>--all</code> is supplied, then calls <code>sc_composer::validate_with_observer</code>.</p>
+<p>It aggregates warnings and errors for display but returns a status based on <code>report.ok</code>:</p>
+<ul>
+<li>Success when validation passes.</li>
+<li><code>VALIDATION_OR_RENDER_FAIL</code> when validation fails.</li>
+</ul>
+<p>Unlike rendering, validation reports diagnostics instead of converting validation failures into <code>CommandError</code>, except for failures that prevent building or executing the request.</p>
+<h2>Dependencies</h2>
+<table>
+<thead>
+<tr>
+<th>Dependency</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>crate::cli</code></td>
+<td>Supplies <code>RenderArgs</code>, <code>ResolveArgs</code>, <code>ValidateArgs</code>, shared render behavior, mode selection, and <code>--pass</code> parsing.</td>
+</tr>
+<tr>
+<td><code>crate::render_request</code></td>
+<td>Builds single- and multi-pass requests and reads template/variable blocks, including stdin-aware input handling.</td>
+</tr>
+<tr>
+<td><code>crate::path_utils::to_forward_slash</code></td>
+<td>Normalizes JSON path output across operating systems.</td>
+</tr>
+<tr>
+<td><code>crate::{CommandError, print_diagnostic_messages, print_json}</code></td>
+<td>Provides CLI error translation and output formatting.</td>
+</tr>
+<tr>
+<td><code>sc_composer</code></td>
+<td>Supplies composition, resolution, validation, include expansion, parsing, rendering, diagnostics, and observer event types.</td>
+</tr>
+<tr>
+<td><code>anyhow</code></td>
+<td>Adds contextual errors for invalid arguments, filesystem writes, metadata reads, and size conversions.</td>
+</tr>
+<tr>
+<td><code>std::fs</code></td>
+<td>Writes explicit output files, reads existing output for dry-run change detection, and obtains written byte counts.</td>
+</tr>
+<tr>
+<td><code>time</code> and environment variables</td>
+<td>Populate runtime variables for custom-delimiter rendering.</td>
+</tr>
+</tbody>
+</table>
+<p>The module intentionally keeps command orchestration in <code>sc-compose</code>; the underlying <code>sc-composer</code> crate remains responsible for composition semantics rather than CLI parsing or terminal output.</p>
+<h2>Usage Notes</h2>
+<h3>Standard render</h3>
+<p>A normal render builds a request from the common CLI arguments plus template/input blocks, then uses the library’s standard composition pipeline:</p>
+<pre><code class="language-text">dispatch::run
+  → compose::run_render
+  → render_request::build_request
+  → sc_composer::compose_with_observer
+  → emit_render_output
+</code></pre>
+<p>Without <code>--output</code>, rendered text is printed to stdout. With <code>--output path</code>, the text is written to that exact path and the module reports the file’s actual byte count in JSON mode.</p>
+<h3>Multi-pass render with <code>--all</code></h3>
+<p>For a template with stacked frontmatter passes, supply one ordered <code>--pass N</code> group for each root pass:</p>
+<pre><code class="language-text">sc-compose render profile-name --all \
+  --pass 1 --var-file first.json \
+  --pass 2 --var-file second.json
+</code></pre>
+<p>The module preflights the expanded template before composition to determine the root pass count.</p>
+<ul>
+<li>Too few or too many pass groups fails with <code>ErrConfigParse</code>.</li>
+<li><code>--var-file -</code> is counted before input blocks are read, ensuring stdin is consumed the required number of times.</li>
+<li>If the template has zero or one root pass, <code>--all</code> is accepted as a compatibility fallback and produces a warning.</li>
+</ul>
+<h3>Resolve behavior</h3>
+<p><code>resolve</code> is specifically a profile lookup operation. Invoking it in file mode is rejected because there is no profile search to perform.</p>
+<p>Use JSON output when a caller needs a machine-readable resolution trace:</p>
+<pre><code class="language-json">{
+  &quot;resolved_path&quot;: &quot;profiles/example.md&quot;,
+  &quot;search_trace&quot;: [&quot;...&quot;],
+  &quot;found&quot;: true
+}
+</code></pre>
+<p>The <code>found</code> field is always <code>true</code> on this success path; unsuccessful resolution is surfaced as a command error instead.</p>
+<h3>Validation behavior</h3>
+<p>Validation performs request construction and, for <code>--all</code>, the same preflight checks as rendering. It does not write output.</p>
+<p>Text mode prints <code>valid</code> when there are no diagnostics. Otherwise, each diagnostic is formatted with severity, code, message, and optional source location:</p>
+<pre><code class="language-text">[warning] WARN_CODE: message (template.md:12:4)
+</code></pre>
+<p>JSON mode emits <code>valid</code> plus the collected warnings and errors through the shared JSON printer.</p>
+<h3>Custom delimiters</h3>
+<p>Custom delimiter rendering is a separate path because it must construct a <code>Renderer</code> with caller-selected delimiters after validation and include expansion.</p>
+<p>Supported inputs:</p>
+<ul>
+<li><code>--brace-count N</code> creates <code>N</code> opening and closing braces.</li>
+<li><code>--variable-delimiters OPEN CLOSE</code> uses the two explicit delimiter strings.</li>
+</ul>
+<p>The path validates first, expands includes, finds the root template frontmatter, creates a validated <code>ParsedTemplate</code>, and renders its body with a context assembled in this precedence order:</p>
+<ol>
+<li>First root-pass frontmatter defaults.</li>
+<li>Request-level default variables.</li>
+<li>Generated runtime values: <code>TEMPLATE_NAME</code>, <code>HOSTNAME</code>, <code>USERNAME</code>, <code>RENDER_DATE</code>, and <code>RENDER_TIMESTAMP</code>.</li>
+<li>Environment-derived variables.</li>
+<li>Explicit input variables.</li>
+</ol>
+<p>Later entries overwrite earlier entries with the same name. In particular, explicit input values can override defaults and generated values.</p>
+<p>This flow also emits <code>RenderOutcomeEvent</code> to the supplied observer on both success and renderer failure. Validation failures are converted into a rendering/validation command error before renderer construction.</p>
+<h3>Output and dry-run semantics</h3>
+<p><code>emit_render_output</code> handles all normal and custom render output paths.</p>
+<ul>
+<li><code>--dry-run</code> never writes a file.</li>
+<li>Dry-run calculates <code>would_change</code> by comparing rendered bytes with the current derived output file; unreadable or absent files count as changed.</li>
+<li>File-mode derived paths strip only a final <code>.j2</code> suffix.</li>
+<li>Profile-mode derived paths use <code>.prompts/&lt;profile-name&gt;-&lt;ULID&gt;.md</code> when no explicit output path is supplied.</li>
+<li>JSON dry-run includes the derived write path, change flag, template path, and complete rendered preview.</li>
+<li>Non-JSON dry-run prints template metadata, warnings, and the rendered text.</li>
+</ul>
+<p>A notable edge case is that a no-output, non-dry-run render writes nothing despite calculating a derived path; it emits rendered text to stdout. The derived path is primarily relevant to dry runs and JSON reporting.</p>
+<h3>Maintenance considerations</h3>
+<p>Because this file is both a hotspot and the junction between argument parsing, request construction, library calls, filesystem output, and diagnostics, changes should preserve alignment between render and validate flows. In particular, update both paths when changing multi-pass input rules, warning behavior, stdin consumption, output conventions, or observer event timing.</p>
+</body>
+</html>
