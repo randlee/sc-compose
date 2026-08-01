@@ -13,7 +13,8 @@ pub(crate) fn run_verify(
 ) -> Result<i32, CommandError> {
     let common = effective_common_args(args)?;
     let result = if args.all {
-        let pass_inputs = parse_pass_inputs("verify").map_err(pass_inputs_parse_error)?;
+        let pass_inputs =
+            parse_pass_inputs(std::env::args_os(), "verify").map_err(pass_inputs_parse_error)?;
         let mut request = build_multi_pass_request(
             &common,
             (None, None),

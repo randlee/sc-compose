@@ -22,7 +22,8 @@ pub(crate) fn run_render(
     observer: &mut dyn CompositionObserver,
 ) -> Result<i32, CommandError> {
     if args.all {
-        let pass_inputs = parse_pass_inputs("render").map_err(pass_inputs_parse_error)?;
+        let pass_inputs =
+            parse_pass_inputs(std::env::args_os(), "render").map_err(pass_inputs_parse_error)?;
         let stdin_reads = pass_inputs
             .iter()
             .flat_map(|pass| pass.var_files.iter())
@@ -143,7 +144,8 @@ pub(crate) fn run_validate(
     observer: &mut dyn CompositionObserver,
 ) -> Result<i32, CommandError> {
     let request = if args.all {
-        let pass_inputs = parse_pass_inputs("validate").map_err(pass_inputs_parse_error)?;
+        let pass_inputs =
+            parse_pass_inputs(std::env::args_os(), "validate").map_err(pass_inputs_parse_error)?;
         let stdin_reads = pass_inputs
             .iter()
             .flat_map(|pass| pass.var_files.iter())
