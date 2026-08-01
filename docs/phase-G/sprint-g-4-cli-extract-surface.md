@@ -1,13 +1,13 @@
 ---
-id: G.3
+id: G.4
 title: CLI Extract Surface
 status: planned
-branch: sprint/g-3-cli-extract-surface
-worktree: ../sc-compose-worktrees/sprint/g-3-cli-extract-surface
+branch: sprint/g-4-cli-extract-surface
+worktree: ../sc-compose-worktrees/sprint/g-4-cli-extract-surface
 target: develop
 ---
 
-# Sprint G.3 — CLI Extract Surface
+# Sprint G.4 — CLI Extract Surface
 
 ## Goal
 
@@ -18,8 +18,8 @@ results without writing files or invoking the renderer.
 
 ## Hard dependencies
 
-- G.1's public contract and G.2's XML engine must be merged into the working
-  baseline.
+- G.1's public contract, G.2's XML engine, and G.3's Python-facing API
+  contract must be merged into the working baseline.
 - Existing CLI command dispatch, JSON capability mapping, error-code registry,
   and stdout-cleanliness conventions are authoritative.
 
@@ -38,20 +38,20 @@ results without writing files or invoking the renderer.
 
 ## Deliverables
 
-- `G3-D1` — Add `sc-compose extract TEMPLATE RENDERED` with repeatable
+- `G4-D1` — Add `sc-compose extract TEMPLATE RENDERED` with repeatable
   `--include NAME` and `--exclude NAME` selection, a documented XML format
   default, `--json`, and clear help text stating that the template is
   required.
-- `G3-D2` — Map file-read, malformed-output, unsupported-syntax, ambiguity,
+- `G4-D2` — Map file-read, malformed-output, unsupported-syntax, ambiguity,
   and extraction diagnostics through the existing CLI error and exit-code
   conventions; add stable registry entries where new codes are required.
-- `G3-D3` — Preserve machine-readable stdout cleanliness. JSON output must
+- `G4-D3` — Preserve machine-readable stdout cleanliness. JSON output must
   include schema version, values, occurrence provenance, confidence, warnings,
   and diagnostics; logs and incidental progress must remain off stdout.
-- `G3-D4` — Human output must identify the template/output inputs, recovered
+- `G4-D4` — Human output must identify the template/output inputs, recovered
   variables, confidence, warnings, and actionable unsupported/ambiguous
   guidance without dumping unbounded rendered content.
-- `G3-D5` — Add text and JSON integration tests for success, filtering,
+- `G4-D5` — Add text and JSON integration tests for success, filtering,
   malformed files, unsupported constructs, ambiguity, missing paths, empty
   values, exit codes, and stdout/stderr behavior.
 
@@ -88,7 +88,7 @@ second top-level error schema.
 - changes to the extraction algorithm or supported XML subset;
 - JSON/Markdown adapters or unknown-template identification;
 - typed-value inference, loop reconstruction, or output-file writes;
-- Python binding surface or external runtime integrations.
+- additional Python binding or external runtime integrations beyond G.3.
 
 ## Acceptance criteria
 

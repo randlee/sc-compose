@@ -106,13 +106,18 @@ are normative.
 2. [Sprint G.2 — Deterministic XML Extraction Engine](sprint-g-2-xml-extraction-engine.md)
    implements structural occurrence matching and the XML subset without
    relying on first-tag heuristics.
-3. [Sprint G.3 — CLI Extract Surface](sprint-g-3-cli-extract-surface.md)
+3. [Sprint G.3 — Python Extraction Bindings](sprint-g-3-python-extraction-bindings.md)
+   exposes the core extraction API to the first customer through the existing
+   PyO3 adapter without duplicating extraction semantics.
+4. [Sprint G.4 — CLI Extract Surface](sprint-g-4-cli-extract-surface.md)
    exposes the known-template workflow with text and JSON output, stable exit
    behavior, and file-boundary tests.
-4. [Sprint G.4 — Corpus Hardening and Evidence](sprint-g-4-corpus-hardening.md)
-   proves the feature against representative and adversarial fixtures,
-   updates user documentation, and records every unsupported or unresolved
-   candidate for QA review.
+5. [Sprint G.5 — Corpus and Regression Closure](sprint-g-5-corpus-hardening.md)
+   proves supported and intentionally rejected cases with deterministic Rust,
+   Python, and CLI fixtures and updates stale prototype claims.
+6. [Sprint G.6 — Adversarial Evidence and Hardening](sprint-g-6-adversarial-evidence.md)
+   runs the bounded multi-agent campaign and records every candidate,
+   classification, promotion, and unresolved owner for QA review.
 
 The sequence reflects API dependencies, not a prohibition on parallel plan
 review. Each sprint has its own acceptance and validation gate; Phase G cannot
@@ -127,7 +132,9 @@ supported, rejected, and inconclusive cases.
 - `sc-compose` remains a thin CLI over the library; it must not duplicate the
   extraction algorithm.
 - G.2 depends on the report/error contract from G.1; G.3 depends on the
-  library API from G.2; G.4 exercises the complete surface from G.3.
+  library API from G.2; G.4 depends on G.2 and may proceed after G.3's public
+  API is stable; G.5 exercises the complete Rust/Python/CLI surface; G.6
+  depends on the corpus and regression gates from G.5.
 - The existing `prototype/reverse_extract` code remains a reference fixture
   and must not be imported by production Rust or Python bindings.
 
@@ -142,6 +149,8 @@ Phase G is complete only when:
   reported deterministically and never produce fabricated values;
 - text and JSON CLI output preserve stdout cleanliness, stable diagnostics,
   and exit-code conventions;
+- the Python adapter exposes the same extraction values, occurrence
+  provenance, diagnostics, and unsupported-boundary semantics as Rust;
 - corpus and adversarial evidence includes successful cases, intentional
   boundaries, unsupported cases, and inconclusive cases;
 - `cargo fmt --all --check`, `cargo test --workspace`,
@@ -159,7 +168,6 @@ The following are not Phase-G closure requirements:
 - reconstructing loop-produced arrays or conditional input branches;
 - recovering original JSON/YAML scalar types without caller-provided hints;
 - automatic template rewriting or input-file generation;
-- Python bindings for extraction;
 - ATM-specific wrappers or runtime dependencies.
 
 These remain follow-on design candidates and must receive their own
