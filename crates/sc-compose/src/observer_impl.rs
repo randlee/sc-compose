@@ -9,8 +9,9 @@ use sc_composer::{
     RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
 use sc_observability::{
-    ActionName, Level, LogEvent, Logger, LoggingHealthReport, OBSERVATION_ENVELOPE_VERSION,
-    OutcomeLabel, ProcessIdentity, SchemaVersion, ServiceName, Stopped, TargetCategory, Timestamp,
+    ActionName, Diagnostic, ErrorCode, Level, LogEvent, Logger, LoggingHealthReport,
+    OBSERVATION_ENVELOPE_VERSION, OutcomeLabel, ProcessIdentity, Remediation, SchemaVersion,
+    ServiceName, Stopped, TargetCategory, Timestamp,
 };
 use sc_observability_types::{
     DiagnosticSummary, LoggingHealthState, QueryHealthReport, QueryHealthState,
@@ -20,6 +21,16 @@ use sc_observability_types::{
 const FALLBACK_TARGET: &str = "compose.observability";
 const FALLBACK_ACTION: &str = "degraded";
 const FALLBACK_OUTCOME: &str = "failure";
+
+struct LogRecord {
+    level: Level,
+    target: &'static str,
+    action: &'static str,
+    message: &'static str,
+    outcome: Option<&'static str>,
+    diagnostic: Option<Diagnostic>,
+    fields: Map<String, Value>,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct CommandStartEvent {
@@ -84,15 +95,16 @@ impl CliObserver {
         self.logger = Some(LoggerOrStopped::Stopped(logger));
     }
 
-    fn emit_log(
-        &self,
-        level: Level,
-        target: &str,
-        action: &str,
-        message: impl Into<String>,
-        outcome: Option<&str>,
-        mut fields: Map<String, Value>,
-    ) {
+    fn emit_record(&self, record: LogRecord) {
+        let LogRecord {
+            level,
+            target,
+            action,
+            message,
+            outcome,
+            diagnostic,
+            mut fields,
+        } = record;
         let (target, action, outcome) =
             normalize_event_labels(target, action, outcome, &mut fields);
         let event = LogEvent {
@@ -102,13 +114,13 @@ impl CliObserver {
             service: self.service.clone(),
             target,
             action,
-            message: Some(message.into()),
+            message: Some(message.to_owned()),
             identity: ProcessIdentity::default(),
             trace: None,
             request_id: None,
             correlation_id: None,
             outcome,
-            diagnostic: None,
+            diagnostic,
             state_transition: None,
             fields,
         };
@@ -117,6 +129,46 @@ impl CliObserver {
             let _ignored = logger.log(event);
         }
     }
+}
+
+fn event_diagnostic(code: &str, message: &str, fields: &Map<String, Value>) -> Diagnostic {
+    Diagnostic {
+        timestamp: Timestamp::now_utc(),
+        code: ErrorCode::new_owned(code),
+        message: message.to_owned(),
+        cause: None,
+        remediation: Remediation::not_recoverable(
+            "consult the command diagnostic and correct the reported input or configuration",
+        ),
+        docs: None,
+        details: fields.clone(),
+    }
+}
+
+fn composer_diagnostic(diagnostic: &sc_composer::Diagnostic) -> Diagnostic {
+    let mut details = Map::new();
+    if let Some(path) = &diagnostic.path {
+        details.insert("path".to_owned(), json!(to_forward_slash(path)));
+    }
+    if let Some(line) = diagnostic.line {
+        details.insert("line".to_owned(), json!(line));
+    }
+    if let Some(column) = diagnostic.column {
+        details.insert("column".to_owned(), json!(column));
+    }
+    if !diagnostic.include_chain.is_empty() {
+        details.insert(
+            "include_chain".to_owned(),
+            json!(
+                diagnostic
+                    .include_chain
+                    .iter()
+                    .map(|path| to_forward_slash(path))
+                    .collect::<Vec<_>>()
+            ),
+        );
+    }
+    event_diagnostic(diagnostic.code.as_str(), &diagnostic.message, &details)
 }
 
 impl Drop for CliObserver {
@@ -129,14 +181,15 @@ impl CompositionObserver for CliObserver {
     fn on_resolve_attempt(&mut self, event: &ResolveAttemptEvent) {
         let mut fields = Map::new();
         fields.insert("template".to_owned(), json!(event.template));
-        self.emit_log(
-            Level::Info,
-            "compose.resolve",
-            "attempt",
-            "resolve attempt",
-            None,
+        self.emit_record(LogRecord {
+            level: Level::Info,
+            target: "compose.resolve",
+            action: "attempt",
+            message: "resolve attempt",
+            outcome: None,
+            diagnostic: None,
             fields,
-        );
+        });
     }
 
     fn on_resolve_outcome(&mut self, event: &ResolveOutcomeEvent) {
@@ -162,26 +215,29 @@ impl CompositionObserver for CliObserver {
         if let Some(code) = event.code {
             fields.insert("diagnostic_code".to_owned(), json!(code.as_str()));
         }
-        self.emit_log(
-            if event.code.is_some() {
+        self.emit_record(LogRecord {
+            level: if event.code.is_some() {
                 Level::Error
             } else {
                 Level::Info
             },
-            "compose.resolve",
+            target: "compose.resolve",
             action,
-            if event.code.is_some() {
+            message: if event.code.is_some() {
                 "resolve failed"
             } else {
                 "resolve completed"
             },
-            Some(if event.code.is_some() {
+            outcome: Some(if event.code.is_some() {
                 "failure"
             } else {
                 "success"
             }),
+            diagnostic: event
+                .code
+                .map(|code| event_diagnostic(code.as_str(), "resolve failed", &fields)),
             fields,
-        );
+        });
     }
 
     fn on_include_outcome(&mut self, event: &IncludeOutcomeEvent) {
@@ -214,26 +270,29 @@ impl CompositionObserver for CliObserver {
         if let Some(code) = event.code {
             fields.insert("diagnostic_code".to_owned(), json!(code.as_str()));
         }
-        self.emit_log(
-            if event.code.is_some() {
+        self.emit_record(LogRecord {
+            level: if event.code.is_some() {
                 Level::Error
             } else {
                 Level::Info
             },
-            "compose.include_expand",
+            target: "compose.include_expand",
             action,
-            if event.code.is_some() {
+            message: if event.code.is_some() {
                 "include expansion failed"
             } else {
                 "include expansion completed"
             },
-            Some(if event.code.is_some() {
+            outcome: Some(if event.code.is_some() {
                 "failure"
             } else {
                 "success"
             }),
+            diagnostic: event
+                .code
+                .map(|code| event_diagnostic(code.as_str(), "include expansion failed", &fields)),
             fields,
-        );
+        });
     }
 
     fn on_validation_outcome(&mut self, event: &ValidationOutcomeEvent) {
@@ -253,26 +312,31 @@ impl CompositionObserver for CliObserver {
                 json!(diagnostic.message.clone()),
             );
         }
-        self.emit_log(
-            if failed {
+        self.emit_record(LogRecord {
+            level: if failed {
                 Level::Error
             } else if warnings > 0 {
                 Level::Warn
             } else {
                 Level::Info
             },
-            "compose.validate",
-            if failed { "failed" } else { "completed" },
-            if failed {
+            target: "compose.validate",
+            action: if failed { "failed" } else { "completed" },
+            message: if failed {
                 "validation failed"
             } else if warnings > 0 {
                 "validation completed with warnings"
             } else {
                 "validation completed"
             },
-            Some(if failed { "failure" } else { "success" }),
+            outcome: Some(if failed { "failure" } else { "success" }),
+            diagnostic: event
+                .errors
+                .first()
+                .or_else(|| event.warnings.first())
+                .map(composer_diagnostic),
             fields,
-        );
+        });
     }
 
     fn on_render_outcome(&mut self, event: &RenderOutcomeEvent) {
@@ -284,18 +348,21 @@ impl CompositionObserver for CliObserver {
         if let Some(code) = event.code {
             fields.insert("diagnostic_code".to_owned(), json!(code.as_str()));
         }
-        self.emit_log(
-            if failed { Level::Error } else { Level::Info },
-            "compose.render",
-            if failed { "failed" } else { "completed" },
-            if failed {
+        self.emit_record(LogRecord {
+            level: if failed { Level::Error } else { Level::Info },
+            target: "compose.render",
+            action: if failed { "failed" } else { "completed" },
+            message: if failed {
                 "render failed"
             } else {
                 "render completed"
             },
-            Some(if failed { "failure" } else { "success" }),
+            outcome: Some(if failed { "failure" } else { "success" }),
+            diagnostic: event
+                .code
+                .map(|code| event_diagnostic(code.as_str(), "render failed", &fields)),
             fields,
-        );
+        });
     }
 }
 
@@ -324,14 +391,15 @@ impl CommandLifecycleObserver for CliObserver {
         let mut fields = Map::new();
         fields.insert("command".to_owned(), json!(event.command_name));
         fields.insert("json_output".to_owned(), json!(event.json_output));
-        self.emit_log(
-            Level::Info,
-            "compose.command",
-            "started",
-            "command started",
-            None,
+        self.emit_record(LogRecord {
+            level: Level::Info,
+            target: "compose.command",
+            action: "started",
+            message: "command started",
+            outcome: None,
+            diagnostic: None,
             fields,
-        );
+        });
     }
 
     fn on_command_end(&mut self, event: &CommandEndEvent) {
@@ -347,18 +415,23 @@ impl CommandLifecycleObserver for CliObserver {
         if let Some(message) = &event.diagnostic_message {
             fields.insert("diagnostic_message".to_owned(), json!(message));
         }
-        self.emit_log(
-            if success { Level::Info } else { Level::Error },
-            "compose.command",
-            if success { "completed" } else { "failed" },
-            if success {
+        self.emit_record(LogRecord {
+            level: if success { Level::Info } else { Level::Error },
+            target: "compose.command",
+            action: if success { "completed" } else { "failed" },
+            message: if success {
                 "command completed"
             } else {
                 "command failed"
             },
-            Some(if success { "success" } else { "failure" }),
+            outcome: Some(if success { "success" } else { "failure" }),
+            diagnostic: match (&event.diagnostic_code, &event.diagnostic_message) {
+                (Some(code), Some(message)) => Some(event_diagnostic(code, message, &fields)),
+                (Some(code), None) => Some(event_diagnostic(code, "command failed", &fields)),
+                _ => None,
+            },
             fields,
-        );
+        });
     }
 }
 
@@ -517,9 +590,10 @@ mod tests {
     use serde_json::Map;
 
     use super::{
-        CliObserver, CommandEndEvent, CommandLifecycleObserver, CommandStartEvent,
+        CliObserver, CommandEndEvent, CommandLifecycleObserver, CommandStartEvent, LogRecord,
         RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
-        action_name, outcome_label, schema_version, service_name, target_category,
+        action_name, normalize_event_labels, outcome_label, schema_version, service_name,
+        target_category,
     };
     use sc_composer::{
         CompositionObserver, Diagnostic, DiagnosticCode, DiagnosticSeverity, IncludeOutcomeEvent,
@@ -728,14 +802,15 @@ mod tests {
         };
         let mut observer = CliObserver::new(logger);
 
-        observer.emit_log(
-            Level::Info,
-            "compose/invalid",
-            "bad action",
-            "invalid labels",
-            Some("bad outcome"),
-            Map::new(),
-        );
+        observer.emit_record(LogRecord {
+            level: Level::Info,
+            target: "compose/invalid",
+            action: "bad action",
+            message: "invalid labels",
+            outcome: Some("bad outcome"),
+            diagnostic: None,
+            fields: Map::new(),
+        });
 
         observer.shutdown();
         let lines = read_log_lines(&observer.health().active_log_path);
@@ -752,6 +827,92 @@ mod tests {
                 .map(Vec::len),
             Some(3)
         );
+    }
+
+    #[test]
+    fn normalized_event_label_matrix_preserves_pipeline_and_command_contracts() {
+        let cases = [
+            ("compose.resolve", "attempt", None),
+            ("compose.resolve", "resolved", Some("success")),
+            ("compose.resolve", "failed", Some("failure")),
+            ("compose.include_expand", "expanded", Some("success")),
+            ("compose.include_expand", "failed", Some("failure")),
+            ("compose.validate", "completed", Some("success")),
+            ("compose.validate", "failed", Some("failure")),
+            ("compose.render", "completed", Some("success")),
+            ("compose.render", "failed", Some("failure")),
+            ("compose.command", "started", None),
+            ("compose.command", "completed", Some("success")),
+            ("compose.command", "failed", Some("failure")),
+        ];
+
+        for (target_text, action_text, outcome_text) in cases {
+            let mut fields = Map::new();
+            let (target, action, outcome) =
+                normalize_event_labels(target_text, action_text, outcome_text, &mut fields);
+            let normalized_outcome = outcome.map(|value| value.to_string());
+
+            assert_eq!(target.to_string(), target_text);
+            assert_eq!(action.to_string(), action_text);
+            assert_eq!(normalized_outcome.as_deref(), outcome_text);
+            assert!(
+                fields.is_empty(),
+                "valid labels should not add fallback fields"
+            );
+        }
+    }
+
+    #[test]
+    fn observer_callbacks_emit_failure_diagnostics() {
+        let root = temp_root("observer-callback-diagnostics");
+        let mut config = LoggerConfig::default_for(service_name(), root);
+        config.enable_console_sink = false;
+        let logger = match Logger::builder(config) {
+            Ok(builder) => builder.build(),
+            Err(error) => panic!("logger builder: {error}"),
+        };
+        let mut observer = CliObserver::new(logger);
+
+        observer.on_resolve_outcome(&ResolveOutcomeEvent {
+            resolved_path: None,
+            attempted_paths: vec![PathBuf::from("missing.md.j2")],
+            code: Some(DiagnosticCode::ErrResolveNotFound),
+        });
+        observer.on_include_outcome(&IncludeOutcomeEvent {
+            resolved_files: vec![PathBuf::from("partials/header.md.j2")],
+            include_chain: vec![PathBuf::from("template.md.j2")],
+            code: None,
+        });
+        observer.on_validation_outcome(&ValidationOutcomeEvent {
+            warnings: Vec::new(),
+            errors: vec![Diagnostic::new(
+                DiagnosticSeverity::Error,
+                DiagnosticCode::ErrValMissingRequired,
+                "name is required",
+            )],
+        });
+        observer.on_render_outcome(&RenderOutcomeEvent {
+            rendered_bytes: None,
+            code: Some(DiagnosticCode::ErrRenderWrite),
+        });
+
+        observer.shutdown();
+        let lines = read_log_lines(&observer.health().active_log_path);
+        assert_eq!(lines.len(), 4);
+
+        assert_eq!(lines[0]["action"], "failed");
+        assert_eq!(lines[0]["diagnostic"]["code"], "ERR_RESOLVE_NOT_FOUND");
+        assert_eq!(lines[0]["diagnostic"]["message"], "resolve failed");
+
+        assert_eq!(lines[1]["action"], "expanded");
+        assert!(lines[1]["diagnostic"].is_null());
+
+        assert_eq!(lines[2]["action"], "failed");
+        assert_eq!(lines[2]["diagnostic"]["code"], "ERR_VAL_MISSING_REQUIRED");
+        assert_eq!(lines[2]["diagnostic"]["message"], "name is required");
+
+        assert_eq!(lines[3]["action"], "failed");
+        assert_eq!(lines[3]["diagnostic"]["code"], "ERR_RENDER_WRITE");
     }
 
     #[test]

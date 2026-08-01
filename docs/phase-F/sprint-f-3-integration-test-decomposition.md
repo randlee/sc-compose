@@ -1,10 +1,10 @@
 ---
 id: F.3
 title: CLI Integration Test Decomposition
-status: planned
+status: complete
 branch: sprint/f-3-integration-test-decomposition
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-3-integration-test-decomposition
-target: develop
+target: integrate/phase-f
 ---
 
 # Sprint F.3 — CLI Integration Test Decomposition
@@ -14,7 +14,7 @@ target: develop
 - Reduce the extreme duplication, churn, and defect cost of the sc-compose CLI integration suites by extracting a shared test harness and decomposing cli.rs/json_cli.rs by capability while retaining every existing format-specific assertion. This sprint is strictly a test-harness/decomposition sprint: it relocates and deduplicates existing tests without adding new behavioral coverage or changing production code.
 ## Hard Dependencies
 
-- F.1, F.2, F.4, and F.5 must all merge to develop in that order before F.3 starts or rebases. F.3 is last in the Phase F test-file sequence: F.1 -> F.2 -> F.4 -> F.5 -> F.3. It decomposes the already-updated suites only after the other four sprints' test additions are present.
+- F.1, F.2, F.4, and F.5 must all merge into `integrate/phase-f` in that order before F.3 starts or rebases. F.3 is last in the Phase F test-file sequence: F.1 -> F.2 -> F.4 -> F.5 -> F.3. It decomposes the already-updated suites only after the other four sprints' test additions are present; the integration branch is merged to `develop` once Phase F closes.
 - The existing crates/sc-compose/tests/support/mod.rs, cli.rs, json_cli.rs, and current integration behavior are the baseline.
 - The test harness must remain test-only under crates/sc-compose/tests/ and must not become a production dependency or alter the sc-composer/sc-compose crate boundary.
 ## Exact Targets
@@ -55,7 +55,7 @@ silently dropped or partially deferred.
 - Design helpers around stable user workflows rather than production implementation details so future command refactors do not require rewriting every test.
 - Keep text-vs-JSON concerns explicit and avoid a helper that silently accepts either output format; shared helpers may cover mechanics, not format semantics.
 - Run the full workspace suite during the refactor and compare test counts or named coverage to detect accidental deletion.
-- Closed scope inventory: the current `cli.rs` contains 127 `fn` declarations and `json_cli.rs` contains 55. Every one is eligible only for relocation, import rewiring, or replacement of duplicated test mechanics; no test function may change production behavior, fixture contents, or expected product semantics. Capture the 182-name inventory with `rg -n '^fn ' crates/sc-compose/tests/cli.rs crates/sc-compose/tests/json_cli.rs` before the move and compare it after the move against the two entrypoints plus `crates/sc-compose/tests/cli/**/*.rs` and `crates/sc-compose/tests/json_cli/**/*.rs`.
+- Closed scope inventory: the original baseline contained 127 `fn` declarations in `cli.rs` and 55 in `json_cli.rs`; the F.4/F.4b QA fixes added five CLI and one JSON authored regressions before this sprint, so the final pre-move inventory was 132 and 56 (188 declarations). Every one is eligible only for relocation, import rewiring, or replacement of duplicated test mechanics; no test function may change production behavior, fixture contents, or expected product semantics. Capture the inventory with `rg -n '^fn ' crates/sc-compose/tests/cli.rs crates/sc-compose/tests/json_cli.rs` before the move and reconcile it after the move against the two entrypoints plus `crates/sc-compose/tests/cli/**/*.rs` and `crates/sc-compose/tests/json_cli/**/*.rs`, accounting explicitly for shared helpers moved to `tests/support`.
 - The sprint closes when that relocation/de-duplication is complete. New text/JSON equivalence-matrix authorship is explicitly outside this sprint and is listed as unnumbered follow-on work in `docs/project-plan.md`.
 ## Explicit Code Samples
 
@@ -72,6 +72,12 @@ pub fn assert_json_envelope(value: &Value);
 pub fn assert_diagnostic_code(value: &Value, code: &str);
 ```
 The support API is illustrative: helpers must stay test-only, own no production state, and leave text assertions and JSON payload assertions in their respective test modules.
+
+## Relocation Evidence
+
+- Pre-move inventory after the final F.4/F.4b/F.5b merge-forward: 132 declarations in `cli.rs` and 56 in `json_cli.rs`, for 188 total. The original 127/55 baseline is preserved in the task history; the six additional declarations are the authored F.4/F.4b regressions.
+- Post-move inventory: 121 text test declarations across `cli/{render,reports,templates,observability}.rs`, 52 JSON test declarations across `json_cli/{render,reports,templates,observability}.rs`, and the retained text-only `sprint_report_html_sample_vars` fixture helper. The 14 duplicated mechanics/helpers formerly declared in the two entrypoints are centralized in `tests/support/mod.rs` (including the two platform-specific symlink declarations), reconciling all 188 declarations with zero unexplained loss.
+- The cross-cutting smoke tests are in the observability modules as required: `reports_smoke_keeps_observability_health_green_under_logger_12` appears in both observability modules, and `release_smoke_covers_render_pipeline_and_observability_health` appears in the text observability module.
 ## This Sprint Does Not Close
 
 - This sprint does not change sc-compose runtime code, CLI behavior, diagnostics, JSON schemas, report formats, or observability contracts.

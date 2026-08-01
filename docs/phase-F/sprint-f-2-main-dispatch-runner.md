@@ -1,7 +1,7 @@
 ---
 id: F.2
 title: Main Dispatch Runner and Process Boundary
-status: planned
+status: complete
 branch: sprint/f-2-main-dispatch-runner
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-2-main-dispatch-runner
 target: develop
