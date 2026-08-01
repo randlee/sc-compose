@@ -3,14 +3,18 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::anyhow;
+use clap::Parser;
 use sc_composer::{CompositionObserver, DiagnosticCode};
 use sc_observability_types::{MaintenanceWorkerState, QueryHealthState};
 
 use crate::CommandError;
+use crate::cli::Cli;
 use crate::commands::dispatch::observe_command;
 use crate::exit_codes;
 use crate::observability::build_logger_for_root;
-use crate::observer_impl::{CommandEndEvent, CommandLifecycleObserver, CommandStartEvent};
+use crate::observer_impl::{
+    CliObserver, CommandEndEvent, CommandLifecycleObserver, CommandStartEvent,
+};
 
 #[derive(Default)]
 struct CapturingObserver {
@@ -130,6 +134,67 @@ fn shutdown_marks_query_health_unavailable() {
         observer.health().query.expect("query health present").state,
         QueryHealthState::Unavailable
     );
+    assert_eq!(
+        observer
+            .health()
+            .maintenance
+            .expect("maintenance health present")
+            .state,
+        MaintenanceWorkerState::Stopped
+    );
+}
+
+#[test]
+fn cli_runner_preserves_logger_startup_failure_code() {
+    let cli = Cli::try_parse_from(["sc-compose", "resolve", "--mode", "file"])
+        .expect("test CLI arguments");
+    let code = super::run_cli_with_logger(cli, |_wants_json| {
+        Err(CommandError::usage(anyhow!("logger startup failed")))
+    });
+
+    assert_eq!(code, exit_codes::USAGE_FAIL);
+}
+
+#[test]
+fn cli_runner_reports_text_and_json_command_errors() {
+    let text_cli = Cli::try_parse_from(["sc-compose", "resolve", "--mode", "file"])
+        .expect("test CLI arguments");
+    let text_observer = test_observer("runner-text-error");
+    let (text_code, text_observer) = super::run_cli_with_observer(text_cli, false, text_observer);
+    assert_eq!(text_code, exit_codes::USAGE_FAIL);
+    assert_observer_is_stopped(&text_observer);
+
+    let json_cli = Cli::try_parse_from(["sc-compose", "resolve", "--mode", "file", "--json"])
+        .expect("test CLI arguments");
+    let json_observer = test_observer("runner-json-error");
+    let (json_code, json_observer) = super::run_cli_with_observer(json_cli, true, json_observer);
+    assert_eq!(json_code, exit_codes::USAGE_FAIL);
+    assert_observer_is_stopped(&json_observer);
+}
+
+#[test]
+fn cli_runner_shutdown_precedes_returning_success_code() {
+    let root = temp_root("runner-success");
+    let cli = Cli::try_parse_from([
+        "sc-compose",
+        "init",
+        "--root",
+        root.to_str().expect("UTF-8 temp root"),
+        "--dry-run",
+    ])
+    .expect("test CLI arguments");
+    let observer = test_observer("runner-success");
+    let (code, observer) = super::run_cli_with_observer(cli, false, observer);
+
+    assert_eq!(code, exit_codes::SUCCESS);
+    assert_observer_is_stopped(&observer);
+}
+
+fn test_observer(label: &str) -> CliObserver {
+    CliObserver::new(build_logger_for_root(temp_root(label), false).expect("test logger"))
+}
+
+fn assert_observer_is_stopped(observer: &CliObserver) {
     assert_eq!(
         observer
             .health()

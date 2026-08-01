@@ -1,7 +1,7 @@
 ---
 id: F.4
 title: Var-File Decode and Validation Split
-status: planned
+status: complete
 branch: sprint/f-4-var-file-decode-split
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-4-var-file-decode-split
 target: develop

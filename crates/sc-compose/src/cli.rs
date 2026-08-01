@@ -348,8 +348,14 @@ pub(crate) fn parse_var(input: &str) -> Result<(String, String), String> {
     Ok((key.to_owned(), value.to_owned()))
 }
 
-pub(crate) fn parse_pass_inputs(command_name: &str) -> Result<Vec<PassInputArgs>, String> {
-    let mut args = std::env::args_os();
+pub(crate) fn parse_pass_inputs<I>(
+    args: I,
+    command_name: &str,
+) -> Result<Vec<PassInputArgs>, String>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let mut args = args.into_iter();
     let mut found_command = false;
     let mut current: Option<PassInputArgs> = None;
     let mut parsed = Vec::new();
@@ -444,12 +450,15 @@ pub(crate) fn parse_pass_inputs(command_name: &str) -> Result<Vec<PassInputArgs>
 }
 
 pub(crate) fn parse_cli() -> Cli {
-    Cli::parse_from(filtered_args_for_clap())
+    Cli::parse_from(filtered_args_for_clap(std::env::args_os()))
 }
 
-fn filtered_args_for_clap() -> Vec<OsString> {
+pub(crate) fn filtered_args_for_clap<I>(args: I) -> Vec<OsString>
+where
+    I: IntoIterator<Item = OsString>,
+{
     let mut filtered = Vec::new();
-    let mut args = std::env::args_os();
+    let mut args = args.into_iter();
     let Some(program) = args.next() else {
         return filtered;
     };
@@ -497,35 +506,261 @@ fn filtered_args_for_clap() -> Vec<OsString> {
     filtered
 }
 
+trait JsonOutputCapability {
+    fn json_output_requested(&self) -> bool;
+}
+
+impl JsonOutputCapability for Command {
+    fn json_output_requested(&self) -> bool {
+        match self {
+            Command::Render(args) => args.render.json,
+            Command::Resolve(args) => args.json,
+            Command::Validate(args) => args.json,
+            Command::Verify(args) => args.json,
+            Command::TemplateInit(args) => args.json,
+            Command::FrontmatterInit(args) => args.json,
+            Command::Init(args) => args.json,
+            Command::ObservabilityHealth(args) => args.json,
+            Command::Examples(args) => args.json_output_requested(),
+            Command::Templates(args) => args.json_output_requested(),
+            Command::Reports(args) => args.command.json_output_requested(),
+            Command::ReportRenderMany(args) => args.json,
+            Command::ReportCatalog(args) => args.json,
+        }
+    }
+}
+
+impl JsonOutputCapability for ExamplesArgs {
+    fn json_output_requested(&self) -> bool {
+        self.command.as_ref().map_or(
+            self.render.json,
+            JsonOutputCapability::json_output_requested,
+        )
+    }
+}
+
+impl JsonOutputCapability for ExamplesSubcommand {
+    fn json_output_requested(&self) -> bool {
+        match self {
+            Self::List(args) => args.json,
+        }
+    }
+}
+
+impl JsonOutputCapability for TemplatesArgs {
+    fn json_output_requested(&self) -> bool {
+        self.command.as_ref().map_or(
+            self.render.json,
+            JsonOutputCapability::json_output_requested,
+        )
+    }
+}
+
+impl JsonOutputCapability for TemplatesSubcommand {
+    fn json_output_requested(&self) -> bool {
+        match self {
+            Self::List(args) => args.json,
+            Self::Add(args) => args.json,
+        }
+    }
+}
+
+impl JsonOutputCapability for ReportsSubcommand {
+    fn json_output_requested(&self) -> bool {
+        match self {
+            ReportsSubcommand::Init(args) => args.json,
+            ReportsSubcommand::Smoke(args) => args.json,
+            ReportsSubcommand::Finalize(args) => args.json,
+            ReportsSubcommand::RenderSpec(args) => args.json,
+            ReportsSubcommand::Index(args) => args.json,
+            ReportsSubcommand::Verify(args) => args.json,
+            ReportsSubcommand::PublishManifest(args) => args.json,
+        }
+    }
+}
+
 pub(crate) fn command_wants_json(command: &Command) -> bool {
-    match command {
-        Command::Render(args) => args.render.json,
-        Command::Resolve(args) => args.json,
-        Command::Validate(args) => args.json,
-        Command::Verify(args) => args.json,
-        Command::TemplateInit(args) => args.json,
-        Command::FrontmatterInit(args) => args.json,
-        Command::Init(args) => args.json,
-        Command::ObservabilityHealth(args) => args.json,
-        Command::Examples(args) => match &args.command {
-            Some(ExamplesSubcommand::List(list_args)) => list_args.json,
-            None => args.render.json,
-        },
-        Command::Templates(args) => match &args.command {
-            Some(TemplatesSubcommand::List(list_args)) => list_args.json,
-            Some(TemplatesSubcommand::Add(add_args)) => add_args.json,
-            None => args.render.json,
-        },
-        Command::Reports(args) => match &args.command {
-            ReportsSubcommand::Init(init_args) => init_args.json,
-            ReportsSubcommand::Smoke(smoke_args) => smoke_args.json,
-            ReportsSubcommand::Finalize(finalize_args) => finalize_args.json,
-            ReportsSubcommand::RenderSpec(render_args) => render_args.json,
-            ReportsSubcommand::Index(index_args) => index_args.json,
-            ReportsSubcommand::Verify(verify_args) => verify_args.json,
-            ReportsSubcommand::PublishManifest(publish_args) => publish_args.json,
-        },
-        Command::ReportRenderMany(args) => args.json,
-        Command::ReportCatalog(args) => args.json,
+    command.json_output_requested()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn os_args(args: &[&str]) -> Vec<OsString> {
+        args.iter().map(OsString::from).collect()
+    }
+
+    fn json_capability(args: &[&str]) -> bool {
+        let cli = Cli::try_parse_from(args).expect("valid CLI arguments");
+        command_wants_json(&cli.command)
+    }
+
+    #[test]
+    fn parse_pass_inputs_accepts_mixed_syntax_and_preserves_order() {
+        let parsed = parse_pass_inputs(
+            os_args(&[
+                "sc-compose",
+                "render",
+                "--pass",
+                "1",
+                "--var",
+                "first=one",
+                "--var-file=one.json",
+                "--pass=2",
+                "--var=second=two",
+                "--var-file",
+                "two.yaml",
+            ]),
+            "render",
+        )
+        .expect("pass groups parse");
+
+        assert_eq!(
+            parsed,
+            vec![
+                PassInputArgs {
+                    pass_number: 1,
+                    vars: vec![("first".to_owned(), "one".to_owned())],
+                    var_files: vec!["one.json".to_owned()],
+                },
+                PassInputArgs {
+                    pass_number: 2,
+                    vars: vec![("second".to_owned(), "two".to_owned())],
+                    var_files: vec!["two.yaml".to_owned()],
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn parse_pass_inputs_rejects_malformed_and_misplaced_arguments() {
+        assert_eq!(
+            parse_pass_inputs(os_args(&["sc-compose", "render", "--pass"]), "render"),
+            Err("--pass requires a numeric pass number".to_owned())
+        );
+        assert_eq!(
+            parse_pass_inputs(
+                os_args(&["sc-compose", "render", "--pass", "1", "--var"]),
+                "render"
+            ),
+            Err("--var requires key=value".to_owned())
+        );
+        assert_eq!(
+            parse_pass_inputs(
+                os_args(&["sc-compose", "render", "--var=orphan=value"]),
+                "render"
+            ),
+            Err("--var must appear after --pass".to_owned())
+        );
+        assert!(
+            parse_pass_inputs(os_args(&["sc-compose", "render", "--pass=bad"]), "render")
+                .unwrap_err()
+                .starts_with("invalid pass number `bad`:")
+        );
+    }
+
+    #[test]
+    fn filtered_args_for_clap_removes_only_pass_scoped_arguments() {
+        let filtered = filtered_args_for_clap(os_args(&[
+            "sc-compose",
+            "render",
+            "--pass=1",
+            "--var=first=one",
+            "--file",
+            "template.j2",
+            "--pass",
+            "2",
+            "--var",
+            "second=two",
+            "--json",
+        ]));
+
+        assert_eq!(
+            filtered,
+            os_args(&["sc-compose", "render", "--file", "template.j2", "--json",])
+        );
+    }
+
+    #[test]
+    fn json_capability_covers_commands_and_nested_subcommands() {
+        let json_commands: &[&[&str]] = &[
+            &["sc-compose", "render", "--json"],
+            &["sc-compose", "resolve", "--json"],
+            &["sc-compose", "validate", "--json"],
+            &["sc-compose", "verify", "deployed.txt", "--json"],
+            &["sc-compose", "template-init", "template.txt", "--json"],
+            &[
+                "sc-compose",
+                "frontmatter-init",
+                "--file",
+                "template.txt",
+                "--json",
+            ],
+            &["sc-compose", "init", "--json"],
+            &["sc-compose", "observability-health", "--json"],
+            &["sc-compose", "examples", "--json"],
+            &["sc-compose", "examples", "list", "--json"],
+            &["sc-compose", "templates", "--json"],
+            &["sc-compose", "templates", "list", "--json"],
+            &["sc-compose", "templates", "add", "pack", "--json"],
+            &["sc-compose", "reports", "init", "--json"],
+            &[
+                "sc-compose",
+                "reports",
+                "smoke",
+                "--fixture",
+                "fixture",
+                "--vars",
+                "vars",
+                "--json",
+            ],
+            &[
+                "sc-compose",
+                "reports",
+                "finalize",
+                "--report-id",
+                "id",
+                "--kind",
+                "kind",
+                "--entrypoint",
+                "report.html",
+                "--json",
+            ],
+            &[
+                "sc-compose",
+                "reports",
+                "render-spec",
+                "--spec",
+                "spec.toml",
+                "--json",
+            ],
+            &["sc-compose", "reports", "index", "--json"],
+            &["sc-compose", "reports", "verify", "--json"],
+            &["sc-compose", "reports", "publish-manifest", "--json"],
+            &[
+                "sc-compose",
+                "report-render-many",
+                "--id",
+                "id",
+                "--glob",
+                "*.txt",
+                "--output-dir",
+                "out",
+                "--json",
+            ],
+            &["sc-compose", "report-catalog", "--json"],
+        ];
+
+        for args in json_commands {
+            assert!(
+                json_capability(args),
+                "expected JSON capability for {args:?}"
+            );
+        }
+
+        assert!(!json_capability(&["sc-compose", "render"]));
+        assert!(!json_capability(&["sc-compose", "examples"]));
+        assert!(!json_capability(&["sc-compose", "templates", "list"]));
     }
 }
