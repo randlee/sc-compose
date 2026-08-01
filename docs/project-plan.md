@@ -438,6 +438,30 @@ E.1 changes the runtime input contract, E.2 defines the multi-agent QA
 workflow, E.3 proves that workflow against the expanded contract, and Sprint
 157 defines the single-page multi-panel report package emitted by a session.
 
+### Phase F Sprint Plans
+
+Status:
+
+- planned follow-on maintainability work from the Repowise hotspot review at
+  `develop@113729e`
+
+Sprint entries:
+
+| ID | Sprint | Status | Branch | Worktree |
+| --- | --- | --- | --- | --- |
+| F.1 | [CLI Input Parsing and JSON Capability Seams](phase-F/sprint-f-1-cli-input-parsing.md) | planned | `sprint/f-1-cli-input-parsing` | `/Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-1-cli-input-parsing` |
+| F.2 | [Main Dispatch Runner and Process Boundary](phase-F/sprint-f-2-main-dispatch-runner.md) | planned | `sprint/f-2-main-dispatch-runner` | `/Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-2-main-dispatch-runner` |
+| F.3 | [CLI Integration Test Decomposition](phase-F/sprint-f-3-integration-test-decomposition.md) | planned | `sprint/f-3-integration-test-decomposition` | `/Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-3-integration-test-decomposition` |
+| F.4 | [Var-File Decode and Validation Split](phase-F/sprint-f-4-var-file-decode-split.md) | planned | `sprint/f-4-var-file-decode-split` | `/Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-4-var-file-decode-split` |
+| F.5 | [Observer Typed Event Builder](phase-F/sprint-f-5-observer-event-builder.md) | planned | `sprint/f-5-observer-event-builder` | `/Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-5-observer-event-builder` |
+
+F.1 through F.5 convert the five findings from the read-only Repowise review
+into one-file-or-boundary-owned implementation sprints. They preserve the
+sc-composer pure-library boundary, the Python adapter boundary, and the
+standalone observability dependency direction. F.3 is an L-sized but bounded
+test-only decomposition; implementation must split it before coding if the
+scope expands into runtime behavior or an additional boundary.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:
