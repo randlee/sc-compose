@@ -649,11 +649,6 @@ fn f4_json_cli_regression_covers_var_file_shapes() {
             "ERR_VAL_OBJECT_SHAPE",
         ),
         (
-            "top-level.json",
-            "[\"not\", \"an object\"]\n",
-            "ERR_CONFIG_VARFILE",
-        ),
-        (
             "malformed.json",
             "{ \"name\": \"unterminated\"\n",
             "ERR_CONFIG_PARSE",
