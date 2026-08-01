@@ -38,9 +38,10 @@ results without writing files or invoking the renderer.
 
 ## Deliverables
 
-- `G3-D1` — Add `sc-compose extract TEMPLATE RENDERED` with explicit
-  `--var`/include and `--exclude` selection, a documented XML format default,
-  `--json`, and clear help text stating that the template is required.
+- `G3-D1` — Add `sc-compose extract TEMPLATE RENDERED` with repeatable
+  `--include NAME` and `--exclude NAME` selection, a documented XML format
+  default, `--json`, and clear help text stating that the template is
+  required.
 - `G3-D2` — Map file-read, malformed-output, unsupported-syntax, ambiguity,
   and extraction diagnostics through the existing CLI error and exit-code
   conventions; add stable registry entries where new codes are required.
@@ -57,7 +58,7 @@ results without writing files or invoking the renderer.
 ## CLI contract
 
 ```text
-sc-compose extract TEMPLATE.xml.j2 RENDERED.xml [--var NAME]...
+sc-compose extract TEMPLATE.xml.j2 RENDERED.xml [--include NAME]...
     [--exclude NAME]... [--json]
 ```
 

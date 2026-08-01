@@ -34,6 +34,7 @@ engine.
 - `crates/sc-compose/tests/fixtures/reverse-extract/**`
 - `docs/phase-G/evidence/g-4-reverse-extract-campaign.json`
 - `prototype/reverse_extract/README.md`
+- `prototype/reverse_extract/bulk_test.py`
 - `docs/requirements.md` and `docs/architecture.md` only for evidence-backed
   contract corrections discovered during this sprint
 
@@ -52,7 +53,9 @@ engine.
   in-scope bugs become deterministic tests; unsupported behavior remains
   visible rather than being relabeled as a pass.
 - `G4-D4` — Replace stale prototype claims with documentation that points to
-  the production CLI and states the known-template/XML-first limitation.
+  the production CLI and states the known-template/XML-first limitation; make
+  the prototype bulk harness's template coverage and pass/fail criteria
+  explicit rather than presenting skipped roots as validated coverage.
 - `G4-D5` — Produce a committed evidence envelope that lets quality-mgr
   distinguish successful execution, no findings, intentional boundaries,
   inconclusive cases, and worker failures.
@@ -81,6 +84,23 @@ engine.
 
 The concrete report may add fields, but it must retain enough information to
 reproduce every candidate and audit every worker outcome.
+
+## Campaign protocol
+
+Use the existing adversarial-fuzzing coordinator with exactly these bounded
+focuses for the full campaign:
+
+| Correlation ID | Focus |
+| --- | --- |
+| `shape-probe` | XML structure, sibling paths, entities, whitespace |
+| `template-probe` | supported scalar syntax and rejected Jinja constructs |
+| `boundary-probe` | CLI files, diagnostics, malformed and ambiguous inputs |
+| `differential-probe` | deterministic round trips and confidence/report parity |
+
+The campaign uses seed `7001`, at most four concurrent workers, 50 cases per
+worker, and a 120-second per-worker timeout. A worker launch failure, timeout,
+or partial result remains a visible failed-worker result and prevents a
+no-finding PASS.
 
 ## This sprint does not close
 
