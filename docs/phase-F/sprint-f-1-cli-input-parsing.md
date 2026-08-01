@@ -1,7 +1,7 @@
 ---
 id: F.1
 title: CLI Input Parsing and JSON Capability Seams
-status: planned
+status: complete
 branch: sprint/f-1-cli-input-parsing
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/f-1-cli-input-parsing
 target: develop
