@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use minijinja::Environment;
+use minijinja::{AutoEscape, Environment};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -46,6 +46,29 @@ pub struct Renderer {
     env: Environment<'static>,
 }
 
+fn legacy_auto_escape_callback(name: &str) -> AutoEscape {
+    let mut name = name;
+    for extension in [".j2", ".jinja2", ".jinja"] {
+        if let Some(stripped) = name.strip_suffix(extension) {
+            name = stripped;
+            break;
+        }
+    }
+
+    match name.rsplit('.').next() {
+        Some("html" | "htm" | "xml") => AutoEscape::Html,
+        _ => AutoEscape::None,
+    }
+}
+
+fn configure_environment(env: &mut Environment<'static>) {
+    env.set_trim_blocks(true);
+    env.set_lstrip_blocks(true);
+    // Keep sc-compose's historical extension policy when Minijinja's `json`
+    // feature is enabled. JSON/YAML/JS templates are text outputs, not HTML.
+    env.set_auto_escape_callback(legacy_auto_escape_callback);
+}
+
 impl Renderer {
     /// Create a renderer with the default environment options.
     #[must_use]
@@ -74,8 +97,7 @@ impl Renderer {
         configure: impl FnOnce(&mut Environment<'static>) -> Result<(), RenderError>,
     ) -> Result<Self, RenderError> {
         let mut env = Environment::new();
-        env.set_trim_blocks(true);
-        env.set_lstrip_blocks(true);
+        configure_environment(&mut env);
         configure(&mut env)?;
         Ok(Self { env })
     }
@@ -161,8 +183,7 @@ pub fn render_loaded_template(
     request: LoadedTemplateRequest,
 ) -> Result<RenderedArtifact, RenderError> {
     let mut env = Environment::new();
-    env.set_trim_blocks(true);
-    env.set_lstrip_blocks(true);
+    configure_environment(&mut env);
     for asset in request.supporting_templates {
         env.add_template_owned(asset.template_name, asset.template_text)
             .map_err(RenderError::render)?;
@@ -209,6 +230,50 @@ mod tests {
             .unwrap();
 
         assert_eq!(output, "before\n    value\nafter");
+    }
+
+    #[test]
+    fn renderer_keeps_auto_escape_scoped_to_html_like_names() {
+        let renderer = Renderer::new();
+        let context = json!({ "value": "<tag> &" });
+
+        for template_name in [
+            "payload.json",
+            "payload.json5",
+            "payload.js",
+            "payload.yaml",
+            "payload.yml",
+            "payload.txt",
+        ] {
+            let output = renderer
+                .render_named(template_name, "{{ value }}", context.clone())
+                .unwrap();
+            assert_eq!(output, "<tag> &", "unexpected escaping for {template_name}");
+        }
+
+        for template_name in [
+            "payload.html",
+            "payload.htm",
+            "payload.xml",
+            "payload.html.j2",
+        ] {
+            let output = renderer
+                .render_named(template_name, "{{ value }}", context.clone())
+                .unwrap();
+            assert_eq!(
+                output, "&lt;tag&gt; &amp;",
+                "missing escaping for {template_name}"
+            );
+        }
+
+        let loaded = render_loaded_template(LoadedTemplateRequest {
+            template_name: "payload.yml".to_owned(),
+            template_text: "{{ value }}".to_owned(),
+            context: context.as_object().unwrap().clone().into_iter().collect(),
+            supporting_templates: Vec::new(),
+        })
+        .unwrap();
+        assert_eq!(loaded.rendered, "<tag> &");
     }
 
     #[test]

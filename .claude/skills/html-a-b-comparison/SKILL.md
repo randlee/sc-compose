@@ -1,5 +1,5 @@
 ---
-name: html-a-b-comparing
+name: html-a-b-comparison
 description: Build a local, self-contained HTML A/B comparison viewer for two or more generated HTML variants (e.g. different template revisions, different data sets, before/after fixes), so a human can pick between panes side-by-side without any external hosting.
 ---
 
@@ -84,10 +84,11 @@ Hold everything constant except the one thing under review.
 4. **Write the viewer file** under the caller's approved scratchpad or
    repository output root using the bundled template
    (`compare-viewer.html.j2`) or by adapting it inline. Validate the resolved
-   output path before writing: reject arbitrary absolute paths, `..`
-   traversal, and symlink escapes, and require the resolved path to remain
-   beneath the approved root. Create the parent only after this confinement
-   check. Never write to an unvalidated caller-specified path.
+   output path before writing by running
+   `references/validate-output-path.py` with the approved root and every
+   output path. The validator rejects `..` traversal and symlink escapes and
+   requires each resolved path to remain beneath the approved root. Create the
+   parent only after validation; never write to an unvalidated path.
 5. **Open it locally** with the platform's file opener. On macOS use
    `open <path>`, on Linux use `xdg-open <path>`, and on Windows use
    `start "" <path>` from `cmd.exe` (or `Start-Process <path>` in
@@ -141,17 +142,17 @@ Build the JSON var-file with each variant's `label` and `b64`, then:
 compare_dir="$("$PYTHON3_BIN" -c 'import tempfile; print(tempfile.mkdtemp(prefix="sc-compose-compare-"))')"
 vars_path="$compare_dir/compare-vars.json"
 viewer_path="$compare_dir/compare.html"
-# Write compare-vars.json only after validating that vars_path and viewer_path
-# resolve beneath compare_dir; use the same check for any caller-specified root.
+"$PYTHON3_BIN" .claude/skills/html-a-b-comparison/references/validate-output-path.py \
+  "$compare_dir" "$vars_path" "$viewer_path"
 "$SC_COMPOSE_BIN" render --file .claude/skills/html-a-b-comparison/compare-viewer.html.j2 \
   --var-file "$vars_path" --output "$viewer_path"
 open "$viewer_path"  # use xdg-open or Start-Process on other platforms
 ```
 
 The temporary directory above is created by Python's platform-appropriate
-temporary-directory API. If the caller supplies an output root instead, first
-resolve both paths and enforce that the output remains beneath that approved
-root; do not accept an arbitrary absolute path.
+temporary-directory API. The same
+[`validate-output-path.py`](references/validate-output-path.py) command is
+required when the caller supplies an output root.
 
 ## Non-goals
 

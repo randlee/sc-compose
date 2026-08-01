@@ -80,6 +80,6 @@ Proceed only when all commands succeed.
   explicitly resolved interpreter from Step 1.
 - On Windows, `start` is a shell builtin rather than a standalone executable;
   use `cmd.exe /c start "" <path>` or PowerShell `Start-Process`.
-- If an output path is supplied by a caller, resolve it and verify that it is
-  beneath the approved scratchpad or repository root before writing. Never
-  follow a symlink or `..` segment outside that root.
+- If an output path is supplied by a caller, run
+  [`validate-output-path.py`](validate-output-path.py) with the approved root
+  and output paths before writing. It rejects traversal and symlink escapes.
