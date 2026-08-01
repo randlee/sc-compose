@@ -506,68 +506,30 @@ where
     filtered
 }
 
-trait JsonOutputCapability {
-    fn json_output_requested(&self) -> bool;
-}
-
-impl JsonOutputCapability for Command {
-    fn json_output_requested(&self) -> bool {
-        match self {
-            Command::Render(args) => args.render.json,
-            Command::Resolve(args) => args.json,
-            Command::Validate(args) => args.json,
-            Command::Verify(args) => args.json,
-            Command::TemplateInit(args) => args.json,
-            Command::FrontmatterInit(args) => args.json,
-            Command::Init(args) => args.json,
-            Command::ObservabilityHealth(args) => args.json,
-            Command::Examples(args) => args.json_output_requested(),
-            Command::Templates(args) => args.json_output_requested(),
-            Command::Reports(args) => args.command.json_output_requested(),
-            Command::ReportRenderMany(args) => args.json,
-            Command::ReportCatalog(args) => args.json,
-        }
-    }
-}
-
-impl JsonOutputCapability for ExamplesArgs {
-    fn json_output_requested(&self) -> bool {
-        self.command.as_ref().map_or(
-            self.render.json,
-            JsonOutputCapability::json_output_requested,
-        )
-    }
-}
-
-impl JsonOutputCapability for ExamplesSubcommand {
-    fn json_output_requested(&self) -> bool {
-        match self {
-            Self::List(args) => args.json,
-        }
-    }
-}
-
-impl JsonOutputCapability for TemplatesArgs {
-    fn json_output_requested(&self) -> bool {
-        self.command.as_ref().map_or(
-            self.render.json,
-            JsonOutputCapability::json_output_requested,
-        )
-    }
-}
-
-impl JsonOutputCapability for TemplatesSubcommand {
-    fn json_output_requested(&self) -> bool {
-        match self {
-            Self::List(args) => args.json,
-            Self::Add(args) => args.json,
-        }
-    }
-}
-
-impl JsonOutputCapability for ReportsSubcommand {
-    fn json_output_requested(&self) -> bool {
-        match self {
+pub(crate) fn command_wants_json(command: &Command) -> bool {
+    match command {
+        Command::Render(args) => args.render.json,
+        Command::Resolve(args) => args.json,
+        Command::Validate(args) => args.json,
+        Command::Verify(args) => args.json,
+        Command::TemplateInit(args) => args.json,
+        Command::FrontmatterInit(args) => args.json,
+        Command::Init(args) => args.json,
+        Command::ObservabilityHealth(args) => args.json,
+        Command::Examples(args) => args
+            .command
+            .as_ref()
+            .map_or(args.render.json, |subcommand| match subcommand {
+                ExamplesSubcommand::List(args) => args.json,
+            }),
+        Command::Templates(args) => args
+            .command
+            .as_ref()
+            .map_or(args.render.json, |subcommand| match subcommand {
+                TemplatesSubcommand::List(args) => args.json,
+                TemplatesSubcommand::Add(args) => args.json,
+            }),
+        Command::Reports(args) => match &args.command {
             ReportsSubcommand::Init(args) => args.json,
             ReportsSubcommand::Smoke(args) => args.json,
             ReportsSubcommand::Finalize(args) => args.json,
@@ -575,12 +537,10 @@ impl JsonOutputCapability for ReportsSubcommand {
             ReportsSubcommand::Index(args) => args.json,
             ReportsSubcommand::Verify(args) => args.json,
             ReportsSubcommand::PublishManifest(args) => args.json,
-        }
+        },
+        Command::ReportRenderMany(args) => args.json,
+        Command::ReportCatalog(args) => args.json,
     }
-}
-
-pub(crate) fn command_wants_json(command: &Command) -> bool {
-    command.json_output_requested()
 }
 
 #[cfg(test)]
@@ -657,6 +617,24 @@ mod tests {
             parse_pass_inputs(os_args(&["sc-compose", "render", "--pass=bad"]), "render")
                 .unwrap_err()
                 .starts_with("invalid pass number `bad`:")
+        );
+    }
+
+    #[test]
+    fn parse_pass_inputs_rejects_misplaced_var_file_arguments() {
+        assert_eq!(
+            parse_pass_inputs(
+                os_args(&["sc-compose", "render", "--var-file", "orphan.json"]),
+                "render"
+            ),
+            Err("--var-file must appear after --pass".to_owned())
+        );
+        assert_eq!(
+            parse_pass_inputs(
+                os_args(&["sc-compose", "render", "--var-file=orphan.json"]),
+                "render"
+            ),
+            Err("--var-file must appear after --pass".to_owned())
         );
     }
 
