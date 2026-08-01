@@ -69,7 +69,8 @@ pub(crate) fn run_frontmatter_init(args: &FrontmatterInitArgs) -> Result<i32, Co
 }
 
 pub(crate) fn run_template_init(args: &TemplateInitArgs) -> Result<i32, CommandError> {
-    let pass_inputs = parse_pass_inputs("template-init").map_err(template_init_parse_error)?;
+    let pass_inputs = parse_pass_inputs(std::env::args_os(), "template-init")
+        .map_err(template_init_parse_error)?;
     if pass_inputs.is_empty() {
         return Err(CommandError::usage_with_code_and_hints(
             anyhow!("template-init requires at least one --pass N group"),
