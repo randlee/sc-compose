@@ -1826,6 +1826,154 @@ fn render_accepts_recursive_values_in_yaml_var_file() {
 }
 
 #[test]
+fn f4_cli_regression_accepts_deeply_nested_json_values() {
+    let root = temp_root("f4-cli-deep-json-values");
+    write_file(
+        &root.join("template.md.j2"),
+        "{% for group in groups %}{{ group.name }}:{% for item in group.items %}{{ item.id }}={{ item.tags | join(',') }}:{% for value in item.matrix %}{{ value }}{% endfor %};{% endfor %}\n{% endfor %}",
+    );
+    let vars_file = root.join("vars.json");
+    write_file(
+        &vars_file,
+        r#"{"groups":[{"name":"api","items":[{"id":"one","tags":["read","write"],"matrix":[1,2]},{"id":"two","tags":["admin"],"matrix":[3,4]}]}]}"#,
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "api:one=read,write:12;two=admin:34;\n"
+    );
+}
+
+#[test]
+fn f4_cli_regression_rejects_nested_duplicate_json_and_yaml_keys() {
+    let root = temp_root("f4-cli-nested-duplicates");
+    write_file(&root.join("template.md.j2"), "{{ config }}\n");
+    for (filename, contents) in [
+        (
+            "nested.json",
+            r#"{"config":{"name":"first","name":"second"}}"#,
+        ),
+        ("nested.yaml", "config:\n  name: first\n  name: second\n"),
+    ] {
+        let vars_file = root.join(filename);
+        write_file(&vars_file, contents);
+        let output = sc_compose()
+            .arg("render")
+            .arg("--mode")
+            .arg("file")
+            .arg("--root")
+            .arg(&root)
+            .arg("--file")
+            .arg("template.md.j2")
+            .arg("--var-file")
+            .arg(&vars_file)
+            .output()
+            .unwrap();
+
+        assert_eq!(output.status.code(), Some(3), "{filename}");
+        assert!(
+            String::from_utf8_lossy(&output.stderr).contains("ERR_CONFIG_PARSE"),
+            "{filename}: {:?}",
+            output.stderr
+        );
+    }
+}
+
+#[test]
+fn f4_cli_regression_rejects_non_string_yaml_key_inside_array_object() {
+    let root = temp_root("f4-cli-array-nested-key");
+    write_file(&root.join("template.md.j2"), "{{ items }}\n");
+    let vars_file = root.join("vars.yaml");
+    write_file(&vars_file, "items:\n  - metadata:\n      7: invalid\n");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_VAL_OBJECT_SHAPE"));
+}
+
+#[test]
+fn f4_cli_regression_rejects_top_level_non_object_var_file() {
+    let root = temp_root("f4-cli-top-level-sequence");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+    let vars_file = root.join("vars.json");
+    write_file(&vars_file, "[\"not\", \"an object\"]\n");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("ERR_CONFIG_VARFILE"),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
+fn f4_cli_regression_rejects_malformed_var_file() {
+    let root = temp_root("f4-cli-malformed-var-file");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+    let vars_file = root.join("vars.json");
+    write_file(&vars_file, "{ \"name\": \"unterminated\"\n");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("ERR_CONFIG_PARSE"),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
 fn render_strips_utf8_bom_before_frontmatter() {
     let root = temp_root("frontmatter-utf8-bom");
     fs::write(

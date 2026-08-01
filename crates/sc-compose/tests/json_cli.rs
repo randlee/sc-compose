@@ -944,6 +944,90 @@ fn invalid_var_file_json_reports_config_varfile() {
 }
 
 #[test]
+fn f4_json_cli_regression_covers_var_file_shapes() {
+    let root = temp_root("f4-json-var-file-shapes");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - groups\n---\n{% for group in groups %}{% for item in group.items %}{{ group.name }}:{{ item.id }}={{ item.tags | join(',') }}\n{% endfor %}{% endfor %}",
+    );
+
+    let nested_vars = root.join("nested.json");
+    write_file(
+        &nested_vars,
+        r#"{"groups":[{"name":"api","items":[{"id":"one","tags":["read","write"]}]}]}"#,
+    );
+    let output_path = root.join("nested.out");
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&nested_vars)
+        .arg("--output")
+        .arg(&output_path)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        fs::read_to_string(output_path).unwrap(),
+        "api:one=read,write"
+    );
+
+    for (filename, contents, expected_code) in [
+        (
+            "duplicate.json",
+            r#"{"config":{"name":"first","name":"second"}}"#,
+            "ERR_CONFIG_PARSE",
+        ),
+        (
+            "duplicate.yaml",
+            "config:\n  name: first\n  name: second\n",
+            "ERR_CONFIG_PARSE",
+        ),
+        (
+            "nested-key.yaml",
+            "items:\n  - metadata:\n      7: invalid\n",
+            "ERR_VAL_OBJECT_SHAPE",
+        ),
+        (
+            "malformed.json",
+            "{ \"name\": \"unterminated\"\n",
+            "ERR_CONFIG_PARSE",
+        ),
+    ] {
+        let vars_file = root.join(filename);
+        write_file(&vars_file, contents);
+        let output = sc_compose()
+            .arg("render")
+            .arg("--mode")
+            .arg("file")
+            .arg("--root")
+            .arg(&root)
+            .arg("--file")
+            .arg("template.md.j2")
+            .arg("--var-file")
+            .arg(&vars_file)
+            .arg("--json")
+            .output()
+            .unwrap();
+
+        assert_eq!(output.status.code(), Some(3), "{filename}");
+        assert!(output.stderr.is_empty(), "{filename}: {:?}", output.stderr);
+        let value = parse_stdout(&output);
+        assert_envelope(&value);
+        assert_first_code(&value, expected_code);
+    }
+}
+
+#[test]
 fn examples_list_json_uses_diagnostic_envelope() {
     let output = sc_compose()
         .arg("examples")
