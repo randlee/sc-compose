@@ -1067,16 +1067,16 @@ fn render_accepts_recursive_values_in_yaml_var_file() {
 }
 
 #[test]
-fn f4_cli_regression_accepts_nested_arrays_and_objects() {
-    let root = temp_root("f4-cli-nested-values");
+fn f4_cli_regression_accepts_deeply_nested_json_values() {
+    let root = temp_root("f4-cli-deep-json-values");
     write_file(
         &root.join("template.md.j2"),
-        "{% for group in groups %}{{ group.name }}:{% for item in group.items %}{{ item.id }}={{ item.tags | join(',') }};{% endfor %}\n{% endfor %}",
+        "{% for group in groups %}{{ group.name }}:{% for item in group.items %}{{ item.id }}={{ item.tags | join(',') }}:{% for value in item.matrix %}{{ value }}{% endfor %};{% endfor %}\n{% endfor %}",
     );
-    let vars_file = root.join("vars.yaml");
+    let vars_file = root.join("vars.json");
     write_file(
         &vars_file,
-        "groups:\n  - name: api\n    items:\n      - id: one\n        tags: [read, write]\n      - id: two\n        tags: [admin]\n",
+        r#"{"groups":[{"name":"api","items":[{"id":"one","tags":["read","write"],"matrix":[1,2]},{"id":"two","tags":["admin"],"matrix":[3,4]}]}]}"#,
     );
 
     let output = sc_compose()
@@ -1095,7 +1095,7 @@ fn f4_cli_regression_accepts_nested_arrays_and_objects() {
     assert!(output.status.success(), "stderr: {:?}", output.stderr);
     assert_eq!(
         String::from_utf8_lossy(&output.stdout),
-        "api:one=read,write;two=admin;\n"
+        "api:one=read,write:12;two=admin:34;\n"
     );
 }
 
@@ -1135,11 +1135,11 @@ fn f4_cli_regression_rejects_nested_duplicate_json_and_yaml_keys() {
 }
 
 #[test]
-fn f4_cli_regression_rejects_non_string_nested_yaml_map_keys() {
-    let root = temp_root("f4-cli-nested-key");
-    write_file(&root.join("template.md.j2"), "{{ config }}\n");
+fn f4_cli_regression_rejects_non_string_yaml_key_inside_array_object() {
+    let root = temp_root("f4-cli-array-nested-key");
+    write_file(&root.join("template.md.j2"), "{{ items }}\n");
     let vars_file = root.join("vars.yaml");
-    write_file(&vars_file, "config:\n  7: invalid\n");
+    write_file(&vars_file, "items:\n  - metadata:\n      7: invalid\n");
 
     let output = sc_compose()
         .arg("render")
