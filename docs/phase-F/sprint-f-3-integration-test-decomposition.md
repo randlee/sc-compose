@@ -32,6 +32,10 @@ target: develop
 - `crates/sc-compose/tests/json_cli/reports.rs` — post-decomposition JSON report-pipeline module
 - `crates/sc-compose/tests/json_cli/templates.rs` — post-decomposition JSON examples/templates/init module
 - `crates/sc-compose/tests/json_cli/observability.rs` — post-decomposition JSON observability module
+
+### Cross-Cutting Placement Rule
+
+- Route cross-cutting smoke tests through the observability modules because logger health is their common capability: `reports_smoke_keeps_observability_health_green_under_logger_12` from both `crates/sc-compose/tests/cli.rs` and `crates/sc-compose/tests/json_cli.rs` moves to `crates/sc-compose/tests/cli/observability.rs` and `crates/sc-compose/tests/json_cli/observability.rs`, respectively; `release_smoke_covers_render_pipeline_and_observability_health` from `crates/sc-compose/tests/cli.rs` moves to `crates/sc-compose/tests/cli/observability.rs`. These tests use shared `tests/support` fixtures and must not be duplicated into render or reports modules.
 ## Deliverables
 
 Every listed deliverable is expected to land at a production-ready level for
