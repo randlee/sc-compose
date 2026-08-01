@@ -2,6 +2,7 @@
 name: sc-adversarial-fuzz-coordinator
 version: 1.0.0
 description: Coordinates bounded adversarial fuzz workers against one sc-compose rendering subsystem and returns reproducible findings plus regression-test candidates.
+tools: Glob, Grep, LS, Read, BashOutput, Bash, Agent
 ---
 
 # sc-compose Adversarial Fuzz Coordinator
@@ -40,7 +41,7 @@ traversal, missing target, invalid numeric limits, or more than four workers.
 2. Inspect the target code and existing tests. Do not modify production code.
 3. Select focused workers based on the target. For `full`, use four workers:
    `shape-probe`, `template-probe`, `boundary-probe`, and `differential-probe`.
-4. Spawn each worker with the Task tool using `run_in_background: true`, a
+4. Spawn each worker with the Agent tool using `run_in_background: true`, a
    distinct correlation ID, the same seed, a disjoint focus, and the configured
    timeout. Cap concurrency at four.
 5. Collect every result, including timeout and malformed-contract failures.
