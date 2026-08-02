@@ -18,7 +18,7 @@ target: develop
 
 ## Hard Dependencies
 
-- H.1 is accepted and ADR-0012 is no longer Proposed.
+- H.1 is complete and ADR-0012 is Accepted.
 - Phase-G extraction contracts and tests remain green.
 
 ## Exact Targets

@@ -1,7 +1,7 @@
 ---
 id: H.1
 title: Reverse Extraction Format Contract
-status: planned
+status: complete
 branch: sprint/h-1-reverse-extraction-extension-contract
 worktree: ../sc-compose-worktrees/sprint/h-1-reverse-extraction-extension-contract
 target: develop
@@ -21,7 +21,8 @@ target: develop
 
 - Phase G.1 through G.7 are complete on the `develop` baseline.
 - The read-only issue #193 gap review is available as the source analysis.
-- ADR-0011 remains authoritative until this sprint is accepted.
+- ADR-0011 remains authoritative for Phase-G behavior; the accepted H.1
+  amendments govern the Phase-H extensions.
 
 ## Exact Targets
 
@@ -30,6 +31,7 @@ target: develop
 - `docs/adrs/0012-phase-h-reverse-extraction-extension-gates.md`
 - `docs/phase-H/phase-H-plan.md`
 - `docs/project-plan.md`
+- `docs/error-code-registry.md`
 
 ## Deliverables
 
@@ -48,8 +50,9 @@ silently dropped or partially deferred.
   in `crates/sc-composer/src/extract/error.rs`.
 - H1-D4 — Amend H.4 and H.5 Exact Targets to include
   `crates/sc-composer/src/extract/error.rs`, and update FR-16, architecture,
-  ADR-0012, the Phase-H plan, and the project index so they agree with the
-  six-sprint sequence, dependencies, non-goals, and exit gates.
+  ADR-0012, the Phase-H plan, the project index, and the error-code registry so
+  they agree with the six-sprint sequence, dependencies, non-goals, and exit
+  gates.
 - H1-D5 — Define and confirm one shared raw-text matching core for value
   matching. It must reuse the established Exact-Match Delimiter Scanning,
   Longest-Match-First Template-Init Replacement, and Multi-Pass Brace-Count
@@ -88,6 +91,140 @@ silently dropped or partially deferred.
   tolerance, best-effort/degraded parsing, customer-facing raw-text mode,
   unknown-template identification, loops, branches, typed recovery, and
   Jinja evaluation.
+
+## Accepted Format Decisions
+
+The following decisions are normative for H.2, H.3, H.4, H.5, and H.6. A
+dependent sprint may add tests and implementation detail, but may not reopen
+these semantics.
+
+### JSON
+
+- The rendered input is exactly one JSON value. Objects and arrays are
+  structurally matched; object key order is irrelevant, while array length and
+  index order must match.
+- Placeholders are supported only in JSON string values, either as a complete
+  string or embedded with static prefix/suffix text. Captures are always
+  rendered strings. Placeholders in object keys, numbers, booleans, `null`,
+  array/object structure, or a complete non-string JSON value are rejected.
+- Static non-string JSON values are valid structural anchors and are compared
+  by parsed JSON value; they are never recovered as typed variables.
+- A missing path, shape mismatch, malformed document, duplicate object key,
+  unsupported placeholder shape, or repeated variable at distinct paths is a
+  diagnostic failure. Repeated occurrences remain reviewable in the report,
+  but the ambiguous variable is omitted from the recovered value map.
+- Object paths use `JsonPathSegment::ObjectKey { key }`; array paths use
+  `JsonPathSegment::ArrayIndex { index }`. The root has an empty path.
+
+### YAML
+
+- The rendered input is exactly one YAML document body. A template's own YAML
+  frontmatter is skipped before matching; rendered YAML frontmatter is not
+  treated as extraction input. YAML document streams containing more than one
+  document are rejected.
+- Mapping keys must be static scalar strings. Placeholders are supported only
+  in string scalar values, either as a complete scalar or embedded with static
+  prefix/suffix text. Captures remain rendered strings; placeholders in keys,
+  typed scalars, null, aliases, anchors, tags, or collection structure are
+  rejected.
+- Static YAML scalars and collections may be used as structural anchors, but
+  no source type is reconstructed from a captured spelling. Duplicate keys,
+  aliases/anchors, unsupported tags, multiple documents, malformed YAML,
+  missing paths, shape mismatches, and repeated-variable ambiguity are
+  diagnostic failures.
+- Mapping paths use `YamlPathSegment::MappingKey { key }`; sequence paths use
+  `YamlPathSegment::SequenceIndex { index }`. The root has an empty path.
+
+### TOML
+
+- The rendered input is exactly one TOML document. Tables, nested tables,
+  arrays, inline tables, and arrays of tables are structurally matched; table
+  key order is irrelevant and array order/index is significant.
+- Placeholders are supported only in TOML basic/literal string values, either
+  as a complete value or embedded with static prefix/suffix text. Captures are
+  rendered strings. Placeholders in keys, table names, integers, floats,
+  booleans, datetimes, arrays/inline-table structure, or unsupported value
+  syntax are rejected. TOML has no null value; a null-equivalent placeholder
+  is therefore rejected as an unsupported value shape.
+- Duplicate keys, malformed TOML, missing paths, shape mismatches, and
+  repeated-variable ambiguity are diagnostic failures. Static non-string TOML
+  values may anchor structure but are not recovered as typed variables.
+- Table/key paths use `TomlPathSegment::TableKey { key }`; array and
+  array-of-table occurrences use `TomlPathSegment::ArrayIndex { index }`. The
+  root has an empty path.
+
+## Accepted Parser and Public-Surface Decisions
+
+- Rust uses the already-approved workspace libraries `serde_json` 1.x for
+  JSON, `serde_yaml` 0.9 for YAML, and `toml` 0.8 for TOML. Adapters must wrap
+  these parsers to enforce the duplicate-key, alias/tag, document-count, and
+  rendered-string policies above; default parser behavior is not itself the
+  contract.
+- Rust owns parsing and matching through the typed `ExtractFormat` request.
+  The CLI accepts `--format xml|json|yaml|toml` and passes the typed value to
+  Rust; omitting the flag retains XML compatibility. Python exposes
+  `extract_variables(..., format="xml|json|yaml|toml")` and delegates to the
+  same Rust entry point. Neither adapter parses or matches independently.
+- The canonical report aliases are:
+
+  ```rust
+  pub enum JsonPathSegment { ObjectKey { key: String }, ArrayIndex { index: usize } }
+  pub enum JsonExtractionSource { StringValue }
+  pub type JsonExtractionReport =
+      ExtractionReport<JsonPathSegment, JsonExtractionSource>;
+
+  pub enum YamlPathSegment { MappingKey { key: String }, SequenceIndex { index: usize } }
+  pub enum YamlExtractionSource { StringScalar }
+  pub type YamlExtractionReport =
+      ExtractionReport<YamlPathSegment, YamlExtractionSource>;
+
+  pub enum TomlPathSegment { TableKey { key: String }, ArrayIndex { index: usize } }
+  pub enum TomlExtractionSource { StringValue }
+  pub type TomlExtractionReport =
+      ExtractionReport<TomlPathSegment, TomlExtractionSource>;
+  ```
+
+## Accepted Cross-Format Diagnostic Inventory
+
+This inventory is normative and is mirrored in
+[`docs/error-code-registry.md`](../error-code-registry.md). Every diagnostic
+serializes through the existing `diagnostics[]` envelope with `severity`,
+`code`, `message`, and optional `location`; recovery hints are serialized as
+the existing diagnostic detail/recovery-hint field. The owning sprint is the
+first implementation surface responsible for emitting and testing the code.
+
+| Code | Category | Severity | Trigger and recovery hint | Owner | Serialized representation |
+| --- | --- | --- | --- | --- | --- |
+| `ERR_EXTRACT_FORMAT_UNSUPPORTED` | format-selection | error | Requested format is not enabled; select `xml`, `json`, `yaml`, or `toml`. | H.3 | `diagnostics[]` code plus request location |
+| `ERR_EXTRACT_TEMPLATE_UNSUPPORTED` | template-syntax | error | Loop, branch, dynamic key, typed placeholder, or other unsupported expression; use a known-template scalar expression. | H.2/H.4/H.5 | `diagnostics[]` code plus template location |
+| `ERR_EXTRACT_INPUT_LIMIT` | input-policy | error | Size/depth/occurrence limit exceeded; reduce input or split the request. | H.2/H.4/H.5 | `diagnostics[]` code plus input location |
+| `ERR_EXTRACT_SECURITY_POLICY` | input-policy | error | Alias/tag or other disallowed parser feature encountered; remove the feature. | H.4 | `diagnostics[]` code plus source location |
+| `ERR_EXTRACT_JSON_MALFORMED` | json-parse | error | JSON cannot be parsed as one value; correct the rendered JSON. | H.2 | `diagnostics[]` code plus parser location |
+| `ERR_EXTRACT_JSON_DUPLICATE_KEY` | json-parse | error | An object repeats a key; remove the duplicate key. | H.2 | `diagnostics[]` code plus object-key location |
+| `ERR_EXTRACT_JSON_PATH_MISSING` | json-structure | error | Known-template path is absent; render the expected object/array shape. | H.2 | `diagnostics[]` code plus path location |
+| `ERR_EXTRACT_JSON_SHAPE_MISMATCH` | json-structure | error | Object/array or static value differs from the known template; restore the expected shape. | H.2 | `diagnostics[]` code plus path location |
+| `ERR_EXTRACT_JSON_VALUE_UNSUPPORTED` | json-value-policy | error | Placeholder occurs in a key, non-string value, or structural position; use a string value. | H.2 | `diagnostics[]` code plus path location |
+| `ERR_EXTRACT_JSON_AMBIGUOUS` | json-ambiguity | error | Variable occurs at multiple distinct JSON paths; disambiguate the template or use occurrences. | H.2 | `diagnostics[]` code plus occurrence location |
+| `ERR_EXTRACT_YAML_MALFORMED` | yaml-parse | error | YAML cannot be parsed as one document; correct the rendered YAML body. | H.4 | `diagnostics[]` code plus parser location |
+| `ERR_EXTRACT_YAML_DUPLICATE_KEY` | yaml-parse | error | A mapping repeats a key; remove the duplicate key. | H.4 | `diagnostics[]` code plus mapping location |
+| `ERR_EXTRACT_YAML_ALIAS_UNSUPPORTED` | yaml-policy | error | Alias or anchor is present; expand it into explicit content. | H.4 | `diagnostics[]` code plus node location |
+| `ERR_EXTRACT_YAML_DOCUMENT_STREAM` | yaml-policy | error | More than one YAML document is present; provide one rendered document body. | H.4 | `diagnostics[]` code plus document location |
+| `ERR_EXTRACT_YAML_PATH_MISSING` | yaml-structure | error | Known-template path is absent; render the expected mapping/sequence shape. | H.4 | `diagnostics[]` code plus path location |
+| `ERR_EXTRACT_YAML_SHAPE_MISMATCH` | yaml-structure | error | Mapping/sequence or static scalar differs from the known template; restore the expected shape. | H.4 | `diagnostics[]` code plus path location |
+| `ERR_EXTRACT_YAML_VALUE_UNSUPPORTED` | yaml-value-policy | error | Placeholder occurs in a key, typed scalar, null, tag, alias, or structure; use a string scalar. | H.4 | `diagnostics[]` code plus path location |
+| `ERR_EXTRACT_YAML_AMBIGUOUS` | yaml-ambiguity | error | Variable occurs at multiple distinct YAML paths; disambiguate the template or use occurrences. | H.4 | `diagnostics[]` code plus occurrence location |
+| `ERR_EXTRACT_TOML_MALFORMED` | toml-parse | error | TOML cannot be parsed as one document; correct the rendered TOML. | H.5 | `diagnostics[]` code plus parser location |
+| `ERR_EXTRACT_TOML_DUPLICATE_KEY` | toml-parse | error | A table or document repeats a key; remove the duplicate key. | H.5 | `diagnostics[]` code plus key location |
+| `ERR_EXTRACT_TOML_PATH_MISSING` | toml-structure | error | Known-template path is absent; render the expected table/array shape. | H.5 | `diagnostics[]` code plus path location |
+| `ERR_EXTRACT_TOML_SHAPE_MISMATCH` | toml-structure | error | Table/array or static value differs from the known template; restore the expected shape. | H.5 | `diagnostics[]` code plus path location |
+| `ERR_EXTRACT_TOML_VALUE_UNSUPPORTED` | toml-value-policy | error | Placeholder occurs in a key, non-string value, null-equivalent, or structure; use a string value. | H.5 | `diagnostics[]` code plus path location |
+| `ERR_EXTRACT_TOML_AMBIGUOUS` | toml-ambiguity | error | Variable occurs at multiple distinct TOML paths; disambiguate the template or use occurrences. | H.5 | `diagnostics[]` code plus occurrence location |
+
+`ERR_EXTRACT_INVALID_REQUEST`, `ERR_EXTRACT_MALFORMED`,
+`ERR_EXTRACT_UNSUPPORTED`, and `ERR_EXTRACT_AMBIGUOUS` remain the existing
+Phase-G XML/general report codes. They are not silently reused for the new
+format-specific conditions above. H.2, H.4, and H.5 must add each accepted
+code to the Rust diagnostic enum and binding/CLI serialization before using it.
 
 ## Explicit Code Samples
 
@@ -176,6 +313,22 @@ pub(crate) enum RawTextMatchError {
     },
 }
 
+pub(crate) enum RawTextErrorScope {
+    Request,
+    Occurrence,
+}
+
+impl RawTextMatchError {
+    pub(crate) const fn scope(&self) -> RawTextErrorScope {
+        match self {
+            Self::InvalidTemplate { .. } => RawTextErrorScope::Request,
+            Self::StaticMismatch { .. } | Self::AmbiguousDelimiter { .. } => {
+                RawTextErrorScope::Occurrence
+            }
+        }
+    }
+}
+
 pub(crate) fn match_raw_text(
     input: RawTextMatchInput<'_>,
 ) -> Result<RawTextMatch, RawTextMatchError>;
@@ -192,6 +345,8 @@ may continue processing other candidate occurrences according to H.1's
 malformed-input and ambiguity policy. Every `span` is relative to the
 `rendered_candidate`; it is `None` when the failure cannot be localized to a
 candidate byte range, such as a template-side invalid expression.
+The `scope()` method is the programmatic propagation marker adapters must use;
+the prose above explains the same invariant for non-Rust serializers.
 
 The design must name the migration seam explicitly: the first implementation
 sprint extracts the format-neutral operations from the current XML path into a
@@ -212,7 +367,8 @@ future raw-text mode or implement the refactoring itself.
 
 ## Acceptance Criteria
 
-- FR-16, architecture, ADR-0012, the Phase-H plan, and the project index are
+- FR-16, architecture, ADR-0012, the Phase-H plan, the project index, and the
+  error-code registry are
   mutually consistent and link to the same six contiguous sprints.
 - Every in-scope issue #193 gap has one disposition, one owner sprint, explicit
   supported/rejected behavior, and a testable contract.
@@ -229,7 +385,8 @@ future raw-text mode or implement the refactoring itself.
   H.2 begins.
 - `RawTextMatchError` and `RawTextAmbiguity` carry an optional structured
   candidate-relative span, and the contract explicitly distinguishes
-  request-scoped template errors from occurrence-scoped match errors.
+  request-scoped template errors from occurrence-scoped match errors through
+  the `RawTextMatchError::scope()` marker.
 - Best-effort/degraded parsing and customer-facing raw-text mode are named
   future-phase non-goals, not Phase-H features or sprint work.
 - The error inventory is complete for every planned JSON/YAML/TOML failure

@@ -17,9 +17,9 @@ JSON, YAML, and TOML. Phase H retains the pure library boundary, string-value
 report model, structural provenance, and fail-closed diagnostics while adding
 the approved format contracts one at a time.
 
-This plan is documentation-only on the planning branch. No runtime behavior is
-claimed until H.1 accepts the contract amendments and the implementation sprint
-for that behavior passes its own gate.
+This plan is documentation-only on the planning branch. H.1's contract
+amendments are accepted; no runtime behavior is claimed until each
+implementation sprint for that behavior passes its own gate.
 
 ## Source and scope
 
@@ -95,7 +95,7 @@ numbered sprint for follow-on fixes.
 
 Phase H is complete only when:
 
-- H.1's FR/architecture/ADR amendments are accepted and agree;
+- H.1's accepted FR/architecture/ADR amendments remain mutually consistent;
 - JSON, YAML, and TOML each have a documented known-template contract,
   production Rust support, Python/CLI parity, and corpus coverage;
 - H.1 documents the single shared raw-text matching core and each format sprint
