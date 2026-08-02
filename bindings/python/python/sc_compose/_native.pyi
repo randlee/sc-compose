@@ -5,6 +5,10 @@ from typing import Any
 class ScComposeError(Exception):
     message: str
     code: str | None
+    recovery_hints: list[str]
+    diagnostic_kind: str | None
+    diagnostic_message: str | None
+    diagnostic_occurrence: int | None
 
 
 class ScRenderError(ScComposeError): ...
@@ -84,6 +88,12 @@ class DiagnosticCode:
     ERR_CONFIG_PACK_NOT_FOUND: str
     ERR_CONFIG_PACK_NOT_RENDERABLE: str
     ERR_CONFIG_TEMPLATE_EXISTS: str
+    ERR_EXTRACT_INVALID_REQUEST: str
+    ERR_EXTRACT_MALFORMED: str
+    ERR_EXTRACT_UNSUPPORTED: str
+    ERR_EXTRACT_AMBIGUOUS: str
+    WARN_EXTRACT_NOT_OBSERVED: str
+    WARN_EXTRACT_LOW_CONFIDENCE: str
 
 
 class VariableName:
@@ -198,6 +208,55 @@ class Diagnostic:
     def column(self) -> int | None: ...
     @property
     def include_chain(self) -> list[str]: ...
+
+
+class ExtractionDiagnostic:
+    @property
+    def code(self) -> str: ...
+    @property
+    def kind(self) -> str: ...
+    @property
+    def message(self) -> str: ...
+    @property
+    def occurrence(self) -> int | None: ...
+
+
+class ExtractionSource:
+    @property
+    def kind(self) -> str: ...
+    @property
+    def name(self) -> str | None: ...
+
+
+class XmlPathSegment:
+    @property
+    def kind(self) -> str: ...
+    @property
+    def name(self) -> str: ...
+    @property
+    def ordinal(self) -> int | None: ...
+
+
+class ExtractionOccurrence:
+    @property
+    def variable(self) -> str: ...
+    @property
+    def path(self) -> list[XmlPathSegment]: ...
+    @property
+    def source(self) -> ExtractionSource: ...
+    @property
+    def rendered_text(self) -> str | None: ...
+
+
+class ExtractionReport:
+    @property
+    def values(self) -> dict[str, str]: ...
+    @property
+    def occurrences(self) -> list[ExtractionOccurrence]: ...
+    @property
+    def confidence(self) -> float: ...
+    @property
+    def diagnostics(self) -> list[ExtractionDiagnostic]: ...
 
 
 class ResolveResult:
@@ -359,6 +418,13 @@ def verify(
 def resolve_template_path(request: ComposeRequest) -> ResolveResult: ...
 def resolve_profile(request: ComposeRequest) -> ResolveResult: ...
 def render_template(template: str, context: dict[str, Any]) -> str: ...
+def extract_variables(
+    template: str,
+    rendered: str,
+    *,
+    include: list[str] | None = None,
+    exclude: list[str] | None = None,
+) -> ExtractionReport: ...
 def render_loaded_template(request: LoadedTemplateRequest) -> RenderedArtifact: ...
 def parse_template_document(input: str) -> ParsedTemplate: ...
 # Expects fully resolved per-pass contexts and applies each pass header's

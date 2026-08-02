@@ -33,6 +33,10 @@ def test_import_surface_exposes_c2_api() -> None:
         "DiagnosticCode",
         "DiagnosticSeverity",
         "ExpandedTemplate",
+        "ExtractionDiagnostic",
+        "ExtractionOccurrence",
+        "ExtractionReport",
+        "ExtractionSource",
         "Frontmatter",
         "FrontmatterInitResult",
         "InitResult",
@@ -58,12 +62,14 @@ def test_import_surface_exposes_c2_api() -> None:
         "VariableName",
         "VariableSource",
         "VerifyResult",
+        "XmlPathSegment",
         "compose",
         "compose_file",
         "discover_all_pass_tokens",
         "discover_tokens",
         "discover_tokens_with_brace_count",
         "expand_includes",
+        "extract_variables",
         "frontmatter_init",
         "init_workspace",
         "input_value_from_yaml",
@@ -81,6 +87,159 @@ def test_import_surface_exposes_c2_api() -> None:
 
     for name in required:
         assert getattr(sc_compose, name) is not None
+
+
+def test_extraction_report_preserves_values_provenance_and_filters() -> None:
+    template = (
+        '<root id="{{ id }}">'
+        "<item>{{ first }}</item>"
+        "<item>{{ second }}</item>"
+        "<name>Hello {{ name }}!</name>"
+        "</root>"
+    )
+    rendered = (
+        '<root id="42">'
+        "<item>one</item>"
+        "<item>two</item>"
+        "<name>Hello Ada!</name>"
+        "</root>"
+    )
+
+    report = sc_compose.extract_variables(template, rendered)
+
+    assert isinstance(report, sc_compose.ExtractionReport)
+    assert report.values == {
+        "first": "one",
+        "id": "42",
+        "name": "Ada",
+        "second": "two",
+    }
+    assert report.confidence > 0.75
+    assert report.diagnostics == []
+
+    by_variable = {occurrence.variable: occurrence for occurrence in report.occurrences}
+    assert by_variable["id"].source.kind == "attribute"
+    assert by_variable["id"].source.name == "id"
+    assert by_variable["id"].rendered_text == "42"
+    assert by_variable["name"].source.kind == "text_node"
+    assert by_variable["name"].path[-1].kind == "element"
+    assert by_variable["name"].path[-1].name == "name"
+
+    first_item = by_variable["first"].path[-1]
+    second_item = by_variable["second"].path[-1]
+    assert first_item.ordinal == 0
+    assert second_item.ordinal == 1
+
+    included = sc_compose.extract_variables(
+        template, rendered, include=["name", "id"]
+    )
+    assert included.values == {"id": "42", "name": "Ada"}
+
+    excluded = sc_compose.extract_variables(template, rendered, exclude=["id"])
+    assert "id" not in excluded.values
+    assert {occurrence.variable for occurrence in excluded.occurrences} == {
+        "first",
+        "name",
+        "second",
+    }
+
+
+def test_extraction_fails_closed_for_unsupported_syntax() -> None:
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(
+            "<root>{% if enabled %}{{ value }}{% endif %}</root>",
+            "<root>yes</root>",
+        )
+
+    assert caught.value.code == "ERR_EXTRACT_UNSUPPORTED"
+    assert caught.value.diagnostic_kind == "unsupported"
+    assert caught.value.diagnostic_message
+    assert caught.value.recovery_hints
+
+
+FIXTURE_ROOT = (
+    Path(__file__).resolve().parents[3]
+    / "crates"
+    / "sc-composer"
+    / "tests"
+    / "fixtures"
+    / "reverse-extract"
+)
+
+
+def fixture_pair(name: str) -> tuple[str, str]:
+    template = (FIXTURE_ROOT / f"{name}.xml.j2").read_text(encoding="utf-8")
+    rendered = (FIXTURE_ROOT / f"{name}.xml").read_text(encoding="utf-8")
+    return template, rendered
+
+
+def test_extraction_matches_shared_rust_fixture_contract() -> None:
+    template, rendered = fixture_pair("attributes")
+    attributes = sc_compose.extract_variables(template, rendered)
+    assert attributes.values == {"id": "42", "name": "Ada"}
+    assert [occurrence.variable for occurrence in attributes.occurrences] == [
+        "id",
+        "name",
+    ]
+    assert attributes.occurrences[0].source.kind == "attribute"
+    assert attributes.occurrences[1].source.kind == "text_node"
+    assert attributes.confidence > 0.99
+
+    template, rendered = fixture_pair("repeated-siblings")
+    repeated = sc_compose.extract_variables(template, rendered)
+    assert repeated.values == {"first": "A", "second": "B"}
+    assert repeated.occurrences[1].path[1].kind == "element"
+    assert repeated.occurrences[1].path[1].name == "item"
+    assert repeated.occurrences[1].path[1].ordinal == 1
+    assert repeated.confidence == pytest.approx(0.6)
+    assert [diagnostic.code for diagnostic in repeated.diagnostics] == [
+        "WARN_EXTRACT_LOW_CONFIDENCE"
+    ]
+
+    template, rendered = fixture_pair("entities-whitespace-empty")
+    entities = sc_compose.extract_variables(template, rendered)
+    assert entities.values == {"empty": "", "value": "A & B"}
+    assert entities.confidence > 0.75
+
+
+def test_extraction_error_categories_preserve_exception_mapping_and_detail() -> None:
+    malformed_template, malformed_rendered = fixture_pair("malformed")
+    with pytest.raises(sc_compose.ScConfigError) as malformed:
+        sc_compose.extract_variables(malformed_template, malformed_rendered)
+    assert malformed.value.code == "ERR_EXTRACT_MALFORMED"
+    assert malformed.value.diagnostic_kind == "malformed"
+    assert malformed.value.recovery_hints
+
+    with pytest.raises(sc_compose.ScConfigError) as ambiguous:
+        sc_compose.extract_variables(
+            "<x>{{ first }}{{ second }}</x>",
+            "<x>AB</x>",
+        )
+    assert ambiguous.value.code == "ERR_EXTRACT_AMBIGUOUS"
+    assert ambiguous.value.diagnostic_kind == "ambiguous"
+    assert ambiguous.value.diagnostic_occurrence is None
+    assert ambiguous.value.recovery_hints
+
+    with pytest.raises(sc_compose.ScConfigError) as invalid:
+        sc_compose.extract_variables("", "<x />")
+    assert invalid.value.code == "ERR_EXTRACT_INVALID_REQUEST"
+    assert invalid.value.diagnostic_kind is None
+    assert invalid.value.recovery_hints
+
+
+def test_extraction_reports_missing_occurrence_warning() -> None:
+    template, rendered = fixture_pair("missing-occurrence")
+    report = sc_compose.extract_variables(template, rendered)
+
+    assert report.values == {}
+    not_observed = [
+        diagnostic
+        for diagnostic in report.diagnostics
+        if diagnostic.code == "WARN_EXTRACT_NOT_OBSERVED"
+    ]
+    assert len(not_observed) == 1
+    assert not_observed[0].kind == "not_observed"
+    assert "not observed" in not_observed[0].message
 
 
 def test_repr_surface_is_informative(tmp_path: Path) -> None:

@@ -101,7 +101,7 @@ impl PyProfileName {
     fn new(value: &str) -> PyResult<Self> {
         sc_composer::ProfileName::new(value)
             .map(|inner| Self { inner })
-            .map_err(|error| config_error(error.to_string(), None))
+            .map_err(|error| config_error(error.to_string(), Some("ERR_CONFIG_MODE")))
     }
 
     fn __str__(&self) -> String {

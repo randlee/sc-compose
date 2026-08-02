@@ -10,9 +10,10 @@ pub(crate) use policy::{
 };
 pub(crate) use request::{PyComposeRequest, PyLoadedTemplateRequest, PyNamedTemplateAsset};
 pub(crate) use results::{
-    PyComposeResult, PyDiagnostic, PyExpandedTemplate, PyFrontmatter, PyFrontmatterInitResult,
-    PyInitResult, PyParsedTemplate, PyRenderedArtifact, PyRenderer, PyResolveResult,
-    PyValidationReport, PyVerifyResult,
+    PyComposeResult, PyDiagnostic, PyExpandedTemplate, PyExtractionDiagnostic,
+    PyExtractionOccurrence, PyExtractionReport, PyExtractionSource, PyFrontmatter,
+    PyFrontmatterInitResult, PyInitResult, PyParsedTemplate, PyRenderedArtifact, PyRenderer,
+    PyResolveResult, PyValidationReport, PyVerifyResult, PyXmlPathSegment,
 };
 
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -25,6 +26,11 @@ pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<PyPassConfig>()?;
     module.add_class::<PyComposeRequest>()?;
     module.add_class::<PyDiagnostic>()?;
+    module.add_class::<PyExtractionReport>()?;
+    module.add_class::<PyExtractionOccurrence>()?;
+    module.add_class::<PyExtractionSource>()?;
+    module.add_class::<PyXmlPathSegment>()?;
+    module.add_class::<PyExtractionDiagnostic>()?;
     module.add_class::<PyResolveResult>()?;
     module.add_class::<PyComposeResult>()?;
     module.add_class::<PyValidationReport>()?;
