@@ -3,6 +3,9 @@
 use std::error::Error;
 use std::fmt;
 
+use crate::diagnostics::DiagnosticCode;
+use crate::error::{RecoveryHint, RecoveryHintKind};
+
 use super::{ExtractionDiagnostic, ExtractionDiagnosticKind};
 
 /// Contract-level failures returned by the extraction API.
@@ -10,41 +13,54 @@ use super::{ExtractionDiagnostic, ExtractionDiagnosticKind};
 pub enum ExtractError {
     /// The request violates an input or report-construction invariant.
     InvalidRequest {
+        /// Stable diagnostic code for the invalid request.
+        code: DiagnosticCode,
         /// Explanation of the invalid request.
         message: String,
+        /// Structured suggestions for correcting the request.
+        recovery_hints: Vec<RecoveryHint>,
     },
     /// The rendered input is malformed XML.
     MalformedXml {
         /// Structured evidence for the malformed input.
         diagnostic: ExtractionDiagnostic,
+        /// Structured suggestions for correcting the input.
+        recovery_hints: Vec<RecoveryHint>,
     },
     /// The template uses syntax outside the reversible contract.
     UnsupportedSyntax {
         /// Structured evidence for the unsupported syntax.
         diagnostic: ExtractionDiagnostic,
+        /// Structured suggestions for selecting supported syntax.
+        recovery_hints: Vec<RecoveryHint>,
     },
     /// The input cannot be mapped to one unambiguous extraction result.
     AmbiguousStructure {
         /// Structured evidence for the ambiguity.
         diagnostic: ExtractionDiagnostic,
+        /// Structured suggestions for disambiguating the result.
+        recovery_hints: Vec<RecoveryHint>,
     },
 }
 
 impl ExtractError {
     pub(crate) fn invalid_request(message: impl Into<String>) -> Self {
         Self::InvalidRequest {
+            code: DiagnosticCode::ErrExtractInvalidRequest,
             message: message.into(),
+            recovery_hints: vec![review_hint("extraction request")],
         }
     }
 
     pub(crate) fn unsupported(message: impl Into<String>) -> Self {
         Self::UnsupportedSyntax {
             diagnostic: ExtractionDiagnostic::new(
-                "ERR_EXTRACT_UNSUPPORTED",
+                DiagnosticCode::ErrExtractUnsupported,
                 ExtractionDiagnosticKind::Unsupported,
                 message,
                 None,
             ),
+            recovery_hints: vec![review_hint("supported XML extraction subset")],
         }
     }
 
@@ -54,11 +70,32 @@ impl ExtractError {
     ) -> Self {
         Self::AmbiguousStructure {
             diagnostic: ExtractionDiagnostic::new(
-                "ERR_EXTRACT_AMBIGUOUS",
+                DiagnosticCode::ErrExtractAmbiguous,
                 ExtractionDiagnosticKind::Ambiguous,
                 message,
                 occurrence,
             ),
+            recovery_hints: vec![review_hint("variable occurrence selection")],
+        }
+    }
+
+    fn recovery_hints_for(&self) -> &[RecoveryHint] {
+        match self {
+            Self::InvalidRequest { recovery_hints, .. }
+            | Self::MalformedXml { recovery_hints, .. }
+            | Self::UnsupportedSyntax { recovery_hints, .. }
+            | Self::AmbiguousStructure { recovery_hints, .. } => recovery_hints,
+        }
+    }
+
+    /// Return the stable diagnostic code associated with this error.
+    #[must_use]
+    pub const fn code(&self) -> DiagnosticCode {
+        match self {
+            Self::InvalidRequest { code, .. } => *code,
+            Self::MalformedXml { diagnostic, .. }
+            | Self::UnsupportedSyntax { diagnostic, .. }
+            | Self::AmbiguousStructure { diagnostic, .. } => diagnostic.code,
         }
     }
 
@@ -67,21 +104,35 @@ impl ExtractError {
     pub fn diagnostic(&self) -> Option<&ExtractionDiagnostic> {
         match self {
             Self::InvalidRequest { .. } => None,
-            Self::MalformedXml { diagnostic }
-            | Self::UnsupportedSyntax { diagnostic }
-            | Self::AmbiguousStructure { diagnostic } => Some(diagnostic),
+            Self::MalformedXml { diagnostic, .. }
+            | Self::UnsupportedSyntax { diagnostic, .. }
+            | Self::AmbiguousStructure { diagnostic, .. } => Some(diagnostic),
         }
     }
+
+    /// Return structured recovery hints for this error.
+    #[must_use]
+    pub fn recovery_hints(&self) -> &[RecoveryHint] {
+        self.recovery_hints_for()
+    }
+}
+
+fn review_hint(key: &str) -> RecoveryHint {
+    RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
+        key: key.to_owned(),
+    })
 }
 
 impl fmt::Display for ExtractError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidRequest { message } => write!(f, "invalid extraction request: {message}"),
-            Self::MalformedXml { diagnostic }
-            | Self::UnsupportedSyntax { diagnostic }
-            | Self::AmbiguousStructure { diagnostic } => {
-                write!(f, "{}: {}", diagnostic.code, diagnostic.message)
+            Self::InvalidRequest { message, .. } => {
+                write!(f, "invalid extraction request: {message}")
+            }
+            Self::MalformedXml { diagnostic, .. }
+            | Self::UnsupportedSyntax { diagnostic, .. }
+            | Self::AmbiguousStructure { diagnostic, .. } => {
+                write!(f, "{}: {}", diagnostic.code.as_str(), diagnostic.message)
             }
         }
     }

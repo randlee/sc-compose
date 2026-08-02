@@ -45,6 +45,10 @@ by `sc-composer` and `sc-compose`.
 | `ERR_CONFIG_PACK_NOT_FOUND` | `ConfigError` | error | named example or template pack does not exist under the selected pack root | CLI `examples`, CLI `templates` |
 | `ERR_CONFIG_PACK_NOT_RENDERABLE` | `ConfigError` | error | named pack cannot be rendered because it is ambiguous or lacks exactly one renderable root template | CLI `examples`, CLI `templates` |
 | `ERR_CONFIG_TEMPLATE_EXISTS` | `ConfigError` | error | `templates add` target pack already exists | CLI `templates add` |
+| `ERR_EXTRACT_INVALID_REQUEST` | `ExtractError` | error | in-memory extraction request violates source, filter, or report invariants | `sc_composer::extract()` and report construction |
+| `ERR_EXTRACT_MALFORMED` | `ExtractError` | error | rendered XML cannot be parsed as well-formed input | XML extraction engine |
+| `ERR_EXTRACT_UNSUPPORTED` | `ExtractError` | error | known template uses syntax outside the supported reversible XML subset | XML extraction engine |
+| `ERR_EXTRACT_AMBIGUOUS` | `ExtractError` | error | multiple structural interpretations remain for an extraction result | XML extraction engine and report construction |
 
 ## Planned Diagnostic Shape
 

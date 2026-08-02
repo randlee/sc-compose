@@ -4,6 +4,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
+use crate::diagnostics::DiagnosticCode;
 use crate::types::VariableName;
 
 mod error;
@@ -203,7 +204,7 @@ pub enum OccurrenceSource {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExtractionDiagnostic {
     /// Stable diagnostic code.
-    pub code: String,
+    pub code: DiagnosticCode,
     /// Semantic diagnostic category.
     pub kind: ExtractionDiagnosticKind,
     /// Human-readable diagnostic message.
@@ -216,13 +217,13 @@ impl ExtractionDiagnostic {
     /// Construct a diagnostic with stable code, category, and message.
     #[must_use]
     pub fn new(
-        code: impl Into<String>,
+        code: DiagnosticCode,
         kind: ExtractionDiagnosticKind,
         message: impl Into<String>,
         occurrence: Option<OccurrenceIndex>,
     ) -> Self {
         Self {
-            code: code.into(),
+            code,
             kind,
             message: message.into(),
             occurrence,

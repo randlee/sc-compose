@@ -74,12 +74,8 @@ fn repo_keeps_standalone_boundary_rules() {
     let forbidden_env = concat!("ATM", "_HOME");
     let forbidden_atm_import = concat!("use ", "atm", "_");
     let forbidden_agent_import = concat!("use ", "agent_", "team_", "mail::");
-    let forbidden_manifest_dep = concat!("agent", "-team-mail", "-");
-    let forbidden_research_refs = [
-        concat!("prototype/", "reverse", "_extract"),
-        concat!("prototype::", "reverse", "_extract"),
-        concat!("reverse", "_extract"),
-    ];
+    let forbidden_manifest_deps = [concat!("agent", "-team-mail"), "atm-"];
+    let forbidden_research_refs = [concat!("reverse", "_extract")];
     let mut violations = Vec::new();
 
     for path in source_files(&root) {
@@ -106,11 +102,40 @@ fn repo_keeps_standalone_boundary_rules() {
 
     for path in cargo_manifests(&root) {
         let contents = fs::read_to_string(&path).expect("read manifest");
-        if contents.contains(forbidden_manifest_dep) {
-            violations.push(format!(
-                "{}: forbidden manifest dependency family",
-                path.display()
-            ));
+        for forbidden in forbidden_manifest_deps {
+            if contents.contains(forbidden) {
+                violations.push(format!(
+                    "{}: forbidden manifest dependency {forbidden}",
+                    path.display()
+                ));
+            }
+        }
+
+        if path == root.join("bindings/python/Cargo.toml") {
+            for forbidden in ["sc-compose =", "sc-observability ="] {
+                if contents.contains(forbidden) {
+                    violations.push(format!(
+                        "{}: forbidden Python binding dependency {forbidden}",
+                        path.display()
+                    ));
+                }
+            }
+        }
+
+        if path == root.join("crates/sc-composer/Cargo.toml") {
+            for forbidden in [
+                "sc-compose =",
+                "sc-compose-py =",
+                "bindings/python",
+                "sc-observability =",
+            ] {
+                if contents.contains(forbidden) {
+                    violations.push(format!(
+                        "{}: forbidden composer dependency {forbidden}",
+                        path.display()
+                    ));
+                }
+            }
         }
     }
 
@@ -121,33 +146,6 @@ fn repo_keeps_standalone_boundary_rules() {
         .any(|line| line.trim_start().starts_with("sc-composer ="))
     {
         violations.push("bindings/python/Cargo.toml: missing sc-composer dependency".to_owned());
-    }
-    for forbidden in [
-        "sc-compose =",
-        "sc-observability =",
-        "agent-team-mail",
-        "atm-",
-    ] {
-        if python_manifest.contains(forbidden) {
-            violations.push(format!(
-                "bindings/python/Cargo.toml: forbidden dependency {forbidden}"
-            ));
-        }
-    }
-
-    let composer_manifest =
-        fs::read_to_string(root.join("crates/sc-composer/Cargo.toml")).expect("composer manifest");
-    for forbidden in [
-        "sc-compose =",
-        "sc-compose-py =",
-        "bindings/python",
-        "sc-observability =",
-    ] {
-        if composer_manifest.contains(forbidden) {
-            violations.push(format!(
-                "crates/sc-composer/Cargo.toml: forbidden dependency {forbidden}"
-            ));
-        }
     }
 
     assert!(

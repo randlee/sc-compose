@@ -78,9 +78,29 @@ fn valid_request_fails_closed_until_g2_engine_exists() {
 }
 
 #[test]
+fn errors_expose_canonical_codes_and_recovery_hints() {
+    let invalid = ExtractRequest::new("", "<x/>", ExtractFormat::Xml, &[], &[])
+        .validate()
+        .unwrap_err();
+    assert_eq!(invalid.code(), DiagnosticCode::ErrExtractInvalidRequest);
+    assert!(!invalid.recovery_hints().is_empty());
+
+    let request = ExtractRequest::new(
+        "<x>{{ name }}</x>",
+        "<x>Ada</x>",
+        ExtractFormat::Xml,
+        &[],
+        &[],
+    );
+    let unsupported = extract(&request).unwrap_err();
+    assert_eq!(unsupported.code(), DiagnosticCode::ErrExtractUnsupported);
+    assert!(!unsupported.recovery_hints().is_empty());
+}
+
+#[test]
 fn report_and_diagnostic_serialization_is_stable() {
     let diagnostic = ExtractionDiagnostic::new(
-        "WARN_EXTRACT_UNSUPPORTED",
+        DiagnosticCode::ErrExtractUnsupported,
         ExtractionDiagnosticKind::Unsupported,
         "filter is outside the reversible subset",
         Some(OccurrenceIndex(2)),
@@ -96,6 +116,10 @@ fn report_and_diagnostic_serialization_is_stable() {
     let serialized = serde_json::to_value(&report).unwrap();
     assert_eq!(serialized["values"]["answer"], json!("42"));
     assert_eq!(serialized["confidence"], json!(0.75));
+    assert_eq!(
+        serialized["diagnostics"][0]["code"],
+        json!("ERR_EXTRACT_UNSUPPORTED")
+    );
     assert_eq!(serialized["diagnostics"][0]["kind"], json!("unsupported"));
     assert_eq!(serialized["diagnostics"][0]["occurrence"], json!(2));
 }

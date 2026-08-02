@@ -97,6 +97,14 @@ pub enum DiagnosticCode {
     ErrConfigPackNotRenderable,
     /// A template import target already exists.
     ErrConfigTemplateExists,
+    /// An extraction request violates the in-memory contract.
+    ErrExtractInvalidRequest,
+    /// The rendered extraction input is malformed XML.
+    ErrExtractMalformed,
+    /// The template uses syntax outside the supported extraction subset.
+    ErrExtractUnsupported,
+    /// The extraction result has more than one structural interpretation.
+    ErrExtractAmbiguous,
 }
 
 impl DiagnosticCode {
@@ -133,6 +141,10 @@ impl DiagnosticCode {
             Self::ErrConfigPackNotFound => "ERR_CONFIG_PACK_NOT_FOUND",
             Self::ErrConfigPackNotRenderable => "ERR_CONFIG_PACK_NOT_RENDERABLE",
             Self::ErrConfigTemplateExists => "ERR_CONFIG_TEMPLATE_EXISTS",
+            Self::ErrExtractInvalidRequest => "ERR_EXTRACT_INVALID_REQUEST",
+            Self::ErrExtractMalformed => "ERR_EXTRACT_MALFORMED",
+            Self::ErrExtractUnsupported => "ERR_EXTRACT_UNSUPPORTED",
+            Self::ErrExtractAmbiguous => "ERR_EXTRACT_AMBIGUOUS",
         }
     }
 }
