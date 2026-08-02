@@ -46,8 +46,10 @@ does not reimplement template analysis or extraction.
   sources, warnings, and diagnostics with stable properties and useful
   representations for the first customer.
 - `G3-D3` — Reuse the existing exception hierarchy for malformed XML,
-  unsupported syntax, ambiguity, missing occurrences, and configuration
-  failures; do not create a Python-only semantic error model.
+  unsupported syntax, ambiguity, and configuration failures; missing
+  occurrences surface as a non-fatal WARN_EXTRACT_NOT_OBSERVED diagnostic
+  within a successful ExtractionReport, not as an exception. Do not create a
+  Python-only semantic error model.
 - `G3-D4` — Update the package import surface and `_native.pyi` stubs in lockstep
   with the Rust adapter registration.
 - `G3-D5` — Add Python smoke coverage proving value/provenance parity with the
