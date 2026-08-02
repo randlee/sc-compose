@@ -1,7 +1,7 @@
 ---
 id: G.4
 title: CLI Extract Surface
-status: planned
+status: complete
 branch: sprint/g-4-cli-extract-surface
 worktree: ../sc-compose-worktrees/sprint/g-4-cli-extract-surface
 target: develop

@@ -1,6 +1,7 @@
 pub(crate) mod compose;
 pub(crate) mod dispatch;
 pub(crate) mod examples;
+pub(crate) mod extract;
 pub(crate) mod reports;
 pub(crate) mod template_init;
 pub(crate) mod templates;

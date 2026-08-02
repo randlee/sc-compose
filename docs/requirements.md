@@ -1013,6 +1013,13 @@ contract. The contract is defined by
 - Invalid requests, malformed XML, unsupported syntax, and ambiguous
   structure remain distinct error categories with stable diagnostic codes.
 
+The CLI adapter exposes the same known-template contract through the
+read-only command `sc-compose extract TEMPLATE.xml.j2 RENDERED.xml`. It
+supports repeatable `--include NAME` and `--exclude NAME` filters, uses XML as
+the documented initial format, and accepts `--json` for the standard
+diagnostics envelope. The command must not identify unknown templates, invoke
+the renderer, scan directories, or write output files.
+
 ### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 
 ### FR-12: Map/Object Variable Inputs

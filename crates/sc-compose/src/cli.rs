@@ -27,6 +27,8 @@ pub(crate) enum Command {
     Validate(ValidateArgs),
     #[command(about = "Verify deployed output matches a rendered template")]
     Verify(VerifyArgs),
+    #[command(about = "Extract variables from a known XML template and rendered output")]
+    Extract(ExtractArgs),
     #[command(name = "template-init")]
     #[command(about = "Convert a concrete file into a template using pass-scoped replacements")]
     TemplateInit(TemplateInitArgs),
@@ -215,6 +217,33 @@ pub(crate) struct VerifyArgs {
     pub(crate) json: bool,
     #[arg(help = "Concrete deployed file to compare against")]
     pub(crate) deployed: PathBuf,
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct ExtractArgs {
+    #[arg(value_name = "TEMPLATE", help = "Known template file (required)")]
+    pub(crate) template: PathBuf,
+    #[arg(value_name = "RENDERED", help = "Rendered XML output file (required)")]
+    pub(crate) rendered: PathBuf,
+    #[arg(
+        long,
+        value_name = "NAME",
+        action = clap::ArgAction::Append,
+        help = "Only recover this variable; repeat for multiple names"
+    )]
+    pub(crate) include: Vec<String>,
+    #[arg(
+        long,
+        value_name = "NAME",
+        action = clap::ArgAction::Append,
+        help = "Exclude this variable; repeat for multiple names"
+    )]
+    pub(crate) exclude: Vec<String>,
+    #[arg(
+        long,
+        help = "Emit machine-readable JSON output (format is XML by default)"
+    )]
+    pub(crate) json: bool,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -512,6 +541,7 @@ pub(crate) fn command_wants_json(command: &Command) -> bool {
         Command::Resolve(args) => args.json,
         Command::Validate(args) => args.json,
         Command::Verify(args) => args.json,
+        Command::Extract(args) => args.json,
         Command::TemplateInit(args) => args.json,
         Command::FrontmatterInit(args) => args.json,
         Command::Init(args) => args.json,
@@ -667,6 +697,13 @@ mod tests {
             &["sc-compose", "resolve", "--json"],
             &["sc-compose", "validate", "--json"],
             &["sc-compose", "verify", "deployed.txt", "--json"],
+            &[
+                "sc-compose",
+                "extract",
+                "template.xml.j2",
+                "rendered.xml",
+                "--json",
+            ],
             &["sc-compose", "template-init", "template.txt", "--json"],
             &[
                 "sc-compose",
