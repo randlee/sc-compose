@@ -644,6 +644,15 @@ contract and its intentional boundaries, while the committed cross-surface
 corpus provides regression evidence. The research harness is not part of the
 product interface or a runtime dependency.
 
+Phase-H planning records the real-customer extension candidates from issue
+#193: JSON, YAML, and TOML adapters, XML mixed-content extraction, and a narrow
+non-XML preamble policy. These candidates are not runtime support in the
+current architecture. [ADR-0012](adrs/0012-phase-h-reverse-extraction-extension-gates.md)
+requires an accepted format-specific path/source contract, malformed-input
+policy, and cross-surface evidence before any adapter is implemented. The
+generic report model may be extended, but the library/CLI/Python ownership
+boundary and Phase-G fail-closed XML behavior remain unchanged until then.
+
 ## 9. Include and Frontmatter Merge Rules (FR-3)
 
 The include graph is evaluated deterministically.

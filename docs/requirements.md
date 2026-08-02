@@ -1031,6 +1031,17 @@ research. The committed Rust, Python, and CLI corpus is the regression
 evidence for the supported known-template/XML-first contract; the earlier
 research harness is not a product interface or runtime dependency.
 
+### Phase-H Extension Planning Boundary
+
+Issue #193 records real customer use cases for JSON, YAML, and TOML rendered
+output, XML mixed-content blocks, and narrowly defined non-XML prefixes before
+rendered XML. These are planned Phase-H extensions, not additional supported
+FR-16 behavior yet. [ADR-0012](adrs/0012-phase-h-reverse-extraction-extension-gates.md)
+and [the Phase-H plan](phase-H/phase-H-plan.md) require each format or input
+policy to receive explicit semantics, diagnostics, and cross-surface tests
+before implementation. Until H.1 is accepted, the Phase-G XML scalar-only
+contract and its fail-closed malformed-input behavior remain authoritative.
+
 ### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 
 ### FR-12: Map/Object Variable Inputs
