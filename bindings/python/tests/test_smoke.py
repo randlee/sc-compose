@@ -210,16 +210,6 @@ def test_extraction_error_categories_preserve_exception_mapping_and_detail() -> 
     assert malformed.value.diagnostic_kind == "malformed"
     assert malformed.value.recovery_hints
 
-    with pytest.raises(sc_compose.ScConfigError) as ambiguous:
-        sc_compose.extract_variables(
-            "<x>{{ first }}{{ second }}</x>",
-            "<x>AB</x>",
-        )
-    assert ambiguous.value.code == "ERR_EXTRACT_AMBIGUOUS"
-    assert ambiguous.value.diagnostic_kind == "ambiguous"
-    assert ambiguous.value.diagnostic_occurrence is None
-    assert ambiguous.value.recovery_hints
-
     with pytest.raises(sc_compose.ScConfigError) as invalid:
         sc_compose.extract_variables("", "<x />")
     assert invalid.value.code == "ERR_EXTRACT_INVALID_REQUEST"
@@ -240,6 +230,42 @@ def test_extraction_reports_missing_occurrence_warning() -> None:
     assert len(not_observed) == 1
     assert not_observed[0].kind == "not_observed"
     assert "not observed" in not_observed[0].message
+
+
+def test_extraction_corpus_covers_comments_static_text_and_conflicting_occurrences() -> None:
+    template, rendered = fixture_pair("declaration-comments")
+    comments = sc_compose.extract_variables(template, rendered)
+    assert comments.values == {"value": "Ada"}
+    assert comments.diagnostics == []
+
+    template, rendered = fixture_pair("static-prefix-suffix")
+    static = sc_compose.extract_variables(template, rendered)
+    assert static.values == {"name": "Ada"}
+
+    template, rendered = fixture_pair("same-variable-conflicting-occurrences")
+    conflicting = sc_compose.extract_variables(template, rendered)
+    assert conflicting.values == {}
+    assert [diagnostic.code for diagnostic in conflicting.diagnostics] == [
+        "WARN_EXTRACT_LOW_CONFIDENCE",
+        "ERR_EXTRACT_AMBIGUOUS",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("fixture", "code"),
+    [
+        ("unsupported-filter", "ERR_EXTRACT_UNSUPPORTED"),
+        ("namespace", "ERR_EXTRACT_UNSUPPORTED"),
+        ("ambiguous-adjacent", "ERR_EXTRACT_AMBIGUOUS"),
+    ],
+)
+def test_extraction_corpus_failures_are_stable(fixture: str, code: str) -> None:
+    template, rendered = fixture_pair(fixture)
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(template, rendered)
+
+    assert caught.value.code == code
+    assert caught.value.recovery_hints
 
 
 def test_repr_surface_is_informative(tmp_path: Path) -> None:

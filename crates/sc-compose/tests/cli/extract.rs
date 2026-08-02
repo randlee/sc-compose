@@ -122,11 +122,7 @@ fn extract_text_maps_failures_to_usage_exit_and_actionable_stderr() {
     assert_eq!(output.status.code(), Some(3));
     assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_EXTRACT_INVALID_REQUEST"));
 
-    let root = temp_root("extract-ambiguous");
-    let ambiguous_template = root.join("ambiguous.xml.j2");
-    let ambiguous_rendered = root.join("ambiguous.xml");
-    write_file(&ambiguous_template, "<x>{{ first }}{{ second }}</x>\n");
-    write_file(&ambiguous_rendered, "<x>AB</x>\n");
+    let (ambiguous_template, ambiguous_rendered) = fixture("ambiguous-adjacent");
     let output = sc_compose()
         .arg("extract")
         .arg(ambiguous_template)
@@ -150,4 +146,52 @@ fn extract_text_reports_missing_input_paths() {
     assert_eq!(output.status.code(), Some(3));
     assert!(output.stdout.is_empty());
     assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_CONFIG_READ"));
+}
+
+#[test]
+fn extract_text_accepts_xml_declaration_comments_and_static_text_fixture() {
+    let (template, rendered) = fixture("declaration-comments");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("value: \"Ada\""));
+    assert!(stdout.contains("format: xml"));
+}
+
+#[test]
+fn extract_text_uses_committed_repeated_sibling_fixture() {
+    let (template, rendered) = fixture("repeated-siblings");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("first: \"A\""));
+    assert!(stdout.contains("second: \"B\""));
+    assert!(stdout.contains("/root[0]/item[0]"));
+    assert!(stdout.contains("/root[0]/item[1]"));
+}
+
+#[test]
+fn extract_text_uses_committed_static_prefix_suffix_fixture() {
+    let (template, rendered) = fixture("static-prefix-suffix");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(String::from_utf8_lossy(&output.stdout).contains("name: \"Ada\""));
 }

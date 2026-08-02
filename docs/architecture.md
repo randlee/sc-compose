@@ -627,6 +627,12 @@ that all fatal extraction inputs use that established `ScConfigError` class
 and expose the Rust diagnostic code, recovery hints, and diagnostic detail;
 it does not introduce a Python-only extraction exception subclass.
 
+This capability is implemented from scratch in the production Rust library,
+Python adapter, and CLI. Prior reverse-extraction research informs the
+contract and its intentional boundaries, while the committed cross-surface
+corpus provides regression evidence. The research harness is not part of the
+product interface or a runtime dependency.
+
 ## 9. Include and Frontmatter Merge Rules (FR-3)
 
 The include graph is evaluated deterministically.

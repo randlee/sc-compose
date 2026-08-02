@@ -1,0 +1,3 @@
+<?xml version="1.0"?>
+<!-- Corpus case: XML declaration and comments remain structural noise. -->
+<root><value>prefix Ada suffix</value></root>
