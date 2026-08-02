@@ -72,8 +72,10 @@ the implementation must:
 5. obtain an independent green review of that parity diff before beginning
    JSON-specific parser and policy work.
 
-The completed parity review is recorded in
+The developer parity validation is recorded in
 [`evidence/h-2-xml-parity-review.md`](evidence/h-2-xml-parity-review.md).
+The evidence record must be updated by an independent reviewer before this
+checkpoint can be considered independently accepted.
 
 Any baseline difference is a parity failure until explicitly reviewed and
 accepted as an intentional contract change. JSON tests cannot mask an
