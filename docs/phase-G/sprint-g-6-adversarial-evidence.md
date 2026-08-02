@@ -24,7 +24,7 @@ contract gap, and promotes confirmed regressions into the owning test suite.
 - `.claude/skills/adversarial-fuzzing/` is the authoritative worker and report
   protocol; this sprint supplies the Phase-G target and evidence artifact.
 - The campaign must exercise Rust, Python, and CLI surfaces without allowing
-  the research prototype to become a production dependency.
+  research-only extraction artifacts to become a production dependency.
 
 ## Exact targets
 

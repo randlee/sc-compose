@@ -22,7 +22,7 @@ does not reimplement template analysis or extraction.
 - Existing Phase C/D Python adapter conventions, exception hierarchy, stubs,
   wheel packaging, and Python-only dependency direction.
 - `bindings/python` may depend on `sc-composer` only; it must not depend on
-  `sc-compose`, CLI modules, ATM, or the Python prototype.
+  `sc-compose`, CLI modules, ATM, or a research harness.
 
 ## Exact targets
 
@@ -92,7 +92,8 @@ extraction ownership in one place.
   outcomes agree for the shared fixtures.
 - `_native.pyi`, package exports, Rust registration, and smoke tests are
   consistent; wheel packaging remains valid.
-- The adapter introduces no dependency on `sc-compose`, ATM, or the prototype,
+- The adapter introduces no dependency on `sc-compose`, ATM, or a research
+  harness,
   and no existing Python API changes behavior.
 
 ## Required validation

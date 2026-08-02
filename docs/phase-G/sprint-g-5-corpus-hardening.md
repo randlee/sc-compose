@@ -28,8 +28,9 @@ inverse Jinja engine.
 - `crates/sc-compose/tests/cli/extract.rs`
 - `crates/sc-compose/tests/json_cli/extract.rs`
 - `crates/sc-compose/tests/fixtures/reverse-extract/**`
-- `prototype/reverse_extract/README.md`
-- `prototype/reverse_extract/bulk_test.py`
+- `bindings/python/tests/test_smoke.py`
+- `bindings/python/tests/fixtures/reverse-extract/**`
+- `docs/phase-G/evidence/g-5-corpus.json`
 - `docs/requirements.md` and `docs/architecture.md` only for evidence-backed
   contract corrections discovered during this sprint
 
@@ -44,10 +45,10 @@ inverse Jinja engine.
   sibling paths, static prefix/suffix, entities, whitespace, empty values,
   malformed XML, unsupported Jinja, missing occurrences, ambiguity, and the
   `same-variable-conflicting-occurrences` case.
-- `G5-D3` — Replace stale prototype claims with documentation that points to
-  the production CLI and states the known-template/XML-first limitation; make
-  the prototype bulk harness's template coverage and pass/fail criteria
-  explicit rather than presenting skipped roots as validated coverage.
+- `G5-D3` — Publish the deterministic corpus evidence and update requirements
+  and architecture documentation to describe this as a from-scratch,
+  research-informed known-template/XML-first feature. Remove stale claims that
+  an uncommitted research harness is the product interface.
 
 ## This sprint does not close
 
@@ -62,8 +63,9 @@ inverse Jinja engine.
   intentional boundary.
 - Rust, Python, and CLI fixtures agree on supported values and fail-closed
   boundary outcomes.
-- The prototype README no longer presents the research harness as the
-  supported product interface.
+- The committed corpus evidence and requirements/architecture docs describe
+  the supported product interface without relying on an uncommitted research
+  harness.
 
 ## Required validation
 

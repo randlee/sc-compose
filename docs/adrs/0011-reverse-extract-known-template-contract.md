@@ -6,10 +6,10 @@ Accepted
 
 ## Context
 
-Phase G graduates `prototype/reverse_extract` into a supported feature for
-known-template, XML-first extraction. The reversible contract needs a durable
-record for its string-only report, structural occurrence provenance, and
-fail-closed handling of unsupported or ambiguous inputs.
+Phase G delivers a supported feature for known-template, XML-first extraction,
+informed by prior reverse-extraction research. The reversible contract needs a
+durable record for its string-only report, structural occurrence provenance,
+and fail-closed handling of unsupported or ambiguous inputs.
 
 The repository's normal naming convention also uses `X.#-py` companion sprints
 for Python parity. Phase G has a different product need: Python is the first
@@ -51,6 +51,6 @@ G.4, G.5, and G.6.
 - Future Phase-G changes that alter the Python-first rationale or G.3/G.4
   gating must amend this ADR and the affected sprint documents together.
 - The repository boundary test is a required Phase-G gate. It checks source
-  imports and Cargo manifests so the extraction prototype cannot become a
-  production dependency and the library/adapter/CLI dependency direction
-  remains enforced.
+  imports and Cargo manifests so research-only extraction artifacts cannot
+  become a production dependency and the library/adapter/CLI dependency
+  direction remains enforced.

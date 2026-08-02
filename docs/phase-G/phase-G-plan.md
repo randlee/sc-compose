@@ -11,8 +11,8 @@ target: develop
 
 ## Objective
 
-Graduate the `prototype/reverse_extract` proof of concept into a supported
-`sc-compose extract` feature for the most defensible use case: recovering
+Deliver a supported `sc-compose extract` feature, informed by prior
+reverse-extraction research, for the most defensible use case: recovering
 string bindings from a known `.xml.j2` template and a rendered XML document.
 The feature must be deterministic, fail closed on ambiguous or unsupported
 Jinja constructs, preserve the standalone crate boundaries, and expose enough
@@ -24,10 +24,10 @@ about source types, loops, conditionals, filters, and omitted branches. The
 supported contract therefore names a reversible template subset and reports
 when an input falls outside it.
 
-## Prototype findings carried into the contract
+## Prior research findings carried into the contract
 
-The prototype at `prototype/reverse_extract` is research input, not the
-production implementation. Its known limitations are phase requirements:
+Prior reverse-extraction research is contract input, not a production
+implementation. Its known limitations are phase requirements:
 
 - extraction by the first matching tag returns the wrong value for repeated
   sibling tags;
@@ -79,15 +79,22 @@ pub struct ExtractRequest<'a> {
     pub template: &'a str,
     pub rendered: &'a str,
     pub format: ExtractFormat,
-    pub include: &'a [String],
-    pub exclude: &'a [String],
+    pub include: &'a [VariableName],
+    pub exclude: &'a [VariableName],
 }
 
-pub struct ExtractionReport {
+pub struct ExtractionReport<P = OccurrencePathSegment, S = OccurrenceSource> {
     pub values: BTreeMap<VariableName, String>,
-    pub occurrences: Vec<ExtractionOccurrence>,
+    pub occurrences: Vec<ExtractionOccurrence<P, S>>,
     pub confidence: f64,
     pub diagnostics: Vec<ExtractionDiagnostic>,
+}
+
+pub enum ExtractError {
+    InvalidRequest { message: String },
+    MalformedXml { diagnostic: ExtractionDiagnostic },
+    UnsupportedSyntax { diagnostic: ExtractionDiagnostic },
+    AmbiguousStructure { diagnostic: ExtractionDiagnostic },
 }
 
 pub fn extract(request: ExtractRequest<'_>)
@@ -114,7 +121,7 @@ are normative.
    behavior, and file-boundary tests.
 5. [Sprint G.5 — Corpus and Regression Closure](sprint-g-5-corpus-hardening.md)
    proves supported and intentionally rejected cases with deterministic Rust,
-   Python, and CLI fixtures and updates stale prototype claims.
+   Python, and CLI fixtures and updates stale research claims.
 6. [Sprint G.6 — Adversarial Evidence and Hardening](sprint-g-6-adversarial-evidence.md)
    runs the bounded multi-agent campaign and records every candidate,
    classification, promotion, and unresolved owner for QA review.
@@ -136,8 +143,8 @@ supported, rejected, and inconclusive cases.
   and does not gate G.4. G.5
   exercises the complete Rust/Python/CLI surface; G.6 depends on the corpus
   and regression gates from G.5.
-- The existing `prototype/reverse_extract` code remains a reference fixture
-  and must not be imported by production Rust or Python bindings.
+- Prior research artifacts remain non-production input and must not be
+  imported by production Rust or Python bindings.
 
 ## Phase exit gate
 

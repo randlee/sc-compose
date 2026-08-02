@@ -12,7 +12,7 @@ target: develop
 ## Goal
 
 Implement the known-template XML extraction engine against the G.1 contract.
-Replace the prototype's regex-plus-first-tag behavior with structural
+Replace the prior research harness's regex-plus-first-tag behavior with structural
 occurrence matching that either returns the uniquely supported value or emits
 an explicit unsupported/ambiguous result.
 
@@ -105,7 +105,7 @@ from `ExtractionReport.values`; no occurrence may silently overwrite another.
 ## Acceptance criteria
 
 - Every supported fixture returns the expected value and occurrence path.
-- The repeated-sibling regression reproduces the prototype defect and passes
+- The repeated-sibling regression reproduces the prior research defect and passes
   with distinct values for distinct occurrences.
 - The `same-variable-conflicting-occurrences` fixture returns an `ambiguous`
   diagnostic and no value for the conflicting variable; it never keeps only

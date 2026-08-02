@@ -21,7 +21,7 @@ not claim that extraction works before G.2.
 - Phase G plan and the completed Phase-F baseline.
 - `docs/requirements.md`, `docs/architecture.md`, existing diagnostics, and
   the `sc-composer` public-value model.
-- The prototype findings recorded in [phase-G-plan.md](phase-G-plan.md).
+- The prior research findings recorded in [phase-G-plan.md](phase-G-plan.md).
 
 ## Exact targets
 
@@ -44,7 +44,8 @@ not claim that extraction works before G.2.
   non-goals for unknown-template identification, loops, branches, JSON,
   Markdown, and type reconstruction.
 - `G1-D2` — `sc-composer` exposes pure request/report/occurrence/diagnostic
-  types and an extraction entry point that accepts in-memory text only.
+  types, an explicit `ExtractError` contract, and an extraction entry point
+  that accepts in-memory text only.
 - `G1-D3` — The contract distinguishes successful extraction, malformed input,
   unsupported syntax, and ambiguous structure without conflating an
   intentional boundary with a missing value.
@@ -57,7 +58,7 @@ not claim that extraction works before G.2.
   `bindings/python/src/**/*.rs`, and `bindings/python/python/**/*.py`; the
   existing crates-only/Rust-only scope is insufficient. The gate must inspect
   those production Rust/Python source imports and Cargo manifests to prove
-  that production bindings do not import `prototype/reverse_extract`,
+  that production bindings do not import research-only extraction artifacts,
   `bindings/python` depends on `sc-composer` but not `sc-compose`,
   `sc-observability`, or ATM crates, and `sc-composer` does not depend on
   `bindings/python`.
@@ -81,7 +82,9 @@ not claim that extraction works before G.2.
   rendered strings must be preserved in the occurrence diagnostics/evidence.
 - Define whether a report with warnings is successful and how a caller
   distinguishes `unsupported`, `ambiguous`, `not_observed`, and malformed XML.
-- Add an ADR only because the prototype exposed a real product-contract gap;
+- Validate report confidence at construction: reject NaN, infinity, and values
+  outside the closed `0.0..=1.0` range.
+- Add an ADR only because prior research exposed a real product-contract gap;
   do not create separate ADRs for each implementation detail.
 
 ## Explicit code sample
@@ -95,8 +98,8 @@ pub struct ExtractRequest<'a> {
     pub template: &'a str,
     pub rendered: &'a str,
     pub format: ExtractFormat,
-    pub include: &'a [String],
-    pub exclude: &'a [String],
+    pub include: &'a [VariableName],
+    pub exclude: &'a [VariableName],
 }
 
 pub struct ExtractionReport<P = OccurrencePathSegment, S = OccurrenceSource> {
@@ -104,6 +107,13 @@ pub struct ExtractionReport<P = OccurrencePathSegment, S = OccurrenceSource> {
     pub occurrences: Vec<ExtractionOccurrence<P, S>>,
     pub confidence: f64,
     pub diagnostics: Vec<ExtractionDiagnostic>,
+}
+
+pub enum ExtractError {
+    InvalidRequest { message: String },
+    MalformedXml { diagnostic: ExtractionDiagnostic },
+    UnsupportedSyntax { diagnostic: ExtractionDiagnostic },
+    AmbiguousStructure { diagnostic: ExtractionDiagnostic },
 }
 
 pub struct ExtractionOccurrence<
@@ -129,8 +139,10 @@ pub struct ExtractionDiagnostic {
     pub code: String,
     pub kind: ExtractionDiagnosticKind,
     pub message: String,
-    pub occurrence: Option<usize>,
+    pub occurrence: Option<OccurrenceIndex>,
 }
+
+pub struct OccurrenceIndex(pub usize);
 
 pub enum ExtractionDiagnosticKind {
     Unsupported,
@@ -155,7 +167,7 @@ while the variable is omitted from `values`.
 - the `sc-compose extract` command;
 - JSON/Markdown output adapters or unknown-template identification;
 - typed-value inference, loop reconstruction, or automatic edits;
-- production use of `prototype/reverse_extract`.
+- production use of prior research artifacts.
 
 ## Acceptance criteria
 
@@ -166,7 +178,7 @@ while the variable is omitted from `values`.
 - Occurrence identity includes structural path/ordinal information and cannot
   represent only a tag-name lookup.
 - Unit tests prove stable construction/serialization of the report and all
-  contract-level error categories.
+  contract-level error categories, including invalid confidence values.
 - The named same-variable multi-occurrence rule is covered by a contract test;
   it cannot silently overwrite the `BTreeMap` value.
 - `ExtractionOccurrence<P, S>` and `ExtractionDiagnostic` have explicit,
