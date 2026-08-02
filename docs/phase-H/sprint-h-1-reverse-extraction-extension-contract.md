@@ -21,7 +21,8 @@ target: develop
 
 - Phase G.1 through G.7 are complete on the `develop` baseline.
 - The read-only issue #193 gap review is available as the source analysis.
-- ADR-0011 remains authoritative until this sprint is accepted.
+- ADR-0011 remains authoritative for Phase-G behavior; the accepted H.1
+  amendments govern the Phase-H extensions.
 
 ## Exact Targets
 

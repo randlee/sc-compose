@@ -648,15 +648,17 @@ Phase-H planning records the three in-scope real-customer format candidates
 from issue #193: JSON, YAML, and TOML adapters. XML mixed-content extraction
 and a narrow non-XML preamble policy remain named future-phase work, not
 Phase-H sprints. [ADR-0012](adrs/0012-phase-h-reverse-extraction-extension-gates.md)
-requires an accepted format-specific path/source contract, malformed-input
-policy, and cross-surface evidence before any adapter is implemented. The
-generic report model may be extended, but the library/CLI/Python ownership
-boundary and Phase-G fail-closed XML behavior remain unchanged until then.
+now records the accepted format-specific path/source contract and malformed-
+input policy. Cross-surface evidence remains required before any adapter is
+delivered. The generic report model may be extended, but the library/CLI/Python
+ownership boundary and Phase-G fail-closed XML behavior remain unchanged while
+H.2 through H.6 implement and validate the accepted extensions.
 
-The format adapters do not own independent placeholder matchers. H.1 must
-define the internal migration seam from the current XML value-matching path to
-a shared raw-text matching core. That core owns delimiter scanning,
-template-segment parsing, static-prefix/suffix matching, capture boundaries,
+The format adapters do not own independent placeholder matchers. The accepted
+H.1 design defines the internal migration seam from the current XML
+value-matching path to a shared raw-text matching core. That core owns
+delimiter scanning, template-segment parsing, static-prefix/suffix matching,
+capture boundaries,
 and adjacent-variable ambiguity handling. Format adapters own structural
 parsing, occurrence paths, provenance, and format-specific diagnostics, then
 delegate candidate-value matching to the shared core. XML remains the first
