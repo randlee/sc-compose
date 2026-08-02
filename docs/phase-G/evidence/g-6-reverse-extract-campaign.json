@@ -139,8 +139,8 @@
     "source": {
       "kind": "local_run",
       "runner": "comp",
-      "commit": "1d6d048",
-      "run_scope": "final committed evidence artifact state",
+      "commit": "98408f2",
+      "run_scope": "final committed evidence and report-package state",
       "result": "all required gates PASS",
       "ci_reference": "PR #190 CI was 9/9 green at the preceding code-equivalent commit 05e20f2",
       "url": "https://github.com/randlee/sc-compose/pull/190"
