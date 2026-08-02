@@ -46,7 +46,9 @@ silently dropped or partially deferred.
 - H1-D3 — Define the malformed-input, duplicate-key, null/type, ambiguity,
   provenance, size-limit, security, and cross-format recovery-hint policies
   needed by H.2 through H.7, including the current XML-specific constructors
-  in `crates/sc-composer/src/extract/error.rs`.
+  in `crates/sc-composer/src/extract/error.rs`; every new failure mode must
+  have one stable, documented diagnostic code before a dependent sprint may
+  rely on it.
 - H1-D4 — Amend H.6 and H.7 Exact Targets to include
   `crates/sc-composer/src/extract/error.rs`, and update FR-16, architecture,
   ADR-0012, the Phase-H plan, and the project index so they agree on
@@ -66,6 +68,10 @@ silently dropped or partially deferred.
 - Define a format-neutral extraction error taxonomy and recovery-hint policy;
   existing XML-specific recovery text must not be copied into YAML or TOML
   diagnostics without an explicit contract decision.
+- Build an error inventory covering every new cross-format failure mode with
+  its stable code, category, severity, recovery hint, owning surface, and
+  serialized representation. H.6 and H.7 may not rely on an unlisted or
+  provisional failure code.
 - Record explicit non-closure for unknown-template identification, loops,
   branches, typed recovery, and Jinja evaluation.
 
@@ -110,6 +116,9 @@ report model.
   supported/rejected behavior, and a testable contract.
 - The accepted contract preserves rendered-string output, ambiguity safety,
   library/adapter boundaries, and fail-closed malformed-input handling.
+- The error inventory is complete for every planned cross-format failure mode;
+  each mode has a stable documented code and recovery mapping, and H.6/H.7
+  cannot start from an unlisted or provisional code.
 - H.2 through H.7 can implement their scope without inventing semantics in
   code or reopening H.1 decisions.
 - The document explicitly states that this sprint produces no executable
