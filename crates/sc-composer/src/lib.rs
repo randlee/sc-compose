@@ -11,6 +11,8 @@ pub mod composer;
 pub mod diagnostics;
 /// Canonical crate-owned error types.
 pub mod error;
+/// Known-template extraction contract and report types.
+pub mod extract;
 /// Typed frontmatter parsing and normalization.
 pub mod frontmatter;
 /// Frontmatter initialization helper.
@@ -45,6 +47,12 @@ pub use diagnostics::{
 pub use error::{
     ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind, RenderError,
     ResolveError, ValidationError,
+};
+#[doc(inline)]
+pub use extract::{
+    ExtractError, ExtractFormat, ExtractRequest, ExtractionDiagnostic, ExtractionDiagnosticKind,
+    ExtractionOccurrence, ExtractionReport, OccurrenceIndex, OccurrencePathSegment,
+    OccurrenceSource, extract,
 };
 #[doc(inline)]
 pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};

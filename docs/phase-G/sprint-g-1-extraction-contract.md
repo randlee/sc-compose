@@ -1,7 +1,7 @@
 ---
 id: G.1
 title: Extraction Contract and Analysis Model
-status: planned
+status: complete
 branch: sprint/g-1-extraction-contract
 worktree: ../sc-compose-worktrees/sprint/g-1-extraction-contract
 target: develop
