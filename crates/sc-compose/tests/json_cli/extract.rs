@@ -89,7 +89,7 @@ fn extract_json_maps_expected_failures_without_logs_or_backtraces() {
             .arg("--json")
             .output()
             .unwrap();
-        assert_eq!(output.status.code(), Some(3));
+        assert_eq!(output.status.code(), Some(2));
         assert!(
             output.stderr.is_empty(),
             "expected failure must be JSON-clean"
@@ -125,7 +125,7 @@ fn extract_json_maps_expected_failures_without_logs_or_backtraces() {
         .arg("--json")
         .output()
         .unwrap();
-    assert_eq!(output.status.code(), Some(3));
+    assert_eq!(output.status.code(), Some(2));
     assert!(output.stderr.is_empty());
     let value = parse_stdout(&output);
     assert_first_code(&value, "ERR_EXTRACT_AMBIGUOUS");

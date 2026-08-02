@@ -83,7 +83,7 @@ fn extract_text_maps_failures_to_usage_exit_and_actionable_stderr() {
         .arg(&rendered)
         .output()
         .unwrap();
-    assert_eq!(output.status.code(), Some(3));
+    assert_eq!(output.status.code(), Some(2));
     assert!(output.stdout.is_empty());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("ERR_EXTRACT_MALFORMED"));
@@ -96,7 +96,7 @@ fn extract_text_maps_failures_to_usage_exit_and_actionable_stderr() {
         .arg(&rendered)
         .output()
         .unwrap();
-    assert_eq!(output.status.code(), Some(3));
+    assert_eq!(output.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_EXTRACT_UNSUPPORTED"));
 
     let (template, rendered) = fixture("same-variable-conflicting-occurrences");
@@ -133,7 +133,7 @@ fn extract_text_maps_failures_to_usage_exit_and_actionable_stderr() {
         .arg(ambiguous_rendered)
         .output()
         .unwrap();
-    assert_eq!(output.status.code(), Some(3));
+    assert_eq!(output.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_EXTRACT_AMBIGUOUS"));
 }
 
