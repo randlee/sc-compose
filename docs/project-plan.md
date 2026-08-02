@@ -485,8 +485,8 @@ Unnumbered Phase F follow-on work:
 
 Status:
 
-- planned follow-on work to graduate the reverse-extract prototype into a
-  known-template, XML-first `sc-compose extract` feature, with Python as a
+- planned follow-on work for a known-template, XML-first `sc-compose extract`
+  feature informed by prior reverse-extraction research, with Python as a
   first-class customer surface
 
 Sprint entries:
