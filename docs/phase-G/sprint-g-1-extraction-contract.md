@@ -52,11 +52,15 @@ not claim that extraction works before G.2.
   empty selections, stable diagnostic serialization, and the string-value
   limitation before the XML matcher is implemented.
 - `G1-D5` — Extend `repo_boundaries.rs` with a machine-checked Phase-G
-  boundary gate. It must inspect production Rust/Python source imports and
-  Cargo manifests to prove that production bindings do not import
-  `prototype/reverse_extract`, `bindings/python` depends on `sc-composer` but
-  not `sc-compose`, `sc-observability`, or ATM crates, and `sc-composer` does
-  not depend on `bindings/python`.
+  boundary gate. Its file-discovery walker must be extended—not merely
+  layered with new assertions—to enumerate `crates/**/*.rs`,
+  `bindings/python/src/**/*.rs`, and `bindings/python/python/**/*.py`; the
+  existing crates-only/Rust-only scope is insufficient. The gate must inspect
+  those production Rust/Python source imports and Cargo manifests to prove
+  that production bindings do not import `prototype/reverse_extract`,
+  `bindings/python` depends on `sc-composer` but not `sc-compose`,
+  `sc-observability`, or ATM crates, and `sc-composer` does not depend on
+  `bindings/python`.
 
 ## Required work
 
@@ -66,6 +70,10 @@ not claim that extraction works before G.2.
   out of `sc-composer`.
 - Define occurrence provenance sufficient for G.2 to distinguish repeated
   sibling paths; a tag name alone is not an acceptable identity.
+- Define the generic `ExtractionOccurrence` and `ExtractionDiagnostic` shapes
+  before G.2 specializes them for XML. G.2 must extend those shapes with XML
+  path/source detail rather than introduce an incompatible second report
+  contract.
 - If one variable name appears at more than one distinct structural
   occurrence, classify the result as `ambiguous` and emit no entry for that
   variable in `ExtractionReport.values`, even when the rendered strings happen
@@ -97,10 +105,42 @@ pub struct ExtractionReport {
     pub confidence: f64,
     pub diagnostics: Vec<ExtractionDiagnostic>,
 }
+
+pub struct ExtractionOccurrence {
+    pub variable: VariableName,
+    pub path: Vec<OccurrencePathSegment>,
+    pub source: OccurrenceSource,
+    pub rendered_text: Option<String>,
+}
+
+pub enum OccurrencePathSegment {
+    Node { label: String, ordinal: usize },
+    Value { label: Option<String>, ordinal: usize },
+}
+
+pub enum OccurrenceSource {
+    Named { kind: String, label: Option<String> },
+}
+
+pub struct ExtractionDiagnostic {
+    pub code: String,
+    pub kind: ExtractionDiagnosticKind,
+    pub message: String,
+    pub occurrence: Option<usize>,
+}
+
+pub enum ExtractionDiagnosticKind {
+    Unsupported,
+    Ambiguous,
+    NotObserved,
+    Malformed,
+}
 ```
 
 The names are illustrative; the accepted public contract must preserve the
-same boundaries and semantics.
+same boundaries and semantics. `confidence` is a report-level `f64` in the
+closed range `0.0..=1.0`; it is not a per-occurrence score. Occurrence-level
+trust is represented by path/source evidence and diagnostics.
 
 ## This sprint does not close
 
@@ -122,6 +162,12 @@ same boundaries and semantics.
   contract-level error categories.
 - The named same-variable multi-occurrence rule is covered by a contract test;
   it cannot silently overwrite the `BTreeMap` value.
+- `ExtractionOccurrence` and `ExtractionDiagnostic` have explicit,
+  compile-testable fields and category variants before G.2 begins; G.2's XML
+  types preserve that contract while adding XML path/source detail.
+- The boundary walker itself enumerates `crates/**/*.rs`,
+  `bindings/python/src/**/*.rs`, and `bindings/python/python/**/*.py`; the
+  acceptance test fails if any of those roots disappear from discovery.
 - `repo_boundaries.rs` machine-checks the Phase-G crate/source dependency
   boundaries described by G1-D5.
 - No existing render, validation, or diagnostic behavior changes.

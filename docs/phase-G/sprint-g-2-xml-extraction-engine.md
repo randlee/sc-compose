@@ -84,6 +84,9 @@ pub enum XmlPathSegment {
 }
 ```
 
+G.2 specializes the generic `ExtractionOccurrence` and
+`ExtractionDiagnostic` contract from G.1 with `XmlPathSegment` and XML source
+details; it does not replace the report with an incompatible XML-only type.
 An occurrence is successful only when the template skeleton and rendered XML
 identify exactly one path. A repeated tag without a stable ordinal/path is an
 error, not permission to use the first element. If one variable name maps to

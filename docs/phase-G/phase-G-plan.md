@@ -132,8 +132,8 @@ supported, rejected, and inconclusive cases.
 - `sc-compose` remains a thin CLI over the library; it must not duplicate the
   extraction algorithm.
 - G.2 depends on the report/error contract from G.1; G.3 depends on the
-  library API from G.2; G.4 depends on G.1 and G.2 only, while G.3 remains an
-  independent adapter sprint and does not gate CLI implementation; G.5
+  library API from G.2; G.4 depends on G.1 and G.2 only; G.3 is independent
+  and does not gate G.4. G.5
   exercises the complete Rust/Python/CLI surface; G.6 depends on the corpus
   and regression gates from G.5.
 - The existing `prototype/reverse_extract` code remains a reference fixture

@@ -18,9 +18,9 @@ results without writing files or invoking the renderer.
 
 ## Hard dependencies
 
+- G.4 depends on G.1 and G.2 only; G.3 is independent and does not gate G.4.
 - G.1's public contract and G.2's XML engine must be merged into the working
-  baseline. G.3 is an independent adapter sprint and is not a prerequisite for
-  this CLI implementation.
+  baseline.
 - Existing CLI command dispatch, JSON capability mapping, error-code registry,
   and stdout-cleanliness conventions are authoritative.
 
