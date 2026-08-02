@@ -653,6 +653,9 @@ input policy. Cross-surface evidence remains required before any adapter is
 delivered. The generic report model may be extended, but the library/CLI/Python
 ownership boundary and Phase-G fail-closed XML behavior remain unchanged while
 H.2 through H.6 implement and validate the accepted extensions.
+The stable cross-format diagnostic inventory is maintained in
+[`docs/error-code-registry.md`](error-code-registry.md) and is part of the H.1
+contract rather than an implementation-time choice.
 
 The format adapters do not own independent placeholder matchers. The accepted
 H.1 design defines the internal migration seam from the current XML

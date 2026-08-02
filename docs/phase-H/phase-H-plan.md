@@ -17,9 +17,9 @@ JSON, YAML, and TOML. Phase H retains the pure library boundary, string-value
 report model, structural provenance, and fail-closed diagnostics while adding
 the approved format contracts one at a time.
 
-This plan is documentation-only on the planning branch. No runtime behavior is
-claimed until H.1 accepts the contract amendments and the implementation sprint
-for that behavior passes its own gate.
+This plan is documentation-only on the planning branch. H.1's contract
+amendments are accepted; no runtime behavior is claimed until each
+implementation sprint for that behavior passes its own gate.
 
 ## Source and scope
 
