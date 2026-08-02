@@ -27,7 +27,7 @@ pub(crate) fn run_extract(args: &ExtractArgs) -> Result<i32, CommandError> {
     let report = sc_composer::extract(&request).map_err(|error| extract_error(&error))?;
 
     if args.json {
-        emit_json(args, &report).map_err(CommandError::usage)?;
+        emit_json(args, &report).map_err(json_output_error)?;
     } else {
         emit_text(args, &report);
     }
@@ -71,12 +71,29 @@ fn extract_error(error: &ExtractError) -> CommandError {
     let code = error.code();
     let message = extract_error_message(error);
     CommandError {
-        exit_code: crate::exit_codes::USAGE_FAIL,
+        exit_code: match error {
+            ExtractError::InvalidRequest { .. } => crate::exit_codes::USAGE_FAIL,
+            ExtractError::MalformedXml { .. }
+            | ExtractError::UnsupportedSyntax { .. }
+            | ExtractError::AmbiguousStructure { .. } => {
+                crate::exit_codes::VALIDATION_OR_RENDER_FAIL
+            }
+        },
         diagnostic_code: Some(code),
         diagnostics: vec![Diagnostic::new(DiagnosticSeverity::Error, code, &message)],
         recovery_hints: error.recovery_hints().to_vec(),
         error: anyhow!(message),
     }
+}
+
+fn json_output_error(error: anyhow::Error) -> CommandError {
+    CommandError::usage_with_code_and_hints(
+        error.context("failed to write JSON output"),
+        DiagnosticCode::ErrRenderWrite,
+        vec![RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
+            key: "JSON output destination (stdout)".to_owned(),
+        })],
+    )
 }
 
 fn extract_error_message(error: &ExtractError) -> String {
@@ -243,5 +260,23 @@ fn diagnostic_kind(kind: ExtractionDiagnosticKind) -> &'static str {
         ExtractionDiagnosticKind::Ambiguous => "ambiguous",
         ExtractionDiagnosticKind::NotObserved => "not_observed",
         ExtractionDiagnosticKind::Malformed => "malformed",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::json_output_error;
+    use crate::exit_codes::USAGE_FAIL;
+    use anyhow::anyhow;
+    use sc_composer::DiagnosticCode;
+
+    #[test]
+    fn json_output_error_preserves_diagnostic_and_recovery_metadata() {
+        let error = json_output_error(anyhow!("stdout is closed"));
+
+        assert_eq!(error.exit_code, USAGE_FAIL);
+        assert_eq!(error.diagnostic_code, Some(DiagnosticCode::ErrRenderWrite));
+        assert_eq!(error.diagnostics[0].code, DiagnosticCode::ErrRenderWrite);
+        assert_eq!(error.recovery_hints.len(), 1);
     }
 }
