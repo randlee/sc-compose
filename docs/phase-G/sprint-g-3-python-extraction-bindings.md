@@ -99,6 +99,7 @@ extraction ownership in one place.
 
 - `cargo fmt --all --check`
 - `cargo test --workspace`
+- `cargo test -p sc-compose --test repo_boundaries`
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo test -p sc-compose-py`
 - `python3 -m pytest bindings/python/tests/test_smoke.py`

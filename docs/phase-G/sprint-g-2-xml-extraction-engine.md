@@ -48,7 +48,8 @@ an explicit unsupported/ambiguous result.
   ambiguous extraction into success.
 - `G2-D6` — Add deterministic unit and integration fixtures for attributes,
   text, static prefix/suffix, repeated siblings, XML entities, empty values,
-  malformed XML, wrong structure, and unsupported Jinja constructs.
+  malformed XML, wrong structure, unsupported Jinja constructs, and the named
+  `same-variable-conflicting-occurrences` case.
 
 ## Required work
 
@@ -76,11 +77,18 @@ pub enum ExtractionSource {
     Attribute { name: String },
     TextNode,
 }
+
+pub enum XmlPathSegment {
+    Element { name: String, ordinal: usize },
+    Attribute { name: String },
+}
 ```
 
 An occurrence is successful only when the template skeleton and rendered XML
 identify exactly one path. A repeated tag without a stable ordinal/path is an
-error, not permission to use the first element.
+error, not permission to use the first element. If one variable name maps to
+multiple distinct paths, the result is `ambiguous` and that variable is omitted
+from `ExtractionReport.values`; no occurrence may silently overwrite another.
 
 ## This sprint does not close
 
@@ -95,6 +103,9 @@ error, not permission to use the first element.
 - Every supported fixture returns the expected value and occurrence path.
 - The repeated-sibling regression reproduces the prototype defect and passes
   with distinct values for distinct occurrences.
+- The `same-variable-conflicting-occurrences` fixture returns an `ambiguous`
+  diagnostic and no value for the conflicting variable; it never keeps only
+  the first or last rendered string.
 - Every unsupported or malformed fixture yields a stable diagnostic and no
   fabricated variable value.
 - Entity decoding, empty scalar behavior, whitespace policy, and namespace
@@ -107,5 +118,6 @@ error, not permission to use the first element.
 - `cargo fmt --all --check`
 - `cargo test --workspace`
 - `cargo test -p sc-composer --test extract_integration`
+- `cargo test -p sc-compose --test repo_boundaries`
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `git diff --check`

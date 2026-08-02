@@ -31,6 +31,7 @@ not claim that extraction works before G.2.
 - `crates/sc-composer/src/types.rs` only when required to reuse an existing
   public value/name type
 - `crates/sc-composer/src/extract/tests.rs`
+- `crates/sc-compose/tests/repo_boundaries.rs`
 - `docs/requirements.md`
 - `docs/architecture.md`
 - `docs/adrs/0011-reverse-extract-known-template-contract.md`
@@ -50,6 +51,12 @@ not claim that extraction works before G.2.
 - `G1-D4` — Unit tests cover request validation, include/exclude selection,
   empty selections, stable diagnostic serialization, and the string-value
   limitation before the XML matcher is implemented.
+- `G1-D5` — Extend `repo_boundaries.rs` with a machine-checked Phase-G
+  boundary gate. It must inspect production Rust/Python source imports and
+  Cargo manifests to prove that production bindings do not import
+  `prototype/reverse_extract`, `bindings/python` depends on `sc-composer` but
+  not `sc-compose`, `sc-observability`, or ATM crates, and `sc-composer` does
+  not depend on `bindings/python`.
 
 ## Required work
 
@@ -59,6 +66,11 @@ not claim that extraction works before G.2.
   out of `sc-composer`.
 - Define occurrence provenance sufficient for G.2 to distinguish repeated
   sibling paths; a tag name alone is not an acceptable identity.
+- If one variable name appears at more than one distinct structural
+  occurrence, classify the result as `ambiguous` and emit no entry for that
+  variable in `ExtractionReport.values`, even when the rendered strings happen
+  to match. Never silently overwrite one occurrence with another; differing
+  rendered strings must be preserved in the occurrence diagnostics/evidence.
 - Define whether a report with warnings is successful and how a caller
   distinguishes `unsupported`, `ambiguous`, `not_observed`, and malformed XML.
 - Add an ADR only because the prototype exposed a real product-contract gap;
@@ -108,11 +120,16 @@ same boundaries and semantics.
   represent only a tag-name lookup.
 - Unit tests prove stable construction/serialization of the report and all
   contract-level error categories.
+- The named same-variable multi-occurrence rule is covered by a contract test;
+  it cannot silently overwrite the `BTreeMap` value.
+- `repo_boundaries.rs` machine-checks the Phase-G crate/source dependency
+  boundaries described by G1-D5.
 - No existing render, validation, or diagnostic behavior changes.
 
 ## Required validation
 
 - `cargo fmt --all --check`
 - `cargo test --workspace`
+- `cargo test -p sc-compose --test repo_boundaries`
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `git diff --check`

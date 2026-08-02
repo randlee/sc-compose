@@ -18,8 +18,9 @@ results without writing files or invoking the renderer.
 
 ## Hard dependencies
 
-- G.1's public contract, G.2's XML engine, and G.3's Python-facing API
-  contract must be merged into the working baseline.
+- G.1's public contract and G.2's XML engine must be merged into the working
+  baseline. G.3 is an independent adapter sprint and is not a prerequisite for
+  this CLI implementation.
 - Existing CLI command dispatch, JSON capability mapping, error-code registry,
   and stdout-cleanliness conventions are authoritative.
 
@@ -109,5 +110,6 @@ second top-level error schema.
 - `cargo test --workspace`
 - `cargo test -p sc-compose --test cli extract`
 - `cargo test -p sc-compose --test json_cli extract`
+- `cargo test -p sc-compose --test repo_boundaries`
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `git diff --check`

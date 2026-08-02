@@ -38,10 +38,12 @@ inverse Jinja engine.
 - `G5-D1` — A deterministic corpus covers direct scalar attributes/text,
   repeated sibling paths, static prefix/suffix, entities, whitespace,
   empty values, XML declarations/comments, malformed XML, unsupported Jinja,
-  missing occurrences, and ambiguous structure.
+  missing occurrences, ambiguous structure, and the named
+  `same-variable-conflicting-occurrences` case.
 - `G5-D2` — Add Rust, Python, and CLI fixtures for supported values, repeated
   sibling paths, static prefix/suffix, entities, whitespace, empty values,
-  malformed XML, unsupported Jinja, missing occurrences, and ambiguity.
+  malformed XML, unsupported Jinja, missing occurrences, ambiguity, and the
+  `same-variable-conflicting-occurrences` case.
 - `G5-D3` — Replace stale prototype claims with documentation that points to
   the production CLI and states the known-template/XML-first limitation; make
   the prototype bulk harness's template coverage and pass/fail criteria
