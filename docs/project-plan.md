@@ -507,6 +507,26 @@ constructs instead of fabricating values, and leaves unknown-template
 identification, JSON/Markdown adapters, loop reconstruction, and typed-value
 recovery as separately planned follow-on work.
 
+### Phase H Sprint Plans
+
+Status:
+
+- planned follow-on work for the real-customer reverse-extraction gaps recorded
+  in issue #193; H.1 is the contract gate and no runtime extension is claimed
+  until its FR/architecture/ADR amendments are accepted
+
+Sprint entries:
+
+- [Phase H plan](phase-H/phase-H-plan.md)
+- [Sprint H.1 — Reverse Extraction Extension Contract](phase-H/sprint-h-1-reverse-extraction-extension-contract.md)
+- [Sprint H.2 — JSON Extraction Core](phase-H/sprint-h-2-json-extraction-core.md)
+- [Sprint H.3 — JSON Cross-Surface Parity](phase-H/sprint-h-3-json-cross-surface-parity.md)
+- [Sprint H.4 — XML Mixed-Content Extraction](phase-H/sprint-h-4-xml-mixed-content.md)
+- [Sprint H.5 — XML Dirty-Prefix Policy](phase-H/sprint-h-5-xml-dirty-prefix-policy.md)
+- [Sprint H.6 — YAML Extraction](phase-H/sprint-h-6-yaml-extraction.md)
+- [Sprint H.7 — TOML Extraction](phase-H/sprint-h-7-toml-extraction.md)
+- [Sprint H.8 — Cross-Format Corpus and Adversarial Closure](phase-H/sprint-h-8-cross-format-closure.md)
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:

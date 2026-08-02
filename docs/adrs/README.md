@@ -11,3 +11,4 @@
 - [ADR-0009: Phase D Python-Binding Parity Sequencing](0009-phase-d-python-binding-parity-sequencing.md)
 - [ADR-0010: Narrow Stability Exception for `Renderer::with_delimiters`](0010-renderer-delimiter-fallibility-minor-exception.md)
 - [ADR-0011: Known-Template Reverse Extraction and Phase-G Sprint Shape](0011-reverse-extract-known-template-contract.md)
+- [ADR-0012: Phase-H Reverse-Extraction Extension Gates](0012-phase-h-reverse-extraction-extension-gates.md)
