@@ -41,7 +41,7 @@ newly implemented as object-field extraction.
   (`ERR_EXTRACT_UNSUPPORTED`) via `crates/sc-composer/src/extract/error.rs`.
   No new diagnostic code, error variant, or `ExtractError` constructor is
   needed.
-- `crates/sc-composer/src/types.rs` — `VariableName::new` (lines 133-167) must
+- `crates/sc-composer/src/types.rs` — `VariableName::new` (lines 142-154) must
   **not** change. Its permissive grammar (`is_ascii_alphanumeric() ||
   matches!(ch, '_' | '-' | '.')`) is shared with
   `crates/sc-composer/src/validation.rs` for composition/rendering variable

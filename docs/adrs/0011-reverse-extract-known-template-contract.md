@@ -25,13 +25,14 @@ G.4, G.5, and G.6.
 - A variable name that maps to more than one distinct structural occurrence is
   classified as `ambiguous`; the extractor emits no `values` entry for that
   variable and must never silently overwrite one occurrence with another.
-- Phase G uses six contiguous standalone sprints:
+- Phase G uses seven contiguous standalone sprints:
   - G.1 — extraction contract and analysis model;
   - G.2 — deterministic XML extraction engine;
   - G.3 — Python extraction bindings for the first customer;
   - G.4 — CLI extract surface;
   - G.5 — corpus and regression closure;
   - G.6 — adversarial evidence and hardening.
+  - G.7 — reject dotted expressions during XML extraction.
 - G.3 is not a `G.2-py` companion because it introduces the first customer
   surface and its own acceptance contract. This is a Phase-G exception to the
   default `X.#-py` companion convention; later phases continue to use the

@@ -622,11 +622,11 @@ identifier, and Phase G only supports the scalar (flat) variable subset.
 Extraction parses each `{{ expression }}` into a `VariableName` for
 occurrence tracking, but the shared `VariableName` grammar (also used by
 composition/rendering token discovery) permissively accepts `.` as an
-ordinary name character. The extraction call site rejects any parsed
+ordinary name character. The extraction call site must reject any parsed
 variable containing `.` as unsupported syntax (`ERR_EXTRACT_UNSUPPORTED`)
-before it reaches the report; this check is local to the extraction XML
-adapter and does not change `VariableName`'s shared grammar or its use in
-composition/rendering (Phase G.7).
+before it reaches the report; Phase G.7 will add this check locally to the
+extraction XML adapter without changing `VariableName`'s shared grammar or
+its use in composition/rendering.
 
 The Python adapter exposes this same in-memory XML report through
 `extract_variables(template, rendered, *, include=None, exclude=None)`. Its
