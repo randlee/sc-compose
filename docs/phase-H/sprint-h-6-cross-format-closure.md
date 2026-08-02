@@ -31,7 +31,7 @@ target: develop
 - `crates/sc-compose/tests/cli/extract.rs`
 - `crates/sc-compose/tests/json_cli/extract.rs`
 - `bindings/python/tests/test_smoke.py`
-- `docs/phase-H/evidence/h-8-cross-format-campaign.json`
+- `docs/phase-H/evidence/h-6-cross-format-campaign.json`
 - `docs/requirements.md`
 - `docs/architecture.md`
 - `docs/project-plan.md`

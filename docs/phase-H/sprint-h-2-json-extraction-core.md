@@ -31,6 +31,7 @@ target: develop
 - `crates/sc-composer/src/extract/error.rs`
 - `crates/sc-composer/src/extract/tests.rs`
 - `crates/sc-composer/tests/extract_integration.rs`
+- `crates/sc-composer/tests/fixtures/reverse-extract/xml-regression-baseline.json`
 - `crates/sc-composer/Cargo.toml` only if the approved parser requires an
   already-accepted dependency
 
@@ -57,6 +58,24 @@ silently dropped or partially deferred.
   adapter, and prove existing XML tests remain green while JSON delegates to
   the new seam.
 
+### Internal checkpoint: XML parity before JSON policy work
+
+H.2 has two separately reviewable risk boundaries. Before changing `xml.rs`,
+the implementation must:
+
+1. run the baseline XML extraction suite on the clean Phase-G input;
+2. commit `xml-regression-baseline.json` containing the input identifiers and
+   exact report values, occurrence paths/sources, diagnostics, and confidence;
+3. extract the format-neutral matcher into `raw_text.rs` and make XML delegate
+   to it;
+4. run the XML suite and diff its reports against the frozen baseline; and
+5. obtain an independent green review of that parity diff before beginning
+   JSON-specific parser and policy work.
+
+Any baseline difference is a parity failure until explicitly reviewed and
+accepted as an intentional contract change. JSON tests cannot mask an
+incomplete or regressed XML-core extraction checkpoint.
+
 ## Required Work
 
 - Keep parsing and matching in `sc-composer`; no file I/O, CLI imports, Python
@@ -68,7 +87,8 @@ silently dropped or partially deferred.
   than reusing the Phase-G XML call-site rule accidentally.
 - Add a format-specific source/path model through the generic report aliases.
 - Delegate placeholder/value matching to the shared raw-text matching core
-  defined by H.1; do not add an independent JSON text matcher.
+  defined by H.1 and implemented by H.2; do not add an independent JSON text
+  matcher.
 
 ## Explicit Code Samples
 
@@ -99,7 +119,13 @@ shape remain unchanged.
   and receive the same generic report guarantees as XML.
 - Every accepted JSON failure policy has a stable diagnostic and regression
   test; no malformed or ambiguous case returns a fabricated value.
-- Existing XML unit, integration, and workspace behavior is unchanged.
+- The frozen XML regression baseline is captured before the `xml.rs` refactor,
+  and a post-refactor parity test/diff proves identical XML report values,
+  occurrence evidence, diagnostics, and confidence. Existing XML test
+  assertions may only be added to, never modified, unless the reviewed parity
+  record explicitly accepts the change.
+- The XML-parity checkpoint is independently green before JSON-specific policy
+  work is considered complete.
 - The implementation has no production dependency on the prototype harness.
 
 ## Required Validation

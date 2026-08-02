@@ -62,8 +62,11 @@ The numbering is contiguous and intentional. H.2 follows H.1; H.3 depends on
 H.2's library API; H.4 and H.5 may proceed in parallel after H.2/H.3 establish
 the shared format/report patterns; and H.6 depends on all implementation
 sprints. Each implementation sprint owns a complete boundary for its stated
-format. H.6 is the phase closure gate and cannot silently absorb missing
-runtime work from an earlier sprint. Confirmed findings from the H.6 fuzz
+format, except H.2, which additionally owns the one-time extraction of
+format-neutral matching logic out of `xml.rs` into the shared core; XML's
+structural and provenance ownership remains with `xml.rs` throughout. H.6 is
+the phase closure gate and cannot silently absorb missing runtime work from an
+earlier sprint. Confirmed findings from the H.6 fuzz
 campaign route through the normal fix-assignment loop; Phase H reserves no
 numbered sprint for follow-on fixes.
 

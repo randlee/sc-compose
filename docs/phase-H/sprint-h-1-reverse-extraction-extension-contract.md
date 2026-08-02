@@ -116,6 +116,58 @@ instantiate the existing generic `ExtractionReport` without creating a second
 report model, and must identify the shared raw-text matching core used by all
 three format adapters.
 
+The shared-core contract must include a concrete Rust entry point. The
+following signature is normative for the boundary; names may change only if
+the same input/output/error guarantees remain explicit:
+
+```rust
+use std::ops::Range;
+
+pub(crate) enum RawTextSegment<'a> {
+    Static(&'a str),
+    Variable(VariableName),
+}
+
+pub(crate) struct RawTextMatchInput<'a> {
+    /// Segments produced from the template-side static prefixes/suffixes and
+    /// variable expressions.
+    pub segments: &'a [RawTextSegment<'a>],
+    /// The candidate value slice identified by the format adapter.
+    pub rendered_candidate: &'a str,
+}
+
+pub(crate) struct RawTextCapture {
+    pub variable: VariableName,
+    /// Byte span relative to `rendered_candidate`.
+    pub span: Range<usize>,
+    pub rendered_text: String,
+}
+
+pub(crate) struct RawTextAmbiguity {
+    pub message: String,
+}
+
+pub(crate) struct RawTextMatch {
+    pub captures: Vec<RawTextCapture>,
+    pub ambiguity: Option<RawTextAmbiguity>,
+}
+
+pub(crate) enum RawTextMatchError {
+    InvalidTemplate { message: String },
+    StaticMismatch { message: String },
+    AmbiguousDelimiter { message: String },
+}
+
+pub(crate) fn match_raw_text(
+    input: RawTextMatchInput<'_>,
+) -> Result<RawTextMatch, RawTextMatchError>;
+```
+
+Adapters map `RawTextMatchError` to the stable format-neutral extraction
+diagnostics from H.1. A returned `ambiguity` is never silently converted into
+a value; the adapter preserves the signal in the report or returns the
+contracted ambiguity diagnostic.
+
 The design must name the migration seam explicitly: the first implementation
 sprint extracts the format-neutral operations from the current XML path into a
 shared internal module, keeps XML behavior covered by its existing tests, and
@@ -147,6 +199,9 @@ future raw-text mode or implement the refactoring itself.
 - The design identifies the XML-to-shared-core migration seam and preserves
   XML's existing behavior and regression coverage while moving only
   format-neutral matching operations.
+- The concrete `match_raw_text` signature settles the candidate-slice input,
+  capture-span output, ambiguity signal, and diagnostic error boundary before
+  H.2 begins.
 - Best-effort/degraded parsing and customer-facing raw-text mode are named
   future-phase non-goals, not Phase-H features or sprint work.
 - The error inventory is complete for every planned JSON/YAML/TOML failure

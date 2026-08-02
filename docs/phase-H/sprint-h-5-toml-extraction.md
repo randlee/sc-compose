@@ -19,7 +19,11 @@ target: develop
 ## Hard Dependencies
 
 - H.1 accepts TOML format and parser semantics.
-- H.2/H.3 establish the format-selection and report-extension patterns.
+- H.2's shared raw-text core (`crates/sc-composer/src/extract/raw_text.rs`) is
+  merged to `develop`, XML delegates to it, and H.2's XML-regression evidence
+  from its XML-parity checkpoint is confirmed passing before H.5
+  implementation begins.
+- H.3's format-selection and report-extension parity gate is accepted.
 
 ## Exact Targets
 
@@ -59,7 +63,8 @@ silently dropped or partially deferred.
 - Ensure parser errors and duplicate keys remain distinct from unsupported
   template syntax and ambiguity.
 - Delegate placeholder/value matching to the shared raw-text matching core
-  defined by H.1; do not add an independent TOML text matcher.
+  defined by H.1 and implemented by H.2; do not add an independent TOML text
+  matcher.
 
 ## Explicit Code Samples
 
