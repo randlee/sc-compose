@@ -116,7 +116,6 @@ def test_extraction_report_preserves_values_provenance_and_filters() -> None:
     }
     assert report.confidence > 0.75
     assert report.diagnostics == []
-    assert report.warnings == []
 
     by_variable = {occurrence.variable: occurrence for occurrence in report.occurrences}
     assert by_variable["id"].source.kind == "attribute"
@@ -153,6 +152,94 @@ def test_extraction_fails_closed_for_unsupported_syntax() -> None:
         )
 
     assert caught.value.code == "ERR_EXTRACT_UNSUPPORTED"
+    assert caught.value.diagnostic_kind == "unsupported"
+    assert caught.value.diagnostic_message
+    assert caught.value.recovery_hints
+
+
+FIXTURE_ROOT = (
+    Path(__file__).resolve().parents[3]
+    / "crates"
+    / "sc-composer"
+    / "tests"
+    / "fixtures"
+    / "reverse-extract"
+)
+
+
+def fixture_pair(name: str) -> tuple[str, str]:
+    template = (FIXTURE_ROOT / f"{name}.xml.j2").read_text(encoding="utf-8")
+    rendered = (FIXTURE_ROOT / f"{name}.xml").read_text(encoding="utf-8")
+    return template, rendered
+
+
+def test_extraction_matches_shared_rust_fixture_contract() -> None:
+    template, rendered = fixture_pair("attributes")
+    attributes = sc_compose.extract_variables(template, rendered)
+    assert attributes.values == {"id": "42", "name": "Ada"}
+    assert [occurrence.variable for occurrence in attributes.occurrences] == [
+        "id",
+        "name",
+    ]
+    assert attributes.occurrences[0].source.kind == "attribute"
+    assert attributes.occurrences[1].source.kind == "text_node"
+    assert attributes.confidence > 0.99
+
+    template, rendered = fixture_pair("repeated-siblings")
+    repeated = sc_compose.extract_variables(template, rendered)
+    assert repeated.values == {"first": "A", "second": "B"}
+    assert repeated.occurrences[1].path[1].kind == "element"
+    assert repeated.occurrences[1].path[1].name == "item"
+    assert repeated.occurrences[1].path[1].ordinal == 1
+    assert repeated.confidence == pytest.approx(0.6)
+    assert [diagnostic.code for diagnostic in repeated.diagnostics] == [
+        "WARN_EXTRACT_LOW_CONFIDENCE"
+    ]
+
+    template, rendered = fixture_pair("entities-whitespace-empty")
+    entities = sc_compose.extract_variables(template, rendered)
+    assert entities.values == {"empty": "", "value": "A & B"}
+    assert entities.confidence > 0.75
+
+
+def test_extraction_error_categories_preserve_exception_mapping_and_detail() -> None:
+    malformed_template, malformed_rendered = fixture_pair("malformed")
+    with pytest.raises(sc_compose.ScConfigError) as malformed:
+        sc_compose.extract_variables(malformed_template, malformed_rendered)
+    assert malformed.value.code == "ERR_EXTRACT_MALFORMED"
+    assert malformed.value.diagnostic_kind == "malformed"
+    assert malformed.value.recovery_hints
+
+    with pytest.raises(sc_compose.ScConfigError) as ambiguous:
+        sc_compose.extract_variables(
+            "<x>{{ first }}{{ second }}</x>",
+            "<x>AB</x>",
+        )
+    assert ambiguous.value.code == "ERR_EXTRACT_AMBIGUOUS"
+    assert ambiguous.value.diagnostic_kind == "ambiguous"
+    assert ambiguous.value.diagnostic_occurrence is None
+    assert ambiguous.value.recovery_hints
+
+    with pytest.raises(sc_compose.ScConfigError) as invalid:
+        sc_compose.extract_variables("", "<x />")
+    assert invalid.value.code == "ERR_EXTRACT_INVALID_REQUEST"
+    assert invalid.value.diagnostic_kind is None
+    assert invalid.value.recovery_hints
+
+
+def test_extraction_reports_missing_occurrence_warning() -> None:
+    template, rendered = fixture_pair("missing-occurrence")
+    report = sc_compose.extract_variables(template, rendered)
+
+    assert report.values == {}
+    not_observed = [
+        diagnostic
+        for diagnostic in report.diagnostics
+        if diagnostic.code == "WARN_EXTRACT_NOT_OBSERVED"
+    ]
+    assert len(not_observed) == 1
+    assert not_observed[0].kind == "not_observed"
+    assert "not observed" in not_observed[0].message
 
 
 def test_repr_surface_is_informative(tmp_path: Path) -> None:

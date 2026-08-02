@@ -289,13 +289,6 @@ impl PyExtractionReport {
             .collect()
     }
 
-    /// Compatibility alias for callers that refer to non-fatal extraction
-    /// diagnostics as warnings.
-    #[getter]
-    fn warnings(&self) -> Vec<PyExtractionDiagnostic> {
-        self.diagnostics()
-    }
-
     fn __repr__(&self) -> String {
         format!(
             "ExtractionReport(values={}, occurrences={}, confidence={}, diagnostics={})",

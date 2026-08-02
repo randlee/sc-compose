@@ -168,7 +168,10 @@ pub(crate) fn parse_runtime_kind(value: &Bound<'_, PyAny>) -> PyResult<RuntimeKi
         "codex" => Ok(RuntimeKind::Codex),
         "gemini" => Ok(RuntimeKind::Gemini),
         "opencode" => Ok(RuntimeKind::Opencode),
-        other => Err(config_error(format!("unknown runtime kind: {other}"), None)),
+        other => Err(config_error(
+            format!("unknown runtime kind: {other}"),
+            Some("ERR_CONFIG_MODE"),
+        )),
     }
 }
 
@@ -177,7 +180,10 @@ pub(crate) fn parse_profile_kind(value: &Bound<'_, PyAny>) -> PyResult<ProfileKi
         "agent" => Ok(ProfileKind::Agent),
         "command" => Ok(ProfileKind::Command),
         "skill" => Ok(ProfileKind::Skill),
-        other => Err(config_error(format!("unknown profile kind: {other}"), None)),
+        other => Err(config_error(
+            format!("unknown profile kind: {other}"),
+            Some("ERR_CONFIG_MODE"),
+        )),
     }
 }
 
@@ -188,7 +194,7 @@ pub(crate) fn parse_unknown_variable_policy(value: &str) -> PyResult<UnknownVari
         "ignore" => Ok(UnknownVariablePolicy::Ignore),
         other => Err(config_error(
             format!("unknown unknown-variable policy: {other}"),
-            None,
+            Some("ERR_CONFIG_MODE"),
         )),
     }
 }

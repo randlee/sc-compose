@@ -622,7 +622,10 @@ The Python adapter exposes this same in-memory XML report through
 report and provenance objects are wrappers over the `sc-composer` values, and
 fatal extraction conditions use the adapter's existing `ScConfigError` family
 with the canonical extraction code; Python does not implement a second
-extraction algorithm.
+extraction algorithm. Here, “reuse the existing exception hierarchy” means
+that all fatal extraction inputs use that established `ScConfigError` class
+and expose the Rust diagnostic code, recovery hints, and diagnostic detail;
+it does not introduce a Python-only extraction exception subclass.
 
 ## 9. Include and Frontmatter Merge Rules (FR-3)
 

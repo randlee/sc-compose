@@ -5,6 +5,10 @@ from typing import Any
 class ScComposeError(Exception):
     message: str
     code: str | None
+    recovery_hints: list[str]
+    diagnostic_kind: str | None
+    diagnostic_message: str | None
+    diagnostic_occurrence: int | None
 
 
 class ScRenderError(ScComposeError): ...
@@ -253,8 +257,6 @@ class ExtractionReport:
     def confidence(self) -> float: ...
     @property
     def diagnostics(self) -> list[ExtractionDiagnostic]: ...
-    @property
-    def warnings(self) -> list[ExtractionDiagnostic]: ...
 
 
 class ResolveResult:

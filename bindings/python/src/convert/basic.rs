@@ -28,7 +28,8 @@ pub(crate) fn extract_profile_name(value: &Bound<'_, PyAny>) -> PyResult<Profile
         return Ok(profile_name.inner.clone());
     }
     let value = value.extract::<String>()?;
-    ProfileName::new(value).map_err(|error| config_error(error.to_string(), None))
+    ProfileName::new(value)
+        .map_err(|error| config_error(error.to_string(), Some("ERR_CONFIG_MODE")))
 }
 
 pub(crate) fn extract_runtime_kind(
