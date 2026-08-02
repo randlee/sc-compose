@@ -332,6 +332,13 @@ Exit gate:
   - Sprint H3 ships the `sprint-report-html` bundled example
 - FR-12 through FR-15 (H4):
   - Sprint H4 extends wrapper integration across FR-12–FR-15 and finalizes source-of-truth documentation; introduces no new functional requirements
+- FR-16 and Phase H:
+  - Phase G establishes the known-template XML-first extraction contract and
+    its scalar-only boundaries
+  - Phase H.1 owns the contract amendments for issue #193's JSON, YAML, TOML,
+    XML mixed-content, and dirty-prefix extensions
+  - Phase H.2 through H.8 own implementation, cross-surface parity, corpus,
+    and adversarial closure for those accepted amendments
 
 ## Production Readiness Gate
 
@@ -526,6 +533,11 @@ Sprint entries:
 - [Sprint H.6 — YAML Extraction](phase-H/sprint-h-6-yaml-extraction.md)
 - [Sprint H.7 — TOML Extraction](phase-H/sprint-h-7-toml-extraction.md)
 - [Sprint H.8 — Cross-Format Corpus and Adversarial Closure](phase-H/sprint-h-8-cross-format-closure.md)
+
+Disambiguation: the completed `Phase HTML-Report (H1-H4)` section above uses
+undotted H1/H2/H3/H4 labels for the HTML-Report feature family. The `Phase H`
+section here uses dotted H.1–H.8 identifiers for reverse-extraction extension
+sprints; these are separate phases and sprint sequences.
 
 ### Standalone Repowise Cleanup: Render Request Module Split
 

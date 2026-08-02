@@ -24,6 +24,7 @@ target: develop
 ## Exact Targets
 
 - `crates/sc-composer/src/extract/mod.rs`
+- `crates/sc-composer/src/extract/error.rs`
 - `crates/sc-composer/src/extract/toml.rs`
 - `crates/sc-composer/src/extract/tests.rs`
 - `crates/sc-composer/tests/extract_integration.rs`

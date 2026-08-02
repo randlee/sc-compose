@@ -44,9 +44,13 @@ silently dropped or partially deferred.
 - H1-D2 — Define the generic report/path/source extension strategy and the
   public Rust, Python, and CLI format-selection shape without implementing it.
 - H1-D3 — Define the malformed-input, duplicate-key, null/type, ambiguity,
-  provenance, size-limit, and security policies needed by H.2 through H.7.
-- H1-D4 — Update FR-16, architecture, ADR-0012, the Phase-H plan, and the
-  project index so they agree on dependencies, non-goals, and exit gates.
+  provenance, size-limit, security, and cross-format recovery-hint policies
+  needed by H.2 through H.7, including the current XML-specific constructors
+  in `crates/sc-composer/src/extract/error.rs`.
+- H1-D4 — Amend H.6 and H.7 Exact Targets to include
+  `crates/sc-composer/src/extract/error.rs`, and update FR-16, architecture,
+  ADR-0012, the Phase-H plan, and the project index so they agree on
+  dependencies, non-goals, and exit gates.
 
 ## Required Work
 
@@ -59,6 +63,9 @@ silently dropped or partially deferred.
   recovery.
 - Define YAML and TOML parser boundaries, including duplicate and typed-value
   behavior, while retaining rendered-string output.
+- Define a format-neutral extraction error taxonomy and recovery-hint policy;
+  existing XML-specific recovery text must not be copied into YAML or TOML
+  diagnostics without an explicit contract decision.
 - Record explicit non-closure for unknown-template identification, loops,
   branches, typed recovery, and Jinja evaluation.
 
