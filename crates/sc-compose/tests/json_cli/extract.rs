@@ -113,11 +113,7 @@ fn extract_json_maps_expected_failures_without_logs_or_backtraces() {
     let value = parse_stdout(&output);
     assert_first_code(&value, "ERR_CONFIG_READ");
 
-    let root = temp_root("extract-json-ambiguous");
-    let ambiguous_template = root.join("ambiguous.xml.j2");
-    let ambiguous_rendered = root.join("ambiguous.xml");
-    write_file(&ambiguous_template, "<x>{{ first }}{{ second }}</x>\n");
-    write_file(&ambiguous_rendered, "<x>AB</x>\n");
+    let (ambiguous_template, ambiguous_rendered) = fixture("ambiguous-adjacent");
     let output = sc_compose()
         .arg("extract")
         .arg(ambiguous_template)

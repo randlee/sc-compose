@@ -46,6 +46,17 @@
       "surfaces": ["rust", "python", "cli"]
     },
     {
+      "id": "static-prefix-suffix",
+      "category": "supported",
+      "fixture": "static-prefix-suffix",
+      "expected": {
+        "outcome": "report",
+        "values": {"name": "Ada"},
+        "diagnostics": []
+      },
+      "surfaces": ["rust", "python", "cli"]
+    },
+    {
       "id": "entities-whitespace-empty",
       "category": "supported",
       "fixture": "entities-whitespace-empty",

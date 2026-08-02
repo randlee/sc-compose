@@ -157,7 +157,14 @@ def test_extraction_fails_closed_for_unsupported_syntax() -> None:
     assert caught.value.recovery_hints
 
 
-FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "reverse-extract"
+FIXTURE_ROOT = (
+    Path(__file__).resolve().parents[3]
+    / "crates"
+    / "sc-composer"
+    / "tests"
+    / "fixtures"
+    / "reverse-extract"
+)
 
 
 def fixture_pair(name: str) -> tuple[str, str]:
@@ -203,16 +210,6 @@ def test_extraction_error_categories_preserve_exception_mapping_and_detail() -> 
     assert malformed.value.diagnostic_kind == "malformed"
     assert malformed.value.recovery_hints
 
-    with pytest.raises(sc_compose.ScConfigError) as ambiguous:
-        sc_compose.extract_variables(
-            "<x>{{ first }}{{ second }}</x>",
-            "<x>AB</x>",
-        )
-    assert ambiguous.value.code == "ERR_EXTRACT_AMBIGUOUS"
-    assert ambiguous.value.diagnostic_kind == "ambiguous"
-    assert ambiguous.value.diagnostic_occurrence is None
-    assert ambiguous.value.recovery_hints
-
     with pytest.raises(sc_compose.ScConfigError) as invalid:
         sc_compose.extract_variables("", "<x />")
     assert invalid.value.code == "ERR_EXTRACT_INVALID_REQUEST"
@@ -241,6 +238,10 @@ def test_extraction_corpus_covers_comments_static_text_and_conflicting_occurrenc
     assert comments.values == {"value": "Ada"}
     assert comments.diagnostics == []
 
+    template, rendered = fixture_pair("static-prefix-suffix")
+    static = sc_compose.extract_variables(template, rendered)
+    assert static.values == {"name": "Ada"}
+
     template, rendered = fixture_pair("same-variable-conflicting-occurrences")
     conflicting = sc_compose.extract_variables(template, rendered)
     assert conflicting.values == {}
@@ -253,7 +254,6 @@ def test_extraction_corpus_covers_comments_static_text_and_conflicting_occurrenc
 @pytest.mark.parametrize(
     ("fixture", "code"),
     [
-        ("malformed", "ERR_EXTRACT_MALFORMED"),
         ("unsupported-filter", "ERR_EXTRACT_UNSUPPORTED"),
         ("namespace", "ERR_EXTRACT_UNSUPPORTED"),
         ("ambiguous-adjacent", "ERR_EXTRACT_AMBIGUOUS"),

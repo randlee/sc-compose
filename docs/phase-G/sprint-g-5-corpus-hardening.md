@@ -27,9 +27,10 @@ inverse Jinja engine.
 - `crates/sc-composer/tests/extract_integration.rs`
 - `crates/sc-compose/tests/cli/extract.rs`
 - `crates/sc-compose/tests/json_cli/extract.rs`
-- `crates/sc-compose/tests/fixtures/reverse-extract/**`
+- `crates/sc-composer/tests/fixtures/reverse-extract/**` (canonical corpus
+  consumed by the Rust, Python, and CLI suites; binding-specific copies are
+  intentionally not maintained)
 - `bindings/python/tests/test_smoke.py`
-- `bindings/python/tests/fixtures/reverse-extract/**`
 - `docs/phase-G/evidence/g-5-corpus.json`
 - `docs/requirements.md` and `docs/architecture.md` only for evidence-backed
   contract corrections discovered during this sprint
@@ -45,6 +46,11 @@ inverse Jinja engine.
   sibling paths, static prefix/suffix, entities, whitespace, empty values,
   malformed XML, unsupported Jinja, missing occurrences, ambiguity, and the
   `same-variable-conflicting-occurrences` case.
+
+The canonical fixture directory is owned by `sc-composer` because it is the
+shared semantic corpus. Python and CLI tests read those committed pairs
+directly, which prevents byte-identical binding-specific copies from drifting
+out of sync.
 - `G5-D3` — Publish the deterministic corpus evidence and update requirements
   and architecture documentation to describe this as a from-scratch,
   research-informed known-template/XML-first feature. Remove stale claims that

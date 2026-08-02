@@ -67,6 +67,17 @@ fn fixture_accepts_xml_declaration_comments_and_static_text() {
 }
 
 #[test]
+fn fixture_extracts_static_prefix_and_suffix() {
+    let report = extract(&request(
+        include_str!("fixtures/reverse-extract/static-prefix-suffix.xml.j2"),
+        include_str!("fixtures/reverse-extract/static-prefix-suffix.xml"),
+    ))
+    .unwrap();
+
+    assert_eq!(report.values[&variable("name")], "Ada");
+}
+
+#[test]
 fn fixture_adjacent_variables_fail_closed_as_ambiguous() {
     let error = extract(&request(
         include_str!("fixtures/reverse-extract/ambiguous-adjacent.xml.j2"),
