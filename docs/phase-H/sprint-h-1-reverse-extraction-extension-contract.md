@@ -1,7 +1,7 @@
 ---
 id: H.1
 title: Reverse Extraction Format Contract
-status: planned
+status: complete
 branch: sprint/h-1-reverse-extraction-extension-contract
 worktree: ../sc-compose-worktrees/sprint/h-1-reverse-extraction-extension-contract
 target: develop
