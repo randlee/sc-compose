@@ -85,8 +85,8 @@
     {
       "finding_id": "FUZZ-template-probe-dotted-expression",
       "worker_correlation_id": "template-probe",
-      "status": "confirmed_bug",
-      "classification": "confirmed_bug",
+      "status": "resolved",
+      "classification": "resolved",
       "subsystem": "sc-composer.extract.xml",
       "seed": 7001,
       "description": "A dotted Jinja-looking expression is accepted as a literal variable identifier during known-template XML extraction. The behavior is deterministic, but the Phase-G contract does not say whether dotted text means a literal variable name or object-path access.",
