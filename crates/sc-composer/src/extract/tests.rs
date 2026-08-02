@@ -317,6 +317,30 @@ fn xml_rejects_malformed_and_unsupported_inputs_without_values() {
 }
 
 #[test]
+fn xml_rejects_dotted_expressions_as_unsupported() {
+    let error = extract(&xml_request(
+        "<root><name>{{ user.name }}</name></root>",
+        "<root><name>Ada</name></root>",
+    ))
+    .unwrap_err();
+
+    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
+    assert_eq!(error.code(), DiagnosticCode::ErrExtractUnsupported);
+}
+
+#[test]
+fn xml_extracts_underscore_and_hyphen_scalar_names() {
+    let report = extract(&xml_request(
+        "<root><value>{{ under_score }} {{ hy-phen }}</value></root>",
+        "<root><value>Ada Grace</value></root>",
+    ))
+    .unwrap();
+
+    assert_eq!(report.values[&variable("under_score")], "Ada");
+    assert_eq!(report.values[&variable("hy-phen")], "Grace");
+}
+
+#[test]
 fn xml_reports_missing_occurrences_without_fabricating_values() {
     let report = extract(&xml_request(
         "<root><name>{{ name }}</name></root>",

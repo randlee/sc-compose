@@ -85,8 +85,8 @@
     {
       "finding_id": "FUZZ-template-probe-dotted-expression",
       "worker_correlation_id": "template-probe",
-      "status": "inconclusive",
-      "classification": "inconclusive",
+      "status": "confirmed_bug",
+      "classification": "confirmed_bug",
       "subsystem": "sc-composer.extract.xml",
       "seed": 7001,
       "description": "A dotted Jinja-looking expression is accepted as a literal variable identifier during known-template XML extraction. The behavior is deterministic, but the Phase-G contract does not say whether dotted text means a literal variable name or object-path access.",
@@ -107,29 +107,35 @@
         "count": 3,
         "result": "same accepted literal variable and diagnostic on all three replays"
       },
-      "requirement_adr_trace": "FR-16 and ADR-0011 define a documented scalar XML subset but do not define dotted-expression semantics. VariableName::new explicitly permits dots, while extraction does not promise reconstruction of object attributes.",
-      "requirement_follow_up": "Team lead/product owner should decide whether dotted expressions are literal variable names or object-path expressions, then amend FR-16/ADR-0011 and add a contract test if needed.",
-      "recommended_change": "Clarify the contract before changing implementation. Do not reject or reinterpret dotted names solely from this fuzz result.",
-      "recommended_test": null,
-      "classification_reason": "The worker's unsupported-syntax oracle conflicts with the existing public VariableName validation contract, and no Phase-G requirement resolves the ambiguity. This is not sufficient evidence for a confirmed defect."
+      "requirement_adr_trace": "Amended FR-16 and ADR-0011 define dotted expressions as object-field access outside Phase G's flat scalar extraction subset and require ERR_EXTRACT_UNSUPPORTED.",
+      "requirement_follow_up": "Resolved by the team-lead/product-owner contract decision recorded in amended FR-16 and ADR-0011; no additional ADR is needed.",
+      "recommended_change": "Reject dotted expressions at the XML extraction call site without changing the shared VariableName grammar.",
+      "recommended_test": "crates/sc-composer/src/extract/tests.rs::xml_rejects_dotted_expressions_as_unsupported",
+      "classification_reason": "The product decision established that dotted access is unsupported object-field syntax for the flat extraction contract; accepting it as a literal variable was therefore a confirmed contract defect.",
+      "resolution": {
+        "status": "resolved",
+        "sprint": "G.7",
+        "resolution_note": "G.7 rejects the minimized dotted-expression reproduction with ERR_EXTRACT_UNSUPPORTED and preserves underscore and hyphen scalar names.",
+        "implementation": "crates/sc-composer/src/extract/xml.rs",
+        "regression_test": "crates/sc-composer/src/extract/tests.rs::xml_rejects_dotted_expressions_as_unsupported"
+      }
     }
   ],
-  "promoted_tests": [],
-  "unresolved_candidates": [
+  "promoted_tests": [
     {
       "finding_id": "FUZZ-template-probe-dotted-expression",
-      "next_owner": "team-lead/product-owner",
-      "next_action": "Decide literal dotted-variable versus object-path semantics and update FR-16/ADR-0011 plus a contract test if the decision changes behavior.",
-      "blocking": false
+      "test": "crates/sc-composer/src/extract/tests.rs::xml_rejects_dotted_expressions_as_unsupported",
+      "status": "promoted"
     }
   ],
+  "unresolved_candidates": [],
   "summary": {
     "all_successful": true,
     "workers_passed": 4,
     "workers_failed": 0,
-    "confirmed_defects": 0,
+    "confirmed_defects": 1,
     "intentional_boundaries": 0,
-    "inconclusive": 1,
+    "inconclusive": 0,
     "total_cases": 112,
     "total_passed": 111,
     "total_failed": 1,
