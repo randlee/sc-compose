@@ -226,3 +226,57 @@ fn fixture_namespace_policy_fails_closed() {
         sc_composer::DiagnosticCode::ErrExtractUnsupported
     );
 }
+
+#[test]
+fn fixture_xml_reports_match_frozen_h2_baseline() {
+    let baseline: serde_json::Value = serde_json::from_str(include_str!(
+        "fixtures/reverse-extract/xml-regression-baseline.json"
+    ))
+    .unwrap();
+    let cases = [
+        (
+            "attributes",
+            include_str!("fixtures/reverse-extract/attributes.xml.j2"),
+            include_str!("fixtures/reverse-extract/attributes.xml"),
+        ),
+        (
+            "repeated-siblings",
+            include_str!("fixtures/reverse-extract/repeated-siblings.xml.j2"),
+            include_str!("fixtures/reverse-extract/repeated-siblings.xml"),
+        ),
+        (
+            "entities-whitespace-empty",
+            include_str!("fixtures/reverse-extract/entities-whitespace-empty.xml.j2"),
+            include_str!("fixtures/reverse-extract/entities-whitespace-empty.xml"),
+        ),
+        (
+            "declaration-comments",
+            include_str!("fixtures/reverse-extract/declaration-comments.xml.j2"),
+            include_str!("fixtures/reverse-extract/declaration-comments.xml"),
+        ),
+        (
+            "static-prefix-suffix",
+            include_str!("fixtures/reverse-extract/static-prefix-suffix.xml.j2"),
+            include_str!("fixtures/reverse-extract/static-prefix-suffix.xml"),
+        ),
+        (
+            "same-variable-conflicting-occurrences",
+            include_str!("fixtures/reverse-extract/same-variable-conflicting-occurrences.xml.j2"),
+            include_str!("fixtures/reverse-extract/same-variable-conflicting-occurrences.xml"),
+        ),
+        (
+            "missing-occurrence",
+            include_str!("fixtures/reverse-extract/missing-occurrence.xml.j2"),
+            include_str!("fixtures/reverse-extract/missing-occurrence.xml"),
+        ),
+        (
+            "empty-scalar",
+            "<root><value> {{ value }} </value></root>",
+            "<root><value/></root>",
+        ),
+    ];
+    for (id, template, rendered) in cases {
+        let report = extract(&request(template, rendered)).unwrap();
+        assert_eq!(serde_json::to_value(report).unwrap(), baseline[id]);
+    }
+}
