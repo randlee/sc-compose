@@ -75,6 +75,15 @@ pub enum ExtractError {
         /// Retained underlying parser or decoder source, when present.
         source: Option<ExtractErrorSource>,
     },
+    /// A format-specific policy or structure rule rejected the input.
+    FormatError {
+        /// Stable format-specific diagnostic.
+        diagnostic: ExtractionDiagnostic,
+        /// Structured suggestions for correcting the input.
+        recovery_hints: Vec<RecoveryHint>,
+        /// Retained underlying parser or decoder source, when present.
+        source: Option<ExtractErrorSource>,
+    },
 }
 
 impl ExtractError {
@@ -155,11 +164,24 @@ impl ExtractError {
         )
     }
 
+    pub(crate) fn format_error(
+        code: DiagnosticCode,
+        kind: ExtractionDiagnosticKind,
+        message: impl Into<String>,
+        recovery: RecoveryHintKind,
+    ) -> Self {
+        Self::FormatError {
+            diagnostic: ExtractionDiagnostic::new(code, kind, message, None),
+            recovery_hints: vec![RecoveryHint::new(recovery)],
+            source: None,
+        }
+    }
+
     pub(crate) fn ambiguous_delimiter(message: impl Into<String>) -> Self {
         Self::ambiguous_with_hint(
             message,
             None,
-            "add static XML text between adjacent variable expressions",
+            "add static text between adjacent variable expressions",
         )
     }
 
@@ -189,7 +211,8 @@ impl ExtractError {
             Self::InvalidRequest { recovery_hints, .. }
             | Self::MalformedXml { recovery_hints, .. }
             | Self::UnsupportedSyntax { recovery_hints, .. }
-            | Self::AmbiguousStructure { recovery_hints, .. } => recovery_hints,
+            | Self::AmbiguousStructure { recovery_hints, .. }
+            | Self::FormatError { recovery_hints, .. } => recovery_hints,
         }
     }
 
@@ -200,7 +223,8 @@ impl ExtractError {
             Self::InvalidRequest { code, .. } => *code,
             Self::MalformedXml { diagnostic, .. }
             | Self::UnsupportedSyntax { diagnostic, .. }
-            | Self::AmbiguousStructure { diagnostic, .. } => diagnostic.code,
+            | Self::AmbiguousStructure { diagnostic, .. }
+            | Self::FormatError { diagnostic, .. } => diagnostic.code,
         }
     }
 
@@ -211,7 +235,8 @@ impl ExtractError {
             Self::InvalidRequest { .. } => None,
             Self::MalformedXml { diagnostic, .. }
             | Self::UnsupportedSyntax { diagnostic, .. }
-            | Self::AmbiguousStructure { diagnostic, .. } => Some(diagnostic),
+            | Self::AmbiguousStructure { diagnostic, .. }
+            | Self::FormatError { diagnostic, .. } => Some(diagnostic),
         }
     }
 
@@ -236,7 +261,8 @@ impl fmt::Display for ExtractError {
             }
             Self::MalformedXml { diagnostic, .. }
             | Self::UnsupportedSyntax { diagnostic, .. }
-            | Self::AmbiguousStructure { diagnostic, .. } => {
+            | Self::AmbiguousStructure { diagnostic, .. }
+            | Self::FormatError { diagnostic, .. } => {
                 write!(f, "{}: {}", diagnostic.code.as_str(), diagnostic.message)?;
                 if let Some(source) = self.source() {
                     write!(f, " (caused by: {source})")?;
@@ -253,7 +279,8 @@ impl Error for ExtractError {
             Self::InvalidRequest { source, .. }
             | Self::MalformedXml { source, .. }
             | Self::UnsupportedSyntax { source, .. }
-            | Self::AmbiguousStructure { source, .. } => source.as_ref(),
+            | Self::AmbiguousStructure { source, .. }
+            | Self::FormatError { source, .. } => source.as_ref(),
         }?;
         Some(source)
     }

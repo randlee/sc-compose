@@ -28,6 +28,7 @@ fn extraction_source_kind_str(source: &ExtractionSource) -> &'static str {
     match source {
         ExtractionSource::Attribute { .. } => "attribute",
         ExtractionSource::TextNode => "text_node",
+        ExtractionSource::StringValue => "string_value",
     }
 }
 
@@ -35,6 +36,8 @@ fn xml_path_segment_kind_str(segment: &XmlPathSegment) -> &'static str {
     match segment {
         XmlPathSegment::Element { .. } => "element",
         XmlPathSegment::Attribute { .. } => "attribute",
+        XmlPathSegment::ObjectKey { .. } => "object_key",
+        XmlPathSegment::ArrayIndex { .. } => "array_index",
     }
 }
 
@@ -146,6 +149,7 @@ impl PyExtractionSource {
         match &self.inner {
             ExtractionSource::Attribute { name } => Some(name.clone()),
             ExtractionSource::TextNode => None,
+            ExtractionSource::StringValue => None,
         }
     }
 
@@ -155,6 +159,7 @@ impl PyExtractionSource {
                 format!("ExtractionSource(kind='attribute', name={name:?})")
             }
             ExtractionSource::TextNode => "ExtractionSource(kind='text_node')".to_owned(),
+            ExtractionSource::StringValue => "ExtractionSource(kind='string_value')".to_owned(),
         }
     }
 }
@@ -178,6 +183,8 @@ impl PyXmlPathSegment {
             XmlPathSegment::Element { name, .. } | XmlPathSegment::Attribute { name } => {
                 name.clone()
             }
+            XmlPathSegment::ObjectKey { key } => key.clone(),
+            XmlPathSegment::ArrayIndex { index } => index.to_string(),
         }
     }
 
@@ -186,6 +193,8 @@ impl PyXmlPathSegment {
         match &self.inner {
             XmlPathSegment::Element { ordinal, .. } => Some(*ordinal),
             XmlPathSegment::Attribute { .. } => None,
+            XmlPathSegment::ObjectKey { .. } => None,
+            XmlPathSegment::ArrayIndex { index } => Some(*index),
         }
     }
 
@@ -196,6 +205,12 @@ impl PyXmlPathSegment {
             }
             XmlPathSegment::Attribute { name } => {
                 format!("XmlPathSegment(kind='attribute', name={name:?})")
+            }
+            XmlPathSegment::ObjectKey { key } => {
+                format!("XmlPathSegment(kind='object_key', name={key:?})")
+            }
+            XmlPathSegment::ArrayIndex { index } => {
+                format!("XmlPathSegment(kind='array_index', ordinal={index})")
             }
         }
     }

@@ -8,13 +8,60 @@ use crate::diagnostics::DiagnosticCode;
 use crate::types::VariableName;
 
 mod error;
+mod json;
+pub(crate) mod raw_text;
 mod xml;
 
 #[cfg(test)]
 mod tests;
 
 pub use error::ExtractError;
-pub use xml::{ExtractionSource, XmlExtractionOccurrence, XmlExtractionReport, XmlPathSegment};
+pub use json::{JsonExtractionReport, JsonExtractionSource, JsonPathSegment};
+pub use xml::{XmlExtractionOccurrence, XmlExtractionReport};
+
+/// Structural path segment shared by format-specific report aliases.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExtractionPathSegment {
+    /// An XML element and its zero-based ordinal among same-named siblings.
+    Element {
+        /// Element name.
+        name: String,
+        /// Zero-based sibling ordinal.
+        ordinal: usize,
+    },
+    /// An XML attribute on the preceding element path.
+    Attribute {
+        /// Attribute name.
+        name: String,
+    },
+    /// A JSON object key.
+    ObjectKey {
+        /// Object key.
+        key: String,
+    },
+    /// A zero-based JSON array index.
+    ArrayIndex {
+        /// Array index.
+        index: usize,
+    },
+}
+
+/// XML path alias over the shared extraction path representation.
+pub type XmlPathSegment = ExtractionPathSegment;
+
+/// Source evidence shared by format-specific report aliases.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExtractionSource {
+    /// The scalar was recovered from an XML attribute.
+    Attribute {
+        /// Attribute name.
+        name: String,
+    },
+    /// The scalar was recovered from an XML text node.
+    TextNode,
+    /// The scalar was recovered from a JSON string value.
+    StringValue,
+}
 
 /// Output format supported by the initial extraction contract.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -22,6 +69,8 @@ pub use xml::{ExtractionSource, XmlExtractionOccurrence, XmlExtractionReport, Xm
 pub enum ExtractFormat {
     /// Known-template XML output.
     Xml,
+    /// Known-template JSON output.
+    Json,
 }
 
 /// In-memory request for known-template extraction.
@@ -129,8 +178,30 @@ impl<P, S> ExtractionReport<P, S> {
     pub fn new(
         values: BTreeMap<VariableName, String>,
         occurrences: Vec<ExtractionOccurrence<P, S>>,
+        confidence: f64,
+        diagnostics: Vec<ExtractionDiagnostic>,
+    ) -> Result<Self, ExtractError> {
+        Self::new_with_ambiguity_code(
+            values,
+            occurrences,
+            confidence,
+            diagnostics,
+            DiagnosticCode::ErrExtractAmbiguous,
+        )
+    }
+
+    /// Construct a report using a format-specific repeated-occurrence code.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ExtractError::InvalidRequest`] when confidence is not finite
+    /// or falls outside the inclusive range `0.0..=1.0`.
+    pub fn new_with_ambiguity_code(
+        values: BTreeMap<VariableName, String>,
+        occurrences: Vec<ExtractionOccurrence<P, S>>,
         mut confidence: f64,
         diagnostics: Vec<ExtractionDiagnostic>,
+        ambiguity_code: DiagnosticCode,
     ) -> Result<Self, ExtractError> {
         if !confidence.is_finite() || !(0.0..=1.0).contains(&confidence) {
             return Err(ExtractError::invalid_request(
@@ -148,7 +219,7 @@ impl<P, S> ExtractionReport<P, S> {
                 has_duplicates = true;
                 values.remove(&occurrence.variable);
                 duplicate_diagnostics.push(ExtractionDiagnostic::new(
-                    DiagnosticCode::ErrExtractAmbiguous,
+                    ambiguity_code,
                     ExtractionDiagnosticKind::Ambiguous,
                     format!(
                         "variable has multiple structural occurrences: {}",
@@ -283,9 +354,12 @@ pub struct OccurrenceIndex(pub usize);
 ///
 /// Invalid requests return [`ExtractError::InvalidRequest`]. XML requests are
 /// evaluated against the known-template structural extraction contract.
-pub fn extract(request: &ExtractRequest<'_>) -> Result<xml::XmlExtractionReport, ExtractError> {
+pub fn extract(
+    request: &ExtractRequest<'_>,
+) -> Result<ExtractionReport<ExtractionPathSegment, ExtractionSource>, ExtractError> {
     request.validate()?;
     match request.format {
         ExtractFormat::Xml => xml::extract_xml(request),
+        ExtractFormat::Json => json::extract_json(request),
     }
 }

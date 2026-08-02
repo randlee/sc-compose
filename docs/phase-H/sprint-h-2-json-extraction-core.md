@@ -1,7 +1,7 @@
 ---
 id: H.2
 title: JSON Extraction Core
-status: planned
+status: complete
 branch: sprint/h-2-json-extraction-core
 worktree: ../sc-compose-worktrees/sprint/h-2-json-extraction-core
 target: develop

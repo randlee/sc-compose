@@ -75,9 +75,8 @@ fn extract_error(error: &ExtractError) -> CommandError {
             ExtractError::InvalidRequest { .. } => crate::exit_codes::USAGE_FAIL,
             ExtractError::MalformedXml { .. }
             | ExtractError::UnsupportedSyntax { .. }
-            | ExtractError::AmbiguousStructure { .. } => {
-                crate::exit_codes::VALIDATION_OR_RENDER_FAIL
-            }
+            | ExtractError::AmbiguousStructure { .. }
+            | ExtractError::FormatError { .. } => crate::exit_codes::VALIDATION_OR_RENDER_FAIL,
         },
         diagnostic_code: Some(code),
         diagnostics: vec![Diagnostic::new(DiagnosticSeverity::Error, code, &message)],
@@ -101,7 +100,8 @@ fn extract_error_message(error: &ExtractError) -> String {
         ExtractError::InvalidRequest { message, .. } => message.clone(),
         ExtractError::MalformedXml { diagnostic, .. }
         | ExtractError::UnsupportedSyntax { diagnostic, .. }
-        | ExtractError::AmbiguousStructure { diagnostic, .. } => diagnostic.message.clone(),
+        | ExtractError::AmbiguousStructure { diagnostic, .. }
+        | ExtractError::FormatError { diagnostic, .. } => diagnostic.message.clone(),
     }
 }
 
@@ -194,6 +194,12 @@ fn format_path(path: &[XmlPathSegment]) -> String {
             XmlPathSegment::Attribute { name } => {
                 let _ = write!(formatted, "@{name}");
             }
+            XmlPathSegment::ObjectKey { key } => {
+                let _ = write!(formatted, ".{key}");
+            }
+            XmlPathSegment::ArrayIndex { index } => {
+                let _ = write!(formatted, "[{index}]");
+            }
         }
     }
     formatted
@@ -203,6 +209,7 @@ fn format_source(source: &ExtractionSource) -> &'static str {
     match source {
         ExtractionSource::Attribute { .. } => "attribute",
         ExtractionSource::TextNode => "text_node",
+        ExtractionSource::StringValue => "string_value",
     }
 }
 
@@ -225,6 +232,10 @@ fn path_segment_json(segment: &XmlPathSegment) -> serde_json::Value {
         XmlPathSegment::Attribute { name } => {
             serde_json::json!({"kind": "attribute", "name": name})
         }
+        XmlPathSegment::ObjectKey { key } => serde_json::json!({"kind": "object_key", "key": key}),
+        XmlPathSegment::ArrayIndex { index } => {
+            serde_json::json!({"kind": "array_index", "index": index})
+        }
     }
 }
 
@@ -234,6 +245,7 @@ fn source_json(source: &ExtractionSource) -> serde_json::Value {
             serde_json::json!({"kind": "attribute", "name": name})
         }
         ExtractionSource::TextNode => serde_json::json!({"kind": "text_node"}),
+        ExtractionSource::StringValue => serde_json::json!({"kind": "string_value"}),
     }
 }
 
