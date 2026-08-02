@@ -99,17 +99,20 @@ pub struct ExtractRequest<'a> {
     pub exclude: &'a [String],
 }
 
-pub struct ExtractionReport {
+pub struct ExtractionReport<P = OccurrencePathSegment, S = OccurrenceSource> {
     pub values: BTreeMap<VariableName, String>,
-    pub occurrences: Vec<ExtractionOccurrence>,
+    pub occurrences: Vec<ExtractionOccurrence<P, S>>,
     pub confidence: f64,
     pub diagnostics: Vec<ExtractionDiagnostic>,
 }
 
-pub struct ExtractionOccurrence {
+pub struct ExtractionOccurrence<
+    P = OccurrencePathSegment,
+    S = OccurrenceSource,
+> {
     pub variable: VariableName,
-    pub path: Vec<OccurrencePathSegment>,
-    pub source: OccurrenceSource,
+    pub path: Vec<P>,
+    pub source: S,
     pub rendered_text: Option<String>,
 }
 
@@ -140,7 +143,11 @@ pub enum ExtractionDiagnosticKind {
 The names are illustrative; the accepted public contract must preserve the
 same boundaries and semantics. `confidence` is a report-level `f64` in the
 closed range `0.0..=1.0`; it is not a per-occurrence score. Occurrence-level
-trust is represented by path/source evidence and diagnostics.
+trust is represented by path/source evidence and diagnostics. For the
+same-variable conflicting-occurrence rule, each conflicting rendered string is
+retained in its own `ExtractionOccurrence<P, S>::rendered_text`; the
+`ExtractionDiagnostic::occurrence` index identifies the relevant entries,
+while the variable is omitted from `values`.
 
 ## This sprint does not close
 
@@ -162,9 +169,10 @@ trust is represented by path/source evidence and diagnostics.
   contract-level error categories.
 - The named same-variable multi-occurrence rule is covered by a contract test;
   it cannot silently overwrite the `BTreeMap` value.
-- `ExtractionOccurrence` and `ExtractionDiagnostic` have explicit,
-  compile-testable fields and category variants before G.2 begins; G.2's XML
-  types preserve that contract while adding XML path/source detail.
+- `ExtractionOccurrence<P, S>` and `ExtractionDiagnostic` have explicit,
+  compile-testable fields and category variants before G.2 begins. Their
+  default parameters preserve the generic G.1 contract, and G.2's XML aliases
+  instantiate the same types with XML path/source detail.
 - The boundary walker itself enumerates `crates/**/*.rs`,
   `bindings/python/src/**/*.rs`, and `bindings/python/python/**/*.py`; the
   acceptance test fails if any of those roots disappear from discovery.

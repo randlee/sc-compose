@@ -66,13 +66,6 @@ an explicit unsupported/ambiguous result.
 ## Explicit matching contract
 
 ```rust
-pub struct ExtractionOccurrence {
-    pub variable: VariableName,
-    pub path: Vec<XmlPathSegment>,
-    pub source: ExtractionSource,
-    pub rendered_text: Option<String>,
-}
-
 pub enum ExtractionSource {
     Attribute { name: String },
     TextNode,
@@ -82,11 +75,19 @@ pub enum XmlPathSegment {
     Element { name: String, ordinal: usize },
     Attribute { name: String },
 }
+
+pub type XmlExtractionOccurrence =
+    ExtractionOccurrence<XmlPathSegment, ExtractionSource>;
+
+pub type XmlExtractionReport =
+    ExtractionReport<XmlPathSegment, ExtractionSource>;
 ```
 
-G.2 specializes the generic `ExtractionOccurrence` and
-`ExtractionDiagnostic` contract from G.1 with `XmlPathSegment` and XML source
-details; it does not replace the report with an incompatible XML-only type.
+G.2 uses the generic `ExtractionOccurrence<P, S>` and
+`ExtractionReport<P, S>` types from G.1 through the concrete
+`XmlExtractionOccurrence` and `XmlExtractionReport` aliases above. It does not
+declare a second `ExtractionOccurrence` or replace the report with an
+incompatible XML-only type.
 An occurrence is successful only when the template skeleton and rendered XML
 identify exactly one path. A repeated tag without a stable ordinal/path is an
 error, not permission to use the first element. If one variable name maps to

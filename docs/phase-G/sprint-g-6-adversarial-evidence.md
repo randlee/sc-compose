@@ -134,5 +134,8 @@ count, requirement/ADR trace, and recommended change.
 - `cargo test -p sc-compose --test repo_boundaries`
 - `cargo test -p sc-compose-py`
 - `python3 -m pytest bindings/python/tests/test_smoke.py`
-- `.claude/skills/adversarial-fuzzing/` quick validation, when available
+- `.claude/skills/adversarial-fuzzing/` quick validation when available; if
+  the shared quick-validation command is unavailable, record it as skipped in
+  the evidence and continue without failing the sprint, while all other
+  required validation remains mandatory
 - `git diff --check`
