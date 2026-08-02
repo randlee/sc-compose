@@ -1,13 +1,13 @@
 ---
-id: H.6
+id: H.4
 title: YAML Extraction
 status: planned
-branch: sprint/h-6-yaml-extraction
-worktree: ../sc-compose-worktrees/sprint/h-6-yaml-extraction
+branch: sprint/h-4-yaml-extraction
+worktree: ../sc-compose-worktrees/sprint/h-4-yaml-extraction
 target: develop
 ---
 
-# Sprint H.6 — YAML Extraction
+# Sprint H.4 — YAML Extraction
 
 ## Goal
 
@@ -19,7 +19,11 @@ target: develop
 ## Hard Dependencies
 
 - H.1 accepts YAML format and parser semantics.
-- H.2/H.3 establish the format-selection and report-extension patterns.
+- H.2's shared raw-text core (`crates/sc-composer/src/extract/raw_text.rs`) is
+  merged to `develop`, XML delegates to it, and H.2's XML-regression evidence
+  from its XML-parity checkpoint is confirmed passing before H.4
+  implementation begins.
+- H.3's format-selection and report-extension parity gate is accepted.
 
 ## Exact Targets
 
@@ -43,23 +47,27 @@ the scope this sprint claims. If that cannot be done cleanly in one sprint, the
 sprint must be split before implementation begins. No deliverable may be
 silently dropped or partially deferred.
 
-- H6-D1 — Add the approved YAML adapter and format selection without changing
+- H4-D1 — Add the approved YAML adapter and format selection without changing
   XML, JSON, or existing YAML var-file behavior.
-- H6-D2 — Implement the H.1-defined mapping/path, duplicate-key, alias,
+- H4-D2 — Implement the H.1-defined mapping/path, duplicate-key, alias,
   document-stream, scalar, null, and malformed-input semantics.
-- H6-D3 — Expose identical YAML reports, diagnostics, and filtering through
+- H4-D3 — Expose identical YAML reports, diagnostics, and filtering through
   Rust, Python, text CLI, and JSON CLI surfaces.
-- H6-D4 — Add realistic YAML frontmatter/config fixtures and adversarial
+- H4-D4 — Add realistic YAML frontmatter/config fixtures and adversarial
   cases for every intentional boundary.
 
 ## Required Work
 
 - Keep YAML rendered-output parsing distinct from YAML template frontmatter and
-  var-file decoding semantics.
+  var-file decoding semantics. When the template has its own YAML frontmatter,
+  skip that frontmatter and match only the rendered YAML body.
 - Do not infer source types from YAML scalar spelling unless H.1 explicitly
   changes the string-only report contract.
 - Ensure aliases, anchors, duplicate keys, and multi-document inputs cannot
   silently change occurrence identity.
+- Delegate placeholder/value matching to the shared raw-text matching core
+  defined by H.1 and implemented by H.2; do not add an independent YAML text
+  matcher.
 
 ## Explicit Code Samples
 
@@ -72,8 +80,9 @@ Both adapters must delegate to the shared `ExtractFormat::Yaml` library path.
 
 ## This Sprint Does Not Close
 
-- TOML extraction; that is H.7.
-- XML mixed-content or dirty-prefix behavior.
+- TOML extraction; that is H.5.
+- XML mixed-content extraction, XML dirty-prefix tolerance, or a
+  customer-facing raw-text/best-effort mode; those are future-phase scope.
 - YAML schema inference, typed-value recovery, or unknown-template discovery.
 
 ## Acceptance Criteria

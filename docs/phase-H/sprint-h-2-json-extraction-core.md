@@ -24,10 +24,14 @@ target: develop
 ## Exact Targets
 
 - `crates/sc-composer/src/extract/mod.rs`
+- `crates/sc-composer/src/extract/raw_text.rs` for the shared matching seam
 - `crates/sc-composer/src/extract/json.rs`
+- `crates/sc-composer/src/extract/xml.rs` to delegate its format-neutral value
+  matching to the shared core without changing XML structural behavior
 - `crates/sc-composer/src/extract/error.rs`
 - `crates/sc-composer/src/extract/tests.rs`
 - `crates/sc-composer/tests/extract_integration.rs`
+- `crates/sc-composer/tests/fixtures/reverse-extract/xml-regression-baseline.json`
 - `crates/sc-composer/Cargo.toml` only if the approved parser requires an
   already-accepted dependency
 
@@ -47,6 +51,30 @@ silently dropped or partially deferred.
 - H2-D4 — Add unit and integration coverage for supported values, repeated
   paths, empty/null values, malformed JSON, unsupported template expressions,
   and every intentional H.1 boundary.
+- H2-D5 — Extract the approved format-neutral delimiter scanning, template
+  segment parsing, capture-boundary, and adjacent-variable ambiguity logic from
+  the XML implementation into the shared raw-text core. Keep XML structural
+  traversal, path/source provenance, and format-specific diagnostics in the XML
+  adapter, and prove existing XML tests remain green while JSON delegates to
+  the new seam.
+
+### Internal checkpoint: XML parity before JSON policy work
+
+H.2 has two separately reviewable risk boundaries. Before changing `xml.rs`,
+the implementation must:
+
+1. run the baseline XML extraction suite on the clean Phase-G input;
+2. commit `xml-regression-baseline.json` containing the input identifiers and
+   exact report values, occurrence paths/sources, diagnostics, and confidence;
+3. extract the format-neutral matcher into `raw_text.rs` and make XML delegate
+   to it;
+4. run the XML suite and diff its reports against the frozen baseline; and
+5. obtain an independent green review of that parity diff before beginning
+   JSON-specific parser and policy work.
+
+Any baseline difference is a parity failure until explicitly reviewed and
+accepted as an intentional contract change. JSON tests cannot mask an
+incomplete or regressed XML-core extraction checkpoint.
 
 ## Required Work
 
@@ -58,6 +86,9 @@ silently dropped or partially deferred.
 - Keep dotted-expression handling aligned with the H.1 JSON decision rather
   than reusing the Phase-G XML call-site rule accidentally.
 - Add a format-specific source/path model through the generic report aliases.
+- Delegate placeholder/value matching to the shared raw-text matching core
+  defined by H.1 and implemented by H.2; do not add an independent JSON text
+  matcher.
 
 ## Explicit Code Samples
 
@@ -77,7 +108,9 @@ shape remain unchanged.
 ## This Sprint Does Not Close
 
 - Python or CLI JSON exposure; that is H.3.
-- YAML, TOML, mixed-content XML, or dirty-prefix input.
+- YAML or TOML extraction; those are H.4 and H.5.
+- XML mixed-content extraction, XML dirty-prefix tolerance, or a
+  customer-facing raw-text/best-effort mode; those are future-phase scope.
 - JSON template identification, loops, branches, or typed-value recovery.
 
 ## Acceptance Criteria
@@ -86,7 +119,13 @@ shape remain unchanged.
   and receive the same generic report guarantees as XML.
 - Every accepted JSON failure policy has a stable diagnostic and regression
   test; no malformed or ambiguous case returns a fabricated value.
-- Existing XML unit, integration, and workspace behavior is unchanged.
+- The frozen XML regression baseline is captured before the `xml.rs` refactor,
+  and a post-refactor parity test/diff proves identical XML report values,
+  occurrence evidence, diagnostics, and confidence. Existing XML test
+  assertions may only be added to, never modified, unless the reviewed parity
+  record explicitly accepts the change.
+- The XML-parity checkpoint is independently green before JSON-specific policy
+  work is considered complete.
 - The implementation has no production dependency on the prototype harness.
 
 ## Required Validation
