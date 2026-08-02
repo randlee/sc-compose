@@ -125,6 +125,9 @@ are normative.
 6. [Sprint G.6 — Adversarial Evidence and Hardening](sprint-g-6-adversarial-evidence.md)
    runs the bounded multi-agent campaign and records every candidate,
    classification, promotion, and unresolved owner for QA review.
+7. [Sprint G.7 — Reject Dotted Extraction Expressions](sprint-g-7-dotted-expression-rejection.md)
+   closes G.6's `FUZZ-template-probe-dotted-expression` finding by rejecting
+   dotted expressions during XML extraction as unsupported syntax.
 
 The sequence reflects API dependencies, not a prohibition on parallel plan
 review. Each sprint has its own acceptance and validation gate; Phase G cannot
@@ -145,6 +148,8 @@ supported, rejected, and inconclusive cases.
   and regression gates from G.5.
 - Prior research artifacts remain non-production input and must not be
   imported by production Rust or Python bindings.
+- G.7 depends on G.6's evidence artifact; it has no other Phase-G dependency
+  and does not gate or reopen G.1 through G.6.
 
 ## Phase exit gate
 
@@ -161,6 +166,9 @@ Phase G is complete only when:
   provenance, diagnostics, and unsupported-boundary semantics as Rust;
 - corpus and adversarial evidence includes successful cases, intentional
   boundaries, unsupported cases, and inconclusive cases;
+- dotted expressions (e.g. `user.name`) are rejected during extraction with
+  `ERR_EXTRACT_UNSUPPORTED`, and G.6's
+  `FUZZ-template-probe-dotted-expression` finding is closed;
 - `cargo fmt --all --check`, `cargo test --workspace`,
   `cargo clippy --all-targets --all-features -- -D warnings`, and
   `git diff --check` pass;

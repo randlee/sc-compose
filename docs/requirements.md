@@ -1012,6 +1012,12 @@ contract. The contract is defined by
   reconstruct loops, branches, JSON, Markdown, or source value types.
 - Invalid requests, malformed XML, unsupported syntax, and ambiguous
   structure remain distinct error categories with stable diagnostic codes.
+- A dotted expression (for example `{{ user.name }}`) is object-field access,
+  not a literal variable identifier. Extraction only supports the scalar
+  (flat) variable subset and has no object/nested-value extraction capability,
+  so any dotted expression is unsupported syntax and must be rejected with
+  `ERR_EXTRACT_UNSUPPORTED` rather than accepted as a literal variable name
+  (Phase G.7).
 
 The CLI adapter exposes the same known-template contract through the
 read-only command `sc-compose extract TEMPLATE.xml.j2 RENDERED.xml`. It
