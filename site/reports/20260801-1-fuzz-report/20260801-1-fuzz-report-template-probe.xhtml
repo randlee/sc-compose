@@ -1,0 +1,71 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-inconclusive">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session g6-20260801-0001 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;case_counts&quot;: {&quot;failed&quot;: 1, &quot;passed&quot;: 29}, &quot;cases_run&quot;: 30, &quot;correlation_id&quot;: &quot;template-probe&quot;, &quot;error&quot;: null, &quot;finding_ids&quot;: [&quot;FUZZ-template-probe-dotted-expression&quot;], &quot;protocol_status&quot;: &quot;valid&quot;, &quot;status&quot;: &quot;success&quot;, &quot;tool_versions&quot;: {&quot;cargo&quot;: &quot;1.94.1&quot;, &quot;git&quot;: &quot;2.53.0&quot;, &quot;python&quot;: &quot;3.11.9&quot;, &quot;rustc&quot;: &quot;1.94.1&quot;, &quot;sc-compose&quot;: &quot;1.3.0&quot;}}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Fuzz session g6-20260801-0001, worker template-probe.
+Description: Supported scalar expressions versus unsupported filters, control flow, concatenation, and type-looking values.
+Iterations: 30, Passed: 29, Failed: 1, Result: FAIL, Classification: inconclusive.
+The panel shows representative concrete template&#x2f;rendered-input pairs; the full worker envelope is in json_payload.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Supported scalar expressions versus unsupported filters, control flow, concatenation, and type-looking values.</th>
+        <td>30</td>
+        <td>29/30</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">template-001</th><td><code>Supported scalar with static prefix and suffix
+Template: &lt;root&gt;&lt;name&gt;Hello {{ name }}!&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;
+Rendered input: &lt;root&gt;&lt;name&gt;Hello Ada!&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;</code></td><td>PASS: scalar expression extracted</td></tr>
+        <tr><th scope="row">template-002</th><td><code>Unsupported filter is rejected fail-closed
+Template: &lt;root&gt;{{ name | upper }}&lt;&#x2f;root&gt;
+Rendered input: &lt;root&gt;ADA&lt;&#x2f;root&gt;</code></td><td>PASS: ERR_EXTRACT_UNSUPPORTED</td></tr>
+        <tr><th scope="row">template-003</th><td><code>Dotted expression contract candidate
+Template: &lt;root&gt;&lt;name&gt;{{ user.name }}&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;
+Rendered input: &lt;root&gt;&lt;name&gt;Ada&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;</code></td><td>INCONCLUSIVE: accepted as literal user.name; replayed 3&#x2f;3</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-template-probe-dotted-expression</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>&lt;root&gt;&lt;name&gt;{{ user.name }}&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;
+</code></dd>
+        <dt>Input</dt><dd><code>&lt;root&gt;&lt;name&gt;Ada&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;
+</code></dd>
+        <dt>Expected</dt><dd>The worker oracle expected dotted attribute syntax to be rejected with ERR_EXTRACT_UNSUPPORTED.</dd>
+        <dt>Observed</dt><dd>{&quot;deterministic&quot;: true, &quot;diagnostic&quot;: &quot;WARN_EXTRACT_LOW_CONFIDENCE&quot;, &quot;exit_code&quot;: 0, &quot;values&quot;: {&quot;user.name&quot;: &quot;Ada&quot;}}</dd>
+        <dt>Requirement / ADR</dt><dd>FR-16 and ADR-0011 define a documented scalar XML subset but do not define dotted-expression semantics. VariableName::new explicitly permits dots, while extraction does not promise reconstruction of object attributes.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Team lead&#x2f;product owner should decide whether dotted expressions are literal variable names or object-path expressions, then amend FR-16&#x2f;ADR-0011 and add a contract test if needed.</dd>
+        <dt>Root cause</dt><dd>Extraction reuses the permissive VariableName validator; product intent for dotted names is unresolved.</dd>
+        <dt>Recommended fix</dt><dd>Clarify the contract before changing implementation. Do not reject or reinterpret dotted names solely from this fuzz result.</dd>
+      </dl>
+    </article>
+  </section>
+</section>

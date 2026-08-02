@@ -1,0 +1,53 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session g6-20260801-0001 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;case_counts&quot;: {&quot;failed&quot;: 0, &quot;passed&quot;: 50}, &quot;cases_run&quot;: 50, &quot;correlation_id&quot;: &quot;boundary-probe&quot;, &quot;error&quot;: null, &quot;finding_ids&quot;: [], &quot;protocol_status&quot;: &quot;valid&quot;, &quot;status&quot;: &quot;success&quot;, &quot;tool_versions&quot;: {&quot;cargo&quot;: &quot;1.94.1&quot;, &quot;git&quot;: &quot;2.53.0&quot;, &quot;python&quot;: &quot;3.11.9&quot;, &quot;rustc&quot;: &quot;1.94.1&quot;, &quot;sc-compose&quot;: &quot;1.3.0&quot;}}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Fuzz session g6-20260801-0001, worker boundary-probe.
+Description: Malformed XML, missing occurrences, ambiguity, empty values, and include&#x2f;exclude selection.
+Iterations: 50, Passed: 50, Failed: 0, Result: PASS, Classification: pass.
+The panel shows representative concrete template&#x2f;rendered-input pairs; the full worker envelope is in json_payload.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Malformed XML, missing occurrences, ambiguity, empty values, and include&#x2f;exclude selection.</th>
+        <td>50</td>
+        <td>50/50</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">boundary-001</th><td><code>Malformed rendered XML
+Template: &lt;root&gt;&lt;name&gt;{{ name }}&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;
+Rendered input: &lt;root&gt;&lt;name&gt;Ada&lt;&#x2f;root&gt;</code></td><td>PASS: stable malformed-input diagnostic</td></tr>
+        <tr><th scope="row">boundary-002</th><td><code>Missing rendered occurrence
+Template: &lt;root&gt;&lt;name&gt;{{ name }}&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;
+Rendered input: &lt;root&gt;&lt;other&gt;Ada&lt;&#x2f;other&gt;&lt;&#x2f;root&gt;</code></td><td>PASS: missing occurrence warning without fabricated value</td></tr>
+        <tr><th scope="row">boundary-003</th><td><code>Adjacent expressions without delimiter
+Template: &lt;root&gt;{{ first }}{{ second }}&lt;&#x2f;root&gt;
+Rendered input: &lt;root&gt;AB&lt;&#x2f;root&gt;</code></td><td>PASS: stable ambiguity diagnostic</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>

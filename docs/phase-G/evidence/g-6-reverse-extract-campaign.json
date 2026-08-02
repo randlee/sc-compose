@@ -137,10 +137,12 @@
   },
   "validation_results": {
     "source": {
-      "kind": "pr_ci",
-      "pr": 190,
-      "commit": "05e20f2",
-      "result": "9/9 green",
+      "kind": "local_run",
+      "runner": "comp",
+      "commit": "1d6d048",
+      "run_scope": "final committed evidence artifact state",
+      "result": "all required gates PASS",
+      "ci_reference": "PR #190 CI was 9/9 green at the preceding code-equivalent commit 05e20f2",
       "url": "https://github.com/randlee/sc-compose/pull/190"
     },
     "gates": [
@@ -172,7 +174,25 @@
         "command": "git diff --check",
         "status": "PASS"
       }
-    ]
+    ],
+    "report_package": {
+      "html": {
+        "path": "site/reports/20260801-1-fuzz-report.html",
+        "command": "npx --no-install html-validate site/reports/20260801-1-fuzz-report.html",
+        "status": "PASS",
+        "tool_version": "html-validate-11.6.0"
+      },
+      "xhtml_panels": {
+        "command": "xmllint --noout site/reports/20260801-1-fuzz-report/*.xhtml",
+        "status": "PASS",
+        "paths": [
+          "site/reports/20260801-1-fuzz-report/20260801-1-fuzz-report-boundary-probe.xhtml",
+          "site/reports/20260801-1-fuzz-report/20260801-1-fuzz-report-differential-probe.xhtml",
+          "site/reports/20260801-1-fuzz-report/20260801-1-fuzz-report-shape-probe.xhtml",
+          "site/reports/20260801-1-fuzz-report/20260801-1-fuzz-report-template-probe.xhtml"
+        ]
+      }
+    }
   },
   "quick_validation": {
     "status": "skipped",
