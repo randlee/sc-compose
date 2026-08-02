@@ -481,6 +481,31 @@ Unnumbered Phase F follow-on work:
   five Phase F docs record hand-authored provenance until that separate defect
   is fixed; no Phase F implementation sprint owns the template repair.
 
+### Phase G Sprint Plans
+
+Status:
+
+- planned follow-on work for a known-template, XML-first `sc-compose extract`
+  feature informed by prior reverse-extraction research, with Python as a
+  first-class customer surface
+
+Sprint entries:
+
+- [Phase G plan](phase-G/phase-G-plan.md)
+- [Sprint G.1 — Extraction Contract and Analysis Model](phase-G/sprint-g-1-extraction-contract.md)
+- [Sprint G.2 — Deterministic XML Extraction Engine](phase-G/sprint-g-2-xml-extraction-engine.md)
+- [Sprint G.3 — Python Extraction Bindings](phase-G/sprint-g-3-python-extraction-bindings.md)
+- [Sprint G.4 — CLI Extract Surface](phase-G/sprint-g-4-cli-extract-surface.md)
+- [Sprint G.5 — Corpus and Regression Closure](phase-G/sprint-g-5-corpus-hardening.md)
+- [Sprint G.6 — Adversarial Evidence and Hardening](phase-G/sprint-g-6-adversarial-evidence.md)
+
+Phase G is intentionally narrower than a general inverse-Jinja feature. It
+starts with known-template XML extraction, gives the first customer a Python
+binding over the same library semantics, reports unsupported or ambiguous
+constructs instead of fabricating values, and leaves unknown-template
+identification, JSON/Markdown adapters, loop reconstruction, and typed-value
+recovery as separately planned follow-on work.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:
