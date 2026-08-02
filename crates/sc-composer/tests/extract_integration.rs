@@ -130,8 +130,7 @@ fn fixture_wrong_structure_returns_unsupported_error() {
     assert!(error.recovery_hints().iter().any(|hint| {
         matches!(
             &hint.kind,
-            sc_composer::RecoveryHintKind::ReviewConfiguration { key }
-                if key.contains("scalar syntax")
+            sc_composer::RecoveryHintKind::UnsupportedConstruct { .. }
         )
     }));
 }
@@ -162,6 +161,18 @@ fn fixture_wrong_child_structure_returns_unsupported_error() {
 
     assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
     assert!(error.to_string().contains("child structure does not match"));
+}
+
+#[test]
+fn fixture_wrong_child_kind_structure_returns_unsupported_error() {
+    let error = extract(&request(
+        include_str!("fixtures/reverse-extract/wrong-child-kind-structure.xml.j2"),
+        include_str!("fixtures/reverse-extract/wrong-child-kind-structure.xml"),
+    ))
+    .unwrap_err();
+
+    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
+    assert!(error.to_string().contains("node structure does not match"));
 }
 
 #[test]

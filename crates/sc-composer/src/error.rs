@@ -105,6 +105,11 @@ pub enum RecoveryHintKind {
         /// Description of the ambiguity to resolve.
         description: String,
     },
+    /// Suggest replacing a construct outside the supported contract.
+    UnsupportedConstruct {
+        /// Description of the unsupported construct and its supported alternative.
+        description: String,
+    },
 }
 
 /// Canonical resolver error family.

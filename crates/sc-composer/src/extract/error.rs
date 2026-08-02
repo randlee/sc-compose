@@ -108,9 +108,11 @@ impl ExtractError {
                 message,
                 None,
             ),
-            recovery_hints: vec![review_configuration(
-                "supported XML scalar syntax and filters",
-            )],
+            recovery_hints: vec![RecoveryHint::new(RecoveryHintKind::UnsupportedConstruct {
+                description:
+                    "replace it with supported XML scalar placeholders and static structure"
+                        .to_owned(),
+            })],
             source,
         }
     }
@@ -146,6 +148,26 @@ impl ExtractError {
         message: impl Into<String>,
         occurrence: Option<super::OccurrenceIndex>,
     ) -> Self {
+        Self::ambiguous_with_hint(
+            message,
+            occurrence,
+            "select one XML occurrence path or rename the repeated variable",
+        )
+    }
+
+    pub(crate) fn ambiguous_delimiter(message: impl Into<String>) -> Self {
+        Self::ambiguous_with_hint(
+            message,
+            None,
+            "add static XML text between adjacent variable expressions",
+        )
+    }
+
+    fn ambiguous_with_hint(
+        message: impl Into<String>,
+        occurrence: Option<super::OccurrenceIndex>,
+        description: &str,
+    ) -> Self {
         Self::AmbiguousStructure {
             diagnostic: ExtractionDiagnostic::new(
                 DiagnosticCode::ErrExtractAmbiguous,
@@ -155,8 +177,7 @@ impl ExtractError {
             ),
             recovery_hints: vec![RecoveryHint::new(
                 RecoveryHintKind::DisambiguateOccurrences {
-                    description: "review XML occurrence paths and include/exclude selection"
-                        .to_owned(),
+                    description: description.to_owned(),
                 },
             )],
             source: None,

@@ -624,7 +624,7 @@ fn match_children(
         && matches!(&template_children[0], XmlNode::Text(value) if is_single_variable(value))
     {
         if let XmlNode::Text(value) = &template_children[0] {
-            let segments = parse_value_segments(value)?;
+            let segments = parse_value_segments(value.trim())?;
             if let [TemplateSegment::Variable(variable)] = segments.as_slice() {
                 captures.push(Capture {
                     variable: variable.clone(),
@@ -830,9 +830,8 @@ fn parse_value_segments(value: &str) -> Result<Vec<TemplateSegment>, ExtractErro
             (TemplateSegment::Variable(_), TemplateSegment::Variable(_))
         )
     }) {
-        return Err(ExtractError::ambiguous(
+        return Err(ExtractError::ambiguous_delimiter(
             "adjacent XML variable expressions have no structural delimiter",
-            None,
         ));
     }
     Ok(segments)

@@ -86,6 +86,19 @@ fn weakly_anchored_variable_has_subunit_confidence() {
 }
 
 #[test]
+fn strong_match_confidence_exceeds_weak_match_confidence() {
+    let weak = extract(&xml_request("<x>{{ value }}</x>", "<x>Ada</x>")).unwrap();
+    let strong = extract(&xml_request(
+        "<root><name>Hello {{ name }}!</name></root>",
+        "<root><name>Hello Ada!</name></root>",
+    ))
+    .unwrap();
+
+    assert!(strong.confidence > weak.confidence);
+    assert!(strong.confidence > 0.99);
+}
+
+#[test]
 fn errors_expose_canonical_codes_and_recovery_hints() {
     let invalid = ExtractRequest::new("", "<x/>", ExtractFormat::Xml, &[], &[])
         .validate()
@@ -104,7 +117,7 @@ fn errors_expose_canonical_codes_and_recovery_hints() {
     assert_eq!(unsupported.code(), DiagnosticCode::ErrExtractUnsupported);
     assert!(matches!(
         &unsupported.recovery_hints()[0].kind,
-        RecoveryHintKind::ReviewConfiguration { .. }
+        RecoveryHintKind::UnsupportedConstruct { .. }
     ));
 
     let malformed = extract(&xml_request("<x>{{ value }}</x>", "<x")).unwrap_err();
@@ -117,7 +130,18 @@ fn errors_expose_canonical_codes_and_recovery_hints() {
         extract(&xml_request("<x>{{ first }}{{ second }}</x>", "<x>AB</x>")).unwrap_err();
     assert!(matches!(
         &ambiguous.recovery_hints()[0].kind,
-        RecoveryHintKind::DisambiguateOccurrences { .. }
+        RecoveryHintKind::DisambiguateOccurrences { description }
+            if description.contains("adjacent")
+    ));
+
+    let duplicate = ExtractError::ambiguous(
+        "variable has multiple structural occurrences: name",
+        Some(OccurrenceIndex(1)),
+    );
+    assert!(matches!(
+        &duplicate.recovery_hints()[0].kind,
+        RecoveryHintKind::DisambiguateOccurrences { description }
+            if description.contains("occurrence path")
     ));
 }
 
@@ -306,6 +330,23 @@ fn xml_reports_missing_occurrences_without_fabricating_values() {
         diagnostic.code == DiagnosticCode::WarnExtractNotObserved
             && diagnostic.kind == ExtractionDiagnosticKind::NotObserved
     }));
+}
+
+#[test]
+fn xml_extracts_whitespace_padded_bare_variable_from_empty_element() {
+    let report = extract(&xml_request(
+        "<root><value> {{ value }} </value></root>",
+        "<root><value/></root>",
+    ))
+    .unwrap();
+
+    assert_eq!(report.values[&variable("value")], "");
+    assert!(
+        !report
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == DiagnosticCode::WarnExtractNotObserved)
+    );
 }
 
 #[test]

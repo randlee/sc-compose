@@ -124,6 +124,9 @@ fn format_recovery_hint(hint: &RecoveryHint) -> String {
         RecoveryHintKind::DisambiguateOccurrences { description } => {
             format!("disambiguate occurrences: {description}")
         }
+        RecoveryHintKind::UnsupportedConstruct { description } => {
+            format!("replace unsupported construct: {description}")
+        }
     }
 }
 
