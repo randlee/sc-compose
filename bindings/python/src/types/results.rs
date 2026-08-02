@@ -148,8 +148,7 @@ impl PyExtractionSource {
     fn name(&self) -> Option<String> {
         match &self.inner {
             ExtractionSource::Attribute { name } => Some(name.clone()),
-            ExtractionSource::TextNode => None,
-            ExtractionSource::StringValue => None,
+            ExtractionSource::TextNode | ExtractionSource::StringValue => None,
         }
     }
 
@@ -192,8 +191,7 @@ impl PyXmlPathSegment {
     fn ordinal(&self) -> Option<usize> {
         match &self.inner {
             XmlPathSegment::Element { ordinal, .. } => Some(*ordinal),
-            XmlPathSegment::Attribute { .. } => None,
-            XmlPathSegment::ObjectKey { .. } => None,
+            XmlPathSegment::Attribute { .. } | XmlPathSegment::ObjectKey { .. } => None,
             XmlPathSegment::ArrayIndex { index } => Some(*index),
         }
     }
