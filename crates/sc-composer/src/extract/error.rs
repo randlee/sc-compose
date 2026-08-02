@@ -177,6 +177,20 @@ impl ExtractError {
         }
     }
 
+    pub(crate) fn format_error_with_source(
+        code: DiagnosticCode,
+        kind: ExtractionDiagnosticKind,
+        message: impl Into<String>,
+        recovery: RecoveryHintKind,
+        source: impl Error,
+    ) -> Self {
+        Self::FormatError {
+            diagnostic: ExtractionDiagnostic::new(code, kind, message, None),
+            recovery_hints: vec![RecoveryHint::new(recovery)],
+            source: Some(ExtractErrorSource::from_error(&source)),
+        }
+    }
+
     pub(crate) fn ambiguous_delimiter(message: impl Into<String>) -> Self {
         Self::ambiguous_with_hint(
             message,

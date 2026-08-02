@@ -1,6 +1,6 @@
 use sc_composer::{
-    ExtractError, ExtractFormat, ExtractRequest, ExtractionDiagnosticKind, JsonPathSegment,
-    VariableName, XmlPathSegment, extract,
+    ExtractError, ExtractFormat, ExtractRequest, ExtractionDiagnosticKind, ExtractionPathSegment,
+    ExtractionSource, JsonPathSegment, VariableName, XmlPathSegment, extract,
 };
 
 fn variable(name: &str) -> VariableName {
@@ -39,10 +39,10 @@ fn fixture_preserves_repeated_sibling_occurrence_paths() {
     assert_eq!(report.values[&variable("second")], "B");
     assert_eq!(
         report.occurrences[1].path[1],
-        XmlPathSegment::Element {
+        ExtractionPathSegment::Xml(XmlPathSegment::Element {
             name: "item".to_owned(),
             ordinal: 1,
-        }
+        })
     );
 }
 
@@ -300,15 +300,16 @@ fn json_extracts_string_values_with_object_and_array_paths() {
         occurrence.variable == variable("first")
             && occurrence.path
                 == vec![
-                    JsonPathSegment::ObjectKey {
+                    ExtractionPathSegment::Json(JsonPathSegment::ObjectKey {
                         key: "items".to_owned(),
-                    },
-                    JsonPathSegment::ArrayIndex { index: 0 },
-                    JsonPathSegment::ObjectKey {
+                    }),
+                    ExtractionPathSegment::Json(JsonPathSegment::ArrayIndex { index: 0 }),
+                    ExtractionPathSegment::Json(JsonPathSegment::ObjectKey {
                         key: "id".to_owned(),
-                    },
+                    }),
                 ]
-            && occurrence.source == sc_composer::JsonExtractionSource::StringValue
+            && occurrence.source
+                == ExtractionSource::Json(sc_composer::JsonExtractionSource::StringValue)
     }));
 }
 

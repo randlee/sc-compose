@@ -6,22 +6,51 @@ use std::error::Error as StdError;
 use quick_xml::Reader;
 use quick_xml::escape::unescape;
 use quick_xml::events::Event;
+use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::DiagnosticCode;
 use crate::frontmatter::parse_template_document;
 use crate::types::VariableName;
 
-use super::XmlPathSegment;
 use super::{
     ExtractError, ExtractRequest, ExtractionDiagnostic, ExtractionDiagnosticKind,
-    ExtractionOccurrence, ExtractionReport, ExtractionSource, raw_text,
+    ExtractionOccurrence, ExtractionReport, raw_text,
 };
 
-/// XML occurrence alias over the generic G.1 extraction contract.
-pub type XmlExtractionOccurrence = ExtractionOccurrence<XmlPathSegment, ExtractionSource>;
+/// XML element/attribute path evidence.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum XmlPathSegment {
+    /// An XML element and its zero-based ordinal among same-named siblings.
+    Element {
+        /// Element name.
+        name: String,
+        /// Zero-based sibling ordinal.
+        ordinal: usize,
+    },
+    /// An XML attribute on the preceding element path.
+    Attribute {
+        /// Attribute name.
+        name: String,
+    },
+}
 
-/// XML report alias over the generic G.1 extraction contract.
-pub type XmlExtractionReport = ExtractionReport<XmlPathSegment, ExtractionSource>;
+/// XML source evidence for a recovered scalar.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum XmlExtractionSource {
+    /// The scalar was recovered from an XML attribute.
+    Attribute {
+        /// Attribute name.
+        name: String,
+    },
+    /// The scalar was recovered from an XML text node.
+    TextNode,
+}
+
+/// XML occurrence report entry.
+pub type XmlExtractionOccurrence = ExtractionOccurrence<XmlPathSegment, XmlExtractionSource>;
+
+/// XML report over the generic extraction contract.
+pub type XmlExtractionReport = ExtractionReport<XmlPathSegment, XmlExtractionSource>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct XmlElement {
@@ -45,7 +74,7 @@ struct XmlDocument {
 struct Capture {
     variable: VariableName,
     path: Vec<XmlPathSegment>,
-    source: ExtractionSource,
+    source: XmlExtractionSource,
     rendered_text: String,
 }
 
@@ -302,7 +331,6 @@ fn path_exists(root: &XmlElement, path: &[XmlPathSegment]) -> bool {
                 current = element;
             }
             XmlPathSegment::Attribute { name } => return current.attributes.contains_key(name),
-            XmlPathSegment::ObjectKey { .. } | XmlPathSegment::ArrayIndex { .. } => return false,
         }
     }
     true
@@ -569,7 +597,7 @@ fn match_attributes(
             template_value,
             rendered_value,
             &attribute_path,
-            &ExtractionSource::Attribute { name: name.clone() },
+            &XmlExtractionSource::Attribute { name: name.clone() },
             captures,
             evidence,
         )?;
@@ -596,7 +624,7 @@ fn match_children(
                 captures.push(Capture {
                     variable: variable.clone(),
                     path: path.to_owned(),
-                    source: ExtractionSource::TextNode,
+                    source: XmlExtractionSource::TextNode,
                     rendered_text: String::new(),
                 });
             }
@@ -619,7 +647,7 @@ fn match_children(
                     template_text,
                     rendered_text,
                     path,
-                    &ExtractionSource::TextNode,
+                    &XmlExtractionSource::TextNode,
                     captures,
                     evidence,
                 )?;
@@ -664,7 +692,7 @@ fn match_value(
     template: &str,
     rendered: &str,
     path: &[XmlPathSegment],
-    source: &ExtractionSource,
+    source: &XmlExtractionSource,
     captures: &mut Vec<Capture>,
     evidence: &mut Evidence,
 ) -> Result<(), ExtractError> {
@@ -677,7 +705,7 @@ fn match_value(
         })
         .cloned()
         .collect::<Vec<_>>();
-    let structurally_anchored = matches!(source, ExtractionSource::Attribute { .. })
+    let structurally_anchored = matches!(source, XmlExtractionSource::Attribute { .. })
         || segments.iter().any(|segment| {
             matches!(segment, raw_text::RawTextSegment::Static(static_text) if !static_text.is_empty())
         });
@@ -713,21 +741,29 @@ fn parse_value_segments(value: &str) -> Result<Vec<raw_text::RawTextSegment<'_>>
 }
 
 fn map_raw_text_error(error: raw_text::RawTextMatchError) -> ExtractError {
-    let _scope = error.scope();
-    match error {
-        raw_text::RawTextMatchError::InvalidTemplate { span, message }
-        | raw_text::RawTextMatchError::StaticMismatch { span, message } => {
-            ExtractError::unsupported(with_span(&message, span))
-        }
-        raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
-            if message.contains("adjacent variable") {
-                ExtractError::ambiguous_delimiter(
-                    "adjacent XML variable expressions have no structural delimiter",
-                )
-            } else {
-                ExtractError::ambiguous(with_span(&message, span), None)
+    match error.scope() {
+        raw_text::RawTextErrorScope::Request => match error {
+            raw_text::RawTextMatchError::InvalidTemplate { span, message }
+            | raw_text::RawTextMatchError::StaticMismatch { span, message }
+            | raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
+                ExtractError::unsupported(with_span(&message, span))
             }
-        }
+        },
+        raw_text::RawTextErrorScope::Occurrence => match error {
+            raw_text::RawTextMatchError::InvalidTemplate { span, message }
+            | raw_text::RawTextMatchError::StaticMismatch { span, message } => {
+                ExtractError::unsupported(with_span(&message, span))
+            }
+            raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
+                if message.contains("adjacent variable") {
+                    ExtractError::ambiguous_delimiter(
+                        "adjacent XML variable expressions have no structural delimiter",
+                    )
+                } else {
+                    ExtractError::ambiguous(with_span(&message, span), None)
+                }
+            }
+        },
     }
 }
 

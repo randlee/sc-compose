@@ -3,7 +3,8 @@
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
-use serde::de::{self, Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
+use serde::de::{self, Deserializer, MapAccess, SeqAccess, Visitor};
+use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::DiagnosticCode;
 use crate::error::RecoveryHintKind;
@@ -11,15 +12,31 @@ use crate::frontmatter::parse_template_document;
 use crate::types::VariableName;
 
 use super::{
-    ExtractError, ExtractRequest, ExtractionDiagnosticKind, ExtractionOccurrence,
-    ExtractionPathSegment, ExtractionReport, ExtractionSource, raw_text,
+    ExtractError, ExtractRequest, ExtractionDiagnosticKind, ExtractionOccurrence, ExtractionReport,
+    raw_text,
 };
 
-/// JSON path alias over the shared extraction path representation.
-pub type JsonPathSegment = ExtractionPathSegment;
+/// JSON object-key or array-index path evidence.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum JsonPathSegment {
+    /// A JSON object key.
+    ObjectKey {
+        /// Object key.
+        key: String,
+    },
+    /// A zero-based JSON array index.
+    ArrayIndex {
+        /// Array index.
+        index: usize,
+    },
+}
 
-/// JSON source alias over the shared extraction source representation.
-pub type JsonExtractionSource = ExtractionSource;
+/// JSON source evidence for a recovered string value.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum JsonExtractionSource {
+    /// The scalar was recovered from a JSON string value.
+    StringValue,
+}
 
 /// JSON report alias over the generic extraction report.
 pub type JsonExtractionReport = ExtractionReport<JsonPathSegment, JsonExtractionSource>;
@@ -212,41 +229,60 @@ fn parse_document(source: &str, template: bool) -> Result<serde_json::Value, Ext
     let value = StrictJsonValue::deserialize(&mut deserializer).map_err(|error| {
         let message = error.to_string();
         if message.starts_with("duplicate JSON object key") {
-            duplicate_error(message)
+            duplicate_error_with_source(message, error)
         } else if template && source.contains("{{") {
-            value_error("JSON placeholders are only supported in string values")
+            value_error_with_source(
+                "JSON placeholders are only supported in string values",
+                error,
+            )
         } else if template {
-            template_error(format!(
-                "JSON template is not a supported known document: {message}"
-            ))
+            template_error_with_source(
+                format!("JSON template is not a supported known document: {message}"),
+                error,
+            )
         } else {
-            malformed_error(format!("JSON parser rejected rendered input: {message}"))
+            malformed_error_with_source(
+                format!("JSON parser rejected rendered input: {message}"),
+                error,
+            )
         }
     })?;
     deserializer.end().map_err(|error| {
         if template {
-            template_error(format!("JSON template contains trailing input: {error}"))
+            template_error_with_source(
+                format!("JSON template contains trailing input: {error}"),
+                error,
+            )
         } else {
-            malformed_error(format!(
-                "JSON rendered input contains trailing input: {error}"
-            ))
+            malformed_error_with_source(
+                format!("JSON rendered input contains trailing input: {error}"),
+                error,
+            )
         }
     })?;
     Ok(value.0)
 }
 
 fn map_raw_text_error(error: raw_text::RawTextMatchError) -> ExtractError {
-    let _scope = error.scope();
-    match error {
-        raw_text::RawTextMatchError::InvalidTemplate { span, message } => {
-            template_error(with_span(&message, span))
-        }
-        raw_text::RawTextMatchError::StaticMismatch { span, message } => {
-            shape_error(&[], with_span(&message, span))
-        }
-        raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
-            ambiguity_error(with_span(&message, span))
-        }
+    match error.scope() {
+        raw_text::RawTextErrorScope::Request => match error {
+            raw_text::RawTextMatchError::InvalidTemplate { span, message }
+            | raw_text::RawTextMatchError::StaticMismatch { span, message }
+            | raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
+                template_error(with_span(&message, span))
+            }
+        },
+        raw_text::RawTextErrorScope::Occurrence => match error {
+            raw_text::RawTextMatchError::InvalidTemplate { span, message } => {
+                template_error(with_span(&message, span))
+            }
+            raw_text::RawTextMatchError::StaticMismatch { span, message } => {
+                shape_error(&[], with_span(&message, span))
+            }
+            raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
+                ambiguity_error(with_span(&message, span))
+            }
+        },
     }
 }
 
@@ -269,25 +305,49 @@ fn template_error(message: impl Into<String>) -> ExtractError {
     )
 }
 
-fn malformed_error(message: impl Into<String>) -> ExtractError {
-    ExtractError::format_error(
+fn template_error_with_source(
+    message: impl Into<String>,
+    source: impl std::error::Error,
+) -> ExtractError {
+    ExtractError::format_error_with_source(
+        DiagnosticCode::ErrExtractTemplateUnsupported,
+        ExtractionDiagnosticKind::Unsupported,
+        message,
+        RecoveryHintKind::UnsupportedConstruct {
+            description: "use known-template JSON string values with scalar placeholders"
+                .to_owned(),
+        },
+        source,
+    )
+}
+
+fn malformed_error_with_source(
+    message: impl Into<String>,
+    source: impl std::error::Error,
+) -> ExtractError {
+    ExtractError::format_error_with_source(
         DiagnosticCode::ErrExtractJsonMalformed,
         ExtractionDiagnosticKind::Malformed,
         message,
         RecoveryHintKind::InspectInput {
             description: "inspect the rendered JSON for one well-formed value".to_owned(),
         },
+        source,
     )
 }
 
-fn duplicate_error(message: impl Into<String>) -> ExtractError {
-    ExtractError::format_error(
+fn duplicate_error_with_source(
+    message: impl Into<String>,
+    source: impl std::error::Error,
+) -> ExtractError {
+    ExtractError::format_error_with_source(
         DiagnosticCode::ErrExtractJsonDuplicateKey,
         ExtractionDiagnosticKind::Malformed,
         message,
         RecoveryHintKind::InspectInput {
             description: "remove duplicate JSON object keys".to_owned(),
         },
+        source,
     )
 }
 
@@ -300,6 +360,22 @@ fn value_error(message: impl Into<String>) -> ExtractError {
             description: "put placeholders in JSON string values rather than keys or typed values"
                 .to_owned(),
         },
+    )
+}
+
+fn value_error_with_source(
+    message: impl Into<String>,
+    source: impl std::error::Error,
+) -> ExtractError {
+    ExtractError::format_error_with_source(
+        DiagnosticCode::ErrExtractJsonValueUnsupported,
+        ExtractionDiagnosticKind::Unsupported,
+        message,
+        RecoveryHintKind::UnsupportedConstruct {
+            description: "put placeholders in JSON string values rather than keys or typed values"
+                .to_owned(),
+        },
+        source,
     )
 }
 
@@ -350,7 +426,6 @@ fn format_path(path: &[JsonPathSegment]) -> String {
             JsonPathSegment::ArrayIndex { index } => {
                 let _ = write!(result, "[{index}]");
             }
-            JsonPathSegment::Element { .. } | JsonPathSegment::Attribute { .. } => {}
         }
     }
     result

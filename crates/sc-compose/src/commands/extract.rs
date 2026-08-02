@@ -4,8 +4,8 @@ use std::path::Path;
 use anyhow::anyhow;
 use sc_composer::{
     Diagnostic, DiagnosticCode, DiagnosticSeverity, ExtractError, ExtractionDiagnostic,
-    ExtractionDiagnosticKind, ExtractionSource, RecoveryHint, RecoveryHintKind,
-    XmlExtractionReport, XmlPathSegment,
+    ExtractionDiagnosticKind, ExtractionPathSegment, ExtractionReport, ExtractionSource,
+    RecoveryHint, RecoveryHintKind, XmlExtractionSource, XmlPathSegment,
 };
 
 use crate::cli::ExtractArgs;
@@ -105,7 +105,10 @@ fn extract_error_message(error: &ExtractError) -> String {
     }
 }
 
-fn emit_json(args: &ExtractArgs, report: &XmlExtractionReport) -> anyhow::Result<()> {
+fn emit_json(
+    args: &ExtractArgs,
+    report: &ExtractionReport<ExtractionPathSegment, ExtractionSource>,
+) -> anyhow::Result<()> {
     let warnings = report
         .diagnostics
         .iter()
@@ -133,7 +136,10 @@ fn emit_json(args: &ExtractArgs, report: &XmlExtractionReport) -> anyhow::Result
     )
 }
 
-fn emit_text(args: &ExtractArgs, report: &XmlExtractionReport) {
+fn emit_text(
+    args: &ExtractArgs,
+    report: &ExtractionReport<ExtractionPathSegment, ExtractionSource>,
+) {
     println!("template: {}", to_forward_slash(&args.template));
     println!("rendered: {}", to_forward_slash(&args.rendered));
     println!("format: xml");
@@ -184,20 +190,20 @@ fn bounded_text(value: &str) -> String {
     }
 }
 
-fn format_path(path: &[XmlPathSegment]) -> String {
+fn format_path(path: &[ExtractionPathSegment]) -> String {
     let mut formatted = String::new();
     for segment in path {
         match segment {
-            XmlPathSegment::Element { name, ordinal } => {
+            ExtractionPathSegment::Xml(XmlPathSegment::Element { name, ordinal }) => {
                 let _ = write!(formatted, "/{name}[{ordinal}]");
             }
-            XmlPathSegment::Attribute { name } => {
+            ExtractionPathSegment::Xml(XmlPathSegment::Attribute { name }) => {
                 let _ = write!(formatted, "@{name}");
             }
-            XmlPathSegment::ObjectKey { key } => {
+            ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ObjectKey { key }) => {
                 let _ = write!(formatted, ".{key}");
             }
-            XmlPathSegment::ArrayIndex { index } => {
+            ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ArrayIndex { index }) => {
                 let _ = write!(formatted, "[{index}]");
             }
         }
@@ -207,14 +213,14 @@ fn format_path(path: &[XmlPathSegment]) -> String {
 
 fn format_source(source: &ExtractionSource) -> &'static str {
     match source {
-        ExtractionSource::Attribute { .. } => "attribute",
-        ExtractionSource::TextNode => "text_node",
-        ExtractionSource::StringValue => "string_value",
+        ExtractionSource::Xml(XmlExtractionSource::Attribute { .. }) => "attribute",
+        ExtractionSource::Xml(XmlExtractionSource::TextNode) => "text_node",
+        ExtractionSource::Json(sc_composer::JsonExtractionSource::StringValue) => "string_value",
     }
 }
 
 fn extraction_occurrence_json(
-    occurrence: &sc_composer::XmlExtractionOccurrence,
+    occurrence: &sc_composer::ExtractionOccurrence<ExtractionPathSegment, ExtractionSource>,
 ) -> serde_json::Value {
     serde_json::json!({
         "variable": occurrence.variable.to_string(),
@@ -224,16 +230,18 @@ fn extraction_occurrence_json(
     })
 }
 
-fn path_segment_json(segment: &XmlPathSegment) -> serde_json::Value {
+fn path_segment_json(segment: &ExtractionPathSegment) -> serde_json::Value {
     match segment {
-        XmlPathSegment::Element { name, ordinal } => {
+        ExtractionPathSegment::Xml(XmlPathSegment::Element { name, ordinal }) => {
             serde_json::json!({"kind": "element", "name": name, "ordinal": ordinal})
         }
-        XmlPathSegment::Attribute { name } => {
+        ExtractionPathSegment::Xml(XmlPathSegment::Attribute { name }) => {
             serde_json::json!({"kind": "attribute", "name": name})
         }
-        XmlPathSegment::ObjectKey { key } => serde_json::json!({"kind": "object_key", "key": key}),
-        XmlPathSegment::ArrayIndex { index } => {
+        ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ObjectKey { key }) => {
+            serde_json::json!({"kind": "object_key", "key": key})
+        }
+        ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ArrayIndex { index }) => {
             serde_json::json!({"kind": "array_index", "index": index})
         }
     }
@@ -241,11 +249,15 @@ fn path_segment_json(segment: &XmlPathSegment) -> serde_json::Value {
 
 fn source_json(source: &ExtractionSource) -> serde_json::Value {
     match source {
-        ExtractionSource::Attribute { name } => {
+        ExtractionSource::Xml(XmlExtractionSource::Attribute { name }) => {
             serde_json::json!({"kind": "attribute", "name": name})
         }
-        ExtractionSource::TextNode => serde_json::json!({"kind": "text_node"}),
-        ExtractionSource::StringValue => serde_json::json!({"kind": "string_value"}),
+        ExtractionSource::Xml(XmlExtractionSource::TextNode) => {
+            serde_json::json!({"kind": "text_node"})
+        }
+        ExtractionSource::Json(sc_composer::JsonExtractionSource::StringValue) => {
+            serde_json::json!({"kind": "string_value"})
+        }
     }
 }
 

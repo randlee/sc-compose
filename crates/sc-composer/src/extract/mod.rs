@@ -17,50 +17,32 @@ mod tests;
 
 pub use error::ExtractError;
 pub use json::{JsonExtractionReport, JsonExtractionSource, JsonPathSegment};
-pub use xml::{XmlExtractionOccurrence, XmlExtractionReport};
+pub use xml::{XmlExtractionOccurrence, XmlExtractionReport, XmlExtractionSource, XmlPathSegment};
 
-/// Structural path segment shared by format-specific report aliases.
+/// Structural path segment used by the format-dispatching entry point.
+///
+/// Format adapters use [`XmlPathSegment`] and [`JsonPathSegment`] internally;
+/// this sum type only bridges their reports through [`extract`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum ExtractionPathSegment {
-    /// An XML element and its zero-based ordinal among same-named siblings.
-    Element {
-        /// Element name.
-        name: String,
-        /// Zero-based sibling ordinal.
-        ordinal: usize,
-    },
-    /// An XML attribute on the preceding element path.
-    Attribute {
-        /// Attribute name.
-        name: String,
-    },
-    /// A JSON object key.
-    ObjectKey {
-        /// Object key.
-        key: String,
-    },
-    /// A zero-based JSON array index.
-    ArrayIndex {
-        /// Array index.
-        index: usize,
-    },
+    /// An XML-specific path segment.
+    Xml(XmlPathSegment),
+    /// A JSON-specific path segment.
+    Json(JsonPathSegment),
 }
 
-/// XML path alias over the shared extraction path representation.
-pub type XmlPathSegment = ExtractionPathSegment;
-
-/// Source evidence shared by format-specific report aliases.
+/// Source evidence used by the format-dispatching entry point.
+///
+/// Format adapters use [`XmlExtractionSource`] and [`JsonExtractionSource`]
+/// internally; this sum type only bridges their reports through [`extract`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum ExtractionSource {
-    /// The scalar was recovered from an XML attribute.
-    Attribute {
-        /// Attribute name.
-        name: String,
-    },
-    /// The scalar was recovered from an XML text node.
-    TextNode,
-    /// The scalar was recovered from a JSON string value.
-    StringValue,
+    /// An XML-specific source descriptor.
+    Xml(XmlExtractionSource),
+    /// A JSON-specific source descriptor.
+    Json(JsonExtractionSource),
 }
 
 /// Output format supported by the initial extraction contract.
@@ -359,7 +341,55 @@ pub fn extract(
 ) -> Result<ExtractionReport<ExtractionPathSegment, ExtractionSource>, ExtractError> {
     request.validate()?;
     match request.format {
-        ExtractFormat::Xml => xml::extract_xml(request),
-        ExtractFormat::Json => json::extract_json(request),
+        ExtractFormat::Xml => xml::extract_xml(request).map(map_xml_report),
+        ExtractFormat::Json => json::extract_json(request).map(map_json_report),
+    }
+}
+
+fn map_xml_report(
+    report: XmlExtractionReport,
+) -> ExtractionReport<ExtractionPathSegment, ExtractionSource> {
+    ExtractionReport {
+        values: report.values,
+        occurrences: report
+            .occurrences
+            .into_iter()
+            .map(|occurrence| ExtractionOccurrence {
+                variable: occurrence.variable,
+                path: occurrence
+                    .path
+                    .into_iter()
+                    .map(ExtractionPathSegment::Xml)
+                    .collect(),
+                source: ExtractionSource::Xml(occurrence.source),
+                rendered_text: occurrence.rendered_text,
+            })
+            .collect(),
+        confidence: report.confidence,
+        diagnostics: report.diagnostics,
+    }
+}
+
+fn map_json_report(
+    report: JsonExtractionReport,
+) -> ExtractionReport<ExtractionPathSegment, ExtractionSource> {
+    ExtractionReport {
+        values: report.values,
+        occurrences: report
+            .occurrences
+            .into_iter()
+            .map(|occurrence| ExtractionOccurrence {
+                variable: occurrence.variable,
+                path: occurrence
+                    .path
+                    .into_iter()
+                    .map(ExtractionPathSegment::Json)
+                    .collect(),
+                source: ExtractionSource::Json(occurrence.source),
+                rendered_text: occurrence.rendered_text,
+            })
+            .collect(),
+        confidence: report.confidence,
+        diagnostics: report.diagnostics,
     }
 }
