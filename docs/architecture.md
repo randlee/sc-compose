@@ -617,6 +617,17 @@ entry in the recovered value map. File I/O, CLI parsing, unknown-template
 identification, loop or branch reconstruction, JSON/Markdown extraction, and
 typed-value inference remain outside this contract.
 
+A dotted expression is object-field access, not a literal variable
+identifier, and Phase G only supports the scalar (flat) variable subset.
+Extraction parses each `{{ expression }}` into a `VariableName` for
+occurrence tracking, but the shared `VariableName` grammar (also used by
+composition/rendering token discovery) permissively accepts `.` as an
+ordinary name character. The extraction call site must reject any parsed
+variable containing `.` as unsupported syntax (`ERR_EXTRACT_UNSUPPORTED`)
+before it reaches the report; Phase G.7 will add this check locally to the
+extraction XML adapter without changing `VariableName`'s shared grammar or
+its use in composition/rendering.
+
 The Python adapter exposes this same in-memory XML report through
 `extract_variables(template, rendered, *, include=None, exclude=None)`. Its
 report and provenance objects are wrappers over the `sc-composer` values, and
