@@ -6,6 +6,7 @@ use crate::CommandError;
 use crate::cli::{Cli, Command, ExamplesSubcommand, TemplatesSubcommand};
 use crate::commands::compose::{run_render, run_resolve, run_validate};
 use crate::commands::examples::{run_examples_list, run_examples_render};
+use crate::commands::extract::run_extract;
 use crate::commands::reports::{
     ReportsArgs, ReportsSubcommand, run_report_catalog, run_report_render_many,
     run_reports_finalize, run_reports_index, run_reports_init, run_reports_publish_manifest,
@@ -34,6 +35,9 @@ pub(crate) fn run(cli: Cli, observer: &mut CliObserver) -> Result<i32, CommandEr
         }),
         Command::Verify(args) => observe_command(observer, "verify", args.json, |observer| {
             run_verify(&args, observer)
+        }),
+        Command::Extract(args) => observe_command(observer, "extract", args.json, |_observer| {
+            run_extract(&args)
         }),
         Command::TemplateInit(args) => {
             observe_command(observer, "template-init", args.json, |_observer| {

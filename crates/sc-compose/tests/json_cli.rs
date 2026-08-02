@@ -1,3 +1,5 @@
+#[path = "json_cli/extract.rs"]
+mod extract;
 #[path = "json_cli/observability.rs"]
 mod observability;
 #[path = "json_cli/render.rs"]
