@@ -62,7 +62,7 @@ fn request_validation_rejects_empty_sources_and_duplicate_filters() {
 }
 
 #[test]
-fn valid_request_fails_closed_until_g2_engine_exists() {
+fn valid_request_extracts_with_g2_engine() {
     let request = ExtractRequest::new(
         "<x>{{ name }}</x>",
         "<x>Ada</x>",
@@ -70,11 +70,8 @@ fn valid_request_fails_closed_until_g2_engine_exists() {
         &[],
         &[],
     );
-    let error = extract(&request).unwrap_err();
-    assert_eq!(
-        error.diagnostic().unwrap().kind,
-        ExtractionDiagnosticKind::Unsupported
-    );
+    let report = extract(&request).unwrap();
+    assert_eq!(report.values[&variable("name")], "Ada");
 }
 
 #[test]
@@ -86,7 +83,7 @@ fn errors_expose_canonical_codes_and_recovery_hints() {
     assert!(!invalid.recovery_hints().is_empty());
 
     let request = ExtractRequest::new(
-        "<x>{{ name }}</x>",
+        "<x>{{ name | upper }}</x>",
         "<x>Ada</x>",
         ExtractFormat::Xml,
         &[],
@@ -166,4 +163,125 @@ fn string_value_semantics_do_not_infer_a_number() {
     )
     .unwrap();
     assert_eq!(report.values[&variable("count")], "42");
+}
+
+fn xml_request<'a>(template: &'a str, rendered: &'a str) -> ExtractRequest<'a> {
+    ExtractRequest::new(template, rendered, ExtractFormat::Xml, &[], &[])
+}
+
+#[test]
+fn xml_extracts_attributes_text_and_static_prefix_suffix() {
+    let report = extract(&xml_request(
+        r#"<doc id="{{ id }}"><name>Hello {{ name }}!</name></doc>"#,
+        r#"<doc id="42"><name>Hello Ada!</name></doc>"#,
+    ))
+    .unwrap();
+
+    assert_eq!(report.values[&variable("id")], "42");
+    assert_eq!(report.values[&variable("name")], "Ada");
+    assert!(report.occurrences.iter().any(|occurrence| {
+        occurrence.variable == variable("id")
+            && occurrence.source
+                == ExtractionSource::Attribute {
+                    name: "id".to_owned(),
+                }
+    }));
+}
+
+#[test]
+fn xml_repeated_siblings_use_distinct_structural_ordinals() {
+    let report = extract(&xml_request(
+        "<root><item>{{ first }}</item><item>{{ second }}</item></root>",
+        "<root><item>A</item><item>B</item></root>",
+    ))
+    .unwrap();
+
+    assert_eq!(report.values[&variable("first")], "A");
+    assert_eq!(report.values[&variable("second")], "B");
+    let item_ordinals = report
+        .occurrences
+        .iter()
+        .map(|occurrence| occurrence.path[1].clone())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        item_ordinals,
+        vec![
+            XmlPathSegment::Element {
+                name: "item".to_owned(),
+                ordinal: 0,
+            },
+            XmlPathSegment::Element {
+                name: "item".to_owned(),
+                ordinal: 1,
+            },
+        ]
+    );
+}
+
+#[test]
+fn xml_decodes_entities_preserves_whitespace_and_supports_empty_values() {
+    let report = extract(&xml_request(
+        "<root><value>  {{ value }}  </value><empty>{{ empty }}</empty></root>",
+        "<root><value>  A &amp; B  </value><empty/></root>",
+    ))
+    .unwrap();
+
+    assert_eq!(report.values[&variable("value")], "A & B");
+    assert_eq!(report.values[&variable("empty")], "");
+}
+
+#[test]
+fn xml_conflicting_same_variable_occurrences_are_ambiguous() {
+    let report = extract(&xml_request(
+        "<root><item>{{ name }}</item><item>{{ name }}</item></root>",
+        "<root><item>Ada</item><item>Grace</item></root>",
+    ))
+    .unwrap();
+
+    assert!(!report.values.contains_key(&variable("name")));
+    assert!(report.diagnostics.iter().any(|diagnostic| {
+        diagnostic.code == DiagnosticCode::ErrExtractAmbiguous
+            && diagnostic.kind == ExtractionDiagnosticKind::Ambiguous
+    }));
+    assert_eq!(report.occurrences.len(), 2);
+}
+
+#[test]
+fn xml_rejects_malformed_and_unsupported_inputs_without_values() {
+    let malformed = extract(&xml_request("<root>{{ value }}</root>", "<root>broken")).unwrap_err();
+    assert_eq!(malformed.code(), DiagnosticCode::ErrExtractMalformed);
+
+    let unsupported = extract(&xml_request(
+        "<root>{% if enabled %}{{ value }}{% endif %}</root>",
+        "<root>value</root>",
+    ))
+    .unwrap_err();
+    assert_eq!(unsupported.code(), DiagnosticCode::ErrExtractUnsupported);
+}
+
+#[test]
+fn xml_reports_missing_occurrences_without_fabricating_values() {
+    let report = extract(&xml_request(
+        "<root><name>{{ name }}</name></root>",
+        "<root></root>",
+    ))
+    .unwrap();
+
+    assert!(report.values.is_empty());
+    assert!(report.confidence.abs() < f64::EPSILON);
+    assert!(report.diagnostics.iter().any(|diagnostic| {
+        diagnostic.code == DiagnosticCode::WarnExtractNotObserved
+            && diagnostic.kind == ExtractionDiagnosticKind::NotObserved
+    }));
+}
+
+#[test]
+fn xml_rejects_ambiguous_namespace_policy() {
+    let error = extract(&xml_request(
+        "<root xmlns:p=\"urn:test\"><p:item>{{ value }}</p:item></root>",
+        "<root xmlns:p=\"urn:test\"><p:item>Ada</p:item></root>",
+    ))
+    .unwrap_err();
+
+    assert_eq!(error.code(), DiagnosticCode::ErrExtractUnsupported);
 }

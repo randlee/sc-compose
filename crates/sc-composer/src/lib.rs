@@ -51,8 +51,9 @@ pub use error::{
 #[doc(inline)]
 pub use extract::{
     ExtractError, ExtractFormat, ExtractRequest, ExtractionDiagnostic, ExtractionDiagnosticKind,
-    ExtractionOccurrence, ExtractionReport, OccurrenceIndex, OccurrencePathSegment,
-    OccurrenceSource, extract,
+    ExtractionOccurrence, ExtractionReport, ExtractionSource, OccurrenceIndex,
+    OccurrencePathSegment, OccurrenceSource, XmlExtractionOccurrence, XmlExtractionReport,
+    XmlPathSegment, extract,
 };
 #[doc(inline)]
 pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};

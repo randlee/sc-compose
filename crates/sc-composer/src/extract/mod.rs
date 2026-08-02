@@ -8,11 +8,13 @@ use crate::diagnostics::DiagnosticCode;
 use crate::types::VariableName;
 
 mod error;
+mod xml;
 
 #[cfg(test)]
 mod tests;
 
 pub use error::ExtractError;
+pub use xml::{ExtractionSource, XmlExtractionOccurrence, XmlExtractionReport, XmlPathSegment};
 
 /// Output format supported by the initial extraction contract.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -257,9 +259,9 @@ pub struct OccurrenceIndex(pub usize);
 /// Invalid requests return [`ExtractError::InvalidRequest`]. Valid requests
 /// return [`ExtractError::UnsupportedSyntax`] until G.2 supplies the XML
 /// matching engine.
-pub fn extract(request: &ExtractRequest<'_>) -> Result<ExtractionReport, ExtractError> {
+pub fn extract(request: &ExtractRequest<'_>) -> Result<xml::XmlExtractionReport, ExtractError> {
     request.validate()?;
-    Err(ExtractError::unsupported(
-        "known-template extraction engine is delivered in Sprint G.2",
-    ))
+    match request.format {
+        ExtractFormat::Xml => xml::extract_xml(request),
+    }
 }

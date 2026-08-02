@@ -105,6 +105,10 @@ pub enum DiagnosticCode {
     ErrExtractUnsupported,
     /// The extraction result has more than one structural interpretation.
     ErrExtractAmbiguous,
+    /// A declared extraction occurrence was not observed in the rendered XML.
+    WarnExtractNotObserved,
+    /// Extraction evidence is insufficient for a high-confidence report.
+    WarnExtractLowConfidence,
 }
 
 impl DiagnosticCode {
@@ -145,6 +149,8 @@ impl DiagnosticCode {
             Self::ErrExtractMalformed => "ERR_EXTRACT_MALFORMED",
             Self::ErrExtractUnsupported => "ERR_EXTRACT_UNSUPPORTED",
             Self::ErrExtractAmbiguous => "ERR_EXTRACT_AMBIGUOUS",
+            Self::WarnExtractNotObserved => "WARN_EXTRACT_NOT_OBSERVED",
+            Self::WarnExtractLowConfidence => "WARN_EXTRACT_LOW_CONFIDENCE",
         }
     }
 }
