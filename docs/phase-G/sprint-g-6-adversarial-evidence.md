@@ -132,7 +132,7 @@ count, requirement/ADR trace, and recommended change.
 - `cargo test --workspace`
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo test -p sc-compose --test repo_boundaries`
-- `cargo test -p sc-compose-native`
+- `cargo test -p sc-compose-py`
 - `python3 -m pytest bindings/python/tests/test_smoke.py`
 - `.claude/skills/adversarial-fuzzing/` quick validation, when available
 - `git diff --check`
