@@ -3,8 +3,10 @@ use std::collections::BTreeMap;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyType};
 use sc_composer::{
-    ComposeResult, Diagnostic, ExpandedTemplate, Frontmatter, FrontmatterInitResult, InitResult,
-    ParsedTemplate, RenderedArtifact, Renderer, ResolveResult, ValidationReport, VerifyResult,
+    ComposeResult, Diagnostic, ExpandedTemplate, ExtractionDiagnostic, ExtractionDiagnosticKind,
+    ExtractionSource, Frontmatter, FrontmatterInitResult, InitResult, ParsedTemplate,
+    RenderedArtifact, Renderer, ResolveResult, ValidationReport, VerifyResult,
+    XmlExtractionOccurrence, XmlExtractionReport, XmlPathSegment,
 };
 
 use crate::convert::{extract_json_context, json_to_py};
@@ -12,6 +14,29 @@ use crate::enums::{diagnostic_severity_str, variable_source_str};
 use crate::errors::{config_error, render_error_to_pyerr};
 use crate::types::PyVariableName;
 use crate::types::policy::python_bool_repr;
+
+fn extraction_diagnostic_kind_str(kind: ExtractionDiagnosticKind) -> &'static str {
+    match kind {
+        ExtractionDiagnosticKind::Unsupported => "unsupported",
+        ExtractionDiagnosticKind::Ambiguous => "ambiguous",
+        ExtractionDiagnosticKind::NotObserved => "not_observed",
+        ExtractionDiagnosticKind::Malformed => "malformed",
+    }
+}
+
+fn extraction_source_kind_str(source: &ExtractionSource) -> &'static str {
+    match source {
+        ExtractionSource::Attribute { .. } => "attribute",
+        ExtractionSource::TextNode => "text_node",
+    }
+}
+
+fn xml_path_segment_kind_str(segment: &XmlPathSegment) -> &'static str {
+    match segment {
+        XmlPathSegment::Element { .. } => "element",
+        XmlPathSegment::Attribute { .. } => "attribute",
+    }
+}
 
 #[pyclass(name = "Diagnostic", skip_from_py_object)]
 #[derive(Clone, Debug)]
@@ -61,6 +86,224 @@ impl PyDiagnostic {
             .iter()
             .map(|path| path.display().to_string())
             .collect()
+    }
+}
+
+#[pyclass(name = "ExtractionDiagnostic", skip_from_py_object)]
+#[derive(Clone, Debug)]
+pub(crate) struct PyExtractionDiagnostic {
+    pub(crate) inner: ExtractionDiagnostic,
+}
+
+#[pymethods]
+impl PyExtractionDiagnostic {
+    #[getter]
+    fn code(&self) -> String {
+        self.inner.code.as_str().to_owned()
+    }
+
+    #[getter]
+    fn kind(&self) -> &'static str {
+        extraction_diagnostic_kind_str(self.inner.kind)
+    }
+
+    #[getter]
+    fn message(&self) -> String {
+        self.inner.message.clone()
+    }
+
+    #[getter]
+    fn occurrence(&self) -> Option<usize> {
+        self.inner.occurrence.map(|index| index.0)
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "ExtractionDiagnostic(code={:?}, kind={:?}, message={:?}, occurrence={:?})",
+            self.inner.code.as_str(),
+            extraction_diagnostic_kind_str(self.inner.kind),
+            self.inner.message,
+            self.inner.occurrence.map(|index| index.0),
+        )
+    }
+}
+
+#[pyclass(name = "ExtractionSource", skip_from_py_object)]
+#[derive(Clone, Debug)]
+pub(crate) struct PyExtractionSource {
+    pub(crate) inner: ExtractionSource,
+}
+
+#[pymethods]
+impl PyExtractionSource {
+    #[getter]
+    fn kind(&self) -> &'static str {
+        extraction_source_kind_str(&self.inner)
+    }
+
+    #[getter]
+    fn name(&self) -> Option<String> {
+        match &self.inner {
+            ExtractionSource::Attribute { name } => Some(name.clone()),
+            ExtractionSource::TextNode => None,
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        match &self.inner {
+            ExtractionSource::Attribute { name } => {
+                format!("ExtractionSource(kind='attribute', name={name:?})")
+            }
+            ExtractionSource::TextNode => "ExtractionSource(kind='text_node')".to_owned(),
+        }
+    }
+}
+
+#[pyclass(name = "XmlPathSegment", skip_from_py_object)]
+#[derive(Clone, Debug)]
+pub(crate) struct PyXmlPathSegment {
+    pub(crate) inner: XmlPathSegment,
+}
+
+#[pymethods]
+impl PyXmlPathSegment {
+    #[getter]
+    fn kind(&self) -> &'static str {
+        xml_path_segment_kind_str(&self.inner)
+    }
+
+    #[getter]
+    fn name(&self) -> String {
+        match &self.inner {
+            XmlPathSegment::Element { name, .. } | XmlPathSegment::Attribute { name } => {
+                name.clone()
+            }
+        }
+    }
+
+    #[getter]
+    fn ordinal(&self) -> Option<usize> {
+        match &self.inner {
+            XmlPathSegment::Element { ordinal, .. } => Some(*ordinal),
+            XmlPathSegment::Attribute { .. } => None,
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        match &self.inner {
+            XmlPathSegment::Element { name, ordinal } => {
+                format!("XmlPathSegment(kind='element', name={name:?}, ordinal={ordinal})")
+            }
+            XmlPathSegment::Attribute { name } => {
+                format!("XmlPathSegment(kind='attribute', name={name:?})")
+            }
+        }
+    }
+}
+
+#[pyclass(name = "ExtractionOccurrence", skip_from_py_object)]
+#[derive(Clone, Debug)]
+pub(crate) struct PyExtractionOccurrence {
+    pub(crate) inner: XmlExtractionOccurrence,
+}
+
+#[pymethods]
+impl PyExtractionOccurrence {
+    #[getter]
+    fn variable(&self) -> String {
+        self.inner.variable.to_string()
+    }
+
+    #[getter]
+    fn path(&self) -> Vec<PyXmlPathSegment> {
+        self.inner
+            .path
+            .iter()
+            .cloned()
+            .map(|inner| PyXmlPathSegment { inner })
+            .collect()
+    }
+
+    #[getter]
+    fn source(&self) -> PyExtractionSource {
+        PyExtractionSource {
+            inner: self.inner.source.clone(),
+        }
+    }
+
+    #[getter]
+    fn rendered_text(&self) -> Option<String> {
+        self.inner.rendered_text.clone()
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "ExtractionOccurrence(variable={:?}, path_len={}, source={}, rendered_text={:?})",
+            self.inner.variable.as_str(),
+            self.inner.path.len(),
+            extraction_source_kind_str(&self.inner.source),
+            self.inner.rendered_text,
+        )
+    }
+}
+
+#[pyclass(name = "ExtractionReport", skip_from_py_object)]
+#[derive(Clone, Debug)]
+pub(crate) struct PyExtractionReport {
+    pub(crate) inner: XmlExtractionReport,
+}
+
+#[pymethods]
+impl PyExtractionReport {
+    #[getter]
+    fn values(&self) -> BTreeMap<String, String> {
+        self.inner
+            .values
+            .iter()
+            .map(|(variable, value)| (variable.to_string(), value.clone()))
+            .collect()
+    }
+
+    #[getter]
+    fn occurrences(&self) -> Vec<PyExtractionOccurrence> {
+        self.inner
+            .occurrences
+            .iter()
+            .cloned()
+            .map(|inner| PyExtractionOccurrence { inner })
+            .collect()
+    }
+
+    #[getter]
+    fn confidence(&self) -> f64 {
+        self.inner.confidence
+    }
+
+    #[getter]
+    fn diagnostics(&self) -> Vec<PyExtractionDiagnostic> {
+        self.inner
+            .diagnostics
+            .iter()
+            .cloned()
+            .map(|inner| PyExtractionDiagnostic { inner })
+            .collect()
+    }
+
+    /// Compatibility alias for callers that refer to non-fatal extraction
+    /// diagnostics as warnings.
+    #[getter]
+    fn warnings(&self) -> Vec<PyExtractionDiagnostic> {
+        self.diagnostics()
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "ExtractionReport(values={}, occurrences={}, confidence={}, diagnostics={})",
+            self.inner.values.len(),
+            self.inner.occurrences.len(),
+            self.inner.confidence,
+            self.inner.diagnostics.len(),
+        )
     }
 }
 

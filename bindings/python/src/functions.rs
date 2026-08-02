@@ -7,10 +7,11 @@ use crate::convert::{
     coerce_path_like, extract_json_context, extract_pass_contexts, json_to_py, py_to_json_value,
 };
 use crate::errors::{
-    compose_error_to_pyerr, config_error, render_error_to_pyerr, validation_error,
+    compose_error_to_pyerr, config_error, extract_error_to_pyerr, render_error_to_pyerr,
+    validation_error,
 };
 use crate::types::{
-    PyComposePolicy, PyComposeRequest, PyComposeResult, PyExpandedTemplate,
+    PyComposePolicy, PyComposeRequest, PyComposeResult, PyExpandedTemplate, PyExtractionReport,
     PyFrontmatterInitResult, PyInitResult, PyLoadedTemplateRequest, PyParsedTemplate,
     PyRenderedArtifact, PyResolveResult, PyValidationReport, PyVariableName, PyVerifyResult,
 };
@@ -79,6 +80,39 @@ fn resolve_profile(request: PyRef<'_, PyComposeRequest>) -> PyResult<PyResolveRe
 fn render_template(template: &str, context: &Bound<'_, PyAny>) -> PyResult<String> {
     sc_composer::render_template(template, extract_json_context(context)?)
         .map_err(render_error_to_pyerr)
+}
+
+/// Recover string values and XML provenance from a known template and render.
+#[pyfunction]
+#[pyo3(signature = (template, rendered, *, include=None, exclude=None))]
+fn extract_variables(
+    template: &str,
+    rendered: &str,
+    include: Option<&Bound<'_, PyAny>>,
+    exclude: Option<&Bound<'_, PyAny>>,
+) -> PyResult<PyExtractionReport> {
+    let include = crate::convert::extract_variable_names(include).map_err(|error| {
+        config_error(
+            format!("invalid extraction include filter: {error}"),
+            Some("ERR_EXTRACT_INVALID_REQUEST"),
+        )
+    })?;
+    let exclude = crate::convert::extract_variable_names(exclude).map_err(|error| {
+        config_error(
+            format!("invalid extraction exclude filter: {error}"),
+            Some("ERR_EXTRACT_INVALID_REQUEST"),
+        )
+    })?;
+    let request = sc_composer::ExtractRequest::new(
+        template,
+        rendered,
+        sc_composer::ExtractFormat::Xml,
+        &include,
+        &exclude,
+    );
+    sc_composer::extract(&request)
+        .map(|inner| PyExtractionReport { inner })
+        .map_err(extract_error_to_pyerr)
 }
 
 #[pyfunction]
@@ -244,6 +278,7 @@ pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(resolve_template_path, module)?)?;
     module.add_function(wrap_pyfunction!(resolve_profile, module)?)?;
     module.add_function(wrap_pyfunction!(render_template, module)?)?;
+    module.add_function(wrap_pyfunction!(extract_variables, module)?)?;
     module.add_function(wrap_pyfunction!(render_loaded_template, module)?)?;
     module.add_function(wrap_pyfunction!(parse_template_document, module)?)?;
     module.add_function(wrap_pyfunction!(render_all, module)?)?;

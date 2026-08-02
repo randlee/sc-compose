@@ -33,6 +33,10 @@ def test_import_surface_exposes_c2_api() -> None:
         "DiagnosticCode",
         "DiagnosticSeverity",
         "ExpandedTemplate",
+        "ExtractionDiagnostic",
+        "ExtractionOccurrence",
+        "ExtractionReport",
+        "ExtractionSource",
         "Frontmatter",
         "FrontmatterInitResult",
         "InitResult",
@@ -58,12 +62,14 @@ def test_import_surface_exposes_c2_api() -> None:
         "VariableName",
         "VariableSource",
         "VerifyResult",
+        "XmlPathSegment",
         "compose",
         "compose_file",
         "discover_all_pass_tokens",
         "discover_tokens",
         "discover_tokens_with_brace_count",
         "expand_includes",
+        "extract_variables",
         "frontmatter_init",
         "init_workspace",
         "input_value_from_yaml",
@@ -81,6 +87,72 @@ def test_import_surface_exposes_c2_api() -> None:
 
     for name in required:
         assert getattr(sc_compose, name) is not None
+
+
+def test_extraction_report_preserves_values_provenance_and_filters() -> None:
+    template = (
+        '<root id="{{ id }}">'
+        "<item>{{ first }}</item>"
+        "<item>{{ second }}</item>"
+        "<name>Hello {{ name }}!</name>"
+        "</root>"
+    )
+    rendered = (
+        '<root id="42">'
+        "<item>one</item>"
+        "<item>two</item>"
+        "<name>Hello Ada!</name>"
+        "</root>"
+    )
+
+    report = sc_compose.extract_variables(template, rendered)
+
+    assert isinstance(report, sc_compose.ExtractionReport)
+    assert report.values == {
+        "first": "one",
+        "id": "42",
+        "name": "Ada",
+        "second": "two",
+    }
+    assert report.confidence > 0.75
+    assert report.diagnostics == []
+    assert report.warnings == []
+
+    by_variable = {occurrence.variable: occurrence for occurrence in report.occurrences}
+    assert by_variable["id"].source.kind == "attribute"
+    assert by_variable["id"].source.name == "id"
+    assert by_variable["id"].rendered_text == "42"
+    assert by_variable["name"].source.kind == "text_node"
+    assert by_variable["name"].path[-1].kind == "element"
+    assert by_variable["name"].path[-1].name == "name"
+
+    first_item = by_variable["first"].path[-1]
+    second_item = by_variable["second"].path[-1]
+    assert first_item.ordinal == 0
+    assert second_item.ordinal == 1
+
+    included = sc_compose.extract_variables(
+        template, rendered, include=["name", "id"]
+    )
+    assert included.values == {"id": "42", "name": "Ada"}
+
+    excluded = sc_compose.extract_variables(template, rendered, exclude=["id"])
+    assert "id" not in excluded.values
+    assert {occurrence.variable for occurrence in excluded.occurrences} == {
+        "first",
+        "name",
+        "second",
+    }
+
+
+def test_extraction_fails_closed_for_unsupported_syntax() -> None:
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(
+            "<root>{% if enabled %}{{ value }}{% endif %}</root>",
+            "<root>yes</root>",
+        )
+
+    assert caught.value.code == "ERR_EXTRACT_UNSUPPORTED"
 
 
 def test_repr_surface_is_informative(tmp_path: Path) -> None:

@@ -2,8 +2,8 @@ use pyo3::PyTypeInfo;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use sc_composer::{
-    ComposeError, ConfigError, DiagnosticCode, IncludeError, RenderError, ResolveError,
-    ValidationError,
+    ComposeError, ConfigError, DiagnosticCode, ExtractError, IncludeError, RenderError,
+    ResolveError, ValidationError,
 };
 
 #[pyclass(extends=PyException, subclass, name = "ScComposeError")]
@@ -169,6 +169,17 @@ pub(crate) fn validation_error(message: String, code: Option<&str>) -> PyErr {
 )]
 pub(crate) fn config_error(message: String, code: Option<&str>) -> PyErr {
     exception_with_attrs::<ScConfigError>(&message, code)
+}
+
+/// Map the pure extraction contract onto the adapter's existing configuration
+/// error family. Extraction is an in-memory input operation, and its stable
+/// Rust diagnostic code remains available through the Python exception.
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "This helper accepts the owned error produced by map_err."
+)]
+pub(crate) fn extract_error_to_pyerr(error: ExtractError) -> PyErr {
+    exception_with_attrs::<ScConfigError>(&error.to_string(), Some(error.code().as_str()))
 }
 
 fn exception_with_attrs<T>(message: &str, code: Option<&str>) -> PyErr

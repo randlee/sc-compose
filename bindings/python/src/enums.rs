@@ -138,6 +138,18 @@ impl PyDiagnosticCode {
     const ERR_CONFIG_PACK_NOT_RENDERABLE: &'static str = "ERR_CONFIG_PACK_NOT_RENDERABLE";
     #[classattr]
     const ERR_CONFIG_TEMPLATE_EXISTS: &'static str = "ERR_CONFIG_TEMPLATE_EXISTS";
+    #[classattr]
+    const ERR_EXTRACT_INVALID_REQUEST: &'static str = "ERR_EXTRACT_INVALID_REQUEST";
+    #[classattr]
+    const ERR_EXTRACT_MALFORMED: &'static str = "ERR_EXTRACT_MALFORMED";
+    #[classattr]
+    const ERR_EXTRACT_UNSUPPORTED: &'static str = "ERR_EXTRACT_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_AMBIGUOUS: &'static str = "ERR_EXTRACT_AMBIGUOUS";
+    #[classattr]
+    const WARN_EXTRACT_NOT_OBSERVED: &'static str = "WARN_EXTRACT_NOT_OBSERVED";
+    #[classattr]
+    const WARN_EXTRACT_LOW_CONFIDENCE: &'static str = "WARN_EXTRACT_LOW_CONFIDENCE";
 }
 
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {

@@ -1,7 +1,7 @@
 ---
 id: G.3
 title: Python Extraction Bindings
-status: planned
+status: complete
 branch: sprint/g-3-python-extraction-bindings
 worktree: ../sc-compose-worktrees/sprint/g-3-python-extraction-bindings
 target: develop
