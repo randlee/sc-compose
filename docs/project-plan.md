@@ -498,6 +498,7 @@ Sprint entries:
 - [Sprint G.4 — CLI Extract Surface](phase-G/sprint-g-4-cli-extract-surface.md)
 - [Sprint G.5 — Corpus and Regression Closure](phase-G/sprint-g-5-corpus-hardening.md)
 - [Sprint G.6 — Adversarial Evidence and Hardening](phase-G/sprint-g-6-adversarial-evidence.md)
+- [Sprint G.7 — Reject Dotted Extraction Expressions](phase-G/sprint-g-7-dotted-expression-rejection.md)
 
 Phase G is intentionally narrower than a general inverse-Jinja feature. It
 starts with known-template XML extraction, gives the first customer a Python
