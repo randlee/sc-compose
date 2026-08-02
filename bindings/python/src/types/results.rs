@@ -184,8 +184,9 @@ impl PyXmlPathSegment {
     #[getter]
     fn name(&self) -> String {
         match &self.inner {
-            ExtractionPathSegment::Xml(XmlPathSegment::Element { name, .. })
-            | ExtractionPathSegment::Xml(XmlPathSegment::Attribute { name }) => name.clone(),
+            ExtractionPathSegment::Xml(
+                XmlPathSegment::Element { name, .. } | XmlPathSegment::Attribute { name },
+            ) => name.clone(),
             ExtractionPathSegment::Json(JsonPathSegment::ObjectKey { key }) => key.clone(),
             ExtractionPathSegment::Json(JsonPathSegment::ArrayIndex { index }) => index.to_string(),
         }
