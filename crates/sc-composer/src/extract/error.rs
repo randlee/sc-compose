@@ -8,6 +8,32 @@ use crate::error::{RecoveryHint, RecoveryHintKind};
 
 use super::{ExtractionDiagnostic, ExtractionDiagnosticKind};
 
+/// Retained display information for a parser or decoder source error.
+///
+/// Extraction errors retain source text rather than the parser's concrete
+/// error type so the public error remains cloneable and comparable while
+/// still implementing the standard [`Error::source`] chain.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExtractErrorSource {
+    message: String,
+}
+
+impl ExtractErrorSource {
+    fn from_error(error: &impl Error) -> Self {
+        Self {
+            message: error.to_string(),
+        }
+    }
+}
+
+impl fmt::Display for ExtractErrorSource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl Error for ExtractErrorSource {}
+
 /// Contract-level failures returned by the extraction API.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ExtractError {
@@ -19,6 +45,8 @@ pub enum ExtractError {
         message: String,
         /// Structured suggestions for correcting the request.
         recovery_hints: Vec<RecoveryHint>,
+        /// Retained underlying parser or decoder source, when present.
+        source: Option<ExtractErrorSource>,
     },
     /// The rendered input is malformed XML.
     MalformedXml {
@@ -26,6 +54,8 @@ pub enum ExtractError {
         diagnostic: ExtractionDiagnostic,
         /// Structured suggestions for correcting the input.
         recovery_hints: Vec<RecoveryHint>,
+        /// Retained underlying parser or decoder source, when present.
+        source: Option<ExtractErrorSource>,
     },
     /// The template uses syntax outside the reversible contract.
     UnsupportedSyntax {
@@ -33,6 +63,8 @@ pub enum ExtractError {
         diagnostic: ExtractionDiagnostic,
         /// Structured suggestions for selecting supported syntax.
         recovery_hints: Vec<RecoveryHint>,
+        /// Retained underlying parser or decoder source, when present.
+        source: Option<ExtractErrorSource>,
     },
     /// The input cannot be mapped to one unambiguous extraction result.
     AmbiguousStructure {
@@ -40,6 +72,8 @@ pub enum ExtractError {
         diagnostic: ExtractionDiagnostic,
         /// Structured suggestions for disambiguating the result.
         recovery_hints: Vec<RecoveryHint>,
+        /// Retained underlying parser or decoder source, when present.
+        source: Option<ExtractErrorSource>,
     },
 }
 
@@ -48,11 +82,25 @@ impl ExtractError {
         Self::InvalidRequest {
             code: DiagnosticCode::ErrExtractInvalidRequest,
             message: message.into(),
-            recovery_hints: vec![review_hint("extraction request")],
+            recovery_hints: vec![review_configuration(
+                "extraction request sources and filters",
+            )],
+            source: None,
         }
     }
 
     pub(crate) fn unsupported(message: impl Into<String>) -> Self {
+        Self::unsupported_with_boxed(message.into(), None)
+    }
+
+    pub(crate) fn unsupported_with_source(message: impl Into<String>, source: impl Error) -> Self {
+        Self::unsupported_with_boxed(
+            message.into(),
+            Some(ExtractErrorSource::from_error(&source)),
+        )
+    }
+
+    fn unsupported_with_boxed(message: String, source: Option<ExtractErrorSource>) -> Self {
         Self::UnsupportedSyntax {
             diagnostic: ExtractionDiagnostic::new(
                 DiagnosticCode::ErrExtractUnsupported,
@@ -60,13 +108,65 @@ impl ExtractError {
                 message,
                 None,
             ),
-            recovery_hints: vec![review_hint("supported XML extraction subset")],
+            recovery_hints: vec![RecoveryHint::new(RecoveryHintKind::UnsupportedConstruct {
+                description:
+                    "replace it with supported XML scalar placeholders and static structure"
+                        .to_owned(),
+            })],
+            source,
+        }
+    }
+
+    pub(crate) fn malformed(message: impl Into<String>) -> Self {
+        Self::malformed_with_boxed(message.into(), None)
+    }
+
+    pub(crate) fn malformed_with_source(message: impl Into<String>, source: impl Error) -> Self {
+        Self::malformed_with_boxed(
+            message.into(),
+            Some(ExtractErrorSource::from_error(&source)),
+        )
+    }
+
+    fn malformed_with_boxed(message: String, source: Option<ExtractErrorSource>) -> Self {
+        Self::MalformedXml {
+            diagnostic: ExtractionDiagnostic::new(
+                DiagnosticCode::ErrExtractMalformed,
+                ExtractionDiagnosticKind::Malformed,
+                message,
+                None,
+            ),
+            recovery_hints: vec![RecoveryHint::new(RecoveryHintKind::InspectInput {
+                description: "inspect the rendered XML for well-formed elements and entities"
+                    .to_owned(),
+            })],
+            source,
         }
     }
 
     pub(crate) fn ambiguous(
         message: impl Into<String>,
         occurrence: Option<super::OccurrenceIndex>,
+    ) -> Self {
+        Self::ambiguous_with_hint(
+            message,
+            occurrence,
+            "select one XML occurrence path or rename the repeated variable",
+        )
+    }
+
+    pub(crate) fn ambiguous_delimiter(message: impl Into<String>) -> Self {
+        Self::ambiguous_with_hint(
+            message,
+            None,
+            "add static XML text between adjacent variable expressions",
+        )
+    }
+
+    fn ambiguous_with_hint(
+        message: impl Into<String>,
+        occurrence: Option<super::OccurrenceIndex>,
+        description: &str,
     ) -> Self {
         Self::AmbiguousStructure {
             diagnostic: ExtractionDiagnostic::new(
@@ -75,7 +175,12 @@ impl ExtractError {
                 message,
                 occurrence,
             ),
-            recovery_hints: vec![review_hint("variable occurrence selection")],
+            recovery_hints: vec![RecoveryHint::new(
+                RecoveryHintKind::DisambiguateOccurrences {
+                    description: description.to_owned(),
+                },
+            )],
+            source: None,
         }
     }
 
@@ -117,7 +222,7 @@ impl ExtractError {
     }
 }
 
-fn review_hint(key: &str) -> RecoveryHint {
+fn review_configuration(key: &str) -> RecoveryHint {
     RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
         key: key.to_owned(),
     })
@@ -132,10 +237,24 @@ impl fmt::Display for ExtractError {
             Self::MalformedXml { diagnostic, .. }
             | Self::UnsupportedSyntax { diagnostic, .. }
             | Self::AmbiguousStructure { diagnostic, .. } => {
-                write!(f, "{}: {}", diagnostic.code.as_str(), diagnostic.message)
+                write!(f, "{}: {}", diagnostic.code.as_str(), diagnostic.message)?;
+                if let Some(source) = self.source() {
+                    write!(f, " (caused by: {source})")?;
+                }
+                Ok(())
             }
         }
     }
 }
 
-impl Error for ExtractError {}
+impl Error for ExtractError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        let source = match self {
+            Self::InvalidRequest { source, .. }
+            | Self::MalformedXml { source, .. }
+            | Self::UnsupportedSyntax { source, .. }
+            | Self::AmbiguousStructure { source, .. } => source.as_ref(),
+        }?;
+        Some(source)
+    }
+}

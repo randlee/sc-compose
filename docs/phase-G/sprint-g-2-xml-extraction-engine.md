@@ -1,7 +1,7 @@
 ---
 id: G.2
 title: Deterministic XML Extraction Engine
-status: planned
+status: complete
 branch: sprint/g-2-xml-extraction-engine
 worktree: ../sc-compose-worktrees/sprint/g-2-xml-extraction-engine
 target: develop

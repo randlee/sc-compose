@@ -118,6 +118,15 @@ fn format_recovery_hint(hint: &RecoveryHint) -> String {
         RecoveryHintKind::ReviewConfiguration { key } => {
             format!("review configuration: {key}")
         }
+        RecoveryHintKind::InspectInput { description } => {
+            format!("inspect input: {description}")
+        }
+        RecoveryHintKind::DisambiguateOccurrences { description } => {
+            format!("disambiguate occurrences: {description}")
+        }
+        RecoveryHintKind::UnsupportedConstruct { description } => {
+            format!("replace unsupported construct: {description}")
+        }
     }
 }
 

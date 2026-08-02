@@ -49,6 +49,8 @@ by `sc-composer` and `sc-compose`.
 | `ERR_EXTRACT_MALFORMED` | `ExtractError` | error | rendered XML cannot be parsed as well-formed input | XML extraction engine |
 | `ERR_EXTRACT_UNSUPPORTED` | `ExtractError` | error | known template uses syntax outside the supported reversible XML subset | XML extraction engine |
 | `ERR_EXTRACT_AMBIGUOUS` | `ExtractError` | error | multiple structural interpretations remain for an extraction result | XML extraction engine and report construction |
+| `WARN_EXTRACT_NOT_OBSERVED` | `ExtractionReport` | warning | a declared scalar occurrence is absent from the rendered XML | XML extraction engine |
+| `WARN_EXTRACT_LOW_CONFIDENCE` | `ExtractionReport` | warning | structural or static evidence is insufficient for a high-confidence report | XML extraction engine |
 
 ## Planned Diagnostic Shape
 

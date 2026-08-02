@@ -8,11 +8,13 @@ use crate::diagnostics::DiagnosticCode;
 use crate::types::VariableName;
 
 mod error;
+mod xml;
 
 #[cfg(test)]
 mod tests;
 
 pub use error::ExtractError;
+pub use xml::{ExtractionSource, XmlExtractionOccurrence, XmlExtractionReport, XmlPathSegment};
 
 /// Output format supported by the initial extraction contract.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -120,12 +122,14 @@ impl<P, S> ExtractionReport<P, S> {
     /// # Errors
     ///
     /// Returns [`ExtractError::InvalidRequest`] for a non-finite or out of
-    /// range confidence, and [`ExtractError::AmbiguousStructure`] when one
-    /// variable occurs at more than one structural position.
+    /// range confidence. Repeated variables remain in `occurrences`, but are
+    /// omitted from `values` and receive an `Ambiguous` diagnostic so callers
+    /// can inspect the evidence without accidentally consuming a guessed value.
+    /// Such a report is also capped below the high-confidence threshold.
     pub fn new(
         values: BTreeMap<VariableName, String>,
         occurrences: Vec<ExtractionOccurrence<P, S>>,
-        confidence: f64,
+        mut confidence: f64,
         diagnostics: Vec<ExtractionDiagnostic>,
     ) -> Result<Self, ExtractError> {
         if !confidence.is_finite() || !(0.0..=1.0).contains(&confidence) {
@@ -134,15 +138,38 @@ impl<P, S> ExtractionReport<P, S> {
             ));
         }
 
+        let mut values = values;
+        let mut diagnostics = diagnostics;
         let mut seen = BTreeSet::new();
+        let mut duplicate_diagnostics = Vec::new();
+        let mut has_duplicates = false;
         for (index, occurrence) in occurrences.iter().enumerate() {
             if !seen.insert(&occurrence.variable) {
-                return Err(ExtractError::ambiguous(
+                has_duplicates = true;
+                values.remove(&occurrence.variable);
+                duplicate_diagnostics.push(ExtractionDiagnostic::new(
+                    DiagnosticCode::ErrExtractAmbiguous,
+                    ExtractionDiagnosticKind::Ambiguous,
                     format!(
                         "variable has multiple structural occurrences: {}",
                         occurrence.variable
                     ),
                     Some(OccurrenceIndex(index)),
+                ));
+            }
+        }
+        diagnostics.extend(duplicate_diagnostics);
+        if has_duplicates {
+            confidence = confidence.min(0.5);
+            if !diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::WarnExtractLowConfidence)
+            {
+                diagnostics.push(ExtractionDiagnostic::new(
+                    DiagnosticCode::WarnExtractLowConfidence,
+                    ExtractionDiagnosticKind::NotObserved,
+                    "duplicate variable occurrences prevent a high-confidence extraction",
+                    None,
                 ));
             }
         }
@@ -254,12 +281,11 @@ pub struct OccurrenceIndex(pub usize);
 ///
 /// # Errors
 ///
-/// Invalid requests return [`ExtractError::InvalidRequest`]. Valid requests
-/// return [`ExtractError::UnsupportedSyntax`] until G.2 supplies the XML
-/// matching engine.
-pub fn extract(request: &ExtractRequest<'_>) -> Result<ExtractionReport, ExtractError> {
+/// Invalid requests return [`ExtractError::InvalidRequest`]. XML requests are
+/// evaluated against the known-template structural extraction contract.
+pub fn extract(request: &ExtractRequest<'_>) -> Result<xml::XmlExtractionReport, ExtractError> {
     request.validate()?;
-    Err(ExtractError::unsupported(
-        "known-template extraction engine is delivered in Sprint G.2",
-    ))
+    match request.format {
+        ExtractFormat::Xml => xml::extract_xml(request),
+    }
 }
