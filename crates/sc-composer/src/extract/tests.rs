@@ -135,22 +135,20 @@ fn confidence_rejects_non_finite_and_out_of_range_values() {
 }
 
 #[test]
-fn same_variable_occurrences_fail_ambiguously_without_map_overwrite() {
-    let result = ExtractionReport::new(
+fn same_variable_occurrences_are_reported_without_map_overwrite() {
+    let report = ExtractionReport::new(
         BTreeMap::new(),
         vec![occurrence("name", "Ada"), occurrence("name", "Grace")],
         1.0,
         Vec::new(),
-    );
-    let error = result.unwrap_err();
+    )
+    .unwrap();
+    assert!(!report.values.contains_key(&variable("name")));
     assert_eq!(
-        error.diagnostic().unwrap().kind,
+        report.diagnostics[0].kind,
         ExtractionDiagnosticKind::Ambiguous
     );
-    assert_eq!(
-        error.diagnostic().unwrap().occurrence,
-        Some(OccurrenceIndex(1))
-    );
+    assert_eq!(report.diagnostics[0].occurrence, Some(OccurrenceIndex(1)));
 }
 
 #[test]
@@ -244,12 +242,20 @@ fn xml_conflicting_same_variable_occurrences_are_ambiguous() {
             && diagnostic.kind == ExtractionDiagnosticKind::Ambiguous
     }));
     assert_eq!(report.occurrences.len(), 2);
+    assert!(report.confidence < 0.75);
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|diagnostic| { diagnostic.code == DiagnosticCode::WarnExtractLowConfidence })
+    );
 }
 
 #[test]
 fn xml_rejects_malformed_and_unsupported_inputs_without_values() {
-    let malformed = extract(&xml_request("<root>{{ value }}</root>", "<root>broken")).unwrap_err();
+    let malformed = extract(&xml_request("<root>{{ value }}</root>", "<root")).unwrap_err();
     assert_eq!(malformed.code(), DiagnosticCode::ErrExtractMalformed);
+    assert!(std::error::Error::source(&malformed).is_some());
 
     let unsupported = extract(&xml_request(
         "<root>{% if enabled %}{{ value }}{% endif %}</root>",

@@ -1,19 +1,19 @@
 //! Deterministic structural matching for the supported XML extraction subset.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::error::Error as StdError;
 
 use quick_xml::Reader;
 use quick_xml::escape::unescape;
 use quick_xml::events::Event;
 
 use crate::diagnostics::DiagnosticCode;
-use crate::error::{RecoveryHint, RecoveryHintKind};
 use crate::frontmatter::parse_template_document;
 use crate::types::VariableName;
 
 use super::{
     ExtractError, ExtractRequest, ExtractionDiagnostic, ExtractionDiagnosticKind,
-    ExtractionOccurrence, ExtractionReport, OccurrenceIndex,
+    ExtractionOccurrence, ExtractionReport,
 };
 
 /// XML-specific source evidence for a recovered scalar.
@@ -87,6 +87,7 @@ struct Capture {
 struct Evidence {
     structural_matches: usize,
     static_matches: usize,
+    expected_static: usize,
 }
 
 /// Extract values from a known XML template and rendered XML document.
@@ -94,7 +95,10 @@ pub(crate) fn extract_xml(
     request: &ExtractRequest<'_>,
 ) -> Result<XmlExtractionReport, ExtractError> {
     let parsed_template = parse_template_document(request.template).map_err(|error| {
-        ExtractError::unsupported(format!("template frontmatter is not supported: {error}"))
+        ExtractError::unsupported_with_source(
+            format!("template frontmatter is not supported: {error}"),
+            error,
+        )
     })?;
     let template_source = parsed_template.body();
     reject_unsupported_template_syntax(template_source)?;
@@ -129,15 +133,11 @@ pub(crate) fn extract_xml(
     let mut values = BTreeMap::new();
     let mut occurrences = Vec::new();
     let mut diagnostics = Vec::new();
-    let mut by_variable: BTreeMap<VariableName, Vec<(usize, Vec<XmlPathSegment>, String)>> =
-        BTreeMap::new();
 
     for capture in selected {
-        let index = occurrences.len();
-        by_variable
+        values
             .entry(capture.variable.clone())
-            .or_default()
-            .push((index, capture.path.clone(), capture.rendered_text.clone()));
+            .or_insert_with(|| capture.rendered_text.clone());
         occurrences.push(XmlExtractionOccurrence {
             variable: capture.variable,
             path: capture.path,
@@ -146,26 +146,22 @@ pub(crate) fn extract_xml(
         });
     }
 
-    for (variable, entries) in by_variable {
-        let first = &entries[0];
-        let has_conflict = entries
-            .iter()
-            .skip(1)
-            .any(|entry| entry.1 != first.1 || entry.2 != first.2);
-        if has_conflict {
-            diagnostics.push(ExtractionDiagnostic::new(
-                DiagnosticCode::ErrExtractAmbiguous,
-                ExtractionDiagnosticKind::Ambiguous,
-                format!("variable has multiple conflicting XML occurrences: {variable}"),
-                entries.get(1).map(|entry| OccurrenceIndex(entry.0)),
-            ));
-        } else {
-            values.insert(variable, first.2.clone());
-        }
+    let has_duplicate_variables = occurrences
+        .iter()
+        .map(|occurrence| &occurrence.variable)
+        .collect::<BTreeSet<_>>()
+        .len()
+        != occurrences.len();
+    let evidence_total = evidence.structural_matches + evidence.expected_static;
+    let matched_evidence = evidence.structural_matches + evidence.static_matches;
+    let mut confidence = if evidence_total == 0 {
+        0.0
+    } else {
+        evidence_confidence(matched_evidence, evidence_total)
+    };
+    if has_duplicate_variables {
+        confidence = confidence.min(0.5);
     }
-
-    let evidence_total = evidence.structural_matches + evidence.static_matches;
-    let confidence = if evidence_total == 0 { 0.0 } else { 1.0 };
     if confidence < 0.75 {
         diagnostics.push(ExtractionDiagnostic::new(
             DiagnosticCode::WarnExtractLowConfidence,
@@ -175,12 +171,13 @@ pub(crate) fn extract_xml(
         ));
     }
 
-    Ok(XmlExtractionReport {
-        values,
-        occurrences,
-        confidence,
-        diagnostics,
-    })
+    XmlExtractionReport::new(values, occurrences, confidence, diagnostics)
+}
+
+fn evidence_confidence(matched: usize, total: usize) -> f64 {
+    let matched = u32::try_from(matched).unwrap_or(u32::MAX);
+    let total = u32::try_from(total).unwrap_or(u32::MAX);
+    f64::from(matched) / f64::from(total)
 }
 
 fn selected_variable(variable: &VariableName, request: &ExtractRequest<'_>) -> bool {
@@ -211,22 +208,29 @@ fn missing_occurrence_report(
     if missing_variables.is_empty() {
         return Ok(None);
     }
-    Ok(Some(XmlExtractionReport {
-        values: BTreeMap::new(),
-        occurrences: Vec::new(),
-        confidence: 0.0,
-        diagnostics: missing_variables
-            .into_iter()
-            .map(|variable| {
-                ExtractionDiagnostic::new(
-                    DiagnosticCode::WarnExtractNotObserved,
-                    ExtractionDiagnosticKind::NotObserved,
-                    format!("variable occurrence was not observed in rendered XML: {variable}"),
-                    None,
-                )
-            })
-            .collect(),
-    }))
+    let mut diagnostics = missing_variables
+        .into_iter()
+        .map(|variable| {
+            ExtractionDiagnostic::new(
+                DiagnosticCode::WarnExtractNotObserved,
+                ExtractionDiagnosticKind::NotObserved,
+                format!("variable occurrence was not observed in rendered XML: {variable}"),
+                None,
+            )
+        })
+        .collect::<Vec<_>>();
+    diagnostics.push(ExtractionDiagnostic::new(
+        DiagnosticCode::WarnExtractLowConfidence,
+        ExtractionDiagnosticKind::NotObserved,
+        "no structural occurrence was observed for the selected variables",
+        None,
+    ));
+    Ok(Some(XmlExtractionReport::new(
+        BTreeMap::new(),
+        Vec::new(),
+        0.0,
+        diagnostics,
+    )?))
 }
 
 struct TemplateOccurrence {
@@ -334,9 +338,9 @@ fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
     let mut root = None;
 
     loop {
-        let event = reader
-            .read_event()
-            .map_err(|error| malformed(format!("XML parser rejected input: {error}")))?;
+        let event = reader.read_event().map_err(|error| {
+            malformed_with_source(format!("XML parser rejected input: {error}"), error)
+        })?;
         match event {
             Event::Start(element) => {
                 let name = decode_name(element.name().as_ref())?;
@@ -377,26 +381,35 @@ fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
                 )?;
             }
             Event::Text(text) => {
-                let raw = std::str::from_utf8(text.as_ref())
-                    .map_err(|error| malformed(format!("invalid XML text: {error}")))?;
+                let raw = std::str::from_utf8(text.as_ref()).map_err(|error| {
+                    malformed_with_source(format!("invalid XML text: {error}"), error)
+                })?;
                 let value = unescape(raw)
-                    .map_err(|error| malformed(format!("invalid XML text entity: {error}")))?
+                    .map_err(|error| {
+                        malformed_with_source(format!("invalid XML text entity: {error}"), error)
+                    })?
                     .into_owned();
                 attach_text(&mut stack, value)?;
             }
             Event::CData(text) => {
                 let value = std::str::from_utf8(text.as_ref())
-                    .map_err(|error| malformed(format!("invalid XML CDATA: {error}")))?
+                    .map_err(|error| {
+                        malformed_with_source(format!("invalid XML CDATA: {error}"), error)
+                    })?
                     .to_owned();
                 attach_text(&mut stack, value)?;
             }
             Event::GeneralRef(reference) => {
                 let name = reference
                     .decode()
-                    .map_err(|error| malformed(format!("invalid XML entity: {error}")))?
+                    .map_err(|error| {
+                        malformed_with_source(format!("invalid XML entity: {error}"), error)
+                    })?
                     .into_owned();
                 let value = unescape(&format!("&{name};"))
-                    .map_err(|error| malformed(format!("invalid XML entity: {error}")))?
+                    .map_err(|error| {
+                        malformed_with_source(format!("invalid XML entity: {error}"), error)
+                    })?
                     .into_owned();
                 attach_text(&mut stack, value)?;
             }
@@ -422,7 +435,9 @@ fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
 fn decode_name(bytes: &[u8]) -> Result<String, ExtractError> {
     std::str::from_utf8(bytes)
         .map(str::to_owned)
-        .map_err(|error| malformed(format!("XML name is not valid UTF-8: {error}")))
+        .map_err(|error| {
+            malformed_with_source(format!("XML name is not valid UTF-8: {error}"), error)
+        })
 }
 
 fn decode_attributes(
@@ -431,15 +446,18 @@ fn decode_attributes(
 ) -> Result<BTreeMap<String, String>, ExtractError> {
     let mut attributes = BTreeMap::new();
     for attribute in element.attributes() {
-        let attribute =
-            attribute.map_err(|error| malformed(format!("invalid XML attribute: {error}")))?;
+        let attribute = attribute.map_err(|error| {
+            malformed_with_source(format!("invalid XML attribute: {error}"), error)
+        })?;
         let name = decode_name(attribute.key.as_ref())?;
         if attributes.contains_key(&name) {
             return Err(malformed(format!("duplicate XML attribute: {name}")));
         }
         let value = attribute
             .decode_and_unescape_value(reader.decoder())
-            .map_err(|error| malformed(format!("invalid XML attribute value: {error}")))?
+            .map_err(|error| {
+                malformed_with_source(format!("invalid XML attribute value: {error}"), error)
+            })?
             .into_owned();
         attributes.insert(name, value);
     }
@@ -673,6 +691,7 @@ fn match_value(
                 "rendered XML static content does not match the known template",
             ));
         }
+        evidence.expected_static += usize::from(!template.is_empty());
         evidence.static_matches += usize::from(!template.is_empty());
         return Ok(());
     }
@@ -682,6 +701,7 @@ fn match_value(
     for (index, segment) in segments.iter().enumerate() {
         match segment {
             TemplateSegment::Static(static_text) => {
+                evidence.expected_static += usize::from(!static_text.is_empty());
                 if !rendered[cursor..].starts_with(static_text) {
                     return Err(ExtractError::unsupported(
                         "rendered XML static content does not match the known template",
@@ -788,15 +808,12 @@ fn parse_value_segments(value: &str) -> Result<Vec<TemplateSegment>, ExtractErro
 }
 
 fn malformed(message: String) -> ExtractError {
-    ExtractError::MalformedXml {
-        diagnostic: ExtractionDiagnostic::new(
-            DiagnosticCode::ErrExtractMalformed,
-            ExtractionDiagnosticKind::Malformed,
-            message,
-            None,
-        ),
-        recovery_hints: vec![RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
-            key: "rendered XML input".to_owned(),
-        })],
-    }
+    ExtractError::malformed(message)
+}
+
+fn malformed_with_source<E>(message: String, source: E) -> ExtractError
+where
+    E: StdError + Send + Sync + 'static,
+{
+    ExtractError::malformed_with_source(message, source)
 }

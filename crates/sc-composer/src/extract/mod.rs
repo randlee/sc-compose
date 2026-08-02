@@ -122,8 +122,9 @@ impl<P, S> ExtractionReport<P, S> {
     /// # Errors
     ///
     /// Returns [`ExtractError::InvalidRequest`] for a non-finite or out of
-    /// range confidence, and [`ExtractError::AmbiguousStructure`] when one
-    /// variable occurs at more than one structural position.
+    /// range confidence. Repeated variables remain in `occurrences`, but are
+    /// omitted from `values` and receive an `Ambiguous` diagnostic so callers
+    /// can inspect the evidence without accidentally consuming a guessed value.
     pub fn new(
         values: BTreeMap<VariableName, String>,
         occurrences: Vec<ExtractionOccurrence<P, S>>,
@@ -136,10 +137,15 @@ impl<P, S> ExtractionReport<P, S> {
             ));
         }
 
+        let mut values = values;
         let mut seen = BTreeSet::new();
+        let mut duplicate_diagnostics = Vec::new();
         for (index, occurrence) in occurrences.iter().enumerate() {
             if !seen.insert(&occurrence.variable) {
-                return Err(ExtractError::ambiguous(
+                values.remove(&occurrence.variable);
+                duplicate_diagnostics.push(ExtractionDiagnostic::new(
+                    DiagnosticCode::ErrExtractAmbiguous,
+                    ExtractionDiagnosticKind::Ambiguous,
                     format!(
                         "variable has multiple structural occurrences: {}",
                         occurrence.variable
@@ -148,6 +154,8 @@ impl<P, S> ExtractionReport<P, S> {
                 ));
             }
         }
+        let mut diagnostics = diagnostics;
+        diagnostics.extend(duplicate_diagnostics);
 
         Ok(Self {
             values,
@@ -256,9 +264,8 @@ pub struct OccurrenceIndex(pub usize);
 ///
 /// # Errors
 ///
-/// Invalid requests return [`ExtractError::InvalidRequest`]. Valid requests
-/// return [`ExtractError::UnsupportedSyntax`] until G.2 supplies the XML
-/// matching engine.
+/// Invalid requests return [`ExtractError::InvalidRequest`]. XML requests are
+/// evaluated against the known-template structural extraction contract.
 pub fn extract(request: &ExtractRequest<'_>) -> Result<xml::XmlExtractionReport, ExtractError> {
     request.validate()?;
     match request.format {

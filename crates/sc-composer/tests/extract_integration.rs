@@ -115,6 +115,28 @@ fn fixture_missing_occurrence_returns_not_observed_warning() {
 }
 
 #[test]
+fn fixture_wrong_structure_returns_unsupported_error() {
+    let error = extract(&request(
+        include_str!("fixtures/reverse-extract/wrong-structure.xml.j2"),
+        include_str!("fixtures/reverse-extract/wrong-structure.xml"),
+    ))
+    .unwrap_err();
+
+    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractUnsupported
+    );
+    assert!(error.recovery_hints().iter().any(|hint| {
+        matches!(
+            &hint.kind,
+            sc_composer::RecoveryHintKind::ReviewConfiguration { key }
+                if key.contains("scalar syntax")
+        )
+    }));
+}
+
+#[test]
 fn fixture_namespace_policy_fails_closed() {
     let error = extract(&request(
         include_str!("fixtures/reverse-extract/namespace.xml.j2"),
