@@ -1,7 +1,7 @@
 ---
 id: G.7
 title: Reject Dotted Extraction Expressions
-status: planned
+status: complete
 branch: sprint/g-7-dotted-expression-rejection
 worktree: ../sc-compose-worktrees/sprint/g-7-dotted-expression-rejection
 target: develop

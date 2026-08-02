@@ -815,6 +815,11 @@ fn parse_value_segments(value: &str) -> Result<Vec<TemplateSegment>, ExtractErro
                 "unsupported XML template expression: {{{{ {expression} }}}}: {error}"
             ))
         })?;
+        if variable.as_str().contains('.') {
+            return Err(ExtractError::unsupported(format!(
+                "dotted XML extraction expression is unsupported: {{{{ {expression} }}}}"
+            )));
+        }
         segments.push(TemplateSegment::Variable(variable));
         cursor = close + 2;
     }
