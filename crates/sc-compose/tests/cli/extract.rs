@@ -151,3 +151,19 @@ fn extract_text_reports_missing_input_paths() {
     assert!(output.stdout.is_empty());
     assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_CONFIG_READ"));
 }
+
+#[test]
+fn extract_text_accepts_xml_declaration_comments_and_static_text_fixture() {
+    let (template, rendered) = fixture("declaration-comments");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("value: \"Ada\""));
+    assert!(stdout.contains("format: xml"));
+}

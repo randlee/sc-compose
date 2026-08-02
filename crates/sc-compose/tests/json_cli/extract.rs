@@ -130,3 +130,24 @@ fn extract_json_maps_expected_failures_without_logs_or_backtraces() {
     let value = parse_stdout(&output);
     assert_first_code(&value, "ERR_EXTRACT_AMBIGUOUS");
 }
+
+#[test]
+fn extract_json_accepts_xml_declaration_comments_and_static_text_fixture() {
+    let (template, rendered) = fixture("declaration-comments");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_eq!(value["payload"]["values"]["value"], "Ada");
+    assert_eq!(
+        value["payload"]["warnings"].as_array().map(Vec::len),
+        Some(0)
+    );
+}

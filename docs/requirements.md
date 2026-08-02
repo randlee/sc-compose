@@ -1020,6 +1020,11 @@ the documented initial format, and accepts `--json` for the standard
 diagnostics envelope. The command must not identify unknown templates, invoke
 the renderer, scan directories, or write output files.
 
+This is a from-scratch product capability informed by prior reverse-extraction
+research. The committed Rust, Python, and CLI corpus is the regression
+evidence for the supported known-template/XML-first contract; the earlier
+research harness is not a product interface or runtime dependency.
+
 ### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 
 ### FR-12: Map/Object Variable Inputs

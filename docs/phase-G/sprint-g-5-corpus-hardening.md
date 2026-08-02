@@ -1,7 +1,7 @@
 ---
 id: G.5
 title: Corpus and Regression Closure
-status: planned
+status: complete
 branch: sprint/g-5-corpus-hardening
 worktree: ../sc-compose-worktrees/sprint/g-5-corpus-hardening
 target: develop

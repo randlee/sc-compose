@@ -55,6 +55,33 @@ fn fixture_decodes_entities_and_keeps_empty_scalar() {
 }
 
 #[test]
+fn fixture_accepts_xml_declaration_comments_and_static_text() {
+    let report = extract(&request(
+        include_str!("fixtures/reverse-extract/declaration-comments.xml.j2"),
+        include_str!("fixtures/reverse-extract/declaration-comments.xml"),
+    ))
+    .unwrap();
+
+    assert_eq!(report.values[&variable("value")], "Ada");
+    assert_eq!(report.diagnostics, Vec::new());
+}
+
+#[test]
+fn fixture_adjacent_variables_fail_closed_as_ambiguous() {
+    let error = extract(&request(
+        include_str!("fixtures/reverse-extract/ambiguous-adjacent.xml.j2"),
+        include_str!("fixtures/reverse-extract/ambiguous-adjacent.xml"),
+    ))
+    .unwrap_err();
+
+    assert!(matches!(error, ExtractError::AmbiguousStructure { .. }));
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractAmbiguous
+    );
+}
+
+#[test]
 fn fixture_conflicting_occurrences_are_reported_without_a_value() {
     let report = extract(&request(
         include_str!("fixtures/reverse-extract/same-variable-conflicting-occurrences.xml.j2"),

@@ -157,14 +157,7 @@ def test_extraction_fails_closed_for_unsupported_syntax() -> None:
     assert caught.value.recovery_hints
 
 
-FIXTURE_ROOT = (
-    Path(__file__).resolve().parents[3]
-    / "crates"
-    / "sc-composer"
-    / "tests"
-    / "fixtures"
-    / "reverse-extract"
-)
+FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "reverse-extract"
 
 
 def fixture_pair(name: str) -> tuple[str, str]:
@@ -240,6 +233,39 @@ def test_extraction_reports_missing_occurrence_warning() -> None:
     assert len(not_observed) == 1
     assert not_observed[0].kind == "not_observed"
     assert "not observed" in not_observed[0].message
+
+
+def test_extraction_corpus_covers_comments_static_text_and_conflicting_occurrences() -> None:
+    template, rendered = fixture_pair("declaration-comments")
+    comments = sc_compose.extract_variables(template, rendered)
+    assert comments.values == {"value": "Ada"}
+    assert comments.diagnostics == []
+
+    template, rendered = fixture_pair("same-variable-conflicting-occurrences")
+    conflicting = sc_compose.extract_variables(template, rendered)
+    assert conflicting.values == {}
+    assert [diagnostic.code for diagnostic in conflicting.diagnostics] == [
+        "WARN_EXTRACT_LOW_CONFIDENCE",
+        "ERR_EXTRACT_AMBIGUOUS",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("fixture", "code"),
+    [
+        ("malformed", "ERR_EXTRACT_MALFORMED"),
+        ("unsupported-filter", "ERR_EXTRACT_UNSUPPORTED"),
+        ("namespace", "ERR_EXTRACT_UNSUPPORTED"),
+        ("ambiguous-adjacent", "ERR_EXTRACT_AMBIGUOUS"),
+    ],
+)
+def test_extraction_corpus_failures_are_stable(fixture: str, code: str) -> None:
+    template, rendered = fixture_pair(fixture)
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(template, rendered)
+
+    assert caught.value.code == code
+    assert caught.value.recovery_hints
 
 
 def test_repr_surface_is_informative(tmp_path: Path) -> None:
