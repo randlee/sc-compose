@@ -144,6 +144,9 @@ pub(crate) struct RawTextCapture {
 }
 
 pub(crate) struct RawTextAmbiguity {
+    /// Byte span relative to `rendered_candidate`, when the ambiguity can be
+    /// localized to the candidate value.
+    pub span: Option<Range<usize>>,
     pub message: String,
 }
 
@@ -153,9 +156,24 @@ pub(crate) struct RawTextMatch {
 }
 
 pub(crate) enum RawTextMatchError {
-    InvalidTemplate { message: String },
-    StaticMismatch { message: String },
-    AmbiguousDelimiter { message: String },
+    /// Request-scoped: the template contract is broken, so no partial
+    /// recovery is possible for this extraction request.
+    InvalidTemplate {
+        span: Option<Range<usize>>,
+        message: String,
+    },
+    /// Occurrence-scoped: the adapter may record the per-occurrence diagnostic
+    /// and continue processing other candidate occurrences.
+    StaticMismatch {
+        span: Option<Range<usize>>,
+        message: String,
+    },
+    /// Occurrence-scoped: the adapter may record the per-occurrence diagnostic
+    /// and continue processing other candidate occurrences.
+    AmbiguousDelimiter {
+        span: Option<Range<usize>>,
+        message: String,
+    },
 }
 
 pub(crate) fn match_raw_text(
@@ -166,7 +184,14 @@ pub(crate) fn match_raw_text(
 Adapters map `RawTextMatchError` to the stable format-neutral extraction
 diagnostics from H.1. A returned `ambiguity` is never silently converted into
 a value; the adapter preserves the signal in the report or returns the
-contracted ambiguity diagnostic.
+contracted ambiguity diagnostic. `InvalidTemplate` is request-scoped: the
+template contract is broken and the adapter must fail the request without
+partial recovery. `StaticMismatch` and `AmbiguousDelimiter` are
+occurrence-scoped: the adapter maps each to its per-occurrence diagnostic and
+may continue processing other candidate occurrences according to H.1's
+malformed-input and ambiguity policy. Every `span` is relative to the
+`rendered_candidate`; it is `None` when the failure cannot be localized to a
+candidate byte range, such as a template-side invalid expression.
 
 The design must name the migration seam explicitly: the first implementation
 sprint extracts the format-neutral operations from the current XML path into a
@@ -202,6 +227,9 @@ future raw-text mode or implement the refactoring itself.
 - The concrete `match_raw_text` signature settles the candidate-slice input,
   capture-span output, ambiguity signal, and diagnostic error boundary before
   H.2 begins.
+- `RawTextMatchError` and `RawTextAmbiguity` carry an optional structured
+  candidate-relative span, and the contract explicitly distinguishes
+  request-scoped template errors from occurrence-scoped match errors.
 - Best-effort/degraded parsing and customer-facing raw-text mode are named
   future-phase non-goals, not Phase-H features or sprint work.
 - The error inventory is complete for every planned JSON/YAML/TOML failure
