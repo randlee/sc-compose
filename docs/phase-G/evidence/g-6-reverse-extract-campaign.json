@@ -1,0 +1,147 @@
+{
+  "schema_version": "adversarial-fuzzing/v1",
+  "phase": "G",
+  "sprint": "G.6",
+  "baseline": "125076545d623921d14bdb62dbdb7214d7e024fd",
+  "campaign": {
+    "campaign_id": "g6-20260802-0001",
+    "target": "complete Phase-G Rust, Python, and CLI extraction surface",
+    "seed": 7001,
+    "limits": {
+      "max_workers": 4,
+      "cases_per_worker": 50,
+      "timeout_seconds": 120
+    },
+    "workers_requested": 4,
+    "workers_completed": 4
+  },
+  "seed": 7001,
+  "limits": {
+    "max_workers": 4,
+    "cases_per_worker": 50,
+    "timeout_seconds": 120
+  },
+  "workers": [
+    {
+      "correlation_id": "shape-probe",
+      "status": "success",
+      "protocol_status": "valid",
+      "cases_run": 24,
+      "case_counts": {"passed": 24, "failed": 0},
+      "finding_ids": [],
+      "tool_versions": {
+        "sc-compose": "1.3.0",
+        "cargo": "1.94.1",
+        "rustc": "1.94.1",
+        "python": "3.11.9",
+        "git": "2.53.0"
+      },
+      "error": null
+    },
+    {
+      "correlation_id": "template-probe",
+      "status": "success_with_candidates",
+      "protocol_status": "valid",
+      "cases_run": 30,
+      "case_counts": {"passed": 29, "failed": 1},
+      "finding_ids": ["FUZZ-template-probe-dotted-expression"],
+      "tool_versions": {
+        "sc_compose": "sc-compose 1.3.0",
+        "cargo": "cargo 1.94.1",
+        "python": "Python 3.11.9"
+      },
+      "error": null
+    },
+    {
+      "correlation_id": "boundary-probe",
+      "status": "pass",
+      "protocol_status": "valid",
+      "cases_run": 50,
+      "case_counts": {"passed": 50, "failed": 0},
+      "finding_ids": [],
+      "tool_versions": {
+        "seed": 7001,
+        "sc-compose": "1.3.0",
+        "cargo": "1.94.1",
+        "git": "2.53.0",
+        "timeout_seconds": 120
+      },
+      "error": null
+    },
+    {
+      "correlation_id": "differential-probe",
+      "status": "success",
+      "protocol_status": "valid",
+      "cases_run": 8,
+      "case_counts": {"passed": 8, "failed": 0},
+      "finding_ids": [],
+      "tool_versions": {
+        "seed": 7001,
+        "cargo": "1.94.1",
+        "rustc": "1.94.1",
+        "python_binding": "sc-compose 1.3.0 built from this worktree",
+        "git_head": "125076545d623921d14bdb62dbdb7214d7e024fd"
+      },
+      "error": null
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": "FUZZ-template-probe-dotted-expression",
+      "worker_correlation_id": "template-probe",
+      "status": "inconclusive",
+      "classification": "inconclusive",
+      "subsystem": "sc-composer.extract.xml",
+      "seed": 7001,
+      "description": "A dotted Jinja-looking expression is accepted as a literal variable identifier during known-template XML extraction. The behavior is deterministic, but the Phase-G contract does not say whether dotted text means a literal variable name or object-path access.",
+      "template": "<root><name>{{ user.name }}</name></root>\n",
+      "rendered_input": "<root><name>Ada</name></root>\n",
+      "minimized_reproduction": {
+        "template": "<root><name>{{ user.name }}</name></root>\n",
+        "rendered_input": "<root><name>Ada</name></root>\n"
+      },
+      "expected_behavior": "The worker oracle expected dotted attribute syntax to be rejected with ERR_EXTRACT_UNSUPPORTED.",
+      "observed_behavior": {
+        "exit_code": 0,
+        "values": {"user.name": "Ada"},
+        "diagnostic": "WARN_EXTRACT_LOW_CONFIDENCE",
+        "deterministic": true
+      },
+      "replay": {
+        "count": 3,
+        "result": "same accepted literal variable and diagnostic on all three replays"
+      },
+      "requirement_adr_trace": "FR-16 and ADR-0011 define a documented scalar XML subset but do not define dotted-expression semantics. VariableName::new explicitly permits dots, while extraction does not promise reconstruction of object attributes.",
+      "requirement_follow_up": "Team lead/product owner should decide whether dotted expressions are literal variable names or object-path expressions, then amend FR-16/ADR-0011 and add a contract test if needed.",
+      "recommended_change": "Clarify the contract before changing implementation. Do not reject or reinterpret dotted names solely from this fuzz result.",
+      "recommended_test": null,
+      "classification_reason": "The worker's unsupported-syntax oracle conflicts with the existing public VariableName validation contract, and no Phase-G requirement resolves the ambiguity. This is not sufficient evidence for a confirmed defect."
+    }
+  ],
+  "promoted_tests": [],
+  "unresolved_candidates": [
+    {
+      "finding_id": "FUZZ-template-probe-dotted-expression",
+      "next_owner": "team-lead/product-owner",
+      "next_action": "Decide literal dotted-variable versus object-path semantics and update FR-16/ADR-0011 plus a contract test if the decision changes behavior.",
+      "blocking": false
+    }
+  ],
+  "summary": {
+    "all_successful": true,
+    "workers_passed": 4,
+    "workers_failed": 0,
+    "confirmed_defects": 0,
+    "intentional_boundaries": 0,
+    "inconclusive": 1,
+    "total_cases": 112,
+    "total_passed": 111,
+    "total_failed": 1,
+    "failed_workers": []
+  },
+  "quick_validation": {
+    "status": "skipped",
+    "command": null,
+    "reason": "No shared quick-validation command or script is present under .claude/skills/adversarial-fuzzing/; the available skill files are SKILL.md, agents/openai.yaml, and references/installation-and-troubleshooting.md."
+  }
+}

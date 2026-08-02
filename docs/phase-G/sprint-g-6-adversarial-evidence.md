@@ -1,7 +1,7 @@
 ---
 id: G.6
 title: Adversarial Evidence and Hardening
-status: planned
+status: complete
 branch: sprint/g-6-adversarial-evidence
 worktree: ../sc-compose-worktrees/sprint/g-6-adversarial-evidence
 target: develop
