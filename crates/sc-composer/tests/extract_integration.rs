@@ -137,6 +137,34 @@ fn fixture_wrong_structure_returns_unsupported_error() {
 }
 
 #[test]
+fn fixture_wrong_tag_structure_returns_unsupported_error() {
+    let error = extract(&request(
+        include_str!("fixtures/reverse-extract/wrong-tag-structure.xml.j2"),
+        include_str!("fixtures/reverse-extract/wrong-tag-structure.xml"),
+    ))
+    .unwrap_err();
+
+    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
+    assert!(
+        error
+            .to_string()
+            .contains("does not match template structure")
+    );
+}
+
+#[test]
+fn fixture_wrong_child_structure_returns_unsupported_error() {
+    let error = extract(&request(
+        include_str!("fixtures/reverse-extract/wrong-child-structure.xml.j2"),
+        include_str!("fixtures/reverse-extract/wrong-child-structure.xml"),
+    ))
+    .unwrap_err();
+
+    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
+    assert!(error.to_string().contains("child structure does not match"));
+}
+
+#[test]
 fn fixture_namespace_policy_fails_closed() {
     let error = extract(&request(
         include_str!("fixtures/reverse-extract/namespace.xml.j2"),

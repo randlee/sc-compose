@@ -125,10 +125,11 @@ impl<P, S> ExtractionReport<P, S> {
     /// range confidence. Repeated variables remain in `occurrences`, but are
     /// omitted from `values` and receive an `Ambiguous` diagnostic so callers
     /// can inspect the evidence without accidentally consuming a guessed value.
+    /// Such a report is also capped below the high-confidence threshold.
     pub fn new(
         values: BTreeMap<VariableName, String>,
         occurrences: Vec<ExtractionOccurrence<P, S>>,
-        confidence: f64,
+        mut confidence: f64,
         diagnostics: Vec<ExtractionDiagnostic>,
     ) -> Result<Self, ExtractError> {
         if !confidence.is_finite() || !(0.0..=1.0).contains(&confidence) {
@@ -138,10 +139,13 @@ impl<P, S> ExtractionReport<P, S> {
         }
 
         let mut values = values;
+        let mut diagnostics = diagnostics;
         let mut seen = BTreeSet::new();
         let mut duplicate_diagnostics = Vec::new();
+        let mut has_duplicates = false;
         for (index, occurrence) in occurrences.iter().enumerate() {
             if !seen.insert(&occurrence.variable) {
+                has_duplicates = true;
                 values.remove(&occurrence.variable);
                 duplicate_diagnostics.push(ExtractionDiagnostic::new(
                     DiagnosticCode::ErrExtractAmbiguous,
@@ -154,8 +158,21 @@ impl<P, S> ExtractionReport<P, S> {
                 ));
             }
         }
-        let mut diagnostics = diagnostics;
         diagnostics.extend(duplicate_diagnostics);
+        if has_duplicates {
+            confidence = confidence.min(0.5);
+            if !diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::WarnExtractLowConfidence)
+            {
+                diagnostics.push(ExtractionDiagnostic::new(
+                    DiagnosticCode::WarnExtractLowConfidence,
+                    ExtractionDiagnosticKind::NotObserved,
+                    "duplicate variable occurrences prevent a high-confidence extraction",
+                    None,
+                ));
+            }
+        }
 
         Ok(Self {
             values,

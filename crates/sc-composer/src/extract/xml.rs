@@ -86,6 +86,7 @@ struct Capture {
 #[derive(Default)]
 struct Evidence {
     structural_matches: usize,
+    expected_structural: usize,
     static_matches: usize,
     expected_static: usize,
 }
@@ -113,6 +114,7 @@ pub(crate) fn extract_xml(
 
     let mut captures = Vec::new();
     let mut evidence = Evidence::default();
+    collect_expected_evidence(&template.root, &mut evidence)?;
     let root_path = vec![XmlPathSegment::Element {
         name: template.root.name.clone(),
         ordinal: 0,
@@ -146,22 +148,13 @@ pub(crate) fn extract_xml(
         });
     }
 
-    let has_duplicate_variables = occurrences
-        .iter()
-        .map(|occurrence| &occurrence.variable)
-        .collect::<BTreeSet<_>>()
-        .len()
-        != occurrences.len();
-    let evidence_total = evidence.structural_matches + evidence.expected_static;
+    let evidence_total = evidence.expected_structural + evidence.expected_static;
     let matched_evidence = evidence.structural_matches + evidence.static_matches;
-    let mut confidence = if evidence_total == 0 {
+    let confidence = if evidence_total == 0 {
         0.0
     } else {
         evidence_confidence(matched_evidence, evidence_total)
     };
-    if has_duplicate_variables {
-        confidence = confidence.min(0.5);
-    }
     if confidence < 0.75 {
         diagnostics.push(ExtractionDiagnostic::new(
             DiagnosticCode::WarnExtractLowConfidence,
@@ -231,6 +224,38 @@ fn missing_occurrence_report(
         0.0,
         diagnostics,
     )?))
+}
+
+fn collect_expected_evidence(
+    element: &XmlElement,
+    evidence: &mut Evidence,
+) -> Result<(), ExtractError> {
+    evidence.expected_structural += 1;
+    for value in element.attributes.values() {
+        collect_expected_value_evidence(value, evidence)?;
+    }
+    for child in &element.children {
+        match child {
+            XmlNode::Element(child) => collect_expected_evidence(child, evidence)?,
+            XmlNode::Text(value) => collect_expected_value_evidence(value, evidence)?,
+        }
+    }
+    Ok(())
+}
+
+fn collect_expected_value_evidence(
+    value: &str,
+    evidence: &mut Evidence,
+) -> Result<(), ExtractError> {
+    for segment in parse_value_segments(value)? {
+        match segment {
+            TemplateSegment::Static(static_text) => {
+                evidence.expected_static += usize::from(!static_text.is_empty());
+            }
+            TemplateSegment::Variable(_) => evidence.expected_structural += 1,
+        }
+    }
+    Ok(())
 }
 
 struct TemplateOccurrence {
@@ -691,9 +716,16 @@ fn match_value(
                 "rendered XML static content does not match the known template",
             ));
         }
-        evidence.expected_static += usize::from(!template.is_empty());
         evidence.static_matches += usize::from(!template.is_empty());
         return Ok(());
+    }
+
+    let structurally_anchored = matches!(source, ExtractionSource::Attribute { .. })
+        || segments.iter().any(|segment| {
+            matches!(segment, TemplateSegment::Static(static_text) if !static_text.is_empty())
+        });
+    if structurally_anchored {
+        evidence.structural_matches += variables.len();
     }
 
     let mut cursor = 0;
@@ -701,7 +733,6 @@ fn match_value(
     for (index, segment) in segments.iter().enumerate() {
         match segment {
             TemplateSegment::Static(static_text) => {
-                evidence.expected_static += usize::from(!static_text.is_empty());
                 if !rendered[cursor..].starts_with(static_text) {
                     return Err(ExtractError::unsupported(
                         "rendered XML static content does not match the known template",

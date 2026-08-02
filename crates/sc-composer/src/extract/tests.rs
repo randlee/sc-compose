@@ -1,5 +1,7 @@
 use serde_json::json;
 
+use crate::error::RecoveryHintKind;
+
 use super::*;
 
 fn variable(name: &str) -> VariableName {
@@ -75,6 +77,15 @@ fn valid_request_extracts_with_g2_engine() {
 }
 
 #[test]
+fn weakly_anchored_variable_has_subunit_confidence() {
+    let report = extract(&xml_request("<x>{{ value }}</x>", "<x>Ada</x>")).unwrap();
+
+    assert_eq!(report.values[&variable("value")], "Ada");
+    assert!(report.confidence > 0.0);
+    assert!(report.confidence < 1.0);
+}
+
+#[test]
 fn errors_expose_canonical_codes_and_recovery_hints() {
     let invalid = ExtractRequest::new("", "<x/>", ExtractFormat::Xml, &[], &[])
         .validate()
@@ -91,7 +102,23 @@ fn errors_expose_canonical_codes_and_recovery_hints() {
     );
     let unsupported = extract(&request).unwrap_err();
     assert_eq!(unsupported.code(), DiagnosticCode::ErrExtractUnsupported);
-    assert!(!unsupported.recovery_hints().is_empty());
+    assert!(matches!(
+        &unsupported.recovery_hints()[0].kind,
+        RecoveryHintKind::ReviewConfiguration { .. }
+    ));
+
+    let malformed = extract(&xml_request("<x>{{ value }}</x>", "<x")).unwrap_err();
+    assert!(matches!(
+        &malformed.recovery_hints()[0].kind,
+        RecoveryHintKind::InspectInput { .. }
+    ));
+
+    let ambiguous =
+        extract(&xml_request("<x>{{ first }}{{ second }}</x>", "<x>AB</x>")).unwrap_err();
+    assert!(matches!(
+        &ambiguous.recovery_hints()[0].kind,
+        RecoveryHintKind::DisambiguateOccurrences { .. }
+    ));
 }
 
 #[test]

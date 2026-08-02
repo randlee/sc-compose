@@ -95,6 +95,16 @@ pub enum RecoveryHintKind {
         /// Configuration key to revisit.
         key: String,
     },
+    /// Suggest inspecting an input payload or source document.
+    InspectInput {
+        /// Description of the input to inspect.
+        description: String,
+    },
+    /// Suggest reviewing occurrence paths and selection rules.
+    DisambiguateOccurrences {
+        /// Description of the ambiguity to resolve.
+        description: String,
+    },
 }
 
 /// Canonical resolver error family.
