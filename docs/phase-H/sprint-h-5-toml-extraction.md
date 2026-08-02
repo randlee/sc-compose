@@ -1,13 +1,13 @@
 ---
-id: H.7
+id: H.5
 title: TOML Extraction
 status: planned
-branch: sprint/h-7-toml-extraction
-worktree: ../sc-compose-worktrees/sprint/h-7-toml-extraction
+branch: sprint/h-5-toml-extraction
+worktree: ../sc-compose-worktrees/sprint/h-5-toml-extraction
 target: develop
 ---
 
-# Sprint H.7 — TOML Extraction
+# Sprint H.5 — TOML Extraction
 
 ## Goal
 
@@ -43,13 +43,13 @@ the scope this sprint claims. If that cannot be done cleanly in one sprint, the
 sprint must be split before implementation begins. No deliverable may be
 silently dropped or partially deferred.
 
-- H7-D1 — Add the approved TOML adapter and format selection without changing
+- H5-D1 — Add the approved TOML adapter and format selection without changing
   XML, JSON, or YAML behavior.
-- H7-D2 — Implement H.1-defined table, array-of-table, key, duplicate-key,
+- H5-D2 — Implement H.1-defined table, array-of-table, key, duplicate-key,
   scalar, null-equivalent, and malformed-input semantics.
-- H7-D3 — Expose identical TOML reports, diagnostics, and filtering through
+- H5-D3 — Expose identical TOML reports, diagnostics, and filtering through
   Rust, Python, text CLI, and JSON CLI surfaces.
-- H7-D4 — Add realistic Cargo/config TOML fixtures and adversarial cases for
+- H5-D4 — Add realistic Cargo/config TOML fixtures and adversarial cases for
   every intentional boundary.
 
 ## Required Work
@@ -58,6 +58,8 @@ silently dropped or partially deferred.
 - Keep TOML rendered values string-based and do not infer source types.
 - Ensure parser errors and duplicate keys remain distinct from unsupported
   template syntax and ambiguity.
+- Delegate placeholder/value matching to the shared raw-text matching core
+  defined by H.1; do not add an independent TOML text matcher.
 
 ## Explicit Code Samples
 
@@ -70,8 +72,9 @@ Both adapters must delegate to the shared `ExtractFormat::Toml` library path.
 
 ## This Sprint Does Not Close
 
-- YAML extraction; that is H.6.
-- XML mixed-content or dirty-prefix behavior.
+- YAML extraction; that is H.4.
+- XML mixed-content extraction, XML dirty-prefix tolerance, or a
+  customer-facing raw-text/best-effort mode; those are future-phase scope.
 - TOML schema inference, typed-value recovery, or unknown-template discovery.
 
 ## Acceptance Criteria

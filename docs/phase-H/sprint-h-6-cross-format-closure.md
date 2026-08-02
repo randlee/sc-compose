@@ -1,13 +1,13 @@
 ---
-id: H.8
+id: H.6
 title: Cross-Format Corpus and Adversarial Closure
 status: planned
-branch: sprint/h-8-cross-format-closure
-worktree: ../sc-compose-worktrees/sprint/h-8-cross-format-closure
+branch: sprint/h-6-cross-format-closure
+worktree: ../sc-compose-worktrees/sprint/h-6-cross-format-closure
 target: develop
 ---
 
-# Sprint H.8 — Cross-Format Corpus and Adversarial Closure
+# Sprint H.6 — Cross-Format Corpus and Adversarial Closure
 
 ## Goal
 
@@ -18,7 +18,7 @@ target: develop
 
 ## Hard Dependencies
 
-- H.2 through H.7 are merged and their individual validation gates pass.
+- H.2 through H.5 are merged and their individual validation gates pass.
 - H.1's accepted contract and all format-specific amendments are available.
 - `.claude/skills/adversarial-fuzzing/` remains the authoritative campaign and
   report protocol.
@@ -43,22 +43,22 @@ the scope this sprint claims. If that cannot be done cleanly in one sprint, the
 sprint must be split before implementation begins. No deliverable may be
 silently dropped or partially deferred.
 
-- H8-D1 — Add one canonical shared corpus covering XML mixed content and dirty
-  prefixes plus JSON, YAML, and TOML success, ambiguity, malformed, filtering,
-  and unsupported cases.
-- H8-D2 — Run the bounded adversarial campaign across Rust, Python, and CLI;
+- H6-D1 — Add one canonical shared corpus covering JSON, YAML, and TOML
+  success, ambiguity, malformed, filtering, and unsupported cases.
+- H6-D2 — Run the bounded adversarial campaign across Rust, Python, and CLI;
   record concrete templates, rendered inputs, expected relations, observed
   results, replays, classifications, and owners.
-- H8-D3 — Promote every confirmed regression into the smallest owning suite;
+- H6-D3 — Promote every confirmed regression into the smallest owning suite;
   record intentional boundaries and inconclusive cases without claiming a
   no-finding result for failed workers.
-- H8-D4 — Update issue #193 closure evidence and final Phase-H documentation;
+- H6-D4 — Update the in-scope issue #193 closure evidence and final Phase-H
+  documentation;
   leave no format or boundary behavior undocumented or silently deferred.
 
 ## Required Work
 
-- Use separate worker tasks for JSON paths, YAML/TOML parser boundaries,
-  mixed-content XML, dirty prefixes, and cross-surface differential behavior.
+- Use separate worker tasks for JSON paths, YAML/TOML parser boundaries, and
+  cross-surface differential behavior.
 - Keep the HTML report and machine-readable evidence aligned with the shared
   adversarial-fuzzing protocol.
 - Verify that all three public surfaces return equivalent report semantics and
@@ -69,8 +69,8 @@ silently dropped or partially deferred.
 ```json
 {
   "phase": "H",
-  "sprint": "H.8",
-  "formats": ["xml", "json", "yaml", "toml"],
+  "sprint": "H.6",
+  "formats": ["json", "yaml", "toml"],
   "findings": [],
   "promoted_tests": [],
   "summary": {"confirmed_defects": 0, "intentional_boundaries": 0, "inconclusive": 0}
@@ -83,6 +83,8 @@ each candidate so a reviewer can judge whether it is a realistic use case.
 ## This Sprint Does Not Close
 
 - New formats or policies not accepted by H.1.
+- XML mixed-content extraction, XML dirty-prefix tolerance, and
+  customer-facing best-effort/degraded or raw-text modes.
 - Unknown-template identification, Jinja execution, loop reconstruction, or
   typed-value inference.
 - A confirmed bug that lacks a requirement/ADR trace or an explicit owner.
@@ -97,7 +99,9 @@ each candidate so a reviewer can judge whether it is a realistic use case.
   inconclusive cases have owners and next actions.
 - Full workspace, binding, CLI, repository-boundary, and report validation
   passes with a clean diff.
-- Issue #193 can be closed from the committed evidence and docs alone.
+- The in-scope portion of issue #193 can be closed from the committed evidence
+  and docs alone; deferred XML and parsing-mode findings remain future-phase
+  work.
 
 ## Required Validation
 

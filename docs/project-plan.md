@@ -335,10 +335,14 @@ Exit gate:
 - FR-16 and Phase H:
   - Phase G establishes the known-template XML-first extraction contract and
     its scalar-only boundaries
-  - Phase H.1 owns the contract amendments for issue #193's JSON, YAML, TOML,
-    XML mixed-content, and dirty-prefix extensions
-  - Phase H.2 through H.8 own implementation, cross-surface parity, corpus,
+  - Phase H.1 owns the contract amendments for issue #193's JSON, YAML, and
+    TOML extensions and plans the migration of format-neutral value matching
+    from the XML path into a shared raw-text core
+  - Phase H.2 through H.6 own implementation, cross-surface parity, corpus,
     and adversarial closure for those accepted amendments
+  - XML mixed-content, XML dirty-prefix tolerance, and customer-facing
+    best-effort/raw-text modes are named future-phase work, not numbered
+    Phase-H sprints
 
 ## Production Readiness Gate
 
@@ -525,18 +529,16 @@ Status:
 Sprint entries:
 
 - [Phase H plan](phase-H/phase-H-plan.md)
-- [Sprint H.1 — Reverse Extraction Extension Contract](phase-H/sprint-h-1-reverse-extraction-extension-contract.md)
+- [Sprint H.1 — Reverse Extraction Format Contract](phase-H/sprint-h-1-reverse-extraction-extension-contract.md)
 - [Sprint H.2 — JSON Extraction Core](phase-H/sprint-h-2-json-extraction-core.md)
 - [Sprint H.3 — JSON Cross-Surface Parity](phase-H/sprint-h-3-json-cross-surface-parity.md)
-- [Sprint H.4 — XML Mixed-Content Extraction](phase-H/sprint-h-4-xml-mixed-content.md)
-- [Sprint H.5 — XML Dirty-Prefix Policy](phase-H/sprint-h-5-xml-dirty-prefix-policy.md)
-- [Sprint H.6 — YAML Extraction](phase-H/sprint-h-6-yaml-extraction.md)
-- [Sprint H.7 — TOML Extraction](phase-H/sprint-h-7-toml-extraction.md)
-- [Sprint H.8 — Cross-Format Corpus and Adversarial Closure](phase-H/sprint-h-8-cross-format-closure.md)
+- [Sprint H.4 — YAML Extraction](phase-H/sprint-h-4-yaml-extraction.md)
+- [Sprint H.5 — TOML Extraction](phase-H/sprint-h-5-toml-extraction.md)
+- [Sprint H.6 — Cross-Format Corpus and Adversarial Closure](phase-H/sprint-h-6-cross-format-closure.md)
 
 Disambiguation: the completed `Phase HTML-Report (H1-H4)` section above uses
 undotted H1/H2/H3/H4 labels for the HTML-Report feature family. The `Phase H`
-section here uses dotted H.1–H.8 identifiers for reverse-extraction extension
+section here uses dotted H.1–H.6 identifiers for reverse-extraction extension
 sprints; these are separate phases and sprint sequences.
 
 ### Standalone Repowise Cleanup: Render Request Module Split

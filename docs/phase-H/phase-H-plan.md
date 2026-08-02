@@ -1,9 +1,9 @@
 ---
 id: phase-H
-title: Reverse Extraction Format and Boundary Extensions
+title: Reverse Extraction Format Extensions
 status: planned
-branch: plan/phase-h-extraction-gaps
-worktree: ../sc-compose-worktrees/plan/phase-h-extraction-gaps
+branch: plan/phase-h-rescope-formats-only
+worktree: ../sc-compose-worktrees/plan/phase-h-rescope-formats-only
 target: develop
 ---
 
@@ -11,11 +11,11 @@ target: develop
 
 ## Objective
 
-Extend the completed Phase-G known-template extraction feature for the real
-customer use cases documented in GitHub issue #193. Phase H retains the pure
-library boundary, string-value report model, structural provenance, and
-fail-closed diagnostics while adding explicitly approved format and input
-policies one at a time.
+Extend the completed Phase-G known-template extraction feature for the three
+missing file formats identified as customer use cases in GitHub issue #193:
+JSON, YAML, and TOML. Phase H retains the pure library boundary, string-value
+report model, structural provenance, and fail-closed diagnostics while adding
+the approved format contracts one at a time.
 
 This plan is documentation-only on the planning branch. No runtime behavior is
 claimed until H.1 accepts the contract amendments and the implementation sprint
@@ -23,54 +23,49 @@ for that behavior passes its own gate.
 
 ## Source and scope
 
-Issue #193 identifies five gaps against the prototype at commit `50de332` and
-the Phase-G baseline at `5a4010b`:
+Issue #193 identifies three missing rendered-output format adapters against the
+prototype at commit `50de332` and the Phase-G baseline at `5a4010b`:
 
-- mixed-content/block-text XML extraction;
-- TOML rendered-output extraction;
-- YAML rendered-output extraction;
 - JSON rendered-output extraction;
-- narrowly specified tolerance for non-XML prefixes before a rendered XML
-  document.
+- YAML rendered-output extraction;
+- TOML rendered-output extraction.
 
-The gap review confirmed all five against live source. The prototype's block
-text and prefix handling are reference behavior, not an authority for
-semantics. The customer-use-case condition for every listed format is treated
-as satisfied; product-level semantics still require the H.1 contract gate.
+The gap review confirmed all three against live source. Product-level
+semantics still require the H.1 contract gate. The issue's XML mixed-content
+and non-XML-prefix observations remain valid findings, but are explicitly
+deferred to a future phase rather than included in Phase H.
 
 ## Sprint sequence
 
-1. [Sprint H.1 — Reverse Extraction Extension Contract](sprint-h-1-reverse-extraction-extension-contract.md)
-   accepts the FR/architecture/ADR amendments and freezes the semantics for
-   every gap before implementation begins.
+1. [Sprint H.1 — Reverse Extraction Format Contract](sprint-h-1-reverse-extraction-extension-contract.md)
+   accepts the FR/architecture/ADR amendments, freezes the JSON/YAML/TOML
+   semantics, and defines the shared raw-text matching core before
+   implementation begins.
 2. [Sprint H.2 — JSON Extraction Core](sprint-h-2-json-extraction-core.md)
    implements the pure Rust known-template JSON adapter and its report/path
    semantics.
 3. [Sprint H.3 — JSON Cross-Surface Parity](sprint-h-3-json-cross-surface-parity.md)
    exposes the approved JSON contract through Python and CLI surfaces and
    proves parity with the library.
-4. [Sprint H.4 — XML Mixed-Content Extraction](sprint-h-4-xml-mixed-content.md)
-   implements the approved block-text/mixed-content representation without
-   weakening structural matching.
-5. [Sprint H.5 — XML Dirty-Prefix Policy](sprint-h-5-xml-dirty-prefix-policy.md)
-   implements the approved preamble policy while preserving malformed and
-   multiple-root rejection.
-6. [Sprint H.6 — YAML Extraction](sprint-h-6-yaml-extraction.md)
+4. [Sprint H.4 — YAML Extraction](sprint-h-4-yaml-extraction.md)
    implements the approved known-template YAML adapter across the product
    surfaces.
-7. [Sprint H.7 — TOML Extraction](sprint-h-7-toml-extraction.md)
+5. [Sprint H.5 — TOML Extraction](sprint-h-5-toml-extraction.md)
    implements the approved known-template TOML adapter across the product
    surfaces.
-8. [Sprint H.8 — Cross-Format Corpus and Adversarial Closure](sprint-h-8-cross-format-closure.md)
-   validates all approved extensions against shared Rust, Python, and CLI
-   fixtures and publishes the evidence needed to close issue #193.
+6. [Sprint H.6 — Cross-Format Corpus and Adversarial Closure](sprint-h-6-cross-format-closure.md)
+   validates JSON, YAML, and TOML against shared Rust, Python, and CLI
+   fixtures and publishes the evidence needed to close the in-scope portion
+   of issue #193.
 
-The numbering is contiguous and intentional. H.2 and H.4 through H.7 may be
-staffed independently after H.1's contract is accepted; H.3 depends on H.2's
-library API, and H.8 depends on all implementation sprints. Each
-implementation sprint owns a complete boundary for its stated format or
-policy. H.8 is the phase closure gate and cannot silently absorb missing
-runtime work from an earlier sprint.
+The numbering is contiguous and intentional. H.2 follows H.1; H.3 depends on
+H.2's library API; H.4 and H.5 may proceed in parallel after H.2/H.3 establish
+the shared format/report patterns; and H.6 depends on all implementation
+sprints. Each implementation sprint owns a complete boundary for its stated
+format. H.6 is the phase closure gate and cannot silently absorb missing
+runtime work from an earlier sprint. Confirmed findings from the H.6 fuzz
+campaign route through the normal fix-assignment loop; Phase H reserves no
+numbered sprint for follow-on fixes.
 
 ## Hard boundaries
 
@@ -81,13 +76,17 @@ runtime work from an earlier sprint.
 - Python remains a wrapper over the shared Rust semantics and must not grow a
   second extractor.
 - Exact-Match Delimiter Scanning, Longest-Match-First Template-Init
-  Replacement, and the Multi-Pass Brace-Count Delimiter Scheme are unchanged.
-- The H.1 amendment must explicitly preserve the Phase-G scalar-only behavior
-  for XML unless H.4's mixed-content contract is accepted as a narrowly
-  defined extension.
+  Replacement, and the Multi-Pass Brace-Count Delimiter Scheme remain the
+  shared raw-text matching foundation. H.1 must define/confirm that JSON,
+  YAML, and TOML value matching delegate to this core rather than implement
+  independent format-specific text matchers.
 - No format may infer original source types from rendered spelling alone.
-- No prefix policy may turn malformed XML, multiple roots, or hostile content
-  into a successful extraction without an explicit diagnostic and test.
+- YAML extraction must skip the template's own frontmatter and operate on the
+  rendered YAML body; it must remain distinct from YAML template-frontmatter
+  and var-file decoding semantics.
+- Best-effort/degraded parsing and a customer-facing cross-format raw-text mode
+  are future-phase features. Phase H must not expose either mode, but its
+  shared matching core must be reusable by them without redesign.
 
 ## Phase exit gate
 
@@ -96,10 +95,8 @@ Phase H is complete only when:
 - H.1's FR/architecture/ADR amendments are accepted and agree;
 - JSON, YAML, and TOML each have a documented known-template contract,
   production Rust support, Python/CLI parity, and corpus coverage;
-- the approved mixed-content XML behavior is deterministic and provenance is
-  reviewable;
-- the approved dirty-prefix policy is narrow, observable, and still fail-closed
-  for malformed XML and multiple roots;
+- H.1 documents the single shared raw-text matching core and each format sprint
+  demonstrably delegates value matching to it;
 - all supported and rejected cases are represented in the cross-surface corpus
   and adversarial evidence;
 - `cargo fmt --all --check`, `cargo test --workspace`,
@@ -113,5 +110,7 @@ Phase H is complete only when:
 - unknown-template identification;
 - loop or conditional reconstruction;
 - typed-value recovery or arbitrary Jinja evaluation;
+- XML mixed-content extraction and XML dirty-prefix tolerance;
+- customer-facing best-effort/degraded parsing and cross-format raw-text mode;
 - automatic template rewriting or input-file generation;
 - ATM runtime dependencies, network access, or a second extraction algorithm.

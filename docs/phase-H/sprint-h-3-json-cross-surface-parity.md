@@ -74,7 +74,9 @@ backward-compatible default.
 
 ## This Sprint Does Not Close
 
-- YAML, TOML, XML mixed-content, or dirty-prefix behavior.
+- YAML or TOML extraction; those are H.4 and H.5.
+- XML mixed-content extraction, XML dirty-prefix tolerance, or a
+  customer-facing raw-text/best-effort mode; those are future-phase scope.
 - A second extraction algorithm in either adapter.
 - Unknown-template identification or typed JSON recovery.
 

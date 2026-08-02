@@ -1035,12 +1035,38 @@ research harness is not a product interface or runtime dependency.
 
 Issue #193 records real customer use cases for JSON, YAML, and TOML rendered
 output, XML mixed-content blocks, and narrowly defined non-XML prefixes before
-rendered XML. These are planned Phase-H extensions, not additional supported
-FR-16 behavior yet. [ADR-0012](adrs/0012-phase-h-reverse-extraction-extension-gates.md)
-and [the Phase-H plan](phase-H/phase-H-plan.md) require each format or input
-policy to receive explicit semantics, diagnostics, and cross-surface tests
-before implementation. Until H.1 is accepted, the Phase-G XML scalar-only
-contract and its fail-closed malformed-input behavior remain authoritative.
+rendered XML. Phase H is deliberately limited to the three file-format
+extensions: JSON, YAML, and TOML. The XML mixed-content and dirty-prefix
+findings remain named future-phase work, not Phase-H sprints.
+[ADR-0012](adrs/0012-phase-h-reverse-extraction-extension-gates.md) and [the
+Phase-H plan](phase-H/phase-H-plan.md) require each in-scope format to receive
+explicit semantics, diagnostics, and cross-surface tests before
+implementation. Until H.1 is accepted, the Phase-G XML scalar-only contract
+and its fail-closed malformed-input behavior remain authoritative.
+
+H.1 must also plan the migration of the format-neutral value-matching logic
+from the current XML extraction path into one shared internal raw-text
+matching core. XML structural traversal and format-specific provenance remain
+owned by XML; delimiter scanning, template-segment parsing, static
+prefix/suffix matching, capture boundaries, and adjacent-variable ambiguity
+handling are shared operations. JSON, YAML, and TOML must delegate to that
+core rather than implement independent text matchers. This is an internal
+architecture seam, not a customer-facing raw-text feature in Phase H.
+
+#### Future-Phase Reverse-Extraction Requirement (not a Phase-H sprint)
+
+A future phase may expose two customer-facing modes built on the shared core:
+
+- a best-effort/degraded-parse mode that recovers supported values from a
+  structurally modified or partially corrupt document without requiring
+  customer-authored regular expressions; and
+- a cross-format raw-text mode that matches template values in arbitrary
+  rendered text, including Markdown, as well as XML/YAML/JSON/TOML documents,
+  without failing solely because a structured document has a structural
+  defect.
+
+Neither mode is designed, exposed, or claimed as supported by Phase H. No
+numbered Phase-H sprint is reserved for these modes.
 
 ### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 
