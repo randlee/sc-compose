@@ -599,6 +599,24 @@ Entrypoint contract:
   user-actionable validation findings; `ComposeError` describes operation
   failure.
 
+### 8.4 Known-Template Reverse Extraction (FR-16, ADR-0011)
+
+The known-template reverse-extraction API is a pure `sc-composer` capability
+defined by [ADR-0011](adrs/0011-reverse-extract-known-template-contract.md).
+It accepts template and rendered text in memory and returns a generic
+`ExtractionReport` containing string values, structural occurrence evidence,
+report-level confidence, and typed diagnostics. The initial format adapter is
+XML; the generic occurrence/path/source types are part of the public contract
+so later XML matching can specialize them without creating a second report
+model.
+
+The API distinguishes invalid requests, malformed XML, unsupported syntax, and
+ambiguous structure with canonical diagnostic codes. A repeated variable at
+distinct structural occurrences is ambiguous and must not silently replace an
+entry in the recovered value map. File I/O, CLI parsing, unknown-template
+identification, loop or branch reconstruction, JSON/Markdown extraction, and
+typed-value inference remain outside this contract.
+
 ## 9. Include and Frontmatter Merge Rules (FR-3)
 
 The include graph is evaluated deterministically.

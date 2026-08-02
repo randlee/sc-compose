@@ -992,6 +992,27 @@ same command payloads as `render` and `render --dry-run`.
 - The CLI shall perform graceful logger shutdown on process exit so pending
   events flush before termination.
 
+### FR-16: Known-Template Reverse Extraction (v1.1, Phase G.1)
+
+This versioned requirement establishes the Phase G reverse-extraction
+contract. The contract is defined by
+[ADR-0011](adrs/0011-reverse-extract-known-template-contract.md).
+
+- Reverse extraction accepts a known template and its rendered output as
+  in-memory text; the core library performs no file I/O, CLI parsing, or
+  network access for this operation.
+- The first supported format is XML, and only a documented reversible XML
+  subset is in scope. Extracted values are rendered strings, not reconstructed
+  typed values.
+- Reports retain structural occurrence paths, source evidence, confidence in
+  the closed range `0.0..=1.0`, and structured diagnostics. Repeated variable
+  occurrences that cannot be identified unambiguously must produce an
+  ambiguity diagnostic rather than silently overwrite a value.
+- The initial feature explicitly does not identify unknown templates or
+  reconstruct loops, branches, JSON, Markdown, or source value types.
+- Invalid requests, malformed XML, unsupported syntax, and ambiguous
+  structure remain distinct error categories with stable diagnostic codes.
+
 ### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 
 ### FR-12: Map/Object Variable Inputs
