@@ -1,7 +1,7 @@
 ---
 id: H.3
 title: JSON Cross-Surface Parity
-status: planned
+status: complete
 branch: sprint/h-3-json-cross-surface-parity
 worktree: ../sc-compose-worktrees/sprint/h-3-json-cross-surface-parity
 target: develop
