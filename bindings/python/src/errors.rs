@@ -309,6 +309,10 @@ pub(crate) fn config_error(message: String, code: Option<&str>) -> PyErr {
     exception_with_attrs::<ScConfigError>(&message, code)
 }
 
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Wrapper helpers often build dynamic String messages before constructing Python exceptions."
+)]
 pub(crate) fn config_error_with_recovery_hints(
     message: String,
     code: Option<&str>,
