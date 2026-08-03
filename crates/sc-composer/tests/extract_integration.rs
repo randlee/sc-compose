@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use sc_composer::{
     ExtractError, ExtractFormat, ExtractRequest, ExtractionDiagnosticKind, ExtractionPathSegment,
     ExtractionSource, JsonPathSegment, TomlPathSegment, VariableName, XmlPathSegment, extract,
@@ -859,8 +861,8 @@ fn toml_occurrence_limit_is_a_durable_boundary() {
     let mut template = String::new();
     let mut rendered = String::new();
     for index in 0..10_001 {
-        template.push_str(&format!("value{index} = \"{{{{ value{index} }}}}\"\n"));
-        rendered.push_str(&format!("value{index} = \"Ada\"\n"));
+        let _ = writeln!(template, "value{index} = \"{{{{ value{index} }}}}\"");
+        let _ = writeln!(rendered, "value{index} = \"Ada\"");
     }
     let error = extract(&toml_request(&template, &rendered)).unwrap_err();
     assert_eq!(
