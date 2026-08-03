@@ -1,7 +1,7 @@
 ---
 id: H.4
 title: YAML Extraction
-status: planned
+status: complete
 branch: sprint/h-4-yaml-extraction
 worktree: ../sc-compose-worktrees/sprint/h-4-yaml-extraction
 target: develop
