@@ -1,7 +1,7 @@
 ---
 id: H.5
 title: TOML Extraction
-status: planned
+status: complete
 branch: sprint/h-5-toml-extraction
 worktree: ../sc-compose-worktrees/sprint/h-5-toml-extraction
 target: develop
