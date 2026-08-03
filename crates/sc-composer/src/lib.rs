@@ -54,7 +54,8 @@ pub use extract::{
     ExtractionOccurrence, ExtractionPathSegment, ExtractionReport, ExtractionSource,
     JsonExtractionReport, JsonExtractionSource, JsonPathSegment, OccurrenceIndex,
     OccurrencePathSegment, OccurrenceSource, XmlExtractionOccurrence, XmlExtractionReport,
-    XmlExtractionSource, XmlPathSegment, extract,
+    XmlExtractionSource, XmlPathSegment, YamlExtractionReport, YamlExtractionSource,
+    YamlPathSegment, extract,
 };
 #[doc(inline)]
 pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};

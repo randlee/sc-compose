@@ -11,6 +11,7 @@ mod error;
 mod json;
 pub(crate) mod raw_text;
 mod xml;
+mod yaml;
 
 #[cfg(test)]
 mod tests;
@@ -18,6 +19,7 @@ mod tests;
 pub use error::ExtractError;
 pub use json::{JsonExtractionReport, JsonExtractionSource, JsonPathSegment};
 pub use xml::{XmlExtractionOccurrence, XmlExtractionReport, XmlExtractionSource, XmlPathSegment};
+pub use yaml::{YamlExtractionReport, YamlExtractionSource, YamlPathSegment};
 
 /// Structural path segment used by the format-dispatching entry point.
 ///
@@ -30,6 +32,8 @@ pub enum ExtractionPathSegment {
     Xml(XmlPathSegment),
     /// A JSON-specific path segment.
     Json(JsonPathSegment),
+    /// A YAML-specific path segment.
+    Yaml(YamlPathSegment),
 }
 
 /// Source evidence used by the format-dispatching entry point.
@@ -43,6 +47,8 @@ pub enum ExtractionSource {
     Xml(XmlExtractionSource),
     /// A JSON-specific source descriptor.
     Json(JsonExtractionSource),
+    /// A YAML-specific source descriptor.
+    Yaml(YamlExtractionSource),
 }
 
 /// Output format supported by the initial extraction contract.
@@ -53,6 +59,8 @@ pub enum ExtractFormat {
     Xml,
     /// Known-template JSON output.
     Json,
+    /// Known-template YAML output.
+    Yaml,
 }
 
 /// In-memory request for known-template extraction.
@@ -343,6 +351,7 @@ pub fn extract(
     match request.format {
         ExtractFormat::Xml => xml::extract_xml(request).map(map_xml_report),
         ExtractFormat::Json => json::extract_json(request).map(map_json_report),
+        ExtractFormat::Yaml => yaml::extract_yaml(request).map(map_yaml_report),
     }
 }
 
@@ -386,6 +395,30 @@ fn map_json_report(
                     .map(ExtractionPathSegment::Json)
                     .collect(),
                 source: ExtractionSource::Json(occurrence.source),
+                rendered_text: occurrence.rendered_text,
+            })
+            .collect(),
+        confidence: report.confidence,
+        diagnostics: report.diagnostics,
+    }
+}
+
+fn map_yaml_report(
+    report: YamlExtractionReport,
+) -> ExtractionReport<ExtractionPathSegment, ExtractionSource> {
+    ExtractionReport {
+        values: report.values,
+        occurrences: report
+            .occurrences
+            .into_iter()
+            .map(|occurrence| ExtractionOccurrence {
+                variable: occurrence.variable,
+                path: occurrence
+                    .path
+                    .into_iter()
+                    .map(ExtractionPathSegment::Yaml)
+                    .collect(),
+                source: ExtractionSource::Yaml(occurrence.source),
                 rendered_text: occurrence.rendered_text,
             })
             .collect(),

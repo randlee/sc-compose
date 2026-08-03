@@ -96,6 +96,14 @@ def test_import_surface_exposes_c2_api() -> None:
         "ERR_EXTRACT_JSON_SHAPE_MISMATCH",
         "ERR_EXTRACT_JSON_VALUE_UNSUPPORTED",
         "ERR_EXTRACT_JSON_AMBIGUOUS",
+        "ERR_EXTRACT_YAML_MALFORMED",
+        "ERR_EXTRACT_YAML_DUPLICATE_KEY",
+        "ERR_EXTRACT_YAML_ALIAS_UNSUPPORTED",
+        "ERR_EXTRACT_YAML_DOCUMENT_STREAM",
+        "ERR_EXTRACT_YAML_PATH_MISSING",
+        "ERR_EXTRACT_YAML_SHAPE_MISMATCH",
+        "ERR_EXTRACT_YAML_VALUE_UNSUPPORTED",
+        "ERR_EXTRACT_YAML_AMBIGUOUS",
     ]:
         assert getattr(sc_compose.DiagnosticCode, code) == code
 
@@ -196,7 +204,7 @@ def test_json_extraction_preserves_boundary_diagnostics() -> None:
     assert malformed.value.recovery_hints
 
     with pytest.raises(sc_compose.ScConfigError) as unsupported:
-        sc_compose.extract_variables("{}", "{}", format="yaml")
+        sc_compose.extract_variables("{}", "{}", format="toml")
     assert unsupported.value.code == "ERR_EXTRACT_FORMAT_UNSUPPORTED"
     assert unsupported.value.recovery_hints
 
@@ -225,6 +233,40 @@ def test_json_extraction_matches_realistic_atm_fixture() -> None:
         ("object_key", "actions", None),
         ("array_index", "0", 0),
         ("object_key", "action", None),
+    ]
+
+
+def test_yaml_extraction_matches_realistic_atm_fixture_and_skips_frontmatter() -> None:
+    template = """---
+required_variables:
+  - message_id
+---
+message_id: "{{ message_id }}"
+actions:
+  - action: "{{ action_name }}"
+    enabled: true
+"""
+    rendered = """message_id: "01KZ2H7JBMK3850VYC637AN4XJ"
+actions:
+  - action: "execute the assigned task"
+    enabled: true
+"""
+    report = sc_compose.extract_variables(template, rendered, format="yaml")
+
+    assert report.values == {
+        "action_name": "execute the assigned task",
+        "message_id": "01KZ2H7JBMK3850VYC637AN4XJ",
+    }
+    action = next(
+        occurrence
+        for occurrence in report.occurrences
+        if occurrence.variable == "action_name"
+    )
+    assert action.source.kind == "string_scalar"
+    assert [(segment.kind, segment.name, segment.ordinal) for segment in action.path] == [
+        ("mapping_key", "actions", None),
+        ("sequence_index", "0", 0),
+        ("mapping_key", "action", None),
     ]
 
 

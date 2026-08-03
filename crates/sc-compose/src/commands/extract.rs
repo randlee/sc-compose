@@ -200,10 +200,12 @@ fn format_path(path: &[ExtractionPathSegment]) -> String {
             ExtractionPathSegment::Xml(XmlPathSegment::Attribute { name }) => {
                 let _ = write!(formatted, "@{name}");
             }
-            ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ObjectKey { key }) => {
+            ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ObjectKey { key })
+            | ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::MappingKey { key }) => {
                 let _ = write!(formatted, ".{key}");
             }
-            ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ArrayIndex { index }) => {
+            ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ArrayIndex { index })
+            | ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::SequenceIndex { index }) => {
                 let _ = write!(formatted, "[{index}]");
             }
         }
@@ -216,6 +218,7 @@ fn format_source(source: &ExtractionSource) -> &'static str {
         ExtractionSource::Xml(XmlExtractionSource::Attribute { .. }) => "attribute",
         ExtractionSource::Xml(XmlExtractionSource::TextNode) => "text_node",
         ExtractionSource::Json(sc_composer::JsonExtractionSource::StringValue) => "string_value",
+        ExtractionSource::Yaml(sc_composer::YamlExtractionSource::StringScalar) => "string_scalar",
     }
 }
 
@@ -244,6 +247,12 @@ fn path_segment_json(segment: &ExtractionPathSegment) -> serde_json::Value {
         ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ArrayIndex { index }) => {
             serde_json::json!({"kind": "array_index", "index": index})
         }
+        ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::MappingKey { key }) => {
+            serde_json::json!({"kind": "mapping_key", "key": key})
+        }
+        ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::SequenceIndex { index }) => {
+            serde_json::json!({"kind": "sequence_index", "index": index})
+        }
     }
 }
 
@@ -257,6 +266,9 @@ fn source_json(source: &ExtractionSource) -> serde_json::Value {
         }
         ExtractionSource::Json(sc_composer::JsonExtractionSource::StringValue) => {
             serde_json::json!({"kind": "string_value"})
+        }
+        ExtractionSource::Yaml(sc_composer::YamlExtractionSource::StringScalar) => {
+            serde_json::json!({"kind": "string_scalar"})
         }
     }
 }
