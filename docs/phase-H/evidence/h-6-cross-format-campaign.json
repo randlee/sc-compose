@@ -1,0 +1,132 @@
+{
+  "schema_version": "adversarial-fuzzing/v1",
+  "campaign": {
+    "campaign_id": "h6-20260803-0001",
+    "worktree_path": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/h-6-cross-format-closure",
+    "target": "full",
+    "baseline_ref": "4474b67",
+    "seed": 193,
+    "max_workers": 4,
+    "cases_per_worker": 15,
+    "per_worker_timeout_s": 120,
+    "promote_regressions": true,
+    "execution_mode": "bounded local probes; Agent Runner is not exposed in this Codex session",
+    "issue": "https://github.com/randlee/sc-compose/issues/193",
+    "corpus_path": "crates/sc-composer/tests/fixtures/reverse-extract/cross-format-corpus.json"
+  },
+  "workers": [
+    {
+      "correlation_id": "shape-probe",
+      "agent_id": "shape-probe",
+      "target": "cross-format-success-and-filtering",
+      "fuzz_run_description": "Cross-format scalar values, empty structure, and include filtering",
+      "status": "success",
+      "classification": "pass",
+      "cases_run": 6,
+      "passed": 6,
+      "failed": 0,
+      "result": "PASS",
+      "command": "cargo test -p sc-composer --test extract_integration cross_format_corpus_preserves_equivalent_contracts -- --nocapture",
+      "finding_ids": [],
+      "error": null,
+      "context_text": "The shared corpus success and filter cases were exercised for JSON, YAML, and TOML. Values and selected occurrences matched the declared oracle.",
+      "test_inputs": [
+        {"case_id": "json-success", "description": "JSON object name placeholder with static boolean", "minimal_template": "{\"name\":\"{{ name }}\",\"enabled\":true}", "minimal_input": "{\"name\":\"Ada\",\"enabled\":true}", "passed": true, "outcome": "PASS: name=Ada"},
+        {"case_id": "yaml-filter", "description": "YAML mapping with one included and one excluded variable", "minimal_template": "kept: \"{{ kept }}\"\\nignored: \"{{ ignored }}\"", "minimal_input": "kept: yes\\nignored: no", "passed": true, "outcome": "PASS: only kept=yes was returned"},
+        {"case_id": "toml-success", "description": "TOML table scalar placeholder with static boolean", "minimal_template": "[package]\\nname = \"{{ name }}\"\\nenabled = true", "minimal_input": "[package]\\nname = \"example\"\\nenabled = true", "passed": true, "outcome": "PASS: name=example"}
+      ],
+      "findings": []
+    },
+    {
+      "correlation_id": "boundary-probe",
+      "agent_id": "boundary-probe",
+      "target": "cli-format-boundaries",
+      "fuzz_run_description": "CLI extraction diagnostics for malformed and unsupported format inputs",
+      "status": "success",
+      "classification": "pass",
+      "cases_run": 11,
+      "passed": 11,
+      "failed": 0,
+      "result": "PASS",
+      "command": "cargo test -p sc-compose --test cli extract_text_supports -- --nocapture && cargo test -p sc-compose --test json_cli extract_json_ -- --nocapture",
+      "finding_ids": [],
+      "error": null,
+      "context_text": "CLI text and JSON-envelope surfaces preserved the expected format labels, paths, filters, and stable negative diagnostics. Malformed and unsupported cases are intentional boundaries, not failures.",
+      "test_inputs": [
+        {"case_id": "cli-json-success", "description": "Text CLI JSON extraction fixture", "minimal_template": "shared json-atm-payload.json.j2 fixture", "minimal_input": "shared rendered JSON fixture", "passed": true, "outcome": "PASS: format=json and JSON paths emitted"},
+        {"case_id": "cli-yaml-success", "description": "Text CLI YAML extraction fixture", "minimal_template": "shared yaml-atm-config.yaml.j2 fixture", "minimal_input": "shared rendered YAML fixture", "passed": true, "outcome": "PASS: frontmatter skipped and YAML paths emitted"},
+        {"case_id": "json-cli-malformed", "description": "JSON envelope for malformed rendered JSON", "minimal_template": "{\"name\":\"{{ name }}\"}", "minimal_input": "{\"name\":\"Ada\"", "passed": true, "outcome": "PASS: ERR_EXTRACT_JSON_MALFORMED"},
+        {"case_id": "json-cli-unsupported", "description": "JSON envelope for unsupported extraction format syntax", "minimal_template": "{\"count\":\"{{ count }}\"}", "minimal_input": "{\"count\":42}", "passed": true, "outcome": "PASS: stable format-specific boundary"}
+      ],
+      "findings": []
+    },
+    {
+      "correlation_id": "differential-probe",
+      "agent_id": "differential-probe",
+      "target": "python-cross-surface-differential",
+      "fuzz_run_description": "Python binding parity for JSON, YAML, TOML reports and diagnostics",
+      "status": "success",
+      "classification": "pass",
+      "cases_run": 15,
+      "passed": 15,
+      "failed": 0,
+      "result": "PASS",
+      "command": "python3 -m pytest bindings/python/tests/test_smoke.py -k extraction",
+      "finding_ids": [],
+      "error": null,
+      "context_text": "The Python extraction suite passed for report values, provenance, filtering, format-specific diagnostics, realistic JSON/YAML/TOML fixtures, and the TOML input-limit guard.",
+      "test_inputs": [
+        {"case_id": "py-json-realistic", "description": "Python binding reads the shared JSON ATM fixture", "minimal_template": "shared json-atm-payload.json.j2 fixture", "minimal_input": "shared rendered JSON fixture", "passed": true, "outcome": "PASS: values and object paths match Rust contract"},
+        {"case_id": "py-yaml-realistic", "description": "Python binding reads the shared YAML ATM fixture", "minimal_template": "shared yaml-atm-config.yaml.j2 fixture", "minimal_input": "shared rendered YAML fixture", "passed": true, "outcome": "PASS: values and sequence paths match Rust contract"},
+        {"case_id": "py-toml-limit", "description": "Python binding rejects an oversized TOML value", "minimal_template": "value = \"{{ value }}\"", "minimal_input": "value = \"x\" repeated 1,048,577 times", "passed": true, "outcome": "PASS: ERR_EXTRACT_INPUT_LIMIT"}
+      ],
+      "findings": []
+    },
+    {
+      "correlation_id": "template-probe",
+      "agent_id": "template-probe",
+      "target": "ambiguity-and-input-limits",
+      "fuzz_run_description": "Repeated variable ambiguity and TOML size/depth/occurrence hardening",
+      "status": "success",
+      "classification": "pass",
+      "cases_run": 4,
+      "passed": 4,
+      "failed": 0,
+      "result": "PASS",
+      "command": "cargo test -p sc-composer --test extract_integration toml_extraction_rejects_oversized_and_deep_inputs -- --nocapture && cargo test -p sc-composer --test extract_integration toml_occurrence_limit_is_a_durable_boundary -- --nocapture",
+      "finding_ids": [],
+      "error": null,
+      "context_text": "The adapter-level ambiguity tests and all three TOML input guards replayed deterministically. No product defect was observed; the tested rejections are documented contract boundaries.",
+      "test_inputs": [
+        {"case_id": "json-ambiguity", "description": "Same variable at two JSON object paths", "minimal_template": "{\"first\":\"{{ value }}\",\"second\":\"{{ value }}\"}", "minimal_input": "{\"first\":\"Ada\",\"second\":\"Ada\"}", "passed": true, "outcome": "PASS: no value fabricated; ambiguity diagnostic retained"},
+        {"case_id": "yaml-ambiguity", "description": "Same variable at two YAML mapping paths", "minimal_template": "first: \"{{ value }}\"\\nsecond: \"{{ value }}\"", "minimal_input": "first: Ada\\nsecond: Ada", "passed": true, "outcome": "PASS: no value fabricated; ambiguity diagnostic retained"},
+        {"case_id": "toml-occurrence-limit", "description": "10,001 TOML placeholders exceed occurrence policy", "minimal_template": "value0..value10000 = \"{{ value }}\"", "minimal_input": "10,001 scalar TOML assignments", "passed": true, "outcome": "PASS: ERR_EXTRACT_INPUT_LIMIT"}
+      ],
+      "findings": []
+    }
+  ],
+  "findings": [],
+  "promoted_tests": [],
+  "preventive_coverage": [
+    {"test_path": "crates/sc-composer/tests/extract_integration.rs", "tests": ["cross_format_corpus_preserves_equivalent_contracts", "toml_occurrence_limit_is_a_durable_boundary"]},
+    {"test_path": "bindings/python/tests/test_smoke.py", "tests": ["test_toml_extraction_rejects_oversized_input_with_stable_code"]}
+  ],
+  "unresolved_candidates": [],
+  "summary": {
+    "all_successful": true,
+    "confirmed_bugs": 0,
+    "intentional_boundaries": 6,
+    "inconclusive": 0,
+    "failed_workers": 0,
+    "workers": 4,
+    "cases_run": 36,
+    "passed": 36,
+    "failed": 0
+  },
+  "issue_193_closure": {
+    "addressed": ["JSON extraction", "YAML extraction", "TOML extraction"],
+    "deferred": ["XML mixed-content blocks", "non-XML dirty-prefix stripping", "template identification"],
+    "deferred_trace": "docs/requirements.md Phase-H Extension Planning Boundary and ADR-0012",
+    "owner_for_deferred": "future Phase-H follow-on planning"
+  }
+}

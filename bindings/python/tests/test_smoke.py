@@ -339,6 +339,16 @@ path = "src/bin/second.rs"
         ("table_key", "name", None),
     ]
 
+
+def test_toml_extraction_rejects_oversized_input_with_stable_code() -> None:
+    large_value = "x" * 1_048_577
+    rendered = f'value = "{large_value}"\n'
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(
+            'value = "{{ value }}"\n', rendered, format="toml"
+        )
+    assert caught.value.code == "ERR_EXTRACT_INPUT_LIMIT"
+
 def fixture_pair(name: str) -> tuple[str, str]:
     template = (FIXTURE_ROOT / f"{name}.xml.j2").read_text(encoding="utf-8")
     rendered = (FIXTURE_ROOT / f"{name}.xml").read_text(encoding="utf-8")

@@ -676,6 +676,13 @@ mode for arbitrary text such as Markdown. Those modes are not exposed or
 implemented in Phase H; the future mode must reuse this seam rather than
 require another matcher rewrite.
 
+H.6 closure evidence is recorded in
+[`docs/phase-H/evidence/h-6-cross-format-campaign.json`](phase-H/evidence/h-6-cross-format-campaign.json)
+and its generated multi-worker report package under `site/reports/`. The
+campaign proves equivalent JSON/YAML/TOML report semantics across library,
+CLI, and Python surfaces, while preserving the explicit Phase-H boundary that
+XML mixed-content and dirty-prefix handling belong to a future phase.
+
 ## 9. Include and Frontmatter Merge Rules (FR-3)
 
 The include graph is evaluated deterministically.
