@@ -628,15 +628,18 @@ before it reaches the report; Phase G.7 will add this check locally to the
 extraction XML adapter without changing `VariableName`'s shared grammar or
 its use in composition/rendering.
 
-The Python adapter exposes this same in-memory XML report through
-`extract_variables(template, rendered, *, include=None, exclude=None)`. Its
-report and provenance objects are wrappers over the `sc-composer` values, and
-fatal extraction conditions use the adapter's existing `ScConfigError` family
-with the canonical extraction code; Python does not implement a second
-extraction algorithm. Here, “reuse the existing exception hierarchy” means
-that all fatal extraction inputs use that established `ScConfigError` class
-and expose the Rust diagnostic code, recovery hints, and diagnostic detail;
-it does not introduce a Python-only extraction exception subclass.
+The Python adapter exposes this in-memory report through
+`extract_variables(template, rendered, *, format="xml", include=None,
+exclude=None)`. XML remains the backward-compatible default, while the
+approved JSON adapter selects the same shared extraction entry point with
+`format="json"`. Its report and provenance objects are wrappers over the
+`sc-composer` values, and fatal extraction conditions use the adapter's
+existing `ScConfigError` family with the canonical extraction code; Python
+does not implement a second extraction algorithm. Here, “reuse the existing
+exception hierarchy” means that all fatal extraction inputs use that
+established `ScConfigError` class and expose the Rust diagnostic code,
+recovery hints, and diagnostic detail; it does not introduce a Python-only
+extraction exception subclass.
 
 This capability is implemented from scratch in the production Rust library,
 Python adapter, and CLI. Prior reverse-extraction research informs the
@@ -648,15 +651,20 @@ Phase-H planning records the three in-scope real-customer format candidates
 from issue #193: JSON, YAML, and TOML adapters. XML mixed-content extraction
 and a narrow non-XML preamble policy remain named future-phase work, not
 Phase-H sprints. [ADR-0012](adrs/0012-phase-h-reverse-extraction-extension-gates.md)
-requires an accepted format-specific path/source contract, malformed-input
-policy, and cross-surface evidence before any adapter is implemented. The
-generic report model may be extended, but the library/CLI/Python ownership
-boundary and Phase-G fail-closed XML behavior remain unchanged until then.
+now records the accepted format-specific path/source contract and malformed-
+input policy. Cross-surface evidence remains required before any adapter is
+delivered. The generic report model may be extended, but the library/CLI/Python
+ownership boundary and Phase-G fail-closed XML behavior remain unchanged while
+H.2 through H.6 implement and validate the accepted extensions.
+The stable cross-format diagnostic inventory is maintained in
+[`docs/error-code-registry.md`](error-code-registry.md) and is part of the H.1
+contract rather than an implementation-time choice.
 
-The format adapters do not own independent placeholder matchers. H.1 must
-define the internal migration seam from the current XML value-matching path to
-a shared raw-text matching core. That core owns delimiter scanning,
-template-segment parsing, static-prefix/suffix matching, capture boundaries,
+The format adapters do not own independent placeholder matchers. The accepted
+H.1 design defines the internal migration seam from the current XML
+value-matching path to a shared raw-text matching core. That core owns
+delimiter scanning, template-segment parsing, static-prefix/suffix matching,
+capture boundaries,
 and adjacent-variable ambiguity handling. Format adapters own structural
 parsing, occurrence paths, provenance, and format-specific diagnostics, then
 delegate candidate-value matching to the shared core. XML remains the first

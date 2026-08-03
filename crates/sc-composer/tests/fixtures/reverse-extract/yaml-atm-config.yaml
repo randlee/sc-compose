@@ -1,0 +1,6 @@
+message_id: "01KZ2H7JBMK3850VYC637AN4XJ"
+sender: "team-lead@sc-compose"
+actions:
+  - action: "execute the assigned task"
+    description: "H.4 YAML extraction"
+    enabled: true

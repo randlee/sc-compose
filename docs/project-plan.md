@@ -523,8 +523,9 @@ recovery as separately planned follow-on work.
 Status:
 
 - planned follow-on work for the real-customer reverse-extraction gaps recorded
-  in issue #193; H.1 is the contract gate and no runtime extension is claimed
-  until its FR/architecture/ADR amendments are accepted
+  in issue #193; H.1's contract is complete and accepted, while no runtime
+  extension is claimed until H.2 through H.6 pass their implementation and
+  closure gates
 
 Sprint entries:
 

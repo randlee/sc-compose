@@ -27,7 +27,7 @@ pub(crate) enum Command {
     Validate(ValidateArgs),
     #[command(about = "Verify deployed output matches a rendered template")]
     Verify(VerifyArgs),
-    #[command(about = "Extract variables from a known XML template and rendered output")]
+    #[command(about = "Extract variables from a known template and rendered output")]
     Extract(ExtractArgs),
     #[command(name = "template-init")]
     #[command(about = "Convert a concrete file into a template using pass-scoped replacements")]
@@ -223,8 +223,15 @@ pub(crate) struct VerifyArgs {
 pub(crate) struct ExtractArgs {
     #[arg(value_name = "TEMPLATE", help = "Known template file (required)")]
     pub(crate) template: PathBuf,
-    #[arg(value_name = "RENDERED", help = "Rendered XML output file (required)")]
+    #[arg(value_name = "RENDERED", help = "Rendered output file (required)")]
     pub(crate) rendered: PathBuf,
+    #[arg(
+        long,
+        value_enum,
+        default_value = "xml",
+        help = "Rendered format: xml, json, or yaml"
+    )]
+    pub(crate) format: ExtractFormatArg,
     #[arg(
         long,
         value_name = "NAME",
@@ -244,6 +251,33 @@ pub(crate) struct ExtractArgs {
         help = "Emit machine-readable JSON output (format is XML by default)"
     )]
     pub(crate) json: bool,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub(crate) enum ExtractFormatArg {
+    Xml,
+    Json,
+    Yaml,
+}
+
+impl ExtractFormatArg {
+    pub(crate) const fn as_str(self) -> &'static str {
+        match self {
+            Self::Xml => "xml",
+            Self::Json => "json",
+            Self::Yaml => "yaml",
+        }
+    }
+}
+
+impl From<ExtractFormatArg> for sc_composer::ExtractFormat {
+    fn from(format: ExtractFormatArg) -> Self {
+        match format {
+            ExtractFormatArg::Xml => Self::Xml,
+            ExtractFormatArg::Json => Self::Json,
+            ExtractFormatArg::Yaml => Self::Yaml,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Args)]

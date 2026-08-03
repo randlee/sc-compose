@@ -1,5 +1,5 @@
 from os import PathLike
-from typing import Any
+from typing import Any, Literal
 
 
 class ScComposeError(Exception):
@@ -92,6 +92,21 @@ class DiagnosticCode:
     ERR_EXTRACT_MALFORMED: str
     ERR_EXTRACT_UNSUPPORTED: str
     ERR_EXTRACT_AMBIGUOUS: str
+    ERR_EXTRACT_FORMAT_UNSUPPORTED: str
+    ERR_EXTRACT_JSON_MALFORMED: str
+    ERR_EXTRACT_JSON_DUPLICATE_KEY: str
+    ERR_EXTRACT_JSON_PATH_MISSING: str
+    ERR_EXTRACT_JSON_SHAPE_MISMATCH: str
+    ERR_EXTRACT_JSON_VALUE_UNSUPPORTED: str
+    ERR_EXTRACT_JSON_AMBIGUOUS: str
+    ERR_EXTRACT_YAML_MALFORMED: str
+    ERR_EXTRACT_YAML_DUPLICATE_KEY: str
+    ERR_EXTRACT_YAML_ALIAS_UNSUPPORTED: str
+    ERR_EXTRACT_YAML_DOCUMENT_STREAM: str
+    ERR_EXTRACT_YAML_PATH_MISSING: str
+    ERR_EXTRACT_YAML_SHAPE_MISMATCH: str
+    ERR_EXTRACT_YAML_VALUE_UNSUPPORTED: str
+    ERR_EXTRACT_YAML_AMBIGUOUS: str
     WARN_EXTRACT_NOT_OBSERVED: str
     WARN_EXTRACT_LOW_CONFIDENCE: str
 
@@ -228,7 +243,7 @@ class ExtractionSource:
     def name(self) -> str | None: ...
 
 
-class XmlPathSegment:
+class ExtractionPathSegment:
     @property
     def kind(self) -> str: ...
     @property
@@ -241,7 +256,7 @@ class ExtractionOccurrence:
     @property
     def variable(self) -> str: ...
     @property
-    def path(self) -> list[XmlPathSegment]: ...
+    def path(self) -> list[ExtractionPathSegment]: ...
     @property
     def source(self) -> ExtractionSource: ...
     @property
@@ -422,9 +437,13 @@ def extract_variables(
     template: str,
     rendered: str,
     *,
+    format: Literal["xml", "json", "yaml"] = "xml",
     include: list[str] | None = None,
     exclude: list[str] | None = None,
 ) -> ExtractionReport: ...
+
+
+XmlPathSegment = ExtractionPathSegment
 def render_loaded_template(request: LoadedTemplateRequest) -> RenderedArtifact: ...
 def parse_template_document(input: str) -> ParsedTemplate: ...
 # Expects fully resolved per-pass contexts and applies each pass header's
