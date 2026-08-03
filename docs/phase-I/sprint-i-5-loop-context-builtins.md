@@ -3,8 +3,8 @@ id: sprint-I.5
 title: Jinja Loop-Context Built-ins
 phase: I
 status: planned
-branch: fix/phase-i-5-loop-context-builtins
-worktree: ../sc-compose-worktrees/fix/phase-i-5-loop-context-builtins
+branch: sprint/i-5-loop-context-builtins
+worktree: ../sc-compose-worktrees/sprint/i-5-loop-context-builtins
 target: develop
 ---
 
@@ -53,15 +53,9 @@ Jinja's loop context without turning arbitrary names into implicit globals.
 
 ## Required validation
 
-```text
-cargo fmt --all --check
-cargo test --workspace
-cargo clippy --all-targets --all-features -- -D warnings
-pytest -q bindings/python/tests
-git diff --check
-```
-
-The focused evidence must include both pass and fail examples with the full
+Use the [authoritative Phase I validation
+checklist](phase-I-plan.md#authoritative-validation-checklist). The focused
+evidence must include both pass and fail examples with the full
 template text, frontmatter declarations, policy, and resulting diagnostics.
 
 ## Removal path

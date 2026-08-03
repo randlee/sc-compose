@@ -3,8 +3,8 @@ id: sprint-I.4
 title: XML Dirty-Prefix Normalization
 phase: I
 status: planned
-branch: feature/phase-i-4-xml-dirty-prefix
-worktree: ../sc-compose-worktrees/feature/phase-i-4-xml-dirty-prefix
+branch: sprint/i-4-xml-dirty-prefix
+worktree: ../sc-compose-worktrees/sprint/i-4-xml-dirty-prefix
 target: develop
 ---
 
@@ -34,8 +34,9 @@ fail-closed malformed-input boundary.
   I.1 and retain line/offset information needed by diagnostics.
 - Emit the approved warning or recovery metadata whenever bytes are removed;
   do not make a successful repair invisible.
-- Reject a malformed suffix, multiple roots, a second document, an ambiguous
-  markup prefix, or a prefix that would require general repair. The ordinary
+- Reject a malformed suffix, multiple roots, a second document, an unmatched
+  or truncated declaration/comment/processing instruction, an ambiguous
+  markup prefix, or XML content after the selected root. The ordinary
   malformed XML code remains the fallback.
 - Add library, CLI, and Python parity tests and a fixture corpus with accepted
   and rejected prefixes.
@@ -55,16 +56,16 @@ fail-closed malformed-input boundary.
 
 ## Required validation
 
-```text
-cargo fmt --all --check
-cargo test --workspace
-cargo clippy --all-targets --all-features -- -D warnings
-pytest -q bindings/python/tests
-git diff --check
-```
-
-Run the focused cases through Rust, CLI, and Python and retain the input,
+Use the [authoritative Phase I validation
+checklist](phase-I-plan.md#authoritative-validation-checklist). Run the
+focused cases through Rust, CLI, and Python and retain the input,
 normalization decision, report, and diagnostic in reviewable evidence.
+I.4 owns a combined regression fixture in which a rendered document has an
+accepted dirty prefix and an I.3 full-content block/mixed-content placeholder;
+the case must prove both normalizations happen in the documented order. If I.3
+has not yet landed when I.4 is otherwise ready, record the fixture as a
+phase-level integration test deferred until both sprint changes are present;
+Phase I cannot close until it passes.
 
 ## Removal path
 

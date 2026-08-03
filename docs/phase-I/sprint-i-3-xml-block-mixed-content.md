@@ -3,8 +3,8 @@ id: sprint-I.3
 title: XML Block and Mixed-Content Extraction
 phase: I
 status: planned
-branch: feature/phase-i-3-xml-block-mixed-content
-worktree: ../sc-compose-worktrees/feature/phase-i-3-xml-block-mixed-content
+branch: sprint/i-3-xml-block-mixed-content
+worktree: ../sc-compose-worktrees/sprint/i-3-xml-block-mixed-content
 target: develop
 ---
 
@@ -59,15 +59,9 @@ provenance.
 
 ## Required validation
 
-```text
-cargo fmt --all --check
-cargo test --workspace
-cargo clippy --all-targets --all-features -- -D warnings
-pytest -q bindings/python/tests
-git diff --check
-```
-
-Add a focused corpus artifact containing the template, rendered input,
+Use the [authoritative Phase I validation
+checklist](phase-I-plan.md#authoritative-validation-checklist). Add a focused
+corpus artifact containing the template, rendered input,
 expected report, and the requirement/ADR trace for every case. Include a
 review note explaining why each block is a realistic customer document.
 
@@ -80,7 +74,8 @@ adapter. Do not leave a partial child-node fallback enabled.
 ## Out of scope
 
 - dirty prefixes before the XML root (I.4);
-- arbitrary malformed XML repair or unknown-template identification;
+- unmatched/truncated XML markup, multiple roots, post-root content, or
+  unknown-template identification;
 - loop/branch reconstruction;
 - a second XML-only text matcher;
 - treating every XML text node as a raw block when the template does not have

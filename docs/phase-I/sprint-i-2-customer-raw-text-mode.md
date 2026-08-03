@@ -3,8 +3,8 @@ id: sprint-I.2
 title: Customer-Facing Raw-Text Mode
 phase: I
 status: planned
-branch: feature/phase-i-2-customer-raw-text
-worktree: ../sc-compose-worktrees/feature/phase-i-2-customer-raw-text
+branch: sprint/i-2-customer-raw-text-mode
+worktree: ../sc-compose-worktrees/sprint/i-2-customer-raw-text-mode
 target: develop
 ---
 
@@ -57,15 +57,9 @@ public seam that I.3 will reuse for XML block/mixed-content matching.
 
 ## Required validation
 
-```text
-cargo fmt --all --check
-cargo test --workspace
-cargo clippy --all-targets --all-features -- -D warnings
-pytest -q bindings/python/tests
-git diff --check
-```
-
-Run focused Rust, CLI, and Python cases first. Preserve machine-readable
+Use the [authoritative Phase I validation
+checklist](phase-I-plan.md#authoritative-validation-checklist), then run the
+focused Rust, CLI, and Python cases first. Preserve machine-readable
 diagnostics in a reviewable evidence file and include one realistic Markdown
 example plus one deliberately rejected input.
 

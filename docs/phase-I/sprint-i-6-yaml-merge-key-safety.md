@@ -3,8 +3,8 @@ id: sprint-I.6
 title: YAML Merge-Key Var-File Safety
 phase: I
 status: planned
-branch: fix/phase-i-6-yaml-merge-key-safety
-worktree: ../sc-compose-worktrees/fix/phase-i-6-yaml-merge-key-safety
+branch: sprint/i-6-yaml-merge-key-safety
+worktree: ../sc-compose-worktrees/sprint/i-6-yaml-merge-key-safety
 target: develop
 ---
 
@@ -55,15 +55,9 @@ JSON/YAML var-file contains YAML merge keys such as `<<: *defaults`.
 
 ## Required validation
 
-```text
-cargo fmt --all --check
-cargo test --workspace
-cargo clippy --all-targets --all-features -- -D warnings
-pytest -q bindings/python/tests
-git diff --check
-```
-
-Run the exact issue reproduction and its control case through the CLI, then
+Use the [authoritative Phase I validation
+checklist](phase-I-plan.md#authoritative-validation-checklist). Run the exact
+issue reproduction and its control case through the CLI, then
 retain the input, exit code, parsed variables or diagnostic, and requirement/
 ADR trace in evidence.
 

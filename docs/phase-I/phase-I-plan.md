@@ -112,14 +112,15 @@ authority.
   an unknown template, execute arbitrary Jinja, reconstruct loops, or recover
   original types.
 - XML dirty-prefix recovery applies only to rendered input and only to the
-  exact preamble class accepted by I.1. It must not become a general malformed
-  XML repair mechanism.
+  exact preamble class accepted by I.1. It rejects unmatched or truncated
+  markup, multiple roots, post-root content, and malformed suffixes rather
+  than attempting to repair them.
 - YAML merge keys are not silently expanded by generic tagged-value
   unwrapping. I.6 must either implement a fully specified, bounded expansion
   or reject the construct with an actionable stable diagnostic; it may not
   preserve today's silent-loss behavior.
 
-## Cross-surface and evidence requirements
+## Authoritative validation checklist
 
 Every implementation sprint owns tests with the behavior it changes. The
 minimum validation for each implementation sprint is:
@@ -139,6 +140,9 @@ I.2 and I.3 must include equivalent Rust, CLI, and Python cases. I.4 must
   loop built-ins, shadowing, and a `loop` reference outside a loop. I.6 must
   include inherited scalar and nested fields, anchor/alias controls, malformed
   YAML, and the exact #166 reproduction.
+
+Sprint documents reference this checklist rather than restating these common
+commands. Each sprint's document adds only its own evidence requirements.
 
 ## Exit gate
 
@@ -168,4 +172,4 @@ Phase I is complete only when:
 | #193 Gap 5 | bounded dirty-prefix normalization | I.4 | accepted-prefix, malformed-suffix, multi-root and diagnostic tests |
 | #167 | loop-context names in strict validation | I.5 | nested-loop, shadowing, outside-loop and CLI strict tests |
 | #166 | YAML merge-key var-file silent data loss | I.6 | exact reproduction, policy/error, and preservation tests |
-| Product direction | customer-facing raw-text mode for Markdown/text | I.1/I.2 | raw mode API/CLI/Python parity and Markdown fixtures |
+| Product direction | customer-facing raw-text mode for Markdown/text | I.2 | raw mode API/CLI/Python parity and Markdown fixtures |

@@ -3,8 +3,8 @@ id: sprint-I.1
 title: Contract, Raw-Text Semantics, and Traceability
 phase: I
 status: planned
-branch: plan/phase-i-1-contract-and-traceability
-worktree: ../sc-compose-worktrees/plan/phase-i-1-contract-and-traceability
+branch: sprint/i-1-contract-and-traceability
+worktree: ../sc-compose-worktrees/sprint/i-1-contract-and-traceability
 target: develop
 ---
 
@@ -50,12 +50,64 @@ report shape shared with the existing extraction formats. It:
 The contract must state how line/column evidence is represented when there is
 no structural path and how `include`/`exclude` filters behave.
 
+The frozen interface must be expressed against the existing Rust report model,
+not as an informal new parallel model. The minimum shape is:
+
+```rust
+pub enum ExtractFormat { Xml, Json, Yaml, Toml, Raw }
+
+pub enum ExtractionPathSegment {
+    Xml(XmlPathSegment), Json(JsonPathSegment), Yaml(YamlPathSegment),
+    Toml(TomlPathSegment), Raw(RawPathSegment),
+}
+
+pub enum ExtractionSource {
+    Xml(XmlExtractionSource), Json(JsonExtractionSource),
+    Yaml(YamlExtractionSource), Toml(TomlExtractionSource),
+    Raw(RawExtractionSource),
+}
+
+pub struct RawPathSegment {
+    pub byte_start: usize, pub byte_end: usize,
+    pub line: usize, pub column: usize,
+}
+
+pub enum RawExtractionSource { TextSpan }
+
+pub fn extract(
+    request: &ExtractRequest<'_>,
+) -> Result<ExtractionReport<ExtractionPathSegment, ExtractionSource>, ExtractError>;
+```
+
+The CLI maps `ExtractFormatArg::Raw` to `ExtractFormat::Raw` and serializes
+`raw` in help, text output, and JSON. Python accepts `format="raw"` and extends
+the generated `Literal["xml", "json", "yaml", "toml", "raw"]` annotation;
+both wrappers call the Rust entry point above. The stable raw-mode diagnostic
+set is this typed list, with no adapter-local substitutes:
+
+```rust
+const RAW_MODE_CODES: &[DiagnosticCode] = &[
+    DiagnosticCode::ErrExtractInvalidRequest,
+    DiagnosticCode::ErrExtractTemplateUnsupported,
+    DiagnosticCode::ErrExtractAmbiguous,
+    DiagnosticCode::WarnExtractLowConfidence,
+];
+```
+
+`ERR_EXTRACT_INVALID_REQUEST` covers empty/contradictory filters,
+`ERR_EXTRACT_TEMPLATE_UNSUPPORTED` covers statements and malformed delimiter
+forms outside the raw subset, `ERR_EXTRACT_AMBIGUOUS` covers non-unique
+captures, and `WARN_EXTRACT_LOW_CONFIDENCE` covers a report that is returned
+with degraded evidence. I.1 must either retain these existing codes or record
+an explicit ADR/registry amendment before I.2 changes the list.
+
 ### XML block and mixed content
 
 Define the exact known-template subset for I.3: a full element-content
 placeholder may capture rendered text and a deterministic serialization of
 allowed child markup. Multiple variables, dynamic element names, control-flow
-reconstruction, and arbitrary malformed XML repair remain unsupported. The
+reconstruction, unmatched/truncated markup, multiple roots, and post-root
+content remain unsupported. The
 contract must state whether matching uses canonical child serialization or a
 text-only projection, and must provide an example for description,
 references, and workflow blocks from #193.
@@ -117,6 +169,19 @@ cycles, limits, and cross-surface behavior are specified and tested.
   use the same names, selectors, codes, and scope limits.
 - `git diff --check` passes and the documentation review can be performed
   without reading implementation patches.
+
+## Required validation
+
+This sprint is documentation/design only. The diff-scope gate is explicit:
+
+- `git diff --name-only origin/develop...HEAD` must contain only `docs/` files
+  (including any requirements, architecture, ADR, registry, project-plan, or
+  Phase-I files required by this sprint);
+- the same file list must contain no `crates/`, `bindings/`, `tests/`,
+  `site/`, generated artifact, or executable-source path;
+- `git diff --check` must pass; and
+- the plan QA record must show that no Rust, CLI, or Python implementation was
+  introduced while I.1's contract remains unaccepted.
 
 ## Removal path
 
