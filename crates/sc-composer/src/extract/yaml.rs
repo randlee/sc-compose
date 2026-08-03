@@ -1,6 +1,6 @@
 //! Deterministic structural matching for known-template YAML.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt;
 use std::ops::Range;
 
@@ -256,6 +256,10 @@ fn selected_variable(variable: &VariableName, request: &ExtractRequest<'_>) -> b
         && !request.exclude.contains(variable)
 }
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "format matching keeps all YAML shape cases together"
+)]
 fn match_yaml(
     template: &YamlNode,
     rendered: &YamlNode,
@@ -264,12 +268,19 @@ fn match_yaml(
 ) -> Result<(), ExtractError> {
     match (template, rendered) {
         (YamlNode::Mapping(template), YamlNode::Mapping(rendered)) => {
+            let rendered_by_key = rendered
+                .iter()
+                .map(|(key, value)| (key.as_str(), value))
+                .collect::<HashMap<_, _>>();
+            let template_keys = template
+                .iter()
+                .map(|(key, _)| key.as_str())
+                .collect::<HashSet<_>>();
             for (key, template_value) in template {
                 reject_dynamic_key(key)?;
-                let rendered_value = rendered
-                    .iter()
-                    .find(|(rendered_key, _)| rendered_key == key)
-                    .map(|(_, value)| value)
+                let rendered_value = rendered_by_key
+                    .get(key.as_str())
+                    .copied()
                     .ok_or_else(|| missing_path_error(path, key))?;
                 let child_path = path
                     .iter()
@@ -278,9 +289,9 @@ fn match_yaml(
                     .collect::<Vec<_>>();
                 match_yaml(template_value, rendered_value, &child_path, captures)?;
             }
-            if rendered
-                .iter()
-                .any(|(key, _)| !template.iter().any(|(expected, _)| expected == key))
+            if rendered_by_key
+                .keys()
+                .any(|key| !template_keys.contains(key))
             {
                 return Err(shape_error(
                     path,
@@ -387,38 +398,64 @@ fn parse_document(source: &str, template: bool) -> Result<YamlNode, ExtractError
 }
 
 fn contains_yaml_features(source: &str) -> bool {
-    let mut single = false;
-    let mut double = false;
     let bytes = source.as_bytes();
-    for (index, byte) in bytes.iter().enumerate() {
-        match *byte {
-            b'\'' if !double => single = !single,
-            b'"' if !single => double = !double,
-            b'&' | b'*' | b'!' if !single && !double => {
-                let at_flow_boundary = index == 0
-                    || bytes[index - 1].is_ascii_whitespace()
-                    || matches!(
-                        bytes[index - 1],
-                        b'[' | b']' | b'{' | b'}' | b',' | b':' | b'?'
-                    );
-                if !at_flow_boundary {
-                    continue;
-                }
-                let is_named_feature = bytes.get(index + 1).is_some_and(|next| {
-                    next.is_ascii_alphanumeric() || *next == b'_' || *next == b'-'
-                });
-                let is_tag = *byte == b'!'
-                    && bytes.get(index + 1).is_some_and(|next| {
-                        next.is_ascii_alphanumeric() || matches!(*next, b'!' | b'<' | b'_')
-                    });
-                if is_named_feature || is_tag {
-                    return true;
+    let mut quote = None;
+    let mut index = 0;
+    while index < bytes.len() {
+        let byte = bytes[index];
+        match quote {
+            Some(b'"') => {
+                if byte == b'\\' {
+                    index += 2;
+                } else {
+                    if byte == b'"' {
+                        quote = None;
+                    }
+                    index += 1;
                 }
             }
-            _ => {}
+            Some(b'\'') => {
+                if byte == b'\'' && bytes.get(index + 1) == Some(&b'\'') {
+                    index += 2;
+                } else {
+                    if byte == b'\'' {
+                        quote = None;
+                    }
+                    index += 1;
+                }
+            }
+            Some(_) => index += 1,
+            None => {
+                match byte {
+                    b'"' | b'\'' => quote = Some(byte),
+                    b'&' | b'*' | b'!' if is_yaml_feature_boundary(bytes, index) => {
+                        let is_named_feature = bytes.get(index + 1).is_some_and(|next| {
+                            next.is_ascii_alphanumeric() || *next == b'_' || *next == b'-'
+                        });
+                        let is_tag = byte == b'!'
+                            && bytes.get(index + 1).is_some_and(|next| {
+                                next.is_ascii_alphanumeric() || matches!(*next, b'!' | b'<' | b'_')
+                            });
+                        if is_named_feature || is_tag {
+                            return true;
+                        }
+                    }
+                    _ => {}
+                }
+                index += 1;
+            }
         }
     }
     false
+}
+
+fn is_yaml_feature_boundary(bytes: &[u8], index: usize) -> bool {
+    index == 0
+        || bytes[index - 1].is_ascii_whitespace()
+        || matches!(
+            bytes[index - 1],
+            b'[' | b']' | b'{' | b'}' | b',' | b':' | b'?' | b'-'
+        )
 }
 
 fn validate_input_size(source: &str, label: &str) -> Result<(), ExtractError> {
@@ -663,5 +700,47 @@ mod tests {
         assert!(report.diagnostics.iter().any(|diagnostic| {
             diagnostic.code == crate::diagnostics::DiagnosticCode::WarnExtractLowConfidence
         }));
+    }
+
+    #[test]
+    fn flow_style_anchor_alias_bypass_is_rejected() {
+        let request = ExtractRequest::new("[1, 1]\n", "[&v 1,*v]\n", ExtractFormat::Yaml, &[], &[]);
+        let error = extract_yaml(&request).unwrap_err();
+        assert_eq!(
+            error.code(),
+            crate::diagnostics::DiagnosticCode::ErrExtractYamlAliasUnsupported
+        );
+    }
+
+    #[test]
+    fn nested_flow_anchor_alias_bypass_is_rejected() {
+        let request = ExtractRequest::new(
+            "{x: \"{{ x }}\", y: [1, 1]}\n",
+            "{x: \"Ada\", y: [1,&v 1]}\n",
+            ExtractFormat::Yaml,
+            &[],
+            &[],
+        );
+        let error = extract_yaml(&request).unwrap_err();
+        assert_eq!(
+            error.code(),
+            crate::diagnostics::DiagnosticCode::ErrExtractYamlAliasUnsupported
+        );
+    }
+
+    #[test]
+    fn escaped_double_quote_does_not_desync_alias_detection() {
+        let request = ExtractRequest::new(
+            "name: \"{{ name }}\"\nalias: 1\ncopy: 1\n",
+            "name: \"a\\\"b\"\nalias: &v 1\ncopy: *v\n",
+            ExtractFormat::Yaml,
+            &[],
+            &[],
+        );
+        let error = extract_yaml(&request).unwrap_err();
+        assert_eq!(
+            error.code(),
+            crate::diagnostics::DiagnosticCode::ErrExtractYamlAliasUnsupported
+        );
     }
 }

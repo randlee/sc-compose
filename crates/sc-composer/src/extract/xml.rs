@@ -566,6 +566,12 @@ fn match_element(
     captures: &mut Vec<Capture>,
     evidence: &mut Evidence,
 ) -> Result<(), ExtractError> {
+    let depth = path.len().saturating_sub(1);
+    if depth > MAX_XML_NESTING_DEPTH {
+        return Err(input_limit_error(format!(
+            "XML nesting depth exceeds the maximum of {MAX_XML_NESTING_DEPTH}"
+        )));
+    }
     if template.name != rendered.name {
         return Err(ExtractError::unsupported(format!(
             "rendered XML element does not match template structure: expected {}, found {}",
@@ -804,14 +810,17 @@ fn validate_input_size(source: &str, label: &str) -> Result<(), ExtractError> {
 }
 
 fn validate_value_limits(element: &XmlElement, depth: usize) -> Result<(), ExtractError> {
-    if depth > MAX_XML_NESTING_DEPTH {
-        return Err(input_limit_error(format!(
-            "XML nesting depth exceeds the maximum of {MAX_XML_NESTING_DEPTH}"
-        )));
-    }
-    for child in &element.children {
-        if let XmlNode::Element(child) = child {
-            validate_value_limits(child, depth + 1)?;
+    let mut pending = vec![(element, depth)];
+    while let Some((element, depth)) = pending.pop() {
+        if depth > MAX_XML_NESTING_DEPTH {
+            return Err(input_limit_error(format!(
+                "XML nesting depth exceeds the maximum of {MAX_XML_NESTING_DEPTH}"
+            )));
+        }
+        for child in &element.children {
+            if let XmlNode::Element(child) = child {
+                pending.push((child, depth + 1));
+            }
         }
     }
     Ok(())

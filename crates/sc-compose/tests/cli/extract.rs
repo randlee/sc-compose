@@ -1,5 +1,15 @@
 use crate::support::*;
 
+#[cfg(unix)]
+fn assert_not_signaled(status: std::process::ExitStatus) {
+    use std::os::unix::process::ExitStatusExt as _;
+    assert_eq!(
+        status.signal(),
+        None,
+        "sc-compose extract must return a controlled error instead of a signal"
+    );
+}
+
 fn fixture(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
     let root = repo_root().join("crates/sc-composer/tests/fixtures/reverse-extract");
     (
@@ -279,4 +289,46 @@ fn extract_text_supports_toml_format_and_array_of_table_paths() {
     assert!(stdout.contains("package_name: \"example-app\""));
     assert!(stdout.contains(".bin[1].name"));
     assert!(stdout.contains("string_value"));
+}
+
+#[test]
+#[cfg_attr(
+    not(unix),
+    ignore = "signal-based crash detection is implemented for unix targets only"
+)]
+fn extract_xml_deeply_nested_input_does_not_abort_the_process() {
+    let root = temp_root("extract-xml-deep-nesting");
+    let depth = 5_000;
+    let mut template = String::from("<root>");
+    let mut rendered = String::from("<root>");
+    for _ in 0..depth {
+        template.push_str("<a>");
+        rendered.push_str("<a>");
+    }
+    template.push_str("{{ v }}");
+    rendered.push('X');
+    for _ in 0..depth {
+        template.push_str("</a>");
+        rendered.push_str("</a>");
+    }
+    template.push_str("</root>");
+    rendered.push_str("</root>");
+
+    let template_path = root.join("deep.xml.j2");
+    let rendered_path = root.join("deep.xml");
+    write_file(&template_path, &template);
+    write_file(&rendered_path, &rendered);
+
+    let output = sc_compose()
+        .arg("extract")
+        .arg(&template_path)
+        .arg(&rendered_path)
+        .arg("--format")
+        .arg("xml")
+        .output()
+        .unwrap();
+
+    #[cfg(unix)]
+    assert_not_signaled(output.status);
+    assert!(!output.status.success());
 }
