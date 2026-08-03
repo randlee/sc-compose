@@ -34,6 +34,7 @@ def test_import_surface_exposes_c2_api() -> None:
         "DiagnosticSeverity",
         "ExpandedTemplate",
         "ExtractionDiagnostic",
+        "ExtractionPathSegment",
         "ExtractionOccurrence",
         "ExtractionReport",
         "ExtractionSource",
@@ -87,6 +88,16 @@ def test_import_surface_exposes_c2_api() -> None:
 
     for name in required:
         assert getattr(sc_compose, name) is not None
+    for code in [
+        "ERR_EXTRACT_FORMAT_UNSUPPORTED",
+        "ERR_EXTRACT_JSON_MALFORMED",
+        "ERR_EXTRACT_JSON_DUPLICATE_KEY",
+        "ERR_EXTRACT_JSON_PATH_MISSING",
+        "ERR_EXTRACT_JSON_SHAPE_MISMATCH",
+        "ERR_EXTRACT_JSON_VALUE_UNSUPPORTED",
+        "ERR_EXTRACT_JSON_AMBIGUOUS",
+    ]:
+        assert getattr(sc_compose.DiagnosticCode, code) == code
 
 
 def test_extraction_report_preserves_values_provenance_and_filters() -> None:
@@ -157,6 +168,66 @@ def test_extraction_fails_closed_for_unsupported_syntax() -> None:
     assert caught.value.recovery_hints
 
 
+def test_json_extraction_matches_the_shared_rust_contract() -> None:
+    report = sc_compose.extract_variables(
+        '{"items":[{"name":"{{ name }}"}]}',
+        '{"items":[{"name":"Ada"}]}',
+        format="json",
+    )
+
+    assert report.values == {"name": "Ada"}
+    occurrence = report.occurrences[0]
+    assert occurrence.source.kind == "string_value"
+    assert [(segment.kind, segment.name, segment.ordinal) for segment in occurrence.path] == [
+        ("object_key", "items", None),
+        ("array_index", "0", 0),
+        ("object_key", "name", None),
+    ]
+
+
+def test_json_extraction_preserves_boundary_diagnostics() -> None:
+    with pytest.raises(sc_compose.ScConfigError) as malformed:
+        sc_compose.extract_variables(
+            '{"name":"{{ name }}"}',
+            '{"name":"Ada"',
+            format="json",
+        )
+    assert malformed.value.code == "ERR_EXTRACT_JSON_MALFORMED"
+    assert malformed.value.recovery_hints
+
+    with pytest.raises(sc_compose.ScConfigError) as unsupported:
+        sc_compose.extract_variables("{}", "{}", format="yaml")
+    assert unsupported.value.code == "ERR_EXTRACT_FORMAT_UNSUPPORTED"
+    assert unsupported.value.recovery_hints
+
+    with pytest.raises(sc_compose.ScConfigError) as invalid_filter:
+        sc_compose.extract_variables("{}", "{}", include=["bad/name"])
+    assert invalid_filter.value.code == "ERR_EXTRACT_INVALID_REQUEST"
+    assert invalid_filter.value.recovery_hints
+
+
+def test_json_extraction_matches_realistic_atm_fixture() -> None:
+    template, rendered = json_fixture_pair("json-atm-payload")
+    report = sc_compose.extract_variables(template, rendered, format="json")
+
+    assert report.values == {
+        "action_name": "execute the assigned task",
+        "description": "H.2 JSON extraction core",
+        "message_id": "01KZ2BV5Z6VCRQYDQWYSAZA8GB",
+        "sender": "team-lead@sc-compose",
+    }
+    action = next(
+        occurrence
+        for occurrence in report.occurrences
+        if occurrence.variable == "action_name"
+    )
+    assert [(segment.kind, segment.name, segment.ordinal) for segment in action.path] == [
+        ("object_key", "actions", None),
+        ("array_index", "0", 0),
+        ("object_key", "action", None),
+    ]
+
+
 FIXTURE_ROOT = (
     Path(__file__).resolve().parents[3]
     / "crates"
@@ -170,6 +241,12 @@ FIXTURE_ROOT = (
 def fixture_pair(name: str) -> tuple[str, str]:
     template = (FIXTURE_ROOT / f"{name}.xml.j2").read_text(encoding="utf-8")
     rendered = (FIXTURE_ROOT / f"{name}.xml").read_text(encoding="utf-8")
+    return template, rendered
+
+
+def json_fixture_pair(name: str) -> tuple[str, str]:
+    template = (FIXTURE_ROOT / f"{name}.json.j2").read_text(encoding="utf-8")
+    rendered = (FIXTURE_ROOT / f"{name}.json").read_text(encoding="utf-8")
     return template, rendered
 
 

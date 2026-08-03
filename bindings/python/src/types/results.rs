@@ -168,14 +168,14 @@ impl PyExtractionSource {
     }
 }
 
-#[pyclass(name = "XmlPathSegment", skip_from_py_object)]
+#[pyclass(name = "ExtractionPathSegment", skip_from_py_object)]
 #[derive(Clone, Debug)]
-pub(crate) struct PyXmlPathSegment {
+pub(crate) struct PyExtractionPathSegment {
     pub(crate) inner: ExtractionPathSegment,
 }
 
 #[pymethods]
-impl PyXmlPathSegment {
+impl PyExtractionPathSegment {
     #[getter]
     fn kind(&self) -> &'static str {
         xml_path_segment_kind_str(&self.inner)
@@ -205,16 +205,16 @@ impl PyXmlPathSegment {
     fn __repr__(&self) -> String {
         match &self.inner {
             ExtractionPathSegment::Xml(XmlPathSegment::Element { name, ordinal }) => {
-                format!("XmlPathSegment(kind='element', name={name:?}, ordinal={ordinal})")
+                format!("ExtractionPathSegment(kind='element', name={name:?}, ordinal={ordinal})")
             }
             ExtractionPathSegment::Xml(XmlPathSegment::Attribute { name }) => {
-                format!("XmlPathSegment(kind='attribute', name={name:?})")
+                format!("ExtractionPathSegment(kind='attribute', name={name:?})")
             }
             ExtractionPathSegment::Json(JsonPathSegment::ObjectKey { key }) => {
-                format!("XmlPathSegment(kind='object_key', name={key:?})")
+                format!("ExtractionPathSegment(kind='object_key', name={key:?})")
             }
             ExtractionPathSegment::Json(JsonPathSegment::ArrayIndex { index }) => {
-                format!("XmlPathSegment(kind='array_index', ordinal={index})")
+                format!("ExtractionPathSegment(kind='array_index', ordinal={index})")
             }
         }
     }
@@ -234,12 +234,12 @@ impl PyExtractionOccurrence {
     }
 
     #[getter]
-    fn path(&self) -> Vec<PyXmlPathSegment> {
+    fn path(&self) -> Vec<PyExtractionPathSegment> {
         self.inner
             .path
             .iter()
             .cloned()
-            .map(|inner| PyXmlPathSegment { inner })
+            .map(|inner| PyExtractionPathSegment { inner })
             .collect()
     }
 

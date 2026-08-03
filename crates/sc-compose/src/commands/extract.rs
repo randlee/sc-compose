@@ -20,7 +20,7 @@ pub(crate) fn run_extract(args: &ExtractArgs) -> Result<i32, CommandError> {
     let request = sc_composer::ExtractRequest::new(
         &template,
         &rendered,
-        sc_composer::ExtractFormat::Xml,
+        args.format.into(),
         &include,
         &exclude,
     );
@@ -118,7 +118,7 @@ fn emit_json(
         serde_json::json!({
             "template": to_forward_slash(&args.template),
             "rendered": to_forward_slash(&args.rendered),
-            "format": "xml",
+            "format": args.format.as_str(),
             "values": report
                 .values
                 .iter()
@@ -142,7 +142,7 @@ fn emit_text(
 ) {
     println!("template: {}", to_forward_slash(&args.template));
     println!("rendered: {}", to_forward_slash(&args.rendered));
-    println!("format: xml");
+    println!("format: {}", args.format.as_str());
     println!("confidence: {:.4}", report.confidence);
     if report.values.is_empty() {
         println!("values: <none>");

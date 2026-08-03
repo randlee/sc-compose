@@ -1020,9 +1020,9 @@ contract. The contract is defined by
   (Phase G.7).
 
 The CLI adapter exposes the same known-template contract through the
-read-only command `sc-compose extract TEMPLATE.xml.j2 RENDERED.xml`. It
-supports repeatable `--include NAME` and `--exclude NAME` filters, uses XML as
-the documented initial format, and accepts `--json` for the standard
+read-only command `sc-compose extract TEMPLATE RENDERED [--format xml|json]`.
+It supports repeatable `--include NAME` and `--exclude NAME` filters, uses XML
+as the backward-compatible default, and accepts `--json` for the standard
 diagnostics envelope. The command must not identify unknown templates, invoke
 the renderer, scan directories, or write output files.
 

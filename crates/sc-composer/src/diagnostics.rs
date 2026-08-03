@@ -123,6 +123,8 @@ pub enum DiagnosticCode {
     ErrExtractJsonAmbiguous,
     /// A template expression is outside the supported known-template subset.
     ErrExtractTemplateUnsupported,
+    /// The requested extraction format is not supported by this surface.
+    ErrExtractFormatUnsupported,
 }
 
 impl DiagnosticCode {
@@ -172,6 +174,7 @@ impl DiagnosticCode {
             Self::ErrExtractJsonValueUnsupported => "ERR_EXTRACT_JSON_VALUE_UNSUPPORTED",
             Self::ErrExtractJsonAmbiguous => "ERR_EXTRACT_JSON_AMBIGUOUS",
             Self::ErrExtractTemplateUnsupported => "ERR_EXTRACT_TEMPLATE_UNSUPPORTED",
+            Self::ErrExtractFormatUnsupported => "ERR_EXTRACT_FORMAT_UNSUPPORTED",
         }
     }
 }

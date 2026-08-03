@@ -10,6 +10,7 @@ from ._native import (
     DiagnosticSeverity,
     ExpandedTemplate,
     ExtractionDiagnostic,
+    ExtractionPathSegment,
     ExtractionOccurrence,
     ExtractionReport,
     ExtractionSource,
@@ -38,7 +39,6 @@ from ._native import (
     VariableName,
     VariableSource,
     VerifyResult,
-    XmlPathSegment,
     compose,
     compose_file,
     discover_all_pass_tokens,
@@ -73,6 +73,7 @@ __all__ = [
     "DiagnosticSeverity",
     "ExpandedTemplate",
     "ExtractionDiagnostic",
+    "ExtractionPathSegment",
     "ExtractionOccurrence",
     "ExtractionReport",
     "ExtractionSource",
@@ -123,3 +124,6 @@ __all__ = [
     "validate_input_value",
     "verify",
 ]
+
+# Backward-compatible name retained for callers of the XML-only API.
+XmlPathSegment = ExtractionPathSegment
