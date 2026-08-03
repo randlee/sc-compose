@@ -298,7 +298,7 @@ fn extract_text_supports_toml_format_and_array_of_table_paths() {
 )]
 fn extract_xml_deeply_nested_input_does_not_abort_the_process() {
     let root = temp_root("extract-xml-deep-nesting");
-    let depth = 5_000;
+    let depth = 60_000;
     let mut template = String::from("<root>");
     let mut rendered = String::from("<root>");
     for _ in 0..depth {
@@ -331,4 +331,5 @@ fn extract_xml_deeply_nested_input_does_not_abort_the_process() {
     #[cfg(unix)]
     assert_not_signaled(output.status);
     assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_EXTRACT_INPUT_LIMIT"));
 }

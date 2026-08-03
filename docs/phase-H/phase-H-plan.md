@@ -57,6 +57,10 @@ deferred to a future phase rather than included in Phase H.
    validates JSON, YAML, and TOML against shared Rust, Python, and CLI
    fixtures and publishes the evidence needed to close the in-scope portion
    of issue #193.
+7. [Sprint H.7 — Alias and Input-Limit Hardening](sprint-h-7-alias-input-limit-hardening.md)
+   closes the promoted adversarial findings from the H.6 campaign, including
+   parser-time XML depth enforcement, iterative XML cleanup, YAML policy
+   scanning, and cross-format input limits.
 
 The numbering is contiguous and intentional. H.2 follows H.1; H.3 depends on
 H.2's library API; H.4 and H.5 may proceed in parallel after H.2/H.3 establish
@@ -66,9 +70,10 @@ format, except H.2, which additionally owns the one-time extraction of
 format-neutral matching logic out of `xml.rs` into the shared core; XML's
 structural and provenance ownership remains with `xml.rs` throughout. H.6 is
 the phase closure gate and cannot silently absorb missing runtime work from an
-earlier sprint. Confirmed findings from the H.6 fuzz
-campaign route through the normal fix-assignment loop; Phase H reserves no
-numbered sprint for follow-on fixes.
+earlier sprint. Confirmed findings from the H.6 fuzz campaign route through
+the normal fix-assignment loop; H.7 is the explicitly reserved numbered
+hardening sprint for the promoted findings listed in its authoritative sprint
+document.
 
 ## Hard boundaries
 
