@@ -1073,6 +1073,16 @@ A future phase may expose two customer-facing modes built on the shared core:
 Neither mode is designed, exposed, or claimed as supported by Phase H. No
 numbered Phase-H sprint is reserved for these modes.
 
+#### Phase-H Closure Evidence
+
+The in-scope issue #193 extensions are closed by the committed H.2-H.6
+implementation, cross-surface tests, and bounded campaign evidence in
+[`docs/phase-H/evidence/h-6-cross-format-campaign.json`](phase-H/evidence/h-6-cross-format-campaign.json).
+The H.6 campaign covers JSON, YAML, and TOML with 36/36 expected outcomes,
+including malformed and unsupported inputs as intentional boundaries. XML
+mixed-content extraction, dirty-prefix stripping, and template identification
+remain future-phase work; they are not silently treated as H.6 failures.
+
 ### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 
 ### FR-12: Map/Object Variable Inputs

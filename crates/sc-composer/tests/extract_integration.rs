@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use sc_composer::{
     ExtractError, ExtractFormat, ExtractRequest, ExtractionDiagnosticKind, ExtractionPathSegment,
     ExtractionSource, JsonPathSegment, TomlPathSegment, VariableName, XmlPathSegment, extract,
@@ -779,6 +781,89 @@ fn toml_extraction_rejects_oversized_and_deep_inputs() {
         .join(".");
     let template = format!("{path} = \"{{{{ value }}}}\"\n");
     let rendered = format!("{path} = \"Ada\"\n");
+    let error = extract(&toml_request(&template, &rendered)).unwrap_err();
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractInputLimit
+    );
+}
+
+#[test]
+fn cross_format_corpus_preserves_equivalent_contracts() {
+    let corpus: serde_json::Value = serde_json::from_str(include_str!(
+        "fixtures/reverse-extract/cross-format-corpus.json"
+    ))
+    .unwrap();
+    assert_eq!(corpus["schema_version"], "phase-h6-cross-format-corpus/v1");
+
+    for case in corpus["cases"].as_array().unwrap() {
+        let format = match case["format"].as_str().unwrap() {
+            "json" => ExtractFormat::Json,
+            "yaml" => ExtractFormat::Yaml,
+            "toml" => ExtractFormat::Toml,
+            other => panic!("unknown corpus format {other}"),
+        };
+        let include = case["include"]
+            .as_array()
+            .map(|names| {
+                names
+                    .iter()
+                    .map(|name| variable(name.as_str().unwrap()))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        let request = ExtractRequest::new(
+            case["template"].as_str().unwrap(),
+            case["rendered"].as_str().unwrap(),
+            format,
+            &include,
+            &[],
+        );
+        let expected_code = case["expected_code"].as_str();
+        match case["kind"].as_str().unwrap() {
+            "success" | "filter" => {
+                let report = extract(&request).unwrap();
+                let values = report
+                    .values
+                    .iter()
+                    .map(|(name, value)| (name.to_string(), value.clone()))
+                    .collect::<std::collections::BTreeMap<_, _>>();
+                let expected = case["expected_values"]
+                    .as_object()
+                    .unwrap()
+                    .iter()
+                    .map(|(name, value)| (name.clone(), value.as_str().unwrap().to_owned()))
+                    .collect::<std::collections::BTreeMap<_, _>>();
+                assert_eq!(values, expected, "{}", case["id"]);
+            }
+            "ambiguity" => {
+                let report = extract(&request).unwrap();
+                assert!(report.values.is_empty(), "{}", case["id"]);
+                assert!(
+                    report
+                        .diagnostics
+                        .iter()
+                        .any(|diagnostic| { Some(diagnostic.code.as_str()) == expected_code })
+                );
+                assert_eq!(report.occurrences.len(), 2, "{}", case["id"]);
+            }
+            "malformed" | "unsupported" => {
+                let error = extract(&request).unwrap_err();
+                assert_eq!(Some(error.code().as_str()), expected_code, "{}", case["id"]);
+            }
+            other => panic!("unknown corpus case kind {other}"),
+        }
+    }
+}
+
+#[test]
+fn toml_occurrence_limit_is_a_durable_boundary() {
+    let mut template = String::new();
+    let mut rendered = String::new();
+    for index in 0..10_001 {
+        let _ = writeln!(template, "value{index} = \"{{{{ value{index} }}}}\"");
+        let _ = writeln!(rendered, "value{index} = \"Ada\"");
+    }
     let error = extract(&toml_request(&template, &rendered)).unwrap_err();
     assert_eq!(
         error.code(),
