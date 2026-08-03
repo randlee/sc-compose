@@ -62,7 +62,7 @@ codes above so format-specific parser and policy failures remain stable.
 | --- | --- | --- | --- | --- |
 | `ERR_EXTRACT_FORMAT_UNSUPPORTED` | `ExtractError` | error | requested format is not enabled by the public format selector | H.3 adapter surfaces |
 | `ERR_EXTRACT_TEMPLATE_UNSUPPORTED` | `ExtractError` | error | unsupported loop, branch, dynamic key, typed placeholder, or other cross-format template syntax | H.2/H.4/H.5 adapters |
-| `ERR_EXTRACT_INPUT_LIMIT` | `ExtractError` | error | input size, depth, or occurrence limit is exceeded | H.2/H.4/H.5 adapters |
+| `ERR_EXTRACT_INPUT_LIMIT` | `ExtractError` | error | input size, depth, or occurrence limit is exceeded | H.2 JSON, H.4 YAML, H.5 TOML, and H.7 JSON/YAML/XML hardening adapters |
 | `ERR_EXTRACT_SECURITY_POLICY` | `ExtractError` | error | disallowed alias, tag, or other parser/security feature is encountered | H.4 adapter |
 | `ERR_EXTRACT_JSON_MALFORMED` | `ExtractError` | error | rendered input is not one well-formed JSON value | H.2 JSON adapter |
 | `ERR_EXTRACT_JSON_DUPLICATE_KEY` | `ExtractError` | error | a JSON object repeats a key | H.2 JSON adapter |

@@ -884,6 +884,50 @@ fn yaml_extraction_rejects_oversized_deep_and_high_occurrence_inputs() {
 }
 
 #[test]
+fn json_depth_past_serde_recursion_guard_returns_input_limit() {
+    let depth = 130;
+    let mut template = String::new();
+    let mut rendered = String::new();
+    for index in 0..depth {
+        let _ = write!(template, "{{\"level{index}\":{{");
+        let _ = write!(rendered, "{{\"level{index}\":{{");
+    }
+    template.push_str("\"value\":\"{{ value }}\"");
+    rendered.push_str("\"value\":\"Ada\"");
+    for _ in 0..depth {
+        template.push('}');
+        rendered.push('}');
+    }
+
+    let error = extract(&json_request(&template, &rendered)).unwrap_err();
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractInputLimit
+    );
+}
+
+#[test]
+fn yaml_depth_past_serde_recursion_guard_returns_input_limit() {
+    let depth = 130;
+    let mut template = String::new();
+    let mut rendered = String::new();
+    for level in 0..depth {
+        let indent = "  ".repeat(level);
+        let _ = writeln!(template, "{indent}level{level}:");
+        let _ = writeln!(rendered, "{indent}level{level}:");
+    }
+    let indent = "  ".repeat(depth);
+    let _ = writeln!(template, "{indent}value: \"{{ value }}\"");
+    let _ = writeln!(rendered, "{indent}value: Ada");
+
+    let error = extract(&yaml_request(&template, &rendered)).unwrap_err();
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractInputLimit
+    );
+}
+
+#[test]
 fn xml_extraction_rejects_oversized_deep_and_high_occurrence_inputs() {
     let oversized_xml = format!("<root><value>{}</value></root>", "x".repeat(1_048_577));
     assert_input_limit(&request(

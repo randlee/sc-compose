@@ -38,6 +38,8 @@ target: integrate/phase-h
 - `bindings/python/tests/test_smoke.py`
 - `docs/phase-H/phase-H-plan.md`
 - `docs/phase-H/sprint-h-7-alias-input-limit-hardening.md`
+- `docs/project-plan.md`
+- `docs/error-code-registry.md`
 
 ## Deliverables
 
@@ -48,7 +50,8 @@ partially deferred.
 - H7-D1 — Mirror TOML's byte-size, nesting-depth, and occurrence-count
   protections in the JSON, YAML, and XML extraction adapters with the stable
   `ERR_EXTRACT_INPUT_LIMIT` diagnostic and equivalent Rust, CLI, and Python
-  behavior.
+  behavior. JSON and YAML depth checks must run during deserialization so the
+  format adapters do not leak serde's internal recursion diagnostic.
 - H7-D2 — Reject YAML anchors, aliases, and tags at token boundaries in block
   and flow syntax, while tracking single- and double-quoted state correctly
   across YAML escapes. Keep the existing YAML policy diagnostic stable.
@@ -72,6 +75,8 @@ partially deferred.
 - Enforce depth before pushing a new XML parser frame. The parser must return a
   normal `ERR_EXTRACT_INPUT_LIMIT` error rather than materializing an
   unbounded tree.
+- Enforce JSON and YAML depth while deserializing, before serde's internal
+  recursion guard can replace the stable `ERR_EXTRACT_INPUT_LIMIT` diagnostic.
 - Ensure XML cleanup is iterative for `XmlElement`, `XmlNode`, and
   `XmlDocument`; the cleanup defense must remain safe even if a deep tree is
   constructed before rejection.
@@ -108,6 +113,8 @@ partially deferred.
 - Existing PHV-1, PHV-2, and YAML occurrence-limit regressions remain green.
 - H.7 is listed in `phase-H-plan.md` and this document accurately records its
   scope, ownership, non-goals, and validation evidence.
+- H.7 is listed in `docs/project-plan.md`, and the input-limit registry lists
+  JSON, YAML, and XML as its promoted format emitters.
 
 ## Required Validation
 
