@@ -1,7 +1,7 @@
 ---
 id: H.2
 title: JSON Extraction Core
-status: planned
+status: complete
 branch: sprint/h-2-json-extraction-core
 worktree: ../sc-compose-worktrees/sprint/h-2-json-extraction-core
 target: develop
@@ -71,6 +71,11 @@ the implementation must:
 4. run the XML suite and diff its reports against the frozen baseline; and
 5. obtain an independent green review of that parity diff before beginning
    JSON-specific parser and policy work.
+
+The developer parity validation is recorded in
+[`evidence/h-2-xml-parity-review.md`](evidence/h-2-xml-parity-review.md).
+The evidence record must be updated by an independent reviewer before this
+checkpoint can be considered independently accepted.
 
 Any baseline difference is a parity failure until explicitly reviewed and
 accepted as an intentional contract change. JSON tests cannot mask an
