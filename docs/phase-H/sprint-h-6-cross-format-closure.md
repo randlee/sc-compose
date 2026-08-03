@@ -122,7 +122,9 @@ each candidate so a reviewer can judge whether it is a realistic use case.
   filtering, and unsupported cases.
 - Campaign evidence: `docs/phase-H/evidence/h-6-cross-format-campaign.json`;
   four bounded workers, seed `193`, 36/36 passing cases, zero confirmed bugs,
-  six intentional boundaries, and zero inconclusive candidates.
+  six intentional boundaries, and zero inconclusive candidates. These are
+  bounded local probes because the Agent Runner was unavailable, not a
+  distributed adversarial-agent campaign.
 - Report package: `site/reports/20260803-1-fuzz-report.html`, its JSON sidecar,
   and four XHTML worker panels. The panels were rendered from
   `fuzz-run-agent.xhtml.j2`; the shell was rendered from

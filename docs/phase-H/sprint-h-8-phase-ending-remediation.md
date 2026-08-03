@@ -1,7 +1,7 @@
 ---
 id: H.8
 title: Phase-Ending Review Remediation
-status: in_progress
+status: complete
 branch: fix/phase-h-ending-review
 worktree: ../sc-compose-worktrees/fix/phase-h-ending-review
 target: integrate/phase-h

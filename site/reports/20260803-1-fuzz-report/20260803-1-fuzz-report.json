@@ -2,7 +2,7 @@
   "schema_version": "adversarial-fuzzing/v1",
   "campaign": {
     "campaign_id": "h6-20260803-0001",
-    "worktree_path": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/h-6-cross-format-closure",
+    "worktree_path": "./sprint/h-6-cross-format-closure",
     "target": "full",
     "baseline_ref": "4474b67",
     "seed": 193,

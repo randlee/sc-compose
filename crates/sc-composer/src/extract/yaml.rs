@@ -327,7 +327,7 @@ fn match_yaml(
                 .map(|(key, _)| key.as_str())
                 .collect::<HashSet<_>>();
             for (key, template_value) in template {
-                reject_dynamic_key(key)?;
+                reject_dynamic_key(key, path)?;
                 let rendered_value = rendered_by_key
                     .get(key.as_str())
                     .copied()
@@ -368,13 +368,13 @@ fn match_yaml(
             }
         }
         (YamlNode::String(template), YamlNode::String(rendered)) => {
-            let segments =
-                raw_text::parse_raw_text_segments(template).map_err(map_raw_text_error)?;
+            let segments = raw_text::parse_raw_text_segments(template)
+                .map_err(|error| map_raw_text_error(error, path))?;
             let matched = raw_text::match_raw_text(&raw_text::RawTextMatchInput {
                 segments: &segments,
                 rendered_candidate: rendered,
             })
-            .map_err(map_raw_text_error)?;
+            .map_err(|error| map_raw_text_error(error, path))?;
             if let Some(ambiguity) = matched.ambiguity {
                 return Err(ambiguity_error(with_span(
                     &ambiguity.message,
@@ -480,14 +480,17 @@ fn contains_yaml_features(source: &str) -> bool {
             None => {
                 match byte {
                     b'"' | b'\'' => quote = Some(byte),
+                    b'#' if is_yaml_comment_boundary(bytes, index) => {
+                        while index < bytes.len() && bytes[index] != b'\n' {
+                            index += 1;
+                        }
+                        continue;
+                    }
                     b'&' | b'*' | b'!' if is_yaml_feature_boundary(bytes, index) => {
                         let is_named_feature = bytes.get(index + 1).is_some_and(|next| {
                             next.is_ascii_alphanumeric() || *next == b'_' || *next == b'-'
                         });
-                        let is_tag = byte == b'!'
-                            && bytes.get(index + 1).is_some_and(|next| {
-                                next.is_ascii_alphanumeric() || matches!(*next, b'!' | b'<' | b'_')
-                            });
+                        let is_tag = byte == b'!';
                         if is_named_feature || is_tag {
                             return true;
                         }
@@ -508,6 +511,10 @@ fn is_yaml_feature_boundary(bytes: &[u8], index: usize) -> bool {
             bytes[index - 1],
             b'[' | b']' | b'{' | b'}' | b',' | b':' | b'?' | b'-'
         )
+}
+
+fn is_yaml_comment_boundary(bytes: &[u8], index: usize) -> bool {
+    index == 0 || bytes[index - 1].is_ascii_whitespace()
 }
 
 fn validate_input_size(source: &str, label: &str) -> Result<(), ExtractError> {
@@ -610,8 +617,9 @@ fn input_limit_error(message: impl Into<String>) -> ExtractError {
     )
 }
 
-fn reject_dynamic_key(key: &str) -> Result<(), ExtractError> {
-    let segments = raw_text::parse_raw_text_segments(key).map_err(map_raw_text_error)?;
+fn reject_dynamic_key(key: &str, path: &[YamlPathSegment]) -> Result<(), ExtractError> {
+    let segments =
+        raw_text::parse_raw_text_segments(key).map_err(|error| map_raw_text_error(error, path))?;
     if segments
         .iter()
         .any(|segment| matches!(segment, raw_text::RawTextSegment::Variable(_)))
@@ -623,7 +631,10 @@ fn reject_dynamic_key(key: &str) -> Result<(), ExtractError> {
     Ok(())
 }
 
-fn map_raw_text_error(error: raw_text::RawTextMatchError) -> ExtractError {
+fn map_raw_text_error(
+    error: raw_text::RawTextMatchError,
+    path: &[YamlPathSegment],
+) -> ExtractError {
     match error.scope() {
         raw_text::RawTextErrorScope::Request => match error {
             raw_text::RawTextMatchError::InvalidTemplate { span, message }
@@ -637,7 +648,7 @@ fn map_raw_text_error(error: raw_text::RawTextMatchError) -> ExtractError {
                 template_error(with_span(&message, span))
             }
             raw_text::RawTextMatchError::StaticMismatch { span, message } => {
-                shape_error(&[], with_span(&message, span))
+                shape_error(path, with_span(&message, span))
             }
             raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
                 ambiguity_error(with_span(&message, span))

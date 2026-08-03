@@ -198,7 +198,6 @@ first implementation surface responsible for emitting and testing the code.
 | `ERR_EXTRACT_FORMAT_UNSUPPORTED` | format-selection | error | Requested format is not enabled; select `xml`, `json`, `yaml`, or `toml`. | H.3 | `diagnostics[]` code plus request location |
 | `ERR_EXTRACT_TEMPLATE_UNSUPPORTED` | template-syntax | error | Loop, branch, dynamic key, typed placeholder, or other unsupported expression; use a known-template scalar expression. | H.2/H.4/H.5 | `diagnostics[]` code plus template location |
 | `ERR_EXTRACT_INPUT_LIMIT` | input-policy | error | Size/depth/occurrence limit exceeded; reduce input or split the request. | H.2/H.4/H.5 | `diagnostics[]` code plus input location |
-| `ERR_EXTRACT_SECURITY_POLICY` | input-policy | error | Alias/tag or other disallowed parser feature encountered; remove the feature. | H.4 | `diagnostics[]` code plus source location |
 | `ERR_EXTRACT_JSON_MALFORMED` | json-parse | error | JSON cannot be parsed as one value; correct the rendered JSON. | H.2 | `diagnostics[]` code plus parser location |
 | `ERR_EXTRACT_JSON_DUPLICATE_KEY` | json-parse | error | An object repeats a key; remove the duplicate key. | H.2 | `diagnostics[]` code plus object-key location |
 | `ERR_EXTRACT_JSON_PATH_MISSING` | json-structure | error | Known-template path is absent; render the expected object/array shape. | H.2 | `diagnostics[]` code plus path location |

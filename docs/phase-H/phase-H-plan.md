@@ -1,9 +1,9 @@
 ---
 id: phase-H
 title: Reverse Extraction Format Extensions
-status: planned
-branch: plan/phase-h-rescope-formats-only
-worktree: ../sc-compose-worktrees/plan/phase-h-rescope-formats-only
+status: complete
+branch: integrate/phase-h
+worktree: ../sc-compose-worktrees/integrate/phase-h
 target: develop
 ---
 
@@ -17,9 +17,9 @@ JSON, YAML, and TOML. Phase H retains the pure library boundary, string-value
 report model, structural provenance, and fail-closed diagnostics while adding
 the approved format contracts one at a time.
 
-This plan is documentation-only on the planning branch. H.1's contract
-amendments are accepted; no runtime behavior is claimed until each
-implementation sprint for that behavior passes its own gate.
+H.1's contract amendments are accepted, and the numbered implementation,
+hardening, and phase-ending remediation sprints are complete on the
+Phase-H integration line.
 
 ## Source and scope
 
@@ -61,6 +61,10 @@ deferred to a future phase rather than included in Phase H.
    closes the promoted adversarial findings from the H.6 campaign, including
    parser-time XML depth enforcement, iterative XML cleanup, YAML policy
    scanning, and cross-format input limits.
+8. [Sprint H.8 — Phase-Ending Review Remediation](sprint-h-8-phase-ending-remediation.md)
+   closes the phase-ending review findings, including the remaining YAML tag,
+   TOML depth, path-aware diagnostics, registry, documentation, evidence, and
+   portability gaps.
 
 The numbering is contiguous and intentional. H.2 follows H.1; H.3 depends on
 H.2's library API; H.4 and H.5 may proceed in parallel after H.2/H.3 establish
@@ -73,7 +77,8 @@ the phase closure gate and cannot silently absorb missing runtime work from an
 earlier sprint. Confirmed findings from the H.6 fuzz campaign route through
 the normal fix-assignment loop; H.7 is the explicitly reserved numbered
 hardening sprint for the promoted findings listed in its authoritative sprint
-document.
+document. H.8 is the phase-ending remediation gate and owns the final
+production-readiness corrections without reopening H.7's settled QA findings.
 
 ## Hard boundaries
 

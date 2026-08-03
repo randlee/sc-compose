@@ -494,6 +494,17 @@ fn json_rejects_array_shape_static_and_adjacent_variable_mismatches() {
         sc_composer::DiagnosticCode::ErrExtractJsonShapeMismatch
     );
 
+    let nested_static_mismatch = extract(&json_request(
+        r#"{"profile":{"name":"user-{{ id }}"}}"#,
+        r#"{"profile":{"name":"admin-42"}}"#,
+    ))
+    .unwrap_err();
+    assert!(
+        nested_static_mismatch
+            .to_string()
+            .contains("$.profile.name")
+    );
+
     let adjacent = extract(&json_request(
         r#"{"value":"{{ first }}{{ second }}"}"#,
         r#"{"value":"AB"}"#,
@@ -685,6 +696,41 @@ fn yaml_flow_aliases_adjacent_to_delimiters_are_rejected() {
 }
 
 #[test]
+fn yaml_non_specific_tags_are_rejected_by_the_feature_scanner() {
+    for rendered in ["value: !\n", "value: ! \"malicious\"\n"] {
+        let error = extract(&yaml_request("value: \"{{ value }}\"\n", rendered)).unwrap_err();
+        assert_eq!(
+            error.code(),
+            sc_composer::DiagnosticCode::ErrExtractYamlAliasUnsupported
+        );
+    }
+}
+
+#[test]
+fn raw_text_mismatch_diagnostics_include_nested_paths_for_all_formats() {
+    let yaml = extract(&yaml_request(
+        "profile:\n  name: \"user-{{ id }}\"\n",
+        "profile:\n  name: \"admin-42\"\n",
+    ))
+    .unwrap_err();
+    assert!(yaml.to_string().contains("$.profile.name"));
+
+    let toml = extract(&toml_request(
+        "[profile]\nname = \"user-{{ id }}\"\n",
+        "[profile]\nname = \"admin-42\"\n",
+    ))
+    .unwrap_err();
+    assert!(toml.to_string().contains("$.profile.name"));
+
+    let xml = extract(&request(
+        "<root><profile>user-{{ id }}</profile></root>",
+        "<root><profile>admin-42</profile></root>",
+    ))
+    .unwrap_err();
+    assert!(xml.to_string().contains("$.root[0].profile[0]"));
+}
+
+#[test]
 fn toml_fixture_extracts_tables_and_array_of_table_paths() {
     let rendered = fixture_with_team_lead_sender(include_str!(
         "fixtures/reverse-extract/toml-cargo-config.toml"
@@ -807,6 +853,24 @@ fn toml_extraction_rejects_oversized_and_deep_inputs() {
     let error = extract(&toml_request(&template, &rendered)).unwrap_err();
     assert_eq!(
         error.code(),
+        sc_composer::DiagnosticCode::ErrExtractInputLimit
+    );
+
+    let mut nested_template = String::from("value = ");
+    let mut nested_rendered = String::from("value = ");
+    for _ in 0..=64 {
+        nested_template.push_str("{ value = ");
+        nested_rendered.push_str("{ value = ");
+    }
+    nested_template.push_str("\"{{ value }}\"");
+    nested_rendered.push_str("\"Ada\"");
+    for _ in 0..=64 {
+        nested_template.push('}');
+        nested_rendered.push('}');
+    }
+    let nested_error = extract(&toml_request(&nested_template, &nested_rendered)).unwrap_err();
+    assert_eq!(
+        nested_error.code(),
         sc_composer::DiagnosticCode::ErrExtractInputLimit
     );
 }

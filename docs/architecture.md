@@ -655,7 +655,9 @@ now records the accepted format-specific path/source contract and malformed-
 input policy. Cross-surface evidence remains required before any adapter is
 delivered. The generic report model may be extended, but the library/CLI/Python
 ownership boundary and Phase-G fail-closed XML behavior remain unchanged while
-H.2 through H.6 implement and validate the accepted extensions.
+H.2 through H.8 implement, harden, and validate the accepted extensions. H.8
+is the phase-ending remediation gate and does not reopen H.7's settled QA
+findings.
 The stable cross-format diagnostic inventory is maintained in
 [`docs/error-code-registry.md`](error-code-registry.md) and is part of the H.1
 contract rather than an implementation-time choice.
@@ -682,6 +684,8 @@ and its generated multi-worker report package under `site/reports/`. The
 campaign proves equivalent JSON/YAML/TOML report semantics across library,
 CLI, and Python surfaces, while preserving the explicit Phase-H boundary that
 XML mixed-content and dirty-prefix handling belong to a future phase.
+The H.6 execution record is bounded local evidence rather than a distributed
+agent campaign; its report and summary must retain that caveat.
 
 ## 9. Include and Frontmatter Merge Rules (FR-3)
 

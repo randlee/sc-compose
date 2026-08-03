@@ -264,12 +264,12 @@ fn collect_expected_evidence(
 ) -> Result<(), ExtractError> {
     evidence.expected_structural += 1;
     for value in element.attributes.values() {
-        collect_expected_value_evidence(value, evidence)?;
+        collect_expected_value_evidence(value, &[], evidence)?;
     }
     for child in &element.children {
         match child {
             XmlNode::Element(child) => collect_expected_evidence(child, evidence)?,
-            XmlNode::Text(value) => collect_expected_value_evidence(value, evidence)?,
+            XmlNode::Text(value) => collect_expected_value_evidence(value, &[], evidence)?,
         }
     }
     Ok(())
@@ -277,9 +277,10 @@ fn collect_expected_evidence(
 
 fn collect_expected_value_evidence(
     value: &str,
+    path: &[XmlPathSegment],
     evidence: &mut Evidence,
 ) -> Result<(), ExtractError> {
-    for segment in parse_value_segments(value)? {
+    for segment in parse_value_segments(value, path)? {
         match segment {
             raw_text::RawTextSegment::Static(static_text) => {
                 evidence.expected_static += usize::from(!static_text.is_empty());
@@ -303,7 +304,7 @@ fn collect_template_occurrences(
     for (name, value) in &template.attributes {
         let mut attribute_path = path.to_owned();
         attribute_path.push(XmlPathSegment::Attribute { name: name.clone() });
-        for segment in parse_value_segments(value)? {
+        for segment in parse_value_segments(value, &attribute_path)? {
             if let raw_text::RawTextSegment::Variable(variable) = segment {
                 occurrences.push(TemplateOccurrence {
                     variable,
@@ -316,7 +317,7 @@ fn collect_template_occurrences(
     for child in &template.children {
         match child {
             XmlNode::Text(value) => {
-                for segment in parse_value_segments(value)? {
+                for segment in parse_value_segments(value, path)? {
                     if let raw_text::RawTextSegment::Variable(variable) = segment {
                         occurrences.push(TemplateOccurrence {
                             variable,
@@ -654,7 +655,7 @@ fn match_children(
         && matches!(&template_children[0], XmlNode::Text(value) if is_single_variable(value))
     {
         if let XmlNode::Text(value) = &template_children[0] {
-            let segments = parse_value_segments(value.trim())?;
+            let segments = parse_value_segments(value.trim(), path)?;
             if let [raw_text::RawTextSegment::Variable(variable)] = segments.as_slice() {
                 if captures.len() >= MAX_XML_OCCURRENCES {
                     return Err(input_limit_error(format!(
@@ -736,7 +737,7 @@ fn match_value(
     captures: &mut Vec<Capture>,
     evidence: &mut Evidence,
 ) -> Result<(), ExtractError> {
-    let segments = parse_value_segments(template)?;
+    let segments = parse_value_segments(template, path)?;
     let variables = segments
         .iter()
         .filter_map(|segment| match segment {
@@ -756,7 +757,7 @@ fn match_value(
         segments: &segments,
         rendered_candidate: rendered,
     })
-    .map_err(map_raw_text_error)?;
+    .map_err(|error| map_raw_text_error(error, path))?;
     evidence.static_matches += matched.static_matches;
     if let Some(ambiguity) = matched.ambiguity {
         return Err(ExtractError::ambiguous(
@@ -781,11 +782,14 @@ fn match_value(
     Ok(())
 }
 
-fn parse_value_segments(value: &str) -> Result<Vec<raw_text::RawTextSegment<'_>>, ExtractError> {
-    raw_text::parse_raw_text_segments(value).map_err(map_raw_text_error)
+fn parse_value_segments<'a>(
+    value: &'a str,
+    path: &[XmlPathSegment],
+) -> Result<Vec<raw_text::RawTextSegment<'a>>, ExtractError> {
+    raw_text::parse_raw_text_segments(value).map_err(|error| map_raw_text_error(error, path))
 }
 
-fn map_raw_text_error(error: raw_text::RawTextMatchError) -> ExtractError {
+fn map_raw_text_error(error: raw_text::RawTextMatchError, path: &[XmlPathSegment]) -> ExtractError {
     match error.scope() {
         raw_text::RawTextErrorScope::Request => match error {
             raw_text::RawTextMatchError::InvalidTemplate { span, message }
@@ -795,9 +799,15 @@ fn map_raw_text_error(error: raw_text::RawTextMatchError) -> ExtractError {
             }
         },
         raw_text::RawTextErrorScope::Occurrence => match error {
-            raw_text::RawTextMatchError::InvalidTemplate { span, message }
-            | raw_text::RawTextMatchError::StaticMismatch { span, message } => {
+            raw_text::RawTextMatchError::InvalidTemplate { span, message } => {
                 ExtractError::unsupported(with_span(&message, span))
+            }
+            raw_text::RawTextMatchError::StaticMismatch { span, message } => {
+                ExtractError::unsupported(format!(
+                    "{} at {}",
+                    with_span(&message, span),
+                    format_path(path)
+                ))
             }
             raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
                 if message.contains("adjacent variable") {
@@ -817,6 +827,26 @@ fn with_span(message: &str, span: Option<std::ops::Range<usize>>) -> String {
         || message.to_owned(),
         |span| format!("{message} (candidate bytes {}..{})", span.start, span.end),
     )
+}
+
+fn format_path(path: &[XmlPathSegment]) -> String {
+    let mut result = String::from("$");
+    for segment in path {
+        match segment {
+            XmlPathSegment::Element { name, ordinal } => {
+                result.push('.');
+                result.push_str(name);
+                result.push('[');
+                result.push_str(&ordinal.to_string());
+                result.push(']');
+            }
+            XmlPathSegment::Attribute { name } => {
+                result.push_str(".@");
+                result.push_str(name);
+            }
+        }
+    }
+    result
 }
 
 fn validate_input_size(source: &str, label: &str) -> Result<(), ExtractError> {
