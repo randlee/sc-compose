@@ -59,12 +59,14 @@ pub(crate) fn extract_toml(
         template_error(format!("TOML template frontmatter is invalid: {error}"))
     })?;
     let template_source = parsed_template.body();
+    validate_parse_depth(template_source)?;
     if template_source.contains("{%") || template_source.contains("{#") {
         return Err(template_error(
             "TOML extraction does not support Jinja statements or comments",
         ));
     }
     let template = parse_document(template_source, true)?;
+    validate_parse_depth(request.rendered)?;
     let rendered = parse_document(request.rendered, false)?;
     validate_value_limits(&template, 0)?;
     validate_value_limits(&rendered, 0)?;
@@ -111,7 +113,7 @@ fn match_toml(
     match (template, rendered) {
         (toml::Value::Table(template), toml::Value::Table(rendered)) => {
             for (key, template_value) in template {
-                reject_dynamic_key(key)?;
+                reject_dynamic_key(key, path)?;
                 let rendered_value = rendered
                     .get(key)
                     .ok_or_else(|| missing_path_error(path, key))?;
@@ -148,13 +150,13 @@ fn match_toml(
             }
         }
         (toml::Value::String(template), toml::Value::String(rendered)) => {
-            let segments =
-                raw_text::parse_raw_text_segments(template).map_err(map_raw_text_error)?;
+            let segments = raw_text::parse_raw_text_segments(template)
+                .map_err(|error| map_raw_text_error(error, path))?;
             let matched = raw_text::match_raw_text(&raw_text::RawTextMatchInput {
                 segments: &segments,
                 rendered_candidate: rendered,
             })
-            .map_err(map_raw_text_error)?;
+            .map_err(|error| map_raw_text_error(error, path))?;
             if let Some(ambiguity) = matched.ambiguity {
                 return Err(ambiguity_error(with_span(
                     &ambiguity.message,
@@ -224,8 +226,9 @@ fn validate_value_limits(value: &toml::Value, depth: usize) -> Result<(), Extrac
     Ok(())
 }
 
-fn reject_dynamic_key(key: &str) -> Result<(), ExtractError> {
-    let segments = raw_text::parse_raw_text_segments(key).map_err(map_raw_text_error)?;
+fn reject_dynamic_key(key: &str, path: &[TomlPathSegment]) -> Result<(), ExtractError> {
+    let segments =
+        raw_text::parse_raw_text_segments(key).map_err(|error| map_raw_text_error(error, path))?;
     if segments
         .iter()
         .any(|segment| matches!(segment, raw_text::RawTextSegment::Variable(_)))
@@ -261,7 +264,69 @@ fn parse_document(source: &str, template: bool) -> Result<toml::Value, ExtractEr
     })
 }
 
-fn map_raw_text_error(error: raw_text::RawTextMatchError) -> ExtractError {
+fn validate_parse_depth(source: &str) -> Result<(), ExtractError> {
+    let mut depth = 0;
+    let mut quote: Option<(u8, bool)> = None;
+    let mut comment = false;
+    let bytes = source.as_bytes();
+    let mut index = 0;
+
+    while index < bytes.len() {
+        let byte = bytes[index];
+        if comment {
+            if byte == b'\n' {
+                comment = false;
+            }
+            index += 1;
+            continue;
+        }
+        if let Some((delimiter, multiline)) = quote {
+            if multiline && bytes.get(index..index + 3) == Some(&[delimiter; 3]) {
+                quote = None;
+                index += 3;
+            } else if !multiline && delimiter == b'"' && byte == b'\\' {
+                index = index.saturating_add(2).min(bytes.len());
+            } else if byte == delimiter {
+                quote = None;
+                index += 1;
+            } else {
+                index += 1;
+            }
+            continue;
+        }
+        match byte {
+            b'"' | b'\'' => {
+                let multiline = bytes.get(index..index + 3) == Some(&[byte; 3]);
+                quote = Some((byte, multiline));
+                index += if multiline { 3 } else { 1 };
+            }
+            b'#' => {
+                comment = true;
+                index += 1;
+            }
+            b'{' | b'[' => {
+                depth += 1;
+                if depth > MAX_TOML_NESTING_DEPTH {
+                    return Err(input_limit_error(format!(
+                        "TOML nesting depth exceeds the maximum of {MAX_TOML_NESTING_DEPTH}"
+                    )));
+                }
+                index += 1;
+            }
+            b'}' | b']' => {
+                depth = depth.saturating_sub(1);
+                index += 1;
+            }
+            _ => index += 1,
+        }
+    }
+    Ok(())
+}
+
+fn map_raw_text_error(
+    error: raw_text::RawTextMatchError,
+    path: &[TomlPathSegment],
+) -> ExtractError {
     match error.scope() {
         raw_text::RawTextErrorScope::Request => match error {
             raw_text::RawTextMatchError::InvalidTemplate { span, message }
@@ -275,7 +340,7 @@ fn map_raw_text_error(error: raw_text::RawTextMatchError) -> ExtractError {
                 template_error(with_span(&message, span))
             }
             raw_text::RawTextMatchError::StaticMismatch { span, message } => {
-                shape_error(&[], with_span(&message, span))
+                shape_error(path, with_span(&message, span))
             }
             raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
                 ambiguity_error(with_span(&message, span))

@@ -1,7 +1,7 @@
 ---
 id: H.7
 title: Alias and Input-Limit Hardening
-status: in_progress
+status: complete
 branch: sprint/h-7-alias-input-limit-hardening
 worktree: ../sc-compose-worktrees/sprint/h-7-alias-input-limit-hardening
 target: integrate/phase-h

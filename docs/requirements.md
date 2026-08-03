@@ -1045,8 +1045,8 @@ implementation. H.1 is now accepted: its JSON/YAML/TOML contract, diagnostic
 inventory, and shared `match_raw_text` core are the binding Phase-H design.
 The Phase-G XML scalar-only contract and its fail-closed malformed-input
 behavior remain authoritative for existing XML behavior, while H.2 through
-H.6 remain gated on their own implementation and closure criteria before
-runtime behavior changes are claimed.
+H.8 remain gated on their own implementation, hardening, and closure criteria
+before runtime behavior changes are claimed.
 
 The accepted H.1 design also plans the migration of the format-neutral
 value-matching logic from the current XML extraction path into one shared
@@ -1075,11 +1075,13 @@ numbered Phase-H sprint is reserved for these modes.
 
 #### Phase-H Closure Evidence
 
-The in-scope issue #193 extensions are closed by the committed H.2-H.6
-implementation, cross-surface tests, and bounded campaign evidence in
+The in-scope issue #193 extensions are closed by the committed H.2-H.8
+implementation, hardening, cross-surface tests, and bounded campaign evidence in
 [`docs/phase-H/evidence/h-6-cross-format-campaign.json`](phase-H/evidence/h-6-cross-format-campaign.json).
 The H.6 campaign covers JSON, YAML, and TOML with 36/36 expected outcomes,
-including malformed and unsupported inputs as intentional boundaries. XML
+including malformed and unsupported inputs as intentional boundaries. This is
+bounded local evidence from four workers because Agent Runner was unavailable;
+it is not evidence of a distributed adversarial-agent campaign. XML
 mixed-content extraction, dirty-prefix stripping, and template identification
 remain future-phase work; they are not silently treated as H.6 failures.
 

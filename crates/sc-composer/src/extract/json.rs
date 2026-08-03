@@ -127,7 +127,7 @@ fn match_json(
     match (template, rendered) {
         (serde_json::Value::Object(template), serde_json::Value::Object(rendered)) => {
             for (key, template_value) in template {
-                reject_dynamic_key(key)?;
+                reject_dynamic_key(key, path)?;
                 let rendered_value = rendered
                     .get(key)
                     .ok_or_else(|| missing_path_error(path, key))?;
@@ -176,13 +176,13 @@ fn match_json(
             }
         }
         (serde_json::Value::String(template), serde_json::Value::String(rendered)) => {
-            let segments =
-                raw_text::parse_raw_text_segments(template).map_err(map_raw_text_error)?;
+            let segments = raw_text::parse_raw_text_segments(template)
+                .map_err(|error| map_raw_text_error(error, path))?;
             let matched = raw_text::match_raw_text(&raw_text::RawTextMatchInput {
                 segments: &segments,
                 rendered_candidate: rendered,
             })
-            .map_err(map_raw_text_error)?;
+            .map_err(|error| map_raw_text_error(error, path))?;
             evidence.compared_values += 1;
             if let Some(ambiguity) = matched.ambiguity {
                 return Err(ambiguity_error(with_span(
@@ -293,8 +293,9 @@ fn validate_value_limits(value: &serde_json::Value, depth: usize) -> Result<(), 
     Ok(())
 }
 
-fn reject_dynamic_key(key: &str) -> Result<(), ExtractError> {
-    let segments = raw_text::parse_raw_text_segments(key).map_err(map_raw_text_error)?;
+fn reject_dynamic_key(key: &str, path: &[JsonPathSegment]) -> Result<(), ExtractError> {
+    let segments =
+        raw_text::parse_raw_text_segments(key).map_err(|error| map_raw_text_error(error, path))?;
     if segments
         .iter()
         .any(|segment| matches!(segment, raw_text::RawTextSegment::Variable(_)))
@@ -347,7 +348,10 @@ fn parse_document(source: &str, template: bool) -> Result<serde_json::Value, Ext
     Ok(value.0)
 }
 
-fn map_raw_text_error(error: raw_text::RawTextMatchError) -> ExtractError {
+fn map_raw_text_error(
+    error: raw_text::RawTextMatchError,
+    path: &[JsonPathSegment],
+) -> ExtractError {
     match error.scope() {
         raw_text::RawTextErrorScope::Request => match error {
             raw_text::RawTextMatchError::InvalidTemplate { span, message }
@@ -361,7 +365,7 @@ fn map_raw_text_error(error: raw_text::RawTextMatchError) -> ExtractError {
                 template_error(with_span(&message, span))
             }
             raw_text::RawTextMatchError::StaticMismatch { span, message } => {
-                shape_error(&[], with_span(&message, span))
+                shape_error(path, with_span(&message, span))
             }
             raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
                 ambiguity_error(with_span(&message, span))
