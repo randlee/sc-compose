@@ -314,6 +314,42 @@ fn json_extracts_string_values_with_object_and_array_paths() {
 }
 
 #[test]
+fn json_fixture_extracts_realistic_atm_payload_values_and_paths() {
+    let report = extract(&json_request(
+        include_str!("fixtures/reverse-extract/json-atm-payload.json.j2"),
+        include_str!("fixtures/reverse-extract/json-atm-payload.json"),
+    ))
+    .unwrap();
+
+    assert_eq!(
+        report.values[&variable("message_id")],
+        "01KZ2BV5Z6VCRQYDQWYSAZA8GB"
+    );
+    assert_eq!(report.values[&variable("sender")], "team-lead@sc-compose");
+    assert_eq!(
+        report.values[&variable("action_name")],
+        "execute the assigned task"
+    );
+    assert_eq!(
+        report.values[&variable("description")],
+        "H.2 JSON extraction core"
+    );
+    assert!(report.occurrences.iter().any(|occurrence| {
+        occurrence.variable == variable("action_name")
+            && occurrence.path
+                == vec![
+                    ExtractionPathSegment::Json(JsonPathSegment::ObjectKey {
+                        key: "actions".to_owned(),
+                    }),
+                    ExtractionPathSegment::Json(JsonPathSegment::ArrayIndex { index: 0 }),
+                    ExtractionPathSegment::Json(JsonPathSegment::ObjectKey {
+                        key: "action".to_owned(),
+                    }),
+                ]
+    }));
+}
+
+#[test]
 fn json_repeated_variable_is_ambiguous_without_overwriting_values() {
     let report = extract(&json_request(
         r#"{"first":"{{ name }}","second":"{{ name }}"}"#,
@@ -375,6 +411,20 @@ fn json_rejects_malformed_duplicate_missing_and_unsupported_boundaries() {
     assert_eq!(
         typed.code(),
         sc_composer::DiagnosticCode::ErrExtractJsonValueUnsupported
+    );
+}
+
+#[test]
+fn json_fixture_rejects_malformed_payload_with_stable_diagnostic() {
+    let error = extract(&json_request(
+        include_str!("fixtures/reverse-extract/json-malformed.json.j2"),
+        include_str!("fixtures/reverse-extract/json-malformed.json"),
+    ))
+    .unwrap_err();
+
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractJsonMalformed
     );
 }
 

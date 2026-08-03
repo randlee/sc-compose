@@ -8,6 +8,14 @@ fn fixture(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
     )
 }
 
+fn json_fixture(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
+    let root = repo_root().join("crates/sc-composer/tests/fixtures/reverse-extract");
+    (
+        root.join(format!("{name}.json.j2")),
+        root.join(format!("{name}.json")),
+    )
+}
+
 #[test]
 fn extract_json_is_a_clean_envelope_with_values_and_provenance() {
     let (template, rendered) = fixture("attributes");
@@ -146,4 +154,65 @@ fn extract_json_accepts_xml_declaration_comments_and_static_text_fixture() {
         value["payload"]["warnings"].as_array().map(Vec::len),
         Some(0)
     );
+}
+
+#[test]
+fn extract_json_format_emits_json_paths_and_sources() {
+    let (template, rendered) = json_fixture("json-atm-payload");
+
+    let output = sc_compose()
+        .arg("extract")
+        .arg(&template)
+        .arg(&rendered)
+        .arg("--format")
+        .arg("json")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty(), "JSON must remain stdout-clean");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["format"], "json");
+    assert_eq!(
+        value["payload"]["values"]["action_name"],
+        "execute the assigned task"
+    );
+    assert_eq!(
+        value["payload"]["occurrences"][0]["source"]["kind"],
+        "string_value"
+    );
+    let action_occurrence = value["payload"]["occurrences"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|occurrence| occurrence["variable"] == "action_name")
+        .unwrap();
+    assert_eq!(action_occurrence["path"][0]["kind"], "object_key");
+    assert_eq!(action_occurrence["path"][1]["kind"], "array_index");
+    assert_eq!(action_occurrence["path"][2]["kind"], "object_key");
+}
+
+#[test]
+fn extract_json_format_maps_malformed_input_to_json_diagnostic() {
+    let (template, rendered) = json_fixture("json-malformed");
+
+    let output = sc_compose()
+        .arg("extract")
+        .arg(&template)
+        .arg(&rendered)
+        .arg("--format")
+        .arg("json")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(
+        output.stderr.is_empty(),
+        "JSON failures must remain stdout-clean"
+    );
+    let value = parse_stdout(&output);
+    assert_first_code(&value, "ERR_EXTRACT_JSON_MALFORMED");
 }

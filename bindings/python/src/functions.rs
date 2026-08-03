@@ -82,15 +82,27 @@ fn render_template(template: &str, context: &Bound<'_, PyAny>) -> PyResult<Strin
         .map_err(render_error_to_pyerr)
 }
 
-/// Recover string values and XML provenance from a known template and render.
+/// Recover string values and format-specific provenance from a known template
+/// and render.
 #[pyfunction]
-#[pyo3(signature = (template, rendered, *, include=None, exclude=None))]
+#[pyo3(signature = (template, rendered, *, format="xml", include=None, exclude=None))]
 fn extract_variables(
     template: &str,
     rendered: &str,
+    format: &str,
     include: Option<&Bound<'_, PyAny>>,
     exclude: Option<&Bound<'_, PyAny>>,
 ) -> PyResult<PyExtractionReport> {
+    let format = match format {
+        "xml" => sc_composer::ExtractFormat::Xml,
+        "json" => sc_composer::ExtractFormat::Json,
+        other => {
+            return Err(config_error(
+                format!("unsupported extraction format `{other}`; use `xml` or `json`"),
+                Some("ERR_EXTRACT_FORMAT_UNSUPPORTED"),
+            ));
+        }
+    };
     let include = crate::convert::extract_variable_names(include).map_err(|error| {
         config_error(
             format!("invalid extraction include filter: {error}"),
@@ -103,13 +115,7 @@ fn extract_variables(
             Some("ERR_EXTRACT_INVALID_REQUEST"),
         )
     })?;
-    let request = sc_composer::ExtractRequest::new(
-        template,
-        rendered,
-        sc_composer::ExtractFormat::Xml,
-        &include,
-        &exclude,
-    );
+    let request = sc_composer::ExtractRequest::new(template, rendered, format, &include, &exclude);
     sc_composer::extract(&request)
         .map(|inner| PyExtractionReport { inner })
         .map_err(extract_error_to_pyerr)
