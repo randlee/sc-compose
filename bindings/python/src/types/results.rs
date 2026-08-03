@@ -195,9 +195,9 @@ impl PyExtractionPathSegment {
             ExtractionPathSegment::Xml(
                 XmlPathSegment::Element { name, .. } | XmlPathSegment::Attribute { name },
             ) => name.clone(),
-            ExtractionPathSegment::Json(JsonPathSegment::ObjectKey { key }) => key.clone(),
+            ExtractionPathSegment::Json(JsonPathSegment::ObjectKey { key })
+            | ExtractionPathSegment::Yaml(YamlPathSegment::MappingKey { key }) => key.clone(),
             ExtractionPathSegment::Json(JsonPathSegment::ArrayIndex { index }) => index.to_string(),
-            ExtractionPathSegment::Yaml(YamlPathSegment::MappingKey { key }) => key.clone(),
             ExtractionPathSegment::Yaml(YamlPathSegment::SequenceIndex { index }) => {
                 index.to_string()
             }
@@ -211,8 +211,8 @@ impl PyExtractionPathSegment {
             ExtractionPathSegment::Xml(XmlPathSegment::Attribute { .. })
             | ExtractionPathSegment::Json(JsonPathSegment::ObjectKey { .. })
             | ExtractionPathSegment::Yaml(YamlPathSegment::MappingKey { .. }) => None,
-            ExtractionPathSegment::Json(JsonPathSegment::ArrayIndex { index }) => Some(*index),
-            ExtractionPathSegment::Yaml(YamlPathSegment::SequenceIndex { index }) => Some(*index),
+            ExtractionPathSegment::Json(JsonPathSegment::ArrayIndex { index })
+            | ExtractionPathSegment::Yaml(YamlPathSegment::SequenceIndex { index }) => Some(*index),
         }
     }
 

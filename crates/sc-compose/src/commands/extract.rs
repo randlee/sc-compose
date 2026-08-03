@@ -200,16 +200,12 @@ fn format_path(path: &[ExtractionPathSegment]) -> String {
             ExtractionPathSegment::Xml(XmlPathSegment::Attribute { name }) => {
                 let _ = write!(formatted, "@{name}");
             }
-            ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ObjectKey { key }) => {
+            ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ObjectKey { key })
+            | ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::MappingKey { key }) => {
                 let _ = write!(formatted, ".{key}");
             }
-            ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ArrayIndex { index }) => {
-                let _ = write!(formatted, "[{index}]");
-            }
-            ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::MappingKey { key }) => {
-                let _ = write!(formatted, ".{key}");
-            }
-            ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::SequenceIndex { index }) => {
+            ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ArrayIndex { index })
+            | ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::SequenceIndex { index }) => {
                 let _ = write!(formatted, "[{index}]");
             }
         }
