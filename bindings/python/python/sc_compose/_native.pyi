@@ -107,6 +107,12 @@ class DiagnosticCode:
     ERR_EXTRACT_YAML_SHAPE_MISMATCH: str
     ERR_EXTRACT_YAML_VALUE_UNSUPPORTED: str
     ERR_EXTRACT_YAML_AMBIGUOUS: str
+    ERR_EXTRACT_TOML_MALFORMED: str
+    ERR_EXTRACT_TOML_DUPLICATE_KEY: str
+    ERR_EXTRACT_TOML_PATH_MISSING: str
+    ERR_EXTRACT_TOML_SHAPE_MISMATCH: str
+    ERR_EXTRACT_TOML_VALUE_UNSUPPORTED: str
+    ERR_EXTRACT_TOML_AMBIGUOUS: str
     WARN_EXTRACT_NOT_OBSERVED: str
     WARN_EXTRACT_LOW_CONFIDENCE: str
 
@@ -437,7 +443,7 @@ def extract_variables(
     template: str,
     rendered: str,
     *,
-    format: Literal["xml", "json", "yaml"] = "xml",
+    format: Literal["xml", "json", "yaml", "toml"] = "xml",
     include: list[str] | None = None,
     exclude: list[str] | None = None,
 ) -> ExtractionReport: ...

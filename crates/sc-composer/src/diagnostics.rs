@@ -141,6 +141,18 @@ pub enum DiagnosticCode {
     ErrExtractYamlValueUnsupported,
     /// A YAML variable occurs at multiple distinct paths.
     ErrExtractYamlAmbiguous,
+    /// The rendered TOML input is malformed.
+    ErrExtractTomlMalformed,
+    /// A TOML document or table contains a duplicate key.
+    ErrExtractTomlDuplicateKey,
+    /// A known-template TOML path is absent from the rendered document.
+    ErrExtractTomlPathMissing,
+    /// The rendered TOML shape differs from the known template.
+    ErrExtractTomlShapeMismatch,
+    /// A TOML placeholder occurs outside a supported string value.
+    ErrExtractTomlValueUnsupported,
+    /// A TOML variable occurs at multiple distinct paths.
+    ErrExtractTomlAmbiguous,
 }
 
 impl DiagnosticCode {
@@ -199,6 +211,12 @@ impl DiagnosticCode {
             Self::ErrExtractYamlShapeMismatch => "ERR_EXTRACT_YAML_SHAPE_MISMATCH",
             Self::ErrExtractYamlValueUnsupported => "ERR_EXTRACT_YAML_VALUE_UNSUPPORTED",
             Self::ErrExtractYamlAmbiguous => "ERR_EXTRACT_YAML_AMBIGUOUS",
+            Self::ErrExtractTomlMalformed => "ERR_EXTRACT_TOML_MALFORMED",
+            Self::ErrExtractTomlDuplicateKey => "ERR_EXTRACT_TOML_DUPLICATE_KEY",
+            Self::ErrExtractTomlPathMissing => "ERR_EXTRACT_TOML_PATH_MISSING",
+            Self::ErrExtractTomlShapeMismatch => "ERR_EXTRACT_TOML_SHAPE_MISMATCH",
+            Self::ErrExtractTomlValueUnsupported => "ERR_EXTRACT_TOML_VALUE_UNSUPPORTED",
+            Self::ErrExtractTomlAmbiguous => "ERR_EXTRACT_TOML_AMBIGUOUS",
         }
     }
 }

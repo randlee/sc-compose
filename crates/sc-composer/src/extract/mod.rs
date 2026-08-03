@@ -10,6 +10,7 @@ use crate::types::VariableName;
 mod error;
 mod json;
 pub(crate) mod raw_text;
+mod toml;
 mod xml;
 mod yaml;
 
@@ -18,6 +19,7 @@ mod tests;
 
 pub use error::ExtractError;
 pub use json::{JsonExtractionReport, JsonExtractionSource, JsonPathSegment};
+pub use toml::{TomlExtractionReport, TomlExtractionSource, TomlPathSegment};
 pub use xml::{XmlExtractionOccurrence, XmlExtractionReport, XmlExtractionSource, XmlPathSegment};
 pub use yaml::{YamlExtractionReport, YamlExtractionSource, YamlPathSegment};
 
@@ -34,6 +36,8 @@ pub enum ExtractionPathSegment {
     Json(JsonPathSegment),
     /// A YAML-specific path segment.
     Yaml(YamlPathSegment),
+    /// A TOML-specific path segment.
+    Toml(TomlPathSegment),
 }
 
 /// Source evidence used by the format-dispatching entry point.
@@ -49,6 +53,8 @@ pub enum ExtractionSource {
     Json(JsonExtractionSource),
     /// A YAML-specific source descriptor.
     Yaml(YamlExtractionSource),
+    /// A TOML-specific source descriptor.
+    Toml(TomlExtractionSource),
 }
 
 /// Output format supported by the initial extraction contract.
@@ -61,6 +67,8 @@ pub enum ExtractFormat {
     Json,
     /// Known-template YAML output.
     Yaml,
+    /// Known-template TOML output.
+    Toml,
 }
 
 /// In-memory request for known-template extraction.
@@ -352,6 +360,7 @@ pub fn extract(
         ExtractFormat::Xml => xml::extract_xml(request).map(map_xml_report),
         ExtractFormat::Json => json::extract_json(request).map(map_json_report),
         ExtractFormat::Yaml => yaml::extract_yaml(request).map(map_yaml_report),
+        ExtractFormat::Toml => toml::extract_toml(request).map(map_toml_report),
     }
 }
 
@@ -419,6 +428,30 @@ fn map_yaml_report(
                     .map(ExtractionPathSegment::Yaml)
                     .collect(),
                 source: ExtractionSource::Yaml(occurrence.source),
+                rendered_text: occurrence.rendered_text,
+            })
+            .collect(),
+        confidence: report.confidence,
+        diagnostics: report.diagnostics,
+    }
+}
+
+fn map_toml_report(
+    report: TomlExtractionReport,
+) -> ExtractionReport<ExtractionPathSegment, ExtractionSource> {
+    ExtractionReport {
+        values: report.values,
+        occurrences: report
+            .occurrences
+            .into_iter()
+            .map(|occurrence| ExtractionOccurrence {
+                variable: occurrence.variable,
+                path: occurrence
+                    .path
+                    .into_iter()
+                    .map(ExtractionPathSegment::Toml)
+                    .collect(),
+                source: ExtractionSource::Toml(occurrence.source),
                 rendered_text: occurrence.rendered_text,
             })
             .collect(),

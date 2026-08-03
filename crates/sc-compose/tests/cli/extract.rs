@@ -24,6 +24,14 @@ fn json_fixture(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
     )
 }
 
+fn toml_fixture(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
+    let root = repo_root().join("crates/sc-composer/tests/fixtures/reverse-extract");
+    (
+        root.join(format!("{name}.toml.j2")),
+        root.join(format!("{name}.toml")),
+    )
+}
+
 #[test]
 fn extract_text_reports_inputs_values_provenance_and_confidence() {
     let (template, rendered) = fixture("attributes");
@@ -251,4 +259,24 @@ fn extract_text_supports_yaml_format_and_skips_template_frontmatter() {
     assert!(stdout.contains("action_name: \"execute the assigned task\""));
     assert!(stdout.contains(".actions[0].action"));
     assert!(stdout.contains("string_scalar"));
+}
+
+#[test]
+fn extract_text_supports_toml_format_and_array_of_table_paths() {
+    let (template, rendered) = toml_fixture("toml-cargo-config");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--format")
+        .arg("toml")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("format: toml"));
+    assert!(stdout.contains("package_name: \"example-app\""));
+    assert!(stdout.contains(".bin[1].name"));
+    assert!(stdout.contains("string_value"));
 }

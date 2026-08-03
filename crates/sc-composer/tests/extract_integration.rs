@@ -1,6 +1,6 @@
 use sc_composer::{
     ExtractError, ExtractFormat, ExtractRequest, ExtractionDiagnosticKind, ExtractionPathSegment,
-    ExtractionSource, JsonPathSegment, VariableName, XmlPathSegment, extract,
+    ExtractionSource, JsonPathSegment, TomlPathSegment, VariableName, XmlPathSegment, extract,
 };
 
 fn variable(name: &str) -> VariableName {
@@ -13,6 +13,10 @@ fn request(template: &'static str, rendered: &'static str) -> ExtractRequest<'st
 
 fn json_request(template: &'static str, rendered: &'static str) -> ExtractRequest<'static> {
     ExtractRequest::new(template, rendered, ExtractFormat::Json, &[], &[])
+}
+
+fn toml_request(template: &'static str, rendered: &'static str) -> ExtractRequest<'static> {
+    ExtractRequest::new(template, rendered, ExtractFormat::Toml, &[], &[])
 }
 
 #[test]
@@ -636,4 +640,105 @@ fn yaml_fixture_rejects_malformed_and_duplicate_documents() {
     ))
     .unwrap();
     assert!(null.values.is_empty());
+}
+
+#[test]
+fn toml_fixture_extracts_tables_and_array_of_table_paths() {
+    let report = extract(&toml_request(
+        include_str!("fixtures/reverse-extract/toml-cargo-config.toml.j2"),
+        include_str!("fixtures/reverse-extract/toml-cargo-config.toml"),
+    ))
+    .unwrap();
+
+    assert_eq!(report.values[&variable("package_name")], "example-app");
+    assert_eq!(report.values[&variable("serde_version")], "1.0");
+    assert_eq!(report.values[&variable("bin_name")], "example-app");
+    assert_eq!(report.values[&variable("second_bin_name")], "example-tool");
+    let second_bin = report
+        .occurrences
+        .iter()
+        .find(|occurrence| occurrence.variable == variable("second_bin_name"))
+        .unwrap();
+    assert_eq!(
+        second_bin.path,
+        vec![
+            ExtractionPathSegment::Toml(TomlPathSegment::TableKey {
+                key: "bin".to_owned(),
+            }),
+            ExtractionPathSegment::Toml(TomlPathSegment::ArrayIndex { index: 1 }),
+            ExtractionPathSegment::Toml(TomlPathSegment::TableKey {
+                key: "name".to_owned(),
+            }),
+        ]
+    );
+    assert_eq!(
+        second_bin.source,
+        ExtractionSource::Toml(sc_composer::TomlExtractionSource::StringValue)
+    );
+}
+
+#[test]
+fn toml_fixture_rejects_malformed_duplicate_and_shape_boundaries() {
+    let malformed = extract(&toml_request(
+        include_str!("fixtures/reverse-extract/toml-malformed.toml.j2"),
+        include_str!("fixtures/reverse-extract/toml-malformed.toml"),
+    ))
+    .unwrap_err();
+    assert_eq!(
+        malformed.code(),
+        sc_composer::DiagnosticCode::ErrExtractTomlMalformed
+    );
+
+    let duplicate = extract(&toml_request(
+        include_str!("fixtures/reverse-extract/toml-duplicate.toml.j2"),
+        include_str!("fixtures/reverse-extract/toml-duplicate.toml"),
+    ))
+    .unwrap_err();
+    assert_eq!(
+        duplicate.code(),
+        sc_composer::DiagnosticCode::ErrExtractTomlDuplicateKey
+    );
+
+    let typed = extract(&toml_request("count = \"{{ count }}\"\n", "count = 42\n")).unwrap_err();
+    assert_eq!(
+        typed.code(),
+        sc_composer::DiagnosticCode::ErrExtractTomlShapeMismatch
+    );
+
+    let typed_placeholder =
+        extract(&toml_request("count = {{ count }}\n", "count = 42\n")).unwrap_err();
+    assert_eq!(
+        typed_placeholder.code(),
+        sc_composer::DiagnosticCode::ErrExtractTomlValueUnsupported
+    );
+
+    let dynamic_key = extract(&toml_request(
+        "\"{{ key }}\" = \"Ada\"\n",
+        "name = \"Ada\"\n",
+    ))
+    .unwrap_err();
+    assert_eq!(
+        dynamic_key.code(),
+        sc_composer::DiagnosticCode::ErrExtractTomlValueUnsupported
+    );
+
+    let missing = extract(&toml_request(
+        "[package]\nname = \"{{ name }}\"\n",
+        "[other]\nname = \"Ada\"\n",
+    ))
+    .unwrap_err();
+    assert_eq!(
+        missing.code(),
+        sc_composer::DiagnosticCode::ErrExtractTomlPathMissing
+    );
+
+    let array_shape = extract(&toml_request(
+        "values = [\"{{ first }}\", \"{{ second }}\"]\n",
+        "values = [\"one\"]\n",
+    ))
+    .unwrap_err();
+    assert_eq!(
+        array_shape.code(),
+        sc_composer::DiagnosticCode::ErrExtractTomlShapeMismatch
+    );
 }
