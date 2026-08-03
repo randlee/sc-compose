@@ -369,6 +369,7 @@ def test_toml_extraction_rejects_oversized_input_with_stable_code() -> None:
             "<root><value>" + "x" * 1_048_577 + "</value></root>",
         ),
     ],
+    ids=["json", "yaml", "xml"],
 )
 def test_json_yaml_and_xml_extraction_limits_reach_python(
     format: str, template: str, rendered: str
