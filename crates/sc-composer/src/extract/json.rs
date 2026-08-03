@@ -16,6 +16,10 @@ use super::{
     raw_text,
 };
 
+const MAX_JSON_INPUT_BYTES: usize = 1_048_576;
+const MAX_JSON_NESTING_DEPTH: usize = 64;
+const MAX_JSON_OCCURRENCES: usize = 10_000;
+
 /// JSON object-key or array-index path evidence.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum JsonPathSegment {
@@ -56,6 +60,8 @@ struct Evidence {
 pub(crate) fn extract_json(
     request: &ExtractRequest<'_>,
 ) -> Result<JsonExtractionReport, ExtractError> {
+    validate_input_size(request.template, "template")?;
+    validate_input_size(request.rendered, "rendered JSON")?;
     let parsed_template = parse_template_document(request.template).map_err(|error| {
         template_error(format!("JSON template frontmatter is invalid: {error}"))
     })?;
@@ -67,6 +73,8 @@ pub(crate) fn extract_json(
     }
     let template = parse_document(template_source, true)?;
     let rendered = parse_document(request.rendered, false)?;
+    validate_value_limits(&template, 0)?;
+    validate_value_limits(&rendered, 0)?;
     let mut captures = Vec::new();
     let mut evidence = Evidence::default();
     match_json(&template, &rendered, &[], &mut captures, &mut evidence)?;
@@ -181,6 +189,11 @@ fn match_json(
                 )));
             }
             for capture in matched.captures {
+                if captures.len() >= MAX_JSON_OCCURRENCES {
+                    return Err(input_limit_error(format!(
+                        "JSON extraction exceeded the maximum of {MAX_JSON_OCCURRENCES} occurrences"
+                    )));
+                }
                 debug_assert_eq!(&rendered[capture.span.clone()], capture.rendered_text);
                 captures.push(Capture {
                     variable: capture.variable,
@@ -207,6 +220,41 @@ fn match_json(
                 "JSON value does not match the known template",
             ));
         }
+    }
+    Ok(())
+}
+
+fn validate_input_size(source: &str, label: &str) -> Result<(), ExtractError> {
+    if source.len() > MAX_JSON_INPUT_BYTES {
+        return Err(input_limit_error(format!(
+            "JSON {label} input is {} bytes; maximum is {MAX_JSON_INPUT_BYTES} bytes",
+            source.len()
+        )));
+    }
+    Ok(())
+}
+
+fn validate_value_limits(value: &serde_json::Value, depth: usize) -> Result<(), ExtractError> {
+    if depth > MAX_JSON_NESTING_DEPTH {
+        return Err(input_limit_error(format!(
+            "JSON nesting depth exceeds the maximum of {MAX_JSON_NESTING_DEPTH}"
+        )));
+    }
+    match value {
+        serde_json::Value::Object(values) => {
+            for value in values.values() {
+                validate_value_limits(value, depth + 1)?;
+            }
+        }
+        serde_json::Value::Array(values) => {
+            for value in values {
+                validate_value_limits(value, depth + 1)?;
+            }
+        }
+        serde_json::Value::Null
+        | serde_json::Value::Bool(_)
+        | serde_json::Value::Number(_)
+        | serde_json::Value::String(_) => {}
     }
     Ok(())
 }
@@ -333,6 +381,17 @@ fn malformed_error_with_source(
             description: "inspect the rendered JSON for one well-formed value".to_owned(),
         },
         source,
+    )
+}
+
+fn input_limit_error(message: impl Into<String>) -> ExtractError {
+    ExtractError::format_error(
+        DiagnosticCode::ErrExtractInputLimit,
+        ExtractionDiagnosticKind::Malformed,
+        message,
+        RecoveryHintKind::InspectInput {
+            description: "reduce JSON input size, nesting depth, or occurrence count".to_owned(),
+        },
     )
 }
 

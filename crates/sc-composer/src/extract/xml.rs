@@ -9,6 +9,7 @@ use quick_xml::events::Event;
 use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::DiagnosticCode;
+use crate::error::RecoveryHintKind;
 use crate::frontmatter::parse_template_document;
 use crate::types::VariableName;
 
@@ -16,6 +17,10 @@ use super::{
     ExtractError, ExtractRequest, ExtractionDiagnostic, ExtractionDiagnosticKind,
     ExtractionOccurrence, ExtractionReport, raw_text,
 };
+
+const MAX_XML_INPUT_BYTES: usize = 1_048_576;
+const MAX_XML_NESTING_DEPTH: usize = 64;
+const MAX_XML_OCCURRENCES: usize = 10_000;
 
 /// XML element/attribute path evidence.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -90,6 +95,8 @@ struct Evidence {
 pub(crate) fn extract_xml(
     request: &ExtractRequest<'_>,
 ) -> Result<XmlExtractionReport, ExtractError> {
+    validate_input_size(request.template, "template")?;
+    validate_input_size(request.rendered, "rendered XML")?;
     let parsed_template = parse_template_document(request.template).map_err(|error| {
         ExtractError::unsupported_with_source(
             format!("template frontmatter is not supported: {error}"),
@@ -100,6 +107,8 @@ pub(crate) fn extract_xml(
     reject_unsupported_template_syntax(template_source)?;
     let template = parse_xml(template_source)?;
     let rendered = parse_xml(request.rendered)?;
+    validate_value_limits(&template.root, 0)?;
+    validate_value_limits(&rendered.root, 0)?;
     reject_namespaces(&template)?;
     reject_namespaces(&rendered)?;
 
@@ -621,6 +630,11 @@ fn match_children(
         if let XmlNode::Text(value) = &template_children[0] {
             let segments = parse_value_segments(value.trim())?;
             if let [raw_text::RawTextSegment::Variable(variable)] = segments.as_slice() {
+                if captures.len() >= MAX_XML_OCCURRENCES {
+                    return Err(input_limit_error(format!(
+                        "XML extraction exceeded the maximum of {MAX_XML_OCCURRENCES} occurrences"
+                    )));
+                }
                 captures.push(Capture {
                     variable: variable.clone(),
                     path: path.to_owned(),
@@ -725,6 +739,11 @@ fn match_value(
         ));
     }
     for capture in matched.captures {
+        if captures.len() >= MAX_XML_OCCURRENCES {
+            return Err(input_limit_error(format!(
+                "XML extraction exceeded the maximum of {MAX_XML_OCCURRENCES} occurrences"
+            )));
+        }
         debug_assert_eq!(&rendered[capture.span.clone()], capture.rendered_text);
         captures.push(Capture {
             variable: capture.variable,
@@ -771,6 +790,41 @@ fn with_span(message: &str, span: Option<std::ops::Range<usize>>) -> String {
     span.map_or_else(
         || message.to_owned(),
         |span| format!("{message} (candidate bytes {}..{})", span.start, span.end),
+    )
+}
+
+fn validate_input_size(source: &str, label: &str) -> Result<(), ExtractError> {
+    if source.len() > MAX_XML_INPUT_BYTES {
+        return Err(input_limit_error(format!(
+            "XML {label} input is {} bytes; maximum is {MAX_XML_INPUT_BYTES} bytes",
+            source.len()
+        )));
+    }
+    Ok(())
+}
+
+fn validate_value_limits(element: &XmlElement, depth: usize) -> Result<(), ExtractError> {
+    if depth > MAX_XML_NESTING_DEPTH {
+        return Err(input_limit_error(format!(
+            "XML nesting depth exceeds the maximum of {MAX_XML_NESTING_DEPTH}"
+        )));
+    }
+    for child in &element.children {
+        if let XmlNode::Element(child) = child {
+            validate_value_limits(child, depth + 1)?;
+        }
+    }
+    Ok(())
+}
+
+fn input_limit_error(message: impl Into<String>) -> ExtractError {
+    ExtractError::format_error(
+        DiagnosticCode::ErrExtractInputLimit,
+        ExtractionDiagnosticKind::Malformed,
+        message,
+        RecoveryHintKind::InspectInput {
+            description: "reduce XML input size, nesting depth, or occurrence count".to_owned(),
+        },
     )
 }
 

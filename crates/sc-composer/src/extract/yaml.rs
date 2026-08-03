@@ -17,6 +17,10 @@ use super::{
     raw_text,
 };
 
+const MAX_YAML_INPUT_BYTES: usize = 1_048_576;
+const MAX_YAML_NESTING_DEPTH: usize = 64;
+const MAX_YAML_OCCURRENCES: usize = 10_000;
+
 /// YAML mapping-key or sequence-index path evidence.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum YamlPathSegment {
@@ -198,6 +202,8 @@ struct Capture {
 pub(crate) fn extract_yaml(
     request: &ExtractRequest<'_>,
 ) -> Result<YamlExtractionReport, ExtractError> {
+    validate_input_size(request.template, "template")?;
+    validate_input_size(request.rendered, "rendered YAML")?;
     let parsed_template = parse_template_document(request.template).map_err(|error| {
         template_error(format!("YAML template frontmatter is invalid: {error}"))
     })?;
@@ -214,6 +220,8 @@ pub(crate) fn extract_yaml(
     }
     let template = parse_document(template_source, true)?;
     let rendered = parse_document(request.rendered, false)?;
+    validate_value_limits(&template, 0)?;
+    validate_value_limits(&rendered, 0)?;
     let mut captures = Vec::new();
     match_yaml(&template, &rendered, &[], &mut captures)?;
 
@@ -313,6 +321,11 @@ fn match_yaml(
                 )));
             }
             for capture in matched.captures {
+                if captures.len() >= MAX_YAML_OCCURRENCES {
+                    return Err(input_limit_error(format!(
+                        "YAML extraction exceeded the maximum of {MAX_YAML_OCCURRENCES} occurrences"
+                    )));
+                }
                 captures.push(Capture {
                     variable: capture.variable,
                     path: path.to_owned(),
@@ -382,12 +395,23 @@ fn contains_yaml_features(source: &str) -> bool {
             b'\'' if !double => single = !single,
             b'"' if !single => double = !double,
             b'&' | b'*' | b'!' if !single && !double => {
-                if index > 0 && !bytes[index - 1].is_ascii_whitespace() {
+                let at_flow_boundary = index == 0
+                    || bytes[index - 1].is_ascii_whitespace()
+                    || matches!(
+                        bytes[index - 1],
+                        b'[' | b']' | b'{' | b'}' | b',' | b':' | b'?'
+                    );
+                if !at_flow_boundary {
                     continue;
                 }
-                if bytes.get(index + 1).is_some_and(|next| {
+                let is_named_feature = bytes.get(index + 1).is_some_and(|next| {
                     next.is_ascii_alphanumeric() || *next == b'_' || *next == b'-'
-                }) {
+                });
+                let is_tag = *byte == b'!'
+                    && bytes.get(index + 1).is_some_and(|next| {
+                        next.is_ascii_alphanumeric() || matches!(*next, b'!' | b'<' | b'_')
+                    });
+                if is_named_feature || is_tag {
                     return true;
                 }
             }
@@ -395,6 +419,49 @@ fn contains_yaml_features(source: &str) -> bool {
         }
     }
     false
+}
+
+fn validate_input_size(source: &str, label: &str) -> Result<(), ExtractError> {
+    if source.len() > MAX_YAML_INPUT_BYTES {
+        return Err(input_limit_error(format!(
+            "YAML {label} input is {} bytes; maximum is {MAX_YAML_INPUT_BYTES} bytes",
+            source.len()
+        )));
+    }
+    Ok(())
+}
+
+fn validate_value_limits(value: &YamlNode, depth: usize) -> Result<(), ExtractError> {
+    if depth > MAX_YAML_NESTING_DEPTH {
+        return Err(input_limit_error(format!(
+            "YAML nesting depth exceeds the maximum of {MAX_YAML_NESTING_DEPTH}"
+        )));
+    }
+    match value {
+        YamlNode::Mapping(values) => {
+            for (_, value) in values {
+                validate_value_limits(value, depth + 1)?;
+            }
+        }
+        YamlNode::Sequence(values) => {
+            for value in values {
+                validate_value_limits(value, depth + 1)?;
+            }
+        }
+        YamlNode::String(_) | YamlNode::Other(_) => {}
+    }
+    Ok(())
+}
+
+fn input_limit_error(message: impl Into<String>) -> ExtractError {
+    ExtractError::format_error(
+        DiagnosticCode::ErrExtractInputLimit,
+        ExtractionDiagnosticKind::Malformed,
+        message,
+        RecoveryHintKind::InspectInput {
+            description: "reduce YAML input size, nesting depth, or occurrence count".to_owned(),
+        },
+    )
 }
 
 fn reject_dynamic_key(key: &str) -> Result<(), ExtractError> {
