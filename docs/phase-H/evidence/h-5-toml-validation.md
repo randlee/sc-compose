@@ -1,8 +1,9 @@
 # H.5 TOML extraction validation record
 
 - Validation date: 2026-08-03
-- H.4 merge baseline: `cc12676`
-- Implementation commits: `042281e`, `cd2684d`
+- H.4 merge-forward commit: `653fcba`
+- Implementation commits: `042281e`, `cd2684d`, `b308a91`
+- QA fix commit: `7d9855e`
 - Worktree: `sprint/h-5-toml-extraction`
 - Scope: TOML extraction through the shared `ExtractFormat` dispatch, Python
   binding, text CLI, and JSON CLI.
@@ -22,6 +23,12 @@ paths. Adversarial coverage includes malformed input, duplicate keys, typed
 placeholder values, dynamic keys, missing paths, and array shape mismatch.
 Placeholder matching delegates to `extract/raw_text.rs`.
 
+The QA correction adds adapter-level repeated-variable ambiguity tests for both
+YAML and TOML, centralizes the shared team-lead sender fixture used by the JSON,
+YAML, and TOML realistic cases, and exposes `ERR_EXTRACT_INPUT_LIMIT` across
+Rust and Python. TOML extraction rejects inputs over 1 MiB, values deeper than
+64 levels, or more than 10,000 recovered occurrences before producing a report.
+
 ## Required validation
 
 All required validation passed on the implementation tip:
@@ -29,7 +36,7 @@ All required validation passed on the implementation tip:
 - `cargo fmt --all --check` — passed.
 - `cargo test --workspace` — passed (including 68 CLI unit tests, 131 CLI
   integration tests, 60 JSON-CLI tests, 1 boundary test, 17 Python-binding
-  Rust tests, 140 composer unit tests, 28 extraction integration tests, and
+  Rust tests, 142 composer unit tests, 29 extraction integration tests, and
   14 composer integration tests).
 - `cargo clippy --all-targets --all-features -- -D warnings` — passed.
 - `cargo test -p sc-compose --test repo_boundaries` — 1 passed.
