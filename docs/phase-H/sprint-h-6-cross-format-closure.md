@@ -19,7 +19,8 @@ target: develop
 ## Hard Dependencies
 
 - H.2 through H.5 are merged and their individual validation gates pass.
-- H.1's accepted contract and all format-specific amendments are available.
+- H.1 is complete and its accepted contract plus all format-specific amendments
+  are available.
 - `.claude/skills/adversarial-fuzzing/` remains the authoritative campaign and
   report protocol.
 
@@ -82,7 +83,7 @@ each candidate so a reviewer can judge whether it is a realistic use case.
 
 ## This Sprint Does Not Close
 
-- New formats or policies not accepted by H.1.
+- New formats or policies outside the accepted H.1 contract.
 - XML mixed-content extraction, XML dirty-prefix tolerance, and
   customer-facing best-effort/degraded or raw-text modes.
 - Unknown-template identification, Jinja execution, loop reconstruction, or

@@ -370,7 +370,8 @@ fn extract_error_message(error: &ExtractError) -> String {
         ExtractError::InvalidRequest { message, .. } => message.clone(),
         ExtractError::MalformedXml { diagnostic, .. }
         | ExtractError::UnsupportedSyntax { diagnostic, .. }
-        | ExtractError::AmbiguousStructure { diagnostic, .. } => diagnostic.message.clone(),
+        | ExtractError::AmbiguousStructure { diagnostic, .. }
+        | ExtractError::FormatError { diagnostic, .. } => diagnostic.message.clone(),
     }
 }
 

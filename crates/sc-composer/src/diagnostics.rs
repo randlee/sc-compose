@@ -109,6 +109,20 @@ pub enum DiagnosticCode {
     WarnExtractNotObserved,
     /// Extraction evidence is insufficient for a high-confidence report.
     WarnExtractLowConfidence,
+    /// The rendered JSON input is malformed.
+    ErrExtractJsonMalformed,
+    /// A JSON object contains a duplicate key.
+    ErrExtractJsonDuplicateKey,
+    /// A known-template JSON path is absent from the rendered value.
+    ErrExtractJsonPathMissing,
+    /// A rendered JSON value differs from the known-template structure.
+    ErrExtractJsonShapeMismatch,
+    /// A JSON placeholder occurs in an unsupported value shape.
+    ErrExtractJsonValueUnsupported,
+    /// A JSON variable occurs at multiple distinct paths.
+    ErrExtractJsonAmbiguous,
+    /// A template expression is outside the supported known-template subset.
+    ErrExtractTemplateUnsupported,
 }
 
 impl DiagnosticCode {
@@ -151,6 +165,13 @@ impl DiagnosticCode {
             Self::ErrExtractAmbiguous => "ERR_EXTRACT_AMBIGUOUS",
             Self::WarnExtractNotObserved => "WARN_EXTRACT_NOT_OBSERVED",
             Self::WarnExtractLowConfidence => "WARN_EXTRACT_LOW_CONFIDENCE",
+            Self::ErrExtractJsonMalformed => "ERR_EXTRACT_JSON_MALFORMED",
+            Self::ErrExtractJsonDuplicateKey => "ERR_EXTRACT_JSON_DUPLICATE_KEY",
+            Self::ErrExtractJsonPathMissing => "ERR_EXTRACT_JSON_PATH_MISSING",
+            Self::ErrExtractJsonShapeMismatch => "ERR_EXTRACT_JSON_SHAPE_MISMATCH",
+            Self::ErrExtractJsonValueUnsupported => "ERR_EXTRACT_JSON_VALUE_UNSUPPORTED",
+            Self::ErrExtractJsonAmbiguous => "ERR_EXTRACT_JSON_AMBIGUOUS",
+            Self::ErrExtractTemplateUnsupported => "ERR_EXTRACT_TEMPLATE_UNSUPPORTED",
         }
     }
 }

@@ -18,7 +18,7 @@ target: develop
 
 ## Hard Dependencies
 
-- H.1 accepts YAML format and parser semantics.
+- H.1 is complete and its accepted YAML format/parser semantics are available.
 - H.2's shared raw-text core (`crates/sc-composer/src/extract/raw_text.rs`) is
   merged to `develop`, XML delegates to it, and H.2's XML-regression evidence
   from its XML-parity checkpoint is confirmed passing before H.4
