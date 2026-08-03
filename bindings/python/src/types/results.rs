@@ -7,6 +7,7 @@ use sc_composer::{
     ExtractionPathSegment, ExtractionReport, ExtractionSource, Frontmatter, FrontmatterInitResult,
     InitResult, JsonExtractionSource, JsonPathSegment, ParsedTemplate, RenderedArtifact, Renderer,
     ResolveResult, ValidationReport, VerifyResult, XmlExtractionSource, XmlPathSegment,
+    YamlExtractionSource, YamlPathSegment,
 };
 
 use crate::convert::{extract_json_context, json_to_py};
@@ -29,6 +30,7 @@ fn extraction_source_kind_str(source: &ExtractionSource) -> &'static str {
         ExtractionSource::Xml(XmlExtractionSource::Attribute { .. }) => "attribute",
         ExtractionSource::Xml(XmlExtractionSource::TextNode) => "text_node",
         ExtractionSource::Json(JsonExtractionSource::StringValue) => "string_value",
+        ExtractionSource::Yaml(YamlExtractionSource::StringScalar) => "string_scalar",
     }
 }
 
@@ -38,6 +40,8 @@ fn xml_path_segment_kind_str(segment: &ExtractionPathSegment) -> &'static str {
         ExtractionPathSegment::Xml(XmlPathSegment::Attribute { .. }) => "attribute",
         ExtractionPathSegment::Json(JsonPathSegment::ObjectKey { .. }) => "object_key",
         ExtractionPathSegment::Json(JsonPathSegment::ArrayIndex { .. }) => "array_index",
+        ExtractionPathSegment::Yaml(YamlPathSegment::MappingKey { .. }) => "mapping_key",
+        ExtractionPathSegment::Yaml(YamlPathSegment::SequenceIndex { .. }) => "sequence_index",
     }
 }
 
@@ -149,7 +153,8 @@ impl PyExtractionSource {
         match &self.inner {
             ExtractionSource::Xml(XmlExtractionSource::Attribute { name }) => Some(name.clone()),
             ExtractionSource::Xml(XmlExtractionSource::TextNode)
-            | ExtractionSource::Json(JsonExtractionSource::StringValue) => None,
+            | ExtractionSource::Json(JsonExtractionSource::StringValue)
+            | ExtractionSource::Yaml(YamlExtractionSource::StringScalar) => None,
         }
     }
 
@@ -163,6 +168,9 @@ impl PyExtractionSource {
             }
             ExtractionSource::Json(JsonExtractionSource::StringValue) => {
                 "ExtractionSource(kind='string_value')".to_owned()
+            }
+            ExtractionSource::Yaml(YamlExtractionSource::StringScalar) => {
+                "ExtractionSource(kind='string_scalar')".to_owned()
             }
         }
     }
@@ -189,6 +197,10 @@ impl PyExtractionPathSegment {
             ) => name.clone(),
             ExtractionPathSegment::Json(JsonPathSegment::ObjectKey { key }) => key.clone(),
             ExtractionPathSegment::Json(JsonPathSegment::ArrayIndex { index }) => index.to_string(),
+            ExtractionPathSegment::Yaml(YamlPathSegment::MappingKey { key }) => key.clone(),
+            ExtractionPathSegment::Yaml(YamlPathSegment::SequenceIndex { index }) => {
+                index.to_string()
+            }
         }
     }
 
@@ -197,8 +209,10 @@ impl PyExtractionPathSegment {
         match &self.inner {
             ExtractionPathSegment::Xml(XmlPathSegment::Element { ordinal, .. }) => Some(*ordinal),
             ExtractionPathSegment::Xml(XmlPathSegment::Attribute { .. })
-            | ExtractionPathSegment::Json(JsonPathSegment::ObjectKey { .. }) => None,
+            | ExtractionPathSegment::Json(JsonPathSegment::ObjectKey { .. })
+            | ExtractionPathSegment::Yaml(YamlPathSegment::MappingKey { .. }) => None,
             ExtractionPathSegment::Json(JsonPathSegment::ArrayIndex { index }) => Some(*index),
+            ExtractionPathSegment::Yaml(YamlPathSegment::SequenceIndex { index }) => Some(*index),
         }
     }
 
@@ -215,6 +229,12 @@ impl PyExtractionPathSegment {
             }
             ExtractionPathSegment::Json(JsonPathSegment::ArrayIndex { index }) => {
                 format!("ExtractionPathSegment(kind='array_index', ordinal={index})")
+            }
+            ExtractionPathSegment::Yaml(YamlPathSegment::MappingKey { key }) => {
+                format!("ExtractionPathSegment(kind='mapping_key', name={key:?})")
+            }
+            ExtractionPathSegment::Yaml(YamlPathSegment::SequenceIndex { index }) => {
+                format!("ExtractionPathSegment(kind='sequence_index', ordinal={index})")
             }
         }
     }

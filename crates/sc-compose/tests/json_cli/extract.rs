@@ -8,6 +8,14 @@ fn fixture(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
     )
 }
 
+fn yaml_fixture(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
+    let root = repo_root().join("crates/sc-composer/tests/fixtures/reverse-extract");
+    (
+        root.join(format!("{name}.yaml.j2")),
+        root.join(format!("{name}.yaml")),
+    )
+}
+
 fn json_fixture(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
     let root = repo_root().join("crates/sc-composer/tests/fixtures/reverse-extract");
     (
@@ -215,4 +223,37 @@ fn extract_json_format_maps_malformed_input_to_json_diagnostic() {
     );
     let value = parse_stdout(&output);
     assert_first_code(&value, "ERR_EXTRACT_JSON_MALFORMED");
+}
+
+#[test]
+fn extract_json_yaml_format_emits_paths_sources_and_clean_envelope() {
+    let (template, rendered) = yaml_fixture("yaml-atm-config");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--format")
+        .arg("yaml")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["format"], "yaml");
+    assert_eq!(
+        value["payload"]["values"]["action_name"],
+        "execute the assigned task"
+    );
+    assert_eq!(
+        value["payload"]["occurrences"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|occurrence| occurrence["variable"] == "action_name")
+            .unwrap()["source"]["kind"],
+        "string_scalar"
+    );
 }

@@ -162,6 +162,22 @@ impl PyDiagnosticCode {
     #[classattr]
     const ERR_EXTRACT_JSON_AMBIGUOUS: &'static str = "ERR_EXTRACT_JSON_AMBIGUOUS";
     #[classattr]
+    const ERR_EXTRACT_YAML_MALFORMED: &'static str = "ERR_EXTRACT_YAML_MALFORMED";
+    #[classattr]
+    const ERR_EXTRACT_YAML_DUPLICATE_KEY: &'static str = "ERR_EXTRACT_YAML_DUPLICATE_KEY";
+    #[classattr]
+    const ERR_EXTRACT_YAML_ALIAS_UNSUPPORTED: &'static str = "ERR_EXTRACT_YAML_ALIAS_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_YAML_DOCUMENT_STREAM: &'static str = "ERR_EXTRACT_YAML_DOCUMENT_STREAM";
+    #[classattr]
+    const ERR_EXTRACT_YAML_PATH_MISSING: &'static str = "ERR_EXTRACT_YAML_PATH_MISSING";
+    #[classattr]
+    const ERR_EXTRACT_YAML_SHAPE_MISMATCH: &'static str = "ERR_EXTRACT_YAML_SHAPE_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_YAML_VALUE_UNSUPPORTED: &'static str = "ERR_EXTRACT_YAML_VALUE_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_YAML_AMBIGUOUS: &'static str = "ERR_EXTRACT_YAML_AMBIGUOUS";
+    #[classattr]
     const WARN_EXTRACT_NOT_OBSERVED: &'static str = "WARN_EXTRACT_NOT_OBSERVED";
     #[classattr]
     const WARN_EXTRACT_LOW_CONFIDENCE: &'static str = "WARN_EXTRACT_LOW_CONFIDENCE";
@@ -218,10 +234,11 @@ pub(crate) fn parse_extract_format(value: &str) -> PyResult<ExtractFormat> {
     match value {
         "xml" => Ok(ExtractFormat::Xml),
         "json" => Ok(ExtractFormat::Json),
+        "yaml" => Ok(ExtractFormat::Yaml),
         other => Err(crate::errors::config_error_with_recovery_hints(
-            format!("unsupported extraction format `{other}`; use `xml` or `json`"),
+            format!("unsupported extraction format `{other}`; use `xml`, `json`, or `yaml`"),
             Some("ERR_EXTRACT_FORMAT_UNSUPPORTED"),
-            vec!["set format to `xml` or `json`".to_owned()],
+            vec!["set format to `xml`, `json`, or `yaml`".to_owned()],
         )),
     }
 }

@@ -490,3 +490,150 @@ fn json_include_and_exclude_filters_apply_to_occurrences() {
     assert_eq!(report.values[&variable("name")], "Ada");
     assert_eq!(report.occurrences.len(), 1);
 }
+
+#[test]
+fn yaml_fixture_skips_template_frontmatter_and_extracts_atm_config() {
+    let report = extract(&ExtractRequest::new(
+        include_str!("fixtures/reverse-extract/yaml-atm-config.yaml.j2"),
+        include_str!("fixtures/reverse-extract/yaml-atm-config.yaml"),
+        ExtractFormat::Yaml,
+        &[],
+        &[],
+    ))
+    .unwrap();
+
+    assert_eq!(
+        report.values[&variable("message_id")],
+        "01KZ2H7JBMK3850VYC637AN4XJ"
+    );
+    assert_eq!(report.values[&variable("sender")], "team-lead@sc-compose");
+    assert_eq!(
+        report.values[&variable("action_name")],
+        "execute the assigned task"
+    );
+    let action = report
+        .occurrences
+        .iter()
+        .find(|occurrence| occurrence.variable == variable("action_name"))
+        .unwrap();
+    assert_eq!(
+        action.path,
+        vec![
+            ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::MappingKey {
+                key: "actions".to_owned(),
+            }),
+            ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::SequenceIndex { index: 0 }),
+            ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::MappingKey {
+                key: "action".to_owned(),
+            }),
+        ]
+    );
+    assert_eq!(
+        action.source,
+        ExtractionSource::Yaml(sc_composer::YamlExtractionSource::StringScalar)
+    );
+}
+
+#[test]
+fn yaml_fixture_rejects_malformed_and_duplicate_documents() {
+    let malformed = extract(&ExtractRequest::new(
+        include_str!("fixtures/reverse-extract/yaml-malformed.yaml.j2"),
+        include_str!("fixtures/reverse-extract/yaml-malformed.yaml"),
+        ExtractFormat::Yaml,
+        &[],
+        &[],
+    ))
+    .unwrap_err();
+    assert_eq!(
+        malformed.code(),
+        sc_composer::DiagnosticCode::ErrExtractYamlMalformed
+    );
+
+    let duplicate = extract(&ExtractRequest::new(
+        include_str!("fixtures/reverse-extract/yaml-duplicate.yaml.j2"),
+        include_str!("fixtures/reverse-extract/yaml-duplicate.yaml"),
+        ExtractFormat::Yaml,
+        &[],
+        &[],
+    ))
+    .unwrap_err();
+    assert_eq!(
+        duplicate.code(),
+        sc_composer::DiagnosticCode::ErrExtractYamlDuplicateKey
+    );
+
+    let stream = extract(&ExtractRequest::new(
+        "name: \"{{ name }}\"",
+        "---\nname: Ada\n---\nname: Grace\n",
+        ExtractFormat::Yaml,
+        &[],
+        &[],
+    ))
+    .unwrap_err();
+    assert_eq!(
+        stream.code(),
+        sc_composer::DiagnosticCode::ErrExtractYamlDocumentStream
+    );
+
+    let alias = extract(&ExtractRequest::new(
+        "name: \"{{ name }}\"",
+        "name: &base Ada\ncopy: *base\n",
+        ExtractFormat::Yaml,
+        &[],
+        &[],
+    ))
+    .unwrap_err();
+    assert_eq!(
+        alias.code(),
+        sc_composer::DiagnosticCode::ErrExtractYamlAliasUnsupported
+    );
+
+    let typed = extract(&ExtractRequest::new(
+        "count: \"{{ count }}\"",
+        "count: 42\n",
+        ExtractFormat::Yaml,
+        &[],
+        &[],
+    ))
+    .unwrap_err();
+    assert_eq!(
+        typed.code(),
+        sc_composer::DiagnosticCode::ErrExtractYamlValueUnsupported
+    );
+
+    let missing = extract(&ExtractRequest::new(
+        "name: \"{{ name }}\"",
+        "other: Ada\n",
+        ExtractFormat::Yaml,
+        &[],
+        &[],
+    ))
+    .unwrap_err();
+    assert_eq!(
+        missing.code(),
+        sc_composer::DiagnosticCode::ErrExtractYamlPathMissing
+    );
+
+    let sequence_shape = extract(&ExtractRequest::new(
+        "items:\n  - \"{{ first }}\"\n  - \"{{ second }}\"\n",
+        "items:\n  - one\n",
+        ExtractFormat::Yaml,
+        &[],
+        &[],
+    ))
+    .unwrap_err();
+    assert_eq!(
+        sequence_shape.code(),
+        sc_composer::DiagnosticCode::ErrExtractYamlShapeMismatch
+    );
+
+    let null = extract(&ExtractRequest::new(
+        "value: null\n",
+        "value: null\n",
+        ExtractFormat::Yaml,
+        &[],
+        &[],
+    ))
+    .unwrap();
+    assert!(null.values.is_empty());
+}

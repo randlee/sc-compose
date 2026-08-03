@@ -99,6 +99,14 @@ class DiagnosticCode:
     ERR_EXTRACT_JSON_SHAPE_MISMATCH: str
     ERR_EXTRACT_JSON_VALUE_UNSUPPORTED: str
     ERR_EXTRACT_JSON_AMBIGUOUS: str
+    ERR_EXTRACT_YAML_MALFORMED: str
+    ERR_EXTRACT_YAML_DUPLICATE_KEY: str
+    ERR_EXTRACT_YAML_ALIAS_UNSUPPORTED: str
+    ERR_EXTRACT_YAML_DOCUMENT_STREAM: str
+    ERR_EXTRACT_YAML_PATH_MISSING: str
+    ERR_EXTRACT_YAML_SHAPE_MISMATCH: str
+    ERR_EXTRACT_YAML_VALUE_UNSUPPORTED: str
+    ERR_EXTRACT_YAML_AMBIGUOUS: str
     WARN_EXTRACT_NOT_OBSERVED: str
     WARN_EXTRACT_LOW_CONFIDENCE: str
 
@@ -429,7 +437,7 @@ def extract_variables(
     template: str,
     rendered: str,
     *,
-    format: Literal["xml", "json"] = "xml",
+    format: Literal["xml", "json", "yaml"] = "xml",
     include: list[str] | None = None,
     exclude: list[str] | None = None,
 ) -> ExtractionReport: ...

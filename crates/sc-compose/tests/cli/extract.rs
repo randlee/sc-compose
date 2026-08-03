@@ -8,6 +8,14 @@ fn fixture(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
     )
 }
 
+fn yaml_fixture(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
+    let root = repo_root().join("crates/sc-composer/tests/fixtures/reverse-extract");
+    (
+        root.join(format!("{name}.yaml.j2")),
+        root.join(format!("{name}.yaml")),
+    )
+}
+
 fn json_fixture(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
     let root = repo_root().join("crates/sc-composer/tests/fixtures/reverse-extract");
     (
@@ -223,4 +231,24 @@ fn extract_text_supports_json_format_without_changing_xml_default() {
     assert!(stdout.contains("action_name: \"execute the assigned task\""));
     assert!(stdout.contains(".actions[0].action"));
     assert!(stdout.contains("string_value"));
+}
+
+#[test]
+fn extract_text_supports_yaml_format_and_skips_template_frontmatter() {
+    let (template, rendered) = yaml_fixture("yaml-atm-config");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--format")
+        .arg("yaml")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("format: yaml"));
+    assert!(stdout.contains("action_name: \"execute the assigned task\""));
+    assert!(stdout.contains(".actions[0].action"));
+    assert!(stdout.contains("string_scalar"));
 }
