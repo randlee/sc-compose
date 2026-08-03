@@ -33,7 +33,8 @@ prototype at commit `50de332` and the Phase-G baseline at `5a4010b`:
 The gap review confirmed all three against live source. Product-level
 semantics still require the H.1 contract gate. The issue's XML mixed-content
 and non-XML-prefix observations remain valid findings, but are explicitly
-deferred to a future phase rather than included in Phase H.
+deferred to [Phase I](../phase-I/phase-I-plan.md) rather than included in
+Phase H.
 
 ## Sprint sequence
 
@@ -98,8 +99,9 @@ production-readiness corrections without reopening H.7's settled QA findings.
   rendered YAML body; it must remain distinct from YAML template-frontmatter
   and var-file decoding semantics.
 - Best-effort/degraded parsing and a customer-facing cross-format raw-text mode
-  are future-phase features. Phase H must not expose either mode, but its
-  shared matching core must be reusable by them without redesign.
+  are future-phase features. Phase H must not expose either mode. Phase I
+  plans the customer-facing raw-text mode and XML gap extensions, while
+  preserving H's shipped boundaries and shared matching core.
 
 ## Phase exit gate
 

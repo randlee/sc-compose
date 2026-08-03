@@ -342,8 +342,9 @@ Exit gate:
     adversarial hardening, and phase-ending remediation for those accepted
     amendments
   - XML mixed-content, XML dirty-prefix tolerance, and customer-facing
-    best-effort/raw-text modes are named future-phase work, not numbered
-    Phase-H sprints
+    raw-text mode remain outside Phase H; they are now planned as Phase I
+    work in `docs/phase-I/phase-I-plan.md`, not retroactively claimed as H
+    behavior
 
 ## Production Readiness Gate
 
@@ -547,6 +548,31 @@ Disambiguation: the completed `Phase HTML-Report (H1-H4)` section above uses
 undotted H1/H2/H3/H4 labels for the HTML-Report feature family. The `Phase H`
 section here uses dotted H.1–H.8 identifiers for reverse-extraction extension
 sprints; these are separate phases and sprint sequences.
+
+### Phase I Sprint Plans
+
+Status:
+
+- planned follow-on work for the remaining XML extraction gaps from issue #193,
+  the strict-validation loop-context gap in issue #167, and the YAML var-file
+  merge-key safety gap in issue #166;
+- Phase I also makes the shared H raw-text matcher customer-facing for known
+  Markdown/text templates because raw text is the product use case that the
+  format adapters alone do not provide;
+- I.1 is the contract and traceability gate. I.2 through I.6 are independent
+  implementation tracks after that gate except that I.3 depends on I.2's
+  public matcher seam. Independent sprint QA may proceed in parallel; no
+  sprint is required to wait for an unrelated sprint's QA result.
+
+Sprint entries:
+
+- [Phase I plan](phase-I/phase-I-plan.md)
+- [Sprint I.1 — Contract, Raw-Text Semantics, and Traceability](phase-I/sprint-i-1-contract-and-traceability.md)
+- [Sprint I.2 — Customer-Facing Raw-Text Mode](phase-I/sprint-i-2-customer-raw-text-mode.md)
+- [Sprint I.3 — XML Block and Mixed-Content Extraction](phase-I/sprint-i-3-xml-block-mixed-content.md)
+- [Sprint I.4 — XML Dirty-Prefix Normalization](phase-I/sprint-i-4-xml-dirty-prefix.md)
+- [Sprint I.5 — Jinja Loop-Context Built-ins](phase-I/sprint-i-5-loop-context-builtins.md)
+- [Sprint I.6 — YAML Merge-Key Var-File Safety](phase-I/sprint-i-6-yaml-merge-key-safety.md)
 
 ### Standalone Repowise Cleanup: Render Request Module Split
 
