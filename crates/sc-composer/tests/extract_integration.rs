@@ -36,6 +36,13 @@ fn toml_request<'a>(template: &'a str, rendered: &'a str) -> ExtractRequest<'a> 
     ExtractRequest::new(template, rendered, ExtractFormat::Toml, &[], &[])
 }
 
+fn assert_input_limit(request: &ExtractRequest<'_>) {
+    assert_eq!(
+        extract(request).unwrap_err().code(),
+        sc_composer::DiagnosticCode::ErrExtractInputLimit
+    );
+}
+
 #[test]
 fn fixture_extracts_attribute_and_text_values() {
     let report = extract(&request(
@@ -615,15 +622,6 @@ fn yaml_fixture_rejects_malformed_and_duplicate_documents() {
         sc_composer::DiagnosticCode::ErrExtractYamlAliasUnsupported
     );
 
-    for rendered in ["values: [*anchor]\n", "values: {*anchor: 1}\n"] {
-        let error = extract(&yaml_request("values: [\"{{ value }}\"]\n", rendered)).unwrap_err();
-        assert_eq!(
-            error.code(),
-            sc_composer::DiagnosticCode::ErrExtractYamlAliasUnsupported,
-            "flow-style YAML features must be rejected at delimiters"
-        );
-    }
-
     let typed = extract(&ExtractRequest::new(
         "count: \"{{ count }}\"",
         "count: 42\n",
@@ -672,6 +670,18 @@ fn yaml_fixture_rejects_malformed_and_duplicate_documents() {
     ))
     .unwrap();
     assert!(null.values.is_empty());
+}
+
+#[test]
+fn yaml_flow_aliases_adjacent_to_delimiters_are_rejected() {
+    for rendered in ["values: [*anchor]\n", "values: {*anchor: 1}\n"] {
+        let error = extract(&yaml_request("values: [\"{{ value }}\"]\n", rendered)).unwrap_err();
+        assert_eq!(
+            error.code(),
+            sc_composer::DiagnosticCode::ErrExtractYamlAliasUnsupported,
+            "flow-style YAML features must be rejected at delimiters"
+        );
+    }
 }
 
 #[test]
@@ -802,33 +812,9 @@ fn toml_extraction_rejects_oversized_and_deep_inputs() {
 }
 
 #[test]
-fn json_yaml_and_xml_extraction_rejects_oversized_deep_and_high_occurrence_inputs() {
+fn json_extraction_rejects_oversized_deep_and_high_occurrence_inputs() {
     let oversized_json = format!(r#"{{"value":"{}"}}"#, "x".repeat(1_048_577));
-    assert_eq!(
-        extract(&json_request(r#"{"value":"{{ value }}"}"#, &oversized_json))
-            .unwrap_err()
-            .code(),
-        sc_composer::DiagnosticCode::ErrExtractInputLimit
-    );
-
-    let oversized_yaml = format!("value: \"{}\"\n", "x".repeat(1_048_577));
-    assert_eq!(
-        extract(&yaml_request("value: \"{{ value }}\"\n", &oversized_yaml))
-            .unwrap_err()
-            .code(),
-        sc_composer::DiagnosticCode::ErrExtractInputLimit
-    );
-
-    let oversized_xml = format!("<root><value>{}</value></root>", "x".repeat(1_048_577));
-    assert_eq!(
-        extract(&request(
-            "<root><value>{{ value }}</value></root>",
-            &oversized_xml,
-        ))
-        .unwrap_err()
-        .code(),
-        sc_composer::DiagnosticCode::ErrExtractInputLimit
-    );
+    assert_input_limit(&json_request(r#"{"value":"{{ value }}"}"#, &oversized_json));
 
     let mut deep_json_template = String::from("{");
     let mut deep_json_rendered = String::from("{");
@@ -842,50 +828,7 @@ fn json_yaml_and_xml_extraction_rejects_oversized_deep_and_high_occurrence_input
         deep_json_template.push('}');
         deep_json_rendered.push('}');
     }
-    assert_eq!(
-        extract(&json_request(&deep_json_template, &deep_json_rendered))
-            .unwrap_err()
-            .code(),
-        sc_composer::DiagnosticCode::ErrExtractInputLimit
-    );
-
-    let mut deep_yaml_template = String::new();
-    let mut deep_yaml_rendered = String::new();
-    for depth in 0..66 {
-        let indent = "  ".repeat(depth);
-        let _ = writeln!(deep_yaml_template, "{indent}level{depth}:");
-        let _ = writeln!(deep_yaml_rendered, "{indent}level{depth}:");
-    }
-    let indent = "  ".repeat(66);
-    let _ = writeln!(deep_yaml_template, "{indent}value: \"{{ value }}\"");
-    let _ = writeln!(deep_yaml_rendered, "{indent}value: Ada");
-    assert_eq!(
-        extract(&yaml_request(&deep_yaml_template, &deep_yaml_rendered))
-            .unwrap_err()
-            .code(),
-        sc_composer::DiagnosticCode::ErrExtractInputLimit
-    );
-
-    let mut deep_xml_template = String::from("<root>");
-    let mut deep_xml_rendered = String::from("<root>");
-    for depth in 0..66 {
-        let _ = write!(deep_xml_template, "<level{depth}>");
-        let _ = write!(deep_xml_rendered, "<level{depth}>");
-    }
-    deep_xml_template.push_str("<value>{{ value }}</value>");
-    deep_xml_rendered.push_str("<value>Ada</value>");
-    for depth in (0..66).rev() {
-        let _ = write!(deep_xml_template, "</level{depth}>");
-        let _ = write!(deep_xml_rendered, "</level{depth}>");
-    }
-    deep_xml_template.push_str("</root>");
-    deep_xml_rendered.push_str("</root>");
-    assert_eq!(
-        extract(&request(&deep_xml_template, &deep_xml_rendered))
-            .unwrap_err()
-            .code(),
-        sc_composer::DiagnosticCode::ErrExtractInputLimit
-    );
+    assert_input_limit(&json_request(&deep_json_template, &deep_json_rendered));
 
     let mut occurrence_json_template = String::from("{");
     let mut occurrence_json_rendered = String::from("{");
@@ -902,15 +845,28 @@ fn json_yaml_and_xml_extraction_rejects_oversized_deep_and_high_occurrence_input
     }
     occurrence_json_template.push('}');
     occurrence_json_rendered.push('}');
-    assert_eq!(
-        extract(&json_request(
-            &occurrence_json_template,
-            &occurrence_json_rendered,
-        ))
-        .unwrap_err()
-        .code(),
-        sc_composer::DiagnosticCode::ErrExtractInputLimit
-    );
+    assert_input_limit(&json_request(
+        &occurrence_json_template,
+        &occurrence_json_rendered,
+    ));
+}
+
+#[test]
+fn yaml_extraction_rejects_oversized_deep_and_high_occurrence_inputs() {
+    let oversized_yaml = format!("value: \"{}\"\n", "x".repeat(1_048_577));
+    assert_input_limit(&yaml_request("value: \"{{ value }}\"\n", &oversized_yaml));
+
+    let mut deep_yaml_template = String::new();
+    let mut deep_yaml_rendered = String::new();
+    for depth in 0..66 {
+        let indent = "  ".repeat(depth);
+        let _ = writeln!(deep_yaml_template, "{indent}level{depth}:");
+        let _ = writeln!(deep_yaml_rendered, "{indent}level{depth}:");
+    }
+    let indent = "  ".repeat(66);
+    let _ = writeln!(deep_yaml_template, "{indent}value: \"{{ value }}\"");
+    let _ = writeln!(deep_yaml_rendered, "{indent}value: Ada");
+    assert_input_limit(&yaml_request(&deep_yaml_template, &deep_yaml_rendered));
 
     let mut occurrence_yaml_template = String::new();
     let mut occurrence_yaml_rendered = String::new();
@@ -921,15 +877,35 @@ fn json_yaml_and_xml_extraction_rejects_oversized_deep_and_high_occurrence_input
         );
         let _ = writeln!(occurrence_yaml_rendered, "value{index}: Ada");
     }
-    assert_eq!(
-        extract(&yaml_request(
-            &occurrence_yaml_template,
-            &occurrence_yaml_rendered,
-        ))
-        .unwrap_err()
-        .code(),
-        sc_composer::DiagnosticCode::ErrExtractInputLimit
-    );
+    assert_input_limit(&yaml_request(
+        &occurrence_yaml_template,
+        &occurrence_yaml_rendered,
+    ));
+}
+
+#[test]
+fn xml_extraction_rejects_oversized_deep_and_high_occurrence_inputs() {
+    let oversized_xml = format!("<root><value>{}</value></root>", "x".repeat(1_048_577));
+    assert_input_limit(&request(
+        "<root><value>{{ value }}</value></root>",
+        &oversized_xml,
+    ));
+
+    let mut deep_xml_template = String::from("<root>");
+    let mut deep_xml_rendered = String::from("<root>");
+    for depth in 0..66 {
+        let _ = write!(deep_xml_template, "<level{depth}>");
+        let _ = write!(deep_xml_rendered, "<level{depth}>");
+    }
+    deep_xml_template.push_str("<value>{{ value }}</value>");
+    deep_xml_rendered.push_str("<value>Ada</value>");
+    for depth in (0..66).rev() {
+        let _ = write!(deep_xml_template, "</level{depth}>");
+        let _ = write!(deep_xml_rendered, "</level{depth}>");
+    }
+    deep_xml_template.push_str("</root>");
+    deep_xml_rendered.push_str("</root>");
+    assert_input_limit(&request(&deep_xml_template, &deep_xml_rendered));
 
     let mut occurrence_xml_template = String::from("<root>");
     let mut occurrence_xml_rendered = String::from("<root>");
@@ -942,12 +918,7 @@ fn json_yaml_and_xml_extraction_rejects_oversized_deep_and_high_occurrence_input
     }
     occurrence_xml_template.push_str("</root>");
     occurrence_xml_rendered.push_str("</root>");
-    assert_eq!(
-        extract(&request(&occurrence_xml_template, &occurrence_xml_rendered,))
-            .unwrap_err()
-            .code(),
-        sc_composer::DiagnosticCode::ErrExtractInputLimit
-    );
+    assert_input_limit(&request(&occurrence_xml_template, &occurrence_xml_rendered));
 }
 
 #[test]
