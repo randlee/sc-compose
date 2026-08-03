@@ -7,15 +7,26 @@ fn variable(name: &str) -> VariableName {
     VariableName::new(name).unwrap()
 }
 
+const TEAM_LEAD_SENDER_TOKEN: &str = "__TEAM_LEAD_SENDER__";
+const TEAM_LEAD_SENDER_FILE: &str = include_str!("fixtures/reverse-extract/team-lead-sender.txt");
+
+fn team_lead_sender() -> &'static str {
+    TEAM_LEAD_SENDER_FILE.trim()
+}
+
+fn fixture_with_team_lead_sender(source: &str) -> String {
+    source.replace(TEAM_LEAD_SENDER_TOKEN, team_lead_sender())
+}
+
 fn request(template: &'static str, rendered: &'static str) -> ExtractRequest<'static> {
     ExtractRequest::new(template, rendered, ExtractFormat::Xml, &[], &[])
 }
 
-fn json_request(template: &'static str, rendered: &'static str) -> ExtractRequest<'static> {
+fn json_request<'a>(template: &'a str, rendered: &'a str) -> ExtractRequest<'a> {
     ExtractRequest::new(template, rendered, ExtractFormat::Json, &[], &[])
 }
 
-fn toml_request(template: &'static str, rendered: &'static str) -> ExtractRequest<'static> {
+fn toml_request<'a>(template: &'a str, rendered: &'a str) -> ExtractRequest<'a> {
     ExtractRequest::new(template, rendered, ExtractFormat::Toml, &[], &[])
 }
 
@@ -319,9 +330,12 @@ fn json_extracts_string_values_with_object_and_array_paths() {
 
 #[test]
 fn json_fixture_extracts_realistic_atm_payload_values_and_paths() {
+    let rendered = fixture_with_team_lead_sender(include_str!(
+        "fixtures/reverse-extract/json-atm-payload.json"
+    ));
     let report = extract(&json_request(
         include_str!("fixtures/reverse-extract/json-atm-payload.json.j2"),
-        include_str!("fixtures/reverse-extract/json-atm-payload.json"),
+        &rendered,
     ))
     .unwrap();
 
@@ -329,7 +343,7 @@ fn json_fixture_extracts_realistic_atm_payload_values_and_paths() {
         report.values[&variable("message_id")],
         "01KZ2BV5Z6VCRQYDQWYSAZA8GB"
     );
-    assert_eq!(report.values[&variable("sender")], "team-lead@sc-compose");
+    assert_eq!(report.values[&variable("sender")], team_lead_sender());
     assert_eq!(
         report.values[&variable("action_name")],
         "execute the assigned task"
@@ -497,9 +511,12 @@ fn json_include_and_exclude_filters_apply_to_occurrences() {
 
 #[test]
 fn yaml_fixture_skips_template_frontmatter_and_extracts_atm_config() {
+    let rendered = fixture_with_team_lead_sender(include_str!(
+        "fixtures/reverse-extract/yaml-atm-config.yaml"
+    ));
     let report = extract(&ExtractRequest::new(
         include_str!("fixtures/reverse-extract/yaml-atm-config.yaml.j2"),
-        include_str!("fixtures/reverse-extract/yaml-atm-config.yaml"),
+        &rendered,
         ExtractFormat::Yaml,
         &[],
         &[],
@@ -510,7 +527,7 @@ fn yaml_fixture_skips_template_frontmatter_and_extracts_atm_config() {
         report.values[&variable("message_id")],
         "01KZ2H7JBMK3850VYC637AN4XJ"
     );
-    assert_eq!(report.values[&variable("sender")], "team-lead@sc-compose");
+    assert_eq!(report.values[&variable("sender")], team_lead_sender());
     assert_eq!(
         report.values[&variable("action_name")],
         "execute the assigned task"
@@ -644,13 +661,17 @@ fn yaml_fixture_rejects_malformed_and_duplicate_documents() {
 
 #[test]
 fn toml_fixture_extracts_tables_and_array_of_table_paths() {
+    let rendered = fixture_with_team_lead_sender(include_str!(
+        "fixtures/reverse-extract/toml-cargo-config.toml"
+    ));
     let report = extract(&toml_request(
         include_str!("fixtures/reverse-extract/toml-cargo-config.toml.j2"),
-        include_str!("fixtures/reverse-extract/toml-cargo-config.toml"),
+        &rendered,
     ))
     .unwrap();
 
     assert_eq!(report.values[&variable("package_name")], "example-app");
+    assert_eq!(report.values[&variable("sender")], team_lead_sender());
     assert_eq!(report.values[&variable("serde_version")], "1.0");
     assert_eq!(report.values[&variable("bin_name")], "example-app");
     assert_eq!(report.values[&variable("second_bin_name")], "example-tool");
@@ -740,5 +761,27 @@ fn toml_fixture_rejects_malformed_duplicate_and_shape_boundaries() {
     assert_eq!(
         array_shape.code(),
         sc_composer::DiagnosticCode::ErrExtractTomlShapeMismatch
+    );
+}
+
+#[test]
+fn toml_extraction_rejects_oversized_and_deep_inputs() {
+    let oversized = format!("value = \"{}\"\n", "x".repeat(1_048_577));
+    let error = extract(&toml_request("value = \"{{ value }}\"\n", &oversized)).unwrap_err();
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractInputLimit
+    );
+
+    let path = (0..66)
+        .map(|index| format!("level{index}"))
+        .collect::<Vec<_>>()
+        .join(".");
+    let template = format!("{path} = \"{{{{ value }}}}\"\n");
+    let rendered = format!("{path} = \"Ada\"\n");
+    let error = extract(&toml_request(&template, &rendered)).unwrap_err();
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractInputLimit
     );
 }

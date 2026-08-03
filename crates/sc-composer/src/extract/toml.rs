@@ -14,6 +14,10 @@ use super::{
     raw_text,
 };
 
+const MAX_TOML_INPUT_BYTES: usize = 1_048_576;
+const MAX_TOML_NESTING_DEPTH: usize = 64;
+const MAX_TOML_OCCURRENCES: usize = 10_000;
+
 /// TOML table-key or array-index path evidence.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TomlPathSegment {
@@ -49,6 +53,8 @@ struct Capture {
 pub(crate) fn extract_toml(
     request: &ExtractRequest<'_>,
 ) -> Result<TomlExtractionReport, ExtractError> {
+    validate_input_size(request.template, "template")?;
+    validate_input_size(request.rendered, "rendered TOML")?;
     let parsed_template = parse_template_document(request.template).map_err(|error| {
         template_error(format!("TOML template frontmatter is invalid: {error}"))
     })?;
@@ -60,6 +66,8 @@ pub(crate) fn extract_toml(
     }
     let template = parse_document(template_source, true)?;
     let rendered = parse_document(request.rendered, false)?;
+    validate_value_limits(&template, 0)?;
+    validate_value_limits(&rendered, 0)?;
     let mut captures = Vec::new();
     match_toml(&template, &rendered, &[], &mut captures)?;
 
@@ -154,6 +162,11 @@ fn match_toml(
                 )));
             }
             for capture in matched.captures {
+                if captures.len() >= MAX_TOML_OCCURRENCES {
+                    return Err(input_limit_error(format!(
+                        "TOML extraction exceeded the maximum of {MAX_TOML_OCCURRENCES} occurrences"
+                    )));
+                }
                 captures.push(Capture {
                     variable: capture.variable,
                     path: path.to_owned(),
@@ -171,6 +184,42 @@ fn match_toml(
                 "TOML value does not match the known template",
             ));
         }
+    }
+    Ok(())
+}
+
+fn validate_input_size(source: &str, label: &str) -> Result<(), ExtractError> {
+    if source.len() > MAX_TOML_INPUT_BYTES {
+        return Err(input_limit_error(format!(
+            "TOML {label} input is {} bytes; maximum is {MAX_TOML_INPUT_BYTES} bytes",
+            source.len()
+        )));
+    }
+    Ok(())
+}
+
+fn validate_value_limits(value: &toml::Value, depth: usize) -> Result<(), ExtractError> {
+    if depth > MAX_TOML_NESTING_DEPTH {
+        return Err(input_limit_error(format!(
+            "TOML nesting depth exceeds the maximum of {MAX_TOML_NESTING_DEPTH}"
+        )));
+    }
+    match value {
+        toml::Value::Array(values) => {
+            for value in values {
+                validate_value_limits(value, depth + 1)?;
+            }
+        }
+        toml::Value::Table(values) => {
+            for value in values.values() {
+                validate_value_limits(value, depth + 1)?;
+            }
+        }
+        toml::Value::String(_)
+        | toml::Value::Integer(_)
+        | toml::Value::Float(_)
+        | toml::Value::Boolean(_)
+        | toml::Value::Datetime(_) => {}
     }
     Ok(())
 }
@@ -285,6 +334,17 @@ fn malformed_error_with_source(
     )
 }
 
+fn input_limit_error(message: impl Into<String>) -> ExtractError {
+    ExtractError::format_error(
+        DiagnosticCode::ErrExtractInputLimit,
+        ExtractionDiagnosticKind::Malformed,
+        message,
+        RecoveryHintKind::InspectInput {
+            description: "reduce TOML input size, nesting depth, or occurrence count".to_owned(),
+        },
+    )
+}
+
 fn duplicate_error_with_source(
     message: impl Into<String>,
     source: impl std::error::Error,
@@ -376,4 +436,39 @@ fn format_path(path: &[TomlPathSegment]) -> String {
         }
     }
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::extract_toml;
+    use crate::extract::{ExtractFormat, ExtractRequest};
+    use crate::types::VariableName;
+
+    #[test]
+    fn reports_occurrence_ambiguity_for_repeated_variable_paths() {
+        let request = ExtractRequest::new(
+            "[first]\nvalue = \"{{ value }}\"\n[second]\nvalue = \"{{ value }}\"\n",
+            "[first]\nvalue = \"Ada\"\n[second]\nvalue = \"Ada\"\n",
+            ExtractFormat::Toml,
+            &[],
+            &[],
+        );
+        let report = extract_toml(&request).unwrap();
+
+        assert!(report.values.is_empty());
+        assert_eq!(report.occurrences.len(), 2);
+        assert!(
+            report
+                .occurrences
+                .iter()
+                .all(|occurrence| { occurrence.variable == VariableName::new("value").unwrap() })
+        );
+        assert_eq!(report.diagnostics.len(), 2);
+        assert!(report.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == crate::diagnostics::DiagnosticCode::ErrExtractTomlAmbiguous
+        }));
+        assert!(report.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == crate::diagnostics::DiagnosticCode::WarnExtractLowConfidence
+        }));
+    }
 }

@@ -180,6 +180,8 @@ impl PyDiagnosticCode {
     #[classattr]
     const ERR_EXTRACT_TOML_MALFORMED: &'static str = "ERR_EXTRACT_TOML_MALFORMED";
     #[classattr]
+    const ERR_EXTRACT_INPUT_LIMIT: &'static str = "ERR_EXTRACT_INPUT_LIMIT";
+    #[classattr]
     const ERR_EXTRACT_TOML_DUPLICATE_KEY: &'static str = "ERR_EXTRACT_TOML_DUPLICATE_KEY";
     #[classattr]
     const ERR_EXTRACT_TOML_PATH_MISSING: &'static str = "ERR_EXTRACT_TOML_PATH_MISSING";

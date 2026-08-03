@@ -8,6 +8,19 @@ import pytest
 import sc_compose
 
 
+FIXTURE_ROOT = (
+    Path(__file__).resolve().parents[3]
+    / "crates"
+    / "sc-composer"
+    / "tests"
+    / "fixtures"
+    / "reverse-extract"
+)
+TEAM_LEAD_SENDER = (FIXTURE_ROOT / "team-lead-sender.txt").read_text(
+    encoding="utf-8"
+).strip()
+
+
 def write(path: Path, contents: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(textwrap.dedent(contents), encoding="utf-8", newline="\n")
@@ -105,6 +118,7 @@ def test_import_surface_exposes_c2_api() -> None:
         "ERR_EXTRACT_YAML_VALUE_UNSUPPORTED",
         "ERR_EXTRACT_YAML_AMBIGUOUS",
         "ERR_EXTRACT_TOML_MALFORMED",
+        "ERR_EXTRACT_INPUT_LIMIT",
         "ERR_EXTRACT_TOML_DUPLICATE_KEY",
         "ERR_EXTRACT_TOML_PATH_MISSING",
         "ERR_EXTRACT_TOML_SHAPE_MISMATCH",
@@ -228,7 +242,7 @@ def test_json_extraction_matches_realistic_atm_fixture() -> None:
         "action_name": "execute the assigned task",
         "description": "H.2 JSON extraction core",
         "message_id": "01KZ2BV5Z6VCRQYDQWYSAZA8GB",
-        "sender": "team-lead@sc-compose",
+        "sender": TEAM_LEAD_SENDER,
     }
     action = next(
         occurrence
@@ -325,17 +339,6 @@ path = "src/bin/second.rs"
         ("table_key", "name", None),
     ]
 
-
-FIXTURE_ROOT = (
-    Path(__file__).resolve().parents[3]
-    / "crates"
-    / "sc-composer"
-    / "tests"
-    / "fixtures"
-    / "reverse-extract"
-)
-
-
 def fixture_pair(name: str) -> tuple[str, str]:
     template = (FIXTURE_ROOT / f"{name}.xml.j2").read_text(encoding="utf-8")
     rendered = (FIXTURE_ROOT / f"{name}.xml").read_text(encoding="utf-8")
@@ -344,7 +347,9 @@ def fixture_pair(name: str) -> tuple[str, str]:
 
 def json_fixture_pair(name: str) -> tuple[str, str]:
     template = (FIXTURE_ROOT / f"{name}.json.j2").read_text(encoding="utf-8")
-    rendered = (FIXTURE_ROOT / f"{name}.json").read_text(encoding="utf-8")
+    rendered = (FIXTURE_ROOT / f"{name}.json").read_text(encoding="utf-8").replace(
+        "__TEAM_LEAD_SENDER__", TEAM_LEAD_SENDER
+    )
     return template, rendered
 
 
