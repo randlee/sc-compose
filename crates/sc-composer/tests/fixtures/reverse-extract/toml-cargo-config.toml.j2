@@ -1,0 +1,20 @@
+---
+required_variables:
+  - package_name
+---
+[package]
+name = "{{ package_name }}"
+version = "{{ version }}"
+maintainer = "{{ sender }}"
+edition = "2024"
+
+[dependencies]
+serde = { version = "{{ serde_version }}", features = ["derive"] }
+
+[[bin]]
+name = "{{ bin_name }}"
+path = "src/main.rs"
+
+[[bin]]
+name = "{{ second_bin_name }}"
+path = "src/bin/second.rs"

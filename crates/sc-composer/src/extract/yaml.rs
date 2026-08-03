@@ -563,3 +563,38 @@ fn format_path(path: &[YamlPathSegment]) -> String {
     }
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::extract_yaml;
+    use crate::extract::{ExtractFormat, ExtractRequest};
+    use crate::types::VariableName;
+
+    #[test]
+    fn reports_occurrence_ambiguity_for_repeated_variable_paths() {
+        let request = ExtractRequest::new(
+            "first: \"{{ value }}\"\nsecond: \"{{ value }}\"\n",
+            "first: Ada\nsecond: Ada\n",
+            ExtractFormat::Yaml,
+            &[],
+            &[],
+        );
+        let report = extract_yaml(&request).unwrap();
+
+        assert!(report.values.is_empty());
+        assert_eq!(report.occurrences.len(), 2);
+        assert!(
+            report
+                .occurrences
+                .iter()
+                .all(|occurrence| { occurrence.variable == VariableName::new("value").unwrap() })
+        );
+        assert_eq!(report.diagnostics.len(), 2);
+        assert!(report.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == crate::diagnostics::DiagnosticCode::ErrExtractYamlAmbiguous
+        }));
+        assert!(report.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == crate::diagnostics::DiagnosticCode::WarnExtractLowConfidence
+        }));
+    }
+}

@@ -178,6 +178,20 @@ impl PyDiagnosticCode {
     #[classattr]
     const ERR_EXTRACT_YAML_AMBIGUOUS: &'static str = "ERR_EXTRACT_YAML_AMBIGUOUS";
     #[classattr]
+    const ERR_EXTRACT_TOML_MALFORMED: &'static str = "ERR_EXTRACT_TOML_MALFORMED";
+    #[classattr]
+    const ERR_EXTRACT_INPUT_LIMIT: &'static str = "ERR_EXTRACT_INPUT_LIMIT";
+    #[classattr]
+    const ERR_EXTRACT_TOML_DUPLICATE_KEY: &'static str = "ERR_EXTRACT_TOML_DUPLICATE_KEY";
+    #[classattr]
+    const ERR_EXTRACT_TOML_PATH_MISSING: &'static str = "ERR_EXTRACT_TOML_PATH_MISSING";
+    #[classattr]
+    const ERR_EXTRACT_TOML_SHAPE_MISMATCH: &'static str = "ERR_EXTRACT_TOML_SHAPE_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_TOML_VALUE_UNSUPPORTED: &'static str = "ERR_EXTRACT_TOML_VALUE_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_TOML_AMBIGUOUS: &'static str = "ERR_EXTRACT_TOML_AMBIGUOUS";
+    #[classattr]
     const WARN_EXTRACT_NOT_OBSERVED: &'static str = "WARN_EXTRACT_NOT_OBSERVED";
     #[classattr]
     const WARN_EXTRACT_LOW_CONFIDENCE: &'static str = "WARN_EXTRACT_LOW_CONFIDENCE";
@@ -235,10 +249,13 @@ pub(crate) fn parse_extract_format(value: &str) -> PyResult<ExtractFormat> {
         "xml" => Ok(ExtractFormat::Xml),
         "json" => Ok(ExtractFormat::Json),
         "yaml" => Ok(ExtractFormat::Yaml),
+        "toml" => Ok(ExtractFormat::Toml),
         other => Err(crate::errors::config_error_with_recovery_hints(
-            format!("unsupported extraction format `{other}`; use `xml`, `json`, or `yaml`"),
+            format!(
+                "unsupported extraction format `{other}`; use `xml`, `json`, `yaml`, or `toml`"
+            ),
             Some("ERR_EXTRACT_FORMAT_UNSUPPORTED"),
-            vec!["set format to `xml`, `json`, or `yaml`".to_owned()],
+            vec!["set format to `xml`, `json`, `yaml`, or `toml`".to_owned()],
         )),
     }
 }

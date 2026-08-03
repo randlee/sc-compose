@@ -201,11 +201,13 @@ fn format_path(path: &[ExtractionPathSegment]) -> String {
                 let _ = write!(formatted, "@{name}");
             }
             ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ObjectKey { key })
-            | ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::MappingKey { key }) => {
+            | ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::MappingKey { key })
+            | ExtractionPathSegment::Toml(sc_composer::TomlPathSegment::TableKey { key }) => {
                 let _ = write!(formatted, ".{key}");
             }
             ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ArrayIndex { index })
-            | ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::SequenceIndex { index }) => {
+            | ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::SequenceIndex { index })
+            | ExtractionPathSegment::Toml(sc_composer::TomlPathSegment::ArrayIndex { index }) => {
                 let _ = write!(formatted, "[{index}]");
             }
         }
@@ -217,7 +219,8 @@ fn format_source(source: &ExtractionSource) -> &'static str {
     match source {
         ExtractionSource::Xml(XmlExtractionSource::Attribute { .. }) => "attribute",
         ExtractionSource::Xml(XmlExtractionSource::TextNode) => "text_node",
-        ExtractionSource::Json(sc_composer::JsonExtractionSource::StringValue) => "string_value",
+        ExtractionSource::Json(sc_composer::JsonExtractionSource::StringValue)
+        | ExtractionSource::Toml(sc_composer::TomlExtractionSource::StringValue) => "string_value",
         ExtractionSource::Yaml(sc_composer::YamlExtractionSource::StringScalar) => "string_scalar",
     }
 }
@@ -244,7 +247,8 @@ fn path_segment_json(segment: &ExtractionPathSegment) -> serde_json::Value {
         ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ObjectKey { key }) => {
             serde_json::json!({"kind": "object_key", "key": key})
         }
-        ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ArrayIndex { index }) => {
+        ExtractionPathSegment::Json(sc_composer::JsonPathSegment::ArrayIndex { index })
+        | ExtractionPathSegment::Toml(sc_composer::TomlPathSegment::ArrayIndex { index }) => {
             serde_json::json!({"kind": "array_index", "index": index})
         }
         ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::MappingKey { key }) => {
@@ -252,6 +256,9 @@ fn path_segment_json(segment: &ExtractionPathSegment) -> serde_json::Value {
         }
         ExtractionPathSegment::Yaml(sc_composer::YamlPathSegment::SequenceIndex { index }) => {
             serde_json::json!({"kind": "sequence_index", "index": index})
+        }
+        ExtractionPathSegment::Toml(sc_composer::TomlPathSegment::TableKey { key }) => {
+            serde_json::json!({"kind": "table_key", "key": key})
         }
     }
 }
@@ -264,7 +271,8 @@ fn source_json(source: &ExtractionSource) -> serde_json::Value {
         ExtractionSource::Xml(XmlExtractionSource::TextNode) => {
             serde_json::json!({"kind": "text_node"})
         }
-        ExtractionSource::Json(sc_composer::JsonExtractionSource::StringValue) => {
+        ExtractionSource::Json(sc_composer::JsonExtractionSource::StringValue)
+        | ExtractionSource::Toml(sc_composer::TomlExtractionSource::StringValue) => {
             serde_json::json!({"kind": "string_value"})
         }
         ExtractionSource::Yaml(sc_composer::YamlExtractionSource::StringScalar) => {

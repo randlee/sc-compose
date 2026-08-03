@@ -8,6 +8,19 @@ import pytest
 import sc_compose
 
 
+FIXTURE_ROOT = (
+    Path(__file__).resolve().parents[3]
+    / "crates"
+    / "sc-composer"
+    / "tests"
+    / "fixtures"
+    / "reverse-extract"
+)
+TEAM_LEAD_SENDER = (FIXTURE_ROOT / "team-lead-sender.txt").read_text(
+    encoding="utf-8"
+).strip()
+
+
 def write(path: Path, contents: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(textwrap.dedent(contents), encoding="utf-8", newline="\n")
@@ -104,6 +117,13 @@ def test_import_surface_exposes_c2_api() -> None:
         "ERR_EXTRACT_YAML_SHAPE_MISMATCH",
         "ERR_EXTRACT_YAML_VALUE_UNSUPPORTED",
         "ERR_EXTRACT_YAML_AMBIGUOUS",
+        "ERR_EXTRACT_TOML_MALFORMED",
+        "ERR_EXTRACT_INPUT_LIMIT",
+        "ERR_EXTRACT_TOML_DUPLICATE_KEY",
+        "ERR_EXTRACT_TOML_PATH_MISSING",
+        "ERR_EXTRACT_TOML_SHAPE_MISMATCH",
+        "ERR_EXTRACT_TOML_VALUE_UNSUPPORTED",
+        "ERR_EXTRACT_TOML_AMBIGUOUS",
     ]:
         assert getattr(sc_compose.DiagnosticCode, code) == code
 
@@ -204,7 +224,7 @@ def test_json_extraction_preserves_boundary_diagnostics() -> None:
     assert malformed.value.recovery_hints
 
     with pytest.raises(sc_compose.ScConfigError) as unsupported:
-        sc_compose.extract_variables("{}", "{}", format="toml")
+        sc_compose.extract_variables("{}", "{}", format="ini")
     assert unsupported.value.code == "ERR_EXTRACT_FORMAT_UNSUPPORTED"
     assert unsupported.value.recovery_hints
 
@@ -222,7 +242,7 @@ def test_json_extraction_matches_realistic_atm_fixture() -> None:
         "action_name": "execute the assigned task",
         "description": "H.2 JSON extraction core",
         "message_id": "01KZ2BV5Z6VCRQYDQWYSAZA8GB",
-        "sender": "team-lead@sc-compose",
+        "sender": TEAM_LEAD_SENDER,
     }
     action = next(
         occurrence
@@ -270,15 +290,54 @@ actions:
     ]
 
 
-FIXTURE_ROOT = (
-    Path(__file__).resolve().parents[3]
-    / "crates"
-    / "sc-composer"
-    / "tests"
-    / "fixtures"
-    / "reverse-extract"
-)
+def test_toml_extraction_matches_cargo_config_and_array_of_table_paths() -> None:
+    template = """---
+required_variables:
+  - package_name
+---
+[package]
+name = "{{ package_name }}"
+version = "{{ version }}"
 
+[[bin]]
+name = "{{ first_bin }}"
+path = "src/main.rs"
+
+[[bin]]
+name = "{{ second_bin }}"
+path = "src/bin/second.rs"
+"""
+    rendered = """[package]
+name = "example-app"
+version = "1.2.3"
+
+[[bin]]
+name = "example-app"
+path = "src/main.rs"
+
+[[bin]]
+name = "example-tool"
+path = "src/bin/second.rs"
+"""
+    report = sc_compose.extract_variables(template, rendered, format="toml")
+
+    assert report.values == {
+        "first_bin": "example-app",
+        "package_name": "example-app",
+        "second_bin": "example-tool",
+        "version": "1.2.3",
+    }
+    second = next(
+        occurrence
+        for occurrence in report.occurrences
+        if occurrence.variable == "second_bin"
+    )
+    assert second.source.kind == "string_value"
+    assert [(segment.kind, segment.name, segment.ordinal) for segment in second.path] == [
+        ("table_key", "bin", None),
+        ("array_index", "1", 1),
+        ("table_key", "name", None),
+    ]
 
 def fixture_pair(name: str) -> tuple[str, str]:
     template = (FIXTURE_ROOT / f"{name}.xml.j2").read_text(encoding="utf-8")
@@ -288,7 +347,9 @@ def fixture_pair(name: str) -> tuple[str, str]:
 
 def json_fixture_pair(name: str) -> tuple[str, str]:
     template = (FIXTURE_ROOT / f"{name}.json.j2").read_text(encoding="utf-8")
-    rendered = (FIXTURE_ROOT / f"{name}.json").read_text(encoding="utf-8")
+    rendered = (FIXTURE_ROOT / f"{name}.json").read_text(encoding="utf-8").replace(
+        "__TEAM_LEAD_SENDER__", TEAM_LEAD_SENDER
+    )
     return template, rendered
 
 
