@@ -1,6 +1,17 @@
 repowise dead-code — 
-/Users/randlee/Documents/github/sc-compose-worktrees/repowise-analysis
+/Users/randlee/Documents/github/sc-compose-worktrees/repowise-develop
 [
+  {
+    "kind": "unreachable_file",
+    "file_path": ".claude/skills/html-a-b-comparison/references/validate-output-path.py",
+    "symbol_name": null,
+    "confidence": 0.4,
+    "reason": "File has no importers (in_degree=0)",
+    "safe_to_delete": false,
+    "risk_factors": [],
+    "lines": 10,
+    "primary_owner": "Rand Lee"
+  },
   {
     "kind": "unreachable_file",
     "file_path": "bindings/python/python/sc_compose/_native.pyi",
@@ -9,7 +20,7 @@ repowise dead-code —
     "reason": "File has no importers (in_degree=0)",
     "safe_to_delete": false,
     "risk_factors": [],
-    "lines": 1430,
+    "lines": 1660,
     "primary_owner": "Rand Lee"
   },
   {
@@ -178,7 +189,7 @@ repowise dead-code —
     "reason": "Public symbol 'DiagnosticCode' has no importers",
     "safe_to_delete": true,
     "risk_factors": [],
-    "lines": 27,
+    "lines": 33,
     "primary_owner": "Rand Lee"
   },
   {
@@ -267,6 +278,17 @@ repowise dead-code —
     "safe_to_delete": true,
     "risk_factors": [],
     "lines": 0,
+    "primary_owner": "Rand Lee"
+  },
+  {
+    "kind": "unused_export",
+    "file_path": "bindings/python/python/sc_compose/_native.pyi",
+    "symbol_name": "extract_variables",
+    "confidence": 0.7,
+    "reason": "Public symbol 'extract_variables' has no importers",
+    "safe_to_delete": true,
+    "risk_factors": [],
+    "lines": 6,
     "primary_owner": "Rand Lee"
   },
   {
@@ -674,6 +696,6 @@ repowise dead-code —
     "safe_to_delete": false,
     "risk_factors": [],
     "lines": 1620,
-    "primary_owner": null
+    "primary_owner": "Rand Lee"
   }
 ]

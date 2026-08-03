@@ -1,17 +1,30 @@
 repowise health — 
-/Users/randlee/Documents/github/sc-compose-worktrees/repowise-analysis
+/Users/randlee/Documents/github/sc-compose-worktrees/repowise-develop
 {
   "targets": [
     {
-      "file_path": "crates/sc-composer/src/diagnostics.rs",
-      "score": 4.04,
-      "nloc": 150,
-      "primary_biomarker": "co_change_scatter",
-      "primary_severity": "high",
-      "primary_reason": "co-changes with 18 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)",
-      "total_impact": 5.96,
-      "effort_bucket": "M",
-      "impact_per_effort": 2.98,
+      "file_path": "crates/sc-compose/tests/cli.rs",
+      "score": 6.5,
+      "nloc": 11,
+      "primary_biomarker": "change_entropy",
+      "primary_severity": "critical",
+      "primary_reason": "changes are scattered across noisy commits (top 1% change entropy); a strong history-based fault predictor",
+      "total_impact": 3.5,
+      "effort_bucket": "S",
+      "impact_per_effort": 3.5,
+      "finding_count": 4,
+      "plans": []
+    },
+    {
+      "file_path": "crates/sc-compose/tests/json_cli.rs",
+      "score": 6.5,
+      "nloc": 11,
+      "primary_biomarker": "change_entropy",
+      "primary_severity": "critical",
+      "primary_reason": "changes are scattered across noisy commits (top 2% change entropy); a strong history-based fault predictor",
+      "total_impact": 3.5,
+      "effort_bucket": "S",
+      "impact_per_effort": 3.5,
       "finding_count": 4,
       "plans": []
     },
@@ -21,7 +34,7 @@ repowise health —
       "nloc": 69,
       "primary_biomarker": "untested_hotspot",
       "primary_severity": "critical",
-      "primary_reason": "Hotspot with no paired test file and no coverage data \u2014 18 dependents",
+      "primary_reason": "Hotspot with no paired test file and no coverage data \u2014 20 dependents",
       "total_impact": 5.499,
       "effort_bucket": "M",
       "impact_per_effort": 2.749,
@@ -29,15 +42,28 @@ repowise health —
       "plans": []
     },
     {
+      "file_path": "crates/sc-composer/src/diagnostics.rs",
+      "score": 3.9,
+      "nloc": 162,
+      "primary_biomarker": "untested_hotspot",
+      "primary_severity": "critical",
+      "primary_reason": "Hotspot with no paired test file and no coverage data \u2014 20 dependents",
+      "total_impact": 6.101,
+      "effort_bucket": "L",
+      "impact_per_effort": 2.034,
+      "finding_count": 5,
+      "plans": []
+    },
+    {
       "file_path": "crates/sc-compose/src/reporting/output.rs",
-      "score": 3.96,
+      "score": 4.21,
       "nloc": 257,
       "primary_biomarker": "prior_defect",
       "primary_severity": "critical",
       "primary_reason": "6 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects",
-      "total_impact": 6.036,
+      "total_impact": 5.795,
       "effort_bucket": "L",
-      "impact_per_effort": 2.012,
+      "impact_per_effort": 1.932,
       "finding_count": 8,
       "plans": [
         {
@@ -60,20 +86,24 @@ repowise health —
               },
               {
                 "file": "crates/sc-compose/src/reporting/render_many.rs",
-                "line_start": 133,
-                "line_end": 140
+                "line_start": 201,
+                "line_end": 208
               }
             ],
             "suggested_site": {
               "module": null,
               "directory": "crates/sc-compose/src/reporting"
             },
-            "duplicated_lines": 8
+            "duplicated_lines": 8,
+            "snippet": "    let metadata_absolute = root.join(&request.metadata_path);\n    if let Some(parent) = metadata_absolute.parent() {\n        std::fs::create_dir_all(parent).map_err(|source| OutputError::CreateDir {\n            path: parent.to_path_buf(),\n            source,\n        })?;\n    }\n    std::fs::write(&metadata_absolute, metadata_json).map_err(|source| {",
+            "snippet_start_line": 115,
+            "snippet_truncated": false,
+            "suggested_name": "reporting_helper"
           },
           "evidence": {
             "occurrence_count": 3,
             "duplicated_lines": 8,
-            "token_count": 600,
+            "token_count": 550,
             "co_change_count": 2,
             "is_intra_file": false
           },
@@ -105,20 +135,24 @@ repowise health —
               },
               {
                 "file": "crates/sc-compose/src/reporting/render_many.rs",
-                "line_start": 133,
-                "line_end": 140
+                "line_start": 201,
+                "line_end": 208
               }
             ],
             "suggested_site": {
               "module": null,
               "directory": "crates/sc-compose/src/reporting"
             },
-            "duplicated_lines": 8
+            "duplicated_lines": 8,
+            "snippet": "    let absolute_to = root.join(to);\n    if let Some(parent) = absolute_to.parent() {\n        std::fs::create_dir_all(parent).map_err(|source| OutputError::CreateDir {\n            path: parent.to_path_buf(),\n            source,\n        })?;\n    }\n    std::fs::copy(&absolute_from, &absolute_to).map_err(|source| OutputError::CopyFile {",
+            "snippet_start_line": 184,
+            "snippet_truncated": false,
+            "suggested_name": "reporting_helper"
           },
           "evidence": {
             "occurrence_count": 2,
             "duplicated_lines": 8,
-            "token_count": 450,
+            "token_count": 550,
             "co_change_count": 2,
             "is_intra_file": false
           },
@@ -131,62 +165,6 @@ repowise health —
             "file_count": 1,
             "co_change_count": 2,
             "callers": 2
-          },
-          "confidence": "medium",
-          "source_biomarker": "dry_violation"
-        }
-      ]
-    },
-    {
-      "file_path": "crates/sc-compose/src/render_request.rs",
-      "score": 4.0,
-      "nloc": 323,
-      "primary_biomarker": "untested_hotspot",
-      "primary_severity": "high",
-      "primary_reason": "Hotspot with no paired test file and no coverage data \u2014 5 dependents",
-      "total_impact": 5.998,
-      "effort_bucket": "L",
-      "impact_per_effort": 1.999,
-      "finding_count": 11,
-      "plans": [
-        {
-          "refactoring_type": "extract_helper",
-          "file_path": "crates/sc-compose/src/render_request.rs",
-          "target_symbol": "render_request.rs:240-247",
-          "line_start": 240,
-          "line_end": 247,
-          "plan": {
-            "occurrences": [
-              {
-                "file": "crates/sc-compose/src/render_request.rs",
-                "line_start": 240,
-                "line_end": 247
-              },
-              {
-                "file": "crates/sc-compose/src/render_request.rs",
-                "line_start": 313,
-                "line_end": 320
-              }
-            ],
-            "suggested_site": {
-              "module": null,
-              "directory": "crates/sc-compose/src"
-            },
-            "duplicated_lines": 8
-          },
-          "evidence": {
-            "occurrence_count": 2,
-            "duplicated_lines": 8,
-            "token_count": 150,
-            "co_change_count": 0,
-            "is_intra_file": true
-          },
-          "impact_delta": 0.0,
-          "effort_bucket": "S",
-          "blast_radius": {
-            "files": [],
-            "file_count": 0,
-            "co_change_count": 0
           },
           "confidence": "medium",
           "source_biomarker": "dry_violation"
@@ -246,7 +224,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-compose/src/reporting"
             },
-            "duplicated_lines": 25
+            "duplicated_lines": 25,
+            "snippet": "            required,\n            entrypoint,\n            metadata,\n        })\n    }\n}\n\nimpl fmt::Display for CatalogError {\n    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {\n        match self {\n            Self::Read { path, source } => {\n                write!(\n                    f,\n                    \"failed to read report catalog {}: {source}\",\n                    path.display()\n                )\n            }\n            Self::Parse { path, source } => {\n                write!(\n                    f,\n                    \"failed to parse report catalog {}: {source}\",\n                    path.display()\n                )\n            }\n            Self::Invalid(message) => f.write_str(message),",
+            "snippet_start_line": 138,
+            "snippet_truncated": false,
+            "suggested_name": "reporting_helper"
           },
           "evidence": {
             "occurrence_count": 3,
@@ -302,7 +284,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-compose/src/reporting"
             },
-            "duplicated_lines": 8
+            "duplicated_lines": 8,
+            "snippet": "}\n\n#[derive(Debug, Clone, PartialEq, Eq, Serialize)]\npub(crate) struct ReportDefinition {\n    pub(crate) id: String,\n    pub(crate) kind: String,\n    pub(crate) producer: String,\n    pub(crate) required: bool,",
+            "snippet_start_line": 33,
+            "snippet_truncated": false,
+            "suggested_name": "reporting_helper"
           },
           "evidence": {
             "occurrence_count": 4,
@@ -321,7 +307,7 @@ repowise health —
             ],
             "file_count": 3,
             "co_change_count": 4,
-            "callers": 10
+            "callers": 12
           },
           "confidence": "high",
           "source_biomarker": "dry_violation"
@@ -349,7 +335,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-compose/src/reporting"
             },
-            "duplicated_lines": 8
+            "duplicated_lines": 8,
+            "snippet": "];\n\n#[derive(Debug, Clone, PartialEq, Eq, Serialize)]\npub(crate) struct ReportCatalog {\n    #[serde(serialize_with = \"crate::path_utils::serialize_path\")]\n    pub(crate) catalog_path: PathBuf,\n    pub(crate) reports: Vec<ReportDefinition>,\n}",
+            "snippet_start_line": 20,
+            "snippet_truncated": false,
+            "suggested_name": "reporting_helper"
           },
           "evidence": {
             "occurrence_count": 2,
@@ -394,7 +384,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-compose/src/reporting"
             },
-            "duplicated_lines": 14
+            "duplicated_lines": 14,
+            "snippet": "    pub(crate) metadata: PathBuf,\n}\n\n#[derive(Debug)]\npub(crate) enum CatalogError {\n    Read {\n        path: PathBuf,\n        source: std::io::Error,\n    },\n    Parse {\n        path: PathBuf,\n        source: Box<toml::de::Error>,\n    },\n    Invalid(String),",
+            "snippet_start_line": 44,
+            "snippet_truncated": false,
+            "suggested_name": "reporting_helper"
           },
           "evidence": {
             "occurrence_count": 2,
@@ -421,7 +415,7 @@ repowise health —
     {
       "file_path": "crates/sc-compose/src/commands/mod.rs",
       "score": 6.35,
-      "nloc": 81,
+      "nloc": 82,
       "primary_biomarker": "prior_defect",
       "primary_severity": "critical",
       "primary_reason": "10 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects",
@@ -433,15 +427,15 @@ repowise health —
         {
           "refactoring_type": "extract_helper",
           "file_path": "crates/sc-compose/src/commands/mod.rs",
-          "target_symbol": "mod.rs:1-8",
+          "target_symbol": "mod.rs:1-9",
           "line_start": 1,
-          "line_end": 8,
+          "line_end": 9,
           "plan": {
             "occurrences": [
               {
                 "file": "crates/sc-compose/src/commands/mod.rs",
                 "line_start": 1,
-                "line_end": 8
+                "line_end": 9
               },
               {
                 "file": "crates/sc-compose/src/reporting/mod.rs",
@@ -453,12 +447,16 @@ repowise health —
               "module": null,
               "directory": "crates/sc-compose/src"
             },
-            "duplicated_lines": 13
+            "duplicated_lines": 13,
+            "snippet": "pub(crate) mod compose;\npub(crate) mod dispatch;\npub(crate) mod examples;\npub(crate) mod extract;\npub(crate) mod reports;\npub(crate) mod template_init;\npub(crate) mod templates;\npub(crate) mod verify;\npub(crate) mod workspace;",
+            "snippet_start_line": 1,
+            "snippet_truncated": false,
+            "suggested_name": "src_helper"
           },
           "evidence": {
             "occurrence_count": 2,
             "duplicated_lines": 13,
-            "token_count": 2100,
+            "token_count": 4200,
             "co_change_count": 0,
             "is_intra_file": false
           },
@@ -478,334 +476,253 @@ repowise health —
       ]
     },
     {
-      "file_path": "crates/sc-compose/src/main.rs",
-      "score": 6.5,
-      "nloc": 71,
-      "primary_biomarker": "change_entropy",
+      "file_path": "crates/sc-compose/src/reporting/index.rs",
+      "score": 4.59,
+      "nloc": 156,
+      "primary_biomarker": "prior_defect",
       "primary_severity": "critical",
-      "primary_reason": "changes are scattered across noisy commits (top 4% change entropy); a strong history-based fault predictor",
-      "total_impact": 3.5,
-      "effort_bucket": "M",
-      "impact_per_effort": 1.75,
-      "finding_count": 7,
-      "plans": []
-    },
-    {
-      "file_path": "crates/sc-compose/src/var_file.rs",
-      "score": 6.5,
-      "nloc": 92,
-      "primary_biomarker": "churn_risk",
-      "primary_severity": "critical",
-      "primary_reason": "90-day churn rewrote 6.4x the file's size (588 lines over 92 NLOC, top 24% of repo churn)",
-      "total_impact": 3.5,
-      "effort_bucket": "M",
-      "impact_per_effort": 1.75,
-      "finding_count": 5,
-      "plans": []
-    },
-    {
-      "file_path": "crates/sc-composer/src/frontmatter.rs",
-      "score": 4.78,
-      "nloc": 372,
-      "primary_biomarker": "co_change_scatter",
-      "primary_severity": "high",
-      "primary_reason": "co-changes with 16 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)",
-      "total_impact": 5.225,
+      "primary_reason": "5 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects",
+      "total_impact": 5.411,
       "effort_bucket": "L",
-      "impact_per_effort": 1.742,
-      "finding_count": 8,
-      "plans": []
-    },
-    {
-      "file_path": "crates/sc-compose/src/cli.rs",
-      "score": 1.55,
-      "nloc": 489,
-      "primary_biomarker": "untested_hotspot",
-      "primary_severity": "high",
-      "primary_reason": "Hotspot with no paired test file and no coverage data \u2014 9 dependents",
-      "total_impact": 8.447,
-      "effort_bucket": "XL",
-      "impact_per_effort": 1.689,
-      "finding_count": 13,
+      "impact_per_effort": 1.804,
+      "finding_count": 7,
       "plans": [
         {
           "refactoring_type": "extract_helper",
-          "file_path": "crates/sc-compose/src/cli.rs",
-          "target_symbol": "cli.rs:222-245",
-          "line_start": 222,
-          "line_end": 245,
+          "file_path": "crates/sc-compose/src/reporting/index.rs",
+          "target_symbol": "index.rs:15-26",
+          "line_start": 15,
+          "line_end": 26,
           "plan": {
             "occurrences": [
               {
-                "file": "crates/sc-compose/src/cli.rs",
-                "line_start": 222,
-                "line_end": 245
+                "file": "crates/sc-compose/src/reporting/index.rs",
+                "line_start": 15,
+                "line_end": 26
               },
               {
-                "file": "crates/sc-compose/src/cli.rs",
-                "line_start": 247,
-                "line_end": 257
+                "file": "crates/sc-compose/src/reporting/init.rs",
+                "line_start": 34,
+                "line_end": 42
               },
               {
-                "file": "crates/sc-compose/src/commands/reports/mod.rs",
-                "line_start": 54,
-                "line_end": 62
-              },
-              {
-                "file": "crates/sc-compose/src/commands/reports/mod.rs",
-                "line_start": 74,
-                "line_end": 82
-              },
-              {
-                "file": "crates/sc-compose/src/commands/reports/mod.rs",
-                "line_start": 86,
-                "line_end": 95
+                "file": "crates/sc-compose/src/reporting/output.rs",
+                "line_start": 50,
+                "line_end": 56
               }
             ],
             "suggested_site": {
               "module": null,
-              "directory": "crates/sc-compose/src"
+              "directory": "crates/sc-compose/src/reporting"
             },
-            "duplicated_lines": 24
-          },
-          "evidence": {
-            "occurrence_count": 5,
-            "duplicated_lines": 24,
-            "token_count": 1250,
-            "co_change_count": 0,
-            "is_intra_file": false
-          },
-          "impact_delta": 0.35,
-          "effort_bucket": "S",
-          "blast_radius": {
-            "files": [
-              "crates/sc-compose/src/commands/reports/mod.rs"
-            ],
-            "file_count": 1,
-            "co_change_count": 0,
-            "callers": 6
-          },
-          "confidence": "medium",
-          "source_biomarker": "dry_violation"
-        },
-        {
-          "refactoring_type": "extract_helper",
-          "file_path": "crates/sc-compose/src/cli.rs",
-          "target_symbol": "cli.rs:237-294",
-          "line_start": 237,
-          "line_end": 294,
-          "plan": {
-            "occurrences": [
-              {
-                "file": "crates/sc-compose/src/cli.rs",
-                "line_start": 237,
-                "line_end": 294
-              },
-              {
-                "file": "crates/sc-compose/src/commands/reports/mod.rs",
-                "line_start": 54,
-                "line_end": 62
-              },
-              {
-                "file": "crates/sc-compose/src/commands/reports/mod.rs",
-                "line_start": 74,
-                "line_end": 82
-              },
-              {
-                "file": "crates/sc-compose/src/commands/reports/mod.rs",
-                "line_start": 86,
-                "line_end": 130
-              }
-            ],
-            "suggested_site": {
-              "module": null,
-              "directory": "crates/sc-compose/src"
-            },
-            "duplicated_lines": 58
-          },
-          "evidence": {
-            "occurrence_count": 4,
-            "duplicated_lines": 58,
-            "token_count": 11950,
-            "co_change_count": 0,
-            "is_intra_file": false
-          },
-          "impact_delta": 0.35,
-          "effort_bucket": "M",
-          "blast_radius": {
-            "files": [
-              "crates/sc-compose/src/commands/reports/mod.rs"
-            ],
-            "file_count": 1,
-            "co_change_count": 0,
-            "callers": 6
-          },
-          "confidence": "medium",
-          "source_biomarker": "dry_violation"
-        },
-        {
-          "refactoring_type": "extract_method",
-          "file_path": "crates/sc-compose/src/cli.rs",
-          "target_symbol": "filtered_args_for_clap",
-          "line_start": 450,
-          "line_end": 498,
-          "plan": {
-            "span": {
-              "start": 464,
-              "end": 471
-            },
-            "params": [
-              "arg",
-              "arg_text",
-              "filtered"
-            ],
-            "returns": [],
-            "suggested_name": null
-          },
-          "evidence": {
-            "slice_nloc": 8,
-            "ccn_removed": 1
-          },
-          "impact_delta": 0.316,
-          "effort_bucket": "S",
-          "blast_radius": {
-            "callers_count": 0
-          },
-          "confidence": "medium",
-          "source_biomarker": "complex_method"
-        },
-        {
-          "refactoring_type": "extract_helper",
-          "file_path": "crates/sc-compose/src/cli.rs",
-          "target_symbol": "cli.rs:150-176",
-          "line_start": 150,
-          "line_end": 176,
-          "plan": {
-            "occurrences": [
-              {
-                "file": "crates/sc-compose/src/cli.rs",
-                "line_start": 150,
-                "line_end": 176
-              },
-              {
-                "file": "crates/sc-compose/src/cli.rs",
-                "line_start": 228,
-                "line_end": 237
-              },
-              {
-                "file": "crates/sc-compose/src/cli.rs",
-                "line_start": 248,
-                "line_end": 257
-              }
-            ],
-            "suggested_site": {
-              "module": null,
-              "directory": "crates/sc-compose/src"
-            },
-            "duplicated_lines": 27
+            "duplicated_lines": 12,
+            "snippet": "    pub(crate) produced_at: Option<String>,\n    #[serde(serialize_with = \"crate::path_utils::serialize_path\")]\n    pub(crate) entrypoint: PathBuf,\n    #[serde(serialize_with = \"crate::path_utils::serialize_path\")]\n    pub(crate) metadata: PathBuf,\n    #[serde(serialize_with = \"crate::path_utils::serialize_paths\")]\n    pub(crate) artifacts: Vec<PathBuf>,\n    #[serde(serialize_with = \"crate::path_utils::serialize_paths\")]\n    pub(crate) missing_paths: Vec<PathBuf>,\n}\n\n#[derive(Debug, Clone, PartialEq, Eq, Serialize)]",
+            "snippet_start_line": 15,
+            "snippet_truncated": false,
+            "suggested_name": "reporting_helper"
           },
           "evidence": {
             "occurrence_count": 3,
-            "duplicated_lines": 27,
-            "token_count": 1400,
+            "duplicated_lines": 12,
+            "token_count": 1700,
+            "co_change_count": 3,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.35,
+          "effort_bucket": "S",
+          "blast_radius": {
+            "files": [
+              "crates/sc-compose/src/reporting/init.rs",
+              "crates/sc-compose/src/reporting/output.rs"
+            ],
+            "file_count": 2,
+            "co_change_count": 3,
+            "callers": 12
+          },
+          "confidence": "high",
+          "source_biomarker": "dry_violation"
+        },
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "crates/sc-compose/src/reporting/index.rs",
+          "target_symbol": "index.rs:133-140",
+          "line_start": 133,
+          "line_end": 140,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "crates/sc-compose/src/reporting/index.rs",
+                "line_start": 133,
+                "line_end": 140
+              },
+              {
+                "file": "crates/sc-compose/src/reporting/publish_manifest/error.rs",
+                "line_start": 50,
+                "line_end": 57
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": "crates/sc-compose/src/reporting"
+            },
+            "duplicated_lines": 8,
+            "snippet": "        .map_err(|source| ReportIndexError::ParseMetadata { path, source })\n}\n\nimpl fmt::Display for ReportIndexError {\n    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {\n        match self {\n            Self::Catalog(source) => write!(f, \"{source}\"),\n            Self::ReadMetadata { path, source } => {",
+            "snippet_start_line": 133,
+            "snippet_truncated": false,
+            "suggested_name": "reporting_helper"
+          },
+          "evidence": {
+            "occurrence_count": 2,
+            "duplicated_lines": 8,
+            "token_count": 300,
             "co_change_count": 0,
-            "is_intra_file": true
+            "is_intra_file": false
           },
           "impact_delta": 0.0,
           "effort_bucket": "S",
           "blast_radius": {
-            "files": [],
-            "file_count": 0,
-            "co_change_count": 0
+            "files": [
+              "crates/sc-compose/src/reporting/publish_manifest/error.rs"
+            ],
+            "file_count": 1,
+            "co_change_count": 0,
+            "callers": 0
           },
           "confidence": "medium",
           "source_biomarker": "dry_violation"
         },
         {
           "refactoring_type": "extract_helper",
-          "file_path": "crates/sc-compose/src/cli.rs",
-          "target_symbol": "cli.rs:374-383",
-          "line_start": 374,
-          "line_end": 383,
+          "file_path": "crates/sc-compose/src/reporting/index.rs",
+          "target_symbol": "index.rs:6-13",
+          "line_start": 6,
+          "line_end": 13,
           "plan": {
             "occurrences": [
               {
-                "file": "crates/sc-compose/src/cli.rs",
-                "line_start": 374,
-                "line_end": 383
+                "file": "crates/sc-compose/src/reporting/index.rs",
+                "line_start": 6,
+                "line_end": 13
               },
               {
-                "file": "crates/sc-compose/src/cli.rs",
-                "line_start": 388,
-                "line_end": 397
+                "file": "crates/sc-compose/src/reporting/report_context.rs",
+                "line_start": 7,
+                "line_end": 14
               }
             ],
             "suggested_site": {
               "module": null,
-              "directory": "crates/sc-compose/src"
+              "directory": "crates/sc-compose/src/reporting"
             },
-            "duplicated_lines": 10
+            "duplicated_lines": 8,
+            "snippet": "use crate::reporting::catalog::{CatalogError, ReportCatalog};\nuse crate::reporting::output::ReportMetadata;\n\n#[derive(Debug, Clone, PartialEq, Eq, Serialize)]\npub(crate) struct ReportIndexEntry {\n    pub(crate) report_id: String,\n    pub(crate) kind: String,\n    pub(crate) required: bool,",
+            "snippet_start_line": 6,
+            "snippet_truncated": false,
+            "suggested_name": "reporting_helper"
           },
           "evidence": {
             "occurrence_count": 2,
-            "duplicated_lines": 10,
-            "token_count": 450,
+            "duplicated_lines": 8,
+            "token_count": 250,
             "co_change_count": 0,
-            "is_intra_file": true
+            "is_intra_file": false
           },
           "impact_delta": 0.0,
           "effort_bucket": "S",
           "blast_radius": {
-            "files": [],
-            "file_count": 0,
-            "co_change_count": 0
-          },
-          "confidence": "medium",
-          "source_biomarker": "dry_violation"
-        },
-        {
-          "refactoring_type": "extract_helper",
-          "file_path": "crates/sc-compose/src/cli.rs",
-          "target_symbol": "cli.rs:502-510",
-          "line_start": 502,
-          "line_end": 510,
-          "plan": {
-            "occurrences": [
-              {
-                "file": "crates/sc-compose/src/cli.rs",
-                "line_start": 502,
-                "line_end": 510
-              },
-              {
-                "file": "crates/sc-compose/src/cli.rs",
-                "line_start": 520,
-                "line_end": 526
-              }
+            "files": [
+              "crates/sc-compose/src/reporting/report_context.rs"
             ],
-            "suggested_site": {
-              "module": null,
-              "directory": "crates/sc-compose/src"
-            },
-            "duplicated_lines": 9
-          },
-          "evidence": {
-            "occurrence_count": 2,
-            "duplicated_lines": 9,
-            "token_count": 6850,
+            "file_count": 1,
             "co_change_count": 0,
-            "is_intra_file": true
-          },
-          "impact_delta": 0.0,
-          "effort_bucket": "S",
-          "blast_radius": {
-            "files": [],
-            "file_count": 0,
-            "co_change_count": 0
+            "callers": 0
           },
           "confidence": "medium",
           "source_biomarker": "dry_violation"
         }
       ]
+    },
+    {
+      "file_path": "bindings/python/python/sc_compose/__init__.py",
+      "score": 6.44,
+      "nloc": 124,
+      "primary_biomarker": "untested_hotspot",
+      "primary_severity": "high",
+      "primary_reason": "Hotspot with no paired test file and no coverage data \u2014 5 dependents",
+      "total_impact": 3.56,
+      "effort_bucket": "M",
+      "impact_per_effort": 1.78,
+      "finding_count": 4,
+      "plans": [
+        {
+          "refactoring_type": "extract_helper",
+          "file_path": "bindings/python/python/sc_compose/__init__.py",
+          "target_symbol": "__init__.py:2-61",
+          "line_start": 2,
+          "line_end": 61,
+          "plan": {
+            "occurrences": [
+              {
+                "file": "bindings/python/python/sc_compose/__init__.py",
+                "line_start": 2,
+                "line_end": 61
+              },
+              {
+                "file": "crates/sc-composer/src/diagnostics.rs",
+                "line_start": 39,
+                "line_end": 111
+              },
+              {
+                "file": "crates/sc-composer/src/lib.rs",
+                "line_start": 83,
+                "line_end": 88
+              }
+            ],
+            "suggested_site": {
+              "module": null,
+              "directory": null
+            },
+            "duplicated_lines": 73,
+            "snippet": "    BUILTIN_VARIABLE_NAMES,\n    ComposeMode,\n    ComposePolicy,\n    ComposeRequest,\n    ComposeResult,\n    ConfiningRoot,\n    Diagnostic,\n    DiagnosticCode,\n    DiagnosticSeverity,\n    ExpandedTemplate,\n    ExtractionDiagnostic,\n    ExtractionOccurrence,\n    ExtractionReport,\n    ExtractionSource,\n    Frontmatter,\n    FrontmatterInitResult,\n    InitResult,\n    LoadedTemplateRequest,\n    NamedTemplateAsset,\n    PassConfig,\n    ParsedTemplate,\n    ProfileKind,\n    ProfileName,\n    Renderer,\n    RenderedArtifact,\n    ResolveResult,\n    ResolverPolicy,\n    RuntimeKind,\n    ScComposeError,\n    ScConfigError,\n    ScIncludeError,\n    ScRenderError,\n    ScResolveError,\n    ScValidationError,\n    UnknownVariablePolicy,\n    ValidationReport,\n    VariableName,\n    VariableSource,\n    VerifyResult,\n    XmlPathSegment,",
+            "snippet_start_line": 2,
+            "snippet_truncated": true,
+            "suggested_name": "shared_helper"
+          },
+          "evidence": {
+            "occurrence_count": 3,
+            "duplicated_lines": 73,
+            "token_count": 61250,
+            "co_change_count": 0,
+            "is_intra_file": false
+          },
+          "impact_delta": 0.0,
+          "effort_bucket": "M",
+          "blast_radius": {
+            "files": [
+              "crates/sc-composer/src/diagnostics.rs",
+              "crates/sc-composer/src/lib.rs"
+            ],
+            "file_count": 2,
+            "co_change_count": 0,
+            "callers": 0
+          },
+          "confidence": "medium",
+          "source_biomarker": "dry_violation"
+        }
+      ]
+    },
+    {
+      "file_path": "crates/sc-compose/src/main.rs",
+      "score": 6.5,
+      "nloc": 103,
+      "primary_biomarker": "change_entropy",
+      "primary_severity": "critical",
+      "primary_reason": "changes are scattered across noisy commits (top 3% change entropy); a strong history-based fault predictor",
+      "total_impact": 3.501,
+      "effort_bucket": "M",
+      "impact_per_effort": 1.75,
+      "finding_count": 6,
+      "plans": []
     },
     {
       "file_path": "crates/sc-composer/src/init_workspace.rs",
@@ -817,7 +734,7 @@ repowise health —
       "total_impact": 4.873,
       "effort_bucket": "L",
       "impact_per_effort": 1.624,
-      "finding_count": 10,
+      "finding_count": 14,
       "plans": [
         {
           "refactoring_type": "extract_method",
@@ -846,6 +763,49 @@ repowise health —
           },
           "impact_delta": 0.847,
           "effort_bucket": "S",
+          "blast_radius": {
+            "callers_count": 0
+          },
+          "confidence": "high",
+          "source_biomarker": "complex_method"
+        }
+      ]
+    },
+    {
+      "file_path": "crates/sc-compose/tests/repo_boundaries.rs",
+      "score": 6.76,
+      "nloc": 144,
+      "primary_biomarker": "complex_method",
+      "primary_severity": "high",
+      "primary_reason": "repo_keeps_standalone_boundary_rules has cyclomatic complexity 15",
+      "total_impact": 3.238,
+      "effort_bucket": "M",
+      "impact_per_effort": 1.619,
+      "finding_count": 11,
+      "plans": [
+        {
+          "refactoring_type": "extract_method",
+          "file_path": "crates/sc-compose/tests/repo_boundaries.rs",
+          "target_symbol": "repo_keeps_standalone_boundary_rules",
+          "line_start": 72,
+          "line_end": 156,
+          "plan": {
+            "span": {
+              "start": 74,
+              "end": 155
+            },
+            "params": [
+              "root"
+            ],
+            "returns": [],
+            "suggested_name": null
+          },
+          "evidence": {
+            "slice_nloc": 78,
+            "ccn_removed": 14
+          },
+          "impact_delta": 1.192,
+          "effort_bucket": "M",
           "blast_radius": {
             "callers_count": 0
           },
@@ -889,7 +849,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-compose/src/commands"
             },
-            "duplicated_lines": 13
+            "duplicated_lines": 13,
+            "snippet": "    let packs = store.list().map_err(pack_not_renderable_error)?;\n    print_pack_list(&packs, args.json).map_err(CommandError::usage)?;\n    Ok(crate::exit_codes::SUCCESS)\n}\n\npub(crate) fn run_examples_render(\n    args: &ExamplesArgs,\n    observer: &mut dyn CompositionObserver,\n) -> Result<i32, CommandError> {\n    let name = args\n        .name\n        .as_deref()\n        .ok_or_else(|| CommandError::usage(anyhow!(\"missing example pack name\")))?;",
+            "snippet_start_line": 16,
+            "snippet_truncated": false,
+            "suggested_name": "commands_helper"
           },
           "evidence": {
             "occurrence_count": 2,
@@ -999,7 +963,7 @@ repowise health —
       "primary_biomarker": "nested_complexity",
       "primary_severity": "medium",
       "primary_reason": "discover_tokens_with_brace_count nests 4 levels deep",
-      "total_impact": 7.623,
+      "total_impact": 7.626,
       "effort_bucket": "XL",
       "impact_per_effort": 1.525,
       "finding_count": 23,
@@ -1027,7 +991,11 @@ repowise health —
               "module": null,
               "directory": null
             },
-            "duplicated_lines": 20
+            "duplicated_lines": 20,
+            "snippet": "        \"if\",\n        \"else\",\n        \"elif\",\n        \"endif\",\n        \"for\",\n        \"endfor\",\n        \"in\",\n        \"set\",\n        \"true\",\n        \"false\",\n        \"none\",\n        \"not\",\n        \"and\",\n        \"or\",\n        \"block\",\n        \"endblock\",\n        \"macro\",\n        \"endmacro\",\n        \"filter\",\n        \"endfilter\",",
+            "snippet_start_line": 936,
+            "snippet_truncated": false,
+            "suggested_name": "shared_helper"
           },
           "evidence": {
             "occurrence_count": 2,
@@ -1116,11 +1084,32 @@ repowise health —
         {
           "refactoring_type": "split_file",
           "file_path": "crates/sc-composer/src/validation.rs",
-          "target_symbol": "validation.rs -> 5 files",
+          "target_symbol": "validation.rs -> 4 files",
           "line_start": null,
           "line_end": null,
           "plan": {
             "groups": [
+              {
+                "name": "default",
+                "symbols": [
+                  "collect_validation_state",
+                  "default_satisfies_path",
+                  "default_usage_diagnostics",
+                  "default_used_by_reference",
+                  "file_references_variables",
+                  "merge_frontmatter",
+                  "missing_frontmatter_warnings",
+                  "missing_required_diagnostic",
+                  "missing_required_path_diagnostics",
+                  "per_pass_referenced_variables",
+                  "populate_pass_validation_maps",
+                  "push_extra_input_diagnostics",
+                  "required_path_diagnostic",
+                  "undeclared_referenced_variables",
+                  "validate_expanded"
+                ],
+                "suggested_file": "crates/sc-composer/src/default.rs"
+              },
               {
                 "name": "discover",
                 "symbols": [
@@ -1137,22 +1126,6 @@ repowise health —
                   "validate_required_value"
                 ],
                 "suggested_file": "crates/sc-composer/src/discover.rs"
-              },
-              {
-                "name": "diagnostics",
-                "symbols": [
-                  "collect_validation_state",
-                  "default_usage_diagnostics",
-                  "file_references_variables",
-                  "merge_frontmatter",
-                  "missing_frontmatter_warnings",
-                  "missing_required_diagnostic",
-                  "missing_required_path_diagnostics",
-                  "push_extra_input_diagnostics",
-                  "required_path_diagnostic",
-                  "validate_expanded"
-                ],
-                "suggested_file": "crates/sc-composer/src/diagnostics.rs"
               },
               {
                 "name": "current",
@@ -1178,17 +1151,6 @@ repowise health —
                   "validate_required_path"
                 ],
                 "suggested_file": "crates/sc-composer/src/builtin.rs"
-              },
-              {
-                "name": "default",
-                "symbols": [
-                  "default_satisfies_path",
-                  "default_used_by_reference",
-                  "per_pass_referenced_variables",
-                  "populate_pass_validation_maps",
-                  "undeclared_referenced_variables"
-                ],
-                "suggested_file": "crates/sc-composer/src/default.rs"
               }
             ],
             "residual": null,
@@ -1197,12 +1159,12 @@ repowise health —
           "evidence": {
             "file_nloc": 1655,
             "symbol_count": 39,
-            "group_count": 5,
+            "group_count": 4,
             "modularity": 0.468,
-            "intra_edges": 120,
+            "intra_edges": 137,
             "cut_edges": 71,
             "cochange_edges": 91,
-            "import_edges": 114
+            "import_edges": 117
           },
           "impact_delta": 0.0,
           "effort_bucket": "XL",
@@ -1248,7 +1210,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-composer/src"
             },
-            "duplicated_lines": 12
+            "duplicated_lines": 12,
+            "snippet": "            \"---\\npass: 2\\ndefaults:\\n  team: wyvern\\n---\\n---\\npass: 1\\ndefaults:\\n  task: smoke\\n---\\nouter={{{ missing_team }}}\\ninner={{ task }}\\n\",\n        );\n\n        let report = validate(&request_for_file(\n            &root,\n            \"template.md.j2\",\n            ComposePolicy::default(),\n        ))\n        .unwrap();\n\n        assert!(report.ok, \"{report:?}\");\n        assert!(report.errors.is_empty(), \"{report:?}\");",
+            "snippet_start_line": 1044,
+            "snippet_truncated": false,
+            "suggested_name": "src_helper"
           },
           "evidence": {
             "occurrence_count": 3,
@@ -1300,7 +1266,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-composer/src"
             },
-            "duplicated_lines": 16
+            "duplicated_lines": 16,
+            "snippet": "        let request = request_for_file(&root, \"root.md.j2\", ComposePolicy::default());\n        let resolve_result = crate::resolve_template_path(&request).unwrap();\n        let expanded = crate::expand_includes(\n            &resolve_result.resolved_path,\n            &request.root,\n            &request.policy,\n        )\n        .unwrap();\n        let mut state = collect_validation_state(&request, &expanded);\n        inject_builtin_vars(&mut state, &resolve_result.resolved_path);\n\n        assert_eq!(\n            state\n                .context\n                .get(&crate::VariableName::new(\"name\").unwrap()),\n            Some(&json!(\"parent\"))",
+            "snippet_start_line": 1106,
+            "snippet_truncated": false,
+            "suggested_name": "src_helper"
           },
           "evidence": {
             "occurrence_count": 4,
@@ -1347,7 +1317,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-composer/src"
             },
-            "duplicated_lines": 16
+            "duplicated_lines": 16,
+            "snippet": "            .insert(crate::VariableName::new(\"name\").unwrap(), json!(\"input\"));\n\n        let resolve_result = crate::resolve_template_path(&request).unwrap();\n        let expanded = crate::expand_includes(\n            &resolve_result.resolved_path,\n            &request.root,\n            &request.policy,\n        )\n        .unwrap();\n        let mut state = collect_validation_state(&request, &expanded);\n        inject_builtin_vars(&mut state, &resolve_result.resolved_path);\n\n        assert_eq!(\n            state\n                .context\n                .get(&crate::VariableName::new(\"name\").unwrap()),",
+            "snippet_start_line": 1150,
+            "snippet_truncated": false,
+            "suggested_name": "src_helper"
           },
           "evidence": {
             "occurrence_count": 3,
@@ -1389,7 +1363,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-composer/src"
             },
-            "duplicated_lines": 16
+            "duplicated_lines": 16,
+            "snippet": "        );\n\n        let resolve_result = crate::resolve_template_path(&request).unwrap();\n        let expanded = crate::expand_includes(\n            &resolve_result.resolved_path,\n            &request.root,\n            &request.policy,\n        )\n        .unwrap();\n        let mut state = collect_validation_state(&request, &expanded);\n        inject_builtin_vars(&mut state, &resolve_result.resolved_path);\n\n        assert_eq!(\n            state\n                .context\n                .get(&crate::VariableName::new(\"TEMPLATE_NAME\").unwrap()),",
+            "snippet_start_line": 1191,
+            "snippet_truncated": false,
+            "suggested_name": "src_helper"
           },
           "evidence": {
             "occurrence_count": 2,
@@ -1431,7 +1409,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-composer/src"
             },
-            "duplicated_lines": 23
+            "duplicated_lines": 23,
+            "snippet": "        let root = temp_root(\"validation_extra_input\");\n        write_file(\n            &root.join(\"template.md.j2\"),\n            \"---\\nrequired_variables:\\n  - name\\n---\\nhello {{ name }}\\n\",\n        );\n\n        let mut request = request_for_file(\n            &root,\n            \"template.md.j2\",\n            ComposePolicy {\n                unknown_variable_policy: UnknownVariablePolicy::Error,\n                ..ComposePolicy::default()\n            },\n        );\n        request\n            .vars_input\n            .insert(crate::VariableName::new(\"name\").unwrap(), json!(\"world\"));\n        request\n            .vars_input\n            .insert(crate::VariableName::new(\"extra\").unwrap(), json!(\"value\"));\n\n        let report = validate(&request).unwrap();\n        assert!(!report.ok);",
+            "snippet_start_line": 1355,
+            "snippet_truncated": false,
+            "suggested_name": "src_helper"
           },
           "evidence": {
             "occurrence_count": 2,
@@ -1473,7 +1455,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-composer/src"
             },
-            "duplicated_lines": 19
+            "duplicated_lines": 19,
+            "snippet": "            \"---\\ninput_defaults:\\n  assignee: teammate\\n---\\nhello {{ assignee }}\\n\",\n        );\n\n        let report = validate(&request_for_file(\n            &root,\n            \"template.md.j2\",\n            ComposePolicy::default(),\n        ))\n        .unwrap();\n\n        assert!(report.ok, \"{report:?}\");\n        assert!(report.errors.is_empty());\n        assert!(\n            report.warnings.iter().any(|diagnostic| {\n                diagnostic.severity == DiagnosticSeverity::Info\n                    && diagnostic.code == DiagnosticCode::InfoValDefaultUsed\n                    && diagnostic\n                        .message\n                        .contains(\"variable assignee not provided\")",
+            "snippet_start_line": 1457,
+            "snippet_truncated": false,
+            "suggested_name": "src_helper"
           },
           "evidence": {
             "occurrence_count": 2,
@@ -1525,7 +1511,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-composer/src"
             },
-            "duplicated_lines": 11
+            "duplicated_lines": 11,
+            "snippet": "        let root = temp_root(\"validation_required_object_path\");\n        write_file(\n            &root.join(\"template.md.j2\"),\n            \"---\\nrequired_variables:\\n  - pr.number\\n---\\nhello {{ pr.number }}\\n\",\n        );\n\n        let mut request = request_for_file(&root, \"template.md.j2\", ComposePolicy::default());\n        request.vars_input.insert(\n            crate::VariableName::new(\"pr\").unwrap(),\n            json!({\n                \"number\": 43,",
+            "snippet_start_line": 1512,
+            "snippet_truncated": false,
+            "suggested_name": "src_helper"
           },
           "evidence": {
             "occurrence_count": 4,
@@ -1572,7 +1562,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-composer/src"
             },
-            "duplicated_lines": 29
+            "duplicated_lines": 29,
+            "snippet": "            }),\n        );\n\n        let report = validate(&request).unwrap();\n\n        assert!(report.ok, \"{report:?}\");\n        assert!(report.errors.is_empty());\n    }\n\n    #[test]\n    fn missing_nested_field_reports_err_val_missing_nested_field() {\n        let root = temp_root(\"validation_missing_nested_field\");\n        write_file(\n            &root.join(\"template.md.j2\"),\n            \"---\\nrequired_variables:\\n  - pr.number\\n---\\nhello {{ pr.number }}\\n\",\n        );\n\n        let mut request = request_for_file(&root, \"template.md.j2\", ComposePolicy::default());\n        request.vars_input.insert(\n            crate::VariableName::new(\"pr\").unwrap(),\n            json!({ \"url\": \"https://example.test/pr/43\" }),\n        );\n\n        let report = validate(&request).unwrap();\n\n        assert!(!report.ok);\n        assert!(report.errors.iter().any(|diagnostic| {\n            diagnostic.code == DiagnosticCode::ErrValMissingNestedField\n                && diagnostic.message.contains(\"pr.number\")",
+            "snippet_start_line": 1524,
+            "snippet_truncated": false,
+            "suggested_name": "src_helper"
           },
           "evidence": {
             "occurrence_count": 3,
@@ -1614,7 +1608,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-composer/src"
             },
-            "duplicated_lines": 15
+            "duplicated_lines": 15,
+            "snippet": "            \"---\\nrequired_variables:\\n  - pr.number\\n---\\nhello {{ pr.number }}\\n\",\n        );\n\n        let mut request = request_for_file(&root, \"template.md.j2\", ComposePolicy::default());\n        request.vars_input.insert(\n            crate::VariableName::new(\"pr\").unwrap(),\n            json!(\"not-an-object\"),\n        );\n\n        let report = validate(&request).unwrap();\n\n        assert!(!report.ok);\n        assert!(report.errors.iter().any(|diagnostic| {\n            diagnostic.code == DiagnosticCode::ErrValShapeMismatch\n                && diagnostic.message.contains(\"pr.number\")",
+            "snippet_start_line": 1561,
+            "snippet_truncated": false,
+            "suggested_name": "src_helper"
           },
           "evidence": {
             "occurrence_count": 2,
@@ -1661,7 +1659,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-composer/src"
             },
-            "duplicated_lines": 12
+            "duplicated_lines": 12,
+            "snippet": "        let root = temp_root(\"validation_required_array_member_path\");\n        write_file(\n            &root.join(\"template.md.j2\"),\n            \"---\\nrequired_variables:\\n  - sprints.id\\n---\\n{% for sprint in sprints %}{{ sprint.id }}{% endfor %}\\n\",\n        );\n\n        let mut request = request_for_file(&root, \"template.md.j2\", ComposePolicy::default());\n        request.vars_input.insert(\n            crate::VariableName::new(\"sprints\").unwrap(),\n            json!([\n                { \"id\": \"S1\", \"stage\": \"qa\" },\n                { \"id\": \"S2\", \"stage\": \"merged\" }",
+            "snippet_start_line": 1582,
+            "snippet_truncated": false,
+            "suggested_name": "src_helper"
           },
           "evidence": {
             "occurrence_count": 3,
@@ -1703,7 +1705,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-composer/src"
             },
-            "duplicated_lines": 11
+            "duplicated_lines": 11,
+            "snippet": "        let root = temp_root(\"validation_missing_array_member_field\");\n        write_file(\n            &root.join(\"template.md.j2\"),\n            \"---\\nrequired_variables:\\n  - sprints.id\\n---\\n{% for sprint in sprints %}{{ sprint.id }}{% endfor %}\\n\",\n        );\n\n        let mut request = request_for_file(&root, \"template.md.j2\", ComposePolicy::default());\n        request.vars_input.insert(\n            crate::VariableName::new(\"sprints\").unwrap(),\n            json!([\n                { \"id\": \"S1\", \"stage\": \"qa\" },",
+            "snippet_start_line": 1605,
+            "snippet_truncated": false,
+            "suggested_name": "src_helper"
           },
           "evidence": {
             "occurrence_count": 2,
@@ -1745,7 +1751,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-composer/src"
             },
-            "duplicated_lines": 9
+            "duplicated_lines": 9,
+            "snippet": "            ]),\n        );\n\n        let report = validate(&request).unwrap();\n\n        assert!(!report.ok);\n        assert!(report.errors.iter().any(|diagnostic| {\n            diagnostic.code == DiagnosticCode::ErrValMissingNestedField\n                && diagnostic.message.contains(\"sprints.id\")",
+            "snippet_start_line": 1617,
+            "snippet_truncated": false,
+            "suggested_name": "src_helper"
           },
           "evidence": {
             "occurrence_count": 2,
@@ -1787,7 +1797,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-composer/src"
             },
-            "duplicated_lines": 11
+            "duplicated_lines": 11,
+            "snippet": "    )\n    .with_path(origin.to_path_buf())\n    .with_include_chain(include_chain);\n    match required_variable_location(origin, variable.as_str()) {\n        Some((line, column)) => diagnostic.with_location(line, column),\n        None => diagnostic,\n    }\n}\n\nfn required_path_diagnostic(\n    code: DiagnosticCode,",
+            "snippet_start_line": 390,
+            "snippet_truncated": false,
+            "suggested_name": "src_helper"
           },
           "evidence": {
             "occurrence_count": 2,
@@ -1829,7 +1843,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-composer/src"
             },
-            "duplicated_lines": 12
+            "duplicated_lines": 12,
+            "snippet": "        let root = temp_root(\"validation_default_undeclared\");\n        write_file(&root.join(\"template.md.j2\"), \"hello {{ name }}\\n\");\n\n        let report = validate(&request_for_file(\n            &root,\n            \"template.md.j2\",\n            ComposePolicy::default(),\n        ))\n        .unwrap();\n\n        assert!(report.ok);",
+            "snippet_start_line": 999,
+            "snippet_truncated": false,
+            "suggested_name": "src_helper"
           },
           "evidence": {
             "occurrence_count": 2,
@@ -1851,77 +1869,12 @@ repowise health —
       ]
     },
     {
-      "file_path": "bindings/python/python/sc_compose/__init__.py",
-      "score": 7.14,
-      "nloc": 112,
-      "primary_biomarker": "untested_hotspot",
-      "primary_severity": "high",
-      "primary_reason": "Hotspot with no paired test file and no coverage data \u2014 5 dependents",
-      "total_impact": 2.86,
-      "effort_bucket": "M",
-      "impact_per_effort": 1.43,
-      "finding_count": 3,
-      "plans": [
-        {
-          "refactoring_type": "extract_helper",
-          "file_path": "bindings/python/python/sc_compose/__init__.py",
-          "target_symbol": "__init__.py:2-55",
-          "line_start": 2,
-          "line_end": 55,
-          "plan": {
-            "occurrences": [
-              {
-                "file": "bindings/python/python/sc_compose/__init__.py",
-                "line_start": 2,
-                "line_end": 55
-              },
-              {
-                "file": "crates/sc-composer/src/diagnostics.rs",
-                "line_start": 39,
-                "line_end": 96
-              },
-              {
-                "file": "crates/sc-composer/src/lib.rs",
-                "line_start": 74,
-                "line_end": 79
-              }
-            ],
-            "suggested_site": {
-              "module": null,
-              "directory": null
-            },
-            "duplicated_lines": 58
-          },
-          "evidence": {
-            "occurrence_count": 3,
-            "duplicated_lines": 58,
-            "token_count": 42050,
-            "co_change_count": 0,
-            "is_intra_file": false
-          },
-          "impact_delta": 0.0,
-          "effort_bucket": "M",
-          "blast_radius": {
-            "files": [
-              "crates/sc-composer/src/diagnostics.rs",
-              "crates/sc-composer/src/lib.rs"
-            ],
-            "file_count": 2,
-            "co_change_count": 0,
-            "callers": 0
-          },
-          "confidence": "medium",
-          "source_biomarker": "dry_violation"
-        }
-      ]
-    },
-    {
       "file_path": "crates/sc-compose/src/reporting/init.rs",
       "score": 5.75,
       "nloc": 153,
-      "primary_biomarker": "churn_risk",
+      "primary_biomarker": "change_entropy",
       "primary_severity": "critical",
-      "primary_reason": "90-day churn rewrote 8.6x the file's size (1311 lines over 153 NLOC, top 7% of repo churn)",
+      "primary_reason": "changes are scattered across noisy commits (top 4% change entropy); a strong history-based fault predictor",
       "total_impact": 4.251,
       "effort_bucket": "L",
       "impact_per_effort": 1.417,
@@ -1950,7 +1903,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-compose/src/reporting"
             },
-            "duplicated_lines": 12
+            "duplicated_lines": 12,
+            "snippet": "    let materialized = write_smoke_outputs(&workspace_root, archive, artifacts)?;\n\n    Ok(ReportsSmokeResult {\n        report_id: materialized.report_id,\n        kind: materialized.kind,\n        produced_at: materialized.produced_at,\n        status: materialized.status,\n        entrypoint: materialized.entrypoint,\n        metadata: materialized.metadata,\n        artifacts: materialized.latest_artifacts,\n        archived_artifacts: materialized.archived_artifacts,\n        warnings: result.warnings,",
+            "snippet_start_line": 127,
+            "snippet_truncated": false,
+            "suggested_name": "reporting_helper"
           },
           "evidence": {
             "occurrence_count": 2,
@@ -2000,7 +1957,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-compose/src/reporting"
             },
-            "duplicated_lines": 12
+            "duplicated_lines": 12,
+            "snippet": "pub(crate) fn init_report_scaffold(root: &Path) -> Result<ReportsInitResult, CommandError> {\n    let workspace_root = fs::canonicalize(root).map_err(|error| {\n        CommandError::usage_with_code(\n            anyhow!(error).context(format!(\n                \"failed to canonicalize workspace root {}\",\n                root.display()\n            )),\n            DiagnosticCode::ErrConfigParse,\n        )\n    })?;\n\n    let created_paths = write_report_scaffold(&workspace_root)?;",
+            "snippet_start_line": 47,
+            "snippet_truncated": false,
+            "suggested_name": "reporting_helper"
           },
           "evidence": {
             "occurrence_count": 3,
@@ -2045,7 +2006,11 @@ repowise health —
               "module": null,
               "directory": "crates/sc-compose/src/reporting"
             },
-            "duplicated_lines": 11
+            "duplicated_lines": 11,
+            "snippet": "    let workspace_root = fs::canonicalize(root).map_err(|error| {\n        CommandError::usage_with_code(\n            anyhow!(error).context(format!(\n                \"failed to canonicalize workspace root {}\",\n                root.display()\n            )),\n            DiagnosticCode::ErrConfigParse,\n        )\n    })?;\n    let fixture_path = resolve_relative_path(&workspace_root, fixture)?;\n    let vars_path = resolve_relative_path(&workspace_root, vars)?;",
+            "snippet_start_line": 72,
+            "snippet_truncated": false,
+            "suggested_name": "reporting_helper"
           },
           "evidence": {
             "occurrence_count": 2,
@@ -2072,285 +2037,107 @@ repowise health —
     {
       "file_path": "crates/sc-composer/src/renderer.rs",
       "score": 5.75,
-      "nloc": 169,
+      "nloc": 225,
       "primary_biomarker": "co_change_scatter",
       "primary_severity": "high",
-      "primary_reason": "co-changes with 17 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)",
+      "primary_reason": "co-changes with 16 distinct files \u2014 editing this file tends to ripple across the codebase (shotgun surgery)",
       "total_impact": 4.25,
       "effort_bucket": "L",
       "impact_per_effort": 1.417,
-      "finding_count": 4,
+      "finding_count": 6,
       "plans": []
     },
     {
-      "file_path": "crates/sc-compose/src/reporting/publish_manifest.rs",
-      "score": 5.78,
-      "nloc": 265,
+      "file_path": "crates/sc-compose/tests/support/mod.rs",
+      "score": 5.85,
+      "nloc": 275,
       "primary_biomarker": "prior_defect",
       "primary_severity": "critical",
       "primary_reason": "6 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects",
-      "total_impact": 4.225,
+      "total_impact": 4.142,
       "effort_bucket": "L",
-      "impact_per_effort": 1.408,
-      "finding_count": 8,
+      "impact_per_effort": 1.381,
+      "finding_count": 28,
       "plans": []
     },
     {
-      "file_path": "crates/sc-composer/src/types.rs",
-      "score": 3.04,
-      "nloc": 561,
-      "primary_biomarker": "nested_complexity",
+      "file_path": "prototype/multipass/discover.py",
+      "score": 5.9,
+      "nloc": 178,
+      "primary_biomarker": "untested_hotspot",
       "primary_severity": "high",
-      "primary_reason": "validate_input_value_at nests 6 levels deep",
-      "total_impact": 6.957,
-      "effort_bucket": "XL",
-      "impact_per_effort": 1.391,
-      "finding_count": 9,
+      "primary_reason": "Hotspot with no paired test file and no coverage data \u2014 5 dependents",
+      "total_impact": 4.1,
+      "effort_bucket": "L",
+      "impact_per_effort": 1.367,
+      "finding_count": 4,
       "plans": [
         {
-          "refactoring_type": "extract_helper",
-          "file_path": "crates/sc-composer/src/types.rs",
-          "target_symbol": "types.rs:194-229",
-          "line_start": 194,
-          "line_end": 229,
+          "refactoring_type": "extract_method",
+          "file_path": "prototype/multipass/discover.py",
+          "target_symbol": "_discover_tokens_py",
+          "line_start": 86,
+          "line_end": 137,
           "plan": {
-            "occurrences": [
-              {
-                "file": "crates/sc-composer/src/types.rs",
-                "line_start": 194,
-                "line_end": 229
-              },
-              {
-                "file": "crates/sc-composer/src/types.rs",
-                "line_start": 325,
-                "line_end": 358
-              }
-            ],
-            "suggested_site": {
-              "module": null,
-              "directory": "crates/sc-composer/src"
+            "span": {
+              "start": 116,
+              "end": 126
             },
-            "duplicated_lines": 36
+            "params": [
+              "cursor",
+              "scopes",
+              "stmt_end",
+              "stmt_pos",
+              "tokens"
+            ],
+            "returns": [],
+            "suggested_name": null
           },
           "evidence": {
-            "occurrence_count": 2,
-            "duplicated_lines": 36,
-            "token_count": 5450,
-            "co_change_count": 0,
-            "is_intra_file": true
+            "slice_nloc": 11,
+            "ccn_removed": 4
           },
-          "impact_delta": 0.35,
+          "impact_delta": 1.452,
           "effort_bucket": "S",
           "blast_radius": {
-            "files": [],
-            "file_count": 0,
-            "co_change_count": 0
+            "callers_count": 0
           },
           "confidence": "medium",
-          "source_biomarker": "dry_violation"
+          "source_biomarker": "complex_method"
         },
         {
           "refactoring_type": "extract_helper",
-          "file_path": "crates/sc-composer/src/types.rs",
-          "target_symbol": "types.rs:173-185",
-          "line_start": 173,
-          "line_end": 185,
+          "file_path": "prototype/multipass/discover.py",
+          "target_symbol": "discover.py:166-178",
+          "line_start": 166,
+          "line_end": 178,
           "plan": {
             "occurrences": [
               {
-                "file": "crates/sc-composer/src/types.rs",
-                "line_start": 173,
-                "line_end": 185
+                "file": "prototype/multipass/discover.py",
+                "line_start": 166,
+                "line_end": 178
               },
               {
-                "file": "crates/sc-composer/src/types.rs",
-                "line_start": 249,
-                "line_end": 259
-              },
-              {
-                "file": "crates/sc-composer/src/types.rs",
-                "line_start": 309,
-                "line_end": 321
+                "file": "prototype/multipass/discover.py",
+                "line_start": 185,
+                "line_end": 195
               }
             ],
             "suggested_site": {
               "module": null,
-              "directory": "crates/sc-composer/src"
+              "directory": "prototype/multipass"
             },
-            "duplicated_lines": 13
-          },
-          "evidence": {
-            "occurrence_count": 3,
             "duplicated_lines": 13,
-            "token_count": 800,
-            "co_change_count": 0,
-            "is_intra_file": true
-          },
-          "impact_delta": 0.0,
-          "effort_bucket": "S",
-          "blast_radius": {
-            "files": [],
-            "file_count": 0,
-            "co_change_count": 0
-          },
-          "confidence": "medium",
-          "source_biomarker": "dry_violation"
-        },
-        {
-          "refactoring_type": "extract_helper",
-          "file_path": "crates/sc-composer/src/types.rs",
-          "target_symbol": "types.rs:246-259",
-          "line_start": 246,
-          "line_end": 259,
-          "plan": {
-            "occurrences": [
-              {
-                "file": "crates/sc-composer/src/types.rs",
-                "line_start": 246,
-                "line_end": 259
-              },
-              {
-                "file": "crates/sc-composer/src/types.rs",
-                "line_start": 306,
-                "line_end": 320
-              }
-            ],
-            "suggested_site": {
-              "module": null,
-              "directory": "crates/sc-composer/src"
-            },
-            "duplicated_lines": 15
-          },
-          "evidence": {
-            "occurrence_count": 2,
-            "duplicated_lines": 15,
-            "token_count": 500,
-            "co_change_count": 0,
-            "is_intra_file": true
-          },
-          "impact_delta": 0.0,
-          "effort_bucket": "S",
-          "blast_radius": {
-            "files": [],
-            "file_count": 0,
-            "co_change_count": 0
-          },
-          "confidence": "medium",
-          "source_biomarker": "dry_violation"
-        },
-        {
-          "refactoring_type": "extract_helper",
-          "file_path": "crates/sc-composer/src/types.rs",
-          "target_symbol": "types.rs:419-431",
-          "line_start": 419,
-          "line_end": 431,
-          "plan": {
-            "occurrences": [
-              {
-                "file": "crates/sc-composer/src/types.rs",
-                "line_start": 419,
-                "line_end": 431
-              },
-              {
-                "file": "crates/sc-composer/src/types.rs",
-                "line_start": 449,
-                "line_end": 461
-              }
-            ],
-            "suggested_site": {
-              "module": null,
-              "directory": "crates/sc-composer/src"
-            },
-            "duplicated_lines": 13
+            "snippet": "    \"\"\"\n    pos = 0\n    while True:\n        idx = text.find(delim, pos)\n        if idx == -1:\n            return -1\n        # Check if this is actually a longer delimiter (e.g., `{{{` containing `{{`)\n        after = idx + len(delim)\n        if after < len(text) and text[after] == delim[0]:\n            # Skip past this match \u2014 it's part of a longer delimiter\n            pos = after\n            continue\n        return idx",
+            "snippet_start_line": 166,
+            "snippet_truncated": false,
+            "suggested_name": "multipass_helper"
           },
           "evidence": {
             "occurrence_count": 2,
             "duplicated_lines": 13,
-            "token_count": 100,
-            "co_change_count": 0,
-            "is_intra_file": true
-          },
-          "impact_delta": 0.0,
-          "effort_bucket": "S",
-          "blast_radius": {
-            "files": [],
-            "file_count": 0,
-            "co_change_count": 0
-          },
-          "confidence": "medium",
-          "source_biomarker": "dry_violation"
-        },
-        {
-          "refactoring_type": "extract_helper",
-          "file_path": "crates/sc-composer/src/types.rs",
-          "target_symbol": "types.rs:502-515",
-          "line_start": 502,
-          "line_end": 515,
-          "plan": {
-            "occurrences": [
-              {
-                "file": "crates/sc-composer/src/types.rs",
-                "line_start": 502,
-                "line_end": 515
-              },
-              {
-                "file": "crates/sc-composer/src/types.rs",
-                "line_start": 566,
-                "line_end": 579
-              }
-            ],
-            "suggested_site": {
-              "module": null,
-              "directory": "crates/sc-composer/src"
-            },
-            "duplicated_lines": 14
-          },
-          "evidence": {
-            "occurrence_count": 2,
-            "duplicated_lines": 14,
-            "token_count": 100,
-            "co_change_count": 0,
-            "is_intra_file": true
-          },
-          "impact_delta": 0.0,
-          "effort_bucket": "S",
-          "blast_radius": {
-            "files": [],
-            "file_count": 0,
-            "co_change_count": 0
-          },
-          "confidence": "medium",
-          "source_biomarker": "dry_violation"
-        },
-        {
-          "refactoring_type": "extract_helper",
-          "file_path": "crates/sc-composer/src/types.rs",
-          "target_symbol": "types.rs:665-676",
-          "line_start": 665,
-          "line_end": 676,
-          "plan": {
-            "occurrences": [
-              {
-                "file": "crates/sc-composer/src/types.rs",
-                "line_start": 665,
-                "line_end": 676
-              },
-              {
-                "file": "crates/sc-composer/src/types.rs",
-                "line_start": 769,
-                "line_end": 780
-              }
-            ],
-            "suggested_site": {
-              "module": null,
-              "directory": "crates/sc-composer/src"
-            },
-            "duplicated_lines": 12
-          },
-          "evidence": {
-            "occurrence_count": 2,
-            "duplicated_lines": 12,
-            "token_count": 500,
+            "token_count": 450,
             "co_change_count": 0,
             "is_intra_file": true
           },
@@ -2396,7 +2183,11 @@ repowise health —
           "module": null,
           "directory": "crates/sc-compose/src/reporting"
         },
-        "duplicated_lines": 25
+        "duplicated_lines": 25,
+        "snippet": "            required,\n            entrypoint,\n            metadata,\n        })\n    }\n}\n\nimpl fmt::Display for CatalogError {\n    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {\n        match self {\n            Self::Read { path, source } => {\n                write!(\n                    f,\n                    \"failed to read report catalog {}: {source}\",\n                    path.display()\n                )\n            }\n            Self::Parse { path, source } => {\n                write!(\n                    f,\n                    \"failed to parse report catalog {}: {source}\",\n                    path.display()\n                )\n            }\n            Self::Invalid(message) => f.write_str(message),",
+        "snippet_start_line": 138,
+        "snippet_truncated": false,
+        "suggested_name": "reporting_helper"
       },
       "evidence": {
         "occurrence_count": 3,
@@ -2447,7 +2238,11 @@ repowise health —
           "module": null,
           "directory": "crates/sc-compose/src/reporting"
         },
-        "duplicated_lines": 12
+        "duplicated_lines": 12,
+        "snippet": "    pub(crate) produced_at: Option<String>,\n    #[serde(serialize_with = \"crate::path_utils::serialize_path\")]\n    pub(crate) entrypoint: PathBuf,\n    #[serde(serialize_with = \"crate::path_utils::serialize_path\")]\n    pub(crate) metadata: PathBuf,\n    #[serde(serialize_with = \"crate::path_utils::serialize_paths\")]\n    pub(crate) artifacts: Vec<PathBuf>,\n    #[serde(serialize_with = \"crate::path_utils::serialize_paths\")]\n    pub(crate) missing_paths: Vec<PathBuf>,\n}\n\n#[derive(Debug, Clone, PartialEq, Eq, Serialize)]",
+        "snippet_start_line": 15,
+        "snippet_truncated": false,
+        "suggested_name": "reporting_helper"
       },
       "evidence": {
         "occurrence_count": 3,
@@ -2465,64 +2260,7 @@ repowise health —
         ],
         "file_count": 2,
         "co_change_count": 3,
-        "callers": 10
-      },
-      "confidence": "high",
-      "source_biomarker": "dry_violation"
-    },
-    {
-      "refactoring_type": "extract_helper",
-      "file_path": "crates/sc-compose/src/reporting/catalog.rs",
-      "target_symbol": "catalog.rs:33-40",
-      "line_start": 33,
-      "line_end": 40,
-      "plan": {
-        "occurrences": [
-          {
-            "file": "crates/sc-compose/src/reporting/catalog.rs",
-            "line_start": 33,
-            "line_end": 40
-          },
-          {
-            "file": "crates/sc-compose/src/reporting/init.rs",
-            "line_start": 27,
-            "line_end": 34
-          },
-          {
-            "file": "crates/sc-compose/src/reporting/output.rs",
-            "line_start": 37,
-            "line_end": 44
-          },
-          {
-            "file": "crates/sc-compose/src/reporting/report_context.rs",
-            "line_start": 10,
-            "line_end": 15
-          }
-        ],
-        "suggested_site": {
-          "module": null,
-          "directory": "crates/sc-compose/src/reporting"
-        },
-        "duplicated_lines": 8
-      },
-      "evidence": {
-        "occurrence_count": 4,
-        "duplicated_lines": 8,
-        "token_count": 200,
-        "co_change_count": 4,
-        "is_intra_file": false
-      },
-      "impact_delta": 0.0,
-      "effort_bucket": "S",
-      "blast_radius": {
-        "files": [
-          "crates/sc-compose/src/reporting/init.rs",
-          "crates/sc-compose/src/reporting/output.rs",
-          "crates/sc-compose/src/reporting/report_context.rs"
-        ],
-        "file_count": 3,
-        "co_change_count": 4,
-        "callers": 10
+        "callers": 12
       },
       "confidence": "high",
       "source_biomarker": "dry_violation"
@@ -2530,15 +2268,15 @@ repowise health —
     {
       "refactoring_type": "extract_helper",
       "file_path": "bindings/python/src/errors.rs",
-      "target_symbol": "errors.rs:243-254",
-      "line_start": 243,
-      "line_end": 254,
+      "target_symbol": "errors.rs:459-470",
+      "line_start": 459,
+      "line_end": 470,
       "plan": {
         "occurrences": [
           {
             "file": "bindings/python/src/errors.rs",
-            "line_start": 243,
-            "line_end": 254
+            "line_start": 459,
+            "line_end": 470
           },
           {
             "file": "crates/sc-composer/src/composer.rs",
@@ -2620,7 +2358,11 @@ repowise health —
           "module": null,
           "directory": null
         },
-        "duplicated_lines": 12
+        "duplicated_lines": 12,
+        "snippet": "                template_path: unique_missing_template(),\n            },\n            root: ConfiningRoot::new(&root_path).unwrap(),\n            vars_input: BTreeMap::new(),\n            vars_env: BTreeMap::new(),\n            vars_defaults: BTreeMap::new(),\n            guidance_block: None,\n            user_prompt: None,\n            policy: ComposePolicy::default(),\n        };\n\n        let err = sc_composer::resolve_template_path(&request).unwrap_err();",
+        "snippet_start_line": 459,
+        "snippet_truncated": false,
+        "suggested_name": "shared_helper"
       },
       "evidence": {
         "occurrence_count": 16,
@@ -2646,63 +2388,83 @@ repowise health —
       "source_biomarker": "dry_violation"
     },
     {
-      "refactoring_type": "break_cycle",
-      "file_path": "bindings/python/src/convert.rs",
-      "target_symbol": "cycle[5]: convert.rs->mod.rs, mod.rs->results.rs",
-      "line_start": null,
-      "line_end": null,
+      "refactoring_type": "extract_helper",
+      "file_path": "crates/sc-compose/src/reporting/catalog.rs",
+      "target_symbol": "catalog.rs:33-40",
+      "line_start": 33,
+      "line_end": 40,
       "plan": {
-        "cycle": [
-          "bindings/python/src/convert.rs",
-          "bindings/python/src/types/mod.rs",
-          "bindings/python/src/types/policy.rs",
-          "bindings/python/src/types/request.rs",
-          "bindings/python/src/types/results.rs"
-        ],
-        "cut_edges": [
+        "occurrences": [
           {
-            "from": "bindings/python/src/convert.rs",
-            "to": "bindings/python/src/types/mod.rs"
+            "file": "crates/sc-compose/src/reporting/catalog.rs",
+            "line_start": 33,
+            "line_end": 40
           },
           {
-            "from": "bindings/python/src/types/mod.rs",
-            "to": "bindings/python/src/types/results.rs"
+            "file": "crates/sc-compose/src/reporting/init.rs",
+            "line_start": 27,
+            "line_end": 34
+          },
+          {
+            "file": "crates/sc-compose/src/reporting/output.rs",
+            "line_start": 37,
+            "line_end": 44
+          },
+          {
+            "file": "crates/sc-compose/src/reporting/report_context.rs",
+            "line_start": 10,
+            "line_end": 15
           }
-        ]
+        ],
+        "suggested_site": {
+          "module": null,
+          "directory": "crates/sc-compose/src/reporting"
+        },
+        "duplicated_lines": 8,
+        "snippet": "}\n\n#[derive(Debug, Clone, PartialEq, Eq, Serialize)]\npub(crate) struct ReportDefinition {\n    pub(crate) id: String,\n    pub(crate) kind: String,\n    pub(crate) producer: String,\n    pub(crate) required: bool,",
+        "snippet_start_line": 33,
+        "snippet_truncated": false,
+        "suggested_name": "reporting_helper"
       },
       "evidence": {
-        "cycle_size": 5,
-        "edge_count": 9,
-        "cut_count": 2
+        "occurrence_count": 4,
+        "duplicated_lines": 8,
+        "token_count": 200,
+        "co_change_count": 4,
+        "is_intra_file": false
       },
       "impact_delta": 0.0,
-      "effort_bucket": "L",
+      "effort_bucket": "S",
       "blast_radius": {
         "files": [
-          "bindings/python/src/convert.rs",
-          "bindings/python/src/types/mod.rs",
-          "bindings/python/src/types/policy.rs",
-          "bindings/python/src/types/request.rs",
-          "bindings/python/src/types/results.rs"
+          "crates/sc-compose/src/reporting/init.rs",
+          "crates/sc-compose/src/reporting/output.rs",
+          "crates/sc-compose/src/reporting/report_context.rs"
         ],
-        "file_count": 5,
-        "callers": 8
+        "file_count": 3,
+        "co_change_count": 4,
+        "callers": 12
       },
-      "confidence": "medium",
-      "source_biomarker": ""
+      "confidence": "high",
+      "source_biomarker": "dry_violation"
     },
     {
       "refactoring_type": "extract_helper",
       "file_path": "crates/sc-compose/src/commands/template_init.rs",
-      "target_symbol": "template_init.rs:614-634",
-      "line_start": 614,
-      "line_end": 634,
+      "target_symbol": "template_init.rs:615-635",
+      "line_start": 615,
+      "line_end": 635,
       "plan": {
         "occurrences": [
           {
             "file": "crates/sc-compose/src/commands/template_init.rs",
-            "line_start": 614,
-            "line_end": 634
+            "line_start": 615,
+            "line_end": 635
+          },
+          {
+            "file": "crates/sc-compose/src/reporting/render_many.rs",
+            "line_start": 394,
+            "line_end": 412
           },
           {
             "file": "crates/sc-composer/src/composer.rs",
@@ -2716,8 +2478,8 @@ repowise health —
           },
           {
             "file": "crates/sc-composer/src/include.rs",
-            "line_start": 484,
-            "line_end": 502
+            "line_start": 490,
+            "line_end": 508
           },
           {
             "file": "crates/sc-composer/src/init_workspace.rs",
@@ -2749,10 +2511,14 @@ repowise health —
           "module": null,
           "directory": "crates"
         },
-        "duplicated_lines": 21
+        "duplicated_lines": 21,
+        "snippet": "        assert!(format!(\"{error:#}\").contains(\"boom\"));\n    }\n\n    fn temp_root(label: &str) -> PathBuf {\n        let nanos = SystemTime::now()\n            .duration_since(UNIX_EPOCH)\n            .unwrap()\n            .as_nanos();\n        let root =\n            std::env::temp_dir().join(format!(\"sc-compose-{label}-{}-{nanos}\", std::process::id()));\n        fs::create_dir_all(&root).unwrap();\n        root\n    }\n\n    fn write_file(path: &Path, contents: &str) {\n        if let Some(parent) = path.parent() {\n            fs::create_dir_all(parent).unwrap();\n        }\n        fs::write(path, contents).unwrap();\n    }\n}",
+        "snippet_start_line": 615,
+        "snippet_truncated": false,
+        "suggested_name": "crates_helper"
       },
       "evidence": {
-        "occurrence_count": 9,
+        "occurrence_count": 10,
         "duplicated_lines": 21,
         "token_count": 4300,
         "co_change_count": 2,
@@ -2762,6 +2528,7 @@ repowise health —
       "effort_bucket": "S",
       "blast_radius": {
         "files": [
+          "crates/sc-compose/src/reporting/render_many.rs",
           "crates/sc-composer/src/composer.rs",
           "crates/sc-composer/src/frontmatter_init.rs",
           "crates/sc-composer/src/include.rs",
@@ -2771,9 +2538,9 @@ repowise health —
           "crates/sc-composer/src/validation.rs",
           "crates/sc-composer/src/verify.rs"
         ],
-        "file_count": 8,
+        "file_count": 9,
         "co_change_count": 2,
-        "callers": 9
+        "callers": 11
       },
       "confidence": "medium",
       "source_biomarker": "dry_violation"
@@ -2829,20 +2596,20 @@ repowise health —
     {
       "refactoring_type": "extract_helper",
       "file_path": "crates/sc-compose/src/cli.rs",
-      "target_symbol": "cli.rs:222-245",
-      "line_start": 222,
-      "line_end": 245,
+      "target_symbol": "cli.rs:251-274",
+      "line_start": 251,
+      "line_end": 274,
       "plan": {
         "occurrences": [
           {
             "file": "crates/sc-compose/src/cli.rs",
-            "line_start": 222,
-            "line_end": 245
+            "line_start": 251,
+            "line_end": 274
           },
           {
             "file": "crates/sc-compose/src/cli.rs",
-            "line_start": 247,
-            "line_end": 257
+            "line_start": 276,
+            "line_end": 286
           },
           {
             "file": "crates/sc-compose/src/commands/reports/mod.rs",
@@ -2864,7 +2631,11 @@ repowise health —
           "module": null,
           "directory": "crates/sc-compose/src"
         },
-        "duplicated_lines": 24
+        "duplicated_lines": 24,
+        "snippet": "    #[arg(help = \"Concrete file to convert into a template\")]\n    pub(crate) file: PathBuf,\n    #[arg(long)]\n    pub(crate) force: bool,\n    #[arg(long)]\n    pub(crate) json: bool,\n    #[arg(long)]\n    pub(crate) dry_run: bool,\n}\n\n#[derive(Debug, Clone, Args)]\npub(crate) struct FrontmatterInitArgs {\n    #[arg(long)]\n    pub(crate) file: PathBuf,\n    #[arg(long)]\n    pub(crate) force: bool,\n    #[arg(long)]\n    pub(crate) json: bool,\n    #[arg(long)]\n    pub(crate) dry_run: bool,\n}\n\n#[derive(Debug, Clone, Args)]\npub(crate) struct InitArgs {",
+        "snippet_start_line": 251,
+        "snippet_truncated": false,
+        "suggested_name": "src_helper"
       },
       "evidence": {
         "occurrence_count": 5,
@@ -2873,7 +2644,7 @@ repowise health —
         "co_change_count": 0,
         "is_intra_file": false
       },
-      "impact_delta": 0.35,
+      "impact_delta": 0.15,
       "effort_bucket": "S",
       "blast_radius": {
         "files": [
@@ -2889,15 +2660,15 @@ repowise health —
     {
       "refactoring_type": "extract_helper",
       "file_path": "crates/sc-compose/src/cli.rs",
-      "target_symbol": "cli.rs:237-294",
-      "line_start": 237,
-      "line_end": 294,
+      "target_symbol": "cli.rs:266-323",
+      "line_start": 266,
+      "line_end": 323,
       "plan": {
         "occurrences": [
           {
             "file": "crates/sc-compose/src/cli.rs",
-            "line_start": 237,
-            "line_end": 294
+            "line_start": 266,
+            "line_end": 323
           },
           {
             "file": "crates/sc-compose/src/commands/reports/mod.rs",
@@ -2919,7 +2690,11 @@ repowise health —
           "module": null,
           "directory": "crates/sc-compose/src"
         },
-        "duplicated_lines": 58
+        "duplicated_lines": 58,
+        "snippet": "    pub(crate) force: bool,\n    #[arg(long)]\n    pub(crate) json: bool,\n    #[arg(long)]\n    pub(crate) dry_run: bool,\n}\n\n#[derive(Debug, Clone, Args)]\npub(crate) struct InitArgs {\n    #[arg(long, default_value = \".\")]\n    pub(crate) root: PathBuf,\n    #[arg(long)]\n    pub(crate) json: bool,\n    #[arg(long)]\n    pub(crate) dry_run: bool,\n}\n\n#[derive(Debug, Clone, Args)]\npub(crate) struct ObservabilityHealthArgs {\n    #[arg(long)]\n    pub(crate) json: bool,\n}\n\n#[derive(Debug, Clone, Args)]\n#[command(args_conflicts_with_subcommands = true)]\npub(crate) struct ExamplesArgs {\n    #[command(subcommand)]\n    pub(crate) command: Option<ExamplesSubcommand>,\n    #[arg(index = 1, help = \"Bundled example pack name to render\")]\n    pub(crate) name: Option<String>,\n    #[command(flatten)]\n    pub(crate) input: InputArgs,\n    #[command(flatten)]\n    pub(crate) render: RenderBehaviorArgs,\n}\n\n#[derive(Debug, Clone, Subcommand)]\npub(crate) enum ExamplesSubcommand {\n    #[command(about = \"List bundled example packs\")]\n    List(ListArgs),",
+        "snippet_start_line": 266,
+        "snippet_truncated": true,
+        "suggested_name": "src_helper"
       },
       "evidence": {
         "occurrence_count": 4,
@@ -2928,7 +2703,7 @@ repowise health —
         "co_change_count": 0,
         "is_intra_file": false
       },
-      "impact_delta": 0.35,
+      "impact_delta": 0.15,
       "effort_bucket": "M",
       "blast_radius": {
         "files": [
@@ -3099,7 +2874,11 @@ repowise health —
           "module": null,
           "directory": "crates/sc-compose/src/reporting"
         },
-        "duplicated_lines": 8
+        "duplicated_lines": 8,
+        "snippet": "];\n\n#[derive(Debug, Clone, PartialEq, Eq, Serialize)]\npub(crate) struct ReportCatalog {\n    #[serde(serialize_with = \"crate::path_utils::serialize_path\")]\n    pub(crate) catalog_path: PathBuf,\n    pub(crate) reports: Vec<ReportDefinition>,\n}",
+        "snippet_start_line": 20,
+        "snippet_truncated": false,
+        "suggested_name": "reporting_helper"
       },
       "evidence": {
         "occurrence_count": 2,
@@ -3144,7 +2923,11 @@ repowise health —
           "module": null,
           "directory": "crates/sc-compose/src/reporting"
         },
-        "duplicated_lines": 14
+        "duplicated_lines": 14,
+        "snippet": "    pub(crate) metadata: PathBuf,\n}\n\n#[derive(Debug)]\npub(crate) enum CatalogError {\n    Read {\n        path: PathBuf,\n        source: std::io::Error,\n    },\n    Parse {\n        path: PathBuf,\n        source: Box<toml::de::Error>,\n    },\n    Invalid(String),",
+        "snippet_start_line": 44,
+        "snippet_truncated": false,
+        "suggested_name": "reporting_helper"
       },
       "evidence": {
         "occurrence_count": 2,
@@ -3168,38 +2951,91 @@ repowise health —
     },
     {
       "refactoring_type": "extract_helper",
-      "file_path": "bindings/python/python/sc_compose/__init__.py",
-      "target_symbol": "__init__.py:2-55",
-      "line_start": 2,
-      "line_end": 55,
+      "file_path": "bindings/python/src/errors.rs",
+      "target_symbol": "errors.rs:365-377",
+      "line_start": 365,
+      "line_end": 377,
       "plan": {
         "occurrences": [
           {
-            "file": "bindings/python/python/sc_compose/__init__.py",
-            "line_start": 2,
-            "line_end": 55
+            "file": "bindings/python/src/errors.rs",
+            "line_start": 365,
+            "line_end": 377
           },
           {
-            "file": "crates/sc-composer/src/diagnostics.rs",
-            "line_start": 39,
-            "line_end": 96
-          },
-          {
-            "file": "crates/sc-composer/src/lib.rs",
-            "line_start": 74,
-            "line_end": 79
+            "file": "crates/sc-compose/src/commands/extract.rs",
+            "line_start": 96,
+            "line_end": 108
           }
         ],
         "suggested_site": {
           "module": null,
           "directory": null
         },
-        "duplicated_lines": 58
+        "duplicated_lines": 13,
+        "snippet": "    })\n}\n\nfn extract_error_message(error: &ExtractError) -> String {\n    match error {\n        ExtractError::InvalidRequest { message, .. } => message.clone(),\n        ExtractError::MalformedXml { diagnostic, .. }\n        | ExtractError::UnsupportedSyntax { diagnostic, .. }\n        | ExtractError::AmbiguousStructure { diagnostic, .. } => diagnostic.message.clone(),\n    }\n}\n\nfn extraction_diagnostic_kind(kind: sc_composer::ExtractionDiagnosticKind) -> String {",
+        "snippet_start_line": 365,
+        "snippet_truncated": false,
+        "suggested_name": "shared_helper"
+      },
+      "evidence": {
+        "occurrence_count": 2,
+        "duplicated_lines": 13,
+        "token_count": 1200,
+        "co_change_count": 0,
+        "is_intra_file": false
+      },
+      "impact_delta": 0.0,
+      "effort_bucket": "S",
+      "blast_radius": {
+        "files": [
+          "crates/sc-compose/src/commands/extract.rs"
+        ],
+        "file_count": 1,
+        "co_change_count": 0,
+        "callers": 0
+      },
+      "confidence": "medium",
+      "source_biomarker": "dry_violation"
+    },
+    {
+      "refactoring_type": "extract_helper",
+      "file_path": "bindings/python/python/sc_compose/__init__.py",
+      "target_symbol": "__init__.py:2-61",
+      "line_start": 2,
+      "line_end": 61,
+      "plan": {
+        "occurrences": [
+          {
+            "file": "bindings/python/python/sc_compose/__init__.py",
+            "line_start": 2,
+            "line_end": 61
+          },
+          {
+            "file": "crates/sc-composer/src/diagnostics.rs",
+            "line_start": 39,
+            "line_end": 111
+          },
+          {
+            "file": "crates/sc-composer/src/lib.rs",
+            "line_start": 83,
+            "line_end": 88
+          }
+        ],
+        "suggested_site": {
+          "module": null,
+          "directory": null
+        },
+        "duplicated_lines": 73,
+        "snippet": "    BUILTIN_VARIABLE_NAMES,\n    ComposeMode,\n    ComposePolicy,\n    ComposeRequest,\n    ComposeResult,\n    ConfiningRoot,\n    Diagnostic,\n    DiagnosticCode,\n    DiagnosticSeverity,\n    ExpandedTemplate,\n    ExtractionDiagnostic,\n    ExtractionOccurrence,\n    ExtractionReport,\n    ExtractionSource,\n    Frontmatter,\n    FrontmatterInitResult,\n    InitResult,\n    LoadedTemplateRequest,\n    NamedTemplateAsset,\n    PassConfig,\n    ParsedTemplate,\n    ProfileKind,\n    ProfileName,\n    Renderer,\n    RenderedArtifact,\n    ResolveResult,\n    ResolverPolicy,\n    RuntimeKind,\n    ScComposeError,\n    ScConfigError,\n    ScIncludeError,\n    ScRenderError,\n    ScResolveError,\n    ScValidationError,\n    UnknownVariablePolicy,\n    ValidationReport,\n    VariableName,\n    VariableSource,\n    VerifyResult,\n    XmlPathSegment,",
+        "snippet_start_line": 2,
+        "snippet_truncated": true,
+        "suggested_name": "shared_helper"
       },
       "evidence": {
         "occurrence_count": 3,
-        "duplicated_lines": 58,
-        "token_count": 42050,
+        "duplicated_lines": 73,
+        "token_count": 61250,
         "co_change_count": 0,
         "is_intra_file": false
       },
@@ -3321,83 +3157,107 @@ repowise health —
       "source_biomarker": "low_cohesion"
     },
     {
-      "refactoring_type": "extract_method",
-      "file_path": "crates/sc-compose/src/reporting/mermaid.rs",
-      "target_symbol": "render_state_machine",
-      "line_start": 25,
-      "line_end": 73,
+      "refactoring_type": "extract_helper",
+      "file_path": "crates/sc-compose/src/reporting/output.rs",
+      "target_symbol": "output.rs:115-122",
+      "line_start": 115,
+      "line_end": 122,
       "plan": {
-        "span": {
-          "start": 32,
-          "end": 71
-        },
-        "params": [
-          "spec"
-        ],
-        "returns": [
-          "lines"
-        ],
-        "suggested_name": null
-      },
-      "evidence": {
-        "slice_nloc": 40,
-        "ccn_removed": 9
-      },
-      "impact_delta": 0.847,
-      "effort_bucket": "S",
-      "blast_radius": {
-        "callers_count": 0
-      },
-      "confidence": "high",
-      "source_biomarker": "complex_method"
-    },
-    {
-      "refactoring_type": "break_cycle",
-      "file_path": "crates/sc-compose/src/commands/dispatch.rs",
-      "target_symbol": "cycle[4]: mod.rs->dispatch.rs, mod.rs->examples.rs, templates.rs->mod.rs",
-      "line_start": null,
-      "line_end": null,
-      "plan": {
-        "cycle": [
-          "crates/sc-compose/src/commands/dispatch.rs",
-          "crates/sc-compose/src/commands/examples.rs",
-          "crates/sc-compose/src/commands/mod.rs",
-          "crates/sc-compose/src/commands/templates.rs"
-        ],
-        "cut_edges": [
+        "occurrences": [
           {
-            "from": "crates/sc-compose/src/commands/mod.rs",
-            "to": "crates/sc-compose/src/commands/dispatch.rs"
+            "file": "crates/sc-compose/src/reporting/output.rs",
+            "line_start": 115,
+            "line_end": 122
           },
           {
-            "from": "crates/sc-compose/src/commands/mod.rs",
-            "to": "crates/sc-compose/src/commands/examples.rs"
+            "file": "crates/sc-compose/src/reporting/output.rs",
+            "line_start": 184,
+            "line_end": 191
           },
           {
-            "from": "crates/sc-compose/src/commands/templates.rs",
-            "to": "crates/sc-compose/src/commands/mod.rs"
+            "file": "crates/sc-compose/src/reporting/render_many.rs",
+            "line_start": 201,
+            "line_end": 208
           }
-        ]
+        ],
+        "suggested_site": {
+          "module": null,
+          "directory": "crates/sc-compose/src/reporting"
+        },
+        "duplicated_lines": 8,
+        "snippet": "    let metadata_absolute = root.join(&request.metadata_path);\n    if let Some(parent) = metadata_absolute.parent() {\n        std::fs::create_dir_all(parent).map_err(|source| OutputError::CreateDir {\n            path: parent.to_path_buf(),\n            source,\n        })?;\n    }\n    std::fs::write(&metadata_absolute, metadata_json).map_err(|source| {",
+        "snippet_start_line": 115,
+        "snippet_truncated": false,
+        "suggested_name": "reporting_helper"
       },
       "evidence": {
-        "cycle_size": 4,
-        "edge_count": 7,
-        "cut_count": 3
+        "occurrence_count": 3,
+        "duplicated_lines": 8,
+        "token_count": 550,
+        "co_change_count": 2,
+        "is_intra_file": false
       },
       "impact_delta": 0.0,
-      "effort_bucket": "M",
+      "effort_bucket": "S",
       "blast_radius": {
         "files": [
-          "crates/sc-compose/src/commands/dispatch.rs",
-          "crates/sc-compose/src/commands/examples.rs",
-          "crates/sc-compose/src/commands/mod.rs",
-          "crates/sc-compose/src/commands/templates.rs"
+          "crates/sc-compose/src/reporting/render_many.rs"
         ],
-        "file_count": 4,
-        "callers": 7
+        "file_count": 1,
+        "co_change_count": 2,
+        "callers": 2
       },
       "confidence": "medium",
-      "source_biomarker": ""
+      "source_biomarker": "dry_violation"
+    },
+    {
+      "refactoring_type": "extract_helper",
+      "file_path": "crates/sc-compose/src/reporting/output.rs",
+      "target_symbol": "output.rs:184-191",
+      "line_start": 184,
+      "line_end": 191,
+      "plan": {
+        "occurrences": [
+          {
+            "file": "crates/sc-compose/src/reporting/output.rs",
+            "line_start": 184,
+            "line_end": 191
+          },
+          {
+            "file": "crates/sc-compose/src/reporting/render_many.rs",
+            "line_start": 201,
+            "line_end": 208
+          }
+        ],
+        "suggested_site": {
+          "module": null,
+          "directory": "crates/sc-compose/src/reporting"
+        },
+        "duplicated_lines": 8,
+        "snippet": "    let absolute_to = root.join(to);\n    if let Some(parent) = absolute_to.parent() {\n        std::fs::create_dir_all(parent).map_err(|source| OutputError::CreateDir {\n            path: parent.to_path_buf(),\n            source,\n        })?;\n    }\n    std::fs::copy(&absolute_from, &absolute_to).map_err(|source| OutputError::CopyFile {",
+        "snippet_start_line": 184,
+        "snippet_truncated": false,
+        "suggested_name": "reporting_helper"
+      },
+      "evidence": {
+        "occurrence_count": 2,
+        "duplicated_lines": 8,
+        "token_count": 550,
+        "co_change_count": 2,
+        "is_intra_file": false
+      },
+      "impact_delta": 0.0,
+      "effort_bucket": "S",
+      "blast_radius": {
+        "files": [
+          "crates/sc-compose/src/reporting/render_many.rs"
+        ],
+        "file_count": 1,
+        "co_change_count": 2,
+        "callers": 2
+      },
+      "confidence": "medium",
+      "source_biomarker": "dry_violation"
     }
   ]
 }
