@@ -309,6 +309,21 @@ pub(crate) fn config_error(message: String, code: Option<&str>) -> PyErr {
     exception_with_attrs::<ScConfigError>(&message, code)
 }
 
+pub(crate) fn config_error_with_recovery_hints(
+    message: String,
+    code: Option<&str>,
+    recovery_hints: Vec<String>,
+) -> PyErr {
+    exception_with_details::<ScConfigError>(
+        &message,
+        code,
+        ExceptionDetails {
+            recovery_hints,
+            ..ExceptionDetails::default()
+        },
+    )
+}
+
 /// Map the pure extraction contract onto the adapter's existing configuration
 /// error family. Extraction is an in-memory input operation, and its stable
 /// Rust diagnostic code remains available through the Python exception.

@@ -6,9 +6,10 @@ use pyo3::prelude::*;
 use crate::convert::{
     coerce_path_like, extract_json_context, extract_pass_contexts, json_to_py, py_to_json_value,
 };
+use crate::enums::parse_extract_format;
 use crate::errors::{
-    compose_error_to_pyerr, config_error, extract_error_to_pyerr, render_error_to_pyerr,
-    validation_error,
+    compose_error_to_pyerr, config_error, config_error_with_recovery_hints, extract_error_to_pyerr,
+    render_error_to_pyerr, validation_error,
 };
 use crate::types::{
     PyComposePolicy, PyComposeRequest, PyComposeResult, PyExpandedTemplate, PyExtractionReport,
@@ -93,26 +94,19 @@ fn extract_variables(
     include: Option<&Bound<'_, PyAny>>,
     exclude: Option<&Bound<'_, PyAny>>,
 ) -> PyResult<PyExtractionReport> {
-    let format = match format {
-        "xml" => sc_composer::ExtractFormat::Xml,
-        "json" => sc_composer::ExtractFormat::Json,
-        other => {
-            return Err(config_error(
-                format!("unsupported extraction format `{other}`; use `xml` or `json`"),
-                Some("ERR_EXTRACT_FORMAT_UNSUPPORTED"),
-            ));
-        }
-    };
+    let format = parse_extract_format(format)?;
     let include = crate::convert::extract_variable_names(include).map_err(|error| {
-        config_error(
+        config_error_with_recovery_hints(
             format!("invalid extraction include filter: {error}"),
             Some("ERR_EXTRACT_INVALID_REQUEST"),
+            vec!["use valid variable names in the include filter".to_owned()],
         )
     })?;
     let exclude = crate::convert::extract_variable_names(exclude).map_err(|error| {
-        config_error(
+        config_error_with_recovery_hints(
             format!("invalid extraction exclude filter: {error}"),
             Some("ERR_EXTRACT_INVALID_REQUEST"),
+            vec!["use valid variable names in the exclude filter".to_owned()],
         )
     })?;
     let request = sc_composer::ExtractRequest::new(template, rendered, format, &include, &exclude);

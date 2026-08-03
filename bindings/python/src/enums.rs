@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 use sc_composer::{
-    DiagnosticSeverity, ProfileKind, RuntimeKind, UnknownVariablePolicy, VariableSource,
+    DiagnosticSeverity, ExtractFormat, ProfileKind, RuntimeKind, UnknownVariablePolicy,
+    VariableSource,
 };
 
 use crate::errors::config_error;
@@ -149,6 +150,18 @@ impl PyDiagnosticCode {
     #[classattr]
     const ERR_EXTRACT_FORMAT_UNSUPPORTED: &'static str = "ERR_EXTRACT_FORMAT_UNSUPPORTED";
     #[classattr]
+    const ERR_EXTRACT_JSON_MALFORMED: &'static str = "ERR_EXTRACT_JSON_MALFORMED";
+    #[classattr]
+    const ERR_EXTRACT_JSON_DUPLICATE_KEY: &'static str = "ERR_EXTRACT_JSON_DUPLICATE_KEY";
+    #[classattr]
+    const ERR_EXTRACT_JSON_PATH_MISSING: &'static str = "ERR_EXTRACT_JSON_PATH_MISSING";
+    #[classattr]
+    const ERR_EXTRACT_JSON_SHAPE_MISMATCH: &'static str = "ERR_EXTRACT_JSON_SHAPE_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_JSON_VALUE_UNSUPPORTED: &'static str = "ERR_EXTRACT_JSON_VALUE_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_JSON_AMBIGUOUS: &'static str = "ERR_EXTRACT_JSON_AMBIGUOUS";
+    #[classattr]
     const WARN_EXTRACT_NOT_OBSERVED: &'static str = "WARN_EXTRACT_NOT_OBSERVED";
     #[classattr]
     const WARN_EXTRACT_LOW_CONFIDENCE: &'static str = "WARN_EXTRACT_LOW_CONFIDENCE";
@@ -197,6 +210,18 @@ pub(crate) fn parse_unknown_variable_policy(value: &str) -> PyResult<UnknownVari
         other => Err(config_error(
             format!("unknown unknown-variable policy: {other}"),
             Some("ERR_CONFIG_MODE"),
+        )),
+    }
+}
+
+pub(crate) fn parse_extract_format(value: &str) -> PyResult<ExtractFormat> {
+    match value {
+        "xml" => Ok(ExtractFormat::Xml),
+        "json" => Ok(ExtractFormat::Json),
+        other => Err(crate::errors::config_error_with_recovery_hints(
+            format!("unsupported extraction format `{other}`; use `xml` or `json`"),
+            Some("ERR_EXTRACT_FORMAT_UNSUPPORTED"),
+            vec!["set format to `xml` or `json`".to_owned()],
         )),
     }
 }

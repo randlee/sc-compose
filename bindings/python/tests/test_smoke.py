@@ -88,10 +88,16 @@ def test_import_surface_exposes_c2_api() -> None:
 
     for name in required:
         assert getattr(sc_compose, name) is not None
-    assert (
-        sc_compose.DiagnosticCode.ERR_EXTRACT_FORMAT_UNSUPPORTED
-        == "ERR_EXTRACT_FORMAT_UNSUPPORTED"
-    )
+    for code in [
+        "ERR_EXTRACT_FORMAT_UNSUPPORTED",
+        "ERR_EXTRACT_JSON_MALFORMED",
+        "ERR_EXTRACT_JSON_DUPLICATE_KEY",
+        "ERR_EXTRACT_JSON_PATH_MISSING",
+        "ERR_EXTRACT_JSON_SHAPE_MISMATCH",
+        "ERR_EXTRACT_JSON_VALUE_UNSUPPORTED",
+        "ERR_EXTRACT_JSON_AMBIGUOUS",
+    ]:
+        assert getattr(sc_compose.DiagnosticCode, code) == code
 
 
 def test_extraction_report_preserves_values_provenance_and_filters() -> None:
@@ -187,10 +193,17 @@ def test_json_extraction_preserves_boundary_diagnostics() -> None:
             format="json",
         )
     assert malformed.value.code == "ERR_EXTRACT_JSON_MALFORMED"
+    assert malformed.value.recovery_hints
 
     with pytest.raises(sc_compose.ScConfigError) as unsupported:
         sc_compose.extract_variables("{}", "{}", format="yaml")
     assert unsupported.value.code == "ERR_EXTRACT_FORMAT_UNSUPPORTED"
+    assert unsupported.value.recovery_hints
+
+    with pytest.raises(sc_compose.ScConfigError) as invalid_filter:
+        sc_compose.extract_variables("{}", "{}", include=["bad/name"])
+    assert invalid_filter.value.code == "ERR_EXTRACT_INVALID_REQUEST"
+    assert invalid_filter.value.recovery_hints
 
 
 def test_json_extraction_matches_realistic_atm_fixture() -> None:

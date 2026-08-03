@@ -628,15 +628,18 @@ before it reaches the report; Phase G.7 will add this check locally to the
 extraction XML adapter without changing `VariableName`'s shared grammar or
 its use in composition/rendering.
 
-The Python adapter exposes this same in-memory XML report through
-`extract_variables(template, rendered, *, include=None, exclude=None)`. Its
-report and provenance objects are wrappers over the `sc-composer` values, and
-fatal extraction conditions use the adapter's existing `ScConfigError` family
-with the canonical extraction code; Python does not implement a second
-extraction algorithm. Here, “reuse the existing exception hierarchy” means
-that all fatal extraction inputs use that established `ScConfigError` class
-and expose the Rust diagnostic code, recovery hints, and diagnostic detail;
-it does not introduce a Python-only extraction exception subclass.
+The Python adapter exposes this in-memory report through
+`extract_variables(template, rendered, *, format="xml", include=None,
+exclude=None)`. XML remains the backward-compatible default, while the
+approved JSON adapter selects the same shared extraction entry point with
+`format="json"`. Its report and provenance objects are wrappers over the
+`sc-composer` values, and fatal extraction conditions use the adapter's
+existing `ScConfigError` family with the canonical extraction code; Python
+does not implement a second extraction algorithm. Here, “reuse the existing
+exception hierarchy” means that all fatal extraction inputs use that
+established `ScConfigError` class and expose the Rust diagnostic code,
+recovery hints, and diagnostic detail; it does not introduce a Python-only
+extraction exception subclass.
 
 This capability is implemented from scratch in the production Rust library,
 Python adapter, and CLI. Prior reverse-extraction research informs the
