@@ -2,6 +2,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error as StdError;
+use std::mem;
 
 use quick_xml::Reader;
 use quick_xml::escape::unescape;
@@ -9,6 +10,7 @@ use quick_xml::events::Event;
 use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::DiagnosticCode;
+use crate::error::RecoveryHintKind;
 use crate::frontmatter::parse_template_document;
 use crate::types::VariableName;
 
@@ -16,6 +18,10 @@ use super::{
     ExtractError, ExtractRequest, ExtractionDiagnostic, ExtractionDiagnosticKind,
     ExtractionOccurrence, ExtractionReport, raw_text,
 };
+
+const MAX_XML_INPUT_BYTES: usize = 1_048_576;
+const MAX_XML_NESTING_DEPTH: usize = 64;
+const MAX_XML_OCCURRENCES: usize = 10_000;
 
 /// XML element/attribute path evidence.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -70,6 +76,35 @@ struct XmlDocument {
     root: XmlElement,
 }
 
+fn drop_xml_children(children: &mut Vec<XmlNode>) {
+    let mut pending = mem::take(children);
+    while let Some(mut node) = pending.pop() {
+        if let XmlNode::Element(element) = &mut node {
+            pending.append(&mut element.children);
+        }
+    }
+}
+
+impl Drop for XmlElement {
+    fn drop(&mut self) {
+        drop_xml_children(&mut self.children);
+    }
+}
+
+impl Drop for XmlNode {
+    fn drop(&mut self) {
+        if let XmlNode::Element(element) = self {
+            drop_xml_children(&mut element.children);
+        }
+    }
+}
+
+impl Drop for XmlDocument {
+    fn drop(&mut self) {
+        drop_xml_children(&mut self.root.children);
+    }
+}
+
 #[derive(Clone, Debug)]
 struct Capture {
     variable: VariableName,
@@ -90,6 +125,8 @@ struct Evidence {
 pub(crate) fn extract_xml(
     request: &ExtractRequest<'_>,
 ) -> Result<XmlExtractionReport, ExtractError> {
+    validate_input_size(request.template, "template")?;
+    validate_input_size(request.rendered, "rendered XML")?;
     let parsed_template = parse_template_document(request.template).map_err(|error| {
         ExtractError::unsupported_with_source(
             format!("template frontmatter is not supported: {error}"),
@@ -363,21 +400,23 @@ fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
         })?;
         match event {
             Event::Start(element) => {
+                validate_parse_depth(stack.len())?;
                 let name = decode_name(element.name().as_ref())?;
                 let attributes = decode_attributes(&reader, &element)?;
                 stack.push((name, attributes, Vec::new()));
             }
             Event::Empty(element) => {
+                validate_parse_depth(stack.len())?;
                 let name = decode_name(element.name().as_ref())?;
                 let attributes = decode_attributes(&reader, &element)?;
-                attach_node(
+                attach_element(
                     &mut stack,
                     &mut root,
-                    XmlNode::Element(XmlElement {
+                    XmlElement {
                         name,
                         attributes,
                         children: Vec::new(),
-                    }),
+                    },
                 )?;
             }
             Event::End(end) => {
@@ -390,14 +429,14 @@ fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
                         "XML closing tag does not match opening tag: {name} != {end_name}"
                     )));
                 }
-                attach_node(
+                attach_element(
                     &mut stack,
                     &mut root,
-                    XmlNode::Element(XmlElement {
+                    XmlElement {
                         name,
                         attributes,
                         children,
-                    }),
+                    },
                 )?;
             }
             Event::Text(text) => {
@@ -484,23 +523,19 @@ fn decode_attributes(
     Ok(attributes)
 }
 
-fn attach_node(
+fn attach_element(
     stack: &mut [(String, BTreeMap<String, String>, Vec<XmlNode>)],
     root: &mut Option<XmlElement>,
-    node: XmlNode,
+    element: XmlElement,
 ) -> Result<(), ExtractError> {
     if let Some((_, _, children)) = stack.last_mut() {
-        children.push(node);
+        children.push(XmlNode::Element(element));
     } else if root.is_some() {
         return Err(malformed(
             "XML input contains more than one root element".to_owned(),
         ));
-    } else if let XmlNode::Element(element) = node {
-        *root = Some(element);
     } else {
-        return Err(malformed(
-            "XML text appeared outside the root element".to_owned(),
-        ));
+        *root = Some(element);
     }
     Ok(())
 }
@@ -621,6 +656,11 @@ fn match_children(
         if let XmlNode::Text(value) = &template_children[0] {
             let segments = parse_value_segments(value.trim())?;
             if let [raw_text::RawTextSegment::Variable(variable)] = segments.as_slice() {
+                if captures.len() >= MAX_XML_OCCURRENCES {
+                    return Err(input_limit_error(format!(
+                        "XML extraction exceeded the maximum of {MAX_XML_OCCURRENCES} occurrences"
+                    )));
+                }
                 captures.push(Capture {
                     variable: variable.clone(),
                     path: path.to_owned(),
@@ -725,6 +765,11 @@ fn match_value(
         ));
     }
     for capture in matched.captures {
+        if captures.len() >= MAX_XML_OCCURRENCES {
+            return Err(input_limit_error(format!(
+                "XML extraction exceeded the maximum of {MAX_XML_OCCURRENCES} occurrences"
+            )));
+        }
         debug_assert_eq!(&rendered[capture.span.clone()], capture.rendered_text);
         captures.push(Capture {
             variable: capture.variable,
@@ -771,6 +816,36 @@ fn with_span(message: &str, span: Option<std::ops::Range<usize>>) -> String {
     span.map_or_else(
         || message.to_owned(),
         |span| format!("{message} (candidate bytes {}..{})", span.start, span.end),
+    )
+}
+
+fn validate_input_size(source: &str, label: &str) -> Result<(), ExtractError> {
+    if source.len() > MAX_XML_INPUT_BYTES {
+        return Err(input_limit_error(format!(
+            "XML {label} input is {} bytes; maximum is {MAX_XML_INPUT_BYTES} bytes",
+            source.len()
+        )));
+    }
+    Ok(())
+}
+
+fn validate_parse_depth(depth: usize) -> Result<(), ExtractError> {
+    if depth > MAX_XML_NESTING_DEPTH {
+        return Err(input_limit_error(format!(
+            "XML nesting depth exceeds the maximum of {MAX_XML_NESTING_DEPTH}"
+        )));
+    }
+    Ok(())
+}
+
+fn input_limit_error(message: impl Into<String>) -> ExtractError {
+    ExtractError::format_error(
+        DiagnosticCode::ErrExtractInputLimit,
+        ExtractionDiagnosticKind::Malformed,
+        message,
+        RecoveryHintKind::InspectInput {
+            description: "reduce XML input size, nesting depth, or occurrence count".to_owned(),
+        },
     )
 }
 

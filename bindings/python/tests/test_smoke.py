@@ -349,6 +349,35 @@ def test_toml_extraction_rejects_oversized_input_with_stable_code() -> None:
         )
     assert caught.value.code == "ERR_EXTRACT_INPUT_LIMIT"
 
+
+@pytest.mark.parametrize(
+    ("format", "template", "rendered"),
+    [
+        (
+            "json",
+            '{"value": "{{ value }}"}',
+            '{"value": "' + "x" * 1_048_577 + '"}',
+        ),
+        (
+            "yaml",
+            'value: "{{ value }}"\n',
+            'value: "' + "x" * 1_048_577 + '"\n',
+        ),
+        (
+            "xml",
+            "<root><value>{{ value }}</value></root>",
+            "<root><value>" + "x" * 1_048_577 + "</value></root>",
+        ),
+    ],
+    ids=["json", "yaml", "xml"],
+)
+def test_json_yaml_and_xml_extraction_limits_reach_python(
+    format: str, template: str, rendered: str
+) -> None:
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(template, rendered, format=format)
+    assert caught.value.code == "ERR_EXTRACT_INPUT_LIMIT"
+
 def fixture_pair(name: str) -> tuple[str, str]:
     template = (FIXTURE_ROOT / f"{name}.xml.j2").read_text(encoding="utf-8")
     rendered = (FIXTURE_ROOT / f"{name}.xml").read_text(encoding="utf-8")

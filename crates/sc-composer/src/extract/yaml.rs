@@ -1,11 +1,11 @@
 //! Deterministic structural matching for known-template YAML.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt;
 use std::ops::Range;
 
 use serde::Deserialize;
-use serde::de::{self, Deserializer, MapAccess, SeqAccess, Visitor};
+use serde::de::{self, DeserializeSeed, Deserializer, Error as _, MapAccess, SeqAccess, Visitor};
 
 use crate::diagnostics::DiagnosticCode;
 use crate::error::RecoveryHintKind;
@@ -16,6 +16,10 @@ use super::{
     ExtractError, ExtractRequest, ExtractionDiagnosticKind, ExtractionOccurrence, ExtractionReport,
     raw_text,
 };
+
+const MAX_YAML_INPUT_BYTES: usize = 1_048_576;
+const MAX_YAML_NESTING_DEPTH: usize = 64;
+const MAX_YAML_OCCURRENCES: usize = 10_000;
 
 /// YAML mapping-key or sequence-index path evidence.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -97,7 +101,33 @@ impl<'de> Deserialize<'de> for YamlNode {
     where
         D: Deserializer<'de>,
     {
-        struct NodeVisitor;
+        Self::deserialize_at(deserializer, 0)
+    }
+}
+
+struct YamlNodeSeed {
+    depth: usize,
+}
+
+impl<'de> DeserializeSeed<'de> for YamlNodeSeed {
+    type Value = YamlNode;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        YamlNode::deserialize_at(deserializer, self.depth)
+    }
+}
+
+impl YamlNode {
+    fn deserialize_at<'de, D>(deserializer: D, depth: usize) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct NodeVisitor {
+            depth: usize,
+        }
 
         impl<'de> Visitor<'de> for NodeVisitor {
             type Value = YamlNode;
@@ -110,6 +140,11 @@ impl<'de> Deserialize<'de> for YamlNode {
             where
                 A: MapAccess<'de>,
             {
+                if self.depth > MAX_YAML_NESTING_DEPTH {
+                    return Err(de::Error::custom(format!(
+                        "YAML nesting depth exceeds the maximum of {MAX_YAML_NESTING_DEPTH}"
+                    )));
+                }
                 let mut entries = Vec::new();
                 let mut keys = HashSet::new();
                 while let Some(YamlKey(key)) = map.next_key::<YamlKey>()? {
@@ -118,7 +153,12 @@ impl<'de> Deserialize<'de> for YamlNode {
                             "duplicate YAML mapping key: {key}"
                         )));
                     }
-                    entries.push((key, map.next_value()?));
+                    entries.push((
+                        key,
+                        map.next_value_seed(YamlNodeSeed {
+                            depth: self.depth + 1,
+                        })?,
+                    ));
                 }
                 Ok(YamlNode::Mapping(entries))
             }
@@ -127,8 +167,15 @@ impl<'de> Deserialize<'de> for YamlNode {
             where
                 A: SeqAccess<'de>,
             {
+                if self.depth > MAX_YAML_NESTING_DEPTH {
+                    return Err(de::Error::custom(format!(
+                        "YAML nesting depth exceeds the maximum of {MAX_YAML_NESTING_DEPTH}"
+                    )));
+                }
                 let mut values = Vec::new();
-                while let Some(value) = seq.next_element()? {
+                while let Some(value) = seq.next_element_seed(YamlNodeSeed {
+                    depth: self.depth + 1,
+                })? {
                     values.push(value);
                 }
                 Ok(YamlNode::Sequence(values))
@@ -184,7 +231,12 @@ impl<'de> Deserialize<'de> for YamlNode {
             }
         }
 
-        deserializer.deserialize_any(NodeVisitor)
+        if depth > MAX_YAML_NESTING_DEPTH {
+            return Err(D::Error::custom(format!(
+                "YAML nesting depth exceeds the maximum of {MAX_YAML_NESTING_DEPTH}"
+            )));
+        }
+        deserializer.deserialize_any(NodeVisitor { depth })
     }
 }
 
@@ -198,10 +250,13 @@ struct Capture {
 pub(crate) fn extract_yaml(
     request: &ExtractRequest<'_>,
 ) -> Result<YamlExtractionReport, ExtractError> {
+    validate_input_size(request.template, "template")?;
+    validate_input_size(request.rendered, "rendered YAML")?;
     let parsed_template = parse_template_document(request.template).map_err(|error| {
         template_error(format!("YAML template frontmatter is invalid: {error}"))
     })?;
     let template_source = parsed_template.body();
+    validate_parse_depth(template_source)?;
     if template_source.contains("{%") || template_source.contains("{#") {
         return Err(template_error(
             "YAML extraction does not support Jinja statements or comments",
@@ -213,7 +268,10 @@ pub(crate) fn extract_yaml(
         ));
     }
     let template = parse_document(template_source, true)?;
+    validate_parse_depth(request.rendered)?;
     let rendered = parse_document(request.rendered, false)?;
+    validate_value_limits(&template, 0)?;
+    validate_value_limits(&rendered, 0)?;
     let mut captures = Vec::new();
     match_yaml(&template, &rendered, &[], &mut captures)?;
 
@@ -248,6 +306,10 @@ fn selected_variable(variable: &VariableName, request: &ExtractRequest<'_>) -> b
         && !request.exclude.contains(variable)
 }
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "format matching keeps all YAML shape cases together"
+)]
 fn match_yaml(
     template: &YamlNode,
     rendered: &YamlNode,
@@ -256,12 +318,19 @@ fn match_yaml(
 ) -> Result<(), ExtractError> {
     match (template, rendered) {
         (YamlNode::Mapping(template), YamlNode::Mapping(rendered)) => {
+            let rendered_by_key = rendered
+                .iter()
+                .map(|(key, value)| (key.as_str(), value))
+                .collect::<HashMap<_, _>>();
+            let template_keys = template
+                .iter()
+                .map(|(key, _)| key.as_str())
+                .collect::<HashSet<_>>();
             for (key, template_value) in template {
                 reject_dynamic_key(key)?;
-                let rendered_value = rendered
-                    .iter()
-                    .find(|(rendered_key, _)| rendered_key == key)
-                    .map(|(_, value)| value)
+                let rendered_value = rendered_by_key
+                    .get(key.as_str())
+                    .copied()
                     .ok_or_else(|| missing_path_error(path, key))?;
                 let child_path = path
                     .iter()
@@ -270,9 +339,9 @@ fn match_yaml(
                     .collect::<Vec<_>>();
                 match_yaml(template_value, rendered_value, &child_path, captures)?;
             }
-            if rendered
-                .iter()
-                .any(|(key, _)| !template.iter().any(|(expected, _)| expected == key))
+            if rendered_by_key
+                .keys()
+                .any(|key| !template_keys.contains(key))
             {
                 return Err(shape_error(
                     path,
@@ -313,6 +382,11 @@ fn match_yaml(
                 )));
             }
             for capture in matched.captures {
+                if captures.len() >= MAX_YAML_OCCURRENCES {
+                    return Err(input_limit_error(format!(
+                        "YAML extraction exceeded the maximum of {MAX_YAML_OCCURRENCES} occurrences"
+                    )));
+                }
                 captures.push(Capture {
                     variable: capture.variable,
                     path: path.to_owned(),
@@ -357,7 +431,9 @@ fn parse_document(source: &str, template: bool) -> Result<YamlNode, ExtractError
     };
     let node = YamlNode::deserialize(document).map_err(|error| {
         let message = error.to_string();
-        if message.starts_with("duplicate YAML mapping key") {
+        if message.starts_with("YAML nesting depth exceeds the maximum") {
+            input_limit_error(message)
+        } else if message.starts_with("duplicate YAML mapping key") {
             duplicate_error(message)
         } else if template {
             template_error(format!(
@@ -374,27 +450,164 @@ fn parse_document(source: &str, template: bool) -> Result<YamlNode, ExtractError
 }
 
 fn contains_yaml_features(source: &str) -> bool {
-    let mut single = false;
-    let mut double = false;
     let bytes = source.as_bytes();
-    for (index, byte) in bytes.iter().enumerate() {
-        match *byte {
-            b'\'' if !double => single = !single,
-            b'"' if !single => double = !double,
-            b'&' | b'*' | b'!' if !single && !double => {
-                if index > 0 && !bytes[index - 1].is_ascii_whitespace() {
-                    continue;
-                }
-                if bytes.get(index + 1).is_some_and(|next| {
-                    next.is_ascii_alphanumeric() || *next == b'_' || *next == b'-'
-                }) {
-                    return true;
+    let mut quote = None;
+    let mut index = 0;
+    while index < bytes.len() {
+        let byte = bytes[index];
+        match quote {
+            Some(b'"') => {
+                if byte == b'\\' {
+                    index += 2;
+                } else {
+                    if byte == b'"' {
+                        quote = None;
+                    }
+                    index += 1;
                 }
             }
-            _ => {}
+            Some(b'\'') => {
+                if byte == b'\'' && bytes.get(index + 1) == Some(&b'\'') {
+                    index += 2;
+                } else {
+                    if byte == b'\'' {
+                        quote = None;
+                    }
+                    index += 1;
+                }
+            }
+            Some(_) => index += 1,
+            None => {
+                match byte {
+                    b'"' | b'\'' => quote = Some(byte),
+                    b'&' | b'*' | b'!' if is_yaml_feature_boundary(bytes, index) => {
+                        let is_named_feature = bytes.get(index + 1).is_some_and(|next| {
+                            next.is_ascii_alphanumeric() || *next == b'_' || *next == b'-'
+                        });
+                        let is_tag = byte == b'!'
+                            && bytes.get(index + 1).is_some_and(|next| {
+                                next.is_ascii_alphanumeric() || matches!(*next, b'!' | b'<' | b'_')
+                            });
+                        if is_named_feature || is_tag {
+                            return true;
+                        }
+                    }
+                    _ => {}
+                }
+                index += 1;
+            }
         }
     }
     false
+}
+
+fn is_yaml_feature_boundary(bytes: &[u8], index: usize) -> bool {
+    index == 0
+        || bytes[index - 1].is_ascii_whitespace()
+        || matches!(
+            bytes[index - 1],
+            b'[' | b']' | b'{' | b'}' | b',' | b':' | b'?' | b'-'
+        )
+}
+
+fn validate_input_size(source: &str, label: &str) -> Result<(), ExtractError> {
+    if source.len() > MAX_YAML_INPUT_BYTES {
+        return Err(input_limit_error(format!(
+            "YAML {label} input is {} bytes; maximum is {MAX_YAML_INPUT_BYTES} bytes",
+            source.len()
+        )));
+    }
+    Ok(())
+}
+
+fn validate_parse_depth(source: &str) -> Result<(), ExtractError> {
+    let mut block_indents = Vec::new();
+    let mut flow_depth = 0;
+    let mut quote = None;
+    let mut escaped = false;
+
+    for line in source.lines() {
+        let trimmed = line.trim_start();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+        let indent = line.len() - trimmed.len();
+        if block_indents.last().is_none_or(|last| indent > *last) {
+            block_indents.push(indent);
+        } else {
+            while block_indents.last().is_some_and(|last| indent < *last) {
+                block_indents.pop();
+            }
+            if block_indents.last().is_none_or(|last| indent > *last) {
+                block_indents.push(indent);
+            }
+        }
+        if block_indents.len().saturating_sub(1) > MAX_YAML_NESTING_DEPTH {
+            return Err(input_limit_error(format!(
+                "YAML nesting depth exceeds the maximum of {MAX_YAML_NESTING_DEPTH}"
+            )));
+        }
+
+        for byte in trimmed.bytes() {
+            if let Some(active_quote) = quote {
+                if active_quote == b'"' && escaped {
+                    escaped = false;
+                } else if active_quote == b'"' && byte == b'\\' {
+                    escaped = true;
+                } else if byte == active_quote {
+                    quote = None;
+                }
+                continue;
+            }
+            match byte {
+                b'"' | b'\'' => quote = Some(byte),
+                b'[' | b'{' => {
+                    flow_depth += 1;
+                    if flow_depth > MAX_YAML_NESTING_DEPTH {
+                        return Err(input_limit_error(format!(
+                            "YAML nesting depth exceeds the maximum of {MAX_YAML_NESTING_DEPTH}"
+                        )));
+                    }
+                }
+                b']' | b'}' => flow_depth = flow_depth.saturating_sub(1),
+                _ => {}
+            }
+        }
+    }
+    Ok(())
+}
+
+fn validate_value_limits(value: &YamlNode, depth: usize) -> Result<(), ExtractError> {
+    if depth > MAX_YAML_NESTING_DEPTH {
+        return Err(input_limit_error(format!(
+            "YAML nesting depth exceeds the maximum of {MAX_YAML_NESTING_DEPTH}"
+        )));
+    }
+    match value {
+        YamlNode::Mapping(values) => {
+            for (_, value) in values {
+                validate_value_limits(value, depth + 1)?;
+            }
+        }
+        YamlNode::Sequence(values) => {
+            for value in values {
+                validate_value_limits(value, depth + 1)?;
+            }
+        }
+        YamlNode::String(_) | YamlNode::Other(_) => {}
+    }
+    Ok(())
+}
+
+fn input_limit_error(message: impl Into<String>) -> ExtractError {
+    ExtractError::format_error(
+        DiagnosticCode::ErrExtractInputLimit,
+        ExtractionDiagnosticKind::Malformed,
+        message,
+        RecoveryHintKind::InspectInput {
+            description: "reduce YAML input size, nesting depth, or occurrence count".to_owned(),
+        },
+    )
 }
 
 fn reject_dynamic_key(key: &str) -> Result<(), ExtractError> {
@@ -596,5 +809,47 @@ mod tests {
         assert!(report.diagnostics.iter().any(|diagnostic| {
             diagnostic.code == crate::diagnostics::DiagnosticCode::WarnExtractLowConfidence
         }));
+    }
+
+    #[test]
+    fn flow_style_anchor_alias_bypass_is_rejected() {
+        let request = ExtractRequest::new("[1, 1]\n", "[&v 1,*v]\n", ExtractFormat::Yaml, &[], &[]);
+        let error = extract_yaml(&request).unwrap_err();
+        assert_eq!(
+            error.code(),
+            crate::diagnostics::DiagnosticCode::ErrExtractYamlAliasUnsupported
+        );
+    }
+
+    #[test]
+    fn nested_flow_anchor_alias_bypass_is_rejected() {
+        let request = ExtractRequest::new(
+            "{x: \"{{ x }}\", y: [1, 1]}\n",
+            "{x: \"Ada\", y: [1,&v 1]}\n",
+            ExtractFormat::Yaml,
+            &[],
+            &[],
+        );
+        let error = extract_yaml(&request).unwrap_err();
+        assert_eq!(
+            error.code(),
+            crate::diagnostics::DiagnosticCode::ErrExtractYamlAliasUnsupported
+        );
+    }
+
+    #[test]
+    fn escaped_double_quote_does_not_desync_alias_detection() {
+        let request = ExtractRequest::new(
+            "name: \"{{ name }}\"\nalias: 1\ncopy: 1\n",
+            "name: \"a\\\"b\"\nalias: &v 1\ncopy: *v\n",
+            ExtractFormat::Yaml,
+            &[],
+            &[],
+        );
+        let error = extract_yaml(&request).unwrap_err();
+        assert_eq!(
+            error.code(),
+            crate::diagnostics::DiagnosticCode::ErrExtractYamlAliasUnsupported
+        );
     }
 }

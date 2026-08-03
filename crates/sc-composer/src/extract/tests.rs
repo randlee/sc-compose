@@ -1,5 +1,6 @@
 use serde_json::json;
 use std::error::Error as _;
+use std::fmt::Write as _;
 
 use crate::error::RecoveryHintKind;
 
@@ -223,6 +224,10 @@ fn json_request<'a>(template: &'a str, rendered: &'a str) -> ExtractRequest<'a> 
     ExtractRequest::new(template, rendered, ExtractFormat::Json, &[], &[])
 }
 
+fn yaml_request<'a>(template: &'a str, rendered: &'a str) -> ExtractRequest<'a> {
+    ExtractRequest::new(template, rendered, ExtractFormat::Yaml, &[], &[])
+}
+
 #[test]
 fn json_unit_extracts_format_specific_paths_and_source() {
     let report = extract(&json_request(
@@ -425,4 +430,108 @@ fn xml_rejects_ambiguous_namespace_policy() {
     .unwrap_err();
 
     assert_eq!(error.code(), DiagnosticCode::ErrExtractUnsupported);
+}
+
+#[test]
+fn json_enforces_an_occurrence_limit_like_toml() {
+    let mut template = String::from("{");
+    let mut rendered = String::from("{");
+    for index in 0..15_000 {
+        if index > 0 {
+            template.push(',');
+            rendered.push(',');
+        }
+        let _ = write!(template, "\"k{index}\":\"{{{{ v{index} }}}}\"");
+        let _ = write!(rendered, "\"k{index}\":\"X\"");
+    }
+    template.push('}');
+    rendered.push('}');
+
+    let result = extract(&json_request(&template, &rendered));
+    assert!(result.is_err());
+    assert_eq!(
+        result.unwrap_err().code(),
+        DiagnosticCode::ErrExtractInputLimit
+    );
+}
+
+#[test]
+fn yaml_enforces_an_occurrence_limit_like_toml() {
+    let mut template = String::from("{");
+    let mut rendered = String::from("{");
+    for index in 0..15_000 {
+        if index > 0 {
+            template.push(',');
+            rendered.push(',');
+        }
+        let _ = write!(template, "k{index}: \"{{{{ v{index} }}}}\"");
+        let _ = write!(rendered, "k{index}: \"X\"");
+    }
+    template.push('}');
+    rendered.push('}');
+
+    let result = extract(&yaml_request(&template, &rendered));
+    assert!(result.is_err());
+    assert_eq!(
+        result.unwrap_err().code(),
+        DiagnosticCode::ErrExtractInputLimit
+    );
+}
+
+#[test]
+fn xml_enforces_an_occurrence_limit_like_toml() {
+    let mut template = String::from("<root>");
+    let mut rendered = String::from("<root>");
+    for index in 0..15_000 {
+        let _ = write!(template, "<f{index}>{{{{ v{index} }}}}</f{index}>");
+        let _ = write!(rendered, "<f{index}>X</f{index}>");
+    }
+    template.push_str("</root>");
+    rendered.push_str("</root>");
+
+    let result = extract(&xml_request(&template, &rendered));
+    assert!(result.is_err());
+    assert_eq!(
+        result.unwrap_err().code(),
+        DiagnosticCode::ErrExtractInputLimit
+    );
+}
+
+#[test]
+fn json_enforces_an_input_size_limit_like_toml() {
+    let big = "a".repeat(3_000_000);
+    let document = format!("{{\"big\":\"{big}\"}}");
+
+    let result = extract(&json_request(&document, &document));
+    assert!(result.is_err());
+    assert_eq!(
+        result.unwrap_err().code(),
+        DiagnosticCode::ErrExtractInputLimit
+    );
+}
+
+#[test]
+fn yaml_enforces_an_input_size_limit_like_toml() {
+    let big = "a".repeat(3_000_000);
+    let document = format!("{{big: \"{big}\"}}\n");
+
+    let result = extract(&yaml_request(&document, &document));
+    assert!(result.is_err());
+    assert_eq!(
+        result.unwrap_err().code(),
+        DiagnosticCode::ErrExtractInputLimit
+    );
+}
+
+#[test]
+fn xml_enforces_an_input_size_limit_like_toml() {
+    let big = "a".repeat(3_000_000);
+    let document = format!("<root><big>{big}</big></root>");
+
+    let result = extract(&xml_request(&document, &document));
+    assert!(result.is_err());
+    assert_eq!(
+        result.unwrap_err().code(),
+        DiagnosticCode::ErrExtractInputLimit
+    );
 }

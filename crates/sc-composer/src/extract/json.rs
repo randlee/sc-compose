@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
-use serde::de::{self, Deserializer, MapAccess, SeqAccess, Visitor};
+use serde::de::{self, DeserializeSeed, Deserializer, Error as _, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::DiagnosticCode;
@@ -15,6 +15,10 @@ use super::{
     ExtractError, ExtractRequest, ExtractionDiagnosticKind, ExtractionOccurrence, ExtractionReport,
     raw_text,
 };
+
+const MAX_JSON_INPUT_BYTES: usize = 1_048_576;
+const MAX_JSON_NESTING_DEPTH: usize = 64;
+const MAX_JSON_OCCURRENCES: usize = 10_000;
 
 /// JSON object-key or array-index path evidence.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -56,17 +60,23 @@ struct Evidence {
 pub(crate) fn extract_json(
     request: &ExtractRequest<'_>,
 ) -> Result<JsonExtractionReport, ExtractError> {
+    validate_input_size(request.template, "template")?;
+    validate_input_size(request.rendered, "rendered JSON")?;
     let parsed_template = parse_template_document(request.template).map_err(|error| {
         template_error(format!("JSON template frontmatter is invalid: {error}"))
     })?;
     let template_source = parsed_template.body();
+    validate_parse_depth(template_source)?;
     if template_source.contains("{%") || template_source.contains("{#") {
         return Err(template_error(
             "JSON extraction does not support Jinja statements or comments",
         ));
     }
     let template = parse_document(template_source, true)?;
+    validate_parse_depth(request.rendered)?;
     let rendered = parse_document(request.rendered, false)?;
+    validate_value_limits(&template, 0)?;
+    validate_value_limits(&rendered, 0)?;
     let mut captures = Vec::new();
     let mut evidence = Evidence::default();
     match_json(&template, &rendered, &[], &mut captures, &mut evidence)?;
@@ -181,6 +191,11 @@ fn match_json(
                 )));
             }
             for capture in matched.captures {
+                if captures.len() >= MAX_JSON_OCCURRENCES {
+                    return Err(input_limit_error(format!(
+                        "JSON extraction exceeded the maximum of {MAX_JSON_OCCURRENCES} occurrences"
+                    )));
+                }
                 debug_assert_eq!(&rendered[capture.span.clone()], capture.rendered_text);
                 captures.push(Capture {
                     variable: capture.variable,
@@ -211,6 +226,73 @@ fn match_json(
     Ok(())
 }
 
+fn validate_input_size(source: &str, label: &str) -> Result<(), ExtractError> {
+    if source.len() > MAX_JSON_INPUT_BYTES {
+        return Err(input_limit_error(format!(
+            "JSON {label} input is {} bytes; maximum is {MAX_JSON_INPUT_BYTES} bytes",
+            source.len()
+        )));
+    }
+    Ok(())
+}
+
+fn validate_parse_depth(source: &str) -> Result<(), ExtractError> {
+    let mut depth = 0;
+    let mut in_string = false;
+    let mut escaped = false;
+    for byte in source.bytes() {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if byte == b'\\' {
+                escaped = true;
+            } else if byte == b'"' {
+                in_string = false;
+            }
+            continue;
+        }
+        match byte {
+            b'"' => in_string = true,
+            b'{' | b'[' => {
+                depth += 1;
+                if depth > MAX_JSON_NESTING_DEPTH {
+                    return Err(input_limit_error(format!(
+                        "JSON nesting depth exceeds the maximum of {MAX_JSON_NESTING_DEPTH}"
+                    )));
+                }
+            }
+            b'}' | b']' => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
+fn validate_value_limits(value: &serde_json::Value, depth: usize) -> Result<(), ExtractError> {
+    if depth > MAX_JSON_NESTING_DEPTH {
+        return Err(input_limit_error(format!(
+            "JSON nesting depth exceeds the maximum of {MAX_JSON_NESTING_DEPTH}"
+        )));
+    }
+    match value {
+        serde_json::Value::Object(values) => {
+            for value in values.values() {
+                validate_value_limits(value, depth + 1)?;
+            }
+        }
+        serde_json::Value::Array(values) => {
+            for value in values {
+                validate_value_limits(value, depth + 1)?;
+            }
+        }
+        serde_json::Value::Null
+        | serde_json::Value::Bool(_)
+        | serde_json::Value::Number(_)
+        | serde_json::Value::String(_) => {}
+    }
+    Ok(())
+}
+
 fn reject_dynamic_key(key: &str) -> Result<(), ExtractError> {
     let segments = raw_text::parse_raw_text_segments(key).map_err(map_raw_text_error)?;
     if segments
@@ -228,7 +310,9 @@ fn parse_document(source: &str, template: bool) -> Result<serde_json::Value, Ext
     let mut deserializer = serde_json::Deserializer::from_str(source);
     let value = StrictJsonValue::deserialize(&mut deserializer).map_err(|error| {
         let message = error.to_string();
-        if message.starts_with("duplicate JSON object key") {
+        if message.starts_with("JSON nesting depth exceeds the maximum") {
+            input_limit_error(message)
+        } else if message.starts_with("duplicate JSON object key") {
             duplicate_error_with_source(message, error)
         } else if template && source.contains("{{") {
             value_error_with_source(
@@ -336,6 +420,17 @@ fn malformed_error_with_source(
     )
 }
 
+fn input_limit_error(message: impl Into<String>) -> ExtractError {
+    ExtractError::format_error(
+        DiagnosticCode::ErrExtractInputLimit,
+        ExtractionDiagnosticKind::Malformed,
+        message,
+        RecoveryHintKind::InspectInput {
+            description: "reduce JSON input size, nesting depth, or occurrence count".to_owned(),
+        },
+    )
+}
+
 fn duplicate_error_with_source(
     message: impl Into<String>,
     source: impl std::error::Error,
@@ -439,7 +534,33 @@ impl<'de> Deserialize<'de> for StrictJsonValue {
     where
         D: Deserializer<'de>,
     {
-        struct StrictVisitor;
+        Self::deserialize_at(deserializer, 0)
+    }
+}
+
+struct StrictJsonSeed {
+    depth: usize,
+}
+
+impl<'de> DeserializeSeed<'de> for StrictJsonSeed {
+    type Value = StrictJsonValue;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        StrictJsonValue::deserialize_at(deserializer, self.depth)
+    }
+}
+
+impl StrictJsonValue {
+    fn deserialize_at<'de, D>(deserializer: D, depth: usize) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct StrictVisitor {
+            depth: usize,
+        }
 
         impl<'de> Visitor<'de> for StrictVisitor {
             type Value = StrictJsonValue;
@@ -503,8 +624,15 @@ impl<'de> Deserialize<'de> for StrictJsonValue {
             where
                 A: SeqAccess<'de>,
             {
+                if self.depth > MAX_JSON_NESTING_DEPTH {
+                    return Err(de::Error::custom(format!(
+                        "JSON nesting depth exceeds the maximum of {MAX_JSON_NESTING_DEPTH}"
+                    )));
+                }
                 let mut values = Vec::new();
-                while let Some(value) = seq.next_element::<StrictJsonValue>()? {
+                while let Some(value) = seq.next_element_seed(StrictJsonSeed {
+                    depth: self.depth + 1,
+                })? {
                     values.push(value.0);
                 }
                 Ok(StrictJsonValue(serde_json::Value::Array(values)))
@@ -514,6 +642,11 @@ impl<'de> Deserialize<'de> for StrictJsonValue {
             where
                 A: MapAccess<'de>,
             {
+                if self.depth > MAX_JSON_NESTING_DEPTH {
+                    return Err(de::Error::custom(format!(
+                        "JSON nesting depth exceeds the maximum of {MAX_JSON_NESTING_DEPTH}"
+                    )));
+                }
                 let mut values = serde_json::Map::new();
                 while let Some(key) = map.next_key::<String>()? {
                     if values.contains_key(&key) {
@@ -521,13 +654,20 @@ impl<'de> Deserialize<'de> for StrictJsonValue {
                             "duplicate JSON object key: {key}"
                         )));
                     }
-                    let value = map.next_value::<StrictJsonValue>()?;
+                    let value = map.next_value_seed(StrictJsonSeed {
+                        depth: self.depth + 1,
+                    })?;
                     values.insert(key, value.0);
                 }
                 Ok(StrictJsonValue(serde_json::Value::Object(values)))
             }
         }
 
-        deserializer.deserialize_any(StrictVisitor)
+        if depth > MAX_JSON_NESTING_DEPTH {
+            return Err(D::Error::custom(format!(
+                "JSON nesting depth exceeds the maximum of {MAX_JSON_NESTING_DEPTH}"
+            )));
+        }
+        deserializer.deserialize_any(StrictVisitor { depth })
     }
 }

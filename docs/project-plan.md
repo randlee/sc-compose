@@ -525,6 +525,8 @@ Status:
 - complete closure of the in-scope real-customer reverse-extraction gaps
   recorded in issue #193; H.1's contract and H.2 through H.6 implementation,
   parity, corpus, and closure gates are complete
+- H.7 owns the promoted JSON/YAML depth-diagnostic hardening and the related
+  release-registry documentation updates
 
 Sprint entries:
 
@@ -535,10 +537,11 @@ Sprint entries:
 - [Sprint H.4 — YAML Extraction](phase-H/sprint-h-4-yaml-extraction.md)
 - [Sprint H.5 — TOML Extraction](phase-H/sprint-h-5-toml-extraction.md)
 - [Sprint H.6 — Cross-Format Corpus and Adversarial Closure](phase-H/sprint-h-6-cross-format-closure.md)
+- [Sprint H.7 — Alias and Input-Limit Hardening](phase-H/sprint-h-7-alias-input-limit-hardening.md)
 
 Disambiguation: the completed `Phase HTML-Report (H1-H4)` section above uses
 undotted H1/H2/H3/H4 labels for the HTML-Report feature family. The `Phase H`
-section here uses dotted H.1–H.6 identifiers for reverse-extraction extension
+section here uses dotted H.1–H.7 identifiers for reverse-extraction extension
 sprints; these are separate phases and sprint sequences.
 
 ### Standalone Repowise Cleanup: Render Request Module Split
