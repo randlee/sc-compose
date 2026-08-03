@@ -27,6 +27,7 @@ by `sc-composer` and `sc-compose`.
 | `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` | `ValidationError` | reserved | legacy H2 nested-array restriction; retained for compatibility and not emitted for recursive JSON/YAML-compatible values | compatibility only |
 | `ERR_VAL_DUPLICATE` | `ValidationError` | error | duplicate frontmatter variable declaration | frontmatter normalization, validation pipeline |
 | `WARN_VAL_CONFLICTING_DEFAULT_SECTIONS` | `ValidationError` | warning | frontmatter declared both `defaults` and `input_defaults`; `input_defaults` overrides overlaps | frontmatter normalization, validation pipeline |
+| `WARN_CONFIG_SINGLE_PASS_ALL_FALLBACK` | `ConfigError` | warning | `--all` was requested for a template without stacked headers; the single pass is used as a documented fallback | CLI input/configuration layer |
 | `ERR_VAL_EMPTY` | `ValidationError` | error | template body is empty where composition requires content | validation pipeline |
 | `ERR_VAL_MISSING_FRONTMATTER` | `ValidationError` | warning | a root or included template file references variables but has no frontmatter block | validation pipeline |
 | `ERR_VAL_MISSING_REQUIRED` | `ValidationError` | error | required variable remains unresolved after merge | validation pipeline |
@@ -51,6 +52,45 @@ by `sc-composer` and `sc-compose`.
 | `ERR_EXTRACT_AMBIGUOUS` | `ExtractError` | error | multiple structural interpretations remain for an extraction result | XML extraction engine and report construction |
 | `WARN_EXTRACT_NOT_OBSERVED` | `ExtractionReport` | warning | a declared scalar occurrence is absent from the rendered XML | XML extraction engine |
 | `WARN_EXTRACT_LOW_CONFIDENCE` | `ExtractionReport` | warning | structural or static evidence is insufficient for a high-confidence report | XML extraction engine |
+
+### Accepted Phase-H Cross-Format Extraction Codes
+
+These codes are accepted by H.1 and are required implementation targets for
+the owning sprint. They are deliberately distinct from the existing XML/general
+codes above so format-specific parser and policy failures remain stable.
+
+| Code | Error family | Severity | Trigger condition | Expected primary emitter |
+| --- | --- | --- | --- | --- |
+| `ERR_EXTRACT_FORMAT_UNSUPPORTED` | `ExtractError` | error | requested format is not enabled by the public format selector | H.3 adapter surfaces |
+| `ERR_EXTRACT_TEMPLATE_UNSUPPORTED` | `ExtractError` | error | unsupported loop, branch, dynamic key, typed placeholder, or other cross-format template syntax | H.2/H.4/H.5 adapters |
+| `ERR_EXTRACT_INPUT_LIMIT` | `ExtractError` | error | input size, depth, or occurrence limit is exceeded | H.2 JSON, H.4 YAML, H.5 TOML, and H.7 JSON/YAML/XML hardening adapters |
+| `ERR_EXTRACT_JSON_MALFORMED` | `ExtractError` | error | rendered input is not one well-formed JSON value | H.2 JSON adapter |
+| `ERR_EXTRACT_JSON_DUPLICATE_KEY` | `ExtractError` | error | a JSON object repeats a key | H.2 JSON adapter |
+| `ERR_EXTRACT_JSON_PATH_MISSING` | `ExtractError` | error | a known-template JSON path is absent | H.2 JSON adapter |
+| `ERR_EXTRACT_JSON_SHAPE_MISMATCH` | `ExtractError` | error | JSON object/array or static value differs from the known template | H.2 JSON adapter |
+| `ERR_EXTRACT_JSON_VALUE_UNSUPPORTED` | `ExtractError` | error | placeholder occurs in a key, non-string value, or structural position | H.2 JSON adapter |
+| `ERR_EXTRACT_JSON_AMBIGUOUS` | `ExtractError` | error | one variable occurs at multiple distinct JSON paths | H.2 JSON adapter/report |
+| `ERR_EXTRACT_YAML_MALFORMED` | `ExtractError` | error | rendered input is not one well-formed YAML document | H.4 YAML adapter |
+| `ERR_EXTRACT_YAML_DUPLICATE_KEY` | `ExtractError` | error | a YAML mapping repeats a key | H.4 YAML adapter |
+| `ERR_EXTRACT_YAML_ALIAS_UNSUPPORTED` | `ExtractError` | error | YAML alias or anchor is present | H.4 YAML adapter |
+| `ERR_EXTRACT_YAML_DOCUMENT_STREAM` | `ExtractError` | error | more than one YAML document is present | H.4 YAML adapter |
+| `ERR_EXTRACT_YAML_PATH_MISSING` | `ExtractError` | error | a known-template YAML path is absent | H.4 YAML adapter |
+| `ERR_EXTRACT_YAML_SHAPE_MISMATCH` | `ExtractError` | error | YAML mapping/sequence or static scalar differs from the known template | H.4 YAML adapter |
+| `ERR_EXTRACT_YAML_VALUE_UNSUPPORTED` | `ExtractError` | error | placeholder occurs in a key, typed scalar, null, tag, alias, or structure | H.4 YAML adapter |
+| `ERR_EXTRACT_YAML_AMBIGUOUS` | `ExtractError` | error | one variable occurs at multiple distinct YAML paths | H.4 YAML adapter/report |
+| `ERR_EXTRACT_TOML_MALFORMED` | `ExtractError` | error | rendered input is not one well-formed TOML document | H.5 TOML adapter |
+| `ERR_EXTRACT_TOML_DUPLICATE_KEY` | `ExtractError` | error | a TOML table or document repeats a key | H.5 TOML adapter |
+| `ERR_EXTRACT_TOML_PATH_MISSING` | `ExtractError` | error | a known-template TOML path is absent | H.5 TOML adapter |
+| `ERR_EXTRACT_TOML_SHAPE_MISMATCH` | `ExtractError` | error | TOML table/array or static value differs from the known template | H.5 TOML adapter |
+| `ERR_EXTRACT_TOML_VALUE_UNSUPPORTED` | `ExtractError` | error | placeholder occurs in a key, non-string value, null-equivalent, or structure | H.5 TOML adapter |
+| `ERR_EXTRACT_TOML_AMBIGUOUS` | `ExtractError` | error | one variable occurs at multiple distinct TOML paths | H.5 TOML adapter/report |
+
+For every Phase-H code, the serialized diagnostic uses the existing
+`diagnostics[]` envelope with stable `code`, `severity`, `message`, and
+optional `location` fields; the owning sprint must add the documented recovery
+hint to the diagnostic detail before emitting the code. The full trigger,
+recovery, path/source, and scope policy is in
+`docs/phase-H/sprint-h-1-reverse-extraction-extension-contract.md`.
 
 ## Planned Diagnostic Shape
 

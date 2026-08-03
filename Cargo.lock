@@ -476,6 +476,7 @@ dependencies = [
  "similar",
  "thiserror",
  "time",
+ "toml",
 ]
 
 [[package]]

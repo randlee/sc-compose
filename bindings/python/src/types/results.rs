@@ -4,9 +4,10 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyType};
 use sc_composer::{
     ComposeResult, Diagnostic, ExpandedTemplate, ExtractionDiagnostic, ExtractionDiagnosticKind,
-    ExtractionSource, Frontmatter, FrontmatterInitResult, InitResult, ParsedTemplate,
-    RenderedArtifact, Renderer, ResolveResult, ValidationReport, VerifyResult,
-    XmlExtractionOccurrence, XmlExtractionReport, XmlPathSegment,
+    ExtractionPathSegment, ExtractionReport, ExtractionSource, Frontmatter, FrontmatterInitResult,
+    InitResult, JsonExtractionSource, JsonPathSegment, ParsedTemplate, RenderedArtifact, Renderer,
+    ResolveResult, TomlExtractionSource, TomlPathSegment, ValidationReport, VerifyResult,
+    XmlExtractionSource, XmlPathSegment, YamlExtractionSource, YamlPathSegment,
 };
 
 use crate::convert::{extract_json_context, json_to_py};
@@ -26,15 +27,24 @@ fn extraction_diagnostic_kind_str(kind: ExtractionDiagnosticKind) -> &'static st
 
 fn extraction_source_kind_str(source: &ExtractionSource) -> &'static str {
     match source {
-        ExtractionSource::Attribute { .. } => "attribute",
-        ExtractionSource::TextNode => "text_node",
+        ExtractionSource::Xml(XmlExtractionSource::Attribute { .. }) => "attribute",
+        ExtractionSource::Xml(XmlExtractionSource::TextNode) => "text_node",
+        ExtractionSource::Json(JsonExtractionSource::StringValue)
+        | ExtractionSource::Toml(TomlExtractionSource::StringValue) => "string_value",
+        ExtractionSource::Yaml(YamlExtractionSource::StringScalar) => "string_scalar",
     }
 }
 
-fn xml_path_segment_kind_str(segment: &XmlPathSegment) -> &'static str {
+fn xml_path_segment_kind_str(segment: &ExtractionPathSegment) -> &'static str {
     match segment {
-        XmlPathSegment::Element { .. } => "element",
-        XmlPathSegment::Attribute { .. } => "attribute",
+        ExtractionPathSegment::Xml(XmlPathSegment::Element { .. }) => "element",
+        ExtractionPathSegment::Xml(XmlPathSegment::Attribute { .. }) => "attribute",
+        ExtractionPathSegment::Json(JsonPathSegment::ObjectKey { .. }) => "object_key",
+        ExtractionPathSegment::Json(JsonPathSegment::ArrayIndex { .. })
+        | ExtractionPathSegment::Toml(TomlPathSegment::ArrayIndex { .. }) => "array_index",
+        ExtractionPathSegment::Yaml(YamlPathSegment::MappingKey { .. }) => "mapping_key",
+        ExtractionPathSegment::Yaml(YamlPathSegment::SequenceIndex { .. }) => "sequence_index",
+        ExtractionPathSegment::Toml(TomlPathSegment::TableKey { .. }) => "table_key",
     }
 }
 
@@ -144,29 +154,41 @@ impl PyExtractionSource {
     #[getter]
     fn name(&self) -> Option<String> {
         match &self.inner {
-            ExtractionSource::Attribute { name } => Some(name.clone()),
-            ExtractionSource::TextNode => None,
+            ExtractionSource::Xml(XmlExtractionSource::Attribute { name }) => Some(name.clone()),
+            ExtractionSource::Xml(XmlExtractionSource::TextNode)
+            | ExtractionSource::Json(JsonExtractionSource::StringValue)
+            | ExtractionSource::Yaml(YamlExtractionSource::StringScalar)
+            | ExtractionSource::Toml(TomlExtractionSource::StringValue) => None,
         }
     }
 
     fn __repr__(&self) -> String {
         match &self.inner {
-            ExtractionSource::Attribute { name } => {
+            ExtractionSource::Xml(XmlExtractionSource::Attribute { name }) => {
                 format!("ExtractionSource(kind='attribute', name={name:?})")
             }
-            ExtractionSource::TextNode => "ExtractionSource(kind='text_node')".to_owned(),
+            ExtractionSource::Xml(XmlExtractionSource::TextNode) => {
+                "ExtractionSource(kind='text_node')".to_owned()
+            }
+            ExtractionSource::Json(JsonExtractionSource::StringValue)
+            | ExtractionSource::Toml(TomlExtractionSource::StringValue) => {
+                "ExtractionSource(kind='string_value')".to_owned()
+            }
+            ExtractionSource::Yaml(YamlExtractionSource::StringScalar) => {
+                "ExtractionSource(kind='string_scalar')".to_owned()
+            }
         }
     }
 }
 
-#[pyclass(name = "XmlPathSegment", skip_from_py_object)]
+#[pyclass(name = "ExtractionPathSegment", skip_from_py_object)]
 #[derive(Clone, Debug)]
-pub(crate) struct PyXmlPathSegment {
-    pub(crate) inner: XmlPathSegment,
+pub(crate) struct PyExtractionPathSegment {
+    pub(crate) inner: ExtractionPathSegment,
 }
 
 #[pymethods]
-impl PyXmlPathSegment {
+impl PyExtractionPathSegment {
     #[getter]
     fn kind(&self) -> &'static str {
         xml_path_segment_kind_str(&self.inner)
@@ -175,8 +197,16 @@ impl PyXmlPathSegment {
     #[getter]
     fn name(&self) -> String {
         match &self.inner {
-            XmlPathSegment::Element { name, .. } | XmlPathSegment::Attribute { name } => {
-                name.clone()
+            ExtractionPathSegment::Xml(
+                XmlPathSegment::Element { name, .. } | XmlPathSegment::Attribute { name },
+            ) => name.clone(),
+            ExtractionPathSegment::Json(JsonPathSegment::ObjectKey { key })
+            | ExtractionPathSegment::Yaml(YamlPathSegment::MappingKey { key })
+            | ExtractionPathSegment::Toml(TomlPathSegment::TableKey { key }) => key.clone(),
+            ExtractionPathSegment::Json(JsonPathSegment::ArrayIndex { index })
+            | ExtractionPathSegment::Yaml(YamlPathSegment::SequenceIndex { index })
+            | ExtractionPathSegment::Toml(TomlPathSegment::ArrayIndex { index }) => {
+                index.to_string()
             }
         }
     }
@@ -184,18 +214,40 @@ impl PyXmlPathSegment {
     #[getter]
     fn ordinal(&self) -> Option<usize> {
         match &self.inner {
-            XmlPathSegment::Element { ordinal, .. } => Some(*ordinal),
-            XmlPathSegment::Attribute { .. } => None,
+            ExtractionPathSegment::Xml(XmlPathSegment::Element { ordinal, .. }) => Some(*ordinal),
+            ExtractionPathSegment::Xml(XmlPathSegment::Attribute { .. })
+            | ExtractionPathSegment::Json(JsonPathSegment::ObjectKey { .. })
+            | ExtractionPathSegment::Yaml(YamlPathSegment::MappingKey { .. })
+            | ExtractionPathSegment::Toml(TomlPathSegment::TableKey { .. }) => None,
+            ExtractionPathSegment::Json(JsonPathSegment::ArrayIndex { index })
+            | ExtractionPathSegment::Yaml(YamlPathSegment::SequenceIndex { index })
+            | ExtractionPathSegment::Toml(TomlPathSegment::ArrayIndex { index }) => Some(*index),
         }
     }
 
     fn __repr__(&self) -> String {
         match &self.inner {
-            XmlPathSegment::Element { name, ordinal } => {
-                format!("XmlPathSegment(kind='element', name={name:?}, ordinal={ordinal})")
+            ExtractionPathSegment::Xml(XmlPathSegment::Element { name, ordinal }) => {
+                format!("ExtractionPathSegment(kind='element', name={name:?}, ordinal={ordinal})")
             }
-            XmlPathSegment::Attribute { name } => {
-                format!("XmlPathSegment(kind='attribute', name={name:?})")
+            ExtractionPathSegment::Xml(XmlPathSegment::Attribute { name }) => {
+                format!("ExtractionPathSegment(kind='attribute', name={name:?})")
+            }
+            ExtractionPathSegment::Json(JsonPathSegment::ObjectKey { key }) => {
+                format!("ExtractionPathSegment(kind='object_key', name={key:?})")
+            }
+            ExtractionPathSegment::Json(JsonPathSegment::ArrayIndex { index })
+            | ExtractionPathSegment::Toml(TomlPathSegment::ArrayIndex { index }) => {
+                format!("ExtractionPathSegment(kind='array_index', ordinal={index})")
+            }
+            ExtractionPathSegment::Yaml(YamlPathSegment::MappingKey { key }) => {
+                format!("ExtractionPathSegment(kind='mapping_key', name={key:?})")
+            }
+            ExtractionPathSegment::Yaml(YamlPathSegment::SequenceIndex { index }) => {
+                format!("ExtractionPathSegment(kind='sequence_index', ordinal={index})")
+            }
+            ExtractionPathSegment::Toml(TomlPathSegment::TableKey { key }) => {
+                format!("ExtractionPathSegment(kind='table_key', name={key:?})")
             }
         }
     }
@@ -204,7 +256,7 @@ impl PyXmlPathSegment {
 #[pyclass(name = "ExtractionOccurrence", skip_from_py_object)]
 #[derive(Clone, Debug)]
 pub(crate) struct PyExtractionOccurrence {
-    pub(crate) inner: XmlExtractionOccurrence,
+    pub(crate) inner: sc_composer::ExtractionOccurrence<ExtractionPathSegment, ExtractionSource>,
 }
 
 #[pymethods]
@@ -215,12 +267,12 @@ impl PyExtractionOccurrence {
     }
 
     #[getter]
-    fn path(&self) -> Vec<PyXmlPathSegment> {
+    fn path(&self) -> Vec<PyExtractionPathSegment> {
         self.inner
             .path
             .iter()
             .cloned()
-            .map(|inner| PyXmlPathSegment { inner })
+            .map(|inner| PyExtractionPathSegment { inner })
             .collect()
     }
 
@@ -250,7 +302,7 @@ impl PyExtractionOccurrence {
 #[pyclass(name = "ExtractionReport", skip_from_py_object)]
 #[derive(Clone, Debug)]
 pub(crate) struct PyExtractionReport {
-    pub(crate) inner: XmlExtractionReport,
+    pub(crate) inner: ExtractionReport<ExtractionPathSegment, ExtractionSource>,
 }
 
 #[pymethods]

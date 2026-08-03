@@ -1,7 +1,7 @@
 ---
 id: H.5
 title: TOML Extraction
-status: planned
+status: complete
 branch: sprint/h-5-toml-extraction
 worktree: ../sc-compose-worktrees/sprint/h-5-toml-extraction
 target: develop
@@ -18,7 +18,7 @@ target: develop
 
 ## Hard Dependencies
 
-- H.1 accepts TOML format and parser semantics.
+- H.1 is complete and its accepted TOML format/parser semantics are available.
 - H.2's shared raw-text core (`crates/sc-composer/src/extract/raw_text.rs`) is
   merged to `develop`, XML delegates to it, and H.2's XML-regression evidence
   from its XML-parity checkpoint is confirmed passing before H.5

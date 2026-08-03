@@ -1,0 +1,11 @@
+---
+required_variables:
+  - message_id
+  - sender
+---
+message_id: "{{ message_id }}"
+sender: "{{ sender }}"
+actions:
+  - action: "{{ action_name }}"
+    description: "{{ description }}"
+    enabled: true

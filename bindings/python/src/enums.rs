@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 use sc_composer::{
-    DiagnosticSeverity, ProfileKind, RuntimeKind, UnknownVariablePolicy, VariableSource,
+    DiagnosticSeverity, ExtractFormat, ProfileKind, RuntimeKind, UnknownVariablePolicy,
+    VariableSource,
 };
 
 use crate::errors::config_error;
@@ -147,6 +148,50 @@ impl PyDiagnosticCode {
     #[classattr]
     const ERR_EXTRACT_AMBIGUOUS: &'static str = "ERR_EXTRACT_AMBIGUOUS";
     #[classattr]
+    const ERR_EXTRACT_FORMAT_UNSUPPORTED: &'static str = "ERR_EXTRACT_FORMAT_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_JSON_MALFORMED: &'static str = "ERR_EXTRACT_JSON_MALFORMED";
+    #[classattr]
+    const ERR_EXTRACT_JSON_DUPLICATE_KEY: &'static str = "ERR_EXTRACT_JSON_DUPLICATE_KEY";
+    #[classattr]
+    const ERR_EXTRACT_JSON_PATH_MISSING: &'static str = "ERR_EXTRACT_JSON_PATH_MISSING";
+    #[classattr]
+    const ERR_EXTRACT_JSON_SHAPE_MISMATCH: &'static str = "ERR_EXTRACT_JSON_SHAPE_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_JSON_VALUE_UNSUPPORTED: &'static str = "ERR_EXTRACT_JSON_VALUE_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_JSON_AMBIGUOUS: &'static str = "ERR_EXTRACT_JSON_AMBIGUOUS";
+    #[classattr]
+    const ERR_EXTRACT_YAML_MALFORMED: &'static str = "ERR_EXTRACT_YAML_MALFORMED";
+    #[classattr]
+    const ERR_EXTRACT_YAML_DUPLICATE_KEY: &'static str = "ERR_EXTRACT_YAML_DUPLICATE_KEY";
+    #[classattr]
+    const ERR_EXTRACT_YAML_ALIAS_UNSUPPORTED: &'static str = "ERR_EXTRACT_YAML_ALIAS_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_YAML_DOCUMENT_STREAM: &'static str = "ERR_EXTRACT_YAML_DOCUMENT_STREAM";
+    #[classattr]
+    const ERR_EXTRACT_YAML_PATH_MISSING: &'static str = "ERR_EXTRACT_YAML_PATH_MISSING";
+    #[classattr]
+    const ERR_EXTRACT_YAML_SHAPE_MISMATCH: &'static str = "ERR_EXTRACT_YAML_SHAPE_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_YAML_VALUE_UNSUPPORTED: &'static str = "ERR_EXTRACT_YAML_VALUE_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_YAML_AMBIGUOUS: &'static str = "ERR_EXTRACT_YAML_AMBIGUOUS";
+    #[classattr]
+    const ERR_EXTRACT_TOML_MALFORMED: &'static str = "ERR_EXTRACT_TOML_MALFORMED";
+    #[classattr]
+    const ERR_EXTRACT_INPUT_LIMIT: &'static str = "ERR_EXTRACT_INPUT_LIMIT";
+    #[classattr]
+    const ERR_EXTRACT_TOML_DUPLICATE_KEY: &'static str = "ERR_EXTRACT_TOML_DUPLICATE_KEY";
+    #[classattr]
+    const ERR_EXTRACT_TOML_PATH_MISSING: &'static str = "ERR_EXTRACT_TOML_PATH_MISSING";
+    #[classattr]
+    const ERR_EXTRACT_TOML_SHAPE_MISMATCH: &'static str = "ERR_EXTRACT_TOML_SHAPE_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_TOML_VALUE_UNSUPPORTED: &'static str = "ERR_EXTRACT_TOML_VALUE_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_TOML_AMBIGUOUS: &'static str = "ERR_EXTRACT_TOML_AMBIGUOUS";
+    #[classattr]
     const WARN_EXTRACT_NOT_OBSERVED: &'static str = "WARN_EXTRACT_NOT_OBSERVED";
     #[classattr]
     const WARN_EXTRACT_LOW_CONFIDENCE: &'static str = "WARN_EXTRACT_LOW_CONFIDENCE";
@@ -195,6 +240,22 @@ pub(crate) fn parse_unknown_variable_policy(value: &str) -> PyResult<UnknownVari
         other => Err(config_error(
             format!("unknown unknown-variable policy: {other}"),
             Some("ERR_CONFIG_MODE"),
+        )),
+    }
+}
+
+pub(crate) fn parse_extract_format(value: &str) -> PyResult<ExtractFormat> {
+    match value {
+        "xml" => Ok(ExtractFormat::Xml),
+        "json" => Ok(ExtractFormat::Json),
+        "yaml" => Ok(ExtractFormat::Yaml),
+        "toml" => Ok(ExtractFormat::Toml),
+        other => Err(crate::errors::config_error_with_recovery_hints(
+            format!(
+                "unsupported extraction format `{other}`; use `xml`, `json`, `yaml`, or `toml`"
+            ),
+            Some("ERR_EXTRACT_FORMAT_UNSUPPORTED"),
+            vec!["set format to `xml`, `json`, `yaml`, or `toml`".to_owned()],
         )),
     }
 }

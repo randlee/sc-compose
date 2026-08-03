@@ -1020,9 +1020,9 @@ contract. The contract is defined by
   (Phase G.7).
 
 The CLI adapter exposes the same known-template contract through the
-read-only command `sc-compose extract TEMPLATE.xml.j2 RENDERED.xml`. It
-supports repeatable `--include NAME` and `--exclude NAME` filters, uses XML as
-the documented initial format, and accepts `--json` for the standard
+read-only command `sc-compose extract TEMPLATE RENDERED [--format xml|json]`.
+It supports repeatable `--include NAME` and `--exclude NAME` filters, uses XML
+as the backward-compatible default, and accepts `--json` for the standard
 diagnostics envelope. The command must not identify unknown templates, invoke
 the renderer, scan directories, or write output files.
 
@@ -1041,12 +1041,17 @@ findings remain named future-phase work, not Phase-H sprints.
 [ADR-0012](adrs/0012-phase-h-reverse-extraction-extension-gates.md) and [the
 Phase-H plan](phase-H/phase-H-plan.md) require each in-scope format to receive
 explicit semantics, diagnostics, and cross-surface tests before
-implementation. Until H.1 is accepted, the Phase-G XML scalar-only contract
-and its fail-closed malformed-input behavior remain authoritative.
+implementation. H.1 is now accepted: its JSON/YAML/TOML contract, diagnostic
+inventory, and shared `match_raw_text` core are the binding Phase-H design.
+The Phase-G XML scalar-only contract and its fail-closed malformed-input
+behavior remain authoritative for existing XML behavior, while H.2 through
+H.8 remain gated on their own implementation, hardening, and closure criteria
+before runtime behavior changes are claimed.
 
-H.1 must also plan the migration of the format-neutral value-matching logic
-from the current XML extraction path into one shared internal raw-text
-matching core. XML structural traversal and format-specific provenance remain
+The accepted H.1 design also plans the migration of the format-neutral
+value-matching logic from the current XML extraction path into one shared
+internal raw-text matching core. XML structural traversal and format-specific
+provenance remain
 owned by XML; delimiter scanning, template-segment parsing, static
 prefix/suffix matching, capture boundaries, and adjacent-variable ambiguity
 handling are shared operations. JSON, YAML, and TOML must delegate to that
@@ -1067,6 +1072,18 @@ A future phase may expose two customer-facing modes built on the shared core:
 
 Neither mode is designed, exposed, or claimed as supported by Phase H. No
 numbered Phase-H sprint is reserved for these modes.
+
+#### Phase-H Closure Evidence
+
+The in-scope issue #193 extensions are closed by the committed H.2-H.8
+implementation, hardening, cross-surface tests, and bounded campaign evidence in
+[`docs/phase-H/evidence/h-6-cross-format-campaign.json`](phase-H/evidence/h-6-cross-format-campaign.json).
+The H.6 campaign covers JSON, YAML, and TOML with 36/36 expected outcomes,
+including malformed and unsupported inputs as intentional boundaries. This is
+bounded local evidence from four workers because Agent Runner was unavailable;
+it is not evidence of a distributed adversarial-agent campaign. XML
+mixed-content extraction, dirty-prefix stripping, and template identification
+remain future-phase work; they are not silently treated as H.6 failures.
 
 ### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 

@@ -1,0 +1,14 @@
+{
+  "message_id": "{{ message_id }}",
+  "from": "{{ sender }}",
+  "actions": [
+    {
+      "action": "{{ action_name }}",
+      "description": "{{ description }}",
+      "when": {
+        "idle": "immediate",
+        "busy": "after-current-task"
+      }
+    }
+  ]
+}

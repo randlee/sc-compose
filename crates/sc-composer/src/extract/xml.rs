@@ -2,54 +2,61 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error as StdError;
+use std::mem;
 
 use quick_xml::Reader;
 use quick_xml::escape::unescape;
 use quick_xml::events::Event;
+use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::DiagnosticCode;
+use crate::error::RecoveryHintKind;
 use crate::frontmatter::parse_template_document;
 use crate::types::VariableName;
 
 use super::{
     ExtractError, ExtractRequest, ExtractionDiagnostic, ExtractionDiagnosticKind,
-    ExtractionOccurrence, ExtractionReport,
+    ExtractionOccurrence, ExtractionReport, raw_text,
 };
 
-/// XML-specific source evidence for a recovered scalar.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum ExtractionSource {
-    /// The scalar was recovered from an XML attribute.
-    Attribute {
-        /// Attribute name as it appears in the XML document.
-        name: String,
-    },
-    /// The scalar was recovered from an XML text node.
-    TextNode,
-}
+const MAX_XML_INPUT_BYTES: usize = 1_048_576;
+const MAX_XML_NESTING_DEPTH: usize = 64;
+const MAX_XML_OCCURRENCES: usize = 10_000;
 
-/// XML element/attribute path segment used as occurrence provenance.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// XML element/attribute path evidence.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum XmlPathSegment {
-    /// An element and its zero-based ordinal among same-named siblings.
+    /// An XML element and its zero-based ordinal among same-named siblings.
     Element {
         /// Element name.
         name: String,
-        /// Zero-based ordinal among same-named sibling elements.
+        /// Zero-based sibling ordinal.
         ordinal: usize,
     },
-    /// An attribute on the preceding element path segment.
+    /// An XML attribute on the preceding element path.
     Attribute {
         /// Attribute name.
         name: String,
     },
 }
 
-/// XML occurrence alias over the generic G.1 extraction contract.
-pub type XmlExtractionOccurrence = ExtractionOccurrence<XmlPathSegment, ExtractionSource>;
+/// XML source evidence for a recovered scalar.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum XmlExtractionSource {
+    /// The scalar was recovered from an XML attribute.
+    Attribute {
+        /// Attribute name.
+        name: String,
+    },
+    /// The scalar was recovered from an XML text node.
+    TextNode,
+}
 
-/// XML report alias over the generic G.1 extraction contract.
-pub type XmlExtractionReport = ExtractionReport<XmlPathSegment, ExtractionSource>;
+/// XML occurrence report entry.
+pub type XmlExtractionOccurrence = ExtractionOccurrence<XmlPathSegment, XmlExtractionSource>;
+
+/// XML report over the generic extraction contract.
+pub type XmlExtractionReport = ExtractionReport<XmlPathSegment, XmlExtractionSource>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct XmlElement {
@@ -69,17 +76,40 @@ struct XmlDocument {
     root: XmlElement,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-enum TemplateSegment {
-    Static(String),
-    Variable(VariableName),
+fn drop_xml_children(children: &mut Vec<XmlNode>) {
+    let mut pending = mem::take(children);
+    while let Some(mut node) = pending.pop() {
+        if let XmlNode::Element(element) = &mut node {
+            pending.append(&mut element.children);
+        }
+    }
+}
+
+impl Drop for XmlElement {
+    fn drop(&mut self) {
+        drop_xml_children(&mut self.children);
+    }
+}
+
+impl Drop for XmlNode {
+    fn drop(&mut self) {
+        if let XmlNode::Element(element) = self {
+            drop_xml_children(&mut element.children);
+        }
+    }
+}
+
+impl Drop for XmlDocument {
+    fn drop(&mut self) {
+        drop_xml_children(&mut self.root.children);
+    }
 }
 
 #[derive(Clone, Debug)]
 struct Capture {
     variable: VariableName,
     path: Vec<XmlPathSegment>,
-    source: ExtractionSource,
+    source: XmlExtractionSource,
     rendered_text: String,
 }
 
@@ -95,6 +125,8 @@ struct Evidence {
 pub(crate) fn extract_xml(
     request: &ExtractRequest<'_>,
 ) -> Result<XmlExtractionReport, ExtractError> {
+    validate_input_size(request.template, "template")?;
+    validate_input_size(request.rendered, "rendered XML")?;
     let parsed_template = parse_template_document(request.template).map_err(|error| {
         ExtractError::unsupported_with_source(
             format!("template frontmatter is not supported: {error}"),
@@ -232,12 +264,12 @@ fn collect_expected_evidence(
 ) -> Result<(), ExtractError> {
     evidence.expected_structural += 1;
     for value in element.attributes.values() {
-        collect_expected_value_evidence(value, evidence)?;
+        collect_expected_value_evidence(value, &[], evidence)?;
     }
     for child in &element.children {
         match child {
             XmlNode::Element(child) => collect_expected_evidence(child, evidence)?,
-            XmlNode::Text(value) => collect_expected_value_evidence(value, evidence)?,
+            XmlNode::Text(value) => collect_expected_value_evidence(value, &[], evidence)?,
         }
     }
     Ok(())
@@ -245,14 +277,15 @@ fn collect_expected_evidence(
 
 fn collect_expected_value_evidence(
     value: &str,
+    path: &[XmlPathSegment],
     evidence: &mut Evidence,
 ) -> Result<(), ExtractError> {
-    for segment in parse_value_segments(value)? {
+    for segment in parse_value_segments(value, path)? {
         match segment {
-            TemplateSegment::Static(static_text) => {
+            raw_text::RawTextSegment::Static(static_text) => {
                 evidence.expected_static += usize::from(!static_text.is_empty());
             }
-            TemplateSegment::Variable(_) => evidence.expected_structural += 1,
+            raw_text::RawTextSegment::Variable(_) => evidence.expected_structural += 1,
         }
     }
     Ok(())
@@ -271,8 +304,8 @@ fn collect_template_occurrences(
     for (name, value) in &template.attributes {
         let mut attribute_path = path.to_owned();
         attribute_path.push(XmlPathSegment::Attribute { name: name.clone() });
-        for segment in parse_value_segments(value)? {
-            if let TemplateSegment::Variable(variable) = segment {
+        for segment in parse_value_segments(value, &attribute_path)? {
+            if let raw_text::RawTextSegment::Variable(variable) = segment {
                 occurrences.push(TemplateOccurrence {
                     variable,
                     path: attribute_path.clone(),
@@ -284,8 +317,8 @@ fn collect_template_occurrences(
     for child in &template.children {
         match child {
             XmlNode::Text(value) => {
-                for segment in parse_value_segments(value)? {
-                    if let TemplateSegment::Variable(variable) = segment {
+                for segment in parse_value_segments(value, path)? {
+                    if let raw_text::RawTextSegment::Variable(variable) = segment {
                         occurrences.push(TemplateOccurrence {
                             variable,
                             path: path.to_owned(),
@@ -368,21 +401,23 @@ fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
         })?;
         match event {
             Event::Start(element) => {
+                validate_parse_depth(stack.len())?;
                 let name = decode_name(element.name().as_ref())?;
                 let attributes = decode_attributes(&reader, &element)?;
                 stack.push((name, attributes, Vec::new()));
             }
             Event::Empty(element) => {
+                validate_parse_depth(stack.len())?;
                 let name = decode_name(element.name().as_ref())?;
                 let attributes = decode_attributes(&reader, &element)?;
-                attach_node(
+                attach_element(
                     &mut stack,
                     &mut root,
-                    XmlNode::Element(XmlElement {
+                    XmlElement {
                         name,
                         attributes,
                         children: Vec::new(),
-                    }),
+                    },
                 )?;
             }
             Event::End(end) => {
@@ -395,14 +430,14 @@ fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
                         "XML closing tag does not match opening tag: {name} != {end_name}"
                     )));
                 }
-                attach_node(
+                attach_element(
                     &mut stack,
                     &mut root,
-                    XmlNode::Element(XmlElement {
+                    XmlElement {
                         name,
                         attributes,
                         children,
-                    }),
+                    },
                 )?;
             }
             Event::Text(text) => {
@@ -489,23 +524,19 @@ fn decode_attributes(
     Ok(attributes)
 }
 
-fn attach_node(
+fn attach_element(
     stack: &mut [(String, BTreeMap<String, String>, Vec<XmlNode>)],
     root: &mut Option<XmlElement>,
-    node: XmlNode,
+    element: XmlElement,
 ) -> Result<(), ExtractError> {
     if let Some((_, _, children)) = stack.last_mut() {
-        children.push(node);
+        children.push(XmlNode::Element(element));
     } else if root.is_some() {
         return Err(malformed(
             "XML input contains more than one root element".to_owned(),
         ));
-    } else if let XmlNode::Element(element) = node {
-        *root = Some(element);
     } else {
-        return Err(malformed(
-            "XML text appeared outside the root element".to_owned(),
-        ));
+        *root = Some(element);
     }
     Ok(())
 }
@@ -602,7 +633,7 @@ fn match_attributes(
             template_value,
             rendered_value,
             &attribute_path,
-            &ExtractionSource::Attribute { name: name.clone() },
+            &XmlExtractionSource::Attribute { name: name.clone() },
             captures,
             evidence,
         )?;
@@ -624,12 +655,17 @@ fn match_children(
         && matches!(&template_children[0], XmlNode::Text(value) if is_single_variable(value))
     {
         if let XmlNode::Text(value) = &template_children[0] {
-            let segments = parse_value_segments(value.trim())?;
-            if let [TemplateSegment::Variable(variable)] = segments.as_slice() {
+            let segments = parse_value_segments(value.trim(), path)?;
+            if let [raw_text::RawTextSegment::Variable(variable)] = segments.as_slice() {
+                if captures.len() >= MAX_XML_OCCURRENCES {
+                    return Err(input_limit_error(format!(
+                        "XML extraction exceeded the maximum of {MAX_XML_OCCURRENCES} occurrences"
+                    )));
+                }
                 captures.push(Capture {
                     variable: variable.clone(),
                     path: path.to_owned(),
-                    source: ExtractionSource::TextNode,
+                    source: XmlExtractionSource::TextNode,
                     rendered_text: String::new(),
                 });
             }
@@ -652,7 +688,7 @@ fn match_children(
                     template_text,
                     rendered_text,
                     path,
-                    &ExtractionSource::TextNode,
+                    &XmlExtractionSource::TextNode,
                     captures,
                     evidence,
                 )?;
@@ -697,149 +733,150 @@ fn match_value(
     template: &str,
     rendered: &str,
     path: &[XmlPathSegment],
-    source: &ExtractionSource,
+    source: &XmlExtractionSource,
     captures: &mut Vec<Capture>,
     evidence: &mut Evidence,
 ) -> Result<(), ExtractError> {
-    let segments = parse_value_segments(template)?;
+    let segments = parse_value_segments(template, path)?;
     let variables = segments
         .iter()
         .filter_map(|segment| match segment {
-            TemplateSegment::Variable(variable) => Some(variable),
-            TemplateSegment::Static(_) => None,
+            raw_text::RawTextSegment::Variable(variable) => Some(variable),
+            raw_text::RawTextSegment::Static(_) => None,
         })
         .cloned()
         .collect::<Vec<_>>();
-    if variables.is_empty() {
-        if template != rendered {
-            return Err(ExtractError::unsupported(
-                "rendered XML static content does not match the known template",
-            ));
-        }
-        evidence.static_matches += usize::from(!template.is_empty());
-        return Ok(());
-    }
-
-    let structurally_anchored = matches!(source, ExtractionSource::Attribute { .. })
+    let structurally_anchored = matches!(source, XmlExtractionSource::Attribute { .. })
         || segments.iter().any(|segment| {
-            matches!(segment, TemplateSegment::Static(static_text) if !static_text.is_empty())
+            matches!(segment, raw_text::RawTextSegment::Static(static_text) if !static_text.is_empty())
         });
-    if structurally_anchored {
+    if structurally_anchored && !variables.is_empty() {
         evidence.structural_matches += variables.len();
     }
-
-    let mut cursor = 0;
-    let mut captures_for_value = Vec::new();
-    for (index, segment) in segments.iter().enumerate() {
-        match segment {
-            TemplateSegment::Static(static_text) => {
-                if !rendered[cursor..].starts_with(static_text) {
-                    return Err(ExtractError::unsupported(
-                        "rendered XML static content does not match the known template",
-                    ));
-                }
-                cursor += static_text.len();
-                evidence.static_matches += usize::from(!static_text.is_empty());
-            }
-            TemplateSegment::Variable(variable) => {
-                let next_static = segments.iter().skip(index + 1).find_map(|next| match next {
-                    TemplateSegment::Static(value) if !value.is_empty() => Some(value),
-                    _ => None,
-                });
-                let end = if let Some(next_static) = next_static {
-                    let remainder = &rendered[cursor..];
-                    let Some(offset) = remainder.find(next_static) else {
-                        return Err(ExtractError::unsupported(
-                            "rendered XML is missing static suffix around a variable",
-                        ));
-                    };
-                    if remainder[offset + next_static.len()..].contains(next_static) {
-                        return Err(ExtractError::ambiguous(
-                            "static XML suffix occurs multiple times around a variable",
-                            None,
-                        ));
-                    }
-                    cursor + offset
-                } else {
-                    rendered.len()
-                };
-                captures_for_value.push((variable.clone(), rendered[cursor..end].to_owned()));
-                cursor = end;
-            }
-        }
-    }
-    if cursor != rendered.len() {
-        return Err(ExtractError::unsupported(
-            "rendered XML has trailing content outside the known template",
+    let matched = raw_text::match_raw_text(&raw_text::RawTextMatchInput {
+        segments: &segments,
+        rendered_candidate: rendered,
+    })
+    .map_err(|error| map_raw_text_error(error, path))?;
+    evidence.static_matches += matched.static_matches;
+    if let Some(ambiguity) = matched.ambiguity {
+        return Err(ExtractError::ambiguous(
+            with_span(&ambiguity.message, ambiguity.span),
+            None,
         ));
     }
-    for (variable, rendered_text) in captures_for_value {
+    for capture in matched.captures {
+        if captures.len() >= MAX_XML_OCCURRENCES {
+            return Err(input_limit_error(format!(
+                "XML extraction exceeded the maximum of {MAX_XML_OCCURRENCES} occurrences"
+            )));
+        }
+        debug_assert_eq!(&rendered[capture.span.clone()], capture.rendered_text);
         captures.push(Capture {
-            variable,
+            variable: capture.variable,
             path: path.to_owned(),
             source: source.clone(),
-            rendered_text,
+            rendered_text: capture.rendered_text,
         });
     }
     Ok(())
 }
 
-fn parse_value_segments(value: &str) -> Result<Vec<TemplateSegment>, ExtractError> {
-    let mut segments = Vec::new();
-    let mut cursor = 0;
-    while let Some(relative_open) = value[cursor..].find("{{") {
-        let open = cursor + relative_open;
-        if value[open..].starts_with("{{{") {
-            return Err(ExtractError::unsupported(
-                "XML extraction supports only double-brace scalar expressions",
-            ));
-        }
-        if open > cursor {
-            segments.push(TemplateSegment::Static(value[cursor..open].to_owned()));
-        }
-        let expression_start = open + 2;
-        let Some(relative_close) = value[expression_start..].find("}}") else {
-            return Err(ExtractError::unsupported(
-                "XML template contains an unterminated expression",
-            ));
-        };
-        let close = expression_start + relative_close;
-        if value[close..].starts_with("}}}") {
-            return Err(ExtractError::unsupported(
-                "XML extraction supports only double-brace scalar expressions",
-            ));
-        }
-        let expression = value[expression_start..close].trim();
-        let variable = VariableName::new(expression).map_err(|error| {
-            ExtractError::unsupported(format!(
-                "unsupported XML template expression: {{{{ {expression} }}}}: {error}"
-            ))
-        })?;
-        if variable.as_str().contains('.') {
-            return Err(ExtractError::unsupported(format!(
-                "dotted XML extraction expression is unsupported: {{{{ {expression} }}}}"
-            )));
-        }
-        segments.push(TemplateSegment::Variable(variable));
-        cursor = close + 2;
+fn parse_value_segments<'a>(
+    value: &'a str,
+    path: &[XmlPathSegment],
+) -> Result<Vec<raw_text::RawTextSegment<'a>>, ExtractError> {
+    raw_text::parse_raw_text_segments(value).map_err(|error| map_raw_text_error(error, path))
+}
+
+fn map_raw_text_error(error: raw_text::RawTextMatchError, path: &[XmlPathSegment]) -> ExtractError {
+    match error.scope() {
+        raw_text::RawTextErrorScope::Request => match error {
+            raw_text::RawTextMatchError::InvalidTemplate { span, message }
+            | raw_text::RawTextMatchError::StaticMismatch { span, message }
+            | raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
+                ExtractError::unsupported(with_span(&message, span))
+            }
+        },
+        raw_text::RawTextErrorScope::Occurrence => match error {
+            raw_text::RawTextMatchError::InvalidTemplate { span, message } => {
+                ExtractError::unsupported(with_span(&message, span))
+            }
+            raw_text::RawTextMatchError::StaticMismatch { span, message } => {
+                ExtractError::unsupported(format!(
+                    "{} at {}",
+                    with_span(&message, span),
+                    format_path(path)
+                ))
+            }
+            raw_text::RawTextMatchError::AmbiguousDelimiter { span, message } => {
+                if message.contains("adjacent variable") {
+                    ExtractError::ambiguous_delimiter(
+                        "adjacent XML variable expressions have no structural delimiter",
+                    )
+                } else {
+                    ExtractError::ambiguous(with_span(&message, span), None)
+                }
+            }
+        },
     }
-    if cursor < value.len() {
-        segments.push(TemplateSegment::Static(value[cursor..].to_owned()));
+}
+
+fn with_span(message: &str, span: Option<std::ops::Range<usize>>) -> String {
+    span.map_or_else(
+        || message.to_owned(),
+        |span| format!("{message} (candidate bytes {}..{})", span.start, span.end),
+    )
+}
+
+fn format_path(path: &[XmlPathSegment]) -> String {
+    let mut result = String::from("$");
+    for segment in path {
+        match segment {
+            XmlPathSegment::Element { name, ordinal } => {
+                result.push('.');
+                result.push_str(name);
+                result.push('[');
+                result.push_str(&ordinal.to_string());
+                result.push(']');
+            }
+            XmlPathSegment::Attribute { name } => {
+                result.push_str(".@");
+                result.push_str(name);
+            }
+        }
     }
-    if segments.is_empty() {
-        segments.push(TemplateSegment::Static(value.to_owned()));
+    result
+}
+
+fn validate_input_size(source: &str, label: &str) -> Result<(), ExtractError> {
+    if source.len() > MAX_XML_INPUT_BYTES {
+        return Err(input_limit_error(format!(
+            "XML {label} input is {} bytes; maximum is {MAX_XML_INPUT_BYTES} bytes",
+            source.len()
+        )));
     }
-    if segments.windows(2).any(|pair| {
-        matches!(
-            (&pair[0], &pair[1]),
-            (TemplateSegment::Variable(_), TemplateSegment::Variable(_))
-        )
-    }) {
-        return Err(ExtractError::ambiguous_delimiter(
-            "adjacent XML variable expressions have no structural delimiter",
-        ));
+    Ok(())
+}
+
+fn validate_parse_depth(depth: usize) -> Result<(), ExtractError> {
+    if depth > MAX_XML_NESTING_DEPTH {
+        return Err(input_limit_error(format!(
+            "XML nesting depth exceeds the maximum of {MAX_XML_NESTING_DEPTH}"
+        )));
     }
-    Ok(segments)
+    Ok(())
+}
+
+fn input_limit_error(message: impl Into<String>) -> ExtractError {
+    ExtractError::format_error(
+        DiagnosticCode::ErrExtractInputLimit,
+        ExtractionDiagnosticKind::Malformed,
+        message,
+        RecoveryHintKind::InspectInput {
+            description: "reduce XML input size, nesting depth, or occurrence count".to_owned(),
+        },
+    )
 }
 
 fn malformed(message: String) -> ExtractError {

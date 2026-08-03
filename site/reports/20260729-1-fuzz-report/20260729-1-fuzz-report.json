@@ -13,7 +13,7 @@
   },
   "metadata": {
     "campaign_id": "qa-fuzz-20260729-0001",
-    "worktree_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template",
+    "worktree_path": "./feature/fuzz-run-report-template",
     "commit": "111ac8a",
     "pr": 165,
     "seed": 157,

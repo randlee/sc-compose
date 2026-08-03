@@ -1,7 +1,7 @@
 ---
 id: H.6
 title: Cross-Format Corpus and Adversarial Closure
-status: planned
+status: complete
 branch: sprint/h-6-cross-format-closure
 worktree: ../sc-compose-worktrees/sprint/h-6-cross-format-closure
 target: develop
@@ -19,7 +19,8 @@ target: develop
 ## Hard Dependencies
 
 - H.2 through H.5 are merged and their individual validation gates pass.
-- H.1's accepted contract and all format-specific amendments are available.
+- H.1 is complete and its accepted contract plus all format-specific amendments
+  are available.
 - `.claude/skills/adversarial-fuzzing/` remains the authoritative campaign and
   report protocol.
 
@@ -82,7 +83,7 @@ each candidate so a reviewer can judge whether it is a realistic use case.
 
 ## This Sprint Does Not Close
 
-- New formats or policies not accepted by H.1.
+- New formats or policies outside the accepted H.1 contract.
 - XML mixed-content extraction, XML dirty-prefix tolerance, and
   customer-facing best-effort/degraded or raw-text modes.
 - Unknown-template identification, Jinja execution, loop reconstruction, or
@@ -113,3 +114,26 @@ each candidate so a reviewer can judge whether it is a realistic use case.
 - `python3 -m pytest bindings/python/tests/test_smoke.py`
 - `.claude/skills/adversarial-fuzzing/` quick validation when available
 - `git diff --check`
+
+## Completion Evidence
+
+- Canonical corpus: `crates/sc-composer/tests/fixtures/reverse-extract/cross-format-corpus.json`;
+  one manifest covers JSON, YAML, and TOML success, ambiguity, malformed,
+  filtering, and unsupported cases.
+- Campaign evidence: `docs/phase-H/evidence/h-6-cross-format-campaign.json`;
+  four bounded workers, seed `193`, 36/36 passing cases, zero confirmed bugs,
+  six intentional boundaries, and zero inconclusive candidates. These are
+  bounded local probes because the Agent Runner was unavailable, not a
+  distributed adversarial-agent campaign.
+- Report package: `site/reports/20260803-1-fuzz-report.html`, its JSON sidecar,
+  and four XHTML worker panels. The panels were rendered from
+  `fuzz-run-agent.xhtml.j2`; the shell was rendered from
+  `fuzz-run-report.html.j2` using `target/debug/sc-compose render`.
+- `xmllint --noout` passed on all four XHTML panels. `npm exec --yes
+  html-validate@11.6.1 -- site/reports/20260803-1-fuzz-report.html` passed.
+- Optional H.5 backlog coverage was added: TOML occurrence-limit regression and
+  Python TOML input-limit end-to-end coverage.
+- Issue #193 closure scope: JSON, YAML, and TOML are supported and evidenced;
+  XML mixed-content extraction, dirty-prefix stripping, and template
+  identification remain explicitly deferred under the existing Phase-H
+  requirements and ADR-0012.

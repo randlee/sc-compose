@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 ## Context
 
@@ -19,10 +19,10 @@ implementing an attractive prototype behavior without a contract. Each Phase-H
 extension therefore needs an explicit decision about value representation,
 provenance, ambiguity, malformed-input handling, and cross-surface exposure.
 
-## Proposed decision
+## Decision
 
-H.1 shall amend FR-16, the extraction architecture, and this ADR before any
-runtime implementation sprint starts. The amendment shall resolve these gates:
+H.1 has amended FR-16, the extraction architecture, and this ADR before the
+runtime implementation sprints. The accepted design resolves these gates:
 
 1. JSON: whether placeholders may occur only in string values or also in object
    keys and complete non-string values; the canonical object/array path model;
@@ -55,8 +55,8 @@ The accepted amendment shall retain these invariants:
 
 ## Consequences
 
-- H.2 through H.5 are blocked from implementation until H.1 changes this ADR
-  from Proposed to Accepted and updates the linked normative documents.
+- H.2 through H.5 may implement against this accepted ADR and the linked
+  normative documents; H.6 remains the cross-format closure gate.
 - Format-specific adapters may share the generic `ExtractionReport`, but they
   must not introduce incompatible report models or format-specific Python
   algorithms.
@@ -77,7 +77,8 @@ Phase H does not design or expose:
 - a customer-facing cross-format raw-text mode for arbitrary rendered text,
   including Markdown, XML, YAML, JSON, or TOML.
 
-Both future modes must reuse the shared raw-text matching core defined by H.1.
+Both future modes must reuse the shared raw-text matching core defined by the
+accepted H.1 contract.
 
 ## References
 

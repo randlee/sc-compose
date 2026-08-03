@@ -338,15 +338,16 @@ Exit gate:
   - Phase H.1 owns the contract amendments for issue #193's JSON, YAML, and
     TOML extensions and plans the migration of format-neutral value matching
     from the XML path into a shared raw-text core
-  - Phase H.2 through H.6 own implementation, cross-surface parity, corpus,
-    and adversarial closure for those accepted amendments
+  - Phase H.2 through H.8 own implementation, cross-surface parity, corpus,
+    adversarial hardening, and phase-ending remediation for those accepted
+    amendments
   - XML mixed-content, XML dirty-prefix tolerance, and customer-facing
     best-effort/raw-text modes are named future-phase work, not numbered
     Phase-H sprints
 
 ## Production Readiness Gate
 
-Release is complete only when all four sprints have passed and all of the
+Release is complete only when all numbered Phase-H sprints have passed and all of the
 following are true:
 
 - no release blocker remains open
@@ -522,9 +523,13 @@ recovery as separately planned follow-on work.
 
 Status:
 
-- planned follow-on work for the real-customer reverse-extraction gaps recorded
-  in issue #193; H.1 is the contract gate and no runtime extension is claimed
-  until its FR/architecture/ADR amendments are accepted
+- complete closure of the in-scope real-customer reverse-extraction gaps
+  recorded in issue #193; H.1's contract and H.2 through H.8 implementation,
+  parity, corpus, hardening, and closure gates are complete
+- H.7 owns the promoted JSON/YAML depth-diagnostic hardening and the related
+  release-registry documentation updates
+- H.8 owns the phase-ending remediation and production-readiness gate for the
+  remaining YAML, TOML, diagnostic, documentation, and evidence findings
 
 Sprint entries:
 
@@ -535,10 +540,12 @@ Sprint entries:
 - [Sprint H.4 — YAML Extraction](phase-H/sprint-h-4-yaml-extraction.md)
 - [Sprint H.5 — TOML Extraction](phase-H/sprint-h-5-toml-extraction.md)
 - [Sprint H.6 — Cross-Format Corpus and Adversarial Closure](phase-H/sprint-h-6-cross-format-closure.md)
+- [Sprint H.7 — Alias and Input-Limit Hardening](phase-H/sprint-h-7-alias-input-limit-hardening.md)
+- [Sprint H.8 — Phase-Ending Review Remediation](phase-H/sprint-h-8-phase-ending-remediation.md)
 
 Disambiguation: the completed `Phase HTML-Report (H1-H4)` section above uses
 undotted H1/H2/H3/H4 labels for the HTML-Report feature family. The `Phase H`
-section here uses dotted H.1–H.6 identifiers for reverse-extraction extension
+section here uses dotted H.1–H.8 identifiers for reverse-extraction extension
 sprints; these are separate phases and sprint sequences.
 
 ### Standalone Repowise Cleanup: Render Request Module Split

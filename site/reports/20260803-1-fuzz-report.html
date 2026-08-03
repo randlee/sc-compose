@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Phase H.6 Cross-Format Adversarial Closure</title>
+  <style type="text/css">
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0b1220; color: #e5e7eb; }
+      .section { background: #111827; border-color: #1f2937; }
+      table { background: #0f172a; }
+      th, td { border-color: #1f2937 !important; }
+      .icon-button { background: #1f2937; color: #cbd5e1; border-color: #374151; }
+      code { background: #1f2937; color: #e5e7eb; }
+      a { color: #93c5fd; }
+    }
+    :root[data-theme="dark"] body { background: #0b1220; color: #e5e7eb; }
+    :root[data-theme="dark"] .section { background: #111827; border-color: #1f2937; }
+    :root[data-theme="light"] body { background: #ffffff; color: #1f2937; }
+    header { border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 20px; }
+    h1 { margin: 0 0 6px 0; font-size: 1.6rem; }
+    .subtitle { margin: 0 0 4px 0; color: #6b7280; }
+    .generated-at, .source-label { margin: 2px 0; font-size: 0.85rem; color: #6b7280; }
+    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 0.85em; border: 1px solid transparent; }
+    .status-pass { color: #065f46; background: #d1fae5; border-color: #6ee7b7; }
+    .status-drift { color: #92400e; background: #fef3c7; border-color: #f59e0b; }
+    .status-error { color: #991b1b; background: #fee2e2; border-color: #ef4444; }
+    .status-info { color: #1e40af; background: #dbeafe; border-color: #3b82f6; }
+    .top-status { margin-top: 8px; }
+    nav.toc { margin: 16px 0; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 10px; }
+    nav.toc ul { margin: 8px 0 0 0; padding-left: 20px; }
+    .summary-block { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin: 16px 0; }
+    .section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
+    .section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .section-head h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 10px; }
+    .section-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
+    .icon-button:hover { filter: brightness(0.95); }
+    .section-summary { color: #374151; font-style: italic; }
+    .fragment-link { font-size: 0.9rem; }
+    .fragment-source { color: #6b7280; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; vertical-align: top; font-size: 0.9rem; }
+    thead th { background: #f3f4f6; }
+    :root[data-theme="dark"] thead th { background: #1f2937; }
+    @media (prefers-color-scheme: dark) { thead th { background: #1f2937; } }
+    code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 0.9em; white-space: pre-wrap; word-break: break-word; }
+    .finding { border-top: 1px dashed #e5e7eb; padding-top: 10px; margin-top: 10px; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; }
+    dt { font-weight: 600; }
+    dd { margin: 0; }
+    .scratchpad { background: #f9fafb; border-left: 4px solid #3b82f6; padding: 12px; margin-top: 12px; border-radius: 4px; }
+    :root[data-theme="dark"] .scratchpad { background: #0f172a; }
+    .recommendations ul { padding-left: 20px; }
+    .metadata-table th { width: 260px; }
+    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 0.85rem; color: #6b7280; }
+    table { display: block; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Phase H.6 Cross-Format Adversarial Closure</h1>
+    <p class="subtitle">Issue #193 in-scope JSON&#x2f;YAML&#x2f;TOML closure campaign</p>
+    <p class="generated-at">Generated: 2026-08-03</p>
+    <p class="source-label">Source: adversarial-fuzzing&#x2f;v1</p>
+    <div class="top-status"><span class="status status-pass">PASS</span></div>
+  </header>
+
+  <section class="summary-block">
+    <div class="section-head">
+      <h2>Summary</h2>
+      <div class="section-actions" role="group" aria-label="Copy summary data">
+        <button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;campaign&quot;:{&quot;baseline_ref&quot;:&quot;4474b67&quot;,&quot;campaign_id&quot;:&quot;h6-20260803-0001&quot;,&quot;cases_per_worker&quot;:15,&quot;corpus_path&quot;:&quot;crates&#x2f;sc-composer&#x2f;tests&#x2f;fixtures&#x2f;reverse-extract&#x2f;cross-format-corpus.json&quot;,&quot;execution_mode&quot;:&quot;bounded local probes; Agent Runner is not exposed in this Codex session&quot;,&quot;issue&quot;:&quot;https:&#x2f;&#x2f;github.com&#x2f;randlee&#x2f;sc-compose&#x2f;issues&#x2f;193&quot;,&quot;max_workers&quot;:4,&quot;per_worker_timeout_s&quot;:120,&quot;promote_regressions&quot;:true,&quot;seed&quot;:193,&quot;target&quot;:&quot;full&quot;,&quot;worktree_path&quot;:&quot;.&#x2f;sprint&#x2f;h-6-cross-format-closure&quot;},&quot;findings&quot;:[],&quot;issue_193_closure&quot;:{&quot;addressed&quot;:[&quot;JSON extraction&quot;,&quot;YAML extraction&quot;,&quot;TOML extraction&quot;],&quot;deferred&quot;:[&quot;XML mixed-content blocks&quot;,&quot;non-XML dirty-prefix stripping&quot;,&quot;template identification&quot;],&quot;deferred_trace&quot;:&quot;docs&#x2f;requirements.md Phase-H Extension Planning Boundary and ADR-0012&quot;,&quot;owner_for_deferred&quot;:&quot;future Phase-H follow-on planning&quot;},&quot;preventive_coverage&quot;:[{&quot;test_path&quot;:&quot;crates&#x2f;sc-composer&#x2f;tests&#x2f;extract_integration.rs&quot;,&quot;tests&quot;:[&quot;cross_format_corpus_preserves_equivalent_contracts&quot;,&quot;toml_occurrence_limit_is_a_durable_boundary&quot;]},{&quot;test_path&quot;:&quot;bindings&#x2f;python&#x2f;tests&#x2f;test_smoke.py&quot;,&quot;tests&quot;:[&quot;test_toml_extraction_rejects_oversized_input_with_stable_code&quot;]}],&quot;promoted_tests&quot;:[],&quot;schema_version&quot;:&quot;adversarial-fuzzing&#x2f;v1&quot;,&quot;summary&quot;:{&quot;all_successful&quot;:true,&quot;cases_run&quot;:36,&quot;confirmed_bugs&quot;:0,&quot;failed&quot;:0,&quot;failed_workers&quot;:0,&quot;inconclusive&quot;:0,&quot;intentional_boundaries&quot;:6,&quot;passed&quot;:36,&quot;workers&quot;:4},&quot;unresolved_candidates&quot;:[],&quot;workers&quot;:[{&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;cases_run&quot;:6,&quot;classification&quot;:&quot;pass&quot;,&quot;command&quot;:&quot;cargo test -p sc-composer --test extract_integration cross_format_corpus_preserves_equivalent_contracts -- --nocapture&quot;,&quot;context_text&quot;:&quot;The shared corpus success and filter cases were exercised for JSON, YAML, and TOML. Values and selected occurrences matched the declared oracle.&quot;,&quot;correlation_id&quot;:&quot;shape-probe&quot;,&quot;error&quot;:null,&quot;failed&quot;:0,&quot;finding_ids&quot;:[],&quot;findings&quot;:[],&quot;fuzz_run_description&quot;:&quot;Cross-format scalar values, empty structure, and include filtering&quot;,&quot;passed&quot;:6,&quot;result&quot;:&quot;PASS&quot;,&quot;status&quot;:&quot;success&quot;,&quot;target&quot;:&quot;cross-format-success-and-filtering&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;json-success&quot;,&quot;description&quot;:&quot;JSON object name placeholder with static boolean&quot;,&quot;minimal_input&quot;:&quot;{\&quot;name\&quot;:\&quot;Ada\&quot;,\&quot;enabled\&quot;:true}&quot;,&quot;minimal_template&quot;:&quot;{\&quot;name\&quot;:\&quot;{{ name }}\&quot;,\&quot;enabled\&quot;:true}&quot;,&quot;outcome&quot;:&quot;PASS: name=Ada&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;yaml-filter&quot;,&quot;description&quot;:&quot;YAML mapping with one included and one excluded variable&quot;,&quot;minimal_input&quot;:&quot;kept: yes\\nignored: no&quot;,&quot;minimal_template&quot;:&quot;kept: \&quot;{{ kept }}\&quot;\\nignored: \&quot;{{ ignored }}\&quot;&quot;,&quot;outcome&quot;:&quot;PASS: only kept=yes was returned&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;toml-success&quot;,&quot;description&quot;:&quot;TOML table scalar placeholder with static boolean&quot;,&quot;minimal_input&quot;:&quot;[package]\\nname = \&quot;example\&quot;\\nenabled = true&quot;,&quot;minimal_template&quot;:&quot;[package]\\nname = \&quot;{{ name }}\&quot;\\nenabled = true&quot;,&quot;outcome&quot;:&quot;PASS: name=example&quot;,&quot;passed&quot;:true}]},{&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;cases_run&quot;:11,&quot;classification&quot;:&quot;pass&quot;,&quot;command&quot;:&quot;cargo test -p sc-compose --test cli extract_text_supports -- --nocapture &amp;&amp; cargo test -p sc-compose --test json_cli extract_json_ -- --nocapture&quot;,&quot;context_text&quot;:&quot;CLI text and JSON-envelope surfaces preserved the expected format labels, paths, filters, and stable negative diagnostics. Malformed and unsupported cases are intentional boundaries, not failures.&quot;,&quot;correlation_id&quot;:&quot;boundary-probe&quot;,&quot;error&quot;:null,&quot;failed&quot;:0,&quot;finding_ids&quot;:[],&quot;findings&quot;:[],&quot;fuzz_run_description&quot;:&quot;CLI extraction diagnostics for malformed and unsupported format inputs&quot;,&quot;passed&quot;:11,&quot;result&quot;:&quot;PASS&quot;,&quot;status&quot;:&quot;success&quot;,&quot;target&quot;:&quot;cli-format-boundaries&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;cli-json-success&quot;,&quot;description&quot;:&quot;Text CLI JSON extraction fixture&quot;,&quot;minimal_input&quot;:&quot;shared rendered JSON fixture&quot;,&quot;minimal_template&quot;:&quot;shared json-atm-payload.json.j2 fixture&quot;,&quot;outcome&quot;:&quot;PASS: format=json and JSON paths emitted&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;cli-yaml-success&quot;,&quot;description&quot;:&quot;Text CLI YAML extraction fixture&quot;,&quot;minimal_input&quot;:&quot;shared rendered YAML fixture&quot;,&quot;minimal_template&quot;:&quot;shared yaml-atm-config.yaml.j2 fixture&quot;,&quot;outcome&quot;:&quot;PASS: frontmatter skipped and YAML paths emitted&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;json-cli-malformed&quot;,&quot;description&quot;:&quot;JSON envelope for malformed rendered JSON&quot;,&quot;minimal_input&quot;:&quot;{\&quot;name\&quot;:\&quot;Ada\&quot;&quot;,&quot;minimal_template&quot;:&quot;{\&quot;name\&quot;:\&quot;{{ name }}\&quot;}&quot;,&quot;outcome&quot;:&quot;PASS: ERR_EXTRACT_JSON_MALFORMED&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;json-cli-unsupported&quot;,&quot;description&quot;:&quot;JSON envelope for unsupported extraction format syntax&quot;,&quot;minimal_input&quot;:&quot;{\&quot;count\&quot;:42}&quot;,&quot;minimal_template&quot;:&quot;{\&quot;count\&quot;:\&quot;{{ count }}\&quot;}&quot;,&quot;outcome&quot;:&quot;PASS: stable format-specific boundary&quot;,&quot;passed&quot;:true}]},{&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;cases_run&quot;:15,&quot;classification&quot;:&quot;pass&quot;,&quot;command&quot;:&quot;python3 -m pytest bindings&#x2f;python&#x2f;tests&#x2f;test_smoke.py -k extraction&quot;,&quot;context_text&quot;:&quot;The Python extraction suite passed for report values, provenance, filtering, format-specific diagnostics, realistic JSON&#x2f;YAML&#x2f;TOML fixtures, and the TOML input-limit guard.&quot;,&quot;correlation_id&quot;:&quot;differential-probe&quot;,&quot;error&quot;:null,&quot;failed&quot;:0,&quot;finding_ids&quot;:[],&quot;findings&quot;:[],&quot;fuzz_run_description&quot;:&quot;Python binding parity for JSON, YAML, TOML reports and diagnostics&quot;,&quot;passed&quot;:15,&quot;result&quot;:&quot;PASS&quot;,&quot;status&quot;:&quot;success&quot;,&quot;target&quot;:&quot;python-cross-surface-differential&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;py-json-realistic&quot;,&quot;description&quot;:&quot;Python binding reads the shared JSON ATM fixture&quot;,&quot;minimal_input&quot;:&quot;shared rendered JSON fixture&quot;,&quot;minimal_template&quot;:&quot;shared json-atm-payload.json.j2 fixture&quot;,&quot;outcome&quot;:&quot;PASS: values and object paths match Rust contract&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;py-yaml-realistic&quot;,&quot;description&quot;:&quot;Python binding reads the shared YAML ATM fixture&quot;,&quot;minimal_input&quot;:&quot;shared rendered YAML fixture&quot;,&quot;minimal_template&quot;:&quot;shared yaml-atm-config.yaml.j2 fixture&quot;,&quot;outcome&quot;:&quot;PASS: values and sequence paths match Rust contract&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;py-toml-limit&quot;,&quot;description&quot;:&quot;Python binding rejects an oversized TOML value&quot;,&quot;minimal_input&quot;:&quot;value = \&quot;x\&quot; repeated 1,048,577 times&quot;,&quot;minimal_template&quot;:&quot;value = \&quot;{{ value }}\&quot;&quot;,&quot;outcome&quot;:&quot;PASS: ERR_EXTRACT_INPUT_LIMIT&quot;,&quot;passed&quot;:true}]},{&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;cases_run&quot;:4,&quot;classification&quot;:&quot;pass&quot;,&quot;command&quot;:&quot;cargo test -p sc-composer --test extract_integration toml_extraction_rejects_oversized_and_deep_inputs -- --nocapture &amp;&amp; cargo test -p sc-composer --test extract_integration toml_occurrence_limit_is_a_durable_boundary -- --nocapture&quot;,&quot;context_text&quot;:&quot;The adapter-level ambiguity tests and all three TOML input guards replayed deterministically. No product defect was observed; the tested rejections are documented contract boundaries.&quot;,&quot;correlation_id&quot;:&quot;template-probe&quot;,&quot;error&quot;:null,&quot;failed&quot;:0,&quot;finding_ids&quot;:[],&quot;findings&quot;:[],&quot;fuzz_run_description&quot;:&quot;Repeated variable ambiguity and TOML size&#x2f;depth&#x2f;occurrence hardening&quot;,&quot;passed&quot;:4,&quot;result&quot;:&quot;PASS&quot;,&quot;status&quot;:&quot;success&quot;,&quot;target&quot;:&quot;ambiguity-and-input-limits&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;json-ambiguity&quot;,&quot;description&quot;:&quot;Same variable at two JSON object paths&quot;,&quot;minimal_input&quot;:&quot;{\&quot;first\&quot;:\&quot;Ada\&quot;,\&quot;second\&quot;:\&quot;Ada\&quot;}&quot;,&quot;minimal_template&quot;:&quot;{\&quot;first\&quot;:\&quot;{{ value }}\&quot;,\&quot;second\&quot;:\&quot;{{ value }}\&quot;}&quot;,&quot;outcome&quot;:&quot;PASS: no value fabricated; ambiguity diagnostic retained&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;yaml-ambiguity&quot;,&quot;description&quot;:&quot;Same variable at two YAML mapping paths&quot;,&quot;minimal_input&quot;:&quot;first: Ada\\nsecond: Ada&quot;,&quot;minimal_template&quot;:&quot;first: \&quot;{{ value }}\&quot;\\nsecond: \&quot;{{ value }}\&quot;&quot;,&quot;outcome&quot;:&quot;PASS: no value fabricated; ambiguity diagnostic retained&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;toml-occurrence-limit&quot;,&quot;description&quot;:&quot;10,001 TOML placeholders exceed occurrence policy&quot;,&quot;minimal_input&quot;:&quot;10,001 scalar TOML assignments&quot;,&quot;minimal_template&quot;:&quot;value0..value10000 = \&quot;{{ value }}\&quot;&quot;,&quot;outcome&quot;:&quot;PASS: ERR_EXTRACT_INPUT_LIMIT&quot;,&quot;passed&quot;:true}]}]}">{}</button>
+        <button class="icon-button" type="button" title="Copy Context" data-copy-text="Phase H.6 bounded closure campaign: 36&#x2f;36 cases passed across four workers; no confirmed bugs or inconclusive candidates.">⎘</button>
+      </div>
+    </div>
+    <p>Four bounded workers exercised 36 cases across Rust, CLI, and Python surfaces. All expected relations held; malformed and unsupported inputs matched their documented intentional boundaries.</p>
+    <table class="session-summary">
+      <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">Cross-format scalar values, empty structure, and include filtering</th>
+          <td>6</td>
+          <td>6&#x2f;6</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">CLI extraction diagnostics for malformed and unsupported format inputs</th>
+          <td>11</td>
+          <td>11&#x2f;11</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Python binding parity for JSON, YAML, TOML reports and diagnostics</th>
+          <td>15</td>
+          <td>15&#x2f;15</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Repeated variable ambiguity and TOML size&#x2f;depth&#x2f;occurrence hardening</th>
+          <td>4</td>
+          <td>4&#x2f;4</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <nav class="toc">
+    <strong>Worker Sections</strong>
+    <ul>
+      <li><a href="#shape-probe">shape-probe</a> <span class="status status-pass">PASS</span></li>
+      <li><a href="#boundary-probe">boundary-probe</a> <span class="status status-pass">PASS</span></li>
+      <li><a href="#differential-probe">differential-probe</a> <span class="status status-pass">PASS</span></li>
+      <li><a href="#template-probe">template-probe</a> <span class="status status-pass">PASS</span></li>
+    </ul>
+  </nav>
+
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>shape-probe</h2>
+      <p class="agent-meta">Session h6-20260803-0001 · Worker shape-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;cases_run&quot;:6,&quot;classification&quot;:&quot;pass&quot;,&quot;command&quot;:&quot;cargo test -p sc-composer --test extract_integration cross_format_corpus_preserves_equivalent_contracts -- --nocapture&quot;,&quot;context_text&quot;:&quot;The shared corpus success and filter cases were exercised for JSON, YAML, and TOML. Values and selected occurrences matched the declared oracle.&quot;,&quot;correlation_id&quot;:&quot;shape-probe&quot;,&quot;error&quot;:null,&quot;failed&quot;:0,&quot;finding_ids&quot;:[],&quot;findings&quot;:[],&quot;fuzz_run_description&quot;:&quot;Cross-format scalar values, empty structure, and include filtering&quot;,&quot;passed&quot;:6,&quot;result&quot;:&quot;PASS&quot;,&quot;status&quot;:&quot;success&quot;,&quot;target&quot;:&quot;cross-format-success-and-filtering&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;json-success&quot;,&quot;description&quot;:&quot;JSON object name placeholder with static boolean&quot;,&quot;minimal_input&quot;:&quot;{\&quot;name\&quot;:\&quot;Ada\&quot;,\&quot;enabled\&quot;:true}&quot;,&quot;minimal_template&quot;:&quot;{\&quot;name\&quot;:\&quot;{{ name }}\&quot;,\&quot;enabled\&quot;:true}&quot;,&quot;outcome&quot;:&quot;PASS: name=Ada&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;yaml-filter&quot;,&quot;description&quot;:&quot;YAML mapping with one included and one excluded variable&quot;,&quot;minimal_input&quot;:&quot;kept: yes\\nignored: no&quot;,&quot;minimal_template&quot;:&quot;kept: \&quot;{{ kept }}\&quot;\\nignored: \&quot;{{ ignored }}\&quot;&quot;,&quot;outcome&quot;:&quot;PASS: only kept=yes was returned&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;toml-success&quot;,&quot;description&quot;:&quot;TOML table scalar placeholder with static boolean&quot;,&quot;minimal_input&quot;:&quot;[package]\\nname = \&quot;example\&quot;\\nenabled = true&quot;,&quot;minimal_template&quot;:&quot;[package]\\nname = \&quot;{{ name }}\&quot;\\nenabled = true&quot;,&quot;outcome&quot;:&quot;PASS: name=example&quot;,&quot;passed&quot;:true}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="The shared corpus success and filter cases were exercised for JSON, YAML, and TOML. Values and selected occurrences matched the declared oracle.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Cross-format scalar values, empty structure, and include filtering</th>
+        <td>6</td>
+        <td>6/6</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">json-success</th><td><code>JSON object name placeholder with static boolean</code></td><td>PASS: name=Ada</td></tr>
+        <tr><th scope="row">yaml-filter</th><td><code>YAML mapping with one included and one excluded variable</code></td><td>PASS: only kept=yes was returned</td></tr>
+        <tr><th scope="row">toml-success</th><td><code>TOML table scalar placeholder with static boolean</code></td><td>PASS: name=example</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session h6-20260803-0001 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;cases_run&quot;:11,&quot;classification&quot;:&quot;pass&quot;,&quot;command&quot;:&quot;cargo test -p sc-compose --test cli extract_text_supports -- --nocapture &amp;&amp; cargo test -p sc-compose --test json_cli extract_json_ -- --nocapture&quot;,&quot;context_text&quot;:&quot;CLI text and JSON-envelope surfaces preserved the expected format labels, paths, filters, and stable negative diagnostics. Malformed and unsupported cases are intentional boundaries, not failures.&quot;,&quot;correlation_id&quot;:&quot;boundary-probe&quot;,&quot;error&quot;:null,&quot;failed&quot;:0,&quot;finding_ids&quot;:[],&quot;findings&quot;:[],&quot;fuzz_run_description&quot;:&quot;CLI extraction diagnostics for malformed and unsupported format inputs&quot;,&quot;passed&quot;:11,&quot;result&quot;:&quot;PASS&quot;,&quot;status&quot;:&quot;success&quot;,&quot;target&quot;:&quot;cli-format-boundaries&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;cli-json-success&quot;,&quot;description&quot;:&quot;Text CLI JSON extraction fixture&quot;,&quot;minimal_input&quot;:&quot;shared rendered JSON fixture&quot;,&quot;minimal_template&quot;:&quot;shared json-atm-payload.json.j2 fixture&quot;,&quot;outcome&quot;:&quot;PASS: format=json and JSON paths emitted&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;cli-yaml-success&quot;,&quot;description&quot;:&quot;Text CLI YAML extraction fixture&quot;,&quot;minimal_input&quot;:&quot;shared rendered YAML fixture&quot;,&quot;minimal_template&quot;:&quot;shared yaml-atm-config.yaml.j2 fixture&quot;,&quot;outcome&quot;:&quot;PASS: frontmatter skipped and YAML paths emitted&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;json-cli-malformed&quot;,&quot;description&quot;:&quot;JSON envelope for malformed rendered JSON&quot;,&quot;minimal_input&quot;:&quot;{\&quot;name\&quot;:\&quot;Ada\&quot;&quot;,&quot;minimal_template&quot;:&quot;{\&quot;name\&quot;:\&quot;{{ name }}\&quot;}&quot;,&quot;outcome&quot;:&quot;PASS: ERR_EXTRACT_JSON_MALFORMED&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;json-cli-unsupported&quot;,&quot;description&quot;:&quot;JSON envelope for unsupported extraction format syntax&quot;,&quot;minimal_input&quot;:&quot;{\&quot;count\&quot;:42}&quot;,&quot;minimal_template&quot;:&quot;{\&quot;count\&quot;:\&quot;{{ count }}\&quot;}&quot;,&quot;outcome&quot;:&quot;PASS: stable format-specific boundary&quot;,&quot;passed&quot;:true}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="CLI text and JSON-envelope surfaces preserved the expected format labels, paths, filters, and stable negative diagnostics. Malformed and unsupported cases are intentional boundaries, not failures.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">CLI extraction diagnostics for malformed and unsupported format inputs</th>
+        <td>11</td>
+        <td>11/11</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">cli-json-success</th><td><code>Text CLI JSON extraction fixture</code></td><td>PASS: format=json and JSON paths emitted</td></tr>
+        <tr><th scope="row">cli-yaml-success</th><td><code>Text CLI YAML extraction fixture</code></td><td>PASS: frontmatter skipped and YAML paths emitted</td></tr>
+        <tr><th scope="row">json-cli-malformed</th><td><code>JSON envelope for malformed rendered JSON</code></td><td>PASS: ERR_EXTRACT_JSON_MALFORMED</td></tr>
+        <tr><th scope="row">json-cli-unsupported</th><td><code>JSON envelope for unsupported extraction format syntax</code></td><td>PASS: stable format-specific boundary</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>differential-probe</h2>
+      <p class="agent-meta">Session h6-20260803-0001 · Worker differential-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;cases_run&quot;:15,&quot;classification&quot;:&quot;pass&quot;,&quot;command&quot;:&quot;python3 -m pytest bindings&#x2f;python&#x2f;tests&#x2f;test_smoke.py -k extraction&quot;,&quot;context_text&quot;:&quot;The Python extraction suite passed for report values, provenance, filtering, format-specific diagnostics, realistic JSON&#x2f;YAML&#x2f;TOML fixtures, and the TOML input-limit guard.&quot;,&quot;correlation_id&quot;:&quot;differential-probe&quot;,&quot;error&quot;:null,&quot;failed&quot;:0,&quot;finding_ids&quot;:[],&quot;findings&quot;:[],&quot;fuzz_run_description&quot;:&quot;Python binding parity for JSON, YAML, TOML reports and diagnostics&quot;,&quot;passed&quot;:15,&quot;result&quot;:&quot;PASS&quot;,&quot;status&quot;:&quot;success&quot;,&quot;target&quot;:&quot;python-cross-surface-differential&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;py-json-realistic&quot;,&quot;description&quot;:&quot;Python binding reads the shared JSON ATM fixture&quot;,&quot;minimal_input&quot;:&quot;shared rendered JSON fixture&quot;,&quot;minimal_template&quot;:&quot;shared json-atm-payload.json.j2 fixture&quot;,&quot;outcome&quot;:&quot;PASS: values and object paths match Rust contract&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;py-yaml-realistic&quot;,&quot;description&quot;:&quot;Python binding reads the shared YAML ATM fixture&quot;,&quot;minimal_input&quot;:&quot;shared rendered YAML fixture&quot;,&quot;minimal_template&quot;:&quot;shared yaml-atm-config.yaml.j2 fixture&quot;,&quot;outcome&quot;:&quot;PASS: values and sequence paths match Rust contract&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;py-toml-limit&quot;,&quot;description&quot;:&quot;Python binding rejects an oversized TOML value&quot;,&quot;minimal_input&quot;:&quot;value = \&quot;x\&quot; repeated 1,048,577 times&quot;,&quot;minimal_template&quot;:&quot;value = \&quot;{{ value }}\&quot;&quot;,&quot;outcome&quot;:&quot;PASS: ERR_EXTRACT_INPUT_LIMIT&quot;,&quot;passed&quot;:true}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="The Python extraction suite passed for report values, provenance, filtering, format-specific diagnostics, realistic JSON&#x2f;YAML&#x2f;TOML fixtures, and the TOML input-limit guard.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Python binding parity for JSON, YAML, TOML reports and diagnostics</th>
+        <td>15</td>
+        <td>15/15</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">py-json-realistic</th><td><code>Python binding reads the shared JSON ATM fixture</code></td><td>PASS: values and object paths match Rust contract</td></tr>
+        <tr><th scope="row">py-yaml-realistic</th><td><code>Python binding reads the shared YAML ATM fixture</code></td><td>PASS: values and sequence paths match Rust contract</td></tr>
+        <tr><th scope="row">py-toml-limit</th><td><code>Python binding rejects an oversized TOML value</code></td><td>PASS: ERR_EXTRACT_INPUT_LIMIT</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session h6-20260803-0001 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;cases_run&quot;:4,&quot;classification&quot;:&quot;pass&quot;,&quot;command&quot;:&quot;cargo test -p sc-composer --test extract_integration toml_extraction_rejects_oversized_and_deep_inputs -- --nocapture &amp;&amp; cargo test -p sc-composer --test extract_integration toml_occurrence_limit_is_a_durable_boundary -- --nocapture&quot;,&quot;context_text&quot;:&quot;The adapter-level ambiguity tests and all three TOML input guards replayed deterministically. No product defect was observed; the tested rejections are documented contract boundaries.&quot;,&quot;correlation_id&quot;:&quot;template-probe&quot;,&quot;error&quot;:null,&quot;failed&quot;:0,&quot;finding_ids&quot;:[],&quot;findings&quot;:[],&quot;fuzz_run_description&quot;:&quot;Repeated variable ambiguity and TOML size&#x2f;depth&#x2f;occurrence hardening&quot;,&quot;passed&quot;:4,&quot;result&quot;:&quot;PASS&quot;,&quot;status&quot;:&quot;success&quot;,&quot;target&quot;:&quot;ambiguity-and-input-limits&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;json-ambiguity&quot;,&quot;description&quot;:&quot;Same variable at two JSON object paths&quot;,&quot;minimal_input&quot;:&quot;{\&quot;first\&quot;:\&quot;Ada\&quot;,\&quot;second\&quot;:\&quot;Ada\&quot;}&quot;,&quot;minimal_template&quot;:&quot;{\&quot;first\&quot;:\&quot;{{ value }}\&quot;,\&quot;second\&quot;:\&quot;{{ value }}\&quot;}&quot;,&quot;outcome&quot;:&quot;PASS: no value fabricated; ambiguity diagnostic retained&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;yaml-ambiguity&quot;,&quot;description&quot;:&quot;Same variable at two YAML mapping paths&quot;,&quot;minimal_input&quot;:&quot;first: Ada\\nsecond: Ada&quot;,&quot;minimal_template&quot;:&quot;first: \&quot;{{ value }}\&quot;\\nsecond: \&quot;{{ value }}\&quot;&quot;,&quot;outcome&quot;:&quot;PASS: no value fabricated; ambiguity diagnostic retained&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;toml-occurrence-limit&quot;,&quot;description&quot;:&quot;10,001 TOML placeholders exceed occurrence policy&quot;,&quot;minimal_input&quot;:&quot;10,001 scalar TOML assignments&quot;,&quot;minimal_template&quot;:&quot;value0..value10000 = \&quot;{{ value }}\&quot;&quot;,&quot;outcome&quot;:&quot;PASS: ERR_EXTRACT_INPUT_LIMIT&quot;,&quot;passed&quot;:true}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="The adapter-level ambiguity tests and all three TOML input guards replayed deterministically. No product defect was observed; the tested rejections are documented contract boundaries.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Repeated variable ambiguity and TOML size&#x2f;depth&#x2f;occurrence hardening</th>
+        <td>4</td>
+        <td>4/4</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">json-ambiguity</th><td><code>Same variable at two JSON object paths</code></td><td>PASS: no value fabricated; ambiguity diagnostic retained</td></tr>
+        <tr><th scope="row">yaml-ambiguity</th><td><code>Same variable at two YAML mapping paths</code></td><td>PASS: no value fabricated; ambiguity diagnostic retained</td></tr>
+        <tr><th scope="row">toml-occurrence-limit</th><td><code>10,001 TOML placeholders exceed occurrence policy</code></td><td>PASS: ERR_EXTRACT_INPUT_LIMIT</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+
+  <section class="section recommendations">
+    <h2>Recommendations</h2>
+    <ul><li>Close the JSON, YAML, and TOML portions of issue #193 from this evidence.</li><li>Keep XML mixed-content and dirty-prefix behavior assigned to future-phase planning.</li></ul>
+  </section>
+
+  <section class="section metadata">
+    <h2>Metadata</h2>
+    <table class="metadata-table"><tbody>
+      <tr><th scope="row">Campaign</th><td>h6-20260803-0001</td></tr>
+      <tr><th scope="row">Seed</th><td>193</td></tr>
+      <tr><th scope="row">Baseline</th><td>4474b67</td></tr>
+      <tr><th scope="row">Workers</th><td>4</td></tr>
+      <tr><th scope="row">Cases</th><td>36&#x2f;36</td></tr>
+      <tr><th scope="row">Confirmed bugs</th><td>0</td></tr>
+      <tr><th scope="row">Intentional boundaries</th><td>6</td></tr>
+      <tr><th scope="row">Inconclusive</th><td>0</td></tr>
+      <tr><th scope="row">Issue</th><td>https:&#x2f;&#x2f;github.com&#x2f;randlee&#x2f;sc-compose&#x2f;issues&#x2f;193</td></tr>
+    </tbody></table>
+  </section>
+
+  <footer>
+    <p>Generated from committed H.6 campaign evidence; no production bug was confirmed.</p>
+  </footer>
+
+  <script>
+    document.addEventListener("click", async function (event) {
+      var button = event.target.closest("[data-copy-text]");
+      if (!button) return;
+      var text = button.getAttribute("data-copy-text") || "";
+      try {
+        await navigator.clipboard.writeText(text);
+        button.setAttribute("title", "Copied");
+      } catch (err) {
+        button.setAttribute("title", "Copy failed");
+      }
+    });
+  </script>
+</body>
+</html>

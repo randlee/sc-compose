@@ -20,7 +20,7 @@
     "promoted_tests": 0,
     "regressions_attributable_to_cd54074": 1
   },
-  "report_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/site/reports/20260729-3-fuzz-report.html",
+  "report_path": "./feature/fuzz-run-report-template/site/reports/20260729-3-fuzz-report.html",
   "sections": [
     {
       "id": "boundary-probe",

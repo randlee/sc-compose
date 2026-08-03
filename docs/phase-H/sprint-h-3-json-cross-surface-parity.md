@@ -1,7 +1,7 @@
 ---
 id: H.3
 title: JSON Cross-Surface Parity
-status: planned
+status: complete
 branch: sprint/h-3-json-cross-surface-parity
 worktree: ../sc-compose-worktrees/sprint/h-3-json-cross-surface-parity
 target: develop
@@ -17,7 +17,7 @@ target: develop
 
 ## Hard Dependencies
 
-- H.1 is accepted.
+- H.1 is complete and its accepted contract is available.
 - H.2 JSON core is merged and its Rust tests pass.
 
 ## Exact Targets

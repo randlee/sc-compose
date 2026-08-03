@@ -1,9 +1,9 @@
 ---
 id: phase-H
 title: Reverse Extraction Format Extensions
-status: planned
-branch: plan/phase-h-rescope-formats-only
-worktree: ../sc-compose-worktrees/plan/phase-h-rescope-formats-only
+status: complete
+branch: integrate/phase-h
+worktree: ../sc-compose-worktrees/integrate/phase-h
 target: develop
 ---
 
@@ -17,9 +17,9 @@ JSON, YAML, and TOML. Phase H retains the pure library boundary, string-value
 report model, structural provenance, and fail-closed diagnostics while adding
 the approved format contracts one at a time.
 
-This plan is documentation-only on the planning branch. No runtime behavior is
-claimed until H.1 accepts the contract amendments and the implementation sprint
-for that behavior passes its own gate.
+H.1's contract amendments are accepted, and the numbered implementation,
+hardening, and phase-ending remediation sprints are complete on the
+Phase-H integration line.
 
 ## Source and scope
 
@@ -57,6 +57,14 @@ deferred to a future phase rather than included in Phase H.
    validates JSON, YAML, and TOML against shared Rust, Python, and CLI
    fixtures and publishes the evidence needed to close the in-scope portion
    of issue #193.
+7. [Sprint H.7 — Alias and Input-Limit Hardening](sprint-h-7-alias-input-limit-hardening.md)
+   closes the promoted adversarial findings from the H.6 campaign, including
+   parser-time XML depth enforcement, iterative XML cleanup, YAML policy
+   scanning, and cross-format input limits.
+8. [Sprint H.8 — Phase-Ending Review Remediation](sprint-h-8-phase-ending-remediation.md)
+   closes the phase-ending review findings, including the remaining YAML tag,
+   TOML depth, path-aware diagnostics, registry, documentation, evidence, and
+   portability gaps.
 
 The numbering is contiguous and intentional. H.2 follows H.1; H.3 depends on
 H.2's library API; H.4 and H.5 may proceed in parallel after H.2/H.3 establish
@@ -66,9 +74,11 @@ format, except H.2, which additionally owns the one-time extraction of
 format-neutral matching logic out of `xml.rs` into the shared core; XML's
 structural and provenance ownership remains with `xml.rs` throughout. H.6 is
 the phase closure gate and cannot silently absorb missing runtime work from an
-earlier sprint. Confirmed findings from the H.6 fuzz
-campaign route through the normal fix-assignment loop; Phase H reserves no
-numbered sprint for follow-on fixes.
+earlier sprint. Confirmed findings from the H.6 fuzz campaign route through
+the normal fix-assignment loop; H.7 is the explicitly reserved numbered
+hardening sprint for the promoted findings listed in its authoritative sprint
+document. H.8 is the phase-ending remediation gate and owns the final
+production-readiness corrections without reopening H.7's settled QA findings.
 
 ## Hard boundaries
 
@@ -95,7 +105,7 @@ numbered sprint for follow-on fixes.
 
 Phase H is complete only when:
 
-- H.1's FR/architecture/ADR amendments are accepted and agree;
+- H.1's accepted FR/architecture/ADR amendments remain mutually consistent;
 - JSON, YAML, and TOML each have a documented known-template contract,
   production Rust support, Python/CLI parity, and corpus coverage;
 - H.1 documents the single shared raw-text matching core and each format sprint
