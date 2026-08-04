@@ -86,8 +86,8 @@
     "bindings/python/tests/test_smoke.py"
   ],
   "validation": {
-    "code_commit": "PENDING_FINAL_CODE_COMMIT",
-    "evidence_commit": "PENDING_EVIDENCE_COMMIT",
+    "tested_commit": "f3dca07",
+    "evidence_recorded_in": "follow-up documentation commit after f3dca07",
     "focused_commands": [
       {
         "command": "cargo test -p sc-composer --test extract_integration dirty_xml_prefix -- --nocapture",
@@ -105,7 +105,7 @@
         "result": "PASS"
       },
       {
-        "command": "python -m pytest -q bindings/python/tests/test_smoke.py -k 'dirty_prefix or import_surface'",
+        "command": "VIRTUAL_ENV=/tmp/sc-compose-i4-venv PATH=/tmp/sc-compose-i4-venv/bin:$PATH python -m pytest -q bindings/python/tests/test_smoke.py -k 'dirty_prefix'",
         "exit_code": 0,
         "result": "PASS"
       }
@@ -130,6 +130,11 @@
         "command": "git diff --check",
         "exit_code": 0,
         "result": "PASS"
+      },
+      {
+        "command": "VIRTUAL_ENV=/tmp/sc-compose-i4-venv PATH=/tmp/sc-compose-i4-venv/bin:$PATH python -m pytest -q bindings/python/tests",
+        "exit_code": 0,
+        "result": "PASS (50 passed)"
       }
     ]
   }
