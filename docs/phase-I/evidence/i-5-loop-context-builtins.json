@@ -70,8 +70,8 @@
     }
   ],
   "validation": {
-    "tested_commit": "1fd2909",
-    "evidence_recorded_in": "follow-up documentation commit after 1fd2909",
+    "tested_commit": "c7ad876",
+    "evidence_recorded_in": "follow-up documentation commit after c7ad876",
     "focused_commands": [
       {
         "command": "cargo test -p sc-composer validation::tests -- --nocapture",
