@@ -2,7 +2,7 @@
 id: J.3
 title: Validation Policy and Required-Path Diagnostics
 phase: J
-status: planned
+status: complete
 branch: sprint/j-3-validation-policy-diagnostics
 worktree: ../sc-compose-worktrees/sprint/j-3-validation-policy-diagnostics
 target: integrate/phase-j
