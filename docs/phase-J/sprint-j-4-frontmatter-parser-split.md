@@ -95,6 +95,7 @@ existing `sc_composer` exports and no extraction adapter is edited.
   production / 113 test NLOC before the split; `frontmatter/` is 310
   production / 125 moved+added test NLOC after the split, with
   `normalizer.rs` as the largest production module at 116 NLOC.
+- The phase-level Repowise rescan and NLOC-evidence condition is governed by the [Phase J Exit Gate](phase-J-plan.md#exit-gate) and remains non-blocking.
 
 ## Required validation
 

@@ -111,6 +111,7 @@ pub(crate) struct ValidationState {
   production / 922 test NLOC before the split; `validation/` is 735
   production / 1,297 moved+added test NLOC after the split, with
   `diagnostics.rs` as the largest production module at 271 NLOC.
+- The phase-level Repowise rescan and NLOC-evidence condition is governed by the [Phase J Exit Gate](phase-J-plan.md#exit-gate) and remains non-blocking.
 
 ## Required validation
 
