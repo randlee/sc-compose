@@ -79,6 +79,7 @@ fn required_path_diagnostics(state: &ValidationState) -> Vec<Diagnostic>;
 - Nested-array required-path traversal behavior is unchanged.
 - No new diagnostic code, severity level, or ordering rule is introduced as
   a side effect of the refactor.
+- The phase-level Repowise rescan and NLOC-evidence condition is governed by the [Phase J Exit Gate](phase-J-plan.md#exit-gate) and remains non-blocking.
 
 ## Required validation
 

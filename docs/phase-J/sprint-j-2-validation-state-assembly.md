@@ -105,6 +105,7 @@ pub(crate) struct ValidationState {
   and siblings) passes unchanged, run both before and after the move.
 - `discovery.rs` is not modified by this sprint.
 - `composer.rs` requires no call-site changes.
+- The phase-level Repowise rescan and NLOC-evidence condition is governed by the [Phase J Exit Gate](phase-J-plan.md#exit-gate) and remains non-blocking.
 
 ## Required validation
 

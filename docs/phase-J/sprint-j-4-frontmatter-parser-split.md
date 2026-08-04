@@ -89,6 +89,7 @@ existing `sc_composer` exports and no extraction adapter is edited.
   malformed-YAML behavior is unchanged for every existing fixture.
 - The full extraction adapter suite and the full (J.3-relocated)
   `validation.rs` suite pass unchanged.
+- The phase-level Repowise rescan and NLOC-evidence condition is governed by the [Phase J Exit Gate](phase-J-plan.md#exit-gate) and remains non-blocking.
 
 ## Required validation
 
