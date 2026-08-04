@@ -266,6 +266,21 @@ fn xml_block_dynamic_element_names_remain_unsupported() {
 }
 
 #[test]
+fn xml_rejects_dynamic_element_names_after_xml_parsing() {
+    let error = extract(&request(
+        "<root><{name}>{{ value }}</{name}></root>",
+        "<root><item>Ada</item></root>",
+    ))
+    .unwrap_err();
+
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlDynamicElementName
+    );
+    assert!(error.to_string().contains("dynamic XML element names"));
+}
+
+#[test]
 fn xml_block_control_flow_is_rejected_before_matching_rendered_children() {
     let error = extract(&request(
         "<root><description>{% for item in items %}{{ item }}{% endfor %}</description></root>",

@@ -207,6 +207,24 @@ fn extract_text_accepts_xml_declaration_comments_and_static_text_fixture() {
 }
 
 #[test]
+fn extract_text_xml_block_format_emits_canonical_content_source() {
+    let (template, rendered) = fixture("xml-blocks");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("format: xml"));
+    assert!(stdout.contains("description: \"Fix the XML extractor"));
+    assert!(stdout.contains("references: \"<issue number=\\\"193\\\">Gap 1"));
+    assert!(stdout.contains("element_content"));
+}
+
+#[test]
 fn extract_text_uses_committed_repeated_sibling_fixture() {
     let (template, rendered) = fixture("repeated-siblings");
     let output = sc_compose()

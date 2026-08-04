@@ -11,14 +11,40 @@
   "validation": {
     "ci": {
       "pull_request": "https://github.com/randlee/sc-compose/pull/216",
-      "commit": "d8c8100",
+      "commit": "31ea5ee",
       "checks": "all 9 pull-request checks succeeded"
     },
     "local_commands": [
-      "cargo fmt --all --check",
-      "cargo clippy --workspace --all-targets --all-features -- -D warnings",
-      "cargo test --workspace --quiet",
-      "python -m pytest -q bindings/python/tests"
+      {
+        "command": "cargo fmt --all --check",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "cargo clippy --workspace --all-targets --all-features -- -D warnings",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "cargo test --workspace --quiet",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "maturin develop --release --manifest-path bindings/python/Cargo.toml",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "python -m pytest -q bindings/python/tests",
+        "exit_code": 0,
+        "result": "PASS (41 passed)"
+      },
+      {
+        "command": "git diff --check",
+        "exit_code": 0,
+        "result": "PASS"
+      }
     ]
   },
   "serialization": {
