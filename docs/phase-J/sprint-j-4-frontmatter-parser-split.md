@@ -2,7 +2,7 @@
 id: J.4
 title: Frontmatter Parser and Normalizer Split
 phase: J
-status: planned
+status: complete
 branch: sprint/j-4-frontmatter-parser-split
 worktree: ../sc-compose-worktrees/sprint/j-4-frontmatter-parser-split
 target: integrate/phase-j
