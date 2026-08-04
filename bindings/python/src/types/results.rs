@@ -5,9 +5,10 @@ use pyo3::types::{PyDict, PyType};
 use sc_composer::{
     ComposeResult, Diagnostic, ExpandedTemplate, ExtractionDiagnostic, ExtractionDiagnosticKind,
     ExtractionPathSegment, ExtractionReport, ExtractionSource, Frontmatter, FrontmatterInitResult,
-    InitResult, JsonExtractionSource, JsonPathSegment, ParsedTemplate, RenderedArtifact, Renderer,
-    ResolveResult, TomlExtractionSource, TomlPathSegment, ValidationReport, VerifyResult,
-    XmlExtractionSource, XmlPathSegment, YamlExtractionSource, YamlPathSegment,
+    InitResult, JsonExtractionSource, JsonPathSegment, ParsedTemplate, RawExtractionSource,
+    RawPathSegment, RenderedArtifact, Renderer, ResolveResult, TomlExtractionSource,
+    TomlPathSegment, ValidationReport, VerifyResult, XmlExtractionSource, XmlPathSegment,
+    YamlExtractionSource, YamlPathSegment,
 };
 
 use crate::convert::{extract_json_context, json_to_py};
@@ -32,6 +33,7 @@ fn extraction_source_kind_str(source: &ExtractionSource) -> &'static str {
         ExtractionSource::Json(JsonExtractionSource::StringValue)
         | ExtractionSource::Toml(TomlExtractionSource::StringValue) => "string_value",
         ExtractionSource::Yaml(YamlExtractionSource::StringScalar) => "string_scalar",
+        ExtractionSource::Raw(RawExtractionSource::TextSpan) => "text_span",
     }
 }
 
@@ -45,6 +47,7 @@ fn xml_path_segment_kind_str(segment: &ExtractionPathSegment) -> &'static str {
         ExtractionPathSegment::Yaml(YamlPathSegment::MappingKey { .. }) => "mapping_key",
         ExtractionPathSegment::Yaml(YamlPathSegment::SequenceIndex { .. }) => "sequence_index",
         ExtractionPathSegment::Toml(TomlPathSegment::TableKey { .. }) => "table_key",
+        ExtractionPathSegment::Raw(RawPathSegment { .. }) => "text_span",
     }
 }
 
@@ -158,7 +161,8 @@ impl PyExtractionSource {
             ExtractionSource::Xml(XmlExtractionSource::TextNode)
             | ExtractionSource::Json(JsonExtractionSource::StringValue)
             | ExtractionSource::Yaml(YamlExtractionSource::StringScalar)
-            | ExtractionSource::Toml(TomlExtractionSource::StringValue) => None,
+            | ExtractionSource::Toml(TomlExtractionSource::StringValue)
+            | ExtractionSource::Raw(RawExtractionSource::TextSpan) => None,
         }
     }
 
@@ -176,6 +180,9 @@ impl PyExtractionSource {
             }
             ExtractionSource::Yaml(YamlExtractionSource::StringScalar) => {
                 "ExtractionSource(kind='string_scalar')".to_owned()
+            }
+            ExtractionSource::Raw(RawExtractionSource::TextSpan) => {
+                "ExtractionSource(kind='text_span')".to_owned()
             }
         }
     }
@@ -208,6 +215,7 @@ impl PyExtractionPathSegment {
             | ExtractionPathSegment::Toml(TomlPathSegment::ArrayIndex { index }) => {
                 index.to_string()
             }
+            ExtractionPathSegment::Raw(RawPathSegment { .. }) => "text_span".to_owned(),
         }
     }
 
@@ -218,10 +226,43 @@ impl PyExtractionPathSegment {
             ExtractionPathSegment::Xml(XmlPathSegment::Attribute { .. })
             | ExtractionPathSegment::Json(JsonPathSegment::ObjectKey { .. })
             | ExtractionPathSegment::Yaml(YamlPathSegment::MappingKey { .. })
-            | ExtractionPathSegment::Toml(TomlPathSegment::TableKey { .. }) => None,
+            | ExtractionPathSegment::Toml(TomlPathSegment::TableKey { .. })
+            | ExtractionPathSegment::Raw(RawPathSegment { .. }) => None,
             ExtractionPathSegment::Json(JsonPathSegment::ArrayIndex { index })
             | ExtractionPathSegment::Yaml(YamlPathSegment::SequenceIndex { index })
             | ExtractionPathSegment::Toml(TomlPathSegment::ArrayIndex { index }) => Some(*index),
+        }
+    }
+
+    #[getter]
+    fn byte_start(&self) -> Option<usize> {
+        match &self.inner {
+            ExtractionPathSegment::Raw(RawPathSegment { byte_start, .. }) => Some(*byte_start),
+            _ => None,
+        }
+    }
+
+    #[getter]
+    fn byte_end(&self) -> Option<usize> {
+        match &self.inner {
+            ExtractionPathSegment::Raw(RawPathSegment { byte_end, .. }) => Some(*byte_end),
+            _ => None,
+        }
+    }
+
+    #[getter]
+    fn line(&self) -> Option<usize> {
+        match &self.inner {
+            ExtractionPathSegment::Raw(RawPathSegment { line, .. }) => Some(*line),
+            _ => None,
+        }
+    }
+
+    #[getter]
+    fn column(&self) -> Option<usize> {
+        match &self.inner {
+            ExtractionPathSegment::Raw(RawPathSegment { column, .. }) => Some(*column),
+            _ => None,
         }
     }
 
@@ -249,6 +290,14 @@ impl PyExtractionPathSegment {
             ExtractionPathSegment::Toml(TomlPathSegment::TableKey { key }) => {
                 format!("ExtractionPathSegment(kind='table_key', name={key:?})")
             }
+            ExtractionPathSegment::Raw(RawPathSegment {
+                byte_start,
+                byte_end,
+                line,
+                column,
+            }) => format!(
+                "ExtractionPathSegment(kind='text_span', byte_start={byte_start}, byte_end={byte_end}, line={line}, column={column})"
+            ),
         }
     }
 }

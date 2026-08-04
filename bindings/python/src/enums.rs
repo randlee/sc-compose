@@ -146,6 +146,8 @@ impl PyDiagnosticCode {
     #[classattr]
     const ERR_EXTRACT_UNSUPPORTED: &'static str = "ERR_EXTRACT_UNSUPPORTED";
     #[classattr]
+    const ERR_EXTRACT_TEMPLATE_UNSUPPORTED: &'static str = "ERR_EXTRACT_TEMPLATE_UNSUPPORTED";
+    #[classattr]
     const ERR_EXTRACT_AMBIGUOUS: &'static str = "ERR_EXTRACT_AMBIGUOUS";
     #[classattr]
     const ERR_EXTRACT_FORMAT_UNSUPPORTED: &'static str = "ERR_EXTRACT_FORMAT_UNSUPPORTED";
@@ -250,12 +252,13 @@ pub(crate) fn parse_extract_format(value: &str) -> PyResult<ExtractFormat> {
         "json" => Ok(ExtractFormat::Json),
         "yaml" => Ok(ExtractFormat::Yaml),
         "toml" => Ok(ExtractFormat::Toml),
+        "raw" => Ok(ExtractFormat::Raw),
         other => Err(crate::errors::config_error_with_recovery_hints(
             format!(
-                "unsupported extraction format `{other}`; use `xml`, `json`, `yaml`, or `toml`"
+                "unsupported extraction format `{other}`; use `xml`, `json`, `yaml`, `toml`, or `raw`"
             ),
             Some("ERR_EXTRACT_FORMAT_UNSUPPORTED"),
-            vec!["set format to `xml`, `json`, `yaml`, or `toml`".to_owned()],
+            vec!["set format to `xml`, `json`, `yaml`, `toml`, or `raw`".to_owned()],
         )),
     }
 }

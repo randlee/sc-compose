@@ -5,7 +5,7 @@ phase: I
 status: planned
 branch: sprint/i-2-customer-raw-text-mode
 worktree: ../sc-compose-worktrees/sprint/i-2-customer-raw-text-mode
-target: develop
+target: integrate/phase-i
 ---
 
 # Sprint I.2 — Customer-Facing Raw-Text Mode

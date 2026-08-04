@@ -32,6 +32,14 @@ fn toml_fixture(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
     )
 }
 
+fn raw_fixture(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
+    let root = repo_root().join("crates/sc-composer/tests/fixtures/reverse-extract");
+    (
+        root.join(format!("{name}.raw.j2")),
+        root.join(format!("{name}.raw")),
+    )
+}
+
 #[test]
 fn extract_json_is_a_clean_envelope_with_values_and_provenance() {
     let (template, rendered) = fixture("attributes");
@@ -298,4 +306,36 @@ fn extract_json_toml_format_emits_paths_sources_and_clean_envelope() {
     assert_eq!(occurrence["path"][0]["kind"], "table_key");
     assert_eq!(occurrence["path"][1]["kind"], "array_index");
     assert_eq!(occurrence["path"][2]["kind"], "table_key");
+}
+
+#[test]
+fn extract_json_raw_format_emits_text_spans_and_clean_envelope() {
+    let (template, rendered) = raw_fixture("markdown");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--format")
+        .arg("raw")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["format"], "raw");
+    assert_eq!(value["payload"]["values"]["title"], "Launch Plan");
+    let occurrence = value["payload"]["occurrences"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|occurrence| occurrence["variable"] == "title")
+        .unwrap();
+    assert_eq!(occurrence["source"]["kind"], "text_span");
+    assert_eq!(occurrence["path"][0]["byte_start"], 2);
+    assert_eq!(occurrence["path"][0]["byte_end"], 13);
+    assert_eq!(occurrence["path"][0]["line"], 1);
+    assert_eq!(occurrence["path"][0]["column"], 3);
 }

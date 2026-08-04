@@ -103,6 +103,7 @@ def test_import_surface_exposes_c2_api() -> None:
         assert getattr(sc_compose, name) is not None
     for code in [
         "ERR_EXTRACT_FORMAT_UNSUPPORTED",
+        "ERR_EXTRACT_TEMPLATE_UNSUPPORTED",
         "ERR_EXTRACT_JSON_MALFORMED",
         "ERR_EXTRACT_JSON_DUPLICATE_KEY",
         "ERR_EXTRACT_JSON_PATH_MISSING",
@@ -194,6 +195,42 @@ def test_extraction_fails_closed_for_unsupported_syntax() -> None:
     assert caught.value.diagnostic_kind == "unsupported"
     assert caught.value.diagnostic_message
     assert caught.value.recovery_hints
+
+
+def test_raw_extraction_matches_markdown_and_reports_text_spans() -> None:
+    template = "# {{ title }}\n\nOwner: {{ owner }}\n"
+    rendered = "# Launch Plan\n\nOwner: Ada\n"
+
+    report = sc_compose.extract_variables(template, rendered, format="raw")
+
+    assert report.values == {"owner": "Ada", "title": "Launch Plan"}
+    assert report.diagnostics == []
+    title = report.occurrences[0]
+    assert title.variable == "title"
+    assert title.source.kind == "text_span"
+    segment = title.path[0]
+    assert segment.kind == "text_span"
+    assert (segment.byte_start, segment.byte_end) == (2, 13)
+    assert (segment.line, segment.column) == (1, 3)
+    assert report.occurrences[1].path[0].line == 3
+
+    included = sc_compose.extract_variables(
+        template, rendered, format="raw", include=["owner"]
+    )
+    assert included.values == {"owner": "Ada"}
+    assert [occurrence.variable for occurrence in included.occurrences] == ["owner"]
+
+
+def test_raw_extraction_preserves_shared_matcher_fail_closed_codes() -> None:
+    cases = [
+        ("Hello {{ name }}", "Goodbye Ada", "ERR_EXTRACT_TEMPLATE_UNSUPPORTED"),
+        ("{% if enabled %}{{ value }}{% endif %}", "yes", "ERR_EXTRACT_TEMPLATE_UNSUPPORTED"),
+        ("{{ first }}{{ second }}", "AdaJones", "ERR_EXTRACT_AMBIGUOUS"),
+    ]
+    for template, rendered, code in cases:
+        with pytest.raises(sc_compose.ScConfigError) as caught:
+            sc_compose.extract_variables(template, rendered, format="raw")
+        assert caught.value.code == code
 
 
 def test_json_extraction_matches_the_shared_rust_contract() -> None:
