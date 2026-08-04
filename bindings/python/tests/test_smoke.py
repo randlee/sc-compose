@@ -544,6 +544,16 @@ def test_extraction_corpus_failures_are_stable(fixture: str, code: str) -> None:
     assert caught.value.recovery_hints
 
 
+def test_xml_block_dynamic_element_names_are_rejected() -> None:
+    template, rendered = fixture_pair("xml-block-dynamic-name")
+
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(template, rendered)
+
+    assert caught.value.code == "ERR_EXTRACT_UNSUPPORTED"
+    assert "dynamic XML element names" in str(caught.value)
+
+
 def test_repr_surface_is_informative(tmp_path: Path) -> None:
     mode = sc_compose.ComposeMode.profile(sc_compose.ProfileKind.AGENT, "reviewer")
     policy = sc_compose.ComposePolicy(

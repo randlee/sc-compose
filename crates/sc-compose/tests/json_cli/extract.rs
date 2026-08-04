@@ -160,6 +160,29 @@ fn extract_json_maps_expected_failures_without_logs_or_backtraces() {
 }
 
 #[test]
+fn extract_json_rejects_xml_block_dynamic_element_names() {
+    let (template, rendered) = fixture("xml-block-dynamic-name");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_first_code(&value, "ERR_EXTRACT_UNSUPPORTED");
+    assert!(
+        value["diagnostics"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("dynamic XML element names")
+    );
+}
+
+#[test]
 fn extract_json_accepts_xml_declaration_comments_and_static_text_fixture() {
     let (template, rendered) = fixture("declaration-comments");
     let output = sc_compose()

@@ -138,8 +138,10 @@ pub(crate) fn extract_xml(
     })?;
     let template_source = parsed_template.body();
     reject_unsupported_template_syntax(template_source)?;
+    reject_dynamic_element_syntax(template_source)?;
     let template = parse_xml(template_source)?;
     let rendered = parse_xml(request.rendered)?;
+    reject_dynamic_element_names(&template)?;
     reject_namespaces(&template)?;
     reject_namespaces(&rendered)?;
 
@@ -389,6 +391,34 @@ fn reject_unsupported_template_syntax(template: &str) -> Result<(), ExtractError
         ));
     }
     Ok(())
+}
+
+fn reject_dynamic_element_syntax(template: &str) -> Result<(), ExtractError> {
+    if template.contains("<{{") || template.contains("</{{") {
+        return Err(ExtractError::unsupported(
+            "dynamic XML element names are outside the reversible extraction subset",
+        ));
+    }
+    Ok(())
+}
+
+fn reject_dynamic_element_names(document: &XmlDocument) -> Result<(), ExtractError> {
+    fn visit(element: &XmlElement) -> bool {
+        element.name.contains('{')
+            || element.name.contains('}')
+            || element.children.iter().any(|child| match child {
+                XmlNode::Element(child) => visit(child),
+                XmlNode::Text(_) => false,
+            })
+    }
+
+    if visit(&document.root) {
+        Err(ExtractError::unsupported(
+            "dynamic XML element names are outside the reversible extraction subset",
+        ))
+    } else {
+        Ok(())
+    }
 }
 
 fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {

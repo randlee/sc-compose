@@ -171,6 +171,21 @@ fn xml_block_static_child_structure_mismatch_remains_unsupported() {
 }
 
 #[test]
+fn xml_block_dynamic_element_names_remain_unsupported() {
+    let error = extract(&request(
+        "<root><{{ name }}>{{ value }}</{{ name }}></root>",
+        "<root><item>Ada</item></root>",
+    ))
+    .unwrap_err();
+
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractUnsupported
+    );
+    assert!(error.to_string().contains("dynamic XML element names"));
+}
+
+#[test]
 fn fixture_adjacent_variables_fail_closed_as_ambiguous() {
     let error = extract(&request(
         include_str!("fixtures/reverse-extract/ambiguous-adjacent.xml.j2"),
@@ -1091,6 +1106,20 @@ fn xml_extraction_rejects_oversized_deep_and_high_occurrence_inputs() {
     occurrence_xml_template.push_str("</root>");
     occurrence_xml_rendered.push_str("</root>");
     assert_input_limit(&request(&occurrence_xml_template, &occurrence_xml_rendered));
+}
+
+#[test]
+fn xml_block_occurrence_limit_is_a_durable_boundary() {
+    let mut template = String::from("<root>");
+    let mut rendered = String::from("<root>");
+    for index in 0..10_001 {
+        let _ = write!(template, "<item>{{{{ value{index} }}}}</item>");
+        let _ = write!(rendered, "<item><strong>value-{index}</strong></item>");
+    }
+    template.push_str("</root>");
+    rendered.push_str("</root>");
+
+    assert_input_limit(&request(&template, &rendered));
 }
 
 #[test]
