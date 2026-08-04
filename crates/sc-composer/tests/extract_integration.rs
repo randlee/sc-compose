@@ -226,7 +226,7 @@ fn fixture_preserves_dirty_xml_prolog_and_i3_full_content() {
     .unwrap();
     assert_eq!(
         block_report.values[&variable("content")],
-        "<code>Ada</code><message>accepted</message>"
+        "<code>Ada</code> and <message>accepted</message>"
     );
 }
 
@@ -239,8 +239,7 @@ fn dirty_xml_prefix_rejections_are_not_silently_dropped() {
         include_str!("fixtures/reverse-extract/xml-dirty-prefix-unterminated-comment.xml"),
         include_str!("fixtures/reverse-extract/xml-dirty-prefix-unterminated-pi.xml"),
         include_str!("fixtures/reverse-extract/xml-dirty-prefix-ambiguous.xml"),
-        "<root><value>Ada</value></root><!-- after root -->",
-        "<root><value>Ada</value></root><?xml version=\"1.0\"?>",
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-post-root.xml"),
     ] {
         let error = extract(&request(template, rendered)).unwrap_err();
         assert_eq!(
@@ -251,7 +250,7 @@ fn dirty_xml_prefix_rejections_are_not_silently_dropped() {
 
     let dtd = extract(&request(
         template,
-        "<!DOCTYPE root><root><value>Ada</value></root>",
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-doctype.xml"),
     ))
     .unwrap_err();
     assert_eq!(

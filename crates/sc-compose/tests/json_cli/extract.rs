@@ -231,6 +231,56 @@ fn extract_json_reports_xml_dirty_prefix_recovery() {
 }
 
 #[test]
+fn extract_json_covers_xml_dirty_prefix_block_and_rejection_corpus() {
+    let (template, rendered) = fixture("xml-dirty-prefix-blocks");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_eq!(
+        value["payload"]["values"]["content"],
+        "<code>Ada</code> and <message>accepted</message>"
+    );
+    assert_eq!(
+        value["payload"]["warnings"][0]["code"],
+        "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED"
+    );
+
+    for (name, code) in [
+        ("xml-dirty-prefix-multiple-root", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-malformed-suffix", "ERR_EXTRACT_MALFORMED"),
+        (
+            "xml-dirty-prefix-unterminated-comment",
+            "ERR_EXTRACT_MALFORMED",
+        ),
+        ("xml-dirty-prefix-unterminated-pi", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-ambiguous", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-post-root", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-doctype", "ERR_EXTRACT_UNSUPPORTED"),
+    ] {
+        let (template, rendered) = fixture(name);
+        let output = sc_compose()
+            .arg("extract")
+            .arg(template)
+            .arg(rendered)
+            .arg("--json")
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(2), "{name}: {output:?}");
+        assert!(output.stderr.is_empty());
+        let value = parse_stdout(&output);
+        assert_first_code(&value, code);
+    }
+}
+
+#[test]
 fn extract_json_format_emits_json_paths_and_sources() {
     let (template, rendered) = json_fixture("json-atm-payload");
 

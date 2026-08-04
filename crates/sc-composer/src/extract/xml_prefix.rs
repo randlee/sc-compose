@@ -13,6 +13,11 @@ pub(super) struct RemovedPrefix {
     pub(super) column: usize,
 }
 
+struct LineColumn {
+    line: usize,
+    column: usize,
+}
+
 pub(super) fn normalize_rendered(source: &str) -> Result<NormalizedXml, ExtractError> {
     let bytes = source.as_bytes();
     let mut cursor = 0;
@@ -75,13 +80,13 @@ pub(super) fn normalize_rendered(source: &str) -> Result<NormalizedXml, ExtractE
             ));
         }
         let start = retained_start.unwrap_or(cursor);
-        let (line, column) = line_column(source, start);
+        let position = line_column(source, start);
         return Ok(NormalizedXml {
             source: source[start..].to_owned(),
             removed: (start > 0).then_some(RemovedPrefix {
                 byte_end: start,
-                line,
-                column,
+                line: position.line,
+                column: position.column,
             }),
         });
     }
@@ -91,10 +96,10 @@ pub(super) fn normalize_rendered(source: &str) -> Result<NormalizedXml, ExtractE
     ))
 }
 
-fn line_column(source: &str, byte_offset: usize) -> (usize, usize) {
+fn line_column(source: &str, byte_offset: usize) -> LineColumn {
     let prefix = &source[..byte_offset];
     let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
     let column_start = prefix.rfind('\n').map_or(0, |index| index + 1);
     let column = source[column_start..byte_offset].chars().count() + 1;
-    (line, column)
+    LineColumn { line, column }
 }

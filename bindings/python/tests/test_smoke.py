@@ -553,7 +553,31 @@ def test_xml_dirty_prefix_and_block_content_are_composable() -> None:
     template, rendered = fixture_pair("xml-dirty-prefix-blocks")
     report = sc_compose.extract_variables(template, rendered)
 
-    assert report.values == {"content": "<code>Ada</code><message>accepted</message>"}
+    assert report.values == {
+        "content": "<code>Ada</code> and <message>accepted</message>"
+    }
+
+
+@pytest.mark.parametrize(
+    ("fixture", "code"),
+    [
+        ("xml-dirty-prefix-multiple-root", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-malformed-suffix", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-unterminated-comment", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-unterminated-pi", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-ambiguous", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-post-root", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-doctype", "ERR_EXTRACT_UNSUPPORTED"),
+    ],
+)
+def test_xml_dirty_prefix_rejection_corpus_reaches_python(
+    fixture: str, code: str
+) -> None:
+    template, rendered = fixture_pair(fixture)
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(template, rendered)
+
+    assert caught.value.code == code
 
 
 @pytest.mark.parametrize(

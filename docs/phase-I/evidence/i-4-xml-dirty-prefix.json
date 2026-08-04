@@ -42,7 +42,8 @@
       "kind": "success",
       "template_fixture": "xml-dirty-prefix-blocks.xml.j2",
       "rendered_fixture": "xml-dirty-prefix-blocks.xml",
-      "expected_values": {"content": "<code>Ada</code><message>accepted</message>"},
+      "rendered_input": "gateway response\\n<root><code>Ada</code> and <message>accepted</message></root>\\n",
+      "expected_values": {"content": "<code>Ada</code> and <message>accepted</message>"},
       "expected_warning": "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED",
       "test": "fixture_preserves_dirty_xml_prolog_and_i3_full_content"
     },
@@ -54,21 +55,28 @@
         "xml-dirty-prefix-malformed-suffix.xml",
         "xml-dirty-prefix-unterminated-comment.xml",
         "xml-dirty-prefix-unterminated-pi.xml",
-        "xml-dirty-prefix-ambiguous.xml"
+        "xml-dirty-prefix-ambiguous.xml",
+        "xml-dirty-prefix-post-root.xml",
+        "xml-dirty-prefix-doctype.xml"
       ],
-      "inline_inputs": [
-        "<root><value>Ada</value></root><!-- after root -->",
-        "<root><value>Ada</value></root><?xml version=\\\"1.0\\\"?>"
-      ],
-      "expected_error": "ERR_EXTRACT_MALFORMED",
+      "expected_errors": {
+        "xml-dirty-prefix-doctype.xml": "ERR_EXTRACT_UNSUPPORTED"
+      },
+      "default_expected_error": "ERR_EXTRACT_MALFORMED",
       "test": "dirty_xml_prefix_rejections_are_not_silently_dropped"
     },
     {
-      "id": "doctype-boundary",
+      "id": "cross_surface_rejection_corpus",
       "kind": "rejected",
-      "rendered_input": "<!DOCTYPE root><root><value>Ada</value></root>",
-      "expected_error": "ERR_EXTRACT_UNSUPPORTED",
-      "test": "dirty_xml_prefix_rejections_are_not_silently_dropped"
+      "surfaces": ["Rust", "CLI", "JSON-CLI", "Python"],
+      "fixture_set": "invalid-prefix-and-suffix-boundaries",
+      "expected": "all malformed fixtures return ERR_EXTRACT_MALFORMED; the DOCTYPE fixture returns ERR_EXTRACT_UNSUPPORTED",
+      "tests": [
+        "dirty_xml_prefix_rejections_are_not_silently_dropped",
+        "extract_text_covers_xml_dirty_prefix_block_and_rejection_corpus",
+        "extract_json_covers_xml_dirty_prefix_block_and_rejection_corpus",
+        "test_xml_dirty_prefix_rejection_corpus_reaches_python"
+      ]
     }
   ],
   "surface_parity": [
@@ -78,17 +86,51 @@
     "bindings/python/tests/test_smoke.py"
   ],
   "validation": {
+    "code_commit": "PENDING_FINAL_CODE_COMMIT",
+    "evidence_commit": "PENDING_EVIDENCE_COMMIT",
     "focused_commands": [
-      "cargo test -p sc-composer --test extract_integration dirty_xml_prefix -- --nocapture",
-      "cargo test -p sc-compose --test cli extract_text_reports_xml_dirty_prefix_recovery -- --nocapture",
-      "cargo test -p sc-compose --test json_cli extract_json_reports_xml_dirty_prefix_recovery -- --nocapture",
-      "python -m pytest -q bindings/python/tests/test_smoke.py -k 'dirty_prefix or import_surface'"
+      {
+        "command": "cargo test -p sc-composer --test extract_integration dirty_xml_prefix -- --nocapture",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "cargo test -p sc-compose --test cli extract_text_covers_xml_dirty_prefix_block_and_rejection_corpus -- --nocapture",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "cargo test -p sc-compose --test json_cli extract_json_covers_xml_dirty_prefix_block_and_rejection_corpus -- --nocapture",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "python -m pytest -q bindings/python/tests/test_smoke.py -k 'dirty_prefix or import_surface'",
+        "exit_code": 0,
+        "result": "PASS"
+      }
     ],
     "required_commands": [
-      "cargo test --workspace",
-      "cargo clippy --all-targets --all-features -- -D warnings",
-      "cargo fmt --all --check",
-      "git diff --check"
+      {
+        "command": "cargo test --workspace",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "cargo clippy --all-targets --all-features -- -D warnings",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "cargo fmt --all --check",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "git diff --check",
+        "exit_code": 0,
+        "result": "PASS"
+      }
     ]
   }
 }
