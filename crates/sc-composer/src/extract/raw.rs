@@ -199,6 +199,23 @@ mod tests {
         assert_eq!(report.values.len(), 1);
         assert_eq!(report.values[&VariableName::new("owner").unwrap()], "Ada");
         assert_eq!(report.occurrences.len(), 1);
+
+        let exclude = vec![VariableName::new("title").unwrap()];
+        let request = ExtractRequest::new(
+            "Title: {{ title }}; Owner: {{ owner }}",
+            "Title: Launch; Owner: Ada",
+            super::super::ExtractFormat::Raw,
+            &[],
+            &exclude,
+        );
+        let report = extract_raw(&request).expect("raw extraction");
+        assert_eq!(report.values[&VariableName::new("owner").unwrap()], "Ada");
+        assert!(
+            !report
+                .values
+                .contains_key(&VariableName::new("title").unwrap())
+        );
+        assert_eq!(report.occurrences.len(), 1);
     }
 
     #[test]
@@ -242,5 +259,24 @@ mod tests {
                 code
             );
         }
+
+        for template in ["Hello {{ name", "Value: {{{ value }}}"] {
+            assert_eq!(
+                extract_raw(&request(template, "anything"))
+                    .unwrap_err()
+                    .code(),
+                DiagnosticCode::ErrExtractTemplateUnsupported
+            );
+        }
+    }
+
+    #[test]
+    fn static_and_escaped_markdown_text_remain_supported() {
+        let report = extract_raw(&request(r"## \*note\*", r"## \*note\*")).expect("raw extraction");
+
+        assert!(report.values.is_empty());
+        assert!(report.occurrences.is_empty());
+        assert!(report.diagnostics.is_empty());
+        assert!((report.confidence - 1.0).abs() < f64::EPSILON);
     }
 }

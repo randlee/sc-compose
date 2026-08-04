@@ -198,12 +198,12 @@ def test_extraction_fails_closed_for_unsupported_syntax() -> None:
 
 
 def test_raw_extraction_matches_markdown_and_reports_text_spans() -> None:
-    template = "# {{ title }}\n\nOwner: {{ owner }}\n"
-    rendered = "# Launch Plan\n\nOwner: Ada\n"
+    template = "# {{ title }}\n\nOwner: {{ owner }}\n\n\\*Important\\*: {{ note }}\n"
+    rendered = "# Launch Plan\n\nOwner: Ada\n\n\\*Important\\*: review\n"
 
     report = sc_compose.extract_variables(template, rendered, format="raw")
 
-    assert report.values == {"owner": "Ada", "title": "Launch Plan"}
+    assert report.values == {"note": "review", "owner": "Ada", "title": "Launch Plan"}
     assert report.diagnostics == []
     title = report.occurrences[0]
     assert title.variable == "title"
@@ -213,6 +213,8 @@ def test_raw_extraction_matches_markdown_and_reports_text_spans() -> None:
     assert (segment.byte_start, segment.byte_end) == (2, 13)
     assert (segment.line, segment.column) == (1, 3)
     assert report.occurrences[1].path[0].line == 3
+    assert report.occurrences[2].variable == "note"
+    assert report.occurrences[2].path[0].line == 5
 
     included = sc_compose.extract_variables(
         template, rendered, format="raw", include=["owner"]
