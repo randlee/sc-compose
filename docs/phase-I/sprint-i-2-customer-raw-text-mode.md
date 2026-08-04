@@ -2,7 +2,7 @@
 id: sprint-I.2
 title: Customer-Facing Raw-Text Mode
 phase: I
-status: planned
+status: complete/accepted
 branch: sprint/i-2-customer-raw-text-mode
 worktree: ../sc-compose-worktrees/sprint/i-2-customer-raw-text-mode
 target: integrate/phase-i
