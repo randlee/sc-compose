@@ -2,7 +2,7 @@
 id: sprint-I.6
 title: YAML Merge-Key Var-File Safety
 phase: I
-status: in progress
+status: complete
 branch: sprint/i-6-yaml-merge-key-safety
 worktree: ../sc-compose-worktrees/sprint/i-6-yaml-merge-key-safety
 target: integrate/phase-i
@@ -60,6 +60,8 @@ checklist](phase-I-plan.md#authoritative-validation-checklist). Run the exact
 issue reproduction and its control case through the CLI, then
 retain the input, exit code, parsed variables or diagnostic, and requirement/
 ADR trace in evidence.
+
+Evidence: [I.6 YAML merge-key safety validation](evidence/i-6-yaml-merge-key-safety.json).
 
 ## Removal path
 

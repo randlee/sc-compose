@@ -567,6 +567,9 @@ Status:
   `sprint/i-3-xml-block-mixed-content` after the QA remediation pass;
 - I.4 XML Dirty-Prefix Normalization: complete on
   `sprint/i-4-xml-dirty-prefix`, with Rust, CLI, Python, and boundary evidence;
+- I.6 YAML Merge-Key Var-File Safety: complete on
+  `sprint/i-6-yaml-merge-key-safety` at `44c0bbc`, with fail-closed Rust/CLI
+  coverage, JSON and alias controls, and source-located diagnostics;
 - Phase I also makes the shared H raw-text matcher customer-facing for known
   Markdown/text templates because raw text is the product use case that the
   format adapters alone do not provide;
