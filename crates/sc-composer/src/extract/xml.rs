@@ -416,7 +416,6 @@ fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
     reader.config_mut().check_end_names = true;
     let mut stack: Vec<(String, BTreeMap<String, String>, Vec<XmlNode>)> = Vec::new();
     let mut root = None;
-
     loop {
         let event = reader.read_event().map_err(|error| {
             malformed_with_source(format!("XML parser rejected input: {error}"), error)
@@ -463,23 +462,10 @@ fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
                 )?;
             }
             Event::Text(text) => {
-                let raw = std::str::from_utf8(text.as_ref()).map_err(|error| {
-                    malformed_with_source(format!("invalid XML text: {error}"), error)
-                })?;
-                let value = unescape(raw)
-                    .map_err(|error| {
-                        malformed_with_source(format!("invalid XML text entity: {error}"), error)
-                    })?
-                    .into_owned();
-                attach_text(&mut stack, value)?;
+                attach_text(&mut stack, decode_xml_text(text.as_ref())?)?;
             }
             Event::CData(text) => {
-                let value = std::str::from_utf8(text.as_ref())
-                    .map_err(|error| {
-                        malformed_with_source(format!("invalid XML CDATA: {error}"), error)
-                    })?
-                    .to_owned();
-                attach_text(&mut stack, value)?;
+                attach_text(&mut stack, decode_xml_cdata(text.as_ref())?)?;
             }
             Event::GeneralRef(reference) => {
                 let name = reference
@@ -496,11 +482,7 @@ fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
                 attach_text(&mut stack, value)?;
             }
             Event::Decl(_) | Event::Comment(_) | Event::PI(_) => {
-                if root.is_some() && stack.is_empty() {
-                    return Err(malformed(
-                        "XML content appeared after the root element".to_owned(),
-                    ));
-                }
+                reject_post_root_content(root.as_ref(), &stack)?;
             }
             Event::DocType(_) => {
                 return Err(ExtractError::unsupported(
@@ -518,6 +500,32 @@ fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
     }
     let root = root.ok_or_else(|| malformed("XML input has no root element".to_owned()))?;
     Ok(XmlDocument { root })
+}
+
+fn decode_xml_text(bytes: &[u8]) -> Result<String, ExtractError> {
+    let raw = std::str::from_utf8(bytes)
+        .map_err(|error| malformed_with_source(format!("invalid XML text: {error}"), error))?;
+    unescape(raw)
+        .map(std::borrow::Cow::into_owned)
+        .map_err(|error| malformed_with_source(format!("invalid XML text entity: {error}"), error))
+}
+
+fn decode_xml_cdata(bytes: &[u8]) -> Result<String, ExtractError> {
+    std::str::from_utf8(bytes)
+        .map(str::to_owned)
+        .map_err(|error| malformed_with_source(format!("invalid XML CDATA: {error}"), error))
+}
+
+fn reject_post_root_content(
+    root: Option<&XmlElement>,
+    stack: &[(String, BTreeMap<String, String>, Vec<XmlNode>)],
+) -> Result<(), ExtractError> {
+    if root.is_some() && stack.is_empty() {
+        return Err(malformed(
+            "XML content appeared after the root element".to_owned(),
+        ));
+    }
+    Ok(())
 }
 
 fn decode_name(bytes: &[u8]) -> Result<String, ExtractError> {
