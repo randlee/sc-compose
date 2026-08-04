@@ -264,3 +264,245 @@ fn merge_frontmatter(
             });
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::{BTreeMap, BTreeSet};
+    use std::path::PathBuf;
+
+    use serde_json::json;
+
+    use super::{collect_validation_state, inject_builtin_vars};
+    use crate::ExpandedTemplate;
+    use crate::frontmatter::parse_template_document;
+    use crate::types::{
+        ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, VariableName, VariableSource,
+    };
+
+    #[test]
+    fn collect_validation_state_characterizes_i5_loop_context_maps() {
+        let root = PathBuf::from("/workspace/root.md.j2");
+        let document = "---\npass: 1\nrequired_variables:\n  - items\n  - task\n---\n---\npass: 2\nrequired_variables:\n  - higher\n---\n{% for item in items %}{{ loop.index }}:{{ item }}{% endfor %} {{ task }} {{{ higher }}}";
+        let parsed = parse_template_document(document).unwrap();
+        let expanded = ExpandedTemplate {
+            text: parsed.body().to_owned(),
+            resolved_files: vec![root.clone()],
+            frontmatters: vec![(root, parsed.passes().to_vec())],
+            include_chains: BTreeMap::new(),
+        };
+
+        let state = collect_validation_state(&empty_request(), &expanded);
+        let pass_one_references = &state.referenced_variables_by_pass[&1];
+        let pass_two_references = &state.referenced_variables_by_pass[&2];
+
+        assert!(pass_one_references.contains(&variable("items")));
+        assert!(pass_one_references.contains(&variable("task")));
+        assert!(!pass_one_references.contains(&variable("item")));
+        assert!(!pass_one_references.contains(&variable("loop.index")));
+        assert!(pass_two_references.contains(&variable("items")));
+        assert!(pass_two_references.contains(&variable("higher")));
+        assert!(!pass_two_references.contains(&variable("task")));
+        assert!(!pass_two_references.contains(&variable("loop.index")));
+
+        assert_eq!(
+            state.declared_variables_by_pass[&1],
+            expected_declared(&["items", "task"])
+        );
+        assert_eq!(
+            state.declared_variables_by_pass[&2],
+            expected_declared(&["higher"])
+        );
+    }
+
+    #[test]
+    fn collect_validation_state_characterizes_default_merge_precedence() {
+        let root = PathBuf::from("/workspace/root.md.j2");
+        let parsed = parse_template_document(
+            "---\ndefaults:\n  frontmatter_only: frontmatter\n  fallback: frontmatter\n  env_value: frontmatter\n  explicit_value: frontmatter\n  HOSTNAME: frontmatter\n  RENDER_DATE: frontmatter-date\n---\n{{ fallback }}",
+        )
+        .unwrap();
+        let expanded = ExpandedTemplate {
+            text: parsed.body().to_owned(),
+            resolved_files: vec![root.clone()],
+            frontmatters: vec![(root.clone(), parsed.passes().to_vec())],
+            include_chains: BTreeMap::new(),
+        };
+        let mut request = empty_request();
+        request
+            .vars_defaults
+            .insert(variable("fallback"), json!("input-default"));
+        request
+            .vars_defaults
+            .insert(variable("env_value"), json!("input-default"));
+        request
+            .vars_defaults
+            .insert(variable("explicit_value"), json!("input-default"));
+        request
+            .vars_defaults
+            .insert(variable("HOSTNAME"), json!("input-default"));
+        request
+            .vars_defaults
+            .insert(variable("RENDER_DATE"), json!("input-default"));
+        request
+            .vars_env
+            .insert(variable("env_value"), json!("environment"));
+        request
+            .vars_env
+            .insert(variable("explicit_value"), json!("environment"));
+        request
+            .vars_input
+            .insert(variable("explicit_value"), json!("explicit"));
+
+        let mut state = collect_validation_state(&request, &expanded);
+        inject_builtin_vars(&mut state, &root);
+
+        assert_eq!(
+            state.context[&variable("frontmatter_only")],
+            json!("frontmatter")
+        );
+        assert_eq!(
+            state.variable_sources[&variable("frontmatter_only")],
+            VariableSource::FrontmatterDefault
+        );
+        assert_eq!(state.context[&variable("fallback")], json!("input-default"));
+        assert_eq!(
+            state.variable_sources[&variable("fallback")],
+            VariableSource::TemplateInputDefault
+        );
+        assert_eq!(state.context[&variable("env_value")], json!("environment"));
+        assert_eq!(
+            state.variable_sources[&variable("env_value")],
+            VariableSource::Environment
+        );
+        assert_eq!(
+            state.context[&variable("explicit_value")],
+            json!("explicit")
+        );
+        assert_eq!(
+            state.variable_sources[&variable("explicit_value")],
+            VariableSource::ExplicitInput
+        );
+        assert_eq!(
+            state.variable_sources[&variable("HOSTNAME")],
+            VariableSource::Builtin
+        );
+        assert_eq!(
+            state.variable_sources[&variable("RENDER_DATE")],
+            VariableSource::Builtin
+        );
+    }
+
+    #[test]
+    fn collect_validation_state_characterizes_required_origins_and_include_chains() {
+        let root = PathBuf::from("/workspace/root.md.j2");
+        let child = PathBuf::from("/workspace/child.md");
+        let root_frontmatter =
+            parse_template_document("---\nrequired_variables:\n  - shared\n---\nroot body")
+                .unwrap();
+        let child_frontmatter = parse_template_document(
+            "---\nrequired_variables:\n  - shared\n  - child_only\n---\nchild body",
+        )
+        .unwrap();
+        let mut include_chains = BTreeMap::new();
+        include_chains.insert(root.clone(), vec![root.clone()]);
+        include_chains.insert(child.clone(), vec![root.clone(), child.clone()]);
+        let expanded = ExpandedTemplate {
+            text: "root body\nchild body".to_owned(),
+            resolved_files: vec![root.clone(), child.clone()],
+            frontmatters: vec![
+                (root.clone(), root_frontmatter.passes().to_vec()),
+                (child.clone(), child_frontmatter.passes().to_vec()),
+            ],
+            include_chains,
+        };
+
+        let state = collect_validation_state(&empty_request(), &expanded);
+        let shared = variable("shared");
+        let child_only = variable("child_only");
+
+        assert_eq!(state.required_origins[&shared], root);
+        assert_eq!(state.required_origins[&child_only], child);
+        assert_eq!(
+            state.required_include_chains[&shared],
+            vec![PathBuf::from("/workspace/root.md.j2")]
+        );
+        assert_eq!(
+            state.required_include_chains[&child_only],
+            vec![
+                PathBuf::from("/workspace/root.md.j2"),
+                PathBuf::from("/workspace/child.md")
+            ]
+        );
+    }
+
+    #[test]
+    fn inject_builtin_vars_characterizes_render_context_values() {
+        let mut state = super::ValidationState::default();
+        inject_builtin_vars(
+            &mut state,
+            PathBuf::from("/workspace/report.md.j2").as_path(),
+        );
+
+        assert_eq!(
+            state.context[&variable("TEMPLATE_NAME")],
+            json!("report.md.j2")
+        );
+        for name in [
+            "TEMPLATE_NAME",
+            "HOSTNAME",
+            "USERNAME",
+            "RENDER_DATE",
+            "RENDER_TIMESTAMP",
+        ] {
+            let name = variable(name);
+            assert!(state.declared_variables.contains(&name));
+            assert_eq!(state.variable_sources[&name], VariableSource::Builtin);
+            assert!(state.context[&name].is_string());
+        }
+
+        let render_date = state.context[&variable("RENDER_DATE")].as_str().unwrap();
+        assert_eq!(render_date.len(), 10);
+        assert_eq!(&render_date[4..5], "-");
+        assert_eq!(&render_date[7..8], "-");
+        let render_timestamp = state.context[&variable("RENDER_TIMESTAMP")]
+            .as_str()
+            .unwrap();
+        assert!(render_timestamp.contains('T'));
+        assert!(render_timestamp.ends_with('Z'));
+    }
+
+    fn empty_request() -> ComposeRequest {
+        ComposeRequest {
+            runtime: None,
+            mode: ComposeMode::File {
+                template_path: PathBuf::from("root.md.j2"),
+            },
+            root: ConfiningRoot::from_path_buf(PathBuf::from("/workspace")),
+            vars_input: BTreeMap::new(),
+            vars_env: BTreeMap::new(),
+            vars_defaults: BTreeMap::new(),
+            guidance_block: None,
+            user_prompt: None,
+            policy: ComposePolicy::default(),
+        }
+    }
+
+    fn variable(name: &str) -> VariableName {
+        VariableName::new(name).unwrap()
+    }
+
+    fn expected_declared(pass_variables: &[&str]) -> BTreeSet<VariableName> {
+        let mut declared: BTreeSet<VariableName> = [
+            "TEMPLATE_NAME",
+            "HOSTNAME",
+            "USERNAME",
+            "RENDER_DATE",
+            "RENDER_TIMESTAMP",
+        ]
+        .into_iter()
+        .map(variable)
+        .collect();
+        declared.extend(pass_variables.iter().copied().map(variable));
+        declared
+    }
+}
