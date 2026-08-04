@@ -563,6 +563,8 @@ Status:
   merge-key safety gap in issue #166;
 - I.1 Contract, Raw-Text Semantics, and Traceability: complete/accepted on
   `sprint/i-1-contract-and-traceability` at `6604de7` (docs-only contract gate);
+- I.3 XML Block and Mixed-Content Extraction: complete/accepted on
+  `sprint/i-3-xml-block-mixed-content` after the QA remediation pass;
 - Phase I also makes the shared H raw-text matcher customer-facing for known
   Markdown/text templates because raw text is the product use case that the
   format adapters alone do not provide;

@@ -168,7 +168,7 @@ Phase I is complete only when:
 
 | Source | Gap / decision | Owning sprint | Status | Verification |
 | --- | --- | --- | --- | --- |
-| #193 Gap 1 | block text and mixed-content value extraction | I.3 | planned | XML/Rust, CLI, Python corpus and negative-shape tests |
+| #193 Gap 1 | block text and mixed-content value extraction | I.3 | complete/accepted | XML/Rust, CLI, Python corpus and negative-shape tests |
 | #193 Gap 5 | bounded dirty-prefix normalization | I.4 | planned | accepted-prefix, malformed-suffix, multi-root and diagnostic tests |
 | #167 | loop-context names in strict validation | I.5 | planned | nested-loop, shadowing, outside-loop and CLI strict tests |
 | #166 | YAML merge-key var-file silent data loss | I.6 | planned | exact reproduction, policy/error, and preservation tests |

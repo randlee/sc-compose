@@ -8,6 +8,19 @@
     "docs/adrs/0013-phase-i-raw-text-and-input-safety.md XML block and mixed content",
     "docs/phase-I/sprint-i-3-xml-block-mixed-content.md"
   ],
+  "validation": {
+    "ci": {
+      "pull_request": "https://github.com/randlee/sc-compose/pull/216",
+      "commit": "d8c8100",
+      "checks": "all 9 pull-request checks succeeded"
+    },
+    "local_commands": [
+      "cargo fmt --all --check",
+      "cargo clippy --workspace --all-targets --all-features -- -D warnings",
+      "cargo test --workspace --quiet",
+      "python -m pytest -q bindings/python/tests"
+    ]
+  },
   "serialization": {
     "kind": "canonical_xml_fragment",
     "rules": [
@@ -87,7 +100,7 @@
       "template": "<root><description>{{ first }} {{ second }}</description></root>",
       "rendered": "<root><description><b>value</b></description></root>",
       "expected_report": {
-        "error_code": "ERR_EXTRACT_UNSUPPORTED"
+        "error_code": "ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH"
       },
       "test": "xml_block_multiple_placeholders_remain_unsupported"
     },
@@ -98,10 +111,21 @@
       "template": "<root><{{ name }}>{{ value }}</{{ name }}></root>",
       "rendered": "<root><item>Ada</item></root>",
       "expected_report": {
-        "error_code": "ERR_EXTRACT_UNSUPPORTED",
+        "error_code": "ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME",
         "message_contains": "dynamic XML element names"
       },
       "test": "xml_block_dynamic_element_names_remain_unsupported"
+    },
+    {
+      "id": "block-control-flow",
+      "kind": "unsupported",
+      "review_note": "A generated block cannot be safely reverse-extracted from loop output because known-template matching does not reconstruct Jinja control flow.",
+      "template": "<root><description>{% for item in items %}{{ item }}{% endfor %}</description></root>",
+      "rendered": "<root><description><item>Ada</item></description></root>",
+      "expected_report": {
+        "error_code": "ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED"
+      },
+      "test": "xml_block_control_flow_is_rejected_before_matching_rendered_children"
     },
     {
       "id": "block-occurrence-limit",

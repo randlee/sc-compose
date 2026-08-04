@@ -2,7 +2,7 @@
 id: sprint-I.3
 title: XML Block and Mixed-Content Extraction
 phase: I
-status: planned
+status: complete/accepted
 branch: sprint/i-3-xml-block-mixed-content
 worktree: ../sc-compose-worktrees/sprint/i-3-xml-block-mixed-content
 target: develop

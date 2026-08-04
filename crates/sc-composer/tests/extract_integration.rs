@@ -226,7 +226,7 @@ fn xml_block_multiple_placeholders_remain_unsupported() {
 
     assert_eq!(
         error.code(),
-        sc_composer::DiagnosticCode::ErrExtractUnsupported
+        sc_composer::DiagnosticCode::ErrExtractXmlChildStructureMismatch
     );
     assert!(error.to_string().contains("node structure does not match"));
 }
@@ -241,7 +241,7 @@ fn xml_block_static_child_structure_mismatch_remains_unsupported() {
 
     assert_eq!(
         error.code(),
-        sc_composer::DiagnosticCode::ErrExtractUnsupported
+        sc_composer::DiagnosticCode::ErrExtractXmlStaticMismatch
     );
     assert!(
         error
@@ -260,9 +260,24 @@ fn xml_block_dynamic_element_names_remain_unsupported() {
 
     assert_eq!(
         error.code(),
-        sc_composer::DiagnosticCode::ErrExtractUnsupported
+        sc_composer::DiagnosticCode::ErrExtractXmlDynamicElementName
     );
     assert!(error.to_string().contains("dynamic XML element names"));
+}
+
+#[test]
+fn xml_block_control_flow_is_rejected_before_matching_rendered_children() {
+    let error = extract(&request(
+        "<root><description>{% for item in items %}{{ item }}{% endfor %}</description></root>",
+        "<root><description><item>Ada</item></description></root>",
+    ))
+    .unwrap_err();
+
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlControlFlowUnsupported
+    );
+    assert!(error.to_string().contains("Jinja statements"));
 }
 
 #[test]
@@ -322,7 +337,7 @@ fn fixture_unsupported_filter_returns_stable_error() {
 
     assert_eq!(
         error.code(),
-        sc_composer::DiagnosticCode::ErrExtractUnsupported
+        sc_composer::DiagnosticCode::ErrExtractTemplateUnsupported
     );
 }
 
@@ -348,15 +363,15 @@ fn fixture_wrong_structure_returns_unsupported_error() {
     ))
     .unwrap_err();
 
-    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
+    assert!(matches!(error, ExtractError::FormatError { .. }));
     assert_eq!(
         error.code(),
-        sc_composer::DiagnosticCode::ErrExtractUnsupported
+        sc_composer::DiagnosticCode::ErrExtractXmlAttributeMismatch
     );
     assert!(error.recovery_hints().iter().any(|hint| {
         matches!(
             &hint.kind,
-            sc_composer::RecoveryHintKind::UnsupportedConstruct { .. }
+            sc_composer::RecoveryHintKind::InspectInput { .. }
         )
     }));
 }
@@ -369,11 +384,15 @@ fn fixture_wrong_tag_structure_returns_unsupported_error() {
     ))
     .unwrap_err();
 
-    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
+    assert!(matches!(error, ExtractError::FormatError { .. }));
     assert!(
         error
             .to_string()
             .contains("does not match template structure")
+    );
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlElementMismatch
     );
 }
 
@@ -400,8 +419,12 @@ fn fixture_wrong_child_kind_structure_returns_unsupported_error() {
     ))
     .unwrap_err();
 
-    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
+    assert!(matches!(error, ExtractError::FormatError { .. }));
     assert!(error.to_string().contains("node structure does not match"));
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlChildStructureMismatch
+    );
 }
 
 #[test]
@@ -414,7 +437,7 @@ fn fixture_namespace_policy_fails_closed() {
 
     assert_eq!(
         error.code(),
-        sc_composer::DiagnosticCode::ErrExtractUnsupported
+        sc_composer::DiagnosticCode::ErrExtractXmlNamespaceUnsupported
     );
 }
 

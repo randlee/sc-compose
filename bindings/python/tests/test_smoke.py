@@ -104,6 +104,13 @@ def test_import_surface_exposes_c2_api() -> None:
     for code in [
         "ERR_EXTRACT_FORMAT_UNSUPPORTED",
         "ERR_EXTRACT_TEMPLATE_UNSUPPORTED",
+        "ERR_EXTRACT_XML_ELEMENT_MISMATCH",
+        "ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH",
+        "ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH",
+        "ERR_EXTRACT_XML_STATIC_MISMATCH",
+        "ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED",
+        "ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME",
+        "ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED",
         "ERR_EXTRACT_JSON_MALFORMED",
         "ERR_EXTRACT_JSON_DUPLICATE_KEY",
         "ERR_EXTRACT_JSON_PATH_MISSING",
@@ -209,7 +216,7 @@ def test_extraction_fails_closed_for_unsupported_syntax() -> None:
             "<root>yes</root>",
         )
 
-    assert caught.value.code == "ERR_EXTRACT_UNSUPPORTED"
+    assert caught.value.code == "ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED"
     assert caught.value.diagnostic_kind == "unsupported"
     assert caught.value.diagnostic_message
     assert caught.value.recovery_hints
@@ -530,8 +537,8 @@ def test_extraction_corpus_covers_comments_static_text_and_conflicting_occurrenc
 @pytest.mark.parametrize(
     ("fixture", "code"),
     [
-        ("unsupported-filter", "ERR_EXTRACT_UNSUPPORTED"),
-        ("namespace", "ERR_EXTRACT_UNSUPPORTED"),
+        ("unsupported-filter", "ERR_EXTRACT_TEMPLATE_UNSUPPORTED"),
+        ("namespace", "ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED"),
         ("ambiguous-adjacent", "ERR_EXTRACT_AMBIGUOUS"),
     ],
 )
@@ -550,7 +557,7 @@ def test_xml_block_dynamic_element_names_are_rejected() -> None:
     with pytest.raises(sc_compose.ScConfigError) as caught:
         sc_compose.extract_variables(template, rendered)
 
-    assert caught.value.code == "ERR_EXTRACT_UNSUPPORTED"
+    assert caught.value.code == "ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME"
     assert "dynamic XML element names" in str(caught.value)
 
 
