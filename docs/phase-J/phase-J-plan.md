@@ -1,7 +1,7 @@
 ---
 id: phase-J
 title: Repowise Hot-Spot Maintainability Cleanup
-status: planned
+status: complete
 branch: integrate/phase-j
 worktree: ../sc-compose-worktrees/integrate/phase-j
 target: develop
@@ -188,8 +188,11 @@ Phase J is complete only when:
   report as a non-blocking diagnostic. A score that does not improve cannot by
   itself fail closure because scan timing is outside sprint control; a concrete
   regression found by that scan must be assigned before closeout.
-- TODO (quality-mgr phase_ending_review): record the fresh Repowise scan and
-  flip this phase plan's final status after that review completes.
+- Phase-ending review passed with all five reviewers, 541/541 tests, and CI
+  9/9 ([PR #233 QA comment](https://github.com/randlee/sc-compose/pull/233#issuecomment-5184011987)).
+  The Repowise index refresh remains an outstanding separately tracked
+  follow-up: the index is stale at `252f283`, predating all Phase J merges,
+  and no rescan-trigger tool was available to quality-mgr in that session.
 
 ### Production-NLOC decomposition evidence
 
