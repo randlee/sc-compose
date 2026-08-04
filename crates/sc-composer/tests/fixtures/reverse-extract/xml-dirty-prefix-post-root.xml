@@ -1,2 +1,2 @@
 service response
-<root><value>Ada</value></root> trailing text
+<root><value>Ada</value></root><!-- after root -->
