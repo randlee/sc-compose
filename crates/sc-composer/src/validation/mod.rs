@@ -1,18 +1,14 @@
 //! Variable discovery and validation semantics.
 
+mod diagnostics;
+mod required_paths;
 mod state;
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use crate::ExpandedTemplate;
-use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
-use crate::discovery::discover_tokens;
-use crate::frontmatter::parse_template_document;
-use crate::types::{
-    ComposeRequest, InputValue, UnknownVariablePolicy, ValidationReport, VariableName,
-    VariableSource,
-};
+use crate::types::{ComposeRequest, InputValue, ValidationReport, VariableName, VariableSource};
 
 /// Built-in render-context variable names injected for every render.
 pub const BUILTIN_VARIABLE_NAMES: [&str; 5] = [
@@ -22,20 +18,6 @@ pub const BUILTIN_VARIABLE_NAMES: [&str; 5] = [
     "RENDER_DATE",
     "RENDER_TIMESTAMP",
 ];
-
-#[derive(Debug, PartialEq, Eq)]
-enum RequiredPathStatus {
-    Satisfied,
-    MissingTopLevel,
-    MissingNested { missing_path: String },
-    ShapeMismatch { at_path: String },
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct SourceLocation {
-    line: usize,
-    column: usize,
-}
 
 #[derive(Debug, Default)]
 pub(crate) struct ValidationState {
@@ -60,50 +42,11 @@ pub(crate) fn validate_expanded(
 ) -> (ValidationReport, ValidationState) {
     let state = collect_validation_state(request, expanded);
 
-    let mut warnings = Vec::new();
-    let mut errors = Vec::new();
-
-    if expanded.text.trim().is_empty() {
-        errors.push(
-            Diagnostic::new(
-                DiagnosticSeverity::Error,
-                DiagnosticCode::ErrValEmpty,
-                "template body is empty",
-            )
-            .with_path(resolve_result.resolved_path.clone()),
-        );
-    }
-
-    warnings.extend(missing_frontmatter_warnings(&resolve_result, expanded));
-    warnings.extend(frontmatter_diagnostics(expanded));
-    warnings.extend(default_usage_diagnostics(&state));
-    errors.extend(missing_required_path_diagnostics(&state));
-
-    for variable in undeclared_referenced_variables(&state) {
-        let diagnostic = Diagnostic::new(
-            if request.policy.strict_undeclared_variables {
-                DiagnosticSeverity::Error
-            } else {
-                DiagnosticSeverity::Warning
-            },
-            DiagnosticCode::ErrValUndeclaredToken,
-            format!("undeclared referenced token: {variable}"),
-        )
-        .with_path(resolve_result.resolved_path.clone());
-
-        if request.policy.strict_undeclared_variables {
-            errors.push(diagnostic);
-        } else {
-            warnings.push(diagnostic);
-        }
-    }
-
-    push_extra_input_diagnostics(
+    let (warnings, errors) = diagnostics::collect_policy_diagnostics(
         request,
-        &state,
+        expanded,
         &resolve_result.resolved_path,
-        &mut warnings,
-        &mut errors,
+        &state,
     );
 
     (
@@ -117,408 +60,6 @@ pub(crate) fn validate_expanded(
     )
 }
 
-fn missing_required_path_diagnostics(state: &ValidationState) -> Vec<Diagnostic> {
-    let mut diagnostics = Vec::new();
-
-    for (variable, origin) in &state.required_origins {
-        let include_chain = state
-            .required_include_chains
-            .get(variable)
-            .cloned()
-            .unwrap_or_default();
-        match validate_required_path(&state.context, variable) {
-            RequiredPathStatus::Satisfied => {}
-            RequiredPathStatus::MissingTopLevel => {
-                diagnostics.push(missing_required_diagnostic(origin, variable, include_chain));
-            }
-            RequiredPathStatus::MissingNested { missing_path } => {
-                diagnostics.push(required_path_diagnostic(
-                    DiagnosticCode::ErrValMissingNestedField,
-                    origin,
-                    variable,
-                    format!("missing required nested field: {missing_path}"),
-                    include_chain,
-                ));
-            }
-            RequiredPathStatus::ShapeMismatch { at_path } => {
-                diagnostics.push(required_path_diagnostic(
-                    DiagnosticCode::ErrValShapeMismatch,
-                    origin,
-                    variable,
-                    format!(
-                        "required nested field path {variable} expected an object at {at_path}"
-                    ),
-                    include_chain,
-                ));
-            }
-        }
-    }
-
-    diagnostics
-}
-
-fn push_extra_input_diagnostics(
-    request: &ComposeRequest,
-    state: &ValidationState,
-    resolved_path: &Path,
-    warnings: &mut Vec<Diagnostic>,
-    errors: &mut Vec<Diagnostic>,
-) {
-    let declared_or_referenced = top_level_boundary_names(
-        state
-            .declared_variables
-            .union(&state.referenced_variables)
-            .cloned()
-            .collect::<BTreeSet<_>>(),
-    );
-    let provided_variables = top_level_boundary_names(
-        request
-            .vars_input
-            .keys()
-            .chain(request.vars_env.keys())
-            .cloned()
-            .collect::<BTreeSet<_>>(),
-    );
-
-    for variable in provided_variables
-        .difference(&declared_or_referenced)
-        .cloned()
-        .collect::<Vec<_>>()
-    {
-        let diagnostic = Diagnostic::new(
-            match request.policy.unknown_variable_policy {
-                UnknownVariablePolicy::Error => DiagnosticSeverity::Error,
-                UnknownVariablePolicy::Warn => DiagnosticSeverity::Warning,
-                UnknownVariablePolicy::Ignore => continue,
-            },
-            DiagnosticCode::ErrValExtraInput,
-            format!("extra provided variable: {variable}"),
-        )
-        .with_path(resolved_path.to_path_buf());
-
-        match request.policy.unknown_variable_policy {
-            UnknownVariablePolicy::Error => errors.push(diagnostic),
-            UnknownVariablePolicy::Warn => warnings.push(diagnostic),
-            UnknownVariablePolicy::Ignore => {}
-        }
-    }
-}
-
-fn missing_frontmatter_warnings(
-    resolve_result: &crate::ResolveResult,
-    expanded: &ExpandedTemplate,
-) -> Vec<Diagnostic> {
-    expanded
-        .frontmatters
-        .iter()
-        .filter_map(|(path, frontmatters)| {
-            if !frontmatters.is_empty() || !file_references_variables(path) {
-                return None;
-            }
-            let message = if *path == resolve_result.resolved_path {
-                format!(
-                    "root template has no frontmatter; run `sc-compose frontmatter-init {}`",
-                    resolve_result.resolved_path.display()
-                )
-            } else {
-                format!(
-                    "included file has no frontmatter; run `sc-compose frontmatter-init {}`",
-                    path.display()
-                )
-            };
-            Some(
-                Diagnostic::new(
-                    DiagnosticSeverity::Warning,
-                    DiagnosticCode::ErrValMissingFrontmatter,
-                    message,
-                )
-                .with_path(path.clone()),
-            )
-        })
-        .collect()
-}
-
-fn file_references_variables(path: &Path) -> bool {
-    let Ok(raw) = std::fs::read_to_string(path) else {
-        return false;
-    };
-    let Ok(parsed) = parse_template_document(&raw) else {
-        return false;
-    };
-    !discover_tokens(parsed.body()).is_empty()
-}
-
-fn frontmatter_diagnostics(expanded: &ExpandedTemplate) -> Vec<Diagnostic> {
-    expanded
-        .frontmatters
-        .iter()
-        .flat_map(|(path, frontmatters)| {
-            frontmatters
-                .iter()
-                .flat_map(|frontmatter| frontmatter.diagnostics().iter())
-                .cloned()
-                .map(|diagnostic| {
-                    if diagnostic.path.is_some() {
-                        diagnostic
-                    } else {
-                        diagnostic.with_path(path.clone())
-                    }
-                })
-        })
-        .collect()
-}
-
-fn default_usage_diagnostics(state: &ValidationState) -> Vec<Diagnostic> {
-    state
-        .variable_sources
-        .iter()
-        .filter_map(|(variable, source)| {
-            if !matches!(
-                source,
-                VariableSource::TemplateInputDefault
-                    | VariableSource::FrontmatterDefault
-                    | VariableSource::IncludedDefault
-            ) {
-                return None;
-            }
-            let used_by_reference = default_used_by_reference(state, variable);
-            let used_by_required = state
-                .required_origins
-                .keys()
-                .any(|required| default_satisfies_path(variable, required));
-            if !used_by_reference && !used_by_required {
-                return None;
-            }
-
-            let value = state.context.get(variable)?;
-            let value_json =
-                serde_json::to_string(value).unwrap_or_else(|_| "<unprintable>".to_owned());
-            let diagnostic = Diagnostic::new(
-                DiagnosticSeverity::Info,
-                DiagnosticCode::InfoValDefaultUsed,
-                format!("variable {variable} not provided, using default: {value_json}"),
-            );
-
-            Some(match source {
-                VariableSource::FrontmatterDefault | VariableSource::IncludedDefault => {
-                    if let Some(path) = state.default_origins.get(variable).and_then(Clone::clone) {
-                        diagnostic.with_path(path)
-                    } else {
-                        diagnostic
-                    }
-                }
-                VariableSource::TemplateInputDefault => diagnostic,
-                VariableSource::ExplicitInput
-                | VariableSource::Environment
-                | VariableSource::Builtin => unreachable!(),
-            })
-        })
-        .collect()
-}
-
-fn undeclared_referenced_variables(state: &ValidationState) -> Vec<VariableName> {
-    let Some(referenced_variables_by_pass) = per_pass_referenced_variables(state) else {
-        return state
-            .referenced_variables
-            .difference(&state.declared_variables)
-            .cloned()
-            .collect();
-    };
-
-    referenced_variables_by_pass
-        .iter()
-        .flat_map(|(pass_number, variables)| {
-            let declared = state
-                .declared_variables_by_pass
-                .get(pass_number)
-                .unwrap_or(&state.declared_variables);
-            variables.difference(declared).cloned()
-        })
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect()
-}
-
-fn default_used_by_reference(state: &ValidationState, variable: &VariableName) -> bool {
-    let Some(referenced_variables_by_pass) = per_pass_referenced_variables(state) else {
-        return state
-            .referenced_variables
-            .iter()
-            .any(|referenced| default_satisfies_path(variable, referenced));
-    };
-
-    if let Some(pass_numbers) = state.default_pass_numbers.get(variable) {
-        return pass_numbers.iter().any(|pass_number| {
-            referenced_variables_by_pass
-                .get(pass_number)
-                .into_iter()
-                .flatten()
-                .any(|referenced| default_satisfies_path(variable, referenced))
-        });
-    }
-
-    referenced_variables_by_pass
-        .values()
-        .flatten()
-        .any(|referenced| default_satisfies_path(variable, referenced))
-}
-
-fn default_satisfies_path(default_variable: &VariableName, referenced: &VariableName) -> bool {
-    referenced == default_variable
-        || referenced
-            .as_str()
-            .strip_prefix(default_variable.as_str())
-            .is_some_and(|suffix| suffix.starts_with('.'))
-}
-
-fn per_pass_referenced_variables(
-    state: &ValidationState,
-) -> Option<&BTreeMap<usize, BTreeSet<VariableName>>> {
-    (!state.referenced_variables_by_pass.is_empty()).then_some(&state.referenced_variables_by_pass)
-}
-
-fn missing_required_diagnostic(
-    origin: &Path,
-    variable: &VariableName,
-    include_chain: Vec<PathBuf>,
-) -> Diagnostic {
-    let diagnostic = Diagnostic::new(
-        DiagnosticSeverity::Error,
-        DiagnosticCode::ErrValMissingRequired,
-        format!("missing required variable: {variable}"),
-    )
-    .with_path(origin.to_path_buf())
-    .with_include_chain(include_chain);
-    match required_variable_location(origin, variable.as_str()) {
-        Some(location) => diagnostic.with_location(location.line, location.column),
-        None => diagnostic,
-    }
-}
-
-fn required_path_diagnostic(
-    code: DiagnosticCode,
-    origin: &Path,
-    variable: &VariableName,
-    message: String,
-    include_chain: Vec<PathBuf>,
-) -> Diagnostic {
-    let diagnostic = Diagnostic::new(DiagnosticSeverity::Error, code, message)
-        .with_path(origin.to_path_buf())
-        .with_include_chain(include_chain);
-    match required_variable_location(origin, variable.as_str()) {
-        Some(location) => diagnostic.with_location(location.line, location.column),
-        None => diagnostic,
-    }
-}
-
-fn validate_required_path(
-    context: &BTreeMap<VariableName, InputValue>,
-    variable: &VariableName,
-) -> RequiredPathStatus {
-    let path = variable.as_str();
-    let mut segments = path.split('.');
-    let Some(first) = segments.next() else {
-        return RequiredPathStatus::MissingTopLevel;
-    };
-    let Ok(top_level) = VariableName::new(first) else {
-        return RequiredPathStatus::MissingTopLevel;
-    };
-    let Some(current) = context.get(&top_level) else {
-        return RequiredPathStatus::MissingTopLevel;
-    };
-    let remaining_segments = segments.collect::<Vec<_>>();
-    validate_required_value(current, &remaining_segments, first)
-}
-
-fn validate_required_value(
-    current: &serde_json::Value,
-    segments: &[&str],
-    traversed: &str,
-) -> RequiredPathStatus {
-    let Some((segment, rest)) = segments.split_first() else {
-        return RequiredPathStatus::Satisfied;
-    };
-
-    match current {
-        serde_json::Value::Object(map) => {
-            let Some(next) = map.get(*segment) else {
-                return RequiredPathStatus::MissingNested {
-                    missing_path: format!("{traversed}.{segment}"),
-                };
-            };
-            let next_path = format!("{traversed}.{segment}");
-            validate_required_value(next, rest, &next_path)
-        }
-        serde_json::Value::Array(values) => {
-            for value in values {
-                let status = validate_required_value(value, segments, traversed);
-                if !matches!(status, RequiredPathStatus::Satisfied) {
-                    return status;
-                }
-            }
-            RequiredPathStatus::Satisfied
-        }
-        _ => RequiredPathStatus::ShapeMismatch {
-            at_path: traversed.to_string(),
-        },
-    }
-}
-
-fn top_level_variable_name(variable: &VariableName) -> VariableName {
-    let top_level = variable
-        .as_str()
-        .split('.')
-        .next()
-        .unwrap_or(variable.as_str());
-    VariableName::new(top_level).unwrap_or_else(|_| variable.clone())
-}
-
-fn top_level_boundary_names(variables: BTreeSet<VariableName>) -> BTreeSet<VariableName> {
-    variables
-        .into_iter()
-        .map(|variable| top_level_variable_name(&variable))
-        .collect()
-}
-
-fn required_variable_location(path: &Path, variable: &str) -> Option<SourceLocation> {
-    let raw = std::fs::read_to_string(path).ok()?;
-    let mut in_required_variables = false;
-
-    for (index, line) in raw.lines().enumerate() {
-        let line_number = index + 1;
-        let trimmed = line.trim();
-        if index == 0 && trimmed != "---" {
-            return None;
-        }
-        if index > 0 && matches!(trimmed, "---" | "...") {
-            break;
-        }
-        if trimmed == "required_variables:" {
-            in_required_variables = true;
-            continue;
-        }
-        if !in_required_variables {
-            continue;
-        }
-        if trimmed.ends_with(':') && trimmed != "required_variables:" {
-            in_required_variables = false;
-            continue;
-        }
-        let Some(rest) = trimmed.strip_prefix("- ") else {
-            continue;
-        };
-        if rest == variable {
-            let column = line.find(variable).map_or(1, |offset| offset + 1);
-            return Some(SourceLocation {
-                line: line_number,
-                column,
-            });
-        }
-    }
-
-    None
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
@@ -529,13 +70,13 @@ mod tests {
     use serde_json::json;
 
     use crate::types::{
-        ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, ResolveResult,
-        UnknownVariablePolicy,
+        ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, UnknownVariablePolicy,
     };
     use crate::{DiagnosticCode, DiagnosticSeverity, validate};
     use crate::{ExpandedTemplate, parse_template_document};
 
-    use super::{collect_validation_state, inject_builtin_vars, missing_frontmatter_warnings};
+    use super::diagnostics::missing_frontmatter_warnings_for_path;
+    use super::{collect_validation_state, inject_builtin_vars};
 
     #[test]
     fn default_mode_preserves_undeclared_tokens_as_warnings() {
@@ -953,12 +494,8 @@ mod tests {
         write_file(&root_template, "---\nrequired_variables:\n  - name\n---\n");
         write_file(&root.join("partials/body.md.j2"), "hello {{ name }}\n");
 
-        let warnings = missing_frontmatter_warnings(
-            &ResolveResult {
-                resolved_path: root_template,
-                attempted_paths: Vec::new(),
-                ambiguity_candidates: Vec::new(),
-            },
+        let warnings = missing_frontmatter_warnings_for_path(
+            &root_template,
             &ExpandedTemplate {
                 text: "hello {{ name }}\n".to_owned(),
                 resolved_files: vec![
@@ -1290,7 +827,7 @@ mod tests {
 
     #[test]
     fn discover_tokens_attributes_loop_body_references_to_iterable() {
-        let tokens = super::discover_tokens(
+        let tokens = crate::discovery::discover_tokens(
             "{% for sprint in sprints %}{{ sprint.id }} {{ report.title }}{% endfor %}",
         );
 
@@ -1302,7 +839,7 @@ mod tests {
 
     #[test]
     fn discover_tokens_handles_nested_loops_with_separate_scopes() {
-        let tokens = super::discover_tokens(
+        let tokens = crate::discovery::discover_tokens(
             "{% for sprint in sprints %}{% for finding in sprint_findings %}{{ finding.id }} {{ sprint.title }} {{ report.url }}{% endfor %}{% endfor %}",
         );
 
@@ -1317,7 +854,7 @@ mod tests {
 
     #[test]
     fn discover_tokens_scopes_approved_loop_context_names() {
-        let tokens = super::discover_tokens(
+        let tokens = crate::discovery::discover_tokens(
             "{% for item in items if include_item %}{{ loop }} {{ loop.index }} {{ loop.index0 }} {{ loop.revindex }} {{ loop.revindex0 }} {{ loop.first }} {{ loop.last }} {{ loop.length }} {{ loop.depth }} {{ loop.depth0 }} {{ loop.cycle(\"odd\", \"even\") }} {{ item.name }} {{ caller() }}{% endfor %}",
         );
 
@@ -1351,19 +888,20 @@ mod tests {
 
     #[test]
     fn discover_tokens_requires_loop_cycle_call_form() {
-        let call_form = super::discover_tokens(
+        let call_form = crate::discovery::discover_tokens(
             "{% for item in items %}{{ loop.cycle(\"odd\", \"even\") }}{% endfor %}",
         );
         assert!(!call_form.contains(&crate::VariableName::new("loop.cycle").unwrap()));
 
-        let bare_identifier =
-            super::discover_tokens("{% for item in items %}{{ loop.cycle }}{% endfor %}");
+        let bare_identifier = crate::discovery::discover_tokens(
+            "{% for item in items %}{{ loop.cycle }}{% endfor %}",
+        );
         assert!(bare_identifier.contains(&crate::VariableName::new("loop.cycle").unwrap()));
     }
 
     #[test]
     fn discover_tokens_keeps_loop_outside_scope_and_rejects_lookalikes() {
-        let tokens = super::discover_tokens(
+        let tokens = crate::discovery::discover_tokens(
             "{{ loop.last }} {% for item in items %}{{ loop.anything }} {{ loop.cycle_extra }} {{ item }}{% endfor %}",
         );
 
@@ -1377,7 +915,7 @@ mod tests {
 
     #[test]
     fn discover_tokens_keeps_nested_iterables_and_shadowing_scoped() {
-        let tokens = super::discover_tokens(
+        let tokens = crate::discovery::discover_tokens(
             "{% for group in groups %}{% for group in nested_groups %}{{ group.name }} {{ report.url }} {{ loop.last }}{% endfor %}{% endfor %}",
         );
 
