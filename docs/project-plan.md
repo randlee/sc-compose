@@ -574,7 +574,7 @@ Status:
   `sprint/i-5-loop-context-builtins` at `8cde64d`, with QA-2 PASS 10/10 and
   strict validation evidence;
 - I.6 YAML Merge-Key Var-File Safety: complete on
-  `sprint/i-6-yaml-merge-key-safety` at `44c0bbc`, with fail-closed Rust/CLI
+  `sprint/i-6-yaml-merge-key-safety` at `e62cfea/1232c8d`, with fail-closed Rust/CLI
   coverage, JSON and alias controls, and source-located diagnostics;
 - Phase I also makes the shared H raw-text matcher customer-facing for known
   Markdown/text templates because raw text is the product use case that the
