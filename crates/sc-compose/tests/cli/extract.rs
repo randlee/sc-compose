@@ -207,6 +207,66 @@ fn extract_text_accepts_xml_declaration_comments_and_static_text_fixture() {
 }
 
 #[test]
+fn extract_text_reports_xml_dirty_prefix_recovery() {
+    let (template, rendered) = fixture("xml-dirty-prefix");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("value: \"Ada\""));
+    assert!(stdout.contains("WARN_EXTRACT_DIRTY_PREFIX_STRIPPED"));
+    assert!(stdout.contains("bytes 0.."));
+}
+
+#[test]
+fn extract_text_covers_xml_dirty_prefix_block_and_rejection_corpus() {
+    let (template, rendered) = fixture("xml-dirty-prefix-blocks");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("<code>Ada</code> and <message>accepted</message>"));
+    assert!(stdout.contains("WARN_EXTRACT_DIRTY_PREFIX_STRIPPED"));
+
+    for (name, code) in [
+        ("xml-dirty-prefix-multiple-root", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-malformed-suffix", "ERR_EXTRACT_MALFORMED"),
+        (
+            "xml-dirty-prefix-unterminated-comment",
+            "ERR_EXTRACT_MALFORMED",
+        ),
+        ("xml-dirty-prefix-unterminated-pi", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-ambiguous", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-post-root", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-doctype", "ERR_EXTRACT_UNSUPPORTED"),
+    ] {
+        let (template, rendered) = fixture(name);
+        let output = sc_compose()
+            .arg("extract")
+            .arg(template)
+            .arg(rendered)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(2), "{name}: {output:?}");
+        assert!(
+            String::from_utf8_lossy(&output.stderr).contains(code),
+            "{name}: expected {code}, got {:?}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+}
+
+#[test]
 fn extract_text_xml_block_format_emits_canonical_content_source() {
     let (template, rendered) = fixture("xml-blocks");
     let output = sc_compose()

@@ -1,0 +1,3 @@
+service response
+<?trace id="42"
+<root><value>Ada</value></root>

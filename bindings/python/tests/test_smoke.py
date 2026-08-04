@@ -132,6 +132,7 @@ def test_import_surface_exposes_c2_api() -> None:
         "ERR_EXTRACT_TOML_SHAPE_MISMATCH",
         "ERR_EXTRACT_TOML_VALUE_UNSUPPORTED",
         "ERR_EXTRACT_TOML_AMBIGUOUS",
+        "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED",
     ]:
         assert getattr(sc_compose.DiagnosticCode, code) == code
 
@@ -532,6 +533,51 @@ def test_extraction_corpus_covers_comments_static_text_and_conflicting_occurrenc
         "WARN_EXTRACT_LOW_CONFIDENCE",
         "ERR_EXTRACT_AMBIGUOUS",
     ]
+
+
+def test_xml_dirty_prefix_recovery_reaches_python_with_span_detail() -> None:
+    template, rendered = fixture_pair("xml-dirty-prefix")
+    report = sc_compose.extract_variables(template, rendered)
+
+    assert report.values == {"value": "Ada"}
+    warning = next(
+        diagnostic
+        for diagnostic in report.diagnostics
+        if diagnostic.code == "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED"
+    )
+    assert "bytes 0.." in warning.message
+    assert "line 2, column 1" in warning.message
+
+
+def test_xml_dirty_prefix_and_block_content_are_composable() -> None:
+    template, rendered = fixture_pair("xml-dirty-prefix-blocks")
+    report = sc_compose.extract_variables(template, rendered)
+
+    assert report.values == {
+        "content": "<code>Ada</code> and <message>accepted</message>"
+    }
+
+
+@pytest.mark.parametrize(
+    ("fixture", "code"),
+    [
+        ("xml-dirty-prefix-multiple-root", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-malformed-suffix", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-unterminated-comment", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-unterminated-pi", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-ambiguous", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-post-root", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-doctype", "ERR_EXTRACT_UNSUPPORTED"),
+    ],
+)
+def test_xml_dirty_prefix_rejection_corpus_reaches_python(
+    fixture: str, code: str
+) -> None:
+    template, rendered = fixture_pair(fixture)
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(template, rendered)
+
+    assert caught.value.code == code
 
 
 @pytest.mark.parametrize(
