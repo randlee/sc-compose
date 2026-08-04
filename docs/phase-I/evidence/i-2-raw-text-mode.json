@@ -1,11 +1,11 @@
 {
   "schema_version": "phase-i2-raw-text-mode/v1",
   "sprint": "I.2",
-  "baseline_commit": "5ce0a7c",
+  "baseline_commit": "31537ae",
   "pull_request": "https://github.com/randlee/sc-compose/pull/215",
   "ci_evidence": {
     "source": "phase-i-2 QA final report",
-    "commit": "5ce0a7c",
+    "commit": "31537ae",
     "checks": "all 9 pull-request checks succeeded",
     "local_commands": [
       "cargo fmt --all --check",
