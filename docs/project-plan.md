@@ -503,9 +503,10 @@ Unnumbered Phase F follow-on work:
 
 Status:
 
-- planned follow-on work for a known-template, XML-first `sc-compose extract`
-  feature informed by prior reverse-extraction research, with Python as a
-  first-class customer surface
+- complete: a known-template, XML-first `sc-compose extract` feature informed
+  by prior reverse-extraction research, with Python as a first-class customer
+  surface. G.1 through G.7 landed; the G.6 adversarial-evidence campaign
+  reports all required gates PASS with no unresolved candidates.
 
 Sprint entries:
 

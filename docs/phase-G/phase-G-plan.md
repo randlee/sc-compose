@@ -1,7 +1,7 @@
 ---
 id: phase-G
 title: Reverse Template Extraction
-status: planned
+status: complete
 branch: integrate/phase-g
 worktree: ../sc-compose-worktrees/integrate/phase-g
 target: develop

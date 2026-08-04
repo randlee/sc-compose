@@ -170,7 +170,7 @@ examples.
 | MSRV | Rust 1.94.1 |
 | Rust edition | 2024 |
 | Platforms | macOS, Linux, Windows |
-| Stability | stable 1.x release line |
+| Stability | stable 1.3 release line |
 
 ---
 
