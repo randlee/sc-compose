@@ -11,7 +11,7 @@
   "validation": {
     "ci": {
       "pull_request": "https://github.com/randlee/sc-compose/pull/216",
-      "commit": "31ea5ee",
+      "commit": "a3c0ce1",
       "checks": "all 9 pull-request checks succeeded"
     },
     "local_commands": [
