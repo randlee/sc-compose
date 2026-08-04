@@ -139,7 +139,7 @@ fn extract_text_maps_failures_to_usage_exit_and_actionable_stderr() {
         .output()
         .unwrap();
     assert_eq!(output.status.code(), Some(2));
-    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_EXTRACT_UNSUPPORTED"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_EXTRACT_TEMPLATE_UNSUPPORTED"));
 
     let (template, rendered) = fixture("same-variable-conflicting-occurrences");
     let output = sc_compose()
