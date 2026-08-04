@@ -32,6 +32,14 @@ fn toml_fixture(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
     )
 }
 
+fn raw_fixture(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
+    let root = repo_root().join("crates/sc-composer/tests/fixtures/reverse-extract");
+    (
+        root.join(format!("{name}.raw.j2")),
+        root.join(format!("{name}.raw")),
+    )
+}
+
 #[test]
 fn extract_json_is_a_clean_envelope_with_values_and_provenance() {
     let (template, rendered) = fixture("attributes");
@@ -102,7 +110,7 @@ fn extract_json_preserves_filters_empty_values_and_warnings() {
 fn extract_json_maps_expected_failures_without_logs_or_backtraces() {
     let cases = [
         ("malformed", "ERR_EXTRACT_MALFORMED"),
-        ("unsupported-filter", "ERR_EXTRACT_UNSUPPORTED"),
+        ("unsupported-filter", "ERR_EXTRACT_TEMPLATE_UNSUPPORTED"),
     ];
     for (name, code) in cases {
         let (template, rendered) = fixture(name);
@@ -152,6 +160,29 @@ fn extract_json_maps_expected_failures_without_logs_or_backtraces() {
 }
 
 #[test]
+fn extract_json_rejects_xml_block_dynamic_element_names() {
+    let (template, rendered) = fixture("xml-block-dynamic-name");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_first_code(&value, "ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME");
+    assert!(
+        value["diagnostics"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("dynamic XML element names")
+    );
+}
+
+#[test]
 fn extract_json_accepts_xml_declaration_comments_and_static_text_fixture() {
     let (template, rendered) = fixture("declaration-comments");
     let output = sc_compose()
@@ -170,6 +201,83 @@ fn extract_json_accepts_xml_declaration_comments_and_static_text_fixture() {
         value["payload"]["warnings"].as_array().map(Vec::len),
         Some(0)
     );
+}
+
+#[test]
+fn extract_json_reports_xml_dirty_prefix_recovery() {
+    let (template, rendered) = fixture("xml-dirty-prefix");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_eq!(value["payload"]["values"]["value"], "Ada");
+    assert_eq!(
+        value["payload"]["warnings"][0]["code"],
+        "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED"
+    );
+    assert!(
+        value["payload"]["warnings"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("bytes 0..")
+    );
+}
+
+#[test]
+fn extract_json_covers_xml_dirty_prefix_block_and_rejection_corpus() {
+    let (template, rendered) = fixture("xml-dirty-prefix-blocks");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_eq!(
+        value["payload"]["values"]["content"],
+        "<code>Ada</code> and <message>accepted</message>"
+    );
+    assert_eq!(
+        value["payload"]["warnings"][0]["code"],
+        "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED"
+    );
+
+    for (name, code) in [
+        ("xml-dirty-prefix-multiple-root", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-malformed-suffix", "ERR_EXTRACT_MALFORMED"),
+        (
+            "xml-dirty-prefix-unterminated-comment",
+            "ERR_EXTRACT_MALFORMED",
+        ),
+        ("xml-dirty-prefix-unterminated-pi", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-ambiguous", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-post-root", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-doctype", "ERR_EXTRACT_UNSUPPORTED"),
+    ] {
+        let (template, rendered) = fixture(name);
+        let output = sc_compose()
+            .arg("extract")
+            .arg(template)
+            .arg(rendered)
+            .arg("--json")
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(2), "{name}: {output:?}");
+        assert!(output.stderr.is_empty());
+        let value = parse_stdout(&output);
+        assert_first_code(&value, code);
+    }
 }
 
 #[test]
@@ -298,4 +406,95 @@ fn extract_json_toml_format_emits_paths_sources_and_clean_envelope() {
     assert_eq!(occurrence["path"][0]["kind"], "table_key");
     assert_eq!(occurrence["path"][1]["kind"], "array_index");
     assert_eq!(occurrence["path"][2]["kind"], "table_key");
+}
+
+#[test]
+fn extract_json_raw_format_emits_text_spans_and_clean_envelope() {
+    let (template, rendered) = raw_fixture("markdown");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--format")
+        .arg("raw")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["format"], "raw");
+    assert_eq!(value["payload"]["values"]["title"], "Launch Plan");
+    let occurrence = value["payload"]["occurrences"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|occurrence| occurrence["variable"] == "title")
+        .unwrap();
+    assert_eq!(occurrence["source"]["kind"], "text_span");
+    assert_eq!(occurrence["path"][0]["byte_start"], 2);
+    assert_eq!(occurrence["path"][0]["byte_end"], 13);
+    assert_eq!(occurrence["path"][0]["line"], 1);
+    assert_eq!(occurrence["path"][0]["column"], 3);
+}
+
+#[test]
+fn extract_json_xml_block_format_emits_canonical_content_source() {
+    let (template, rendered) = fixture("xml-blocks");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["format"], "xml");
+    assert_eq!(
+        value["payload"]["values"]["description"],
+        "Fix the XML extractor in <code>sc-compose</code> and preserve &amp; review evidence."
+    );
+    let occurrence = value["payload"]["occurrences"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|occurrence| occurrence["variable"] == "references")
+        .unwrap();
+    assert_eq!(occurrence["source"]["kind"], "element_content");
+    assert_eq!(
+        occurrence["rendered_text"],
+        value["payload"]["values"]["references"]
+    );
+}
+
+#[test]
+fn extract_json_raw_format_maps_static_mismatch_to_unsupported() {
+    let (template, rendered) = raw_fixture("markdown-static-mismatch");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--format")
+        .arg("raw")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(output.stderr.is_empty(), "JSON must remain stdout-clean");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_EXTRACT_UNSUPPORTED");
+    assert!(
+        value["diagnostics"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("rendered static content does not match")
+    );
 }

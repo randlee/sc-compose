@@ -91,6 +91,14 @@ class DiagnosticCode:
     ERR_EXTRACT_INVALID_REQUEST: str
     ERR_EXTRACT_MALFORMED: str
     ERR_EXTRACT_UNSUPPORTED: str
+    ERR_EXTRACT_TEMPLATE_UNSUPPORTED: str
+    ERR_EXTRACT_XML_ELEMENT_MISMATCH: str
+    ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH: str
+    ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH: str
+    ERR_EXTRACT_XML_STATIC_MISMATCH: str
+    ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED: str
+    ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME: str
+    ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED: str
     ERR_EXTRACT_AMBIGUOUS: str
     ERR_EXTRACT_FORMAT_UNSUPPORTED: str
     ERR_EXTRACT_JSON_MALFORMED: str
@@ -116,6 +124,7 @@ class DiagnosticCode:
     ERR_EXTRACT_TOML_AMBIGUOUS: str
     WARN_EXTRACT_NOT_OBSERVED: str
     WARN_EXTRACT_LOW_CONFIDENCE: str
+    WARN_EXTRACT_DIRTY_PREFIX_STRIPPED: str
 
 
 class VariableName:
@@ -257,6 +266,14 @@ class ExtractionPathSegment:
     def name(self) -> str: ...
     @property
     def ordinal(self) -> int | None: ...
+    @property
+    def byte_start(self) -> int | None: ...
+    @property
+    def byte_end(self) -> int | None: ...
+    @property
+    def line(self) -> int | None: ...
+    @property
+    def column(self) -> int | None: ...
 
 
 class ExtractionOccurrence:
@@ -444,7 +461,7 @@ def extract_variables(
     template: str,
     rendered: str,
     *,
-    format: Literal["xml", "json", "yaml", "toml"] = "xml",
+    format: Literal["xml", "json", "yaml", "toml", "raw"] = "xml",
     include: list[str] | None = None,
     exclude: list[str] | None = None,
 ) -> ExtractionReport: ...

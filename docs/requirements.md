@@ -1037,7 +1037,8 @@ Issue #193 records real customer use cases for JSON, YAML, and TOML rendered
 output, XML mixed-content blocks, and narrowly defined non-XML prefixes before
 rendered XML. Phase H is deliberately limited to the three file-format
 extensions: JSON, YAML, and TOML. The XML mixed-content and dirty-prefix
-findings remain named future-phase work, not Phase-H sprints.
+findings remain outside Phase H and are owned by
+[Phase I](phase-I/phase-I-plan.md).
 [ADR-0012](adrs/0012-phase-h-reverse-extraction-extension-gates.md) and [the
 Phase-H plan](phase-H/phase-H-plan.md) require each in-scope format to receive
 explicit semantics, diagnostics, and cross-surface tests before
@@ -1056,22 +1057,16 @@ owned by XML; delimiter scanning, template-segment parsing, static
 prefix/suffix matching, capture boundaries, and adjacent-variable ambiguity
 handling are shared operations. JSON, YAML, and TOML must delegate to that
 core rather than implement independent text matchers. This is an internal
-architecture seam, not a customer-facing raw-text feature in Phase H.
+architecture seam in Phase H; Phase I.2 promotes it to a customer-facing
+raw-text feature without changing the shared matcher.
 
-#### Future-Phase Reverse-Extraction Requirement (not a Phase-H sprint)
+#### Phase-H Boundary and Phase-I Follow-on
 
-A future phase may expose two customer-facing modes built on the shared core:
-
-- a best-effort/degraded-parse mode that recovers supported values from a
-  structurally modified or partially corrupt document without requiring
-  customer-authored regular expressions; and
-- a cross-format raw-text mode that matches template values in arbitrary
-  rendered text, including Markdown, as well as XML/YAML/JSON/TOML documents,
-  without failing solely because a structured document has a structural
-  defect.
-
-Neither mode is designed, exposed, or claimed as supported by Phase H. No
-numbered Phase-H sprint is reserved for these modes.
+Phase H did not expose either mode. Phase I.1 now accepts the customer-facing
+cross-format raw-text mode for known templates, including Markdown, and Phase
+I.2 owns its implementation. A best-effort/degraded-parse mode that recovers
+values from structurally modified or partially corrupt documents remains
+future work beyond Phase I and must not be inferred from the raw-text contract.
 
 #### Phase-H Closure Evidence
 
@@ -1082,8 +1077,73 @@ The H.6 campaign covers JSON, YAML, and TOML with 36/36 expected outcomes,
 including malformed and unsupported inputs as intentional boundaries. This is
 bounded local evidence from four workers because Agent Runner was unavailable;
 it is not evidence of a distributed adversarial-agent campaign. XML
-mixed-content extraction, dirty-prefix stripping, and template identification
-remain future-phase work; they are not silently treated as H.6 failures.
+mixed-content extraction and dirty-prefix stripping remain outside Phase H and
+are owned by Phase I; template identification remains future-phase work. They
+are not silently treated as H.6 failures.
+
+### Phase-I Extension Requirements
+
+Phase I.1 accepts the following follow-on requirements. They remain separate
+from the completed Phase-H delivery and are implemented by the numbered Phase-I
+sprints.
+
+### FR-17: Customer-Facing Raw-Text Extraction (Phase I.2)
+
+- `ExtractFormat::Raw`, CLI `--format raw`, and Python `format="raw"` shall
+  select one known-template, in-memory raw-text matcher.
+- Raw mode shall reuse the shared H matcher and generic extraction report;
+  it shall not parse structured formats, identify unknown templates, execute
+  Jinja, reconstruct loops, or infer source types.
+- Raw occurrences shall use `RawPathSegment` byte offsets and one-based
+  line/column evidence, with `RawExtractionSource::TextSpan` provenance.
+- Include/exclude filters shall retain the existing request semantics and
+  filtered variables shall still participate in neighboring capture matching.
+- The stable raw diagnostic set is
+  `ERR_EXTRACT_INVALID_REQUEST`, `ERR_EXTRACT_TEMPLATE_UNSUPPORTED`,
+  `ERR_EXTRACT_AMBIGUOUS`, and `WARN_EXTRACT_LOW_CONFIDENCE`.
+
+### FR-18: XML Block and Mixed-Content Extraction (Phase I.3)
+
+- A known XML element with one full-content placeholder may recover rendered
+  text and approved child markup using deterministic canonical child
+  serialization.
+- Multiple placeholders, dynamic names, control-flow reconstruction,
+  unmatched/truncated markup, multiple roots, post-root content, and unknown
+  template identification remain unsupported.
+- XML paths, source evidence, ambiguity handling, limits, CLI JSON, and Python
+  reports shall remain consistent with the existing extraction model.
+
+### FR-19: XML Dirty-Prefix Recovery (Phase I.4)
+
+- Rendered XML may contain a leading UTF-8 text/whitespace preamble before one
+  XML document. Complete comments and processing instructions in the retained
+  prolog are allowed; an XML declaration is retained only when first in that
+  prolog.
+- Only bytes before the selected root may be removed. The report shall emit
+  `WARN_EXTRACT_DIRTY_PREFIX_STRIPPED` with the removed span.
+- Unmatched/truncated prefix markup, malformed suffixes, multiple roots,
+  second documents, post-root content, and DTDs shall remain rejected.
+
+### FR-20: Jinja Loop-Context Built-ins (Phase I.5)
+
+- Strict token discovery shall treat `loop`, `loop.index`, `loop.index0`,
+  `loop.revindex`, `loop.revindex0`, `loop.first`, `loop.last`,
+  `loop.length`, `loop.depth`, `loop.depth0`, and `loop.cycle(...)` as
+  implicit only inside an active `for` scope.
+- Nested scopes shall be independent. A `loop` reference outside a `for` and
+  arbitrary dotted names shall remain subject to normal undeclared-token
+  policy.
+
+### FR-21: YAML Merge-Key Var-File Safety (Phase I.6)
+
+- YAML merge keys (`<<`) in JSON/YAML var-files shall fail closed with
+  `ERR_CONFIG_VARFILE` before tagged-value unwrapping; the diagnostic shall
+  identify the source line and column of the unsupported construct.
+- The implementation shall not partially expand merge keys or silently lose
+  inherited fields. The diagnostic shall direct callers to expand the mapping
+  explicitly, which is the portable recovery.
+- Valid JSON/YAML objects and existing duplicate-key, non-string-key, and
+  value-shape policies shall remain unchanged.
 
 ### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 

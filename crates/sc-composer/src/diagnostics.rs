@@ -109,6 +109,8 @@ pub enum DiagnosticCode {
     WarnExtractNotObserved,
     /// Extraction evidence is insufficient for a high-confidence report.
     WarnExtractLowConfidence,
+    /// Bytes were removed from an approved rendered XML preamble.
+    WarnExtractDirtyPrefixStripped,
     /// The rendered JSON input is malformed.
     ErrExtractJsonMalformed,
     /// A JSON object contains a duplicate key.
@@ -123,6 +125,20 @@ pub enum DiagnosticCode {
     ErrExtractJsonAmbiguous,
     /// A template expression is outside the supported known-template subset.
     ErrExtractTemplateUnsupported,
+    /// A rendered XML element name differs from the known template.
+    ErrExtractXmlElementMismatch,
+    /// A rendered XML attribute shape differs from the known template.
+    ErrExtractXmlAttributeMismatch,
+    /// A rendered XML child-node shape differs from the known template.
+    ErrExtractXmlChildStructureMismatch,
+    /// XML structural matching encountered a static-content mismatch.
+    ErrExtractXmlStaticMismatch,
+    /// XML control-flow syntax cannot be reversed by known-template matching.
+    ErrExtractXmlControlFlowUnsupported,
+    /// XML element names contain unsupported dynamic expressions.
+    ErrExtractXmlDynamicElementName,
+    /// XML namespaces are outside the supported unambiguous subset.
+    ErrExtractXmlNamespaceUnsupported,
     /// The requested extraction format is not supported by this surface.
     ErrExtractFormatUnsupported,
     /// The rendered YAML is malformed or not one valid document.
@@ -197,6 +213,7 @@ impl DiagnosticCode {
             Self::ErrExtractAmbiguous => "ERR_EXTRACT_AMBIGUOUS",
             Self::WarnExtractNotObserved => "WARN_EXTRACT_NOT_OBSERVED",
             Self::WarnExtractLowConfidence => "WARN_EXTRACT_LOW_CONFIDENCE",
+            Self::WarnExtractDirtyPrefixStripped => "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED",
             Self::ErrExtractJsonMalformed => "ERR_EXTRACT_JSON_MALFORMED",
             Self::ErrExtractJsonDuplicateKey => "ERR_EXTRACT_JSON_DUPLICATE_KEY",
             Self::ErrExtractJsonPathMissing => "ERR_EXTRACT_JSON_PATH_MISSING",
@@ -204,6 +221,13 @@ impl DiagnosticCode {
             Self::ErrExtractJsonValueUnsupported => "ERR_EXTRACT_JSON_VALUE_UNSUPPORTED",
             Self::ErrExtractJsonAmbiguous => "ERR_EXTRACT_JSON_AMBIGUOUS",
             Self::ErrExtractTemplateUnsupported => "ERR_EXTRACT_TEMPLATE_UNSUPPORTED",
+            Self::ErrExtractXmlElementMismatch => "ERR_EXTRACT_XML_ELEMENT_MISMATCH",
+            Self::ErrExtractXmlAttributeMismatch => "ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH",
+            Self::ErrExtractXmlChildStructureMismatch => "ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH",
+            Self::ErrExtractXmlStaticMismatch => "ERR_EXTRACT_XML_STATIC_MISMATCH",
+            Self::ErrExtractXmlControlFlowUnsupported => "ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED",
+            Self::ErrExtractXmlDynamicElementName => "ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME",
+            Self::ErrExtractXmlNamespaceUnsupported => "ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED",
             Self::ErrExtractFormatUnsupported => "ERR_EXTRACT_FORMAT_UNSUPPORTED",
             Self::ErrExtractYamlMalformed => "ERR_EXTRACT_YAML_MALFORMED",
             Self::ErrExtractYamlDuplicateKey => "ERR_EXTRACT_YAML_DUPLICATE_KEY",

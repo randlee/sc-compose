@@ -345,6 +345,11 @@ Exit gate:
     raw-text mode remain outside Phase H; they are now planned as Phase I
     work in `docs/phase-I/phase-I-plan.md`, not retroactively claimed as H
     behavior
+- FR-17 through FR-21 and Phase I:
+  - I.1 accepts the raw-text, XML recovery, loop-context, and YAML merge-key
+    contracts in ADR-0013 and the synchronized requirements/architecture docs
+  - I.2 through I.6 own runtime implementation, cross-surface parity, and
+    evidence for those accepted requirements; I.1 adds no executable code
 
 ## Production Readiness Gate
 
@@ -556,6 +561,21 @@ Status:
 - planned follow-on work for the remaining XML extraction gaps from issue #193,
   the strict-validation loop-context gap in issue #167, and the YAML var-file
   merge-key safety gap in issue #166;
+- I.1 Contract, Raw-Text Semantics, and Traceability: complete/accepted on
+  `sprint/i-1-contract-and-traceability` at `6604de7` (docs-only contract gate);
+- I.2 Customer-Facing Raw-Text Mode: complete/accepted on
+  `sprint/i-2-customer-raw-text-mode` at `ac6d62f`, with Rust, CLI, Python,
+  and Markdown/text evidence;
+- I.3 XML Block and Mixed-Content Extraction: complete/accepted on
+  `sprint/i-3-xml-block-mixed-content` at `a3c0ce1` after the QA remediation pass;
+- I.4 XML Dirty-Prefix Normalization: complete on
+  `sprint/i-4-xml-dirty-prefix` at `f3dca07`, with Rust, CLI, Python, and boundary evidence;
+- I.5 Jinja Loop-Context Built-ins: complete/accepted on
+  `sprint/i-5-loop-context-builtins` at `8cde64d`, with QA-2 PASS 10/10 and
+  strict validation evidence;
+- I.6 YAML Merge-Key Var-File Safety: complete on
+  `sprint/i-6-yaml-merge-key-safety` at `e62cfea/1232c8d`, with fail-closed Rust/CLI
+  coverage, JSON and alias controls, and source-located diagnostics;
 - Phase I also makes the shared H raw-text matcher customer-facing for known
   Markdown/text templates because raw text is the product use case that the
   format adapters alone do not provide;

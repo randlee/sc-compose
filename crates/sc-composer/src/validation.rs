@@ -9,6 +9,7 @@ use time::macros::format_description;
 
 use crate::ExpandedTemplate;
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
+use crate::discovery::{discover_all_pass_tokens, discover_tokens};
 use crate::frontmatter::{Frontmatter, parse_template_document};
 use crate::types::{
     ComposeRequest, InputValue, UnknownVariablePolicy, ValidationReport, VariableName,
@@ -35,9 +36,10 @@ enum RequiredPathStatus {
     ShapeMismatch { at_path: String },
 }
 
-#[derive(Debug, Default)]
-struct LoopScope {
-    bound_names: BTreeSet<String>,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct SourceLocation {
+    line: usize,
+    column: usize,
 }
 
 #[derive(Debug, Default)]
@@ -391,7 +393,7 @@ fn missing_required_diagnostic(
     .with_path(origin.to_path_buf())
     .with_include_chain(include_chain);
     match required_variable_location(origin, variable.as_str()) {
-        Some((line, column)) => diagnostic.with_location(line, column),
+        Some(location) => diagnostic.with_location(location.line, location.column),
         None => diagnostic,
     }
 }
@@ -407,7 +409,7 @@ fn required_path_diagnostic(
         .with_path(origin.to_path_buf())
         .with_include_chain(include_chain);
     match required_variable_location(origin, variable.as_str()) {
-        Some((line, column)) => diagnostic.with_location(line, column),
+        Some(location) => diagnostic.with_location(location.line, location.column),
         None => diagnostic,
     }
 }
@@ -481,7 +483,7 @@ fn top_level_boundary_names(variables: BTreeSet<VariableName>) -> BTreeSet<Varia
         .collect()
 }
 
-fn required_variable_location(path: &Path, variable: &str) -> Option<(usize, usize)> {
+fn required_variable_location(path: &Path, variable: &str) -> Option<SourceLocation> {
     let raw = std::fs::read_to_string(path).ok()?;
     let mut in_required_variables = false;
 
@@ -510,7 +512,10 @@ fn required_variable_location(path: &Path, variable: &str) -> Option<(usize, usi
         };
         if rest == variable {
             let column = line.find(variable).map_or(1, |offset| offset + 1);
-            return Some((line_number, column));
+            return Some(SourceLocation {
+                line: line_number,
+                column,
+            });
         }
     }
 
@@ -763,219 +768,6 @@ fn merge_frontmatter(
     }
 }
 
-/// Discover declared template variable tokens without running full validation.
-///
-/// Returns the set of variable names referenced by `text` using the standard
-/// double-brace `{{ name }}` expression delimiters.
-#[must_use]
-pub fn discover_tokens(text: &str) -> BTreeSet<VariableName> {
-    discover_tokens_with_brace_count(text, 2)
-}
-
-/// Discover declared template variable tokens for a caller-provided brace count.
-#[must_use]
-pub fn discover_tokens_with_brace_count(text: &str, brace_count: usize) -> BTreeSet<VariableName> {
-    if brace_count < 2 {
-        return BTreeSet::new();
-    }
-
-    let mut tokens = BTreeSet::new();
-    let mut scopes = Vec::<LoopScope>::new();
-    let mut cursor = text;
-    let expression_delimiters = ExpressionDelimiters::new(brace_count);
-
-    while let Some((delimiter, start)) = next_delimiter(cursor, &expression_delimiters) {
-        let start_delimiter = match delimiter {
-            Delimiter::Expression => expression_delimiters.open.as_str(),
-            Delimiter::Statement => "{%",
-        };
-        let end_delimiter = match delimiter {
-            Delimiter::Expression => expression_delimiters.close.as_str(),
-            Delimiter::Statement => "%}",
-        };
-
-        let after_start = &cursor[start + start_delimiter.len()..];
-        let end = match delimiter {
-            Delimiter::Expression => find_expression_close(after_start, end_delimiter),
-            Delimiter::Statement => after_start.find(end_delimiter),
-        };
-        let Some(end) = end else { break };
-        let expression = after_start[..end].trim();
-        match delimiter {
-            Delimiter::Expression => collect_identifiers(expression, &scopes, &mut tokens),
-            Delimiter::Statement => {
-                if let Some(loop_scope) = parse_for_loop_scope(expression, &scopes, &mut tokens) {
-                    scopes.push(loop_scope);
-                } else if expression.starts_with("endfor") {
-                    scopes.pop();
-                } else {
-                    collect_identifiers(expression, &scopes, &mut tokens);
-                }
-            }
-        }
-        cursor = &after_start[end + end_delimiter.len()..];
-    }
-    tokens
-}
-
-/// Discover tokens for every parsed pass using that pass's brace count.
-#[must_use]
-pub fn discover_all_pass_tokens(
-    parsed: &crate::frontmatter::ParsedTemplate,
-) -> BTreeMap<usize, BTreeSet<VariableName>> {
-    parsed
-        .passes()
-        .iter()
-        .map(|frontmatter| {
-            let pass_number = usize::from(frontmatter.pass_number());
-            let brace_count = pass_number + 1;
-            (
-                pass_number,
-                discover_tokens_with_brace_count(parsed.body(), brace_count),
-            )
-        })
-        .collect()
-}
-
-#[derive(Clone, Copy)]
-enum Delimiter {
-    Expression,
-    Statement,
-}
-
-struct ExpressionDelimiters {
-    open: String,
-    close: String,
-}
-
-impl ExpressionDelimiters {
-    fn new(brace_count: usize) -> Self {
-        Self {
-            open: "{".repeat(brace_count),
-            close: "}".repeat(brace_count),
-        }
-    }
-}
-
-fn next_delimiter(
-    text: &str,
-    expression_delimiters: &ExpressionDelimiters,
-) -> Option<(Delimiter, usize)> {
-    match (
-        find_expression_open(text, expression_delimiters.open.as_str()),
-        text.find("{%"),
-    ) {
-        (Some(expression), Some(statement)) if expression <= statement => {
-            Some((Delimiter::Expression, expression))
-        }
-        (Some(_) | None, Some(statement)) => Some((Delimiter::Statement, statement)),
-        (Some(expression), None) => Some((Delimiter::Expression, expression)),
-        (None, None) => None,
-    }
-}
-
-fn find_expression_open(text: &str, open_delimiter: &str) -> Option<usize> {
-    find_exact_delimiter(text, open_delimiter, b'{')
-}
-
-fn find_expression_close(text: &str, close_delimiter: &str) -> Option<usize> {
-    find_exact_delimiter(text, close_delimiter, b'}')
-}
-
-fn find_exact_delimiter(text: &str, delimiter: &str, repeated_byte: u8) -> Option<usize> {
-    let mut cursor = 0usize;
-    while cursor < text.len() {
-        let found = text[cursor..].find(delimiter)?;
-        let absolute = cursor + found;
-        let after = absolute + delimiter.len();
-        if text
-            .as_bytes()
-            .get(after)
-            .is_some_and(|byte| *byte == repeated_byte)
-        {
-            cursor = after;
-            continue;
-        }
-        return Some(absolute);
-    }
-    None
-}
-
-fn parse_for_loop_scope(
-    expression: &str,
-    scopes: &[LoopScope],
-    tokens: &mut BTreeSet<VariableName>,
-) -> Option<LoopScope> {
-    let trimmed = expression.trim();
-    let remainder = trimmed.strip_prefix("for ")?;
-    let (binding, iterable) = remainder.split_once(" in ")?;
-    collect_identifiers(iterable, scopes, tokens);
-
-    let bound_names = binding
-        .split(',')
-        .filter_map(|candidate| {
-            let candidate = candidate
-                .trim()
-                .trim_matches(|character: char| matches!(character, '(' | ')'));
-            if candidate.is_empty() {
-                return None;
-            }
-            let root = candidate.split('.').next().unwrap_or(candidate);
-            Some(root.to_string())
-        })
-        .collect();
-    Some(LoopScope { bound_names })
-}
-
-fn collect_identifiers(
-    expression: &str,
-    scopes: &[LoopScope],
-    tokens: &mut BTreeSet<VariableName>,
-) {
-    const KEYWORDS: &[&str] = &[
-        "if",
-        "else",
-        "elif",
-        "endif",
-        "for",
-        "endfor",
-        "in",
-        "set",
-        "true",
-        "false",
-        "none",
-        "not",
-        "and",
-        "or",
-        "block",
-        "endblock",
-        "macro",
-        "endmacro",
-        "filter",
-        "endfilter",
-    ];
-
-    let bound_names = scopes
-        .iter()
-        .flat_map(|scope| scope.bound_names.iter().map(String::as_str))
-        .collect::<BTreeSet<_>>();
-
-    for candidate in expression.split(|character: char| {
-        !(character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.'))
-    }) {
-        if candidate.is_empty() || KEYWORDS.contains(&candidate) {
-            continue;
-        }
-        let root = candidate.split('.').next().unwrap_or(candidate);
-        if bound_names.contains(root) {
-            continue;
-        }
-        if let Ok(variable) = VariableName::new(candidate) {
-            tokens.insert(variable);
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
@@ -1034,6 +826,98 @@ mod tests {
 
         assert!(!report.ok);
         assert_eq!(report.errors[0].code, DiagnosticCode::ErrValUndeclaredToken);
+    }
+
+    #[test]
+    fn strict_mode_accepts_approved_loop_context_builtins() {
+        let root = temp_root("validation_loop_context");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - items\n---\n{% for item in items %}{{ loop }} {{ loop.index }} {{ loop.index0 }} {{ loop.revindex }} {{ loop.revindex0 }} {{ loop.first }} {{ loop.last }} {{ loop.length }} {{ loop.depth }} {{ loop.depth0 }} {{ loop.cycle(\"odd\", \"even\") }}:{{ item }}{% endfor %}\n",
+        );
+
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                strict_undeclared_variables: true,
+                ..ComposePolicy::default()
+            },
+        );
+        request.vars_input.insert(
+            crate::VariableName::new("items").unwrap(),
+            json!(["one", "two"]),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(
+            !report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.message.contains("loop."))
+        );
+    }
+
+    #[test]
+    fn strict_mode_accepts_nested_loop_context_and_shadowed_bindings() {
+        let root = temp_root("validation_nested_loop_context");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - groups\n---\n{% for group in groups %}{{ group.name }}{% for item in group.items %}{{ group.name }}={{ item.name }}:{{ loop.depth }}:{{ loop.last }}{% endfor %}{% endfor %}\n",
+        );
+
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                strict_undeclared_variables: true,
+                ..ComposePolicy::default()
+            },
+        );
+        request.vars_input.insert(
+            crate::VariableName::new("groups").unwrap(),
+            json!([{ "name": "one", "items": [{ "name": "a" }] }]),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty());
+    }
+
+    #[test]
+    fn strict_mode_keeps_loop_outside_scope_and_lookalikes_undeclared() {
+        let root = temp_root("validation_loop_context_boundaries");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - items\n---\noutside={{ loop.last }}\n{% for item in items %}inside={{ loop.anything }}{% endfor %}\n",
+        );
+
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                strict_undeclared_variables: true,
+                ..ComposePolicy::default()
+            },
+        );
+        request
+            .vars_input
+            .insert(crate::VariableName::new("items").unwrap(), json!(["one"]));
+
+        let report = validate(&request).unwrap();
+
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUndeclaredToken
+                && diagnostic.message.contains("loop.last")
+        }));
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUndeclaredToken
+                && diagnostic.message.contains("loop.anything")
+        }));
     }
 
     #[test]
@@ -1681,9 +1565,89 @@ mod tests {
     }
 
     #[test]
+    fn discover_tokens_scopes_approved_loop_context_names() {
+        let tokens = super::discover_tokens(
+            "{% for item in items if include_item %}{{ loop }} {{ loop.index }} {{ loop.index0 }} {{ loop.revindex }} {{ loop.revindex0 }} {{ loop.first }} {{ loop.last }} {{ loop.length }} {{ loop.depth }} {{ loop.depth0 }} {{ loop.cycle(\"odd\", \"even\") }} {{ item.name }} {{ caller() }}{% endfor %}",
+        );
+
+        for expected in ["items", "include_item", "caller"] {
+            assert!(
+                tokens.contains(&crate::VariableName::new(expected).unwrap()),
+                "missing discovered token {expected}: {tokens:?}"
+            );
+        }
+        for implicit in [
+            "loop",
+            "loop.index",
+            "loop.index0",
+            "loop.revindex",
+            "loop.revindex0",
+            "loop.first",
+            "loop.last",
+            "loop.length",
+            "loop.depth",
+            "loop.depth0",
+            "loop.cycle",
+            "odd",
+            "even",
+        ] {
+            assert!(
+                !tokens.contains(&crate::VariableName::new(implicit).unwrap()),
+                "unexpected loop-context or literal token {implicit}: {tokens:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn discover_tokens_requires_loop_cycle_call_form() {
+        let call_form = super::discover_tokens(
+            "{% for item in items %}{{ loop.cycle(\"odd\", \"even\") }}{% endfor %}",
+        );
+        assert!(!call_form.contains(&crate::VariableName::new("loop.cycle").unwrap()));
+
+        let bare_identifier =
+            super::discover_tokens("{% for item in items %}{{ loop.cycle }}{% endfor %}");
+        assert!(bare_identifier.contains(&crate::VariableName::new("loop.cycle").unwrap()));
+    }
+
+    #[test]
+    fn discover_tokens_keeps_loop_outside_scope_and_rejects_lookalikes() {
+        let tokens = super::discover_tokens(
+            "{{ loop.last }} {% for item in items %}{{ loop.anything }} {{ loop.cycle_extra }} {{ item }}{% endfor %}",
+        );
+
+        for expected in ["loop.last", "loop.anything", "loop.cycle_extra"] {
+            assert!(
+                tokens.contains(&crate::VariableName::new(expected).unwrap()),
+                "missing ordinary token {expected}: {tokens:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn discover_tokens_keeps_nested_iterables_and_shadowing_scoped() {
+        let tokens = super::discover_tokens(
+            "{% for group in groups %}{% for group in nested_groups %}{{ group.name }} {{ report.url }} {{ loop.last }}{% endfor %}{% endfor %}",
+        );
+
+        for expected in ["groups", "nested_groups", "report.url"] {
+            assert!(
+                tokens.contains(&crate::VariableName::new(expected).unwrap()),
+                "missing nested-loop token {expected}: {tokens:?}"
+            );
+        }
+        for bound in ["group", "group.name", "loop.last"] {
+            assert!(
+                !tokens.contains(&crate::VariableName::new(bound).unwrap()),
+                "unexpected bound or implicit token {bound}: {tokens:?}"
+            );
+        }
+    }
+
+    #[test]
     fn discover_tokens_with_brace_count_finds_standard_and_higher_brace_tokens() {
-        let double = super::discover_tokens_with_brace_count("{{ a }}", 2);
-        let triple = super::discover_tokens_with_brace_count("{{{ a }}}", 3);
+        let double = crate::discovery::discover_tokens_with_brace_count("{{ a }}", 2);
+        let triple = crate::discovery::discover_tokens_with_brace_count("{{{ a }}}", 3);
 
         assert_eq!(double, [crate::VariableName::new("a").unwrap()].into());
         assert_eq!(triple, [crate::VariableName::new("a").unwrap()].into());
@@ -1691,18 +1655,20 @@ mod tests {
 
     #[test]
     fn discover_tokens_with_brace_count_does_not_match_lower_brace_inside_higher_brace() {
-        let tokens = super::discover_tokens_with_brace_count("{{{ outer }}} {{ inner }}", 3);
+        let tokens =
+            crate::discovery::discover_tokens_with_brace_count("{{{ outer }}} {{ inner }}", 3);
 
         assert_eq!(tokens, [crate::VariableName::new("outer").unwrap()].into());
         assert!(
-            super::discover_tokens_with_brace_count("{{ a }}", 3).is_empty(),
+            crate::discovery::discover_tokens_with_brace_count("{{ a }}", 3).is_empty(),
             "double-brace expression should not be matched by triple-brace discovery"
         );
     }
 
     #[test]
     fn discover_tokens_with_brace_count_ignores_higher_brace_when_scanning_lower_brace() {
-        let tokens = super::discover_tokens_with_brace_count("{{{ outer }}} {{ inner }}", 2);
+        let tokens =
+            crate::discovery::discover_tokens_with_brace_count("{{{ outer }}} {{ inner }}", 2);
 
         assert_eq!(tokens, [crate::VariableName::new("inner").unwrap()].into());
     }

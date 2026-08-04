@@ -9,9 +9,11 @@ use crate::types::VariableName;
 
 mod error;
 mod json;
+mod raw;
 pub(crate) mod raw_text;
 mod toml;
 mod xml;
+mod xml_prefix;
 mod yaml;
 
 #[cfg(test)]
@@ -19,6 +21,7 @@ mod tests;
 
 pub use error::ExtractError;
 pub use json::{JsonExtractionReport, JsonExtractionSource, JsonPathSegment};
+pub use raw::{RawExtractionReport, RawExtractionSource, RawPathSegment};
 pub use toml::{TomlExtractionReport, TomlExtractionSource, TomlPathSegment};
 pub use xml::{XmlExtractionOccurrence, XmlExtractionReport, XmlExtractionSource, XmlPathSegment};
 pub use yaml::{YamlExtractionReport, YamlExtractionSource, YamlPathSegment};
@@ -38,6 +41,8 @@ pub enum ExtractionPathSegment {
     Yaml(YamlPathSegment),
     /// A TOML-specific path segment.
     Toml(TomlPathSegment),
+    /// A raw-text span in the rendered source.
+    Raw(RawPathSegment),
 }
 
 /// Source evidence used by the format-dispatching entry point.
@@ -55,6 +60,8 @@ pub enum ExtractionSource {
     Yaml(YamlExtractionSource),
     /// A TOML-specific source descriptor.
     Toml(TomlExtractionSource),
+    /// A raw-text source span.
+    Raw(RawExtractionSource),
 }
 
 /// Output format supported by the initial extraction contract.
@@ -69,6 +76,8 @@ pub enum ExtractFormat {
     Yaml,
     /// Known-template TOML output.
     Toml,
+    /// Known-template raw text.
+    Raw,
 }
 
 /// In-memory request for known-template extraction.
@@ -361,6 +370,31 @@ pub fn extract(
         ExtractFormat::Json => json::extract_json(request).map(map_json_report),
         ExtractFormat::Yaml => yaml::extract_yaml(request).map(map_yaml_report),
         ExtractFormat::Toml => toml::extract_toml(request).map(map_toml_report),
+        ExtractFormat::Raw => raw::extract_raw(request).map(map_raw_report),
+    }
+}
+
+fn map_raw_report(
+    report: RawExtractionReport,
+) -> ExtractionReport<ExtractionPathSegment, ExtractionSource> {
+    ExtractionReport {
+        values: report.values,
+        occurrences: report
+            .occurrences
+            .into_iter()
+            .map(|occurrence| ExtractionOccurrence {
+                variable: occurrence.variable,
+                path: occurrence
+                    .path
+                    .into_iter()
+                    .map(ExtractionPathSegment::Raw)
+                    .collect(),
+                source: ExtractionSource::Raw(occurrence.source),
+                rendered_text: occurrence.rendered_text,
+            })
+            .collect(),
+        confidence: report.confidence,
+        diagnostics: report.diagnostics,
     }
 }
 

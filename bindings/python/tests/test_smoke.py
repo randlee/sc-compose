@@ -103,6 +103,14 @@ def test_import_surface_exposes_c2_api() -> None:
         assert getattr(sc_compose, name) is not None
     for code in [
         "ERR_EXTRACT_FORMAT_UNSUPPORTED",
+        "ERR_EXTRACT_TEMPLATE_UNSUPPORTED",
+        "ERR_EXTRACT_XML_ELEMENT_MISMATCH",
+        "ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH",
+        "ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH",
+        "ERR_EXTRACT_XML_STATIC_MISMATCH",
+        "ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED",
+        "ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME",
+        "ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED",
         "ERR_EXTRACT_JSON_MALFORMED",
         "ERR_EXTRACT_JSON_DUPLICATE_KEY",
         "ERR_EXTRACT_JSON_PATH_MISSING",
@@ -124,6 +132,7 @@ def test_import_surface_exposes_c2_api() -> None:
         "ERR_EXTRACT_TOML_SHAPE_MISMATCH",
         "ERR_EXTRACT_TOML_VALUE_UNSUPPORTED",
         "ERR_EXTRACT_TOML_AMBIGUOUS",
+        "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED",
     ]:
         assert getattr(sc_compose.DiagnosticCode, code) == code
 
@@ -183,6 +192,24 @@ def test_extraction_report_preserves_values_provenance_and_filters() -> None:
     }
 
 
+def test_xml_block_extraction_preserves_canonical_mixed_content() -> None:
+    template, rendered = fixture_pair("xml-blocks")
+
+    report = sc_compose.extract_variables(template, rendered)
+
+    assert report.values["description"] == (
+        "Fix the XML extractor in <code>sc-compose</code> and preserve "
+        "&amp; review evidence."
+    )
+    assert report.values["references"] == (
+        '<issue number="193">Gap 1</issue>'
+        "<link>https://github.com/randlee/sc-compose/issues/193</link>"
+    )
+    by_variable = {occurrence.variable: occurrence for occurrence in report.occurrences}
+    assert by_variable["references"].source.kind == "element_content"
+    assert by_variable["references"].rendered_text == report.values["references"]
+
+
 def test_extraction_fails_closed_for_unsupported_syntax() -> None:
     with pytest.raises(sc_compose.ScConfigError) as caught:
         sc_compose.extract_variables(
@@ -190,10 +217,48 @@ def test_extraction_fails_closed_for_unsupported_syntax() -> None:
             "<root>yes</root>",
         )
 
-    assert caught.value.code == "ERR_EXTRACT_UNSUPPORTED"
+    assert caught.value.code == "ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED"
     assert caught.value.diagnostic_kind == "unsupported"
     assert caught.value.diagnostic_message
     assert caught.value.recovery_hints
+
+
+def test_raw_extraction_matches_markdown_and_reports_text_spans() -> None:
+    template = "# {{ title }}\n\nOwner: {{ owner }}\n\n\\*Important\\*: {{ note }}\n"
+    rendered = "# Launch Plan\n\nOwner: Ada\n\n\\*Important\\*: review\n"
+
+    report = sc_compose.extract_variables(template, rendered, format="raw")
+
+    assert report.values == {"note": "review", "owner": "Ada", "title": "Launch Plan"}
+    assert report.diagnostics == []
+    title = report.occurrences[0]
+    assert title.variable == "title"
+    assert title.source.kind == "text_span"
+    segment = title.path[0]
+    assert segment.kind == "text_span"
+    assert (segment.byte_start, segment.byte_end) == (2, 13)
+    assert (segment.line, segment.column) == (1, 3)
+    assert report.occurrences[1].path[0].line == 3
+    assert report.occurrences[2].variable == "note"
+    assert report.occurrences[2].path[0].line == 5
+
+    included = sc_compose.extract_variables(
+        template, rendered, format="raw", include=["owner"]
+    )
+    assert included.values == {"owner": "Ada"}
+    assert [occurrence.variable for occurrence in included.occurrences] == ["owner"]
+
+
+def test_raw_extraction_preserves_shared_matcher_fail_closed_codes() -> None:
+    cases = [
+        ("Hello {{ name }}", "Goodbye Ada", "ERR_EXTRACT_UNSUPPORTED"),
+        ("{% if enabled %}{{ value }}{% endif %}", "yes", "ERR_EXTRACT_TEMPLATE_UNSUPPORTED"),
+        ("{{ first }}{{ second }}", "AdaJones", "ERR_EXTRACT_AMBIGUOUS"),
+    ]
+    for template, rendered, code in cases:
+        with pytest.raises(sc_compose.ScConfigError) as caught:
+            sc_compose.extract_variables(template, rendered, format="raw")
+        assert caught.value.code == code
 
 
 def test_json_extraction_matches_the_shared_rust_contract() -> None:
@@ -470,11 +535,56 @@ def test_extraction_corpus_covers_comments_static_text_and_conflicting_occurrenc
     ]
 
 
+def test_xml_dirty_prefix_recovery_reaches_python_with_span_detail() -> None:
+    template, rendered = fixture_pair("xml-dirty-prefix")
+    report = sc_compose.extract_variables(template, rendered)
+
+    assert report.values == {"value": "Ada"}
+    warning = next(
+        diagnostic
+        for diagnostic in report.diagnostics
+        if diagnostic.code == "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED"
+    )
+    assert "bytes 0.." in warning.message
+    assert "line 2, column 1" in warning.message
+
+
+def test_xml_dirty_prefix_and_block_content_are_composable() -> None:
+    template, rendered = fixture_pair("xml-dirty-prefix-blocks")
+    report = sc_compose.extract_variables(template, rendered)
+
+    assert report.values == {
+        "content": "<code>Ada</code> and <message>accepted</message>"
+    }
+
+
 @pytest.mark.parametrize(
     ("fixture", "code"),
     [
-        ("unsupported-filter", "ERR_EXTRACT_UNSUPPORTED"),
-        ("namespace", "ERR_EXTRACT_UNSUPPORTED"),
+        ("xml-dirty-prefix-multiple-root", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-malformed-suffix", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-unterminated-comment", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-unterminated-pi", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-ambiguous", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-post-root", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-doctype", "ERR_EXTRACT_UNSUPPORTED"),
+    ],
+)
+def test_xml_dirty_prefix_rejection_corpus_reaches_python(
+    fixture: str, code: str
+) -> None:
+    template, rendered = fixture_pair(fixture)
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(template, rendered)
+
+    assert caught.value.code == code
+
+
+@pytest.mark.parametrize(
+    ("fixture", "code"),
+    [
+        ("unsupported-filter", "ERR_EXTRACT_TEMPLATE_UNSUPPORTED"),
+        ("namespace", "ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED"),
         ("ambiguous-adjacent", "ERR_EXTRACT_AMBIGUOUS"),
     ],
 )
@@ -485,6 +595,16 @@ def test_extraction_corpus_failures_are_stable(fixture: str, code: str) -> None:
 
     assert caught.value.code == code
     assert caught.value.recovery_hints
+
+
+def test_xml_block_dynamic_element_names_are_rejected() -> None:
+    template, rendered = fixture_pair("xml-block-dynamic-name")
+
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(template, rendered)
+
+    assert caught.value.code == "ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME"
+    assert "dynamic XML element names" in str(caught.value)
 
 
 def test_repr_surface_is_informative(tmp_path: Path) -> None:
@@ -847,6 +967,51 @@ def test_d2_py_validate_catches_higher_pass_undeclared_tokens(tmp_path: Path) ->
         and "missing_team" in diagnostic.message
         for diagnostic in report.errors
     )
+
+
+def test_i5_py_validate_scopes_loop_context_builtins(tmp_path: Path) -> None:
+    write(
+        tmp_path / "loop-context.md.j2",
+        "---\n"
+        "defaults:\n"
+        "  items: [one, two]\n"
+        "---\n"
+        "{% for item in items %}"
+        "{{ loop }} {{ loop.index }} {{ loop.index0 }} "
+        "{{ loop.revindex }} {{ loop.revindex0 }} {{ loop.first }} "
+        "{{ loop.last }} {{ loop.length }} {{ loop.depth }} "
+        "{{ loop.depth0 }} {{ loop.cycle(\"odd\", \"even\") }}:{{ item }}"
+        "{% endfor %}\n",
+    )
+
+    request = make_file_request(
+        tmp_path,
+        "loop-context.md.j2",
+        policy=sc_compose.ComposePolicy(strict_undeclared_variables=True),
+    )
+    report = sc_compose.validate(request)
+    assert report.ok, report
+
+    write(
+        tmp_path / "loop-context-boundary.md.j2",
+        "---\n"
+        "defaults:\n"
+        "  items: [one]\n"
+        "---\n"
+        "outside={{ loop.last }}\n"
+        "{% for item in items %}inside={{ loop.anything }}{% endfor %}\n",
+    )
+    boundary_report = sc_compose.validate(
+        make_file_request(
+            tmp_path,
+            "loop-context-boundary.md.j2",
+            policy=sc_compose.ComposePolicy(strict_undeclared_variables=True),
+        )
+    )
+    assert not boundary_report.ok
+    messages = [diagnostic.message for diagnostic in boundary_report.errors]
+    assert any("loop.last" in message for message in messages)
+    assert any("loop.anything" in message for message in messages)
 
 
 def test_d3_py_python_surface_remains_library_only() -> None:

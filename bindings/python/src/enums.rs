@@ -146,6 +146,26 @@ impl PyDiagnosticCode {
     #[classattr]
     const ERR_EXTRACT_UNSUPPORTED: &'static str = "ERR_EXTRACT_UNSUPPORTED";
     #[classattr]
+    const ERR_EXTRACT_TEMPLATE_UNSUPPORTED: &'static str = "ERR_EXTRACT_TEMPLATE_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_XML_ELEMENT_MISMATCH: &'static str = "ERR_EXTRACT_XML_ELEMENT_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH: &'static str = "ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH: &'static str =
+        "ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_XML_STATIC_MISMATCH: &'static str = "ERR_EXTRACT_XML_STATIC_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED: &'static str =
+        "ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME: &'static str =
+        "ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME";
+    #[classattr]
+    const ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED: &'static str =
+        "ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED";
+    #[classattr]
     const ERR_EXTRACT_AMBIGUOUS: &'static str = "ERR_EXTRACT_AMBIGUOUS";
     #[classattr]
     const ERR_EXTRACT_FORMAT_UNSUPPORTED: &'static str = "ERR_EXTRACT_FORMAT_UNSUPPORTED";
@@ -195,6 +215,8 @@ impl PyDiagnosticCode {
     const WARN_EXTRACT_NOT_OBSERVED: &'static str = "WARN_EXTRACT_NOT_OBSERVED";
     #[classattr]
     const WARN_EXTRACT_LOW_CONFIDENCE: &'static str = "WARN_EXTRACT_LOW_CONFIDENCE";
+    #[classattr]
+    const WARN_EXTRACT_DIRTY_PREFIX_STRIPPED: &'static str = "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED";
 }
 
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -250,12 +272,13 @@ pub(crate) fn parse_extract_format(value: &str) -> PyResult<ExtractFormat> {
         "json" => Ok(ExtractFormat::Json),
         "yaml" => Ok(ExtractFormat::Yaml),
         "toml" => Ok(ExtractFormat::Toml),
+        "raw" => Ok(ExtractFormat::Raw),
         other => Err(crate::errors::config_error_with_recovery_hints(
             format!(
-                "unsupported extraction format `{other}`; use `xml`, `json`, `yaml`, or `toml`"
+                "unsupported extraction format `{other}`; use `xml`, `json`, `yaml`, `toml`, or `raw`"
             ),
             Some("ERR_EXTRACT_FORMAT_UNSUPPORTED"),
-            vec!["set format to `xml`, `json`, `yaml`, or `toml`".to_owned()],
+            vec!["set format to `xml`, `json`, `yaml`, `toml`, or `raw`".to_owned()],
         )),
     }
 }

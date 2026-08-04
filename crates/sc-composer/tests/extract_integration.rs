@@ -36,10 +36,90 @@ fn toml_request<'a>(template: &'a str, rendered: &'a str) -> ExtractRequest<'a> 
     ExtractRequest::new(template, rendered, ExtractFormat::Toml, &[], &[])
 }
 
+fn raw_request<'a>(template: &'a str, rendered: &'a str) -> ExtractRequest<'a> {
+    ExtractRequest::new(template, rendered, ExtractFormat::Raw, &[], &[])
+}
+
 fn assert_input_limit(request: &ExtractRequest<'_>) {
     assert_eq!(
         extract(request).unwrap_err().code(),
         sc_composer::DiagnosticCode::ErrExtractInputLimit
+    );
+}
+
+#[test]
+fn raw_fixture_corpus_covers_separated_values_filters_and_excludes() {
+    let report = extract(&raw_request(
+        include_str!("fixtures/reverse-extract/markdown-separated.raw.j2"),
+        include_str!("fixtures/reverse-extract/markdown-separated.raw"),
+    ))
+    .unwrap();
+    assert_eq!(report.values[&variable("title")], "Launch Plan");
+    assert_eq!(report.values[&variable("owner")], "Ada");
+    assert_eq!(
+        report
+            .occurrences
+            .iter()
+            .map(|occurrence| occurrence.variable.to_string())
+            .collect::<Vec<_>>(),
+        vec!["title", "owner"]
+    );
+
+    let include = [variable("owner")];
+    let included = extract(&ExtractRequest::new(
+        include_str!("fixtures/reverse-extract/markdown-filters.raw.j2"),
+        include_str!("fixtures/reverse-extract/markdown-filters.raw"),
+        ExtractFormat::Raw,
+        &include,
+        &[],
+    ))
+    .unwrap();
+    assert_eq!(included.values.len(), 1);
+    assert_eq!(included.values[&variable("owner")], "Ada");
+
+    let exclude = [variable("secret")];
+    let excluded = extract(&ExtractRequest::new(
+        include_str!("fixtures/reverse-extract/markdown-filters.raw.j2"),
+        include_str!("fixtures/reverse-extract/markdown-filters.raw"),
+        ExtractFormat::Raw,
+        &[],
+        &exclude,
+    ))
+    .unwrap();
+    assert!(!excluded.values.contains_key(&variable("secret")));
+    assert_eq!(excluded.occurrences.len(), 2);
+}
+
+#[test]
+fn raw_fixture_corpus_preserves_rejection_codes() {
+    let adjacent = extract(&raw_request(
+        include_str!("fixtures/reverse-extract/markdown-adjacent.raw.j2"),
+        include_str!("fixtures/reverse-extract/markdown-adjacent.raw"),
+    ))
+    .unwrap_err();
+    assert_eq!(
+        adjacent.code(),
+        sc_composer::DiagnosticCode::ErrExtractAmbiguous
+    );
+
+    let delimiter = extract(&raw_request(
+        include_str!("fixtures/reverse-extract/markdown-delimiter-count.raw.j2"),
+        include_str!("fixtures/reverse-extract/markdown-delimiter-count.raw"),
+    ))
+    .unwrap_err();
+    assert_eq!(
+        delimiter.code(),
+        sc_composer::DiagnosticCode::ErrExtractTemplateUnsupported
+    );
+
+    let static_mismatch = extract(&raw_request(
+        include_str!("fixtures/reverse-extract/markdown-static-mismatch.raw.j2"),
+        include_str!("fixtures/reverse-extract/markdown-static-mismatch.raw"),
+    ))
+    .unwrap_err();
+    assert_eq!(
+        static_mismatch.code(),
+        sc_composer::DiagnosticCode::ErrExtractUnsupported
     );
 }
 
@@ -99,6 +179,87 @@ fn fixture_accepts_xml_declaration_comments_and_static_text() {
 }
 
 #[test]
+fn fixture_normalizes_dirty_xml_prefix_and_reports_removed_span() {
+    let report = extract(&request(
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix.xml.j2"),
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix.xml"),
+    ))
+    .unwrap();
+
+    assert_eq!(report.values[&variable("value")], "Ada");
+    assert_eq!(
+        report.occurrences[0].path[0],
+        ExtractionPathSegment::Xml(XmlPathSegment::Element {
+            name: "root".to_owned(),
+            ordinal: 0,
+        },)
+    );
+    let warning = report
+        .diagnostics
+        .iter()
+        .find(|diagnostic| {
+            diagnostic.code == sc_composer::DiagnosticCode::WarnExtractDirtyPrefixStripped
+        })
+        .expect("dirty-prefix recovery must be visible in the report");
+    assert_eq!(warning.kind, ExtractionDiagnosticKind::NotObserved);
+    assert!(warning.message.contains("bytes 0.."));
+    assert!(warning.message.contains("line 2, column 1"));
+}
+
+#[test]
+fn fixture_preserves_dirty_xml_prolog_and_i3_full_content() {
+    let report = extract(&request(
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-prolog.xml.j2"),
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-prolog.xml"),
+    ))
+    .unwrap();
+    assert_eq!(report.values[&variable("value")], "Ada");
+    assert!(
+        report.diagnostics.iter().any(|diagnostic| diagnostic.code
+            == sc_composer::DiagnosticCode::WarnExtractDirtyPrefixStripped)
+    );
+
+    let block_report = extract(&request(
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-blocks.xml.j2"),
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-blocks.xml"),
+    ))
+    .unwrap();
+    assert_eq!(
+        block_report.values[&variable("content")],
+        "<code>Ada</code> and <message>accepted</message>"
+    );
+}
+
+#[test]
+fn dirty_xml_prefix_rejections_are_not_silently_dropped() {
+    let template = include_str!("fixtures/reverse-extract/xml-dirty-prefix.xml.j2");
+    for rendered in [
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-multiple-root.xml"),
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-malformed-suffix.xml"),
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-unterminated-comment.xml"),
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-unterminated-pi.xml"),
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-ambiguous.xml"),
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-post-root.xml"),
+    ] {
+        let error = extract(&request(template, rendered)).unwrap_err();
+        assert_eq!(
+            error.code(),
+            sc_composer::DiagnosticCode::ErrExtractMalformed
+        );
+    }
+
+    let dtd = extract(&request(
+        template,
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-doctype.xml"),
+    ))
+    .unwrap_err();
+    assert_eq!(
+        dtd.code(),
+        sc_composer::DiagnosticCode::ErrExtractUnsupported
+    );
+}
+
+#[test]
 fn fixture_extracts_static_prefix_and_suffix() {
     let report = extract(&request(
         include_str!("fixtures/reverse-extract/static-prefix-suffix.xml.j2"),
@@ -107,6 +268,112 @@ fn fixture_extracts_static_prefix_and_suffix() {
     .unwrap();
 
     assert_eq!(report.values[&variable("name")], "Ada");
+}
+
+#[test]
+fn fixture_extracts_xml_block_text_and_mixed_content_with_canonical_markup() {
+    let report = extract(&request(
+        include_str!("fixtures/reverse-extract/xml-blocks.xml.j2"),
+        include_str!("fixtures/reverse-extract/xml-blocks.xml"),
+    ))
+    .unwrap();
+
+    assert_eq!(
+        report.values[&variable("description")],
+        "Fix the XML extractor in <code>sc-compose</code> and preserve &amp; review evidence."
+    );
+    assert_eq!(
+        report.values[&variable("references")],
+        "<issue number=\"193\">Gap 1</issue><link>https://github.com/randlee/sc-compose/issues/193</link>"
+    );
+    assert_eq!(
+        report.values[&variable("workflow")],
+        "\n    <step>Render</step>\n    <step priority=\"high\">Review <em>then merge</em></step>\n  "
+    );
+    assert!(report.occurrences.iter().all(|occurrence| {
+        occurrence.source == ExtractionSource::Xml(sc_composer::XmlExtractionSource::ElementContent)
+    }));
+    assert_eq!(report.occurrences.len(), 3);
+    assert!(report.diagnostics.is_empty());
+}
+
+#[test]
+fn xml_block_multiple_placeholders_remain_unsupported() {
+    let error = extract(&request(
+        "<root><description>{{ first }} {{ second }}</description></root>",
+        "<root><description><b>value</b></description></root>",
+    ))
+    .unwrap_err();
+
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlChildStructureMismatch
+    );
+    assert!(error.to_string().contains("node structure does not match"));
+}
+
+#[test]
+fn xml_block_static_child_structure_mismatch_remains_unsupported() {
+    let error = extract(&request(
+        "<root><description>Review <b class=\"expected\">{{ value }}</b></description></root>",
+        "<root><description>Review <b class=\"actual\">value</b></description></root>",
+    ))
+    .unwrap_err();
+
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlStaticMismatch
+    );
+    assert!(
+        error
+            .to_string()
+            .contains("rendered static content does not match")
+    );
+}
+
+#[test]
+fn xml_block_dynamic_element_names_remain_unsupported() {
+    let error = extract(&request(
+        "<root><{{ name }}>{{ value }}</{{ name }}></root>",
+        "<root><item>Ada</item></root>",
+    ))
+    .unwrap_err();
+
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlDynamicElementName
+    );
+    assert!(error.to_string().contains("dynamic XML element names"));
+}
+
+#[test]
+fn xml_rejects_dynamic_element_names_after_xml_parsing() {
+    let error = extract(&request(
+        "<root><{name}>{{ value }}</{name}></root>",
+        "<root><item>Ada</item></root>",
+    ))
+    .unwrap_err();
+
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlDynamicElementName
+    );
+    assert!(error.to_string().contains("dynamic XML element names"));
+}
+
+#[test]
+fn xml_block_control_flow_is_rejected_before_matching_rendered_children() {
+    let error = extract(&request(
+        "<root><description>{% for item in items %}{{ item }}{% endfor %}</description></root>",
+        "<root><description><item>Ada</item></description></root>",
+    ))
+    .unwrap_err();
+
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlControlFlowUnsupported
+    );
+    assert!(error.to_string().contains("Jinja statements"));
 }
 
 #[test]
@@ -166,7 +433,7 @@ fn fixture_unsupported_filter_returns_stable_error() {
 
     assert_eq!(
         error.code(),
-        sc_composer::DiagnosticCode::ErrExtractUnsupported
+        sc_composer::DiagnosticCode::ErrExtractTemplateUnsupported
     );
 }
 
@@ -192,15 +459,15 @@ fn fixture_wrong_structure_returns_unsupported_error() {
     ))
     .unwrap_err();
 
-    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
+    assert!(matches!(error, ExtractError::FormatError { .. }));
     assert_eq!(
         error.code(),
-        sc_composer::DiagnosticCode::ErrExtractUnsupported
+        sc_composer::DiagnosticCode::ErrExtractXmlAttributeMismatch
     );
     assert!(error.recovery_hints().iter().any(|hint| {
         matches!(
             &hint.kind,
-            sc_composer::RecoveryHintKind::UnsupportedConstruct { .. }
+            sc_composer::RecoveryHintKind::InspectInput { .. }
         )
     }));
 }
@@ -213,24 +480,31 @@ fn fixture_wrong_tag_structure_returns_unsupported_error() {
     ))
     .unwrap_err();
 
-    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
+    assert!(matches!(error, ExtractError::FormatError { .. }));
     assert!(
         error
             .to_string()
             .contains("does not match template structure")
     );
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlElementMismatch
+    );
 }
 
 #[test]
-fn fixture_wrong_child_structure_returns_unsupported_error() {
-    let error = extract(&request(
+fn fixture_full_content_placeholder_accepts_additional_child_markup() {
+    let report = extract(&request(
         include_str!("fixtures/reverse-extract/wrong-child-structure.xml.j2"),
         include_str!("fixtures/reverse-extract/wrong-child-structure.xml"),
     ))
-    .unwrap_err();
+    .unwrap();
 
-    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
-    assert!(error.to_string().contains("child structure does not match"));
+    assert_eq!(report.values[&variable("value")], "Ada<extra/>");
+    assert_eq!(
+        report.occurrences[0].source,
+        ExtractionSource::Xml(sc_composer::XmlExtractionSource::ElementContent)
+    );
 }
 
 #[test]
@@ -241,8 +515,12 @@ fn fixture_wrong_child_kind_structure_returns_unsupported_error() {
     ))
     .unwrap_err();
 
-    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
+    assert!(matches!(error, ExtractError::FormatError { .. }));
     assert!(error.to_string().contains("node structure does not match"));
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlChildStructureMismatch
+    );
 }
 
 #[test]
@@ -255,7 +533,7 @@ fn fixture_namespace_policy_fails_closed() {
 
     assert_eq!(
         error.code(),
-        sc_composer::DiagnosticCode::ErrExtractUnsupported
+        sc_composer::DiagnosticCode::ErrExtractXmlNamespaceUnsupported
     );
 }
 
@@ -1027,6 +1305,20 @@ fn xml_extraction_rejects_oversized_deep_and_high_occurrence_inputs() {
     occurrence_xml_template.push_str("</root>");
     occurrence_xml_rendered.push_str("</root>");
     assert_input_limit(&request(&occurrence_xml_template, &occurrence_xml_rendered));
+}
+
+#[test]
+fn xml_block_occurrence_limit_is_a_durable_boundary() {
+    let mut template = String::from("<root>");
+    let mut rendered = String::from("<root>");
+    for index in 0..10_001 {
+        let _ = write!(template, "<item>{{{{ value{index} }}}}</item>");
+        let _ = write!(rendered, "<item><strong>value-{index}</strong></item>");
+    }
+    template.push_str("</root>");
+    rendered.push_str("</root>");
+
+    assert_input_limit(&request(&template, &rendered));
 }
 
 #[test]

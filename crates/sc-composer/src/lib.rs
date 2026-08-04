@@ -9,6 +9,7 @@
 pub mod composer;
 /// Structured diagnostics and the stable `ERR_*` code registry.
 pub mod diagnostics;
+mod discovery;
 /// Canonical crate-owned error types.
 pub mod error;
 /// Known-template extraction contract and report types.
@@ -43,6 +44,7 @@ pub use composer::{compose, compose_with_observer, protect_higher_braces, render
 pub use diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope, DiagnosticSeverity,
 };
+pub use discovery::{discover_all_pass_tokens, discover_tokens, discover_tokens_with_brace_count};
 #[doc(inline)]
 pub use error::{
     ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind, RenderError,
@@ -53,9 +55,10 @@ pub use extract::{
     ExtractError, ExtractFormat, ExtractRequest, ExtractionDiagnostic, ExtractionDiagnosticKind,
     ExtractionOccurrence, ExtractionPathSegment, ExtractionReport, ExtractionSource,
     JsonExtractionReport, JsonExtractionSource, JsonPathSegment, OccurrenceIndex,
-    OccurrencePathSegment, OccurrenceSource, TomlExtractionReport, TomlExtractionSource,
-    TomlPathSegment, XmlExtractionOccurrence, XmlExtractionReport, XmlExtractionSource,
-    XmlPathSegment, YamlExtractionReport, YamlExtractionSource, YamlPathSegment, extract,
+    OccurrencePathSegment, OccurrenceSource, RawExtractionReport, RawExtractionSource,
+    RawPathSegment, TomlExtractionReport, TomlExtractionSource, TomlPathSegment,
+    XmlExtractionOccurrence, XmlExtractionReport, XmlExtractionSource, XmlPathSegment,
+    YamlExtractionReport, YamlExtractionSource, YamlPathSegment, extract,
 };
 #[doc(inline)]
 pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};
@@ -91,10 +94,7 @@ pub use types::{
 };
 #[doc(inline)]
 pub use validate::{validate, validate_with_observer};
-pub use validation::{
-    BUILTIN_VARIABLE_NAMES, discover_all_pass_tokens, discover_tokens,
-    discover_tokens_with_brace_count,
-};
+pub use validation::BUILTIN_VARIABLE_NAMES;
 #[doc(inline)]
 pub use verify::{verify, verify_with_observer};
 

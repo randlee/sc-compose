@@ -79,6 +79,43 @@ fn valid_request_extracts_with_g2_engine() {
 }
 
 #[test]
+fn raw_request_extracts_markdown_with_flat_text_evidence() {
+    let report = extract(&ExtractRequest::new(
+        "# {{ title }}\n\nOwner: {{ owner }}",
+        "# Launch Plan\n\nOwner: Ada",
+        ExtractFormat::Raw,
+        &[],
+        &[],
+    ))
+    .unwrap();
+
+    assert_eq!(report.values[&variable("title")], "Launch Plan");
+    assert_eq!(report.values[&variable("owner")], "Ada");
+    assert_eq!(
+        report.occurrences[0].source,
+        ExtractionSource::Raw(RawExtractionSource::TextSpan)
+    );
+    assert_eq!(
+        report.occurrences[0].path,
+        vec![ExtractionPathSegment::Raw(RawPathSegment {
+            byte_start: 2,
+            byte_end: 13,
+            line: 1,
+            column: 3,
+        })]
+    );
+    assert_eq!(
+        report.occurrences[1].path[0],
+        ExtractionPathSegment::Raw(RawPathSegment {
+            byte_start: 22,
+            byte_end: 25,
+            line: 3,
+            column: 8,
+        })
+    );
+}
+
+#[test]
 fn weakly_anchored_variable_has_subunit_confidence() {
     let report = extract(&xml_request("<x>{{ value }}</x>", "<x>Ada</x>")).unwrap();
 
@@ -116,7 +153,10 @@ fn errors_expose_canonical_codes_and_recovery_hints() {
         &[],
     );
     let unsupported = extract(&request).unwrap_err();
-    assert_eq!(unsupported.code(), DiagnosticCode::ErrExtractUnsupported);
+    assert_eq!(
+        unsupported.code(),
+        DiagnosticCode::ErrExtractTemplateUnsupported
+    );
     assert!(matches!(
         &unsupported.recovery_hints()[0].kind,
         RecoveryHintKind::UnsupportedConstruct { .. }
@@ -361,7 +401,10 @@ fn xml_rejects_malformed_and_unsupported_inputs_without_values() {
         "<root>value</root>",
     ))
     .unwrap_err();
-    assert_eq!(unsupported.code(), DiagnosticCode::ErrExtractUnsupported);
+    assert_eq!(
+        unsupported.code(),
+        DiagnosticCode::ErrExtractXmlControlFlowUnsupported
+    );
 }
 
 #[test]
@@ -372,8 +415,8 @@ fn xml_rejects_dotted_expressions_as_unsupported() {
     ))
     .unwrap_err();
 
-    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
-    assert_eq!(error.code(), DiagnosticCode::ErrExtractUnsupported);
+    assert!(matches!(error, ExtractError::FormatError { .. }));
+    assert_eq!(error.code(), DiagnosticCode::ErrExtractTemplateUnsupported);
 }
 
 #[test]
@@ -429,7 +472,10 @@ fn xml_rejects_ambiguous_namespace_policy() {
     ))
     .unwrap_err();
 
-    assert_eq!(error.code(), DiagnosticCode::ErrExtractUnsupported);
+    assert_eq!(
+        error.code(),
+        DiagnosticCode::ErrExtractXmlNamespaceUnsupported
+    );
 }
 
 #[test]

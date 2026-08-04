@@ -5,7 +5,8 @@ use anyhow::anyhow;
 use sc_composer::{
     Diagnostic, DiagnosticCode, DiagnosticSeverity, ExtractError, ExtractionDiagnostic,
     ExtractionDiagnosticKind, ExtractionPathSegment, ExtractionReport, ExtractionSource,
-    RecoveryHint, RecoveryHintKind, XmlExtractionSource, XmlPathSegment,
+    RawExtractionSource, RawPathSegment, RecoveryHint, RecoveryHintKind, XmlExtractionSource,
+    XmlPathSegment,
 };
 
 use crate::cli::ExtractArgs;
@@ -210,6 +211,14 @@ fn format_path(path: &[ExtractionPathSegment]) -> String {
             | ExtractionPathSegment::Toml(sc_composer::TomlPathSegment::ArrayIndex { index }) => {
                 let _ = write!(formatted, "[{index}]");
             }
+            ExtractionPathSegment::Raw(RawPathSegment {
+                byte_start,
+                byte_end,
+                line,
+                column,
+            }) => {
+                let _ = write!(formatted, "text[{byte_start}..{byte_end}]@{line}:{column}");
+            }
         }
     }
     formatted
@@ -219,9 +228,11 @@ fn format_source(source: &ExtractionSource) -> &'static str {
     match source {
         ExtractionSource::Xml(XmlExtractionSource::Attribute { .. }) => "attribute",
         ExtractionSource::Xml(XmlExtractionSource::TextNode) => "text_node",
+        ExtractionSource::Xml(XmlExtractionSource::ElementContent) => "element_content",
         ExtractionSource::Json(sc_composer::JsonExtractionSource::StringValue)
         | ExtractionSource::Toml(sc_composer::TomlExtractionSource::StringValue) => "string_value",
         ExtractionSource::Yaml(sc_composer::YamlExtractionSource::StringScalar) => "string_scalar",
+        ExtractionSource::Raw(RawExtractionSource::TextSpan) => "text_span",
     }
 }
 
@@ -260,6 +271,18 @@ fn path_segment_json(segment: &ExtractionPathSegment) -> serde_json::Value {
         ExtractionPathSegment::Toml(sc_composer::TomlPathSegment::TableKey { key }) => {
             serde_json::json!({"kind": "table_key", "key": key})
         }
+        ExtractionPathSegment::Raw(RawPathSegment {
+            byte_start,
+            byte_end,
+            line,
+            column,
+        }) => serde_json::json!({
+            "kind": "text_span",
+            "byte_start": byte_start,
+            "byte_end": byte_end,
+            "line": line,
+            "column": column,
+        }),
     }
 }
 
@@ -271,12 +294,18 @@ fn source_json(source: &ExtractionSource) -> serde_json::Value {
         ExtractionSource::Xml(XmlExtractionSource::TextNode) => {
             serde_json::json!({"kind": "text_node"})
         }
+        ExtractionSource::Xml(XmlExtractionSource::ElementContent) => {
+            serde_json::json!({"kind": "element_content"})
+        }
         ExtractionSource::Json(sc_composer::JsonExtractionSource::StringValue)
         | ExtractionSource::Toml(sc_composer::TomlExtractionSource::StringValue) => {
             serde_json::json!({"kind": "string_value"})
         }
         ExtractionSource::Yaml(sc_composer::YamlExtractionSource::StringScalar) => {
             serde_json::json!({"kind": "string_scalar"})
+        }
+        ExtractionSource::Raw(RawExtractionSource::TextSpan) => {
+            serde_json::json!({"kind": "text_span"})
         }
     }
 }
