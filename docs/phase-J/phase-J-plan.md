@@ -25,9 +25,12 @@ snapshot-review→decomposition pattern already used successfully in Phase F
 (PR #149/#172 hotspot scans → PR #150-156 decomposition → PR #173 sprint
 plans → PR #181 merge).
 
-Phase J is planning/decomposition work only. It must not change observable
-behavior: diagnostic codes, ordering, severity, CLI flags, exit codes, and
-public Rust/Python APIs must be identical before and after each sprint.
+Phase J performs behavior-preserving structural decomposition only; it is not a
+planning/design sprint under the sprint-planning guidelines. Each J.1-J.4
+sprint is a full implementation sprint and must meet the complete validation
+checklist below. Observable behavior must remain unchanged: diagnostic codes,
+ordering, severity, CLI flags, exit codes, and public Rust/Python APIs must be
+identical before and after each sprint.
 
 ## Refactor target ledger
 
@@ -112,9 +115,12 @@ dev dispatch.
   ordering, include-chain attribution, CLI flag, exit code, or public
   Rust/Python API may change as an observable side effect of a Phase J
   sprint. Any such change belongs in a separate, explicitly-scoped sprint.
-- `crates/sc-composer/src/discovery.rs` and `crates/sc-composer/src/extract/*`
-  are excluded from Phase J entirely — do not move, rename, or restructure
-  code in or around them even incidentally.
+- `crates/sc-composer/src/discovery.rs`'s contents, public surface, and logic
+  are excluded from Phase J. Call sites elsewhere may be relocated only when
+  they invoke an existing exported discovery function, `discovery.rs` itself
+  remains untouched, and discovery semantics remain unchanged. The
+  `crates/sc-composer/src/extract/*` adapters remain entirely excluded: do not
+  move, rename, or restructure them even incidentally.
 - `crates/sc-composer/src/diagnostics.rs` and `crates/sc-composer/src/types.rs`
   are not decomposition targets in this phase; sprints may depend on them but
   must not restructure them.
@@ -165,9 +171,8 @@ commands. Each sprint's document adds only its own evidence requirements.
 Phase J is complete only when:
 
 - `cli.rs`, `validation.rs`, and `frontmatter.rs` are decomposed per their
-  sprint's scope with no owning-module regression in Repowise's next
-  hot-spot scan (a fresh scan should show measurably improved scores for all
-  three files, not merely unchanged ones);
+  sprint's scope, with material NLOC/complexity reduction for each owning
+  module demonstrated by the sprint diff and decomposition evidence;
 - every characterization test added for J.1-J.4 passes both before and after
   its corresponding move, and remains in the suite afterward;
 - no diagnostic code, severity, ordering, CLI flag, exit code, or public
@@ -177,7 +182,12 @@ Phase J is complete only when:
 - the full workspace, Python, CLI, and formatting checks pass at the
   integration tip; and
 - team-lead, quality-mgr, req-qa, and arch-qa can review each sprint from its
-  authoritative document and evidence.
+  authoritative document and evidence; and
+- after the Phase J integration tip is available and before phase closeout,
+  `quality-mgr` requests a fresh Repowise scan and records it in the plan-gate
+  report as a non-blocking diagnostic. A score that does not improve cannot by
+  itself fail closure because scan timing is outside sprint control; a concrete
+  regression found by that scan must be assigned before closeout.
 
 ## Traceability matrix
 
@@ -197,5 +207,6 @@ Phase J is complete only when:
   (decomposition), PR #173 (Phase F sprint plans), PR #181 (Phase F merge)
 - Phase I exit-gate PASS and merge-forward: PR #224 (`57c4f71`)
 - Phase I backlog cleanup: PR #225 (`46e079d`)
+- [ADR-0014: Phase-J Maintainability Decomposition Boundaries](../adrs/0014-phase-j-maintainability-decomposition.md)
 - comp's issue #212 review: ATM task `issue-212-hotspot-review`,
   2026-08-04

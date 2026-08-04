@@ -44,9 +44,10 @@ Depends on J.2 (must land first, with its characterization suite passing).
   collaborators, not new public APIs.
 - Preserve diagnostic ordering, severity, codes, locations, and include-chain
   attribution exactly as emitted today for every existing fixture.
-- Inventory the ~40 existing `validation.rs` tests by contract (required
-  paths, defaults, undeclared/extra inputs, built-ins, pass scopes) and move
-  each test with the seam it characterizes, adding at least one regression
+- Inventory the 40 existing `validation.rs` tests by contract (required
+  paths, defaults, undeclared/extra inputs, built-ins, pass scopes), where the
+  current count is derived with `rg -c '^    fn ' crates/sc-composer/src/validation.rs`.
+  Move each test with the seam it characterizes, adding at least one regression
   through the public `sc_composer::validate()` entry point per contract group
   so a misrouted assertion after the split cannot pass silently.
 

@@ -74,10 +74,12 @@ public argument model is introduced.
   suites unchanged before and after the split).
 - No public API in `sc-compose` changes; `bindings/python` requires no
   changes.
-- `cli.rs` and its new internal modules individually score materially better
-  on a fresh Repowise scan than the pre-split `cli.rs` (informational — not a
-  hard gate, since Repowise scan timing is outside sprint control, but the
-  NLOC/complexity reduction per module must be visible in the diff).
+- The split shows material NLOC/complexity reduction for `cli.rs` and its new
+  internal modules in the diff and decomposition evidence. A fresh Repowise
+  scan is a `quality-mgr`-owned, post-integration diagnostic requested after
+  the Phase J integration tip is available and recorded in the plan-gate
+  report; it is informational rather than a sprint hard gate because scan
+  timing is outside sprint control.
 - Existing multi-pass, format-mapping, and JSON-capability CLI test suites
   pass unchanged.
 
