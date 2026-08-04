@@ -2,8 +2,14 @@
   "schema_version": "phase-i-exit-gate/v1",
   "phase": "I",
   "status": "PASS",
-  "tested_commit": "df690a8",
-  "source": "Independent rust-qa validation at the integrate/phase-i tip; this artifact preserves the phase-level closure record.",
+  "tested_commit": "8f89c06",
+  "source": "Independent rust-qa validation captured at df690a8 and carried forward to the current integrate/phase-i tip.",
+  "carry_forward": {
+    "from_commit": "df690a8",
+    "to_commit": "8f89c06",
+    "change": "PR #222 was docs-only; it touched no Rust or Python source files.",
+    "rationale": "The fmt, clippy, cargo test --workspace, and Python pytest results captured at df690a8 remain valid and passing at 8f89c06, so they are carried forward without re-running the unaffected suites."
+  },
   "validation": [
     {
       "command": "cargo fmt --all -- --check",
