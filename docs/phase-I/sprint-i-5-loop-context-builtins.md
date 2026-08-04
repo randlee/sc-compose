@@ -19,6 +19,7 @@ Jinja's loop context without turning arbitrary names into implicit globals.
 
 - I.1 accepted built-in list, scope, and shadowing rules;
 - token discovery and loop-scope code in
+  `crates/sc-composer/src/discovery.rs`, integrated by
   `crates/sc-composer/src/validation.rs`;
 - strict validation and CLI diagnostic tests;
 - Python behavior if validation is surfaced through the binding.
