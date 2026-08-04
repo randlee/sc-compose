@@ -513,6 +513,60 @@ fn validate_all_accepts_multi_pass_template() {
 }
 
 #[test]
+fn validate_strict_accepts_loop_context_builtins_inside_for() {
+    let root = temp_root("strict-loop-context");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\ndefaults:\n  items: [one, two]\n---\n{% for item in items %}{{ loop.index }} {{ loop.index0 }} {{ loop.revindex }} {{ loop.revindex0 }} {{ loop.first }} {{ loop.last }} {{ loop.length }} {{ loop.depth }} {{ loop.depth0 }} {{ loop.cycle(\"odd\", \"even\") }}:{{ item }}{% endfor %}\n",
+    );
+
+    let output = sc_compose()
+        .arg("validate")
+        .arg("--strict")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
+fn validate_strict_rejects_loop_context_outside_for_and_lookalikes() {
+    let root = temp_root("strict-loop-context-boundaries");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\ndefaults:\n  items: [one]\n---\noutside={{ loop.last }}\n{% for item in items %}inside={{ loop.anything }}{% endfor %}\n",
+    );
+
+    let output = sc_compose()
+        .arg("validate")
+        .arg("--strict")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("undeclared referenced token: loop.last"));
+    assert!(stdout.contains("undeclared referenced token: loop.anything"));
+}
+
+#[test]
 fn render_brace_count_uses_custom_triple_brace_delimiters() {
     let root = temp_root("brace-count");
     write_file(&root.join("template.md.j2"), "hello {{{ name }}}\n");

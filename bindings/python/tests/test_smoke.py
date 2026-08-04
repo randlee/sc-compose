@@ -969,6 +969,51 @@ def test_d2_py_validate_catches_higher_pass_undeclared_tokens(tmp_path: Path) ->
     )
 
 
+def test_i5_py_validate_scopes_loop_context_builtins(tmp_path: Path) -> None:
+    write(
+        tmp_path / "loop-context.md.j2",
+        "---\n"
+        "defaults:\n"
+        "  items: [one, two]\n"
+        "---\n"
+        "{% for item in items %}"
+        "{{ loop }} {{ loop.index }} {{ loop.index0 }} "
+        "{{ loop.revindex }} {{ loop.revindex0 }} {{ loop.first }} "
+        "{{ loop.last }} {{ loop.length }} {{ loop.depth }} "
+        "{{ loop.depth0 }} {{ loop.cycle(\"odd\", \"even\") }}:{{ item }}"
+        "{% endfor %}\n",
+    )
+
+    request = make_file_request(
+        tmp_path,
+        "loop-context.md.j2",
+        policy=sc_compose.ComposePolicy(strict_undeclared_variables=True),
+    )
+    report = sc_compose.validate(request)
+    assert report.ok, report
+
+    write(
+        tmp_path / "loop-context-boundary.md.j2",
+        "---\n"
+        "defaults:\n"
+        "  items: [one]\n"
+        "---\n"
+        "outside={{ loop.last }}\n"
+        "{% for item in items %}inside={{ loop.anything }}{% endfor %}\n",
+    )
+    boundary_report = sc_compose.validate(
+        make_file_request(
+            tmp_path,
+            "loop-context-boundary.md.j2",
+            policy=sc_compose.ComposePolicy(strict_undeclared_variables=True),
+        )
+    )
+    assert not boundary_report.ok
+    messages = [diagnostic.message for diagnostic in boundary_report.errors]
+    assert any("loop.last" in message for message in messages)
+    assert any("loop.anything" in message for message in messages)
+
+
 def test_d3_py_python_surface_remains_library_only() -> None:
     assert not hasattr(sc_compose, "parse_pass_inputs")
     assert not hasattr(sc_compose, "filtered_args_for_clap")
