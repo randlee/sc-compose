@@ -193,10 +193,10 @@ Phase J is complete only when:
 
 | Sprint | Target | Status | PR | Notes |
 |--------|--------|--------|----|-------|
-| J.1 | `cli.rs` | planned | — | independent |
-| J.2 | `validation.rs` (state/context) | planned | — | sequence per Sprint sequence and concurrency |
-| J.3 | `validation.rs` (policy/diagnostics) | planned | — | sequence per Sprint sequence and concurrency |
-| J.4 | `frontmatter.rs` | planned | — | sequence per Sprint sequence and concurrency |
+| J.1 | `cli.rs` | merged | #228 | independent |
+| J.2 | `validation.rs` (state/context) | merged | #229 | sequence per Sprint sequence and concurrency |
+| J.3 | `validation.rs` (policy/diagnostics) | merged | #230 | sequence per Sprint sequence and concurrency |
+| J.4 | `frontmatter.rs` | merged | #231 | sequence per Sprint sequence and concurrency |
 
 ## References
 
