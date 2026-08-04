@@ -1,0 +1,5 @@
+gateway response
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- response payload -->
+<?trace id="42"?>
+<root><value>Ada</value></root>

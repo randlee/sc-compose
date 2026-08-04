@@ -14,6 +14,7 @@ use crate::error::RecoveryHintKind;
 use crate::frontmatter::parse_template_document;
 use crate::types::VariableName;
 
+use super::xml_prefix::{RemovedPrefix, normalize_rendered};
 use super::{
     ExtractError, ExtractRequest, ExtractionDiagnostic, ExtractionDiagnosticKind,
     ExtractionOccurrence, ExtractionReport, raw_text,
@@ -144,15 +145,21 @@ pub(crate) fn extract_xml(
         )
     })?;
     let template_source = parsed_template.body();
+    let normalized = normalize_rendered(request.rendered)?;
     xml_reject::reject_unsupported_template_syntax(template_source)?;
     xml_reject::reject_dynamic_element_syntax(template_source)?;
     let template = parse_xml(template_source)?;
-    let rendered = parse_xml(request.rendered)?;
+    let rendered = parse_xml(&normalized.source)?;
     xml_reject::reject_dynamic_element_names(&template)?;
     xml_reject::reject_namespaces(&template)?;
     xml_reject::reject_namespaces(&rendered)?;
 
-    if let Some(report) = missing_occurrence_report(&template, &rendered, request)? {
+    if let Some(mut report) = missing_occurrence_report(&template, &rendered, request)? {
+        if let Some(prefix) = normalized.removed.as_ref() {
+            report
+                .diagnostics
+                .insert(0, dirty_prefix_diagnostic(prefix));
+        }
         return Ok(report);
     }
 
@@ -178,7 +185,12 @@ pub(crate) fn extract_xml(
 
     let mut values = BTreeMap::new();
     let mut occurrences = Vec::new();
-    let mut diagnostics = Vec::new();
+    let mut diagnostics = normalized
+        .removed
+        .as_ref()
+        .map(dirty_prefix_diagnostic)
+        .into_iter()
+        .collect::<Vec<_>>();
 
     for capture in selected {
         values
@@ -215,6 +227,18 @@ fn evidence_confidence(matched: usize, total: usize) -> f64 {
     let matched = u32::try_from(matched).unwrap_or(u32::MAX);
     let total = u32::try_from(total).unwrap_or(u32::MAX);
     f64::from(matched) / f64::from(total)
+}
+
+fn dirty_prefix_diagnostic(prefix: &RemovedPrefix) -> ExtractionDiagnostic {
+    ExtractionDiagnostic::new(
+        DiagnosticCode::WarnExtractDirtyPrefixStripped,
+        ExtractionDiagnosticKind::NotObserved,
+        format!(
+            "stripped rendered XML preamble bytes 0..{} (line {}, column {})",
+            prefix.byte_end, prefix.line, prefix.column
+        ),
+        None,
+    )
 }
 
 fn selected_variable(variable: &VariableName, request: &ExtractRequest<'_>) -> bool {
@@ -471,7 +495,13 @@ fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
                     .into_owned();
                 attach_text(&mut stack, value)?;
             }
-            Event::Decl(_) | Event::Comment(_) | Event::PI(_) => {}
+            Event::Decl(_) | Event::Comment(_) | Event::PI(_) => {
+                if root.is_some() && stack.is_empty() {
+                    return Err(malformed(
+                        "XML content appeared after the root element".to_owned(),
+                    ));
+                }
+            }
             Event::DocType(_) => {
                 return Err(ExtractError::unsupported(
                     "XML DTD declarations are outside the reversible extraction subset",

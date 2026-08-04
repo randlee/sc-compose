@@ -215,6 +215,8 @@ impl PyDiagnosticCode {
     const WARN_EXTRACT_NOT_OBSERVED: &'static str = "WARN_EXTRACT_NOT_OBSERVED";
     #[classattr]
     const WARN_EXTRACT_LOW_CONFIDENCE: &'static str = "WARN_EXTRACT_LOW_CONFIDENCE";
+    #[classattr]
+    const WARN_EXTRACT_DIRTY_PREFIX_STRIPPED: &'static str = "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED";
 }
 
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {

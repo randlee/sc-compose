@@ -565,6 +565,8 @@ Status:
   `sprint/i-1-contract-and-traceability` at `6604de7` (docs-only contract gate);
 - I.3 XML Block and Mixed-Content Extraction: complete/accepted on
   `sprint/i-3-xml-block-mixed-content` after the QA remediation pass;
+- I.4 XML Dirty-Prefix Normalization: complete on
+  `sprint/i-4-xml-dirty-prefix`, with Rust, CLI, Python, and boundary evidence;
 - Phase I also makes the shared H raw-text matcher customer-facing for known
   Markdown/text templates because raw text is the product use case that the
   format adapters alone do not provide;

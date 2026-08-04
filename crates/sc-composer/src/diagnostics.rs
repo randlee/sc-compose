@@ -109,6 +109,8 @@ pub enum DiagnosticCode {
     WarnExtractNotObserved,
     /// Extraction evidence is insufficient for a high-confidence report.
     WarnExtractLowConfidence,
+    /// Bytes were removed from an approved rendered XML preamble.
+    WarnExtractDirtyPrefixStripped,
     /// The rendered JSON input is malformed.
     ErrExtractJsonMalformed,
     /// A JSON object contains a duplicate key.
@@ -211,6 +213,7 @@ impl DiagnosticCode {
             Self::ErrExtractAmbiguous => "ERR_EXTRACT_AMBIGUOUS",
             Self::WarnExtractNotObserved => "WARN_EXTRACT_NOT_OBSERVED",
             Self::WarnExtractLowConfidence => "WARN_EXTRACT_LOW_CONFIDENCE",
+            Self::WarnExtractDirtyPrefixStripped => "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED",
             Self::ErrExtractJsonMalformed => "ERR_EXTRACT_JSON_MALFORMED",
             Self::ErrExtractJsonDuplicateKey => "ERR_EXTRACT_JSON_DUPLICATE_KEY",
             Self::ErrExtractJsonPathMissing => "ERR_EXTRACT_JSON_PATH_MISSING",

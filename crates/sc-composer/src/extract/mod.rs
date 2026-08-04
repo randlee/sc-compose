@@ -13,6 +13,7 @@ mod raw;
 pub(crate) mod raw_text;
 mod toml;
 mod xml;
+mod xml_prefix;
 mod yaml;
 
 #[cfg(test)]

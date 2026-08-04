@@ -207,6 +207,23 @@ fn extract_text_accepts_xml_declaration_comments_and_static_text_fixture() {
 }
 
 #[test]
+fn extract_text_reports_xml_dirty_prefix_recovery() {
+    let (template, rendered) = fixture("xml-dirty-prefix");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("value: \"Ada\""));
+    assert!(stdout.contains("WARN_EXTRACT_DIRTY_PREFIX_STRIPPED"));
+    assert!(stdout.contains("bytes 0.."));
+}
+
+#[test]
 fn extract_text_xml_block_format_emits_canonical_content_source() {
     let (template, rendered) = fixture("xml-blocks");
     let output = sc_compose()

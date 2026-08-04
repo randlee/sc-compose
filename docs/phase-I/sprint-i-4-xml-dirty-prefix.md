@@ -2,10 +2,10 @@
 id: sprint-I.4
 title: XML Dirty-Prefix Normalization
 phase: I
-status: planned
+status: complete
 branch: sprint/i-4-xml-dirty-prefix
 worktree: ../sc-compose-worktrees/sprint/i-4-xml-dirty-prefix
-target: develop
+target: integrate/phase-i
 ---
 
 # Sprint I.4 — XML Dirty-Prefix Normalization
@@ -77,5 +77,6 @@ and the existing malformed diagnostic remain the fallback.
 
 - arbitrary HTML/XML repair, truncation recovery, or multiple-document merge;
 - changing template parsing or accepting dirty template input;
-- XML block/mixed-content matching (I.3);
+- implementing XML block/mixed-content matching (I.3); the combined I.3
+  regression is exercised here only because I.3 is now present on the target;
 - unknown-template identification or raw-text mode design (I.1/I.2).

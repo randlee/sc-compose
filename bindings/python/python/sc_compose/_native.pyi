@@ -124,6 +124,7 @@ class DiagnosticCode:
     ERR_EXTRACT_TOML_AMBIGUOUS: str
     WARN_EXTRACT_NOT_OBSERVED: str
     WARN_EXTRACT_LOW_CONFIDENCE: str
+    WARN_EXTRACT_DIRTY_PREFIX_STRIPPED: str
 
 
 class VariableName:

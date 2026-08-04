@@ -179,6 +179,88 @@ fn fixture_accepts_xml_declaration_comments_and_static_text() {
 }
 
 #[test]
+fn fixture_normalizes_dirty_xml_prefix_and_reports_removed_span() {
+    let report = extract(&request(
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix.xml.j2"),
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix.xml"),
+    ))
+    .unwrap();
+
+    assert_eq!(report.values[&variable("value")], "Ada");
+    assert_eq!(
+        report.occurrences[0].path[0],
+        ExtractionPathSegment::Xml(XmlPathSegment::Element {
+            name: "root".to_owned(),
+            ordinal: 0,
+        },)
+    );
+    let warning = report
+        .diagnostics
+        .iter()
+        .find(|diagnostic| {
+            diagnostic.code == sc_composer::DiagnosticCode::WarnExtractDirtyPrefixStripped
+        })
+        .expect("dirty-prefix recovery must be visible in the report");
+    assert_eq!(warning.kind, ExtractionDiagnosticKind::NotObserved);
+    assert!(warning.message.contains("bytes 0.."));
+    assert!(warning.message.contains("line 2, column 1"));
+}
+
+#[test]
+fn fixture_preserves_dirty_xml_prolog_and_i3_full_content() {
+    let report = extract(&request(
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-prolog.xml.j2"),
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-prolog.xml"),
+    ))
+    .unwrap();
+    assert_eq!(report.values[&variable("value")], "Ada");
+    assert!(
+        report.diagnostics.iter().any(|diagnostic| diagnostic.code
+            == sc_composer::DiagnosticCode::WarnExtractDirtyPrefixStripped)
+    );
+
+    let block_report = extract(&request(
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-blocks.xml.j2"),
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-blocks.xml"),
+    ))
+    .unwrap();
+    assert_eq!(
+        block_report.values[&variable("content")],
+        "<code>Ada</code><message>accepted</message>"
+    );
+}
+
+#[test]
+fn dirty_xml_prefix_rejections_are_not_silently_dropped() {
+    let template = include_str!("fixtures/reverse-extract/xml-dirty-prefix.xml.j2");
+    for rendered in [
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-multiple-root.xml"),
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-malformed-suffix.xml"),
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-unterminated-comment.xml"),
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-unterminated-pi.xml"),
+        include_str!("fixtures/reverse-extract/xml-dirty-prefix-ambiguous.xml"),
+        "<root><value>Ada</value></root><!-- after root -->",
+        "<root><value>Ada</value></root><?xml version=\"1.0\"?>",
+    ] {
+        let error = extract(&request(template, rendered)).unwrap_err();
+        assert_eq!(
+            error.code(),
+            sc_composer::DiagnosticCode::ErrExtractMalformed
+        );
+    }
+
+    let dtd = extract(&request(
+        template,
+        "<!DOCTYPE root><root><value>Ada</value></root>",
+    ))
+    .unwrap_err();
+    assert_eq!(
+        dtd.code(),
+        sc_composer::DiagnosticCode::ErrExtractUnsupported
+    );
+}
+
+#[test]
 fn fixture_extracts_static_prefix_and_suffix() {
     let report = extract(&request(
         include_str!("fixtures/reverse-extract/static-prefix-suffix.xml.j2"),
