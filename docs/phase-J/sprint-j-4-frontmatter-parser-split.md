@@ -25,7 +25,7 @@ extraction adapter, and `sc-compose` command code.
 
 ## Dependencies and exact targets
 
-- `crates/sc-composer/src/frontmatter.rs:131-368` (raw YAML schema,
+- `crates/sc-composer/src/frontmatter.rs:1-368` (public model types, raw YAML schema,
   delimiter scanner, stacked-header parser, `normalize_frontmatter` and its
   default-section/variable-name/value conversion, diagnostic construction,
   explicit-pass validation);

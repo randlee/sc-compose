@@ -75,6 +75,26 @@ The implementation seam must preserve the existing crate-private signatures
 used by `composer.rs`, including `inject_builtin_vars` and the `ValidationState`
 fields consumed while building render contexts.
 
+The current struct shape is frozen for this sprint. Any field, type, or
+visibility change requires a separately reviewed follow-up ADR rather than an
+implicit change during module relocation:
+
+```rust
+#[derive(Debug, Default)]
+pub(crate) struct ValidationState {
+    pub(crate) context: BTreeMap<VariableName, InputValue>,
+    pub(crate) variable_sources: BTreeMap<VariableName, VariableSource>,
+    pub(crate) required_origins: BTreeMap<VariableName, PathBuf>,
+    required_include_chains: BTreeMap<VariableName, Vec<PathBuf>>,
+    default_origins: BTreeMap<VariableName, Option<PathBuf>>,
+    default_pass_numbers: BTreeMap<VariableName, BTreeSet<usize>>,
+    pub(crate) declared_variables: BTreeSet<VariableName>,
+    pub(crate) referenced_variables: BTreeSet<VariableName>,
+    referenced_variables_by_pass: BTreeMap<usize, BTreeSet<VariableName>>,
+    declared_variables_by_pass: BTreeMap<usize, BTreeSet<VariableName>>,
+}
+```
+
 ## Acceptance criteria
 
 - Every existing validation diagnostic (code, severity, message, order,

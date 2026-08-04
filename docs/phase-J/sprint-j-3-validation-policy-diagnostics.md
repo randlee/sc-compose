@@ -50,6 +50,25 @@ Depends on J.2 (must land first, with its characterization suite passing).
   through the public `sc_composer::validate()` entry point per contract group
   so a misrouted assertion after the split cannot pass silently.
 
+## Planned internal seam
+
+The two collaborators remain private and `validate_expanded` remains the only
+orchestration entry point:
+
+```rust
+fn collect_policy_diagnostics(
+    request: &ComposeRequest,
+    expanded: &ExpandedTemplate,
+    resolved_path: &Path,
+    state: &ValidationState,
+) -> (Vec<Diagnostic>, Vec<Diagnostic>);
+
+fn required_path_diagnostics(state: &ValidationState) -> Vec<Diagnostic>;
+
+// validate_expanded keeps the existing signature and calls these helpers
+// without changing diagnostic ordering or attribution.
+```
+
 ## Acceptance criteria
 
 - Every existing validation diagnostic (code, severity, message, order,

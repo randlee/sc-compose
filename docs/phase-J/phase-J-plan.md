@@ -144,7 +144,9 @@ minimum validation for each implementation sprint is:
 - `cargo fmt --all --check` and `git diff --check`;
 - Python binding tests for any type/module Phase J's split touches
   indirectly (J.4 in particular, given `Frontmatter`/`ParsedTemplate` fan-out
-  into `bindings/python`);
+  into `bindings/python`): run
+  `maturin develop --release --manifest-path bindings/python/Cargo.toml`, then
+  run `python3 -m pytest bindings/python/tests/test_smoke.py`;
 - a targeted diff review confirming no diagnostic code, severity, order, or
   location output changed for any existing fixture.
 
@@ -182,9 +184,9 @@ Phase J is complete only when:
 | Sprint | Target | Status | PR | Notes |
 |--------|--------|--------|----|-------|
 | J.1 | `cli.rs` | planned | — | independent |
-| J.2 | `validation.rs` (state/context) | planned | — | depends on: none (sequenced after J.1) |
-| J.3 | `validation.rs` (policy/diagnostics) | planned | — | depends on: J.2 |
-| J.4 | `frontmatter.rs` | planned | — | depends on: J.2, J.3 |
+| J.2 | `validation.rs` (state/context) | planned | — | sequence per Sprint sequence and concurrency |
+| J.3 | `validation.rs` (policy/diagnostics) | planned | — | sequence per Sprint sequence and concurrency |
+| J.4 | `frontmatter.rs` | planned | — | sequence per Sprint sequence and concurrency |
 
 ## References
 
