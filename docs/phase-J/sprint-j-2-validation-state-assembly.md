@@ -105,6 +105,12 @@ pub(crate) struct ValidationState {
   and siblings) passes unchanged, run both before and after the move.
 - `discovery.rs` is not modified by this sprint.
 - `composer.rs` requires no call-site changes.
+- NLOC evidence (baseline `8eb239e` → integration tip `3703035`) uses
+  nonblank, non-comment lines before the first `#[cfg(test)]` marker for
+  production and counts test lines separately: `validation.rs` is 702
+  production / 922 test NLOC before the split; `validation/` is 735
+  production / 1,297 moved+added test NLOC after the split, with
+  `diagnostics.rs` as the largest production module at 271 NLOC.
 
 ## Required validation
 
