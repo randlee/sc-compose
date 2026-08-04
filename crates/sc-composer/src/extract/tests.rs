@@ -79,6 +79,43 @@ fn valid_request_extracts_with_g2_engine() {
 }
 
 #[test]
+fn raw_request_extracts_markdown_with_flat_text_evidence() {
+    let report = extract(&ExtractRequest::new(
+        "# {{ title }}\n\nOwner: {{ owner }}",
+        "# Launch Plan\n\nOwner: Ada",
+        ExtractFormat::Raw,
+        &[],
+        &[],
+    ))
+    .unwrap();
+
+    assert_eq!(report.values[&variable("title")], "Launch Plan");
+    assert_eq!(report.values[&variable("owner")], "Ada");
+    assert_eq!(
+        report.occurrences[0].source,
+        ExtractionSource::Raw(RawExtractionSource::TextSpan)
+    );
+    assert_eq!(
+        report.occurrences[0].path,
+        vec![ExtractionPathSegment::Raw(RawPathSegment {
+            byte_start: 2,
+            byte_end: 13,
+            line: 1,
+            column: 3,
+        })]
+    );
+    assert_eq!(
+        report.occurrences[1].path[0],
+        ExtractionPathSegment::Raw(RawPathSegment {
+            byte_start: 22,
+            byte_end: 25,
+            line: 3,
+            column: 8,
+        })
+    );
+}
+
+#[test]
 fn weakly_anchored_variable_has_subunit_confidence() {
     let report = extract(&xml_request("<x>{{ value }}</x>", "<x>Ada</x>")).unwrap();
 

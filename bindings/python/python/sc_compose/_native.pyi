@@ -91,6 +91,7 @@ class DiagnosticCode:
     ERR_EXTRACT_INVALID_REQUEST: str
     ERR_EXTRACT_MALFORMED: str
     ERR_EXTRACT_UNSUPPORTED: str
+    ERR_EXTRACT_TEMPLATE_UNSUPPORTED: str
     ERR_EXTRACT_AMBIGUOUS: str
     ERR_EXTRACT_FORMAT_UNSUPPORTED: str
     ERR_EXTRACT_JSON_MALFORMED: str
@@ -257,6 +258,14 @@ class ExtractionPathSegment:
     def name(self) -> str: ...
     @property
     def ordinal(self) -> int | None: ...
+    @property
+    def byte_start(self) -> int | None: ...
+    @property
+    def byte_end(self) -> int | None: ...
+    @property
+    def line(self) -> int | None: ...
+    @property
+    def column(self) -> int | None: ...
 
 
 class ExtractionOccurrence:
@@ -444,7 +453,7 @@ def extract_variables(
     template: str,
     rendered: str,
     *,
-    format: Literal["xml", "json", "yaml", "toml"] = "xml",
+    format: Literal["xml", "json", "yaml", "toml", "raw"] = "xml",
     include: list[str] | None = None,
     exclude: list[str] | None = None,
 ) -> ExtractionReport: ...

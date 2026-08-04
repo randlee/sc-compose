@@ -2,10 +2,10 @@
 id: sprint-I.2
 title: Customer-Facing Raw-Text Mode
 phase: I
-status: planned
+status: complete/accepted
 branch: sprint/i-2-customer-raw-text-mode
 worktree: ../sc-compose-worktrees/sprint/i-2-customer-raw-text-mode
-target: develop
+target: integrate/phase-i
 ---
 
 # Sprint I.2 — Customer-Facing Raw-Text Mode
@@ -62,6 +62,11 @@ checklist](phase-I-plan.md#authoritative-validation-checklist), then run the
 focused Rust, CLI, and Python cases first. Preserve machine-readable
 diagnostics in a reviewable evidence file and include one realistic Markdown
 example plus one deliberately rejected input.
+
+The machine-readable I.2 validation evidence is recorded in
+[`evidence/i-2-raw-text-mode.json`](evidence/i-2-raw-text-mode.json). It
+contains the accepted and rejected Markdown inputs, expected report/diagnostic
+details, and the CI and local validation commands used for this sprint.
 
 ## Removal path
 

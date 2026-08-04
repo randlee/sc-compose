@@ -229,7 +229,7 @@ pub(crate) struct ExtractArgs {
         long,
         value_enum,
         default_value = "xml",
-        help = "Rendered format: xml, json, yaml, or toml"
+        help = "Rendered format: xml, json, yaml, toml, or raw known-template text"
     )]
     pub(crate) format: ExtractFormatArg,
     #[arg(
@@ -259,6 +259,7 @@ pub(crate) enum ExtractFormatArg {
     Json,
     Yaml,
     Toml,
+    Raw,
 }
 
 impl ExtractFormatArg {
@@ -268,6 +269,7 @@ impl ExtractFormatArg {
             Self::Json => "json",
             Self::Yaml => "yaml",
             Self::Toml => "toml",
+            Self::Raw => "raw",
         }
     }
 }
@@ -279,6 +281,7 @@ impl From<ExtractFormatArg> for sc_composer::ExtractFormat {
             ExtractFormatArg::Json => Self::Json,
             ExtractFormatArg::Yaml => Self::Yaml,
             ExtractFormatArg::Toml => Self::Toml,
+            ExtractFormatArg::Raw => Self::Raw,
         }
     }
 }
