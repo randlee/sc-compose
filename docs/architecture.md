@@ -649,8 +649,8 @@ product interface or a runtime dependency.
 
 Phase-H planning records the three in-scope real-customer format candidates
 from issue #193: JSON, YAML, and TOML adapters. XML mixed-content extraction
-and a narrow non-XML preamble policy remain named future-phase work, not
-Phase-H sprints. [ADR-0012](adrs/0012-phase-h-reverse-extraction-extension-gates.md)
+and a narrow non-XML preamble policy remain outside Phase H and are owned by
+Phase I. [ADR-0012](adrs/0012-phase-h-reverse-extraction-extension-gates.md)
 now records the accepted format-specific path/source contract and malformed-
 input policy. Cross-surface evidence remains required before any adapter is
 delivered. The generic report model may be extended, but the library/CLI/Python
@@ -683,9 +683,44 @@ H.6 closure evidence is recorded in
 and its generated multi-worker report package under `site/reports/`. The
 campaign proves equivalent JSON/YAML/TOML report semantics across library,
 CLI, and Python surfaces, while preserving the explicit Phase-H boundary that
-XML mixed-content and dirty-prefix handling belong to a future phase.
+XML mixed-content and dirty-prefix handling belong to Phase I.
 The H.6 execution record is bounded local evidence rather than a distributed
 agent campaign; its report and summary must retain that caveat.
+
+### 8.5 Phase-I Raw-Text and Boundary Extensions (FR-17–FR-21, ADR-0013)
+
+Phase I extends the generic extraction bridge without introducing a second
+report model or matcher. The accepted contract is defined by
+[ADR-0013](adrs/0013-phase-i-raw-text-and-input-safety.md).
+
+The Rust format selector adds `ExtractFormat::Raw`. The dispatching path and
+source sums add `Raw(RawPathSegment)` and `Raw(RawExtractionSource)` variants,
+where `RawPathSegment` stores zero-based half-open rendered byte offsets and
+one-based line/column coordinates, and `RawExtractionSource::TextSpan` marks
+the provenance. `sc-compose` maps `--format raw`; Python maps
+`format="raw"`; both call `sc_composer::extract` and do not implement matching.
+
+Raw mode is known-template, in-memory text matching for Markdown and other
+unstructured text. It uses the H shared matcher, applies include/exclude
+filters before report construction while retaining filtered variables for
+neighboring capture matching, and uses only the stable raw diagnostic set
+`ERR_EXTRACT_INVALID_REQUEST`, `ERR_EXTRACT_TEMPLATE_UNSUPPORTED`,
+`ERR_EXTRACT_AMBIGUOUS`, and `WARN_EXTRACT_LOW_CONFIDENCE`.
+
+XML's Phase-I structural extension allows one full element-content placeholder
+to capture text plus approved child markup using deterministic canonical child
+serialization. A separate rendered-only normalizer accepts a bounded leading
+text/whitespace preamble before one XML document, preserves allowed prolog
+constructs, and emits `WARN_EXTRACT_DIRTY_PREFIX_STRIPPED` when it removes
+bytes. It rejects unmatched/truncated markup, malformed suffixes, multiple
+roots, second documents, post-root content, and DTDs.
+
+Validation token discovery recognizes the listed Jinja loop-context names only
+inside active `for` scopes; `loop` outside a loop and arbitrary dotted names
+remain ordinary validation inputs. Var-file decoding rejects YAML merge keys
+with `ERR_CONFIG_VARFILE` before tagged-value unwrapping so inherited fields
+cannot disappear silently. These changes are Phase-I runtime work and are not
+retroactive claims about the completed Phase-H implementation.
 
 ## 9. Include and Frontmatter Merge Rules (FR-3)
 

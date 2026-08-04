@@ -172,4 +172,5 @@ Phase I is complete only when:
 | #193 Gap 5 | bounded dirty-prefix normalization | I.4 | accepted-prefix, malformed-suffix, multi-root and diagnostic tests |
 | #167 | loop-context names in strict validation | I.5 | nested-loop, shadowing, outside-loop and CLI strict tests |
 | #166 | YAML merge-key var-file silent data loss | I.6 | exact reproduction, policy/error, and preservation tests |
+| I.1 contract gate | raw report/path shape, XML recovery, loop built-ins, and YAML merge-key policy | I.1 | ADR-0013, FR/architecture amendments, registry, and docs-only diff gate |
 | Product direction | customer-facing raw-text mode for Markdown/text | I.2 | raw mode API/CLI/Python parity and Markdown fixtures |

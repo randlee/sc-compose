@@ -345,6 +345,11 @@ Exit gate:
     raw-text mode remain outside Phase H; they are now planned as Phase I
     work in `docs/phase-I/phase-I-plan.md`, not retroactively claimed as H
     behavior
+- FR-17 through FR-21 and Phase I:
+  - I.1 accepts the raw-text, XML recovery, loop-context, and YAML merge-key
+    contracts in ADR-0013 and the synchronized requirements/architecture docs
+  - I.2 through I.6 own runtime implementation, cross-surface parity, and
+    evidence for those accepted requirements; I.1 adds no executable code
 
 ## Production Readiness Gate
 
