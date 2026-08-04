@@ -339,3 +339,36 @@ fn extract_json_raw_format_emits_text_spans_and_clean_envelope() {
     assert_eq!(occurrence["path"][0]["line"], 1);
     assert_eq!(occurrence["path"][0]["column"], 3);
 }
+
+#[test]
+fn extract_json_xml_block_format_emits_canonical_content_source() {
+    let (template, rendered) = fixture("xml-blocks");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["format"], "xml");
+    assert_eq!(
+        value["payload"]["values"]["description"],
+        "Fix the XML extractor in <code>sc-compose</code> and preserve &amp; review evidence."
+    );
+    let occurrence = value["payload"]["occurrences"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|occurrence| occurrence["variable"] == "references")
+        .unwrap();
+    assert_eq!(occurrence["source"]["kind"], "element_content");
+    assert_eq!(
+        occurrence["rendered_text"],
+        value["payload"]["values"]["references"]
+    );
+}

@@ -184,6 +184,24 @@ def test_extraction_report_preserves_values_provenance_and_filters() -> None:
     }
 
 
+def test_xml_block_extraction_preserves_canonical_mixed_content() -> None:
+    template, rendered = fixture_pair("xml-blocks")
+
+    report = sc_compose.extract_variables(template, rendered)
+
+    assert report.values["description"] == (
+        "Fix the XML extractor in <code>sc-compose</code> and preserve "
+        "&amp; review evidence."
+    )
+    assert report.values["references"] == (
+        '<issue number="193">Gap 1</issue>'
+        "<link>https://github.com/randlee/sc-compose/issues/193</link>"
+    )
+    by_variable = {occurrence.variable: occurrence for occurrence in report.occurrences}
+    assert by_variable["references"].source.kind == "element_content"
+    assert by_variable["references"].rendered_text == report.values["references"]
+
+
 def test_extraction_fails_closed_for_unsupported_syntax() -> None:
     with pytest.raises(sc_compose.ScConfigError) as caught:
         sc_compose.extract_variables(

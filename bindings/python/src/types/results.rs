@@ -30,6 +30,7 @@ fn extraction_source_kind_str(source: &ExtractionSource) -> &'static str {
     match source {
         ExtractionSource::Xml(XmlExtractionSource::Attribute { .. }) => "attribute",
         ExtractionSource::Xml(XmlExtractionSource::TextNode) => "text_node",
+        ExtractionSource::Xml(XmlExtractionSource::ElementContent) => "element_content",
         ExtractionSource::Json(JsonExtractionSource::StringValue)
         | ExtractionSource::Toml(TomlExtractionSource::StringValue) => "string_value",
         ExtractionSource::Yaml(YamlExtractionSource::StringScalar) => "string_scalar",
@@ -158,7 +159,9 @@ impl PyExtractionSource {
     fn name(&self) -> Option<String> {
         match &self.inner {
             ExtractionSource::Xml(XmlExtractionSource::Attribute { name }) => Some(name.clone()),
-            ExtractionSource::Xml(XmlExtractionSource::TextNode)
+            ExtractionSource::Xml(
+                XmlExtractionSource::TextNode | XmlExtractionSource::ElementContent,
+            )
             | ExtractionSource::Json(JsonExtractionSource::StringValue)
             | ExtractionSource::Yaml(YamlExtractionSource::StringScalar)
             | ExtractionSource::Toml(TomlExtractionSource::StringValue)
@@ -173,6 +176,9 @@ impl PyExtractionSource {
             }
             ExtractionSource::Xml(XmlExtractionSource::TextNode) => {
                 "ExtractionSource(kind='text_node')".to_owned()
+            }
+            ExtractionSource::Xml(XmlExtractionSource::ElementContent) => {
+                "ExtractionSource(kind='element_content')".to_owned()
             }
             ExtractionSource::Json(JsonExtractionSource::StringValue)
             | ExtractionSource::Toml(TomlExtractionSource::StringValue) => {

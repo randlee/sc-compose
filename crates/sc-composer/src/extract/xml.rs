@@ -50,6 +50,9 @@ pub enum XmlExtractionSource {
     },
     /// The scalar was recovered from an XML text node.
     TextNode,
+    /// The value occupies an element's complete content and may include
+    /// canonicalized child markup.
+    ElementContent,
 }
 
 /// XML occurrence report entry.
@@ -650,6 +653,26 @@ fn match_children(
 ) -> Result<(), ExtractError> {
     let template_children = &template.children;
     let rendered_children = &rendered.children;
+
+    // A full-content placeholder is the one approved shape whose rendered
+    // child list is intentionally allowed to differ from the template. The
+    // candidate is still matched through the shared raw-text matcher; XML's
+    // format-specific responsibility here is only to provide a deterministic
+    // representation of the parsed child nodes.
+    if rendered_children
+        .iter()
+        .any(|child| matches!(child, XmlNode::Element(_)))
+        && match_full_content(
+            template_children,
+            rendered_children,
+            path,
+            captures,
+            evidence,
+        )?
+    {
+        return Ok(());
+    }
+
     if template_children.len() == 1
         && rendered_children.is_empty()
         && matches!(&template_children[0], XmlNode::Text(value) if is_single_variable(value))
@@ -723,6 +746,119 @@ fn match_children(
         }
     }
     Ok(())
+}
+
+fn match_full_content(
+    template_children: &[XmlNode],
+    rendered_children: &[XmlNode],
+    path: &[XmlPathSegment],
+    captures: &mut Vec<Capture>,
+    evidence: &mut Evidence,
+) -> Result<bool, ExtractError> {
+    let Some(variable) = full_content_variable(template_children, path)? else {
+        return Ok(false);
+    };
+    let rendered_content = canonical_inner_content(rendered_children);
+    let segments = vec![raw_text::RawTextSegment::Variable(variable)];
+    let matched = raw_text::match_raw_text(&raw_text::RawTextMatchInput {
+        segments: &segments,
+        rendered_candidate: &rendered_content,
+    })
+    .map_err(|error| map_raw_text_error(error, path))?;
+    evidence.structural_matches += 1;
+    if let Some(ambiguity) = matched.ambiguity {
+        return Err(ExtractError::ambiguous(
+            with_span(&ambiguity.message, ambiguity.span),
+            None,
+        ));
+    }
+    for capture in matched.captures {
+        if captures.len() >= MAX_XML_OCCURRENCES {
+            return Err(input_limit_error(format!(
+                "XML extraction exceeded the maximum of {MAX_XML_OCCURRENCES} occurrences"
+            )));
+        }
+        captures.push(Capture {
+            variable: capture.variable,
+            path: path.to_owned(),
+            source: XmlExtractionSource::ElementContent,
+            rendered_text: capture.rendered_text,
+        });
+    }
+    Ok(true)
+}
+
+fn full_content_variable(
+    children: &[XmlNode],
+    path: &[XmlPathSegment],
+) -> Result<Option<VariableName>, ExtractError> {
+    let [XmlNode::Text(value)] = children else {
+        return Ok(None);
+    };
+    let segments = parse_value_segments(value.trim(), path)?;
+    match segments.as_slice() {
+        [raw_text::RawTextSegment::Variable(variable)] => Ok(Some(variable.clone())),
+        _ => Ok(None),
+    }
+}
+
+fn canonical_inner_content(children: &[XmlNode]) -> String {
+    let mut output = String::new();
+    for child in children {
+        append_canonical_node(child, &mut output);
+    }
+    output
+}
+
+fn append_canonical_node(node: &XmlNode, output: &mut String) {
+    match node {
+        XmlNode::Text(value) => append_escaped_xml_text(value, output),
+        XmlNode::Element(element) => {
+            output.push('<');
+            output.push_str(&element.name);
+            for (name, value) in &element.attributes {
+                output.push(' ');
+                output.push_str(name);
+                output.push_str("=\"");
+                append_escaped_xml_attribute(value, output);
+                output.push('"');
+            }
+            if element.children.is_empty() {
+                output.push_str("/>");
+                return;
+            }
+            output.push('>');
+            for child in &element.children {
+                append_canonical_node(child, output);
+            }
+            output.push_str("</");
+            output.push_str(&element.name);
+            output.push('>');
+        }
+    }
+}
+
+fn append_escaped_xml_text(value: &str, output: &mut String) {
+    for character in value.chars() {
+        match character {
+            '&' => output.push_str("&amp;"),
+            '<' => output.push_str("&lt;"),
+            '>' => output.push_str("&gt;"),
+            _ => output.push(character),
+        }
+    }
+}
+
+fn append_escaped_xml_attribute(value: &str, output: &mut String) {
+    for character in value.chars() {
+        match character {
+            '&' => output.push_str("&amp;"),
+            '<' => output.push_str("&lt;"),
+            '"' => output.push_str("&quot;"),
+            '\'' => output.push_str("&apos;"),
+            _ => output.push(character),
+        }
+    }
 }
 
 fn is_single_variable(value: &str) -> bool {
