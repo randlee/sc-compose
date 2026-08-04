@@ -169,11 +169,10 @@ fn scan_yaml_line_for_merge_key(line: &str) -> Option<usize> {
             continue;
         }
         let suffix = &line[byte_index + 2..];
-        if !suffix
+        if suffix
             .chars()
-            .skip_while(|character| character.is_ascii_whitespace())
-            .next()
-            .is_some_and(|character| character == ':')
+            .find(|character| !character.is_ascii_whitespace())
+            .is_none_or(|character| character != ':')
         {
             continue;
         }
@@ -222,7 +221,7 @@ fn has_yaml_block_scalar_indicator(line: &str) -> bool {
 
     outside_quote.split_whitespace().any(|token| {
         matches!(
-            token.trim_end_matches(|character: char| character == ','),
+            token.trim_end_matches(','),
             "|" | ">" | "|-" | "|+" | ">-" | ">+"
         )
     })
