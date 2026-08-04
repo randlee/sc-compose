@@ -139,7 +139,7 @@ fn extract_text_maps_failures_to_usage_exit_and_actionable_stderr() {
         .output()
         .unwrap();
     assert_eq!(output.status.code(), Some(2));
-    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_EXTRACT_UNSUPPORTED"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("ERR_EXTRACT_TEMPLATE_UNSUPPORTED"));
 
     let (template, rendered) = fixture("same-variable-conflicting-occurrences");
     let output = sc_compose()
@@ -204,6 +204,24 @@ fn extract_text_accepts_xml_declaration_comments_and_static_text_fixture() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("value: \"Ada\""));
     assert!(stdout.contains("format: xml"));
+}
+
+#[test]
+fn extract_text_xml_block_format_emits_canonical_content_source() {
+    let (template, rendered) = fixture("xml-blocks");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("format: xml"));
+    assert!(stdout.contains("description: \"Fix the XML extractor"));
+    assert!(stdout.contains("references: \"<issue number=\\\"193\\\">Gap 1"));
+    assert!(stdout.contains("element_content"));
 }
 
 #[test]

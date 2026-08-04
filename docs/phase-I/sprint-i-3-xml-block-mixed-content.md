@@ -2,7 +2,7 @@
 id: sprint-I.3
 title: XML Block and Mixed-Content Extraction
 phase: I
-status: planned
+status: complete/accepted
 branch: sprint/i-3-xml-block-mixed-content
 worktree: ../sc-compose-worktrees/sprint/i-3-xml-block-mixed-content
 target: develop
@@ -63,7 +63,9 @@ Use the [authoritative Phase I validation
 checklist](phase-I-plan.md#authoritative-validation-checklist). Add a focused
 corpus artifact containing the template, rendered input,
 expected report, and the requirement/ADR trace for every case. Include a
-review note explaining why each block is a realistic customer document.
+review note explaining why each block is a realistic customer document. The
+accepted I.3 corpus is
+[`evidence/i-3-xml-block-mixed-content.json`](evidence/i-3-xml-block-mixed-content.json).
 
 ## Removal path
 

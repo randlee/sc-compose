@@ -228,6 +228,7 @@ fn format_source(source: &ExtractionSource) -> &'static str {
     match source {
         ExtractionSource::Xml(XmlExtractionSource::Attribute { .. }) => "attribute",
         ExtractionSource::Xml(XmlExtractionSource::TextNode) => "text_node",
+        ExtractionSource::Xml(XmlExtractionSource::ElementContent) => "element_content",
         ExtractionSource::Json(sc_composer::JsonExtractionSource::StringValue)
         | ExtractionSource::Toml(sc_composer::TomlExtractionSource::StringValue) => "string_value",
         ExtractionSource::Yaml(sc_composer::YamlExtractionSource::StringScalar) => "string_scalar",
@@ -292,6 +293,9 @@ fn source_json(source: &ExtractionSource) -> serde_json::Value {
         }
         ExtractionSource::Xml(XmlExtractionSource::TextNode) => {
             serde_json::json!({"kind": "text_node"})
+        }
+        ExtractionSource::Xml(XmlExtractionSource::ElementContent) => {
+            serde_json::json!({"kind": "element_content"})
         }
         ExtractionSource::Json(sc_composer::JsonExtractionSource::StringValue)
         | ExtractionSource::Toml(sc_composer::TomlExtractionSource::StringValue) => {

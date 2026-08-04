@@ -110,7 +110,7 @@ fn extract_json_preserves_filters_empty_values_and_warnings() {
 fn extract_json_maps_expected_failures_without_logs_or_backtraces() {
     let cases = [
         ("malformed", "ERR_EXTRACT_MALFORMED"),
-        ("unsupported-filter", "ERR_EXTRACT_UNSUPPORTED"),
+        ("unsupported-filter", "ERR_EXTRACT_TEMPLATE_UNSUPPORTED"),
     ];
     for (name, code) in cases {
         let (template, rendered) = fixture(name);
@@ -157,6 +157,29 @@ fn extract_json_maps_expected_failures_without_logs_or_backtraces() {
     assert!(output.stderr.is_empty());
     let value = parse_stdout(&output);
     assert_first_code(&value, "ERR_EXTRACT_AMBIGUOUS");
+}
+
+#[test]
+fn extract_json_rejects_xml_block_dynamic_element_names() {
+    let (template, rendered) = fixture("xml-block-dynamic-name");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_first_code(&value, "ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME");
+    assert!(
+        value["diagnostics"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("dynamic XML element names")
+    );
 }
 
 #[test]
@@ -338,6 +361,39 @@ fn extract_json_raw_format_emits_text_spans_and_clean_envelope() {
     assert_eq!(occurrence["path"][0]["byte_end"], 13);
     assert_eq!(occurrence["path"][0]["line"], 1);
     assert_eq!(occurrence["path"][0]["column"], 3);
+}
+
+#[test]
+fn extract_json_xml_block_format_emits_canonical_content_source() {
+    let (template, rendered) = fixture("xml-blocks");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["format"], "xml");
+    assert_eq!(
+        value["payload"]["values"]["description"],
+        "Fix the XML extractor in <code>sc-compose</code> and preserve &amp; review evidence."
+    );
+    let occurrence = value["payload"]["occurrences"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|occurrence| occurrence["variable"] == "references")
+        .unwrap();
+    assert_eq!(occurrence["source"]["kind"], "element_content");
+    assert_eq!(
+        occurrence["rendered_text"],
+        value["payload"]["values"]["references"]
+    );
 }
 
 #[test]

@@ -148,6 +148,24 @@ impl PyDiagnosticCode {
     #[classattr]
     const ERR_EXTRACT_TEMPLATE_UNSUPPORTED: &'static str = "ERR_EXTRACT_TEMPLATE_UNSUPPORTED";
     #[classattr]
+    const ERR_EXTRACT_XML_ELEMENT_MISMATCH: &'static str = "ERR_EXTRACT_XML_ELEMENT_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH: &'static str = "ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH: &'static str =
+        "ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_XML_STATIC_MISMATCH: &'static str = "ERR_EXTRACT_XML_STATIC_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED: &'static str =
+        "ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME: &'static str =
+        "ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME";
+    #[classattr]
+    const ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED: &'static str =
+        "ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED";
+    #[classattr]
     const ERR_EXTRACT_AMBIGUOUS: &'static str = "ERR_EXTRACT_AMBIGUOUS";
     #[classattr]
     const ERR_EXTRACT_FORMAT_UNSUPPORTED: &'static str = "ERR_EXTRACT_FORMAT_UNSUPPORTED";

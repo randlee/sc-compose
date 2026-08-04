@@ -190,6 +190,112 @@ fn fixture_extracts_static_prefix_and_suffix() {
 }
 
 #[test]
+fn fixture_extracts_xml_block_text_and_mixed_content_with_canonical_markup() {
+    let report = extract(&request(
+        include_str!("fixtures/reverse-extract/xml-blocks.xml.j2"),
+        include_str!("fixtures/reverse-extract/xml-blocks.xml"),
+    ))
+    .unwrap();
+
+    assert_eq!(
+        report.values[&variable("description")],
+        "Fix the XML extractor in <code>sc-compose</code> and preserve &amp; review evidence."
+    );
+    assert_eq!(
+        report.values[&variable("references")],
+        "<issue number=\"193\">Gap 1</issue><link>https://github.com/randlee/sc-compose/issues/193</link>"
+    );
+    assert_eq!(
+        report.values[&variable("workflow")],
+        "\n    <step>Render</step>\n    <step priority=\"high\">Review <em>then merge</em></step>\n  "
+    );
+    assert!(report.occurrences.iter().all(|occurrence| {
+        occurrence.source == ExtractionSource::Xml(sc_composer::XmlExtractionSource::ElementContent)
+    }));
+    assert_eq!(report.occurrences.len(), 3);
+    assert!(report.diagnostics.is_empty());
+}
+
+#[test]
+fn xml_block_multiple_placeholders_remain_unsupported() {
+    let error = extract(&request(
+        "<root><description>{{ first }} {{ second }}</description></root>",
+        "<root><description><b>value</b></description></root>",
+    ))
+    .unwrap_err();
+
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlChildStructureMismatch
+    );
+    assert!(error.to_string().contains("node structure does not match"));
+}
+
+#[test]
+fn xml_block_static_child_structure_mismatch_remains_unsupported() {
+    let error = extract(&request(
+        "<root><description>Review <b class=\"expected\">{{ value }}</b></description></root>",
+        "<root><description>Review <b class=\"actual\">value</b></description></root>",
+    ))
+    .unwrap_err();
+
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlStaticMismatch
+    );
+    assert!(
+        error
+            .to_string()
+            .contains("rendered static content does not match")
+    );
+}
+
+#[test]
+fn xml_block_dynamic_element_names_remain_unsupported() {
+    let error = extract(&request(
+        "<root><{{ name }}>{{ value }}</{{ name }}></root>",
+        "<root><item>Ada</item></root>",
+    ))
+    .unwrap_err();
+
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlDynamicElementName
+    );
+    assert!(error.to_string().contains("dynamic XML element names"));
+}
+
+#[test]
+fn xml_rejects_dynamic_element_names_after_xml_parsing() {
+    let error = extract(&request(
+        "<root><{name}>{{ value }}</{name}></root>",
+        "<root><item>Ada</item></root>",
+    ))
+    .unwrap_err();
+
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlDynamicElementName
+    );
+    assert!(error.to_string().contains("dynamic XML element names"));
+}
+
+#[test]
+fn xml_block_control_flow_is_rejected_before_matching_rendered_children() {
+    let error = extract(&request(
+        "<root><description>{% for item in items %}{{ item }}{% endfor %}</description></root>",
+        "<root><description><item>Ada</item></description></root>",
+    ))
+    .unwrap_err();
+
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlControlFlowUnsupported
+    );
+    assert!(error.to_string().contains("Jinja statements"));
+}
+
+#[test]
 fn fixture_adjacent_variables_fail_closed_as_ambiguous() {
     let error = extract(&request(
         include_str!("fixtures/reverse-extract/ambiguous-adjacent.xml.j2"),
@@ -246,7 +352,7 @@ fn fixture_unsupported_filter_returns_stable_error() {
 
     assert_eq!(
         error.code(),
-        sc_composer::DiagnosticCode::ErrExtractUnsupported
+        sc_composer::DiagnosticCode::ErrExtractTemplateUnsupported
     );
 }
 
@@ -272,15 +378,15 @@ fn fixture_wrong_structure_returns_unsupported_error() {
     ))
     .unwrap_err();
 
-    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
+    assert!(matches!(error, ExtractError::FormatError { .. }));
     assert_eq!(
         error.code(),
-        sc_composer::DiagnosticCode::ErrExtractUnsupported
+        sc_composer::DiagnosticCode::ErrExtractXmlAttributeMismatch
     );
     assert!(error.recovery_hints().iter().any(|hint| {
         matches!(
             &hint.kind,
-            sc_composer::RecoveryHintKind::UnsupportedConstruct { .. }
+            sc_composer::RecoveryHintKind::InspectInput { .. }
         )
     }));
 }
@@ -293,24 +399,31 @@ fn fixture_wrong_tag_structure_returns_unsupported_error() {
     ))
     .unwrap_err();
 
-    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
+    assert!(matches!(error, ExtractError::FormatError { .. }));
     assert!(
         error
             .to_string()
             .contains("does not match template structure")
     );
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlElementMismatch
+    );
 }
 
 #[test]
-fn fixture_wrong_child_structure_returns_unsupported_error() {
-    let error = extract(&request(
+fn fixture_full_content_placeholder_accepts_additional_child_markup() {
+    let report = extract(&request(
         include_str!("fixtures/reverse-extract/wrong-child-structure.xml.j2"),
         include_str!("fixtures/reverse-extract/wrong-child-structure.xml"),
     ))
-    .unwrap_err();
+    .unwrap();
 
-    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
-    assert!(error.to_string().contains("child structure does not match"));
+    assert_eq!(report.values[&variable("value")], "Ada<extra/>");
+    assert_eq!(
+        report.occurrences[0].source,
+        ExtractionSource::Xml(sc_composer::XmlExtractionSource::ElementContent)
+    );
 }
 
 #[test]
@@ -321,8 +434,12 @@ fn fixture_wrong_child_kind_structure_returns_unsupported_error() {
     ))
     .unwrap_err();
 
-    assert!(matches!(error, ExtractError::UnsupportedSyntax { .. }));
+    assert!(matches!(error, ExtractError::FormatError { .. }));
     assert!(error.to_string().contains("node structure does not match"));
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractXmlChildStructureMismatch
+    );
 }
 
 #[test]
@@ -335,7 +452,7 @@ fn fixture_namespace_policy_fails_closed() {
 
     assert_eq!(
         error.code(),
-        sc_composer::DiagnosticCode::ErrExtractUnsupported
+        sc_composer::DiagnosticCode::ErrExtractXmlNamespaceUnsupported
     );
 }
 
@@ -1107,6 +1224,20 @@ fn xml_extraction_rejects_oversized_deep_and_high_occurrence_inputs() {
     occurrence_xml_template.push_str("</root>");
     occurrence_xml_rendered.push_str("</root>");
     assert_input_limit(&request(&occurrence_xml_template, &occurrence_xml_rendered));
+}
+
+#[test]
+fn xml_block_occurrence_limit_is_a_durable_boundary() {
+    let mut template = String::from("<root>");
+    let mut rendered = String::from("<root>");
+    for index in 0..10_001 {
+        let _ = write!(template, "<item>{{{{ value{index} }}}}</item>");
+        let _ = write!(rendered, "<item><strong>value-{index}</strong></item>");
+    }
+    template.push_str("</root>");
+    rendered.push_str("</root>");
+
+    assert_input_limit(&request(&template, &rendered));
 }
 
 #[test]

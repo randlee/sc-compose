@@ -104,6 +104,13 @@ def test_import_surface_exposes_c2_api() -> None:
     for code in [
         "ERR_EXTRACT_FORMAT_UNSUPPORTED",
         "ERR_EXTRACT_TEMPLATE_UNSUPPORTED",
+        "ERR_EXTRACT_XML_ELEMENT_MISMATCH",
+        "ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH",
+        "ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH",
+        "ERR_EXTRACT_XML_STATIC_MISMATCH",
+        "ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED",
+        "ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME",
+        "ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED",
         "ERR_EXTRACT_JSON_MALFORMED",
         "ERR_EXTRACT_JSON_DUPLICATE_KEY",
         "ERR_EXTRACT_JSON_PATH_MISSING",
@@ -184,6 +191,24 @@ def test_extraction_report_preserves_values_provenance_and_filters() -> None:
     }
 
 
+def test_xml_block_extraction_preserves_canonical_mixed_content() -> None:
+    template, rendered = fixture_pair("xml-blocks")
+
+    report = sc_compose.extract_variables(template, rendered)
+
+    assert report.values["description"] == (
+        "Fix the XML extractor in <code>sc-compose</code> and preserve "
+        "&amp; review evidence."
+    )
+    assert report.values["references"] == (
+        '<issue number="193">Gap 1</issue>'
+        "<link>https://github.com/randlee/sc-compose/issues/193</link>"
+    )
+    by_variable = {occurrence.variable: occurrence for occurrence in report.occurrences}
+    assert by_variable["references"].source.kind == "element_content"
+    assert by_variable["references"].rendered_text == report.values["references"]
+
+
 def test_extraction_fails_closed_for_unsupported_syntax() -> None:
     with pytest.raises(sc_compose.ScConfigError) as caught:
         sc_compose.extract_variables(
@@ -191,7 +216,7 @@ def test_extraction_fails_closed_for_unsupported_syntax() -> None:
             "<root>yes</root>",
         )
 
-    assert caught.value.code == "ERR_EXTRACT_UNSUPPORTED"
+    assert caught.value.code == "ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED"
     assert caught.value.diagnostic_kind == "unsupported"
     assert caught.value.diagnostic_message
     assert caught.value.recovery_hints
@@ -512,8 +537,8 @@ def test_extraction_corpus_covers_comments_static_text_and_conflicting_occurrenc
 @pytest.mark.parametrize(
     ("fixture", "code"),
     [
-        ("unsupported-filter", "ERR_EXTRACT_UNSUPPORTED"),
-        ("namespace", "ERR_EXTRACT_UNSUPPORTED"),
+        ("unsupported-filter", "ERR_EXTRACT_TEMPLATE_UNSUPPORTED"),
+        ("namespace", "ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED"),
         ("ambiguous-adjacent", "ERR_EXTRACT_AMBIGUOUS"),
     ],
 )
@@ -524,6 +549,16 @@ def test_extraction_corpus_failures_are_stable(fixture: str, code: str) -> None:
 
     assert caught.value.code == code
     assert caught.value.recovery_hints
+
+
+def test_xml_block_dynamic_element_names_are_rejected() -> None:
+    template, rendered = fixture_pair("xml-block-dynamic-name")
+
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(template, rendered)
+
+    assert caught.value.code == "ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME"
+    assert "dynamic XML element names" in str(caught.value)
 
 
 def test_repr_surface_is_informative(tmp_path: Path) -> None:
