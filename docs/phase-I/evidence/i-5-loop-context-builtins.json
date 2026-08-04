@@ -33,6 +33,7 @@
       },
       "tests": [
         "validation::tests::strict_mode_accepts_approved_loop_context_builtins",
+        "validation::tests::discover_tokens_requires_loop_cycle_call_form",
         "validate_strict_accepts_loop_context_builtins_inside_for",
         "test_i5_py_validate_scopes_loop_context_builtins"
       ]
@@ -69,19 +70,19 @@
     }
   ],
   "validation": {
-    "tested_commit": "27d74a5",
-    "evidence_recorded_in": "follow-up documentation commit after 27d74a5",
+    "tested_commit": "1fd2909",
+    "evidence_recorded_in": "follow-up documentation commit after 1fd2909",
     "focused_commands": [
       {
         "command": "cargo test -p sc-composer validation::tests -- --nocapture",
-        "result": "PASS (36 tests)"
+        "result": "PASS (37 tests)"
       },
       {
         "command": "cargo test -p sc-compose --test cli validate_strict -- --nocapture",
         "result": "PASS (2 tests)"
       },
       {
-        "command": "VIRTUAL_ENV=/tmp/sc-compose-i4-venv PATH=/tmp/sc-compose-i4-venv/bin:$PATH python -m pytest -q bindings/python/tests/test_smoke.py -k 'i5_py_validate'",
+        "command": "python -m pytest -q bindings/python/tests/test_smoke.py -k 'i5_py_validate'",
         "result": "PASS (1 test)"
       }
     ],
@@ -103,7 +104,7 @@
         "result": "PASS"
       },
       {
-        "command": "VIRTUAL_ENV=/tmp/sc-compose-i4-venv PATH=/tmp/sc-compose-i4-venv/bin:$PATH python -m pytest -q bindings/python/tests",
+        "command": "python -m pytest -q bindings/python/tests",
         "result": "PASS (51 tests)"
       }
     ]
