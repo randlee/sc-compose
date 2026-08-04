@@ -185,3 +185,225 @@ fn required_variable_location(path: &Path, variable: &str) -> Option<SourceLocat
 
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use serde_json::json;
+
+    use crate::types::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot};
+    use crate::{DiagnosticCode, DiagnosticSeverity, validate};
+
+    #[test]
+    fn required_variable_is_satisfied_by_input_defaults_alias() {
+        let root = temp_root("required_input_defaults");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - name\ninput_defaults:\n  name: world\n---\nhello {{ name }}\n",
+        );
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty());
+        assert!(report.warnings.iter().any(|diagnostic| {
+            diagnostic.severity == DiagnosticSeverity::Info
+                && diagnostic.code == DiagnosticCode::InfoValDefaultUsed
+                && diagnostic.message.contains("using default")
+                && diagnostic.message.contains("\"world\"")
+        }));
+    }
+
+    #[test]
+    fn required_variable_path_pr_number_is_satisfied_by_object_input() {
+        let root = temp_root("required_object_path");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - pr.number\n---\nhello {{ pr.number }}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("pr").unwrap(),
+            json!({"number": 43, "url": "https://example.test/pr/43"}),
+        );
+
+        let report = validate(&request).unwrap();
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty());
+    }
+
+    #[test]
+    fn missing_nested_field_reports_err_val_missing_nested_field() {
+        let root = temp_root("missing_nested_field");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - pr.number\n---\nhello {{ pr.number }}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("pr").unwrap(),
+            json!({"url": "https://example.test/pr/43"}),
+        );
+
+        let report = validate(&request).unwrap();
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValMissingNestedField
+                && diagnostic.message.contains("pr.number")
+        }));
+    }
+
+    #[test]
+    fn shape_mismatch_reports_err_val_shape_mismatch() {
+        let root = temp_root("shape_mismatch");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - pr.number\n---\nhello {{ pr.number }}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("pr").unwrap(),
+            json!("not-an-object"),
+        );
+
+        let report = validate(&request).unwrap();
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValShapeMismatch
+                && diagnostic.message.contains("pr.number")
+                && diagnostic.message.contains("pr")
+        }));
+    }
+
+    #[test]
+    fn required_variable_path_array_member_id_is_satisfied_by_array_of_objects() {
+        let root = temp_root("required_array_member_path");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - sprints.id\n---\n{% for sprint in sprints %}{{ sprint.id }}{% endfor %}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("sprints").unwrap(),
+            json!([{"id": "S1", "stage": "qa"}, {"id": "S2", "stage": "merged"}]),
+        );
+
+        let report = validate(&request).unwrap();
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty());
+    }
+
+    #[test]
+    fn missing_nested_field_in_array_member_reports_err_val_missing_nested_field() {
+        let root = temp_root("missing_array_member_field");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - sprints.id\n---\n{% for sprint in sprints %}{{ sprint.id }}{% endfor %}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("sprints").unwrap(),
+            json!([{"id": "S1", "stage": "qa"}, {"stage": "merged"}]),
+        );
+
+        let report = validate(&request).unwrap();
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValMissingNestedField
+                && diagnostic.message.contains("sprints.id")
+        }));
+    }
+
+    #[test]
+    fn shape_mismatch_in_array_member_reports_err_val_shape_mismatch() {
+        let root = temp_root("array_member_shape_mismatch");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - sprints.id\n---\n{% for sprint in sprints %}{{ sprint.id }}{% endfor %}\n",
+        );
+
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("sprints").unwrap(),
+            json!([{"id": "S1", "stage": "qa"}, "bad-member"]),
+        );
+
+        let report = validate(&request).unwrap();
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValShapeMismatch
+                && diagnostic.message.contains("sprints.id")
+                && diagnostic.message.contains("sprints")
+        }));
+    }
+
+    #[test]
+    fn public_validate_preserves_nested_array_required_path_diagnostics() {
+        let root = temp_root("required_nested_array_regression");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - groups.members.id\n---\n{{ groups }}\n",
+        );
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("groups").unwrap(),
+            json!([{"members": [{"id": "ok"}]}, {"members": [{}]}]),
+        );
+
+        let report = validate(&request).unwrap();
+        assert!(!report.ok);
+        assert_eq!(
+            report.errors[0].code,
+            DiagnosticCode::ErrValMissingNestedField
+        );
+        assert!(report.errors[0].message.contains("groups.members.id"));
+    }
+
+    fn request_for_file(root: &Path, file: &str, policy: ComposePolicy) -> ComposeRequest {
+        ComposeRequest {
+            runtime: None,
+            mode: ComposeMode::File {
+                template_path: PathBuf::from(file),
+            },
+            root: ConfiningRoot::new(root).unwrap(),
+            vars_input: BTreeMap::new(),
+            vars_env: BTreeMap::new(),
+            vars_defaults: BTreeMap::new(),
+            guidance_block: None,
+            user_prompt: None,
+            policy,
+        }
+    }
+
+    fn temp_root(label: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("sc-compose-{label}-{}-{nanos}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        root
+    }
+
+    fn write_file(path: &Path, contents: &str) {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+        fs::write(path, contents).unwrap();
+    }
+}

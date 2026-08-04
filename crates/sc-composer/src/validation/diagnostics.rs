@@ -296,3 +296,375 @@ fn top_level_boundary_names(variables: BTreeSet<VariableName>) -> BTreeSet<Varia
         .map(|variable| top_level_variable_name(&variable))
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use serde_json::json;
+
+    use crate::types::{
+        ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, UnknownVariablePolicy,
+    };
+    use crate::{DiagnosticCode, DiagnosticSeverity, ExpandedTemplate, validate};
+
+    use super::missing_frontmatter_warnings_for_path;
+
+    #[test]
+    fn default_mode_preserves_undeclared_tokens_as_warnings() {
+        let root = temp_root("diagnostics_default_undeclared");
+        write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert!(report.ok);
+        assert!(report.errors.is_empty());
+        assert!(
+            report
+                .warnings
+                .iter()
+                .any(|diagnostic| { diagnostic.code == DiagnosticCode::ErrValUndeclaredToken })
+        );
+    }
+
+    #[test]
+    fn strict_mode_fails_on_undeclared_tokens() {
+        let root = temp_root("diagnostics_strict_undeclared");
+        write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                strict_undeclared_variables: true,
+                ..ComposePolicy::default()
+            },
+        ))
+        .unwrap();
+
+        assert!(!report.ok);
+        assert_eq!(report.errors[0].code, DiagnosticCode::ErrValUndeclaredToken);
+    }
+
+    #[test]
+    fn missing_root_frontmatter_emits_fixup_warning() {
+        let root = temp_root("diagnostics_missing_frontmatter");
+        write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert!(report.warnings.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
+                && diagnostic.message.contains("sc-compose frontmatter-init")
+        }));
+    }
+
+    #[test]
+    fn missing_included_frontmatter_emits_fixup_warning_for_include() {
+        let root = temp_root("diagnostics_missing_included_frontmatter");
+        let root_template = root.join("template.md.j2");
+        write_file(&root_template, "---\nrequired_variables:\n  - name\n---\n");
+        write_file(&root.join("partials/body.md.j2"), "hello {{ name }}\n");
+
+        let warnings = missing_frontmatter_warnings_for_path(
+            &root_template,
+            &ExpandedTemplate {
+                text: "hello {{ name }}\n".to_owned(),
+                resolved_files: vec![
+                    root.join("template.md.j2"),
+                    root.join("partials/body.md.j2"),
+                ],
+                frontmatters: vec![
+                    (
+                        root.join("template.md.j2"),
+                        vec![crate::Frontmatter::empty()],
+                    ),
+                    (root.join("partials/body.md.j2"), Vec::new()),
+                ],
+                include_chains: BTreeMap::default(),
+            },
+        );
+
+        assert!(warnings.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
+                && diagnostic
+                    .message
+                    .contains("included file has no frontmatter")
+                && diagnostic.message.contains("partials/body.md.j2")
+        }));
+    }
+
+    #[test]
+    fn extra_input_policy_can_error() {
+        let root = temp_root("diagnostics_extra_input");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
+        );
+
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unknown_variable_policy: UnknownVariablePolicy::Error,
+                ..ComposePolicy::default()
+            },
+        );
+        request
+            .vars_input
+            .insert(crate::VariableName::new("name").unwrap(), json!("world"));
+        request
+            .vars_input
+            .insert(crate::VariableName::new("extra").unwrap(), json!("value"));
+
+        let report = validate(&request).unwrap();
+        assert!(!report.ok);
+        assert!(
+            report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput)
+        );
+    }
+
+    #[test]
+    fn extra_input_policy_can_warn() {
+        let root = temp_root("diagnostics_extra_input_warn");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
+        );
+
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unknown_variable_policy: UnknownVariablePolicy::Warn,
+                ..ComposePolicy::default()
+            },
+        );
+        request
+            .vars_input
+            .insert(crate::VariableName::new("name").unwrap(), json!("world"));
+        request
+            .vars_input
+            .insert(crate::VariableName::new("extra").unwrap(), json!("value"));
+
+        let report = validate(&request).unwrap();
+        assert!(report.ok);
+        assert!(report.warnings.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValExtraInput
+                && diagnostic.severity == DiagnosticSeverity::Warning
+        }));
+        assert!(report.errors.is_empty());
+    }
+
+    #[test]
+    fn input_defaults_alias_marks_optional_variable_as_known() {
+        let root = temp_root("diagnostics_input_defaults_known");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - task_id\ninput_defaults:\n  assignee: teammate\n---\nhello {{ task_id }} {{ assignee }}\n",
+        );
+
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unknown_variable_policy: UnknownVariablePolicy::Error,
+                ..ComposePolicy::default()
+            },
+        );
+        request
+            .vars_input
+            .insert(crate::VariableName::new("task_id").unwrap(), json!("SC-1"));
+        request.vars_input.insert(
+            crate::VariableName::new("assignee").unwrap(),
+            json!("architect"),
+        );
+
+        let report = validate(&request).unwrap();
+        assert!(report.ok, "{report:?}");
+        assert!(
+            !report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput)
+        );
+    }
+
+    #[test]
+    fn input_defaults_only_var_uses_default_when_absent_emits_info_diagnostic() {
+        let root = temp_root("diagnostics_input_defaults_only_default");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\ninput_defaults:\n  assignee: teammate\n---\nhello {{ assignee }}\n",
+        );
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty());
+        assert!(report.warnings.iter().any(|diagnostic| {
+            diagnostic.severity == DiagnosticSeverity::Info
+                && diagnostic.code == DiagnosticCode::InfoValDefaultUsed
+                && diagnostic
+                    .message
+                    .contains("variable assignee not provided")
+                && diagnostic.message.contains("\"teammate\"")
+        }));
+    }
+
+    #[test]
+    fn extra_nested_fields_are_ignored_by_top_level_extra_input_policy() {
+        let root = temp_root("diagnostics_extra_nested_fields");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - pr.number\n---\nhello {{ pr.number }}\n",
+        );
+
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unknown_variable_policy: UnknownVariablePolicy::Error,
+                ..ComposePolicy::default()
+            },
+        );
+        request.vars_input.insert(
+            crate::VariableName::new("pr").unwrap(),
+            json!({"number": 43, "url": "https://example.test/pr/43", "status": "open"}),
+        );
+
+        let report = validate(&request).unwrap();
+        assert!(report.ok, "{report:?}");
+        assert!(
+            !report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput)
+        );
+    }
+
+    #[test]
+    fn empty_template_body_emits_empty_code() {
+        let root = temp_root("diagnostics_empty_body");
+        write_file(&root.join("template.md.j2"), "   \n");
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert!(!report.ok);
+        assert!(
+            report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValEmpty)
+        );
+    }
+
+    #[test]
+    fn public_validate_preserves_default_before_undeclared_diagnostics() {
+        let root = temp_root("diagnostics_default_order");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\ndefaults:\n  known: fallback\n---\n{{ known }} {{ missing }}\n",
+        );
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert_eq!(report.warnings[0].code, DiagnosticCode::InfoValDefaultUsed);
+        assert_eq!(
+            report.warnings[1].code,
+            DiagnosticCode::ErrValUndeclaredToken
+        );
+    }
+
+    #[test]
+    fn public_validate_preserves_extra_input_policy_after_undeclared_diagnostics() {
+        let root = temp_root("diagnostics_extra_order");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables: []\n---\nhello {{ missing }}\n",
+        );
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unknown_variable_policy: UnknownVariablePolicy::Warn,
+                ..ComposePolicy::default()
+            },
+        );
+        request
+            .vars_input
+            .insert(crate::VariableName::new("extra").unwrap(), json!("value"));
+
+        let report = validate(&request).unwrap();
+        assert_eq!(
+            report.warnings[0].code,
+            DiagnosticCode::ErrValUndeclaredToken
+        );
+        assert_eq!(report.warnings[1].code, DiagnosticCode::ErrValExtraInput);
+    }
+
+    fn request_for_file(root: &Path, file: &str, policy: ComposePolicy) -> ComposeRequest {
+        ComposeRequest {
+            runtime: None,
+            mode: ComposeMode::File {
+                template_path: PathBuf::from(file),
+            },
+            root: ConfiningRoot::new(root).unwrap(),
+            vars_input: BTreeMap::new(),
+            vars_env: BTreeMap::new(),
+            vars_defaults: BTreeMap::new(),
+            guidance_block: None,
+            user_prompt: None,
+            policy,
+        }
+    }
+
+    fn temp_root(label: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("sc-compose-{label}-{}-{nanos}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        root
+    }
+
+    fn write_file(path: &Path, contents: &str) {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+        fs::write(path, contents).unwrap();
+    }
+}

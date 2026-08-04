@@ -69,56 +69,9 @@ mod tests {
 
     use serde_json::json;
 
-    use crate::types::{
-        ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, UnknownVariablePolicy,
-    };
-    use crate::{DiagnosticCode, DiagnosticSeverity, validate};
-    use crate::{ExpandedTemplate, parse_template_document};
-
-    use super::diagnostics::missing_frontmatter_warnings_for_path;
     use super::{collect_validation_state, inject_builtin_vars};
-
-    #[test]
-    fn default_mode_preserves_undeclared_tokens_as_warnings() {
-        let root = temp_root("validation_default_undeclared");
-        write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
-
-        let report = validate(&request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy::default(),
-        ))
-        .unwrap();
-
-        assert!(report.ok);
-        assert!(report.errors.is_empty());
-        assert!(
-            report
-                .warnings
-                .iter()
-                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValUndeclaredToken),
-            "expected undeclared-token warning"
-        );
-    }
-
-    #[test]
-    fn strict_mode_fails_on_undeclared_tokens() {
-        let root = temp_root("validation_strict_undeclared");
-        write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
-
-        let report = validate(&request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy {
-                strict_undeclared_variables: true,
-                ..ComposePolicy::default()
-            },
-        ))
-        .unwrap();
-
-        assert!(!report.ok);
-        assert_eq!(report.errors[0].code, DiagnosticCode::ErrValUndeclaredToken);
-    }
+    use crate::types::{ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot};
+    use crate::{DiagnosticCode, parse_template_document, validate};
 
     #[test]
     fn strict_mode_accepts_approved_loop_context_builtins() {
@@ -467,365 +420,6 @@ mod tests {
     }
 
     #[test]
-    fn missing_root_frontmatter_emits_fixup_warning() {
-        let root = temp_root("validation_missing_frontmatter");
-        write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
-
-        let report = validate(&request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy::default(),
-        ))
-        .unwrap();
-
-        assert!(
-            report.warnings.iter().any(|diagnostic| {
-                diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
-                    && diagnostic.message.contains("sc-compose frontmatter-init")
-            }),
-            "expected missing-frontmatter warning with fix command"
-        );
-    }
-
-    #[test]
-    fn missing_included_frontmatter_emits_fixup_warning_for_include() {
-        let root = temp_root("validation_missing_included_frontmatter");
-        let root_template = root.join("template.md.j2");
-        write_file(&root_template, "---\nrequired_variables:\n  - name\n---\n");
-        write_file(&root.join("partials/body.md.j2"), "hello {{ name }}\n");
-
-        let warnings = missing_frontmatter_warnings_for_path(
-            &root_template,
-            &ExpandedTemplate {
-                text: "hello {{ name }}\n".to_owned(),
-                resolved_files: vec![
-                    root.join("template.md.j2"),
-                    root.join("partials/body.md.j2"),
-                ],
-                frontmatters: vec![
-                    (
-                        root.join("template.md.j2"),
-                        vec![crate::Frontmatter::empty()],
-                    ),
-                    (root.join("partials/body.md.j2"), Vec::new()),
-                ],
-                include_chains: BTreeMap::default(),
-            },
-        );
-
-        assert!(warnings.iter().any(|diagnostic| {
-            diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
-                && diagnostic
-                    .message
-                    .contains("included file has no frontmatter")
-                && diagnostic.message.contains("partials/body.md.j2")
-        }));
-    }
-
-    #[test]
-    fn extra_input_policy_can_error() {
-        let root = temp_root("validation_extra_input");
-        write_file(
-            &root.join("template.md.j2"),
-            "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
-        );
-
-        let mut request = request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy {
-                unknown_variable_policy: UnknownVariablePolicy::Error,
-                ..ComposePolicy::default()
-            },
-        );
-        request
-            .vars_input
-            .insert(crate::VariableName::new("name").unwrap(), json!("world"));
-        request
-            .vars_input
-            .insert(crate::VariableName::new("extra").unwrap(), json!("value"));
-
-        let report = validate(&request).unwrap();
-        assert!(!report.ok);
-        assert!(
-            report
-                .errors
-                .iter()
-                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput)
-        );
-    }
-
-    #[test]
-    fn extra_input_policy_can_warn() {
-        let root = temp_root("validation_extra_input_warn");
-        write_file(
-            &root.join("template.md.j2"),
-            "---\nrequired_variables:\n  - name\n---\nhello {{ name }}\n",
-        );
-
-        let mut request = request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy {
-                unknown_variable_policy: UnknownVariablePolicy::Warn,
-                ..ComposePolicy::default()
-            },
-        );
-        request
-            .vars_input
-            .insert(crate::VariableName::new("name").unwrap(), json!("world"));
-        request
-            .vars_input
-            .insert(crate::VariableName::new("extra").unwrap(), json!("value"));
-
-        let report = validate(&request).unwrap();
-        assert!(report.ok);
-        assert!(report.warnings.iter().any(|diagnostic| {
-            diagnostic.code == DiagnosticCode::ErrValExtraInput
-                && diagnostic.severity == DiagnosticSeverity::Warning
-        }));
-        assert!(report.errors.is_empty());
-    }
-
-    #[test]
-    fn input_defaults_alias_marks_optional_variable_as_known() {
-        let root = temp_root("validation_input_defaults_known");
-        write_file(
-            &root.join("template.md.j2"),
-            "---\nrequired_variables:\n  - task_id\ninput_defaults:\n  assignee: teammate\n---\nhello {{ task_id }} {{ assignee }}\n",
-        );
-
-        let mut request = request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy {
-                unknown_variable_policy: UnknownVariablePolicy::Error,
-                ..ComposePolicy::default()
-            },
-        );
-        request
-            .vars_input
-            .insert(crate::VariableName::new("task_id").unwrap(), json!("SC-1"));
-        request.vars_input.insert(
-            crate::VariableName::new("assignee").unwrap(),
-            json!("architect"),
-        );
-
-        let report = validate(&request).unwrap();
-        assert!(report.ok, "{report:?}");
-        assert!(
-            !report
-                .errors
-                .iter()
-                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput)
-        );
-    }
-
-    #[test]
-    fn input_defaults_only_var_uses_default_when_absent_emits_info_diagnostic() {
-        let root = temp_root("validation_input_defaults_only_default");
-        write_file(
-            &root.join("template.md.j2"),
-            "---\ninput_defaults:\n  assignee: teammate\n---\nhello {{ assignee }}\n",
-        );
-
-        let report = validate(&request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy::default(),
-        ))
-        .unwrap();
-
-        assert!(report.ok, "{report:?}");
-        assert!(report.errors.is_empty());
-        assert!(
-            report.warnings.iter().any(|diagnostic| {
-                diagnostic.severity == DiagnosticSeverity::Info
-                    && diagnostic.code == DiagnosticCode::InfoValDefaultUsed
-                    && diagnostic
-                        .message
-                        .contains("variable assignee not provided")
-                    && diagnostic.message.contains("\"teammate\"")
-            }),
-            "{report:?}"
-        );
-    }
-
-    #[test]
-    fn required_variable_is_satisfied_by_input_defaults_alias() {
-        let root = temp_root("validation_required_input_defaults");
-        write_file(
-            &root.join("template.md.j2"),
-            "---\nrequired_variables:\n  - name\ninput_defaults:\n  name: world\n---\nhello {{ name }}\n",
-        );
-
-        let report = validate(&request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy::default(),
-        ))
-        .unwrap();
-
-        assert!(report.ok, "{report:?}");
-        assert!(report.errors.is_empty());
-        assert!(
-            report.warnings.iter().any(|diagnostic| {
-                diagnostic.severity == DiagnosticSeverity::Info
-                    && diagnostic.code == DiagnosticCode::InfoValDefaultUsed
-                    && diagnostic.message.contains("using default")
-                    && diagnostic.message.contains("\"world\"")
-            }),
-            "{report:?}"
-        );
-    }
-
-    #[test]
-    fn required_variable_path_pr_number_is_satisfied_by_object_input() {
-        let root = temp_root("validation_required_object_path");
-        write_file(
-            &root.join("template.md.j2"),
-            "---\nrequired_variables:\n  - pr.number\n---\nhello {{ pr.number }}\n",
-        );
-
-        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
-        request.vars_input.insert(
-            crate::VariableName::new("pr").unwrap(),
-            json!({
-                "number": 43,
-                "url": "https://example.test/pr/43",
-            }),
-        );
-
-        let report = validate(&request).unwrap();
-
-        assert!(report.ok, "{report:?}");
-        assert!(report.errors.is_empty());
-    }
-
-    #[test]
-    fn missing_nested_field_reports_err_val_missing_nested_field() {
-        let root = temp_root("validation_missing_nested_field");
-        write_file(
-            &root.join("template.md.j2"),
-            "---\nrequired_variables:\n  - pr.number\n---\nhello {{ pr.number }}\n",
-        );
-
-        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
-        request.vars_input.insert(
-            crate::VariableName::new("pr").unwrap(),
-            json!({ "url": "https://example.test/pr/43" }),
-        );
-
-        let report = validate(&request).unwrap();
-
-        assert!(!report.ok);
-        assert!(report.errors.iter().any(|diagnostic| {
-            diagnostic.code == DiagnosticCode::ErrValMissingNestedField
-                && diagnostic.message.contains("pr.number")
-        }));
-    }
-
-    #[test]
-    fn shape_mismatch_reports_err_val_shape_mismatch() {
-        let root = temp_root("validation_shape_mismatch");
-        write_file(
-            &root.join("template.md.j2"),
-            "---\nrequired_variables:\n  - pr.number\n---\nhello {{ pr.number }}\n",
-        );
-
-        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
-        request.vars_input.insert(
-            crate::VariableName::new("pr").unwrap(),
-            json!("not-an-object"),
-        );
-
-        let report = validate(&request).unwrap();
-
-        assert!(!report.ok);
-        assert!(report.errors.iter().any(|diagnostic| {
-            diagnostic.code == DiagnosticCode::ErrValShapeMismatch
-                && diagnostic.message.contains("pr.number")
-                && diagnostic.message.contains("pr")
-        }));
-    }
-
-    #[test]
-    fn required_variable_path_array_member_id_is_satisfied_by_array_of_objects() {
-        let root = temp_root("validation_required_array_member_path");
-        write_file(
-            &root.join("template.md.j2"),
-            "---\nrequired_variables:\n  - sprints.id\n---\n{% for sprint in sprints %}{{ sprint.id }}{% endfor %}\n",
-        );
-
-        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
-        request.vars_input.insert(
-            crate::VariableName::new("sprints").unwrap(),
-            json!([
-                { "id": "S1", "stage": "qa" },
-                { "id": "S2", "stage": "merged" }
-            ]),
-        );
-
-        let report = validate(&request).unwrap();
-
-        assert!(report.ok, "{report:?}");
-        assert!(report.errors.is_empty());
-    }
-
-    #[test]
-    fn missing_nested_field_in_array_member_reports_err_val_missing_nested_field() {
-        let root = temp_root("validation_missing_array_member_field");
-        write_file(
-            &root.join("template.md.j2"),
-            "---\nrequired_variables:\n  - sprints.id\n---\n{% for sprint in sprints %}{{ sprint.id }}{% endfor %}\n",
-        );
-
-        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
-        request.vars_input.insert(
-            crate::VariableName::new("sprints").unwrap(),
-            json!([
-                { "id": "S1", "stage": "qa" },
-                { "stage": "merged" }
-            ]),
-        );
-
-        let report = validate(&request).unwrap();
-
-        assert!(!report.ok);
-        assert!(report.errors.iter().any(|diagnostic| {
-            diagnostic.code == DiagnosticCode::ErrValMissingNestedField
-                && diagnostic.message.contains("sprints.id")
-        }));
-    }
-
-    #[test]
-    fn shape_mismatch_in_array_member_reports_err_val_shape_mismatch() {
-        let root = temp_root("validation_array_member_shape_mismatch");
-        write_file(
-            &root.join("template.md.j2"),
-            "---\nrequired_variables:\n  - sprints.id\n---\n{% for sprint in sprints %}{{ sprint.id }}{% endfor %}\n",
-        );
-
-        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
-        request.vars_input.insert(
-            crate::VariableName::new("sprints").unwrap(),
-            json!([
-                { "id": "S1", "stage": "qa" },
-                "bad-member"
-            ]),
-        );
-
-        let report = validate(&request).unwrap();
-
-        assert!(!report.ok);
-        assert!(report.errors.iter().any(|diagnostic| {
-            diagnostic.code == DiagnosticCode::ErrValShapeMismatch
-                && diagnostic.message.contains("sprints.id")
-                && diagnostic.message.contains("sprints")
-        }));
-    }
-
-    #[test]
     fn discover_tokens_attributes_loop_body_references_to_iterable() {
         let tokens = crate::discovery::discover_tokens(
             "{% for sprint in sprints %}{{ sprint.id }} {{ report.title }}{% endfor %}",
@@ -982,6 +576,51 @@ mod tests {
     }
 
     #[test]
+    fn public_validate_preserves_builtin_render_context_contract() {
+        let root = temp_root("validation_public_builtin_regression");
+        write_file(
+            &root.join("template.md.j2"),
+            "{{ TEMPLATE_NAME }} {{ HOSTNAME }} {{ USERNAME }} {{ RENDER_DATE }} {{ RENDER_TIMESTAMP }}\n",
+        );
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                strict_undeclared_variables: true,
+                ..ComposePolicy::default()
+            },
+        ))
+        .unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty(), "{report:?}");
+    }
+
+    #[test]
+    fn public_validate_preserves_pass_scope_contract() {
+        let root = temp_root("validation_public_pass_scope_regression");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\npass: 2\ndefaults:\n  team: wyvern\n---\n---\npass: 1\ndefaults:\n  task: smoke\n---\nouter={{{ missing_team }}}\ninner={{ task }}\n",
+        );
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty(), "{report:?}");
+        assert!(report.warnings.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUndeclaredToken
+                && diagnostic.message.contains("missing_team")
+        }));
+    }
+
+    #[test]
     fn structured_defaults_replace_without_deep_merge() {
         let root = temp_root("validation_structured_default_replace");
         write_file(
@@ -1009,63 +648,6 @@ mod tests {
         assert_eq!(
             state.context.get(&crate::VariableName::new("pr").unwrap()),
             Some(&json!({ "number": 43 }))
-        );
-    }
-
-    #[test]
-    fn extra_nested_fields_are_ignored_by_top_level_extra_input_policy() {
-        let root = temp_root("validation_extra_nested_fields");
-        write_file(
-            &root.join("template.md.j2"),
-            "---\nrequired_variables:\n  - pr.number\n---\nhello {{ pr.number }}\n",
-        );
-
-        let mut request = request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy {
-                unknown_variable_policy: UnknownVariablePolicy::Error,
-                ..ComposePolicy::default()
-            },
-        );
-        request.vars_input.insert(
-            crate::VariableName::new("pr").unwrap(),
-            json!({
-                "number": 43,
-                "url": "https://example.test/pr/43",
-                "status": "open",
-            }),
-        );
-
-        let report = validate(&request).unwrap();
-
-        assert!(report.ok, "{report:?}");
-        assert!(
-            !report
-                .errors
-                .iter()
-                .any(|diagnostic| { diagnostic.code == DiagnosticCode::ErrValExtraInput })
-        );
-    }
-
-    #[test]
-    fn empty_template_body_emits_empty_code() {
-        let root = temp_root("validation_empty_body");
-        write_file(&root.join("template.md.j2"), "   \n");
-
-        let report = validate(&request_for_file(
-            &root,
-            "template.md.j2",
-            ComposePolicy::default(),
-        ))
-        .unwrap();
-
-        assert!(!report.ok);
-        assert!(
-            report
-                .errors
-                .iter()
-                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValEmpty)
         );
     }
 
