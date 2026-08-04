@@ -80,6 +80,10 @@ order), not incidental parser formatting. Multiple placeholders in one block,
 dynamic names, control-flow reconstruction, unmatched/truncated markup,
 multiple roots, post-root content, and unknown-template identification remain
 unsupported.
+I.3 reports `ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH` for rendered child markup
+outside the approved structure, `ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED` for
+unsupported control-flow reconstruction, and `ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME`
+for dynamic element names.
 
 ### XML dirty-prefix recovery
 

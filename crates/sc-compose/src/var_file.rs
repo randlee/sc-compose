@@ -423,6 +423,21 @@ mod tests {
     }
 
     #[test]
+    fn doubled_single_quote_preserves_option_b_scanner_behavior() {
+        let merge_line = "map: {item: 'it''s', <<: *defaults}";
+        let merge_index = scan_yaml_line_for_merge_key(merge_line)
+            .expect("merge key after doubled quote should remain visible");
+        assert_eq!(&merge_line[merge_index..merge_index + 2], "<<");
+
+        let block_line = "item: 'it''s' |";
+        assert!(has_yaml_block_scalar_indicator(block_line));
+
+        let quoted_merge_line = "map: {'it''s <<: *defaults'}";
+        assert_eq!(scan_yaml_line_for_merge_key(quoted_merge_line), None);
+        assert!(!has_yaml_block_scalar_indicator("item: 'it''s |'"));
+    }
+
+    #[test]
     fn json_merge_shaped_keys_are_unaffected() {
         let vars = parse_var_file_contents(r#"{"config":{"<<":"literal"}}"#)
             .expect("JSON keys are not YAML merge syntax");
