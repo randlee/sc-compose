@@ -2,10 +2,10 @@
 id: sprint-I.1
 title: Contract, Raw-Text Semantics, and Traceability
 phase: I
-status: planned
+status: complete
 branch: sprint/i-1-contract-and-traceability
 worktree: ../sc-compose-worktrees/sprint/i-1-contract-and-traceability
-target: develop
+target: integrate/phase-i
 ---
 
 # Sprint I.1 — Contract, Raw-Text Semantics, and Traceability
@@ -28,8 +28,8 @@ built-ins, or YAML merge-key support already exists.
   conversion in `crates/sc-composer/src/types.rs`;
 - GitHub issues #193, #167, and #166, including their reproductions.
 
-No implementation sprint may start until the I.1 contract review accepts the
-decisions below. I.4, I.5, and I.6 remain independent of I.2 after this gate.
+The decisions below are accepted by I.1. I.2 through I.6 may implement them;
+I.4, I.5, and I.6 remain independent of I.2 after this gate.
 
 ## Decisions to record
 
@@ -47,8 +47,13 @@ report shape shared with the existing extraction formats. It:
   template delimiters with stable diagnostics;
 - never identifies an unknown template, executes Jinja, or infers source types.
 
-The contract must state how line/column evidence is represented when there is
-no structural path and how `include`/`exclude` filters behave.
+Raw occurrences use `RawPathSegment` with zero-based byte offsets into the
+rendered source and one-based line/column coordinates at the start of the
+captured span. `include` selects only named variables when non-empty; `exclude`
+removes named variables from values and occurrences; overlap or duplicate
+filters fail with `ERR_EXTRACT_INVALID_REQUEST`. Excluded variables still
+participate in static matching so they cannot change the interpretation of
+neighboring captures.
 
 The frozen interface must be expressed against the existing Rust report model,
 not as an informal new parallel model. The minimum shape is:
@@ -103,41 +108,44 @@ an explicit ADR/registry amendment before I.2 changes the list.
 
 ### XML block and mixed content
 
-Define the exact known-template subset for I.3: a full element-content
-placeholder may capture rendered text and a deterministic serialization of
-allowed child markup. Multiple variables, dynamic element names, control-flow
+The accepted subset for I.3 is a full element-content placeholder that may
+capture rendered text and a deterministic serialization of allowed child
+markup. Multiple variables, dynamic element names, control-flow
 reconstruction, unmatched/truncated markup, multiple roots, and post-root
-content remain unsupported. The
-contract must state whether matching uses canonical child serialization or a
-text-only projection, and must provide an example for description,
-references, and workflow blocks from #193.
+content remain unsupported. The matcher uses canonical child serialization
+with stable element names, attributes, text, and child order; incidental
+parser formatting is not part of the value. Description, references, and
+workflow blocks from #193 are the required realistic examples.
 
 ### Dirty-prefix recovery
 
-Define the accepted rendered-only preamble, including plain text and permitted
-XML declaration/comment processing instructions. Define rejection for a
-malformed suffix, multiple roots, a second document, or a prefix containing
-ambiguous markup. Decide whether recovery emits a new warning (recommended:
-`WARN_EXTRACT_DIRTY_PREFIX_STRIPPED`) and require the recovery detail to
-identify that a prefix was removed.
+The accepted rendered-only preamble consists of UTF-8 text and whitespace
+before one XML document, plus complete XML comments and processing
+instructions in the retained prolog. An XML declaration is retained only when
+it is the first construct in that retained prolog. The normalizer removes only
+bytes before the selected root and emits `WARN_EXTRACT_DIRTY_PREFIX_STRIPPED`
+with the removed byte span. It rejects unmatched/truncated markup in the
+discarded prefix, malformed suffixes, multiple roots, second documents,
+post-root content, and DTDs; it is not an XML repair parser.
 
 ### Loop context
 
-Define the implicit names available only while an active Jinja `for` scope is
-being scanned: `loop`, `loop.index`, `loop.index0`, `loop.revindex`,
+The implicit names available only while an active Jinja `for` scope is being
+scanned are `loop`, `loop.index`, `loop.index0`, `loop.revindex`,
 `loop.revindex0`, `loop.first`, `loop.last`, `loop.length`, `loop.depth`,
-`loop.depth0`, and the supported `loop.cycle` call form. The contract must
-state how nested scopes and a caller variable named `loop` outside a loop are
-handled. Do not make all dotted names implicit.
+`loop.depth0`, and the `loop.cycle(...)` call form. Nested scopes push and pop
+independently. A caller variable named `loop` outside a `for` remains subject
+to ordinary undeclared-variable policy; arbitrary dotted names are never
+implicit.
 
 ### YAML merge keys
 
-Choose and document one policy for `<<` in JSON/YAML var-files. The default
-recommendation is fail-closed rejection with `ERR_CONFIG_VARFILE` and an
-actionable message because the current decoder cannot promise YAML merge
-semantics and silently drops inherited fields. A fully specified bounded
-expansion is acceptable only if duplicate-key precedence, nested aliases,
-cycles, limits, and cross-surface behavior are specified and tested.
+The policy for `<<` in JSON/YAML var-files is fail-closed rejection with
+`ERR_CONFIG_VARFILE` and an actionable message. I.6 must detect merge-key
+syntax before tagged-value unwrapping; it must not partially expand, silently
+drop inherited fields, or change JSON behavior. Explicit mappings remain the
+portable recovery. Merge expansion is deferred until a separate requirement
+specifies precedence, alias cycles, and limits.
 
 ## Required documentation changes
 
@@ -146,9 +154,8 @@ cycles, limits, and cross-surface behavior are specified and tested.
 - Amend `docs/architecture.md` with ownership, report/path semantics, the
   raw-text seam, prefix normalization boundary, validation scope model, and
   var-file policy.
-- Create ADR-0013 for the Phase-I extraction and input-safety decisions, or
-  explicitly extend ADR-0012 if architecture QA confirms the decision set is
-  still one coherent reversal of the Phase-H boundary.
+- Create and accept [ADR-0013](../adrs/0013-phase-i-raw-text-and-input-safety.md)
+  for the Phase-I extraction and input-safety decisions.
 - Add any new stable diagnostic to `docs/error-code-registry.md`, including
   trigger, recovery, owner, and serialized shape.
 - Update `docs/project-plan.md`, the Phase I plan, and the Phase H future-work
@@ -170,11 +177,19 @@ cycles, limits, and cross-surface behavior are specified and tested.
 - `git diff --check` passes and the documentation review can be performed
   without reading implementation patches.
 
+## Decision record
+
+The accepted decisions are recorded in
+[ADR-0013](../adrs/0013-phase-i-raw-text-and-input-safety.md) and the linked
+FR/architecture/registry amendments. The sprint closes the contract gate; it
+does not add runtime support.
+
 ## Required validation
 
 This sprint is documentation/design only. The diff-scope gate is explicit:
 
-- `git diff --name-only origin/develop...HEAD` must contain only `docs/` files
+- `git diff --name-only origin/integrate/phase-i...HEAD` must contain only
+  `docs/` files; the sprint branch is cut from and targets `integrate/phase-i`
   (including any requirements, architecture, ADR, registry, project-plan, or
   Phase-I files required by this sprint);
 - the same file list must contain no `crates/`, `bindings/`, `tests/`,

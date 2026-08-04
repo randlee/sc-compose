@@ -49,9 +49,10 @@ by `sc-composer` and `sc-compose`.
 | `ERR_EXTRACT_INVALID_REQUEST` | `ExtractError` | error | in-memory extraction request violates source, filter, or report invariants | `sc_composer::extract()` and report construction |
 | `ERR_EXTRACT_MALFORMED` | `ExtractError` | error | rendered XML cannot be parsed as well-formed input | XML extraction engine |
 | `ERR_EXTRACT_UNSUPPORTED` | `ExtractError` | error | known template uses syntax outside the supported reversible XML subset | XML extraction engine |
-| `ERR_EXTRACT_AMBIGUOUS` | `ExtractError` | error | multiple structural interpretations remain for an extraction result | XML extraction engine and report construction |
+| `ERR_EXTRACT_AMBIGUOUS` | `ExtractError` | error | multiple structural interpretations remain for an extraction result | XML extraction engine and report construction; Phase I/I.2 raw-text mode |
 | `WARN_EXTRACT_NOT_OBSERVED` | `ExtractionReport` | warning | a declared scalar occurrence is absent from the rendered XML | XML extraction engine |
-| `WARN_EXTRACT_LOW_CONFIDENCE` | `ExtractionReport` | warning | structural or static evidence is insufficient for a high-confidence report | XML extraction engine |
+| `WARN_EXTRACT_LOW_CONFIDENCE` | `ExtractionReport` | warning | structural or static evidence is insufficient for a high-confidence report | XML extraction engine; Phase I/I.2 raw-text mode |
+| `WARN_EXTRACT_DIRTY_PREFIX_STRIPPED` | `ExtractionReport` | warning | rendered XML had an accepted leading text preamble removed before parsing | Phase I.4 XML dirty-prefix normalizer |
 
 ### Accepted Phase-H Cross-Format Extraction Codes
 
@@ -62,7 +63,7 @@ codes above so format-specific parser and policy failures remain stable.
 | Code | Error family | Severity | Trigger condition | Expected primary emitter |
 | --- | --- | --- | --- | --- |
 | `ERR_EXTRACT_FORMAT_UNSUPPORTED` | `ExtractError` | error | requested format is not enabled by the public format selector | H.3 adapter surfaces |
-| `ERR_EXTRACT_TEMPLATE_UNSUPPORTED` | `ExtractError` | error | unsupported loop, branch, dynamic key, typed placeholder, or other cross-format template syntax | H.2/H.4/H.5 adapters |
+| `ERR_EXTRACT_TEMPLATE_UNSUPPORTED` | `ExtractError` | error | unsupported loop, branch, dynamic key, typed placeholder, or other cross-format template syntax | H.2/H.4/H.5 adapters; Phase I/I.2 raw-text mode |
 | `ERR_EXTRACT_INPUT_LIMIT` | `ExtractError` | error | input size, depth, or occurrence limit is exceeded | H.2 JSON, H.4 YAML, H.5 TOML, and H.7 JSON/YAML/XML hardening adapters |
 | `ERR_EXTRACT_JSON_MALFORMED` | `ExtractError` | error | rendered input is not one well-formed JSON value | H.2 JSON adapter |
 | `ERR_EXTRACT_JSON_DUPLICATE_KEY` | `ExtractError` | error | a JSON object repeats a key | H.2 JSON adapter |
