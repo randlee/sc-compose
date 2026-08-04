@@ -1,0 +1,111 @@
+{
+  "schema_version": "phase-i5-loop-context-builtins/v1",
+  "sprint": "I.5",
+  "issue": "#167",
+  "requirement_trace": [
+    "docs/requirements.md FR-20",
+    "docs/adrs/0013-phase-i-raw-text-and-input-safety.md Jinja loop context",
+    "docs/phase-I/sprint-i-5-loop-context-builtins.md"
+  ],
+  "approved_loop_context_names": [
+    "loop",
+    "loop.index",
+    "loop.index0",
+    "loop.revindex",
+    "loop.revindex0",
+    "loop.first",
+    "loop.last",
+    "loop.length",
+    "loop.depth",
+    "loop.depth0",
+    "loop.cycle(...)"
+  ],
+  "cases": [
+    {
+      "id": "strict-active-for-all-builtins",
+      "kind": "pass",
+      "frontmatter": "---\ndefaults:\n  items: [one, two]\n---",
+      "template_body": "{% for item in items %}{{ loop }} {{ loop.index }} {{ loop.index0 }} {{ loop.revindex }} {{ loop.revindex0 }} {{ loop.first }} {{ loop.last }} {{ loop.length }} {{ loop.depth }} {{ loop.depth0 }} {{ loop.cycle(\"odd\", \"even\") }}:{{ item }}{% endfor %}",
+      "policy": {"strict_undeclared_variables": true},
+      "expected": {
+        "valid": true,
+        "undeclared_errors": []
+      },
+      "tests": [
+        "validation::tests::strict_mode_accepts_approved_loop_context_builtins",
+        "validate_strict_accepts_loop_context_builtins_inside_for",
+        "test_i5_py_validate_scopes_loop_context_builtins"
+      ]
+    },
+    {
+      "id": "strict-outside-loop-and-lookalike",
+      "kind": "fail",
+      "frontmatter": "---\ndefaults:\n  items: [one]\n---",
+      "template_body": "outside={{ loop.last }}\n{% for item in items %}inside={{ loop.anything }}{% endfor %}",
+      "policy": {"strict_undeclared_variables": true},
+      "expected": {
+        "valid": false,
+        "undeclared_errors": ["loop.last", "loop.anything"]
+      },
+      "tests": [
+        "validation::tests::strict_mode_keeps_loop_outside_scope_and_lookalikes_undeclared",
+        "validate_strict_rejects_loop_context_outside_for_and_lookalikes",
+        "test_i5_py_validate_scopes_loop_context_builtins"
+      ]
+    },
+    {
+      "id": "nested-loops-and-shadowed-bindings",
+      "kind": "pass",
+      "frontmatter": "---\nrequired_variables:\n  - groups\n---",
+      "template_body": "{% for group in groups %}{% for group in nested_groups %}{{ group.name }} {{ report.url }} {{ loop.last }}{% endfor %}{% endfor %}",
+      "policy": {"strict_undeclared_variables": false},
+      "expected": {
+        "discovered_variables": ["groups", "nested_groups", "report.url"]
+      },
+      "tests": [
+        "validation::tests::discover_tokens_keeps_nested_iterables_and_shadowing_scoped",
+        "validation::tests::strict_mode_accepts_nested_loop_context_and_shadowed_bindings"
+      ]
+    }
+  ],
+  "validation": {
+    "tested_commit": "27d74a5",
+    "evidence_recorded_in": "follow-up documentation commit after 27d74a5",
+    "focused_commands": [
+      {
+        "command": "cargo test -p sc-composer validation::tests -- --nocapture",
+        "result": "PASS (36 tests)"
+      },
+      {
+        "command": "cargo test -p sc-compose --test cli validate_strict -- --nocapture",
+        "result": "PASS (2 tests)"
+      },
+      {
+        "command": "VIRTUAL_ENV=/tmp/sc-compose-i4-venv PATH=/tmp/sc-compose-i4-venv/bin:$PATH python -m pytest -q bindings/python/tests/test_smoke.py -k 'i5_py_validate'",
+        "result": "PASS (1 test)"
+      }
+    ],
+    "required_commands": [
+      {
+        "command": "cargo test --workspace",
+        "result": "PASS"
+      },
+      {
+        "command": "cargo clippy --all-targets --all-features -- -D warnings",
+        "result": "PASS"
+      },
+      {
+        "command": "cargo fmt --all -- --check",
+        "result": "PASS"
+      },
+      {
+        "command": "git diff --check",
+        "result": "PASS"
+      },
+      {
+        "command": "VIRTUAL_ENV=/tmp/sc-compose-i4-venv PATH=/tmp/sc-compose-i4-venv/bin:$PATH python -m pytest -q bindings/python/tests",
+        "result": "PASS (51 tests)"
+      }
+    ]
+  }
+}
