@@ -1137,9 +1137,11 @@ sprints.
 ### FR-21: YAML Merge-Key Var-File Safety (Phase I.6)
 
 - YAML merge keys (`<<`) in JSON/YAML var-files shall fail closed with
-  `ERR_CONFIG_VARFILE` before tagged-value unwrapping.
+  `ERR_CONFIG_VARFILE` before tagged-value unwrapping; the diagnostic shall
+  identify the source line and column of the unsupported construct.
 - The implementation shall not partially expand merge keys or silently lose
-  inherited fields. Explicit mappings are the portable recovery.
+  inherited fields. The diagnostic shall direct callers to expand the mapping
+  explicitly, which is the portable recovery.
 - Valid JSON/YAML objects and existing duplicate-key, non-string-key, and
   value-shape policies shall remain unchanged.
 

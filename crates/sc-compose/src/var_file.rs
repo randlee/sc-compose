@@ -32,6 +32,7 @@ pub(crate) fn parse_var_file_contents(
 #[derive(Debug)]
 enum VarFileDecodeError {
     InvalidFormat(anyhow::Error),
+    UnsupportedYamlMergeKey { line: usize, column: usize },
     NotAnObject { format: VarFileFormat },
 }
 
@@ -47,6 +48,12 @@ impl VarFileDecodeError {
             Self::InvalidFormat(error) => CommandError::usage_with_code(
                 error.context("var-file must be valid JSON or YAML"),
                 DiagnosticCode::ErrConfigParse,
+            ),
+            Self::UnsupportedYamlMergeKey { line, column } => CommandError::usage_with_code(
+                anyhow!(
+                    "unsupported YAML merge key `<<` at line {line}, column {column}; expand the mapping explicitly to preserve inherited fields"
+                ),
+                DiagnosticCode::ErrConfigVarfile,
             ),
             Self::NotAnObject {
                 format: VarFileFormat::Json,
@@ -90,7 +97,134 @@ fn decode_var_file(contents: &str) -> Result<DecodedVarObject, VarFileDecodeErro
 
     let value = serde_yaml::from_str::<serde_yaml::Value>(contents)
         .map_err(|error| VarFileDecodeError::InvalidFormat(anyhow!(error)))?;
+    if let Some((line, column)) = find_yaml_merge_key(contents) {
+        return Err(VarFileDecodeError::UnsupportedYamlMergeKey { line, column });
+    }
     decode_yaml_object(value)
+}
+
+/// Find YAML merge-key syntax while the source still retains quoting and
+/// comment boundaries. Inspecting only `serde_yaml::Value` would conflate a
+/// quoted ordinary key named `<<` with the YAML merge-key construct.
+fn find_yaml_merge_key(contents: &str) -> Option<(usize, usize)> {
+    let mut block_scalar_indent = None;
+
+    for (line_index, line) in contents.lines().enumerate() {
+        let indentation = line.bytes().take_while(|byte| *byte == b' ').count();
+        let has_content = line[indentation..]
+            .chars()
+            .next()
+            .is_some_and(|character| character != '#');
+
+        if let Some(base_indent) = block_scalar_indent {
+            if has_content && indentation > base_indent {
+                continue;
+            }
+            block_scalar_indent = None;
+        }
+
+        if let Some(byte_index) = scan_yaml_line_for_merge_key(line) {
+            let column = line[..byte_index].chars().count() + 1;
+            return Some((line_index + 1, column));
+        }
+
+        if has_yaml_block_scalar_indicator(line) {
+            block_scalar_indent = Some(indentation);
+        }
+    }
+
+    None
+}
+
+fn scan_yaml_line_for_merge_key(line: &str) -> Option<usize> {
+    let mut outside_quote_indices = Vec::new();
+    let mut quote = None;
+    let mut escaped = false;
+
+    for (byte_index, character) in line.char_indices() {
+        match quote {
+            Some('"') => {
+                if escaped {
+                    escaped = false;
+                } else if character == '\\' {
+                    escaped = true;
+                } else if character == '"' {
+                    quote = None;
+                }
+            }
+            Some('\'') => {
+                if character == '\'' {
+                    quote = None;
+                }
+            }
+            Some(_) => unreachable!("only YAML single and double quotes are tracked"),
+            None if character == '#' => break,
+            None if character == '"' || character == '\'' => quote = Some(character),
+            None => outside_quote_indices.push(byte_index),
+        }
+    }
+
+    for byte_index in outside_quote_indices {
+        if !line[byte_index..].starts_with("<<") {
+            continue;
+        }
+        let suffix = &line[byte_index + 2..];
+        if suffix
+            .chars()
+            .find(|character| !character.is_ascii_whitespace())
+            .is_none_or(|character| character != ':')
+        {
+            continue;
+        }
+
+        let prefix = line[..byte_index].trim_end();
+        if prefix.is_empty()
+            || prefix == "-"
+            || prefix.ends_with('{')
+            || prefix.ends_with(',')
+            || prefix.ends_with('?')
+        {
+            return Some(byte_index);
+        }
+    }
+
+    None
+}
+
+fn has_yaml_block_scalar_indicator(line: &str) -> bool {
+    let mut outside_quote = String::new();
+    let mut quote = None;
+    let mut escaped = false;
+
+    for character in line.chars() {
+        match quote {
+            Some('"') => {
+                if escaped {
+                    escaped = false;
+                } else if character == '\\' {
+                    escaped = true;
+                } else if character == '"' {
+                    quote = None;
+                }
+            }
+            Some('\'') => {
+                if character == '\'' {
+                    quote = None;
+                }
+            }
+            Some(_) => unreachable!("only YAML single and double quotes are tracked"),
+            None if character == '#' => break,
+            None if character == '"' || character == '\'' => quote = Some(character),
+            None => outside_quote.push(character),
+        }
+    }
+
+    outside_quote.split_whitespace().any(|token| {
+        matches!(
+            token.trim_end_matches(','),
+            "|" | ">" | "|-" | "|+" | ">-" | ">+"
+        )
+    })
 }
 
 fn decode_json_object(value: serde_json::Value) -> Result<DecodedVarObject, VarFileDecodeError> {
@@ -240,6 +374,120 @@ mod tests {
             Some(DiagnosticCode::ErrConfigVarfile)
         );
         assert!(error.error.to_string().contains("invalid var-file key"));
+    }
+
+    #[test]
+    fn exact_issue_166_reproduction_fails_before_tagged_value_unwrapping() {
+        let contents = "defaults: &defaults\n  base: /tmp\n  name: base\nitem:\n  <<: *defaults\n  name: override\n";
+
+        let error = parse_var_file_contents(contents).unwrap_err();
+
+        assert_eq!(
+            error.diagnostic_code,
+            Some(DiagnosticCode::ErrConfigVarfile)
+        );
+        let message = error.error.to_string();
+        assert!(message.contains("unsupported YAML merge key `<<`"));
+        assert!(message.contains("line 5, column 3"));
+        assert!(message.contains("expand the mapping explicitly"));
+    }
+
+    #[test]
+    fn nested_multiple_and_precedence_merges_are_all_rejected() {
+        for contents in [
+            "defaults: &defaults\n  name: inherited\nouter:\n  inner:\n    <<: *defaults\n",
+            "first: &first\n  a: one\nsecond: &second\n  b: two\nmerged:\n  <<: [*first, *second]\n",
+            "defaults: &defaults\n  name: inherited\nitem:\n  name: explicit\n  <<: *defaults\n",
+        ] {
+            let error = parse_var_file_contents(contents).unwrap_err();
+            assert_eq!(
+                error.diagnostic_code,
+                Some(DiagnosticCode::ErrConfigVarfile),
+                "contents: {contents}"
+            );
+            assert!(
+                error
+                    .error
+                    .to_string()
+                    .contains("unsupported YAML merge key"),
+                "contents: {contents}"
+            );
+        }
+    }
+
+    #[test]
+    fn aliases_without_merge_keys_remain_supported() {
+        let vars = parse_var_file_contents(
+            "defaults: &defaults\n  base: /tmp\n  name: base\nitem: *defaults\n",
+        )
+        .expect("plain aliases are not merge keys");
+
+        assert_eq!(
+            vars[&VariableName::new("item").unwrap()],
+            serde_json::json!({"base": "/tmp", "name": "base"})
+        );
+    }
+
+    #[test]
+    fn quoted_merge_key_is_an_ordinary_yaml_key() {
+        let vars = parse_var_file_contents("config:\n  '<<': literal\n").expect("quoted key");
+
+        assert_eq!(
+            vars[&VariableName::new("config").unwrap()],
+            serde_json::json!({"<<": "literal"})
+        );
+    }
+
+    #[test]
+    fn json_merge_shaped_keys_are_unaffected() {
+        let vars = parse_var_file_contents(r#"{"config":{"<<":"literal"}}"#)
+            .expect("JSON keys are not YAML merge syntax");
+
+        assert_eq!(
+            vars[&VariableName::new("config").unwrap()],
+            serde_json::json!({"<<": "literal"})
+        );
+    }
+
+    #[test]
+    fn malformed_yaml_still_reports_a_parse_error() {
+        let error = parse_var_file_contents("item:\n  <<: [unterminated\n").unwrap_err();
+
+        assert_eq!(error.diagnostic_code, Some(DiagnosticCode::ErrConfigParse));
+    }
+
+    #[test]
+    fn cyclic_and_deep_merge_inputs_never_succeed() {
+        let cyclic = "defaults: &defaults\n  <<: *defaults\n";
+        let error = parse_var_file_contents(cyclic).unwrap_err();
+        assert!(matches!(
+            error.diagnostic_code,
+            Some(DiagnosticCode::ErrConfigParse | DiagnosticCode::ErrConfigVarfile)
+        ));
+
+        let mut deep = String::from("defaults: &defaults\n  leaf: value\nroot:\n");
+        for depth in 0..32 {
+            deep.push_str(&" ".repeat(2 + depth * 2));
+            deep.push_str("level:\n");
+        }
+        deep.push_str(&" ".repeat(66));
+        deep.push_str("<<: *defaults\n");
+
+        let error = parse_var_file_contents(&deep).unwrap_err();
+        assert_eq!(
+            error.diagnostic_code,
+            Some(DiagnosticCode::ErrConfigVarfile)
+        );
+    }
+
+    #[test]
+    fn merge_syntax_inside_a_block_scalar_is_not_a_merge_key() {
+        let vars = parse_var_file_contents("text: |\n  <<: literal\n").expect("literal text");
+
+        assert_eq!(
+            vars[&VariableName::new("text").unwrap()],
+            serde_json::json!("<<: literal\n")
+        );
     }
 }
 
