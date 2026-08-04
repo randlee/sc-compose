@@ -2,7 +2,7 @@
 id: J.1
 title: CLI Argument and Pass-Input Seams
 phase: J
-status: planned
+status: complete
 branch: sprint/j-1-cli-argument-seams
 worktree: ../sc-compose-worktrees/sprint/j-1-cli-argument-seams
 target: integrate/phase-j
