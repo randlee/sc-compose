@@ -29,6 +29,20 @@ Phase J is planning/decomposition work only. It must not change observable
 behavior: diagnostic codes, ordering, severity, CLI flags, exit codes, and
 public Rust/Python APIs must be identical before and after each sprint.
 
+## Refactor target ledger
+
+The four sprints cover the six concrete seams identified in the issue review;
+this ledger is the scope authority for Phase J:
+
+| Target | Owning sprint | Closure boundary |
+| --- | --- | --- |
+| CLI command/argument schema | J.1 | `crate::cli::*` re-exports preserve all consumers |
+| CLI pass-scoped input normalization | J.1 | `--pass`, `--var`, and `--var-file` parsing/filtering remain byte-for-byte compatible |
+| CLI format and JSON-capability mapping | J.1 | every existing command/subcommand retains its JSON-vs-text decision |
+| Validation state/context assembly | J.2 | `ValidationState` shape, precedence, pass maps, and built-in injection are unchanged |
+| Validation policy and required-path diagnostics | J.3 | diagnostic code, severity, order, location, and include-chain output are unchanged |
+| Frontmatter parser and normalizer | J.4 | `Frontmatter`, `ParsedTemplate`, and `parse_template_document` remain stable public entry points |
+
 ## Current baseline and authority
 
 - Phase I (merged `develop` @ `57c4f71`, backlog cleanup merged @ `46e079d`)
@@ -113,6 +127,10 @@ dev dispatch.
   parse_template_document}`, etc.). No downstream crate (`sc-compose`,
   `bindings/python`) may need a call-site change as a result of a Phase J
   sprint.
+- Any new implementation files remain private submodules behind the existing
+  `cli`, `validation`, or `frontmatter` ownership boundaries. Phase J does not
+  create public `context`, `tokens`, or alternate validation/frontmatter APIs;
+  the architecture's pure-library ownership remains unchanged.
 
 ## Authoritative validation checklist
 

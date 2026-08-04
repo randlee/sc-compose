@@ -1,5 +1,5 @@
 ---
-id: sprint-J.2
+id: J.2
 title: Validation State and Context Assembly
 phase: J
 status: planned
@@ -54,6 +54,26 @@ have its characterization suite passing before J.3 begins.
   loop-context discovery output, default-merge precedence, required-path
   origin attribution, and built-in injection — captured against the current
   (pre-move) behavior before any code moves.
+
+## ValidationState contract to freeze before the move
+
+The contract belongs in the implementation evidence for this sprint and must
+be reviewed before code relocation:
+
+| Field | Populated by | Invariant |
+| --- | --- | --- |
+| `context` | frontmatter/default merge, then request inputs and built-ins | precedence remains explicit input > environment > built-in > input defaults > frontmatter defaults |
+| `variable_sources` | every context insertion path | each retained value has its actual winning source |
+| `required_origins` | required-variable declarations | first declaration origin is retained for diagnostics |
+| `required_include_chains` | expanded include graph | origin diagnostics preserve the include chain for the declaring file |
+| `default_origins` | frontmatter and request defaults | default-use diagnostics point to the owning frontmatter when applicable |
+| `default_pass_numbers` | parsed root passes | pass-scoped defaults map only to their declared pass |
+| `declared_variables` / `referenced_variables` | declarations and token discovery | top-level and dotted names preserve current set semantics |
+| `*_by_pass` maps | `discover_all_pass_tokens` and parsed passes | loop-context discovery and brace-width/pass isolation are unchanged |
+
+The implementation seam must preserve the existing crate-private signatures
+used by `composer.rs`, including `inject_builtin_vars` and the `ValidationState`
+fields consumed while building render contexts.
 
 ## Acceptance criteria
 

@@ -1,5 +1,5 @@
 ---
-id: sprint-J.3
+id: J.3
 title: Validation Policy and Required-Path Diagnostics
 phase: J
 status: planned
@@ -46,9 +46,9 @@ Depends on J.2 (must land first, with its characterization suite passing).
   attribution exactly as emitted today for every existing fixture.
 - Inventory the ~40 existing `validation.rs` tests by contract (required
   paths, defaults, undeclared/extra inputs, built-ins, pass scopes) and move
-  each test with the seam it characterizes, adding at least one public
-  validate-path regression per contract group so a misrouted assertion after
-  the split cannot pass silently.
+  each test with the seam it characterizes, adding at least one regression
+  through the public `sc_composer::validate()` entry point per contract group
+  so a misrouted assertion after the split cannot pass silently.
 
 ## Acceptance criteria
 

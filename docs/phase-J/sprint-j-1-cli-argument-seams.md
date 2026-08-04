@@ -1,5 +1,5 @@
 ---
-id: sprint-J.1
+id: J.1
 title: CLI Argument and Pass-Input Seams
 phase: J
 status: planned
@@ -48,6 +48,24 @@ No dependency on J.2-J.4; this is the independent first sprint.
 - Add characterization tests for `parse_var`, `parse_pass_inputs`,
   `filtered_args_for_clap`, and `command_wants_json` before moving any code,
   covering their current input/output pairs exactly as they behave today.
+
+## Planned internal seam
+
+The implementation may use private submodules with the following ownership;
+the re-export surface remains `crate::cli::*`:
+
+```rust
+mod schema;
+mod pass_input;
+mod capability;
+
+pub(crate) use schema::*;
+pub(crate) use pass_input::{filtered_args_for_clap, parse_pass_inputs};
+pub(crate) use capability::command_wants_json;
+```
+
+The exact module names may differ, but no command implementation or alternate
+public argument model is introduced.
 
 ## Acceptance criteria
 

@@ -1,5 +1,5 @@
 ---
-id: sprint-J.4
+id: J.4
 title: Frontmatter Parser and Normalizer Split
 phase: J
 status: planned
@@ -59,6 +59,23 @@ suites passing) — this sprint must not start until that coverage exists.
   complete extraction adapter suite
   (`crates/sc-composer/tests/extract_integration.rs` and per-format CLI
   tests) plus the full `validation.rs` suite (moved by J.3), unchanged.
+
+## Planned internal seam
+
+The split is private and keeps the existing `frontmatter` module as the
+ownership boundary:
+
+```rust
+mod model;       // Frontmatter, ParsedTemplate, and raw YAML shapes
+mod parser;      // delimiter and stacked-header scanning
+mod normalizer;  // section conversion, diagnostics, and pass validation
+
+pub use model::{Frontmatter, ParsedTemplate};
+pub use parser::parse_template_document;
+```
+
+The exact layout may differ, but consumers continue to import only the
+existing `sc_composer` exports and no extraction adapter is edited.
 
 ## Acceptance criteria
 
