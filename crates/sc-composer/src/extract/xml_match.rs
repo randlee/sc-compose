@@ -147,6 +147,24 @@ fn match_children(
         ));
     }
 
+    match_child_sequence(
+        template,
+        template_children,
+        rendered_children,
+        path,
+        captures,
+        evidence,
+    )
+}
+
+fn match_child_sequence(
+    template: &XmlElement,
+    template_children: &[XmlNode],
+    rendered_children: &[XmlNode],
+    path: &[XmlPathSegment],
+    captures: &mut Vec<Capture>,
+    evidence: &mut Evidence,
+) -> Result<(), ExtractError> {
     let mut element_ordinals = BTreeMap::<String, usize>::new();
     for (template_child, rendered_child) in template_children.iter().zip(rendered_children) {
         match (template_child, rendered_child) {
