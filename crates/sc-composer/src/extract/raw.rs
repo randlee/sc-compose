@@ -68,7 +68,7 @@ pub(crate) fn extract_raw(
         values
             .entry(capture.variable.clone())
             .or_insert_with(|| capture.rendered_text.clone());
-        let (line, column) = line_column(request.rendered, capture.span.start);
+        let (line, column) = super::line_column(request.rendered, capture.span.start);
         occurrences.push(ExtractionOccurrence {
             variable: capture.variable,
             path: vec![RawPathSegment {
@@ -104,14 +104,6 @@ pub(crate) fn extract_raw(
 fn selected_variable(variable: &VariableName, request: &ExtractRequest<'_>) -> bool {
     (request.include.is_empty() || request.include.contains(variable))
         && !request.exclude.contains(variable)
-}
-
-fn line_column(source: &str, byte_offset: usize) -> (usize, usize) {
-    let prefix = &source[..byte_offset];
-    let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
-    let column_start = prefix.rfind('\n').map_or(0, |index| index + 1);
-    let column = source[column_start..byte_offset].chars().count() + 1;
-    (line, column)
 }
 
 fn template_error(message: impl Into<String>) -> ExtractError {
