@@ -395,3 +395,29 @@ fn extract_json_xml_block_format_emits_canonical_content_source() {
         value["payload"]["values"]["references"]
     );
 }
+
+#[test]
+fn extract_json_raw_format_maps_static_mismatch_to_unsupported() {
+    let (template, rendered) = raw_fixture("markdown-static-mismatch");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--format")
+        .arg("raw")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(output.stderr.is_empty(), "JSON must remain stdout-clean");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_EXTRACT_UNSUPPORTED");
+    assert!(
+        value["diagnostics"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("rendered static content does not match")
+    );
+}

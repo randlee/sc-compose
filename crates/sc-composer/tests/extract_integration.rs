@@ -36,10 +36,90 @@ fn toml_request<'a>(template: &'a str, rendered: &'a str) -> ExtractRequest<'a> 
     ExtractRequest::new(template, rendered, ExtractFormat::Toml, &[], &[])
 }
 
+fn raw_request<'a>(template: &'a str, rendered: &'a str) -> ExtractRequest<'a> {
+    ExtractRequest::new(template, rendered, ExtractFormat::Raw, &[], &[])
+}
+
 fn assert_input_limit(request: &ExtractRequest<'_>) {
     assert_eq!(
         extract(request).unwrap_err().code(),
         sc_composer::DiagnosticCode::ErrExtractInputLimit
+    );
+}
+
+#[test]
+fn raw_fixture_corpus_covers_separated_values_filters_and_excludes() {
+    let report = extract(&raw_request(
+        include_str!("fixtures/reverse-extract/markdown-separated.raw.j2"),
+        include_str!("fixtures/reverse-extract/markdown-separated.raw"),
+    ))
+    .unwrap();
+    assert_eq!(report.values[&variable("title")], "Launch Plan");
+    assert_eq!(report.values[&variable("owner")], "Ada");
+    assert_eq!(
+        report
+            .occurrences
+            .iter()
+            .map(|occurrence| occurrence.variable.to_string())
+            .collect::<Vec<_>>(),
+        vec!["title", "owner"]
+    );
+
+    let include = [variable("owner")];
+    let included = extract(&ExtractRequest::new(
+        include_str!("fixtures/reverse-extract/markdown-filters.raw.j2"),
+        include_str!("fixtures/reverse-extract/markdown-filters.raw"),
+        ExtractFormat::Raw,
+        &include,
+        &[],
+    ))
+    .unwrap();
+    assert_eq!(included.values.len(), 1);
+    assert_eq!(included.values[&variable("owner")], "Ada");
+
+    let exclude = [variable("secret")];
+    let excluded = extract(&ExtractRequest::new(
+        include_str!("fixtures/reverse-extract/markdown-filters.raw.j2"),
+        include_str!("fixtures/reverse-extract/markdown-filters.raw"),
+        ExtractFormat::Raw,
+        &[],
+        &exclude,
+    ))
+    .unwrap();
+    assert!(!excluded.values.contains_key(&variable("secret")));
+    assert_eq!(excluded.occurrences.len(), 2);
+}
+
+#[test]
+fn raw_fixture_corpus_preserves_rejection_codes() {
+    let adjacent = extract(&raw_request(
+        include_str!("fixtures/reverse-extract/markdown-adjacent.raw.j2"),
+        include_str!("fixtures/reverse-extract/markdown-adjacent.raw"),
+    ))
+    .unwrap_err();
+    assert_eq!(
+        adjacent.code(),
+        sc_composer::DiagnosticCode::ErrExtractAmbiguous
+    );
+
+    let delimiter = extract(&raw_request(
+        include_str!("fixtures/reverse-extract/markdown-delimiter-count.raw.j2"),
+        include_str!("fixtures/reverse-extract/markdown-delimiter-count.raw"),
+    ))
+    .unwrap_err();
+    assert_eq!(
+        delimiter.code(),
+        sc_composer::DiagnosticCode::ErrExtractTemplateUnsupported
+    );
+
+    let static_mismatch = extract(&raw_request(
+        include_str!("fixtures/reverse-extract/markdown-static-mismatch.raw.j2"),
+        include_str!("fixtures/reverse-extract/markdown-static-mismatch.raw"),
+    ))
+    .unwrap_err();
+    assert_eq!(
+        static_mismatch.code(),
+        sc_composer::DiagnosticCode::ErrExtractUnsupported
     );
 }
 

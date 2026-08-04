@@ -63,6 +63,11 @@ focused Rust, CLI, and Python cases first. Preserve machine-readable
 diagnostics in a reviewable evidence file and include one realistic Markdown
 example plus one deliberately rejected input.
 
+The machine-readable I.2 validation evidence is recorded in
+[`evidence/i-2-raw-text-mode.json`](evidence/i-2-raw-text-mode.json). It
+contains the accepted and rejected Markdown inputs, expected report/diagnostic
+details, and the CI and local validation commands used for this sprint.
+
 ## Removal path
 
 If raw mode is rejected at QA, revert only the `raw` selector, adapter,
