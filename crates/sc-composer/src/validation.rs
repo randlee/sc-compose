@@ -9,6 +9,7 @@ use time::macros::format_description;
 
 use crate::ExpandedTemplate;
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
+use crate::discovery::{discover_all_pass_tokens, discover_tokens};
 use crate::frontmatter::{Frontmatter, parse_template_document};
 use crate::types::{
     ComposeRequest, InputValue, UnknownVariablePolicy, ValidationReport, VariableName,
@@ -766,8 +767,6 @@ fn merge_frontmatter(
             });
     }
 }
-
-pub(crate) use crate::discovery::{discover_all_pass_tokens, discover_tokens};
 
 #[cfg(test)]
 mod tests {
