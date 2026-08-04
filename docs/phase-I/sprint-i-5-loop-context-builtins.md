@@ -2,13 +2,15 @@
 id: sprint-I.5
 title: Jinja Loop-Context Built-ins
 phase: I
-status: planned
+status: complete/accepted
 branch: sprint/i-5-loop-context-builtins
 worktree: ../sc-compose-worktrees/sprint/i-5-loop-context-builtins
 target: develop
 ---
 
 # Sprint I.5 — Jinja Loop-Context Built-ins
+
+Implemented in PR #218 (merged at `8cde64d`); QA-2 passed 10/10.
 
 ## Purpose
 

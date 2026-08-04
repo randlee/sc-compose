@@ -90,7 +90,7 @@
     }
   ],
   "validation": {
-    "tested_commit": "44c0bbca02a2258aa2cc2b5efad371955367cbb6",
+    "tested_commit": "e62cfeafa0abd40a8dbae411a3e3f42e91b203ac",
     "focused_commands": [
       {"command": "cargo test -p sc-compose var_file::tests -- --nocapture", "exit_code": 0, "result": "PASS (12 tests)"},
       {"command": "cargo test -p sc-compose --test cli yaml_merge", "exit_code": 0, "result": "PASS (merge-key CLI rejection)"},

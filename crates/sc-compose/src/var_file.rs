@@ -137,34 +137,7 @@ fn find_yaml_merge_key(contents: &str) -> Option<(usize, usize)> {
 }
 
 fn scan_yaml_line_for_merge_key(line: &str) -> Option<usize> {
-    let mut outside_quote_indices = Vec::new();
-    let mut quote = None;
-    let mut escaped = false;
-
-    for (byte_index, character) in line.char_indices() {
-        match quote {
-            Some('"') => {
-                if escaped {
-                    escaped = false;
-                } else if character == '\\' {
-                    escaped = true;
-                } else if character == '"' {
-                    quote = None;
-                }
-            }
-            Some('\'') => {
-                if character == '\'' {
-                    quote = None;
-                }
-            }
-            Some(_) => unreachable!("only YAML single and double quotes are tracked"),
-            None if character == '#' => break,
-            None if character == '"' || character == '\'' => quote = Some(character),
-            None => outside_quote_indices.push(byte_index),
-        }
-    }
-
-    for byte_index in outside_quote_indices {
+    for (byte_index, _) in unquoted_uncommented(line) {
         if !line[byte_index..].starts_with("<<") {
             continue;
         }
@@ -192,11 +165,27 @@ fn scan_yaml_line_for_merge_key(line: &str) -> Option<usize> {
 }
 
 fn has_yaml_block_scalar_indicator(line: &str) -> bool {
-    let mut outside_quote = String::new();
+    let outside_quote: String = unquoted_uncommented(line)
+        .into_iter()
+        .map(|(_, character)| character)
+        .collect();
+
+    outside_quote.split_whitespace().any(|token| {
+        matches!(
+            token.trim_end_matches(','),
+            "|" | ">" | "|-" | "|+" | ">-" | ">+"
+        )
+    })
+}
+
+/// Return source characters outside YAML quotes and before an unquoted
+/// comment, preserving each character's original byte offset.
+fn unquoted_uncommented(line: &str) -> Vec<(usize, char)> {
+    let mut outside_quote = Vec::new();
     let mut quote = None;
     let mut escaped = false;
 
-    for character in line.chars() {
+    for (byte_index, character) in line.char_indices() {
         match quote {
             Some('"') => {
                 if escaped {
@@ -215,16 +204,11 @@ fn has_yaml_block_scalar_indicator(line: &str) -> bool {
             Some(_) => unreachable!("only YAML single and double quotes are tracked"),
             None if character == '#' => break,
             None if character == '"' || character == '\'' => quote = Some(character),
-            None => outside_quote.push(character),
+            None => outside_quote.push((byte_index, character)),
         }
     }
 
-    outside_quote.split_whitespace().any(|token| {
-        matches!(
-            token.trim_end_matches(','),
-            "|" | ">" | "|-" | "|+" | ">-" | ">+"
-        )
-    })
+    outside_quote
 }
 
 fn decode_json_object(value: serde_json::Value) -> Result<DecodedVarObject, VarFileDecodeError> {
