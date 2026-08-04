@@ -80,6 +80,12 @@ public argument model is introduced.
   the Phase J integration tip is available and recorded in the plan-gate
   report; it is informational rather than a sprint hard gate because scan
   timing is outside sprint control.
+- NLOC evidence (baseline `8eb239e` → integration tip `3703035`) uses
+  nonblank, non-comment lines before the first `#[cfg(test)]` marker for
+  production and counts test lines separately: `cli.rs` is 568 production /
+  194 test NLOC before the split; `cli/` is 578 production / 207 moved+added
+  test NLOC after the split, with `schema.rs` as the largest production module
+  at 371 NLOC.
 - Existing multi-pass, format-mapping, and JSON-capability CLI test suites
   pass unchanged.
 

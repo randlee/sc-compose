@@ -89,6 +89,12 @@ existing `sc_composer` exports and no extraction adapter is edited.
   malformed-YAML behavior is unchanged for every existing fixture.
 - The full extraction adapter suite and the full (J.3-relocated)
   `validation.rs` suite pass unchanged.
+- NLOC evidence (baseline `8eb239e` → integration tip `3703035`) uses
+  nonblank, non-comment lines before the first `#[cfg(test)]` marker for
+  production and counts test lines separately: `frontmatter.rs` is 298
+  production / 113 test NLOC before the split; `frontmatter/` is 310
+  production / 125 moved+added test NLOC after the split, with
+  `normalizer.rs` as the largest production module at 116 NLOC.
 
 ## Required validation
 

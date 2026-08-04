@@ -188,6 +188,25 @@ Phase J is complete only when:
   report as a non-blocking diagnostic. A score that does not improve cannot by
   itself fail closure because scan timing is outside sprint control; a concrete
   regression found by that scan must be assigned before closeout.
+- TODO (quality-mgr phase_ending_review): record the fresh Repowise scan and
+  flip this phase plan's final status after that review completes.
+
+### Production-NLOC decomposition evidence
+
+The reproducible count below treats nonblank, non-comment lines before the
+first `#[cfg(test)]` marker as production NLOC, and counts nonblank,
+non-comment lines after that marker separately as test NLOC. Pre-split values
+come from baseline commit `8eb239e`; post-split values are summed across the
+private modules at integration tip `3703035`. The final column records the
+largest post-split production module, which is the hotspot-reduction measure;
+the aggregate post-split total can grow slightly from module glue and moved
+tests without retaining the original monolith.
+
+| Logical target | Pre production NLOC | Post production NLOC | Pre test NLOC | Post test NLOC (moved + added) | Largest post-split production module |
+|---|---:|---:|---:|---:|---:|
+| `cli.rs` → `cli/` | 568 | 578 | 194 | 207 | `schema.rs`: 371 |
+| `validation.rs` → `validation/` | 702 | 735 | 922 | 1,297 | `diagnostics.rs`: 271 |
+| `frontmatter.rs` → `frontmatter/` | 298 | 310 | 113 | 125 | `normalizer.rs`: 116 |
 
 ## Traceability matrix
 
