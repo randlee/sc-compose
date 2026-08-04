@@ -13,3 +13,4 @@
 - [ADR-0011: Known-Template Reverse Extraction and Phase-G Sprint Shape](0011-reverse-extract-known-template-contract.md)
 - [ADR-0012: Phase-H Reverse-Extraction Extension Gates](0012-phase-h-reverse-extraction-extension-gates.md)
 - [ADR-0013: Phase-I Raw Text and Input-Safety Contract](0013-phase-i-raw-text-and-input-safety.md)
+- [ADR-0014: Phase-J Maintainability Decomposition Boundaries](0014-phase-j-maintainability-decomposition.md)

@@ -595,6 +595,24 @@ Sprint entries:
 - [Sprint I.6 — YAML Merge-Key Var-File Safety](phase-I/sprint-i-6-yaml-merge-key-safety.md)
 - [Phase I Backlog Cleanup](phase-I/backlog-cleanup.md)
 
+### Phase J Sprint Plans
+
+Status:
+
+- planned; behavior-preserving maintainability decomposition for the three
+  Repowise hotspots identified in issue #212
+- J.1 is independent; J.2 precedes J.3; J.4 follows J.2 and J.3
+- all four are full implementation sprints with the complete Phase J
+  validation checklist, not planning/design sprints
+
+Sprint entries:
+
+- [Phase J plan](phase-J/phase-J-plan.md)
+- [Sprint J.1 — CLI Argument and Pass-Input Seams](phase-J/sprint-j-1-cli-argument-seams.md)
+- [Sprint J.2 — Validation State and Context Assembly](phase-J/sprint-j-2-validation-state-assembly.md)
+- [Sprint J.3 — Validation Policy and Required-Path Diagnostics](phase-J/sprint-j-3-validation-policy-diagnostics.md)
+- [Sprint J.4 — Frontmatter Parser and Normalizer Split](phase-J/sprint-j-4-frontmatter-parser-split.md)
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:
