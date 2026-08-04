@@ -153,6 +153,66 @@ fn render_uses_yaml_var_file_inputs() {
 }
 
 #[test]
+fn render_rejects_yaml_merge_key_var_file_with_actionable_location() {
+    let root = temp_root("yaml-merge-key-var-file");
+    write_file(&root.join("template.md.j2"), "{{ item }}\n");
+    let vars_file = root.join("vars.yaml");
+    write_file(
+        &vars_file,
+        "defaults: &defaults\n  base: /tmp\n  name: base\nitem:\n  <<: *defaults\n  name: override\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("ERR_CONFIG_VARFILE"), "stderr: {stderr}");
+    assert!(
+        stderr.contains("unsupported YAML merge key `<<` at line 5, column 3"),
+        "stderr: {stderr}"
+    );
+    assert!(
+        stderr.contains("expand the mapping explicitly"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
+fn render_preserves_json_merge_shaped_keys() {
+    let root = temp_root("json-merge-shaped-key");
+    write_file(&root.join("template.md.j2"), "{{ config[\"<<\"] }}\n");
+    let vars_file = root.join("vars.json");
+    write_file(&vars_file, r#"{"config":{"<<":"literal"}}"#);
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "literal");
+}
+
+#[test]
 fn verify_reports_clean_when_render_matches_deployed() {
     let root = temp_root("verify-clean");
     write_file(

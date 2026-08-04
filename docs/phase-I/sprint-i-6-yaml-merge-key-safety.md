@@ -2,10 +2,10 @@
 id: sprint-I.6
 title: YAML Merge-Key Var-File Safety
 phase: I
-status: planned
+status: in progress
 branch: sprint/i-6-yaml-merge-key-safety
 worktree: ../sc-compose-worktrees/sprint/i-6-yaml-merge-key-safety
-target: develop
+target: integrate/phase-i
 ---
 
 # Sprint I.6 — YAML Merge-Key Var-File Safety

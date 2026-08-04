@@ -718,9 +718,10 @@ roots, second documents, post-root content, and DTDs.
 Validation token discovery recognizes the listed Jinja loop-context names only
 inside active `for` scopes; `loop` outside a loop and arbitrary dotted names
 remain ordinary validation inputs. Var-file decoding rejects YAML merge keys
-with `ERR_CONFIG_VARFILE` before tagged-value unwrapping so inherited fields
-cannot disappear silently. These changes are Phase-I runtime work and are not
-retroactive claims about the completed Phase-H implementation.
+with `ERR_CONFIG_VARFILE` and a source line/column before tagged-value
+unwrapping, so inherited fields cannot disappear silently; callers recover by
+writing the mapping explicitly. These changes are Phase-I runtime work and are
+not retroactive claims about the completed Phase-H implementation.
 
 ## 9. Include and Frontmatter Merge Rules (FR-3)
 
@@ -1598,7 +1599,7 @@ Canonical failures must map to stable error families and stable codes.
 | Command or helper invoked in incompatible mode | `ConfigError` | `ERR_CONFIG_MODE` |
 | Text/config file exists but is not readable as valid text | `ConfigError` | `ERR_CONFIG_READ` |
 | Config file missing or malformed | `ConfigError` | `ERR_CONFIG_PARSE` |
-| Invalid var-file shape | `ConfigError` | `ERR_CONFIG_VARFILE` |
+| Invalid var-file shape or unsupported YAML merge key (with source location and explicit-mapping recovery) | `ConfigError` | `ERR_CONFIG_VARFILE` |
 | Malformed object from structured input source | `ValidationError` | `ERR_VAL_OBJECT_SHAPE` |
 | Legacy H2 nested-array restriction (retained code; not emitted for recursive values) | `ValidationError` | `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` |
 | Nested required path expects an object but receives a scalar, or vice versa | `ValidationError` | `ERR_VAL_SHAPE_MISMATCH` |

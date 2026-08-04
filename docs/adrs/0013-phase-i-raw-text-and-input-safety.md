@@ -107,9 +107,10 @@ variable policy, and arbitrary dotted names are not implicit.
 
 YAML merge keys (`<<`) in JSON/YAML var-files are rejected at the var-file
 boundary with `ERR_CONFIG_VARFILE` before tagged-value unwrapping. The
-portable recovery is to write explicit mappings. Partial expansion and silent
-loss of inherited fields are forbidden. A future merge-expansion feature must
-first specify precedence, nested aliases, cycles, and resource limits.
+diagnostic identifies the source line and column and directs callers to write
+explicit mappings. Partial expansion and silent loss of inherited fields are
+forbidden. A future merge-expansion feature must first specify precedence,
+nested aliases, cycles, and resource limits.
 
 ## Consequences
 
