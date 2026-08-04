@@ -1,0 +1,55 @@
+{
+  "schema_version": "phase-i2-raw-text-mode/v1",
+  "sprint": "I.2",
+  "baseline_commit": "5ce0a7c",
+  "pull_request": "https://github.com/randlee/sc-compose/pull/215",
+  "ci_evidence": {
+    "source": "phase-i-2 QA final report",
+    "commit": "5ce0a7c",
+    "checks": "all 9 pull-request checks succeeded",
+    "local_commands": [
+      "cargo fmt --all --check",
+      "cargo clippy --workspace --all-targets --all-features -- -D warnings",
+      "cargo test --workspace --quiet",
+      "python -m pytest -q bindings/python/tests"
+    ]
+  },
+  "accepted_case": {
+    "description": "A Markdown release note with separated title, owner, and note placeholders",
+    "template": "# {{ title }}\n\nOwner: {{ owner }}\n\n\\*Important\\*: {{ note }}\n",
+    "rendered": "# Launch Plan\n\nOwner: Ada\n\n\\*Important\\*: review\n",
+    "expected_report": {
+      "format": "raw",
+      "values": {
+        "title": "Launch Plan",
+        "owner": "Ada",
+        "note": "review"
+      },
+      "occurrence_order": ["title", "owner", "note"],
+      "source_kind": "text_span",
+      "diagnostics": [],
+      "observed_occurrences": [
+        {"variable": "title", "rendered_text": "Launch Plan", "byte_start": 2, "byte_end": 13, "line": 1, "column": 3},
+        {"variable": "owner", "rendered_text": "Ada", "byte_start": 22, "byte_end": 25, "line": 3, "column": 8},
+        {"variable": "note", "rendered_text": "review", "byte_start": 42, "byte_end": 48, "line": 5, "column": 16}
+      ]
+    },
+    "review_note": "This is a realistic known-template Markdown document: raw mode recovers values without invoking a structured parser."
+  },
+  "rejected_case": {
+    "description": "A known Markdown template whose rendered static heading differs",
+    "template": "# Plan: {{ title }}",
+    "rendered": "# Wrong: Launch Plan",
+    "expected_error": {
+      "code": "ERR_EXTRACT_UNSUPPORTED",
+      "kind": "unsupported",
+      "message_contains": "rendered static content does not match"
+    },
+    "observed_diagnostic": {
+      "code": "ERR_EXTRACT_UNSUPPORTED",
+      "severity": "error",
+      "message": "rendered static content does not match the known template (candidate bytes 0..8)"
+    },
+    "review_note": "The input is deliberately rejected because the known static text does not match; this is a controlled diagnostic rather than a guessed value."
+  }
+}

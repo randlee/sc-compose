@@ -225,7 +225,7 @@ def test_raw_extraction_matches_markdown_and_reports_text_spans() -> None:
 
 def test_raw_extraction_preserves_shared_matcher_fail_closed_codes() -> None:
     cases = [
-        ("Hello {{ name }}", "Goodbye Ada", "ERR_EXTRACT_TEMPLATE_UNSUPPORTED"),
+        ("Hello {{ name }}", "Goodbye Ada", "ERR_EXTRACT_UNSUPPORTED"),
         ("{% if enabled %}{{ value }}{% endif %}", "yes", "ERR_EXTRACT_TEMPLATE_UNSUPPORTED"),
         ("{{ first }}{{ second }}", "AdaJones", "ERR_EXTRACT_AMBIGUOUS"),
     ]

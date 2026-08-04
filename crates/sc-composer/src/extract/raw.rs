@@ -127,17 +127,24 @@ fn template_error(message: impl Into<String>) -> ExtractError {
 
 fn raw_error(error: RawTextMatchError) -> ExtractError {
     match error {
-        RawTextMatchError::InvalidTemplate { span, message }
-        | RawTextMatchError::StaticMismatch { span, message } => {
-            ExtractError::format_error(
-                DiagnosticCode::ErrExtractTemplateUnsupported,
-                ExtractionDiagnosticKind::Unsupported,
-                with_span(&message, span),
-                RecoveryHintKind::UnsupportedConstruct {
-                    description: "align rendered static text with the known template and use supported scalar placeholders".to_owned(),
-                },
-            )
-        }
+        RawTextMatchError::InvalidTemplate { span, message } => ExtractError::format_error(
+            DiagnosticCode::ErrExtractTemplateUnsupported,
+            ExtractionDiagnosticKind::Unsupported,
+            with_span(&message, span),
+            RecoveryHintKind::UnsupportedConstruct {
+                description:
+                    "use static text and double-brace scalar placeholders in the known template"
+                        .to_owned(),
+            },
+        ),
+        RawTextMatchError::StaticMismatch { span, message } => ExtractError::format_error(
+            DiagnosticCode::ErrExtractUnsupported,
+            ExtractionDiagnosticKind::Unsupported,
+            with_span(&message, span),
+            RecoveryHintKind::InspectInput {
+                description: "align rendered static text with the known template".to_owned(),
+            },
+        ),
         RawTextMatchError::AmbiguousDelimiter { span, message } => {
             ExtractError::ambiguous_delimiter(with_span(&message, span))
         }
@@ -244,7 +251,7 @@ mod tests {
             (
                 "Hello {{ name }}",
                 "Goodbye Ada",
-                DiagnosticCode::ErrExtractTemplateUnsupported,
+                DiagnosticCode::ErrExtractUnsupported,
             ),
             (
                 "{{ first }}{{ second }}",

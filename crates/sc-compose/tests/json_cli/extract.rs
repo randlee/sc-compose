@@ -339,3 +339,29 @@ fn extract_json_raw_format_emits_text_spans_and_clean_envelope() {
     assert_eq!(occurrence["path"][0]["line"], 1);
     assert_eq!(occurrence["path"][0]["column"], 3);
 }
+
+#[test]
+fn extract_json_raw_format_maps_static_mismatch_to_unsupported() {
+    let (template, rendered) = raw_fixture("markdown-static-mismatch");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(template)
+        .arg(rendered)
+        .arg("--format")
+        .arg("raw")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(output.stderr.is_empty(), "JSON must remain stdout-clean");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_EXTRACT_UNSUPPORTED");
+    assert!(
+        value["diagnostics"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("rendered static content does not match")
+    );
+}
