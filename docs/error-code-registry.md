@@ -50,9 +50,13 @@ by `sc-composer` and `sc-compose`.
 | `ERR_EXTRACT_MALFORMED` | `ExtractError` | error | rendered XML cannot be parsed as well-formed input | XML extraction engine |
 | `ERR_EXTRACT_UNSUPPORTED` | `ExtractError` | error | known template uses syntax outside the supported reversible XML subset | XML extraction engine |
 | `ERR_EXTRACT_AMBIGUOUS` | `ExtractError` | error | multiple structural interpretations remain for an extraction result | XML extraction engine and report construction; Phase I/I.2 raw-text mode |
+| `ERR_EXTRACT_XML_ELEMENT_MISMATCH` | `ExtractError` | error | rendered XML element name differs from the corresponding known-template element name | XML structural matching |
+| `ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH` | `ExtractError` | error | rendered XML attribute count or attribute-name set differs from the corresponding known-template element | XML structural matching |
 | `ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH` | `ExtractError` | error | rendered XML child markup does not match the known template's approved child structure | Phase I.3 XML block/mixed-content extraction |
 | `ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED` | `ExtractError` | error | known XML template requires unsupported control-flow reconstruction in a block/mixed-content placeholder | Phase I.3 XML block/mixed-content extraction |
 | `ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME` | `ExtractError` | error | known XML template uses a dynamic element name outside the supported fixed-name structure | Phase I.3 XML block/mixed-content extraction |
+| `ERR_EXTRACT_XML_STATIC_MISMATCH` | `ExtractError` | error | rendered XML static content does not match the known template's static content during value matching | XML extraction engine |
+| `ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED` | `ExtractError` | error | rendered or known XML uses qualified names or namespace declarations outside the unambiguous extraction subset | XML extraction rejection |
 | `WARN_EXTRACT_NOT_OBSERVED` | `ExtractionReport` | warning | a declared scalar occurrence is absent from the rendered XML | XML extraction engine |
 | `WARN_EXTRACT_LOW_CONFIDENCE` | `ExtractionReport` | warning | structural or static evidence is insufficient for a high-confidence report | XML extraction engine; Phase I/I.2 raw-text mode |
 | `WARN_EXTRACT_DIRTY_PREFIX_STRIPPED` | `ExtractionReport` | warning | rendered XML had an accepted leading text preamble removed before parsing | Phase I.4 XML dirty-prefix normalizer |

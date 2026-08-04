@@ -2,7 +2,7 @@
 id: phase-I-backlog
 title: Phase I Non-Blocking Backlog Cleanup
 phase: I
-status: planned
+status: complete
 branch: chore/phase-i-backlog-cleanup
 worktree: ../sc-compose-worktrees/chore/phase-i-backlog-cleanup
 target: develop
