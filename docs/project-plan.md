@@ -561,6 +561,8 @@ Status:
 - planned follow-on work for the remaining XML extraction gaps from issue #193,
   the strict-validation loop-context gap in issue #167, and the YAML var-file
   merge-key safety gap in issue #166;
+- I.1 Contract, Raw-Text Semantics, and Traceability: complete/accepted on
+  `sprint/i-1-contract-and-traceability` at `6c6a90f` (docs-only contract gate);
 - Phase I also makes the shared H raw-text matcher customer-facing for known
   Markdown/text templates because raw text is the product use case that the
   format adapters alone do not provide;
