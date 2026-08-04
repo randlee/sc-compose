@@ -715,6 +715,13 @@ constructs, and emits `WARN_EXTRACT_DIRTY_PREFIX_STRIPPED` when it removes
 bytes. It rejects unmatched/truncated markup, malformed suffixes, multiple
 roots, second documents, post-root content, and DTDs.
 
+I.3 emits `ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH` when rendered child markup
+falls outside the approved template structure, `ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED`
+when extraction would require unsupported control-flow reconstruction, and
+`ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME` for dynamic element names. These stable
+codes keep XML structural rejection distinct from generic malformed or
+unsupported extraction failures.
+
 Validation token discovery recognizes the listed Jinja loop-context names only
 inside active `for` scopes; `loop` outside a loop and arbitrary dotted names
 remain ordinary validation inputs. Var-file decoding rejects YAML merge keys

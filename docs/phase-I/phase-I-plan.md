@@ -1,7 +1,7 @@
 ---
 id: phase-I
 title: Raw Text and Extraction Gap Closure
-status: planned
+status: complete/accepted
 branch: integrate/phase-i
 worktree: ../sc-compose-worktrees/integrate/phase-i
 target: develop
@@ -143,6 +143,9 @@ I.2 and I.3 must include equivalent Rust, CLI, and Python cases. I.4 must
 
 Sprint documents reference this checklist rather than restating these common
 commands. Each sprint's document adds only its own evidence requirements.
+
+Traceability reconciliation: PR #221 (`fix/i-6-qa1-backlog`) reconciled the I.2
+and I.5 status columns after their QA-backed completion updates.
 
 ## Exit gate
 

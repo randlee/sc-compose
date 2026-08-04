@@ -567,9 +567,9 @@ Status:
   `sprint/i-2-customer-raw-text-mode` at `ac6d62f`, with Rust, CLI, Python,
   and Markdown/text evidence;
 - I.3 XML Block and Mixed-Content Extraction: complete/accepted on
-  `sprint/i-3-xml-block-mixed-content` after the QA remediation pass;
+  `sprint/i-3-xml-block-mixed-content` at `a3c0ce1` after the QA remediation pass;
 - I.4 XML Dirty-Prefix Normalization: complete on
-  `sprint/i-4-xml-dirty-prefix`, with Rust, CLI, Python, and boundary evidence;
+  `sprint/i-4-xml-dirty-prefix` at `f3dca07`, with Rust, CLI, Python, and boundary evidence;
 - I.5 Jinja Loop-Context Built-ins: complete/accepted on
   `sprint/i-5-loop-context-builtins` at `8cde64d`, with QA-2 PASS 10/10 and
   strict validation evidence;

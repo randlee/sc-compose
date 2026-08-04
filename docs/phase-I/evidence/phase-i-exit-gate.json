@@ -1,0 +1,37 @@
+{
+  "schema_version": "phase-i-exit-gate/v1",
+  "phase": "I",
+  "status": "PASS",
+  "tested_commit": "df690a8",
+  "source": "Independent rust-qa validation at the integrate/phase-i tip; this artifact preserves the phase-level closure record.",
+  "validation": [
+    {
+      "command": "cargo fmt --all -- --check",
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo clippy --all-targets --all-features -- -D warnings",
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo test --workspace",
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "python -m pytest -q bindings/python/tests",
+      "result": "PASS",
+      "exit_code": 0
+    }
+  ],
+  "scope": [
+    "I.1 contract and traceability",
+    "I.2 customer-facing raw-text mode",
+    "I.3 XML block and mixed-content extraction",
+    "I.4 XML dirty-prefix normalization",
+    "I.5 Jinja loop-context built-ins",
+    "I.6 YAML merge-key var-file safety"
+  ]
+}
