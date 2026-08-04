@@ -558,7 +558,7 @@ sprints; these are separate phases and sprint sequences.
 
 Status:
 
-- planned follow-on work for the remaining XML extraction gaps from issue #193,
+- completed Phase I work for the remaining XML extraction gaps from issue #193,
   the strict-validation loop-context gap in issue #167, and the YAML var-file
   merge-key safety gap in issue #166;
 - I.1 Contract, Raw-Text Semantics, and Traceability: complete/accepted on
@@ -593,6 +593,7 @@ Sprint entries:
 - [Sprint I.4 — XML Dirty-Prefix Normalization](phase-I/sprint-i-4-xml-dirty-prefix.md)
 - [Sprint I.5 — Jinja Loop-Context Built-ins](phase-I/sprint-i-5-loop-context-builtins.md)
 - [Sprint I.6 — YAML Merge-Key Var-File Safety](phase-I/sprint-i-6-yaml-merge-key-safety.md)
+- [Phase I Backlog Cleanup](phase-I/backlog-cleanup.md)
 
 ### Standalone Repowise Cleanup: Render Request Module Split
 

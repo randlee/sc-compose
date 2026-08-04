@@ -16,6 +16,14 @@ mod xml;
 mod xml_prefix;
 mod yaml;
 
+fn line_column(source: &str, byte_offset: usize) -> (usize, usize) {
+    let prefix = &source[..byte_offset];
+    let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
+    let column_start = prefix.rfind('\n').map_or(0, |index| index + 1);
+    let column = source[column_start..byte_offset].chars().count() + 1;
+    (line, column)
+}
+
 #[cfg(test)]
 mod tests;
 
