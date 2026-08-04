@@ -1,7 +1,7 @@
 ---
 id: phase-J
 title: Repowise Hot-Spot Maintainability Cleanup
-status: planned
+status: complete
 branch: integrate/phase-j
 worktree: ../sc-compose-worktrees/integrate/phase-j
 target: develop
@@ -188,15 +188,37 @@ Phase J is complete only when:
   report as a non-blocking diagnostic. A score that does not improve cannot by
   itself fail closure because scan timing is outside sprint control; a concrete
   regression found by that scan must be assigned before closeout.
+- Phase-ending review passed with all five reviewers, 541/541 tests, and CI
+  9/9 ([PR #233 QA comment](https://github.com/randlee/sc-compose/pull/233#issuecomment-5184011987)).
+  The Repowise index refresh remains an outstanding separately tracked
+  follow-up: the index is stale at `252f283`, predating all Phase J merges,
+  and no rescan-trigger tool was available to quality-mgr in that session.
+
+### Production-NLOC decomposition evidence
+
+The reproducible count below treats nonblank, non-comment lines before the
+first `#[cfg(test)]` marker as production NLOC, and counts nonblank,
+non-comment lines after that marker separately as test NLOC. Pre-split values
+come from baseline commit `8eb239e`; post-split values are summed across the
+private modules at integration tip `3703035`. The final column records the
+largest post-split production module, which is the hotspot-reduction measure;
+the aggregate post-split total can grow slightly from module glue and moved
+tests without retaining the original monolith.
+
+| Logical target | Pre production NLOC | Post production NLOC | Pre test NLOC | Post test NLOC (moved + added) | Largest post-split production module |
+|---|---:|---:|---:|---:|---:|
+| `cli.rs` → `cli/` | 568 | 578 | 194 | 207 | `schema.rs`: 371 |
+| `validation.rs` → `validation/` | 702 | 735 | 922 | 1,297 | `diagnostics.rs`: 271 |
+| `frontmatter.rs` → `frontmatter/` | 298 | 310 | 113 | 125 | `normalizer.rs`: 116 |
 
 ## Traceability matrix
 
 | Sprint | Target | Status | PR | Notes |
 |--------|--------|--------|----|-------|
-| J.1 | `cli.rs` | planned | — | independent |
-| J.2 | `validation.rs` (state/context) | planned | — | sequence per Sprint sequence and concurrency |
-| J.3 | `validation.rs` (policy/diagnostics) | planned | — | sequence per Sprint sequence and concurrency |
-| J.4 | `frontmatter.rs` | planned | — | sequence per Sprint sequence and concurrency |
+| J.1 | `cli.rs` | merged | #228 | independent |
+| J.2 | `validation.rs` (state/context) | merged | #229 | sequence per Sprint sequence and concurrency |
+| J.3 | `validation.rs` (policy/diagnostics) | merged | #230 | sequence per Sprint sequence and concurrency |
+| J.4 | `frontmatter.rs` | merged | #231 | sequence per Sprint sequence and concurrency |
 
 ## References
 

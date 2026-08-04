@@ -599,8 +599,9 @@ Sprint entries:
 
 Status:
 
-- planned; behavior-preserving maintainability decomposition for the three
-  Repowise hotspots identified in issue #212
+- all four behavior-preserving maintainability decomposition sprints are
+  merged into `integrate/phase-j` (J.1 PR #228, J.2 PR #229, J.3 PR #230,
+  and J.4 PR #231)
 - J.1 is independent; J.2 precedes J.3; J.4 follows J.2 and J.3
 - all four are full implementation sprints with the complete Phase J
   validation checklist, not planning/design sprints

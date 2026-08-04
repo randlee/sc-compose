@@ -2,7 +2,7 @@
 id: J.3
 title: Validation Policy and Required-Path Diagnostics
 phase: J
-status: planned
+status: complete
 branch: sprint/j-3-validation-policy-diagnostics
 worktree: ../sc-compose-worktrees/sprint/j-3-validation-policy-diagnostics
 target: integrate/phase-j
@@ -79,6 +79,12 @@ fn required_path_diagnostics(state: &ValidationState) -> Vec<Diagnostic>;
 - Nested-array required-path traversal behavior is unchanged.
 - No new diagnostic code, severity level, or ordering rule is introduced as
   a side effect of the refactor.
+- NLOC evidence (baseline `8eb239e` → integration tip `3703035`) uses
+  nonblank, non-comment lines before the first `#[cfg(test)]` marker for
+  production and counts test lines separately: `validation.rs` is 702
+  production / 922 test NLOC before the split; `validation/` is 735
+  production / 1,297 moved+added test NLOC after the split, with
+  `diagnostics.rs` as the largest production module at 271 NLOC.
 - The phase-level Repowise rescan and NLOC-evidence condition is governed by the [Phase J Exit Gate](phase-J-plan.md#exit-gate) and remains non-blocking.
 
 ## Required validation
