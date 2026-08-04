@@ -563,10 +563,16 @@ Status:
   merge-key safety gap in issue #166;
 - I.1 Contract, Raw-Text Semantics, and Traceability: complete/accepted on
   `sprint/i-1-contract-and-traceability` at `6604de7` (docs-only contract gate);
+- I.2 Customer-Facing Raw-Text Mode: complete/accepted on
+  `sprint/i-2-customer-raw-text-mode` at `ac6d62f`, with Rust, CLI, Python,
+  and Markdown/text evidence;
 - I.3 XML Block and Mixed-Content Extraction: complete/accepted on
   `sprint/i-3-xml-block-mixed-content` after the QA remediation pass;
 - I.4 XML Dirty-Prefix Normalization: complete on
   `sprint/i-4-xml-dirty-prefix`, with Rust, CLI, Python, and boundary evidence;
+- I.5 Jinja Loop-Context Built-ins: complete/accepted on
+  `sprint/i-5-loop-context-builtins` at `8cde64d`, with QA-2 PASS 10/10 and
+  strict validation evidence;
 - I.6 YAML Merge-Key Var-File Safety: complete on
   `sprint/i-6-yaml-merge-key-safety` at `44c0bbc`, with fail-closed Rust/CLI
   coverage, JSON and alias controls, and source-located diagnostics;
