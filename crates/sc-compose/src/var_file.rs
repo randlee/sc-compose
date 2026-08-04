@@ -185,8 +185,7 @@ fn unquoted_uncommented(line: &str) -> Vec<(usize, char)> {
     let mut quote = None;
     let mut escaped = false;
 
-    let mut characters = line.char_indices().peekable();
-    while let Some((byte_index, character)) = characters.next() {
+    for (byte_index, character) in line.char_indices() {
         match quote {
             Some('"') => {
                 if escaped {
@@ -199,14 +198,7 @@ fn unquoted_uncommented(line: &str) -> Vec<(usize, char)> {
             }
             Some('\'') => {
                 if character == '\'' {
-                    if characters
-                        .peek()
-                        .is_some_and(|(_, next_character)| *next_character == '\'')
-                    {
-                        characters.next();
-                    } else {
-                        quote = None;
-                    }
+                    quote = None;
                 }
             }
             Some(_) => unreachable!("only YAML single and double quotes are tracked"),
