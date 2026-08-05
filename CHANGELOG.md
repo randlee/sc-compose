@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1] - 2026-08-05
+
+### Fixed
+
+- Fix issue #238 where an adjacent rendered-document frontmatter block
+  containing Jinja syntax was incorrectly parsed as a second YAML config block,
+  causing `ERR_CONFIG_PARSE` during validation and rendering.
+
 ## [1.3.0] - 2026-08-04
 
 This release covers all work landed on `develop` since `1.2.0`: Phases D
