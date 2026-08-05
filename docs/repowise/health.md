@@ -1,6 +1,6 @@
 # sc-compose — Repowise Code Health Analysis
 
-**Version:** v1.2.0-85-g252f283 | **Commit:** 252f283 | **Generated:** 2026-07-23
+**Version:** v1.2.0-219-gbb79a5f | **Commit:** bb79a5f | **Generated:** 2026-08-02
 **Analyzed by:** repowise health + dead-code + refactoring-targets
 
 ## Quick Summary
@@ -12,7 +12,7 @@
 | Worst File | `crates/sc-compose/src/cli.rs` (1.6/10) |
 | Files Indexed | 286 |
 | Biomarker Findings | 516 |
-| Dead Code Items | 61 |
+| Dead Code Items | 63 |
 | Refactoring Targets | 20 |
 
 ### Health Dimensions
@@ -159,18 +159,29 @@
 
 Prioritized by impact-per-effort ratio (highest ROI first).
 
-### #1: `crates/sc-composer/src/diagnostics.rs` (4.0/10, 150 NLOC)
+### #1: `crates/sc-compose/tests/cli.rs` (6.5/10, 11 NLOC)
 
 | Metric | Value |
 |---|---|
-| Biomarker | **co_change_scatter** (high) |
-| Impact Score | 6.0 |
-| Effort | M |
-| ROI | 3.0 |
+| Biomarker | **change_entropy** (critical) |
+| Impact Score | 3.5 |
+| Effort | S |
+| ROI | 3.5 |
 | Finding Count | 4 |
-| Reason | co-changes with 18 distinct files — editing this file tends to ripple across the codebase (shotgun surgery) |
+| Reason | changes are scattered across noisy commits (top 1% change entropy); a strong history-based fault predictor |
 
-### #2: `crates/sc-compose/src/path_utils.rs` (4.5/10, 69 NLOC)
+### #2: `crates/sc-compose/tests/json_cli.rs` (6.5/10, 11 NLOC)
+
+| Metric | Value |
+|---|---|
+| Biomarker | **change_entropy** (critical) |
+| Impact Score | 3.5 |
+| Effort | S |
+| ROI | 3.5 |
+| Finding Count | 4 |
+| Reason | changes are scattered across noisy commits (top 2% change entropy); a strong history-based fault predictor |
+
+### #3: `crates/sc-compose/src/path_utils.rs` (4.5/10, 69 NLOC)
 
 | Metric | Value |
 |---|---|
@@ -179,36 +190,34 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 | Effort | M |
 | ROI | 2.7 |
 | Finding Count | 4 |
-| Reason | Hotspot with no paired test file and no coverage data — 18 dependents |
+| Reason | Hotspot with no paired test file and no coverage data — 20 dependents |
 
-### #3: `crates/sc-compose/src/reporting/output.rs` (4.0/10, 257 NLOC)
+### #4: `crates/sc-composer/src/diagnostics.rs` (3.9/10, 162 NLOC)
+
+| Metric | Value |
+|---|---|
+| Biomarker | **untested_hotspot** (critical) |
+| Impact Score | 6.1 |
+| Effort | L |
+| ROI | 2.0 |
+| Finding Count | 5 |
+| Reason | Hotspot with no paired test file and no coverage data — 20 dependents |
+
+### #5: `crates/sc-compose/src/reporting/output.rs` (4.2/10, 257 NLOC)
 
 | Metric | Value |
 |---|---|
 | Biomarker | **prior_defect** (critical) |
-| Impact Score | 6.0 |
+| Impact Score | 5.8 |
 | Effort | L |
-| ROI | 2.0 |
+| ROI | 1.9 |
 | Finding Count | 8 |
 | Reason | 6 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects |
 
 - **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/reporting/output.rs', 'line_start': 115, 'line_end': 122}, {'file': 'crates/sc-compose/src/reporting/
 - **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/reporting/output.rs', 'line_start': 184, 'line_end': 191}, {'file': 'crates/sc-compose/src/reporting/
 
-### #4: `crates/sc-compose/src/render_request.rs` (4.0/10, 323 NLOC)
-
-| Metric | Value |
-|---|---|
-| Biomarker | **untested_hotspot** (high) |
-| Impact Score | 6.0 |
-| Effort | L |
-| ROI | 2.0 |
-| Finding Count | 11 |
-| Reason | Hotspot with no paired test file and no coverage data — 5 dependents |
-
-- **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/render_request.rs', 'line_start': 240, 'line_end': 247}, {'file': 'crates/sc-compose/src/render_reque
-
-### #5: `crates/sc-compose/src/reporting/mod.rs` (8.1/10, 13 NLOC)
+### #6: `crates/sc-compose/src/reporting/mod.rs` (8.1/10, 13 NLOC)
 
 | Metric | Value |
 |---|---|
@@ -219,7 +228,7 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 | Finding Count | 3 |
 | Reason | co-changes with 8 distinct files — editing this file tends to ripple across the codebase (shotgun surgery) |
 
-### #6: `crates/sc-compose/src/reporting/catalog.rs` (4.3/10, 201 NLOC)
+### #7: `crates/sc-compose/src/reporting/catalog.rs` (4.3/10, 201 NLOC)
 
 | Metric | Value |
 |---|---|
@@ -233,7 +242,7 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 - **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/reporting/catalog.rs', 'line_start': 138, 'line_end': 162}, {'file': 'crates/sc-compose/src/reporting
 - **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/reporting/catalog.rs', 'line_start': 33, 'line_end': 40}, {'file': 'crates/sc-compose/src/reporting/i
 
-### #7: `crates/sc-compose/src/commands/mod.rs` (6.3/10, 81 NLOC)
+### #8: `crates/sc-compose/src/commands/mod.rs` (6.3/10, 82 NLOC)
 
 | Metric | Value |
 |---|---|
@@ -244,40 +253,34 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 | Finding Count | 5 |
 | Reason | 10 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects |
 
-- **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/commands/mod.rs', 'line_start': 1, 'line_end': 8}, {'file': 'crates/sc-compose/src/reporting/mod.rs',
+- **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/commands/mod.rs', 'line_start': 1, 'line_end': 9}, {'file': 'crates/sc-compose/src/reporting/mod.rs',
 
-### #8: `crates/sc-compose/src/main.rs` (6.5/10, 71 NLOC)
+### #9: `crates/sc-compose/src/reporting/index.rs` (4.6/10, 156 NLOC)
 
 | Metric | Value |
 |---|---|
-| Biomarker | **change_entropy** (critical) |
-| Impact Score | 3.5 |
-| Effort | M |
+| Biomarker | **prior_defect** (critical) |
+| Impact Score | 5.4 |
+| Effort | L |
 | ROI | 1.8 |
 | Finding Count | 7 |
-| Reason | changes are scattered across noisy commits (top 4% change entropy); a strong history-based fault predictor |
+| Reason | 5 bug-fixes touched this file in the last ~6 months; recent defect history is the strongest cost-effective predictor of further defects |
 
-### #9: `crates/sc-compose/src/var_file.rs` (6.5/10, 92 NLOC)
+- **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/reporting/index.rs', 'line_start': 15, 'line_end': 26}, {'file': 'crates/sc-compose/src/reporting/ini
+- **extract_helper**: {'occurrences': [{'file': 'crates/sc-compose/src/reporting/index.rs', 'line_start': 133, 'line_end': 140}, {'file': 'crates/sc-compose/src/reporting/p
+
+### #10: `bindings/python/python/sc_compose/__init__.py` (6.4/10, 124 NLOC)
 
 | Metric | Value |
 |---|---|
-| Biomarker | **churn_risk** (critical) |
-| Impact Score | 3.5 |
+| Biomarker | **untested_hotspot** (high) |
+| Impact Score | 3.6 |
 | Effort | M |
 | ROI | 1.8 |
-| Finding Count | 5 |
-| Reason | 90-day churn rewrote 6.4x the file's size (588 lines over 92 NLOC, top 24% of repo churn) |
+| Finding Count | 4 |
+| Reason | Hotspot with no paired test file and no coverage data — 5 dependents |
 
-### #10: `crates/sc-composer/src/frontmatter.rs` (4.8/10, 372 NLOC)
-
-| Metric | Value |
-|---|---|
-| Biomarker | **co_change_scatter** (high) |
-| Impact Score | 5.2 |
-| Effort | L |
-| ROI | 1.7 |
-| Finding Count | 8 |
-| Reason | co-changes with 16 distinct files — editing this file tends to ripple across the codebase (shotgun surgery) |
+- **extract_helper**: {'occurrences': [{'file': 'bindings/python/python/sc_compose/__init__.py', 'line_start': 2, 'line_end': 61}, {'file': 'crates/sc-composer/src/diagnost
 
 ## Dead Code Analysis
 
@@ -285,12 +288,13 @@ Prioritized by impact-per-effort ratio (highest ROI first).
 
 | Kind | Total | Actionable | Action |
 |---|---|---|---|
-| unreachable_file | 5 | 4 | Review — may be dead or scripts/prototypes |
-| unused_export | 55 | 24 | 24 clean-up candidates |
+| unreachable_file | 6 | 5 | Review — may be dead or scripts/prototypes |
+| unused_export | 56 | 24 | 24 clean-up candidates |
 | zombie_package | 1 | 1 | Review prototype/ package |
 
 ### Unreachable Files
 
+- `.claude/skills/html-a-b-comparison/references/validate-output-path.py` (10 lines) — File has no importers (in_degree=0) [risks: none]
 - `prototype/multipass/e2e_demo.py` (10 lines) — File has no importers (in_degree=0) [risks: none]
 - `prototype/multipass/run_tests.py` (200 lines) — File has no importers (in_degree=0) [risks: none]
 - `scripts/atm-nudge.py` (280 lines) — File has no importers (in_degree=0) [risks: script]
