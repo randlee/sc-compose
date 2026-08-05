@@ -74,6 +74,15 @@ fn split_frontmatter(input: &str) -> Result<Option<(Vec<&str>, &str)>, ComposeEr
             .into());
         };
 
+        // A rendered document can legitimately begin with its own `---` block
+        // immediately after the sc-compose config block. Once that candidate
+        // contains Jinja syntax, it is template body rather than another YAML
+        // config pass. Preserve the existing stacked-header behavior for
+        // candidates that contain plain YAML (including empty headers).
+        if !headers.is_empty() && contains_jinja_syntax(&input[content_start..content_end]) {
+            break;
+        }
+
         headers.push(&input[content_start..content_end]);
         cursor = after_close;
     }
@@ -83,6 +92,10 @@ fn split_frontmatter(input: &str) -> Result<Option<(Vec<&str>, &str)>, ComposeEr
     } else {
         Ok(Some((headers, &input[cursor..])))
     }
+}
+
+fn contains_jinja_syntax(content: &str) -> bool {
+    content.contains("{{") || content.contains("{%") || content.contains("{#")
 }
 
 fn opening_delimiter_len(input: &str, cursor: usize) -> Option<usize> {

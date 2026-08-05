@@ -126,6 +126,85 @@ fn render_uses_json_var_file_inputs() {
 }
 
 #[test]
+fn validate_and_render_adjacent_jinja_document_frontmatter() {
+    let root = temp_root("adjacent-jinja-document-frontmatter");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - id\ndefaults:\n  worktree: \"\"\n---\n---\nid: {{ id }}\n{% if worktree %}worktree: {{ worktree }}\n{% endif %}target: x\n---\nbody\n",
+    );
+    let vars_set = root.join("vars-set.json");
+    write_file(
+        &vars_set,
+        "{\"id\":\"item\",\"worktree\":\"../worktree\"}\n",
+    );
+    let vars_unset = root.join("vars-unset.json");
+    write_file(&vars_unset, "{\"id\":\"item\"}\n");
+
+    let validate = sc_compose()
+        .arg("validate")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_set)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert!(validate.status.success(), "{validate:?}");
+    let validate_json: Value = serde_json::from_slice(&validate.stdout).unwrap();
+    let validate_codes = validate_json["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|diagnostic| diagnostic["code"].as_str())
+        .collect::<Vec<_>>();
+    assert!(!validate_codes.contains(&"ERR_CONFIG_PARSE"));
+
+    let rendered_set = root.join("rendered-set.md");
+    let render_set = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_set)
+        .arg("--output")
+        .arg(&rendered_set)
+        .output()
+        .unwrap();
+    assert!(render_set.status.success(), "{render_set:?}");
+    let rendered_set_text = fs::read_to_string(&rendered_set).unwrap();
+    assert!(rendered_set_text.contains("worktree: ../worktree"));
+    assert!(rendered_set_text.contains("id: item"));
+
+    let rendered_unset = root.join("rendered-unset.md");
+    let render_unset = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_unset)
+        .arg("--output")
+        .arg(&rendered_unset)
+        .output()
+        .unwrap();
+    assert!(render_unset.status.success(), "{render_unset:?}");
+    let rendered_unset_text = fs::read_to_string(&rendered_unset).unwrap();
+    assert!(!rendered_unset_text.contains("worktree:"));
+    assert!(rendered_unset_text.contains("id: item"));
+}
+
+#[test]
 fn render_uses_yaml_var_file_inputs() {
     let root = temp_root("var-file-yaml");
     write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
