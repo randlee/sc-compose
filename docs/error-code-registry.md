@@ -27,6 +27,7 @@ by `sc-composer` and `sc-compose`.
 | `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` | `ValidationError` | reserved | legacy H2 nested-array restriction; retained for compatibility and not emitted for recursive JSON/YAML-compatible values | compatibility only |
 | `ERR_VAL_DUPLICATE` | `ValidationError` | error | duplicate frontmatter variable declaration | frontmatter normalization, validation pipeline |
 | `WARN_VAL_CONFLICTING_DEFAULT_SECTIONS` | `ValidationError` | warning | frontmatter declared both `defaults` and `input_defaults`; `input_defaults` overrides overlaps | frontmatter normalization, validation pipeline |
+| `WARN_CONFIG_SINGLE_PASS_ALL_FALLBACK` | `ConfigError` | warning | `--all` was requested for a template without stacked headers; the single pass is used as a documented fallback | CLI input/configuration layer |
 | `ERR_VAL_EMPTY` | `ValidationError` | error | template body is empty where composition requires content | validation pipeline |
 | `ERR_VAL_MISSING_FRONTMATTER` | `ValidationError` | warning | a root or included template file references variables but has no frontmatter block | validation pipeline |
 | `ERR_VAL_MISSING_REQUIRED` | `ValidationError` | error | required variable remains unresolved after merge | validation pipeline |
@@ -41,16 +42,63 @@ by `sc-composer` and `sc-compose`.
 | `ERR_CONFIG_MODE` | `ConfigError` | error | command or helper invoked in an incompatible mode | CLI argument validation, `resolve_profile()` |
 | `ERR_CONFIG_READ` | `ConfigError` | error | a required text/config file exists but cannot be read as valid text | include engine, `verify()`, workspace helpers |
 | `ERR_CONFIG_PARSE` | `ConfigError` | error | malformed or unreadable configuration input | var-file/config parsing |
-| `ERR_CONFIG_VARFILE` | `ConfigError` | error | invalid var-file shape or unsupported structure | var-file parsing |
+| `ERR_CONFIG_VARFILE` | `ConfigError` | error | invalid var-file shape or unsupported structure, including YAML merge keys (`<<`) rejected with a source line/column and explicit-mapping recovery guidance | var-file parsing |
 | `ERR_CONFIG_PACK_NOT_FOUND` | `ConfigError` | error | named example or template pack does not exist under the selected pack root | CLI `examples`, CLI `templates` |
 | `ERR_CONFIG_PACK_NOT_RENDERABLE` | `ConfigError` | error | named pack cannot be rendered because it is ambiguous or lacks exactly one renderable root template | CLI `examples`, CLI `templates` |
 | `ERR_CONFIG_TEMPLATE_EXISTS` | `ConfigError` | error | `templates add` target pack already exists | CLI `templates add` |
 | `ERR_EXTRACT_INVALID_REQUEST` | `ExtractError` | error | in-memory extraction request violates source, filter, or report invariants | `sc_composer::extract()` and report construction |
 | `ERR_EXTRACT_MALFORMED` | `ExtractError` | error | rendered XML cannot be parsed as well-formed input | XML extraction engine |
 | `ERR_EXTRACT_UNSUPPORTED` | `ExtractError` | error | known template uses syntax outside the supported reversible XML subset | XML extraction engine |
-| `ERR_EXTRACT_AMBIGUOUS` | `ExtractError` | error | multiple structural interpretations remain for an extraction result | XML extraction engine and report construction |
+| `ERR_EXTRACT_AMBIGUOUS` | `ExtractError` | error | multiple structural interpretations remain for an extraction result | XML extraction engine and report construction; Phase I/I.2 raw-text mode |
+| `ERR_EXTRACT_XML_ELEMENT_MISMATCH` | `ExtractError` | error | rendered XML element name differs from the corresponding known-template element name | XML structural matching |
+| `ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH` | `ExtractError` | error | rendered XML attribute count or attribute-name set differs from the corresponding known-template element | XML structural matching |
+| `ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH` | `ExtractError` | error | rendered XML child markup does not match the known template's approved child structure | Phase I.3 XML block/mixed-content extraction |
+| `ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED` | `ExtractError` | error | known XML template requires unsupported control-flow reconstruction in a block/mixed-content placeholder | Phase I.3 XML block/mixed-content extraction |
+| `ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME` | `ExtractError` | error | known XML template uses a dynamic element name outside the supported fixed-name structure | Phase I.3 XML block/mixed-content extraction |
+| `ERR_EXTRACT_XML_STATIC_MISMATCH` | `ExtractError` | error | rendered XML static content does not match the known template's static content during value matching | XML extraction engine |
+| `ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED` | `ExtractError` | error | rendered or known XML uses qualified names or namespace declarations outside the unambiguous extraction subset | XML extraction rejection |
 | `WARN_EXTRACT_NOT_OBSERVED` | `ExtractionReport` | warning | a declared scalar occurrence is absent from the rendered XML | XML extraction engine |
-| `WARN_EXTRACT_LOW_CONFIDENCE` | `ExtractionReport` | warning | structural or static evidence is insufficient for a high-confidence report | XML extraction engine |
+| `WARN_EXTRACT_LOW_CONFIDENCE` | `ExtractionReport` | warning | structural or static evidence is insufficient for a high-confidence report | XML extraction engine; Phase I/I.2 raw-text mode |
+| `WARN_EXTRACT_DIRTY_PREFIX_STRIPPED` | `ExtractionReport` | warning | rendered XML had an accepted leading text preamble removed before parsing | Phase I.4 XML dirty-prefix normalizer |
+
+### Accepted Phase-H Cross-Format Extraction Codes
+
+These codes are accepted by H.1 and are required implementation targets for
+the owning sprint. They are deliberately distinct from the existing XML/general
+codes above so format-specific parser and policy failures remain stable.
+
+| Code | Error family | Severity | Trigger condition | Expected primary emitter |
+| --- | --- | --- | --- | --- |
+| `ERR_EXTRACT_FORMAT_UNSUPPORTED` | `ExtractError` | error | requested format is not enabled by the public format selector | H.3 adapter surfaces |
+| `ERR_EXTRACT_TEMPLATE_UNSUPPORTED` | `ExtractError` | error | unsupported loop, branch, dynamic key, typed placeholder, or other cross-format template syntax | H.2/H.4/H.5 adapters; Phase I/I.2 raw-text mode |
+| `ERR_EXTRACT_INPUT_LIMIT` | `ExtractError` | error | input size, depth, or occurrence limit is exceeded | H.2 JSON, H.4 YAML, H.5 TOML, and H.7 JSON/YAML/XML hardening adapters |
+| `ERR_EXTRACT_JSON_MALFORMED` | `ExtractError` | error | rendered input is not one well-formed JSON value | H.2 JSON adapter |
+| `ERR_EXTRACT_JSON_DUPLICATE_KEY` | `ExtractError` | error | a JSON object repeats a key | H.2 JSON adapter |
+| `ERR_EXTRACT_JSON_PATH_MISSING` | `ExtractError` | error | a known-template JSON path is absent | H.2 JSON adapter |
+| `ERR_EXTRACT_JSON_SHAPE_MISMATCH` | `ExtractError` | error | JSON object/array or static value differs from the known template | H.2 JSON adapter |
+| `ERR_EXTRACT_JSON_VALUE_UNSUPPORTED` | `ExtractError` | error | placeholder occurs in a key, non-string value, or structural position | H.2 JSON adapter |
+| `ERR_EXTRACT_JSON_AMBIGUOUS` | `ExtractError` | error | one variable occurs at multiple distinct JSON paths | H.2 JSON adapter/report |
+| `ERR_EXTRACT_YAML_MALFORMED` | `ExtractError` | error | rendered input is not one well-formed YAML document | H.4 YAML adapter |
+| `ERR_EXTRACT_YAML_DUPLICATE_KEY` | `ExtractError` | error | a YAML mapping repeats a key | H.4 YAML adapter |
+| `ERR_EXTRACT_YAML_ALIAS_UNSUPPORTED` | `ExtractError` | error | YAML alias or anchor is present | H.4 YAML adapter |
+| `ERR_EXTRACT_YAML_DOCUMENT_STREAM` | `ExtractError` | error | more than one YAML document is present | H.4 YAML adapter |
+| `ERR_EXTRACT_YAML_PATH_MISSING` | `ExtractError` | error | a known-template YAML path is absent | H.4 YAML adapter |
+| `ERR_EXTRACT_YAML_SHAPE_MISMATCH` | `ExtractError` | error | YAML mapping/sequence or static scalar differs from the known template | H.4 YAML adapter |
+| `ERR_EXTRACT_YAML_VALUE_UNSUPPORTED` | `ExtractError` | error | placeholder occurs in a key, typed scalar, null, tag, alias, or structure | H.4 YAML adapter |
+| `ERR_EXTRACT_YAML_AMBIGUOUS` | `ExtractError` | error | one variable occurs at multiple distinct YAML paths | H.4 YAML adapter/report |
+| `ERR_EXTRACT_TOML_MALFORMED` | `ExtractError` | error | rendered input is not one well-formed TOML document | H.5 TOML adapter |
+| `ERR_EXTRACT_TOML_DUPLICATE_KEY` | `ExtractError` | error | a TOML table or document repeats a key | H.5 TOML adapter |
+| `ERR_EXTRACT_TOML_PATH_MISSING` | `ExtractError` | error | a known-template TOML path is absent | H.5 TOML adapter |
+| `ERR_EXTRACT_TOML_SHAPE_MISMATCH` | `ExtractError` | error | TOML table/array or static value differs from the known template | H.5 TOML adapter |
+| `ERR_EXTRACT_TOML_VALUE_UNSUPPORTED` | `ExtractError` | error | placeholder occurs in a key, non-string value, null-equivalent, or structure | H.5 TOML adapter |
+| `ERR_EXTRACT_TOML_AMBIGUOUS` | `ExtractError` | error | one variable occurs at multiple distinct TOML paths | H.5 TOML adapter/report |
+
+For every Phase-H code, the serialized diagnostic uses the existing
+`diagnostics[]` envelope with stable `code`, `severity`, `message`, and
+optional `location` fields; the owning sprint must add the documented recovery
+hint to the diagnostic detail before emitting the code. The full trigger,
+recovery, path/source, and scope policy is in
+`docs/phase-H/sprint-h-1-reverse-extraction-extension-contract.md`.
 
 ## Planned Diagnostic Shape
 

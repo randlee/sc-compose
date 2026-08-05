@@ -332,10 +332,28 @@ Exit gate:
   - Sprint H3 ships the `sprint-report-html` bundled example
 - FR-12 through FR-15 (H4):
   - Sprint H4 extends wrapper integration across FR-12–FR-15 and finalizes source-of-truth documentation; introduces no new functional requirements
+- FR-16 and Phase H:
+  - Phase G establishes the known-template XML-first extraction contract and
+    its scalar-only boundaries
+  - Phase H.1 owns the contract amendments for issue #193's JSON, YAML, and
+    TOML extensions and plans the migration of format-neutral value matching
+    from the XML path into a shared raw-text core
+  - Phase H.2 through H.8 own implementation, cross-surface parity, corpus,
+    adversarial hardening, and phase-ending remediation for those accepted
+    amendments
+  - XML mixed-content, XML dirty-prefix tolerance, and customer-facing
+    raw-text mode remain outside Phase H; they are now planned as Phase I
+    work in `docs/phase-I/phase-I-plan.md`, not retroactively claimed as H
+    behavior
+- FR-17 through FR-21 and Phase I:
+  - I.1 accepts the raw-text, XML recovery, loop-context, and YAML merge-key
+    contracts in ADR-0013 and the synchronized requirements/architecture docs
+  - I.2 through I.6 own runtime implementation, cross-surface parity, and
+    evidence for those accepted requirements; I.1 adds no executable code
 
 ## Production Readiness Gate
 
-Release is complete only when all four sprints have passed and all of the
+Release is complete only when all numbered Phase-H sprints have passed and all of the
 following are true:
 
 - no release blocker remains open
@@ -506,6 +524,95 @@ binding over the same library semantics, reports unsupported or ambiguous
 constructs instead of fabricating values, and leaves unknown-template
 identification, JSON/Markdown adapters, loop reconstruction, and typed-value
 recovery as separately planned follow-on work.
+
+### Phase H Sprint Plans
+
+Status:
+
+- complete closure of the in-scope real-customer reverse-extraction gaps
+  recorded in issue #193; H.1's contract and H.2 through H.8 implementation,
+  parity, corpus, hardening, and closure gates are complete
+- H.7 owns the promoted JSON/YAML depth-diagnostic hardening and the related
+  release-registry documentation updates
+- H.8 owns the phase-ending remediation and production-readiness gate for the
+  remaining YAML, TOML, diagnostic, documentation, and evidence findings
+
+Sprint entries:
+
+- [Phase H plan](phase-H/phase-H-plan.md)
+- [Sprint H.1 — Reverse Extraction Format Contract](phase-H/sprint-h-1-reverse-extraction-extension-contract.md)
+- [Sprint H.2 — JSON Extraction Core](phase-H/sprint-h-2-json-extraction-core.md)
+- [Sprint H.3 — JSON Cross-Surface Parity](phase-H/sprint-h-3-json-cross-surface-parity.md)
+- [Sprint H.4 — YAML Extraction](phase-H/sprint-h-4-yaml-extraction.md)
+- [Sprint H.5 — TOML Extraction](phase-H/sprint-h-5-toml-extraction.md)
+- [Sprint H.6 — Cross-Format Corpus and Adversarial Closure](phase-H/sprint-h-6-cross-format-closure.md)
+- [Sprint H.7 — Alias and Input-Limit Hardening](phase-H/sprint-h-7-alias-input-limit-hardening.md)
+- [Sprint H.8 — Phase-Ending Review Remediation](phase-H/sprint-h-8-phase-ending-remediation.md)
+
+Disambiguation: the completed `Phase HTML-Report (H1-H4)` section above uses
+undotted H1/H2/H3/H4 labels for the HTML-Report feature family. The `Phase H`
+section here uses dotted H.1–H.8 identifiers for reverse-extraction extension
+sprints; these are separate phases and sprint sequences.
+
+### Phase I Sprint Plans
+
+Status:
+
+- completed Phase I work for the remaining XML extraction gaps from issue #193,
+  the strict-validation loop-context gap in issue #167, and the YAML var-file
+  merge-key safety gap in issue #166;
+- I.1 Contract, Raw-Text Semantics, and Traceability: complete/accepted on
+  `sprint/i-1-contract-and-traceability` at `6604de7` (docs-only contract gate);
+- I.2 Customer-Facing Raw-Text Mode: complete/accepted on
+  `sprint/i-2-customer-raw-text-mode` at `ac6d62f`, with Rust, CLI, Python,
+  and Markdown/text evidence;
+- I.3 XML Block and Mixed-Content Extraction: complete/accepted on
+  `sprint/i-3-xml-block-mixed-content` at `a3c0ce1` after the QA remediation pass;
+- I.4 XML Dirty-Prefix Normalization: complete on
+  `sprint/i-4-xml-dirty-prefix` at `f3dca07`, with Rust, CLI, Python, and boundary evidence;
+- I.5 Jinja Loop-Context Built-ins: complete/accepted on
+  `sprint/i-5-loop-context-builtins` at `8cde64d`, with QA-2 PASS 10/10 and
+  strict validation evidence;
+- I.6 YAML Merge-Key Var-File Safety: complete on
+  `sprint/i-6-yaml-merge-key-safety` at `e62cfea/1232c8d`, with fail-closed Rust/CLI
+  coverage, JSON and alias controls, and source-located diagnostics;
+- Phase I also makes the shared H raw-text matcher customer-facing for known
+  Markdown/text templates because raw text is the product use case that the
+  format adapters alone do not provide;
+- I.1 is the contract and traceability gate. I.2 through I.6 are independent
+  implementation tracks after that gate except that I.3 depends on I.2's
+  public matcher seam. Independent sprint QA may proceed in parallel; no
+  sprint is required to wait for an unrelated sprint's QA result.
+
+Sprint entries:
+
+- [Phase I plan](phase-I/phase-I-plan.md)
+- [Sprint I.1 — Contract, Raw-Text Semantics, and Traceability](phase-I/sprint-i-1-contract-and-traceability.md)
+- [Sprint I.2 — Customer-Facing Raw-Text Mode](phase-I/sprint-i-2-customer-raw-text-mode.md)
+- [Sprint I.3 — XML Block and Mixed-Content Extraction](phase-I/sprint-i-3-xml-block-mixed-content.md)
+- [Sprint I.4 — XML Dirty-Prefix Normalization](phase-I/sprint-i-4-xml-dirty-prefix.md)
+- [Sprint I.5 — Jinja Loop-Context Built-ins](phase-I/sprint-i-5-loop-context-builtins.md)
+- [Sprint I.6 — YAML Merge-Key Var-File Safety](phase-I/sprint-i-6-yaml-merge-key-safety.md)
+- [Phase I Backlog Cleanup](phase-I/backlog-cleanup.md)
+
+### Phase J Sprint Plans
+
+Status:
+
+- all four behavior-preserving maintainability decomposition sprints are
+  merged into `integrate/phase-j` (J.1 PR #228, J.2 PR #229, J.3 PR #230,
+  and J.4 PR #231)
+- J.1 is independent; J.2 precedes J.3; J.4 follows J.2 and J.3
+- all four are full implementation sprints with the complete Phase J
+  validation checklist, not planning/design sprints
+
+Sprint entries:
+
+- [Phase J plan](phase-J/phase-J-plan.md)
+- [Sprint J.1 — CLI Argument and Pass-Input Seams](phase-J/sprint-j-1-cli-argument-seams.md)
+- [Sprint J.2 — Validation State and Context Assembly](phase-J/sprint-j-2-validation-state-assembly.md)
+- [Sprint J.3 — Validation Policy and Required-Path Diagnostics](phase-J/sprint-j-3-validation-policy-diagnostics.md)
+- [Sprint J.4 — Frontmatter Parser and Normalizer Split](phase-J/sprint-j-4-frontmatter-parser-split.md)
 
 ### Standalone Repowise Cleanup: Render Request Module Split
 

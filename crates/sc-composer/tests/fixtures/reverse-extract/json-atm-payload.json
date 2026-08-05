@@ -1,0 +1,14 @@
+{
+  "message_id": "01KZ2BV5Z6VCRQYDQWYSAZA8GB",
+  "from": "__TEAM_LEAD_SENDER__",
+  "actions": [
+    {
+      "action": "execute the assigned task",
+      "description": "H.2 JSON extraction core",
+      "when": {
+        "idle": "immediate",
+        "busy": "after-current-task"
+      }
+    }
+  ]
+}

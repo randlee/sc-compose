@@ -309,6 +309,25 @@ pub(crate) fn config_error(message: String, code: Option<&str>) -> PyErr {
     exception_with_attrs::<ScConfigError>(&message, code)
 }
 
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "Wrapper helpers often build dynamic String messages before constructing Python exceptions."
+)]
+pub(crate) fn config_error_with_recovery_hints(
+    message: String,
+    code: Option<&str>,
+    recovery_hints: Vec<String>,
+) -> PyErr {
+    exception_with_details::<ScConfigError>(
+        &message,
+        code,
+        ExceptionDetails {
+            recovery_hints,
+            ..ExceptionDetails::default()
+        },
+    )
+}
+
 /// Map the pure extraction contract onto the adapter's existing configuration
 /// error family. Extraction is an in-memory input operation, and its stable
 /// Rust diagnostic code remains available through the Python exception.
@@ -370,7 +389,8 @@ fn extract_error_message(error: &ExtractError) -> String {
         ExtractError::InvalidRequest { message, .. } => message.clone(),
         ExtractError::MalformedXml { diagnostic, .. }
         | ExtractError::UnsupportedSyntax { diagnostic, .. }
-        | ExtractError::AmbiguousStructure { diagnostic, .. } => diagnostic.message.clone(),
+        | ExtractError::AmbiguousStructure { diagnostic, .. }
+        | ExtractError::FormatError { diagnostic, .. } => diagnostic.message.clone(),
     }
 }
 

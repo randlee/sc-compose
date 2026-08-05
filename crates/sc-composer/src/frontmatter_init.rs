@@ -4,8 +4,9 @@ use std::path::Path;
 
 use crate::frontmatter::parse_template_document;
 use crate::resolver::canonicalize_with_roots;
-use crate::validation::discover_tokens;
-use crate::{ComposeError, ConfigError, DiagnosticCode, FrontmatterInitResult, VariableName};
+use crate::{
+    ComposeError, ConfigError, DiagnosticCode, FrontmatterInitResult, VariableName, discover_tokens,
+};
 
 /// Insert or rewrite normalized frontmatter for a single template.
 ///

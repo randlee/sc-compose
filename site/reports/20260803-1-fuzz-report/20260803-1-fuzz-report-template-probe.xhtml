@@ -1,0 +1,44 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session h6-20260803-0001 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;cases_run&quot;:4,&quot;classification&quot;:&quot;pass&quot;,&quot;command&quot;:&quot;cargo test -p sc-composer --test extract_integration toml_extraction_rejects_oversized_and_deep_inputs -- --nocapture &amp;&amp; cargo test -p sc-composer --test extract_integration toml_occurrence_limit_is_a_durable_boundary -- --nocapture&quot;,&quot;context_text&quot;:&quot;The adapter-level ambiguity tests and all three TOML input guards replayed deterministically. No product defect was observed; the tested rejections are documented contract boundaries.&quot;,&quot;correlation_id&quot;:&quot;template-probe&quot;,&quot;error&quot;:null,&quot;failed&quot;:0,&quot;finding_ids&quot;:[],&quot;findings&quot;:[],&quot;fuzz_run_description&quot;:&quot;Repeated variable ambiguity and TOML size&#x2f;depth&#x2f;occurrence hardening&quot;,&quot;passed&quot;:4,&quot;result&quot;:&quot;PASS&quot;,&quot;status&quot;:&quot;success&quot;,&quot;target&quot;:&quot;ambiguity-and-input-limits&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;json-ambiguity&quot;,&quot;description&quot;:&quot;Same variable at two JSON object paths&quot;,&quot;minimal_input&quot;:&quot;{\&quot;first\&quot;:\&quot;Ada\&quot;,\&quot;second\&quot;:\&quot;Ada\&quot;}&quot;,&quot;minimal_template&quot;:&quot;{\&quot;first\&quot;:\&quot;{{ value }}\&quot;,\&quot;second\&quot;:\&quot;{{ value }}\&quot;}&quot;,&quot;outcome&quot;:&quot;PASS: no value fabricated; ambiguity diagnostic retained&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;yaml-ambiguity&quot;,&quot;description&quot;:&quot;Same variable at two YAML mapping paths&quot;,&quot;minimal_input&quot;:&quot;first: Ada\\nsecond: Ada&quot;,&quot;minimal_template&quot;:&quot;first: \&quot;{{ value }}\&quot;\\nsecond: \&quot;{{ value }}\&quot;&quot;,&quot;outcome&quot;:&quot;PASS: no value fabricated; ambiguity diagnostic retained&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;toml-occurrence-limit&quot;,&quot;description&quot;:&quot;10,001 TOML placeholders exceed occurrence policy&quot;,&quot;minimal_input&quot;:&quot;10,001 scalar TOML assignments&quot;,&quot;minimal_template&quot;:&quot;value0..value10000 = \&quot;{{ value }}\&quot;&quot;,&quot;outcome&quot;:&quot;PASS: ERR_EXTRACT_INPUT_LIMIT&quot;,&quot;passed&quot;:true}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="The adapter-level ambiguity tests and all three TOML input guards replayed deterministically. No product defect was observed; the tested rejections are documented contract boundaries.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Repeated variable ambiguity and TOML size&#x2f;depth&#x2f;occurrence hardening</th>
+        <td>4</td>
+        <td>4/4</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">json-ambiguity</th><td><code>Same variable at two JSON object paths</code></td><td>PASS: no value fabricated; ambiguity diagnostic retained</td></tr>
+        <tr><th scope="row">yaml-ambiguity</th><td><code>Same variable at two YAML mapping paths</code></td><td>PASS: no value fabricated; ambiguity diagnostic retained</td></tr>
+        <tr><th scope="row">toml-occurrence-limit</th><td><code>10,001 TOML placeholders exceed occurrence policy</code></td><td>PASS: ERR_EXTRACT_INPUT_LIMIT</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>

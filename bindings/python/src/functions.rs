@@ -6,9 +6,10 @@ use pyo3::prelude::*;
 use crate::convert::{
     coerce_path_like, extract_json_context, extract_pass_contexts, json_to_py, py_to_json_value,
 };
+use crate::enums::parse_extract_format;
 use crate::errors::{
-    compose_error_to_pyerr, config_error, extract_error_to_pyerr, render_error_to_pyerr,
-    validation_error,
+    compose_error_to_pyerr, config_error, config_error_with_recovery_hints, extract_error_to_pyerr,
+    render_error_to_pyerr, validation_error,
 };
 use crate::types::{
     PyComposePolicy, PyComposeRequest, PyComposeResult, PyExpandedTemplate, PyExtractionReport,
@@ -82,34 +83,33 @@ fn render_template(template: &str, context: &Bound<'_, PyAny>) -> PyResult<Strin
         .map_err(render_error_to_pyerr)
 }
 
-/// Recover string values and XML provenance from a known template and render.
+/// Recover string values and format-specific provenance from a known template
+/// and render.
 #[pyfunction]
-#[pyo3(signature = (template, rendered, *, include=None, exclude=None))]
+#[pyo3(signature = (template, rendered, *, format="xml", include=None, exclude=None))]
 fn extract_variables(
     template: &str,
     rendered: &str,
+    format: &str,
     include: Option<&Bound<'_, PyAny>>,
     exclude: Option<&Bound<'_, PyAny>>,
 ) -> PyResult<PyExtractionReport> {
+    let format = parse_extract_format(format)?;
     let include = crate::convert::extract_variable_names(include).map_err(|error| {
-        config_error(
+        config_error_with_recovery_hints(
             format!("invalid extraction include filter: {error}"),
             Some("ERR_EXTRACT_INVALID_REQUEST"),
+            vec!["use valid variable names in the include filter".to_owned()],
         )
     })?;
     let exclude = crate::convert::extract_variable_names(exclude).map_err(|error| {
-        config_error(
+        config_error_with_recovery_hints(
             format!("invalid extraction exclude filter: {error}"),
             Some("ERR_EXTRACT_INVALID_REQUEST"),
+            vec!["use valid variable names in the exclude filter".to_owned()],
         )
     })?;
-    let request = sc_composer::ExtractRequest::new(
-        template,
-        rendered,
-        sc_composer::ExtractFormat::Xml,
-        &include,
-        &exclude,
-    );
+    let request = sc_composer::ExtractRequest::new(template, rendered, format, &include, &exclude);
     sc_composer::extract(&request)
         .map(|inner| PyExtractionReport { inner })
         .map_err(extract_error_to_pyerr)

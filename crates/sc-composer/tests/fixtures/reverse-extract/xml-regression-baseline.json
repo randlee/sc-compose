@@ -1,0 +1,196 @@
+{
+  "attributes": {
+    "confidence": 1.0,
+    "diagnostics": [],
+    "occurrences": [
+      {
+        "path": [
+          { "Element": { "name": "doc", "ordinal": 0 } },
+          { "Attribute": { "name": "id" } }
+        ],
+        "rendered_text": "42",
+        "source": { "Attribute": { "name": "id" } },
+        "variable": "id"
+      },
+      {
+        "path": [
+          { "Element": { "name": "doc", "ordinal": 0 } },
+          { "Element": { "name": "name", "ordinal": 0 } }
+        ],
+        "rendered_text": "Ada",
+        "source": "TextNode",
+        "variable": "name"
+      }
+    ],
+    "values": { "id": "42", "name": "Ada" }
+  },
+  "declaration-comments": {
+    "confidence": 1.0,
+    "diagnostics": [],
+    "occurrences": [
+      {
+        "path": [
+          { "Element": { "name": "root", "ordinal": 0 } },
+          { "Element": { "name": "value", "ordinal": 0 } }
+        ],
+        "rendered_text": "Ada",
+        "source": "TextNode",
+        "variable": "value"
+      }
+    ],
+    "values": { "value": "Ada" }
+  },
+  "empty-scalar": {
+    "confidence": 0.4,
+    "diagnostics": [
+      {
+        "code": "WARN_EXTRACT_LOW_CONFIDENCE",
+        "kind": "not_observed",
+        "message": "insufficient structural or static evidence for a high-confidence extraction",
+        "occurrence": null
+      }
+    ],
+    "occurrences": [
+      {
+        "path": [
+          { "Element": { "name": "root", "ordinal": 0 } },
+          { "Element": { "name": "value", "ordinal": 0 } }
+        ],
+        "rendered_text": "",
+        "source": "TextNode",
+        "variable": "value"
+      }
+    ],
+    "values": { "value": "" }
+  },
+  "entities-whitespace-empty": {
+    "confidence": 0.8571428571428571,
+    "diagnostics": [],
+    "occurrences": [
+      {
+        "path": [
+          { "Element": { "name": "root", "ordinal": 0 } },
+          { "Element": { "name": "value", "ordinal": 0 } }
+        ],
+        "rendered_text": "A & B",
+        "source": "TextNode",
+        "variable": "value"
+      },
+      {
+        "path": [
+          { "Element": { "name": "root", "ordinal": 0 } },
+          { "Element": { "name": "empty", "ordinal": 0 } }
+        ],
+        "rendered_text": "",
+        "source": "TextNode",
+        "variable": "empty"
+      }
+    ],
+    "values": { "empty": "", "value": "A & B" }
+  },
+  "missing-occurrence": {
+    "confidence": 0.0,
+    "diagnostics": [
+      {
+        "code": "WARN_EXTRACT_NOT_OBSERVED",
+        "kind": "not_observed",
+        "message": "variable occurrence was not observed in rendered XML: name",
+        "occurrence": null
+      },
+      {
+        "code": "WARN_EXTRACT_LOW_CONFIDENCE",
+        "kind": "not_observed",
+        "message": "no structural occurrence was observed for the selected variables",
+        "occurrence": null
+      }
+    ],
+    "occurrences": [],
+    "values": {}
+  },
+  "repeated-siblings": {
+    "confidence": 0.6,
+    "diagnostics": [
+      {
+        "code": "WARN_EXTRACT_LOW_CONFIDENCE",
+        "kind": "not_observed",
+        "message": "insufficient structural or static evidence for a high-confidence extraction",
+        "occurrence": null
+      }
+    ],
+    "occurrences": [
+      {
+        "path": [
+          { "Element": { "name": "root", "ordinal": 0 } },
+          { "Element": { "name": "item", "ordinal": 0 } }
+        ],
+        "rendered_text": "A",
+        "source": "TextNode",
+        "variable": "first"
+      },
+      {
+        "path": [
+          { "Element": { "name": "root", "ordinal": 0 } },
+          { "Element": { "name": "item", "ordinal": 1 } }
+        ],
+        "rendered_text": "B",
+        "source": "TextNode",
+        "variable": "second"
+      }
+    ],
+    "values": { "first": "A", "second": "B" }
+  },
+  "same-variable-conflicting-occurrences": {
+    "confidence": 0.5,
+    "diagnostics": [
+      {
+        "code": "WARN_EXTRACT_LOW_CONFIDENCE",
+        "kind": "not_observed",
+        "message": "insufficient structural or static evidence for a high-confidence extraction",
+        "occurrence": null
+      },
+      {
+        "code": "ERR_EXTRACT_AMBIGUOUS",
+        "kind": "ambiguous",
+        "message": "variable has multiple structural occurrences: name",
+        "occurrence": 1
+      }
+    ],
+    "occurrences": [
+      {
+        "path": [
+          { "Element": { "name": "root", "ordinal": 0 } },
+          { "Element": { "name": "item", "ordinal": 0 } }
+        ],
+        "rendered_text": "Ada",
+        "source": "TextNode",
+        "variable": "name"
+      },
+      {
+        "path": [
+          { "Element": { "name": "root", "ordinal": 0 } },
+          { "Element": { "name": "item", "ordinal": 1 } }
+        ],
+        "rendered_text": "Grace",
+        "source": "TextNode",
+        "variable": "name"
+      }
+    ],
+    "values": {}
+  },
+  "static-prefix-suffix": {
+    "confidence": 1.0,
+    "diagnostics": [],
+    "occurrences": [
+      {
+        "path": [
+          { "Element": { "name": "root", "ordinal": 0 } },
+          { "Element": { "name": "greeting", "ordinal": 0 } }
+        ],
+        "rendered_text": "Ada",
+        "source": "TextNode",
+        "variable": "name"
+      }
+    ],
+    "values": { "name": "Ada" }
+  }
+}

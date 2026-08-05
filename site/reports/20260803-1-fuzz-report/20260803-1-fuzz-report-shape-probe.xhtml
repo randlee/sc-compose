@@ -1,0 +1,44 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>shape-probe</h2>
+      <p class="agent-meta">Session h6-20260803-0001 · Worker shape-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;cases_run&quot;:6,&quot;classification&quot;:&quot;pass&quot;,&quot;command&quot;:&quot;cargo test -p sc-composer --test extract_integration cross_format_corpus_preserves_equivalent_contracts -- --nocapture&quot;,&quot;context_text&quot;:&quot;The shared corpus success and filter cases were exercised for JSON, YAML, and TOML. Values and selected occurrences matched the declared oracle.&quot;,&quot;correlation_id&quot;:&quot;shape-probe&quot;,&quot;error&quot;:null,&quot;failed&quot;:0,&quot;finding_ids&quot;:[],&quot;findings&quot;:[],&quot;fuzz_run_description&quot;:&quot;Cross-format scalar values, empty structure, and include filtering&quot;,&quot;passed&quot;:6,&quot;result&quot;:&quot;PASS&quot;,&quot;status&quot;:&quot;success&quot;,&quot;target&quot;:&quot;cross-format-success-and-filtering&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;json-success&quot;,&quot;description&quot;:&quot;JSON object name placeholder with static boolean&quot;,&quot;minimal_input&quot;:&quot;{\&quot;name\&quot;:\&quot;Ada\&quot;,\&quot;enabled\&quot;:true}&quot;,&quot;minimal_template&quot;:&quot;{\&quot;name\&quot;:\&quot;{{ name }}\&quot;,\&quot;enabled\&quot;:true}&quot;,&quot;outcome&quot;:&quot;PASS: name=Ada&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;yaml-filter&quot;,&quot;description&quot;:&quot;YAML mapping with one included and one excluded variable&quot;,&quot;minimal_input&quot;:&quot;kept: yes\\nignored: no&quot;,&quot;minimal_template&quot;:&quot;kept: \&quot;{{ kept }}\&quot;\\nignored: \&quot;{{ ignored }}\&quot;&quot;,&quot;outcome&quot;:&quot;PASS: only kept=yes was returned&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;toml-success&quot;,&quot;description&quot;:&quot;TOML table scalar placeholder with static boolean&quot;,&quot;minimal_input&quot;:&quot;[package]\\nname = \&quot;example\&quot;\\nenabled = true&quot;,&quot;minimal_template&quot;:&quot;[package]\\nname = \&quot;{{ name }}\&quot;\\nenabled = true&quot;,&quot;outcome&quot;:&quot;PASS: name=example&quot;,&quot;passed&quot;:true}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="The shared corpus success and filter cases were exercised for JSON, YAML, and TOML. Values and selected occurrences matched the declared oracle.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Cross-format scalar values, empty structure, and include filtering</th>
+        <td>6</td>
+        <td>6/6</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">json-success</th><td><code>JSON object name placeholder with static boolean</code></td><td>PASS: name=Ada</td></tr>
+        <tr><th scope="row">yaml-filter</th><td><code>YAML mapping with one included and one excluded variable</code></td><td>PASS: only kept=yes was returned</td></tr>
+        <tr><th scope="row">toml-success</th><td><code>TOML table scalar placeholder with static boolean</code></td><td>PASS: name=example</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>

@@ -1,5 +1,5 @@
 from os import PathLike
-from typing import Any
+from typing import Any, Literal
 
 
 class ScComposeError(Exception):
@@ -91,9 +91,40 @@ class DiagnosticCode:
     ERR_EXTRACT_INVALID_REQUEST: str
     ERR_EXTRACT_MALFORMED: str
     ERR_EXTRACT_UNSUPPORTED: str
+    ERR_EXTRACT_TEMPLATE_UNSUPPORTED: str
+    ERR_EXTRACT_XML_ELEMENT_MISMATCH: str
+    ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH: str
+    ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH: str
+    ERR_EXTRACT_XML_STATIC_MISMATCH: str
+    ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED: str
+    ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME: str
+    ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED: str
     ERR_EXTRACT_AMBIGUOUS: str
+    ERR_EXTRACT_FORMAT_UNSUPPORTED: str
+    ERR_EXTRACT_JSON_MALFORMED: str
+    ERR_EXTRACT_JSON_DUPLICATE_KEY: str
+    ERR_EXTRACT_JSON_PATH_MISSING: str
+    ERR_EXTRACT_JSON_SHAPE_MISMATCH: str
+    ERR_EXTRACT_JSON_VALUE_UNSUPPORTED: str
+    ERR_EXTRACT_JSON_AMBIGUOUS: str
+    ERR_EXTRACT_YAML_MALFORMED: str
+    ERR_EXTRACT_YAML_DUPLICATE_KEY: str
+    ERR_EXTRACT_YAML_ALIAS_UNSUPPORTED: str
+    ERR_EXTRACT_YAML_DOCUMENT_STREAM: str
+    ERR_EXTRACT_YAML_PATH_MISSING: str
+    ERR_EXTRACT_YAML_SHAPE_MISMATCH: str
+    ERR_EXTRACT_YAML_VALUE_UNSUPPORTED: str
+    ERR_EXTRACT_YAML_AMBIGUOUS: str
+    ERR_EXTRACT_TOML_MALFORMED: str
+    ERR_EXTRACT_INPUT_LIMIT: str
+    ERR_EXTRACT_TOML_DUPLICATE_KEY: str
+    ERR_EXTRACT_TOML_PATH_MISSING: str
+    ERR_EXTRACT_TOML_SHAPE_MISMATCH: str
+    ERR_EXTRACT_TOML_VALUE_UNSUPPORTED: str
+    ERR_EXTRACT_TOML_AMBIGUOUS: str
     WARN_EXTRACT_NOT_OBSERVED: str
     WARN_EXTRACT_LOW_CONFIDENCE: str
+    WARN_EXTRACT_DIRTY_PREFIX_STRIPPED: str
 
 
 class VariableName:
@@ -228,20 +259,28 @@ class ExtractionSource:
     def name(self) -> str | None: ...
 
 
-class XmlPathSegment:
+class ExtractionPathSegment:
     @property
     def kind(self) -> str: ...
     @property
     def name(self) -> str: ...
     @property
     def ordinal(self) -> int | None: ...
+    @property
+    def byte_start(self) -> int | None: ...
+    @property
+    def byte_end(self) -> int | None: ...
+    @property
+    def line(self) -> int | None: ...
+    @property
+    def column(self) -> int | None: ...
 
 
 class ExtractionOccurrence:
     @property
     def variable(self) -> str: ...
     @property
-    def path(self) -> list[XmlPathSegment]: ...
+    def path(self) -> list[ExtractionPathSegment]: ...
     @property
     def source(self) -> ExtractionSource: ...
     @property
@@ -422,9 +461,13 @@ def extract_variables(
     template: str,
     rendered: str,
     *,
+    format: Literal["xml", "json", "yaml", "toml", "raw"] = "xml",
     include: list[str] | None = None,
     exclude: list[str] | None = None,
 ) -> ExtractionReport: ...
+
+
+XmlPathSegment = ExtractionPathSegment
 def render_loaded_template(request: LoadedTemplateRequest) -> RenderedArtifact: ...
 def parse_template_document(input: str) -> ParsedTemplate: ...
 # Expects fully resolved per-pass contexts and applies each pass header's

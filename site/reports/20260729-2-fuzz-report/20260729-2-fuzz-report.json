@@ -1,6 +1,6 @@
 {
-  "output_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/site/reports/20260729-2-fuzz-report.html",
-  "json_output_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/site/reports/20260729-2-fuzz-report.json",
+  "output_path": "./feature/fuzz-run-report-template/site/reports/20260729-2-fuzz-report.html",
+  "json_output_path": "./feature/fuzz-run-report-template/site/reports/20260729-2-fuzz-report.json",
   "title": "Adversarial Fuzz Session qa-fuzz-20260729-0002",
   "subtitle": "sc-compose bounded adversarial-fuzzing campaign -- verification re-run against the fixed report-generation pipeline (PR #165, baseline 749a3e0)",
   "status": "DRIFT",
@@ -9,10 +9,10 @@
   "copy_actions": true,
   "summary_html": "<table class=\"session-summary\"><thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead><tbody><tr><th scope=\"row\">shape-probe: var-file shapes, recursion-depth latency, and numeric edge cases</th><td>20</td><td>16/20</td><td>FAIL</td></tr><tr><th scope=\"row\">template-probe: Jinja loops, conditionals, includes, delimiters, and loop.* under --strict</th><td>20</td><td>15/20</td><td>FAIL</td></tr><tr><th scope=\"row\">boundary-probe: CLI negative-contract cases, malformed input, path confinement, flag precedence</th><td>29</td><td>29/29</td><td>PASS</td></tr><tr><th scope=\"row\">differential-probe: baseline-vs-head parity across the full rendering pipeline</th><td>20</td><td>20/20</td><td>PASS</td></tr></tbody></table><p>Overall campaign result: <strong>DRIFT</strong> -- 1 new confirmed_bug (GH #169, shape-probe quadratic-recursion latency), 1 new inconclusive finding (GH #170, shape-probe silent bignum precision loss), 1 confirmed_bug reconfirmation of an already-filed, already-triaged issue (GH #167 via template-probe, out of scope for PR #165), and 1 non-blocking documentation-gap note (boundary-probe, --var-file/--var precedence, not filed as a GH issue). The differential-probe and boundary-probe results confirm PR #165 itself is behavior-neutral for the rendering engine and introduces no new CLI regressions.</p>",
   "recommendations_html": "<ul><li>File and prioritize a fix for GH #169 (quadratic-time var-file recursion-depth latency in <code>crates/sc-compose/src/var_file.rs::parse_var_file_contents</code>) as a genuine performance-NFR gap.</li><li>Resolve the numeric-fidelity decision behind GH #170 (silent lossy-f64 downgrade of out-of-u64-range JSON integers) and record it as an ADR once decided.</li><li>Leave GH #167 (loop.* misclassified as undeclared under --strict) and GH #168 (var-file path confinement gap) with their existing owners; both are out of scope for PR #165 and were only reconfirmed, not newly introduced.</li><li>Document the --var-file/--var last-loaded-wins precedence in docs/requirements.md FR-2 (boundary-probe FUZZ-B01); this is intentional, deterministic behavior that only needs documentation, not a code change.</li><li>No action needed on PR #165 itself: differential-probe's 20/20 clean baseline-vs-head comparison confirms the diff is behavior-neutral for the rendering engine (docs/examples/skill-template files only, zero changes under crates/ or bindings/).</li></ul>",
-  "footer_html": "<p>Campaign: qa-fuzz-20260729-0002 &middot; Seed 261 &middot; Baseline ref 749a3e0 (PR #165, fuzz-run-report-template) &middot; 4 workers, target=full &middot; Worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template &middot; Skill: adversarial-fuzzing v1.1.0. Each worker's full evidence envelope and companion XHTML panel are linked from its section below.</p>",
+  "footer_html": "<p>Campaign: qa-fuzz-20260729-0002 &middot; Seed 261 &middot; Baseline ref 749a3e0 (PR #165, fuzz-run-report-template) &middot; 4 workers, target=full &middot; Worktree: ./feature/fuzz-run-report-template &middot; Skill: adversarial-fuzzing v1.1.0. Each worker's full evidence envelope and companion XHTML panel are linked from its section below.</p>",
   "metadata": {
     "campaign_id": "qa-fuzz-20260729-0002",
-    "worktree_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template",
+    "worktree_path": "./feature/fuzz-run-report-template",
     "baseline_ref": "749a3e0",
     "pr": 165,
     "seed": 261,
@@ -216,11 +216,11 @@
       "fragment_source": "auto-generated"
     }
   ],
-  "report_path": "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/site/reports/20260729-2-fuzz-report.html",
+  "report_path": "./feature/fuzz-run-report-template/site/reports/20260729-2-fuzz-report.html",
   "section_paths": [
-    "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/site/reports/20260729-2-fuzz-report/20260729-2-fuzz-report-shape-probe.xhtml",
-    "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/site/reports/20260729-2-fuzz-report/20260729-2-fuzz-report-template-probe.xhtml",
-    "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/site/reports/20260729-2-fuzz-report/20260729-2-fuzz-report-boundary-probe.xhtml",
-    "/Users/randlee/Documents/github/sc-compose-worktrees/feature/fuzz-run-report-template/site/reports/20260729-2-fuzz-report/20260729-2-fuzz-report-differential-probe.xhtml"
+    "./feature/fuzz-run-report-template/site/reports/20260729-2-fuzz-report/20260729-2-fuzz-report-shape-probe.xhtml",
+    "./feature/fuzz-run-report-template/site/reports/20260729-2-fuzz-report/20260729-2-fuzz-report-template-probe.xhtml",
+    "./feature/fuzz-run-report-template/site/reports/20260729-2-fuzz-report/20260729-2-fuzz-report-boundary-probe.xhtml",
+    "./feature/fuzz-run-report-template/site/reports/20260729-2-fuzz-report/20260729-2-fuzz-report-differential-probe.xhtml"
   ]
 }

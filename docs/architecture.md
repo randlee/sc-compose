@@ -628,21 +628,107 @@ before it reaches the report; Phase G.7 will add this check locally to the
 extraction XML adapter without changing `VariableName`'s shared grammar or
 its use in composition/rendering.
 
-The Python adapter exposes this same in-memory XML report through
-`extract_variables(template, rendered, *, include=None, exclude=None)`. Its
-report and provenance objects are wrappers over the `sc-composer` values, and
-fatal extraction conditions use the adapter's existing `ScConfigError` family
-with the canonical extraction code; Python does not implement a second
-extraction algorithm. Here, “reuse the existing exception hierarchy” means
-that all fatal extraction inputs use that established `ScConfigError` class
-and expose the Rust diagnostic code, recovery hints, and diagnostic detail;
-it does not introduce a Python-only extraction exception subclass.
+The Python adapter exposes this in-memory report through
+`extract_variables(template, rendered, *, format="xml", include=None,
+exclude=None)`. XML remains the backward-compatible default, while the
+approved JSON adapter selects the same shared extraction entry point with
+`format="json"`. Its report and provenance objects are wrappers over the
+`sc-composer` values, and fatal extraction conditions use the adapter's
+existing `ScConfigError` family with the canonical extraction code; Python
+does not implement a second extraction algorithm. Here, “reuse the existing
+exception hierarchy” means that all fatal extraction inputs use that
+established `ScConfigError` class and expose the Rust diagnostic code,
+recovery hints, and diagnostic detail; it does not introduce a Python-only
+extraction exception subclass.
 
 This capability is implemented from scratch in the production Rust library,
 Python adapter, and CLI. Prior reverse-extraction research informs the
 contract and its intentional boundaries, while the committed cross-surface
 corpus provides regression evidence. The research harness is not part of the
 product interface or a runtime dependency.
+
+Phase-H planning records the three in-scope real-customer format candidates
+from issue #193: JSON, YAML, and TOML adapters. XML mixed-content extraction
+and a narrow non-XML preamble policy remain outside Phase H and are owned by
+Phase I. [ADR-0012](adrs/0012-phase-h-reverse-extraction-extension-gates.md)
+now records the accepted format-specific path/source contract and malformed-
+input policy. Cross-surface evidence remains required before any adapter is
+delivered. The generic report model may be extended, but the library/CLI/Python
+ownership boundary and Phase-G fail-closed XML behavior remain unchanged while
+H.2 through H.8 implement, harden, and validate the accepted extensions. H.8
+is the phase-ending remediation gate and does not reopen H.7's settled QA
+findings.
+The stable cross-format diagnostic inventory is maintained in
+[`docs/error-code-registry.md`](error-code-registry.md) and is part of the H.1
+contract rather than an implementation-time choice.
+
+The format adapters do not own independent placeholder matchers. The accepted
+H.1 design defines the internal migration seam from the current XML
+value-matching path to a shared raw-text matching core. That core owns
+delimiter scanning, template-segment parsing, static-prefix/suffix matching,
+capture boundaries,
+and adjacent-variable ambiguity handling. Format adapters own structural
+parsing, occurrence paths, provenance, and format-specific diagnostics, then
+delegate candidate-value matching to the shared core. XML remains the first
+consumer of the extracted seam, followed by JSON, YAML, and TOML.
+
+The shared core is also the architectural foundation for a future
+customer-facing best-effort/degraded-parse mode and a cross-format raw-text
+mode for arbitrary text such as Markdown. Those modes are not exposed or
+implemented in Phase H; the future mode must reuse this seam rather than
+require another matcher rewrite.
+
+H.6 closure evidence is recorded in
+[`docs/phase-H/evidence/h-6-cross-format-campaign.json`](phase-H/evidence/h-6-cross-format-campaign.json)
+and its generated multi-worker report package under `site/reports/`. The
+campaign proves equivalent JSON/YAML/TOML report semantics across library,
+CLI, and Python surfaces, while preserving the explicit Phase-H boundary that
+XML mixed-content and dirty-prefix handling belong to Phase I.
+The H.6 execution record is bounded local evidence rather than a distributed
+agent campaign; its report and summary must retain that caveat.
+
+### 8.5 Phase-I Raw-Text and Boundary Extensions (FR-17–FR-21, ADR-0013)
+
+Phase I extends the generic extraction bridge without introducing a second
+report model or matcher. The accepted contract is defined by
+[ADR-0013](adrs/0013-phase-i-raw-text-and-input-safety.md).
+
+The Rust format selector adds `ExtractFormat::Raw`. The dispatching path and
+source sums add `Raw(RawPathSegment)` and `Raw(RawExtractionSource)` variants,
+where `RawPathSegment` stores zero-based half-open rendered byte offsets and
+one-based line/column coordinates, and `RawExtractionSource::TextSpan` marks
+the provenance. `sc-compose` maps `--format raw`; Python maps
+`format="raw"`; both call `sc_composer::extract` and do not implement matching.
+
+Raw mode is known-template, in-memory text matching for Markdown and other
+unstructured text. It uses the H shared matcher, applies include/exclude
+filters before report construction while retaining filtered variables for
+neighboring capture matching, and uses only the stable raw diagnostic set
+`ERR_EXTRACT_INVALID_REQUEST`, `ERR_EXTRACT_TEMPLATE_UNSUPPORTED`,
+`ERR_EXTRACT_AMBIGUOUS`, and `WARN_EXTRACT_LOW_CONFIDENCE`.
+
+XML's Phase-I structural extension allows one full element-content placeholder
+to capture text plus approved child markup using deterministic canonical child
+serialization. A separate rendered-only normalizer accepts a bounded leading
+text/whitespace preamble before one XML document, preserves allowed prolog
+constructs, and emits `WARN_EXTRACT_DIRTY_PREFIX_STRIPPED` when it removes
+bytes. It rejects unmatched/truncated markup, malformed suffixes, multiple
+roots, second documents, post-root content, and DTDs.
+
+I.3 emits `ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH` when rendered child markup
+falls outside the approved template structure, `ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED`
+when extraction would require unsupported control-flow reconstruction, and
+`ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME` for dynamic element names. These stable
+codes keep XML structural rejection distinct from generic malformed or
+unsupported extraction failures.
+
+Validation token discovery recognizes the listed Jinja loop-context names only
+inside active `for` scopes; `loop` outside a loop and arbitrary dotted names
+remain ordinary validation inputs. Var-file decoding rejects YAML merge keys
+with `ERR_CONFIG_VARFILE` and a source line/column before tagged-value
+unwrapping, so inherited fields cannot disappear silently; callers recover by
+writing the mapping explicitly. These changes are Phase-I runtime work and are
+not retroactive claims about the completed Phase-H implementation.
 
 ## 9. Include and Frontmatter Merge Rules (FR-3)
 
@@ -1520,7 +1606,7 @@ Canonical failures must map to stable error families and stable codes.
 | Command or helper invoked in incompatible mode | `ConfigError` | `ERR_CONFIG_MODE` |
 | Text/config file exists but is not readable as valid text | `ConfigError` | `ERR_CONFIG_READ` |
 | Config file missing or malformed | `ConfigError` | `ERR_CONFIG_PARSE` |
-| Invalid var-file shape | `ConfigError` | `ERR_CONFIG_VARFILE` |
+| Invalid var-file shape or unsupported YAML merge key (with source location and explicit-mapping recovery) | `ConfigError` | `ERR_CONFIG_VARFILE` |
 | Malformed object from structured input source | `ValidationError` | `ERR_VAL_OBJECT_SHAPE` |
 | Legacy H2 nested-array restriction (retained code; not emitted for recursive values) | `ValidationError` | `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` |
 | Nested required path expects an object but receives a scalar, or vice versa | `ValidationError` | `ERR_VAL_SHAPE_MISMATCH` |

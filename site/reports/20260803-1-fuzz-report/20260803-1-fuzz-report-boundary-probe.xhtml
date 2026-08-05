@@ -1,0 +1,45 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session h6-20260803-0001 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;cases_run&quot;:11,&quot;classification&quot;:&quot;pass&quot;,&quot;command&quot;:&quot;cargo test -p sc-compose --test cli extract_text_supports -- --nocapture &amp;&amp; cargo test -p sc-compose --test json_cli extract_json_ -- --nocapture&quot;,&quot;context_text&quot;:&quot;CLI text and JSON-envelope surfaces preserved the expected format labels, paths, filters, and stable negative diagnostics. Malformed and unsupported cases are intentional boundaries, not failures.&quot;,&quot;correlation_id&quot;:&quot;boundary-probe&quot;,&quot;error&quot;:null,&quot;failed&quot;:0,&quot;finding_ids&quot;:[],&quot;findings&quot;:[],&quot;fuzz_run_description&quot;:&quot;CLI extraction diagnostics for malformed and unsupported format inputs&quot;,&quot;passed&quot;:11,&quot;result&quot;:&quot;PASS&quot;,&quot;status&quot;:&quot;success&quot;,&quot;target&quot;:&quot;cli-format-boundaries&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;cli-json-success&quot;,&quot;description&quot;:&quot;Text CLI JSON extraction fixture&quot;,&quot;minimal_input&quot;:&quot;shared rendered JSON fixture&quot;,&quot;minimal_template&quot;:&quot;shared json-atm-payload.json.j2 fixture&quot;,&quot;outcome&quot;:&quot;PASS: format=json and JSON paths emitted&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;cli-yaml-success&quot;,&quot;description&quot;:&quot;Text CLI YAML extraction fixture&quot;,&quot;minimal_input&quot;:&quot;shared rendered YAML fixture&quot;,&quot;minimal_template&quot;:&quot;shared yaml-atm-config.yaml.j2 fixture&quot;,&quot;outcome&quot;:&quot;PASS: frontmatter skipped and YAML paths emitted&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;json-cli-malformed&quot;,&quot;description&quot;:&quot;JSON envelope for malformed rendered JSON&quot;,&quot;minimal_input&quot;:&quot;{\&quot;name\&quot;:\&quot;Ada\&quot;&quot;,&quot;minimal_template&quot;:&quot;{\&quot;name\&quot;:\&quot;{{ name }}\&quot;}&quot;,&quot;outcome&quot;:&quot;PASS: ERR_EXTRACT_JSON_MALFORMED&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;json-cli-unsupported&quot;,&quot;description&quot;:&quot;JSON envelope for unsupported extraction format syntax&quot;,&quot;minimal_input&quot;:&quot;{\&quot;count\&quot;:42}&quot;,&quot;minimal_template&quot;:&quot;{\&quot;count\&quot;:\&quot;{{ count }}\&quot;}&quot;,&quot;outcome&quot;:&quot;PASS: stable format-specific boundary&quot;,&quot;passed&quot;:true}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="CLI text and JSON-envelope surfaces preserved the expected format labels, paths, filters, and stable negative diagnostics. Malformed and unsupported cases are intentional boundaries, not failures.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">CLI extraction diagnostics for malformed and unsupported format inputs</th>
+        <td>11</td>
+        <td>11/11</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">cli-json-success</th><td><code>Text CLI JSON extraction fixture</code></td><td>PASS: format=json and JSON paths emitted</td></tr>
+        <tr><th scope="row">cli-yaml-success</th><td><code>Text CLI YAML extraction fixture</code></td><td>PASS: frontmatter skipped and YAML paths emitted</td></tr>
+        <tr><th scope="row">json-cli-malformed</th><td><code>JSON envelope for malformed rendered JSON</code></td><td>PASS: ERR_EXTRACT_JSON_MALFORMED</td></tr>
+        <tr><th scope="row">json-cli-unsupported</th><td><code>JSON envelope for unsupported extraction format syntax</code></td><td>PASS: stable format-specific boundary</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
