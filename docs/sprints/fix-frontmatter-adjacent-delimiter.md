@@ -143,3 +143,29 @@ diagnostics should be the expected required/default-variable ones.
   supplied.
 - The canonical sprint-plan template renders successfully with `worktree`
   set and unset, and the conditional output is correct in both cases.
+
+## Addendum: Patch Version Bump (1.3.0 -> 1.3.1)
+
+Added after initial closeout, still on this same branch/worktree/PR (#239).
+This is a patch-level bump since FIX-238 is a bug fix with no API/behavior
+change beyond the corrected parsing.
+
+- Bump `version` in the workspace `Cargo.toml` (`[workspace.package]`) from
+  `1.3.0` to `1.3.1`.
+- Update `README.md` so it stays in sync with the new version: the
+  `sc-composer` dependency example, the Status table `Version` row, and the
+  Status table `Stability` row (minor-version form, e.g. `1.3`).
+- Add a `CHANGELOG.md` entry for `1.3.1` describing the frontmatter parser
+  fix (issue #238).
+- Run `python3 scripts/release_artifacts.py verify-readme-version
+  --workspace-toml Cargo.toml --readme README.md` (or `scripts/release_gate.sh`)
+  to confirm README/version sync passes before pushing.
+- Commit and push to `fix/frontmatter-parser-adjacent-delimiter`; this lands
+  in the same PR #239, no new branch/worktree needed.
+
+### Addendum Closeout Evidence
+
+- Workspace and package version metadata are aligned at `1.3.1`.
+- README dependency, Version, and Stability references are aligned with the
+  `1.3.1` patch release.
+- CHANGELOG contains the `1.3.1` FIX-238 entry.
