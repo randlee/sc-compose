@@ -1,7 +1,7 @@
 ---
 id: FIX-238
 title: Frontmatter parser fails on adjacent `---` delimiters + Jinja tags
-status: planned
+status: complete
 branch: fix/frontmatter-parser-adjacent-delimiter
 worktree: ../sc-compose-worktrees/fix/frontmatter-parser-adjacent-delimiter
 target: develop
@@ -129,3 +129,17 @@ diagnostics should be the expected required/default-variable ones.
 - `cargo fmt --all --check`
 - `cargo test --workspace`
 - `cargo clippy --all-targets --all-features -- -D warnings`
+
+## Closeout Evidence
+
+- Implementation commit: `226ebbc` on
+  `fix/frontmatter-parser-adjacent-delimiter`.
+- `cargo test --workspace`: PASS.
+- `cargo clippy --all-targets --all-features -- -D warnings`: PASS.
+- `cargo fmt --all --check`: PASS.
+- `git diff --check`: PASS.
+- The canonical sprint-plan template validates without `ERR_CONFIG_PARSE`;
+  its expected missing-variable diagnostics remain when no input file is
+  supplied.
+- The canonical sprint-plan template renders successfully with `worktree`
+  set and unset, and the conditional output is correct in both cases.

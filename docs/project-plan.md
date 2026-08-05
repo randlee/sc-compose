@@ -492,12 +492,10 @@ Unnumbered Phase F follow-on work:
 
 - Add a text/JSON equivalence matrix after F.3; it is intentionally not part
   of F.3's closed decomposition scope or acceptance gate.
-- Fix the canonical `.claude/skills/codex-orchestration/sprint-plan.md.j2`
-  tooling defect: its nested Jinja frontmatter makes the direct
-  `sc-compose validate --file .claude/skills/codex-orchestration/sprint-plan.md.j2 --json`
-  command return exit 3 before rendering. The
-  five Phase F docs record hand-authored provenance until that separate defect
-  is fixed; no Phase F implementation sprint owns the template repair.
+- The canonical `.claude/skills/codex-orchestration/sprint-plan.md.j2` tooling
+  defect was fixed by the follow-on FIX-238 sprint. The parser now preserves
+  adjacent rendered-document frontmatter containing Jinja syntax as template
+  body, and the canonical template validates and renders end to end.
 
 ### Phase G Sprint Plans
 
@@ -614,6 +612,22 @@ Sprint entries:
 - [Sprint J.2 — Validation State and Context Assembly](phase-J/sprint-j-2-validation-state-assembly.md)
 - [Sprint J.3 — Validation Policy and Required-Path Diagnostics](phase-J/sprint-j-3-validation-policy-diagnostics.md)
 - [Sprint J.4 — Frontmatter Parser and Normalizer Split](phase-J/sprint-j-4-frontmatter-parser-split.md)
+
+### Follow-on Fix Sprint: FIX-238
+
+Status:
+
+- complete on `fix/frontmatter-parser-adjacent-delimiter` at `226ebbc`
+
+Sprint entry:
+
+- [Sprint FIX-238 — Frontmatter Parser Adjacent Delimiter](sprints/fix-frontmatter-adjacent-delimiter.md)
+
+FIX-238 closes the canonical sprint-plan template regression in which an
+adjacent rendered-document `---` block containing Jinja syntax was incorrectly
+parsed as a second YAML config block. Plain-YAML stacked headers remain
+supported, while the canonical template now validates and renders with the
+conditional `worktree` field both set and unset.
 
 ### Standalone Repowise Cleanup: Render Request Module Split
 
