@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "sprint": "G.5",
+  "feature": "known-template-xml-first-extraction",
+  "status": "deterministic-corpus",
+  "source": "committed Rust, Python, and CLI fixtures",
+  "product_boundary": {
+    "template_known": true,
+    "format": "xml",
+    "values_are_rendered_strings": true,
+    "research_harness_is_product_interface": false
+  },
+  "cases": [
+    {
+      "id": "attributes",
+      "category": "supported",
+      "fixture": "attributes",
+      "expected": {
+        "outcome": "report",
+        "values": {"id": "42", "name": "Ada"},
+        "diagnostics": []
+      },
+      "surfaces": ["rust", "python", "cli"]
+    },
+    {
+      "id": "repeated-siblings",
+      "category": "supported",
+      "fixture": "repeated-siblings",
+      "expected": {
+        "outcome": "report",
+        "values": {"first": "A", "second": "B"},
+        "diagnostics": ["WARN_EXTRACT_LOW_CONFIDENCE"],
+        "occurrence_paths_are_distinct": true
+      },
+      "surfaces": ["rust", "python", "cli"]
+    },
+    {
+      "id": "declaration-comments",
+      "category": "supported",
+      "fixture": "declaration-comments",
+      "expected": {
+        "outcome": "report",
+        "values": {"value": "Ada"},
+        "diagnostics": []
+      },
+      "surfaces": ["rust", "python", "cli"]
+    },
+    {
+      "id": "static-prefix-suffix",
+      "category": "supported",
+      "fixture": "static-prefix-suffix",
+      "expected": {
+        "outcome": "report",
+        "values": {"name": "Ada"},
+        "diagnostics": []
+      },
+      "surfaces": ["rust", "python", "cli"]
+    },
+    {
+      "id": "entities-whitespace-empty",
+      "category": "supported",
+      "fixture": "entities-whitespace-empty",
+      "expected": {
+        "outcome": "report",
+        "values": {"empty": "", "value": "A & B"},
+        "diagnostics": []
+      },
+      "surfaces": ["rust", "python", "cli"]
+    },
+    {
+      "id": "missing-occurrence",
+      "category": "intentional-boundary",
+      "fixture": "missing-occurrence",
+      "expected": {
+        "outcome": "report",
+        "values": {},
+        "diagnostics": ["WARN_EXTRACT_NOT_OBSERVED"]
+      },
+      "surfaces": ["rust", "python", "cli"]
+    },
+    {
+      "id": "same-variable-conflicting-occurrences",
+      "category": "intentional-boundary",
+      "fixture": "same-variable-conflicting-occurrences",
+      "expected": {
+        "outcome": "report",
+        "values": {},
+        "diagnostics": [
+          "WARN_EXTRACT_LOW_CONFIDENCE",
+          "ERR_EXTRACT_AMBIGUOUS"
+        ]
+      },
+      "surfaces": ["rust", "python", "cli"]
+    },
+    {
+      "id": "malformed",
+      "category": "intentional-boundary",
+      "fixture": "malformed",
+      "expected": {
+        "outcome": "error",
+        "code": "ERR_EXTRACT_MALFORMED"
+      },
+      "surfaces": ["rust", "python", "cli"]
+    },
+    {
+      "id": "unsupported-filter",
+      "category": "intentional-boundary",
+      "fixture": "unsupported-filter",
+      "expected": {
+        "outcome": "error",
+        "code": "ERR_EXTRACT_UNSUPPORTED"
+      },
+      "surfaces": ["rust", "python", "cli"]
+    },
+    {
+      "id": "namespace",
+      "category": "intentional-boundary",
+      "fixture": "namespace",
+      "expected": {
+        "outcome": "error",
+        "code": "ERR_EXTRACT_UNSUPPORTED"
+      },
+      "surfaces": ["rust", "python"]
+    },
+    {
+      "id": "ambiguous-adjacent",
+      "category": "intentional-boundary",
+      "fixture": "ambiguous-adjacent",
+      "expected": {
+        "outcome": "error",
+        "code": "ERR_EXTRACT_AMBIGUOUS"
+      },
+      "surfaces": ["rust", "python", "cli"]
+    }
+  ],
+  "validation": {
+    "rust": "cargo test --workspace",
+    "python": "python3 -m pytest bindings/python/tests/test_smoke.py",
+    "cli": "cargo test -p sc-compose --test cli extract && cargo test -p sc-compose --test json_cli extract"
+  }
+}

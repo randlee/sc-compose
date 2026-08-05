@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/reporting/catalog.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/reporting/catalog.rs</h1>
+<p>I’m using the repository’s CASS Memory protocol and team documentation requirements to ground this high-detail code reference.</p>
+<h2>Overview</h2>
+<p><code>catalog.rs</code> is the Application-layer catalog parser and edge connector that consumes <code>reports/catalog/reports.toml</code> and produces validated <code>ReportCatalog</code> and <code>ReportDefinition</code> values for rendering, indexing, scaffolding, template resolution, and the reports command.</p>
+<p>The module centralizes the contract for report definitions. It reads TOML from the repository-relative default catalog location, resolves an explicitly supplied catalog path for callers that need alternate input, validates each <code>[[report]]</code> entry, and retains the resolved catalog path alongside the parsed reports.</p>
+<p>Validation is intentionally performed during loading, so downstream consumers can operate on typed, internally consistent report definitions rather than repeatedly handling TOML shape errors. A valid report must have:</p>
+<ul>
+<li>A unique string <code>id</code>.</li>
+<li>A supported string <code>kind</code>: <code>lint</code>, <code>test</code>, <code>smoke</code>, <code>diagram</code>, <code>state_machine</code>, <code>sql_query</code>, or <code>custom</code>.</li>
+<li>A string <code>producer</code>.</li>
+<li>A Boolean <code>required</code>.</li>
+<li>Normalized relative-path strings for <code>entrypoint</code> and <code>metadata</code>.</li>
+</ul>
+<p>Path validation delegates to <code>crate::path_utils::is_normalized_relative_path</code>, preventing report definitions from supplying absolute paths or non-normalized traversal-like paths. The catalog file itself is different: <code>load_report_catalog_from_path</code> accepts either an absolute catalog path or a path relative to <code>repo_root</code>.</p>
+<p><code>CatalogError</code> preserves the distinction between filesystem failures, TOML parsing failures, and semantic validation failures. Its <code>Display</code> implementation includes the affected path for read and parse failures, while validation errors provide report IDs, entry indexes, and field names where applicable.</p>
+<h2>Public API</h2>
+<p>All exposed symbols are <code>pub(crate)</code>, making this module an internal interface across the <code>sc-compose</code> crate rather than a public library API.</p>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>REPORT_CATALOG_RELATIVE_PATH</code></td>
+<td>Default catalog location: <code>reports/catalog/reports.toml</code>. Used by loading, scaffolding, and template-related reporting code.</td>
+</tr>
+<tr>
+<td><code>ReportCatalog</code></td>
+<td>Parsed catalog result containing the resolved <code>catalog_path</code> and ordered <code>reports</code> collection. Derives <code>Debug</code>, <code>Clone</code>, <code>PartialEq</code>, <code>Eq</code>, and <code>Serialize</code>.</td>
+</tr>
+<tr>
+<td><code>ReportCatalog::load(repo_root)</code></td>
+<td>Convenience entry point that loads the default report catalog under <code>repo_root</code>.</td>
+</tr>
+<tr>
+<td><code>ReportDefinition</code></td>
+<td>Validated definition of one report: <code>id</code>, <code>kind</code>, <code>producer</code>, <code>required</code>, <code>entrypoint</code>, and <code>metadata</code>. Path fields serialize through the shared path serializer.</td>
+</tr>
+<tr>
+<td><code>CatalogError</code></td>
+<td>Error type for catalog loading: <code>Read</code>, <code>Parse</code>, or <code>Invalid</code>. Implements <code>Display</code> and <code>std::error::Error</code>.</td>
+</tr>
+<tr>
+<td><code>load_report_catalog(repo_root)</code></td>
+<td>Loads the default <code>reports/catalog/reports.toml</code> catalog.</td>
+</tr>
+<tr>
+<td><code>load_report_catalog_from_path(repo_root, catalog_path)</code></td>
+<td>Resolves, reads, parses, and validates a caller-specified catalog path. Useful for tests or alternate repository layouts.</td>
+</tr>
+</tbody>
+</table>
+<p>The loader preserves report order from the TOML <code>[[report]]</code> array. It only uses a <code>BTreeSet</code> for duplicate-ID detection; it does not sort the resulting <code>Vec&lt;ReportDefinition&gt;</code>.</p>
+<h2>Dependencies</h2>
+<ul>
+<li><code>toml::Value</code> parses the catalog document into a generic TOML tree before semantic validation. This allows the module to issue field-specific errors instead of relying solely on deserialization diagnostics.</li>
+<li><code>serde::Serialize</code> enables report catalog data to be emitted by other reporting flows.</li>
+<li><code>std::path::{Path, PathBuf}</code> represents repository roots, catalog locations, and report-relative file references.</li>
+<li><code>std::collections::BTreeSet</code> tracks IDs encountered while loading and rejects duplicates.</li>
+<li><code>std::fmt</code> supports user-facing <code>CatalogError</code> formatting.</li>
+<li><code>crate::path_utils::is_normalized_relative_path</code> enforces the safe, portable path contract for report <code>entrypoint</code> and <code>metadata</code> fields.</li>
+</ul>
+<p>Callers connect to this module in two main ways:</p>
+<ol>
+<li><code>commands/reports/render.rs</code> calls <code>ReportCatalog::load</code> when rendering reports.</li>
+<li><code>reporting/index.rs</code> calls the same convenience loader while building the report index.</li>
+</ol>
+<p>Within the reporting subsystem, scaffolding and template resolution share <code>REPORT_CATALOG_RELATIVE_PATH</code>, keeping generated and discovered catalog locations aligned. <code>load_report_catalog</code> delegates to <code>load_report_catalog_from_path</code>, which calls <code>resolve_catalog_path</code>, then constructs each entry through <code>ReportDefinition::from_value</code>.</p>
+<h2>Usage Notes</h2>
+<p>A typical catalog uses a TOML array of tables:</p>
+<pre><code class="language-toml">[[report]]
+id = &quot;workspace-lint&quot;
+kind = &quot;lint&quot;
+producer = &quot;cargo&quot;
+required = true
+entrypoint = &quot;reports/entrypoints/workspace-lint.sh&quot;
+metadata = &quot;reports/metadata/workspace-lint.toml&quot;
+
+[[report]]
+id = &quot;schema-diagram&quot;
+kind = &quot;diagram&quot;
+producer = &quot;dbml&quot;
+required = false
+entrypoint = &quot;reports/entrypoints/schema-diagram.sh&quot;
+metadata = &quot;reports/metadata/schema-diagram.toml&quot;
+</code></pre>
+<p>Load the repository-default catalog when working in the normal report layout:</p>
+<pre><code class="language-rust">use std::path::Path;
+
+let catalog = ReportCatalog::load(Path::new(&quot;/path/to/repository&quot;))?;
+
+for report in &amp;catalog.reports {
+    if report.required {
+        // Schedule or validate the required report.
+    }
+}
+</code></pre>
+<p>Use <code>load_report_catalog_from_path</code> when a test fixture or integration flow supplies a different catalog. Relative paths are interpreted relative to <code>repo_root</code>; absolute catalog paths are used unchanged:</p>
+<pre><code class="language-rust">let catalog = load_report_catalog_from_path(
+    Path::new(&quot;/path/to/repository&quot;),
+    Path::new(&quot;fixtures/reports.toml&quot;),
+)?;
+</code></pre>
+<p>Important failure cases to handle or surface:</p>
+<ul>
+<li>Missing or unreadable catalog files return <code>CatalogError::Read</code>.</li>
+<li>Syntactically invalid TOML returns <code>CatalogError::Parse</code>.</li>
+<li>A document without a <code>[[report]]</code> array returns <code>CatalogError::Invalid</code>.</li>
+<li>Each required field must be present with the correct scalar type; strings such as <code>"true"</code> are not accepted for <code>required</code>.</li>
+<li><code>kind</code> comparison is exact and case-sensitive.</li>
+<li>Duplicate IDs are rejected even when all other fields are valid.</li>
+<li><code>entrypoint</code> and <code>metadata</code> must be normalized relative paths. Consumers should join these paths to an appropriate repository/report root; the module deliberately does not resolve them to absolute paths.</li>
+<li>The error message for an alternate catalog still refers to <code>reports/catalog/reports.toml</code> in several validation contexts, because that constant defines the canonical catalog contract. Callers presenting custom-catalog diagnostics may wish to add their own source context.</li>
+</ul>
+</body>
+</html>

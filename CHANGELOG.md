@@ -2,6 +2,94 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-08-04
+
+This release covers all work landed on `develop` since `1.2.0`: Phases D
+through J. `1.3.0` was bumped in `Cargo.toml` when Phase D landed but was
+never tagged or published, so this release folds every phase merged in the
+interim into the single `1.3.0` line rather than burning additional version
+numbers on never-published intermediate states — none of Phases E through J
+introduce a breaking or consumer-facing incompatible change.
+
+### Added
+
+- Phase D (D.1 through D.4, plus D.1-py through D.4-py): first-class nested
+  template support with stacked frontmatter passes, brace-count-aware variable
+  discovery, multi-pass composition, `render --all`, pass-scoped CLI variable
+  groups, `verify`, multi-pass `template-init`, and tandem Python bindings for
+  the library-owned Phase D surface.
+- ADR-0010: a narrowly-scoped stability-policy exception for
+  `Renderer::with_delimiters`, documenting why the constructor's move from a
+  panic path to `Result<Self, RenderError>` ships in the `1.3.0` line without
+  a major-version bump.
+- Phase E (E.1 through E.3): recursive structured-input support for
+  `--var-file` and frontmatter/`template.json` defaults — arrays of objects,
+  jagged scalar arrays, and other finite nested JSON/YAML value trees (closes
+  issue #157) — plus the reusable `adversarial-fuzzing` skill (coordinator and
+  bounded background probe agents) that classifies confirmed rendering-boundary
+  bugs and promotes them into permanent regression tests.
+- Phase G (G.1 through G.7): the first `sc-compose extract` feature —
+  deterministic recovery of scalar string variable bindings from a known
+  `.xml.j2` template plus its rendered XML output, exposed through the CLI and
+  matching `sc_composer` library/Python API. Extraction uses structural
+  occurrence matching and fails closed (an explicit unsupported/ambiguous
+  result) instead of silently returning a wrong value for repeated sibling
+  tags or unsupported Jinja constructs. Includes a corpus of realistic and
+  adversarial extraction fixtures promoted into permanent Rust/Python/CLI
+  regression coverage.
+- Phase H (H.1 through H.8): `sc-compose extract` and the underlying
+  library/Python API now support JSON, YAML, and TOML rendered-output
+  extraction alongside XML, using the same fail-closed, string-value report
+  model and structural provenance (closes issue #193's JSON/YAML/TOML gaps).
+- Phase I (I.1 through I.6): a first-class `raw` extraction mode for Markdown
+  and other plain-text documents, reused by XML block/mixed-content extraction
+  so a placeholder occupying an XML element's content can recover a full
+  text-plus-markup block (closes issue #193 Gap 1), plus narrow, observable
+  normalization of non-XML preamble text before the document root during
+  rendered-XML extraction (closes issue #193 Gap 5).
+- Phase J (J.1 through J.4): internal decomposition of the CLI argument/
+  JSON-capability surface, the validation-state assembly and diagnostic-policy
+  layers, and the frontmatter parser/normalizer, reducing hot-spot risk
+  (issue #212) with zero public-API or behavior change.
+
+### Fixed
+
+- `Renderer::with_delimiters` no longer panics on invalid delimiters; it now
+  returns a typed `RenderError`, and the CLI/Python surfaces document the same
+  fail-closed behavior.
+- Multi-pass validation now discovers undeclared tokens per pass and direct
+  `render_all()` calls correctly apply frontmatter defaults beneath caller
+  values.
+- Phase D documentation now reflects the landed delimiter-hardening state,
+  verify/template-init Python scope, and the point-in-time nature of the final
+  consolidated review artifact snapshot.
+- The artificial nested-array validation restriction that previously rejected
+  valid recursive structured input is removed, while top-level var-file and
+  YAML string-key boundaries are preserved. `ERR_VAL_NESTED_ARRAY_UNSUPPORTED`
+  remains a reserved compatibility code but is no longer emitted for supported
+  recursive input values.
+- Dotted expressions (e.g. `{{ user.name }}`) passed to `extract` are now
+  rejected as unsupported object-field access instead of being misread as a
+  literal variable name `"user.name"`.
+- YAML alias/anchor expansion and JSON/YAML/XML input depth are now bounded
+  during extraction parsing, closing a resource-exhaustion path where a
+  malicious rendered document with recursive aliases or excessive nesting
+  could exhaust the process before extraction could fail closed.
+- Jinja loop-context built-ins (`loop.last`, etc.) are no longer misreported as
+  undeclared variables inside a `for` scope, while a user variable literally
+  named `loop` outside a loop still validates normally (closes issue #167).
+- YAML merge keys (`<<: *defaults`) in var-files no longer silently discard
+  inherited fields; merge-key handling is now explicit and diagnostic (closes
+  issue #166).
+
+### Changed
+
+- Workspace version bump: `1.2.0` -> `1.3.0`.
+- Internal restructuring of `crates/sc-compose/src/cli.rs`, `main.rs`,
+  `var_file.rs`, and `observer_impl.rs` (Phase F) into smaller, independently
+  testable modules; the CLI contract, JSON output shape, and the
+  `sc-composer` pure-library boundary are unchanged.
+
 ## [1.2.0] - 2026-07-17
 
 ### Added

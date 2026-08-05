@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/observer_impl.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/observer_impl.rs</h1>
+<h2>Overview</h2>
+<p><code>observer_impl.rs</code> is the Application-layer edge connector that consumes <code>sc-composer</code> lifecycle and observation events and produces validated structured log events through <code>sc-observability</code>. As an imported cross-layer interface, it gives command dispatch, verification, and workspace flows one concrete observer that translates composition activity into durable CLI telemetry.</p>
+<p>The central <code>CliObserver</code> owns an optional logger state and implements three observer-facing contracts:</p>
+<ul>
+<li><code>CompositionObserver</code> converts resolution, include expansion, validation, and rendering outcomes into log records.</li>
+<li><code>ObservationSink</code> dispatches <code>ObservationEvent</code> variants from <code>sc-composer</code> hooks to the corresponding observer methods.</li>
+<li><code>CommandLifecycleObserver</code> records command start/end metadata, including exit status, elapsed time, JSON mode, and diagnostic details.</li>
+</ul>
+<p>This is a hotspot file: it combines frequent change activity with relatively high behavioral complexity. Changes can affect cross-layer command behavior, log schema compatibility, shutdown durability, operational health reporting, and failure-path observability.</p>
+<h2>Public API</h2>
+<p>Most symbols are <code>pub(crate)</code>, making them internal to the <code>sc-compose</code> crate but available to command modules and the binary entry point.</p>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CommandStartEvent</code></td>
+<td>Command lifecycle payload containing <code>command_name</code> and <code>json_output</code>.</td>
+</tr>
+<tr>
+<td><code>CommandEndEvent</code></td>
+<td>Completion payload containing command name, exit code, success state, elapsed time, output mode, and optional diagnostic data.</td>
+</tr>
+<tr>
+<td><code>CommandLifecycleObserver</code></td>
+<td>Internal abstraction used by command orchestration to report command start and completion.</td>
+</tr>
+<tr>
+<td><code>CliObserver::new(logger)</code></td>
+<td>Constructs the concrete observer around a running <code>sc_observability::Logger</code>.</td>
+</tr>
+<tr>
+<td><code>CliObserver::health()</code></td>
+<td>Returns current logger health, including stopped-state health after shutdown. If internal state is unexpectedly absent, returns an unavailable report.</td>
+</tr>
+<tr>
+<td><code>CliObserver::shutdown()</code></td>
+<td>Transitions a running logger to <code>Logger&lt;Stopped&gt;</code>, flushing it through <code>Logger::shutdown()</code>. It is idempotent.</td>
+</tr>
+<tr>
+<td><code>CompositionObserver</code> implementation</td>
+<td>Logs resolve attempts/outcomes, include outcomes, validation outcomes, and render outcomes.</td>
+</tr>
+<tr>
+<td><code>ObservationSink::emit()</code></td>
+<td>Matches an <code>ObservationEvent</code> and forwards it to the corresponding composition-observer hook.</td>
+</tr>
+<tr>
+<td><code>CommandLifecycleObserver</code> implementation</td>
+<td>Logs <code>compose.command/started</code> and either <code>compose.command/completed</code> or <code>compose.command/failed</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><code>Drop</code> calls <code>shutdown()</code>, so callers normally do not need a separate cleanup path. Explicit shutdown remains useful when callers must inspect final health or read the flushed log file before the observer is dropped.</p>
+<h3>Event mapping</h3>
+<table>
+<thead>
+<tr>
+<th>Source event</th>
+<th>Log target</th>
+<th>Action / outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CommandStartEvent</code></td>
+<td><code>compose.command</code></td>
+<td><code>started</code></td>
+</tr>
+<tr>
+<td>Successful <code>CommandEndEvent</code></td>
+<td><code>compose.command</code></td>
+<td><code>completed</code> / <code>success</code></td>
+</tr>
+<tr>
+<td>Failed <code>CommandEndEvent</code></td>
+<td><code>compose.command</code></td>
+<td><code>failed</code> / <code>failure</code></td>
+</tr>
+<tr>
+<td><code>ResolveAttemptEvent</code></td>
+<td><code>compose.resolve</code></td>
+<td><code>attempt</code></td>
+</tr>
+<tr>
+<td>Successful <code>ResolveOutcomeEvent</code></td>
+<td><code>compose.resolve</code></td>
+<td><code>resolved</code> / <code>success</code></td>
+</tr>
+<tr>
+<td>Failed <code>ResolveOutcomeEvent</code></td>
+<td><code>compose.resolve</code></td>
+<td><code>failed</code> / <code>failure</code></td>
+</tr>
+<tr>
+<td><code>IncludeOutcomeEvent</code></td>
+<td><code>compose.include_expand</code></td>
+<td><code>expanded</code> or <code>failed</code></td>
+</tr>
+<tr>
+<td><code>ValidationOutcomeEvent</code></td>
+<td><code>compose.validate</code></td>
+<td><code>completed</code> or <code>failed</code></td>
+</tr>
+<tr>
+<td><code>RenderOutcomeEvent</code></td>
+<td><code>compose.render</code></td>
+<td><code>completed</code> or <code>failed</code></td>
+</tr>
+</tbody>
+</table>
+<p>Validation severity is derived from diagnostics: errors log at <code>Error</code>, warnings at <code>Warn</code>, and clean validation at <code>Info</code>.</p>
+<h2>Dependencies</h2>
+<ul>
+<li><code>sc-composer</code></li>
+<li>Supplies <code>CompositionObserver</code>, <code>ObservationSink</code>, <code>ObservationEvent</code>, and the pipeline event payloads.</li>
+<li>
+<p><code>CliObserver</code> is the adapter that makes core composition events observable from the CLI layer.</p>
+</li>
+<li>
+<p><code>sc-observability</code></p>
+</li>
+<li>Supplies <code>Logger</code>, typed log-envelope fields, timestamps, process identity, schema versioning, and shutdown-state typing.</li>
+<li>
+<p><code>Logger::log()</code> performs writes; this file deliberately does not use the deprecated compatibility <code>emit()</code> path.</p>
+</li>
+<li>
+<p><code>sc-observability-types</code></p>
+</li>
+<li>
+<p>Supplies health-report, writer-state, query-health, diagnostic-summary, and label-validation types.</p>
+</li>
+<li>
+<p><code>crate::observability::SERVICE_NAME</code></p>
+</li>
+<li>
+<p>Defines the stable service identifier used in every emitted event.</p>
+</li>
+<li>
+<p><code>crate::path_utils::to_forward_slash</code></p>
+</li>
+<li>Normalizes paths before serialization so emitted path fields are portable and consistent across platforms.</li>
+</ul>
+<p>Primary consumers are <code>main.rs</code> and the command modules (<code>dispatch.rs</code>, <code>verify.rs</code>, and <code>workspace.rs</code>), which use this implementation as the CLI-facing observer.</p>
+<h2>Usage Notes</h2>
+<p>Construct the observer once the CLI logger has been configured, then pass it into command orchestration wherever a composition or command-lifecycle observer is accepted.</p>
+<pre><code class="language-rust">let logger = Logger::builder(config)?.build();
+let mut observer = CliObserver::new(logger);
+
+observer.on_command_start(&amp;CommandStartEvent {
+    command_name: &quot;render&quot;.to_owned(),
+    json_output: false,
+});
+
+// Pass `observer` to composition/dispatch code, which emits pipeline events.
+
+observer.on_command_end(&amp;CommandEndEvent {
+    command_name: &quot;render&quot;.to_owned(),
+    exit_code: 0,
+    success: true,
+    elapsed_ms: 42,
+    json_output: false,
+    diagnostic_code: None,
+    diagnostic_message: None,
+});
+
+observer.shutdown();
+let health = observer.health();
+</code></pre>
+<p>Important behavior and pitfalls:</p>
+<ul>
+<li>Observer calls are intentionally non-failing. <code>emit_log()</code> ignores <code>Logger::log()</code> errors, allowing the primary command flow to continue even when logging sinks fail. Inspect <code>health()</code> for dropped events, flush failures, or the most recent error.</li>
+<li><code>shutdown()</code> is safe to call repeatedly. A stopped logger is retained so final health remains queryable and no second shutdown is attempted.</li>
+<li>If <code>logger</code> is unexpectedly <code>None</code>, <code>health()</code> returns an explicit unavailable health report with a stopped writer and unavailable query state.</li>
+<li>Invalid static event labels do not prevent log emission. The requested invalid values and validation errors are recorded in <code>fields</code>, while target/action/outcome fall back to <code>compose.observability</code>, <code>degraded</code>, and <code>failure</code>.</li>
+<li>Resolution and include paths are converted to forward-slash strings before logging. Preserve this normalization when adding new path-bearing fields.</li>
+<li>Failure records include the available diagnostic code; command and validation events can additionally include diagnostic messages. Avoid placing unbounded or sensitive input directly into log fields.</li>
+<li>The <code>ObservationSink</code> dispatcher includes pass and verify variants, but this file only provides local logging implementations for the resolution, include, validation, and render hooks. Any pass/verify behavior follows the <code>CompositionObserver</code> contract’s available defaults or implementations.</li>
+<li><code>schema_version()</code> and <code>service_name()</code> panic only if crate-owned constants violate the observability newtype validation rules. Treat such failures as configuration/schema regressions rather than runtime input errors.</li>
+</ul>
+</body>
+</html>

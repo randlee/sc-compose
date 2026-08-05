@@ -1,0 +1,108 @@
+{
+  "schema_version": "phase-i6-yaml-merge-key-safety/v1",
+  "sprint": "I.6",
+  "issue": "#166",
+  "policy": "fail-closed",
+  "requirement_trace": [
+    "docs/requirements.md FR-21",
+    "docs/architecture.md section 8.5 and diagnostic registry",
+    "docs/adrs/0013-phase-i-raw-text-and-input-safety.md YAML merge keys",
+    "docs/phase-I/sprint-i-6-yaml-merge-key-safety.md"
+  ],
+  "implementation": {
+    "boundary": "crates/sc-compose/src/var_file.rs",
+    "detection": "valid YAML is scanned for unquoted merge-key syntax after parsing and before serde_yaml::Value::Tagged conversion",
+    "diagnostic": "ERR_CONFIG_VARFILE with one-based source line/column and explicit-mapping recovery guidance",
+    "json_behavior": "valid JSON is decoded by the JSON path first and is not scanned as YAML",
+    "quoted_behavior": "quoted YAML key \"<<\" remains an ordinary string key"
+  },
+  "cases": [
+    {
+      "id": "exact-issue-166-reproduction",
+      "kind": "rejected",
+      "input": "defaults: &defaults\n  base: /tmp\n  name: base\nitem:\n  <<: *defaults\n  name: override\n",
+      "expected": {
+        "exit_code": 3,
+        "diagnostic_code": "ERR_CONFIG_VARFILE",
+        "diagnostic_contains": [
+          "unsupported YAML merge key `<<`",
+          "line 5, column 3",
+          "expand the mapping explicitly"
+        ]
+      },
+      "tests": [
+        "var_file::tests::exact_issue_166_reproduction_fails_before_tagged_value_unwrapping",
+        "render::render_rejects_yaml_merge_key_var_file_with_actionable_location"
+      ]
+    },
+    {
+      "id": "nested-multiple-and-explicit-precedence",
+      "kind": "rejected",
+      "expected": {"diagnostic_code": "ERR_CONFIG_VARFILE"},
+      "tests": [
+        "var_file::tests::nested_multiple_and_precedence_merges_are_all_rejected"
+      ]
+    },
+    {
+      "id": "aliases-without-merge-keys",
+      "kind": "accepted",
+      "input": "defaults: &defaults\n  base: /tmp\n  name: base\nitem: *defaults\n",
+      "expected": {"item": {"base": "/tmp", "name": "base"}},
+      "tests": [
+        "var_file::tests::aliases_without_merge_keys_remain_supported"
+      ]
+    },
+    {
+      "id": "json-merge-shaped-key",
+      "kind": "accepted",
+      "input": "{\"config\":{\"<<\":\"literal\"}}",
+      "expected": {"config": {"<<": "literal"}, "cli_exit_code": 0},
+      "tests": [
+        "var_file::tests::json_merge_shaped_keys_are_unaffected",
+        "render::render_preserves_json_merge_shaped_keys"
+      ]
+    },
+    {
+      "id": "quoted-key-and-block-scalar-controls",
+      "kind": "accepted",
+      "expected": {
+        "quoted_key": {"<<": "literal"},
+        "block_scalar": "<<: literal\n"
+      },
+      "tests": [
+        "var_file::tests::quoted_merge_key_is_an_ordinary_yaml_key",
+        "var_file::tests::merge_syntax_inside_a_block_scalar_is_not_a_merge_key"
+      ]
+    },
+    {
+      "id": "malformed-non-string-cycle-and-depth-boundaries",
+      "kind": "rejected",
+      "expected": {
+        "malformed_yaml": "ERR_CONFIG_PARSE",
+        "non_string_key": "ERR_VAL_OBJECT_SHAPE",
+        "cycle_or_deep_merge": "ERR_CONFIG_PARSE or ERR_CONFIG_VARFILE"
+      },
+      "tests": [
+        "var_file::tests::malformed_yaml_still_reports_a_parse_error",
+        "var_file::tests::decode_and_validation_preserve_source_specific_boundaries",
+        "var_file::tests::cyclic_and_deep_merge_inputs_never_succeed"
+      ]
+    }
+  ],
+  "validation": {
+    "tested_commit": "e62cfeafa0abd40a8dbae411a3e3f42e91b203ac",
+    "focused_commands": [
+      {"command": "cargo test -p sc-compose var_file::tests -- --nocapture", "exit_code": 0, "result": "PASS (12 tests)"},
+      {"command": "cargo test -p sc-compose --test cli yaml_merge", "exit_code": 0, "result": "PASS (merge-key CLI rejection)"},
+      {"command": "cargo test -p sc-compose --test cli json_merge_shaped", "exit_code": 0, "result": "PASS (JSON control)"}
+    ],
+    "required_commands": [
+      {"command": "cargo test --workspace", "exit_code": 0, "result": "PASS"},
+      {"command": "cargo clippy --all-targets --all-features -- -D warnings", "exit_code": 0, "result": "PASS"},
+      {"command": "cargo fmt --all -- --check", "exit_code": 0, "result": "PASS"},
+      {"command": "git diff --check", "exit_code": 0, "result": "PASS"},
+      {"command": "VIRTUAL_ENV=/tmp/sc-compose-i4-venv PATH=/tmp/sc-compose-i4-venv/bin:$PATH python -m pytest -q bindings/python/tests", "exit_code": 0, "result": "PASS (51 tests)"}
+    ],
+    "python_surface": "No Python var-file loader exists; the full binding regression suite passed and no Python API contract changed."
+  }
+}

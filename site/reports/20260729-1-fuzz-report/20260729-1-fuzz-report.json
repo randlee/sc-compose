@@ -1,0 +1,132 @@
+{
+  "title": "Adversarial Fuzz Session qa-fuzz-20260729-0001",
+  "subtitle": "sc-compose bounded adversarial-fuzzing campaign -- QA validation of PR #165 report-generation wiring (step 10)",
+  "status": "DRIFT",
+  "generated_at": "2026-07-29",
+  "source_label": "adversarial-fuzzing skill v1.1.0 / quality-mgr QA execution",
+  "summary": {
+    "html": "See summary_html in the HTML report for the full session-level results table.",
+    "campaign_id": "qa-fuzz-20260729-0001",
+    "confirmed_bugs": 2,
+    "inconclusive_findings": 1,
+    "unhandled_worker_failures": 0
+  },
+  "metadata": {
+    "campaign_id": "qa-fuzz-20260729-0001",
+    "worktree_path": "./feature/fuzz-run-report-template",
+    "commit": "111ac8a",
+    "pr": 165,
+    "seed": 157,
+    "max_workers": 4,
+    "cases_per_worker": 20,
+    "per_worker_timeout_s": 120
+  },
+  "sections": [
+    {
+      "id": "shape-probe",
+      "title": "Worker: shape-probe",
+      "status": "DRIFT",
+      "context_text": "Fuzz session qa-fuzz-20260729-0001, worker shape-probe (target: var-file).\nDescription: Rendered a purpose-built template against 20 bounded JSON/YAML var-files (recursive trees, mixed-type arrays, empty values, numeric edge cases, deep nesting, unicode, YAML anchors, metamorphic extra-field check) via `sc-compose render --var-file`.\nIterations: 20, Passed: 19, Failed: 1, Result: FAIL, Classification: confirmed_bug.\nSummary: 19/20 cases rendered without panic/hang/timeout and with values matching expectations, including a metamorphic pass (unused extra top-level field produced byte-identical output). 1 case (YAML merge-key `<<: *anchor` inside an array-of-objects var-file) silently rendered empty id/value fields with zero diagnostics instead of the merged values or an explicit error, reproduced 3/3 times on a minimized template+input.\nXHTML panel validation: FAILED (invalid XML: unescaped literal '<', '&' characters from fuzz command/YAML content, e.g. '<<: *anchor')",
+      "json_payload": {
+        "correlation_id": "shape-probe",
+        "target": "var-file",
+        "seed": 157,
+        "iterations": 20,
+        "passed": 19,
+        "failed": 1,
+        "classification": "confirmed_bug",
+        "findings": [
+          {
+            "id": "FUZZ-SHAPE-001",
+            "status": "confirmed_bug",
+            "subsystem": "var-file",
+            "reproduction_count": 3
+          }
+        ]
+      },
+      "xhtml_path": "site/reports/20260729-1-fuzz-report/20260729-1-fuzz-report-shape-probe.xhtml",
+      "fragment_source": "auto-generated",
+      "xhtml_validation": "FAILED (xmllint --noout): unescaped literal '<', '&' characters from fuzz command/YAML content, e.g. '<<: *anchor'"
+    },
+    {
+      "id": "template-probe",
+      "title": "Worker: template-probe",
+      "status": "DRIFT",
+      "context_text": "Fuzz session qa-fuzz-20260729-0001, worker template-probe (target: renderer).\nDescription: Jinja rendering probe across example templates and synthetic .j2 fixtures covering nested loops/conditionals, @<path> includes (cycle/escape/recursive), custom brace-count and variable-delimiter modes, whitespace control, Unicode content, optional/missing fields, and the loop.* Jinja builtin under default and --strict validation.\nIterations: 18, Passed: 16, Failed: 2, Result: FAIL, Classification: confirmed_bug.\nSummary: Nested loops/conditionals, recursive @<path> includes, include-cycle/escape boundary rejection, custom --brace-count and --variable-delimiters modes, whitespace control, Unicode variable values/content, and optional-field defaulting all behaved correctly against the documented contract. Two cases (same root cause) showed validation falsely flagging the standard Jinja `loop` context object (loop.last, loop.index, etc.) as an undeclared referenced token inside for-loops: a warning by default, but a hard validation/render failure under --strict.\nXHTML panel validation: FAILED (invalid XML: unescaped literal '<', '@<path>' include syntax and '<<' delimiter examples in test-input descriptions)",
+      "json_payload": {
+        "correlation_id": "template-probe",
+        "target": "renderer",
+        "seed": 157,
+        "iterations": 18,
+        "passed": 16,
+        "failed": 2,
+        "classification": "confirmed_bug",
+        "findings": [
+          {
+            "id": "FUZZ-TP-01",
+            "status": "confirmed_bug",
+            "subsystem": "renderer",
+            "reproduction_count": 3
+          }
+        ]
+      },
+      "xhtml_path": "site/reports/20260729-1-fuzz-report/20260729-1-fuzz-report-template-probe.xhtml",
+      "fragment_source": "auto-generated",
+      "xhtml_validation": "FAILED (xmllint --noout): unescaped literal '<', '@<path>' include syntax and '<<' delimiter examples in test-input descriptions"
+    },
+    {
+      "id": "boundary-probe",
+      "title": "Worker: boundary-probe",
+      "status": "INFO",
+      "context_text": "Fuzz session qa-fuzz-20260729-0001, worker boundary-probe (target: cli).\nDescription: Negative-contract probe of sc-compose render/validate/resolve CLI: malformed template/var-file syntax, non-object top-level var-files, invalid YAML keys, invalid profile/agent names, and --root path-confinement attempts via --file/--var-file traversal, absolute escapes, and traversal in --root itself.\nIterations: 22, Passed: 21, Failed: 1, Result: FAIL, Classification: inconclusive.\nSummary: Malformed template syntax, non-object/invalid var-files, invalid YAML keys, invalid profile/agent names, non-UTF-8 templates, and nonexistent roots all produced stable non-zero exits with structured ERR_* diagnostics and no panics or hangs -- correct boundary behavior. --file path traversal and absolute-path escapes outside --root were correctly rejected with ERR_RESOLVE_NOT_FOUND. One asymmetry was found and reproduced 3/3 times: --var-file performs no root confinement at all -- both relative traversal and absolute paths outside --root are read and rendered successfully (exit 0), unlike --file, which is strictly confined.\nXHTML panel validation: FAILED (invalid XML: unescaped literal '<root>', '<abs-outside>' placeholders and '&&' in command strings)",
+      "json_payload": {
+        "correlation_id": "boundary-probe",
+        "target": "cli",
+        "seed": 157,
+        "iterations": 22,
+        "passed": 21,
+        "failed": 1,
+        "classification": "inconclusive",
+        "findings": [
+          {
+            "id": "FUZZ-BOUND-001",
+            "status": "inconclusive",
+            "subsystem": "cli",
+            "reproduction_count": 3
+          }
+        ]
+      },
+      "xhtml_path": "site/reports/20260729-1-fuzz-report/20260729-1-fuzz-report-boundary-probe.xhtml",
+      "fragment_source": "auto-generated",
+      "xhtml_validation": "FAILED (xmllint --noout): unescaped literal '<root>', '<abs-outside>' placeholders and '&&' in command strings"
+    },
+    {
+      "id": "differential-probe",
+      "title": "Worker: differential-probe",
+      "status": "PASS",
+      "context_text": "Fuzz session qa-fuzz-20260729-0001, worker differential-probe (target: full).\nDescription: JSON/YAML parity, 3x determinism, and metamorphic (extra-field, key-reorder) checks against jagged-array-values.md.j2, changelog-categories.md.j2, and frontmatter-demo.md.j2, both in default and --json render modes.\nIterations: 20, Passed: 20, Failed: 0, Result: PASS, Classification: pass.\nSummary: 20 bounded cases across three real example templates: JSON-vs-YAML var-file parity (plain and --json output mode), 3x repeated identical renders for determinism, and metamorphic checks (unused top-level/nested field addition, top-level and item-object key reordering, explicit vs default --unknown-var-mode ignore, --var CLI overrides vs equivalent var-file). All 20 cases matched the expected oracle byte-for-byte; a control case (reordering array items, where order is semantically load-bearing) correctly produced different output, confirming the oracle discriminates real changes from noise. No parity, determinism, or metamorphic violations found.\nXHTML panel validation: PASSED (xmllint --noout clean; this worker's content happened not to contain '<' or '&')",
+      "json_payload": {
+        "correlation_id": "differential-probe",
+        "target": "full",
+        "seed": 157,
+        "iterations": 20,
+        "passed": 20,
+        "failed": 0,
+        "classification": "pass",
+        "findings": [
+
+        ]
+      },
+      "xhtml_path": "site/reports/20260729-1-fuzz-report/20260729-1-fuzz-report-differential-probe.xhtml",
+      "fragment_source": "auto-generated",
+      "xhtml_validation": "PASSED (xmllint --noout clean; this worker's content happened not to contain '<' or '&')"
+    }
+  ],
+  "recommendations": [
+    "FUZZ-SHAPE-001 (confirmed_bug): YAML merge-key (<<: *anchor) silently drops merged fields with no diagnostic -- root-caused to serde_yaml 0.9's lack of merge-key support, passed through unvalidated.",
+    "FUZZ-TP-01 (confirmed_bug): the Jinja loop builtin (loop.last/loop.index/etc.) is misclassified as an undeclared referenced token, escalating to a hard failure under --strict.",
+    "FUZZ-BOUND-001 (inconclusive): --var-file performs no --root path confinement, unlike --file and @include; needs an explicit requirement/ADR decision on intended scope.",
+    "Template defect (this campaign's own tooling): .claude/skills/html-report/templates/fuzz-run-agent.xhtml.j2 does not apply the Jinja | e escape filter to agent.summary, item.description, item.outcome, or any finding.* field, so panels containing literal '<', '>', or '&' (very common in fuzz command strings and YAML/template snippets) produce invalid XHTML. 3 of 4 generated panels in this session failed xmllint --noout as a direct result."
+  ],
+  "footer": "Generated by the adversarial-fuzzing skill (workflow steps 1-10) executed live against the worktree above. Worker execution performed by sc-adversarial-fuzz-probe agents; XHTML panels rendered via sc-compose using the shipped fuzz-run-agent.xhtml.j2 template; this main HTML/JSON package rendered by html-report-generator."
+}

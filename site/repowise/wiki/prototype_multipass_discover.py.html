@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: prototype/multipass/discover.py</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: prototype/multipass/discover.py</h1>
+<h2>Overview</h2>
+<p><code>prototype.multipass.discover</code> is an Application-layer token discovery adapter that consumes multipass Jinja-like template text and parsed pass metadata to produce per-pass sets of referenced variable names. It selects the native <code>sc_compose</code> scanner for safe standard <code>{{ ... }}</code> templates and uses a brace-aware Python scanner for triple-or-higher delimiters, while tracking loop bindings so local variables are excluded.</p>
+<h2>Public API</h2>
+<ul>
+<li>
+<p><code>discover_tokens(text: str, brace_count: int) -&gt; set[str]</code><br />
+  Finds variable references for one delimiter width. <code>brace_count</code> must be at least 2. For ordinary double braces without higher-brace sequences, delegates to <code>sc_compose.discover_tokens</code>; otherwise uses the local scanner.</p>
+</li>
+<li>
+<p><code>discover_all_tokens(parsed: ParsedTemplate) -&gt; dict[int, set[str]]</code><br />
+  Iterates <code>parsed.passes</code> and returns a mapping from each pass number to tokens found in <code>parsed.body</code> using that pass’s brace count.</p>
+</li>
+<li>
+<p><code>LoopScope(bound_names: set[str])</code><br />
+  Represents loop-local names introduced by <code>{% for ... %}</code> statements. Active scopes prevent loop variables from being reported as external references.</p>
+</li>
+</ul>
+<p>Internal helpers coordinate the fallback scanner:</p>
+<ul>
+<li><code>_find_delim</code> and <code>_find_close_delim</code> reject delimiter matches embedded in a longer brace sequence.</li>
+<li><code>_parse_for_scope</code> extracts loop bindings and records identifiers used by the iterable expression.</li>
+<li><code>_collect_identifiers</code> recognizes dotted or hyphenated identifiers, excludes Jinja keywords, and filters names bound in active loop scopes.</li>
+</ul>
+<h2>Dependencies</h2>
+<ul>
+<li><code>sc_compose</code> supplies the native double-brace token discovery binding.</li>
+<li><code>.types.ParsedTemplate</code> supplies pass headers, including <code>pass_number</code> and <code>brace_count</code>.</li>
+<li>Python <code>re</code> provides identifier matching.</li>
+</ul>
+<p>Callers include the multipass test modules and <code>validate_passes</code>. <code>discover_all_tokens</code> calls <code>discover_tokens</code>, which either invokes the native binding or routes to <code>_discover_tokens_py</code>; the fallback scanner in turn uses delimiter, loop-scope, and identifier-collection helpers.</p>
+<h2>Usage Notes</h2>
+<p>Use <code>discover_tokens</code> when validating or inspecting one rendering pass:</p>
+<pre><code class="language-python">tokens = discover_tokens(template_body, brace_count=3)
+</code></pre>
+<p>Use <code>discover_all_tokens</code> when a <code>ParsedTemplate</code> contains multiple pass declarations:</p>
+<pre><code class="language-python">tokens_by_pass = discover_all_tokens(parsed_template)
+</code></pre>
+<p>The scanner treats <code>{% ... %}</code> blocks consistently across passes, skips <code>{# ... #}</code> comments, recognizes identifiers in expressions, and excludes Jinja keywords such as <code>if</code>, <code>for</code>, <code>true</code>, and <code>loop</code>. Loop-local bindings are not emitted, but identifiers used to construct a loop iterable are.</p>
+</body>
+</html>

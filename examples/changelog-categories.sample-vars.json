@@ -1,0 +1,19 @@
+{
+  "version": "0.55.0",
+  "date": "2026-07-27",
+  "categories": [
+    {
+      "name": "Added",
+      "items": [
+        { "summary": "Deconstruct methods and matching constructors on SerialNumber.", "pr": 588 },
+        { "summary": "CalibrationException under Radiant.Calibration.", "pr": 588 }
+      ]
+    },
+    {
+      "name": "Changed",
+      "items": [
+        { "summary": "Bumped from 0.54.0 to 0.55.0 (MINOR)." }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session mock-failure-e3-20260729 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;mock-failure-e3-20260729&quot;,&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;worker_correlation_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;iterations&quot;:12,&quot;passed&quot;:9,&quot;failed&quot;:3,&quot;result&quot;:&quot;FAIL&quot;,&quot;cases&quot;:[&quot;boundary-001&quot;,&quot;boundary-002&quot;,&quot;boundary-003&quot;],&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;boundary-001&quot;,&quot;description&quot;:&quot;Accept a UTF-8 BOM before a template frontmatter block&quot;,&quot;minimal_template&quot;:&quot;UTF-8 bytes EF BB BF followed by ---\\nvariables:\\n  name:\\n    required: false\\n---\\nHello {{name}}\\n&quot;,&quot;minimal_input&quot;:&quot;name=x&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;frontmatter leaked into stdout (3 reproductions)&quot;},{&quot;case_id&quot;:&quot;boundary-002&quot;,&quot;description&quot;:&quot;Classify invalid UTF-8 in the template body&quot;,&quot;minimal_template&quot;:&quot;---\\n---\\nbad \\xff\\xfe bytes\\n&quot;,&quot;minimal_input&quot;:&quot;invalid UTF-8 bytes ff fe in the template body&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;wrong diagnostic (3 reproductions)&quot;},{&quot;case_id&quot;:&quot;boundary-003&quot;,&quot;description&quot;:&quot;Report a missing declared required variable&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  needed:\\n    required: true\\n---\\nX {{needed}}\\n&quot;,&quot;minimal_input&quot;:&quot;no value supplied for needed&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;wrong diagnostic (3 reproductions)&quot;}],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;boundary-001&quot;,&quot;minimal_template&quot;:&quot;UTF-8 bytes EF BB BF followed by ---\\nvariables:\\n  name:\\n    required: false\\n---\\nHello {{name}}\\n&quot;,&quot;minimal_input&quot;:&quot;name=x&quot;,&quot;expected_oracle&quot;:&quot;UTF-8 BOM is accepted before frontmatter; output contains only the rendered body&quot;,&quot;observed_result&quot;:&quot;exit 0; stdout includes the complete frontmatter block before Hello x&quot;,&quot;requirement_trace&quot;:&quot;No requirement or ADR currently covers this BOM-frontmatter behavior; the E.3 evidence records the parser boundary oracle.&quot;,&quot;requirement_follow_up&quot;:&quot;Assess whether BOM-prefixed frontmatter is a supported user contract. If yes, create or update the requirement/ADR before implementing the parser fix; if no, document the intentional boundary rather than creating a needless ADR.&quot;,&quot;root_cause&quot;:&quot;The file-frontmatter path does not strip the leading UTF-8 BOM before detecting the frontmatter delimiter.&quot;,&quot;recommended_fix&quot;:&quot;Add a CLI regression test, then normalize a leading UTF-8 BOM if the product decision accepts it.&quot;},{&quot;finding_id&quot;:&quot;boundary-002&quot;,&quot;minimal_template&quot;:&quot;---\\n---\\nbad \\xff\\xfe bytes\\n&quot;,&quot;minimal_input&quot;:&quot;invalid UTF-8 bytes ff fe in the template body&quot;,&quot;expected_oracle&quot;:&quot;nonzero exit with a template/config UTF-8 diagnostic&quot;,&quot;observed_result&quot;:&quot;exit 2 with ERR_INCLUDE_NOT_FOUND naming the template itself&quot;,&quot;requirement_trace&quot;:&quot;No requirement or ADR currently covers the exact invalid-UTF-8 diagnostic wording.&quot;,&quot;requirement_follow_up&quot;:&quot;Confirm the supported diagnostic boundary; create or update documentation only if stable UTF-8 diagnostics are a supported contract.&quot;,&quot;root_cause&quot;:&quot;The invalid-byte path is classified by include resolution before template decoding.&quot;,&quot;recommended_fix&quot;:&quot;Add a regression test and align error classification with the documented boundary.&quot;},{&quot;finding_id&quot;:&quot;boundary-003&quot;,&quot;minimal_template&quot;:&quot;---\\nvariables:\\n  needed:\\n    required: true\\n---\\nX {{needed}}\\n&quot;,&quot;minimal_input&quot;:&quot;no value supplied for needed&quot;,&quot;expected_oracle&quot;:&quot;missing declared required variable reports ERR_VAL_MISSING_REQUIRED&quot;,&quot;observed_result&quot;:&quot;exit 2 with ERR_VAL_UNDECLARED_TOKEN for needed&quot;,&quot;requirement_trace&quot;:&quot;The required-variable diagnostic contract needs reconciliation in existing documents.&quot;,&quot;requirement_follow_up&quot;:&quot;Update an existing requirement/ADR if one defines the behavior; create a new one only for a genuine supported-contract gap.&quot;,&quot;root_cause&quot;:&quot;Required-variable metadata is not applied before undeclared-token validation.&quot;,&quot;recommended_fix&quot;:&quot;Reconcile validation ordering and add a CLI regression test.&quot;}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Failed boundary-probe session: 12 iterations, boundary-001 through boundary-003 reproduced three bugs; exact inputs and primary-agent investigation are shown.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+  <p class="summary">Three boundary inputs reproduced stable product bugs. The exact minimized templates, frontmatter, and inputs are preserved for review.</p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Malformed files, invalid var-file boundaries, and stable diagnostics</th>
+        <td>12</td>
+        <td>9/12</td>
+        <td><span class="status status-error">FAIL</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Description</th><th scope="col">Template / frontmatter</th><th scope="col">Input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">boundary-001</th>
+          <td>Accept a UTF-8 BOM before a template frontmatter block</td>
+          <td colspan="2"><span class="input-reference">See finding boundary-001 below</span></td>
+          <td><span class="status status-error">FAIL</span> <span class="outcome-detail">frontmatter leaked into stdout (3 reproductions)</span></td>
+        </tr>
+        <tr>
+          <th scope="row">boundary-002</th>
+          <td>Classify invalid UTF-8 in the template body</td>
+          <td colspan="2"><span class="input-reference">See finding boundary-002 below</span></td>
+          <td><span class="status status-error">FAIL</span> <span class="outcome-detail">wrong diagnostic (3 reproductions)</span></td>
+        </tr>
+        <tr>
+          <th scope="row">boundary-003</th>
+          <td>Report a missing declared required variable</td>
+          <td colspan="2"><span class="input-reference">See finding boundary-003 below</span></td>
+          <td><span class="status status-error">FAIL</span> <span class="outcome-detail">wrong diagnostic (3 reproductions)</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>boundary-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>UTF-8 bytes EF BB BF followed by ---\nvariables:\n  name:\n    required: false\n---\nHello {{name}}\n</code></dd>
+        <dt>Input</dt><dd><code>name=x</code></dd>
+        <dt>Expected</dt><dd>UTF-8 BOM is accepted before frontmatter; output contains only the rendered body</dd>
+        <dt>Observed</dt><dd>exit 0; stdout includes the complete frontmatter block before Hello x</dd>
+        <dt>Requirement / ADR</dt><dd>No requirement or ADR currently covers this BOM-frontmatter behavior; the E.3 evidence records the parser boundary oracle.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Assess whether BOM-prefixed frontmatter is a supported user contract. If yes, create or update the requirement/ADR before implementing the parser fix; if no, document the intentional boundary rather than creating a needless ADR.</dd>
+        <dt>Root cause</dt><dd>The file-frontmatter path does not strip the leading UTF-8 BOM before detecting the frontmatter delimiter.</dd>
+        <dt>Recommended fix</dt><dd>Add a CLI regression test, then normalize a leading UTF-8 BOM if the product decision accepts it.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>boundary-002</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>---\n---\nbad \xff\xfe bytes\n</code></dd>
+        <dt>Input</dt><dd><code>invalid UTF-8 bytes ff fe in the template body</code></dd>
+        <dt>Expected</dt><dd>nonzero exit with a template/config UTF-8 diagnostic</dd>
+        <dt>Observed</dt><dd>exit 2 with ERR_INCLUDE_NOT_FOUND naming the template itself</dd>
+        <dt>Requirement / ADR</dt><dd>No requirement or ADR currently covers the exact invalid-UTF-8 diagnostic wording.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Confirm the supported diagnostic boundary; create or update documentation only if stable UTF-8 diagnostics are a supported contract.</dd>
+        <dt>Root cause</dt><dd>The invalid-byte path is classified by include resolution before template decoding.</dd>
+        <dt>Recommended fix</dt><dd>Add a regression test and align error classification with the documented boundary.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>boundary-003</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>---\nvariables:\n  needed:\n    required: true\n---\nX {{needed}}\n</code></dd>
+        <dt>Input</dt><dd><code>no value supplied for needed</code></dd>
+        <dt>Expected</dt><dd>missing declared required variable reports ERR_VAL_MISSING_REQUIRED</dd>
+        <dt>Observed</dt><dd>exit 2 with ERR_VAL_UNDECLARED_TOKEN for needed</dd>
+        <dt>Requirement / ADR</dt><dd>The required-variable diagnostic contract needs reconciliation in existing documents.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Update an existing requirement/ADR if one defines the behavior; create a new one only for a genuine supported-contract gap.</dd>
+        <dt>Root cause</dt><dd>Required-variable metadata is not applied before undeclared-token validation.</dd>
+        <dt>Recommended fix</dt><dd>Reconcile validation ordering and add a CLI regression test.</dd>
+      </dl>
+    </article>
+  </section>
+</section>

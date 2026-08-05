@@ -19,13 +19,28 @@
   `docs/phase-C/sprint-c-3-python-release-train.md`) — lowercase phase
   letter, dash-separated from the sprint number, dash-separated from a short
   kebab-case description.
+- Python companion sprint prose identifiers append `-py` to the Rust sprint
+  id: `X.#-py` (e.g. `D.2-py`).
+- Python companion sprint doc filenames use the same Rust sprint number plus a
+  `-py-` marker: `sprint-x-#-py-<description>.md` (e.g.
+  `docs/phase-D/sprint-d-2-py-bindings.md`).
 - Sprint numbers are contiguous within a phase, starting at 1, with no gaps.
   See `.claude/skills/plan-hardening/sprint-planning-guidelines.md`.
+- `-py` companions do not consume additional entries in the contiguous Rust
+  sprint-number sequence; they inherit the number of the Rust sprint they wrap.
 - Branch names are always lowercase.
 - Integration branch: `integrate/phase-x` (e.g. `integrate/phase-c`).
 - Sprint branch: `sprint/x-#-<description>` (e.g.
   `sprint/c-2-python-release-train`), matching its sprint doc's number and
   description.
+- Python companion sprint branches follow `sprint/x-#-py-<description>`
+  (e.g. `sprint/d-2-py-bindings`), again inheriting the Rust sprint number
+  rather than consuming a new one.
+- If a Rust sprint later splits (for example `D.4` into `D.4` + `D.5`), any
+  already-existing `D.4-py` companion remains attached to `D.4`'s retained
+  scope. The newly-created Rust sprint gets its own new companion
+  (`D.5-py`) only if it exposes bindable `sc-composer` surface and once its
+  post-split scope is stable enough to document.
 - This naming convention applies going forward; already-shipped phase/sprint
   docs and branches (phases A and B) are not retroactively renamed.
 

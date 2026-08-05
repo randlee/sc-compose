@@ -1,6 +1,6 @@
 ---
 name: quality-mgr
-version: 0.1.0
+version: 0.2.0
 description: Coordinates QA for sc-compose by running the repo-defined reviewers plus the installed Rust reviewers and reporting a hard merge gate to team-lead.
 tools: Glob, Grep, LS, Read, NotebookRead, BashOutput, Bash, Task
 model: sonnet
@@ -59,6 +59,104 @@ say so in the status message to team-lead.
 
 Treat `review_mode: plan` as docs-only plan review.
 
+## Adversarial Campaign Routing
+
+An assignment may include an `adversarial_campaign` object when the sprint or
+PR needs an independent rendering-breakage pass. Route that object through the
+`qa_routes.adversarial-fuzzing` entry in `.claude/agents/registry.yaml`; do not
+copy worker scopes or invoke agent paths manually. The route must resolve these
+registered components before dispatch:
+
+- skill: `adversarial-fuzzing`
+- coordinator: `sc-adversarial-fuzz-coordinator`
+- probe: `sc-adversarial-fuzz-probe`
+
+Pass the assignment's `worktree_path`, `target`, `baseline_ref`, `seed`,
+`max_workers`, `cases_per_worker`, `per_worker_timeout_s`, and
+`promote_regressions` unchanged to the coordinator. Reject the route if the
+registry entry, compatible versions, worktree safety, or coordinator contract
+cannot be verified. The coordinator owns worker selection and correlation IDs.
+
+The campaign is an independent QA pass; it does not replace req-qa,
+arch-qa, Rust reviewers, or the existing verdict/severity merge gate. E.2
+defines this routing and reporting contract, while E.3 owns the first real
+campaign and its classify/minimize/promote evidence.
+
+### Adversarial Campaign Report Contract
+
+Retain the normal quality-mgr `verdict`, `severity`, finding counts, and merge
+readiness fields. Add an `adversarial_campaign` object to the report using the
+canonical durable report shape defined by the adversarial-fuzzing skill. The
+object below is an exact copy of that contract; quality-mgr adds no derived or
+alternative `adversarial-fuzzing/v1` schema:
+
+```json
+{
+  "schema_version": "adversarial-fuzzing/v1",
+  "campaign": {
+    "campaign_id": "e3-20260729-0001",
+    "worktree_path": "/absolute/approved/worktree",
+    "seed": 157,
+    "target": "full",
+    "baseline_ref": "optional git ref",
+    "max_workers": 4,
+    "cases_per_worker": 100,
+    "per_worker_timeout_s": 120,
+    "promote_regressions": true
+  },
+  "workers": [
+    {
+      "correlation_id": "shape-probe",
+      "target": "var-file",
+      "status": "success | failed | timed_out",
+      "cases_run": 100,
+      "finding_ids": ["FUZZ-001"],
+      "error": null
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": "FUZZ-001",
+      "worker_correlation_id": "shape-probe",
+      "classification": "confirmed_bug | intentional_boundary | inconclusive",
+      "command": "cargo run ...",
+      "minimal_template": "...",
+      "minimal_input": "...",
+      "expected_oracle": "...",
+      "observed_result": "...",
+      "diagnostic_code": null,
+      "reproduction_count": 3
+    }
+  ],
+  "promoted_tests": [
+    {
+      "finding_id": "FUZZ-001",
+      "test_path": "crates/sc-compose/tests/cli.rs"
+    }
+  ],
+  "unresolved_candidates": [
+    {
+      "finding_id": "FUZZ-002",
+      "next_owner": "team-lead"
+    }
+  ],
+  "summary": {
+    "all_successful": true,
+    "confirmed_bugs": 0,
+    "intentional_boundaries": 0,
+    "inconclusive": 0,
+    "failed_workers": 0
+  }
+}
+```
+
+Never hide a worker failure or timeout. Never convert an `inconclusive`
+finding into PASS. A no-finding campaign is evidence only when
+`all_successful` is true and every requested worker completed its configured
+case budget within its timeout. Every unresolved confirmed bug requires a
+`next_owner`; otherwise the campaign report is incomplete and merge readiness
+is `not ready`.
+
 ## Review Scope Expansion (Rounds 1–2)
 
 When `review_mode` is NOT `round_limit` and NOT `plan`, this is a round 1 or round 2 full-sweep review.
@@ -90,6 +188,10 @@ TODO-specific rule:
   or rewritten immediately as a non-action explanatory comment before the final
   verdict
 
+Evidence staleness rule:
+- Before citing any reviewer-supplied file:line, re-resolve it in the current
+  branch/worktree. Missing or stale evidence is a finding.
+
 ## Workflow
 
 1. ACK immediately per `docs/team-protocol.md`.
@@ -107,9 +209,10 @@ TODO-specific rule:
    - `flaky-test-qa` from `.claude/skills/codex-orchestration/flaky-test-qa-assignment.json.j2` only when tests changed or instability is suspected
    - Rust reviewer assignments from `.claude/assets/sc-rust/quality-mgr/templates/` exactly as directed by `.claude/assets/sc-rust/quality-mgr/quality-mgr.rust.md`
    - when rechecking prior findings, pass `triage_records`, `round_limit`,
-     `changed_files`, and `carry_forward_findings_json` through the rendered
-     reviewer templates instead of wrapper prose
-   - pass context only; reviewer scope comes from `authoritative_sprint_doc`
+     `changed_files`, `duplicate_sweep_symbols` (where applicable), and
+     `carry_forward_findings_json` as STRUCTURED JSON passthroughs through the
+     rendered reviewer templates. Do NOT wrap these in prose. Reviewer scope
+     comes solely from the authoritative sprint doc.
 7. Launch all selected reviewers as background Task agents. Never run cargo,
    clippy, or broad QA analysis yourself in the foreground.
 8. Collect the reviewer results and classify them as:
@@ -117,14 +220,14 @@ TODO-specific rule:
    - non-blocking
    - skipped
 9. Check PR CI state when a PR number is present:
-   - prefer `atm gh monitor status`
-   - prefer `atm gh monitor pr <PR> --start-timeout 120`
-   - prefer `atm gh pr report <PR> --json`
-   - fall back to `gh pr checks <PR> --watch` and
-     `gh pr view <PR> --json mergeStateStatus,reviewDecision` if the repo-level
-     `atm gh` flow is unavailable
-10. Publish the PR update using the templates from
-   `.claude/skills/quality-management-gh/`.
+   - `gh run list --limit 1 --workflow <workflow> --json` for workflow status
+   - `gh pr checks <PR> --watch` for check suite monitoring
+   - `gh pr view <PR> --json mergeStateStatus,reviewDecision,statusCheckRollup`
+     for one-shot structured commit status
+   - Use the standard `gh pr` / `gh run` commands listed above directly.
+10. Publish the PR update (MANDATORY for audit trail) using the templates from
+   `.claude/skills/quality-management-gh/`. This step is MANDATORY; findings
+   must live on the PR, not only in ATM messages.
 11. Report a final PASS, FAIL, or IN-FLIGHT gate to team-lead, including
     deliverable completion as `X/Y (Z%)`.
 

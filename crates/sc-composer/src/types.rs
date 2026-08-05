@@ -12,67 +12,43 @@ use crate::diagnostics::DiagnosticCode;
 /// Caller-provided render input value.
 pub type InputValue = serde_json::Value;
 
+/// Default pass number applied to frontmatter and pass-policy entries.
+#[must_use]
+pub const fn default_pass_number() -> u8 {
+    1
+}
+
+fn deserialize_pass_number<'de, D>(deserializer: D) -> Result<u8, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let pass_number = u8::deserialize(deserializer)?;
+    Ok(if pass_number == 0 {
+        default_pass_number()
+    } else {
+        pass_number
+    })
+}
+
 /// Validate a caller-provided input value against the supported render-context
 /// model.
 ///
 /// # Errors
 ///
-/// Returns [`InvalidInputValueError`] when the value contains unsupported
-/// nested arrays or arrays of objects at non-top-level paths. Top-level
-/// arrays of objects are valid render inputs.
+/// Returns [`InvalidInputValueError`] when the value contains a shape that
+/// cannot be represented by the structured-input contract.
 pub fn validate_input_value(value: &InputValue) -> Result<(), InvalidInputValueError> {
-    validate_input_value_at(value, ArrayContext::TopLevel)
+    validate_input_value_at(value)
 }
 
-#[derive(Clone, Copy)]
-enum ArrayContext {
-    TopLevel,
-    Nested,
-}
-
-fn validate_input_value_at(
-    value: &InputValue,
-    array_context: ArrayContext,
-) -> Result<(), InvalidInputValueError> {
+fn validate_input_value_at(value: &InputValue) -> Result<(), InvalidInputValueError> {
     match value {
         serde_json::Value::Null
         | serde_json::Value::Bool(_)
         | serde_json::Value::Number(_)
         | serde_json::Value::String(_) => Ok(()),
-        serde_json::Value::Array(values) => {
-            for element in values {
-                match element {
-                    serde_json::Value::Null
-                    | serde_json::Value::Bool(_)
-                    | serde_json::Value::Number(_)
-                    | serde_json::Value::String(_) => {}
-                    serde_json::Value::Array(_) => {
-                        return Err(InvalidInputValueError::new(
-                            DiagnosticCode::ErrValNestedArrayUnsupported,
-                            "nested arrays are not supported",
-                        ));
-                    }
-                    serde_json::Value::Object(object) => {
-                        if !matches!(array_context, ArrayContext::TopLevel) {
-                            return Err(InvalidInputValueError::new(
-                                DiagnosticCode::ErrValNestedArrayUnsupported,
-                                "arrays of objects are not supported at nested paths",
-                            ));
-                        }
-                        for value in object.values() {
-                            validate_input_value_at(value, ArrayContext::Nested)?;
-                        }
-                    }
-                }
-            }
-            Ok(())
-        }
-        serde_json::Value::Object(object) => {
-            for value in object.values() {
-                validate_input_value_at(value, ArrayContext::Nested)?;
-            }
-            Ok(())
-        }
+        serde_json::Value::Array(values) => values.iter().try_for_each(validate_input_value_at),
+        serde_json::Value::Object(object) => object.values().try_for_each(validate_input_value_at),
     }
 }
 
@@ -81,7 +57,7 @@ fn validate_input_value_at(
 /// # Errors
 ///
 /// Returns [`InvalidInputValueError`] when the YAML value uses non-string
-/// object keys, nested arrays, or arrays of objects.
+/// object keys or contains an unsupported scalar representation.
 pub fn input_value_from_yaml(
     value: serde_yaml::Value,
 ) -> Result<InputValue, InvalidInputValueError> {
@@ -93,7 +69,7 @@ pub fn input_value_from_yaml(
                 Ok(serde_json::Value::Number(number)) => Ok(serde_json::Value::Number(number)),
                 _ => Err(InvalidInputValueError::new(
                     DiagnosticCode::ErrValObjectShape,
-                    "expected a scalar value or array of scalars, found unsupported number",
+                    "expected a JSON-compatible number",
                 )),
             }
         }
@@ -377,8 +353,37 @@ pub struct ResolverPolicy {
     pub ambiguous_without_runtime_is_error: bool,
 }
 
+/// Per-pass configuration carried through the multi-pass composition pipeline.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PassConfig {
+    /// The pass number this configuration applies to.
+    #[serde(
+        default = "default_pass_number",
+        deserialize_with = "deserialize_pass_number"
+    )]
+    pub pass_number: u8,
+    /// Variables required before this pass can render.
+    pub required_variables: Vec<VariableName>,
+    /// Default values injected for this pass.
+    pub defaults: BTreeMap<VariableName, InputValue>,
+    /// Descriptive metadata associated with this pass.
+    #[serde(default)]
+    pub metadata: BTreeMap<String, MetadataValue>,
+}
+
+impl Default for PassConfig {
+    fn default() -> Self {
+        Self {
+            pass_number: default_pass_number(),
+            required_variables: Vec::new(),
+            defaults: BTreeMap::new(),
+            metadata: BTreeMap::new(),
+        }
+    }
+}
+
 /// Policy bundle for the composition pipeline.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ComposePolicy {
     /// Whether undeclared referenced variables are fatal.
     pub strict_undeclared_variables: bool,
@@ -390,6 +395,8 @@ pub struct ComposePolicy {
     pub allowed_roots: Vec<ConfiningRoot>,
     /// Resolver configuration carried into later sprints.
     pub resolver_policy: ResolverPolicy,
+    /// Per-pass policy extensions for multi-pass templates.
+    pub passes: Vec<PassConfig>,
 }
 
 impl Default for ComposePolicy {
@@ -400,12 +407,13 @@ impl Default for ComposePolicy {
             max_include_depth: IncludeDepth::new(32),
             allowed_roots: Vec::new(),
             resolver_policy: ResolverPolicy::default(),
+            passes: Vec::new(),
         }
     }
 }
 
 /// Top-level library request for compose and validate entry points.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ComposeRequest {
     /// Optional runtime used for profile resolution policy.
     pub runtime: Option<RuntimeKind>,
@@ -491,12 +499,33 @@ pub struct FrontmatterInitResult {
     pub target_path: PathBuf,
     /// Frontmatter text that would be written.
     pub frontmatter_text: String,
+    /// Full template text that would be written.
+    pub template_text: String,
     /// Variables discovered during analysis.
     pub discovered_variables: Vec<VariableName>,
     /// Whether the target file changed on disk.
     pub changed: bool,
     /// Whether the operation would rewrite the target if allowed to write.
     pub would_change: bool,
+}
+
+/// Result returned by template drift verification.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct VerifyResult {
+    /// Whether the rendered template matches the deployed file exactly.
+    pub clean: bool,
+    /// Final resolved template path used for rendering.
+    pub resolved_template_path: PathBuf,
+    /// Deployed file compared against the rendered template output.
+    pub deployed_path: PathBuf,
+    /// Rendered template output used for comparison.
+    pub rendered_text: String,
+    /// Concrete deployed file contents.
+    pub deployed_text: String,
+    /// Unified diff when drift is detected.
+    pub diff: Option<String>,
+    /// Non-fatal diagnostics emitted while rendering the template.
+    pub warnings: Vec<Diagnostic>,
 }
 
 /// Result returned by the future `init` helper.
@@ -582,7 +611,10 @@ mod tests {
 
     use crate::DiagnosticCode;
 
-    use super::{ProfileName, VariableName, input_value_from_yaml, validate_input_value};
+    use super::{
+        PassConfig, ProfileName, VariableName, default_pass_number, input_value_from_yaml,
+        validate_input_value,
+    };
 
     #[test]
     fn variable_name_round_trips_for_valid_identifier() {
@@ -680,12 +712,52 @@ mod tests {
     }
 
     #[test]
-    fn validate_input_value_rejects_nested_array_with_reserved_code() {
-        let value = json!([["nested"]]);
+    fn validate_input_value_accepts_recursive_arrays_and_objects() {
+        let value = json!({
+            "categories": [
+                {
+                    "name": "Added",
+                    "items": [
+                        {"summary": "new feature", "prs": [588, 589]},
+                        {"summary": "documentation", "prs": []}
+                    ]
+                }
+            ],
+            "rows": [[1, 2, 3], [4, 5]],
+            "mixed": [null, true, {"nested": [["value"]]}]
+        });
 
-        let error = validate_input_value(&value).unwrap_err();
+        validate_input_value(&value).unwrap();
+    }
 
-        assert_eq!(error.code(), DiagnosticCode::ErrValNestedArrayUnsupported);
+    #[test]
+    fn input_value_from_yaml_accepts_recursive_arrays_and_objects() {
+        let yaml = from_str::<serde_yaml::Value>(
+            "categories:\n  - name: Added\n    items:\n      - summary: new feature\n        prs: [588, 589]\nrows:\n  - [1, 2, 3]\n  - [4, 5]\n",
+        )
+        .unwrap();
+
+        let value = input_value_from_yaml(yaml).unwrap();
+
+        assert_eq!(
+            value,
+            json!({
+                "categories": [{
+                    "name": "Added",
+                    "items": [{"summary": "new feature", "prs": [588, 589]}]
+                }],
+                "rows": [[1, 2, 3], [4, 5]]
+            })
+        );
+    }
+
+    #[test]
+    fn input_value_from_yaml_rejects_non_string_map_keys() {
+        let yaml = from_str::<serde_yaml::Value>("1: invalid-key\n").unwrap();
+
+        let error = input_value_from_yaml(yaml).unwrap_err();
+
+        assert_eq!(error.code(), DiagnosticCode::ErrValObjectShape);
     }
 
     #[test]
@@ -705,5 +777,20 @@ mod tests {
     fn profile_name_rejects_path_separators() {
         let error = ProfileName::new("agent/name").unwrap_err();
         assert_eq!(error.name(), "agent/name");
+    }
+
+    #[test]
+    fn pass_config_default_pass_number_matches_frontmatter_default() {
+        assert_eq!(PassConfig::default().pass_number, default_pass_number());
+    }
+
+    #[test]
+    fn pass_config_explicit_zero_normalizes_to_default_pass_number() {
+        let pass_config = serde_yaml::from_str::<PassConfig>(
+            "pass_number: 0\nrequired_variables: []\ndefaults: {}\n",
+        )
+        .unwrap();
+
+        assert_eq!(pass_config.pass_number, default_pass_number());
     }
 }

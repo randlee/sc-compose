@@ -4,8 +4,9 @@ use std::path::Path;
 
 use crate::frontmatter::parse_template_document;
 use crate::resolver::canonicalize_with_roots;
-use crate::validation::discover_tokens;
-use crate::{ComposeError, ConfigError, DiagnosticCode, FrontmatterInitResult, VariableName};
+use crate::{
+    ComposeError, ConfigError, DiagnosticCode, FrontmatterInitResult, VariableName, discover_tokens,
+};
 
 /// Insert or rewrite normalized frontmatter for a single template.
 ///
@@ -42,9 +43,9 @@ pub fn frontmatter_init(
         .into_iter()
         .collect::<Vec<_>>();
     let frontmatter_text = build_frontmatter(&discovered);
+    let template_text = format!("{frontmatter_text}{}", parsed.body());
     if !dry_run {
-        let rewritten = format!("{frontmatter_text}{}", parsed.body());
-        std::fs::write(&canonical, rewritten).map_err(|error| {
+        std::fs::write(&canonical, &template_text).map_err(|error| {
             ConfigError::new(
                 DiagnosticCode::ErrConfigReadonly,
                 format!("failed to write template: {}", canonical.display()),
@@ -56,6 +57,7 @@ pub fn frontmatter_init(
     Ok(FrontmatterInitResult {
         target_path: canonical,
         frontmatter_text,
+        template_text,
         discovered_variables: discovered,
         changed: !dry_run && would_change,
         would_change,

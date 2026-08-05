@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Infrastructure: scripts/ci/validate_publish_order.sh</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Infrastructure: scripts/ci/validate_publish_order.sh</h1>
+<h2>Purpose</h2>
+<p><code>scripts/ci/validate_publish_order.sh</code> validates the crate publication order declared in <code>release/publish-artifacts.toml</code>.</p>
+<p>It protects release automation from ambiguous or incorrectly ordered publishing by ensuring every crate has a unique <code>publish_order</code> and that manifest entries are already listed in ascending order.</p>
+<h2>Key Targets/Stages</h2>
+<ul>
+<li>Shell strict mode: <code>set -euo pipefail</code> causes the script to fail on command errors, unset variables, and pipeline failures.</li>
+<li>Manifest loading: Python reads and parses <code>release/publish-artifacts.toml</code> with the standard-library <code>tomllib</code> module.</li>
+<li>Duplicate-order validation: Fails if two crate entries use the same <code>publish_order</code>.</li>
+<li>Ordering validation: Fails if crate entries are not already arranged by ascending <code>publish_order</code>.</li>
+<li>Success output: Prints <code>publish order validation passed</code> when all checks succeed.</li>
+</ul>
+<h2>Configuration</h2>
+<p>The script has no command-line arguments or environment-variable configuration.</p>
+<p>It expects to run from the repository root, where this path is available:</p>
+<pre><code class="language-text">release/publish-artifacts.toml
+</code></pre>
+<p>The manifest must provide a <code>crates</code> collection whose entries include numeric or otherwise sortable <code>publish_order</code> values:</p>
+<pre><code class="language-toml">[[crates]]
+name = &quot;example-crate&quot;
+publish_order = 1
+</code></pre>
+<p>Python 3.11 or newer is required because <code>tomllib</code> was added to the Python standard library in Python 3.11.</p>
+<h2>Operational Notes</h2>
+<p>Run the validation from the repository root:</p>
+<pre><code class="language-bash">scripts/ci/validate_publish_order.sh
+</code></pre>
+<p>A non-zero exit indicates one of these release-manifest issues:</p>
+<ul>
+<li><code>duplicate publish_order values detected</code> — two or more crates share a publication position.</li>
+<li><code>publish_order values must already be sorted in the manifest</code> — crate entries are not listed in ascending publication order.</li>
+</ul>
+<p>The check validates metadata only; it does not build, package, or publish crates. Use it in CI before release or publishing stages so dependency-aware publication order remains explicit and reviewable.</p>
+</body>
+</html>

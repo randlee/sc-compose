@@ -95,6 +95,21 @@ pub enum RecoveryHintKind {
         /// Configuration key to revisit.
         key: String,
     },
+    /// Suggest inspecting an input payload or source document.
+    InspectInput {
+        /// Description of the input to inspect.
+        description: String,
+    },
+    /// Suggest reviewing occurrence paths and selection rules.
+    DisambiguateOccurrences {
+        /// Description of the ambiguity to resolve.
+        description: String,
+    },
+    /// Suggest replacing a construct outside the supported contract.
+    UnsupportedConstruct {
+        /// Description of the unsupported construct and its supported alternative.
+        description: String,
+    },
 }
 
 /// Canonical resolver error family.
@@ -277,14 +292,23 @@ impl ValidationError {
             .map(format_diagnostic_message)
             .collect::<Vec<_>>()
             .join("\n");
-        Self {
+        let mut error = Self {
             code,
             message,
             diagnostics,
             recovery_hints: Vec::new(),
             source: None,
             backtrace: Backtrace::capture(),
+        };
+        if let Some(path) = error
+            .diagnostics
+            .iter()
+            .find_map(|diagnostic| diagnostic.path.clone())
+        {
+            error =
+                error.with_recovery_hint(RecoveryHint::new(RecoveryHintKind::InspectPath { path }));
         }
+        error
     }
 
     /// Create a duplicate-frontmatter validation error.
@@ -294,12 +318,22 @@ impl ValidationError {
             DiagnosticCode::ErrValDuplicate,
             format!("duplicate frontmatter variable declaration: {variable}"),
         )
+        .with_recovery_hint(RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
+            key: "required_variables".to_owned(),
+        }))
     }
 
     /// Create a validation error for an invalid input-value shape.
     #[must_use]
     pub(crate) fn invalid_input_value(code: DiagnosticCode, message: impl Into<String>) -> Self {
         Self::new(code, message)
+    }
+
+    /// Attach a structured recovery hint.
+    #[must_use]
+    pub(crate) fn with_recovery_hint(mut self, recovery_hint: RecoveryHint) -> Self {
+        self.recovery_hints.push(recovery_hint);
+        self
     }
 
     /// Return the stable diagnostic code when one is available.
@@ -431,6 +465,13 @@ impl ConfigError {
     #[must_use]
     pub(crate) fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
         self.source = Some(Box::new(source));
+        self
+    }
+
+    /// Attach a structured recovery hint.
+    #[must_use]
+    pub(crate) fn with_recovery_hint(mut self, recovery_hint: RecoveryHint) -> Self {
+        self.recovery_hints.push(recovery_hint);
         self
     }
 
@@ -609,7 +650,7 @@ mod tests {
         let error = ValidationError::duplicate_variable(&variable);
 
         assert_eq!(error.code(), DiagnosticCode::ErrValDuplicate);
-        assert!(error.recovery_hints().is_empty());
+        assert_eq!(error.recovery_hints().len(), 1);
         assert!(error.to_string().contains("duplicate frontmatter variable"));
         assert!(error.to_string().contains("backtrace"));
         assert!(error.source().is_none());
@@ -671,6 +712,7 @@ mod tests {
                 .to_string()
                 .contains("include_chain=partials/child.md.j2")
         );
+        assert_eq!(error.recovery_hints().len(), 1);
         assert!(error.to_string().contains("backtrace"));
     }
 

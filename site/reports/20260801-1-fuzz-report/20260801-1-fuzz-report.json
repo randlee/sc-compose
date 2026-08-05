@@ -1,0 +1,149 @@
+{
+  "output_path": "site/reports/20260801-1-fuzz-report.html",
+  "json_output_path": "site/reports/20260801-1-fuzz-report/20260801-1-fuzz-report.json",
+  "title": "Phase G.6 Adversarial Fuzz Session",
+  "status": "DRIFT",
+  "summary_html": "<p>Four bounded workers exercised the complete Phase-G extraction surface. One deterministic dotted-expression candidate remains inconclusive pending product-contract clarification.</p>",
+  "summary": {
+    "campaign_id": "g6-20260802-0001",
+    "iterations": 112,
+    "passed": 111,
+    "failed": 1,
+    "confirmed_defects": 0,
+    "inconclusive_findings": 1
+  },
+  "metadata": {
+    "campaign_id": "g6-20260802-0001",
+    "baseline": "125076545d623921d14bdb62dbdb7214d7e024fd",
+    "seed": 7001,
+    "max_workers": 4,
+    "cases_per_worker": 50,
+    "timeout_seconds": 120
+  },
+  "sections": [
+    {
+      "id": "boundary-probe",
+      "title": "Worker: boundary-probe",
+      "status": "PASS",
+      "body_html": "<section xmlns=\"http://www.w3.org/1999/xhtml\" class=\"fuzz-agent fuzz-agent-pass\">\n  <header class=\"agent-header fuzz-agent-header\">\n    <div>\n      <p class=\"eyebrow\">Adversarial fuzz worker</p>\n      <h2>boundary-probe</h2>\n      <p class=\"agent-meta\">Session g6-20260802-0001 \u00b7 Worker boundary-probe</p>\n    </div>\n    <div class=\"agent-actions\" role=\"group\" aria-label=\"Copy worker data\">\n      <button type=\"button\" class=\"icon-button\" title=\"Copy JSON\" data-copy-text=\"{&quot;case_counts&quot;: {&quot;failed&quot;: 0, &quot;passed&quot;: 50}, &quot;cases_run&quot;: 50, &quot;correlation_id&quot;: &quot;boundary-probe&quot;, &quot;error&quot;: null, &quot;finding_ids&quot;: [], &quot;protocol_status&quot;: &quot;valid&quot;, &quot;status&quot;: &quot;success&quot;, &quot;tool_versions&quot;: {&quot;cargo&quot;: &quot;1.94.1&quot;, &quot;git&quot;: &quot;2.53.0&quot;, &quot;python&quot;: &quot;3.11.9&quot;, &quot;rustc&quot;: &quot;1.94.1&quot;, &quot;sc-compose&quot;: &quot;1.3.0&quot;}}\">{}</button>\n      <button type=\"button\" class=\"icon-button\" title=\"Copy Context\" data-copy-text=\"Fuzz session g6-20260802-0001, worker boundary-probe.\nDescription: Malformed XML, missing occurrences, ambiguity, empty values, and include&#x2f;exclude selection.\nIterations: 50, Passed: 50, Failed: 0, Result: PASS, Classification: pass.\nThe panel shows representative concrete template&#x2f;rendered-input pairs; the full worker envelope is in json_payload.\">\u2398</button>\n    </div>\n  </header>\n\n  <p class=\"status\">\n    <span class=\"status status-pass\">PASS</span>\n  </p>\n\n  <table class=\"agent-results\">\n    <thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead>\n    <tbody>\n      <tr>\n        <th scope=\"row\">Malformed XML, missing occurrences, ambiguity, empty values, and include&#x2f;exclude selection.</th>\n        <td>50</td>\n        <td>50/50</td>\n        <td>\n          <span class=\"status status-pass\">PASS</span>\n        </td>\n      </tr>\n    </tbody>\n  </table>\n\n  <section class=\"test-inputs\">\n    <h3>Inputs exercised</h3>\n    <table>\n      <thead><tr><th scope=\"col\">Case</th><th scope=\"col\">Template / input</th><th scope=\"col\">Outcome</th></tr></thead>\n      <tbody>\n        <tr><th scope=\"row\">boundary-001</th><td><code>Malformed rendered XML\nTemplate: &lt;root&gt;&lt;name&gt;{{ name }}&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;\nRendered input: &lt;root&gt;&lt;name&gt;Ada&lt;&#x2f;root&gt;</code></td><td>PASS: stable malformed-input diagnostic</td></tr>\n        <tr><th scope=\"row\">boundary-002</th><td><code>Missing rendered occurrence\nTemplate: &lt;root&gt;&lt;name&gt;{{ name }}&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;\nRendered input: &lt;root&gt;&lt;other&gt;Ada&lt;&#x2f;other&gt;&lt;&#x2f;root&gt;</code></td><td>PASS: missing occurrence warning without fabricated value</td></tr>\n        <tr><th scope=\"row\">boundary-003</th><td><code>Adjacent expressions without delimiter\nTemplate: &lt;root&gt;{{ first }}{{ second }}&lt;&#x2f;root&gt;\nRendered input: &lt;root&gt;AB&lt;&#x2f;root&gt;</code></td><td>PASS: stable ambiguity diagnostic</td></tr>\n      </tbody>\n    </table>\n  </section>\n\n</section>",
+      "context_text": "Fuzz session g6-20260802-0001, worker boundary-probe.\nDescription: Malformed XML, missing occurrences, ambiguity, empty values, and include/exclude selection.\nIterations: 50, Passed: 50, Failed: 0, Result: PASS, Classification: pass.\nThe panel shows representative concrete template/rendered-input pairs; the full worker envelope is in json_payload.",
+      "json_payload": {
+        "correlation_id": "boundary-probe",
+        "status": "success",
+        "protocol_status": "valid",
+        "cases_run": 50,
+        "case_counts": {
+          "passed": 50,
+          "failed": 0
+        },
+        "finding_ids": [],
+        "tool_versions": {
+          "sc-compose": "1.3.0",
+          "cargo": "1.94.1",
+          "rustc": "1.94.1",
+          "python": "3.11.9",
+          "git": "2.53.0"
+        },
+        "error": null
+      },
+      "xhtml_path": "site/reports/20260801-1-fuzz-report/20260801-1-fuzz-report-boundary-probe.xhtml",
+      "fragment_source": "auto-generated",
+      "xhtml_validation": "PASS: xmllint --noout"
+    },
+    {
+      "id": "differential-probe",
+      "title": "Worker: differential-probe",
+      "status": "PASS",
+      "body_html": "<section xmlns=\"http://www.w3.org/1999/xhtml\" class=\"fuzz-agent fuzz-agent-pass\">\n  <header class=\"agent-header fuzz-agent-header\">\n    <div>\n      <p class=\"eyebrow\">Adversarial fuzz worker</p>\n      <h2>differential-probe</h2>\n      <p class=\"agent-meta\">Session g6-20260802-0001 \u00b7 Worker differential-probe</p>\n    </div>\n    <div class=\"agent-actions\" role=\"group\" aria-label=\"Copy worker data\">\n      <button type=\"button\" class=\"icon-button\" title=\"Copy JSON\" data-copy-text=\"{&quot;case_counts&quot;: {&quot;failed&quot;: 0, &quot;passed&quot;: 8}, &quot;cases_run&quot;: 8, &quot;correlation_id&quot;: &quot;differential-probe&quot;, &quot;error&quot;: null, &quot;finding_ids&quot;: [], &quot;protocol_status&quot;: &quot;valid&quot;, &quot;status&quot;: &quot;success&quot;, &quot;tool_versions&quot;: {&quot;cargo&quot;: &quot;1.94.1&quot;, &quot;git&quot;: &quot;2.53.0&quot;, &quot;python&quot;: &quot;3.11.9&quot;, &quot;rustc&quot;: &quot;1.94.1&quot;, &quot;sc-compose&quot;: &quot;1.3.0&quot;}}\">{}</button>\n      <button type=\"button\" class=\"icon-button\" title=\"Copy Context\" data-copy-text=\"Fuzz session g6-20260802-0001, worker differential-probe.\nDescription: Compare Rust, Python, and CLI results for the same known-template extraction cases.\nIterations: 8, Passed: 8, Failed: 0, Result: PASS, Classification: pass.\nThe panel shows representative concrete template&#x2f;rendered-input pairs; the full worker envelope is in json_payload.\">\u2398</button>\n    </div>\n  </header>\n\n  <p class=\"status\">\n    <span class=\"status status-pass\">PASS</span>\n  </p>\n\n  <table class=\"agent-results\">\n    <thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead>\n    <tbody>\n      <tr>\n        <th scope=\"row\">Compare Rust, Python, and CLI results for the same known-template extraction cases.</th>\n        <td>8</td>\n        <td>8/8</td>\n        <td>\n          <span class=\"status status-pass\">PASS</span>\n        </td>\n      </tr>\n    </tbody>\n  </table>\n\n  <section class=\"test-inputs\">\n    <h3>Inputs exercised</h3>\n    <table>\n      <thead><tr><th scope=\"col\">Case</th><th scope=\"col\">Template / input</th><th scope=\"col\">Outcome</th></tr></thead>\n      <tbody>\n        <tr><th scope=\"row\">differential-001</th><td><code>Attribute extraction across Rust, Python, and CLI\nTemplate: &lt;root id=&quot;{{ id }}&quot;&gt;{{ name }}&lt;&#x2f;root&gt;\nRendered input: &lt;root id=&quot;42&quot;&gt;Ada&lt;&#x2f;root&gt;</code></td><td>PASS: values and occurrence provenance agree</td></tr>\n        <tr><th scope=\"row\">differential-002</th><td><code>Missing occurrence diagnostics across surfaces\nTemplate: &lt;root&gt;&lt;name&gt;{{ name }}&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;\nRendered input: &lt;root&gt;&lt;other&gt;Ada&lt;&#x2f;other&gt;&lt;&#x2f;root&gt;</code></td><td>PASS: diagnostic category agrees</td></tr>\n        <tr><th scope=\"row\">differential-003</th><td><code>Three-run deterministic replay\nTemplate: &lt;root&gt;&lt;name&gt;{{ name }}&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;\nRendered input: &lt;root&gt;&lt;name&gt;Ada&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;</code></td><td>PASS: all surfaces deterministic</td></tr>\n      </tbody>\n    </table>\n  </section>\n\n</section>",
+      "context_text": "Fuzz session g6-20260802-0001, worker differential-probe.\nDescription: Compare Rust, Python, and CLI results for the same known-template extraction cases.\nIterations: 8, Passed: 8, Failed: 0, Result: PASS, Classification: pass.\nThe panel shows representative concrete template/rendered-input pairs; the full worker envelope is in json_payload.",
+      "json_payload": {
+        "correlation_id": "differential-probe",
+        "status": "success",
+        "protocol_status": "valid",
+        "cases_run": 8,
+        "case_counts": {
+          "passed": 8,
+          "failed": 0
+        },
+        "finding_ids": [],
+        "tool_versions": {
+          "sc-compose": "1.3.0",
+          "cargo": "1.94.1",
+          "rustc": "1.94.1",
+          "python": "3.11.9",
+          "git": "2.53.0"
+        },
+        "error": null
+      },
+      "xhtml_path": "site/reports/20260801-1-fuzz-report/20260801-1-fuzz-report-differential-probe.xhtml",
+      "fragment_source": "auto-generated",
+      "xhtml_validation": "PASS: xmllint --noout"
+    },
+    {
+      "id": "shape-probe",
+      "title": "Worker: shape-probe",
+      "status": "PASS",
+      "body_html": "<section xmlns=\"http://www.w3.org/1999/xhtml\" class=\"fuzz-agent fuzz-agent-pass\">\n  <header class=\"agent-header fuzz-agent-header\">\n    <div>\n      <p class=\"eyebrow\">Adversarial fuzz worker</p>\n      <h2>shape-probe</h2>\n      <p class=\"agent-meta\">Session g6-20260802-0001 \u00b7 Worker shape-probe</p>\n    </div>\n    <div class=\"agent-actions\" role=\"group\" aria-label=\"Copy worker data\">\n      <button type=\"button\" class=\"icon-button\" title=\"Copy JSON\" data-copy-text=\"{&quot;case_counts&quot;: {&quot;failed&quot;: 0, &quot;passed&quot;: 24}, &quot;cases_run&quot;: 24, &quot;correlation_id&quot;: &quot;shape-probe&quot;, &quot;error&quot;: null, &quot;finding_ids&quot;: [], &quot;protocol_status&quot;: &quot;valid&quot;, &quot;status&quot;: &quot;success&quot;, &quot;tool_versions&quot;: {&quot;cargo&quot;: &quot;1.94.1&quot;, &quot;git&quot;: &quot;2.53.0&quot;, &quot;python&quot;: &quot;3.11.9&quot;, &quot;rustc&quot;: &quot;1.94.1&quot;, &quot;sc-compose&quot;: &quot;1.3.0&quot;}}\">{}</button>\n      <button type=\"button\" class=\"icon-button\" title=\"Copy Context\" data-copy-text=\"Fuzz session g6-20260802-0001, worker shape-probe.\nDescription: Repeated siblings, attributes, text nodes, whitespace, entities, declarations, and comments.\nIterations: 24, Passed: 24, Failed: 0, Result: PASS, Classification: pass.\nThe panel shows representative concrete template&#x2f;rendered-input pairs; the full worker envelope is in json_payload.\">\u2398</button>\n    </div>\n  </header>\n\n  <p class=\"status\">\n    <span class=\"status status-pass\">PASS</span>\n  </p>\n\n  <table class=\"agent-results\">\n    <thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead>\n    <tbody>\n      <tr>\n        <th scope=\"row\">Repeated siblings, attributes, text nodes, whitespace, entities, declarations, and comments.</th>\n        <td>24</td>\n        <td>24/24</td>\n        <td>\n          <span class=\"status status-pass\">PASS</span>\n        </td>\n      </tr>\n    </tbody>\n  </table>\n\n  <section class=\"test-inputs\">\n    <h3>Inputs exercised</h3>\n    <table>\n      <thead><tr><th scope=\"col\">Case</th><th scope=\"col\">Template / input</th><th scope=\"col\">Outcome</th></tr></thead>\n      <tbody>\n        <tr><th scope=\"row\">shape-001</th><td><code>Attribute and text scalar with repeated sibling path\nTemplate: &lt;items&gt;&lt;item id=&quot;{{ id }}&quot;&gt;{{ label }}&lt;&#x2f;item&gt;&lt;&#x2f;items&gt;\nRendered input: &lt;items&gt;&lt;item id=&quot;42&quot;&gt;Ada&lt;&#x2f;item&gt;&lt;&#x2f;items&gt;</code></td><td>PASS: scalar values and structural occurrence recorded</td></tr>\n        <tr><th scope=\"row\">shape-002</th><td><code>XML declaration, comment, entity, and static prefix&#x2f;suffix\nTemplate: &lt;?xml version=&quot;1.0&quot;?&gt;&lt;root&gt;&lt;!-- note --&gt;&lt;name&gt;Hi {{ name }} &amp;amp; team&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;\nRendered input: &lt;?xml version=&quot;1.0&quot;?&gt;&lt;root&gt;&lt;!-- note --&gt;&lt;name&gt;Hi Ada &amp;amp; team&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;</code></td><td>PASS: declaration&#x2f;comment&#x2f;entity structure preserved</td></tr>\n        <tr><th scope=\"row\">shape-003</th><td><code>Empty scalar and whitespace-padded text node\nTemplate: &lt;root&gt;&lt;value&gt; {{ value }} &lt;&#x2f;value&gt;&lt;&#x2f;root&gt;\nRendered input: &lt;root&gt;&lt;value&gt; &lt;&#x2f;value&gt;&lt;&#x2f;root&gt;</code></td><td>PASS: empty rendered scalar reported without fabrication</td></tr>\n      </tbody>\n    </table>\n  </section>\n\n</section>",
+      "context_text": "Fuzz session g6-20260802-0001, worker shape-probe.\nDescription: Repeated siblings, attributes, text nodes, whitespace, entities, declarations, and comments.\nIterations: 24, Passed: 24, Failed: 0, Result: PASS, Classification: pass.\nThe panel shows representative concrete template/rendered-input pairs; the full worker envelope is in json_payload.",
+      "json_payload": {
+        "correlation_id": "shape-probe",
+        "status": "success",
+        "protocol_status": "valid",
+        "cases_run": 24,
+        "case_counts": {
+          "passed": 24,
+          "failed": 0
+        },
+        "finding_ids": [],
+        "tool_versions": {
+          "sc-compose": "1.3.0",
+          "cargo": "1.94.1",
+          "rustc": "1.94.1",
+          "python": "3.11.9",
+          "git": "2.53.0"
+        },
+        "error": null
+      },
+      "xhtml_path": "site/reports/20260801-1-fuzz-report/20260801-1-fuzz-report-shape-probe.xhtml",
+      "fragment_source": "auto-generated",
+      "xhtml_validation": "PASS: xmllint --noout"
+    },
+    {
+      "id": "template-probe",
+      "title": "Worker: template-probe",
+      "status": "INCONCLUSIVE",
+      "body_html": "<section xmlns=\"http://www.w3.org/1999/xhtml\" class=\"fuzz-agent fuzz-agent-inconclusive\">\n  <header class=\"agent-header fuzz-agent-header\">\n    <div>\n      <p class=\"eyebrow\">Adversarial fuzz worker</p>\n      <h2>template-probe</h2>\n      <p class=\"agent-meta\">Session g6-20260802-0001 \u00b7 Worker template-probe</p>\n    </div>\n    <div class=\"agent-actions\" role=\"group\" aria-label=\"Copy worker data\">\n      <button type=\"button\" class=\"icon-button\" title=\"Copy JSON\" data-copy-text=\"{&quot;case_counts&quot;: {&quot;failed&quot;: 1, &quot;passed&quot;: 29}, &quot;cases_run&quot;: 30, &quot;correlation_id&quot;: &quot;template-probe&quot;, &quot;error&quot;: null, &quot;finding_ids&quot;: [&quot;FUZZ-template-probe-dotted-expression&quot;], &quot;protocol_status&quot;: &quot;valid&quot;, &quot;status&quot;: &quot;success&quot;, &quot;tool_versions&quot;: {&quot;cargo&quot;: &quot;1.94.1&quot;, &quot;git&quot;: &quot;2.53.0&quot;, &quot;python&quot;: &quot;3.11.9&quot;, &quot;rustc&quot;: &quot;1.94.1&quot;, &quot;sc-compose&quot;: &quot;1.3.0&quot;}}\">{}</button>\n      <button type=\"button\" class=\"icon-button\" title=\"Copy Context\" data-copy-text=\"Fuzz session g6-20260802-0001, worker template-probe.\nDescription: Supported scalar expressions versus unsupported filters, control flow, concatenation, and type-looking values.\nIterations: 30, Passed: 29, Failed: 1, Result: FAIL, Classification: inconclusive.\nThe panel shows representative concrete template&#x2f;rendered-input pairs; the full worker envelope is in json_payload.\">\u2398</button>\n    </div>\n  </header>\n\n  <p class=\"status\">\n    <span class=\"status status-error\">FAIL</span>\n  </p>\n\n  <table class=\"agent-results\">\n    <thead><tr><th scope=\"col\">Fuzz run description</th><th scope=\"col\">Iterations</th><th scope=\"col\">Pass</th><th scope=\"col\">Result</th></tr></thead>\n    <tbody>\n      <tr>\n        <th scope=\"row\">Supported scalar expressions versus unsupported filters, control flow, concatenation, and type-looking values.</th>\n        <td>30</td>\n        <td>29/30</td>\n        <td>\n          <span class=\"status status-error\">FAIL</span>\n        </td>\n      </tr>\n    </tbody>\n  </table>\n\n  <section class=\"test-inputs\">\n    <h3>Inputs exercised</h3>\n    <table>\n      <thead><tr><th scope=\"col\">Case</th><th scope=\"col\">Template / input</th><th scope=\"col\">Outcome</th></tr></thead>\n      <tbody>\n        <tr><th scope=\"row\">template-001</th><td><code>Supported scalar with static prefix and suffix\nTemplate: &lt;root&gt;&lt;name&gt;Hello {{ name }}!&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;\nRendered input: &lt;root&gt;&lt;name&gt;Hello Ada!&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;</code></td><td>PASS: scalar expression extracted</td></tr>\n        <tr><th scope=\"row\">template-002</th><td><code>Unsupported filter is rejected fail-closed\nTemplate: &lt;root&gt;{{ name | upper }}&lt;&#x2f;root&gt;\nRendered input: &lt;root&gt;ADA&lt;&#x2f;root&gt;</code></td><td>PASS: ERR_EXTRACT_UNSUPPORTED</td></tr>\n        <tr><th scope=\"row\">template-003</th><td><code>Dotted expression contract candidate\nTemplate: &lt;root&gt;&lt;name&gt;{{ user.name }}&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;\nRendered input: &lt;root&gt;&lt;name&gt;Ada&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;</code></td><td>INCONCLUSIVE: accepted as literal user.name; replayed 3&#x2f;3</td></tr>\n      </tbody>\n    </table>\n  </section>\n\n  <section class=\"findings\">\n    <h3>Findings</h3>\n    <article class=\"finding\">\n      <h4>FUZZ-template-probe-dotted-expression</h4>\n      <dl>\n        <dt>Minimal template / frontmatter</dt><dd><code>&lt;root&gt;&lt;name&gt;{{ user.name }}&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;\n</code></dd>\n        <dt>Input</dt><dd><code>&lt;root&gt;&lt;name&gt;Ada&lt;&#x2f;name&gt;&lt;&#x2f;root&gt;\n</code></dd>\n        <dt>Expected</dt><dd>The worker oracle expected dotted attribute syntax to be rejected with ERR_EXTRACT_UNSUPPORTED.</dd>\n        <dt>Observed</dt><dd>{&quot;deterministic&quot;: true, &quot;diagnostic&quot;: &quot;WARN_EXTRACT_LOW_CONFIDENCE&quot;, &quot;exit_code&quot;: 0, &quot;values&quot;: {&quot;user.name&quot;: &quot;Ada&quot;}}</dd>\n        <dt>Requirement / ADR</dt><dd>FR-16 and ADR-0011 define a documented scalar XML subset but do not define dotted-expression semantics. VariableName::new explicitly permits dots, while extraction does not promise reconstruction of object attributes.</dd>\n        <dt>Requirement / ADR follow-up</dt><dd>Team lead&#x2f;product owner should decide whether dotted expressions are literal variable names or object-path expressions, then amend FR-16&#x2f;ADR-0011 and add a contract test if needed.</dd>\n        <dt>Root cause</dt><dd>Extraction reuses the permissive VariableName validator; product intent for dotted names is unresolved.</dd>\n        <dt>Recommended fix</dt><dd>Clarify the contract before changing implementation. Do not reject or reinterpret dotted names solely from this fuzz result.</dd>\n      </dl>\n    </article>\n  </section>\n</section>",
+      "context_text": "Fuzz session g6-20260802-0001, worker template-probe.\nDescription: Supported scalar expressions versus unsupported filters, control flow, concatenation, and type-looking values.\nIterations: 30, Passed: 29, Failed: 1, Result: FAIL, Classification: inconclusive.\nThe panel shows representative concrete template/rendered-input pairs; the full worker envelope is in json_payload.",
+      "json_payload": {
+        "correlation_id": "template-probe",
+        "status": "success",
+        "protocol_status": "valid",
+        "cases_run": 30,
+        "case_counts": {
+          "passed": 29,
+          "failed": 1
+        },
+        "finding_ids": [
+          "FUZZ-template-probe-dotted-expression"
+        ],
+        "tool_versions": {
+          "sc-compose": "1.3.0",
+          "cargo": "1.94.1",
+          "rustc": "1.94.1",
+          "python": "3.11.9",
+          "git": "2.53.0"
+        },
+        "error": null
+      },
+      "xhtml_path": "site/reports/20260801-1-fuzz-report/20260801-1-fuzz-report-template-probe.xhtml",
+      "fragment_source": "auto-generated",
+      "xhtml_validation": "PASS: xmllint --noout"
+    }
+  ],
+  "validation": {
+    "html": "PASS: npx --no-install html-validate",
+    "xhtml": "PASS: xmllint --noout on all four panels"
+  },
+  "template": ".claude/skills/html-report/templates/fuzz-run-agent.xhtml.j2",
+  "shell_template": ".claude/skills/html-report/templates/fuzz-run-report.html.j2"
+}

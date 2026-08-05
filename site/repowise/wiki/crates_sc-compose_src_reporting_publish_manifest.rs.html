@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-compose/src/reporting/publish_manifest.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-compose/src/reporting/publish_manifest.rs</h1>
+<h2>Overview</h2>
+<p><code>publish_manifest.rs</code> is the Application-layer edge connector that builds and writes <code>reports/latest/publish-manifest.json</code>, translating the report index and archive layout into a publish-ready JSON manifest consumed by the reports publish command.</p>
+<p>The module is part of the reporting subsystem’s public application-facing surface: <code>commands/reports/publish.rs</code> calls <code>write_publish_manifest</code>, while this file coordinates report-index validation, artifact-path normalization, archive discovery, JSON serialization, and filesystem output.</p>
+<p>The generated manifest contains:</p>
+<ul>
+<li>A UTC RFC 3339 <code>generated_at</code> timestamp.</li>
+<li>One entry per publishable report.</li>
+<li>Each report’s ID, kind, latest entrypoint, optional archived copy, and artifacts.</li>
+<li>A destination path (<code>publish_to</code>) for every source artifact under <code>reports/&lt;report_id&gt;/</code>.</li>
+</ul>
+<p>Required reports with missing evidence stop manifest generation. Optional reports with missing evidence are omitted entirely, so downstream publishing does not receive partial or invalid report entries.</p>
+<h2>Public API</h2>
+<h3><code>PUBLISH_MANIFEST_RELATIVE_PATH</code></h3>
+<pre><code class="language-rust">pub(crate) const PUBLISH_MANIFEST_RELATIVE_PATH: &amp;str =
+    &quot;reports/latest/publish-manifest.json&quot;;
+</code></pre>
+<p>The repository-relative output location for the generated manifest.</p>
+<h3><code>PublishManifestFile</code></h3>
+<pre><code class="language-rust">pub(crate) struct PublishManifestFile {
+    pub(crate) role: String,
+    pub(crate) path: PathBuf,
+    pub(crate) publish_to: PathBuf,
+}
+</code></pre>
+<p>Represents one report file to publish.</p>
+<ul>
+<li><code>role</code> is <code>"entrypoint"</code>, <code>"metadata"</code>, or <code>"artifact"</code>.</li>
+<li><code>path</code> is the artifact’s repository-relative source path.</li>
+<li><code>publish_to</code> is its intended published destination, rooted at <code>reports/&lt;report_id&gt;/</code>.</li>
+</ul>
+<p>Both paths use the project path serializer to produce stable JSON path representations.</p>
+<h3><code>PublishManifestReport</code></h3>
+<pre><code class="language-rust">pub(crate) struct PublishManifestReport {
+    pub(crate) report_id: String,
+    pub(crate) kind: String,
+    pub(crate) entrypoint: PathBuf,
+    pub(crate) archive_root: Option&lt;PathBuf&gt;,
+    pub(crate) files: Vec&lt;PublishManifestFile&gt;,
+}
+</code></pre>
+<p>Describes a complete publishable report.</p>
+<p><code>archive_root</code> is <code>None</code> when no archive directory exists, otherwise it refers to the lexically latest archive directory containing that report ID.</p>
+<h3><code>PublishManifest</code></h3>
+<pre><code class="language-rust">pub(crate) struct PublishManifest {
+    pub(crate) generated_at: String,
+    pub(crate) reports: Vec&lt;PublishManifestReport&gt;,
+}
+</code></pre>
+<p>The serialized document body.</p>
+<h3><code>PublishManifestResult</code></h3>
+<pre><code class="language-rust">pub(crate) struct PublishManifestResult {
+    pub(crate) manifest_path: PathBuf,
+    pub(crate) report_count: usize,
+    pub(crate) manifest: PublishManifest,
+}
+</code></pre>
+<p>Returned after a successful write. It provides the relative output path, number of included reports, and the in-memory manifest so callers need not reread the file.</p>
+<h3><code>PublishManifestError</code></h3>
+<p>Errors are categorized by operation and preserve contextual paths:</p>
+<ul>
+<li><code>Index</code> — report-index construction or required-evidence validation failed.</li>
+<li><code>TimeFormat</code> — RFC 3339 timestamp formatting failed.</li>
+<li><code>InvalidArtifactPath</code> — an artifact is outside its report’s latest-output root or normalizes unsafely.</li>
+<li><code>ReadArchiveRoot</code> — archive directory enumeration failed.</li>
+<li><code>CreateDir</code> — the manifest’s parent directory could not be created.</li>
+<li><code>Serialize</code> — JSON serialization failed.</li>
+<li><code>Write</code> — writing the manifest file failed.</li>
+</ul>
+<p>The <code>Display</code> implementation includes relevant report IDs and paths, making command-level diagnostics actionable.</p>
+<h3><code>write_publish_manifest</code></h3>
+<pre><code class="language-rust">pub(crate) fn write_publish_manifest(
+    root: &amp;Path,
+) -&gt; Result&lt;PublishManifestResult, PublishManifestError&gt;
+</code></pre>
+<p>Builds the report index beneath <code>root</code>, derives publish destinations, finds each report’s latest archive location, writes pretty JSON to <code>PUBLISH_MANIFEST_RELATIVE_PATH</code>, and returns the generated manifest.</p>
+<p>Its caller is <code>run_reports_publish_manifest</code> in <code>commands/reports/publish.rs</code>.</p>
+<h2>Dependencies</h2>
+<table>
+<thead>
+<tr>
+<th>Dependency</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>reporting::index::build_report_index</code></td>
+<td>Supplies report entries, artifact lists, metadata, requiredness, and missing-path information.</td>
+</tr>
+<tr>
+<td><code>reporting::output::{LATEST_ROOT_RELATIVE_PATH, ARCHIVE_ROOT_RELATIVE_PATH}</code></td>
+<td>Defines the expected latest-report and archive directory layouts.</td>
+</tr>
+<tr>
+<td><code>path_utils::normalize_relative_path</code></td>
+<td>Ensures artifact-relative paths are safe and normalized before deriving publish destinations.</td>
+</tr>
+<tr>
+<td><code>serde::Serialize</code> / <code>serde_json</code></td>
+<td>Serializes manifest structures to pretty JSON.</td>
+</tr>
+<tr>
+<td><code>time::OffsetDateTime</code> / <code>Rfc3339</code></td>
+<td>Produces the generation timestamp.</td>
+</tr>
+<tr>
+<td><code>std::fs</code></td>
+<td>Creates the output directory, writes the manifest, and inspects archive directories.</td>
+</tr>
+</tbody>
+</table>
+<p>The module intentionally derives publish destinations from the latest report tree rather than accepting arbitrary destinations. For an artifact under:</p>
+<pre><code class="language-text">reports/latest/&lt;report_id&gt;/subdir/file.json
+</code></pre>
+<p>it emits:</p>
+<pre><code class="language-text">reports/&lt;report_id&gt;/subdir/file.json
+</code></pre>
+<p>This preserves artifact-relative structure while separating publish output from mutable <code>reports/latest</code> content.</p>
+<h2>Usage Notes</h2>
+<p>A typical caller supplies the repository root:</p>
+<pre><code class="language-rust">let result = write_publish_manifest(repo_root)?;
+println!(
+    &quot;Wrote {} for {} reports&quot;,
+    result.manifest_path.display(),
+    result.report_count
+);
+</code></pre>
+<p>The resulting JSON conceptually looks like:</p>
+<pre><code class="language-json">{
+  &quot;generated_at&quot;: &quot;2026-07-23T12:34:56Z&quot;,
+  &quot;reports&quot;: [
+    {
+      &quot;report_id&quot;: &quot;sc-lint&quot;,
+      &quot;kind&quot;: &quot;lint&quot;,
+      &quot;entrypoint&quot;: &quot;reports/latest/sc-lint/report.json&quot;,
+      &quot;archive_root&quot;: &quot;reports/archive/2026-07-15T09-00-00Z/sc-lint&quot;,
+      &quot;files&quot;: [
+        {
+          &quot;role&quot;: &quot;entrypoint&quot;,
+          &quot;path&quot;: &quot;reports/latest/sc-lint/report.json&quot;,
+          &quot;publish_to&quot;: &quot;reports/sc-lint/report.json&quot;
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<p>Generation proceeds in these stages:</p>
+<ol>
+<li>Build the report index from <code>root</code>.</li>
+<li>Reject a required report if its index entry lists missing evidence.</li>
+<li>Skip optional reports that have missing evidence.</li>
+<li>Verify each artifact lies beneath <code>reports/latest/&lt;report_id&gt;</code>.</li>
+<li>Normalize the remaining relative path before joining it to <code>reports/&lt;report_id&gt;</code>.</li>
+<li>Classify the artifact as the report entrypoint, metadata file, or a generic artifact.</li>
+<li>Locate the report’s newest matching archive directory, if any.</li>
+<li>Serialize and write the complete manifest.</li>
+</ol>
+<p>Path validation is important. <code>strip_prefix</code> prevents an indexed artifact from being mapped into a publish destination when it does not belong to that report’s latest-output tree. <code>normalize_relative_path</code> then provides a second guard against unsafe or malformed relative paths before they are joined to the publish root.</p>
+<p>Archive discovery does not require an archive for every report. If <code>reports/archive</code> is absent, the report is still included with <code>archive_root: null</code>. If archives exist, only directories that contain the requested report ID qualify; the implementation returns the lexically latest qualifying archive name. This assumes archive directory names sort chronologically, as demonstrated by timestamp-shaped directory names.</p>
+<p>The module writes pretty-printed JSON and creates the manifest’s parent directory if necessary. Callers should treat successful return as confirmation that the file was written; the returned <code>manifest</code> is primarily useful for command output, tests, or additional in-process processing.</p>
+</body>
+</html>

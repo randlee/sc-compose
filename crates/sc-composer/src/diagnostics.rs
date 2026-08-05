@@ -49,13 +49,18 @@ pub enum DiagnosticCode {
     ErrIncludeDepth,
     /// Structured object input used an unsupported shape.
     ErrValObjectShape,
-    /// Structured input used either a literal nested array or an array of
-    /// objects at a non-top-level path.
+    /// Legacy code reserved for a retired nested-array validation restriction.
+    ///
+    /// Current recursive structured-input validation does not emit this code
+    /// for JSON/YAML-compatible values, but it remains part of the public
+    /// diagnostic enum for compatibility.
     ErrValNestedArrayUnsupported,
     /// Frontmatter declarations contained duplicate variables.
     ErrValDuplicate,
     /// Frontmatter used both defaults sections and `input_defaults` overrides them.
     WarnValConflictingDefaultSections,
+    /// `--all` was requested for a template without stacked headers.
+    WarnConfigSinglePassAllFallback,
     /// A template body was empty when content was required.
     ErrValEmpty,
     /// The root template omitted a frontmatter block.
@@ -80,6 +85,8 @@ pub enum DiagnosticCode {
     ErrConfigReadonly,
     /// A command or helper was invoked in an incompatible mode.
     ErrConfigMode,
+    /// A configuration or text file could not be read as valid text.
+    ErrConfigRead,
     /// Configuration or YAML parsing failed.
     ErrConfigParse,
     /// A var-file contained an unsupported structure.
@@ -90,6 +97,80 @@ pub enum DiagnosticCode {
     ErrConfigPackNotRenderable,
     /// A template import target already exists.
     ErrConfigTemplateExists,
+    /// An extraction request violates the in-memory contract.
+    ErrExtractInvalidRequest,
+    /// The rendered extraction input is malformed XML.
+    ErrExtractMalformed,
+    /// The template uses syntax outside the supported extraction subset.
+    ErrExtractUnsupported,
+    /// The extraction result has more than one structural interpretation.
+    ErrExtractAmbiguous,
+    /// A declared extraction occurrence was not observed in the rendered XML.
+    WarnExtractNotObserved,
+    /// Extraction evidence is insufficient for a high-confidence report.
+    WarnExtractLowConfidence,
+    /// Bytes were removed from an approved rendered XML preamble.
+    WarnExtractDirtyPrefixStripped,
+    /// The rendered JSON input is malformed.
+    ErrExtractJsonMalformed,
+    /// A JSON object contains a duplicate key.
+    ErrExtractJsonDuplicateKey,
+    /// A known-template JSON path is absent from the rendered value.
+    ErrExtractJsonPathMissing,
+    /// A rendered JSON value differs from the known-template structure.
+    ErrExtractJsonShapeMismatch,
+    /// A JSON placeholder occurs in an unsupported value shape.
+    ErrExtractJsonValueUnsupported,
+    /// A JSON variable occurs at multiple distinct paths.
+    ErrExtractJsonAmbiguous,
+    /// A template expression is outside the supported known-template subset.
+    ErrExtractTemplateUnsupported,
+    /// A rendered XML element name differs from the known template.
+    ErrExtractXmlElementMismatch,
+    /// A rendered XML attribute shape differs from the known template.
+    ErrExtractXmlAttributeMismatch,
+    /// A rendered XML child-node shape differs from the known template.
+    ErrExtractXmlChildStructureMismatch,
+    /// XML structural matching encountered a static-content mismatch.
+    ErrExtractXmlStaticMismatch,
+    /// XML control-flow syntax cannot be reversed by known-template matching.
+    ErrExtractXmlControlFlowUnsupported,
+    /// XML element names contain unsupported dynamic expressions.
+    ErrExtractXmlDynamicElementName,
+    /// XML namespaces are outside the supported unambiguous subset.
+    ErrExtractXmlNamespaceUnsupported,
+    /// The requested extraction format is not supported by this surface.
+    ErrExtractFormatUnsupported,
+    /// The rendered YAML is malformed or not one valid document.
+    ErrExtractYamlMalformed,
+    /// A YAML mapping repeats a key.
+    ErrExtractYamlDuplicateKey,
+    /// A YAML alias or anchor is outside the extraction contract.
+    ErrExtractYamlAliasUnsupported,
+    /// More than one YAML document was supplied.
+    ErrExtractYamlDocumentStream,
+    /// A known-template YAML path is absent from the rendered document.
+    ErrExtractYamlPathMissing,
+    /// The rendered YAML shape differs from the known template.
+    ErrExtractYamlShapeMismatch,
+    /// A YAML placeholder occurs outside a supported string scalar.
+    ErrExtractYamlValueUnsupported,
+    /// A YAML variable occurs at multiple distinct paths.
+    ErrExtractYamlAmbiguous,
+    /// The rendered TOML input is malformed.
+    ErrExtractTomlMalformed,
+    /// An extraction input exceeded a configured size, depth, or occurrence bound.
+    ErrExtractInputLimit,
+    /// A TOML document or table contains a duplicate key.
+    ErrExtractTomlDuplicateKey,
+    /// A known-template TOML path is absent from the rendered document.
+    ErrExtractTomlPathMissing,
+    /// The rendered TOML shape differs from the known template.
+    ErrExtractTomlShapeMismatch,
+    /// A TOML placeholder occurs outside a supported string value.
+    ErrExtractTomlValueUnsupported,
+    /// A TOML variable occurs at multiple distinct paths.
+    ErrExtractTomlAmbiguous,
 }
 
 impl DiagnosticCode {
@@ -107,6 +188,7 @@ impl DiagnosticCode {
             Self::ErrValNestedArrayUnsupported => "ERR_VAL_NESTED_ARRAY_UNSUPPORTED",
             Self::ErrValDuplicate => "ERR_VAL_DUPLICATE",
             Self::WarnValConflictingDefaultSections => "WARN_VAL_CONFLICTING_DEFAULT_SECTIONS",
+            Self::WarnConfigSinglePassAllFallback => "WARN_CONFIG_SINGLE_PASS_ALL_FALLBACK",
             Self::ErrValEmpty => "ERR_VAL_EMPTY",
             Self::ErrValMissingFrontmatter => "ERR_VAL_MISSING_FRONTMATTER",
             Self::ErrValMissingRequired => "ERR_VAL_MISSING_REQUIRED",
@@ -119,11 +201,49 @@ impl DiagnosticCode {
             Self::ErrRenderWrite => "ERR_RENDER_WRITE",
             Self::ErrConfigReadonly => "ERR_CONFIG_READONLY",
             Self::ErrConfigMode => "ERR_CONFIG_MODE",
+            Self::ErrConfigRead => "ERR_CONFIG_READ",
             Self::ErrConfigParse => "ERR_CONFIG_PARSE",
             Self::ErrConfigVarfile => "ERR_CONFIG_VARFILE",
             Self::ErrConfigPackNotFound => "ERR_CONFIG_PACK_NOT_FOUND",
             Self::ErrConfigPackNotRenderable => "ERR_CONFIG_PACK_NOT_RENDERABLE",
             Self::ErrConfigTemplateExists => "ERR_CONFIG_TEMPLATE_EXISTS",
+            Self::ErrExtractInvalidRequest => "ERR_EXTRACT_INVALID_REQUEST",
+            Self::ErrExtractMalformed => "ERR_EXTRACT_MALFORMED",
+            Self::ErrExtractUnsupported => "ERR_EXTRACT_UNSUPPORTED",
+            Self::ErrExtractAmbiguous => "ERR_EXTRACT_AMBIGUOUS",
+            Self::WarnExtractNotObserved => "WARN_EXTRACT_NOT_OBSERVED",
+            Self::WarnExtractLowConfidence => "WARN_EXTRACT_LOW_CONFIDENCE",
+            Self::WarnExtractDirtyPrefixStripped => "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED",
+            Self::ErrExtractJsonMalformed => "ERR_EXTRACT_JSON_MALFORMED",
+            Self::ErrExtractJsonDuplicateKey => "ERR_EXTRACT_JSON_DUPLICATE_KEY",
+            Self::ErrExtractJsonPathMissing => "ERR_EXTRACT_JSON_PATH_MISSING",
+            Self::ErrExtractJsonShapeMismatch => "ERR_EXTRACT_JSON_SHAPE_MISMATCH",
+            Self::ErrExtractJsonValueUnsupported => "ERR_EXTRACT_JSON_VALUE_UNSUPPORTED",
+            Self::ErrExtractJsonAmbiguous => "ERR_EXTRACT_JSON_AMBIGUOUS",
+            Self::ErrExtractTemplateUnsupported => "ERR_EXTRACT_TEMPLATE_UNSUPPORTED",
+            Self::ErrExtractXmlElementMismatch => "ERR_EXTRACT_XML_ELEMENT_MISMATCH",
+            Self::ErrExtractXmlAttributeMismatch => "ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH",
+            Self::ErrExtractXmlChildStructureMismatch => "ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH",
+            Self::ErrExtractXmlStaticMismatch => "ERR_EXTRACT_XML_STATIC_MISMATCH",
+            Self::ErrExtractXmlControlFlowUnsupported => "ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED",
+            Self::ErrExtractXmlDynamicElementName => "ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME",
+            Self::ErrExtractXmlNamespaceUnsupported => "ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED",
+            Self::ErrExtractFormatUnsupported => "ERR_EXTRACT_FORMAT_UNSUPPORTED",
+            Self::ErrExtractYamlMalformed => "ERR_EXTRACT_YAML_MALFORMED",
+            Self::ErrExtractYamlDuplicateKey => "ERR_EXTRACT_YAML_DUPLICATE_KEY",
+            Self::ErrExtractYamlAliasUnsupported => "ERR_EXTRACT_YAML_ALIAS_UNSUPPORTED",
+            Self::ErrExtractYamlDocumentStream => "ERR_EXTRACT_YAML_DOCUMENT_STREAM",
+            Self::ErrExtractYamlPathMissing => "ERR_EXTRACT_YAML_PATH_MISSING",
+            Self::ErrExtractYamlShapeMismatch => "ERR_EXTRACT_YAML_SHAPE_MISMATCH",
+            Self::ErrExtractYamlValueUnsupported => "ERR_EXTRACT_YAML_VALUE_UNSUPPORTED",
+            Self::ErrExtractYamlAmbiguous => "ERR_EXTRACT_YAML_AMBIGUOUS",
+            Self::ErrExtractTomlMalformed => "ERR_EXTRACT_TOML_MALFORMED",
+            Self::ErrExtractInputLimit => "ERR_EXTRACT_INPUT_LIMIT",
+            Self::ErrExtractTomlDuplicateKey => "ERR_EXTRACT_TOML_DUPLICATE_KEY",
+            Self::ErrExtractTomlPathMissing => "ERR_EXTRACT_TOML_PATH_MISSING",
+            Self::ErrExtractTomlShapeMismatch => "ERR_EXTRACT_TOML_SHAPE_MISMATCH",
+            Self::ErrExtractTomlValueUnsupported => "ERR_EXTRACT_TOML_VALUE_UNSUPPORTED",
+            Self::ErrExtractTomlAmbiguous => "ERR_EXTRACT_TOML_AMBIGUOUS",
         }
     }
 }

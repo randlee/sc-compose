@@ -1,0 +1,4 @@
+provider: codex_cli
+model: codex_cli/default
+embedder: gemini
+reasoning: auto

@@ -8,6 +8,19 @@ import pytest
 import sc_compose
 
 
+FIXTURE_ROOT = (
+    Path(__file__).resolve().parents[3]
+    / "crates"
+    / "sc-composer"
+    / "tests"
+    / "fixtures"
+    / "reverse-extract"
+)
+TEAM_LEAD_SENDER = (FIXTURE_ROOT / "team-lead-sender.txt").read_text(
+    encoding="utf-8"
+).strip()
+
+
 def write(path: Path, contents: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(textwrap.dedent(contents), encoding="utf-8", newline="\n")
@@ -33,11 +46,17 @@ def test_import_surface_exposes_c2_api() -> None:
         "DiagnosticCode",
         "DiagnosticSeverity",
         "ExpandedTemplate",
+        "ExtractionDiagnostic",
+        "ExtractionPathSegment",
+        "ExtractionOccurrence",
+        "ExtractionReport",
+        "ExtractionSource",
         "Frontmatter",
         "FrontmatterInitResult",
         "InitResult",
         "LoadedTemplateRequest",
         "NamedTemplateAsset",
+        "PassConfig",
         "ParsedTemplate",
         "ProfileKind",
         "ProfileName",
@@ -56,14 +75,20 @@ def test_import_surface_exposes_c2_api() -> None:
         "ValidationReport",
         "VariableName",
         "VariableSource",
+        "VerifyResult",
+        "XmlPathSegment",
         "compose",
         "compose_file",
+        "discover_all_pass_tokens",
         "discover_tokens",
+        "discover_tokens_with_brace_count",
         "expand_includes",
+        "extract_variables",
         "frontmatter_init",
         "init_workspace",
         "input_value_from_yaml",
         "parse_template_document",
+        "render_all",
         "render_loaded_template",
         "render_template",
         "resolve_profile",
@@ -71,10 +96,515 @@ def test_import_surface_exposes_c2_api() -> None:
         "to_forward_slash",
         "validate",
         "validate_input_value",
+        "verify",
     ]
 
     for name in required:
         assert getattr(sc_compose, name) is not None
+    for code in [
+        "ERR_EXTRACT_FORMAT_UNSUPPORTED",
+        "ERR_EXTRACT_TEMPLATE_UNSUPPORTED",
+        "ERR_EXTRACT_XML_ELEMENT_MISMATCH",
+        "ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH",
+        "ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH",
+        "ERR_EXTRACT_XML_STATIC_MISMATCH",
+        "ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED",
+        "ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME",
+        "ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED",
+        "ERR_EXTRACT_JSON_MALFORMED",
+        "ERR_EXTRACT_JSON_DUPLICATE_KEY",
+        "ERR_EXTRACT_JSON_PATH_MISSING",
+        "ERR_EXTRACT_JSON_SHAPE_MISMATCH",
+        "ERR_EXTRACT_JSON_VALUE_UNSUPPORTED",
+        "ERR_EXTRACT_JSON_AMBIGUOUS",
+        "ERR_EXTRACT_YAML_MALFORMED",
+        "ERR_EXTRACT_YAML_DUPLICATE_KEY",
+        "ERR_EXTRACT_YAML_ALIAS_UNSUPPORTED",
+        "ERR_EXTRACT_YAML_DOCUMENT_STREAM",
+        "ERR_EXTRACT_YAML_PATH_MISSING",
+        "ERR_EXTRACT_YAML_SHAPE_MISMATCH",
+        "ERR_EXTRACT_YAML_VALUE_UNSUPPORTED",
+        "ERR_EXTRACT_YAML_AMBIGUOUS",
+        "ERR_EXTRACT_TOML_MALFORMED",
+        "ERR_EXTRACT_INPUT_LIMIT",
+        "ERR_EXTRACT_TOML_DUPLICATE_KEY",
+        "ERR_EXTRACT_TOML_PATH_MISSING",
+        "ERR_EXTRACT_TOML_SHAPE_MISMATCH",
+        "ERR_EXTRACT_TOML_VALUE_UNSUPPORTED",
+        "ERR_EXTRACT_TOML_AMBIGUOUS",
+        "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED",
+    ]:
+        assert getattr(sc_compose.DiagnosticCode, code) == code
+
+
+def test_extraction_report_preserves_values_provenance_and_filters() -> None:
+    template = (
+        '<root id="{{ id }}">'
+        "<item>{{ first }}</item>"
+        "<item>{{ second }}</item>"
+        "<name>Hello {{ name }}!</name>"
+        "</root>"
+    )
+    rendered = (
+        '<root id="42">'
+        "<item>one</item>"
+        "<item>two</item>"
+        "<name>Hello Ada!</name>"
+        "</root>"
+    )
+
+    report = sc_compose.extract_variables(template, rendered)
+
+    assert isinstance(report, sc_compose.ExtractionReport)
+    assert report.values == {
+        "first": "one",
+        "id": "42",
+        "name": "Ada",
+        "second": "two",
+    }
+    assert report.confidence > 0.75
+    assert report.diagnostics == []
+
+    by_variable = {occurrence.variable: occurrence for occurrence in report.occurrences}
+    assert by_variable["id"].source.kind == "attribute"
+    assert by_variable["id"].source.name == "id"
+    assert by_variable["id"].rendered_text == "42"
+    assert by_variable["name"].source.kind == "text_node"
+    assert by_variable["name"].path[-1].kind == "element"
+    assert by_variable["name"].path[-1].name == "name"
+
+    first_item = by_variable["first"].path[-1]
+    second_item = by_variable["second"].path[-1]
+    assert first_item.ordinal == 0
+    assert second_item.ordinal == 1
+
+    included = sc_compose.extract_variables(
+        template, rendered, include=["name", "id"]
+    )
+    assert included.values == {"id": "42", "name": "Ada"}
+
+    excluded = sc_compose.extract_variables(template, rendered, exclude=["id"])
+    assert "id" not in excluded.values
+    assert {occurrence.variable for occurrence in excluded.occurrences} == {
+        "first",
+        "name",
+        "second",
+    }
+
+
+def test_xml_block_extraction_preserves_canonical_mixed_content() -> None:
+    template, rendered = fixture_pair("xml-blocks")
+
+    report = sc_compose.extract_variables(template, rendered)
+
+    assert report.values["description"] == (
+        "Fix the XML extractor in <code>sc-compose</code> and preserve "
+        "&amp; review evidence."
+    )
+    assert report.values["references"] == (
+        '<issue number="193">Gap 1</issue>'
+        "<link>https://github.com/randlee/sc-compose/issues/193</link>"
+    )
+    by_variable = {occurrence.variable: occurrence for occurrence in report.occurrences}
+    assert by_variable["references"].source.kind == "element_content"
+    assert by_variable["references"].rendered_text == report.values["references"]
+
+
+def test_extraction_fails_closed_for_unsupported_syntax() -> None:
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(
+            "<root>{% if enabled %}{{ value }}{% endif %}</root>",
+            "<root>yes</root>",
+        )
+
+    assert caught.value.code == "ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED"
+    assert caught.value.diagnostic_kind == "unsupported"
+    assert caught.value.diagnostic_message
+    assert caught.value.recovery_hints
+
+
+def test_raw_extraction_matches_markdown_and_reports_text_spans() -> None:
+    template = "# {{ title }}\n\nOwner: {{ owner }}\n\n\\*Important\\*: {{ note }}\n"
+    rendered = "# Launch Plan\n\nOwner: Ada\n\n\\*Important\\*: review\n"
+
+    report = sc_compose.extract_variables(template, rendered, format="raw")
+
+    assert report.values == {"note": "review", "owner": "Ada", "title": "Launch Plan"}
+    assert report.diagnostics == []
+    title = report.occurrences[0]
+    assert title.variable == "title"
+    assert title.source.kind == "text_span"
+    segment = title.path[0]
+    assert segment.kind == "text_span"
+    assert (segment.byte_start, segment.byte_end) == (2, 13)
+    assert (segment.line, segment.column) == (1, 3)
+    assert report.occurrences[1].path[0].line == 3
+    assert report.occurrences[2].variable == "note"
+    assert report.occurrences[2].path[0].line == 5
+
+    included = sc_compose.extract_variables(
+        template, rendered, format="raw", include=["owner"]
+    )
+    assert included.values == {"owner": "Ada"}
+    assert [occurrence.variable for occurrence in included.occurrences] == ["owner"]
+
+
+def test_raw_extraction_preserves_shared_matcher_fail_closed_codes() -> None:
+    cases = [
+        ("Hello {{ name }}", "Goodbye Ada", "ERR_EXTRACT_UNSUPPORTED"),
+        ("{% if enabled %}{{ value }}{% endif %}", "yes", "ERR_EXTRACT_TEMPLATE_UNSUPPORTED"),
+        ("{{ first }}{{ second }}", "AdaJones", "ERR_EXTRACT_AMBIGUOUS"),
+    ]
+    for template, rendered, code in cases:
+        with pytest.raises(sc_compose.ScConfigError) as caught:
+            sc_compose.extract_variables(template, rendered, format="raw")
+        assert caught.value.code == code
+
+
+def test_json_extraction_matches_the_shared_rust_contract() -> None:
+    report = sc_compose.extract_variables(
+        '{"items":[{"name":"{{ name }}"}]}',
+        '{"items":[{"name":"Ada"}]}',
+        format="json",
+    )
+
+    assert report.values == {"name": "Ada"}
+    occurrence = report.occurrences[0]
+    assert occurrence.source.kind == "string_value"
+    assert [(segment.kind, segment.name, segment.ordinal) for segment in occurrence.path] == [
+        ("object_key", "items", None),
+        ("array_index", "0", 0),
+        ("object_key", "name", None),
+    ]
+
+
+def test_json_extraction_preserves_boundary_diagnostics() -> None:
+    with pytest.raises(sc_compose.ScConfigError) as malformed:
+        sc_compose.extract_variables(
+            '{"name":"{{ name }}"}',
+            '{"name":"Ada"',
+            format="json",
+        )
+    assert malformed.value.code == "ERR_EXTRACT_JSON_MALFORMED"
+    assert malformed.value.recovery_hints
+
+    with pytest.raises(sc_compose.ScConfigError) as unsupported:
+        sc_compose.extract_variables("{}", "{}", format="ini")
+    assert unsupported.value.code == "ERR_EXTRACT_FORMAT_UNSUPPORTED"
+    assert unsupported.value.recovery_hints
+
+    with pytest.raises(sc_compose.ScConfigError) as invalid_filter:
+        sc_compose.extract_variables("{}", "{}", include=["bad/name"])
+    assert invalid_filter.value.code == "ERR_EXTRACT_INVALID_REQUEST"
+    assert invalid_filter.value.recovery_hints
+
+
+def test_json_extraction_matches_realistic_atm_fixture() -> None:
+    template, rendered = json_fixture_pair("json-atm-payload")
+    report = sc_compose.extract_variables(template, rendered, format="json")
+
+    assert report.values == {
+        "action_name": "execute the assigned task",
+        "description": "H.2 JSON extraction core",
+        "message_id": "01KZ2BV5Z6VCRQYDQWYSAZA8GB",
+        "sender": TEAM_LEAD_SENDER,
+    }
+    action = next(
+        occurrence
+        for occurrence in report.occurrences
+        if occurrence.variable == "action_name"
+    )
+    assert [(segment.kind, segment.name, segment.ordinal) for segment in action.path] == [
+        ("object_key", "actions", None),
+        ("array_index", "0", 0),
+        ("object_key", "action", None),
+    ]
+
+
+def test_yaml_extraction_matches_realistic_atm_fixture_and_skips_frontmatter() -> None:
+    template = """---
+required_variables:
+  - message_id
+---
+message_id: "{{ message_id }}"
+actions:
+  - action: "{{ action_name }}"
+    enabled: true
+"""
+    rendered = """message_id: "01KZ2H7JBMK3850VYC637AN4XJ"
+actions:
+  - action: "execute the assigned task"
+    enabled: true
+"""
+    report = sc_compose.extract_variables(template, rendered, format="yaml")
+
+    assert report.values == {
+        "action_name": "execute the assigned task",
+        "message_id": "01KZ2H7JBMK3850VYC637AN4XJ",
+    }
+    action = next(
+        occurrence
+        for occurrence in report.occurrences
+        if occurrence.variable == "action_name"
+    )
+    assert action.source.kind == "string_scalar"
+    assert [(segment.kind, segment.name, segment.ordinal) for segment in action.path] == [
+        ("mapping_key", "actions", None),
+        ("sequence_index", "0", 0),
+        ("mapping_key", "action", None),
+    ]
+
+
+def test_toml_extraction_matches_cargo_config_and_array_of_table_paths() -> None:
+    template = """---
+required_variables:
+  - package_name
+---
+[package]
+name = "{{ package_name }}"
+version = "{{ version }}"
+
+[[bin]]
+name = "{{ first_bin }}"
+path = "src/main.rs"
+
+[[bin]]
+name = "{{ second_bin }}"
+path = "src/bin/second.rs"
+"""
+    rendered = """[package]
+name = "example-app"
+version = "1.2.3"
+
+[[bin]]
+name = "example-app"
+path = "src/main.rs"
+
+[[bin]]
+name = "example-tool"
+path = "src/bin/second.rs"
+"""
+    report = sc_compose.extract_variables(template, rendered, format="toml")
+
+    assert report.values == {
+        "first_bin": "example-app",
+        "package_name": "example-app",
+        "second_bin": "example-tool",
+        "version": "1.2.3",
+    }
+    second = next(
+        occurrence
+        for occurrence in report.occurrences
+        if occurrence.variable == "second_bin"
+    )
+    assert second.source.kind == "string_value"
+    assert [(segment.kind, segment.name, segment.ordinal) for segment in second.path] == [
+        ("table_key", "bin", None),
+        ("array_index", "1", 1),
+        ("table_key", "name", None),
+    ]
+
+
+def test_toml_extraction_rejects_oversized_input_with_stable_code() -> None:
+    large_value = "x" * 1_048_577
+    rendered = f'value = "{large_value}"\n'
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(
+            'value = "{{ value }}"\n', rendered, format="toml"
+        )
+    assert caught.value.code == "ERR_EXTRACT_INPUT_LIMIT"
+
+
+@pytest.mark.parametrize(
+    ("format", "template", "rendered"),
+    [
+        (
+            "json",
+            '{"value": "{{ value }}"}',
+            '{"value": "' + "x" * 1_048_577 + '"}',
+        ),
+        (
+            "yaml",
+            'value: "{{ value }}"\n',
+            'value: "' + "x" * 1_048_577 + '"\n',
+        ),
+        (
+            "xml",
+            "<root><value>{{ value }}</value></root>",
+            "<root><value>" + "x" * 1_048_577 + "</value></root>",
+        ),
+    ],
+    ids=["json", "yaml", "xml"],
+)
+def test_json_yaml_and_xml_extraction_limits_reach_python(
+    format: str, template: str, rendered: str
+) -> None:
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(template, rendered, format=format)
+    assert caught.value.code == "ERR_EXTRACT_INPUT_LIMIT"
+
+def fixture_pair(name: str) -> tuple[str, str]:
+    template = (FIXTURE_ROOT / f"{name}.xml.j2").read_text(encoding="utf-8")
+    rendered = (FIXTURE_ROOT / f"{name}.xml").read_text(encoding="utf-8")
+    return template, rendered
+
+
+def json_fixture_pair(name: str) -> tuple[str, str]:
+    template = (FIXTURE_ROOT / f"{name}.json.j2").read_text(encoding="utf-8")
+    rendered = (FIXTURE_ROOT / f"{name}.json").read_text(encoding="utf-8").replace(
+        "__TEAM_LEAD_SENDER__", TEAM_LEAD_SENDER
+    )
+    return template, rendered
+
+
+def test_extraction_matches_shared_rust_fixture_contract() -> None:
+    template, rendered = fixture_pair("attributes")
+    attributes = sc_compose.extract_variables(template, rendered)
+    assert attributes.values == {"id": "42", "name": "Ada"}
+    assert [occurrence.variable for occurrence in attributes.occurrences] == [
+        "id",
+        "name",
+    ]
+    assert attributes.occurrences[0].source.kind == "attribute"
+    assert attributes.occurrences[1].source.kind == "text_node"
+    assert attributes.confidence > 0.99
+
+    template, rendered = fixture_pair("repeated-siblings")
+    repeated = sc_compose.extract_variables(template, rendered)
+    assert repeated.values == {"first": "A", "second": "B"}
+    assert repeated.occurrences[1].path[1].kind == "element"
+    assert repeated.occurrences[1].path[1].name == "item"
+    assert repeated.occurrences[1].path[1].ordinal == 1
+    assert repeated.confidence == pytest.approx(0.6)
+    assert [diagnostic.code for diagnostic in repeated.diagnostics] == [
+        "WARN_EXTRACT_LOW_CONFIDENCE"
+    ]
+
+    template, rendered = fixture_pair("entities-whitespace-empty")
+    entities = sc_compose.extract_variables(template, rendered)
+    assert entities.values == {"empty": "", "value": "A & B"}
+    assert entities.confidence > 0.75
+
+
+def test_extraction_error_categories_preserve_exception_mapping_and_detail() -> None:
+    malformed_template, malformed_rendered = fixture_pair("malformed")
+    with pytest.raises(sc_compose.ScConfigError) as malformed:
+        sc_compose.extract_variables(malformed_template, malformed_rendered)
+    assert malformed.value.code == "ERR_EXTRACT_MALFORMED"
+    assert malformed.value.diagnostic_kind == "malformed"
+    assert malformed.value.recovery_hints
+
+    with pytest.raises(sc_compose.ScConfigError) as invalid:
+        sc_compose.extract_variables("", "<x />")
+    assert invalid.value.code == "ERR_EXTRACT_INVALID_REQUEST"
+    assert invalid.value.diagnostic_kind is None
+    assert invalid.value.recovery_hints
+
+
+def test_extraction_reports_missing_occurrence_warning() -> None:
+    template, rendered = fixture_pair("missing-occurrence")
+    report = sc_compose.extract_variables(template, rendered)
+
+    assert report.values == {}
+    not_observed = [
+        diagnostic
+        for diagnostic in report.diagnostics
+        if diagnostic.code == "WARN_EXTRACT_NOT_OBSERVED"
+    ]
+    assert len(not_observed) == 1
+    assert not_observed[0].kind == "not_observed"
+    assert "not observed" in not_observed[0].message
+
+
+def test_extraction_corpus_covers_comments_static_text_and_conflicting_occurrences() -> None:
+    template, rendered = fixture_pair("declaration-comments")
+    comments = sc_compose.extract_variables(template, rendered)
+    assert comments.values == {"value": "Ada"}
+    assert comments.diagnostics == []
+
+    template, rendered = fixture_pair("static-prefix-suffix")
+    static = sc_compose.extract_variables(template, rendered)
+    assert static.values == {"name": "Ada"}
+
+    template, rendered = fixture_pair("same-variable-conflicting-occurrences")
+    conflicting = sc_compose.extract_variables(template, rendered)
+    assert conflicting.values == {}
+    assert [diagnostic.code for diagnostic in conflicting.diagnostics] == [
+        "WARN_EXTRACT_LOW_CONFIDENCE",
+        "ERR_EXTRACT_AMBIGUOUS",
+    ]
+
+
+def test_xml_dirty_prefix_recovery_reaches_python_with_span_detail() -> None:
+    template, rendered = fixture_pair("xml-dirty-prefix")
+    report = sc_compose.extract_variables(template, rendered)
+
+    assert report.values == {"value": "Ada"}
+    warning = next(
+        diagnostic
+        for diagnostic in report.diagnostics
+        if diagnostic.code == "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED"
+    )
+    assert "bytes 0.." in warning.message
+    assert "line 2, column 1" in warning.message
+
+
+def test_xml_dirty_prefix_and_block_content_are_composable() -> None:
+    template, rendered = fixture_pair("xml-dirty-prefix-blocks")
+    report = sc_compose.extract_variables(template, rendered)
+
+    assert report.values == {
+        "content": "<code>Ada</code> and <message>accepted</message>"
+    }
+
+
+@pytest.mark.parametrize(
+    ("fixture", "code"),
+    [
+        ("xml-dirty-prefix-multiple-root", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-malformed-suffix", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-unterminated-comment", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-unterminated-pi", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-ambiguous", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-post-root", "ERR_EXTRACT_MALFORMED"),
+        ("xml-dirty-prefix-doctype", "ERR_EXTRACT_UNSUPPORTED"),
+    ],
+)
+def test_xml_dirty_prefix_rejection_corpus_reaches_python(
+    fixture: str, code: str
+) -> None:
+    template, rendered = fixture_pair(fixture)
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(template, rendered)
+
+    assert caught.value.code == code
+
+
+@pytest.mark.parametrize(
+    ("fixture", "code"),
+    [
+        ("unsupported-filter", "ERR_EXTRACT_TEMPLATE_UNSUPPORTED"),
+        ("namespace", "ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED"),
+        ("ambiguous-adjacent", "ERR_EXTRACT_AMBIGUOUS"),
+    ],
+)
+def test_extraction_corpus_failures_are_stable(fixture: str, code: str) -> None:
+    template, rendered = fixture_pair(fixture)
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(template, rendered)
+
+    assert caught.value.code == code
+    assert caught.value.recovery_hints
+
+
+def test_xml_block_dynamic_element_names_are_rejected() -> None:
+    template, rendered = fixture_pair("xml-block-dynamic-name")
+
+    with pytest.raises(sc_compose.ScConfigError) as caught:
+        sc_compose.extract_variables(template, rendered)
+
+    assert caught.value.code == "ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME"
+    assert "dynamic XML element names" in str(caught.value)
 
 
 def test_repr_surface_is_informative(tmp_path: Path) -> None:
@@ -104,6 +634,7 @@ def test_repr_surface_is_informative(tmp_path: Path) -> None:
     assert "unknown_variable_policy='error'" in policy_repr
     assert "allowed_roots=[" in policy_repr
     assert "resolver_policy=ResolverPolicy(" in policy_repr
+    assert "passes=0" in policy_repr
     assert "ComposeRequest(" in request_repr
     assert "mode=ComposeMode.profile(kind='agent', name='reviewer')" in request_repr
     assert "runtime='claude'" in request_repr
@@ -170,6 +701,25 @@ def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
 
     assert sc_compose.render_template("hi {{ name }}", {"name": "dev"}) == "hi dev"
 
+    recursive_template = (
+        "{% for group in groups %}"
+        "{{ group.name }}:"
+        "{% for row in group.rows %}"
+        "[{% for value in row %}{{ value }}{% if not loop.last %},{% endif %}{% endfor %}]"
+        "{% endfor %};"
+        "{% endfor %}"
+    )
+    recursive_context = {
+        "groups": [
+            {"name": "one", "rows": [["a", "b"], ["c"]]},
+            {"name": "two", "rows": [[]]},
+        ]
+    }
+    assert (
+        sc_compose.render_template(recursive_template, recursive_context)
+        == "one:[a,b][c];two:[];"
+    )
+
     loaded = sc_compose.LoadedTemplateRequest(
         template_name="page.j2",
         template_text='{% include "partials/greeting.j2" %}',
@@ -190,6 +740,8 @@ def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
     assert isinstance(parsed, sc_compose.ParsedTemplate)
     assert parsed.frontmatter is not None
     assert [str(name) for name in parsed.frontmatter.required_variables] == ["name"]
+    assert parsed.frontmatter.pass_number == 1
+    assert len(parsed.passes) == 1
     assert parsed.body == "hello {{ name }}\n"
 
     expanded = sc_compose.expand_includes(tmp_path / "include-root.md.j2", tmp_path)
@@ -219,9 +771,310 @@ def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
     assert renderer.render("hello [[ name ]]", {"name": "python"}) == "hello python"
     assert renderer.render_named("inline", "hey [[ name ]]", {"name": "api"}) == "hey api"
 
+    with pytest.raises(sc_compose.ScRenderError):
+        sc_compose.Renderer.with_delimiters("", "]]")
+
+
+def test_expanded_template_exposes_full_frontmatter_passes(tmp_path: Path) -> None:
+    write(
+        tmp_path / "stacked.md.j2",
+        "---\n"
+        "pass: 1\n"
+        "metadata:\n"
+        "  stage: outer\n"
+        "---\n"
+        "---\n"
+        "pass: 2\n"
+        "metadata:\n"
+        "  stage: inner\n"
+        "---\n"
+        "body\n",
+    )
+
+    expanded = sc_compose.expand_includes(tmp_path / "stacked.md.j2", tmp_path)
+
+    assert expanded.frontmatters[0][1] is not None
+    assert expanded.frontmatters[0][1].metadata["stage"] == "outer"
+    assert len(expanded.frontmatter_passes[0][1]) == 2
+    assert expanded.frontmatter_passes[0][1][0].metadata["stage"] == "outer"
+    assert expanded.frontmatter_passes[0][1][1].metadata["stage"] == "inner"
+
     tokens = sc_compose.discover_tokens("{{ name }} {{ report.title }}")
     assert [str(token) for token in tokens] == ["name", "report.title"]
     assert "TEMPLATE_NAME" in sc_compose.BUILTIN_VARIABLE_NAMES
+
+
+def test_multi_pass_bindings_expose_d1_py_surface() -> None:
+    parsed = sc_compose.parse_template_document(
+        "---\n"
+        "pass: 2\n"
+        "required_variables:\n"
+        "  - team\n"
+        "---\n"
+        "---\n"
+        "metadata:\n"
+        "  stage: final\n"
+        "---\n"
+        "{{ second }} {{{ first }}}\n"
+    )
+
+    assert parsed.frontmatter is not None
+    assert parsed.frontmatter.pass_number == 2
+    assert len(parsed.passes) == 2
+    assert parsed.passes[0].pass_number == 2
+    assert parsed.passes[1].pass_number == 1
+    assert [str(name) for name in parsed.passes[0].required_variables] == ["team"]
+    assert parsed.passes[1].metadata["stage"] == "final"
+
+    config = sc_compose.PassConfig(
+        0,
+        required_variables=["team", sc_compose.VariableName("role")],
+        defaults={"region": "west"},
+        metadata={"labels": ["fast", "safe"], "rank": 2},
+    )
+    assert config.pass_number == 1
+    assert [str(name) for name in config.required_variables] == ["team", "role"]
+    assert config.defaults == {"region": "west"}
+    assert config.metadata == {"labels": ["fast", "safe"], "rank": 2}
+
+    triple = sc_compose.discover_tokens_with_brace_count(
+        "{{{ outer }}} {{ inner }}", 3
+    )
+    assert [str(token) for token in triple] == ["outer"]
+
+    per_pass = sc_compose.discover_all_pass_tokens(parsed)
+    assert {pass_number: [str(token) for token in tokens] for pass_number, tokens in per_pass.items()} == {
+        1: ["second"],
+        2: ["first"],
+    }
+
+
+def test_d2_py_render_all_and_policy_passes_round_trip(tmp_path: Path) -> None:
+    parsed = sc_compose.parse_template_document(
+        "---\n"
+        "pass: 2\n"
+        "---\n"
+        "---\n"
+        "pass: 1\n"
+        "---\n"
+        "{{{ team }}} {{ task }}\n"
+    )
+    passes = [
+        sc_compose.PassConfig(2, defaults={"team": "wyvern"}),
+        sc_compose.PassConfig(1, defaults={"task": "test"}),
+    ]
+    policy = sc_compose.ComposePolicy(passes=passes, allowed_roots=[tmp_path])
+
+    assert [pass_config.pass_number for pass_config in policy.passes] == [2, 1]
+    assert "passes=2" in repr(policy)
+
+    rendered = sc_compose.render_all(
+        parsed,
+        [
+            (2, {"team": "wyvern"}),
+            (1, {"task": "test"}),
+        ],
+    )
+    assert rendered == "wyvern test"
+
+
+def test_d2_py_render_all_applies_frontmatter_defaults_for_direct_callers() -> None:
+    parsed = sc_compose.parse_template_document(
+        "---\n"
+        "pass: 2\n"
+        "defaults:\n"
+        "  team: wyvern\n"
+        "---\n"
+        "---\n"
+        "pass: 1\n"
+        "defaults:\n"
+        "  task: test\n"
+        "---\n"
+        "{{{ team }}} {{ task }}\n"
+    )
+
+    rendered = sc_compose.render_all(parsed, [(2, {}), (1, {})])
+
+    assert rendered == "wyvern test"
+
+
+def test_d2_py_render_all_maps_context_shape_failures() -> None:
+    parsed = sc_compose.parse_template_document(
+        "---\npass: 2\n---\n---\npass: 1\n---\n{{{ team }}} {{ task }}\n"
+    )
+
+    with pytest.raises(sc_compose.ScConfigError) as count_error:
+        sc_compose.render_all(parsed, [(2, {"team": "wyvern"})])
+    assert count_error.value.code == sc_compose.DiagnosticCode.ERR_CONFIG_PARSE
+
+    with pytest.raises(sc_compose.ScConfigError) as pass_error:
+        sc_compose.render_all(parsed, [(1, {"team": "wyvern"}), (2, {"task": "test"})])
+    assert pass_error.value.code == sc_compose.DiagnosticCode.ERR_CONFIG_PARSE
+
+
+def test_d2_py_compose_renders_stacked_headers_with_policy_passes(tmp_path: Path) -> None:
+    write(
+        tmp_path / "stacked.md.j2",
+        "---\n"
+        "pass: 2\n"
+        "---\n"
+        "---\n"
+        "pass: 1\n"
+        "---\n"
+        "{{{ team }}} {{ task }}\n",
+    )
+
+    request = make_file_request(
+        tmp_path,
+        "stacked.md.j2",
+        policy=sc_compose.ComposePolicy(
+            passes=[
+                sc_compose.PassConfig(2, defaults={"team": "wyvern"}),
+                sc_compose.PassConfig(1, defaults={"task": "test"}),
+            ]
+        ),
+    )
+
+    result = sc_compose.compose(request)
+    assert result.rendered_text == "wyvern test"
+
+
+def test_d2_py_validate_catches_higher_pass_undeclared_tokens(tmp_path: Path) -> None:
+    write(
+        tmp_path / "stacked.md.j2",
+        "---\n"
+        "pass: 2\n"
+        "---\n"
+        "---\n"
+        "pass: 1\n"
+        "defaults:\n"
+        "  task: test\n"
+        "---\n"
+        "{{{ missing_team }}} {{ task }}\n",
+    )
+
+    request = make_file_request(
+        tmp_path,
+        "stacked.md.j2",
+        policy=sc_compose.ComposePolicy(strict_undeclared_variables=True),
+    )
+
+    report = sc_compose.validate(request)
+
+    assert not report.ok
+    assert any(
+        diagnostic.code == sc_compose.DiagnosticCode.ERR_VAL_UNDECLARED_TOKEN
+        and "missing_team" in diagnostic.message
+        for diagnostic in report.errors
+    )
+
+
+def test_i5_py_validate_scopes_loop_context_builtins(tmp_path: Path) -> None:
+    write(
+        tmp_path / "loop-context.md.j2",
+        "---\n"
+        "defaults:\n"
+        "  items: [one, two]\n"
+        "---\n"
+        "{% for item in items %}"
+        "{{ loop }} {{ loop.index }} {{ loop.index0 }} "
+        "{{ loop.revindex }} {{ loop.revindex0 }} {{ loop.first }} "
+        "{{ loop.last }} {{ loop.length }} {{ loop.depth }} "
+        "{{ loop.depth0 }} {{ loop.cycle(\"odd\", \"even\") }}:{{ item }}"
+        "{% endfor %}\n",
+    )
+
+    request = make_file_request(
+        tmp_path,
+        "loop-context.md.j2",
+        policy=sc_compose.ComposePolicy(strict_undeclared_variables=True),
+    )
+    report = sc_compose.validate(request)
+    assert report.ok, report
+
+    write(
+        tmp_path / "loop-context-boundary.md.j2",
+        "---\n"
+        "defaults:\n"
+        "  items: [one]\n"
+        "---\n"
+        "outside={{ loop.last }}\n"
+        "{% for item in items %}inside={{ loop.anything }}{% endfor %}\n",
+    )
+    boundary_report = sc_compose.validate(
+        make_file_request(
+            tmp_path,
+            "loop-context-boundary.md.j2",
+            policy=sc_compose.ComposePolicy(strict_undeclared_variables=True),
+        )
+    )
+    assert not boundary_report.ok
+    messages = [diagnostic.message for diagnostic in boundary_report.errors]
+    assert any("loop.last" in message for message in messages)
+    assert any("loop.anything" in message for message in messages)
+
+
+def test_d3_py_python_surface_remains_library_only() -> None:
+    assert not hasattr(sc_compose, "parse_pass_inputs")
+    assert not hasattr(sc_compose, "filtered_args_for_clap")
+    assert not hasattr(sc_compose, "run_template_init")
+
+
+def test_d4_py_verify_reports_clean_and_builtin_override(tmp_path: Path) -> None:
+    write(tmp_path / "verify.md.j2", "Date={{ RENDER_DATE }}\nStamp={{ RENDER_TIMESTAMP }}\n")
+    write(tmp_path / "deployed.md", "Date=2026-01-01\nStamp=2026-01-01T00:00:00Z")
+
+    request = make_file_request(
+        tmp_path,
+        "verify.md.j2",
+        vars_input={
+            "RENDER_DATE": "2026-01-01",
+            "RENDER_TIMESTAMP": "2026-01-01T00:00:00Z",
+        },
+    )
+
+    result = sc_compose.verify(request, tmp_path / "deployed.md")
+    assert isinstance(result, sc_compose.VerifyResult)
+    assert result.clean is True
+    assert result.diff is None
+    assert result.resolved_template_path.endswith("verify.md.j2")
+    assert result.deployed_path.endswith("deployed.md")
+    assert result.rendered_text == "Date=2026-01-01\nStamp=2026-01-01T00:00:00Z"
+    assert result.deployed_text == "Date=2026-01-01\nStamp=2026-01-01T00:00:00Z"
+    assert "clean=True" in repr(result)
+
+
+def test_d4_py_verify_reports_drift_and_diff(tmp_path: Path) -> None:
+    write(tmp_path / "verify.md.j2", "hello {{ name }}\n")
+    write(tmp_path / "deployed.md", "hello drifted")
+
+    request = make_file_request(tmp_path, "verify.md.j2", vars_input={"name": "world"})
+
+    result = sc_compose.verify(request, tmp_path / "deployed.md")
+    assert result.clean is False
+    assert result.diff is not None
+    assert "--- " in result.diff
+    assert "+++ " in result.diff
+    assert "-hello drifted" in result.diff
+    assert "+hello world" in result.diff
+
+
+def test_d4_py_verify_missing_deployed_file_maps_existing_error(tmp_path: Path) -> None:
+    write(tmp_path / "verify.md.j2", "hello {{ name }}\n")
+
+    request = make_file_request(tmp_path, "verify.md.j2", vars_input={"name": "world"})
+
+    with pytest.raises(sc_compose.ScConfigError) as exc_info:
+        sc_compose.verify(request, tmp_path / "missing.md")
+
+    assert exc_info.value.code == sc_compose.DiagnosticCode.ERR_RESOLVE_NOT_FOUND
+
+
+def test_headerless_templates_keep_phase_c_behavior() -> None:
+    parsed = sc_compose.parse_template_document("hello")
+
+    assert parsed.frontmatter is None
+    assert parsed.passes == []
 
 
 @pytest.mark.parametrize(
@@ -231,11 +1084,6 @@ def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
             lambda root: sc_compose.render_template("{% if true %}", {}),
             sc_compose.ScRenderError,
             None,
-        ),
-        (
-            lambda root: sc_compose.validate_input_value({"bad": [[1]]}),
-            sc_compose.ScValidationError,
-            sc_compose.DiagnosticCode.ERR_VAL_NESTED_ARRAY_UNSUPPORTED,
         ),
         (
             lambda root: sc_compose.resolve_template_path(

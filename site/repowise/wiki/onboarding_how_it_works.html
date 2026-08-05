@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>How It Works</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>How It Works</h1>
+<h2>What this system does in one sentence</h2>
+<p><code>sc-composer</code> provides profile resolution for consumers, while <code>sc-compose</code> and the Python bindings expose entry points around that capability.</p>
+<h2>A walk through one example</h2>
+<p>When a consumer calls <code>crates/sc-composer/src/resolver.rs::resolve_profile</code>, resolution proceeds through <code>resolve_profile_with_observer</code> and then <code>resolve_profile_impl</code>.</p>
+<p>The implementation identifies possible locations through <code>candidate_directories</code>, then builds the applicable sequence through <code>runtime_chain</code>. That sequence is expressed using <code>crates/sc-composer/src/types.rs::RuntimeKind</code>, which carries the runtime distinction used by the resolution path.</p>
+<p>The same library sits behind other entry surfaces: <code>crates/sc-compose/src/main.rs::main</code> reaches <code>crates/sc-compose/src/cli.rs::parse_cli</code> and <code>crates/sc-compose/src/cli.rs::Cli</code>, while <code>bindings/python/src/lib.rs</code> provides another entry point into the package surface.</p>
+<h2>Why it's shaped this way</h2>
+<p>The resolution flow is concentrated in <code>sc-composer</code>, with its public-facing entry points separated from the CLI and Python binding entry points. This lets consumers enter through different surfaces while following the same resolver path and shared <code>RuntimeKind</code> representation.</p>
+<h2>Where to read next</h2>
+<ul>
+<li><code>crates/sc-composer/src/resolver.rs</code> — the resolution flow from <code>resolve_profile</code> onward.</li>
+<li><code>crates/sc-composer/src/types.rs</code> — the <code>RuntimeKind</code> type used by the runtime chain.</li>
+<li><code>crates/sc-compose/src/main.rs</code> — the CLI execution entry point.</li>
+<li><code>bindings/python/src/lib.rs</code> — the Python binding entry point.</li>
+</ul>
+</body>
+</html>

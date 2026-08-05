@@ -1,0 +1,128 @@
+{
+  "schema_version": "phase-h6-cross-format-corpus/v1",
+  "cases": [
+    {
+      "id": "json-success",
+      "format": "json",
+      "kind": "success",
+      "template": "{\"name\":\"{{ name }}\",\"enabled\":true}",
+      "rendered": "{\"name\":\"Ada\",\"enabled\":true}",
+      "expected_values": {"name": "Ada"}
+    },
+    {
+      "id": "json-ambiguity",
+      "format": "json",
+      "kind": "ambiguity",
+      "template": "{\"first\":\"{{ value }}\",\"second\":\"{{ value }}\"}",
+      "rendered": "{\"first\":\"Ada\",\"second\":\"Ada\"}",
+      "expected_code": "ERR_EXTRACT_JSON_AMBIGUOUS"
+    },
+    {
+      "id": "json-malformed",
+      "format": "json",
+      "kind": "malformed",
+      "template": "{\"name\":\"{{ name }}\"}",
+      "rendered": "{\"name\":\"Ada\"",
+      "expected_code": "ERR_EXTRACT_JSON_MALFORMED"
+    },
+    {
+      "id": "json-filter",
+      "format": "json",
+      "kind": "filter",
+      "template": "{\"kept\":\"{{ kept }}\",\"ignored\":\"{{ ignored }}\"}",
+      "rendered": "{\"kept\":\"yes\",\"ignored\":\"no\"}",
+      "include": ["kept"],
+      "expected_values": {"kept": "yes"}
+    },
+    {
+      "id": "json-unsupported",
+      "format": "json",
+      "kind": "unsupported",
+      "template": "{\"count\":{{ count }}}",
+      "rendered": "{\"count\":42}",
+      "expected_code": "ERR_EXTRACT_JSON_VALUE_UNSUPPORTED"
+    },
+    {
+      "id": "yaml-success",
+      "format": "yaml",
+      "kind": "success",
+      "template": "name: \"{{ name }}\"\nenabled: true\n",
+      "rendered": "name: Ada\nenabled: true\n",
+      "expected_values": {"name": "Ada"}
+    },
+    {
+      "id": "yaml-ambiguity",
+      "format": "yaml",
+      "kind": "ambiguity",
+      "template": "first: \"{{ value }}\"\nsecond: \"{{ value }}\"\n",
+      "rendered": "first: Ada\nsecond: Ada\n",
+      "expected_code": "ERR_EXTRACT_YAML_AMBIGUOUS"
+    },
+    {
+      "id": "yaml-malformed",
+      "format": "yaml",
+      "kind": "malformed",
+      "template": "name: \"{{ name }}\"\n",
+      "rendered": "name: [Ada\n",
+      "expected_code": "ERR_EXTRACT_YAML_MALFORMED"
+    },
+    {
+      "id": "yaml-filter",
+      "format": "yaml",
+      "kind": "filter",
+      "template": "kept: \"{{ kept }}\"\nignored: \"{{ ignored }}\"\n",
+      "rendered": "kept: yes\nignored: no\n",
+      "include": ["kept"],
+      "expected_values": {"kept": "yes"}
+    },
+    {
+      "id": "yaml-unsupported",
+      "format": "yaml",
+      "kind": "unsupported",
+      "template": "count: \"{{ count }}\"\n",
+      "rendered": "count: 42\n",
+      "expected_code": "ERR_EXTRACT_YAML_VALUE_UNSUPPORTED"
+    },
+    {
+      "id": "toml-success",
+      "format": "toml",
+      "kind": "success",
+      "template": "[package]\nname = \"{{ name }}\"\nenabled = true\n",
+      "rendered": "[package]\nname = \"example\"\nenabled = true\n",
+      "expected_values": {"name": "example"}
+    },
+    {
+      "id": "toml-ambiguity",
+      "format": "toml",
+      "kind": "ambiguity",
+      "template": "[first]\nvalue = \"{{ value }}\"\n[second]\nvalue = \"{{ value }}\"\n",
+      "rendered": "[first]\nvalue = \"Ada\"\n[second]\nvalue = \"Ada\"\n",
+      "expected_code": "ERR_EXTRACT_TOML_AMBIGUOUS"
+    },
+    {
+      "id": "toml-malformed",
+      "format": "toml",
+      "kind": "malformed",
+      "template": "name = \"{{ name }}\"\n",
+      "rendered": "name = \"Ada\n",
+      "expected_code": "ERR_EXTRACT_TOML_MALFORMED"
+    },
+    {
+      "id": "toml-filter",
+      "format": "toml",
+      "kind": "filter",
+      "template": "kept = \"{{ kept }}\"\nignored = \"{{ ignored }}\"\n",
+      "rendered": "kept = \"yes\"\nignored = \"no\"\n",
+      "include": ["kept"],
+      "expected_values": {"kept": "yes"}
+    },
+    {
+      "id": "toml-unsupported",
+      "format": "toml",
+      "kind": "unsupported",
+      "template": "count = {{ count }}\n",
+      "rendered": "count = 42\n",
+      "expected_code": "ERR_EXTRACT_TOML_VALUE_UNSUPPORTED"
+    }
+  ]
+}

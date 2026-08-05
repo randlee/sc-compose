@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Symbol: crates.sc-composer.src.types.default_pass_number</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Symbol: crates.sc-composer.src.types.default_pass_number</h1>
+<h2>Purpose</h2>
+<p><code>default_pass_number</code> provides the canonical default rendering pass for frontmatter and pass-policy entries. It returns pass <code>1</code>, ensuring that omitted pass values have a consistent, predictable meaning throughout <code>sc-composer</code>.</p>
+<p>The function is marked <code>#[must_use]</code>, so callers should not ignore its result.</p>
+<h2>Signature</h2>
+<pre><code class="language-rust">pub const fn default_pass_number() -&gt; u8
+</code></pre>
+<h2>Parameters</h2>
+<p>This function takes no parameters.</p>
+<h2>Returns</h2>
+<p>Returns a <code>u8</code> with the value <code>1</code>.</p>
+<p>Because it is a <code>const fn</code>, it can be used both at runtime and in constant expressions.</p>
+<h2>Example Usage</h2>
+<pre><code class="language-rust">use sc_composer::types::default_pass_number;
+
+let pass = default_pass_number();
+
+assert_eq!(pass, 1);
+</code></pre>
+<p>It can also be used when defining a compile-time default:</p>
+<pre><code class="language-rust">use sc_composer::types::default_pass_number;
+
+const INITIAL_PASS: u8 = default_pass_number();
+
+assert_eq!(INITIAL_PASS, 1);
+</code></pre>
+</body>
+</html>

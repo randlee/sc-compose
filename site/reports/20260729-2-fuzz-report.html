@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Adversarial Fuzz Session qa-fuzz-20260729-0002</title>
+  <style type="text/css">
+
+    :root { color-scheme: light dark; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
+    @media (prefers-color-scheme: dark) { body { color: #e5e7eb; background: #111827; } }
+    header { margin-bottom: 24px; }
+    header h1 { margin: 0 0 4px 0; font-size: 1.6rem; }
+    header .subtitle { color: #6b7280; margin: 0 0 8px 0; font-size: 0.95rem; }
+    @media (prefers-color-scheme: dark) { header .subtitle { color: #9ca3af; } }
+    header .meta { color: #6b7280; font-size: 0.85rem; margin: 0 0 10px 0; }
+    @media (prefers-color-scheme: dark) { header .meta { color: #9ca3af; } }
+    .status { font-weight: 700; padding: 4px 12px; border-radius: 999px; display: inline-block; font-size: 0.85rem; letter-spacing: 0.02em; border: 1px solid; }
+    .status-pass { color: #065f46; background: #d1fae5; border-color: #6ee7b7; }
+    .status-drift { color: #92400e; background: #fef3c7; border-color: #f59e0b; }
+    .status-error { color: #991b1b; background: #fee2e2; border-color: #ef4444; }
+    .status-info { color: #1e40af; background: #dbeafe; border-color: #3b82f6; }
+    @media (prefers-color-scheme: dark) {
+      .status-pass { background: #064e3b; }
+      .status-drift { background: #451a03; }
+      .status-error { background: #450a0a; }
+      .status-info { background: #172554; }
+    }
+    .summary-block, .recommendations-block, .footer-block { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; background: #f9fafb; }
+    @media (prefers-color-scheme: dark) { .summary-block, .recommendations-block, .footer-block { border-color: #374151; background: #1f2937; } }
+    table.session-summary { border-collapse: collapse; width: 100%; margin-bottom: 12px; }
+    table.session-summary th, table.session-summary td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; font-size: 0.9rem; }
+    @media (prefers-color-scheme: dark) { table.session-summary th, table.session-summary td { border-color: #374151; } }
+    table.session-summary thead th { background: #f3f4f6; }
+    @media (prefers-color-scheme: dark) { table.session-summary thead th { background: #111827; } }
+    .section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
+    @media (prefers-color-scheme: dark) { .section { border-color: #374151; } }
+    .section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .section-head h2 { margin: 0 0 4px 0; font-size: 1.15rem; }
+    .section-summary { color: #4b5563; font-size: 0.9rem; margin: 0 0 10px 0; }
+    @media (prefers-color-scheme: dark) { .section-summary { color: #9ca3af; } }
+    .section-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+    .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
+    @media (prefers-color-scheme: dark) { .icon-button { background: #1f2937; border-color: #4b5563; color: #cbd5e1; } }
+    .fragment-link { font-size: 0.85rem; }
+    .fragment-link a { color: #2563eb; }
+    @media (prefers-color-scheme: dark) { .fragment-link a { color: #93c5fd; } }
+    .scratchpad { background: #f9fafb; border-left: 4px solid #3b82f6; padding: 12px; margin-top: 12px; border-radius: 0 6px 6px 0; }
+    @media (prefers-color-scheme: dark) { .scratchpad { background: #172554; } }
+    code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 0.92em; }
+    @media (prefers-color-scheme: dark) { code { background: #374151; } }
+    ul { padding-left: 22px; }
+    footer.footer-block p { margin: 0; font-size: 0.85rem; color: #6b7280; }
+    @media (prefers-color-scheme: dark) { footer.footer-block p { color: #9ca3af; } }
+
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Adversarial Fuzz Session qa-fuzz-20260729-0002</h1>
+    <p class="subtitle">sc-compose bounded adversarial-fuzzing campaign -- verification re-run against the fixed report-generation pipeline (PR #165, baseline 749a3e0)</p>
+    <p class="meta">Generated: 2026-07-29 &middot; Source: adversarial-fuzzing skill v1.1.0</p>
+    <p class="status status-drift">DRIFT</p>
+  </header>
+
+  <section class="summary-block">
+    <h2>Summary</h2>
+    <table class="session-summary"><thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead><tbody><tr><th scope="row">shape-probe: var-file shapes, recursion-depth latency, and numeric edge cases</th><td>20</td><td>16/20</td><td>FAIL</td></tr><tr><th scope="row">template-probe: Jinja loops, conditionals, includes, delimiters, and loop.* under --strict</th><td>20</td><td>15/20</td><td>FAIL</td></tr><tr><th scope="row">boundary-probe: CLI negative-contract cases, malformed input, path confinement, flag precedence</th><td>29</td><td>29/29</td><td>PASS</td></tr><tr><th scope="row">differential-probe: baseline-vs-head parity across the full rendering pipeline</th><td>20</td><td>20/20</td><td>PASS</td></tr></tbody></table><p>Overall campaign result: <strong>DRIFT</strong> -- 1 new confirmed_bug (GH #169, shape-probe quadratic-recursion latency), 1 new inconclusive finding (GH #170, shape-probe silent bignum precision loss), 1 confirmed_bug reconfirmation of an already-filed, already-triaged issue (GH #167 via template-probe, out of scope for PR #165), and 1 non-blocking documentation-gap note (boundary-probe, --var-file/--var precedence, not filed as a GH issue). The differential-probe and boundary-probe results confirm PR #165 itself is behavior-neutral for the rendering engine and introduces no new CLI regressions.</p>
+  </section>
+
+
+  <section class="section" id="section-shape-probe">
+    <div class="section-head">
+      <div>
+        <h2>Worker: shape-probe <span class="status status-drift">DRIFT</span></h2>
+        <p class="section-summary">16/20 passed. GH #169 confirmed_bug (quadratic-time recursion-depth latency). GH #170 inconclusive (silent lossy-f64 bignum precision loss).</p>
+      </div>
+      <div class="section-actions">
+        <button class="icon-button" type="button" title="Copy JSON" aria-label="Copy JSON for shape-probe" data-copy-text="{
+  &quot;correlation_id&quot;: &quot;shape-probe&quot;,
+  &quot;target&quot;: &quot;var-file&quot;,
+  &quot;seed&quot;: 261,
+  &quot;iterations&quot;: 20,
+  &quot;passed&quot;: 16,
+  &quot;failed&quot;: 4,
+  &quot;classification&quot;: &quot;confirmed_bug&quot;,
+  &quot;findings&quot;: [
+    {
+      &quot;id&quot;: &quot;F1-shape-probe-quadratic-recursion-latency&quot;,
+      &quot;status&quot;: &quot;confirmed_bug&quot;,
+      &quot;github_issue&quot;: 169,
+      &quot;subsystem&quot;: &quot;var-file&quot;,
+      &quot;command&quot;: &quot;cargo run -p sc-compose -- render --template min.j2 --var-file deep-depth-N.yaml&quot;,
+      &quot;minimal_template&quot;: &quot;{{ a.a.a.a }}&quot;,
+      &quot;minimal_input&quot;: &quot;a: {a: {a: {a: ... (depth N nested maps) }}}&quot;,
+      &quot;observed_result&quot;: &quot;Wall time before ERR_CONFIG_PARSE (recursion limit exceeded): depth 500=0.011s, 1000=0.019s, 2000=0.055s, 4000=0.190s, 8000=0.697s, 16000=2.653s, 50000=~25.6s -- quadratic O(depth^2) scaling&quot;,
+      &quot;expected_oracle&quot;: &quot;recursion-limit rejection should be bounded/near-linear in nesting depth, not quadratic&quot;,
+      &quot;diagnostic_code&quot;: &quot;ERR_CONFIG_PARSE&quot;,
+      &quot;requirement_trace&quot;: &quot;No requirement or ADR currently covers this behavior.&quot;,
+      &quot;requirement_follow_up&quot;: &quot;Create/update an NFR capping var-file ingestion latency before recursion-limit rejection; this is a genuine performance gap, not intentionally unsupported.&quot;,
+      &quot;root_cause&quot;: &quot;crates/sc-compose/src/var_file.rs::parse_var_file_contents serde_yaml fallback path re-walks nested structure quadratically in depth before the recursion-limit check fires.&quot;,
+      &quot;recommended_fix&quot;: &quot;Move the recursion-depth check to a single top-down pass, or replace the serde_yaml fallback with an iterative depth-tracked parser so depth-N rejection stays near O(N).&quot;,
+      &quot;reproduction_count&quot;: 3
+    },
+    {
+      &quot;id&quot;: &quot;F2-shape-probe-silent-bignum-precision-loss&quot;,
+      &quot;status&quot;: &quot;inconclusive&quot;,
+      &quot;github_issue&quot;: 170,
+      &quot;subsystem&quot;: &quot;var-file&quot;,
+      &quot;command&quot;: &quot;cargo run -p sc-compose -- render --template min.j2 --var-file bignum.json&quot;,
+      &quot;minimal_template&quot;: &quot;{{ value }}&quot;,
+      &quot;minimal_input&quot;: &quot;{\&quot;value\&quot;: 999999999999999999999999999999999999999999}&quot;,
+      &quot;observed_result&quot;: &quot;Exit 0; value silently rendered as 999999999999999900000000000000000000000000.0 (lossy f64 downgrade of a 45-digit integer), no diagnostic&quot;,
+      &quot;expected_oracle&quot;: &quot;exact-precision preservation, or an explicit numeric-fidelity diagnostic when a JSON integer literal exceeds u64::MAX&quot;,
+      &quot;diagnostic_code&quot;: null,
+      &quot;requirement_trace&quot;: &quot;No requirement or ADR currently covers this behavior.&quot;,
+      &quot;requirement_follow_up&quot;: &quot;Named decision owner needed (team-lead/comp) to decide reject/warn/arbitrary-precision handling for out-of-u64-range JSON integers; document the choice as an ADR once decided.&quot;,
+      &quot;root_cause&quot;: &quot;serde_json falls back to an f64 visit for JSON integers outside u64::MAX range; no magnitude/precision guard exists on the JSON var-file ingestion path (unlike the existing YAML NaN/Infinity guard).&quot;,
+      &quot;recommended_fix&quot;: &quot;Add a JSON numeric-fidelity guard mirroring the YAML NaN/Infinity guard; file an ADR recording the chosen behavior.&quot;,
+      &quot;reproduction_count&quot;: 1
+    }
+  ]
+}">{}</button>
+        <button class="icon-button" type="button" title="Copy Context" aria-label="Copy context for shape-probe" data-copy-text="Fuzz session qa-fuzz-20260729-0002, worker shape-probe (target: var-file, seed 261). 20 bounded JSON/YAML var-file cases. 16/20 passed (including 16 other nested/jagged JSON+YAML at moderate depth, empty values, numeric edges, mixed-type arrays -- all correct/intentional-boundary). 2 cases (depth 8000 and 16000) showed quadratic O(depth^2) latency before ERR_CONFIG_PARSE (recursion limit exceeded) fires -- filed as GH #169, confirmed_bug, reproduced 3/3. 2 cases exercised a 45-digit JSON integer literal beyond u64::MAX, silently downgraded to a lossy f64 with no diagnostic -- filed as GH #170, inconclusive pending a numeric-fidelity decision.">&#9111;</button>
+      </div>
+    </div>
+    <p>Target: var-file &middot; Seed 261 &middot; Iterations 20 &middot; Passed 16 &middot; Failed/flagged 4 &middot; Result <strong>FAIL</strong>.</p><p>Two depth-cap-latency cases (depth 8000 = 0.697s, depth 16000 = 2.653s, scaling to ~25.6s at depth 50000) show <strong>O(depth^2)</strong> wall-time growth before <code>sc-compose</code> rejects deeply-nested var-file input via <code>ERR_CONFIG_PARSE: recursion limit exceeded</code>, in <code>crates/sc-compose/src/var_file.rs::parse_var_file_contents</code>'s serde_yaml fallback path. Reproduced 3/3 deterministic. Filed as <strong>GH #169</strong> (confirmed_bug).</p><p>Two bignum cases show a 45-digit JSON integer literal (beyond <code>u64::MAX</code>) silently accepted and downgraded to a lossy f64 (<code>999999999999999999999999999999999999999999</code> &rarr; <code>999999999999999900000000000000000000000000.0</code>) with no diagnostic. serde_json falls back to an f64 visit for out-of-range integers; no magnitude/precision guard exists on the JSON path (unlike the existing YAML NaN/Infinity guard). Filed as <strong>GH #170</strong> (inconclusive, needs a documented numeric-fidelity decision).</p><p>The other 16 cases (nested/jagged JSON+YAML at moderate depth, empty values, numeric edges, mixed-type arrays) all passed or were correct intentional boundaries.</p><p>Full evidence, exact minimized template/input, and root-cause/recommended-fix detail: see the companion panel.</p>
+    <p class="fragment-link">Companion detail panel: <a href="20260729-2-fuzz-report/20260729-2-fuzz-report-shape-probe.xhtml">20260729-2-fuzz-report/20260729-2-fuzz-report-shape-probe.xhtml</a></p>
+
+  </section>
+
+  <section class="section" id="section-template-probe">
+    <div class="section-head">
+      <div>
+        <h2>Worker: template-probe <span class="status status-drift">DRIFT</span></h2>
+        <p class="section-summary">15/20 passed. GH #167 confirmed_bug reconfirmed (loop.* misclassified as undeclared under --strict) -- not new, out of scope for PR #165. 1 not_a_bug note (minijinja has no .items() method).</p>
+      </div>
+      <div class="section-actions">
+        <button class="icon-button" type="button" title="Copy JSON" aria-label="Copy JSON for template-probe" data-copy-text="{
+  &quot;correlation_id&quot;: &quot;template-probe&quot;,
+  &quot;target&quot;: &quot;renderer&quot;,
+  &quot;seed&quot;: 261,
+  &quot;iterations&quot;: 20,
+  &quot;passed&quot;: 15,
+  &quot;failed&quot;: 5,
+  &quot;classification&quot;: &quot;confirmed_bug&quot;,
+  &quot;findings&quot;: [
+    {
+      &quot;id&quot;: &quot;F1-template-probe-loop-builtin-strict-misclassification&quot;,
+      &quot;status&quot;: &quot;confirmed_bug&quot;,
+      &quot;duplicate_of&quot;: &quot;GH #167 (already filed from a prior campaign, out of scope for PR #165, not re-filed)&quot;,
+      &quot;subsystem&quot;: &quot;renderer&quot;,
+      &quot;command&quot;: &quot;cargo run -p sc-compose -- render --strict --template min-loop.j2 --var-file items.json&quot;,
+      &quot;minimal_template&quot;: &quot;{% for x in items %}{{ loop.index }}:{{ x }}{% if loop.last %} (last){% endif %}{% endfor %}&quot;,
+      &quot;minimal_input&quot;: &quot;{\&quot;items\&quot;: [\&quot;a\&quot;,\&quot;b\&quot;,\&quot;c\&quot;]}&quot;,
+      &quot;observed_result&quot;: &quot;--strict flags loop.index/loop.last as undeclared referenced tokens, causing a hard validation/render failure; reproduces in the simplest single-loop template, 3/3 deterministic&quot;,
+      &quot;expected_oracle&quot;: &quot;loop.* is a standard Jinja/minijinja builtin context object populated inside for-loops and must not be treated as an undeclared user variable under --strict&quot;,
+      &quot;diagnostic_code&quot;: &quot;strict-mode undeclared-variable diagnostic&quot;,
+      &quot;requirement_trace&quot;: &quot;Already tracked as GH #167 (filed from a prior campaign); out of scope for PR #165.&quot;,
+      &quot;requirement_follow_up&quot;: &quot;No new requirement/ADR needed this round -- duplicate of an already-triaged, already-filed issue; defer to the existing GH #167 owner.&quot;,
+      &quot;root_cause&quot;: &quot;Strict-mode undeclared-variable validation walks referenced identifiers without special-casing the loop.* builtin namespace injected by minijinja at render time.&quot;,
+      &quot;recommended_fix&quot;: &quot;Exempt the loop.* builtin namespace from strict undeclared-variable checks in the validation pass (tracked under GH #167, not part of this PR&#x27;s scope).&quot;,
+      &quot;reproduction_count&quot;: 3
+    },
+    {
+      &quot;id&quot;: &quot;F2-template-probe-dict-items-method-unsupported&quot;,
+      &quot;status&quot;: &quot;intentional_boundary&quot;,
+      &quot;subsystem&quot;: &quot;renderer&quot;,
+      &quot;command&quot;: &quot;cargo run -p sc-compose -- render --template dict-items.j2 --var-file unicode-dict.json&quot;,
+      &quot;minimal_template&quot;: &quot;{% for k in mydict %}{{ k }}{% endfor %} vs {% for k in mydict.items() %}{{ k }}{% endfor %}&quot;,
+      &quot;minimal_input&quot;: &quot;{\&quot;mydict\&quot;: {\&quot;éclair\&quot;: 1, \&quot;café\&quot;: 2}}&quot;,
+      &quot;observed_result&quot;: &quot;minijinja has no Python-style .items() method (render error); the |items filter and bare for k in dict both verified working correctly with Unicode keys&quot;,
+      &quot;expected_oracle&quot;: &quot;not_a_bug -- .items() is not part of the documented minijinja surface; correct alternatives already work&quot;,
+      &quot;diagnostic_code&quot;: null,
+      &quot;requirement_trace&quot;: &quot;minijinja intentionally does not implement Python&#x27;s dict.items() method; this is a documented engine-surface boundary, not a gap.&quot;,
+      &quot;requirement_follow_up&quot;: &quot;No new documentation needed -- behavior is intentionally unsupported and correct alternatives (|items filter, bare for-in) already work.&quot;,
+      &quot;root_cause&quot;: &quot;n/a (engine-surface difference from Python, not a defect)&quot;,
+      &quot;recommended_fix&quot;: &quot;None required; optionally note the .items() vs |items distinction in user-facing template-authoring docs.&quot;,
+      &quot;reproduction_count&quot;: 1
+    }
+  ]
+}">{}</button>
+        <button class="icon-button" type="button" title="Copy Context" aria-label="Copy context for template-probe" data-copy-text="Fuzz session qa-fuzz-20260729-0002, worker template-probe (target: renderer, seed 261). 20 bounded Jinja rendering cases. 15/20 passed cleanly. Nested loops (3 levels, jagged/empty arrays), conditionals/elif chains, includes (single/multi-level, missing-file and path-traversal correctly rejected), custom delimiters, whitespace control, Unicode values/keys, and default()/missing-field handling all passed correctly. Of the 5 flagged: 4 were intentional boundaries (correct negative-contract rejections) and 1 was a self-corrected test-authoring error. 1 confirmed_bug finding: loop.index/loop.last misclassified as undeclared under --strict -- this reconfirms already-filed GH #167 (out of scope for PR #165, not re-filed). 1 not_a_bug note: minijinja has no .items() method; |items filter and bare for-in both verified working with Unicode keys.">&#9111;</button>
+      </div>
+    </div>
+    <p>Target: renderer &middot; Seed 261 &middot; Iterations 20 &middot; Passed 15 &middot; Failed 5 &middot; Result <strong>FAIL</strong>.</p><p>4 of the 5 failed cases were intentional-boundary negative-contract rejections (include-cycle, include path-traversal escape, malformed custom-delimiter template, oversized nesting depth) and 1 was a self-corrected test-authoring error -- not product findings.</p><p><code>loop.index</code>/<code>loop.last</code> are misclassified as undeclared under <code>--strict</code>, reproducing in the simplest single-loop template, 3/3 deterministic. This <strong>reconfirms already-filed GH #167</strong> from a prior campaign; it is out of scope for PR #165 and was <strong>not</strong> re-filed.</p><p>A dict-<code>.items()</code>-method case is <strong>not_a_bug</strong>: minijinja has no Python-style <code>.items()</code> method; the <code>|items</code> filter and bare <code>for k in dict</code> both verified working correctly with Unicode keys.</p><p>Nested loops (3 levels, jagged/empty arrays), conditionals/elif chains, includes (single/multi-level), custom delimiters, whitespace control, Unicode values/keys, and <code>default()</code>/missing-field handling all passed correctly.</p><p>Full evidence, exact minimized template/input, and root-cause/recommended-fix detail: see the companion panel.</p>
+    <p class="fragment-link">Companion detail panel: <a href="20260729-2-fuzz-report/20260729-2-fuzz-report-template-probe.xhtml">20260729-2-fuzz-report/20260729-2-fuzz-report-template-probe.xhtml</a></p>
+
+  </section>
+
+  <section class="section" id="section-boundary-probe">
+    <div class="section-head">
+      <div>
+        <h2>Worker: boundary-probe <span class="status status-pass">PASS</span></h2>
+        <p class="section-summary">29/29 passed. 0 unexpected failures. Two non-blocking notes recorded in report text (not filed as new GH issues): an undocumented --var-file/--var precedence rule, and a reconfirmation that GH #168 is still present.</p>
+      </div>
+      <div class="section-actions">
+        <button class="icon-button" type="button" title="Copy JSON" aria-label="Copy JSON for boundary-probe" data-copy-text="{
+  &quot;correlation_id&quot;: &quot;boundary-probe&quot;,
+  &quot;target&quot;: &quot;cli&quot;,
+  &quot;seed&quot;: 261,
+  &quot;iterations&quot;: 29,
+  &quot;passed&quot;: 29,
+  &quot;failed&quot;: 0,
+  &quot;classification&quot;: &quot;pass&quot;,
+  &quot;findings&quot;: [],
+  &quot;notes&quot;: [
+    {
+      &quot;id&quot;: &quot;FUZZ-B01&quot;,
+      &quot;status&quot;: &quot;intentional_boundary&quot;,
+      &quot;kind&quot;: &quot;documentation-gap&quot;,
+      &quot;blocking&quot;: false,
+      &quot;github_issue&quot;: null,
+      &quot;subsystem&quot;: &quot;cli&quot;,
+      &quot;command&quot;: &quot;cargo run -p sc-compose -- render --var key=cli-value --var-file override.json --template t.j2&quot;,
+      &quot;observed_result&quot;: &quot;--var-file silently overrides a same-key --var flag (last-loaded-wins); matches actual deterministic code behavior in crates/sc-compose/src/render_request.rs:267-274&quot;,
+      &quot;expected_oracle&quot;: &quot;deterministic precedence should be documented so it is not a surprise, even though current behavior is correct and intentional&quot;,
+      &quot;requirement_trace&quot;: &quot;docs/requirements.md FR-2 does not document --var-file vs --var precedence.&quot;,
+      &quot;requirement_follow_up&quot;: &quot;Document the last-loaded-wins precedence in docs/requirements.md FR-2; not a bug, flagged in the QA report text rather than filed as a GH issue this round.&quot;,
+      &quot;reproduction_count&quot;: 3
+    },
+    {
+      &quot;id&quot;: &quot;FUZZ-B02&quot;,
+      &quot;status&quot;: &quot;intentional_boundary&quot;,
+      &quot;kind&quot;: &quot;not_a_bug&quot;,
+      &quot;blocking&quot;: false,
+      &quot;github_issue&quot;: 168,
+      &quot;subsystem&quot;: &quot;cli&quot;,
+      &quot;observed_result&quot;: &quot;var-file path confinement gap reconfirmed still present at baseline 749a3e0&quot;,
+      &quot;requirement_trace&quot;: &quot;Already tracked as GH #168.&quot;,
+      &quot;requirement_follow_up&quot;: &quot;Not re-filed -- already tracked; no new action this round.&quot;,
+      &quot;reproduction_count&quot;: 1
+    }
+  ]
+}">{}</button>
+        <button class="icon-button" type="button" title="Copy Context" aria-label="Copy context for boundary-probe" data-copy-text="Fuzz session qa-fuzz-20260729-0002, worker boundary-probe (target: cli, seed 261). 29 bounded negative-contract cases; 29/29 passed -- 0 unexpected failures, all negative-contract cases produced stable diagnostics as designed (ERR_CONFIG_VARFILE / ERR_CONFIG_PARSE, exit 3, no panics/hangs) across non-object top-level values, malformed-but-YAML-valid JSON, duplicate keys, invalid var names, missing files, YAML anchors/aliases, dangerous-but-inert YAML tags, and multi-var-file precedence. Two non-blocking notes recorded (not GH issues this round): FUZZ-B01, a documentation gap -- --var-file silently overrides a same-key --var flag (last-loaded-wins), matching deterministic code in render_request.rs:267-274 but undocumented in docs/requirements.md FR-2; and FUZZ-B02, reconfirming already-filed GH #168 (var-file path confinement gap) still present at baseline 749a3e0.">&#9111;</button>
+      </div>
+    </div>
+    <p>Target: cli &middot; Seed 261 &middot; Iterations 29 &middot; Passed 29 &middot; Failed 0 &middot; Result <strong>PASS</strong> -- all negative-contract cases produced stable diagnostics as designed.</p><p><strong>FUZZ-B01</strong> (non-blocking documentation-gap note, not filed as a GH issue this round): <code>--var-file</code> silently overrides a same-key <code>--var</code> flag (last-loaded-wins), matching deterministic code behavior in <code>crates/sc-compose/src/render_request.rs:267-274</code>, undocumented in <code>docs/requirements.md</code> FR-2. Not a bug, but worth documenting.</p><p><strong>FUZZ-B02</strong> (not_a_bug): GH #168 (var-file path confinement gap) reconfirmed still present at baseline 749a3e0; not re-filed, already tracked.</p><p>All other cases (non-object top-level values, malformed-but-YAML-valid JSON, duplicate keys, invalid var names, missing files, YAML anchors/aliases, dangerous-but-inert YAML tags, multi-var-file precedence) produced correct stable diagnostics (<code>ERR_CONFIG_VARFILE</code>/<code>ERR_CONFIG_PARSE</code>, exit 3), no panics/hangs.</p><p>Full evidence and detail: see the companion panel.</p>
+    <p class="fragment-link">Companion detail panel: <a href="20260729-2-fuzz-report/20260729-2-fuzz-report-boundary-probe.xhtml">20260729-2-fuzz-report/20260729-2-fuzz-report-boundary-probe.xhtml</a></p>
+
+  </section>
+
+  <section class="section" id="section-differential-probe">
+    <div class="section-head">
+      <div>
+        <h2>Worker: differential-probe <span class="status status-pass">PASS</span></h2>
+        <p class="section-summary">20/20 passed. No findings. Confirms PR #165 is behavior-neutral for the rendering engine.</p>
+      </div>
+      <div class="section-actions">
+        <button class="icon-button" type="button" title="Copy JSON" aria-label="Copy JSON for differential-probe" data-copy-text="{
+  &quot;correlation_id&quot;: &quot;differential-probe&quot;,
+  &quot;target&quot;: &quot;full&quot;,
+  &quot;seed&quot;: 261,
+  &quot;iterations&quot;: 20,
+  &quot;passed&quot;: 20,
+  &quot;failed&quot;: 0,
+  &quot;classification&quot;: &quot;pass&quot;,
+  &quot;findings&quot;: [],
+  &quot;baseline_ref&quot;: &quot;b763783&quot;,
+  &quot;head_ref&quot;: &quot;749a3e0&quot;,
+  &quot;diff_scope&quot;: &quot;docs/examples/skill-template files only; zero changes under crates/ or bindings/&quot;,
+  &quot;observed_result&quot;: &quot;20/20 exit-code and stdout matches across JSON/YAML var-file parity, jagged/nested/empty structures, numeric/boolean/null leaves, nested loops+conditionals, Unicode, includes, strict/unknown-var error paths, custom delimiters, --all/--json flags; fully deterministic across 3 reruns per case&quot;,
+  &quot;conclusion&quot;: &quot;PR #165 is behavior-neutral for the rendering engine (byte-identical between baseline and head for this diff)&quot;
+}">{}</button>
+        <button class="icon-button" type="button" title="Copy Context" aria-label="Copy context for differential-probe" data-copy-text="Fuzz session qa-fuzz-20260729-0002, worker differential-probe (target: full, seed 261). Compared merge-base b763783 (baseline) vs head 749a3e0: confirmed the PR #165 diff touches only docs/examples/skill-template files, zero changes under crates/ or bindings/ -- engine is byte-identical between the two refs for this diff. 20/20 exit-code and stdout matches across JSON/YAML var-file parity, jagged/nested/empty structures, numeric/boolean/null leaves, nested loops+conditionals, Unicode, includes, strict/unknown-var error paths, custom delimiters, --all/--json flags. Fully deterministic across 3 reruns per case. No findings. Confirms PR #165 is behavior-neutral for the rendering engine.">&#9111;</button>
+      </div>
+    </div>
+    <p>Target: full &middot; Seed 261 &middot; Iterations 20 &middot; Passed 20 &middot; Failed 0 &middot; Result <strong>PASS</strong>.</p><p>Compared merge-base <code>b763783</code> (baseline) vs head <code>749a3e0</code>: confirmed the PR #165 diff touches only docs/examples/skill-template files, zero changes under <code>crates/</code> or <code>bindings/</code> -- the engine is byte-identical between the two refs for this diff.</p><p>20/20 exit-code and stdout matches across JSON/YAML var-file parity, jagged/nested/empty structures, numeric/boolean/null leaves, nested loops+conditionals, Unicode, includes, strict/unknown-var error paths, custom delimiters, and <code>--all</code>/<code>--json</code> flags. Fully deterministic across 3 reruns per case.</p><p><strong>Confirms PR #165 is behavior-neutral for the rendering engine.</strong></p><p>Full evidence and detail: see the companion panel.</p>
+    <p class="fragment-link">Companion detail panel: <a href="20260729-2-fuzz-report/20260729-2-fuzz-report-differential-probe.xhtml">20260729-2-fuzz-report/20260729-2-fuzz-report-differential-probe.xhtml</a></p>
+
+  </section>
+
+  <section class="recommendations-block">
+    <h2>Recommendations</h2>
+    <ul><li>File and prioritize a fix for GH #169 (quadratic-time var-file recursion-depth latency in <code>crates/sc-compose/src/var_file.rs::parse_var_file_contents</code>) as a genuine performance-NFR gap.</li><li>Resolve the numeric-fidelity decision behind GH #170 (silent lossy-f64 downgrade of out-of-u64-range JSON integers) and record it as an ADR once decided.</li><li>Leave GH #167 (loop.* misclassified as undeclared under --strict) and GH #168 (var-file path confinement gap) with their existing owners; both are out of scope for PR #165 and were only reconfirmed, not newly introduced.</li><li>Document the --var-file/--var last-loaded-wins precedence in docs/requirements.md FR-2 (boundary-probe FUZZ-B01); this is intentional, deterministic behavior that only needs documentation, not a code change.</li><li>No action needed on PR #165 itself: differential-probe's 20/20 clean baseline-vs-head comparison confirms the diff is behavior-neutral for the rendering engine (docs/examples/skill-template files only, zero changes under crates/ or bindings/).</li></ul>
+  </section>
+
+  <section class="footer-block">
+    <h2>Companion XHTML Panels</h2>
+    <ul>
+      <li><a href="20260729-2-fuzz-report/20260729-2-fuzz-report-shape-probe.xhtml">20260729-2-fuzz-report/20260729-2-fuzz-report-shape-probe.xhtml</a></li>
+      <li><a href="20260729-2-fuzz-report/20260729-2-fuzz-report-template-probe.xhtml">20260729-2-fuzz-report/20260729-2-fuzz-report-template-probe.xhtml</a></li>
+      <li><a href="20260729-2-fuzz-report/20260729-2-fuzz-report-boundary-probe.xhtml">20260729-2-fuzz-report/20260729-2-fuzz-report-boundary-probe.xhtml</a></li>
+      <li><a href="20260729-2-fuzz-report/20260729-2-fuzz-report-differential-probe.xhtml">20260729-2-fuzz-report/20260729-2-fuzz-report-differential-probe.xhtml</a></li>
+    </ul>
+  </section>
+
+  <footer class="footer-block">
+    <p>Campaign: qa-fuzz-20260729-0002 &middot; Seed 261 &middot; Baseline ref 749a3e0 (PR #165, fuzz-run-report-template) &middot; 4 workers, target=full &middot; Worktree: ./feature/fuzz-run-report-template &middot; Skill: adversarial-fuzzing v1.1.0. Each worker's full evidence envelope and companion XHTML panel are linked from its section below.</p>
+  </footer>
+
+  <script>
+    document.addEventListener("click", async function (event) {
+      const button = event.target.closest("[data-copy-text]");
+      if (!button) return;
+      const text = button.getAttribute("data-copy-text") || "";
+      try {
+        await navigator.clipboard.writeText(text);
+        button.setAttribute("title", "Copied");
+      } catch (err) {
+        button.setAttribute("title", "Copy failed");
+      }
+    });
+  </script>
+</body>
+</html>

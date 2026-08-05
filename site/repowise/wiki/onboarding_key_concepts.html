@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Key Concepts</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Key Concepts</h1>
+<p>I’ll ground the page in the repository’s contributor protocol and the supplied symbol inventory.</p>
+<h2>Overview</h2>
+<p>This repository is a template-composition toolchain: the core concepts span typed frontmatter and multipass rendering, with diagnostics and verification around the resulting work. The code-facing model sits alongside detected repository clusters such as <code>.atm</code>, <code>.mcp</code>, <code>agents</code>, and <code>assets/sc-rust</code>.</p>
+<h2>Core concepts</h2>
+<h3><code>ParsedTemplate</code></h3>
+<p><code>ParsedTemplate</code> represents a template as stacked pass headers plus its body. It is the central multipass unit: the headers describe remaining work, while the body is the content being progressively rendered.</p>
+<p><strong>Where it lives:</strong> <code>prototype/multipass/types.py</code></p>
+<h3><code>PassHeader</code></h3>
+<p><code>PassHeader</code> is one YAML frontmatter header for a render pass. Its pass-oriented metadata determines how that layer of a <code>ParsedTemplate</code> is interpreted, including the delimiter-brace depth and the number of passes still to perform.</p>
+<p><strong>Where it lives:</strong> <code>prototype/multipass/types.py</code></p>
+<h3><code>RenderContext</code></h3>
+<p><code>RenderContext</code> holds the variables supplied to one render pass. It separates pass-specific inputs from the template structure, making each rendering step explicit.</p>
+<p><strong>Where it lives:</strong> <code>prototype/multipass/types.py</code></p>
+<h3><code>frontmatter</code></h3>
+<p><code>frontmatter</code> provides typed parsing and normalization for frontmatter. It is the structured boundary for metadata before that metadata participates in the rest of template processing.</p>
+<p><strong>Where it lives:</strong> <code>crates/sc-composer/src/lib.rs</code></p>
+<h3><code>diagnostics</code></h3>
+<p><code>diagnostics</code> provides structured diagnostics and the stable <code>ERR_*</code> code registry. It gives failures and validation outcomes a consistent, machine-recognizable form.</p>
+<p><strong>Where it lives:</strong> <code>crates/sc-composer/src/lib.rs</code></p>
+<h3><code>verify</code></h3>
+<p><code>verify</code> exposes drift-verification entrypoints. It is the checking surface for determining whether the composed result remains aligned with its expected state.</p>
+<p><strong>Where it lives:</strong> <code>crates/sc-composer/src/lib.rs</code></p>
+<h2>How they connect</h2>
+<p><code>frontmatter</code> establishes typed, normalized metadata, while <code>ParsedTemplate</code> models a template as a body with stacked <code>PassHeader</code> values. Each <code>PassHeader</code> describes one stage: its brace-count behavior distinguishes the variable delimiters for that pass, and its pass count records how much rendering remains. A <code>RenderContext</code> supplies the variables for each individual stage, allowing the template to advance pass by pass. When no pass remains, <code>ParsedTemplate</code> is fully rendered and ready for deployment. Around this flow, <code>diagnostics</code> gives structured error reporting, and <code>verify</code> provides the entrypoints for checking drift.</p>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Layer: Config</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Layer: Config</h1>
+<p>I’ll inspect the configuration and agent-control files, then produce a grounded architectural overview.</p>
+<h2>Overview</h2>
+<p>The Config layer is the repository’s control-plane configuration layer: it defines build overrides, AI-agent profiles, workflow prompts, reusable skills, and QA/release policies consumed by Cargo, Claude-compatible runtimes, and <code>sc-compose</code> profile resolution. It contains declarative Markdown, YAML, TOML, and Jinja templates rather than application runtime logic.</p>
+<h2>Key Components</h2>
+<ul>
+<li><code>.cargo/config.toml</code> patches the <code>sc-composer</code> crates.io dependency to the workspace-local <code>crates/sc-composer</code>, ensuring Cargo builds use the checked-out library.</li>
+<li><code>.claude/CLAUDE.md</code> supplies repository guidance and Repowise indexing metadata, including architecture, tooling, hotspot, and edit-workflow instructions.</li>
+<li><code>.claude/agents/registry.yaml</code> is the inventory of named agents and skills, with versions, paths, and dependency declarations.</li>
+<li>Agent definitions provide narrowly scoped control roles:</li>
+<li><code>quality-mgr.md</code> coordinates multi-reviewer QA and enforces a hard merge gate.</li>
+<li><code>arch-qa.md</code> evaluates structural boundaries and architectural fitness independently of functional correctness.</li>
+<li><code>flaky-test-qa.md</code> audits nondeterminism, races, lifecycle cleanup, and environment isolation.</li>
+<li><code>qa-triage.md</code> correlates a finding across worktrees and records canonical Turtle facts under <code>.triage/</code>.</li>
+<li><code>plan-scope-reviewer.md</code> and <code>critical-plan-reviewer.md</code> harden sprint plans before implementation.</li>
+<li><code>publisher.md</code> governs release preflight, workflow-driven publishing, and distribution verification.</li>
+<li><code>.claude/skills/</code> packages reusable workflows, assignment/report templates, reviewer guidance, and Rust quality references. <code>codex-orchestration</code> defines the development-to-QA loop; <code>plan-hardening</code> defines staged plan review; <code>quality-management-gh</code> defines multi-pass QA and PR reporting.</li>
+<li><code>.claude/commands/</code> contains user-invocable operational prompts, while <code>.claude/assets/</code> supplies templates consumed by the quality-management workflow.</li>
+</ul>
+<h2>Data Flow</h2>
+<pre><code class="language-text">Cargo build
+  -&gt; .cargo/config.toml
+  -&gt; workspace-local sc-composer
+
+AI runtime / sc-compose profile lookup
+  -&gt; runtime search chain
+  -&gt; .claude/{agents,commands,skills} fallback
+  -&gt; agent prompt, command, or SKILL.md/template
+
+Team-lead assignment
+  -&gt; orchestration XML/JSON templates
+  -&gt; developer or reviewer agent
+  -&gt; quality-mgr reviewer fan-out
+  -&gt; structured PASS / FAIL / IN-FLIGHT result
+  -&gt; PR and release gates
+</code></pre>
+<p>For profile resolution, <code>.claude/</code> is the native source for Claude and the universal fallback for Codex, Gemini, and OpenCode after their runtime-specific and shared <code>.agents/</code> locations. <code>sc-composer</code> owns that resolver policy; this layer supplies the discoverable profile content.</p>
+<p>The planning workflow routes a source-of-truth sprint plan through plan-scope and critical review, then into QA. Implementation QA expands to the sprint diff, dispatches the required specialist reviewers, gathers structured findings, and blocks merge until requirements traceability and deliverable completion reach 100%. QA triage persists cross-worktree evidence as per-finding Turtle records for later aggregation.</p>
+<h2>Architecture Notes</h2>
+<ul>
+<li>This layer is declarative infrastructure, not part of the <code>sc-composer</code> rendering pipeline or the <code>sc-compose</code> CLI implementation. Its relationship to those crates is configuration and profile content, except for Cargo’s local dependency patch.</li>
+<li>The registry is metadata, not a runtime dispatcher: agent behavior is defined in the referenced Markdown files, and workflow composition is defined by the skill templates.</li>
+<li>Agent prompts use strict input and output contracts—primarily XML or fenced JSON—to preserve handoff structure between planning, development, QA, and release roles.</li>
+<li>Quality responsibilities are deliberately separated: requirements conformance, structural compliance, test stability, and release execution are distinct checks. <code>quality-mgr</code> aggregates their results but is not authorized to implement fixes.</li>
+<li>Several agent rules reference broader ATM-style workflows and paths; these are governance instructions in prompt content, not dependencies of the standalone <code>sc-compose</code> binaries.</li>
+</ul>
+</body>
+</html>

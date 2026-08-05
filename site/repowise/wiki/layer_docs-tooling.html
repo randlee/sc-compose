@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Layer: Docs & Tooling</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Layer: Docs & Tooling</h1>
+<p>I’ll ground the layer overview in the repository’s documentation and tooling files, then return the requested Markdown page.</p>
+<h2>Overview</h2>
+<p>Docs &amp; Tooling is the documentation, release-operations, and delivery-support layer that records architectural contracts, guides users and maintainers, and connects repository outputs to documentation sites and package-distribution workflows. It does not implement template composition; it defines, explains, verifies, and operationalizes the behavior owned by <code>sc-composer</code>, <code>sc-compose</code>, and the Python bindings.</p>
+<p>This layer serves two audiences:</p>
+<ul>
+<li>Users, through the GitHub Pages content, installation guidance, examples, and package-manager instructions.</li>
+<li>Maintainers and release operators, through architecture specifications, ADRs, plans, traceability, release checklists, publishing guidance, and CI/release automation.</li>
+</ul>
+<h2>Key Components</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Responsibility</th>
+<th>Relationship</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>docs/_config.yml</code></td>
+<td>Configures the Jekyll/GitHub Pages documentation site: title, base URL, Markdown processing, excluded internal documents, and top-level navigation.</td>
+<td>Turns public-facing Markdown such as <code>docs/index.md</code>, <code>install.md</code>, and <code>examples.md</code> into a site configuration.</td>
+</tr>
+<tr>
+<td><code>docs/index.md</code> and layouts/assets</td>
+<td>Provide the public product landing page, feature narrative, install matrix, and links to normative repository documents.</td>
+<td>Present capabilities implemented by the library, CLI, and bindings without becoming a semantic source of truth.</td>
+</tr>
+<tr>
+<td><code>docs/architecture.md</code> and <code>docs/requirements.md</code></td>
+<td>Define normative architectural boundaries, module ownership, dependency direction, and product behavior.</td>
+<td>Constrain implementation in <code>sc-composer</code>, <code>sc-compose</code>, and <code>bindings/python</code>; feed review and test planning.</td>
+</tr>
+<tr>
+<td><code>docs/adrs/0001</code>–<code>0008</code></td>
+<td>Preserve accepted decisions for observability hardening and Phase D multi-pass semantics.</td>
+<td>Resolve ambiguity for parser, renderer, validation, template-init, verify, CLI boundary, and compatibility work.</td>
+</tr>
+<tr>
+<td><code>docs/traceability-matrix.md</code></td>
+<td>Maps functional and non-functional requirements to owning modules, planned work, and verification methods.</td>
+<td>Connects requirements to implementation and test evidence.</td>
+</tr>
+<tr>
+<td><code>docs/publishing.md</code>, <code>docs/release-checklist.md</code>, and <code>docs/WINGET_SETUP.md</code></td>
+<td>Define release ownership, artifact layout, package channels, required secrets, operator checks, and the winget bootstrap/automation model.</td>
+<td>Guide <code>.github/workflows/release.yml</code>, release manifests, and package-manager distribution.</td>
+</tr>
+<tr>
+<td><code>.github/workflows/ci.yml</code></td>
+<td>Enforces formatting, linting, manifest checks, dependency publish order, workspace tests, and Python wheel smoke tests.</td>
+<td>Converts documented quality and release expectations into automated checks.</td>
+</tr>
+<tr>
+<td><code>.github/workflows/release.yml</code></td>
+<td>Validates a requested version, runs release gates, builds cross-platform archives, publishes crates in dependency order, and builds Python artifacts.</td>
+<td>Consumes release documentation and emits distributable artifacts.</td>
+</tr>
+<tr>
+<td><code>.github/workflows/pages.yml</code></td>
+<td>Deploys the configured Pages artifact on selected branches.</td>
+<td>Is the delivery edge for the public documentation site.</td>
+</tr>
+</tbody>
+</table>
+<p>The ADR set is especially important because it makes multi-pass behavior concrete:</p>
+<ul>
+<li>ADR-0002 defines pass-specific brace counts.</li>
+<li>ADR-0003 and ADR-0004 define stacked-header order and YAML <code>pass</code> authority.</li>
+<li>ADR-0005 prevents one pass from consuming another pass’s placeholders.</li>
+<li>ADR-0006 requires longest-match-first substitution in <code>template-init</code>.</li>
+<li>ADR-0007 keeps verification semantics in <code>sc-composer</code> and CLI presentation in <code>sc-compose</code>.</li>
+<li>ADR-0008 establishes the committed prototype as the behavioral oracle and preserves <code>ParsedTemplate::frontmatter()</code> compatibility for single-header callers.</li>
+<li>ADR-0001 limits observability panic-removal changes without prematurely expanding the CLI boundary.</li>
+</ul>
+<h2>Data Flow</h2>
+<pre><code class="language-text">Product requirements and decisions
+        │
+        ├── docs/requirements.md + docs/architecture.md
+        ├── ADRs
+        └── plans, sprints, and traceability matrix
+                │
+                ▼
+Implementation and verification boundaries
+        │
+        ├── sc-composer: composition semantics and reusable APIs
+        ├── sc-compose: CLI parsing, UX, output, exit codes
+        └── bindings/python: adapter-only Python surface
+                │
+                ▼
+Automated enforcement
+        │
+        ├── CI: fmt, clippy, manifest validation, tests, wheel smoke tests
+        └── Release gate: version and publish-order validation
+                │
+                ▼
+Distribution outputs
+        │
+        ├── crates.io packages
+        ├── GitHub Release archives with bundled examples
+        ├── Homebrew and winget updates
+        └── PyPI wheels and sdist
+                │
+                ▼
+User-facing documentation and installation guidance
+</code></pre>
+<p>For multi-pass composition, the documentation flow is also an implementation contract:</p>
+<ol>
+<li>ADRs specify the behavior and identify <code>prototype/multipass/</code> as the reference implementation.</li>
+<li><code>docs/architecture.md</code> assigns parser, validation, rendering, verification, and workspace helper ownership to <code>sc-composer</code>.</li>
+<li>The CLI layer exposes those library capabilities while retaining responsibility for arguments, streams, quiet mode, and exit-code mapping.</li>
+<li>Tests and review use the ADRs, prototype, traceability matrix, and sprint material as evidence that the implementation matches the intended behavior.</li>
+</ol>
+<p>For release operations:</p>
+<ol>
+<li>A maintainer selects a workspace version and follows the checklist.</li>
+<li>The release workflow validates manifest and workspace alignment, then runs the release gate.</li>
+<li>It builds platform archives containing both <code>bin/sc-compose</code> and <code>share/sc-compose/examples</code>.</li>
+<li>Production publishing releases <code>sc-composer</code> before <code>sc-compose</code>, then distributes package-specific artifacts.</li>
+<li><code>docs/WINGET_SETUP.md</code> explains that the first winget manifest is manual; subsequent updates are automated and release verification checks submission success rather than immediate public availability.</li>
+</ol>
+<h2>Architecture Notes</h2>
+<ul>
+<li>This is a governance and enablement layer, not a runtime dependency. Core crates should not import documentation, workflow, or package-manager concerns.</li>
+<li>The normative sources are intentionally distinct from public site content. <code>docs/_config.yml</code> excludes architecture, requirements, ADRs, phase plans, sprints, and manifests from the Jekyll build, while <code>docs/index.md</code> links readers to their repository versions.</li>
+<li>The documented crate boundary is strict: <code>sc-compose → sc-composer</code>, <code>bindings/python → sc-composer</code>, and no reverse dependency or orchestration-runtime dependency in <code>sc-composer</code>.</li>
+<li>ADR-0007 reinforces the same split for drift checking: <code>sc-composer</code> owns structured <code>VerifyResult</code> behavior, while <code>sc-compose</code> owns command-line interaction.</li>
+<li>The release documentation makes artifact layout part of the product contract: package builds and GitHub Release archives must preserve bundled examples, whereas <code>cargo install</code> ships only the binary and relies on <code>SC_COMPOSE_DATA_DIR</code> for an external examples root.</li>
+<li>There is a deployment configuration boundary worth keeping visible: <code>docs/_config.yml</code> describes a Jekyll site rooted in <code>docs</code>, while <code>.github/workflows/pages.yml</code> currently uploads <code>site</code>. Any Pages deployment change should keep those two sources aligned so the configured content is the content actually published.</li>
+</ul>
+</body>
+</html>

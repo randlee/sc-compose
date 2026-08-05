@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-composer/src/composer.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-composer/src/composer.rs</h1>
+<p>I’ll inspect the repository guidance and source context to ensure the wiki page matches the project’s terminology and behavior.</p>
+<h2>Overview</h2>
+<p><code>composer.rs</code> is the Application-layer composition orchestrator that consumes a <code>ComposeRequest</code> and produces a <code>ComposeResult</code> by resolving templates, expanding includes, validating variables, rendering one or more passes, and assembling optional output blocks.</p>
+<p>The public <code>compose</code> path is the library’s end-to-end entry point, used by the crate facade, CLI request handling, integration tests, and language bindings. It sequences the workflow in a fixed order:</p>
+<ol>
+<li>Resolve the requested profile or file path.</li>
+<li>Expand template includes under the configured confining root and policy.</li>
+<li>Validate the expanded template and construct variable state.</li>
+<li>Render either a single template or ordered multi-pass template.</li>
+<li>Append the optional guidance block and user prompt.</li>
+<li>Return rendered text, resolved files, resolution metadata, variable provenance, and warnings.</li>
+</ol>
+<p>This is a high-activity, high-complexity hotspot. Changes can affect resolution behavior, include safety, validation precedence, render semantics, observer telemetry, and final output formatting; preserve the sequencing and error boundaries when modifying it.</p>
+<h2>Public API</h2>
+<h3><code>compose</code></h3>
+<pre><code class="language-rust">pub fn compose(request: &amp;ComposeRequest) -&gt; Result&lt;ComposeResult, ComposeError&gt;
+</code></pre>
+<p>Runs composition without requiring instrumentation. It installs <code>NoopObserver</code> and delegates to <code>compose_with_observer</code>, ensuring the unobserved and observed paths share the same behavior.</p>
+<p>Use this for ordinary library callers that only need the completed result or an error.</p>
+<h3><code>compose_with_observer</code></h3>
+<pre><code class="language-rust">pub fn compose_with_observer(
+    request: &amp;ComposeRequest,
+    observer: &amp;mut dyn CompositionObserver,
+) -&gt; Result&lt;ComposeResult, ComposeError&gt;
+</code></pre>
+<p>Runs the same composition pipeline while emitting lifecycle events:</p>
+<ul>
+<li><code>on_resolve_attempt</code> before resolution.</li>
+<li><code>on_resolve_outcome</code> after success or resolution failure.</li>
+<li><code>on_include_outcome</code> after include expansion or include failure.</li>
+<li><code>on_validation_outcome</code> after validation.</li>
+<li><code>on_pass_start</code> and <code>on_pass_end</code> around each multi-pass render.</li>
+<li><code>on_render_outcome</code> after successful rendering or rendering failure.</li>
+</ul>
+<p>Resolution and include failures notify the observer before returning. Validation errors are emitted as an outcome and then converted into a fatal <code>ComposeError</code>. Render failures emit a failed render outcome with no byte count.</p>
+<h3><code>render_all</code></h3>
+<pre><code class="language-rust">pub fn render_all(
+    parsed: &amp;ParsedTemplate,
+    contexts: &amp;[(u8, BTreeMap&lt;VariableName, InputValue&gt;)],
+) -&gt; Result&lt;String, ComposeError&gt;
+</code></pre>
+<p>Renders a parsed multi-pass template without instrumentation. The context list must have exactly one entry per parsed pass, in the same pass-number order.</p>
+<p>For each pass, the function:</p>
+<ul>
+<li>derives delimiters from the pass number (<code>{{…}}</code> for pass 1, <code>{{{…}}}</code> for pass 2, and so on);</li>
+<li>protects expressions using the next-higher brace width;</li>
+<li>merges frontmatter defaults with the supplied pass context, with supplied values taking precedence;</li>
+<li>renders the body using a delimiter-configured <code>Renderer</code>.</li>
+</ul>
+<p>A mismatched context count or pass number is reported as <code>ErrConfigParse</code>.</p>
+<h3><code>protect_higher_braces</code></h3>
+<pre><code class="language-rust">pub fn protect_higher_braces(text: &amp;str, brace_count: usize) -&gt; String
+</code></pre>
+<p>Wraps complete expressions using one additional brace level in MiniJinja raw blocks. This prevents a lower render pass from interpreting syntax reserved for a later pass.</p>
+<p>It leaves text unchanged when no higher-brace opening delimiter exists. If a higher-brace opening delimiter has no matching closing delimiter, it preserves the remaining input rather than attempting partial protection.</p>
+<h2>Dependencies</h2>
+<table>
+<thead>
+<tr>
+<th>Dependency</th>
+<th>Role in composition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>resolver::resolve_template_path</code></td>
+<td>Resolves profile or file requests and records attempted paths.</td>
+</tr>
+<tr>
+<td><code>include::expand_includes</code></td>
+<td>Expands include directives while applying the request root and policy.</td>
+</tr>
+<tr>
+<td><code>validation::validate_expanded</code></td>
+<td>Validates expanded content, computes variable state, warnings, errors, and provenance.</td>
+</tr>
+<tr>
+<td><code>validation::inject_builtin_vars</code></td>
+<td>Adds built-in render variables such as template identity and runtime metadata before rendering.</td>
+</tr>
+<tr>
+<td><code>frontmatter::{Frontmatter, ParsedTemplate}</code></td>
+<td>Represents root pass metadata and the parsed multi-pass body.</td>
+</tr>
+<tr>
+<td><code>renderer::Renderer</code></td>
+<td>Renders single-pass templates or templates configured with pass-specific delimiters.</td>
+</tr>
+<tr>
+<td><code>observer</code></td>
+<td>Defines optional lifecycle reporting and the no-op implementation used by <code>compose</code> and <code>render_all</code>.</td>
+</tr>
+<tr>
+<td><code>types::{ComposeRequest, ComposeResult, PassConfig, InputValue, VariableName}</code></td>
+<td>Defines composition inputs, outputs, pass configuration, and typed variables.</td>
+</tr>
+<tr>
+<td><code>error::{ConfigError, ValidationError}</code> and <code>ComposeError</code></td>
+<td>Provide operational, validation, configuration, include, resolution, and render error surfaces.</td>
+</tr>
+<tr>
+<td><code>diagnostics::DiagnosticCode</code></td>
+<td>Supplies stable diagnostic codes for malformed pass configuration.</td>
+</tr>
+<tr>
+<td><code>path_utils::to_forward_slash</code></td>
+<td>Produces consistent observer labels for file-mode resolve attempts.</td>
+</tr>
+</tbody>
+</table>
+<p><code>assemble_output</code> is intentionally local to this module because it finalizes the application result: it trims only trailing whitespace from the rendered profile body, drops empty optional blocks, and separates non-empty blocks with exactly two newlines.</p>
+<h2>Usage Notes</h2>
+<p>A standard caller provides a confined root, mode, variable sources, optional trailing blocks, and policy:</p>
+<pre><code class="language-rust">use std::collections::BTreeMap;
+use std::path::PathBuf;
+
+use sc_composer::{
+    compose, ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot,
+};
+
+let request = ComposeRequest {
+    runtime: None,
+    mode: ComposeMode::File {
+        template_path: PathBuf::from(&quot;profiles/report.md.j2&quot;),
+    },
+    root: ConfiningRoot::new(&quot;./templates&quot;)?,
+    vars_input: BTreeMap::new(),
+    vars_env: BTreeMap::new(),
+    vars_defaults: BTreeMap::new(),
+    guidance_block: Some(&quot;Follow the repository conventions.&quot;.to_owned()),
+    user_prompt: Some(&quot;Generate the release report.&quot;.to_owned()),
+    policy: ComposePolicy::default(),
+};
+
+let result = compose(&amp;request)?;
+println!(&quot;{}&quot;, result.rendered_text);
+</code></pre>
+<p><code>ComposeResult</code> retains more than the rendered string. Callers that need explainability should inspect:</p>
+<ul>
+<li><code>resolved_files</code> to identify the root template and included files;</li>
+<li><code>resolve_result</code> to inspect the successful resolution result;</li>
+<li><code>variable_sources</code> to determine whether a value came from explicit input, environment, defaults, frontmatter, or built-ins;</li>
+<li><code>warnings</code> for non-fatal validation findings.</li>
+</ul>
+<p>For progress reporting, diagnostics, or UI integration, use <code>compose_with_observer</code>. Observers receive failure events before the corresponding error is returned, so consumers can report the failed pipeline phase without parsing error text.</p>
+<p>Multi-pass behavior requires special care. Context pass numbers must align with the template frontmatter order, and higher-brace expressions are deliberately preserved until their own pass. Do not replace <code>protect_higher_braces</code> with a simple repeated render: doing so would allow an earlier pass to consume syntax intended for a later one.</p>
+<p>Variable precedence is established during validation and reinforced during rendering. In a multi-pass template, frontmatter defaults are first collected per pass, the flattened validated context is merged, and configured pass defaults are merged last when explicit pass configurations are supplied. This supports explicit inputs overriding weaker sources while keeping per-pass defaults available.</p>
+<p>The single-pass path renders the expanded text directly with the fully built render context. The multi-pass path instead derives delimiters from each frontmatter pass number. Both paths emit one final successful <code>RenderOutcomeEvent</code> containing the byte length of the rendered template body before guidance and prompt blocks are appended.</p>
+</body>
+</html>

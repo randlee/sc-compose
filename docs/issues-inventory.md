@@ -2,7 +2,8 @@
 
 ## Status
 
-Active follow-on issue inventory for post-close cleanup on `integrate/phase-B`.
+Active follow-on issue inventory for post-close cleanup and maintainability work
+after Phase B, including planned work targeting `develop`.
 
 This inventory records the accepted production-readiness findings that remain
 open after Phase B feature completion. It does not reopen Phase B feature
@@ -18,6 +19,12 @@ scope; it maps each accepted cleanup issue to the sprint that closes it.
 | PHB-INT-003 | `docs/migration-notes.md` still carries the `sc-observability 1.2` cutover section without an explicit owning cleanup sprint after Phase B close. | Closed | `B13` | Keeps the remaining `sc-observability 1.2` migration-note alignment with the observability cleanup line instead of leaving it untracked. |
 | PHB-CLEANUP-004 | Oversized CLI files still hide ownership boundaries and slow review on the shipped Phase B branch. | Closed | `B14` | Closes CLI-only extraction debt without changing the command surface. |
 | PHB-CLEANUP-005 | Reporting runtime still carries dead seams, duplicated path helpers, and over-exposed constants after the CLI extraction line. | Closed | `B15` | Depends on `B14` so reporting cleanup stays separate from CLI extraction. |
+
+## Phase J Cleanup Findings
+
+| ID | Finding | Status | Closing sprint | Notes |
+| --- | --- | --- | --- | --- |
+| PHJ-CLEANUP-001 | Repowise issue #212 identifies maintainability hotspots in `crates/sc-compose/src/cli.rs`, `crates/sc-composer/src/validation.rs`, and `crates/sc-composer/src/frontmatter.rs`. | Planned | `J.1`-`J.4` | Phase J performs behavior-preserving structural decomposition with no new public surface; see `docs/phase-J/phase-J-plan.md` and ADR-0014. |
 
 ## Inventory Rules
 

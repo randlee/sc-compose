@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 use sc_composer::{
-    DiagnosticSeverity, ProfileKind, RuntimeKind, UnknownVariablePolicy, VariableSource,
+    DiagnosticSeverity, ExtractFormat, ProfileKind, RuntimeKind, UnknownVariablePolicy,
+    VariableSource,
 };
 
 use crate::errors::config_error;
@@ -138,6 +139,84 @@ impl PyDiagnosticCode {
     const ERR_CONFIG_PACK_NOT_RENDERABLE: &'static str = "ERR_CONFIG_PACK_NOT_RENDERABLE";
     #[classattr]
     const ERR_CONFIG_TEMPLATE_EXISTS: &'static str = "ERR_CONFIG_TEMPLATE_EXISTS";
+    #[classattr]
+    const ERR_EXTRACT_INVALID_REQUEST: &'static str = "ERR_EXTRACT_INVALID_REQUEST";
+    #[classattr]
+    const ERR_EXTRACT_MALFORMED: &'static str = "ERR_EXTRACT_MALFORMED";
+    #[classattr]
+    const ERR_EXTRACT_UNSUPPORTED: &'static str = "ERR_EXTRACT_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_TEMPLATE_UNSUPPORTED: &'static str = "ERR_EXTRACT_TEMPLATE_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_XML_ELEMENT_MISMATCH: &'static str = "ERR_EXTRACT_XML_ELEMENT_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH: &'static str = "ERR_EXTRACT_XML_ATTRIBUTE_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH: &'static str =
+        "ERR_EXTRACT_XML_CHILD_STRUCTURE_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_XML_STATIC_MISMATCH: &'static str = "ERR_EXTRACT_XML_STATIC_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED: &'static str =
+        "ERR_EXTRACT_XML_CONTROL_FLOW_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME: &'static str =
+        "ERR_EXTRACT_XML_DYNAMIC_ELEMENT_NAME";
+    #[classattr]
+    const ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED: &'static str =
+        "ERR_EXTRACT_XML_NAMESPACE_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_AMBIGUOUS: &'static str = "ERR_EXTRACT_AMBIGUOUS";
+    #[classattr]
+    const ERR_EXTRACT_FORMAT_UNSUPPORTED: &'static str = "ERR_EXTRACT_FORMAT_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_JSON_MALFORMED: &'static str = "ERR_EXTRACT_JSON_MALFORMED";
+    #[classattr]
+    const ERR_EXTRACT_JSON_DUPLICATE_KEY: &'static str = "ERR_EXTRACT_JSON_DUPLICATE_KEY";
+    #[classattr]
+    const ERR_EXTRACT_JSON_PATH_MISSING: &'static str = "ERR_EXTRACT_JSON_PATH_MISSING";
+    #[classattr]
+    const ERR_EXTRACT_JSON_SHAPE_MISMATCH: &'static str = "ERR_EXTRACT_JSON_SHAPE_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_JSON_VALUE_UNSUPPORTED: &'static str = "ERR_EXTRACT_JSON_VALUE_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_JSON_AMBIGUOUS: &'static str = "ERR_EXTRACT_JSON_AMBIGUOUS";
+    #[classattr]
+    const ERR_EXTRACT_YAML_MALFORMED: &'static str = "ERR_EXTRACT_YAML_MALFORMED";
+    #[classattr]
+    const ERR_EXTRACT_YAML_DUPLICATE_KEY: &'static str = "ERR_EXTRACT_YAML_DUPLICATE_KEY";
+    #[classattr]
+    const ERR_EXTRACT_YAML_ALIAS_UNSUPPORTED: &'static str = "ERR_EXTRACT_YAML_ALIAS_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_YAML_DOCUMENT_STREAM: &'static str = "ERR_EXTRACT_YAML_DOCUMENT_STREAM";
+    #[classattr]
+    const ERR_EXTRACT_YAML_PATH_MISSING: &'static str = "ERR_EXTRACT_YAML_PATH_MISSING";
+    #[classattr]
+    const ERR_EXTRACT_YAML_SHAPE_MISMATCH: &'static str = "ERR_EXTRACT_YAML_SHAPE_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_YAML_VALUE_UNSUPPORTED: &'static str = "ERR_EXTRACT_YAML_VALUE_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_YAML_AMBIGUOUS: &'static str = "ERR_EXTRACT_YAML_AMBIGUOUS";
+    #[classattr]
+    const ERR_EXTRACT_TOML_MALFORMED: &'static str = "ERR_EXTRACT_TOML_MALFORMED";
+    #[classattr]
+    const ERR_EXTRACT_INPUT_LIMIT: &'static str = "ERR_EXTRACT_INPUT_LIMIT";
+    #[classattr]
+    const ERR_EXTRACT_TOML_DUPLICATE_KEY: &'static str = "ERR_EXTRACT_TOML_DUPLICATE_KEY";
+    #[classattr]
+    const ERR_EXTRACT_TOML_PATH_MISSING: &'static str = "ERR_EXTRACT_TOML_PATH_MISSING";
+    #[classattr]
+    const ERR_EXTRACT_TOML_SHAPE_MISMATCH: &'static str = "ERR_EXTRACT_TOML_SHAPE_MISMATCH";
+    #[classattr]
+    const ERR_EXTRACT_TOML_VALUE_UNSUPPORTED: &'static str = "ERR_EXTRACT_TOML_VALUE_UNSUPPORTED";
+    #[classattr]
+    const ERR_EXTRACT_TOML_AMBIGUOUS: &'static str = "ERR_EXTRACT_TOML_AMBIGUOUS";
+    #[classattr]
+    const WARN_EXTRACT_NOT_OBSERVED: &'static str = "WARN_EXTRACT_NOT_OBSERVED";
+    #[classattr]
+    const WARN_EXTRACT_LOW_CONFIDENCE: &'static str = "WARN_EXTRACT_LOW_CONFIDENCE";
+    #[classattr]
+    const WARN_EXTRACT_DIRTY_PREFIX_STRIPPED: &'static str = "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED";
 }
 
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -156,7 +235,10 @@ pub(crate) fn parse_runtime_kind(value: &Bound<'_, PyAny>) -> PyResult<RuntimeKi
         "codex" => Ok(RuntimeKind::Codex),
         "gemini" => Ok(RuntimeKind::Gemini),
         "opencode" => Ok(RuntimeKind::Opencode),
-        other => Err(config_error(format!("unknown runtime kind: {other}"), None)),
+        other => Err(config_error(
+            format!("unknown runtime kind: {other}"),
+            Some("ERR_CONFIG_MODE"),
+        )),
     }
 }
 
@@ -165,7 +247,10 @@ pub(crate) fn parse_profile_kind(value: &Bound<'_, PyAny>) -> PyResult<ProfileKi
         "agent" => Ok(ProfileKind::Agent),
         "command" => Ok(ProfileKind::Command),
         "skill" => Ok(ProfileKind::Skill),
-        other => Err(config_error(format!("unknown profile kind: {other}"), None)),
+        other => Err(config_error(
+            format!("unknown profile kind: {other}"),
+            Some("ERR_CONFIG_MODE"),
+        )),
     }
 }
 
@@ -176,7 +261,24 @@ pub(crate) fn parse_unknown_variable_policy(value: &str) -> PyResult<UnknownVari
         "ignore" => Ok(UnknownVariablePolicy::Ignore),
         other => Err(config_error(
             format!("unknown unknown-variable policy: {other}"),
-            None,
+            Some("ERR_CONFIG_MODE"),
+        )),
+    }
+}
+
+pub(crate) fn parse_extract_format(value: &str) -> PyResult<ExtractFormat> {
+    match value {
+        "xml" => Ok(ExtractFormat::Xml),
+        "json" => Ok(ExtractFormat::Json),
+        "yaml" => Ok(ExtractFormat::Yaml),
+        "toml" => Ok(ExtractFormat::Toml),
+        "raw" => Ok(ExtractFormat::Raw),
+        other => Err(crate::errors::config_error_with_recovery_hints(
+            format!(
+                "unsupported extraction format `{other}`; use `xml`, `json`, `yaml`, `toml`, or `raw`"
+            ),
+            Some("ERR_EXTRACT_FORMAT_UNSUPPORTED"),
+            vec!["set format to `xml`, `json`, `yaml`, `toml`, or `raw`".to_owned()],
         )),
     }
 }

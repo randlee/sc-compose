@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Codebase Map</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>Codebase Map</h1>
+<p>I’ll ground the page in the supplied repository map and the project’s contributor protocol.</p>
+<h2>Overview</h2>
+<p>This repository has 281 files and 46,691 lines of code across 10 surveyed top-level directories. Its tree spans CLI and library code, Python bindings, documentation, reporting assets, automation, and prototypes; new contributors should start in <code>crates/</code>, then use <code>docs/</code> for project guidance.</p>
+<h2>Top-level directories</h2>
+<h3><code>docs/</code></h3>
+<p>This is the mostly-Markdown documentation area, including architecture, testing, team-process, sprint, and traceability material. Start with <a href="docs/index.md">docs/index.md</a>, then consult <code>docs/traceability-matrix.md</code> or <code>docs/team-protocol.md</code> for project context and collaboration rules.</p>
+<h3><code>.claude/</code></h3>
+<p>This directory contains agent-oriented Markdown skills, guidance, and assets. Begin with <code>.claude/skills/team-lead/SKILL.md</code> or <code>.claude/skills/todo-triage/SKILL.md</code> when looking for established agent workflows.</p>
+<h3><code>crates/</code></h3>
+<p>This is the Rust implementation area, covering the CLI and composition library. Start with <a href="crates/sc-compose/src/main.rs">crates/sc-compose/src/main.rs</a> for the CLI, <a href="crates/sc-composer/src/lib.rs">crates/sc-composer/src/lib.rs</a> for the library surface, and <code>crates/sc-compose/src/reporting/index.rs</code> for reporting entry points.</p>
+<h3><code>prototype/</code></h3>
+<p>This contains Python prototype code under <code>prototype/multipass</code>. Read <code>prototype/multipass/types.py</code> first, then follow into <code>discover.py</code>, <code>renderer.py</code>, <code>parser.py</code>, and <code>verify.py</code>.</p>
+<h3><code>bindings/</code></h3>
+<p>This directory contains the Python binding implementation, with Rust source and Python package files. Start at <a href="bindings/python/src/lib.rs">bindings/python/src/lib.rs</a>, then inspect <code>bindings/python/python/sc_compose/__init__.py</code> and <code>bindings/python/src/convert.rs</code>.</p>
+<h3><code>reports/</code></h3>
+<p>This holds report specifications, input material, and generated summary variables, primarily in TOML and JSON. Start with a relevant specification such as <code>reports/specs/state-diagrams/retry-loop.toml</code>, then inspect the summaries in <code>reports/vars/</code>.</p>
+<h3><code>(root)/</code></h3>
+<p>The repository root contains the primary project metadata and top-level guidance. Read <code>README.md</code> and <code>Cargo.toml</code> first; <code>rust-toolchain.toml</code> and <code>RELEASING.md</code> cover toolchain and release context.</p>
+<h3><code>.github/</code></h3>
+<p>This is CI, release, Pages, and action configuration. Start with <code>.github/workflows/ci.yml</code>, then read <code>.github/workflows/release.yml</code> or <code>.github/actions/setup-python-release-build/action.yml</code> for release automation.</p>
+<h3><code>scripts/</code></h3>
+<p>This directory contains supporting release, CI, reporting, and ATM scripts. Start with <code>scripts/release_gate.sh</code> or <code>scripts/release_artifacts.py</code>; <code>scripts/tests/test_release_artifacts.py</code> covers release-artifact checks.</p>
+<h3><code>pm/</code></h3>
+<p>This contains concise project-management and architecture-role notes. Read <code>pm/arch-ccomp.md</code> or <code>pm/arch-comp.md</code> for the available architectural perspectives.</p>
+<h2>If you're looking for…</h2>
+<ul>
+<li>the Rust CLI entry point → <code>crates/sc-compose/src/main.rs</code></li>
+<li>the composition library’s public surface → <code>crates/sc-composer/src/lib.rs</code></li>
+<li>reporting runtime code → <code>crates/sc-compose/src/reporting/index.rs</code></li>
+<li>Python bindings → <code>bindings/python/</code></li>
+<li>project, testing, or team documentation → <code>docs/</code></li>
+<li>report specs and report-summary inputs → <code>reports/</code></li>
+<li>CI and release workflows → <code>.github/</code> and <code>scripts/</code></li>
+<li>prototype multipass code → <code>prototype/multipass/</code></li>
+</ul>
+<h2>What's not here</h2>
+<p>For most implementation work, do not begin in <code>.claude/</code>, <code>.github/</code>, or <code>pm/</code>: they provide agent guidance, workflow automation, and role notes rather than the primary Rust or binding code.</p>
+</body>
+</html>

@@ -1,0 +1,141 @@
+{
+  "schema_version": "phase-i4-xml-dirty-prefix/v1",
+  "sprint": "I.4",
+  "issue": "#193 Gap 5",
+  "requirement_trace": [
+    "docs/requirements.md FR-19",
+    "docs/architecture.md section 8.5",
+    "docs/adrs/0013-phase-i-raw-text-and-input-safety.md XML dirty-prefix recovery",
+    "docs/phase-I/sprint-i-4-xml-dirty-prefix.md"
+  ],
+  "implementation": {
+    "normalization": "rendered XML only, before XML parsing",
+    "removed_span": "byte range from the original rendered input, with one-based line and column",
+    "warning_code": "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED",
+    "fallback": "ERR_EXTRACT_MALFORMED for malformed suffixes, multiple roots, truncated prolog markup, and post-root content",
+    "unsupported": "ERR_EXTRACT_UNSUPPORTED for DTD declarations"
+  },
+  "cases": [
+    {
+      "id": "plain-text-preamble",
+      "kind": "success",
+      "template_fixture": "xml-dirty-prefix.xml.j2",
+      "rendered_fixture": "xml-dirty-prefix.xml",
+      "rendered_input": "service response: 200\\n<root><value>Ada</value></root>\\n",
+      "expected_values": {"value": "Ada"},
+      "expected_warning": "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED",
+      "expected_detail": "bytes 0.. and line 2, column 1",
+      "test": "fixture_normalizes_dirty_xml_prefix_and_reports_removed_span"
+    },
+    {
+      "id": "declaration-comment-processing-instruction-prolog",
+      "kind": "success",
+      "template_fixture": "xml-dirty-prefix-prolog.xml.j2",
+      "rendered_fixture": "xml-dirty-prefix-prolog.xml",
+      "rendered_input": "gateway response\\n<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\"?>\\n<!-- response payload -->\\n<?trace id=\\\"42\\\"?>\\n<root><value>Ada</value></root>\\n",
+      "expected_values": {"value": "Ada"},
+      "expected_warning": "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED",
+      "test": "fixture_preserves_dirty_xml_prolog_and_i3_full_content"
+    },
+    {
+      "id": "dirty-prefix-plus-i3-full-content",
+      "kind": "success",
+      "template_fixture": "xml-dirty-prefix-blocks.xml.j2",
+      "rendered_fixture": "xml-dirty-prefix-blocks.xml",
+      "rendered_input": "gateway response\\n<root><code>Ada</code> and <message>accepted</message></root>\\n",
+      "expected_values": {"content": "<code>Ada</code> and <message>accepted</message>"},
+      "expected_warning": "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED",
+      "test": "fixture_preserves_dirty_xml_prolog_and_i3_full_content"
+    },
+    {
+      "id": "invalid-prefix-and-suffix-boundaries",
+      "kind": "rejected",
+      "fixtures": [
+        "xml-dirty-prefix-multiple-root.xml",
+        "xml-dirty-prefix-malformed-suffix.xml",
+        "xml-dirty-prefix-unterminated-comment.xml",
+        "xml-dirty-prefix-unterminated-pi.xml",
+        "xml-dirty-prefix-ambiguous.xml",
+        "xml-dirty-prefix-post-root.xml",
+        "xml-dirty-prefix-doctype.xml"
+      ],
+      "expected_errors": {
+        "xml-dirty-prefix-doctype.xml": "ERR_EXTRACT_UNSUPPORTED"
+      },
+      "default_expected_error": "ERR_EXTRACT_MALFORMED",
+      "test": "dirty_xml_prefix_rejections_are_not_silently_dropped"
+    },
+    {
+      "id": "cross_surface_rejection_corpus",
+      "kind": "rejected",
+      "surfaces": ["Rust", "CLI", "JSON-CLI", "Python"],
+      "fixture_set": "invalid-prefix-and-suffix-boundaries",
+      "expected": "all malformed fixtures return ERR_EXTRACT_MALFORMED; the DOCTYPE fixture returns ERR_EXTRACT_UNSUPPORTED",
+      "tests": [
+        "dirty_xml_prefix_rejections_are_not_silently_dropped",
+        "extract_text_covers_xml_dirty_prefix_block_and_rejection_corpus",
+        "extract_json_covers_xml_dirty_prefix_block_and_rejection_corpus",
+        "test_xml_dirty_prefix_rejection_corpus_reaches_python"
+      ]
+    }
+  ],
+  "surface_parity": [
+    "crates/sc-composer/tests/extract_integration.rs",
+    "crates/sc-compose/tests/cli/extract.rs",
+    "crates/sc-compose/tests/json_cli/extract.rs",
+    "bindings/python/tests/test_smoke.py"
+  ],
+  "validation": {
+    "tested_commit": "f3dca07",
+    "evidence_recorded_in": "follow-up documentation commit after f3dca07",
+    "focused_commands": [
+      {
+        "command": "cargo test -p sc-composer --test extract_integration dirty_xml_prefix -- --nocapture",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "cargo test -p sc-compose --test cli extract_text_covers_xml_dirty_prefix_block_and_rejection_corpus -- --nocapture",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "cargo test -p sc-compose --test json_cli extract_json_covers_xml_dirty_prefix_block_and_rejection_corpus -- --nocapture",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "VIRTUAL_ENV=/tmp/sc-compose-i4-venv PATH=/tmp/sc-compose-i4-venv/bin:$PATH python -m pytest -q bindings/python/tests/test_smoke.py -k 'dirty_prefix'",
+        "exit_code": 0,
+        "result": "PASS"
+      }
+    ],
+    "required_commands": [
+      {
+        "command": "cargo test --workspace",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "cargo clippy --all-targets --all-features -- -D warnings",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "cargo fmt --all --check",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "git diff --check",
+        "exit_code": 0,
+        "result": "PASS"
+      },
+      {
+        "command": "VIRTUAL_ENV=/tmp/sc-compose-i4-venv PATH=/tmp/sc-compose-i4-venv/bin:$PATH python -m pytest -q bindings/python/tests",
+        "exit_code": 0,
+        "result": "PASS (50 passed)"
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+# GitHub Pages configuration for randlee.github.io/sc-compose
+title: sc-compose
+description: Compose once. Render deterministically. Ship everywhere.
+baseurl: "/sc-compose"
+url: "https://randlee.github.io"
+
+# Build settings
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+# Exclude from build
+exclude:
+  - requirements.md
+  - architecture.md
+  - "phase-*/"
+  - "sprints/"
+  - "adrs/"
+  - "*.toml"
+  - "*.lock"
+  - Cargo.toml
+  - Justfile
+  - CLAUDE.md
+
+# Navigation
+header_pages:
+  - index.md
+  - install.md
+  - examples.md

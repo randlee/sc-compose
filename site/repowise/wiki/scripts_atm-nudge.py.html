@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: scripts/atm-nudge.py</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: scripts/atm-nudge.py</h1>
+<h2>Overview</h2>
+<p><code>atm-nudge.py</code> is the Docs &amp; Tooling layer entry-point dispatcher for ATM post-send delivery, resolving an agent’s authoritative tmux pane and producing tmux keystrokes, structured diagnostics, and hook results.</p>
+<p>It is invoked as a standalone script rather than imported by application code. In normal mode, it discovers the repository-local <code>.atm.toml</code>, identifies the requested recipient by name and ATM team, builds an ATM instruction payload, and sends it to the resolved tmux pane. In override mode, <code>--pane</code> bypasses lookup and delivers directly to the supplied pane ID.</p>
+<p>This is a hotspot file with high change frequency and complexity. Changes can affect message delivery, recovery guidance, and the relationship between committed pane configuration and Claude’s local team configuration; test both successful and failure paths carefully.</p>
+<p>The central delivery policy is deliberate:</p>
+<ul>
+<li><code>.atm.toml</code> is the authoritative, repository-scoped pane mapping.</li>
+<li><code>~/.claude/teams/&lt;team&gt;/config.json</code> is advisory only.</li>
+<li>A valid <code>.atm.toml</code> mapping still delivers even when <code>config.json</code> is missing, invalid, or stale.</li>
+<li>A mismatch produces a warning with remediation instructions rather than blocking delivery.</li>
+</ul>
+<p>Resolution starts from <code>CLAUDE_PROJECT_DIR</code>, then <code>PWD</code>, then <code>os.getcwd()</code>, walking upward from each candidate directory until it finds <code>.atm.toml</code>. Team selection prioritizes <code>ATM_POST_SEND.team</code>, then <code>.atm.toml</code> defaults, then <code>ATM_TEAM</code>, and finally <code>sc-compose</code>.</p>
+<h2>Public API</h2>
+<p>Although this is primarily a CLI script, its functions form clear internal extension points.</p>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PaneLookup</code></td>
+<td>Named tuple carrying <code>pane_id</code>, error code/message, and optional source path.</td>
+</tr>
+<tr>
+<td><code>candidate_start_dirs()</code></td>
+<td>Collects unique, resolvable directories used to begin <code>.atm.toml</code> discovery.</td>
+</tr>
+<tr>
+<td><code>find_atm_toml(start_dir)</code></td>
+<td>Walks from a directory to the filesystem root looking for <code>.atm.toml</code>.</td>
+</tr>
+<tr>
+<td><code>discover_atm_toml()</code></td>
+<td>Tries each candidate start directory and returns the first <code>.atm.toml</code> found.</td>
+</tr>
+<tr>
+<td><code>read_post_send_payload()</code></td>
+<td>Parses <code>ATM_POST_SEND</code> JSON safely; malformed or non-object values become <code>{}</code>.</td>
+</tr>
+<tr>
+<td><code>resolve_team()</code></td>
+<td>Resolves the effective team from post-send payload, TOML defaults, environment, or fallback.</td>
+</tr>
+<tr>
+<td><code>read_pane_from_toml(recipient, team)</code></td>
+<td>Reads the authoritative pane mapping and returns a structured lookup result.</td>
+</tr>
+<tr>
+<td><code>read_pane_from_config(recipient, team)</code></td>
+<td>Reads advisory Claude <code>config.json</code> pane information.</td>
+</tr>
+<tr>
+<td><code>nudge_pane(pane_id, recipient, message)</code></td>
+<td>Validates inputs, sends literal text through tmux, presses Enter, and logs delivery.</td>
+</tr>
+<tr>
+<td><code>build_message(team, payload)</code></td>
+<td>Produces default ATM XML-like instructions, including special acknowledgement behavior.</td>
+</tr>
+<tr>
+<td><code>build_nudge_command(pane, recipient, message)</code></td>
+<td>Builds a shell-safe manual recovery command using <code>shlex.join</code>.</td>
+</tr>
+<tr>
+<td><code>build_error_payload(...)</code></td>
+<td>Produces detailed JSON diagnostics when authoritative lookup prevents delivery.</td>
+</tr>
+<tr>
+<td><code>build_warning_payload(...)</code></td>
+<td>Produces JSON remediation guidance after delivery succeeds but advisory config is inconsistent.</td>
+</tr>
+<tr>
+<td><code>emit_json_stderr(data)</code></td>
+<td>Prints pretty JSON diagnostics to stderr.</td>
+</tr>
+<tr>
+<td><code>emit_hook_result(level, message, fields)</code></td>
+<td>Emits compact JSON hook output to stdout.</td>
+</tr>
+<tr>
+<td><code>main(argv)</code></td>
+<td>Parses arguments, coordinates resolution and delivery, and returns a process status.</td>
+</tr>
+</tbody>
+</table>
+<h3>CLI contract</h3>
+<pre><code class="language-text">atm-nudge.py [--pane &lt;id&gt;] &lt;recipient&gt; [&lt;message&gt;]
+</code></pre>
+<ul>
+<li><code>&lt;recipient&gt;</code> is required.</li>
+<li><code>&lt;message&gt;</code> is optional; when absent, the script generates an ATM action message.</li>
+<li><code>--pane &lt;id&gt;</code> directly targets a tmux pane and skips <code>.atm.toml</code> and <code>config.json</code> lookup.</li>
+<li>Exit status <code>0</code> means delivery succeeded, including delivery with an advisory warning.</li>
+<li>Exit status <code>1</code> means arguments were invalid or authoritative pane resolution failed.</li>
+</ul>
+<h3>Resolution behavior</h3>
+<p><code>read_pane_from_toml()</code> searches <code>[[rmux.windows.panes]]</code> entries:</p>
+<ol>
+<li>Match <code>pane.name</code> to the recipient.</li>
+<li>Prefer matches whose <code>env.ATM_TEAM</code> equals the resolved team.</li>
+<li>If exactly one recipient-name match exists without a team tag, accept it as a compatibility fallback.</li>
+<li>Reject missing matches, ambiguous team matches, empty pane IDs, malformed TOML structures, and unavailable TOML support.</li>
+</ol>
+<p>Errors are represented with stable codes such as <code>file_missing</code>, <code>not_found</code>, <code>empty_pane</code>, <code>parse_error</code>, <code>ambiguous_match</code>, and <code>invalid_structure</code>. This lets callers and logs distinguish configuration repair from delivery failures.</p>
+<h2>Dependencies</h2>
+<p>The script depends only on the Python standard library in Python 3.11+:</p>
+<ul>
+<li><code>tomllib</code> parses <code>.atm.toml</code>.</li>
+<li><code>json</code> parses <code>ATM_POST_SEND</code> and Claude <code>config.json</code>, and emits machine-readable diagnostics.</li>
+<li><code>pathlib</code> and <code>os</code> locate repository configuration relative to the current project context.</li>
+<li><code>subprocess</code> invokes <code>tmux send-keys</code>.</li>
+<li><code>shlex</code> safely renders manual recovery commands.</li>
+<li><code>datetime</code> timestamps append-only delivery logs at <code>/tmp/atm-nudge.log</code>.</li>
+<li><code>time</code> inserts a short delay between sending literal text and sending <code>Enter</code>.</li>
+<li><code>sys</code> supplies CLI arguments, the current interpreter, and output streams.</li>
+</ul>
+<p>For Python versions before 3.11, it attempts to import <code>tomli</code> as a compatible TOML parser. If neither parser is available, normal-mode lookup fails with <code>no_tomllib</code>; direct <code>--pane</code> delivery remains independent of TOML parsing.</p>
+<p>External runtime dependencies are:</p>
+<ul>
+<li>A working <code>tmux</code> executable.</li>
+<li>A target pane that accepts <code>tmux send-keys</code>.</li>
+<li>A repository-local <code>.atm.toml</code> for normal delivery.</li>
+<li>Optionally, Claude’s <code>~/.claude/teams/&lt;team&gt;/config.json</code> for consistency checks and recovery recommendations.</li>
+</ul>
+<p>The module does not depend on ATM runtime crates or application crates. Its boundary is operational tooling: environment input, filesystem configuration, tmux delivery, and JSON diagnostics.</p>
+<h2>Usage Notes</h2>
+<h3>Normal post-send delivery</h3>
+<p>With <code>.atm.toml</code> available from the project directory or any parent directory:</p>
+<pre><code class="language-bash">scripts/atm-nudge.py grecon
+</code></pre>
+<p>The script resolves the team, finds the unique pane for <code>grecon@&lt;team&gt;</code>, generates the standard task instruction, sends it as literal tmux text, then sends Enter.</p>
+<p>A representative authoritative pane definition is:</p>
+<pre><code class="language-toml">[[rmux.windows.panes]]
+name = &quot;grecon&quot;
+tmux_pane_id = &quot;%4&quot;
+
+[rmux.windows.panes.env]
+ATM_TEAM = &quot;hermes&quot;
+</code></pre>
+<p>If there is one pane named <code>grecon</code> and it lacks <code>ATM_TEAM</code>, the script accepts it. If multiple same-name panes exist, tag the intended pane with <code>env.ATM_TEAM</code> to avoid ambiguity.</p>
+<h3>Sending an explicit message</h3>
+<pre><code class="language-bash">scripts/atm-nudge.py grecon &quot;Please inspect the failing integration test.&quot;
+</code></pre>
+<p>The supplied message replaces the generated default. It must be non-empty after trimming.</p>
+<h3>Direct-pane override</h3>
+<pre><code class="language-bash">scripts/atm-nudge.py --pane '%4' grecon &quot;Please inspect the failing integration test.&quot;
+</code></pre>
+<p>Use this for controlled recovery or diagnostics when the committed mapping is unavailable. The override skips both configuration lookups, so it does not validate that the pane belongs to the requested recipient or team.</p>
+<h3>Acknowledgement messages</h3>
+<p>When <code>ATM_POST_SEND</code> is valid JSON with <code>"is_ack": true</code>, and no explicit message is supplied, <code>build_message()</code> generates acknowledgement-specific actions. If the payload contains a <code>message_id</code>, it includes that ID in the acknowledgement instruction.</p>
+<p>Malformed <code>ATM_POST_SEND</code> is intentionally non-fatal and behaves as an empty payload.</p>
+<h3>Handling stale <code>config.json</code></h3>
+<p>If <code>.atm.toml</code> resolves <code>%4</code> but Claude’s local config says <code>%7</code>, the script:</p>
+<ol>
+<li>Delivers to <code>%4</code>, because it is authoritative.</li>
+<li>Logs the mismatch.</li>
+<li>Writes a detailed warning JSON object to stderr.</li>
+<li>Emits a compact <code>"warn"</code> hook result to stdout.</li>
+<li>Returns success.</li>
+</ol>
+<p>Treat the warning as configuration drift that should be repaired, not as proof that delivery failed.</p>
+<h3>When delivery is blocked</h3>
+<p>If <code>.atm.toml</code> cannot resolve a pane, no automatic delivery occurs. The error payload includes:</p>
+<ul>
+<li>The authoritative lookup failure.</li>
+<li>The advisory <code>config.json</code> result.</li>
+<li>A suggested pane ID from <code>config.json</code>, or <code>%1</code> as a fallback.</li>
+<li>A shell-safe <code>nudge_command</code> for manual delivery.</li>
+<li>Targeted configuration fixes.</li>
+</ul>
+<p>The suggested pane is explicitly advisory and may be stale. Verify it before executing the recovery command.</p>
+<h3>Operational pitfalls</h3>
+<ul>
+<li>Do not rely on <code>config.json</code> as the delivery source; it is intentionally non-authoritative.</li>
+<li>Ensure recipient names match exactly.</li>
+<li>Ensure <code>tmux_pane_id</code> is non-empty and team-scoped mappings are unique.</li>
+<li>Preserve the <code>0.25</code> second delay between literal message input and Enter; removing it may make pane input less reliable.</li>
+<li><code>tmux send-keys -l</code> sends literal text, avoiding shell interpretation of the message content.</li>
+<li>Review changes to team fallback order carefully: they alter which pane may receive a post-send notification.</li>
+<li><code>/tmp/atm-nudge.log</code> is operational telemetry, not durable audit storage.</li>
+</ul>
+</body>
+</html>

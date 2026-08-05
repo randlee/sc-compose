@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-composer/src/frontmatter.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-composer/src/frontmatter.rs</h1>
+<p>I’ll inspect the repository’s team documentation and relevant procedural context, then produce the wiki page from the supplied source.</p>
+<h2>Overview</h2>
+<p><code>frontmatter.rs</code> is the Application-layer parser and normalizer for template YAML headers, producing <code>ParsedTemplate</code> values containing ordered <code>Frontmatter</code> passes, normalized configuration, diagnostics, and the delimiter-free template body. It is a high-activity, high-complexity hotspot: changes here affect parsing, validation, composition, CLI custom-delimiter rendering, and compatibility behavior.</p>
+<p>The module recognizes one or more leading YAML frontmatter blocks delimited by <code>---</code> and terminated by either <code>---</code> or <code>...</code>. It deliberately parses only the contiguous header stack at the beginning of the document; later delimiter-looking lines remain part of the body.</p>
+<p>Normalization converts deserialized YAML into domain types:</p>
+<ul>
+<li>Required variable names become validated <code>VariableName</code> values and must be unique.</li>
+<li>Default values become validated <code>InputValue</code> values.</li>
+<li>Metadata remains YAML-backed <code>MetadataValue</code>.</li>
+<li>Missing collection fields become explicit empty collections.</li>
+<li>Omitted or zero pass numbers become <code>default_pass_number()</code>.</li>
+<li>Conflicting <code>defaults</code> and <code>input_defaults</code> sections produce a warning while allowing <code>input_defaults</code> to override duplicate keys.</li>
+</ul>
+<p>Malformed YAML, an unclosed opening delimiter, invalid variable names or values, duplicate required variables, and duplicate explicitly declared pass numbers all fail closed with <code>ComposeError</code> values enriched with configuration recovery hints.</p>
+<h2>Public API</h2>
+<h3><code>Frontmatter</code></h3>
+<p>A normalized, typed representation of one YAML frontmatter header.</p>
+<ul>
+<li>
+<p><code>Frontmatter::empty() -&gt; Frontmatter</code><br />
+  Creates an empty header using the configured default pass number and empty collections.</p>
+</li>
+<li>
+<p><code>pass_number(&amp;self) -&gt; u8</code><br />
+  Returns the effective pass number. <code>pass: 0</code> and an omitted <code>pass</code> both normalize to the default pass number.</p>
+</li>
+<li>
+<p><code>required_variables(&amp;self) -&gt; &amp;[VariableName]</code><br />
+  Returns required variables in declaration order.</p>
+</li>
+<li>
+<p><code>defaults(&amp;self) -&gt; &amp;BTreeMap&lt;VariableName, InputValue&gt;</code><br />
+  Returns normalized default input values. The <code>BTreeMap</code> gives callers deterministic key ordering.</p>
+</li>
+<li>
+<p><code>metadata(&amp;self) -&gt; &amp;BTreeMap&lt;String, MetadataValue&gt;</code><br />
+  Returns descriptive metadata without treating it as input defaults.</p>
+</li>
+<li>
+<p><code>diagnostics(&amp;self) -&gt; &amp;[Diagnostic]</code><br />
+  Returns non-fatal normalization warnings, currently including conflicting default-section usage.</p>
+</li>
+</ul>
+<p><code>has_explicit_pass_number</code> is crate-private. It distinguishes an explicitly declared pass from an effective default pass, allowing duplicate explicit passes to be rejected without rejecting several omitted/defaulted passes.</p>
+<h3><code>ParsedTemplate</code></h3>
+<p>The parsed document boundary shared by rendering and validation.</p>
+<ul>
+<li>
+<p><code>ParsedTemplate::from_parts(passes, body) -&gt; ParsedTemplate</code><br />
+  Crate-private constructor for already-normalized, internally trusted parts. Used by composition flows.</p>
+</li>
+<li>
+<p><code>ParsedTemplate::from_parts_validated(passes, body) -&gt; Result&lt;ParsedTemplate, ComposeError&gt;</code><br />
+  Public constructor for normalized parts that re-validates duplicate explicit pass numbers. This is appropriate when callers rebuild or transform parsed passes outside the direct parser path.</p>
+</li>
+<li>
+<p><code>frontmatter(&amp;self) -&gt; Option&lt;&amp;Frontmatter&gt;</code><br />
+  Returns the outermost header, preserving the legacy single-header access pattern.</p>
+</li>
+<li>
+<p><code>passes(&amp;self) -&gt; &amp;[Frontmatter]</code><br />
+  Returns all leading headers in outer-to-inner order.</p>
+</li>
+<li>
+<p><code>body(&amp;self) -&gt; &amp;str</code><br />
+  Returns the remaining document content after the complete leading header stack.</p>
+</li>
+</ul>
+<h3><code>parse_template_document</code></h3>
+<pre><code class="language-rust">pub fn parse_template_document(input: &amp;str) -&gt; Result&lt;ParsedTemplate, ComposeError&gt;
+</code></pre>
+<p>Parses a template document into normalized passes and body text.</p>
+<p>Typical outcomes:</p>
+<table>
+<thead>
+<tr>
+<th>Input shape</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No leading delimiter</td>
+<td>No passes; entire input is the body</td>
+</tr>
+<tr>
+<td>One leading YAML block</td>
+<td>One normalized pass; remaining input is the body</td>
+</tr>
+<tr>
+<td>Consecutive leading YAML blocks</td>
+<td>Multiple ordered passes; remaining input is the body</td>
+</tr>
+<tr>
+<td><code>---</code> inside body after a parsed header</td>
+<td>Preserved verbatim in the body</td>
+</tr>
+<tr>
+<td>Opening <code>---</code> without a closing delimiter</td>
+<td>Configuration parse error</td>
+</tr>
+<tr>
+<td>Invalid YAML or unsupported input value</td>
+<td>Configuration/validation error</td>
+</tr>
+</tbody>
+</table>
+<h2>Dependencies</h2>
+<p>The module depends on:</p>
+<ul>
+<li><code>serde::Deserialize</code> and <code>serde_yaml</code> to deserialize the internal <code>RawFrontmatter</code> transport structure.</li>
+<li><code>std::collections::BTreeMap</code> and <code>BTreeSet</code> for deterministic mappings and duplicate detection.</li>
+<li><code>crate::types</code> for domain validation and conversion:</li>
+<li><code>VariableName</code> validates input-variable identifiers.</li>
+<li><code>InputValue</code> is produced by <code>input_value_from_yaml</code>.</li>
+<li><code>MetadataValue</code> preserves metadata values.</li>
+<li><code>default_pass_number</code> supplies the canonical effective pass.</li>
+<li><code>crate::diagnostics</code> for warning collection when compatible configuration forms conflict.</li>
+<li><code>crate::error</code> for <code>ComposeError</code>, typed configuration/validation failures, diagnostic codes, and recovery hints.</li>
+</ul>
+<p>Its primary downstream consumers are:</p>
+<ul>
+<li><code>composer.rs</code>, which constructs parsed templates during composition and renders <code>ParsedTemplate::body()</code>.</li>
+<li><code>validation.rs</code>, which examines parsed frontmatter and pass numbers when collecting validation state.</li>
+<li><code>frontmatter_init.rs</code> and <code>include.rs</code>, which consume normalized frontmatter as part of template setup and inclusion behavior.</li>
+<li><code>sc-compose</code> command handling, whose custom-delimiter render path uses <code>ParsedTemplate::from_parts_validated</code>.</li>
+<li><code>lib.rs</code>, which re-exports the public parsing surface.</li>
+</ul>
+<h2>Usage Notes</h2>
+<p>Parse a document with no header:</p>
+<pre><code class="language-rust">let parsed = parse_template_document(&quot;Hello, {{ name }}!&quot;)?;
+
+assert!(parsed.passes().is_empty());
+assert_eq!(parsed.body(), &quot;Hello, {{ name }}!&quot;);
+assert!(parsed.frontmatter().is_none());
+</code></pre>
+<p>Parse a single frontmatter pass:</p>
+<pre><code class="language-rust">let parsed = parse_template_document(
+    &quot;---\npass: 2\nrequired_variables: [name]\ndefaults:\n  greeting: Hello\n---\n{{ greeting }}, {{ name }}!&quot;
+)?;
+
+let header = parsed.frontmatter().expect(&quot;one frontmatter header&quot;);
+assert_eq!(header.pass_number(), 2);
+assert_eq!(header.required_variables().len(), 1);
+assert_eq!(parsed.body(), &quot;{{ greeting }}, {{ name }}!&quot;);
+</code></pre>
+<p>Parse stacked passes when a template requires multiple composition stages:</p>
+<pre><code class="language-rust">let parsed = parse_template_document(
+    &quot;---\npass: 1\ndefaults: { name: World }\n---\n---\npass: 2\nmetadata: { stage: final }\n...\nHello, {{ name }}!&quot;
+)?;
+
+assert_eq!(parsed.passes().len(), 2);
+assert_eq!(parsed.passes()[0].pass_number(), 1);
+assert_eq!(parsed.passes()[1].pass_number(), 2);
+</code></pre>
+<p>Be careful when reconstructing a <code>ParsedTemplate</code>. <code>from_parts</code> assumes the caller has already upheld invariants; use <code>from_parts_validated</code> across public or externally assembled boundaries so duplicate explicit pass numbers cannot bypass parser validation.</p>
+<p>Delimiter recognition is intentionally strict:</p>
+<ul>
+<li>The first header must begin exactly at byte zero.</li>
+<li>Opening delimiters must be <code>---\n</code>, <code>---\r\n</code>, or exactly <code>---</code> at end of input.</li>
+<li>Closing delimiters must occupy a line by themselves after trimming line endings.</li>
+<li>Only consecutive leading blocks are consumed. A later <code>---</code> is template body content, not a new header.</li>
+</ul>
+<p>Defaults deserve particular attention. Both <code>defaults</code> and <code>input_defaults</code> are accepted, then merged into one map. If both are present, <code>input_defaults</code> overwrites overlapping keys and emits a warning accessible through <code>Frontmatter::diagnostics()</code>. Consumers should preserve and surface those diagnostics instead of silently discarding compatibility warnings.</p>
+</body>
+</html>

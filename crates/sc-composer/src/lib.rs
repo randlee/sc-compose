@@ -9,8 +9,11 @@
 pub mod composer;
 /// Structured diagnostics and the stable `ERR_*` code registry.
 pub mod diagnostics;
+mod discovery;
 /// Canonical crate-owned error types.
 pub mod error;
+/// Known-template extraction contract and report types.
+pub mod extract;
 /// Typed frontmatter parsing and normalization.
 pub mod frontmatter;
 /// Frontmatter initialization helper.
@@ -32,17 +35,30 @@ pub mod types;
 pub mod validate;
 /// Variable discovery and validation semantics.
 pub mod validation;
+/// Drift-verification entrypoints.
+pub mod verify;
 
 #[doc(inline)]
-pub use composer::{compose, compose_with_observer};
+pub use composer::{compose, compose_with_observer, protect_higher_braces, render_all};
 #[doc(inline)]
 pub use diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope, DiagnosticSeverity,
 };
+pub use discovery::{discover_all_pass_tokens, discover_tokens, discover_tokens_with_brace_count};
 #[doc(inline)]
 pub use error::{
     ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind, RenderError,
     ResolveError, ValidationError,
+};
+#[doc(inline)]
+pub use extract::{
+    ExtractError, ExtractFormat, ExtractRequest, ExtractionDiagnostic, ExtractionDiagnosticKind,
+    ExtractionOccurrence, ExtractionPathSegment, ExtractionReport, ExtractionSource,
+    JsonExtractionReport, JsonExtractionSource, JsonPathSegment, OccurrenceIndex,
+    OccurrencePathSegment, OccurrenceSource, RawExtractionReport, RawExtractionSource,
+    RawPathSegment, TomlExtractionReport, TomlExtractionSource, TomlPathSegment,
+    XmlExtractionOccurrence, XmlExtractionReport, XmlExtractionSource, XmlPathSegment,
+    YamlExtractionReport, YamlExtractionSource, YamlPathSegment, extract,
 };
 #[doc(inline)]
 pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};
@@ -51,11 +67,12 @@ pub use frontmatter_init::frontmatter_init;
 #[doc(inline)]
 pub use include::{ExpandedTemplate, expand_includes};
 #[doc(inline)]
-pub use init_workspace::init_workspace;
+pub use init_workspace::{init_workspace, read_optional_text_file};
 #[doc(inline)]
 pub use observer::{
     CompositionObserver, IncludeOutcomeEvent, NoopObserver, ObservationEvent, ObservationSink,
-    RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
+    PassEndEvent, PassStartEvent, RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent,
+    ValidationOutcomeEvent, VerifyEndEvent, VerifyStartEvent,
 };
 #[doc(inline)]
 pub use path_utils::to_forward_slash;
@@ -70,13 +87,16 @@ pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_templ
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
     FrontmatterInitResult, IncludeDepth, InitResult, InputValue, InvalidInputValueError,
-    InvalidProfileNameError, InvalidVariableNameError, MetadataValue, ProfileKind, ProfileName,
-    ResolveResult, ResolverPolicy, RuntimeKind, UnknownVariablePolicy, ValidationReport,
-    VariableName, VariableSource, input_value_from_yaml, validate_input_value,
+    InvalidProfileNameError, InvalidVariableNameError, MetadataValue, PassConfig, ProfileKind,
+    ProfileName, ResolveResult, ResolverPolicy, RuntimeKind, UnknownVariablePolicy,
+    ValidationReport, VariableName, VariableSource, VerifyResult, input_value_from_yaml,
+    validate_input_value,
 };
 #[doc(inline)]
 pub use validate::{validate, validate_with_observer};
-pub use validation::{BUILTIN_VARIABLE_NAMES, discover_tokens};
+pub use validation::BUILTIN_VARIABLE_NAMES;
+#[doc(inline)]
+pub use verify::{verify, verify_with_observer};
 
 #[cfg(test)]
 mod tests {

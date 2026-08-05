@@ -1,0 +1,4 @@
+* text=auto eol=lf
+
+*.j2 text eol=lf
+examples/** text eol=lf

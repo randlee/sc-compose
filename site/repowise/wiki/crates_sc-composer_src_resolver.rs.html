@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: crates/sc-composer/src/resolver.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: crates/sc-composer/src/resolver.rs</h1>
+<h2>Overview</h2>
+<p><code>resolver.rs</code> is the Application-layer resolver for compose requests — it consumes <code>ComposeRequest</code> values and produces canonical <code>ResolveResult</code> template paths with search traces, confinement enforcement, ambiguity detection, and optional observer events.</p>
+<p>It handles two resolution modes:</p>
+<ul>
+<li><strong>File mode:</strong> resolves an explicitly supplied template path relative to the request root when needed, canonicalizes it, and rejects paths outside the configured confinement roots.</li>
+<li><strong>Profile mode:</strong> searches runtime-specific and shared agent, command, or skill directories for a named profile; returns one concrete template path only when exactly one distinct candidate matches.</li>
+</ul>
+<p>The resolver is called by the composition flow through <code>composer.rs</code>, while <code>frontmatter_init.rs</code>, <code>lib.rs</code>, and the CLI can use its public functions to resolve templates independently. It does not render templates or parse CLI input; it turns selection intent into a safe, traceable filesystem path.</p>
+<h2>Public API</h2>
+<h3><code>resolve_template_path</code></h3>
+<pre><code class="language-rust">pub fn resolve_template_path(
+    request: &amp;ComposeRequest,
+) -&gt; Result&lt;ResolveResult, ComposeError&gt;
+</code></pre>
+<p>Primary entry point for resolving the template targeted by a compose request.</p>
+<ul>
+<li>For <code>ComposeMode::Profile</code>, delegates to profile resolution using the request root, profile kind and name, optional runtime, and <code>ResolverPolicy</code>.</li>
+<li>For <code>ComposeMode::File</code>, canonicalizes the requested path and ensures it remains under the request root or an allowed additional root.</li>
+<li>Returns a <code>ResolveResult</code> containing:</li>
+<li><code>resolved_path</code>: the canonical selected template.</li>
+<li><code>attempted_paths</code>: one path for file mode, or every unique profile probe attempted.</li>
+<li><code>ambiguity_candidates</code>: currently empty on successful resolution.</li>
+</ul>
+<p>Use this from the normal composition pipeline when callers do not need profile-resolution observer callbacks.</p>
+<h3><code>resolve_profile</code></h3>
+<pre><code class="language-rust">pub fn resolve_profile(
+    request: &amp;ComposeRequest,
+) -&gt; Result&lt;ResolveResult, ComposeError&gt;
+</code></pre>
+<p>Resolves only profile-mode requests. It installs <code>NoopObserver</code> and delegates to <code>resolve_profile_with_observer</code>.</p>
+<p>Passing a file-mode request returns <code>ComposeError::Config</code> with <code>DiagnosticCode::ErrConfigMode</code>.</p>
+<h3><code>resolve_profile_with_observer</code></h3>
+<pre><code class="language-rust">pub fn resolve_profile_with_observer(
+    request: &amp;ComposeRequest,
+    observer: &amp;mut dyn CompositionObserver,
+) -&gt; Result&lt;ResolveResult, ComposeError&gt;
+</code></pre>
+<p>Profile resolver variant that emits tracing callbacks.</p>
+<p>For a profile request, it:</p>
+<ol>
+<li>Emits <code>on_resolve_attempt</code> with a <code>"{kind:?}:{name}"</code> template identifier.</li>
+<li>Performs filesystem lookup.</li>
+<li>Emits <code>on_resolve_outcome</code> for successful and resolver-specific failed lookups.</li>
+</ol>
+<p>A successful outcome includes the canonical path and all attempted paths. A <code>ComposeError::Resolve</code> failure includes the attempted paths and diagnostic code. Non-resolution errors are returned without an outcome callback.</p>
+<p>This is the appropriate API for callers that expose diagnostics, progress reporting, or audit traces.</p>
+<h3>Resolution behavior</h3>
+<p>Without policy overrides, runtime-aware lookup uses these runtime orders when no runtime is specified:</p>
+<ol>
+<li>Claude</li>
+<li>Codex</li>
+<li>Gemini</li>
+<li>Opencode</li>
+</ol>
+<p>For each runtime and profile kind, the resolver searches runtime-specific paths followed by shared fallback paths. For example, Codex agent lookup considers:</p>
+<pre><code class="language-text">.codex/agents
+.agents/agents
+.claude/agents
+</code></pre>
+<p>Filename probes are profile-kind specific:</p>
+<table>
+<thead>
+<tr>
+<th>Profile kind</th>
+<th>Default probe order</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agent / Command</td>
+<td><code>&lt;name&gt;.md.j2</code>, <code>&lt;name&gt;.md</code>, <code>&lt;name&gt;.j2</code></td>
+</tr>
+<tr>
+<td>Skill</td>
+<td><code>&lt;name&gt;/SKILL.md.j2</code>, <code>&lt;name&gt;/SKILL.md</code>, <code>&lt;name&gt;/SKILL.j2</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>ResolverPolicy</code> can replace both directory selection and filename probe lists. Custom relative directories are joined to the request root; custom absolute directories are used as supplied.</p>
+<h3>Errors and edge cases</h3>
+<ul>
+<li>Missing explicit file or profile candidate: <code>ErrResolveNotFound</code>.</li>
+<li>Explicit file outside all configured roots: <code>ErrResolveNotFound</code>.</li>
+<li>More than one distinct profile file matches: <code>ErrResolveAmbiguous</code>.</li>
+<li>Calling profile-only APIs in file mode: <code>ErrConfigMode</code>.</li>
+<li>A candidate that exists but cannot be canonicalized becomes a resolver error with the original I/O error attached.</li>
+</ul>
+<p>The resolver deduplicates attempted paths and canonical matched files with <code>BTreeSet</code>. This prevents duplicate trace entries when runtime fallback chains overlap and prevents the same file from becoming ambiguous merely because it is reachable through multiple search paths.</p>
+<h2>Dependencies</h2>
+<h3>Internal modules</h3>
+<ul>
+<li><code>types</code></li>
+<li>Supplies request modes, profile identifiers, runtime and profile kinds, confinement roots, resolver policy, and the <code>ResolveResult</code> output type.</li>
+<li><code>error</code></li>
+<li>Supplies <code>ComposeError</code>, <code>ConfigError</code>, and <code>ResolveError</code>, including diagnostic codes and source-error attachment.</li>
+<li><code>diagnostics</code></li>
+<li>Supplies <code>DiagnosticCode</code> values used to classify mode, missing-path, and ambiguity failures.</li>
+<li><code>observer</code></li>
+<li>Supplies <code>CompositionObserver</code>, <code>NoopObserver</code>, <code>ResolveAttemptEvent</code>, and <code>ResolveOutcomeEvent</code>.</li>
+</ul>
+<h3>Standard library</h3>
+<ul>
+<li><code>std::fs::canonicalize</code> validates filesystem existence and resolves the final physical path.</li>
+<li><code>Path</code> and <code>PathBuf</code> build root-relative and runtime-specific lookup paths.</li>
+<li><code>BTreeSet</code> preserves unique attempted paths and matches deterministically.</li>
+</ul>
+<h3>Call relationships</h3>
+<p><code>composer.rs</code> calls <code>resolve_template_path</code> during composition, then passes the resolved template into later loading and rendering stages. <code>resolve_template_path</code> dispatches to either <code>resolve_profile_impl</code> or <code>canonicalize_with_roots</code>.</p>
+<p><code>resolve_profile</code> is a convenience wrapper over <code>resolve_profile_with_observer</code>; both eventually use the same private resolution implementation, so observer-enabled and observer-free profile lookup follow identical search semantics.</p>
+<h2>Usage Notes</h2>
+<h3>Resolve an explicit template safely</h3>
+<p>Construct a file-mode request with a root and, if necessary, additional allowed roots:</p>
+<pre><code class="language-rust">let request = ComposeRequest {
+    runtime: None,
+    mode: ComposeMode::File {
+        template_path: &quot;templates/release.md.j2&quot;.into(),
+    },
+    root: ConfiningRoot::new(project_root)?,
+    policy: ComposePolicy::default(),
+    // Populate variables and optional prompt fields as required.
+    ..request_defaults
+};
+
+let result = resolve_template_path(&amp;request)?;
+let template = result.resolved_path;
+</code></pre>
+<p>Relative paths are interpreted beneath <code>request.root</code>. Absolute paths are permitted only when their canonical form begins with the canonical request root or one of <code>policy.allowed_roots</code>.</p>
+<p>A common pitfall is assuming lexical path checks are enough. They are not: canonicalization handles <code>..</code> segments and symlink traversal before applying confinement.</p>
+<h3>Resolve a runtime-specific profile</h3>
+<pre><code class="language-rust">let request = ComposeRequest {
+    runtime: Some(RuntimeKind::Codex),
+    mode: ComposeMode::Profile {
+        kind: ProfileKind::Skill,
+        name: ProfileName::new(&quot;release-notes&quot;)?,
+    },
+    root: ConfiningRoot::new(project_root)?,
+    policy: ComposePolicy::default(),
+    ..request_defaults
+};
+
+let result = resolve_profile(&amp;request)?;
+</code></pre>
+<p>For this request, lookup checks Codex skill locations, then shared fallback locations, and probes templated skill files before non-templated variants.</p>
+<h3>Resolve with an observer</h3>
+<pre><code class="language-rust">let mut observer = MyCompositionObserver::default();
+let result = resolve_profile_with_observer(&amp;request, &amp;mut observer)?;
+</code></pre>
+<p>Observers receive one attempt event before lookup and one outcome event for success or resolver failures. Use <code>attempted_paths</code> in the outcome to explain where the resolver looked, especially when a profile is missing.</p>
+<h3>Handle omitted-runtime ambiguity</h3>
+<p>When <code>request.runtime</code> is <code>None</code>, the resolver searches all supported runtimes. This is useful for portable profile discovery, but duplicate profiles across runtime directories are intentionally errors rather than priority-selected matches.</p>
+<pre><code class="language-rust">match resolve_profile(&amp;request) {
+    Ok(result) =&gt; use_template(result.resolved_path),
+    Err(ComposeError::Resolve(error))
+        if error.code() == DiagnosticCode::ErrResolveAmbiguous =&gt;
+    {
+        // Ask the caller to choose RuntimeKind explicitly.
+    }
+    Err(error) =&gt; return Err(error),
+}
+</code></pre>
+<p>Set an explicit <code>RuntimeKind</code> whenever the project intentionally contains same-named profiles for multiple runtimes.</p>
+<h3>Customize lookup policy carefully</h3>
+<p><code>ResolverPolicy::candidate_directories</code> and <code>ResolverPolicy::filename_probes</code> replace the defaults rather than extend them. Supplying either non-empty list means the built-in runtime directory matrix or filename extension ordering is no longer used for that dimension.</p>
+<p>Custom probe values are joined directly to candidate directories. Keep them relative and avoid user-controlled traversal segments unless the surrounding application validates policy configuration.</p>
+</body>
+</html>

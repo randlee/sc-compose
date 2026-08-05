@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>File: bindings/python/src/types/policy.rs</title>
+<meta charset="utf-8">
+</head>
+<body>
+<h1>File: bindings/python/src/types/policy.rs</h1>
+<h2>Overview</h2>
+<p><code>policy.rs</code> is the Python Types-layer adapter that exposes validated <code>sc_composer</code> policy, mode, naming, confinement, and pass-configuration values as PyO3 classes. It consumes Python-facing inputs, converts them through shared coercion helpers, and produces wrapped Rust domain types with Python-friendly properties, exceptions, and representations.</p>
+<p>The module defines wrappers for <code>VariableName</code>, <code>ProfileName</code>, <code>ConfiningRoot</code>, <code>ResolverPolicy</code>, <code>ComposeMode</code>, <code>ComposePolicy</code>, and <code>PassConfig</code>. These classes are registered by the Types module and are also returned by other binding types where policy data is exposed.</p>
+<p>It keeps the Python API aligned with the Rust library while preserving domain validation: invalid variable names become validation errors, invalid profile/root configuration becomes configuration errors, and path-resolution failures become composed Python exceptions.</p>
+<h2>Public API</h2>
+<ul>
+<li><code>VariableName(value)</code></li>
+<li>Validates and wraps <code>sc_composer::VariableName</code>.</li>
+<li><code>str(value)</code> returns the raw name.</li>
+<li>
+<p><code>repr(value)</code> is <code>VariableName("...")</code>.</p>
+</li>
+<li>
+<p><code>ProfileName(value)</code></p>
+</li>
+<li>Validates and wraps <code>sc_composer::ProfileName</code>.</li>
+<li>Uses configuration-oriented errors for invalid names.</li>
+<li>
+<p>Provides Python <code>str</code> and <code>repr</code>.</p>
+</li>
+<li>
+<p><code>ConfiningRoot(path)</code></p>
+</li>
+<li>Accepts a path-like Python value and constructs a confinement root.</li>
+<li><code>confine(candidate)</code> resolves a candidate template path through <code>sc_composer::resolve_template_path</code> and returns its resolved path as a string.</li>
+<li>
+<p><code>str(root)</code> returns the root path.</p>
+</li>
+<li>
+<p><code>ResolverPolicy</code></p>
+</li>
+<li>Read-only wrapper returned from <code>ComposePolicy.resolver_policy</code>.</li>
+<li>
+<p>Its representation reports counts of candidate directories and filename probes plus ambiguity behavior.</p>
+</li>
+<li>
+<p><code>ComposeMode</code></p>
+</li>
+<li><code>ComposeMode.file(template_path)</code> creates file-based composition mode.</li>
+<li><code>ComposeMode.profile(kind, name)</code> creates profile-based composition mode after parsing the profile kind and name.</li>
+<li>
+<p>Properties:</p>
+<ul>
+<li><code>template_path</code>: path for file mode; otherwise <code>None</code>.</li>
+<li><code>kind</code> and <code>name</code>: profile details for profile mode; otherwise <code>None</code>.</li>
+</ul>
+</li>
+<li>
+<p><code>ComposePolicy(...)</code></p>
+</li>
+<li>Constructor defaults:<ul>
+<li><code>strict_undeclared_variables=False</code></li>
+<li><code>unknown_variable_policy="ignore"</code></li>
+<li><code>max_include_depth=32</code></li>
+<li><code>allowed_roots=None</code></li>
+<li><code>passes=None</code></li>
+</ul>
+</li>
+<li>Parses the unknown-variable-policy string, extracts allowed roots and pass configurations, and initializes the resolver policy with Rust defaults.</li>
+<li>
+<p>Properties expose strict-variable behavior, policy name, include depth, allowed roots, resolver policy, and pass configurations.</p>
+</li>
+<li>
+<p><code>PassConfig(pass_number, required_variables=None, defaults=None, metadata=None)</code></p>
+</li>
+<li>Converts Python collections into the corresponding Rust pass configuration.</li>
+<li>A <code>pass_number</code> of <code>0</code> is replaced with the library default pass number.</li>
+<li>Properties expose required variables and convert stored JSON/default metadata back into Python dictionaries.</li>
+</ul>
+<p>Internal helpers <code>python_string_repr</code>, <code>python_option_string_repr</code>, and <code>python_bool_repr</code> standardize Python-style <code>repr</code> output. <code>compose_mode_repr</code> and <code>compose_policy_repr</code> provide the representations consumed by the wrapper classes and request-related tests.</p>
+<h2>Dependencies</h2>
+<ul>
+<li><code>sc_composer</code></li>
+<li>Supplies the underlying domain types (<code>ComposeMode</code>, <code>ComposePolicy</code>, <code>PassConfig</code>, <code>ConfiningRoot</code>, and naming types).</li>
+<li>
+<p>Resolves confined template paths for <code>ConfiningRoot.confine</code>.</p>
+</li>
+<li>
+<p><code>pyo3</code></p>
+</li>
+<li>
+<p>Defines Python classes, constructors, getters, Python object handling, and <code>PyDict</code> construction.</p>
+</li>
+<li>
+<p><code>crate::convert</code></p>
+</li>
+<li>Coerces path-like values and extracts Python collections into Rust roots, variables, maps, metadata, profile names, and pass configurations.</li>
+<li>
+<p>Converts JSON values back to Python objects.</p>
+</li>
+<li>
+<p><code>crate::enums</code></p>
+</li>
+<li>
+<p>Parses Python policy/profile strings and renders canonical strings for getters and representations.</p>
+</li>
+<li>
+<p><code>crate::errors</code></p>
+</li>
+<li>
+<p>Maps validation, configuration, and composition failures to Python exceptions.</p>
+</li>
+<li>
+<p><code>types::mod</code></p>
+</li>
+<li>
+<p>Registers these wrappers into the Python extension module.</p>
+</li>
+<li>
+<p><code>types::results</code></p>
+</li>
+<li>Consumes policy-related wrapper types as part of the neighboring Types-layer API.</li>
+</ul>
+<h2>Usage Notes</h2>
+<p>Use these classes when constructing Python binding requests instead of manually assembling Rust-domain equivalents. Constructors intentionally accept Python-native values—such as strings, path-like objects, sequences, mappings, and dictionaries—and delegate validation/conversion to the shared binding helpers.</p>
+<p><code>ConfiningRoot.confine</code> performs actual resolution under the root; it is more than a string join and can raise a composition error when the candidate is invalid or escapes the permitted scope.</p>
+<p><code>ComposeMode</code> is a tagged union represented through factory methods. Check <code>template_path</code> for file mode or <code>kind</code>/<code>name</code> for profile mode; non-applicable properties return <code>None</code>.</p>
+<p><code>ComposePolicy.resolver_policy</code> and <code>ComposePolicy.passes</code> return cloned wrapper values. Mutating a returned Python object does not mutate the original policy instance.</p>
+<p><code>defaults</code> and <code>metadata</code> on <code>PassConfig</code> are reconstructed as Python dictionaries on access. Metadata conversion may fail if an internal metadata value cannot be serialized to JSON.</p>
+</body>
+</html>

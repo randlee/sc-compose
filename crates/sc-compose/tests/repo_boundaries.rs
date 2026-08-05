@@ -30,11 +30,29 @@ fn walk_files(root: &Path, files: &mut Vec<PathBuf>) {
 
 fn source_files(root: &Path) -> Vec<PathBuf> {
     let mut files = Vec::new();
-    walk_files(&root.join("crates"), &mut files);
+    for (source_root, extension) in source_roots(root) {
+        assert!(
+            source_root.is_dir(),
+            "required source root missing: {}",
+            source_root.display()
+        );
+        let mut discovered = Vec::new();
+        walk_files(&source_root, &mut discovered);
+        files.extend(
+            discovered
+                .into_iter()
+                .filter(|path| path.extension().and_then(|ext| ext.to_str()) == Some(extension)),
+        );
+    }
     files
-        .into_iter()
-        .filter(|path| path.extension().and_then(|ext| ext.to_str()) == Some("rs"))
-        .collect()
+}
+
+fn source_roots(root: &Path) -> [(PathBuf, &'static str); 3] {
+    [
+        (root.join("crates"), "rs"),
+        (root.join("bindings/python/src"), "rs"),
+        (root.join("bindings/python/python"), "py"),
+    ]
 }
 
 fn cargo_manifests(root: &Path) -> Vec<PathBuf> {
@@ -56,7 +74,8 @@ fn repo_keeps_standalone_boundary_rules() {
     let forbidden_env = concat!("ATM", "_HOME");
     let forbidden_atm_import = concat!("use ", "atm", "_");
     let forbidden_agent_import = concat!("use ", "agent_", "team_", "mail::");
-    let forbidden_manifest_dep = concat!("agent", "-team-mail", "-");
+    let forbidden_manifest_deps = [concat!("agent", "-team-mail"), "atm-"];
+    let forbidden_research_refs = [concat!("reverse", "_extract")];
     let mut violations = Vec::new();
 
     for path in source_files(&root) {
@@ -70,16 +89,63 @@ fn repo_keeps_standalone_boundary_rules() {
                 violations.push(format!("{}: forbidden {} reference", path.display(), rule));
             }
         }
+        if forbidden_research_refs
+            .iter()
+            .any(|pattern| contents.contains(pattern))
+        {
+            violations.push(format!(
+                "{}: production source references research-only extraction artifact",
+                path.display()
+            ));
+        }
     }
 
     for path in cargo_manifests(&root) {
         let contents = fs::read_to_string(&path).expect("read manifest");
-        if contents.contains(forbidden_manifest_dep) {
-            violations.push(format!(
-                "{}: forbidden manifest dependency family",
-                path.display()
-            ));
+        for forbidden in forbidden_manifest_deps {
+            if contents.contains(forbidden) {
+                violations.push(format!(
+                    "{}: forbidden manifest dependency {forbidden}",
+                    path.display()
+                ));
+            }
         }
+
+        if path == root.join("bindings/python/Cargo.toml") {
+            for forbidden in ["sc-compose =", "sc-observability ="] {
+                if contents.contains(forbidden) {
+                    violations.push(format!(
+                        "{}: forbidden Python binding dependency {forbidden}",
+                        path.display()
+                    ));
+                }
+            }
+        }
+
+        if path == root.join("crates/sc-composer/Cargo.toml") {
+            for forbidden in [
+                "sc-compose =",
+                "sc-compose-py =",
+                "bindings/python",
+                "sc-observability =",
+            ] {
+                if contents.contains(forbidden) {
+                    violations.push(format!(
+                        "{}: forbidden composer dependency {forbidden}",
+                        path.display()
+                    ));
+                }
+            }
+        }
+    }
+
+    let python_manifest =
+        fs::read_to_string(root.join("bindings/python/Cargo.toml")).expect("python manifest");
+    if !python_manifest
+        .lines()
+        .any(|line| line.trim_start().starts_with("sc-composer ="))
+    {
+        violations.push("bindings/python/Cargo.toml: missing sc-composer dependency".to_owned());
     }
 
     assert!(
