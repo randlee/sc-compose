@@ -633,12 +633,14 @@ mod tests {
             },
         );
 
+        let included_name = Path::new("partials").join("body.md.j2");
+        let included_name = included_name.to_string_lossy();
         assert!(warnings.iter().any(|diagnostic| {
             diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
                 && diagnostic
                     .message
                     .contains("included file has no frontmatter")
-                && diagnostic.message.contains("partials/body.md.j2")
+                && diagnostic.message.contains(included_name.as_ref())
         }));
     }
 
@@ -663,12 +665,14 @@ mod tests {
 
         let warnings = missing_frontmatter_warnings_for_path(&resolved.resolved_path, &expanded);
 
+        let included_name = Path::new("partials").join("body.md.j2");
+        let included_name = included_name.to_string_lossy();
         assert!(warnings.iter().any(|diagnostic| {
             diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
                 && diagnostic
                     .message
                     .contains("included file has no frontmatter")
-                && diagnostic.message.contains("partials/body.md.j2")
+                && diagnostic.message.contains(included_name.as_ref())
         }));
     }
 
