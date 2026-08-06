@@ -606,7 +606,21 @@ mod tests {
     };
     use crate::Diagnostic;
     use crate::diagnostics::{DiagnosticCode, DiagnosticSeverity};
+    use crate::renderer::Renderer;
     use crate::types::VariableName;
+
+    #[test]
+    #[ignore = "red baseline: render error source text is duplicated"]
+    fn empty_custom_delimiter_error_does_not_duplicate_source_text() {
+        let error = ComposeError::from(Renderer::with_delimiters("", "").unwrap_err());
+        let mut formatted = error.to_string();
+        if let Some(source) = error.source() {
+            formatted.push_str(": ");
+            formatted.push_str(&source.to_string());
+        }
+
+        assert_eq!(formatted.matches("invalid custom delimiters").count(), 1);
+    }
 
     #[test]
     fn resolve_error_constructor_roundtrip_and_display() {
