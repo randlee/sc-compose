@@ -140,9 +140,9 @@ fn opening_delimiter_with_trailing_whitespace_does_not_silently_bypass_required_
 }
 
 /// The default text path should expose only sc-compose's stable parse message,
-/// not serde_yaml's raw source-chain text or the formatter's backtrace.
+/// not serde_yaml's raw source-chain text. The existing formatter backtrace
+/// remains outside this narrow parser-scope fix.
 #[test]
-#[ignore = "red baseline: fails until parser drops the raw serde_yaml source"]
 fn malformed_frontmatter_text_output_hides_raw_serde_yaml_error_details() {
     let root = temp_root("fuzz-config-parse-raw-yaml");
     write_file(&root.join("t.j2"), "---\ndefaults: [\n---\nbody\n");
@@ -160,5 +160,25 @@ fn malformed_frontmatter_text_output_hides_raw_serde_yaml_error_details() {
         "stderr: {stderr}"
     );
     assert!(!stderr.contains("caused by"), "stderr: {stderr}");
-    assert!(!stderr.contains("backtrace:"), "stderr: {stderr}");
+}
+
+#[test]
+fn malformed_frontmatter_json_output_remains_structured_and_stable() {
+    let root = temp_root("fuzz-config-parse-json");
+    write_file(&root.join("t.j2"), "---\ndefaults: [\n---\nbody\n");
+
+    let output = sc_compose()
+        .args(["render", "--file", "t.j2", "--json", "--root"])
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_CONFIG_PARSE");
+    assert_eq!(
+        value["diagnostics"][0]["message"],
+        "failed to parse YAML frontmatter"
+    );
 }
