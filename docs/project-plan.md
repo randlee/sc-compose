@@ -857,7 +857,7 @@ fields.
 
 Status:
 
-- complete on `fix/276-yaml-colon-space-unescaped` at `01b4c3f`
+- complete on `fix/276-yaml-colon-space-unescaped` at `75e51d9`
 
 Sprint entry:
 
