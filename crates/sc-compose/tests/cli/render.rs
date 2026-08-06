@@ -99,6 +99,36 @@ fn exit_code_three_for_resolve_failure() {
 }
 
 #[test]
+fn empty_custom_variable_delimiters_report_source_once() {
+    let root = temp_root("empty-custom-delimiters");
+    write_file(&root.join("template.md.j2"), "hello\n");
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "template.md.j2",
+            "--variable-delimiters",
+            "",
+            "",
+        ])
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(output.status.code(), Some(3), "stderr: {stderr}");
+    assert_eq!(stderr.matches("invalid custom delimiters").count(), 1);
+    assert!(
+        stderr.contains("ERR_CONFIG_PARSE: template rendering failed: invalid custom delimiters"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
 fn render_uses_json_var_file_inputs() {
     let root = temp_root("var-file-json");
     write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
@@ -784,7 +814,7 @@ fn render_variable_delimiters_reports_invalid_delimiters_without_panicking() {
     assert_eq!(output.status.code(), Some(3), "{output:?}");
     let stderr = String::from_utf8(output.stderr).unwrap();
     assert!(stderr.contains("ERR_CONFIG_PARSE"));
-    assert!(stderr.contains("invalid custom delimiters: invalid custom delimiters"));
+    assert_eq!(stderr.matches("invalid custom delimiters").count(), 1);
     assert!(!stderr.contains("panicked at"));
     assert!(!stderr.contains("stack backtrace"));
 }

@@ -428,7 +428,7 @@ impl RenderError {
 
 impl fmt::Display for RenderError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "template rendering failed: {}", self.source)
+        write!(f, "template rendering failed")
     }
 }
 
@@ -606,7 +606,33 @@ mod tests {
     };
     use crate::Diagnostic;
     use crate::diagnostics::{DiagnosticCode, DiagnosticSeverity};
+    use crate::renderer::Renderer;
     use crate::types::VariableName;
+
+    #[test]
+    fn empty_custom_delimiter_error_does_not_duplicate_source_text() {
+        let error = ComposeError::from(Renderer::with_delimiters("", "").unwrap_err());
+        let mut formatted = error.to_string();
+        if let Some(source) = error.source() {
+            formatted.push_str(": ");
+            formatted.push_str(&source.to_string());
+        }
+
+        assert_eq!(formatted.matches("invalid custom delimiters").count(), 1);
+    }
+
+    #[test]
+    fn non_delimiter_render_error_keeps_source_detail() {
+        let error = ComposeError::from(RenderError::render(std::io::Error::other("render failed")));
+        let mut formatted = error.to_string();
+        if let Some(source) = error.source() {
+            formatted.push_str(": ");
+            formatted.push_str(&source.to_string());
+        }
+
+        assert!(!formatted.is_empty());
+        assert!(formatted.contains("render failed"));
+    }
 
     #[test]
     fn resolve_error_constructor_roundtrip_and_display() {

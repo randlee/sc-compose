@@ -203,6 +203,8 @@ pub fn render_loaded_template(
 
 #[cfg(test)]
 mod tests {
+    use std::error::Error as _;
+
     use serde_json::json;
 
     use super::{LoadedTemplateRequest, NamedTemplateAsset, Renderer, render_loaded_template};
@@ -294,9 +296,10 @@ mod tests {
         })
         .unwrap_err();
 
+        let source = error.source().map(ToString::to_string).unwrap_or_default();
         assert!(
-            error.to_string().contains("unexpected end of input"),
-            "expected supporting-template parse failure, got: {error}"
+            source.contains("unexpected end of input"),
+            "expected supporting-template parse failure source, got: {source}"
         );
     }
 
@@ -305,9 +308,6 @@ mod tests {
         let error = Renderer::with_delimiters("", "}}").unwrap_err();
 
         assert_eq!(error.code(), None);
-        assert_eq!(
-            error.to_string(),
-            "template rendering failed: invalid custom delimiters"
-        );
+        assert_eq!(error.to_string(), "template rendering failed");
     }
 }
