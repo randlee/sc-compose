@@ -417,6 +417,59 @@ mod tests {
     }
 
     #[test]
+    fn renderer_rejects_unrecognized_map_method() {
+        let renderer = Renderer::new();
+        let error = renderer
+            .render(r#"{{ row.items() }}"#, json!({"row": {"k": "v"}}))
+            .unwrap_err();
+        let detail = error.source().map(ToString::to_string).unwrap_or_default();
+
+        assert!(
+            detail.contains("unknown method") || detail.contains("has no method named items"),
+            "expected unknown-method error, got: {detail}"
+        );
+    }
+
+    #[test]
+    fn renderer_rejects_out_of_range_dict_get_arities() {
+        let renderer = Renderer::new();
+
+        for template in [r#"{{ row.get() }}"#, r#"{{ row.get("k", "v", "extra") }}"#] {
+            let error = renderer
+                .render(template, json!({"row": {"k": "v"}}))
+                .unwrap_err();
+            let detail = error.source().map(ToString::to_string).unwrap_or_default();
+
+            assert!(
+                detail.contains("unknown method") || detail.contains("has no method named get"),
+                "expected unknown-method error for {template}, got: {detail}"
+            );
+        }
+    }
+
+    #[test]
+    fn renderer_renders_atm_core_smoke_report_deviation_row() {
+        let renderer = Renderer::new();
+        let template = r#"{% set deviations = report.rows | selectattr("verdict", "ne", "PASS") | list -%}{% for row in deviations -%}{{ row.get("observed_behavior", "n/a") }}|{{ row.get("expected_behavior", "n/a") }}|{{ row.get("likely_root_cause", "n/a") }}|{{ row.get("artifact_pointer", "n/a") }}{% endfor -%}"#;
+        let output = renderer
+            .render(
+                template,
+                json!({
+                    "report": {
+                        "rows": [{
+                            "id": "FIX270-NONPASS",
+                            "verdict": "FAIL",
+                            "observed_behavior": "rendered a deviation report"
+                        }]
+                    }
+                }),
+            )
+            .unwrap();
+
+        assert_eq!(output, "rendered a deviation report|n/a|n/a|n/a");
+    }
+
+    #[test]
     fn render_loaded_template_rejects_malformed_supporting_templates() {
         let error = render_loaded_template(LoadedTemplateRequest {
             template_name: "report.html.j2".to_owned(),
