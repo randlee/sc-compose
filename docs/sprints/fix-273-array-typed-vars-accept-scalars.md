@@ -214,3 +214,12 @@ existing dotted-path validation in `required_paths.rs`:
   out of scope.
 - A regression test covers parity for a trailing `+%}` marker. Full validation
   for this follow-up is recorded by the final PASS report.
+
+### QA-273-004 Documentation Follow-up
+
+- `9bcd0eb` (`fix: share template discovery walker`) is included in the final
+  branch state at `8711034` (`docs: record FIX-273 walker consolidation`).
+  Validation for that final state produced the following concrete results:
+  `cargo test --workspace` — all tests passed with 0 failures across all
+  crates; `cargo fmt --all --check` — clean; `cargo clippy --all-targets
+  --all-features -- -D warnings` — clean.
