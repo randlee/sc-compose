@@ -883,6 +883,22 @@ FIX-273 rejects present scalar and object values when a top-level required
 variable is consumed by a conservative bare-identifier for-loop, while
 preserving existing dotted-path validation and non-loop behavior.
 
+### Follow-on Fix Sprint: FIX-276
+
+Status:
+
+- complete on `fix/276-yaml-colon-space-unescaped` at `75e51d9`
+
+Sprint entry:
+
+- [Sprint FIX-276 — YAML Colon-Space Escaping](sprints/fix-276-yaml-colon-space-unescaped.md)
+
+FIX-276 adds the explicit `yaml_safe` filter for caller-controlled YAML
+mapping values. It emits a double-quoted scalar with scoped escaping for
+backslashes, quotes, and line-control characters, and applies the existing
+`frontmatter_safe` delimiter protection before YAML quoting in the sprint-plan
+template.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:

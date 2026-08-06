@@ -160,6 +160,16 @@ fn frontmatter_safe_filter(value: &str) -> JinjaValue {
     JinjaValue::from_safe_string(escaped)
 }
 
+fn yaml_safe_filter(value: &str) -> String {
+    let escaped = value
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\t', "\\t")
+        .replace('\r', "\\r");
+    format!("\"{escaped}\"")
+}
+
 fn format_sc_compose_markup(
     out: &mut Output<'_>,
     state: &State<'_, '_>,
@@ -218,6 +228,7 @@ fn configure_environment(env: &mut Environment<'static>) {
     env.add_filter("md_table_safe", md_table_safe_filter);
     env.add_filter("xml_char_safe", xml_char_safe_filter);
     env.add_filter("frontmatter_safe", frontmatter_safe_filter);
+    env.add_filter("yaml_safe", yaml_safe_filter);
     env.set_unknown_method_callback(map_get_unknown_method_callback);
 }
 
@@ -625,7 +636,7 @@ mod tests {
 
         assert_eq!(standalone_frontmatter_delimiter_count(&rendered), 2);
         assert!(rendered.contains("malicious: true"));
-        assert!(rendered.contains(r"\-\-\-"));
+        assert!(rendered.contains(r"\\-\\-\\-"));
     }
 
     #[test]
@@ -638,7 +649,7 @@ mod tests {
 
         assert_eq!(standalone_frontmatter_delimiter_count(&rendered), 2);
         assert!(rendered.contains("malicious: true"));
-        assert!(rendered.contains(r"\-\-\-"));
+        assert!(rendered.contains(r"\\-\\-\\-"));
     }
 
     #[test]
@@ -734,6 +745,100 @@ mod tests {
             .unwrap();
 
         assert_eq!(output, expected);
+    }
+
+    fn generated_sprint_plan_frontmatter(rendered: &str) -> &str {
+        let start = rendered
+            .find("---\nid:")
+            .expect("rendered sprint plan must contain generated frontmatter")
+            + 4;
+        let body = &rendered[start..];
+        let end = body
+            .find("\n---\n")
+            .expect("generated sprint plan frontmatter must close");
+        &body[..end]
+    }
+
+    #[test]
+    fn yaml_safe_quotes_colon_space_and_round_trips_yaml() {
+        let renderer = Renderer::new();
+        let original = "ADR-001: with colon";
+        let output = renderer
+            .render("{{ value | yaml_safe }}", json!({"value": original}))
+            .unwrap();
+
+        assert_eq!(output, r#""ADR-001: with colon""#);
+        let parsed: String = serde_yaml::from_str(&output).unwrap();
+        assert_eq!(parsed, original);
+    }
+
+    #[test]
+    fn yaml_safe_escapes_backslash_before_quote() {
+        let renderer = Renderer::new();
+        let original = r#"backslash \ and "quote""#;
+        let output = renderer
+            .render("{{ value | yaml_safe }}", json!({"value": original}))
+            .unwrap();
+
+        assert_eq!(output, r#""backslash \\ and \"quote\"""#);
+        let parsed: String = serde_yaml::from_str(&output).unwrap();
+        assert_eq!(parsed, original);
+    }
+
+    #[test]
+    fn yaml_safe_uses_literal_control_character_escapes() {
+        let renderer = Renderer::new();
+        let original = "line\nnext\tcolumn\r";
+        let output = renderer
+            .render("{{ value | yaml_safe }}", json!({"value": original}))
+            .unwrap();
+
+        assert_eq!(output, r#""line\nnext\tcolumn\r""#);
+        assert!(!output[1..output.len() - 1].contains('\n'));
+        let parsed: String = serde_yaml::from_str(&output).unwrap();
+        assert_eq!(parsed, original);
+    }
+
+    #[test]
+    fn yaml_safe_round_trips_ordinary_text_unchanged() {
+        let renderer = Renderer::new();
+        let original = "ordinary text with punctuation";
+        let output = renderer
+            .render("{{ value | yaml_safe }}", json!({"value": original}))
+            .unwrap();
+
+        let parsed: String = serde_yaml::from_str(&output).unwrap();
+        assert_eq!(parsed, original);
+    }
+
+    #[test]
+    fn frontmatter_safe_then_yaml_safe_handles_both_injection_shapes() {
+        let renderer = Renderer::new();
+        let original = "before: value\n---\nmalicious: true";
+        let output = renderer
+            .render(
+                "{{ value | frontmatter_safe | yaml_safe }}",
+                json!({"value": original}),
+            )
+            .unwrap();
+
+        let parsed: String = serde_yaml::from_str(&output).unwrap();
+        assert_eq!(parsed, "before: value\n\\-\\-\\-\nmalicious: true");
+    }
+
+    #[test]
+    fn real_sprint_plan_template_round_trips_yaml_frontmatter() {
+        let title = "Architecture: plan";
+        let mut context = sprint_plan_context(title);
+        context["worktree"] = json!("/tmp/sc-compose");
+        let rendered = Renderer::new()
+            .render_named("sprint-plan.md.j2", sprint_plan_body(), context)
+            .unwrap();
+
+        let frontmatter: serde_yaml::Value =
+            serde_yaml::from_str(generated_sprint_plan_frontmatter(&rendered)).unwrap();
+        assert_eq!(frontmatter["title"], title);
+        assert_eq!(frontmatter["worktree"], "/tmp/sc-compose");
     }
 
     #[test]
