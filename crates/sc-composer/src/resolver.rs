@@ -441,6 +441,43 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "red baseline: fails until out-of-root messages are existence-independent"]
+    fn out_of_root_resolution_does_not_reveal_path_existence() {
+        let root = temp_root("resolver_existence_oracle");
+        let outside = root.parent().unwrap();
+        let existing = outside.join(format!(
+            "sc-compose-oracle-existing-{}-{}.md.j2",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        write_file(&existing, "outside");
+        let missing = outside.join(format!(
+            "sc-compose-oracle-missing-{}-{}.md.j2",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+
+        let missing_error = super::canonicalize_with_roots(&missing, &root, &[]).unwrap_err();
+        let existing_error = super::canonicalize_with_roots(&existing, &root, &[]).unwrap_err();
+        let _ = fs::remove_file(existing);
+
+        match (missing_error, existing_error) {
+            (ComposeError::Resolve(missing), ComposeError::Resolve(existing)) => {
+                assert_eq!(missing.code(), DiagnosticCode::ErrResolveNotFound);
+                assert_eq!(existing.code(), DiagnosticCode::ErrResolveNotFound);
+                assert_eq!(missing.message(), existing.message());
+            }
+            (missing, existing) => panic!("unexpected errors: {missing}, {existing}"),
+        }
+    }
+
+    #[test]
     fn resolve_profile_rejects_file_mode_with_mode_code() {
         let root = temp_root("resolver_mode_mismatch");
         write_file(&root.join("template.md.j2"), "hello");
