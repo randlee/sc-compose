@@ -194,7 +194,7 @@ filter registered alongside the existing filters in
 
 - The branch was rebased onto `origin/develop` at `5cfb287`. The rebased
   implementation is `937c443` (`fix: add YAML-safe scalar filter`), with the
-  final branch state at `75e51d9` (`style: satisfy YAML assertion lint`).
+  final branch state at `9bff09e` (`docs: record final FIX-276 lint state`).
 - The duplicate `frontmatter_safe_filter` definition, registration, and
   sprint-plan dependency were removed during rebase. The final diff contains
   exactly one canonical `frontmatter_safe` definition and registration, both
