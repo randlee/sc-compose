@@ -80,6 +80,37 @@ fn turtle_escape_filter(value: &str) -> String {
         .replace('\t', "\\t")
 }
 
+fn frontmatter_safe_filter(value: &str) -> JinjaValue {
+    let escaped = value
+        .split('\n')
+        .map(|line| {
+            let replacement = match line.trim() {
+                "---" => Some(("---", r"\-\-\-")),
+                "..." => Some(("...", r"\.\.\.")),
+                _ => None,
+            };
+            replacement.map_or_else(
+                || line.to_owned(),
+                |(delimiter, escaped_delimiter)| {
+                    let delimiter_start = line
+                        .find(delimiter)
+                        .expect("trimmed delimiter must occur in the source line");
+                    let delimiter_end = delimiter_start + delimiter.len();
+                    format!(
+                        "{}{}{}",
+                        &line[..delimiter_start],
+                        escaped_delimiter,
+                        &line[delimiter_end..]
+                    )
+                },
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    JinjaValue::from_safe_string(escaped)
+}
+
 fn format_sc_compose_markup(
     out: &mut Output<'_>,
     state: &State<'_, '_>,
@@ -152,6 +183,7 @@ fn configure_environment(env: &mut Environment<'static>) {
     env.set_formatter(format_sc_compose_markup);
     env.add_filter("cdata_escape", cdata_escape_filter);
     env.add_filter("turtle_escape", turtle_escape_filter);
+    env.add_filter("frontmatter_safe", frontmatter_safe_filter);
     env.set_unknown_method_callback(map_get_unknown_method_callback);
 }
 
