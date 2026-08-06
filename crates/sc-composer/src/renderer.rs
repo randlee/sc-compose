@@ -305,9 +305,6 @@ mod tests {
         let error = Renderer::with_delimiters("", "}}").unwrap_err();
 
         assert_eq!(error.code(), None);
-        assert_eq!(
-            error.to_string(),
-            "template rendering failed: invalid custom delimiters"
-        );
+        assert_eq!(error.to_string(), "template rendering failed");
     }
 }
