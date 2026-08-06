@@ -1844,6 +1844,47 @@ fn render_xml_control_byte_output_is_well_formed() {
 }
 
 #[test]
+fn render_markdown_table_safe_cli_regression() {
+    let root = temp_root("markdown-table-safe");
+    write_file(
+        &root.join("table.md.j2"),
+        "| Value |\n| --- |\n| {{ value | md_table_safe }} |\n",
+    );
+    write_file(
+        &root.join("vars.json"),
+        r#"{"value":"cache|hit\nnext"}
+"#,
+    );
+    let output_path = root.join("rendered.md");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("table.md.j2")
+        .arg("--var-file")
+        .arg(root.join("vars.json"))
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let rendered = fs::read_to_string(&output_path).unwrap();
+    assert!(
+        rendered.contains(r"cache\|hit next"),
+        "rendered: {rendered}"
+    );
+}
+
+#[test]
 fn render_sprint_plan_cli_neutralizes_injected_frontmatter_delimiters() {
     let root = temp_root("sprint-plan-frontmatter-injection");
     let template_path = root

@@ -82,6 +82,17 @@ fn turtle_escape_filter(value: &str) -> String {
         .replace('\t', "\\t")
 }
 
+fn md_table_safe_filter(value: &str) -> String {
+    value
+        .chars()
+        .map(|character| match character {
+            '|' => "\\|".to_owned(),
+            '\n' | '\r' => " ".to_owned(),
+            _ => character.to_string(),
+        })
+        .collect()
+}
+
 fn escape_markup(value: &str) -> String {
     let mut escaped = String::with_capacity(value.len());
     for character in value.chars() {
@@ -204,6 +215,7 @@ fn configure_environment(env: &mut Environment<'static>) {
     env.set_formatter(format_sc_compose_markup);
     env.add_filter("cdata_escape", cdata_escape_filter);
     env.add_filter("turtle_escape", turtle_escape_filter);
+    env.add_filter("md_table_safe", md_table_safe_filter);
     env.add_filter("xml_char_safe", xml_char_safe_filter);
     env.add_filter("frontmatter_safe", frontmatter_safe_filter);
     env.set_unknown_method_callback(map_get_unknown_method_callback);
@@ -722,6 +734,47 @@ mod tests {
             .unwrap();
 
         assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn md_table_safe_escapes_pipe_and_collapses_newline() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render("{{ value | md_table_safe }}", json!({"value": "a|b\nc"}))
+            .unwrap();
+
+        assert_eq!(output, r"a\|b c");
+    }
+
+    #[test]
+    fn md_table_safe_preserves_ordinary_text() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render(
+                "{{ value | md_table_safe }}",
+                json!({"value": "ordinary text <&"}),
+            )
+            .unwrap();
+
+        assert_eq!(output, "ordinary text <&");
+    }
+
+    #[test]
+    fn md_table_safe_preserves_table_column_structure() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render("| {{ v | md_table_safe }} |", json!({"v": "cache|hit"}))
+            .unwrap();
+        let unescaped_pipes = output
+            .chars()
+            .enumerate()
+            .filter(|(index, character)| {
+                *character == '|' && (*index == 0 || output.as_bytes()[*index - 1] != b'\\')
+            })
+            .count();
+
+        assert_eq!(unescaped_pipes, 2);
+        assert_eq!(output, r"| cache\|hit |");
     }
 
     #[test]
