@@ -685,6 +685,21 @@ FIX-245 accepts spaces and tabs after an opening `---` delimiter before LF,
 CRLF, or EOF, while preserving strict closing-delimiter matching and the
 resulting `ERR_CONFIG_PARSE` for trailing-whitespace closing lines.
 
+### Follow-on Fix Sprint: FIX-247
+
+Status:
+
+- complete on `fix/247-expand-file-stack-overflow` at `49cf5ad`
+
+Sprint entry:
+
+- [Sprint FIX-247 — Expand File Stack-Overflow Safety Ceiling](sprints/fix-247-expand-file-stack-overflow.md)
+
+FIX-247 caps the effective recursive include depth at 128 inside
+`expand_includes`, preserving the public `IncludeDepth` API while ensuring
+unreasonably deep include chains return `ERR_INCLUDE_DEPTH` instead of
+overflowing the native stack.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:
