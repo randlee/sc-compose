@@ -377,6 +377,72 @@ mod tests {
     }
 
     #[test]
+    fn xml_char_safe_escapes_markup_then_all_xml_illegal_controls() {
+        let renderer = Renderer::new();
+        let mut input = "<".to_owned();
+        for byte in 0_u8..=0x1f {
+            input.push(byte as char);
+        }
+        input.push_str(">&\"'");
+
+        let output = renderer
+            .render("{{ value | xml_char_safe }}", json!({"value": input}))
+            .unwrap();
+
+        assert_eq!(
+            output,
+            "&lt;&#x0;&#x1;&#x2;&#x3;&#x4;&#x5;&#x6;&#x7;&#x8;\t\n&#xb;&#xc;\r&#xe;&#xf;&#x10;&#x11;&#x12;&#x13;&#x14;&#x15;&#x16;&#x17;&#x18;&#x19;&#x1a;&#x1b;&#x1c;&#x1d;&#x1e;&#x1f;&gt;&amp;&quot;&#x27;"
+        );
+    }
+
+    #[test]
+    fn xml_char_safe_preserves_ordinary_text() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render(
+                "{{ value | xml_char_safe }}",
+                json!({"value": "ordinary text"}),
+            )
+            .unwrap();
+
+        assert_eq!(output, "ordinary text");
+    }
+
+    #[test]
+    fn xml_char_safe_protects_explicit_escape_and_xml_auto_escape() {
+        let renderer = Renderer::new();
+        let context = json!({"value": "<\0>"});
+
+        let explicit = renderer
+            .render_named(
+                "report.xml.j2",
+                "<root>{{ value | e }}</root>",
+                context.clone(),
+            )
+            .unwrap();
+        let implicit = renderer
+            .render_named("report.xml.j2", "<root>{{ value }}</root>", context)
+            .unwrap();
+
+        assert_eq!(explicit, "<root>&lt;&#x0;&gt;</root>");
+        assert_eq!(implicit, explicit);
+    }
+
+    #[test]
+    fn xhtml_uses_the_xml_auto_escape_path() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render_named(
+                "report.xhtml.j2",
+                "<root>{{ value }}</root>",
+                json!({"value": "\0"}),
+            )
+            .unwrap();
+
+        assert_eq!(output, "<root>&#x0;</root>");
+    }
+
+    #[test]
     fn renderer_preserves_slashes_in_markup_auto_escape() {
         let renderer = Renderer::new();
         let context = json!({ "value": "/tmp/path/to/report.xml" });
