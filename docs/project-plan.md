@@ -1344,6 +1344,13 @@ boundary defined by:
 
 ## Follow-on Implementation Track (Phase B)
 
+## Fuzz-Queue Fix Sprint Index
+
+- `docs/sprints/fix-250-varfile-object-wording-inconsistent.md`
+- `docs/sprints/fix-252-varfile-missing-dir-misclassified.md`
+- `docs/sprints/fix-253-doubled-delimiter-error-message.md`
+- `docs/sprints/fix-254-varfile-negative-boundary-i128.md`
+
 The current follow-on implementation track is:
 
 - `docs/phase-B/phase-B-plan.md`

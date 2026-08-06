@@ -36,6 +36,7 @@ pub(crate) fn parse_var_file_contents(
 #[derive(Debug)]
 enum VarFileDecodeError {
     InvalidFormat(anyhow::Error),
+    OutOfRangeInteger { value: String },
     UnsupportedYamlMergeKey { line: usize, column: usize },
     NotAnObject,
 }
@@ -46,6 +47,10 @@ impl VarFileDecodeError {
             Self::InvalidFormat(error) => CommandError::usage_with_code(
                 error.context("var-file must be valid JSON or YAML"),
                 DiagnosticCode::ErrConfigParse,
+            ),
+            Self::OutOfRangeInteger { value } => CommandError::usage_with_code(
+                anyhow!("JSON integer {value} is outside the representable range"),
+                DiagnosticCode::ErrConfigVarfile,
             ),
             Self::UnsupportedYamlMergeKey { line, column } => CommandError::usage_with_code(
                 anyhow!(
@@ -82,6 +87,9 @@ struct DecodedVarObject {
 
 fn decode_var_file(contents: &str) -> Result<DecodedVarObject, VarFileDecodeError> {
     if let Ok(value) = parse_json_value_rejecting_duplicate_keys(contents) {
+        if let Some(value) = find_out_of_range_json_integer(contents) {
+            return Err(VarFileDecodeError::OutOfRangeInteger { value });
+        }
         return decode_json_object(value);
     }
 
@@ -91,6 +99,67 @@ fn decode_var_file(contents: &str) -> Result<DecodedVarObject, VarFileDecodeErro
         return Err(VarFileDecodeError::UnsupportedYamlMergeKey { line, column });
     }
     decode_yaml_object(value)
+}
+
+/// Find integer literals that `serde_json`'s default number representation cannot
+/// preserve without narrowing them to a lossy floating-point value.
+fn find_out_of_range_json_integer(contents: &str) -> Option<String> {
+    let bytes = contents.as_bytes();
+    let mut index = 0;
+    let mut in_string = false;
+    let mut escaped = false;
+
+    while index < bytes.len() {
+        let byte = bytes[index];
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if byte == b'\\' {
+                escaped = true;
+            } else if byte == b'"' {
+                in_string = false;
+            }
+            index += 1;
+            continue;
+        }
+        if byte == b'"' {
+            in_string = true;
+            index += 1;
+            continue;
+        }
+        if byte != b'-' && !byte.is_ascii_digit() {
+            index += 1;
+            continue;
+        }
+
+        let start = index;
+        index += 1;
+        while index < bytes.len()
+            && !matches!(
+                bytes[index],
+                b' ' | b'\t' | b'\r' | b'\n' | b',' | b']' | b'}'
+            )
+        {
+            index += 1;
+        }
+        let token = &contents[start..index];
+        if token.contains('.') || token.contains('e') || token.contains('E') {
+            continue;
+        }
+
+        if token.starts_with('-') {
+            match token.parse::<i128>() {
+                Ok(value) if value >= i128::from(i64::MIN) => {}
+                _ => return Some(token.to_owned()),
+            }
+        } else {
+            match token.parse::<u128>() {
+                Ok(value) if value <= u128::from(u64::MAX) => {}
+                _ => return Some(token.to_owned()),
+            }
+        }
+    }
+    None
 }
 
 /// Find YAML merge-key syntax while the source still retains quoting and
@@ -308,6 +377,81 @@ mod tests {
             error.recovery_hints,
             vec![RecoveryHint::new(RecoveryHintKind::InspectPath { path })]
         );
+    }
+
+    #[test]
+    fn out_of_range_json_integers_fail_closed() {
+        for contents in [
+            r#"{"n": -9223372036854775809}"#,
+            r#"{"n": 18446744073709551616}"#,
+        ] {
+            let error = parse_var_file_contents(contents).unwrap_err();
+            assert_eq!(
+                error.diagnostic_code,
+                Some(DiagnosticCode::ErrConfigVarfile),
+                "contents: {contents}"
+            );
+        }
+    }
+
+    #[test]
+    fn out_of_range_json_integer_scanner_ignores_quoted_digit_runs() {
+        assert_eq!(
+            find_out_of_range_json_integer(
+                r#"{"text":"-9223372036854775809 and 18446744073709551616"}"#
+            ),
+            None
+        );
+        assert_eq!(
+            find_out_of_range_json_integer(r#"{"n":18446744073709551616}"#),
+            Some("18446744073709551616".to_owned())
+        );
+    }
+
+    #[test]
+    fn integer_visitor_methods_narrow_in_range_and_reject_out_of_range() {
+        let minimum = DuplicateAwareValueVisitor
+            .visit_i128::<serde_json::Error>(i128::from(i64::MIN))
+            .expect("i64 minimum");
+        assert_eq!(minimum, serde_json::json!(i64::MIN));
+        DuplicateAwareValueVisitor
+            .visit_i128::<serde_json::Error>(i128::from(i64::MIN) - 1)
+            .unwrap_err();
+
+        let maximum = DuplicateAwareValueVisitor
+            .visit_u128::<serde_json::Error>(u128::from(u64::MAX))
+            .expect("u64 maximum");
+        assert_eq!(maximum, serde_json::json!(u64::MAX));
+        DuplicateAwareValueVisitor
+            .visit_u128::<serde_json::Error>(u128::from(u64::MAX) + 1)
+            .unwrap_err();
+    }
+
+    #[test]
+    fn in_range_json_integer_boundaries_remain_exact() {
+        let minimum = parse_var_file_contents(r#"{"n": -9223372036854775808}"#).unwrap();
+        let maximum = parse_var_file_contents(r#"{"n": 18446744073709551615}"#).unwrap();
+
+        assert_eq!(
+            minimum[&VariableName::new("n").unwrap()],
+            serde_json::json!(i64::MIN)
+        );
+        assert_eq!(
+            maximum[&VariableName::new("n").unwrap()],
+            serde_json::json!(u64::MAX)
+        );
+    }
+
+    #[test]
+    fn yaml_out_of_range_integer_still_fails_to_parse() {
+        for contents in ["n: -9223372036854775809\n", "n: 18446744073709551616\n"] {
+            let error = parse_var_file_contents(contents).unwrap_err();
+            assert_eq!(
+                error.diagnostic_code,
+                Some(DiagnosticCode::ErrConfigParse),
+                "contents: {contents}"
+            );
+        }
     }
 
     #[test]
@@ -594,6 +738,41 @@ impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
 
     fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> {
         Ok(serde_json::Value::Number(v.into()))
+    }
+
+    /// Defense-in-depth callbacks for a `serde_json` dispatch path that is
+    /// currently unreachable with the workspace's default configuration.
+    /// The lexical `find_out_of_range_json_integer` scan is the primary and
+    /// currently effective enforcement gate; these callbacks preserve the
+    /// same narrowing contract if arbitrary-precision dispatch is enabled.
+    fn visit_i128<E>(self, v: i128) -> Result<Self::Value, E>
+    where
+        E: DeError,
+    {
+        i64::try_from(v)
+            .map(|v| serde_json::Value::Number(v.into()))
+            .map_err(|_error| {
+                E::custom(format!(
+                    "integer {v} is outside the representable range ({}..={})",
+                    i64::MIN,
+                    u64::MAX
+                ))
+            })
+    }
+
+    fn visit_u128<E>(self, v: u128) -> Result<Self::Value, E>
+    where
+        E: DeError,
+    {
+        u64::try_from(v)
+            .map(|v| serde_json::Value::Number(v.into()))
+            .map_err(|_error| {
+                E::custom(format!(
+                    "integer {v} is outside the representable range ({}..={})",
+                    i64::MIN,
+                    u64::MAX
+                ))
+            })
     }
 
     fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
