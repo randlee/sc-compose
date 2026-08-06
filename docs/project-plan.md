@@ -1511,6 +1511,7 @@ boundary defined by:
 
 ## Fuzz-Queue Fix Sprint Index
 
+- `docs/sprints/cleanup-301-yaml-merge-key-scan.md`
 - `docs/sprints/cleanup-297-bare-loop-discovery.md`
 - `docs/sprints/cleanup-300-include-depth-wrapper.md`
 - `docs/sprints/fix-250-varfile-object-wording-inconsistent.md`
