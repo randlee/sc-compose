@@ -252,6 +252,12 @@ Status: **complete**.
   These update pre-existing tests to inspect `source()` rather than expecting
   source detail in bare `Display`; no production logic changed in them.
 - Formatting-only follow-up: `3e203a8`.
+- Round-1 render-many source-chain follow-up: `09f0097` added
+  `RenderManyError::source()` so the real underlying failure remains
+  recoverable.
+- Round-2 QA fix: `a44487e` makes `RenderManyError::Display`
+  contextual-only, adds exact-occurrence and all-variant source coverage, and
+  records the validated fix provenance.
 - Full validation at the final branch state: `cargo test --workspace`,
   `cargo clippy --all-targets --all-features -- -D warnings`,
   `cargo fmt --all --check`, and `git diff --check`: PASS.
