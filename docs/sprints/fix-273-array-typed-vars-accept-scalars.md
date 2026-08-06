@@ -185,3 +185,19 @@ existing dotted-path validation in `required_paths.rs`:
 - Validation at `cca8486`: `cargo fmt --all --check`, `cargo test --workspace`
   (0 failures), `cargo clippy --all-targets --all-features -- -D warnings`,
   and `git diff --check` all passed.
+
+### QA-273-002 Simplification Follow-up
+
+- `90cbaf3` (`fix: reuse discovery sources for array validation`) replaces the
+  required-paths hand-rolled `{% %}` scanner with shared discovery machinery
+  in `discovery.rs`, and captures raw source text during include expansion for
+  validation diagnostics.
+- `63a6c71` (`fix: satisfy validation state lint`) records the final lint-clean
+  initialization form for the validation source-text cache.
+- The required-path loop no longer rereads an origin file per required
+  variable: loop detection and frontmatter location lookup both use the raw
+  source captured by include expansion. Existing behavior and the
+  declaring-origin scope remain unchanged.
+- Validation after the follow-up passed: `cargo test --workspace` (0
+  failures), `cargo fmt --all --check`, `cargo clippy --all-targets
+  --all-features -- -D warnings`, and `git diff --check`.
