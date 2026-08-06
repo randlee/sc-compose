@@ -131,12 +131,19 @@ fn is_recognized_frontmatter(content: &str) -> bool {
 
 fn opening_delimiter_len(input: &str, cursor: usize) -> Option<usize> {
     let remainder = input.get(cursor..)?;
-    if remainder.starts_with("---\r\n") {
-        Some(5)
-    } else if remainder.starts_with("---\n") {
-        Some(4)
-    } else if remainder == "---" {
-        Some(3)
+    let suffix = remainder.strip_prefix("---")?;
+    let horizontal_whitespace_len = suffix
+        .bytes()
+        .take_while(|byte| matches!(byte, b' ' | b'\t'))
+        .count();
+    let after_horizontal_whitespace = &suffix[horizontal_whitespace_len..];
+
+    if after_horizontal_whitespace.starts_with("\r\n") {
+        Some(3 + horizontal_whitespace_len + 2)
+    } else if after_horizontal_whitespace.starts_with('\n') {
+        Some(3 + horizontal_whitespace_len + 1)
+    } else if after_horizontal_whitespace.is_empty() {
+        Some(3 + horizontal_whitespace_len)
     } else {
         None
     }
@@ -146,5 +153,44 @@ fn next_line_end(input: &str, cursor: usize) -> usize {
     match input[cursor..].find('\n') {
         Some(offset) => cursor + offset + 1,
         None => input.len(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{opening_delimiter_len, parse_template_document};
+
+    #[test]
+    fn opening_delimiter_without_trailing_whitespace_is_unchanged() {
+        assert_eq!(opening_delimiter_len("---\nbody", 0), Some(4));
+        assert_eq!(opening_delimiter_len("---\r\nbody", 0), Some(5));
+        assert_eq!(opening_delimiter_len("---", 0), Some(3));
+    }
+
+    #[test]
+    fn opening_delimiter_accepts_trailing_spaces() {
+        assert_eq!(opening_delimiter_len("---   \nbody", 0), Some(7));
+        assert_eq!(opening_delimiter_len("---   \r\nbody", 0), Some(8));
+        assert_eq!(opening_delimiter_len("---   ", 0), Some(6));
+
+        let parsed =
+            parse_template_document("---   \nrequired_variables:\n  - name\n---\nbody").unwrap();
+        assert_eq!(parsed.passes().len(), 1);
+    }
+
+    #[test]
+    fn opening_delimiter_accepts_trailing_tabs() {
+        assert_eq!(opening_delimiter_len("---\t\nbody", 0), Some(5));
+        assert_eq!(opening_delimiter_len("---\t\r\nbody", 0), Some(6));
+
+        let parsed = parse_template_document("---\t\nmetadata: {}\n---\nbody").unwrap();
+        assert_eq!(parsed.passes().len(), 1);
+    }
+
+    #[test]
+    fn closing_delimiter_with_trailing_whitespace_still_fails() {
+        let error = parse_template_document("---\nmetadata: {}\n--- \nbody").unwrap_err();
+
+        assert!(error.to_string().contains("no closing delimiter was found"));
     }
 }
