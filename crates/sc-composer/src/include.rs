@@ -489,6 +489,45 @@ mod tests {
         }
     }
 
+    #[test]
+    #[ignore = "FIX-247 red baseline; enable with the safe include-depth clamp"]
+    fn deep_include_chain_above_safe_ceiling_returns_include_depth_error() {
+        const CHAIN_DEPTH: usize = 1_900;
+        let root = temp_root("include_stack_overflow");
+        let chain_root = root.join("chain");
+        fs::create_dir_all(&chain_root).unwrap();
+        write_file(&root.join("root.md.j2"), "@<chain/0000.md>\n");
+
+        for index in 0..CHAIN_DEPTH {
+            let current = chain_root.join(format!("{index:04}.md"));
+            let contents = if index + 1 == CHAIN_DEPTH {
+                "done\n".to_owned()
+            } else {
+                format!("@<{:04}.md>\n", index + 1)
+            };
+            write_file(&current, &contents);
+        }
+
+        let policy = ComposePolicy {
+            max_include_depth: IncludeDepth::new(1_905),
+            ..ComposePolicy::default()
+        };
+
+        let error = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &policy,
+        )
+        .unwrap_err();
+
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludeDepth);
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
     fn temp_root(label: &str) -> PathBuf {
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
