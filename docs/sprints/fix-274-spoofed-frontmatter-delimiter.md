@@ -225,6 +225,10 @@ only at the known call site(s), not a blanket format change.
   --workspace` passed with zero failures; `cargo fmt --all --check`,
   `cargo clippy --all-targets --all-features -- -D warnings`, and
   `git diff --check` all passed.
-- QA follow-up implementation and regression are included in the subsequent
-  worktree-field fix commit; its targeted test confirms the same two-real-
-  delimiter invariant for caller-controlled `worktree` values.
+- QA follow-up implementation and regression are included in `732ddf8` (`fix:
+  protect sprint plan worktree frontmatter`); its targeted test confirms the
+  same two-real-delimiter invariant for caller-controlled `worktree` values.
+- Final QA-follow-up validation on `732ddf8`: `cargo test --workspace` passed
+  with 229 library/CLI/integration tests and zero failures; `cargo fmt
+  --all --check`, `cargo clippy --all-targets --all-features -- -D warnings`,
+  and `git diff --check` all passed.
