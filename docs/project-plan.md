@@ -853,6 +853,22 @@ neutralized without changing ordinary text or mid-line delimiter sequences;
 the codex-orchestration sprint-plan template applies the filter to its title
 fields.
 
+### Follow-on Fix Sprint: FIX-276
+
+Status:
+
+- complete on `fix/276-yaml-colon-space-unescaped` at `a2b672a`
+
+Sprint entry:
+
+- [Sprint FIX-276 — YAML Colon-Space Escaping](sprints/fix-276-yaml-colon-space-unescaped.md)
+
+FIX-276 adds the explicit `yaml_safe` filter for caller-controlled YAML
+mapping values. It emits a double-quoted scalar with scoped escaping for
+backslashes, quotes, and line-control characters, and applies the existing
+`frontmatter_safe` delimiter protection before YAML quoting in the sprint-plan
+template.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:

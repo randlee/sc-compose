@@ -1,6 +1,6 @@
 ---
 id: FIX-276
-status: dispatched
+status: complete
 branch: fix/276-yaml-colon-space-unescaped
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/276-yaml-colon-space-unescaped
 target: develop
@@ -158,3 +158,33 @@ filter registered alongside the existing filters in
 - PR #284 (FIX-272), PR #287 (FIX-274), PR #288 (FIX-278), PR #289 (FIX-275)
 - Fuzz round 2 report, 2026-08-06 (adversarial fuzzing of `sc-compose`
   against production templates in `atm-core`)
+
+## Closeout Evidence
+
+- Red tests committed and pushed at `d6e7684` (`test: reproduce YAML
+  colon-space interpolation breakage`). Focused tests failed before the
+  filters were registered with Minijinja unknown-filter errors.
+- Green implementation committed and pushed at `a2b672a` (`fix: add
+  YAML-safe scalar filter`). The branch includes the narrowly scoped
+  `frontmatter_safe` prerequisite because it was not present on the current
+  `origin/develop` baseline, despite being referenced by this sprint's
+  authoritative plan.
+- Focused validation passed: five `sc-composer` YAML-safety tests, the
+  frontmatter/YAML composition-order test, the real sprint-plan regression,
+  and the CLI YAML-parse regression.
+- Full validation passed: `cargo test --workspace`, `cargo fmt --all --check`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, and
+  `git diff --check`.
+- The sprint-plan template applies `frontmatter_safe` first and
+  `yaml_safe` second. The first neutralizes standalone `---`/`...` lines;
+  the second quotes the complete scalar and escapes its YAML-sensitive
+  characters, so both protections remain effective.
+- Bundled-template audit found the sprint-plan frontmatter fields as the
+  string-valued call sites requiring this fix. `examples/service-config.yaml.j2`
+  also has unquoted `port` and `enabled` interpolations, but those are typed
+  numeric/boolean values; applying `yaml_safe` would change their YAML types,
+  so they remain intentionally unquoted. No other `.md.j2`/`.yaml.j2`
+  YAML-region string call sites were found under `.claude/skills/` or
+  `examples/`.
+- No dependency was added. Full YAML escape coverage beyond backslash,
+  double-quote, `\n`, `\t`, and `\r` remains intentionally out of scope.
