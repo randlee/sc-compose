@@ -88,7 +88,7 @@ level, alongside `CurrentIncludeDepth`):
 /// ~1820, release ~10000) on any reasonably sized thread stack, so the
 /// `ErrIncludeDepth` diagnostic can always fire before the process could
 /// abort, no matter how high an embedder sets `max_include_depth`.
-const MAX_SAFE_INCLUDE_DEPTH: u16 = 512;
+const MAX_SAFE_INCLUDE_DEPTH: u16 = 128;
 ```
 
 In `expand_includes` (`include.rs:48-77`), clamp the effective depth passed
@@ -135,12 +135,14 @@ pub fn expand_includes(
 `expand_file`'s existing depth check (`include.rs:96-104`) is unchanged —
 it already correctly rejects with `DiagnosticCode::ErrIncludeDepth` when
 `depth.get() > max_depth.get()`. The only change is that `max_depth` is now
-always `min(configured, 512)`, so the check fires (and the diagnostic
+always `min(configured, 128)`, so the check fires (and the diagnostic
 returns cleanly) well before native recursion could reach a depth anywhere
 near the observed crash thresholds, regardless of what `max_include_depth`
-the caller configures.
+the caller configures. The initial 512 value was corrected after independent
+validation showed that cargo test's default 2 MiB worker stack could still
+overflow near that depth.
 
-`512` is chosen with wide margin below both observed thresholds (debug
+`128` is chosen with substantial margin below both observed thresholds (debug
 1820+, release 10000+) to stay safe across smaller thread stacks (e.g. a
 non-main thread in an embedding host, or the Python bindings' calling
 thread) that were not directly measured. This is a plain `const`, not a
@@ -155,7 +157,7 @@ as a safety net, not a feature.
 - The existing `ErrIncludeDepth` diagnostic code, message format, or the
   `depth_overflow_is_rejected` unit test's expectations
   (`include.rs:355-380`) — that test uses `IncludeDepth::new(1)`, far below
-  the new `512` ceiling, so its behavior is identical before and after this
+  the new `128` ceiling, so its behavior is identical before and after this
   change.
 - `IncludeDepth`'s public API (`types.rs:190-204`) — no new validation is
   added there; `new()` still accepts any `u16` unmodified. The clamp lives
@@ -165,7 +167,7 @@ as a safety net, not a feature.
 - No iterative/trampolined rewrite of `expand_file`'s recursion. The issue
   proposes this as one option; it is out of scope for this sprint as a
   larger, higher-risk diff than a fixed safety ceiling. If a legitimate use
-  case ever needs more than 512 levels of include nesting, that is a
+  case ever needs more than 128 levels of include nesting, that is a
   separate, deliberate follow-up (raising the constant with new stack-usage
   measurements, or doing the iterative rewrite) — not silently permitted by
   this fix.
@@ -200,7 +202,7 @@ assertion failure.
 
 (b) A chain whose depth is at or under `MAX_SAFE_INCLUDE_DEPTH` (e.g. depth
 50, well within both the old default of 32's typical range and the new
-512 ceiling) with `max_include_depth` set high (e.g. `IncludeDepth::new(1000)`)
+128 ceiling) with `max_include_depth` set high (e.g. `IncludeDepth::new(1000)`)
 still expands successfully — confirms the clamp does not regress any
 legitimate, moderately-deep include chain.
 
@@ -208,7 +210,7 @@ legitimate, moderately-deep include chain.
 `max_include_depth` and `MAX_SAFE_INCLUDE_DEPTH` where the caller's value
 is the *lower* of the two (e.g. `max_include_depth: IncludeDepth::new(5)`,
 chain depth 10) still returns `ErrIncludeDepth` at the caller's configured
-bound, not at 512 — confirms `min()` picks the tighter of the two bounds
+bound, not at 128 — confirms `min()` picks the tighter of the two bounds
 correctly, not always the constant.
 
 (d) The existing `depth_overflow_is_rejected` test (`include.rs:355-380`,

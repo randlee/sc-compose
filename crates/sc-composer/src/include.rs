@@ -38,6 +38,10 @@ impl CurrentIncludeDepth {
     }
 }
 
+/// Hard ceiling for native include-chain recursion, independent of caller
+/// configuration, so depth failures return diagnostics before stack overflow.
+const MAX_SAFE_INCLUDE_DEPTH: u16 = 128;
+
 /// Expand `@<path>` directives starting from the provided template path.
 ///
 /// # Errors
@@ -57,12 +61,15 @@ pub fn expand_includes(
         &[],
     )?;
 
+    let effective_max_depth =
+        IncludeDepth::new(policy.max_include_depth.get().min(MAX_SAFE_INCLUDE_DEPTH));
+
     let mut state = ExpansionState::default();
     let text = expand_file(
         &template_path,
         root.as_path(),
         &policy.allowed_roots,
-        policy.max_include_depth,
+        effective_max_depth,
         CurrentIncludeDepth::root(),
         &mut Vec::new(),
         &mut state,
@@ -490,7 +497,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "FIX-247 red baseline; enable with the safe include-depth clamp"]
     fn deep_include_chain_above_safe_ceiling_returns_include_depth_error() {
         const CHAIN_DEPTH: usize = 1_900;
         let root = temp_root("include_stack_overflow");
@@ -528,6 +534,53 @@ mod tests {
         }
     }
 
+    #[test]
+    fn include_chain_at_safe_depth_still_expands_with_high_configured_limit() {
+        const CHAIN_DEPTH: usize = 50;
+        let root = temp_root("include_safe_depth");
+        write_linear_chain(&root, CHAIN_DEPTH);
+
+        let policy = ComposePolicy {
+            max_include_depth: IncludeDepth::new(1_000),
+            ..ComposePolicy::default()
+        };
+
+        let expanded = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &policy,
+        )
+        .unwrap();
+
+        assert_eq!(expanded.text, "done\n");
+    }
+
+    #[test]
+    fn configured_depth_below_safety_ceiling_remains_the_effective_bound() {
+        const CHAIN_DEPTH: usize = 10;
+        let root = temp_root("include_configured_depth");
+        write_linear_chain(&root, CHAIN_DEPTH);
+
+        let policy = ComposePolicy {
+            max_include_depth: IncludeDepth::new(5),
+            ..ComposePolicy::default()
+        };
+
+        let error = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &policy,
+        )
+        .unwrap_err();
+
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludeDepth);
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
     fn temp_root(label: &str) -> PathBuf {
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -544,6 +597,22 @@ mod tests {
             fs::create_dir_all(parent).unwrap();
         }
         fs::write(path, contents).unwrap();
+    }
+
+    fn write_linear_chain(root: &Path, depth: usize) {
+        let chain_root = root.join("chain");
+        fs::create_dir_all(&chain_root).unwrap();
+        write_file(&root.join("root.md.j2"), "@<chain/0000.md>\n");
+
+        for index in 0..depth {
+            let current = chain_root.join(format!("{index:04}.md"));
+            let contents = if index + 1 == depth {
+                "done\n".to_owned()
+            } else {
+                format!("@<{:04}.md>\n", index + 1)
+            };
+            write_file(&current, &contents);
+        }
     }
 
     #[cfg(unix)]
