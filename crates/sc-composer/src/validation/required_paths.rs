@@ -288,6 +288,110 @@ mod tests {
     }
 
     #[test]
+    fn bare_for_loop_rejects_string_required_value() {
+        let report = validate_bare_loop_value("bare_loop_string", json!("ab"));
+
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValArrayShapeMismatch
+                && diagnostic.message.contains("items")
+                && diagnostic.message.contains("string")
+        }));
+    }
+
+    #[test]
+    fn bare_for_loop_rejects_object_required_value() {
+        let report = validate_bare_loop_value("bare_loop_object", json!({"key": "value"}));
+
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValArrayShapeMismatch
+                && diagnostic.message.contains("object")
+        }));
+    }
+
+    #[test]
+    fn bare_for_loop_accepts_array_required_value() {
+        let report = validate_bare_loop_value("bare_loop_array", json!(["a", "b"]));
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty());
+    }
+
+    #[test]
+    fn non_iterated_required_value_does_not_trigger_array_shape_check() {
+        let root = temp_root("non_iterated_required_value");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - items\n---\nvalue={{ items }}\n",
+        );
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request
+            .vars_input
+            .insert(crate::VariableName::new("items").unwrap(), json!("ab"));
+
+        let report = validate(&request).unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty());
+    }
+
+    #[test]
+    fn dotted_required_sibling_keeps_nested_field_diagnostic() {
+        let root = temp_root("bare_loop_dotted_sibling");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - items\n  - items.id\n---\n{% for item in items %}{{ item.id }}{% endfor %}\n",
+        );
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("items").unwrap(),
+            json!([{"name": "missing-id"}]),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValMissingNestedField
+                && diagnostic.message.contains("items.id")
+        }));
+        assert!(
+            !report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValArrayShapeMismatch)
+        );
+    }
+
+    #[test]
+    fn non_bare_for_iterables_do_not_trigger_array_shape_check() {
+        for (label, iterable) in [("filtered", "items | sort"), ("qualified", "items.values")] {
+            let root = temp_root(&format!("non_bare_loop_{label}"));
+            write_file(
+                &root.join("template.md.j2"),
+                &format!(
+                    "---\nrequired_variables:\n  - items\n---\n{{% for item in {iterable} %}}{{{{ item }}}}{{% endfor %}}\n"
+                ),
+            );
+            let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+            request
+                .vars_input
+                .insert(crate::VariableName::new("items").unwrap(), json!("ab"));
+
+            let report = validate(&request).unwrap();
+
+            assert!(
+                !report
+                    .errors
+                    .iter()
+                    .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValArrayShapeMismatch),
+                "unexpected array-shape diagnostic for {label}: {report:?}"
+            );
+        }
+    }
+
+    #[test]
     fn required_variable_path_array_member_id_is_satisfied_by_array_of_objects() {
         let root = temp_root("required_array_member_path");
         write_file(
@@ -387,6 +491,20 @@ mod tests {
             user_prompt: None,
             policy,
         }
+    }
+
+    fn validate_bare_loop_value(label: &str, value: serde_json::Value) -> crate::ValidationReport {
+        let root = temp_root(label);
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - items\n---\n{% for item in items %}{{ item }}{% endfor %}\n",
+        );
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request
+            .vars_input
+            .insert(crate::VariableName::new("items").unwrap(), value);
+
+        validate(&request).unwrap()
     }
 
     fn temp_root(label: &str) -> PathBuf {

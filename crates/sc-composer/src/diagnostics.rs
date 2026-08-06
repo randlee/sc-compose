@@ -78,6 +78,8 @@ pub enum DiagnosticCode {
     ErrValMissingNestedField,
     /// Nested required-path traversal encountered the wrong intermediate shape.
     ErrValShapeMismatch,
+    /// A required variable consumed by a bare for-loop was not an array.
+    ErrValArrayShapeMismatch,
     /// A referenced token was not declared in frontmatter.
     ErrValUndeclaredToken,
     /// A caller-provided variable was not declared or referenced.
@@ -269,6 +271,7 @@ impl DiagnosticCode {
             Self::ErrValMissingRequired => "ERR_VAL_MISSING_REQUIRED",
             Self::ErrValMissingNestedField => "ERR_VAL_MISSING_NESTED_FIELD",
             Self::ErrValShapeMismatch => "ERR_VAL_SHAPE_MISMATCH",
+            Self::ErrValArrayShapeMismatch => "ERR_VAL_ARRAY_SHAPE_MISMATCH",
             Self::ErrValUndeclaredToken => "ERR_VAL_UNDECLARED_TOKEN",
             Self::ErrValExtraInput => "ERR_VAL_EXTRA_INPUT",
             Self::InfoValDefaultUsed => "INFO_VAL_DEFAULT_USED",
