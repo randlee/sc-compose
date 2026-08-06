@@ -262,7 +262,7 @@ fn canonicalize_include(
     }
 }
 
-fn normalize_path(path: &Path) -> PathBuf {
+pub(crate) fn normalize_path(path: &Path) -> PathBuf {
     use std::path::Component;
 
     let mut normalized = PathBuf::new();
