@@ -1,7 +1,7 @@
 ---
 id: FIX-251
 title: "Distinguish PermissionDenied / IsADirectory / FilesystemLoop from NotFound in include and resolve I/O errors"
-status: assigned
+status: complete
 branch: fix/251-io-error-collapse-not-found
 worktree: ../sc-compose-worktrees/fix/251-io-error-collapse-not-found
 target: develop
@@ -268,6 +268,35 @@ unique case.
   `cargo clippy --all-targets --all-features -- -D warnings` clean.
 - GitHub issue #251 can be closed referencing the merged PR.
 
+## Closeout Evidence
+
+All regression tests were created fresh on this branch and were not promoted
+from another worktree.
+
+- `96dd4c5` is the red baseline. The ignored directory-target test failed
+  normally with `ERR_INCLUDE_NOT_FOUND` before the fix.
+- `993251f` adds the three stable diagnostic codes, explicit permission and
+  directory handling at the include read site, permission and loop handling
+  at resolver canonicalization, and the required green tests.
+- Include tests: PASS (15/15), including directory, permission-denied,
+  symlink-loop, and genuine missing-file cases.
+- Resolver tests: PASS (7/7), including permission-denied and genuine
+  missing-file cases.
+- Workspace tests: PASS (`cargo test --workspace`).
+- Clippy: PASS (`cargo clippy --all-targets --all-features -- -D warnings`).
+- Formatting and whitespace checks: PASS (`cargo fmt --all --check` and
+  `git diff --check`).
+
+### Implementation notes
+
+The sprint plan incorrectly describes `std::io::ErrorKind::FilesystemLoop`
+as stable. Rust 1.94.1 still gates it behind `io_error_more`, so the fix uses
+an internal platform-gated `raw_os_error()` helper instead of an unstable API.
+The symlink-loop mapping is also applied in `canonicalize_include`, where an
+include loop fails before `expand_file` reaches `read_to_string`; this is
+required for the sprint's stated symlink-loop acceptance test. Confinement
+escape handling and genuine not-found fallback remain unchanged.
+
 ## References
 
 - GitHub issue #251
@@ -278,4 +307,4 @@ unique case.
 - `crates/sc-composer/src/diagnostics.rs` (`DiagnosticCode` enum, lines
   39-93 and its `&'static str` mapping, lines 181-201)
 - `docs/cross-platform-guidelines.md` (Rust toolchain floor 1.94.1,
-  `io_error_more` stabilized since 1.83.0)
+  `io_error_more` remains unstable on the toolchain floor)

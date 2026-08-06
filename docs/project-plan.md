@@ -700,6 +700,21 @@ FIX-247 caps the effective recursive include depth at 128 inside
 unreasonably deep include chains return `ERR_INCLUDE_DEPTH` instead of
 overflowing the native stack.
 
+### Follow-on Fix Sprint: FIX-251
+
+Status:
+
+- complete on `fix/251-io-error-collapse-not-found` at `993251f`
+
+Sprint entry:
+
+- [Sprint FIX-251 — Distinguish Filesystem I/O Diagnostics](sprints/fix-251-io-error-collapse-not-found.md)
+
+FIX-251 distinguishes permission-denied, directory-target, and filesystem
+symlink-loop failures from genuine not-found results at include and explicit
+template resolution boundaries, while preserving existing invalid-data,
+confinement, and not-found behavior.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:
