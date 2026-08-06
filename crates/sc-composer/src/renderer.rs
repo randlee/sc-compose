@@ -2,6 +2,7 @@
 
 use std::collections::BTreeMap;
 
+use minijinja::value::ValueKind;
 use minijinja::{
     AutoEscape, Environment, Error, Output, State, Value as JinjaValue, escape_formatter,
 };
@@ -106,6 +107,26 @@ fn format_sc_compose_markup(
         .map_err(Error::from)
 }
 
+fn map_get_unknown_method_callback(
+    _state: &State<'_, '_>,
+    value: &JinjaValue,
+    method: &str,
+    args: &[JinjaValue],
+) -> Result<JinjaValue, Error> {
+    if value.kind() != ValueKind::Map || method != "get" || !(1..=2).contains(&args.len()) {
+        return Err(Error::from(minijinja::ErrorKind::UnknownMethod));
+    }
+
+    let found = value.get_item(&args[0])?;
+    if !found.is_undefined() {
+        Ok(found)
+    } else if args.len() == 2 {
+        Ok(args[1].clone())
+    } else {
+        Ok(JinjaValue::UNDEFINED)
+    }
+}
+
 fn configure_environment(env: &mut Environment<'static>) {
     env.set_trim_blocks(true);
     env.set_lstrip_blocks(true);
@@ -113,6 +134,7 @@ fn configure_environment(env: &mut Environment<'static>) {
     // feature is enabled. JSON/YAML/JS templates are text outputs, not HTML.
     env.set_auto_escape_callback(legacy_auto_escape_callback);
     env.set_formatter(format_sc_compose_markup);
+    env.set_unknown_method_callback(map_get_unknown_method_callback);
 }
 
 impl Renderer {
@@ -335,6 +357,116 @@ mod tests {
                 .unwrap();
             assert_eq!(output, "/tmp/path/to/report.xml", "changed {template_name}");
         }
+    }
+
+    #[test]
+    fn renderer_supports_issue_270_dict_get_with_default() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render(r#"{{ row.get("k", "n/a") }}"#, json!({"row": {"k": "v"}}))
+            .unwrap();
+
+        assert_eq!(output, "v");
+    }
+
+    #[test]
+    fn renderer_supports_dict_get_without_default_for_present_key() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render(r#"{{ row.get("k") }}"#, json!({"row": {"k": "v"}}))
+            .unwrap();
+
+        assert_eq!(output, "v");
+    }
+
+    #[test]
+    fn renderer_returns_empty_for_missing_dict_get_without_default() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render(r#"{{ row.get("missing") }}"#, json!({"row": {"k": "v"}}))
+            .unwrap();
+
+        assert_eq!(output, "");
+    }
+
+    #[test]
+    fn renderer_returns_default_for_missing_dict_get() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render(
+                r#"{{ row.get("missing", "n/a") }}"#,
+                json!({"row": {"k": "v"}}),
+            )
+            .unwrap();
+
+        assert_eq!(output, "n/a");
+    }
+
+    #[test]
+    fn renderer_rejects_get_on_non_map_value() {
+        let renderer = Renderer::new();
+        let error = renderer
+            .render(r#"{{ row.get("k", "n/a") }}"#, json!({"row": "text"}))
+            .unwrap_err();
+        let detail = error.source().map(ToString::to_string).unwrap_or_default();
+
+        assert!(
+            detail.contains("unknown method") || detail.contains("has no method named get"),
+            "expected unknown-method error, got: {detail}"
+        );
+    }
+
+    #[test]
+    fn renderer_rejects_unrecognized_map_method() {
+        let renderer = Renderer::new();
+        let error = renderer
+            .render("{{ row.items() }}", json!({"row": {"k": "v"}}))
+            .unwrap_err();
+        let detail = error.source().map(ToString::to_string).unwrap_or_default();
+
+        assert!(
+            detail.contains("unknown method") || detail.contains("has no method named items"),
+            "expected unknown-method error, got: {detail}"
+        );
+    }
+
+    #[test]
+    fn renderer_rejects_out_of_range_dict_get_arities() {
+        let renderer = Renderer::new();
+
+        for template in ["{{ row.get() }}", r#"{{ row.get("k", "v", "extra") }}"#] {
+            let error = renderer
+                .render(template, json!({"row": {"k": "v"}}))
+                .unwrap_err();
+            let detail = error.source().map(ToString::to_string).unwrap_or_default();
+
+            assert!(
+                detail.contains("unknown method") || detail.contains("has no method named get"),
+                "expected unknown-method error for {template}, got: {detail}"
+            );
+        }
+    }
+
+    #[test]
+    fn renderer_renders_atm_core_smoke_report_deviation_row() {
+        let renderer = Renderer::new();
+        let template = r#"{% set deviations = report.rows | selectattr("verdict", "ne", "PASS") | list -%}{% for row in deviations -%}{{ row.get("observed_behavior", "n/a") }}|{{ row.get("expected_behavior", "n/a") }}|{{ row.get("likely_root_cause", "n/a") }}|{{ row.get("artifact_pointer", "n/a") }}{% endfor -%}"#;
+        let output = renderer
+            .render(
+                template,
+                json!({
+                    "report": {
+                        "rows": [{
+                            "id": "FIX270-NONPASS",
+                            "verdict": "FAIL",
+                            "observed_behavior": "rendered a deviation report"
+                        }]
+                    }
+                }),
+            )
+            .unwrap();
+
+        assert_eq!(output, "rendered a deviation report|n/a|n/a|n/a");
     }
 
     #[test]
