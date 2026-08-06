@@ -201,3 +201,16 @@ existing dotted-path validation in `required_paths.rs`:
 - Validation after the follow-up passed: `cargo test --workspace` (0
   failures), `cargo fmt --all --check`, `cargo clippy --all-targets
   --all-features -- -D warnings`, and `git diff --check`.
+
+### QA-273-003 Consolidation Follow-up
+
+- `9bcd0eb` (`fix: share template discovery walker`) consolidates delimiter
+  walking, delimiter extraction, and whitespace-control marker normalization
+  into one discovery walker used by both token discovery and bare-loop
+  detection. The `+%}` marker is now handled consistently by both callers.
+- The dead `ValidationState` fallback for empty `source_texts` was removed;
+  hand-built state fixtures now provide their source text explicitly. The two
+  pre-existing unrelated `read_to_string` findings in `diagnostics.rs` remain
+  out of scope.
+- A regression test covers parity for a trailing `+%}` marker. Full validation
+  for this follow-up is recorded by the final PASS report.
