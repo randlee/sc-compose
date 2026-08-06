@@ -165,6 +165,7 @@ class ComposePolicy:
         self,
         strict_undeclared_variables: bool = False,
         unknown_variable_policy: str = "ignore",
+        unbound_variable_policy: str | None = None,
         max_include_depth: int = 32,
         allowed_roots: list[str | PathLike[str] | ConfiningRoot] | None = None,
         passes: list[PassConfig] | None = None,
@@ -173,6 +174,8 @@ class ComposePolicy:
     def strict_undeclared_variables(self) -> bool: ...
     @property
     def unknown_variable_policy(self) -> str: ...
+    @property
+    def unbound_variable_policy(self) -> str | None: ...
     @property
     def max_include_depth(self) -> int: ...
     @property

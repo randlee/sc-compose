@@ -57,8 +57,60 @@ pub(super) fn collect_policy_diagnostics(
     }
 
     push_extra_input_diagnostics(request, state, resolved_path, &mut warnings, &mut errors);
+    push_unbound_variable_diagnostics(request, state, resolved_path, &mut warnings, &mut errors);
 
     (warnings, errors)
+}
+
+fn push_unbound_variable_diagnostics(
+    request: &ComposeRequest,
+    state: &ValidationState,
+    resolved_path: &Path,
+    warnings: &mut Vec<Diagnostic>,
+    errors: &mut Vec<Diagnostic>,
+) {
+    let policy = request
+        .policy
+        .unbound_variable_policy
+        .unwrap_or(request.policy.unknown_variable_policy);
+    if matches!(policy, UnknownVariablePolicy::Ignore) {
+        return;
+    }
+
+    let referenced = per_pass_referenced_variables(state)
+        .map_or_else(|| state.referenced_variables.clone(), |by_pass| {
+            by_pass.values().flatten().cloned().collect()
+        });
+    for variable in referenced {
+        if is_builtin_variable(&variable)
+            || super::required_paths::is_bound_path(&state.context, &variable)
+        {
+            continue;
+        }
+
+        let diagnostic = Diagnostic::new(
+            match policy {
+                UnknownVariablePolicy::Error => DiagnosticSeverity::Error,
+                UnknownVariablePolicy::Warn => DiagnosticSeverity::Warning,
+                UnknownVariablePolicy::Ignore => unreachable!(),
+            },
+            DiagnosticCode::ErrValUnboundVariable,
+            format!("unbound variable: {variable}"),
+        )
+        .with_path(resolved_path.to_path_buf());
+
+        match policy {
+            UnknownVariablePolicy::Error => errors.push(diagnostic),
+            UnknownVariablePolicy::Warn => warnings.push(diagnostic),
+            UnknownVariablePolicy::Ignore => unreachable!(),
+        }
+    }
+}
+
+fn is_builtin_variable(variable: &VariableName) -> bool {
+    super::BUILTIN_VARIABLE_NAMES
+        .iter()
+        .any(|name| *name == variable.as_str())
 }
 
 fn push_extra_input_diagnostics(
@@ -359,8 +411,12 @@ mod tests {
 
         assert!(!report.ok, "unbound reference was accepted: {report:?}");
         assert!(report.errors.iter().any(|diagnostic| {
-            diagnostic.message.contains("unbound variable")
+            diagnostic.code == DiagnosticCode::ErrValUnboundVariable
                 && diagnostic.message.contains("missing")
+        }));
+        assert!(!report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUnboundVariable
+                && diagnostic.message.contains("unbound variable: bound")
         }));
     }
 
@@ -381,8 +437,118 @@ mod tests {
 
         assert!(report.ok, "warn policy should remain renderable: {report:?}");
         assert!(report.warnings.iter().any(|diagnostic| {
-            diagnostic.message.contains("unbound variable")
+            diagnostic.code == DiagnosticCode::ErrValUnboundVariable
                 && diagnostic.message.contains("missing")
+        }));
+    }
+
+    #[test]
+    fn explicit_unbound_policy_is_independent_of_extra_input_policy() {
+        let root = temp_root("diagnostics_unbound_policy_independent");
+        write_file(&root.join("template.md.j2"), "Missing: {{ missing }}\n");
+
+        let mut error_request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unknown_variable_policy: UnknownVariablePolicy::Ignore,
+                unbound_variable_policy: Some(UnknownVariablePolicy::Error),
+                ..ComposePolicy::default()
+            },
+        );
+        error_request
+            .vars_input
+            .insert(crate::VariableName::new("extra").unwrap(), json!("value"));
+        let error_report = validate(&error_request).unwrap();
+        assert!(error_report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUnboundVariable
+        }));
+        assert!(!error_report
+            .errors
+            .iter()
+            .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput));
+
+        let ignore_report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unknown_variable_policy: UnknownVariablePolicy::Error,
+                unbound_variable_policy: Some(UnknownVariablePolicy::Ignore),
+                ..ComposePolicy::default()
+            },
+        ))
+        .unwrap();
+        assert!(!ignore_report
+            .errors
+            .iter()
+            .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValUnboundVariable));
+    }
+
+    #[test]
+    fn bound_defaults_and_locals_are_not_reported_as_unbound() {
+        let root = temp_root("diagnostics_bound_scopes");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\ndefaults:\n  fallback: default\nrequired_variables:\n  - items\n---\n{% for item in items %}{{ item.name }}{% endfor %}{% set local = fallback %}{{ local }}\n",
+        );
+
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unbound_variable_policy: Some(UnknownVariablePolicy::Error),
+                ..ComposePolicy::default()
+            },
+        );
+        request.vars_input.insert(
+            crate::VariableName::new("items").unwrap(),
+            json!([{ "name": "one" }]),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(report.ok, "bound values were reported missing: {report:?}");
+        assert!(!report
+            .warnings
+            .iter()
+            .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValUnboundVariable));
+    }
+
+    #[test]
+    fn unbound_and_undeclared_axes_are_reported_independently() {
+        let root = temp_root("diagnostics_unbound_vs_undeclared");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - declared_missing\n---\n{{ declared_missing }} {{ supplied_undeclared }}\n",
+        );
+
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                strict_undeclared_variables: true,
+                unbound_variable_policy: Some(UnknownVariablePolicy::Error),
+                ..ComposePolicy::default()
+            },
+        );
+        request.vars_input.insert(
+            crate::VariableName::new("supplied_undeclared").unwrap(),
+            json!("present"),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUnboundVariable
+                && diagnostic.message.contains("declared_missing")
+        }));
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUndeclaredToken
+                && diagnostic.message.contains("supplied_undeclared")
+        }));
+        assert!(!report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUnboundVariable
+                && diagnostic.message.contains("supplied_undeclared")
         }));
     }
 
