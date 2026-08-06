@@ -342,4 +342,61 @@ mod tests {
             [crate::VariableName::new("task-id").unwrap()].into()
         );
     }
+
+    #[test]
+    fn numeric_subscripts_and_slices_do_not_become_tokens() {
+        let tokens = discover_tokens("{{ items[0] }} {{ items[1:2] }}");
+
+        assert_eq!(tokens, [crate::VariableName::new("items").unwrap()].into());
+    }
+
+    #[test]
+    fn loop_builtins_are_not_discovered_inside_a_loop() {
+        let tokens = discover_tokens("{% for it in items %}{{ it }}{{ loop.index0 }}{% endfor %}");
+
+        assert_eq!(tokens, [crate::VariableName::new("items").unwrap()].into());
+    }
+
+    #[test]
+    fn binary_operator_fragments_are_not_tokens() {
+        let tokens = discover_tokens("{{ a - b }}");
+
+        assert_eq!(
+            tokens,
+            [
+                crate::VariableName::new("a").unwrap(),
+                crate::VariableName::new("b").unwrap(),
+            ]
+            .into()
+        );
+    }
+
+    #[test]
+    fn filter_names_are_not_discovered_as_variables() {
+        let tokens = discover_tokens("{{ x | e }} {{ x | e | lower }}");
+
+        assert_eq!(tokens, [crate::VariableName::new("x").unwrap()].into());
+    }
+
+    #[test]
+    fn set_locals_and_filter_names_are_not_discovered_as_variables() {
+        let tokens = discover_tokens("{% set greeting = 'Hi ' + name %}{{ greeting | e | lower }}");
+
+        assert_eq!(tokens, [crate::VariableName::new("name").unwrap()].into());
+    }
+
+    #[test]
+    fn loop_builtins_outside_a_loop_remain_undeclared() {
+        let tokens = discover_tokens("{{ loop.last }}");
+
+        assert!(tokens.contains(&crate::VariableName::new("loop.last").unwrap()));
+    }
+
+    #[test]
+    fn filter_argument_references_remain_discovered() {
+        let tokens = discover_tokens("{{ x | default(other_var) }}");
+
+        assert!(tokens.contains(&crate::VariableName::new("x").unwrap()));
+        assert!(tokens.contains(&crate::VariableName::new("other_var").unwrap()));
+    }
 }
