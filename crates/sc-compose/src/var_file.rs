@@ -308,6 +308,15 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "red baseline: JSON and YAML top-level non-object messages differ"]
+    fn top_level_non_object_messages_are_format_neutral() {
+        let json = parse_var_file_contents("42").unwrap_err();
+        let yaml = parse_var_file_contents("hello").unwrap_err();
+
+        assert_eq!(json.error.to_string(), yaml.error.to_string());
+    }
+
+    #[test]
     fn decode_and_validation_preserve_source_specific_boundaries() {
         assert_eq!(
             parse_var_file_contents("[1, 2, 3]")
