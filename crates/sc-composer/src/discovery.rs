@@ -77,7 +77,12 @@ pub fn discover_tokens_with_delimiters(
             Delimiter::Statement => after_start.find(end_delimiter),
         };
         let Some(end) = end else { break };
-        let expression = after_start[..end].trim();
+        let raw_content = &after_start[..end];
+        let without_leading_marker = raw_content.strip_prefix('-').unwrap_or(raw_content);
+        let without_markers = without_leading_marker
+            .strip_suffix('-')
+            .unwrap_or(without_leading_marker);
+        let expression = without_markers.trim();
         match delimiter {
             Delimiter::Expression => collect_identifiers(expression, &scopes, &mut tokens),
             Delimiter::Statement => {
@@ -294,4 +299,47 @@ fn mask_quoted_literals(expression: &str) -> String {
         }
     }
     masked
+}
+
+#[cfg(test)]
+mod tests {
+    use super::discover_tokens;
+
+    #[test]
+    fn leading_statement_whitespace_control_marker_is_not_a_token() {
+        let tokens = discover_tokens("{%- if true %}Hi{% endif %}");
+
+        assert!(tokens.is_empty(), "unexpected tokens: {tokens:?}");
+    }
+
+    #[test]
+    fn trailing_statement_whitespace_control_marker_is_not_a_token() {
+        let tokens = discover_tokens("{% if true -%}Hi{% endif %}");
+
+        assert!(tokens.is_empty(), "unexpected tokens: {tokens:?}");
+    }
+
+    #[test]
+    fn both_statement_whitespace_control_markers_are_not_tokens() {
+        let tokens = discover_tokens("{%- if true -%}Hi{%- endif -%}");
+
+        assert!(tokens.is_empty(), "unexpected tokens: {tokens:?}");
+    }
+
+    #[test]
+    fn expression_whitespace_control_markers_are_stripped() {
+        let tokens = discover_tokens("{{- name -}}");
+
+        assert_eq!(tokens, [crate::VariableName::new("name").unwrap()].into());
+    }
+
+    #[test]
+    fn kebab_case_variable_names_remain_intact() {
+        let tokens = discover_tokens("{{ task-id }}");
+
+        assert_eq!(
+            tokens,
+            [crate::VariableName::new("task-id").unwrap()].into()
+        );
+    }
 }
