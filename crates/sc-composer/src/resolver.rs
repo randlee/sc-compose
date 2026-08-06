@@ -126,12 +126,28 @@ pub(crate) fn canonicalize_with_roots(
         root.join(path)
     };
     let canonical = std::fs::canonicalize(&candidate).map_err(|error| {
-        ResolveError::new(
-            DiagnosticCode::ErrResolveNotFound,
-            format!("template path not found: {}", candidate.display()),
-            vec![candidate.clone()],
-        )
-        .with_source(error)
+        let kind = error.kind();
+        let (code, message) = match kind {
+            std::io::ErrorKind::PermissionDenied => (
+                DiagnosticCode::ErrIncludePermissionDenied,
+                format!(
+                    "permission denied reading template path: {}",
+                    candidate.display()
+                ),
+            ),
+            _ if crate::diagnostics::is_filesystem_loop(&error) => (
+                DiagnosticCode::ErrIncludeFilesystemLoop,
+                format!(
+                    "template path is a filesystem symlink loop: {}",
+                    candidate.display()
+                ),
+            ),
+            _ => (
+                DiagnosticCode::ErrResolveNotFound,
+                format!("template path not found: {}", candidate.display()),
+            ),
+        };
+        ResolveError::new(code, message, vec![candidate.clone()]).with_source(error)
     })?;
 
     let mut allowed = Vec::with_capacity(allowed_roots.len() + 1);
@@ -438,6 +454,47 @@ mod tests {
 
         let result = super::resolve_template_path(&request).unwrap();
         assert!(result.resolved_path.ends_with("nested/template.md.j2"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn permission_denied_file_mode_reports_permission_denied() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = temp_root("resolver_permission_denied");
+        let blocked = root.join("blocked");
+        let template = blocked.join("template.md.j2");
+        write_file(&template, "hello");
+        let mut permissions = fs::metadata(&blocked).unwrap().permissions();
+        permissions.set_mode(0o000);
+        fs::set_permissions(&blocked, permissions).unwrap();
+
+        let error = super::canonicalize_with_roots(&template, &root, &[]).unwrap_err();
+
+        let mut restore = fs::metadata(&blocked).unwrap().permissions();
+        restore.set_mode(0o700);
+        fs::set_permissions(&blocked, restore).unwrap();
+
+        match error {
+            ComposeError::Resolve(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludePermissionDenied);
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[test]
+    fn missing_file_mode_still_reports_not_found() {
+        let root = temp_root("resolver_missing_file");
+        let error = super::canonicalize_with_roots(Path::new("missing/template.md.j2"), &root, &[])
+            .unwrap_err();
+
+        match error {
+            ComposeError::Resolve(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrResolveNotFound);
+            }
+            other => panic!("unexpected error: {other}"),
+        }
     }
 
     #[test]
