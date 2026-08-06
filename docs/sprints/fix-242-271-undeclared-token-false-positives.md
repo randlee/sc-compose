@@ -237,7 +237,13 @@ today's (already-buggy-for-namespaces, pre-existing) behavior unchanged.
   `issue-271.md.j2` covers `{% set %}` locals and filters, and
   `issue-271-filter-arg.md.j2` confirms `default(other_var)` retains the
   genuine argument reference. The committed unit tests in
-  `crates/sc-composer/src/discovery.rs` provide the durable equivalent cases.
+  `crates/sc-composer/src/discovery.rs` provide the durable equivalent cases;
+  those three named manual CLI repro fixtures are not committed to the
+  repository.
+- Known limitation: dotted or namespaced filter names such as `ns.custom`
+  remain outside the scope of this sprint and are not handled by
+  `mask_filter_names`; this is retained as a documented follow-up gap rather
+  than a functional scope expansion.
 - `cargo fmt --all --check` — PASS.
 - `cargo test --workspace` — PASS (all workspace tests passed).
 - `cargo clippy --all-targets --all-features -- -D warnings` — PASS.
