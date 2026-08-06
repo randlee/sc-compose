@@ -837,6 +837,22 @@ FIX-278 makes the shared HTML/XML/XHTML escaping formatter XML-character-safe
 for forbidden C0 controls, adds the opt-in `xml_char_safe` filter, and covers
 the XHTML filename dispatch alongside explicit and implicit escaping paths.
 
+### Follow-on Fix Sprint: FIX-274
+
+Status:
+
+- complete on `fix/274-spoofed-frontmatter-delimiter` at `2145245`
+
+Sprint entry:
+
+- [Sprint FIX-274 — Spoofed Frontmatter Delimiter](sprints/fix-274-spoofed-frontmatter-delimiter.md)
+
+FIX-274 adds an opt-in `frontmatter_safe` filter for interpolated values in
+frontmatter-shaped Markdown output. Standalone `---` and `...` lines are
+neutralized without changing ordinary text or mid-line delimiter sequences;
+the codex-orchestration sprint-plan template applies the filter to its title
+fields.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:

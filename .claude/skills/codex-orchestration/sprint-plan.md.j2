@@ -39,14 +39,14 @@ defaults:
 ---
 ---
 id: {{ id }}
-title: {{ title }}
+title: {{ title | frontmatter_safe }}
 status: {{ status }}
 branch: {{ branch }}
-{% if worktree %}worktree: {{ worktree }}
+{% if worktree %}worktree: {{ worktree | frontmatter_safe }}
 {% endif %}target: {{ target }}
 ---
 
-# Sprint {{ id }} — {{ title }}
+# Sprint {{ id }} — {{ title | frontmatter_safe }}
 
 ## Goal
 
