@@ -491,7 +491,7 @@ mod tests {
         loop {
             match reader.read_event().unwrap() {
                 Event::CData(value) => {
-                    cdata_content.push_str(str::from_utf8(value.as_ref()).unwrap())
+                    cdata_content.push_str(str::from_utf8(value.as_ref()).unwrap());
                 }
                 Event::Eof => break,
                 _ => {}
