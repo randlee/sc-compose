@@ -60,8 +60,24 @@ fn legacy_auto_escape_callback(name: &str) -> AutoEscape {
 
     match name.rsplit('.').next() {
         Some("html" | "htm" | "xml") => AutoEscape::Custom("sc-compose-html"),
+        Some("json") => AutoEscape::Json,
         _ => AutoEscape::None,
     }
+}
+
+fn cdata_escape_filter(value: &str) -> JinjaValue {
+    // Split CDATA before the terminating `]]>`; mark the result safe so the
+    // XML formatter does not entity-escape the reopened `<![CDATA[>` tag.
+    JinjaValue::from_safe_string(value.replace("]]>", "]]]]><![CDATA[>"))
+}
+
+fn turtle_escape_filter(value: &str) -> String {
+    value
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t")
 }
 
 fn format_sc_compose_markup(
@@ -134,6 +150,8 @@ fn configure_environment(env: &mut Environment<'static>) {
     // feature is enabled. JSON/YAML/JS templates are text outputs, not HTML.
     env.set_auto_escape_callback(legacy_auto_escape_callback);
     env.set_formatter(format_sc_compose_markup);
+    env.add_filter("cdata_escape", cdata_escape_filter);
+    env.add_filter("turtle_escape", turtle_escape_filter);
     env.set_unknown_method_callback(map_get_unknown_method_callback);
 }
 
@@ -272,10 +290,16 @@ pub fn render_loaded_template(
 #[cfg(test)]
 mod tests {
     use std::error::Error as _;
+    use std::str;
 
+    use quick_xml::Reader;
+    use quick_xml::events::Event;
     use serde_json::json;
 
-    use super::{LoadedTemplateRequest, NamedTemplateAsset, Renderer, render_loaded_template};
+    use super::{
+        LoadedTemplateRequest, NamedTemplateAsset, Renderer, render_loaded_template,
+        turtle_escape_filter,
+    };
 
     #[test]
     fn renderer_can_render_multiple_templates_with_one_environment() {
@@ -308,7 +332,6 @@ mod tests {
         let context = json!({ "value": "<tag> &" });
 
         for template_name in [
-            "payload.json",
             "payload.json5",
             "payload.js",
             "payload.yaml",
@@ -320,6 +343,13 @@ mod tests {
                 .unwrap();
             assert_eq!(output, "<tag> &", "unexpected escaping for {template_name}");
         }
+
+        assert_eq!(
+            renderer
+                .render_named("payload.json", "{{ value }}", context.clone())
+                .unwrap(),
+            "\"<tag> &\""
+        );
 
         for template_name in [
             "payload.html",
@@ -357,6 +387,130 @@ mod tests {
                 .unwrap();
             assert_eq!(output, "/tmp/path/to/report.xml", "changed {template_name}");
         }
+    }
+
+    #[test]
+    fn renderer_json_auto_escape_round_trips_json_string_values() {
+        let renderer = Renderer::new();
+        let original = "quote \" slash \\\nline";
+        let output = renderer
+            .render_named("payload.json.j2", "{{ value }}", json!({"value": original}))
+            .unwrap();
+
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(parsed, json!(original));
+    }
+
+    #[test]
+    fn renderer_json_auto_escape_prevents_injected_top_level_keys() {
+        let renderer = Renderer::new();
+        let injected = r#"x", "injected": true, "y": "x"#;
+        let output = renderer
+            .render_named(
+                "payload.json.j2",
+                r#"{"sprint_id": {{ sprint_id }}}"#,
+                json!({"sprint_id": injected}),
+            )
+            .unwrap();
+
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(parsed["sprint_id"], json!(injected));
+        assert!(parsed.get("injected").is_none());
+    }
+
+    #[test]
+    fn cdata_escape_round_trips_through_xml_parser() {
+        let renderer = Renderer::new();
+        let original = "before ]]> after";
+        let output = renderer
+            .render(
+                "<root><![CDATA[{{ value | cdata_escape }}]]></root>",
+                json!({"value": original}),
+            )
+            .unwrap();
+
+        let mut reader = Reader::from_str(&output);
+        reader.config_mut().trim_text(false);
+        let mut content = String::new();
+        loop {
+            match reader.read_event().unwrap() {
+                Event::CData(value) => content.push_str(str::from_utf8(value.as_ref()).unwrap()),
+                Event::Eof => break,
+                _ => {}
+            }
+        }
+        assert_eq!(content, original);
+    }
+
+    #[test]
+    fn cdata_escape_is_identity_without_cdata_terminator() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render("{{ value | cdata_escape }}", json!({"value": "plain text"}))
+            .unwrap();
+
+        assert_eq!(output, "plain text");
+    }
+
+    #[test]
+    fn real_plan_scope_template_round_trips_cdata_payload() {
+        let source =
+            include_str!("../../../.claude/skills/plan-hardening/01-plan-scope-review.xml.j2");
+        let cdata_block = source
+            .split("  <reviewer-findings-json>\n")
+            .nth(1)
+            .and_then(|tail| tail.split("  </reviewer-findings-json>").next())
+            .expect("plan-hardening template must contain the reviewer CDATA block");
+        let template =
+            format!("<root><reviewer-findings-json>{cdata_block}</reviewer-findings-json></root>");
+        let original = "finding before ]]> finding after";
+        let rendered = Renderer::new()
+            .render_named(
+                "01-plan-scope-review.xml.j2",
+                &template,
+                json!({
+                    "task_id": "FIX272-QA",
+                    "phase": "fuzz-round-2",
+                    "description": "CDATA regression",
+                    "worktree_path": "/tmp/sc-compose",
+                    "branch": "fix/272-format-aware-escaping",
+                    "pr_target": "develop",
+                    "source_of_truth": "docs/sprints/fix-272-format-aware-escaping.md",
+                    "references": "crates/sc-composer/src/renderer.rs",
+                    "round_id": "QA-272-002",
+                    "round_index": 2,
+                    "replay_nonce": "test-nonce",
+                    "reviewer_findings_json": original,
+                }),
+            )
+            .unwrap();
+
+        let mut reader = Reader::from_str(&rendered);
+        reader.config_mut().trim_text(false);
+        let mut cdata_content = String::new();
+        loop {
+            match reader.read_event().unwrap() {
+                Event::CData(value) => {
+                    cdata_content.push_str(str::from_utf8(value.as_ref()).unwrap());
+                }
+                Event::Eof => break,
+                _ => {}
+            }
+        }
+        assert!(cdata_content.contains(original), "rendered XML: {rendered}");
+    }
+
+    #[test]
+    fn turtle_escape_uses_turtle_string_literal_escapes() {
+        let renderer = Renderer::new();
+        let input = "\"\\\n\r\t";
+        let expected = "\\\"\\\\\\n\\r\\t";
+        assert_eq!(turtle_escape_filter(input), expected);
+        let output = renderer
+            .render("{{ value | turtle_escape }}", json!({"value": input}))
+            .unwrap();
+
+        assert_eq!(output, expected);
     }
 
     #[test]
