@@ -1,7 +1,7 @@
 ---
 id: FIX-248
 title: "Stop leaking raw serde_yaml error text through ERR_CONFIG_PARSE's CLI text output"
-status: assigned
+status: complete
 branch: fix/248-err-config-parse-leaks-raw-yaml
 worktree: ../sc-compose-worktrees/fix/248-err-config-parse-leaks-raw-yaml
 target: develop
@@ -216,6 +216,44 @@ that call site.
 - `cargo fmt --all --check` and
   `cargo clippy --all-targets --all-features -- -D warnings` clean.
 - GitHub issue #248 can be closed referencing the merged PR.
+
+## Closeout Evidence
+
+The regression test was created fresh on this branch and was not promoted
+from another worktree.
+
+- `eecad77` introduced the ignored CLI red-baseline test; `308d7a6` is the
+  corrected red state with the pre-existing opening-delimiter test restored
+  to its original exit-code assertion. Before the parser fix, the ignored
+  test failed normally because stderr contained `caused by` and raw
+  serde_yaml error text.
+- `4a85d49` removes only the serde_yaml source attachment from the
+  frontmatter parse-error construction, removes the single `#[ignore]`, and
+  adds the JSON-path regression guard. `c65ba50` fixes the new test comment's
+  Clippy documentation lint.
+- Default text output retains the stable `failed to parse YAML frontmatter`
+  message and recovery hint without the `caused by` source-chain section or
+  raw serde_yaml text.
+- JSON output remains structured with `ERR_CONFIG_PARSE` and the stable
+  diagnostic message. Existing parseable-frontmatter coverage in
+  `adjacent_plain_yaml_frontmatter_block_is_not_silently_consumed_as_a_second_pass`
+  serves as the success-path guard.
+- Targeted fuzz regressions: PASS (7/7); parser unit tests: PASS (4/4).
+- Workspace tests: PASS (`cargo test --workspace`).
+- Clippy: PASS (`cargo clippy --all-targets --all-features -- -D warnings`).
+- Formatting and whitespace checks: PASS (`cargo fmt --all --check` and
+  `git diff --check`).
+
+### Scope discrepancy requiring review
+
+The sprint's original test wording also required default stderr to omit
+`backtrace:` while forbidding changes to `ConfigError` and
+`write_error_display`. That formatter unconditionally emits the existing
+`backtrace:` block even when no source is attached, and its existing unit
+tests lock in that behavior. The implementation therefore leaves the
+backtrace behavior unchanged and verifies the issue-specific leak: removal
+of the raw serde_yaml source chain. Team-lead should reconcile that wording
+before final issue closure.
 
 ## References
 
