@@ -221,7 +221,8 @@ surface:
   and marks `cdata_escape` output safe so the XML formatter preserves the
   reopened CDATA marker. Formatting and strict-lint cleanup landed at
   `4936318` and `28f8aa2`.
-- Final validation at merge-forward HEAD `28f8aa2`: `cargo test --workspace`
+- Final code validation at `28f8aa2` (the final code commit before the
+  evidence-only documentation commit `57838e7`): `cargo test --workspace`
   passed with 0 failures (including 224 library/CLI tests, 51 extraction
   integration tests, and 15 integration tests); `cargo fmt --all --check`,
   `cargo clippy --all-targets --all-features -- -D warnings`, and
