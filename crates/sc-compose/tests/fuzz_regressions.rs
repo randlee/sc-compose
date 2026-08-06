@@ -1,4 +1,4 @@
-//! Regression tests promoted from the adversarial fuzz campaign.
+//! Regression test promoted from the adversarial fuzz campaign.
 
 #[path = "support/mod.rs"]
 mod support;
@@ -75,4 +75,23 @@ fn strict_validation_with_custom_delimiters_catches_undeclared_custom_delimiter_
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert_first_code(&value, "ERR_VAL_UNDECLARED_TOKEN");
+}
+
+#[test]
+fn adjacent_plain_yaml_frontmatter_block_is_not_silently_consumed_as_a_second_pass() {
+    let root = temp_root("fuzz-adjacent-plain-yaml-frontmatter");
+    write_file(&root.join("t.j2"), "---\n{}\n---\n---\na: b\n---\nBODY\n");
+
+    let output = sc_compose()
+        .args(["render", "--file", "t.j2", "--root"])
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let rendered = String::from_utf8(output.stdout).unwrap();
+    assert!(
+        rendered.contains("---") && rendered.contains("a: b"),
+        "{rendered:?}"
+    );
 }

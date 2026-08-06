@@ -644,6 +644,20 @@ token validation. Literal default-delimiter text remains inert under custom
 delimiters, while undeclared variables referenced through the active custom
 delimiters now fail closed with `ERR_VAL_UNDECLARED_TOKEN`.
 
+### Follow-on Fix Sprint: FIX-243
+
+Status:
+
+- complete on `fix/243-frontmatter-silent-data-loss` at `01a1e5c`
+
+Sprint entry:
+
+- [Sprint FIX-243 — Frontmatter Parser Silent Data Loss](sprints/fix-243-frontmatter-silent-data-loss.md)
+
+FIX-243 preserves adjacent plain-YAML blocks with unrecognized top-level keys
+as template body while retaining recognized-key multi-pass stacking and the
+FIX-238 Jinja-syntax break behavior.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:

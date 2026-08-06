@@ -79,11 +79,14 @@ fn split_frontmatter(input: &str) -> Result<Option<(Vec<&str>, &str)>, ComposeEr
         // contains Jinja syntax, it is template body rather than another YAML
         // config pass. Preserve the existing stacked-header behavior for
         // candidates that contain plain YAML (including empty headers).
-        if !headers.is_empty() && contains_jinja_syntax(&input[content_start..content_end]) {
+        let candidate = &input[content_start..content_end];
+        if !headers.is_empty()
+            && (contains_jinja_syntax(candidate) || !is_recognized_frontmatter(candidate))
+        {
             break;
         }
 
-        headers.push(&input[content_start..content_end]);
+        headers.push(candidate);
         cursor = after_close;
     }
 
@@ -96,6 +99,34 @@ fn split_frontmatter(input: &str) -> Result<Option<(Vec<&str>, &str)>, ComposeEr
 
 fn contains_jinja_syntax(content: &str) -> bool {
     content.contains("{{") || content.contains("{%") || content.contains("{#")
+}
+
+fn is_recognized_frontmatter(content: &str) -> bool {
+    if content.trim().is_empty() {
+        return true;
+    }
+
+    let Ok(value) = serde_yaml::from_str::<serde_yaml::Value>(content) else {
+        return false;
+    };
+    let serde_yaml::Value::Mapping(mapping) = value else {
+        return false;
+    };
+
+    mapping.keys().all(|key| {
+        let serde_yaml::Value::String(key) = key else {
+            return false;
+        };
+        matches!(
+            key.as_str(),
+            "pass"
+                | "required_variables"
+                | "variables"
+                | "defaults"
+                | "input_defaults"
+                | "metadata"
+        )
+    })
 }
 
 fn opening_delimiter_len(input: &str, cursor: usize) -> Option<usize> {
