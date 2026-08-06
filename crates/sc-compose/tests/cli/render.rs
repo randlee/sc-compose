@@ -1785,7 +1785,7 @@ fn render_xml_control_byte_output_is_well_formed() {
         String::from_utf8_lossy(&output.stderr)
     );
     let rendered = fs::read_to_string(&output_path).unwrap();
-    assert!(rendered.contains("&#x0;"), "rendered XML: {rendered}");
+    assert!(rendered.contains("&#xfffd;"), "rendered XML: {rendered}");
 
     let python_code = "import sys, xml.etree.ElementTree as ET; ET.fromstring(sys.argv[1])";
     let python = if Command::new("python3")

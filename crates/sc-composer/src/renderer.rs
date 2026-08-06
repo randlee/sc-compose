@@ -11,6 +11,8 @@ use serde_json::Value;
 
 use crate::RenderError;
 
+const XML_REPLACEMENT_NCR: &str = "&#xfffd;";
+
 /// Additional named templates that the main template may extend or include.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct NamedTemplateAsset {
@@ -59,7 +61,7 @@ fn legacy_auto_escape_callback(name: &str) -> AutoEscape {
     }
 
     match name.rsplit('.').next() {
-        Some("html" | "htm" | "xml") => AutoEscape::Custom("sc-compose-html"),
+        Some("html" | "htm" | "xml" | "xhtml") => AutoEscape::Custom("sc-compose-html"),
         Some("json") => AutoEscape::Json,
         _ => AutoEscape::None,
     }
@@ -78,6 +80,42 @@ fn turtle_escape_filter(value: &str) -> String {
         .replace('\n', "\\n")
         .replace('\r', "\\r")
         .replace('\t', "\\t")
+}
+
+fn escape_markup(value: &str) -> String {
+    let mut escaped = String::with_capacity(value.len());
+    for character in value.chars() {
+        match character {
+            '&' => escaped.push_str("&amp;"),
+            '<' => escaped.push_str("&lt;"),
+            '>' => escaped.push_str("&gt;"),
+            '"' => escaped.push_str("&quot;"),
+            '\'' => escaped.push_str("&#x27;"),
+            _ => escaped.push(character),
+        }
+    }
+    escaped
+}
+
+fn encode_xml_illegal_controls(value: &str) -> String {
+    let mut encoded = String::with_capacity(value.len());
+    for character in value.chars() {
+        let code = character as u32;
+        if (0..=0x08).contains(&code) || matches!(code, 0x0b | 0x0c | 0x0e..=0x1f) {
+            encoded.push_str(XML_REPLACEMENT_NCR);
+        } else {
+            encoded.push(character);
+        }
+    }
+    encoded
+}
+
+fn xml_char_safe_string(value: &str) -> String {
+    encode_xml_illegal_controls(&escape_markup(value))
+}
+
+fn xml_char_safe_filter(value: &str) -> JinjaValue {
+    JinjaValue::from_safe_string(xml_char_safe_string(value))
 }
 
 fn format_sc_compose_markup(
@@ -102,24 +140,7 @@ fn format_sc_compose_markup(
     let rendered = value
         .as_str()
         .map_or_else(|| value.to_string(), ToOwned::to_owned);
-    let mut segment_start = 0;
-    for (index, character) in rendered.char_indices() {
-        let replacement = match character {
-            '&' => Some("&amp;"),
-            '<' => Some("&lt;"),
-            '>' => Some("&gt;"),
-            '"' => Some("&quot;"),
-            '\'' => Some("&#x27;"),
-            _ => None,
-        };
-        if let Some(replacement) = replacement {
-            out.write_str(&rendered[segment_start..index])
-                .map_err(Error::from)?;
-            out.write_str(replacement).map_err(Error::from)?;
-            segment_start = index + character.len_utf8();
-        }
-    }
-    out.write_str(&rendered[segment_start..])
+    out.write_str(&xml_char_safe_string(&rendered))
         .map_err(Error::from)
 }
 
@@ -152,6 +173,7 @@ fn configure_environment(env: &mut Environment<'static>) {
     env.set_formatter(format_sc_compose_markup);
     env.add_filter("cdata_escape", cdata_escape_filter);
     env.add_filter("turtle_escape", turtle_escape_filter);
+    env.add_filter("xml_char_safe", xml_char_safe_filter);
     env.set_unknown_method_callback(map_get_unknown_method_callback);
 }
 
@@ -297,8 +319,8 @@ mod tests {
     use serde_json::json;
 
     use super::{
-        LoadedTemplateRequest, NamedTemplateAsset, Renderer, render_loaded_template,
-        turtle_escape_filter,
+        LoadedTemplateRequest, NamedTemplateAsset, Renderer, XML_REPLACEMENT_NCR,
+        render_loaded_template, turtle_escape_filter,
     };
 
     #[test]
@@ -389,10 +411,12 @@ mod tests {
             .render("{{ value | xml_char_safe }}", json!({"value": input}))
             .unwrap();
 
-        assert_eq!(
-            output,
-            "&lt;&#x0;&#x1;&#x2;&#x3;&#x4;&#x5;&#x6;&#x7;&#x8;\t\n&#xb;&#xc;\r&#xe;&#xf;&#x10;&#x11;&#x12;&#x13;&#x14;&#x15;&#x16;&#x17;&#x18;&#x19;&#x1a;&#x1b;&#x1c;&#x1d;&#x1e;&#x1f;&gt;&amp;&quot;&#x27;"
-        );
+        assert_eq!(output.matches(XML_REPLACEMENT_NCR).count(), 29);
+        assert!(output.starts_with("&lt;"));
+        assert!(output.contains(&format!(
+            "{XML_REPLACEMENT_NCR}\t\n{XML_REPLACEMENT_NCR}{XML_REPLACEMENT_NCR}\r{XML_REPLACEMENT_NCR}"
+        )));
+        assert!(output.ends_with("&gt;&amp;&quot;&#x27;"));
     }
 
     #[test]
@@ -424,7 +448,7 @@ mod tests {
             .render_named("report.xml.j2", "<root>{{ value }}</root>", context)
             .unwrap();
 
-        assert_eq!(explicit, "<root>&lt;&#x0;&gt;</root>");
+        assert_eq!(explicit, "<root>&lt;&#xfffd;&gt;</root>");
         assert_eq!(implicit, explicit);
     }
 
@@ -439,7 +463,7 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(output, "<root>&#x0;</root>");
+        assert_eq!(output, "<root>&#xfffd;</root>");
     }
 
     #[test]
