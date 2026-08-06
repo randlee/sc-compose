@@ -420,7 +420,7 @@ mod tests {
     fn renderer_rejects_unrecognized_map_method() {
         let renderer = Renderer::new();
         let error = renderer
-            .render(r#"{{ row.items() }}"#, json!({"row": {"k": "v"}}))
+            .render("{{ row.items() }}", json!({"row": {"k": "v"}}))
             .unwrap_err();
         let detail = error.source().map(ToString::to_string).unwrap_or_default();
 
@@ -434,7 +434,7 @@ mod tests {
     fn renderer_rejects_out_of_range_dict_get_arities() {
         let renderer = Renderer::new();
 
-        for template in [r#"{{ row.get() }}"#, r#"{{ row.get("k", "v", "extra") }}"#] {
+        for template in ["{{ row.get() }}", r#"{{ row.get("k", "v", "extra") }}"#] {
             let error = renderer
                 .render(template, json!({"row": {"k": "v"}}))
                 .unwrap_err();
