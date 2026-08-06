@@ -68,6 +68,8 @@ pub enum DiagnosticCode {
     WarnValConflictingDefaultSections,
     /// `--all` was requested for a template without stacked headers.
     WarnConfigSinglePassAllFallback,
+    /// A template uses a redundant frontmatter/YAML safety filter chain.
+    WarnLintRedundantFilterChain,
     /// A template body was empty when content was required.
     ErrValEmpty,
     /// The root template omitted a frontmatter block.
@@ -268,6 +270,7 @@ impl DiagnosticCode {
             Self::ErrValDuplicate => "ERR_VAL_DUPLICATE",
             Self::WarnValConflictingDefaultSections => "WARN_VAL_CONFLICTING_DEFAULT_SECTIONS",
             Self::WarnConfigSinglePassAllFallback => "WARN_CONFIG_SINGLE_PASS_ALL_FALLBACK",
+            Self::WarnLintRedundantFilterChain => "WARN_LINT_REDUNDANT_FILTER_CHAIN",
             Self::ErrValEmpty => "ERR_VAL_EMPTY",
             Self::ErrValMissingFrontmatter => "ERR_VAL_MISSING_FRONTMATTER",
             Self::ErrValMissingRequired => "ERR_VAL_MISSING_REQUIRED",

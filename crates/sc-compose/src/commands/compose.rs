@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use crate::cli::{
     Mode, RenderArgs, RenderBehaviorArgs, ResolveArgs, ValidateArgs, parse_pass_inputs,
 };
+use crate::commands::template_lint::lint_request;
 use crate::path_utils::to_forward_slash;
 use crate::render_request::{
     build_multi_pass_request, build_request, read_block_pair,
@@ -178,12 +179,18 @@ pub(crate) fn run_validate(
     if single_pass_fallback {
         report.warnings.push(single_pass_all_warning());
     }
-    let diagnostics = report
+    let lint_diagnostics = if args.lint {
+        lint_request(&request)?
+    } else {
+        Vec::new()
+    };
+    let mut diagnostics = report
         .warnings
         .iter()
         .chain(report.errors.iter())
         .cloned()
         .collect::<Vec<_>>();
+    diagnostics.extend(lint_diagnostics);
     if args.json {
         print_json(
             serde_json::json!({
