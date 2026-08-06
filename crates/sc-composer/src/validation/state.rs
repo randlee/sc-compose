@@ -20,6 +20,14 @@ pub(crate) fn collect_validation_state(
     expanded: &ExpandedTemplate,
 ) -> ValidationState {
     let mut state = ValidationState::default();
+    state.source_texts = expanded.source_texts.clone();
+    if state.source_texts.is_empty()
+        && let Some(root) = expanded.resolved_files.first()
+    {
+        state
+            .source_texts
+            .insert(root.clone(), expanded.text.clone());
+    }
 
     for (path, frontmatters) in &expanded.frontmatters {
         if !frontmatters.is_empty() {
@@ -289,6 +297,7 @@ mod tests {
             resolved_files: vec![root.clone()],
             frontmatters: vec![(root, parsed.passes().to_vec())],
             include_chains: BTreeMap::new(),
+            source_texts: BTreeMap::new(),
         };
 
         let state = collect_validation_state(&empty_request(), &expanded);
@@ -326,6 +335,7 @@ mod tests {
             resolved_files: vec![root.clone()],
             frontmatters: vec![(root.clone(), parsed.passes().to_vec())],
             include_chains: BTreeMap::new(),
+            source_texts: BTreeMap::new(),
         };
         let mut request = empty_request();
         request
@@ -414,6 +424,7 @@ mod tests {
                 (child.clone(), child_frontmatter.passes().to_vec()),
             ],
             include_chains,
+            source_texts: BTreeMap::new(),
         };
 
         let state = collect_validation_state(&empty_request(), &expanded);

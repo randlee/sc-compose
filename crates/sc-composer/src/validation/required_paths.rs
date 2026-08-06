@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
+use crate::discovery::has_bare_for_loop_over;
 use crate::types::{InputValue, VariableName};
 
 use super::ValidationState;
@@ -24,6 +25,7 @@ pub(super) fn required_path_diagnostics(state: &ValidationState) -> Vec<Diagnost
     let mut diagnostics = Vec::new();
 
     for (variable, origin) in &state.required_origins {
+        let source = state.source_texts.get(origin).map(String::as_str);
         let include_chain = state
             .required_include_chains
             .get(variable)
@@ -34,7 +36,9 @@ pub(super) fn required_path_diagnostics(state: &ValidationState) -> Vec<Diagnost
             && !variable.as_str().contains('.')
             && !has_dotted_required_sibling(state, variable)
             && state.context.get(variable).is_some_and(|value| {
-                !value.is_array() && required_variable_uses_bare_for_loop(origin, variable.as_str())
+                !value.is_array()
+                    && source
+                        .is_some_and(|source| has_bare_for_loop_over(source, variable.as_str()))
             });
 
         match status {
@@ -44,6 +48,7 @@ pub(super) fn required_path_diagnostics(state: &ValidationState) -> Vec<Diagnost
                     origin,
                     variable,
                     include_chain.clone(),
+                    source,
                 ));
             }
             RequiredPathStatus::MissingNested { missing_path } => {
@@ -53,6 +58,7 @@ pub(super) fn required_path_diagnostics(state: &ValidationState) -> Vec<Diagnost
                     variable,
                     format!("missing required nested field: {missing_path}"),
                     include_chain.clone(),
+                    source,
                 ));
             }
             RequiredPathStatus::ShapeMismatch { at_path } => {
@@ -64,6 +70,7 @@ pub(super) fn required_path_diagnostics(state: &ValidationState) -> Vec<Diagnost
                         "required nested field path {variable} expected an object at {at_path}"
                     ),
                     include_chain.clone(),
+                    source,
                 ));
             }
         }
@@ -82,6 +89,7 @@ pub(super) fn required_path_diagnostics(state: &ValidationState) -> Vec<Diagnost
                     json_type_name(value)
                 ),
                 include_chain,
+                source,
             ));
         }
     }
@@ -108,56 +116,11 @@ fn json_type_name(value: &serde_json::Value) -> &'static str {
     }
 }
 
-fn required_variable_uses_bare_for_loop(origin: &Path, variable: &str) -> bool {
-    let Ok(source) = std::fs::read_to_string(origin) else {
-        return false;
-    };
-
-    let mut search_start = 0;
-    while let Some(open_offset) = source[search_start..].find("{%") {
-        let open = search_start + open_offset;
-        let statement_start = open + 2;
-        let Some(close_offset) = source[statement_start..].find("%}") else {
-            break;
-        };
-        let close = statement_start + close_offset;
-        let mut statement = source[statement_start..close].trim();
-        if let Some(stripped) = statement.strip_prefix('-') {
-            statement = stripped.trim_start();
-        }
-        if statement.ends_with('-') || statement.ends_with('+') {
-            statement = statement[..statement.len() - 1].trim_end();
-        }
-
-        let tokens = statement.split_whitespace().collect::<Vec<_>>();
-        let Some(in_index) = tokens.iter().position(|token| *token == "in") else {
-            search_start = close + 2;
-            continue;
-        };
-        if tokens.first() == Some(&"for")
-            && in_index >= 2
-            && in_index + 2 == tokens.len()
-            && tokens[in_index + 1] == variable
-            && is_bare_identifier(tokens[in_index + 1])
-        {
-            return true;
-        }
-        search_start = close + 2;
-    }
-
-    false
-}
-
-fn is_bare_identifier(value: &str) -> bool {
-    let mut characters = value.chars();
-    matches!(characters.next(), Some(first) if first.is_ascii_alphabetic() || first == '_')
-        && characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
-}
-
 fn missing_required_diagnostic(
     origin: &Path,
     variable: &VariableName,
     include_chain: Vec<PathBuf>,
+    source: Option<&str>,
 ) -> Diagnostic {
     let diagnostic = Diagnostic::new(
         DiagnosticSeverity::Error,
@@ -166,7 +129,7 @@ fn missing_required_diagnostic(
     )
     .with_path(origin.to_path_buf())
     .with_include_chain(include_chain);
-    match required_variable_location(origin, variable.as_str()) {
+    match required_variable_location(source, variable.as_str()) {
         Some(location) => diagnostic.with_location(location.line, location.column),
         None => diagnostic,
     }
@@ -178,11 +141,12 @@ fn required_path_diagnostic(
     variable: &VariableName,
     message: String,
     include_chain: Vec<PathBuf>,
+    source: Option<&str>,
 ) -> Diagnostic {
     let diagnostic = Diagnostic::new(DiagnosticSeverity::Error, code, message)
         .with_path(origin.to_path_buf())
         .with_include_chain(include_chain);
-    match required_variable_location(origin, variable.as_str()) {
+    match required_variable_location(source, variable.as_str()) {
         Some(location) => diagnostic.with_location(location.line, location.column),
         None => diagnostic,
     }
@@ -241,8 +205,8 @@ fn validate_required_value(
     }
 }
 
-fn required_variable_location(path: &Path, variable: &str) -> Option<SourceLocation> {
-    let raw = std::fs::read_to_string(path).ok()?;
+fn required_variable_location(raw: Option<&str>, variable: &str) -> Option<SourceLocation> {
+    let raw = raw?;
     let mut in_required_variables = false;
 
     for (index, line) in raw.lines().enumerate() {
