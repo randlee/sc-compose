@@ -212,9 +212,12 @@ only at the known call site(s), not a blanket format change.
   declaration frontmatter; their rendered bodies do not open a separate
   literal frontmatter header containing interpolated values, so no additional
   template was modified and no per-template regression test was required.
-- The sprint-plan output header audit found `id`, `branch`, `status`, and
-  `target` are constrained/internal fields at their call sites; `title` is the
-  free-text field and is the only header field requiring the new filter.
+- QA follow-up `FIX274-QA-001` identified `worktree` as a second
+  caller-controlled free-text header field. The field now uses
+  `frontmatter_safe`, with a real-template regression covering an injected
+  delimiter. The output-header audit therefore covers `title` and `worktree`;
+  `id`, `branch`, `status`, and `target` remain constrained/internal fields at
+  their call sites.
 - `docs/templates/architecture-adr.md.j2` and
   `docs/templates/boundary-record.md.j2` are absent from this repository and
   were not searched for outside the repository boundary.
@@ -222,3 +225,6 @@ only at the known call site(s), not a blanket format change.
   --workspace` passed with zero failures; `cargo fmt --all --check`,
   `cargo clippy --all-targets --all-features -- -D warnings`, and
   `git diff --check` all passed.
+- QA follow-up implementation and regression are included in the subsequent
+  worktree-field fix commit; its targeted test confirms the same two-real-
+  delimiter invariant for caller-controlled `worktree` values.

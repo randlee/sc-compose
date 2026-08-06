@@ -527,6 +527,19 @@ mod tests {
     }
 
     #[test]
+    fn real_sprint_plan_template_neutralizes_injected_worktree_delimiters() {
+        let mut context = sprint_plan_context("ordinary title");
+        context["worktree"] = json!("injected worktree\n---\nmalicious: true\n---");
+        let rendered = Renderer::new()
+            .render_named("sprint-plan.md.j2", sprint_plan_body(), context)
+            .unwrap();
+
+        assert_eq!(standalone_frontmatter_delimiter_count(&rendered), 2);
+        assert!(rendered.contains("malicious: true"));
+        assert!(rendered.contains(r"\-\-\-"));
+    }
+
+    #[test]
     fn cdata_escape_round_trips_through_xml_parser() {
         let renderer = Renderer::new();
         let original = "before ]]> after";

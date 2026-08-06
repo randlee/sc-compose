@@ -42,7 +42,7 @@ id: {{ id }}
 title: {{ title | frontmatter_safe }}
 status: {{ status }}
 branch: {{ branch }}
-{% if worktree %}worktree: {{ worktree }}
+{% if worktree %}worktree: {{ worktree | frontmatter_safe }}
 {% endif %}target: {{ target }}
 ---
 
