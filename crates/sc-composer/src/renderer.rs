@@ -338,6 +338,63 @@ mod tests {
     }
 
     #[test]
+    fn renderer_supports_issue_270_dict_get_with_default() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render(r#"{{ row.get("k", "n/a") }}"#, json!({"row": {"k": "v"}}))
+            .unwrap();
+
+        assert_eq!(output, "v");
+    }
+
+    #[test]
+    fn renderer_supports_dict_get_without_default_for_present_key() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render(r#"{{ row.get("k") }}"#, json!({"row": {"k": "v"}}))
+            .unwrap();
+
+        assert_eq!(output, "v");
+    }
+
+    #[test]
+    fn renderer_returns_empty_for_missing_dict_get_without_default() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render(r#"{{ row.get("missing") }}"#, json!({"row": {"k": "v"}}))
+            .unwrap();
+
+        assert_eq!(output, "");
+    }
+
+    #[test]
+    fn renderer_returns_default_for_missing_dict_get() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render(
+                r#"{{ row.get("missing", "n/a") }}"#,
+                json!({"row": {"k": "v"}}),
+            )
+            .unwrap();
+
+        assert_eq!(output, "n/a");
+    }
+
+    #[test]
+    fn renderer_rejects_get_on_non_map_value() {
+        let renderer = Renderer::new();
+        let error = renderer
+            .render(r#"{{ row.get("k", "n/a") }}"#, json!({"row": "text"}))
+            .unwrap_err();
+        let detail = error.to_string();
+
+        assert!(
+            detail.contains("unknown method") || detail.contains("has no method named get"),
+            "expected unknown-method error, got: {detail}"
+        );
+    }
+
+    #[test]
     fn render_loaded_template_rejects_malformed_supporting_templates() {
         let error = render_loaded_template(LoadedTemplateRequest {
             template_name: "report.html.j2".to_owned(),
