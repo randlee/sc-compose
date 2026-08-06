@@ -258,6 +258,8 @@ Status: **complete**.
 - Round-2 QA fix: `a44487e` makes `RenderManyError::Display`
   contextual-only, adds exact-occurrence and all-variant source coverage, and
   records the validated fix provenance.
+- Round-2 provenance record: `705b094` is the documentation commit that
+  recorded `a44487e`'s round-2 fix provenance in this Closeout Evidence.
 - Full validation at the final branch state: `cargo test --workspace`,
   `cargo clippy --all-targets --all-features -- -D warnings`,
   `cargo fmt --all --check`, and `git diff --check`: PASS.
