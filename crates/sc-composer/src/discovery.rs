@@ -57,32 +57,9 @@ pub fn discover_tokens_with_delimiters(
 
     let mut tokens = BTreeSet::new();
     let mut scopes = vec![LoopScope::default()];
-    let mut cursor = text;
     let expression_delimiters =
         ExpressionDelimiters::with_delimiters(open_delimiter, close_delimiter);
-
-    while let Some((delimiter, start)) = next_delimiter(cursor, &expression_delimiters) {
-        let start_delimiter = match delimiter {
-            Delimiter::Expression => expression_delimiters.open.as_str(),
-            Delimiter::Statement => "{%",
-        };
-        let end_delimiter = match delimiter {
-            Delimiter::Expression => expression_delimiters.close.as_str(),
-            Delimiter::Statement => "%}",
-        };
-
-        let after_start = &cursor[start + start_delimiter.len()..];
-        let end = match delimiter {
-            Delimiter::Expression => find_expression_close(after_start, end_delimiter),
-            Delimiter::Statement => after_start.find(end_delimiter),
-        };
-        let Some(end) = end else { break };
-        let raw_content = &after_start[..end];
-        let without_leading_marker = raw_content.strip_prefix('-').unwrap_or(raw_content);
-        let without_markers = without_leading_marker
-            .strip_suffix('-')
-            .unwrap_or(without_leading_marker);
-        let expression = without_markers.trim();
+    walk_template(text, &expression_delimiters, |delimiter, expression| {
         match delimiter {
             Delimiter::Expression => collect_identifiers(expression, &scopes, &mut tokens),
             Delimiter::Statement => {
@@ -99,8 +76,8 @@ pub fn discover_tokens_with_delimiters(
                 }
             }
         }
-        cursor = &after_start[end + end_delimiter.len()..];
-    }
+        false
+    });
     tokens
 }
 
@@ -109,34 +86,12 @@ pub(crate) fn has_bare_for_loop_over(text: &str, variable: &str) -> bool {
     let mut tokens = BTreeSet::new();
     let mut scopes = vec![LoopScope::default()];
     let expression_delimiters = ExpressionDelimiters::with_delimiters("{{", "}}");
-    let mut cursor = text;
-
-    while let Some((delimiter, start)) = next_delimiter(cursor, &expression_delimiters) {
-        let start_delimiter = match delimiter {
-            Delimiter::Expression => expression_delimiters.open.as_str(),
-            Delimiter::Statement => "{%",
-        };
-        let end_delimiter = match delimiter {
-            Delimiter::Expression => expression_delimiters.close.as_str(),
-            Delimiter::Statement => "%}",
-        };
-        let after_start = &cursor[start + start_delimiter.len()..];
-        let end = match delimiter {
-            Delimiter::Expression => find_expression_close(after_start, end_delimiter),
-            Delimiter::Statement => after_start.find(end_delimiter),
-        };
-        let Some(end) = end else { break };
-        let raw_content = &after_start[..end];
-        let without_leading_marker = raw_content.strip_prefix('-').unwrap_or(raw_content);
-        let without_markers = without_leading_marker
-            .strip_suffix('-')
-            .or_else(|| without_leading_marker.strip_suffix('+'))
-            .unwrap_or(without_leading_marker);
-        let expression = without_markers.trim();
-
+    let mut found = false;
+    walk_template(text, &expression_delimiters, |delimiter, expression| {
         if matches!(delimiter, Delimiter::Statement) {
             if let Some(loop_scope) = parse_for_loop_scope(expression, &scopes, &mut tokens) {
                 if loop_scope.iterable == variable && is_bare_identifier(&loop_scope.iterable) {
+                    found = true;
                     return true;
                 }
                 scopes.push(loop_scope.scope);
@@ -150,11 +105,9 @@ pub(crate) fn has_bare_for_loop_over(text: &str, variable: &str) -> bool {
                 collect_identifiers(expression, &scopes, &mut tokens);
             }
         }
-
-        cursor = &after_start[end + end_delimiter.len()..];
-    }
-
-    false
+        false
+    });
+    found
 }
 
 /// Discover tokens for every parsed pass using that pass's brace count.
@@ -210,6 +163,40 @@ fn next_delimiter(
         (Some(_) | None, Some(statement)) => Some((Delimiter::Statement, statement)),
         (Some(expression), None) => Some((Delimiter::Expression, expression)),
         (None, None) => None,
+    }
+}
+
+fn walk_template<F>(text: &str, expression_delimiters: &ExpressionDelimiters, mut visit: F)
+where
+    F: FnMut(Delimiter, &str) -> bool,
+{
+    let mut cursor = text;
+    while let Some((delimiter, start)) = next_delimiter(cursor, expression_delimiters) {
+        let start_delimiter = match delimiter {
+            Delimiter::Expression => expression_delimiters.open.as_str(),
+            Delimiter::Statement => "{%",
+        };
+        let end_delimiter = match delimiter {
+            Delimiter::Expression => expression_delimiters.close.as_str(),
+            Delimiter::Statement => "%}",
+        };
+        let after_start = &cursor[start + start_delimiter.len()..];
+        let end = match delimiter {
+            Delimiter::Expression => find_expression_close(after_start, end_delimiter),
+            Delimiter::Statement => after_start.find(end_delimiter),
+        };
+        let Some(end) = end else { break };
+        let raw_content = &after_start[..end];
+        let without_leading_marker = raw_content.strip_prefix('-').unwrap_or(raw_content);
+        let without_markers = without_leading_marker
+            .strip_suffix('-')
+            .or_else(|| without_leading_marker.strip_suffix('+'))
+            .unwrap_or(without_leading_marker);
+        let expression = without_markers.trim();
+        if visit(delimiter, expression) {
+            break;
+        }
+        cursor = &after_start[end + end_delimiter.len()..];
     }
 }
 
@@ -424,7 +411,7 @@ fn mask_filter_names(expression: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::discover_tokens;
+    use super::{discover_tokens, has_bare_for_loop_over};
 
     #[test]
     fn leading_statement_whitespace_control_marker_is_not_a_token() {
@@ -438,6 +425,17 @@ mod tests {
         let tokens = discover_tokens("{% if true -%}Hi{% endif %}");
 
         assert!(tokens.is_empty(), "unexpected tokens: {tokens:?}");
+    }
+
+    #[test]
+    fn trailing_plus_marker_is_shared_by_token_and_loop_discovery() {
+        let template = "{% for item in items +%}{{ item }}{% endfor %}";
+
+        assert_eq!(
+            discover_tokens(template),
+            [crate::VariableName::new("items").unwrap()].into()
+        );
+        assert!(has_bare_for_loop_over(template, "items"));
     }
 
     #[test]
