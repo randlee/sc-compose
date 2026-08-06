@@ -46,7 +46,7 @@ branch: {{ branch | yaml_safe }}
 {% endif %}target: {{ target | yaml_safe }}
 ---
 
-# Sprint {{ id }} — {{ title }}
+# Sprint {{ id }} — {{ title | frontmatter_safe }}
 
 ## Goal
 
