@@ -1,7 +1,7 @@
 //! Structured diagnostics and stable `ERR_*` codes.
 
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
@@ -43,6 +43,13 @@ pub enum DiagnosticCode {
     ErrIncludeEscape,
     /// An include target could not be resolved.
     ErrIncludeNotFound,
+    /// An include target or resolved template path exists but could not be
+    /// read due to filesystem permissions.
+    ErrIncludePermissionDenied,
+    /// An include directive resolved to a directory instead of a file.
+    ErrIncludeIsADirectory,
+    /// An include chain traversed a filesystem symlink loop.
+    ErrIncludeFilesystemLoop,
     /// The include graph re-entered an active file, forming a cycle.
     ErrIncludeCycle,
     /// The include graph exceeded the configured maximum depth.
@@ -173,6 +180,71 @@ pub enum DiagnosticCode {
     ErrExtractTomlAmbiguous,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum FilesystemErrorClass {
+    InvalidData,
+    PermissionDenied,
+    IsADirectory,
+    FilesystemLoop,
+    NotFound,
+}
+
+pub(crate) fn classify_filesystem_error(
+    path: &Path,
+    error: &std::io::Error,
+) -> FilesystemErrorClass {
+    if path.is_dir() {
+        return FilesystemErrorClass::IsADirectory;
+    }
+
+    match error.kind() {
+        std::io::ErrorKind::InvalidData => FilesystemErrorClass::InvalidData,
+        std::io::ErrorKind::PermissionDenied => FilesystemErrorClass::PermissionDenied,
+        std::io::ErrorKind::IsADirectory => FilesystemErrorClass::IsADirectory,
+        _ if is_filesystem_loop(error) => FilesystemErrorClass::FilesystemLoop,
+        _ => FilesystemErrorClass::NotFound,
+    }
+}
+
+fn is_filesystem_loop(error: &std::io::Error) -> bool {
+    #[cfg(any(target_os = "linux", target_os = "android"))]
+    {
+        error.raw_os_error() == Some(40)
+    }
+
+    #[cfg(any(
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "ios",
+        target_os = "macos",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
+    {
+        error.raw_os_error() == Some(62)
+    }
+
+    #[cfg(windows)]
+    {
+        matches!(error.raw_os_error(), Some(1142 | 1921))
+    }
+
+    #[cfg(not(any(
+        target_os = "android",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "ios",
+        target_os = "linux",
+        target_os = "macos",
+        target_os = "netbsd",
+        target_os = "openbsd",
+        target_os = "windows"
+    )))]
+    {
+        false
+    }
+}
+
 impl DiagnosticCode {
     /// Return the stable string representation of the code.
     #[must_use]
@@ -182,6 +254,9 @@ impl DiagnosticCode {
             Self::ErrResolveAmbiguous => "ERR_RESOLVE_AMBIGUOUS",
             Self::ErrIncludeEscape => "ERR_INCLUDE_ESCAPE",
             Self::ErrIncludeNotFound => "ERR_INCLUDE_NOT_FOUND",
+            Self::ErrIncludePermissionDenied => "ERR_INCLUDE_PERMISSION_DENIED",
+            Self::ErrIncludeIsADirectory => "ERR_INCLUDE_IS_A_DIRECTORY",
+            Self::ErrIncludeFilesystemLoop => "ERR_INCLUDE_FILESYSTEM_LOOP",
             Self::ErrIncludeCycle => "ERR_INCLUDE_CYCLE",
             Self::ErrIncludeDepth => "ERR_INCLUDE_DEPTH",
             Self::ErrValObjectShape => "ERR_VAL_OBJECT_SHAPE",
