@@ -1,7 +1,7 @@
 ---
 id: FIX-247
 title: "Cap include-chain recursion depth to eliminate native stack overflow"
-status: assigned
+status: complete
 branch: fix/247-expand-file-stack-overflow
 worktree: ../sc-compose-worktrees/fix/247-expand-file-stack-overflow
 target: develop
@@ -263,6 +263,27 @@ SC-QA-256-001, and now confirmed clean 2/2 on FIX-245 and FIX-244:
 - `cargo fmt --all --check` and
   `cargo clippy --all-targets --all-features -- -D warnings` clean.
 - GitHub issue #247 can be closed referencing the merged PR.
+
+## Closeout Evidence
+
+This branch contains the complete red-to-green trail for the fresh
+regression test; it was created here and was not promoted from another
+worktree.
+
+- `41a42cc` — added the ignored 1,900-level regression test. Team-lead
+  independently confirmed the pre-fix process-level SIGABRT caused by
+  native stack overflow.
+- `49cf5ad` — amended the clamp fix from 512 to 128 after independent
+  validation showed 512 could still overflow cargo test's default 2 MiB
+  worker stack; the same commit adds tests (b)-(c), removes only the
+  regression test's `#[ignore]`, and updates this correction rationale.
+- Include unit tests: PASS (12/12).
+- Workspace tests: PASS (`cargo test --workspace`).
+- Clippy: PASS (`cargo clippy --all-targets --all-features -- -D warnings`).
+- Formatting and whitespace checks: PASS (`cargo fmt --all --check` and
+  `git diff --check`).
+- The 1,900-level regression returns `ErrIncludeDepth` cleanly under the
+  default cargo test worker stack; no process crash occurs post-fix.
 
 ## References
 
