@@ -1,3 +1,12 @@
+---
+id: FIX-268
+title: "XML/HTML auto-escape is bypassed on the default render path"
+status: complete
+branch: fix/268-xml-format-autoescape-not-applied
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/268-xml-format-autoescape-not-applied
+target: develop
+---
+
 # FIX-268: XML/HTML auto-escape is bypassed on the default render path
 
 Issue: https://github.com/randlee/sc-compose/issues/268
@@ -189,4 +198,21 @@ field to the composer. Rationale:
 
 ## Closeout Evidence
 
-_(to be filled in after implementation)_
+- Status: **complete**.
+- Red baseline: `6621e0c` (`test: reproduce XML autoescape bypass`) failed on
+  the pre-fix default CLI path because the rendered XML retained raw `<`, `>`,
+  and `&` characters.
+- Green implementation: `5761c1b3` (`fix: preserve filename-aware autoescape
+  on render paths`) threads the resolved filename through the single-pass,
+  multi-pass, and custom-delimiter render paths. It also adds XML, custom
+  delimiter, HTML, non-markup, and public `render_all()` regression coverage.
+- Compatibility assertions were updated in the follow-up working-tree change
+  to reflect Minijinja HTML-mode slash escaping in existing `.html.j2` and
+  `.xml.j2` fixtures.
+- Exact issue #268 reproduction (`repro.xml.j2` + `vars.json`) rendered to
+  `out.xml`; `python3 -c "import xml.etree.ElementTree as ET; ET.parse('out.xml')"`
+  passed.
+- Validation passed: `cargo fmt --all --check`, `cargo test --workspace`
+  (90 unit, 146 CLI, 51 extraction-integration, and 14 composer-integration
+  tests), `cargo clippy --all-targets --all-features -- -D warnings`, and
+  `git diff --check`.
