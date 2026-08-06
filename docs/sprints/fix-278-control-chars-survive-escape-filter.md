@@ -1,6 +1,6 @@
 ---
 id: FIX-278
-status: dispatched
+status: complete
 branch: fix/278-control-chars-survive-escape-filter
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/278-control-chars-survive-escape-filter
 target: develop
@@ -158,3 +158,35 @@ dispatch, not a blanket change to minijinja's built-in escaper.
 - PR #284 (FIX-272), PR #287 (FIX-274)
 - Fuzz round 2 report, 2026-08-06 (adversarial fuzzing of `sc-compose`
   against production templates in `atm-core`)
+
+## Closeout Evidence
+
+- Red regression tests committed and pushed at `431db60` (`test: reproduce XML
+  control character escaping gaps`). They failed against the pre-fix renderer:
+  `xml_char_safe` was unknown, explicit and implicit XML escaping emitted a
+  literal NUL, XHTML did not select the markup auto-escape path, and the CLI
+  XML well-formedness check failed.
+- Implementation committed and pushed at `388c6d8` (`fix: make XML escaping
+  control-character safe`). It adds the registered `xml_char_safe` filter,
+  routes the existing custom formatter through the same helper, and adds
+  `xhtml` to the existing HTML/XML suffix arm.
+- The explicit filter and implicit auto-escape paths are unified for named
+  HTML/XML/XHTML templates: Minijinja's explicit `e` filter routes custom
+  auto-escape modes through the environment formatter, so the shared formatter
+  now applies both markup escaping and XML control handling. No duplicate
+  escape implementation was needed.
+- The sprint text's example `\x00 -> &#x0;` is not legal XML 1.0: Python's
+  required `xml.etree.ElementTree` parser rejects references to forbidden C0
+  code points. To satisfy the stronger well-formed-output acceptance criterion,
+  forbidden controls are therefore represented by the legal replacement
+  character NCR `&#xfffd;`; tab, LF, and CR remain unchanged. This is the
+  intentional deviation from the literal-codepoint NCR example and was
+  reported to team-lead before closeout.
+- The referenced `templates/benchmark-report/benchmark-run.xhtml.j2` and
+  `vars/benchmark-run_nullbyte.json` fixtures are absent from this repository;
+  no out-of-repository paths were accessed.
+- Validation on `388c6d8`: `cargo test --workspace` passed with zero failures;
+  `cargo fmt --all --check`, `cargo clippy --all-targets --all-features --
+  -D warnings`, and `git diff --check` all passed. The CLI regression rendered
+  a NUL-containing JSON var-file and verified the result with Python
+  `xml.etree.ElementTree.fromstring`.

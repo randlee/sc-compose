@@ -823,6 +823,20 @@ subscripts/slices, binary operator fragments, Jinja filter names, and simple
 `{% set %}` locals while preserving real filter-argument references and
 loop-context diagnostics outside active loops.
 
+### Follow-on Fix Sprint: FIX-278
+
+Status:
+
+- complete on `fix/278-control-chars-survive-escape-filter` at `388c6d8`
+
+Sprint entry:
+
+- [Sprint FIX-278 — XML Control Character Escaping](sprints/fix-278-control-chars-survive-escape-filter.md)
+
+FIX-278 makes the shared HTML/XML/XHTML escaping formatter XML-character-safe
+for forbidden C0 controls, adds the opt-in `xml_char_safe` filter, and covers
+the XHTML filename dispatch alongside explicit and implicit escaping paths.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:
