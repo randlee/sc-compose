@@ -1029,9 +1029,14 @@ The schemas below define the `payload` shape for each command.
 {
   "output_path": "stdout",
   "bytes_written": 123,
-  "template": "path/to/template.md.j2"
+  "template": "path/to/template.md.j2",
+  "body": "rendered document text"
 }
 ```
+
+For non-dry-run stdout renders, `body` contains the rendered document. When
+`--output <file>` is supplied, `body` is omitted because the file is the
+source of truth.
 
 `render --dry-run --json`
 

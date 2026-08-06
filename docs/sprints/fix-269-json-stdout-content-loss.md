@@ -1,7 +1,7 @@
 ---
 id: FIX-269
 title: "--json render to stdout silently discards rendered content while reporting success"
-status: in-progress
+status: complete
 branch: fix/269-json-stdout-content-loss
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/269-json-stdout-content-loss
 target: develop
@@ -142,4 +142,16 @@ source of truth).
 
 ## Closeout Evidence
 
-_Pending — to be filled in by comp on completion._
+- Status: **complete**.
+- Red baseline: `c53a8fbb` (`test: reproduce JSON stdout content loss`) failed
+  because the non-dry-run stdout JSON payload had no observable document body.
+- Green implementation: `352c91f6` (`fix: include JSON render body on stdout`)
+  adds `body` only when non-dry-run JSON rendering targets stdout. File output
+  continues to omit `body`, and dry-run continues to use `rendered_preview`.
+- Regression coverage verifies that stdout `body` matches plain rendering
+  apart from the plain CLI transport newline and that its UTF-8 byte length
+  matches `bytes_written`. Compatibility coverage verifies file output and
+  dry-run payloads remain unchanged.
+- Validation passed: `cargo fmt --all --check`, `cargo test --workspace`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, and
+  `git diff --check`.

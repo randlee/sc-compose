@@ -78,10 +78,7 @@ fn render_json_stdout_includes_body_matching_plain_render() {
     let value = parse_stdout(&json_output);
     assert_envelope(&value);
     let body = value["payload"]["body"].as_str().expect("JSON stdout body");
-    assert_eq!(
-        body.as_bytes().len() as u64,
-        value["payload"]["bytes_written"]
-    );
+    assert_eq!(body.len() as u64, value["payload"]["bytes_written"]);
     assert_eq!(
         body.as_bytes(),
         plain_output
