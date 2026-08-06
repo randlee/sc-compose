@@ -194,8 +194,8 @@ filter registered alongside the existing filters in
 
 - The branch was rebased onto `origin/develop` at `5cfb287`. The rebased
   implementation is `937c443` (`fix: add YAML-safe scalar filter`), with the
-  final branch state at `ed68f47` (`fix: preserve sprint title delimiter
-  escaping`).
+  final branch state at `01b4c3f` (`test: update YAML-safe delimiter
+  expectation`).
 - The duplicate `frontmatter_safe_filter` definition, registration, and
   sprint-plan dependency were removed during rebase. The final diff contains
   exactly one canonical `frontmatter_safe` definition and registration, both
