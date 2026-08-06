@@ -1511,6 +1511,7 @@ boundary defined by:
 
 ## Fuzz-Queue Fix Sprint Index
 
+- `docs/sprints/cleanup-300-include-depth-wrapper.md`
 - `docs/sprints/fix-250-varfile-object-wording-inconsistent.md`
 - `docs/sprints/fix-252-varfile-missing-dir-misclassified.md`
 - `docs/sprints/fix-253-doubled-delimiter-error-message.md`

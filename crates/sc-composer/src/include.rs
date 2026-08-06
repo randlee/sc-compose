@@ -707,6 +707,45 @@ mod tests {
         }
     }
 
+    #[test]
+    fn include_depth_exact_limit_succeeds_and_one_over_fails() {
+        let exact_root = temp_root("include_depth_exact_limit");
+        write_linear_chain(&exact_root, 3);
+        let exact_policy = ComposePolicy {
+            max_include_depth: IncludeDepth::new(3),
+            ..ComposePolicy::default()
+        };
+
+        let expanded = expand_includes(
+            exact_root.join("root.md.j2"),
+            &ConfiningRoot::new(&exact_root).unwrap(),
+            &exact_policy,
+        )
+        .unwrap();
+        assert_eq!(expanded.text, "done\n");
+
+        let over_root = temp_root("include_depth_one_over");
+        write_linear_chain(&over_root, 4);
+        let over_policy = ComposePolicy {
+            max_include_depth: IncludeDepth::new(3),
+            ..ComposePolicy::default()
+        };
+
+        let error = expand_includes(
+            over_root.join("root.md.j2"),
+            &ConfiningRoot::new(&over_root).unwrap(),
+            &over_policy,
+        )
+        .unwrap_err();
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludeDepth);
+                assert_eq!(error.message(), "include depth exceeded maximum of 3");
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
     fn temp_root(label: &str) -> PathBuf {
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
