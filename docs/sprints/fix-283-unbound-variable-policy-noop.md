@@ -225,5 +225,5 @@ policy field that doesn't do what the reporter expects).
   were changed; this round closes the documentation, help-text, binding-stub,
   and cross-surface test gaps identified by QA-283-001 through QA-283-003 and
   arch-qa.
-- Fix-round commit hashes and post-push validation are reported with the
-  completion message for this branch.
+- Fix-round implementation/documentation commit: `45f6509`.
+- Post-push validation is recorded in the completion report for this branch.
