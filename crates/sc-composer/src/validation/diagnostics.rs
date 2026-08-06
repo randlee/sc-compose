@@ -168,7 +168,7 @@ pub(super) fn missing_frontmatter_warnings_for_path(
         .frontmatters
         .iter()
         .filter_map(|(path, frontmatters)| {
-            if !frontmatters.is_empty() || !file_references_variables(path) {
+            if !frontmatters.is_empty() || !file_references_variables(path, expanded) {
                 return None;
             }
             let message = if path == resolved_path {
@@ -194,11 +194,11 @@ pub(super) fn missing_frontmatter_warnings_for_path(
         .collect()
 }
 
-fn file_references_variables(path: &Path) -> bool {
-    let Ok(raw) = std::fs::read_to_string(path) else {
+fn file_references_variables(path: &Path, expanded: &ExpandedTemplate) -> bool {
+    let Some(raw) = expanded.source_texts.get(path) else {
         return false;
     };
-    let Ok(parsed) = parse_template_document(&raw) else {
+    let Ok(parsed) = parse_template_document(raw) else {
         return false;
     };
     !discover_tokens(parsed.body()).is_empty()
@@ -624,9 +624,44 @@ mod tests {
                     (root.join("partials/body.md.j2"), Vec::new()),
                 ],
                 include_chains: BTreeMap::default(),
-                source_texts: BTreeMap::default(),
+                source_texts: [(
+                    root.join("partials/body.md.j2"),
+                    "hello {{ name }}\n".to_owned(),
+                )]
+                .into_iter()
+                .collect(),
             },
         );
+
+        assert!(warnings.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
+                && diagnostic
+                    .message
+                    .contains("included file has no frontmatter")
+                && diagnostic.message.contains("partials/body.md.j2")
+        }));
+    }
+
+    #[test]
+    fn missing_included_frontmatter_uses_cached_source_after_disk_mutation() {
+        let root = temp_root("diagnostics_cached_source_text");
+        let root_template = root.join("template.md.j2");
+        let included = root.join("partials/body.md.j2");
+        write_file(
+            &root_template,
+            "---\nname: template\n---\n@<partials/body.md.j2>\n",
+        );
+        write_file(&included, "hello {{ name }}\n");
+
+        let request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        let resolved = crate::resolve_template_path(&request).unwrap();
+        let expanded =
+            crate::expand_includes(&resolved.resolved_path, &request.root, &request.policy)
+                .unwrap();
+
+        write_file(&included, "plain text after expansion\n");
+
+        let warnings = missing_frontmatter_warnings_for_path(&resolved.resolved_path, &expanded);
 
         assert!(warnings.iter().any(|diagnostic| {
             diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
