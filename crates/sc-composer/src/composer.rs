@@ -87,6 +87,7 @@ pub fn compose_with_observer(
         })
         .unwrap_or_default();
     let parsed = ParsedTemplate::from_parts(root_passes, expanded.text.clone());
+    let template_name = resolved_template_name(&validation_report.resolve_result.resolved_path);
     let rendered_text = if parsed.passes().len() > 1 {
         let contexts = build_pass_contexts(
             parsed.passes(),
@@ -94,11 +95,12 @@ pub fn compose_with_observer(
             &mut validation_state,
             &validation_report.resolve_result.resolved_path,
         );
-        render_all_with_observer(&parsed, &contexts, observer)?
+        render_all_with_observer(&parsed, &contexts, &template_name, observer)?
     } else {
         let renderer = Renderer::new();
         renderer
-            .render(
+            .render_named(
+                &template_name,
                 &expanded.text,
                 build_render_context(
                     &mut validation_state,
@@ -143,7 +145,7 @@ pub fn render_all(
     contexts: &[(u8, BTreeMap<VariableName, InputValue>)],
 ) -> Result<String, ComposeError> {
     let mut observer = NoopObserver;
-    render_all_with_observer(parsed, contexts, &mut observer)
+    render_all_with_observer(parsed, contexts, "inline", &mut observer)
 }
 
 /// Protect next-higher-brace expressions from lower-brace rendering passes.
@@ -186,6 +188,13 @@ fn resolve_attempt_label(request: &ComposeRequest) -> String {
         crate::types::ComposeMode::Profile { kind, name } => format!("{kind:?}:{name}"),
         crate::types::ComposeMode::File { template_path } => to_forward_slash(template_path),
     }
+}
+
+fn resolved_template_name(path: &Path) -> String {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("inline")
+        .to_owned()
 }
 
 fn notify_resolve_error(observer: &mut dyn CompositionObserver, error: &ComposeError) {
@@ -280,6 +289,7 @@ fn build_pass_contexts(
 fn render_all_with_observer(
     parsed: &ParsedTemplate,
     contexts: &[(u8, BTreeMap<VariableName, InputValue>)],
+    template_name: &str,
     observer: &mut dyn CompositionObserver,
 ) -> Result<String, ComposeError> {
     if contexts.len() != parsed.passes().len() {
@@ -326,7 +336,7 @@ fn render_all_with_observer(
 
         observer.on_pass_start(&PassStartEvent::new(header_pass_number));
         body = renderer
-            .render(&protected_body, render_context)
+            .render_named(template_name, &protected_body, render_context)
             .inspect_err(|error| {
                 observer.on_render_outcome(&RenderOutcomeEvent {
                     rendered_bytes: None,

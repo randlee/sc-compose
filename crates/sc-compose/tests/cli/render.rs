@@ -158,7 +158,92 @@ fn render_xml_template_escapes_interpolated_special_characters() {
     assert!(output.status.success(), "stderr: {:?}", output.stderr);
     assert_eq!(
         fs::read_to_string(root.join("out.xml")).unwrap(),
-        "<root>\n  <note>record with &lt;tag&gt; &amp; &quot;quotes&quot; &amp; &#x27;apostrophe&#x27; &amp; ampersand&amp;here</note>\n</root>\n"
+        "<root>\n  <note>record with &lt;tag&gt; &amp; &quot;quotes&quot; &amp; &#x27;apostrophe&#x27; &amp; ampersand&amp;here</note>\n</root>"
+    );
+}
+
+#[test]
+fn render_custom_delimiter_xml_template_escapes_interpolated_special_characters() {
+    let root = temp_root("xml-autoescape-custom-delimiters");
+    write_file(
+        &root.join("custom.xml.j2"),
+        "<root>\n  <note><< note >></note>\n</root>\n",
+    );
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "custom.xml.j2",
+            "--variable-delimiters",
+            "<<",
+            ">>",
+            "--var",
+            "note=record with <tag> & quotes",
+            "--output",
+            root.join("out.xml").to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    assert_eq!(
+        fs::read_to_string(root.join("out.xml")).unwrap(),
+        "<root>\n  <note>record with &lt;tag&gt; &amp; quotes</note>\n</root>"
+    );
+}
+
+#[test]
+fn render_html_template_escapes_interpolated_special_characters() {
+    let root = temp_root("html-autoescape");
+    write_file(&root.join("report.html.j2"), "<p>{{ note }}</p>\n");
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "report.html.j2",
+            "--var",
+            "note=record with <tag> & quotes",
+            "--output",
+            root.join("out.html").to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    assert_eq!(
+        fs::read_to_string(root.join("out.html")).unwrap(),
+        "<p>record with &lt;tag&gt; &amp; quotes</p>"
+    );
+}
+
+#[test]
+fn render_non_markup_template_keeps_interpolated_special_characters_raw() {
+    let root = temp_root("non-markup-no-autoescape");
+    write_file(&root.join("notes.md.j2"), "{{ note }}\n");
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "notes.md.j2",
+            "--var",
+            "note=record with <tag> & quotes",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim_end(),
+        "record with <tag> & quotes"
     );
 }
 

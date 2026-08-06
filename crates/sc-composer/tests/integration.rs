@@ -120,6 +120,22 @@ fn render_all_renders_three_pass_template() {
 }
 
 #[test]
+fn render_all_public_api_keeps_inline_template_unescaped() {
+    let parsed =
+        parse_template_document("---\nname: inline\n---\n<root>{{ note }}</root>\n").unwrap();
+    let rendered = render_all(
+        &parsed,
+        &[(
+            1,
+            BTreeMap::from([(VariableName::new("note").unwrap(), json!("<tag> &"))]),
+        )],
+    )
+    .unwrap();
+
+    assert_eq!(rendered, "<root><tag> &</root>");
+}
+
+#[test]
 fn render_all_errors_on_context_count_mismatch() {
     let parsed = parse_template_document("---\npass: 2\n---\n---\n---\nbody").unwrap();
 
