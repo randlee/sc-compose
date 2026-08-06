@@ -814,7 +814,7 @@ fn render_variable_delimiters_reports_invalid_delimiters_without_panicking() {
     assert_eq!(output.status.code(), Some(3), "{output:?}");
     let stderr = String::from_utf8(output.stderr).unwrap();
     assert!(stderr.contains("ERR_CONFIG_PARSE"));
-    assert!(stderr.contains("invalid custom delimiters: invalid custom delimiters"));
+    assert_eq!(stderr.matches("invalid custom delimiters").count(), 1);
     assert!(!stderr.contains("panicked at"));
     assert!(!stderr.contains("stack backtrace"));
 }
