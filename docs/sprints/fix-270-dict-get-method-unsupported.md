@@ -132,11 +132,15 @@ one narrow behavior is actually needed.
   limited to map values, the `get` method, and one or two arguments. Other
   methods, value kinds, and arities still return `UnknownMethod`.
 - Regression coverage passes for present and missing keys with and without a
-  default, plus non-map rejection.
-- Production repro passed with exit code `0` for both
-  `atm-core/templates/smoke-report/smoke.md.j2` and
-  `atm-core/templates/smoke-report/smoke-thorough.md.j2`, using a temporary
-  vars file containing a non-PASS row and the FIX-270 binary.
+  default, plus non-map rejection. Follow-up commit `b15eff3` adds explicit
+  UnknownMethod coverage for unrelated map methods and out-of-range `.get`
+  arities; `8e36e45` applies the strict-clippy cleanup for those tests.
+- Committed in-repo production-shape evidence is
+  `renderer_renders_atm_core_smoke_report_deviation_row` in
+  `crates/sc-composer/src/renderer.rs` (added in `b15eff3`). It uses the
+  `report.rows` map/array shape from the atm-core smoke-report templates,
+  selects a non-PASS row, and renders the same four deviation lookups with
+  defaults. The test passes under `cargo test --workspace`.
 - `cargo fmt --all --check` — PASS.
 - `cargo test --workspace` — PASS (all workspace tests passed).
 - `cargo clippy --all-targets --all-features -- -D warnings` — PASS.
