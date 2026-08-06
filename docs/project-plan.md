@@ -716,6 +716,7 @@ template resolution boundaries, while preserving existing invalid-data,
 confinement, and not-found behavior. The follow-up also centralizes the
 filesystem classification and makes directory-target handling independent of
 Windows `io::ErrorKind` mappings.
+
 ### Follow-on Fix Sprint: FIX-248
 
 Status:
@@ -730,6 +731,22 @@ FIX-248 removes the raw `serde_yaml` source attachment from frontmatter
 syntax errors on the CLI text path while preserving the stable diagnostic
 message, recovery hint, JSON envelope, and all other configuration-error
 source handling.
+
+### Follow-on Fix Sprint: FIX-249
+
+Status:
+
+- complete on `fix/249-path-confinement-existence-oracle` at `6aa2912`
+
+Sprint entry:
+
+- [Sprint FIX-249 — Path-Confinement Existence Oracle](sprints/fix-249-path-confinement-existence-oracle.md)
+
+FIX-249 makes out-of-root resolver diagnostics independent of whether the
+candidate exists, while preserving the normal not-found diagnostic for
+lexically in-root missing paths. The implementation also handles macOS
+`/var`/`/private/var` temporary-directory aliases without weakening
+confinement.
 
 ### Standalone Repowise Cleanup: Render Request Module Split
 

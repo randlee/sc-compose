@@ -3,7 +3,8 @@ use std::path::Path;
 
 use anyhow::anyhow;
 use sc_composer::{
-    DiagnosticCode, InputValue, VariableName, input_value_from_yaml, validate_input_value,
+    DiagnosticCode, InputValue, RecoveryHint, RecoveryHintKind, VariableName,
+    input_value_from_yaml, validate_input_value,
 };
 use serde::Deserializer;
 use serde::de::{DeserializeSeed, Error as DeError, MapAccess, SeqAccess, Visitor};
@@ -14,9 +15,12 @@ pub(crate) fn load_var_file(
     path: &Path,
 ) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
     let contents = std::fs::read_to_string(path).map_err(|error| {
-        CommandError::usage_with_code(
+        CommandError::usage_with_code_and_hints(
             anyhow!(error).context(format!("failed to read var-file {}", path.display())),
-            DiagnosticCode::ErrConfigParse,
+            DiagnosticCode::ErrConfigRead,
+            vec![RecoveryHint::new(RecoveryHintKind::InspectPath {
+                path: path.to_owned(),
+            })],
         )
     })?;
     parse_var_file_contents(&contents)
@@ -33,13 +37,7 @@ pub(crate) fn parse_var_file_contents(
 enum VarFileDecodeError {
     InvalidFormat(anyhow::Error),
     UnsupportedYamlMergeKey { line: usize, column: usize },
-    NotAnObject { format: VarFileFormat },
-}
-
-#[derive(Debug)]
-enum VarFileFormat {
-    Json,
-    Yaml,
+    NotAnObject,
 }
 
 impl VarFileDecodeError {
@@ -55,16 +53,8 @@ impl VarFileDecodeError {
                 ),
                 DiagnosticCode::ErrConfigVarfile,
             ),
-            Self::NotAnObject {
-                format: VarFileFormat::Json,
-            } => CommandError::usage_with_code(
-                anyhow!("var-file must be a JSON object"),
-                DiagnosticCode::ErrConfigVarfile,
-            ),
-            Self::NotAnObject {
-                format: VarFileFormat::Yaml,
-            } => CommandError::usage_with_code(
-                anyhow!("var-file must be a JSON or YAML object"),
+            Self::NotAnObject => CommandError::usage_with_code(
+                anyhow!("var-file top-level value must be an object (JSON) or mapping (YAML)"),
                 DiagnosticCode::ErrConfigVarfile,
             ),
         }
@@ -213,9 +203,7 @@ fn unquoted_uncommented(line: &str) -> Vec<(usize, char)> {
 
 fn decode_json_object(value: serde_json::Value) -> Result<DecodedVarObject, VarFileDecodeError> {
     let serde_json::Value::Object(object) = value else {
-        return Err(VarFileDecodeError::NotAnObject {
-            format: VarFileFormat::Json,
-        });
+        return Err(VarFileDecodeError::NotAnObject);
     };
     Ok(DecodedVarObject {
         entries: object
@@ -230,9 +218,7 @@ fn decode_json_object(value: serde_json::Value) -> Result<DecodedVarObject, VarF
 
 fn decode_yaml_object(value: serde_yaml::Value) -> Result<DecodedVarObject, VarFileDecodeError> {
     let serde_yaml::Value::Mapping(object) = value else {
-        return Err(VarFileDecodeError::NotAnObject {
-            format: VarFileFormat::Yaml,
-        });
+        return Err(VarFileDecodeError::NotAnObject);
     };
     Ok(DecodedVarObject {
         entries: object
@@ -294,6 +280,36 @@ fn validate_var_object(
 mod tests {
     use super::*;
 
+    fn temp_path(label: &str) -> std::path::PathBuf {
+        std::env::temp_dir().join(format!("sc-compose-fix-252-{label}-{}", std::process::id()))
+    }
+
+    #[test]
+    fn missing_var_file_reports_config_read() {
+        let path = temp_path("missing");
+        let _ = std::fs::remove_file(&path);
+
+        let error = load_var_file(&path).unwrap_err();
+
+        assert_eq!(error.diagnostic_code, Some(DiagnosticCode::ErrConfigRead));
+    }
+
+    #[test]
+    fn directory_var_file_reports_config_read_with_inspect_hint() {
+        let path = temp_path("directory");
+        let _ = std::fs::remove_dir_all(&path);
+        std::fs::create_dir(&path).unwrap();
+
+        let error = load_var_file(&path).unwrap_err();
+        std::fs::remove_dir(&path).unwrap();
+
+        assert_eq!(error.diagnostic_code, Some(DiagnosticCode::ErrConfigRead));
+        assert_eq!(
+            error.recovery_hints,
+            vec![RecoveryHint::new(RecoveryHintKind::InspectPath { path })]
+        );
+    }
+
     #[test]
     fn decoded_json_and_yaml_objects_share_validated_conversion() {
         let json = decode_var_file(r#"{"name":"world","items":[{"id":1}],"enabled":true}"#)
@@ -304,6 +320,54 @@ mod tests {
         assert_eq!(
             validate_var_object(json).unwrap(),
             validate_var_object(yaml).unwrap()
+        );
+    }
+
+    #[test]
+    fn top_level_non_object_messages_are_format_neutral() {
+        let json = parse_var_file_contents("42").unwrap_err();
+        let yaml = parse_var_file_contents("hello").unwrap_err();
+
+        assert_eq!(json.error.to_string(), yaml.error.to_string());
+    }
+
+    #[test]
+    fn all_top_level_non_object_shapes_share_the_same_message() {
+        let messages = ["42", "[1, 2, 3]", "hello", "- one\n- two\n"]
+            .into_iter()
+            .map(|contents| {
+                parse_var_file_contents(contents)
+                    .unwrap_err()
+                    .error
+                    .to_string()
+            })
+            .collect::<Vec<_>>();
+
+        assert!(messages.windows(2).all(|pair| pair[0] == pair[1]));
+    }
+
+    #[test]
+    fn valid_object_shapes_remain_supported() {
+        parse_var_file_contents(r#"{"name":"world"}"#).unwrap();
+        parse_var_file_contents("name: world\n").unwrap();
+    }
+
+    #[test]
+    fn unrelated_varfile_messages_remain_unchanged() {
+        let merge_error =
+            parse_var_file_contents("defaults: &defaults\n  name: base\nitem:\n  <<: *defaults\n")
+                .unwrap_err();
+        assert!(
+            merge_error
+                .error
+                .to_string()
+                .contains("unsupported YAML merge key `<<`")
+        );
+
+        let invalid_error = parse_var_file_contents("{\n").unwrap_err();
+        assert_eq!(
+            invalid_error.error.to_string(),
+            "var-file must be valid JSON or YAML"
         );
     }
 
