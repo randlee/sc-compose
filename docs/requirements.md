@@ -91,10 +91,16 @@ The initial product explicitly does not provide:
 Frontmatter must support this schema:
 
 ```yaml
+pass: 1
 required_variables:
   - variable_name
+variables:
+  variable_name:
+    required: true
 defaults:
   variable_name: value
+input_defaults:
+  variable_name: fallback
 metadata:
   key: value
 ```
@@ -102,12 +108,18 @@ metadata:
 Schema rules:
 
 - `required_variables` is optional.
+- `pass` is optional and identifies an explicit pass number for stacked
+  frontmatter blocks.
 - `defaults` is optional.
 - `input_defaults` is accepted as an alias for `defaults` in frontmatter.
 - For compatibility with existing template metadata, a frontmatter
   `variables` map with `{ required: true }` declarations is accepted as an
   equivalent spelling of `required_variables`.
 - `metadata` is optional.
+- The recognized top-level frontmatter keys are `pass`,
+  `required_variables`, `variables`, `defaults`, `input_defaults`, and
+  `metadata`. When scanning stacked frontmatter, a later block containing an
+  unrecognized top-level key is treated as template body content.
 - If a frontmatter block exists and a field is omitted, it defaults to:
   - `required_variables: []`
   - `defaults: {}`

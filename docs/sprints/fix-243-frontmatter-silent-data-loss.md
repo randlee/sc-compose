@@ -72,11 +72,11 @@ silently dropped or partially deferred.
   (block becomes body) — do not add a new error/warning diagnostic for this
   case unless required_variables validation elsewhere would already produce
   one.
-- Regression test promoted from `crates/sc-compose/tests/fuzz_regressions.rs`
-  (written against the `chore/fuzz-template-sweep` worktree, not yet on
-  `develop` — recreate it in this worktree):
+- Regression test
   `adjacent_plain_yaml_frontmatter_block_is_not_silently_consumed_as_a_second_pass`
-  — remove `#[ignore]` (or add un-ignored) once the fix lands; must pass.
+  was authored as a new, unignored test alongside the implementation in
+  commit `01a1e5c`; it was not promoted from another worktree or an ignored
+  test.
 - No change to single-frontmatter-block parsing behavior, and no change to
   the first (always-present) config-frontmatter block's permissive
   unknown-key tolerance — verify by re-running the existing frontmatter

@@ -1,4 +1,4 @@
-//! Regression test promoted from the adversarial fuzz campaign.
+//! Regression tests from the adversarial fuzz campaign.
 
 #[path = "support/mod.rs"]
 mod support;
