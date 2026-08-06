@@ -260,11 +260,18 @@ fn execute_custom_delimiter_render(
         .unwrap_or_default();
     let parsed = ParsedTemplate::from_parts_validated(root_passes.clone(), expanded.text.clone())
         .map_err(CommandError::compose)?;
+    let template_name = resolve_result
+        .resolved_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("inline")
+        .to_owned();
     let rendered_text = Renderer::with_delimiters(&open, &close)
         .map_err(|error| {
             CommandError::usage_with_code(anyhow!(error), DiagnosticCode::ErrConfigParse)
         })?
-        .render(
+        .render_named(
+            &template_name,
             parsed.body(),
             build_custom_render_context(request, &resolve_result.resolved_path, &root_passes),
         )

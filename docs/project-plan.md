@@ -748,6 +748,21 @@ lexically in-root missing paths. The implementation also handles macOS
 `/var`/`/private/var` temporary-directory aliases without weakening
 confinement.
 
+### Follow-on Fix Sprint: FIX-268
+
+Status:
+
+- complete on `fix/268-xml-format-autoescape-not-applied` at `19953ad`
+
+Sprint entry:
+
+- [Sprint FIX-268 — XML/HTML Filename-Aware Auto-Escape](sprints/fix-268-xml-format-autoescape-not-applied.md)
+
+FIX-268 preserves the existing filename-extension auto-escape convention on
+the default single-pass, multi-pass, and custom-delimiter render paths. XML
+and HTML templates now escape interpolated markup while non-markup templates
+and the public in-memory `render_all()` API retain their unescaped behavior.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:

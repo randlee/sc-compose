@@ -2,7 +2,9 @@
 
 use std::collections::BTreeMap;
 
-use minijinja::{AutoEscape, Environment};
+use minijinja::{
+    AutoEscape, Environment, Error, Output, State, Value as JinjaValue, escape_formatter,
+};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -56,9 +58,52 @@ fn legacy_auto_escape_callback(name: &str) -> AutoEscape {
     }
 
     match name.rsplit('.').next() {
-        Some("html" | "htm" | "xml") => AutoEscape::Html,
+        Some("html" | "htm" | "xml") => AutoEscape::Custom("sc-compose-html"),
         _ => AutoEscape::None,
     }
+}
+
+fn format_sc_compose_markup(
+    out: &mut Output<'_>,
+    state: &State<'_, '_>,
+    value: &JinjaValue,
+) -> Result<(), Error> {
+    let value = if value.is_none() {
+        &JinjaValue::UNDEFINED
+    } else {
+        value
+    };
+    if state.auto_escape() != AutoEscape::Custom("sc-compose-html") {
+        return escape_formatter(out, state, value);
+    }
+    if value.is_safe() {
+        return out
+            .write_str(value.as_str().unwrap_or_default())
+            .map_err(Error::from);
+    }
+
+    let rendered = value
+        .as_str()
+        .map_or_else(|| value.to_string(), ToOwned::to_owned);
+    let mut segment_start = 0;
+    for (index, character) in rendered.char_indices() {
+        let replacement = match character {
+            '&' => Some("&amp;"),
+            '<' => Some("&lt;"),
+            '>' => Some("&gt;"),
+            '"' => Some("&quot;"),
+            '\'' => Some("&#x27;"),
+            _ => None,
+        };
+        if let Some(replacement) = replacement {
+            out.write_str(&rendered[segment_start..index])
+                .map_err(Error::from)?;
+            out.write_str(replacement).map_err(Error::from)?;
+            segment_start = index + character.len_utf8();
+        }
+    }
+    out.write_str(&rendered[segment_start..])
+        .map_err(Error::from)
 }
 
 fn configure_environment(env: &mut Environment<'static>) {
@@ -67,6 +112,7 @@ fn configure_environment(env: &mut Environment<'static>) {
     // Keep sc-compose's historical extension policy when Minijinja's `json`
     // feature is enabled. JSON/YAML/JS templates are text outputs, not HTML.
     env.set_auto_escape_callback(legacy_auto_escape_callback);
+    env.set_formatter(format_sc_compose_markup);
 }
 
 impl Renderer {
@@ -276,6 +322,19 @@ mod tests {
         })
         .unwrap();
         assert_eq!(loaded.rendered, "<tag> &");
+    }
+
+    #[test]
+    fn renderer_preserves_slashes_in_markup_auto_escape() {
+        let renderer = Renderer::new();
+        let context = json!({ "value": "/tmp/path/to/report.xml" });
+
+        for template_name in ["payload.html.j2", "payload.htm", "payload.xml"] {
+            let output = renderer
+                .render_named(template_name, "{{ value }}", context.clone())
+                .unwrap();
+            assert_eq!(output, "/tmp/path/to/report.xml", "changed {template_name}");
+        }
     }
 
     #[test]
