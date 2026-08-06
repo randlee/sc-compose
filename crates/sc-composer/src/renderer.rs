@@ -624,7 +624,7 @@ mod tests {
     }
 
     #[test]
-    fn real_sprint_plan_template_neutralizes_injected_frontmatter_delimiters() {
+    fn real_sprint_plan_template_round_trips_frontmatter_delimiters() {
         let title = "Injected frontmatter break\n---\nmalicious: true\n---";
         let rendered = Renderer::new()
             .render_named(
@@ -635,21 +635,26 @@ mod tests {
             .unwrap();
 
         assert_eq!(standalone_frontmatter_delimiter_count(&rendered), 2);
-        assert!(rendered.contains("malicious: true"));
-        assert!(rendered.contains(r"\\-\\-\\-"));
+        let frontmatter: serde_yaml::Value =
+            serde_yaml::from_str(generated_sprint_plan_frontmatter(&rendered)).unwrap();
+        assert_eq!(frontmatter["title"], title);
+        assert!(frontmatter.get("malicious").is_none());
     }
 
     #[test]
-    fn real_sprint_plan_template_neutralizes_injected_worktree_delimiters() {
+    fn real_sprint_plan_template_round_trips_worktree_delimiters() {
         let mut context = sprint_plan_context("ordinary title");
-        context["worktree"] = json!("injected worktree\n---\nmalicious: true\n---");
+        let worktree = "injected worktree\n---\nmalicious: true\n---";
+        context["worktree"] = json!(worktree);
         let rendered = Renderer::new()
             .render_named("sprint-plan.md.j2", sprint_plan_body(), context)
             .unwrap();
 
         assert_eq!(standalone_frontmatter_delimiter_count(&rendered), 2);
-        assert!(rendered.contains("malicious: true"));
-        assert!(rendered.contains(r"\\-\\-\\-"));
+        let frontmatter: serde_yaml::Value =
+            serde_yaml::from_str(generated_sprint_plan_frontmatter(&rendered)).unwrap();
+        assert_eq!(frontmatter["worktree"], worktree);
+        assert!(frontmatter.get("malicious").is_none());
     }
 
     #[test]
