@@ -812,23 +812,20 @@ mod tests {
     }
 
     #[test]
-    fn frontmatter_safe_then_yaml_safe_handles_both_injection_shapes() {
+    fn yaml_safe_round_trips_delimiter_text_without_frontmatter_escape() {
         let renderer = Renderer::new();
-        let original = "before: value\n---\nmalicious: true";
+        let original = "Release\n---\nNotes";
         let output = renderer
-            .render(
-                "{{ value | frontmatter_safe | yaml_safe }}",
-                json!({"value": original}),
-            )
+            .render("{{ value | yaml_safe }}", json!({"value": original}))
             .unwrap();
 
         let parsed: String = serde_yaml::from_str(&output).unwrap();
-        assert_eq!(parsed, "before: value\n\\-\\-\\-\nmalicious: true");
+        assert_eq!(parsed, original);
     }
 
     #[test]
     fn real_sprint_plan_template_round_trips_yaml_frontmatter() {
-        let title = "Architecture: plan";
+        let title = "Release\n---\nNotes";
         let mut context = sprint_plan_context(title);
         context["worktree"] = json!("/tmp/sc-compose");
         let rendered = Renderer::new()

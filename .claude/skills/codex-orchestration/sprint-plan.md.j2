@@ -39,10 +39,10 @@ defaults:
 ---
 ---
 id: {{ id | yaml_safe }}
-title: {{ title | frontmatter_safe | yaml_safe }}
+title: {{ title | yaml_safe }}
 status: {{ status | yaml_safe }}
 branch: {{ branch | yaml_safe }}
-{% if worktree %}worktree: {{ worktree | frontmatter_safe | yaml_safe }}
+{% if worktree %}worktree: {{ worktree | yaml_safe }}
 {% endif %}target: {{ target | yaml_safe }}
 ---
 
