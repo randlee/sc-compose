@@ -33,13 +33,7 @@ pub(crate) fn parse_var_file_contents(
 enum VarFileDecodeError {
     InvalidFormat(anyhow::Error),
     UnsupportedYamlMergeKey { line: usize, column: usize },
-    NotAnObject { format: VarFileFormat },
-}
-
-#[derive(Debug)]
-enum VarFileFormat {
-    Json,
-    Yaml,
+    NotAnObject,
 }
 
 impl VarFileDecodeError {
@@ -55,16 +49,8 @@ impl VarFileDecodeError {
                 ),
                 DiagnosticCode::ErrConfigVarfile,
             ),
-            Self::NotAnObject {
-                format: VarFileFormat::Json,
-            } => CommandError::usage_with_code(
-                anyhow!("var-file must be a JSON object"),
-                DiagnosticCode::ErrConfigVarfile,
-            ),
-            Self::NotAnObject {
-                format: VarFileFormat::Yaml,
-            } => CommandError::usage_with_code(
-                anyhow!("var-file must be a JSON or YAML object"),
+            Self::NotAnObject => CommandError::usage_with_code(
+                anyhow!("var-file top-level value must be an object (JSON) or mapping (YAML)"),
                 DiagnosticCode::ErrConfigVarfile,
             ),
         }
@@ -213,9 +199,7 @@ fn unquoted_uncommented(line: &str) -> Vec<(usize, char)> {
 
 fn decode_json_object(value: serde_json::Value) -> Result<DecodedVarObject, VarFileDecodeError> {
     let serde_json::Value::Object(object) = value else {
-        return Err(VarFileDecodeError::NotAnObject {
-            format: VarFileFormat::Json,
-        });
+        return Err(VarFileDecodeError::NotAnObject);
     };
     Ok(DecodedVarObject {
         entries: object
@@ -230,9 +214,7 @@ fn decode_json_object(value: serde_json::Value) -> Result<DecodedVarObject, VarF
 
 fn decode_yaml_object(value: serde_yaml::Value) -> Result<DecodedVarObject, VarFileDecodeError> {
     let serde_yaml::Value::Mapping(object) = value else {
-        return Err(VarFileDecodeError::NotAnObject {
-            format: VarFileFormat::Yaml,
-        });
+        return Err(VarFileDecodeError::NotAnObject);
     };
     Ok(DecodedVarObject {
         entries: object
@@ -304,6 +286,54 @@ mod tests {
         assert_eq!(
             validate_var_object(json).unwrap(),
             validate_var_object(yaml).unwrap()
+        );
+    }
+
+    #[test]
+    fn top_level_non_object_messages_are_format_neutral() {
+        let json = parse_var_file_contents("42").unwrap_err();
+        let yaml = parse_var_file_contents("hello").unwrap_err();
+
+        assert_eq!(json.error.to_string(), yaml.error.to_string());
+    }
+
+    #[test]
+    fn all_top_level_non_object_shapes_share_the_same_message() {
+        let messages = ["42", "[1, 2, 3]", "hello", "- one\n- two\n"]
+            .into_iter()
+            .map(|contents| {
+                parse_var_file_contents(contents)
+                    .unwrap_err()
+                    .error
+                    .to_string()
+            })
+            .collect::<Vec<_>>();
+
+        assert!(messages.windows(2).all(|pair| pair[0] == pair[1]));
+    }
+
+    #[test]
+    fn valid_object_shapes_remain_supported() {
+        parse_var_file_contents(r#"{"name":"world"}"#).unwrap();
+        parse_var_file_contents("name: world\n").unwrap();
+    }
+
+    #[test]
+    fn unrelated_varfile_messages_remain_unchanged() {
+        let merge_error =
+            parse_var_file_contents("defaults: &defaults\n  name: base\nitem:\n  <<: *defaults\n")
+                .unwrap_err();
+        assert!(
+            merge_error
+                .error
+                .to_string()
+                .contains("unsupported YAML merge key `<<`")
+        );
+
+        let invalid_error = parse_var_file_contents("{\n").unwrap_err();
+        assert_eq!(
+            invalid_error.error.to_string(),
+            "var-file must be valid JSON or YAML"
         );
     }
 
