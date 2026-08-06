@@ -735,26 +735,6 @@ mod tests {
         assert_eq!(output, expected);
     }
 
-    fn sprint_plan_body() -> &'static str {
-        let source = include_str!("../../../.claude/skills/codex-orchestration/sprint-plan.md.j2");
-        source
-            .strip_prefix("---\n")
-            .and_then(|source| source.split_once("\n---\n"))
-            .map(|(_, body)| body)
-            .expect("sprint-plan template must have declaration frontmatter")
-    }
-
-    fn sprint_plan_context(title: &str) -> serde_json::Value {
-        json!({
-            "id": "1.2",
-            "title": title,
-            "status": "planned",
-            "branch": "main",
-            "worktree": "/tmp/sc-compose",
-            "target": "develop",
-        })
-    }
-
     fn generated_sprint_plan_frontmatter(rendered: &str) -> &str {
         let start = rendered
             .find("---\nid:")
@@ -837,12 +817,10 @@ mod tests {
     #[test]
     fn real_sprint_plan_template_round_trips_yaml_frontmatter() {
         let title = "Architecture: plan";
+        let mut context = sprint_plan_context(title);
+        context["worktree"] = json!("/tmp/sc-compose");
         let rendered = Renderer::new()
-            .render_named(
-                "sprint-plan.md.j2",
-                sprint_plan_body(),
-                sprint_plan_context(title),
-            )
+            .render_named("sprint-plan.md.j2", sprint_plan_body(), context)
             .unwrap();
 
         let frontmatter: serde_yaml::Value =

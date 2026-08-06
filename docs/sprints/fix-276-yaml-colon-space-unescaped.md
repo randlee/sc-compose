@@ -164,11 +164,12 @@ filter registered alongside the existing filters in
 - Red tests committed and pushed at `d6e7684` (`test: reproduce YAML
   colon-space interpolation breakage`). Focused tests failed before the
   filters were registered with Minijinja unknown-filter errors.
-- Green implementation committed and pushed at `a2b672a` (`fix: add
-  YAML-safe scalar filter`). The branch includes the narrowly scoped
-  `frontmatter_safe` prerequisite because it was not present on the current
-  `origin/develop` baseline, despite being referenced by this sprint's
-  authoritative plan.
+- The original green implementation was committed at `a2b672a`, but that
+  commit independently duplicated `frontmatter_safe` because the then-local
+  develop baseline did not contain FIX-274. The branch was subsequently
+  rebased onto current develop, which already contains the canonical
+  `frontmatter_safe` implementation from FIX-274; the final branch retains
+  only the `yaml_safe` implementation and its call-site changes.
 - Focused validation passed: five `sc-composer` YAML-safety tests, the
   frontmatter/YAML composition-order test, the real sprint-plan regression,
   and the CLI YAML-parse regression.
@@ -188,3 +189,17 @@ filter registered alongside the existing filters in
   `examples/`.
 - No dependency was added. Full YAML escape coverage beyond backslash,
   double-quote, `\n`, `\t`, and `\r` remains intentionally out of scope.
+
+### QA-276-002 Simplification Follow-up
+
+- The branch was rebased onto `origin/develop` at `5cfb287`. The rebased
+  implementation is `937c443` (`fix: add YAML-safe scalar filter`), with the
+  final rebased closeout at `ec35303` (`docs: close out FIX-276`).
+- The duplicate `frontmatter_safe_filter` definition, registration, and
+  sprint-plan dependency were removed during rebase. The final diff contains
+  exactly one canonical `frontmatter_safe` definition and registration, both
+  inherited from develop, while `yaml_safe` remains the only FIX-276 engine
+  addition.
+- Validation after the rebase passed: `cargo test --workspace` (0 failures),
+  `cargo fmt --all --check`, `cargo clippy --all-targets --all-features --
+  -D warnings`, and `git diff --check`.
