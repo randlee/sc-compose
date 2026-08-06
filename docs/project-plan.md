@@ -700,6 +700,21 @@ FIX-247 caps the effective recursive include depth at 128 inside
 unreasonably deep include chains return `ERR_INCLUDE_DEPTH` instead of
 overflowing the native stack.
 
+### Follow-on Fix Sprint: FIX-248
+
+Status:
+
+- complete on `fix/248-err-config-parse-leaks-raw-yaml` at `c65ba50`
+
+Sprint entry:
+
+- [Sprint FIX-248 — ERR_CONFIG_PARSE Raw YAML Leak](sprints/fix-248-err-config-parse-leaks-raw-yaml.md)
+
+FIX-248 removes the raw `serde_yaml` source attachment from frontmatter
+syntax errors on the CLI text path while preserving the stable diagnostic
+message, recovery hint, JSON envelope, and all other configuration-error
+source handling.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:
