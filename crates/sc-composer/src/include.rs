@@ -339,6 +339,28 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "red baseline: fails until directory targets receive a distinct diagnostic"]
+    fn directory_include_target_reports_is_a_directory() {
+        let root = temp_root("include_directory_target");
+        write_file(&root.join("root.md.j2"), "@<partials>\n");
+        fs::create_dir(root.join("partials")).unwrap();
+
+        let error = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap_err();
+
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code().as_str(), "ERR_INCLUDE_IS_A_DIRECTORY");
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[test]
     fn cycle_detection_is_rejected() {
         let root = temp_root("include_cycle");
         write_file(&root.join("root.md.j2"), "@<one.md>\n");
