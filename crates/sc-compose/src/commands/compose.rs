@@ -356,7 +356,9 @@ fn emit_render_output(
             })?,
         )
     } else {
-        Some(rendered_text.len())
+        // Plain stdout uses println!, so the logical render target includes
+        // its trailing newline even though the JSON body does not.
+        Some(rendered_text.len() + 1)
     };
 
     if args.json {

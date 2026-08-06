@@ -795,7 +795,7 @@ plan-hardening CDATA fields now opt into safe CDATA splitting.
 
 Status:
 
-- complete on `fix/270-dict-get-method-unsupported` at `c138409` (squash-merged
+- complete on `fix/270-dict-get-method-unsupported` at `6e61f7c` (squash-merged
   via PR #281 to `develop`)
 
 Sprint entry:
@@ -898,6 +898,20 @@ mapping values. It emits a double-quoted scalar with scoped escaping for
 backslashes, quotes, and line-control characters, and applies the existing
 `frontmatter_safe` delimiter protection before YAML quoting in the sprint-plan
 template.
+
+### Follow-on Fix Sprint: FIX-277
+
+Status:
+
+- complete on `fix/277-bytes-written-off-by-one` at `07e4ca0`
+
+Sprint entry:
+
+- [Sprint FIX-277 — `bytes_written` Off-By-One](sprints/fix-277-bytes-written-off-by-one.md)
+
+FIX-277 corrects JSON stdout render metadata to include the trailing newline
+emitted by the equivalent plain-mode stdout path. File output and dry-run
+metadata remain unchanged.
 
 ### Standalone Repowise Cleanup: Render Request Module Split
 

@@ -78,13 +78,88 @@ fn render_json_stdout_includes_body_matching_plain_render() {
     let value = parse_stdout(&json_output);
     assert_envelope(&value);
     let body = value["payload"]["body"].as_str().expect("JSON stdout body");
-    assert_eq!(body.len() as u64, value["payload"]["bytes_written"]);
+    // JSON reports the logical stdout target, which includes plain-mode's
+    // trailing newline even though the JSON body itself does not.
+    assert_eq!(body.len() as u64 + 1, value["payload"]["bytes_written"]);
     assert_eq!(
         body.as_bytes(),
         plain_output
             .stdout
             .strip_suffix(b"\n")
             .expect("plain render transport newline")
+    );
+}
+
+#[test]
+fn render_json_stdout_bytes_written_includes_trailing_newline() {
+    let root = temp_root("render-json-stdout-bytes-written");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("name=world")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    let value = parse_stdout(&output);
+    let body = value["payload"]["body"].as_str().unwrap();
+    assert_eq!(value["payload"]["bytes_written"], body.len() as u64 + 1);
+}
+
+#[test]
+fn render_json_stdout_bytes_match_plain_stdout_bytes() {
+    let root = temp_root("render-json-stdout-byte-parity");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}");
+
+    let plain_output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("name=world")
+        .output()
+        .unwrap();
+    let json_output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("name=world")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(
+        plain_output.status.success(),
+        "stderr: {:?}",
+        plain_output.stderr
+    );
+    assert!(
+        json_output.status.success(),
+        "stderr: {:?}",
+        json_output.stderr
+    );
+    let value = parse_stdout(&json_output);
+    assert_eq!(
+        value["payload"]["bytes_written"],
+        plain_output.stdout.len() as u64
     );
 }
 
