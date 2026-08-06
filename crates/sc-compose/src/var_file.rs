@@ -294,6 +294,21 @@ fn validate_var_object(
 mod tests {
     use super::*;
 
+    fn temp_path(label: &str) -> std::path::PathBuf {
+        std::env::temp_dir().join(format!("sc-compose-fix-252-{label}-{}", std::process::id()))
+    }
+
+    #[test]
+    #[ignore = "red baseline: var-file open errors use ERR_CONFIG_PARSE"]
+    fn missing_var_file_reports_config_read() {
+        let path = temp_path("missing");
+        let _ = std::fs::remove_file(&path);
+
+        let error = load_var_file(&path).unwrap_err();
+
+        assert_eq!(error.diagnostic_code, Some(DiagnosticCode::ErrConfigRead));
+    }
+
     #[test]
     fn decoded_json_and_yaml_objects_share_validated_conversion() {
         let json = decode_var_file(r#"{"name":"world","items":[{"id":1}],"enabled":true}"#)
