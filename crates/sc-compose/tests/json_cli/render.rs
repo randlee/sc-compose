@@ -82,7 +82,13 @@ fn render_json_stdout_includes_body_matching_plain_render() {
         body.as_bytes().len() as u64,
         value["payload"]["bytes_written"]
     );
-    assert_eq!(body.as_bytes(), plain_output.stdout.as_slice());
+    assert_eq!(
+        body.as_bytes(),
+        plain_output
+            .stdout
+            .strip_suffix(b"\n")
+            .expect("plain render transport newline")
+    );
 }
 
 #[test]
@@ -119,6 +125,7 @@ fn render_dry_run_json_uses_diagnostic_envelope() {
         normalize_path_str(fs::canonicalize(root.join("template.md.j2")).unwrap())
     );
     assert_eq!(value["payload"]["would_change"], true);
+    assert_eq!(value["payload"]["rendered_preview"], "hello world");
 }
 
 #[test]
@@ -547,7 +554,7 @@ fn render_json_reports_actual_bytes_written_for_output_file() {
         fs::metadata(&output_path).unwrap().len()
     );
     assert!(value["payload"].get("body").is_none());
-    assert_eq!(fs::read_to_string(output_path).unwrap(), "hello café\n");
+    assert_eq!(fs::read_to_string(output_path).unwrap(), "hello café");
 }
 
 #[test]
