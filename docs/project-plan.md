@@ -777,6 +777,20 @@ FIX-269 makes non-dry-run `render --json` stdout content observable through
 the optional `body` payload field while preserving file-output and dry-run
 payload shapes.
 
+### Follow-on Fix Sprint: FIX-272
+
+Status:
+
+- complete on `fix/272-format-aware-escaping` at `0ccff88`
+
+Sprint entry:
+
+- [Sprint FIX-272 — Format-Aware Escaping](sprints/fix-272-format-aware-escaping.md)
+
+FIX-272 adds filename-aware JSON escaping plus opt-in `cdata_escape` and
+`turtle_escape` filters, while preserving existing HTML/XML behavior. The
+plan-hardening CDATA fields now opt into safe CDATA splitting.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:

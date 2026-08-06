@@ -1,7 +1,7 @@
 ---
 id: FIX-272
 title: "No format-aware escaping for JSON / CDATA output; Turtle escaping unavailable"
-status: in-progress
+status: complete
 branch: fix/272-format-aware-escaping
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/272-format-aware-escaping
 target: develop
@@ -117,8 +117,7 @@ surface:
 5. Apply `| cdata_escape` to `reviewer_findings_json` and
    `previous_step_json` wherever they appear inside `<![CDATA[ ... ]]>`
    blocks in `.claude/skills/plan-hardening/01-plan-scope-review.xml.j2`,
-   `02-sprint-scope-hardening.xml.j2`, and `03-consistency-hardening.xml.j2`
-   (2 occurrences per file — grep `<![CDATA[` in each to find both).
+   `02-sprint-scope-hardening.xml.j2`, and `03-consistency-hardening.xml.j2`.
 6. Mandatory two-commit red→green process: commit 1 adds all failing tests
    below (fail against current `develop`); commit 2 applies the fix and all
    tests go green.
@@ -200,4 +199,19 @@ surface:
 
 ## Closeout Evidence
 
-_Pending — to be filled in by comp on completion._
+- Red tests committed and pushed at `4e65462` (`test: reproduce
+  format-aware escaping gaps`); the new JSON, CDATA, and Turtle cases failed
+  against the pre-fix implementation.
+- Implementation committed and pushed at `0ccff88` (`fix: add format-aware
+  output escaping`). It adds `.json` filename-aware `AutoEscape::Json`, the
+  opt-in `cdata_escape` and `turtle_escape` filters, and CDATA protection to
+  all affected plan-hardening fields. Existing HTML/XML behavior remains
+  covered by the renderer regression tests.
+- The exact JSON injection reproduction now parses successfully and contains
+  no injected top-level key. The CDATA case round-trips through
+  `quick_xml::Reader`, and Turtle escaping is verified directly against the
+  required character map.
+- Validation on `0ccff88`: `cargo test --workspace` passed with zero failures;
+  `cargo fmt --all --check`, `cargo clippy --all-targets --all-features
+  -- -D warnings`, and `git diff --check` passed. No new dependency was
+  added.
