@@ -59,8 +59,22 @@ fn legacy_auto_escape_callback(name: &str) -> AutoEscape {
 
     match name.rsplit('.').next() {
         Some("html" | "htm" | "xml") => AutoEscape::Custom("sc-compose-html"),
+        Some("json") => AutoEscape::Json,
         _ => AutoEscape::None,
     }
+}
+
+fn cdata_escape_filter(value: &str) -> String {
+    value.replace("]]>", "]]]]><![CDATA[>")
+}
+
+fn turtle_escape_filter(value: &str) -> String {
+    value
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t")
 }
 
 fn format_sc_compose_markup(
@@ -113,6 +127,8 @@ fn configure_environment(env: &mut Environment<'static>) {
     // feature is enabled. JSON/YAML/JS templates are text outputs, not HTML.
     env.set_auto_escape_callback(legacy_auto_escape_callback);
     env.set_formatter(format_sc_compose_markup);
+    env.add_filter("cdata_escape", cdata_escape_filter);
+    env.add_filter("turtle_escape", turtle_escape_filter);
 }
 
 impl Renderer {
@@ -256,7 +272,10 @@ mod tests {
     use quick_xml::events::Event;
     use serde_json::json;
 
-    use super::{LoadedTemplateRequest, NamedTemplateAsset, Renderer, render_loaded_template};
+    use super::{
+        LoadedTemplateRequest, NamedTemplateAsset, Renderer, render_loaded_template,
+        turtle_escape_filter,
+    };
 
     #[test]
     fn renderer_can_render_multiple_templates_with_one_environment() {
@@ -289,7 +308,6 @@ mod tests {
         let context = json!({ "value": "<tag> &" });
 
         for template_name in [
-            "payload.json",
             "payload.json5",
             "payload.js",
             "payload.yaml",
@@ -301,6 +319,13 @@ mod tests {
                 .unwrap();
             assert_eq!(output, "<tag> &", "unexpected escaping for {template_name}");
         }
+
+        assert_eq!(
+            renderer
+                .render_named("payload.json", "{{ value }}", context.clone())
+                .unwrap(),
+            "\"<tag> &\""
+        );
 
         for template_name in [
             "payload.html",
@@ -359,7 +384,7 @@ mod tests {
         let output = renderer
             .render_named(
                 "payload.json.j2",
-                r#"{"sprint_id": "{{ sprint_id }}"}"#,
+                r#"{"sprint_id": {{ sprint_id }}}"#,
                 json!({"sprint_id": injected}),
             )
             .unwrap();
@@ -406,14 +431,14 @@ mod tests {
     #[test]
     fn turtle_escape_uses_turtle_string_literal_escapes() {
         let renderer = Renderer::new();
+        let input = "\"\\\n\r\t";
+        let expected = "\\\"\\\\\\n\\r\\t";
+        assert_eq!(turtle_escape_filter(input), expected);
         let output = renderer
-            .render(
-                "{{ value | turtle_escape }}",
-                json!({"value": "\"\\\n\r\t"}),
-            )
+            .render("{{ value | turtle_escape }}", json!({"value": input}))
             .unwrap();
 
-        assert_eq!(output, "\\\"\\\\\\n\\r\\t");
+        assert_eq!(output, expected);
     }
 
     #[test]
