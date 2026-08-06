@@ -296,10 +296,7 @@ mod tests {
         })
         .unwrap_err();
 
-        let source = error
-            .source()
-            .map(ToString::to_string)
-            .unwrap_or_default();
+        let source = error.source().map(ToString::to_string).unwrap_or_default();
         assert!(
             source.contains("unexpected end of input"),
             "expected supporting-template parse failure source, got: {source}"
