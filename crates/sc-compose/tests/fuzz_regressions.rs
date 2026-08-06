@@ -95,3 +95,26 @@ fn adjacent_plain_yaml_frontmatter_block_is_not_silently_consumed_as_a_second_pa
         "{rendered:?}"
     );
 }
+
+#[test]
+#[ignore = "FIX-245 red test; enable with the opening-delimiter fix"]
+fn opening_delimiter_with_trailing_whitespace_does_not_silently_bypass_required_variables() {
+    let root = temp_root("fuzz-opening-delimiter-trailing-whitespace");
+    write_file(
+        &root.join("t.j2"),
+        "---   \nrequired_variables:\n  - name\n---\nHi {{ name }}\n",
+    );
+
+    let output = sc_compose()
+        .args(["render", "--file", "t.j2", "--root"])
+        .arg(&root)
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(output.status.code(), Some(2), "stderr: {stderr}");
+    assert!(
+        stderr.contains("ERR_VAL_MISSING_REQUIRED"),
+        "stderr: {stderr}"
+    );
+}
