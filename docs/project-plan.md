@@ -704,7 +704,7 @@ overflowing the native stack.
 
 Status:
 
-- complete on `fix/251-io-error-collapse-not-found` at `993251f`
+- complete on `fix/251-io-error-collapse-not-found` at `5f4b05e`
 
 Sprint entry:
 
@@ -713,7 +713,9 @@ Sprint entry:
 FIX-251 distinguishes permission-denied, directory-target, and filesystem
 symlink-loop failures from genuine not-found results at include and explicit
 template resolution boundaries, while preserving existing invalid-data,
-confinement, and not-found behavior.
+confinement, and not-found behavior. The follow-up also centralizes the
+filesystem classification and makes directory-target handling independent of
+Windows `io::ErrorKind` mappings.
 
 ### Standalone Repowise Cleanup: Render Request Module Split
 

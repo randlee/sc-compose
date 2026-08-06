@@ -287,6 +287,23 @@ from another worktree.
 - Formatting and whitespace checks: PASS (`cargo fmt --all --check` and
   `git diff --check`).
 
+### QA-1 Follow-up (PR #262)
+
+Quality review identified a deterministic Windows failure: reading a directory
+with `std::fs::read_to_string` can report `PermissionDenied` rather than
+`IsADirectory`. Commit `5f4b05e` closes that gap by making the shared
+classifier check `Path::is_dir()` before inspecting the platform-specific
+error kind. The same classifier now serves `expand_file`,
+`canonicalize_include`, and `canonicalize_with_roots`, preserving each
+call site's existing diagnostic code and message text.
+
+- QA-1 implementation commit: `5f4b05e`.
+- Focused directory and resolver permission tests: PASS.
+- Full workspace tests after QA-1: PASS.
+- Clippy, formatting, and whitespace checks after QA-1: PASS.
+- The required Windows behavior is covered by the platform-independent
+  `is_dir()` branch; no Windows-only test or logic change was needed.
+
 ### Implementation notes
 
 The sprint plan incorrectly describes `std::io::ErrorKind::FilesystemLoop`
