@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
 use crate::ExpandedTemplate;
+use crate::discovery::discover_tokens_with_delimiters;
 use crate::types::{ComposeRequest, InputValue, ValidationReport, VariableName, VariableSource};
 
 /// Built-in render-context variable names injected for every render.
@@ -40,7 +41,26 @@ pub(crate) fn validate_expanded(
     expanded: &ExpandedTemplate,
     resolve_result: crate::ResolveResult,
 ) -> (ValidationReport, ValidationState) {
-    let state = collect_validation_state(request, expanded);
+    validate_expanded_with_delimiters(request, expanded, resolve_result, None)
+}
+
+pub(crate) fn validate_expanded_with_delimiters(
+    request: &ComposeRequest,
+    expanded: &ExpandedTemplate,
+    resolve_result: crate::ResolveResult,
+    variable_delimiters: Option<(&str, &str)>,
+) -> (ValidationReport, ValidationState) {
+    let mut state = collect_validation_state(request, expanded);
+    if let Some((open_delimiter, close_delimiter)) = variable_delimiters {
+        // Custom-delimiter rendering is a single-pass operation. Replace the
+        // default per-pass discovery with the exact expression delimiters the
+        // renderer will use, so strict validation and rendering share a token
+        // contract. The global declarations and context remain unchanged.
+        state.referenced_variables =
+            discover_tokens_with_delimiters(&expanded.text, open_delimiter, close_delimiter);
+        state.referenced_variables_by_pass.clear();
+        state.declared_variables_by_pass.clear();
+    }
 
     let (warnings, errors) = diagnostics::collect_policy_diagnostics(
         request,

@@ -236,8 +236,13 @@ fn execute_custom_delimiter_render(
     args: &RenderArgs,
     observer: &mut dyn CompositionObserver,
 ) -> Result<i32, CommandError> {
-    let report =
-        sc_composer::validate_with_observer(request, observer).map_err(CommandError::compose)?;
+    let (open, close) = custom_variable_delimiters(args)?;
+    let report = sc_composer::validate_with_observer_and_delimiters(
+        request,
+        observer,
+        Some((&open, &close)),
+    )
+    .map_err(CommandError::compose)?;
     if !report.ok {
         return Err(validation_report_error(report.errors));
     }
@@ -253,20 +258,6 @@ fn execute_custom_delimiter_render(
         .iter()
         .find_map(|(path, passes)| (path == &resolve_result.resolved_path).then(|| passes.clone()))
         .unwrap_or_default();
-    let (open, close) = if let Some(brace_count) = args.brace_count {
-        let brace_count = usize::from(brace_count);
-        ("{".repeat(brace_count), "}".repeat(brace_count))
-    } else {
-        let delimiters = args.variable_delimiters.clone().ok_or_else(|| {
-            CommandError::usage_with_code(
-                anyhow!(
-                    "--brace-count or --variable-delimiters is required for custom delimiter rendering"
-                ),
-                DiagnosticCode::ErrConfigParse,
-            )
-        })?;
-        (delimiters[0].clone(), delimiters[1].clone())
-    };
     let parsed = ParsedTemplate::from_parts_validated(root_passes.clone(), expanded.text.clone())
         .map_err(CommandError::compose)?;
     let rendered_text = Renderer::with_delimiters(&open, &close)
@@ -303,6 +294,23 @@ fn execute_custom_delimiter_render(
         report.warnings,
     )?;
     Ok(crate::exit_codes::SUCCESS)
+}
+
+fn custom_variable_delimiters(args: &RenderArgs) -> Result<(String, String), CommandError> {
+    if let Some(brace_count) = args.brace_count {
+        let brace_count = usize::from(brace_count);
+        return Ok(("{".repeat(brace_count), "}".repeat(brace_count)));
+    }
+
+    let delimiters = args.variable_delimiters.clone().ok_or_else(|| {
+        CommandError::usage_with_code(
+            anyhow!(
+                "--brace-count or --variable-delimiters is required for custom delimiter rendering"
+            ),
+            DiagnosticCode::ErrConfigParse,
+        )
+    })?;
+    Ok((delimiters[0].clone(), delimiters[1].clone()))
 }
 
 fn emit_render_output(
