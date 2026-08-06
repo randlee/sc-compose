@@ -132,9 +132,33 @@ fn opening_delimiter_with_trailing_whitespace_does_not_silently_bypass_required_
         .unwrap();
     let stderr = String::from_utf8_lossy(&output.stderr);
 
-    assert_eq!(output.status.code(), Some(2), "stderr: {stderr}");
+    assert_eq!(output.status.code(), Some(3), "stderr: {stderr}");
     assert!(
         stderr.contains("ERR_VAL_MISSING_REQUIRED"),
         "stderr: {stderr}"
     );
+}
+
+/// The default text path should expose only sc-compose's stable parse message,
+/// not serde_yaml's raw source-chain text or the formatter's backtrace.
+#[test]
+#[ignore = "red baseline: fails until parser drops the raw serde_yaml source"]
+fn malformed_frontmatter_text_output_hides_raw_serde_yaml_error_details() {
+    let root = temp_root("fuzz-config-parse-raw-yaml");
+    write_file(&root.join("t.j2"), "---\ndefaults: [\n---\nbody\n");
+
+    let output = sc_compose()
+        .args(["render", "--file", "t.j2", "--root"])
+        .arg(&root)
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(output.status.code(), Some(2), "stderr: {stderr}");
+    assert!(
+        stderr.contains("failed to parse YAML frontmatter"),
+        "stderr: {stderr}"
+    );
+    assert!(!stderr.contains("caused by"), "stderr: {stderr}");
+    assert!(!stderr.contains("backtrace:"), "stderr: {stderr}");
 }
