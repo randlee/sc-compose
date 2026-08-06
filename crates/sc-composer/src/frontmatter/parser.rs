@@ -22,15 +22,16 @@ pub fn parse_template_document(input: &str) -> Result<ParsedTemplate, ComposeErr
 
     let mut passes = Vec::with_capacity(frontmatter_texts.len());
     for frontmatter_text in frontmatter_texts {
-        let raw = serde_yaml::from_str::<RawFrontmatter>(frontmatter_text).map_err(|error| {
+        let raw = serde_yaml::from_str::<RawFrontmatter>(frontmatter_text).map_err(|_error| {
             ConfigError::new(
                 DiagnosticCode::ErrConfigParse,
                 "failed to parse YAML frontmatter",
             )
-            .with_recovery_hint(RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
-                key: "frontmatter".to_owned(),
-            }))
-            .with_source(error)
+            .with_recovery_hint(RecoveryHint::new(
+                RecoveryHintKind::ReviewConfiguration {
+                    key: "frontmatter".to_owned(),
+                },
+            ))
         })?;
         passes.push(super::normalizer::normalize_frontmatter(raw)?);
     }
