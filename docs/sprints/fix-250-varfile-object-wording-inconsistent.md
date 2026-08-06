@@ -1,7 +1,7 @@
 ---
 id: FIX-250
 title: ERR_CONFIG_VARFILE top-level-not-an-object message wording differs between JSON and YAML var-files
-status: assigned
+status: complete
 branch: fix/250-varfile-object-wording-inconsistent
 worktree: ../sc-compose-worktrees/fix/250-varfile-object-wording-inconsistent
 target: develop
@@ -160,6 +160,25 @@ FIX-247):
 - GitHub issue #250 can be closed referencing the merged PR.
 - Sprint doc closeout narrative accurately describes the two-commit
   red→green trail on this branch.
+
+## Closeout Evidence
+
+Status: **complete**.
+
+- Red baseline: `8d4edd7` (`test: reproduce varfile object wording
+  mismatch`). The fresh ignored regression test was independently confirmed
+  failing before implementation: JSON produced `var-file must be a JSON
+  object`, while YAML produced `var-file must be a JSON or YAML object`.
+- Green implementation: `41e3208` (`fix: unify varfile object diagnostics`).
+  The `NotAnObject` variant is now format-neutral, the unused `VarFileFormat`
+  enum/field is removed, and the full required matrix covers JSON/YAML scalar
+  and sequence inputs, valid object inputs, and unchanged unrelated errors.
+- Focused var-file tests: PASS.
+- `cargo test --workspace`, `cargo clippy --all-targets --all-features
+  -- -D warnings`, `cargo fmt --all --check`, and `git diff --check`: PASS.
+
+All regression tests were created fresh on this branch and were not promoted
+from another worktree.
 
 ## References
 
