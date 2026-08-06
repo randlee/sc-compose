@@ -129,6 +129,40 @@ fn empty_custom_variable_delimiters_report_source_once() {
 }
 
 #[test]
+fn render_xml_template_escapes_interpolated_special_characters() {
+    let root = temp_root("xml-autoescape");
+    write_file(
+        &root.join("repro.xml.j2"),
+        "---\nname: repro\nversion: 1.0.0\ndescription: XML escaping regression\nformat: xml\nrequired_variables:\n  - note\n---\n<root>\n  <note>{{ note }}</note>\n</root>\n",
+    );
+    write_file(
+        &root.join("vars.json"),
+        r#"{"note":"record with <tag> & \"quotes\" & 'apostrophe' & ampersand&here"}"#,
+    );
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "repro.xml.j2",
+            "--var-file",
+            root.join("vars.json").to_str().unwrap(),
+            "--output",
+            root.join("out.xml").to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    assert_eq!(
+        fs::read_to_string(root.join("out.xml")).unwrap(),
+        "<root>\n  <note>record with &lt;tag&gt; &amp; &quot;quotes&quot; &amp; &#x27;apostrophe&#x27; &amp; ampersand&amp;here</note>\n</root>\n"
+    );
+}
+
+#[test]
 fn render_uses_json_var_file_inputs() {
     let root = temp_root("var-file-json");
     write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
