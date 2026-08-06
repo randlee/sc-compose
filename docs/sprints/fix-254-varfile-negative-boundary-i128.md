@@ -1,7 +1,7 @@
 ---
 id: FIX-254
 title: "Add i128/u128 visitor coverage so var-file integers outside i64/u64 fail closed instead of silently corrupting"
-status: assigned
+status: complete
 branch: fix/254-varfile-negative-boundary-i128
 worktree: ../sc-compose-worktrees/fix/254-varfile-negative-boundary-i128
 target: develop
@@ -198,6 +198,31 @@ other test-logic changes.
 - `cargo fmt --all --check` and
   `cargo clippy --all-targets --all-features -- -D warnings` clean.
 - GitHub issue #254 can be closed referencing the merged PR.
+
+## Closeout Evidence
+
+Status: **complete**.
+
+- Red baseline: `4d47d10` (`test: reproduce out-of-range JSON integer
+  handling`). The negative and positive boundary cases initially succeeded
+  with lossy floating-point values.
+- Green implementation: `690b85d` (`fix: preserve default JSON number
+  rendering`). The visitor now has explicit `visit_i128`/`visit_u128`
+  narrowing, and a post-parse lexical check rejects out-of-range integer
+  literals with `ErrConfigVarfile` without changing serde_json/minijinja's
+  normal number representation. `b37d017` contains the final lint-only
+  cleanup.
+- Full validation at the final branch state: `cargo test --workspace`,
+  `cargo clippy --all-targets --all-features -- -D warnings`,
+  `cargo fmt --all --check`, and `git diff --check`: PASS.
+
+The implementation differs from the sprint document's assumption that the
+default serde_json `deserialize_any` path directly invokes the i128/u128
+visitor callbacks for oversized literals; the actual dependency narrows those
+literals to f64 first. The retained boundary check is therefore necessary to
+meet the same fail-closed contract without enabling dependency-wide arbitrary
+precision behavior that changes minijinja rendering. YAML parsing remains
+unchanged. All regression tests were created fresh on this branch.
 
 ## References
 
