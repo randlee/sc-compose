@@ -336,6 +336,57 @@ mod tests {
     }
 
     #[test]
+    fn unknown_error_policy_rejects_referenced_but_unbound_variables() {
+        let root = temp_root("diagnostics_unbound_error");
+        write_file(
+            &root.join("template.md.j2"),
+            "Task: {{ bound }}\nMissing: {{ missing }}\n",
+        );
+
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unknown_variable_policy: UnknownVariablePolicy::Error,
+                ..ComposePolicy::default()
+            },
+        );
+        request
+            .vars_input
+            .insert(crate::VariableName::new("bound").unwrap(), json!("hello"));
+
+        let report = validate(&request).unwrap();
+
+        assert!(!report.ok, "unbound reference was accepted: {report:?}");
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.message.contains("unbound variable")
+                && diagnostic.message.contains("missing")
+        }));
+    }
+
+    #[test]
+    fn unknown_warn_policy_distinguishes_referenced_but_unbound_variables() {
+        let root = temp_root("diagnostics_unbound_warn");
+        write_file(&root.join("template.md.j2"), "Missing: {{ missing }}\n");
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unknown_variable_policy: UnknownVariablePolicy::Warn,
+                ..ComposePolicy::default()
+            },
+        ))
+        .unwrap();
+
+        assert!(report.ok, "warn policy should remain renderable: {report:?}");
+        assert!(report.warnings.iter().any(|diagnostic| {
+            diagnostic.message.contains("unbound variable")
+                && diagnostic.message.contains("missing")
+        }));
+    }
+
+    #[test]
     fn strict_mode_fails_on_undeclared_tokens() {
         let root = temp_root("diagnostics_strict_undeclared");
         write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
