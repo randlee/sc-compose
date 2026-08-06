@@ -1,7 +1,7 @@
 ---
 id: FIX-242-271
 title: "ERR_VAL_UNDECLARED_TOKEN false positives on subscripts, loop builtins, operators, filter names, and {% set %} locals"
-status: in-progress
+status: complete
 branch: fix/242-undeclared-token-false-positives
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/242-undeclared-token-false-positives
 target: develop
@@ -223,4 +223,22 @@ today's (already-buggy-for-namespaces, pre-existing) behavior unchanged.
 
 ## Closeout Evidence
 
-_Pending — to be filled in by comp on completion._
+- Red regression commit: `97a7cef` (`test: reproduce undeclared token false
+  positives`). It adds all seven required discovery regressions; the pre-fix
+  run fails on numeric subscript fragments, the binary operator fragment, and
+  filter/set-local false positives.
+- Green implementation commit: `d3e2c04` (`fix: ignore false undeclared
+  template tokens`). It adds persistent set-local scope, safe loop-scope
+  handling, filter-name masking that preserves filter arguments, and
+  alphabetic-candidate filtering for numeric/operator fragments.
+- Exact CLI repros pass with exit code `0`, `valid: true`, and empty
+  diagnostics under `--strict --json`:
+  `issue-242.md.j2` covers the loop/subscript/slice case,
+  `issue-271.md.j2` covers `{% set %}` locals and filters, and
+  `issue-271-filter-arg.md.j2` confirms `default(other_var)` retains the
+  genuine argument reference. The committed unit tests in
+  `crates/sc-composer/src/discovery.rs` provide the durable equivalent cases.
+- `cargo fmt --all --check` — PASS.
+- `cargo test --workspace` — PASS (all workspace tests passed).
+- `cargo clippy --all-targets --all-features -- -D warnings` — PASS.
+- `git diff --check` — PASS.
