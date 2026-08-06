@@ -1,7 +1,7 @@
 ---
 id: FIX-246
 title: "--strict validation is delimiter-blind: ignores active --variable-delimiters/--brace-count"
-status: assigned
+status: complete
 branch: fix/246-strict-ignores-custom-delimiters
 worktree: ../sc-compose-worktrees/fix/246-strict-ignores-custom-delimiters
 target: develop
@@ -129,3 +129,17 @@ After fix: exit 2, `ERR_VAL_UNDECLARED_TOKEN: undeclared referenced token: undec
 - `cargo fmt --all --check`
 - `cargo test --workspace`
 - `cargo clippy --all-targets --all-features -- -D warnings`
+
+## Closeout Evidence
+
+- Implementation commit: `0c7d90c` on
+  `fix/246-strict-ignores-custom-delimiters`.
+- Both promoted custom-delimiter strict-validation regressions pass without
+  `#[ignore]`.
+- `cargo test --workspace`: PASS.
+- `cargo clippy --all-targets --all-features -- -D warnings`: PASS.
+- `cargo fmt --all --check`: PASS.
+- `git diff --check`: PASS.
+- The false-positive sample preserves literal `{{x}}` under `<<...>>` and
+  exits successfully; the false-negative sample returns
+  `ERR_VAL_UNDECLARED_TOKEN` and a validation-failure exit.

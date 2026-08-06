@@ -629,6 +629,21 @@ parsed as a second YAML config block. Plain-YAML stacked headers remain
 supported, while the canonical template now validates and renders with the
 conditional `worktree` field both set and unset.
 
+### Follow-on Fix Sprint: FIX-246
+
+Status:
+
+- complete on `fix/246-strict-ignores-custom-delimiters` at `0c7d90c`
+
+Sprint entry:
+
+- [Sprint FIX-246 — Strict Validation Custom Delimiters](sprints/fix-246-strict-ignores-custom-delimiters.md)
+
+FIX-246 threads active custom variable delimiters through strict undeclared-
+token validation. Literal default-delimiter text remains inert under custom
+delimiters, while undeclared variables referenced through the active custom
+delimiters now fail closed with `ERR_VAL_UNDECLARED_TOKEN`.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:
