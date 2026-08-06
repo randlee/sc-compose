@@ -106,7 +106,11 @@ fn render_rejects_scalar_for_existing_jagged_array_fixture() {
     assert_eq!(output.status.code(), Some(2));
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("ERR_VAL_ARRAY_SHAPE_MISMATCH"), "{stderr}");
-    assert!(output.stdout.is_empty(), "unexpected output: {:?}", output.stdout);
+    assert!(
+        output.stdout.is_empty(),
+        "unexpected output: {:?}",
+        output.stdout
+    );
 }
 
 #[test]
