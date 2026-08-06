@@ -19,8 +19,10 @@ pub(crate) fn collect_validation_state(
     request: &ComposeRequest,
     expanded: &ExpandedTemplate,
 ) -> ValidationState {
-    let mut state = ValidationState::default();
-    state.source_texts = expanded.source_texts.clone();
+    let mut state = ValidationState {
+        source_texts: expanded.source_texts.clone(),
+        ..ValidationState::default()
+    };
     if state.source_texts.is_empty()
         && let Some(root) = expanded.resolved_files.first()
     {
