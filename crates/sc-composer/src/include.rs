@@ -24,6 +24,12 @@ pub struct ExpandedTemplate {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+/// Private saturating-arithmetic traversal counter used during expansion.
+///
+/// This is intentionally distinct from the public, serde-transparent
+/// [`IncludeDepth`] policy bound: keeping the configured limit and current
+/// traversal state as separate types statically prevents swapping those
+/// parameters at [`expand_file`].
 struct CurrentIncludeDepth(u16);
 
 impl CurrentIncludeDepth {
@@ -702,6 +708,45 @@ mod tests {
         match error {
             ComposeError::Include(error) => {
                 assert_eq!(error.code(), DiagnosticCode::ErrIncludeDepth);
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[test]
+    fn include_depth_exact_limit_succeeds_and_one_over_fails() {
+        let exact_root = temp_root("include_depth_exact_limit");
+        write_linear_chain(&exact_root, 3);
+        let exact_policy = ComposePolicy {
+            max_include_depth: IncludeDepth::new(3),
+            ..ComposePolicy::default()
+        };
+
+        let expanded = expand_includes(
+            exact_root.join("root.md.j2"),
+            &ConfiningRoot::new(&exact_root).unwrap(),
+            &exact_policy,
+        )
+        .unwrap();
+        assert_eq!(expanded.text, "done\n");
+
+        let over_root = temp_root("include_depth_one_over");
+        write_linear_chain(&over_root, 4);
+        let over_policy = ComposePolicy {
+            max_include_depth: IncludeDepth::new(3),
+            ..ComposePolicy::default()
+        };
+
+        let error = expand_includes(
+            over_root.join("root.md.j2"),
+            &ConfiningRoot::new(&over_root).unwrap(),
+            &over_policy,
+        )
+        .unwrap_err();
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludeDepth);
+                assert_eq!(error.message(), "include depth exceeded maximum of 3");
             }
             other => panic!("unexpected error: {other}"),
         }
