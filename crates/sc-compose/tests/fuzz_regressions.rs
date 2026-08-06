@@ -140,7 +140,7 @@ fn opening_delimiter_with_trailing_whitespace_does_not_silently_bypass_required_
 }
 
 /// The default text path should expose only sc-compose's stable parse message,
-/// not serde_yaml's raw source-chain text. The existing formatter backtrace
+/// not `serde_yaml`'s raw source-chain text. The existing formatter backtrace
 /// remains outside this narrow parser-scope fix.
 #[test]
 fn malformed_frontmatter_text_output_hides_raw_serde_yaml_error_details() {
