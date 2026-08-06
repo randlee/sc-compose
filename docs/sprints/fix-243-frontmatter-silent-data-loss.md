@@ -1,7 +1,7 @@
 ---
 id: FIX-243
 title: Frontmatter parser silently drops adjacent plain-YAML block instead of treating it as body
-status: assigned
+status: complete
 branch: fix/243-frontmatter-silent-data-loss
 worktree: ../sc-compose-worktrees/fix/243-frontmatter-silent-data-loss
 target: develop
@@ -151,3 +151,16 @@ delimiters.
 - `cargo fmt --all --check`
 - `cargo test --workspace`
 - `cargo clippy --all-targets --all-features -- -D warnings`
+
+## Closeout Evidence
+
+- Implementation commit: `01a1e5c` (`fix: preserve adjacent plain yaml body blocks`).
+- The exact repro now preserves the adjacent `---\na: b\n---\n` block and
+  `BODY` in rendered output.
+- Frontmatter unit tests: PASS (17/17).
+- CLI fuzz regression tests: PASS (3/3, including the two existing FIX-246
+  regressions).
+- Workspace tests: PASS (`cargo test --workspace`).
+- Clippy: PASS (`cargo clippy --all-targets --all-features -- -D warnings`).
+- Formatting and whitespace checks: PASS (`cargo fmt --all --check` and
+  `git diff --check`).
