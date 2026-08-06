@@ -791,6 +791,36 @@ FIX-272 adds filename-aware JSON escaping plus opt-in `cdata_escape` and
 `turtle_escape` filters, while preserving existing HTML/XML behavior. The
 plan-hardening CDATA fields now opt into safe CDATA splitting.
 
+### Follow-on Fix Sprint: FIX-270
+
+Status:
+
+- complete on `fix/270-dict-get-method-unsupported` at `619078a`
+
+Sprint entry:
+
+- [Sprint FIX-270 — Jinja Dict Get Method](sprints/fix-270-dict-get-method-unsupported.md)
+
+FIX-270 adds a narrow project-owned Minijinja unknown-method callback for map
+`.get(key[, default])` calls. Missing keys return `Undefined` or the supplied
+default, while unrelated methods, value kinds, and arities retain the original
+unknown-method behavior.
+
+### Follow-on Fix Sprint: FIX-242-271
+
+Status:
+
+- complete on `fix/242-undeclared-token-false-positives` at `d3e2c04`
+
+Sprint entry:
+
+- [Sprint FIX-242-271 — Undeclared Token False Positives](sprints/fix-242-271-undeclared-token-false-positives.md)
+
+FIX-242-271 removes false undeclared-token diagnostics for numeric
+subscripts/slices, binary operator fragments, Jinja filter names, and simple
+`{% set %}` locals while preserving real filter-argument references and
+loop-context diagnostics outside active loops.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:
