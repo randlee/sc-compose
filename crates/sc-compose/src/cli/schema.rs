@@ -76,7 +76,7 @@ pub(crate) struct InputArgs {
         long,
         value_enum,
         default_value = "ignore",
-        help = "Control how extra caller-provided variables are reported"
+        help = "Control how extra caller-provided and referenced-but-unbound variables are reported"
     )]
     pub(crate) unknown_var_mode: UnknownVarMode,
 }

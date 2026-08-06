@@ -1219,6 +1219,50 @@ fn validate_still_errors_for_variables_not_in_required_or_input_defaults() {
 }
 
 #[test]
+fn render_unknown_var_mode_errors_on_referenced_unbound_variable() {
+    let root = temp_root("unbound-variable-policy");
+    write_file(
+        &root.join("template.md.j2"),
+        "bound={{ bound }} missing={{ missing }}\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("bound=present")
+        .arg("--unknown-var-mode")
+        .arg("error")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    let combined = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(combined.contains("ERR_VAL_UNBOUND_VARIABLE"), "{combined}");
+    assert!(combined.contains("missing"), "{combined}");
+    assert!(!combined.contains("unbound variable: bound"), "{combined}");
+}
+
+#[test]
+fn unknown_var_mode_help_describes_both_policy_axes() {
+    let output = sc_compose().args(["render", "--help"]).output().unwrap();
+
+    assert!(output.status.success());
+    let help = String::from_utf8_lossy(&output.stdout);
+    assert!(help.contains("extra caller-provided"), "{help}");
+    assert!(help.contains("referenced-but-unbound"), "{help}");
+}
+
+#[test]
 fn validate_warns_when_defaults_and_input_defaults_both_exist() {
     let root = temp_root("input-defaults-alias-warning");
     write_file(

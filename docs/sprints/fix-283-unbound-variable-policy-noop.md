@@ -207,3 +207,23 @@ policy field that doesn't do what the reporter expects).
 - `cargo fmt --all --check` — PASS
 - `cargo clippy --all-targets --all-features -- -D warnings` — PASS
 - `git diff --check` — PASS
+
+### QA-283-001 fix round
+
+- QA-283-001 identified a requirements traceability gap: the new
+  `unbound_variable_policy`, `ERR_VAL_UNBOUND_VARIABLE`, and CLI
+  `--unknown-var-mode` dual-axis behavior were implemented and described in
+  architecture/error-code documentation but were missing from authoritative
+  `docs/requirements.md`.
+- This fix round amends FR-2/FR-2a with the independent unbound-reference
+  policy semantics and updates FR-7 to document that the CLI mode controls
+  both extra-input and referenced-but-unbound diagnostics.
+- The CLI help now names both policy axes. Python `compose_file` and CLI
+  integration regressions cover the end-to-end error/warn/ignore behavior;
+  the Python `.pyi` stub now exposes `ERR_VAL_UNBOUND_VARIABLE`.
+- No new dependency was added and no renderer or validation policy semantics
+  were changed; this round closes the documentation, help-text, binding-stub,
+  and cross-surface test gaps identified by QA-283-001 through QA-283-003 and
+  arch-qa.
+- Fix-round commit hashes and post-push validation are reported with the
+  completion message for this branch.
