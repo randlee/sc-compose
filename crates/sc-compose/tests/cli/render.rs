@@ -1755,6 +1755,57 @@ fn render_accepts_recursive_values_in_frontmatter_defaults() {
 }
 
 #[test]
+fn render_sprint_plan_cli_neutralizes_injected_frontmatter_delimiters() {
+    let root = temp_root("sprint-plan-frontmatter-injection");
+    let template_path = root
+        .join(".claude")
+        .join("skills")
+        .join("codex-orchestration")
+        .join("sprint-plan.md.j2");
+    write_file(
+        &template_path,
+        include_str!("../../../../.claude/skills/codex-orchestration/sprint-plan.md.j2"),
+    );
+    let vars_path = root.join("repro-vars.json");
+    write_file(
+        &vars_path,
+        r#"{
+  "id": "1.2",
+  "title": "Injected frontmatter break\n---\nmalicious: true\n---",
+  "branch": "main",
+  "target": "develop"
+}
+"#,
+    );
+    let output_path = root.join("rendered.md");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg(".claude/skills/codex-orchestration/sprint-plan.md.j2")
+        .arg("--var-file")
+        .arg(&vars_path)
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let rendered = fs::read_to_string(&output_path).unwrap();
+    assert_eq!(rendered.lines().filter(|line| *line == "---").count(), 2);
+    assert!(rendered.contains("malicious: true"));
+    assert!(rendered.contains(r"\-\-\-"));
+}
+
+#[test]
 fn render_supports_multi_level_nested_includes() {
     let root = temp_root("nested-include-proof");
     write_file(

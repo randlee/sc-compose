@@ -80,6 +80,37 @@ fn turtle_escape_filter(value: &str) -> String {
         .replace('\t', "\\t")
 }
 
+fn frontmatter_safe_filter(value: &str) -> JinjaValue {
+    let escaped = value
+        .split('\n')
+        .map(|line| {
+            let replacement = match line.trim() {
+                "---" => Some(("---", r"\-\-\-")),
+                "..." => Some(("...", r"\.\.\.")),
+                _ => None,
+            };
+            replacement.map_or_else(
+                || line.to_owned(),
+                |(delimiter, escaped_delimiter)| {
+                    let delimiter_start = line
+                        .find(delimiter)
+                        .expect("trimmed delimiter must occur in the source line");
+                    let delimiter_end = delimiter_start + delimiter.len();
+                    format!(
+                        "{}{}{}",
+                        &line[..delimiter_start],
+                        escaped_delimiter,
+                        &line[delimiter_end..]
+                    )
+                },
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    JinjaValue::from_safe_string(escaped)
+}
+
 fn format_sc_compose_markup(
     out: &mut Output<'_>,
     state: &State<'_, '_>,
@@ -152,6 +183,7 @@ fn configure_environment(env: &mut Environment<'static>) {
     env.set_formatter(format_sc_compose_markup);
     env.add_filter("cdata_escape", cdata_escape_filter);
     env.add_filter("turtle_escape", turtle_escape_filter);
+    env.add_filter("frontmatter_safe", frontmatter_safe_filter);
     env.set_unknown_method_callback(map_get_unknown_method_callback);
 }
 
@@ -416,6 +448,95 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
         assert_eq!(parsed["sprint_id"], json!(injected));
         assert!(parsed.get("injected").is_none());
+    }
+
+    fn sprint_plan_body() -> &'static str {
+        let source = include_str!("../../../.claude/skills/codex-orchestration/sprint-plan.md.j2");
+        source
+            .strip_prefix("---\n")
+            .and_then(|source| source.split_once("\n---\n"))
+            .map(|(_, body)| body)
+            .expect("sprint-plan template must have declaration frontmatter")
+    }
+
+    fn sprint_plan_context(title: &str) -> serde_json::Value {
+        json!({
+            "id": "1.2",
+            "title": title,
+            "status": "planned",
+            "branch": "main",
+            "target": "develop",
+        })
+    }
+
+    fn standalone_frontmatter_delimiter_count(rendered: &str) -> usize {
+        rendered.lines().filter(|line| *line == "---").count()
+    }
+
+    #[test]
+    fn frontmatter_safe_escapes_standalone_delimiters() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render(
+                "{{ value | frontmatter_safe }}",
+                json!({"value": "before\n---\nafter"}),
+            )
+            .unwrap();
+
+        assert_eq!(output, "before\n\\-\\-\\-\nafter");
+    }
+
+    #[test]
+    fn frontmatter_safe_escapes_yaml_document_end_marker() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render(
+                "{{ value | frontmatter_safe }}",
+                json!({"value": "before\n...\nafter"}),
+            )
+            .unwrap();
+
+        assert_eq!(output, "before\n\\.\\.\\.\nafter");
+    }
+
+    #[test]
+    fn frontmatter_safe_leaves_non_delimiter_text_byte_identical() {
+        let renderer = Renderer::new();
+        for value in ["ordinary text", "a---b", "a...b"] {
+            let output = renderer
+                .render("{{ value | frontmatter_safe }}", json!({"value": value}))
+                .unwrap();
+            assert_eq!(output, value);
+        }
+    }
+
+    #[test]
+    fn real_sprint_plan_template_neutralizes_injected_frontmatter_delimiters() {
+        let title = "Injected frontmatter break\n---\nmalicious: true\n---";
+        let rendered = Renderer::new()
+            .render_named(
+                "sprint-plan.md.j2",
+                sprint_plan_body(),
+                sprint_plan_context(title),
+            )
+            .unwrap();
+
+        assert_eq!(standalone_frontmatter_delimiter_count(&rendered), 2);
+        assert!(rendered.contains("malicious: true"));
+        assert!(rendered.contains(r"\-\-\-"));
+    }
+
+    #[test]
+    fn real_sprint_plan_template_neutralizes_injected_worktree_delimiters() {
+        let mut context = sprint_plan_context("ordinary title");
+        context["worktree"] = json!("injected worktree\n---\nmalicious: true\n---");
+        let rendered = Renderer::new()
+            .render_named("sprint-plan.md.j2", sprint_plan_body(), context)
+            .unwrap();
+
+        assert_eq!(standalone_frontmatter_delimiter_count(&rendered), 2);
+        assert!(rendered.contains("malicious: true"));
+        assert!(rendered.contains(r"\-\-\-"));
     }
 
     #[test]

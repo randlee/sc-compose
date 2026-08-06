@@ -823,6 +823,22 @@ subscripts/slices, binary operator fragments, Jinja filter names, and simple
 `{% set %}` locals while preserving real filter-argument references and
 loop-context diagnostics outside active loops.
 
+### Follow-on Fix Sprint: FIX-274
+
+Status:
+
+- complete on `fix/274-spoofed-frontmatter-delimiter` at `2145245`
+
+Sprint entry:
+
+- [Sprint FIX-274 — Spoofed Frontmatter Delimiter](sprints/fix-274-spoofed-frontmatter-delimiter.md)
+
+FIX-274 adds an opt-in `frontmatter_safe` filter for interpolated values in
+frontmatter-shaped Markdown output. Standalone `---` and `...` lines are
+neutralized without changing ordinary text or mid-line delimiter sequences;
+the codex-orchestration sprint-plan template applies the filter to its title
+fields.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:
