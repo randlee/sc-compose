@@ -97,7 +97,6 @@ fn adjacent_plain_yaml_frontmatter_block_is_not_silently_consumed_as_a_second_pa
 }
 
 #[test]
-#[ignore = "FIX-245 red test; enable with the opening-delimiter fix"]
 fn opening_delimiter_with_trailing_whitespace_does_not_silently_bypass_required_variables() {
     let root = temp_root("fuzz-opening-delimiter-trailing-whitespace");
     write_file(
