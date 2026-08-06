@@ -1,7 +1,7 @@
 ---
 id: FIX-244
 title: "Jinja whitespace-control markers ({%- -%}) parsed as phantom undeclared variable \"-\""
-status: assigned
+status: complete
 branch: fix/244-whitespace-control-phantom-dash
 worktree: ../sc-compose-worktrees/fix/244-whitespace-control-phantom-dash
 target: develop
@@ -235,6 +235,29 @@ exact two-commit process is now **mandatory** for this sprint:
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - Manual repro check: `sc-compose render --file <repro>.j2 --strict --json`
   exits 0 pre-merge, matching the sprint doc's stated post-fix behavior.
+
+## Closeout Evidence
+
+This branch contains the complete red-to-green trail for the fresh regression
+test; it was created on this branch and was not promoted from another
+worktree.
+
+- `ca4b735` — added the ignored regression test. Running it with `--ignored`
+  against the pre-fix code failed because the strict render did not succeed
+  due to the phantom delimiter dash. Team-lead independently re-ran the
+  workspace ignored-test command and confirmed the same failure.
+- `ac7c139` — stripped one delimiter-adjacent leading/trailing marker in the
+  shared discovery path, added the five unit tests, and removed only the
+  regression test's `#[ignore]` attribute. The regression then passed.
+- Discovery unit matrix: PASS (5/5).
+- Fuzz regression suite: PASS (5/5).
+- Workspace tests: PASS (`cargo test --workspace`).
+- Clippy: PASS (`cargo clippy --all-targets --all-features -- -D warnings`).
+- Formatting and whitespace checks: PASS (`cargo fmt --all --check` and
+  `git diff --check`).
+- Manual strict-render matrix: PASS for leading, trailing, and combined
+  statement markers plus expression markers; the `task-id` kebab-case guard
+  remains covered by the discovery unit test.
 
 ## References
 

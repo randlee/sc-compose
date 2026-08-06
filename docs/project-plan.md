@@ -658,6 +658,19 @@ FIX-243 preserves adjacent plain-YAML blocks with unrecognized top-level keys
 as template body while retaining recognized-key multi-pass stacking and the
 FIX-238 Jinja-syntax break behavior.
 
+### Follow-on Fix Sprint: FIX-244
+
+Status:
+
+- complete on `fix/244-whitespace-control-phantom-dash` at `ac7c139`
+
+Sprint entry:
+
+- [Sprint FIX-244 — Jinja Whitespace-Control Phantom Dash](sprints/fix-244-whitespace-control-phantom-dash.md)
+
+FIX-244 strips delimiter-adjacent Jinja whitespace-control markers before
+token discovery without changing kebab-case variable support.
+
 ### Follow-on Fix Sprint: FIX-245
 
 Status:
