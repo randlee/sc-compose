@@ -215,3 +215,14 @@ surface:
   `cargo fmt --all --check`, `cargo clippy --all-targets --all-features
   -- -D warnings`, and `git diff --check` passed. No new dependency was
   added.
+- Merge-forward commit `b5972a8` incorporated the then-current `develop`
+  fixes for FIX-270 and FIX-242-271. QA follow-up fix `5d156da` adds an
+  end-to-end regression using the real plan-hardening template's CDATA block
+  and marks `cdata_escape` output safe so the XML formatter preserves the
+  reopened CDATA marker. Formatting and strict-lint cleanup landed at
+  `4936318` and `28f8aa2`.
+- Final validation at merge-forward HEAD `28f8aa2`: `cargo test --workspace`
+  passed with 0 failures (including 224 library/CLI tests, 51 extraction
+  integration tests, and 15 integration tests); `cargo fmt --all --check`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, and
+  `git diff --check` all passed.
