@@ -752,7 +752,7 @@ confinement.
 
 Status:
 
-- complete on `fix/268-xml-format-autoescape-not-applied` at `5761c1b`
+- complete on `fix/268-xml-format-autoescape-not-applied` at `19953ad`
 
 Sprint entry:
 
