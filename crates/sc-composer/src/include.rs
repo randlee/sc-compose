@@ -129,16 +129,33 @@ fn expand_file(
     }
 
     let raw = std::fs::read_to_string(path).map_err(|error| {
-        let (code, message) = if error.kind() == std::io::ErrorKind::InvalidData {
-            (
+        let (code, message) = match crate::diagnostics::classify_filesystem_error(path, &error) {
+            crate::diagnostics::FilesystemErrorClass::InvalidData => (
                 DiagnosticCode::ErrConfigRead,
                 format!("template file is not valid UTF-8: {}", path.display()),
-            )
-        } else {
-            (
+            ),
+            crate::diagnostics::FilesystemErrorClass::PermissionDenied => (
+                DiagnosticCode::ErrIncludePermissionDenied,
+                format!("permission denied reading include file: {}", path.display()),
+            ),
+            crate::diagnostics::FilesystemErrorClass::IsADirectory => (
+                DiagnosticCode::ErrIncludeIsADirectory,
+                format!(
+                    "include target is a directory, not a file: {}",
+                    path.display()
+                ),
+            ),
+            crate::diagnostics::FilesystemErrorClass::FilesystemLoop => (
+                DiagnosticCode::ErrIncludeFilesystemLoop,
+                format!(
+                    "include target is a filesystem symlink loop: {}",
+                    path.display()
+                ),
+            ),
+            crate::diagnostics::FilesystemErrorClass::NotFound => (
                 DiagnosticCode::ErrIncludeNotFound,
                 format!("include file not found: {}", path.display()),
-            )
+            ),
         };
         IncludeError::new(code, message, stack.clone()).with_source(error)
     })?;
@@ -251,13 +268,37 @@ fn canonicalize_include(
                 .into());
             }
 
-            Err(IncludeError::new(
-                DiagnosticCode::ErrIncludeNotFound,
-                format!("include file not found: {}", candidate.display()),
-                stack.to_vec(),
-            )
-            .with_source(error)
-            .into())
+            let (code, message) =
+                match crate::diagnostics::classify_filesystem_error(candidate, &error) {
+                    crate::diagnostics::FilesystemErrorClass::IsADirectory => (
+                        DiagnosticCode::ErrIncludeIsADirectory,
+                        format!(
+                            "include target is a directory, not a file: {}",
+                            candidate.display()
+                        ),
+                    ),
+                    crate::diagnostics::FilesystemErrorClass::FilesystemLoop => (
+                        DiagnosticCode::ErrIncludeFilesystemLoop,
+                        format!(
+                            "include path is a filesystem symlink loop: {}",
+                            candidate.display()
+                        ),
+                    ),
+                    crate::diagnostics::FilesystemErrorClass::PermissionDenied => (
+                        DiagnosticCode::ErrIncludePermissionDenied,
+                        format!(
+                            "permission denied resolving include: {}",
+                            candidate.display()
+                        ),
+                    ),
+                    _ => (
+                        DiagnosticCode::ErrIncludeNotFound,
+                        format!("include file not found: {}", candidate.display()),
+                    ),
+                };
+            Err(IncludeError::new(code, message, stack.to_vec())
+                .with_source(error)
+                .into())
         }
     }
 }
@@ -333,6 +374,84 @@ mod tests {
         match error {
             ComposeError::Include(error) => {
                 assert_eq!(error.code(), DiagnosticCode::ErrIncludeNotFound);
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[test]
+    fn directory_include_target_reports_is_a_directory() {
+        let root = temp_root("include_directory_target");
+        write_file(&root.join("root.md.j2"), "@<partials>\n");
+        fs::create_dir(root.join("partials")).unwrap();
+
+        let error = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap_err();
+
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludeIsADirectory);
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn permission_denied_include_reports_permission_denied() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = temp_root("include_permission_denied");
+        let restricted = root.join("restricted.md");
+        write_file(&root.join("root.md.j2"), "@<restricted.md>\n");
+        write_file(&restricted, "secret\n");
+        let mut permissions = fs::metadata(&restricted).unwrap().permissions();
+        permissions.set_mode(0o000);
+        fs::set_permissions(&restricted, permissions).unwrap();
+
+        let error = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap_err();
+
+        let mut restore = fs::metadata(&restricted).unwrap().permissions();
+        restore.set_mode(0o600);
+        fs::set_permissions(&restricted, restore).unwrap();
+
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludePermissionDenied);
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlink_loop_include_reports_filesystem_loop() {
+        use std::os::unix::fs::symlink;
+
+        let root = temp_root("include_filesystem_loop");
+        write_file(&root.join("root.md.j2"), "@<loop-a.md>\n");
+        symlink("loop-b.md", root.join("loop-a.md")).unwrap();
+        symlink("loop-a.md", root.join("loop-b.md")).unwrap();
+
+        let error = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap_err();
+
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludeFilesystemLoop);
             }
             other => panic!("unexpected error: {other}"),
         }

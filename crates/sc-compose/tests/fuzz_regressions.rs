@@ -138,3 +138,47 @@ fn opening_delimiter_with_trailing_whitespace_does_not_silently_bypass_required_
         "stderr: {stderr}"
     );
 }
+
+/// The default text path should expose only sc-compose's stable parse message,
+/// not `serde_yaml`'s raw source-chain text. The existing formatter backtrace
+/// remains outside this narrow parser-scope fix.
+#[test]
+fn malformed_frontmatter_text_output_hides_raw_serde_yaml_error_details() {
+    let root = temp_root("fuzz-config-parse-raw-yaml");
+    write_file(&root.join("t.j2"), "---\ndefaults: [\n---\nbody\n");
+
+    let output = sc_compose()
+        .args(["render", "--file", "t.j2", "--root"])
+        .arg(&root)
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(output.status.code(), Some(3), "stderr: {stderr}");
+    assert!(
+        stderr.contains("failed to parse YAML frontmatter"),
+        "stderr: {stderr}"
+    );
+    assert!(!stderr.contains("caused by"), "stderr: {stderr}");
+}
+
+#[test]
+fn malformed_frontmatter_json_output_remains_structured_and_stable() {
+    let root = temp_root("fuzz-config-parse-json");
+    write_file(&root.join("t.j2"), "---\ndefaults: [\n---\nbody\n");
+
+    let output = sc_compose()
+        .args(["render", "--file", "t.j2", "--json", "--root"])
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_first_code(&value, "ERR_CONFIG_PARSE");
+    assert_eq!(
+        value["diagnostics"][0]["message"],
+        "failed to parse YAML frontmatter"
+    );
+}
