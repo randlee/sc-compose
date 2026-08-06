@@ -295,6 +295,22 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore = "red baseline: out-of-range JSON integers are silently converted to floats"]
+    fn out_of_range_json_integers_fail_closed() {
+        for contents in [
+            r#"{"n": -9223372036854775809}"#,
+            r#"{"n": 18446744073709551616}"#,
+        ] {
+            let error = parse_var_file_contents(contents).unwrap_err();
+            assert_eq!(
+                error.diagnostic_code,
+                Some(DiagnosticCode::ErrConfigVarfile),
+                "contents: {contents}"
+            );
+        }
+    }
+
+    #[test]
     fn decoded_json_and_yaml_objects_share_validated_conversion() {
         let json = decode_var_file(r#"{"name":"world","items":[{"id":1}],"enabled":true}"#)
             .expect("JSON object");
