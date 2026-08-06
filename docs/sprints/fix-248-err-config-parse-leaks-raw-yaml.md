@@ -156,12 +156,15 @@ without `--json`. Assert the process exits non-zero (`ErrConfigParse`'s
 exit code) and that **stderr does not contain any of `serde_yaml`'s
 internal error vocabulary** — concretely, assert stderr does NOT contain
 the substring `"caused by"` (the literal string `write_error_display`
-prepends before dumping the source chain) and does NOT contain
-`"backtrace:"`. Also assert stderr DOES contain the stable message
+prepends before dumping the source chain). The pre-existing, unconditional
+`backtrace:` block is out of scope (see "This Sprint Does NOT Change") and
+is not asserted against. Also assert stderr DOES contain the stable message
 `"failed to parse YAML frontmatter"`. **Before the fix, this test
 fails** (a normal in-process assertion failure — stderr does contain
-`"caused by"` followed by raw `serde_yaml` text and a backtrace dump; no
-crash-mode verification needed here, unlike FIX-247).
+`"caused by"` followed by raw `serde_yaml` text; no crash-mode
+verification needed here, unlike FIX-247). Note: the pre-existing,
+unconditional `backtrace:` block from `write_error_display` is out of
+scope (see "This Sprint Does NOT Change") and is not asserted against.
 
 (b) The same non-`--json` render, with `--json` added: stderr/stdout
 JSON envelope still contains the diagnostic `message` field equal to
@@ -207,8 +210,14 @@ that call site.
   and any new tests from (b)-(c).
 - A frontmatter YAML syntax error rendered without `--json` prints only
   the stable message `"failed to parse YAML frontmatter"` (plus the
-  existing recovery-hint line) on stderr — no `"caused by"` section, no
-  raw `serde_yaml`-internal text, no backtrace dump.
+  existing recovery-hint line and the pre-existing, out-of-scope
+  unconditional `backtrace:` block emitted by `write_error_display` for
+  every `ConfigError`, unchanged by this fix) on stderr — no `"caused by"`
+  section, no raw `serde_yaml`-internal text. This sprint is scoped to
+  removing the `serde_yaml` source-chain leak only; `write_error_display`'s
+  unconditional backtrace emission is pre-existing, global `ConfigError`
+  behavior explicitly out of scope for this sprint (see "This Sprint Does
+  NOT Change") and is not part of this criterion.
 - The `--json` output path is unchanged (still uses `.message()`, which
   was already clean).
 - `closing_delimiter_with_trailing_whitespace_still_fails` and all other
@@ -244,16 +253,21 @@ from another worktree.
 - Formatting and whitespace checks: PASS (`cargo fmt --all --check` and
   `git diff --check`).
 
-### Scope discrepancy requiring review
+### Scope discrepancy — resolved
 
-The sprint's original test wording also required default stderr to omit
+The sprint's original wording required default stderr to omit
 `backtrace:` while forbidding changes to `ConfigError` and
 `write_error_display`. That formatter unconditionally emits the existing
-`backtrace:` block even when no source is attached, and its existing unit
-tests lock in that behavior. The implementation therefore leaves the
-backtrace behavior unchanged and verifies the issue-specific leak: removal
-of the raw serde_yaml source chain. Team-lead should reconcile that wording
-before final issue closure.
+`backtrace:` block even when no source is attached (confirmed by direct
+inspection of `error.rs:14-31` and by executing the built CLI binary
+against both an `ErrConfigParse` and an `ErrValMissingRequired` case —
+the backtrace line appears in both, unconditionally, unrelated to this
+fix). Team-lead independently verified this and reconciled the wording:
+the Acceptance Criteria and test (a) description above have been amended
+to scope the "no leak" requirement to the `serde_yaml` source-chain text
+only, matching what was always achievable without touching the
+out-of-scope formatter. No code change was needed; this is a documentation
+correction only, re-verified by `req-qa` before final closure.
 
 ## References
 
