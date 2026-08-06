@@ -1,6 +1,6 @@
 ---
 id: FIX-273
-status: in-progress
+status: complete
 branch: fix/273-array-typed-vars-accept-scalars
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/273-array-typed-vars-accept-scalars
 target: develop
@@ -166,4 +166,22 @@ existing dotted-path validation in `required_paths.rs`:
 
 ## Closeout Evidence
 
-_(to be completed by comp before requesting QA)_
+- Red regression commit: `0b9adf6` (`test: reproduce scalar array-required
+  variable gap`). It added the new diagnostic code and the required unit and
+  CLI regressions; the string and object cases failed before the implementation
+  while the array and conservative-scope guards remained green.
+- Green implementation commit: `0207f80` (`fix: reject scalar values consumed
+  as arrays`). It scans the declaring origin for conservative bare-identifier
+  `{% for ... in variable %}` consumption and emits
+  `ERR_VAL_ARRAY_SHAPE_MISMATCH` for present non-array values, while preserving
+  dotted-path sibling precedence and cross-file scope boundaries.
+- Formatting-only follow-up: `cca8486` (`style: format array-shape CLI
+  regression`). The existing jagged-array fixture is copied into a temporary
+  CLI workspace with `rows` replaced by a scalar, and the full render path
+  returns exit code 2 with the new diagnostic.
+- The scanner also accepts Jinja's `+%}` whitespace-control marker so the
+  existing `examples/jagged-array-values.md.j2` fixture is covered without
+  weakening the bare-identifier requirement. No dependency was added.
+- Validation at `cca8486`: `cargo fmt --all --check`, `cargo test --workspace`
+  (0 failures), `cargo clippy --all-targets --all-features -- -D warnings`,
+  and `git diff --check` all passed.

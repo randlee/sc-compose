@@ -853,6 +853,20 @@ neutralized without changing ordinary text or mid-line delimiter sequences;
 the codex-orchestration sprint-plan template applies the filter to its title
 fields.
 
+### Follow-on Fix Sprint: FIX-273
+
+Status:
+
+- complete on `fix/273-array-typed-vars-accept-scalars` at `cca8486`
+
+Sprint entry:
+
+- [Sprint FIX-273 — Reject Scalar Input For Array-Only Required Variables](sprints/fix-273-array-typed-vars-accept-scalars.md)
+
+FIX-273 rejects present scalar and object values when a top-level required
+variable is consumed by a conservative bare-identifier for-loop, while
+preserving existing dotted-path validation and non-loop behavior.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:
