@@ -97,7 +97,6 @@ fn adjacent_plain_yaml_frontmatter_block_is_not_silently_consumed_as_a_second_pa
 }
 
 #[test]
-#[ignore = "FIX-244 red test; enable with the whitespace-control-marker fix"]
 fn whitespace_control_tag_markers_do_not_produce_a_phantom_dash_variable_under_strict() {
     let root = temp_root("fuzz-whitespace-control-phantom-dash");
     write_file(&root.join("t.j2"), "{%- if true %}Hi{% endif %}");
