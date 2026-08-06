@@ -288,14 +288,8 @@ fn examples_named_render_sprint_report_html_renders_browser_viewable_html() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("<!DOCTYPE html>"));
     assert!(stdout.contains("<title>HTML Sprint Report</title>"));
-    assert!(
-        stdout.contains(
-            "https:&#x2f;&#x2f;github.com&#x2f;randlee&#x2f;sc-compose&#x2f;pull&#x2f;47"
-        )
-    );
-    assert!(stdout.contains(
-        "https:&#x2f;&#x2f;github.com&#x2f;randlee&#x2f;sc-compose&#x2f;actions&#x2f;runs&#x2f;118"
-    ));
+    assert!(stdout.contains("https://github.com/randlee/sc-compose/pull/47"));
+    assert!(stdout.contains("https://github.com/randlee/sc-compose/actions/runs/118"));
     assert!(stdout.contains("Plan Doc"));
     assert!(stdout.contains("Findings Doc"));
     assert!(stdout.contains("Structured object inputs"));
@@ -356,7 +350,7 @@ fn examples_named_render_report_evidence_summary_renders_browser_viewable_html()
     assert!(stdout.contains("<!DOCTYPE html>"));
     assert!(stdout.contains("Report Evidence Summary"));
     assert!(stdout.contains("sc-lint style evidence family"));
-    assert!(stdout.contains("reports&#x2f;latest&#x2f;publish-manifest.json"));
+    assert!(stdout.contains("reports/latest/publish-manifest.json"));
 }
 
 #[test]
@@ -498,9 +492,11 @@ fn general_task_template_render_allows_overriding_optional_input_defaults() {
     );
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains(r#"assignee="architect""#));
-    let escaped_worktree_path = normalize_path_str(&worktree_path).replace('/', "&#x2f;");
-    assert!(stdout.contains(&format!("<worktree>{escaped_worktree_path}</worktree>")));
-    assert!(stdout.contains("<branch>feat&#x2f;x</branch>"));
+    assert!(stdout.contains(&format!(
+        "<worktree>{}</worktree>",
+        normalize_path_str(&worktree_path)
+    )));
+    assert!(stdout.contains("<branch>feat/x</branch>"));
     assert!(stdout.contains("<pr-target>develop</pr-target>"));
 }
 

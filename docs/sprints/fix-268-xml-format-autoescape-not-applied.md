@@ -27,8 +27,8 @@ descriptions, triage records) can currently produce malformed XML.
 
 ## Root cause (confirmed via read-only review, comp, 2026-08-06)
 
-`crates/sc-composer/src/renderer.rs` already has a working,
-extension-based auto-escape mechanism:
+`crates/sc-composer/src/renderer.rs` already has an extension-based
+auto-escape mechanism:
 
 ```rust
 fn legacy_auto_escape_callback(name: &str) -> AutoEscape {
@@ -40,16 +40,18 @@ fn legacy_auto_escape_callback(name: &str) -> AutoEscape {
         }
     }
     match name.rsplit('.').next() {
-        Some("html" | "htm" | "xml") => AutoEscape::Html,
+        Some("html" | "htm" | "xml") => AutoEscape::Custom("sc-compose-html"),
         _ => AutoEscape::None,
     }
 }
 ```
 
 This callback is wired into every `Environment` via `configure_environment`.
-It works correctly today when a template is loaded through
-`Renderer::render_named(name, ...)` with the real file name (proven by
-existing `render_named` tests using `payload.xml`, `report.html.j2`, etc.).
+The renderer's custom formatter applies the XML/HTML-required escapes while
+deliberately preserving `/` for readable paths and URLs. Templates loaded
+through `Renderer::render_named(name, ...)` therefore retain the real
+filename-aware behavior without Minijinja's stock `AutoEscape::Html` slash
+encoding.
 
 The bug: the render call sites that the CLI's default path actually uses call
 `Renderer::render(...)`, which is a thin wrapper —
@@ -91,8 +93,11 @@ path available in scope but not passed through:
 Fix via the **existing filename-extension convention**
 (`legacy_auto_escape_callback`), not by adding a new `format:` frontmatter
 field to the composer. Rationale:
-- The mechanism already exists, is already tested, and already matches this
-  project's actual template-naming convention (`*.xml.j2`, `*.html.j2`).
+- The extension mechanism already exists, is already tested, and matches this
+  project's actual template-naming convention (`*.xml.j2`, `*.html.j2`). The
+  renderer uses a small project formatter rather than stock
+  `AutoEscape::Html`, because slash encoding is not required for XML/HTML
+  well-formedness and harms readability of paths and URLs in protocol files.
 - Adding real `format:` frontmatter parsing/consumption would be a much
   larger, separately-scoped change (new frontmatter field, validation,
   precedence rules against filename, docs) that is not needed to fix the
@@ -206,9 +211,11 @@ field to the composer. Rationale:
   on render paths`) threads the resolved filename through the single-pass,
   multi-pass, and custom-delimiter render paths. It also adds XML, custom
   delimiter, HTML, non-markup, and public `render_all()` regression coverage.
-- Compatibility assertions were updated in the follow-up working-tree change
-  to reflect Minijinja HTML-mode slash escaping in existing `.html.j2` and
-  `.xml.j2` fixtures.
+- TL-VERIFY-268-001 resolution: selected direction (a). The follow-up
+  formatter fix uses the filename convention to escape `&`, `<`, `>`, `"`,
+  and `'`, but leaves `/` unchanged. Existing protocol-template assertions
+  therefore remain raw and continue to prove readable paths, branch names,
+  and URLs; no test was weakened to accept slash corruption.
 - Exact issue #268 reproduction (`repro.xml.j2` + `vars.json`) rendered to
   `out.xml`; `python3 -c "import xml.etree.ElementTree as ET; ET.parse('out.xml')"`
   passed.
