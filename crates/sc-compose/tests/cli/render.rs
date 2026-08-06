@@ -7,7 +7,7 @@ use crate::support::*;
 use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
+use std::process::{Command, Stdio};
 
 #[test]
 fn render_dry_run_does_not_create_output_file() {
@@ -1752,6 +1752,62 @@ fn render_accepts_recursive_values_in_frontmatter_defaults() {
         String::from_utf8_lossy(&output.stderr)
     );
     assert!(String::from_utf8_lossy(&output.stdout).contains("Added:frontmatter item"));
+}
+
+#[test]
+fn render_xml_control_byte_output_is_well_formed() {
+    let root = temp_root("xml-control-byte");
+    write_file(
+        &root.join("report.xml.j2"),
+        "<root><title>{{ value }}</title></root>\n",
+    );
+    write_file(&root.join("vars.json"), "{\"value\": \"\\u0000\"}\n");
+    let output_path = root.join("rendered.xml");
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("report.xml.j2")
+        .arg("--var-file")
+        .arg(root.join("vars.json"))
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let rendered = fs::read_to_string(&output_path).unwrap();
+    assert!(rendered.contains("&#xfffd;"), "rendered XML: {rendered}");
+
+    let python_code = "import sys, xml.etree.ElementTree as ET; ET.fromstring(sys.argv[1])";
+    let python = if Command::new("python3")
+        .arg("--version")
+        .output()
+        .map(|probe| probe.status.success())
+        .unwrap_or(false)
+    {
+        "python3"
+    } else {
+        "python"
+    };
+    let parsed = Command::new(python)
+        .arg("-c")
+        .arg(python_code)
+        .arg(&rendered)
+        .output()
+        .unwrap();
+    assert!(
+        parsed.status.success(),
+        "Python XML parse failed: {}\nXML: {rendered}",
+        String::from_utf8_lossy(&parsed.stderr)
+    );
 }
 
 #[test]

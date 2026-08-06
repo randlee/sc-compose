@@ -1984,8 +1984,11 @@ Architectural boundaries:
 - H3 keeps the bundled example as a single flat file
   `examples/sprint-report-html.html.j2`,
 - directory-based example layout is deferred beyond H4,
-- `sc-compose` does not enable MiniJinja auto-escaping for `.html.j2`
-  templates; the bundled example documentation must call this out explicitly,
+- filename-aware `AutoEscape::Custom("sc-compose-html")` applies to
+  `.html.j2`, `.htm.j2`, `.xml.j2`, and `.xhtml.j2` templates. The shared
+  formatter escapes markup and represents XML-illegal control bytes with the
+  legal replacement-character NCR `&#xfffd;`; see
+  [FR-14 and its FIX-278 clarification](requirements.md#fr-14-html-template-output),
 - wrapper tooling such as `/sprint-report` owns open/display behavior and is
   documented in [`.claude/skills/sprint-report/SKILL.md`](../.claude/skills/sprint-report/SKILL.md),
 - the wrapper-owned orchestration flow is:

@@ -823,6 +823,20 @@ subscripts/slices, binary operator fragments, Jinja filter names, and simple
 `{% set %}` locals while preserving real filter-argument references and
 loop-context diagnostics outside active loops.
 
+### Follow-on Fix Sprint: FIX-278
+
+Status:
+
+- complete on `fix/278-control-chars-survive-escape-filter` at `388c6d8`
+
+Sprint entry:
+
+- [Sprint FIX-278 — XML Control Character Escaping](sprints/fix-278-control-chars-survive-escape-filter.md)
+
+FIX-278 makes the shared HTML/XML/XHTML escaping formatter XML-character-safe
+for forbidden C0 controls, adds the opt-in `xml_char_safe` filter, and covers
+the XHTML filename dispatch alongside explicit and implicit escaping paths.
+
 ### Follow-on Fix Sprint: FIX-274
 
 Status:
@@ -1292,8 +1306,8 @@ Deliverables:
 - H3a adds:
   - at least one integration test verifying
     `sprint-report-html.html.j2 -> sprint-report-html.html`
-  - an explicit safety note that `.html.j2` templates do not use automatic
-    escaping
+  - an explicit safety note describing filename-aware automatic escaping and
+    limiting `| safe` to trusted, pre-rendered HTML fragments
 - H3b (FR-15 content): bundled example at
   `examples/sprint-report-html.html.j2`
 - H3b keeps all template content inline in a single flat file; no `_includes/`
