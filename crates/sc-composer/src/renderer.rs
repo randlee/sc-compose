@@ -624,7 +624,7 @@ mod tests {
 
         assert_eq!(standalone_frontmatter_delimiter_count(&rendered), 2);
         assert!(rendered.contains("malicious: true"));
-        assert!(rendered.contains(r"\-\-\-"));
+        assert!(rendered.contains(r#"\\-\\-\\-"#));
     }
 
     #[test]
@@ -637,7 +637,7 @@ mod tests {
 
         assert_eq!(standalone_frontmatter_delimiter_count(&rendered), 2);
         assert!(rendered.contains("malicious: true"));
-        assert!(rendered.contains(r"\-\-\-"));
+        assert!(rendered.contains(r#"\\-\\-\\-"#));
     }
 
     #[test]
