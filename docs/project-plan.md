@@ -795,7 +795,8 @@ plan-hardening CDATA fields now opt into safe CDATA splitting.
 
 Status:
 
-- complete on `fix/270-dict-get-method-unsupported` at `619078a`
+- complete on `fix/270-dict-get-method-unsupported` at `c138409` (squash-merged
+  via PR #281 to `develop`)
 
 Sprint entry:
 
@@ -810,7 +811,8 @@ unknown-method behavior.
 
 Status:
 
-- complete on `fix/242-undeclared-token-false-positives` at `d3e2c04`
+- complete on `fix/242-undeclared-token-false-positives` at `eed3369`
+  (squash-merged via PR #282 to `develop` at `8992ad0`)
 
 Sprint entry:
 
