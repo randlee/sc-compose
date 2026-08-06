@@ -716,6 +716,20 @@ template resolution boundaries, while preserving existing invalid-data,
 confinement, and not-found behavior. The follow-up also centralizes the
 filesystem classification and makes directory-target handling independent of
 Windows `io::ErrorKind` mappings.
+### Follow-on Fix Sprint: FIX-248
+
+Status:
+
+- complete on `fix/248-err-config-parse-leaks-raw-yaml` at `c65ba50`
+
+Sprint entry:
+
+- [Sprint FIX-248 — ERR_CONFIG_PARSE Raw YAML Leak](sprints/fix-248-err-config-parse-leaks-raw-yaml.md)
+
+FIX-248 removes the raw `serde_yaml` source attachment from frontmatter
+syntax errors on the CLI text path while preserving the stable diagnostic
+message, recovery hint, JSON envelope, and all other configuration-error
+source handling.
 
 ### Standalone Repowise Cleanup: Render Request Module Split
 
