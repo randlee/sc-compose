@@ -379,6 +379,39 @@ mod tests {
     }
 
     #[test]
+    fn out_of_range_json_integer_scanner_ignores_quoted_digit_runs() {
+        assert_eq!(
+            find_out_of_range_json_integer(
+                r#"{"text":"-9223372036854775809 and 18446744073709551616"}"#
+            ),
+            None
+        );
+        assert_eq!(
+            find_out_of_range_json_integer(r#"{"n":18446744073709551616}"#),
+            Some("18446744073709551616".to_owned())
+        );
+    }
+
+    #[test]
+    fn integer_visitor_methods_narrow_in_range_and_reject_out_of_range() {
+        let minimum = DuplicateAwareValueVisitor
+            .visit_i128::<serde_json::Error>(i128::from(i64::MIN))
+            .expect("i64 minimum");
+        assert_eq!(minimum, serde_json::json!(i64::MIN));
+        DuplicateAwareValueVisitor
+            .visit_i128::<serde_json::Error>(i128::from(i64::MIN) - 1)
+            .unwrap_err();
+
+        let maximum = DuplicateAwareValueVisitor
+            .visit_u128::<serde_json::Error>(u128::from(u64::MAX))
+            .expect("u64 maximum");
+        assert_eq!(maximum, serde_json::json!(u64::MAX));
+        DuplicateAwareValueVisitor
+            .visit_u128::<serde_json::Error>(u128::from(u64::MAX) + 1)
+            .unwrap_err();
+    }
+
+    #[test]
     fn in_range_json_integer_boundaries_remain_exact() {
         let minimum = parse_var_file_contents(r#"{"n": -9223372036854775808}"#).unwrap();
         let maximum = parse_var_file_contents(r#"{"n": 18446744073709551615}"#).unwrap();
@@ -643,6 +676,11 @@ impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
         Ok(serde_json::Value::Number(v.into()))
     }
 
+    /// Defense-in-depth callbacks for a `serde_json` dispatch path that is
+    /// currently unreachable with the workspace's default configuration.
+    /// The lexical `find_out_of_range_json_integer` scan is the primary and
+    /// currently effective enforcement gate; these callbacks preserve the
+    /// same narrowing contract if arbitrary-precision dispatch is enabled.
     fn visit_i128<E>(self, v: i128) -> Result<Self::Value, E>
     where
         E: DeError,

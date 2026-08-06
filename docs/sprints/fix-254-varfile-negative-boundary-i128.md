@@ -212,6 +212,13 @@ Status: **complete**.
   literals with `ErrConfigVarfile` without changing serde_json/minijinja's
   normal number representation. `b37d017` contains the final lint-only
   cleanup.
+- Reverted experiment: `7c88aed` enabled serde_json `arbitrary_precision`,
+  but full-workspace validation exposed internal number-marker objects in
+  minijinja output; `690b85d` reverted that approach.
+- QA follow-up: the retained i128/u128 visitor callbacks are documented as
+  defense-in-depth for a currently unreachable serde_json dispatch path. The
+  lexical scanner remains the primary enforcement gate, with direct tests for
+  quoted digit runs and visitor narrowing/error behavior.
 - Full validation at the final branch state: `cargo test --workspace`,
   `cargo clippy --all-targets --all-features -- -D warnings`,
   `cargo fmt --all --check`, and `git diff --check`: PASS.
