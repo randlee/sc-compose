@@ -29,10 +29,22 @@ pub(super) fn required_path_diagnostics(state: &ValidationState) -> Vec<Diagnost
             .get(variable)
             .cloned()
             .unwrap_or_default();
-        match validate_required_path(&state.context, variable) {
+        let status = validate_required_path(&state.context, variable);
+        let should_report_array_shape = matches!(&status, RequiredPathStatus::Satisfied)
+            && !variable.as_str().contains('.')
+            && !has_dotted_required_sibling(state, variable)
+            && state.context.get(variable).is_some_and(|value| {
+                !value.is_array() && required_variable_uses_bare_for_loop(origin, variable.as_str())
+            });
+
+        match status {
             RequiredPathStatus::Satisfied => {}
             RequiredPathStatus::MissingTopLevel => {
-                diagnostics.push(missing_required_diagnostic(origin, variable, include_chain));
+                diagnostics.push(missing_required_diagnostic(
+                    origin,
+                    variable,
+                    include_chain.clone(),
+                ));
             }
             RequiredPathStatus::MissingNested { missing_path } => {
                 diagnostics.push(required_path_diagnostic(
@@ -40,7 +52,7 @@ pub(super) fn required_path_diagnostics(state: &ValidationState) -> Vec<Diagnost
                     origin,
                     variable,
                     format!("missing required nested field: {missing_path}"),
-                    include_chain,
+                    include_chain.clone(),
                 ));
             }
             RequiredPathStatus::ShapeMismatch { at_path } => {
@@ -51,13 +63,95 @@ pub(super) fn required_path_diagnostics(state: &ValidationState) -> Vec<Diagnost
                     format!(
                         "required nested field path {variable} expected an object at {at_path}"
                     ),
-                    include_chain,
+                    include_chain.clone(),
                 ));
             }
+        }
+
+        if should_report_array_shape {
+            let value = state
+                .context
+                .get(variable)
+                .expect("array-shape check requires a present context value");
+            diagnostics.push(required_path_diagnostic(
+                DiagnosticCode::ErrValArrayShapeMismatch,
+                origin,
+                variable,
+                format!(
+                    "required variable {variable} is consumed as a list via `{{% for %}}` but received {}",
+                    json_type_name(value)
+                ),
+                include_chain,
+            ));
         }
     }
 
     diagnostics
+}
+
+fn has_dotted_required_sibling(state: &ValidationState, variable: &VariableName) -> bool {
+    let prefix = format!("{}.", variable.as_str());
+    state
+        .required_origins
+        .keys()
+        .any(|candidate| candidate.as_str().starts_with(&prefix))
+}
+
+fn json_type_name(value: &serde_json::Value) -> &'static str {
+    match value {
+        serde_json::Value::Null => "null",
+        serde_json::Value::Bool(_) => "boolean",
+        serde_json::Value::Number(_) => "number",
+        serde_json::Value::String(_) => "string",
+        serde_json::Value::Array(_) => "array",
+        serde_json::Value::Object(_) => "object",
+    }
+}
+
+fn required_variable_uses_bare_for_loop(origin: &Path, variable: &str) -> bool {
+    let Ok(source) = std::fs::read_to_string(origin) else {
+        return false;
+    };
+
+    let mut search_start = 0;
+    while let Some(open_offset) = source[search_start..].find("{%") {
+        let open = search_start + open_offset;
+        let statement_start = open + 2;
+        let Some(close_offset) = source[statement_start..].find("%}") else {
+            break;
+        };
+        let close = statement_start + close_offset;
+        let mut statement = source[statement_start..close].trim();
+        if let Some(stripped) = statement.strip_prefix('-') {
+            statement = stripped.trim_start();
+        }
+        if statement.ends_with('-') || statement.ends_with('+') {
+            statement = statement[..statement.len() - 1].trim_end();
+        }
+
+        let tokens = statement.split_whitespace().collect::<Vec<_>>();
+        let Some(in_index) = tokens.iter().position(|token| *token == "in") else {
+            search_start = close + 2;
+            continue;
+        };
+        if tokens.first() == Some(&"for")
+            && in_index >= 2
+            && in_index + 2 == tokens.len()
+            && tokens[in_index + 1] == variable
+            && is_bare_identifier(tokens[in_index + 1])
+        {
+            return true;
+        }
+        search_start = close + 2;
+    }
+
+    false
+}
+
+fn is_bare_identifier(value: &str) -> bool {
+    let mut characters = value.chars();
+    matches!(characters.next(), Some(first) if first.is_ascii_alphabetic() || first == '_')
+        && characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
 }
 
 fn missing_required_diagnostic(
