@@ -111,7 +111,7 @@ fn decode_var_file(contents: &str) -> Result<DecodedVarObject, VarFileDecodeErro
     decode_yaml_object(value)
 }
 
-/// Find integer literals that serde_json's default number representation cannot
+/// Find integer literals that `serde_json`'s default number representation cannot
 /// preserve without narrowing them to a lossy floating-point value.
 fn find_out_of_range_json_integer(contents: &str) -> Option<String> {
     let bytes = contents.as_bytes();
@@ -159,12 +159,12 @@ fn find_out_of_range_json_integer(contents: &str) -> Option<String> {
 
         if token.starts_with('-') {
             match token.parse::<i128>() {
-                Ok(value) if value >= i64::MIN as i128 => {}
+                Ok(value) if value >= i128::from(i64::MIN) => {}
                 _ => return Some(token.to_owned()),
             }
         } else {
             match token.parse::<u128>() {
-                Ok(value) if value <= u64::MAX as u128 => {}
+                Ok(value) if value <= u128::from(u64::MAX) => {}
                 _ => return Some(token.to_owned()),
             }
         }
@@ -649,7 +649,7 @@ impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
     {
         i64::try_from(v)
             .map(|v| serde_json::Value::Number(v.into()))
-            .map_err(|_| {
+            .map_err(|_error| {
                 E::custom(format!(
                     "integer {v} is outside the representable range ({}..={})",
                     i64::MIN,
@@ -664,7 +664,7 @@ impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
     {
         u64::try_from(v)
             .map(|v| serde_json::Value::Number(v.into()))
-            .map_err(|_| {
+            .map_err(|_error| {
                 E::custom(format!(
                     "integer {v} is outside the representable range ({}..={})",
                     i64::MIN,
