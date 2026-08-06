@@ -88,7 +88,7 @@ fn md_table_safe_filter(value: &str) -> String {
         .map(|character| match character {
             '|' => "\\|".to_owned(),
             '\n' | '\r' => " ".to_owned(),
-            _ => return character.to_string(),
+            _ => character.to_string(),
         })
         .collect()
 }
