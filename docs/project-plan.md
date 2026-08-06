@@ -839,6 +839,20 @@ neutralized without changing ordinary text or mid-line delimiter sequences;
 the codex-orchestration sprint-plan template applies the filter to its title
 fields.
 
+### Follow-on Fix Sprint: FIX-277
+
+Status:
+
+- complete on `fix/277-bytes-written-off-by-one` at `07e4ca0`
+
+Sprint entry:
+
+- [Sprint FIX-277 — `bytes_written` Off-By-One](sprints/fix-277-bytes-written-off-by-one.md)
+
+FIX-277 corrects JSON stdout render metadata to include the trailing newline
+emitted by the equivalent plain-mode stdout path. File output and dry-run
+metadata remain unchanged.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:

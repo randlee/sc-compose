@@ -1,6 +1,6 @@
 ---
 id: FIX-277
-status: in_progress
+status: complete
 branch: fix/277-bytes-written-off-by-one
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/277-bytes-written-off-by-one
 target: develop
@@ -131,3 +131,24 @@ JSON envelope's bytes.
 - `crates/sc-compose/tests/json_cli/render.rs` (lines 81, 520)
 - Fuzz round 2 report, 2026-08-06 (adversarial fuzzing of `sc-compose`
   against production templates in `atm-core`)
+
+## Closeout Evidence
+
+- Red regression tests and the bundled FIX270-QA-003 citation correction were
+  committed and pushed at `31b7cba` (`test: reproduce stdout bytes-written
+  off-by-one`). The red tests demonstrated the old one-byte-short metadata
+  for JSON stdout renders.
+- The implementation was committed and pushed at `07e4ca0` (`fix: include
+  stdout newline in byte count`). Only the non-dry-run stdout branch now adds
+  one byte for the `println!` trailing newline.
+- Focused validation passed: JSON stdout `body.len() + 1`, plain-vs-JSON
+  stdout byte parity, and the unchanged `--output` file-byte regression.
+- Full validation passed: `cargo test --workspace`, `cargo fmt --all --check`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, and
+  `git diff --check`.
+- The `--output <file>` branch remains metadata-derived from the file size and
+  was not changed. The dry-run branch still reports no `bytes_written` field
+  and was covered by the existing workspace tests.
+- Bundled FIX270-QA-003 is a one-line documentation correction: the FIX-270
+  closeout citation in `docs/project-plan.md` now references `6e61f7c`.
+- No dependency was added.
