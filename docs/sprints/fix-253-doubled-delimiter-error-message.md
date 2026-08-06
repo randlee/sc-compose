@@ -1,7 +1,7 @@
 ---
 id: FIX-253
 title: "Fix doubled message text when empty custom variable delimiters are rejected"
-status: assigned
+status: complete
 branch: fix/253-doubled-delimiter-error-message
 worktree: ../sc-compose-worktrees/fix/253-doubled-delimiter-error-message
 target: develop
@@ -237,6 +237,29 @@ special crash-detection verification mode is needed here.
 - `cargo fmt --all --check` and
   `cargo clippy --all-targets --all-features -- -D warnings` clean.
 - GitHub issue #253 can be closed referencing the merged PR.
+
+## Closeout Evidence
+
+Status: **complete**.
+
+- Red baseline: `a886a52` (`test: reproduce doubled delimiter error message`).
+  The fresh regression reproduced two occurrences of `invalid custom
+  delimiters` before the display fix.
+- Green implementation: `1c47392` (`fix: avoid duplicated render error text`).
+  `RenderError` now leaves source detail to the error chain, while the CLI
+  regression and non-delimiter coverage preserve useful diagnostics.
+- Follow-up stale-test corrections: `fda87e8`, `e12e0f4`, and `be71ec1`.
+  These update pre-existing tests to inspect `source()` rather than expecting
+  source detail in bare `Display`; no production logic changed in them.
+- Formatting-only follow-up: `3e203a8`.
+- Full validation at the final branch state: `cargo test --workspace`,
+  `cargo clippy --all-targets --all-features -- -D warnings`,
+  `cargo fmt --all --check`, and `git diff --check`: PASS.
+
+The sprint plan's claim that the existing renderer test was unaffected was
+incorrect; its assertion depended on the old plain-display behavior and was
+updated to follow the source chain. All regression tests were created or
+corrected on this branch with verifiable local provenance.
 
 ## References
 
