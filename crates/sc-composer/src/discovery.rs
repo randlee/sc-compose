@@ -83,27 +83,14 @@ pub fn discover_tokens_with_delimiters(
 
 /// Return whether `text` contains a bare-identifier loop over `variable`.
 pub(crate) fn has_bare_for_loop_over(text: &str, variable: &str) -> bool {
-    let mut tokens = BTreeSet::new();
-    let mut scopes = vec![LoopScope::default()];
     let expression_delimiters = ExpressionDelimiters::with_delimiters("{{", "}}");
     let mut found = false;
     walk_template(text, &expression_delimiters, |delimiter, expression| {
-        if matches!(delimiter, Delimiter::Statement) {
-            if let Some(loop_scope) = parse_for_loop_scope(expression, &scopes, &mut tokens) {
-                if loop_scope.iterable == variable && is_bare_identifier(&loop_scope.iterable) {
-                    found = true;
-                    return true;
-                }
-                scopes.push(loop_scope.scope);
-            } else if expression.starts_with("endfor") {
-                if scopes.len() > 1 {
-                    scopes.pop();
-                }
-            } else if let Some(name) = parse_set_scope(expression, &scopes, &mut tokens) {
-                scopes[0].bound_names.insert(name);
-            } else {
-                collect_identifiers(expression, &scopes, &mut tokens);
-            }
+        if matches!(delimiter, Delimiter::Statement)
+            && parse_bare_for_loop_over(expression, variable)
+        {
+            found = true;
+            return true;
         }
         false
     });
@@ -253,13 +240,22 @@ fn parse_for_loop_scope(
         .collect();
     Some(ParsedForLoop {
         scope: LoopScope { bound_names },
-        iterable: iterable.trim().to_owned(),
     })
 }
 
 struct ParsedForLoop {
     scope: LoopScope,
-    iterable: String,
+}
+
+fn parse_bare_for_loop_over(expression: &str, variable: &str) -> bool {
+    let Some(remainder) = expression.strip_prefix("for ") else {
+        return false;
+    };
+    let Some((_binding, iterable)) = remainder.split_once(" in ") else {
+        return false;
+    };
+    let iterable = iterable.trim();
+    iterable == variable && is_bare_identifier(iterable)
 }
 
 fn is_bare_identifier(value: &str) -> bool {
@@ -436,6 +432,44 @@ mod tests {
             [crate::VariableName::new("items").unwrap()].into()
         );
         assert!(has_bare_for_loop_over(template, "items"));
+    }
+
+    #[test]
+    fn bare_for_loop_detection_matches_the_contract_matrix() {
+        let cases = [
+            (
+                "simple bare loop",
+                "{% for item in items %}{{ item }}{% endfor %}",
+                "items",
+                true,
+            ),
+            (
+                "nested bare loop",
+                "{% for group in groups %}{% for item in items %}{{ item }}{% endfor %}{% endfor %}",
+                "items",
+                true,
+            ),
+            (
+                "filtered loop",
+                "{% for item in items|sort %}{{ item }}{% endfor %}",
+                "items",
+                false,
+            ),
+            (
+                "no loop",
+                "{% if items %}{{ items }}{% endif %}",
+                "items",
+                false,
+            ),
+        ];
+
+        for (description, template, variable, expected) in cases {
+            assert_eq!(
+                has_bare_for_loop_over(template, variable),
+                expected,
+                "unexpected result for {description}"
+            );
+        }
     }
 
     #[test]

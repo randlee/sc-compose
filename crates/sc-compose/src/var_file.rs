@@ -196,7 +196,6 @@ fn find_yaml_merge_key(contents: &str) -> Option<(usize, usize)> {
     None
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
 struct YamlLineScan {
     merge_key: Option<usize>,
     block_scalar: bool,
