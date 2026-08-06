@@ -248,6 +248,64 @@ fn render_non_markup_template_keeps_interpolated_special_characters_raw() {
 }
 
 #[test]
+fn render_sprint_plan_yaml_safe_cli_regression() {
+    let root = temp_root("sprint-plan-yaml-safe");
+    let template = fs::read_to_string(
+        repo_root().join(".claude/skills/codex-orchestration/sprint-plan.md.j2"),
+    )
+    .unwrap();
+    write_file(&root.join("sprint-plan.md.j2"), &template);
+    write_file(
+        &root.join("vars.json"),
+        serde_json::json!({
+            "id": "FIX-276",
+            "title": "Architecture: plan",
+            "status": "planned",
+            "branch": "fix/276-yaml-colon-space-unescaped",
+            "worktree": "/tmp/sc-compose",
+            "target": "develop"
+        })
+        .to_string()
+        .as_str(),
+    );
+
+    let output_path = root.join("rendered.md");
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "sprint-plan.md.j2",
+            "--var-file",
+            root.join("vars.json").to_str().unwrap(),
+            "--output",
+            output_path.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let rendered = fs::read_to_string(output_path).unwrap();
+    let start = rendered
+        .find("---\nid:")
+        .expect("rendered sprint plan must contain generated frontmatter")
+        + 4;
+    let body = &rendered[start..];
+    let end = body
+        .find("\n---\n")
+        .expect("generated sprint plan frontmatter must close");
+    let frontmatter: serde_yaml::Value = serde_yaml::from_str(&body[..end]).unwrap();
+    assert_eq!(frontmatter["title"], "Architecture: plan");
+}
+
+#[test]
 fn render_uses_json_var_file_inputs() {
     let root = temp_root("var-file-json");
     write_file(&root.join("template.md.j2"), "hello {{ name }}\n");

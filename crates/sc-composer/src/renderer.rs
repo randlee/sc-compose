@@ -724,6 +724,122 @@ mod tests {
         assert_eq!(output, expected);
     }
 
+    fn sprint_plan_body() -> &'static str {
+        let source = include_str!("../../../.claude/skills/codex-orchestration/sprint-plan.md.j2");
+        source
+            .strip_prefix("---\n")
+            .and_then(|source| source.split_once("\n---\n"))
+            .map(|(_, body)| body)
+            .expect("sprint-plan template must have declaration frontmatter")
+    }
+
+    fn sprint_plan_context(title: &str) -> serde_json::Value {
+        json!({
+            "id": "1.2",
+            "title": title,
+            "status": "planned",
+            "branch": "main",
+            "worktree": "/tmp/sc-compose",
+            "target": "develop",
+        })
+    }
+
+    fn generated_sprint_plan_frontmatter(rendered: &str) -> &str {
+        let start = rendered
+            .find("---\nid:")
+            .expect("rendered sprint plan must contain generated frontmatter")
+            + 4;
+        let body = &rendered[start..];
+        let end = body
+            .find("\n---\n")
+            .expect("generated sprint plan frontmatter must close");
+        &body[..end]
+    }
+
+    #[test]
+    fn yaml_safe_quotes_colon_space_and_round_trips_yaml() {
+        let renderer = Renderer::new();
+        let original = "ADR-001: with colon";
+        let output = renderer
+            .render("{{ value | yaml_safe }}", json!({"value": original}))
+            .unwrap();
+
+        assert_eq!(output, r#""ADR-001: with colon""#);
+        let parsed: String = serde_yaml::from_str(&output).unwrap();
+        assert_eq!(parsed, original);
+    }
+
+    #[test]
+    fn yaml_safe_escapes_backslash_before_quote() {
+        let renderer = Renderer::new();
+        let original = r#"backslash \ and "quote""#;
+        let output = renderer
+            .render("{{ value | yaml_safe }}", json!({"value": original}))
+            .unwrap();
+
+        assert_eq!(output, r#""backslash \\ and \"quote\"""#);
+        let parsed: String = serde_yaml::from_str(&output).unwrap();
+        assert_eq!(parsed, original);
+    }
+
+    #[test]
+    fn yaml_safe_uses_literal_control_character_escapes() {
+        let renderer = Renderer::new();
+        let original = "line\nnext\tcolumn\r";
+        let output = renderer
+            .render("{{ value | yaml_safe }}", json!({"value": original}))
+            .unwrap();
+
+        assert_eq!(output, r#""line\nnext\tcolumn\r""#);
+        assert!(!output[1..output.len() - 1].contains('\n'));
+        let parsed: String = serde_yaml::from_str(&output).unwrap();
+        assert_eq!(parsed, original);
+    }
+
+    #[test]
+    fn yaml_safe_round_trips_ordinary_text_unchanged() {
+        let renderer = Renderer::new();
+        let original = "ordinary text with punctuation";
+        let output = renderer
+            .render("{{ value | yaml_safe }}", json!({"value": original}))
+            .unwrap();
+
+        let parsed: String = serde_yaml::from_str(&output).unwrap();
+        assert_eq!(parsed, original);
+    }
+
+    #[test]
+    fn frontmatter_safe_then_yaml_safe_handles_both_injection_shapes() {
+        let renderer = Renderer::new();
+        let original = "before: value\n---\nmalicious: true";
+        let output = renderer
+            .render(
+                "{{ value | frontmatter_safe | yaml_safe }}",
+                json!({"value": original}),
+            )
+            .unwrap();
+
+        let parsed: String = serde_yaml::from_str(&output).unwrap();
+        assert_eq!(parsed, "before: value\n\\-\\-\\-\nmalicious: true");
+    }
+
+    #[test]
+    fn real_sprint_plan_template_round_trips_yaml_frontmatter() {
+        let title = "Architecture: plan";
+        let rendered = Renderer::new()
+            .render_named(
+                "sprint-plan.md.j2",
+                sprint_plan_body(),
+                sprint_plan_context(title),
+            )
+            .unwrap();
+
+        let frontmatter: serde_yaml::Value =
+            serde_yaml::from_str(generated_sprint_plan_frontmatter(&rendered)).unwrap();
+        assert_eq!(frontmatter["title"], title);
+        assert_eq!(frontmatter["worktree"], "/tmp/sc-compose");
+    }
+
     #[test]
     fn renderer_supports_issue_270_dict_get_with_default() {
         let renderer = Renderer::new();
