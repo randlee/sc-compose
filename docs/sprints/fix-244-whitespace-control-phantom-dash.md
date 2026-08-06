@@ -20,41 +20,50 @@ merged to `develop`).
 
 ## Root Cause
 
-Ground-truth confirmed directly in `crates/sc-composer/src/validation.rs`
-on `develop@8d0ef48` (not `discovery.rs` — that file does not exist in this
-repo; the token scanner lives in `validation.rs`).
+**Correction (superseding the file path originally stated below in this
+doc's first revision):** ground-truth confirmed directly in
+`crates/sc-composer/src/discovery.rs` on `develop@8d0ef48` — this is the
+real location of the scanner on `develop`. `validation.rs` as a single file
+does not exist there (it was split into a `validation/` module directory
+at some point after this sprint doc's author last checked out `develop`
+into a stale secondary checkout); `discover_tokens`/`collect_identifiers`
+live in `discovery.rs`. Thanks to comp for independently catching this
+mismatch before making any scope changes.
 
-`discover_tokens` (validation.rs:646) walks the template text for `{{ ... }}`
-and `{% ... %}` pairs:
+`discover_tokens_with_delimiters` (discovery.rs:49) walks the template text
+for `{{ ... }}` (or custom-delimiter equivalents, since FIX-246) and
+`{% ... %}` pairs:
 
 ```rust
 let after_start = &cursor[start + start_delimiter.len()..];
-let Some(end) = after_start.find(end_delimiter) else {
-    break;
+let end = match delimiter {
+    Delimiter::Expression => find_expression_close(after_start, end_delimiter),
+    Delimiter::Statement => after_start.find(end_delimiter),
 };
+let Some(end) = end else { break };
 let expression = after_start[..end].trim();
 ```
 
-It slices the raw content strictly between the two fixed 2-byte delimiters
-(`"{{"`/`"}}"` or `"{%"`/`"%}"`) and only then trims whitespace. It never
-strips Jinja's whitespace-control markers (`-` immediately adjacent to a
-delimiter, e.g. `{%-`, `-%}`, `{{-`, `-}}`) before that trim.
+(discovery.rs:74-80). It slices the raw content strictly between the two
+delimiters and only then trims whitespace. It never strips Jinja's
+whitespace-control markers (`-` immediately adjacent to a delimiter, e.g.
+`{%-`, `-%}`, `{{-`, `-}}`) before that trim.
 
 For input `{%- if true %}`:
 - `after_start` = `"- if true %}..."`
 - `expression` = `"- if true".trim()` = `"- if true"`
 
 This is not a `for` loop and not `endfor`, so it falls through to
-`collect_identifiers("- if true", ...)` (validation.rs:726). That function
-splits the expression on any character that is *not*
-`is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.')`
-(validation.rs:759-760). Since `-` is itself in the *allowed* set, splitting
+`collect_identifiers("- if true", ...)` (discovery.rs:208). That function
+masks quoted literals, then splits the expression on any character that is
+*not* `is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.')`
+(discovery.rs:242-244). Since `-` is itself in the *allowed* set, splitting
 on the space between `-` and `if` yields tokens `["-", "if", "true"]`. `"-"`
-is not a keyword, not a bound loop name, and `VariableName::new("-")`
-succeeds (validation.rs's sibling `VariableName::new` in `types.rs:159-178`
-accepts any non-empty string composed of `[A-Za-z0-9_.-]`, including a bare
-`-`) — so `"-"` is inserted into `tokens` as a phantom referenced variable,
-which then fails `--strict` as undeclared.
+is not a keyword, not a bound loop name, not a loop-context name, and
+`VariableName::new("-")` succeeds (`types.rs:142-154` — unchanged, still a
+single file — accepts any non-empty string composed of `[A-Za-z0-9_.-]`,
+including a bare `-`) — so `"-"` is inserted into `tokens` as a phantom
+referenced variable, which then fails `--strict` as undeclared.
 
 **`-` must stay in `collect_identifiers`'s allowed character set.** The
 project's `VariableName` intentionally supports kebab-case variable names
@@ -67,14 +76,16 @@ pairs.
 
 ## Exact Target
 
-`crates/sc-composer/src/validation.rs::discover_tokens` (around
-validation.rs:661-665), where `expression` is currently computed as:
+`crates/sc-composer/src/discovery.rs::discover_tokens_with_delimiters`
+(around discovery.rs:74-80), where `expression` is currently computed as:
 
 ```rust
 let after_start = &cursor[start + start_delimiter.len()..];
-let Some(end) = after_start.find(end_delimiter) else {
-    break;
+let end = match delimiter {
+    Delimiter::Expression => find_expression_close(after_start, end_delimiter),
+    Delimiter::Statement => after_start.find(end_delimiter),
 };
+let Some(end) = end else { break };
 let expression = after_start[..end].trim();
 ```
 
@@ -85,9 +96,11 @@ content **before** trimming:
 
 ```rust
 let after_start = &cursor[start + start_delimiter.len()..];
-let Some(end) = after_start.find(end_delimiter) else {
-    break;
+let end = match delimiter {
+    Delimiter::Expression => find_expression_close(after_start, end_delimiter),
+    Delimiter::Statement => after_start.find(end_delimiter),
 };
+let Some(end) = end else { break };
 let raw_content = &after_start[..end];
 let without_markers = raw_content
     .strip_prefix('-')
@@ -111,9 +124,11 @@ fix at that shared computation site covers both delimiter kinds.
 ## This Sprint Does NOT Change
 
 - `collect_identifiers`'s allowed character set (`-` stays allowed) — do
-  not touch validation.rs:759-760.
+  not touch discovery.rs:242-244.
 - `VariableName::new`'s accepted character set in `types.rs` — do not
   touch.
+- `mask_quoted_literals` / `is_loop_context_name` behavior — unrelated to
+  this bug, do not touch.
 - Arithmetic-minus token behavior (e.g. `{{ x - y }}` producing a phantom
   `"-"` token) is a **pre-existing, separate** issue, out of scope for
   FIX-244. Do not attempt to fix it here; do not regress it either (it
@@ -144,9 +159,9 @@ And verify this is unaffected (still legitimate, still discovered):
 
 ## Required Test Matrix
 
-Add unit tests directly in `crates/sc-composer/src/validation.rs`'s
+Add unit tests directly in `crates/sc-composer/src/discovery.rs`'s
 existing `#[cfg(test)] mod tests` block (co-located with the existing
-`discover_tokens` tests around validation.rs:1380+), covering:
+`discover_tokens`/`discover_tokens_with_delimiters` tests), covering:
 
 (a) `{%- if true %}` — leading statement marker does not produce a
     phantom `-` token.
@@ -179,7 +194,7 @@ exact two-commit process is now **mandatory** for this sprint:
 2. Team-lead independently confirms commit 1 genuinely fails
    (`cargo test --workspace -- --ignored <test_name>` against that exact
    commit) before dev proceeds.
-3. **Commit 2**: the actual fix in `validation.rs` (marker-stripping) plus
+3. **Commit 2**: the actual fix in `discovery.rs` (marker-stripping) plus
    removing the single `#[ignore]` line from the test added in commit 1.
    No other test-logic changes in this commit — the test body itself must
    not change between commit 1 and commit 2, only the `#[ignore]`
@@ -190,13 +205,14 @@ exact two-commit process is now **mandatory** for this sprint:
 
 ## Deliverables
 
-- Fix in `validation.rs::discover_tokens` as described above (marker
-  stripping only; `collect_identifiers` and `VariableName` untouched).
+- Fix in `discovery.rs::discover_tokens_with_delimiters` as described above
+  (marker stripping only; `collect_identifiers` and `VariableName`
+  untouched).
 - New regression test in `fuzz_regressions.rs` (per the mandatory two-commit
   process above), passing.
-- Unit tests (a)-(e) in `validation.rs`, passing.
+- Unit tests (a)-(e) in `discovery.rs`, passing.
 - No regression to any existing `discover_tokens`/`collect_identifiers`
-  test in `validation.rs`.
+  test in `discovery.rs`.
 - Sprint doc closeout narrative appended with accurate, verifiable
   provenance (no fabricated "promoted from" language).
 
@@ -223,7 +239,7 @@ exact two-commit process is now **mandatory** for this sprint:
 ## References
 
 - GitHub issue #244
-- `crates/sc-composer/src/validation.rs` (`discover_tokens`,
-  `collect_identifiers`, lines ~646-773)
-- `crates/sc-composer/src/types.rs` (`VariableName::new`, lines 159-178)
+- `crates/sc-composer/src/discovery.rs` (`discover_tokens_with_delimiters`,
+  `collect_identifiers`, ~lines 49-260)
+- `crates/sc-composer/src/types.rs` (`VariableName::new`, lines 142-154)
 - `crates/sc-compose/tests/fuzz_regressions.rs`
