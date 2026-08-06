@@ -40,10 +40,26 @@ pub fn discover_tokens_with_brace_count(text: &str, brace_count: usize) -> BTree
         return BTreeSet::new();
     }
 
+    discover_tokens_with_delimiters(text, &"{".repeat(brace_count), &"}".repeat(brace_count))
+}
+
+/// Discover template variable tokens using caller-provided expression
+/// delimiters.
+#[must_use]
+pub fn discover_tokens_with_delimiters(
+    text: &str,
+    open_delimiter: &str,
+    close_delimiter: &str,
+) -> BTreeSet<VariableName> {
+    if open_delimiter.is_empty() || close_delimiter.is_empty() {
+        return BTreeSet::new();
+    }
+
     let mut tokens = BTreeSet::new();
     let mut scopes = Vec::<LoopScope>::new();
     let mut cursor = text;
-    let expression_delimiters = ExpressionDelimiters::new(brace_count);
+    let expression_delimiters =
+        ExpressionDelimiters::with_delimiters(open_delimiter, close_delimiter);
 
     while let Some((delimiter, start)) = next_delimiter(cursor, &expression_delimiters) {
         let start_delimiter = match delimiter {
@@ -110,10 +126,10 @@ struct ExpressionDelimiters {
 }
 
 impl ExpressionDelimiters {
-    fn new(brace_count: usize) -> Self {
+    fn with_delimiters(open_delimiter: &str, close_delimiter: &str) -> Self {
         Self {
-            open: "{".repeat(brace_count),
-            close: "}".repeat(brace_count),
+            open: open_delimiter.to_owned(),
+            close: close_delimiter.to_owned(),
         }
     }
 }
@@ -136,14 +152,15 @@ fn next_delimiter(
 }
 
 fn find_expression_open(text: &str, open_delimiter: &str) -> Option<usize> {
-    find_exact_delimiter(text, open_delimiter, b'{')
+    find_exact_delimiter(text, open_delimiter)
 }
 
 fn find_expression_close(text: &str, close_delimiter: &str) -> Option<usize> {
-    find_exact_delimiter(text, close_delimiter, b'}')
+    find_exact_delimiter(text, close_delimiter)
 }
 
-fn find_exact_delimiter(text: &str, delimiter: &str, repeated_byte: u8) -> Option<usize> {
+fn find_exact_delimiter(text: &str, delimiter: &str) -> Option<usize> {
+    let repeated_byte = delimiter.as_bytes().first().copied()?;
     let mut cursor = 0usize;
     while cursor < text.len() {
         let found = text[cursor..].find(delimiter)?;

@@ -44,7 +44,10 @@ pub use composer::{compose, compose_with_observer, protect_higher_braces, render
 pub use diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope, DiagnosticSeverity,
 };
-pub use discovery::{discover_all_pass_tokens, discover_tokens, discover_tokens_with_brace_count};
+pub use discovery::{
+    discover_all_pass_tokens, discover_tokens, discover_tokens_with_brace_count,
+    discover_tokens_with_delimiters,
+};
 #[doc(inline)]
 pub use error::{
     ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind, RenderError,
@@ -93,7 +96,7 @@ pub use types::{
     validate_input_value,
 };
 #[doc(inline)]
-pub use validate::{validate, validate_with_observer};
+pub use validate::{validate, validate_with_observer, validate_with_observer_and_delimiters};
 pub use validation::BUILTIN_VARIABLE_NAMES;
 #[doc(inline)]
 pub use verify::{verify, verify_with_observer};
