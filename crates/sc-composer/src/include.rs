@@ -24,6 +24,12 @@ pub struct ExpandedTemplate {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+/// Private saturating-arithmetic traversal counter used during expansion.
+///
+/// This is intentionally distinct from the public, serde-transparent
+/// [`IncludeDepth`] policy bound: keeping the configured limit and current
+/// traversal state as separate types statically prevents swapping those
+/// parameters at [`expand_file`].
 struct CurrentIncludeDepth(u16);
 
 impl CurrentIncludeDepth {
