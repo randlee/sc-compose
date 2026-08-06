@@ -409,37 +409,53 @@ mod tests {
     }
 
     #[test]
-    fn integer_visitor_methods_narrow_in_range_and_reject_out_of_range() {
-        let minimum = DuplicateAwareValueVisitor
-            .visit_i128::<serde_json::Error>(i128::from(i64::MIN))
-            .expect("i64 minimum");
-        assert_eq!(minimum, serde_json::json!(i64::MIN));
-        DuplicateAwareValueVisitor
-            .visit_i128::<serde_json::Error>(i128::from(i64::MIN) - 1)
-            .unwrap_err();
+    fn json_integer_scanner_enforces_exact_boundaries() {
+        let cases = [
+            (
+                r#"{"n":-9223372036854775809}"#,
+                Some("-9223372036854775809"),
+            ),
+            (r#"{"n":-9223372036854775808}"#, None),
+            (r#"{"n":-42}"#, None),
+            (r#"{"n":0}"#, None),
+            (r#"{"n":9223372036854775807}"#, None),
+            (r#"{"n":9223372036854775808}"#, None),
+            (r#"{"n":18446744073709551615}"#, None),
+            (
+                r#"{"n":18446744073709551616}"#,
+                Some("18446744073709551616"),
+            ),
+        ];
 
-        let maximum = DuplicateAwareValueVisitor
-            .visit_u128::<serde_json::Error>(u128::from(u64::MAX))
-            .expect("u64 maximum");
-        assert_eq!(maximum, serde_json::json!(u64::MAX));
-        DuplicateAwareValueVisitor
-            .visit_u128::<serde_json::Error>(u128::from(u64::MAX) + 1)
-            .unwrap_err();
+        for (contents, expected) in cases {
+            assert_eq!(
+                find_out_of_range_json_integer(contents).as_deref(),
+                expected,
+                "contents: {contents}"
+            );
+        }
     }
 
     #[test]
     fn in_range_json_integer_boundaries_remain_exact() {
-        let minimum = parse_var_file_contents(r#"{"n": -9223372036854775808}"#).unwrap();
-        let maximum = parse_var_file_contents(r#"{"n": 18446744073709551615}"#).unwrap();
+        let cases = [
+            (
+                r#"{"n": -9223372036854775808}"#,
+                serde_json::json!(i64::MIN),
+            ),
+            (r#"{"n": -42}"#, serde_json::json!(-42)),
+            (r#"{"n": 0}"#, serde_json::json!(0)),
+            (r#"{"n": 9223372036854775807}"#, serde_json::json!(i64::MAX)),
+            (
+                r#"{"n": 18446744073709551615}"#,
+                serde_json::json!(u64::MAX),
+            ),
+        ];
 
-        assert_eq!(
-            minimum[&VariableName::new("n").unwrap()],
-            serde_json::json!(i64::MIN)
-        );
-        assert_eq!(
-            maximum[&VariableName::new("n").unwrap()],
-            serde_json::json!(u64::MAX)
-        );
+        for (contents, expected) in cases {
+            let vars = parse_var_file_contents(contents).unwrap();
+            assert_eq!(vars[&VariableName::new("n").unwrap()], expected);
+        }
     }
 
     #[test]
@@ -738,41 +754,6 @@ impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
 
     fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> {
         Ok(serde_json::Value::Number(v.into()))
-    }
-
-    /// Defense-in-depth callbacks for a `serde_json` dispatch path that is
-    /// currently unreachable with the workspace's default configuration.
-    /// The lexical `find_out_of_range_json_integer` scan is the primary and
-    /// currently effective enforcement gate; these callbacks preserve the
-    /// same narrowing contract if arbitrary-precision dispatch is enabled.
-    fn visit_i128<E>(self, v: i128) -> Result<Self::Value, E>
-    where
-        E: DeError,
-    {
-        i64::try_from(v)
-            .map(|v| serde_json::Value::Number(v.into()))
-            .map_err(|_error| {
-                E::custom(format!(
-                    "integer {v} is outside the representable range ({}..={})",
-                    i64::MIN,
-                    u64::MAX
-                ))
-            })
-    }
-
-    fn visit_u128<E>(self, v: u128) -> Result<Self::Value, E>
-    where
-        E: DeError,
-    {
-        u64::try_from(v)
-            .map(|v| serde_json::Value::Number(v.into()))
-            .map_err(|_error| {
-                E::custom(format!(
-                    "integer {v} is outside the representable range ({}..={})",
-                    i64::MIN,
-                    u64::MAX
-                ))
-            })
     }
 
     fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
