@@ -381,7 +381,22 @@ impl fmt::Display for RenderManyError {
     }
 }
 
-impl std::error::Error for RenderManyError {}
+impl std::error::Error for RenderManyError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::CreateOutputDir { source, .. }
+            | Self::WriteOutput { source, .. }
+            | Self::WriteManifest { source, .. } => Some(source),
+            Self::SerializeManifest { source } => Some(source),
+            Self::Render { source, .. } => Some(source.as_ref()),
+            Self::SourceEntry(source) => Some(source),
+            Self::Template(source) => Some(source.as_ref()),
+            Self::InvalidGlob { .. } | Self::GlobWalk { .. } | Self::InvalidTemplatePath { .. } => {
+                None
+            }
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -456,10 +471,21 @@ mod tests {
 
         let error = render_many(&request(&root, "reports/templates/panel.html.j2")).unwrap_err();
 
-        assert!(error.to_string().contains(&format!(
+        let mut surfaced = error.to_string();
+        let mut source = std::error::Error::source(&error);
+        while let Some(cause) = source {
+            surfaced.push_str(": ");
+            surfaced.push_str(&cause.to_string());
+            source = cause.source();
+        }
+        assert!(surfaced.contains(&format!(
             "failed to render source entry {}",
             crate::path_utils::to_forward_slash(&Path::new("docs").join("b.txt"))
         )));
+        assert!(
+            surfaced.contains("template not found"),
+            "surfaced: {surfaced}"
+        );
         let first_output = fs::read_to_string(
             root.join("reports")
                 .join("latest")

@@ -257,8 +257,9 @@ Status: **complete**.
   `cargo fmt --all --check`, and `git diff --check`: PASS.
 
 The sprint plan's claim that the existing renderer test was unaffected was
-incorrect; its assertion depended on the old plain-display behavior and was
-updated to follow the source chain. All regression tests were created or
+incorrect. Its Display-text assertion was edited in `1c47392` as a direct and
+necessary consequence of the `RenderError::Display` change; the later test
+follow-up updated the assertion to follow the source chain. All regression tests were created or
 corrected on this branch with verifiable local provenance.
 
 ## References
