@@ -216,10 +216,12 @@ field to the composer. Rationale:
   and `'`, but leaves `/` unchanged. Existing protocol-template assertions
   therefore remain raw and continue to prove readable paths, branch names,
   and URLs; no test was weakened to accept slash corruption.
+- Round-1 fix: `116ae72a` (`fix: preserve readable slashes in markup escaping`)
+  installs the formatter, adds the slash-preservation regression for `.html`,
+  `.htm`, and `.xml`, and restores the existing protocol-template assertions.
 - Exact issue #268 reproduction (`repro.xml.j2` + `vars.json`) rendered to
   `out.xml`; `python3 -c "import xml.etree.ElementTree as ET; ET.parse('out.xml')"`
   passed.
-- Validation passed: `cargo fmt --all --check`, `cargo test --workspace`
-  (90 unit, 146 CLI, 51 extraction-integration, and 14 composer-integration
-  tests), `cargo clippy --all-targets --all-features -- -D warnings`, and
+- Validation passed: `cargo fmt --all --check`, `cargo test --workspace`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, and
   `git diff --check`.
