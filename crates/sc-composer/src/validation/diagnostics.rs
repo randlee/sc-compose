@@ -77,10 +77,10 @@ fn push_unbound_variable_diagnostics(
         return;
     }
 
-    let referenced = per_pass_referenced_variables(state)
-        .map_or_else(|| state.referenced_variables.clone(), |by_pass| {
-            by_pass.values().flatten().cloned().collect()
-        });
+    let referenced = per_pass_referenced_variables(state).map_or_else(
+        || state.referenced_variables.clone(),
+        |by_pass| by_pass.values().flatten().cloned().collect(),
+    );
     for variable in referenced {
         if is_builtin_variable(&variable)
             || super::required_paths::is_bound_path(&state.context, &variable)
@@ -435,7 +435,10 @@ mod tests {
         ))
         .unwrap();
 
-        assert!(report.ok, "warn policy should remain renderable: {report:?}");
+        assert!(
+            report.ok,
+            "warn policy should remain renderable: {report:?}"
+        );
         assert!(report.warnings.iter().any(|diagnostic| {
             diagnostic.code == DiagnosticCode::ErrValUnboundVariable
                 && diagnostic.message.contains("missing")
@@ -460,13 +463,18 @@ mod tests {
             .vars_input
             .insert(crate::VariableName::new("extra").unwrap(), json!("value"));
         let error_report = validate(&error_request).unwrap();
-        assert!(error_report.errors.iter().any(|diagnostic| {
-            diagnostic.code == DiagnosticCode::ErrValUnboundVariable
-        }));
-        assert!(!error_report
-            .errors
-            .iter()
-            .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput));
+        assert!(
+            error_report
+                .errors
+                .iter()
+                .any(|diagnostic| { diagnostic.code == DiagnosticCode::ErrValUnboundVariable })
+        );
+        assert!(
+            !error_report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput)
+        );
 
         let ignore_report = validate(&request_for_file(
             &root,
@@ -478,10 +486,12 @@ mod tests {
             },
         ))
         .unwrap();
-        assert!(!ignore_report
-            .errors
-            .iter()
-            .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValUnboundVariable));
+        assert!(
+            !ignore_report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValUnboundVariable)
+        );
     }
 
     #[test]
@@ -508,10 +518,12 @@ mod tests {
         let report = validate(&request).unwrap();
 
         assert!(report.ok, "bound values were reported missing: {report:?}");
-        assert!(!report
-            .warnings
-            .iter()
-            .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValUnboundVariable));
+        assert!(
+            !report
+                .warnings
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValUnboundVariable)
+        );
     }
 
     #[test]

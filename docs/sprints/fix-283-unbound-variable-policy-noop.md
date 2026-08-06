@@ -1,6 +1,6 @@
 ---
 id: FIX-283
-status: in_progress
+status: complete
 branch: fix/283-unbound-variable-policy-noop
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/283-unbound-variable-policy-noop
 target: develop
@@ -149,3 +149,61 @@ policy field that doesn't do what the reporter expects).
 - Fuzz round 2 report, 2026-08-06 (adversarial fuzzing of `sc-compose`
   against production templates in `atm-core`) — issue #283 predates fuzz
   round 2 but is part of the same backlog sweep
+
+## Closeout Evidence
+
+### Confirmed root cause
+
+- `Renderer` configures Minijinja's escaping and filters but does not install
+  an undefined-value handler. Minijinja therefore renders an unresolved
+  `Undefined` value as an empty string in the normal composition path.
+- Validation previously had two nearby but different axes: `ERR_VAL_EXTRA_INPUT`
+  applies to supplied names that are neither declared nor referenced, while
+  `ERR_VAL_UNDECLARED_TOKEN` applies to referenced names missing from
+  frontmatter. Neither compares referenced paths with the merged runtime
+  context, so an unbound reference reached Minijinja and disappeared without
+  a diagnostic.
+- `compose_with_observer` already fails before rendering when validation has
+  errors, so the missing piece was the validation diagnostic, not a renderer
+  workaround.
+
+### Design and implementation
+
+- Added `ERR_VAL_UNBOUND_VARIABLE` as a distinct validation code. It checks
+  referenced paths against the merged defaults/environment/input context,
+  including nested object paths, while preserving loop locals, `{% set %}`
+  locals, and built-in render-context names.
+- Added `ComposePolicy.unbound_variable_policy`. It uses the same
+  `UnknownVariablePolicy` severity values but is a separate axis; `None`
+  inherits `unknown_variable_policy` so existing Python callers using
+  `unknown_variable_policy=ERROR` get the issue's expected fail-closed result.
+  An explicit value allows extra-input and unbound-reference behavior to
+  disagree. The CLI maps its existing variable mode to both axes, and the
+  Python binding exposes the new override.
+- Red regression commit: `d04118d`.
+- Green implementation commit: `8cc017d`.
+
+### Similar silent-success audit
+
+- Optional variables inside `{% if ... %}` can still intentionally suppress a
+  section when the policy is `ignore`; warn/error modes now surface the
+  missing reference before rendering rather than silently accepting it.
+- `dict.get("missing")` without a default remains an intentional Minijinja
+  undefined-to-empty behavior. The existing renderer contract supports this
+  form; callers that need a value must use `dict.get("key", default)`, and a
+  future runtime-undefined audit would need expression-level tracking to
+  distinguish it from a legitimate optional lookup.
+- Loop-body field paths are scope-correct for the iterable and local names,
+  but this validation pass cannot prove every field exists on every runtime
+  element. Required nested paths or format-specific parsing remain the guard
+  for that case. JSON/XML/YAML/TOML output paths already parse/shape-check
+  their rendered results; raw text and Markdown remain intentionally
+  syntax-agnostic.
+- No new dependency was added.
+
+### Validation
+
+- `cargo test --workspace` — PASS
+- `cargo fmt --all --check` — PASS
+- `cargo clippy --all-targets --all-features -- -D warnings` — PASS
+- `git diff --check` — PASS
