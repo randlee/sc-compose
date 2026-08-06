@@ -341,42 +341,29 @@ impl fmt::Display for RenderManyError {
                     path.display()
                 )
             }
-            Self::CreateOutputDir { path, source } => {
+            Self::CreateOutputDir { path, .. } => {
                 write!(
                     f,
-                    "failed to create render-many output dir {}: {source}",
+                    "failed to create render-many output dir {}",
                     path.display()
                 )
             }
-            Self::WriteOutput { path, source } => {
+            Self::WriteOutput { path, .. } => {
+                write!(f, "failed to write render-many output {}", path.display())
+            }
+            Self::WriteManifest { path, .. } => {
+                write!(f, "failed to write render-many manifest {}", path.display())
+            }
+            Self::SerializeManifest { .. } => write!(f, "failed to serialize render-many manifest"),
+            Self::Render { source_path, .. } => {
                 write!(
                     f,
-                    "failed to write render-many output {}: {source}",
-                    path.display()
-                )
-            }
-            Self::WriteManifest { path, source } => {
-                write!(
-                    f,
-                    "failed to write render-many manifest {}: {source}",
-                    path.display()
-                )
-            }
-            Self::SerializeManifest { source } => {
-                write!(f, "failed to serialize render-many manifest: {source}")
-            }
-            Self::Render {
-                source_path,
-                source,
-            } => {
-                write!(
-                    f,
-                    "failed to render source entry {}: {source}",
+                    "failed to render source entry {}",
                     to_forward_slash(source_path)
                 )
             }
-            Self::SourceEntry(source) => write!(f, "{source}"),
-            Self::Template(source) => write!(f, "{source}"),
+            Self::SourceEntry(_) => write!(f, "failed to load render-many source entry"),
+            Self::Template(_) => write!(f, "failed to resolve render-many template"),
         }
     }
 }
@@ -439,6 +426,19 @@ mod tests {
         }
     }
 
+    fn surfaced_error(error: &super::RenderManyError) -> String {
+        use std::error::Error;
+
+        let mut surfaced = error.to_string();
+        let mut source = error.source();
+        while let Some(cause) = source {
+            surfaced.push_str(": ");
+            surfaced.push_str(&cause.to_string());
+            source = cause.source();
+        }
+        surfaced
+    }
+
     #[test]
     fn template_resolution_failure_does_not_create_output_root() {
         let root = temp_root("template-resolution-failure");
@@ -449,7 +449,7 @@ mod tests {
 
         let error = render_many(&request(&root, "reports/templates/missing.html.j2")).unwrap_err();
 
-        assert!(error.to_string().contains("failed to read report template"));
+        assert!(surfaced_error(&error).contains("failed to read report template"));
         assert!(!root.join("reports").join("latest").join("panels").exists());
     }
 
@@ -471,19 +471,18 @@ mod tests {
 
         let error = render_many(&request(&root, "reports/templates/panel.html.j2")).unwrap_err();
 
-        let mut surfaced = error.to_string();
-        let mut source = std::error::Error::source(&error);
-        while let Some(cause) = source {
-            surfaced.push_str(": ");
-            surfaced.push_str(&cause.to_string());
-            source = cause.source();
-        }
+        let surfaced = surfaced_error(&error);
         assert!(surfaced.contains(&format!(
             "failed to render source entry {}",
             crate::path_utils::to_forward_slash(&Path::new("docs").join("b.txt"))
         )));
         assert!(
             surfaced.contains("template not found"),
+            "surfaced: {surfaced}"
+        );
+        assert_eq!(
+            surfaced.matches("template not found").count(),
+            1,
             "surfaced: {surfaced}"
         );
         let first_output = fs::read_to_string(
@@ -512,6 +511,65 @@ mod tests {
                 .join("panels")
                 .join("manifest.json")
                 .exists()
+        );
+    }
+
+    #[test]
+    fn render_many_error_source_is_exposed_for_all_wrapped_variants() {
+        use std::io;
+
+        use crate::reporting::source_entry::SourceEntryError;
+        use crate::reporting::templates::TemplateError;
+
+        fn assert_source_contains(error: &super::RenderManyError, expected: &str) {
+            use std::error::Error;
+
+            let source = error.source().expect("wrapped error source");
+            assert!(
+                source.to_string().contains(expected),
+                "source `{source}` did not contain `{expected}`"
+            );
+        }
+
+        assert_source_contains(
+            &super::RenderManyError::CreateOutputDir {
+                path: PathBuf::from("reports"),
+                source: io::Error::other("create output dir failed"),
+            },
+            "create output dir failed",
+        );
+        assert_source_contains(
+            &super::RenderManyError::WriteOutput {
+                path: PathBuf::from("reports/panel.html"),
+                source: io::Error::other("write output failed"),
+            },
+            "write output failed",
+        );
+        assert_source_contains(
+            &super::RenderManyError::WriteManifest {
+                path: PathBuf::from("reports/manifest.json"),
+                source: io::Error::other("write manifest failed"),
+            },
+            "write manifest failed",
+        );
+        assert_source_contains(
+            &super::RenderManyError::SerializeManifest {
+                source: serde_json::from_str::<serde_json::Value>("{").unwrap_err(),
+            },
+            "EOF while parsing",
+        );
+        assert_source_contains(
+            &super::RenderManyError::SourceEntry(SourceEntryError::InvalidMetadata {
+                path: PathBuf::from("docs/input.txt"),
+                message: "metadata failed".to_owned(),
+            }),
+            "metadata failed",
+        );
+        assert_source_contains(
+            &super::RenderManyError::Template(Box::new(TemplateError::InvalidSelector(
+                "selector failed".to_owned(),
+            ))),
+            "selector failed",
         );
     }
 }
