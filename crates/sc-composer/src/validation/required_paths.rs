@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
+use crate::discovery::has_bare_for_loop_over;
 use crate::types::{InputValue, VariableName};
 
 use super::ValidationState;
@@ -24,15 +25,31 @@ pub(super) fn required_path_diagnostics(state: &ValidationState) -> Vec<Diagnost
     let mut diagnostics = Vec::new();
 
     for (variable, origin) in &state.required_origins {
+        let source = state.source_texts.get(origin).map(String::as_str);
         let include_chain = state
             .required_include_chains
             .get(variable)
             .cloned()
             .unwrap_or_default();
-        match validate_required_path(&state.context, variable) {
+        let status = validate_required_path(&state.context, variable);
+        let should_report_array_shape = matches!(&status, RequiredPathStatus::Satisfied)
+            && !variable.as_str().contains('.')
+            && !has_dotted_required_sibling(state, variable)
+            && state.context.get(variable).is_some_and(|value| {
+                !value.is_array()
+                    && source
+                        .is_some_and(|source| has_bare_for_loop_over(source, variable.as_str()))
+            });
+
+        match status {
             RequiredPathStatus::Satisfied => {}
             RequiredPathStatus::MissingTopLevel => {
-                diagnostics.push(missing_required_diagnostic(origin, variable, include_chain));
+                diagnostics.push(missing_required_diagnostic(
+                    origin,
+                    variable,
+                    include_chain.clone(),
+                    source,
+                ));
             }
             RequiredPathStatus::MissingNested { missing_path } => {
                 diagnostics.push(required_path_diagnostic(
@@ -40,7 +57,8 @@ pub(super) fn required_path_diagnostics(state: &ValidationState) -> Vec<Diagnost
                     origin,
                     variable,
                     format!("missing required nested field: {missing_path}"),
-                    include_chain,
+                    include_chain.clone(),
+                    source,
                 ));
             }
             RequiredPathStatus::ShapeMismatch { at_path } => {
@@ -51,19 +69,58 @@ pub(super) fn required_path_diagnostics(state: &ValidationState) -> Vec<Diagnost
                     format!(
                         "required nested field path {variable} expected an object at {at_path}"
                     ),
-                    include_chain,
+                    include_chain.clone(),
+                    source,
                 ));
             }
+        }
+
+        if should_report_array_shape {
+            let value = state
+                .context
+                .get(variable)
+                .expect("array-shape check requires a present context value");
+            diagnostics.push(required_path_diagnostic(
+                DiagnosticCode::ErrValArrayShapeMismatch,
+                origin,
+                variable,
+                format!(
+                    "required variable {variable} is consumed as a list via `{{% for %}}` but received {}",
+                    json_type_name(value)
+                ),
+                include_chain,
+                source,
+            ));
         }
     }
 
     diagnostics
 }
 
+fn has_dotted_required_sibling(state: &ValidationState, variable: &VariableName) -> bool {
+    let prefix = format!("{}.", variable.as_str());
+    state
+        .required_origins
+        .keys()
+        .any(|candidate| candidate.as_str().starts_with(&prefix))
+}
+
+fn json_type_name(value: &serde_json::Value) -> &'static str {
+    match value {
+        serde_json::Value::Null => "null",
+        serde_json::Value::Bool(_) => "boolean",
+        serde_json::Value::Number(_) => "number",
+        serde_json::Value::String(_) => "string",
+        serde_json::Value::Array(_) => "array",
+        serde_json::Value::Object(_) => "object",
+    }
+}
+
 fn missing_required_diagnostic(
     origin: &Path,
     variable: &VariableName,
     include_chain: Vec<PathBuf>,
+    source: Option<&str>,
 ) -> Diagnostic {
     let diagnostic = Diagnostic::new(
         DiagnosticSeverity::Error,
@@ -72,7 +129,7 @@ fn missing_required_diagnostic(
     )
     .with_path(origin.to_path_buf())
     .with_include_chain(include_chain);
-    match required_variable_location(origin, variable.as_str()) {
+    match required_variable_location(source, variable.as_str()) {
         Some(location) => diagnostic.with_location(location.line, location.column),
         None => diagnostic,
     }
@@ -84,11 +141,12 @@ fn required_path_diagnostic(
     variable: &VariableName,
     message: String,
     include_chain: Vec<PathBuf>,
+    source: Option<&str>,
 ) -> Diagnostic {
     let diagnostic = Diagnostic::new(DiagnosticSeverity::Error, code, message)
         .with_path(origin.to_path_buf())
         .with_include_chain(include_chain);
-    match required_variable_location(origin, variable.as_str()) {
+    match required_variable_location(source, variable.as_str()) {
         Some(location) => diagnostic.with_location(location.line, location.column),
         None => diagnostic,
     }
@@ -147,8 +205,8 @@ fn validate_required_value(
     }
 }
 
-fn required_variable_location(path: &Path, variable: &str) -> Option<SourceLocation> {
-    let raw = std::fs::read_to_string(path).ok()?;
+fn required_variable_location(raw: Option<&str>, variable: &str) -> Option<SourceLocation> {
+    let raw = raw?;
     let mut in_required_variables = false;
 
     for (index, line) in raw.lines().enumerate() {
@@ -288,6 +346,110 @@ mod tests {
     }
 
     #[test]
+    fn bare_for_loop_rejects_string_required_value() {
+        let report = validate_bare_loop_value("bare_loop_string", json!("ab"));
+
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValArrayShapeMismatch
+                && diagnostic.message.contains("items")
+                && diagnostic.message.contains("string")
+        }));
+    }
+
+    #[test]
+    fn bare_for_loop_rejects_object_required_value() {
+        let report = validate_bare_loop_value("bare_loop_object", json!({"key": "value"}));
+
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValArrayShapeMismatch
+                && diagnostic.message.contains("object")
+        }));
+    }
+
+    #[test]
+    fn bare_for_loop_accepts_array_required_value() {
+        let report = validate_bare_loop_value("bare_loop_array", json!(["a", "b"]));
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty());
+    }
+
+    #[test]
+    fn non_iterated_required_value_does_not_trigger_array_shape_check() {
+        let root = temp_root("non_iterated_required_value");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - items\n---\nvalue={{ items }}\n",
+        );
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request
+            .vars_input
+            .insert(crate::VariableName::new("items").unwrap(), json!("ab"));
+
+        let report = validate(&request).unwrap();
+
+        assert!(report.ok, "{report:?}");
+        assert!(report.errors.is_empty());
+    }
+
+    #[test]
+    fn dotted_required_sibling_keeps_nested_field_diagnostic() {
+        let root = temp_root("bare_loop_dotted_sibling");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - items\n  - items.id\n---\n{% for item in items %}{{ item.id }}{% endfor %}\n",
+        );
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request.vars_input.insert(
+            crate::VariableName::new("items").unwrap(),
+            json!([{"name": "missing-id"}]),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(!report.ok);
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValMissingNestedField
+                && diagnostic.message.contains("items.id")
+        }));
+        assert!(
+            !report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValArrayShapeMismatch)
+        );
+    }
+
+    #[test]
+    fn non_bare_for_iterables_do_not_trigger_array_shape_check() {
+        for (label, iterable) in [("filtered", "items | sort"), ("qualified", "items.values")] {
+            let root = temp_root(&format!("non_bare_loop_{label}"));
+            write_file(
+                &root.join("template.md.j2"),
+                &format!(
+                    "---\nrequired_variables:\n  - items\n---\n{{% for item in {iterable} %}}{{{{ item }}}}{{% endfor %}}\n"
+                ),
+            );
+            let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+            request
+                .vars_input
+                .insert(crate::VariableName::new("items").unwrap(), json!("ab"));
+
+            let report = validate(&request).unwrap();
+
+            assert!(
+                !report
+                    .errors
+                    .iter()
+                    .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValArrayShapeMismatch),
+                "unexpected array-shape diagnostic for {label}: {report:?}"
+            );
+        }
+    }
+
+    #[test]
     fn required_variable_path_array_member_id_is_satisfied_by_array_of_objects() {
         let root = temp_root("required_array_member_path");
         write_file(
@@ -387,6 +549,20 @@ mod tests {
             user_prompt: None,
             policy,
         }
+    }
+
+    fn validate_bare_loop_value(label: &str, value: serde_json::Value) -> crate::ValidationReport {
+        let root = temp_root(label);
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - items\n---\n{% for item in items %}{{ item }}{% endfor %}\n",
+        );
+        let mut request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        request
+            .vars_input
+            .insert(crate::VariableName::new("items").unwrap(), value);
+
+        validate(&request).unwrap()
     }
 
     fn temp_root(label: &str) -> PathBuf {

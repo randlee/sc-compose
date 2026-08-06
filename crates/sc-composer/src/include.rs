@@ -19,6 +19,8 @@ pub struct ExpandedTemplate {
     pub frontmatters: Vec<(PathBuf, Vec<Frontmatter>)>,
     /// Include chain recorded for each resolved file.
     pub include_chains: BTreeMap<PathBuf, Vec<PathBuf>>,
+    /// Raw source text keyed by each file visited during include expansion.
+    pub source_texts: BTreeMap<PathBuf, String>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
@@ -80,6 +82,7 @@ pub fn expand_includes(
         resolved_files: state.resolved_files,
         frontmatters: state.frontmatters,
         include_chains: state.include_chains,
+        source_texts: state.source_texts,
     })
 }
 
@@ -89,6 +92,7 @@ struct ExpansionState {
     resolved_seen: BTreeSet<PathBuf>,
     frontmatters: Vec<(PathBuf, Vec<Frontmatter>)>,
     include_chains: BTreeMap<PathBuf, Vec<PathBuf>>,
+    source_texts: BTreeMap<PathBuf, String>,
 }
 
 fn expand_file(
@@ -163,6 +167,9 @@ fn expand_file(
         ComposeError::Config(error) => error.into(),
         other => other,
     })?;
+    if is_new {
+        state.source_texts.insert(path.to_path_buf(), raw.clone());
+    }
     state
         .frontmatters
         .push((path.to_path_buf(), parsed.passes().to_vec()));

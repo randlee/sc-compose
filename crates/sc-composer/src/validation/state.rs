@@ -19,7 +19,10 @@ pub(crate) fn collect_validation_state(
     request: &ComposeRequest,
     expanded: &ExpandedTemplate,
 ) -> ValidationState {
-    let mut state = ValidationState::default();
+    let mut state = ValidationState {
+        source_texts: expanded.source_texts.clone(),
+        ..ValidationState::default()
+    };
 
     for (path, frontmatters) in &expanded.frontmatters {
         if !frontmatters.is_empty() {
@@ -287,8 +290,9 @@ mod tests {
         let expanded = ExpandedTemplate {
             text: parsed.body().to_owned(),
             resolved_files: vec![root.clone()],
-            frontmatters: vec![(root, parsed.passes().to_vec())],
+            frontmatters: vec![(root.clone(), parsed.passes().to_vec())],
             include_chains: BTreeMap::new(),
+            source_texts: [(root, document.to_owned())].into_iter().collect(),
         };
 
         let state = collect_validation_state(&empty_request(), &expanded);
@@ -317,15 +321,14 @@ mod tests {
     #[test]
     fn collect_validation_state_characterizes_default_merge_precedence() {
         let root = PathBuf::from("/workspace/root.md.j2");
-        let parsed = parse_template_document(
-            "---\ndefaults:\n  frontmatter_only: frontmatter\n  fallback: frontmatter\n  env_value: frontmatter\n  explicit_value: frontmatter\n  HOSTNAME: frontmatter\n  RENDER_DATE: frontmatter-date\n---\n{{ fallback }}",
-        )
-        .unwrap();
+        let document = "---\ndefaults:\n  frontmatter_only: frontmatter\n  fallback: frontmatter\n  env_value: frontmatter\n  explicit_value: frontmatter\n  HOSTNAME: frontmatter\n  RENDER_DATE: frontmatter-date\n---\n{{ fallback }}";
+        let parsed = parse_template_document(document).unwrap();
         let expanded = ExpandedTemplate {
             text: parsed.body().to_owned(),
             resolved_files: vec![root.clone()],
             frontmatters: vec![(root.clone(), parsed.passes().to_vec())],
             include_chains: BTreeMap::new(),
+            source_texts: [(root.clone(), document.to_owned())].into_iter().collect(),
         };
         let mut request = empty_request();
         request
@@ -396,13 +399,11 @@ mod tests {
     fn collect_validation_state_characterizes_required_origins_and_include_chains() {
         let root = PathBuf::from("/workspace/root.md.j2");
         let child = PathBuf::from("/workspace/child.md");
-        let root_frontmatter =
-            parse_template_document("---\nrequired_variables:\n  - shared\n---\nroot body")
-                .unwrap();
-        let child_frontmatter = parse_template_document(
-            "---\nrequired_variables:\n  - shared\n  - child_only\n---\nchild body",
-        )
-        .unwrap();
+        let root_document = "---\nrequired_variables:\n  - shared\n---\nroot body";
+        let child_document =
+            "---\nrequired_variables:\n  - shared\n  - child_only\n---\nchild body";
+        let root_frontmatter = parse_template_document(root_document).unwrap();
+        let child_frontmatter = parse_template_document(child_document).unwrap();
         let mut include_chains = BTreeMap::new();
         include_chains.insert(root.clone(), vec![root.clone()]);
         include_chains.insert(child.clone(), vec![root.clone(), child.clone()]);
@@ -414,6 +415,12 @@ mod tests {
                 (child.clone(), child_frontmatter.passes().to_vec()),
             ],
             include_chains,
+            source_texts: [
+                (root.clone(), root_document.to_owned()),
+                (child.clone(), child_document.to_owned()),
+            ]
+            .into_iter()
+            .collect(),
         };
 
         let state = collect_validation_state(&empty_request(), &expanded);

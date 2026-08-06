@@ -81,6 +81,39 @@ fn exit_code_two_for_validation_failure() {
 }
 
 #[test]
+fn render_rejects_scalar_for_existing_jagged_array_fixture() {
+    let root = temp_root("jagged-array-scalar");
+    write_file(
+        &root.join("jagged-array-values.md.j2"),
+        include_str!("../../../../examples/jagged-array-values.md.j2"),
+    );
+    let vars_file = root.join("vars.json");
+    write_file(&vars_file, r#"{"rows":"ab"}"#);
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "jagged-array-values.md.j2",
+            "--var-file",
+            vars_file.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("ERR_VAL_ARRAY_SHAPE_MISMATCH"), "{stderr}");
+    assert!(
+        output.stdout.is_empty(),
+        "unexpected output: {:?}",
+        output.stdout
+    );
+}
+
+#[test]
 fn exit_code_three_for_resolve_failure() {
     let root = temp_root("exit-resolve");
 

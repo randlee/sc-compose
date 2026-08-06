@@ -395,6 +395,7 @@ mod tests {
                     (root.join("partials/body.md.j2"), Vec::new()),
                 ],
                 include_chains: BTreeMap::default(),
+                source_texts: BTreeMap::default(),
             },
         );
 
