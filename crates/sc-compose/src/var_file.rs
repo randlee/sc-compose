@@ -3,7 +3,8 @@ use std::path::Path;
 
 use anyhow::anyhow;
 use sc_composer::{
-    DiagnosticCode, InputValue, VariableName, input_value_from_yaml, validate_input_value,
+    DiagnosticCode, InputValue, RecoveryHint, RecoveryHintKind, VariableName,
+    input_value_from_yaml, validate_input_value,
 };
 use serde::Deserializer;
 use serde::de::{DeserializeSeed, Error as DeError, MapAccess, SeqAccess, Visitor};
@@ -14,9 +15,12 @@ pub(crate) fn load_var_file(
     path: &Path,
 ) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
     let contents = std::fs::read_to_string(path).map_err(|error| {
-        CommandError::usage_with_code(
+        CommandError::usage_with_code_and_hints(
             anyhow!(error).context(format!("failed to read var-file {}", path.display())),
-            DiagnosticCode::ErrConfigParse,
+            DiagnosticCode::ErrConfigRead,
+            vec![RecoveryHint::new(RecoveryHintKind::InspectPath {
+                path: path.to_owned(),
+            })],
         )
     })?;
     parse_var_file_contents(&contents)
@@ -299,7 +303,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "red baseline: var-file open errors use ERR_CONFIG_PARSE"]
     fn missing_var_file_reports_config_read() {
         let path = temp_path("missing");
         let _ = std::fs::remove_file(&path);
@@ -307,6 +310,22 @@ mod tests {
         let error = load_var_file(&path).unwrap_err();
 
         assert_eq!(error.diagnostic_code, Some(DiagnosticCode::ErrConfigRead));
+    }
+
+    #[test]
+    fn directory_var_file_reports_config_read_with_inspect_hint() {
+        let path = temp_path("directory");
+        let _ = std::fs::remove_dir_all(&path);
+        std::fs::create_dir(&path).unwrap();
+
+        let error = load_var_file(&path).unwrap_err();
+        std::fs::remove_dir(&path).unwrap();
+
+        assert_eq!(error.diagnostic_code, Some(DiagnosticCode::ErrConfigRead));
+        assert_eq!(
+            error.recovery_hints,
+            vec![RecoveryHint::new(RecoveryHintKind::InspectPath { path })]
+        );
     }
 
     #[test]
