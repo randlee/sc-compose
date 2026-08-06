@@ -32,6 +32,7 @@ pub(crate) fn parse_var_file_contents(
 #[derive(Debug)]
 enum VarFileDecodeError {
     InvalidFormat(anyhow::Error),
+    OutOfRangeInteger(anyhow::Error),
     UnsupportedYamlMergeKey { line: usize, column: usize },
     NotAnObject { format: VarFileFormat },
 }
@@ -49,6 +50,9 @@ impl VarFileDecodeError {
                 error.context("var-file must be valid JSON or YAML"),
                 DiagnosticCode::ErrConfigParse,
             ),
+            Self::OutOfRangeInteger(error) => {
+                CommandError::usage_with_code(error, DiagnosticCode::ErrConfigVarfile)
+            }
             Self::UnsupportedYamlMergeKey { line, column } => CommandError::usage_with_code(
                 anyhow!(
                     "unsupported YAML merge key `<<` at line {line}, column {column}; expand the mapping explicitly to preserve inherited fields"
@@ -91,8 +95,12 @@ struct DecodedVarObject {
 }
 
 fn decode_var_file(contents: &str) -> Result<DecodedVarObject, VarFileDecodeError> {
-    if let Ok(value) = parse_json_value_rejecting_duplicate_keys(contents) {
-        return decode_json_object(value);
+    match parse_json_value_rejecting_duplicate_keys(contents) {
+        Ok(value) => return decode_json_object(value),
+        Err(error) if error.to_string().contains("outside the representable") => {
+            return Err(VarFileDecodeError::OutOfRangeInteger(anyhow!(error)));
+        }
+        Err(_) => {}
     }
 
     let value = serde_yaml::from_str::<serde_yaml::Value>(contents)
@@ -295,7 +303,6 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore = "red baseline: out-of-range JSON integers are silently converted to floats"]
     fn out_of_range_json_integers_fail_closed() {
         for contents in [
             r#"{"n": -9223372036854775809}"#,
@@ -305,6 +312,33 @@ mod tests {
             assert_eq!(
                 error.diagnostic_code,
                 Some(DiagnosticCode::ErrConfigVarfile),
+                "contents: {contents}"
+            );
+        }
+    }
+
+    #[test]
+    fn in_range_json_integer_boundaries_remain_exact() {
+        let minimum = parse_var_file_contents(r#"{"n": -9223372036854775808}"#).unwrap();
+        let maximum = parse_var_file_contents(r#"{"n": 18446744073709551615}"#).unwrap();
+
+        assert_eq!(
+            minimum[&VariableName::new("n").unwrap()],
+            serde_json::json!(i64::MIN)
+        );
+        assert_eq!(
+            maximum[&VariableName::new("n").unwrap()],
+            serde_json::json!(u64::MAX)
+        );
+    }
+
+    #[test]
+    fn yaml_out_of_range_integer_still_fails_to_parse() {
+        for contents in ["n: -9223372036854775809\n", "n: 18446744073709551616\n"] {
+            let error = parse_var_file_contents(contents).unwrap_err();
+            assert_eq!(
+                error.diagnostic_code,
+                Some(DiagnosticCode::ErrConfigParse),
                 "contents: {contents}"
             );
         }
@@ -548,6 +582,36 @@ impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
         Ok(serde_json::Value::Number(v.into()))
     }
 
+    fn visit_i128<E>(self, v: i128) -> Result<Self::Value, E>
+    where
+        E: DeError,
+    {
+        i64::try_from(v)
+            .map(|v| serde_json::Value::Number(v.into()))
+            .map_err(|_| {
+                E::custom(format!(
+                    "integer {v} is outside the representable range ({}..={})",
+                    i64::MIN,
+                    u64::MAX
+                ))
+            })
+    }
+
+    fn visit_u128<E>(self, v: u128) -> Result<Self::Value, E>
+    where
+        E: DeError,
+    {
+        u64::try_from(v)
+            .map(|v| serde_json::Value::Number(v.into()))
+            .map_err(|_| {
+                E::custom(format!(
+                    "integer {v} is outside the representable range ({}..={})",
+                    i64::MIN,
+                    u64::MAX
+                ))
+            })
+    }
+
     fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
     where
         E: DeError,
@@ -590,6 +654,34 @@ impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
     {
         let mut object = serde_json::Map::new();
         while let Some(key) = map.next_key::<String>()? {
+            if key == "$serde_json::private::Number" {
+                let raw_number = map.next_value::<String>()?;
+                if raw_number
+                    .bytes()
+                    .all(|byte| byte.is_ascii_digit() || byte == b'-')
+                {
+                    if raw_number.starts_with('-') {
+                        let value = raw_number.parse::<i128>().map_err(|_| {
+                            A::Error::custom(format!(
+                                "integer {raw_number} is outside the representable i128 range"
+                            ))
+                        })?;
+                        return self.visit_i128(value);
+                    }
+
+                    let value = raw_number.parse::<u128>().map_err(|_| {
+                        A::Error::custom(format!(
+                            "integer {raw_number} is outside the representable u128 range"
+                        ))
+                    })?;
+                    return self.visit_u128(value);
+                }
+
+                let number = raw_number
+                    .parse::<serde_json::Number>()
+                    .map_err(A::Error::custom)?;
+                return Ok(serde_json::Value::Number(number));
+            }
             if object.contains_key(&key) {
                 return Err(A::Error::custom(format!(
                     "duplicate entry with key \"{key}\""
