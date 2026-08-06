@@ -32,7 +32,7 @@ required_variables:
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ report.title }}</title>
-  <!-- Safety note: sc-compose does not auto-escape .html.j2 templates. Escape untrusted values before rendering. -->
+  <!-- Safety note: sc-compose automatically escapes markup and XML-illegal control bytes for .html.j2/.htm.j2/.xml.j2/.xhtml.j2 templates. Keep | safe limited to trusted, pre-rendered HTML fragments. -->
   <style>
     :root {
       color-scheme: light;

@@ -1229,13 +1229,25 @@ Implemented in Phase HTML-Report.
 - Output path derivation removes only the trailing `.j2` suffix and therefore
   preserves the `.html` extension.
 - Rendered HTML is treated as a normal template artifact.
-- `sc-compose` does not enable MiniJinja auto-escaping for `.html.j2`
-  templates. Template authors remain responsible for escaping user-supplied
-  values.
+- `AutoEscape::Custom("sc-compose-html")` applies to `.html.j2`, `.htm.j2`,
+  `.xml.j2`, and `.xhtml.j2` templates. It automatically escapes markup and
+  represents XML-illegal control bytes with the legal replacement-character
+  NCR `&#xfffd;`; template authors do not need to opt in.
 - Self-contained output, XHTML shape, inline CSS, and browser-viewability are
   template-author responsibilities rather than core-engine enforcement.
 - Dry-run, diagnostics, validation, and output-path rules apply to HTML
   templates the same way they apply to other file-mode templates.
+
+#### ADR-style clarification (2026-08-06, FIX-278)
+
+The shipped renderer's filename-aware `AutoEscape::Custom("sc-compose-html")`
+policy covers `.html.j2`, `.htm.j2`, `.xml.j2`, and `.xhtml.j2`. The shared
+formatter escapes markup and converts XML-illegal C0 control bytes to the legal
+replacement-character NCR `&#xfffd;` while leaving tab, LF, and CR intact.
+This is automatic behavior and requires no author opt-in. See
+[architecture §21.6](architecture.md#216-h4-wrapper-owned-orchestration-pattern)
+for the corresponding boundary statement. This clarification records shipped
+behavior; it does not change the existing filename-dispatch mechanism.
 
 ### FR-15: Bundled HTML Report Example
 

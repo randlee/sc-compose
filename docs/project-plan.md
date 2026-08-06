@@ -1306,8 +1306,8 @@ Deliverables:
 - H3a adds:
   - at least one integration test verifying
     `sprint-report-html.html.j2 -> sprint-report-html.html`
-  - an explicit safety note that `.html.j2` templates do not use automatic
-    escaping
+  - an explicit safety note describing filename-aware automatic escaping and
+    limiting `| safe` to trusted, pre-rendered HTML fragments
 - H3b (FR-15 content): bundled example at
   `examples/sprint-report-html.html.j2`
 - H3b keeps all template content inline in a single flat file; no `_includes/`

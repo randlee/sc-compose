@@ -190,3 +190,17 @@ dispatch, not a blanket change to minijinja's built-in escaper.
   -D warnings`, and `git diff --check` all passed. The CLI regression rendered
   a NUL-containing JSON var-file and verified the result with Python
   `xml.etree.ElementTree.fromstring`.
+
+### QA-278-001 documentation correction (2026-08-06)
+
+- QA-278-001 was ruled a documentation-accuracy gap: the shipped
+  filename-aware auto-escape behavior was correct, but FR-14, architecture
+  §21.6, the bundled HTML example, and the H3 project-plan wording still
+  described `.html.j2` as unescaped.
+- Corrected those statements to document automatic markup escaping and
+  XML-illegal control-byte handling for `.html.j2`, `.htm.j2`, `.xml.j2`, and
+  `.xhtml.j2`, including the legal replacement-character NCR `&#xfffd;`.
+- No renderer source, `legacy_auto_escape_callback`, or filename-dispatch
+  mechanism was changed for this docs-only correction.
+- Post-correction validation is recorded by the completion report for the
+  pushed documentation commit.
