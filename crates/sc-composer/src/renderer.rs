@@ -454,15 +454,15 @@ mod tests {
 
     #[test]
     fn real_plan_scope_template_round_trips_cdata_payload() {
-        let source = include_str!("../../../.claude/skills/plan-hardening/01-plan-scope-review.xml.j2");
+        let source =
+            include_str!("../../../.claude/skills/plan-hardening/01-plan-scope-review.xml.j2");
         let cdata_block = source
             .split("  <reviewer-findings-json>\n")
             .nth(1)
             .and_then(|tail| tail.split("  </reviewer-findings-json>").next())
             .expect("plan-hardening template must contain the reviewer CDATA block");
-        let template = format!(
-            "<root><reviewer-findings-json>{cdata_block}</reviewer-findings-json></root>"
-        );
+        let template =
+            format!("<root><reviewer-findings-json>{cdata_block}</reviewer-findings-json></root>");
         let original = "finding before ]]> finding after";
         let rendered = Renderer::new()
             .render_named(
