@@ -149,6 +149,16 @@ fn frontmatter_safe_filter(value: &str) -> JinjaValue {
     JinjaValue::from_safe_string(escaped)
 }
 
+fn yaml_safe_filter(value: &str) -> String {
+    let escaped = value
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\t', "\\t")
+        .replace('\r', "\\r");
+    format!("\"{escaped}\"")
+}
+
 fn format_sc_compose_markup(
     out: &mut Output<'_>,
     state: &State<'_, '_>,
@@ -206,6 +216,7 @@ fn configure_environment(env: &mut Environment<'static>) {
     env.add_filter("turtle_escape", turtle_escape_filter);
     env.add_filter("xml_char_safe", xml_char_safe_filter);
     env.add_filter("frontmatter_safe", frontmatter_safe_filter);
+    env.add_filter("yaml_safe", yaml_safe_filter);
     env.set_unknown_method_callback(map_get_unknown_method_callback);
 }
 
