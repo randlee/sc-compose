@@ -658,7 +658,8 @@ envelope.
   "payload": {
     "output_path": "stdout",
     "bytes_written": 123,
-    "template": "path/to/template.md.j2"
+    "template": "path/to/template.md.j2",
+    "body": "rendered document text"
   },
   "diagnostics": []
 }
@@ -670,6 +671,9 @@ Schema rules:
 - `bytes_written` is the actual byte count written to the selected output
   target; when writing to stdout it is the UTF-8 byte length emitted to stdout.
 - `template` is the resolved template path as a string.
+- `body` is present only for non-dry-run stdout renders and contains the full
+  rendered document. It is omitted when `--output <file>` is supplied because
+  the file is the source of truth.
 
 `render --dry-run --json`
 

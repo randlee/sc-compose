@@ -367,6 +367,13 @@ fn emit_render_output(
                 "template": to_forward_slash(resolved_path),
                 "rendered_preview": rendered_text,
             })
+        } else if output_path.is_none() {
+            serde_json::json!({
+                "output_path": "stdout",
+                "bytes_written": bytes_written.unwrap_or_default(),
+                "template": to_forward_slash(resolved_path),
+                "body": rendered_text,
+            })
         } else {
             serde_json::json!({
                 "output_path": output_path
