@@ -658,6 +658,20 @@ FIX-243 preserves adjacent plain-YAML blocks with unrecognized top-level keys
 as template body while retaining recognized-key multi-pass stacking and the
 FIX-238 Jinja-syntax break behavior.
 
+### Follow-on Fix Sprint: FIX-245
+
+Status:
+
+- complete on `fix/245-opening-delimiter-trailing-whitespace` at `61aadec`
+
+Sprint entry:
+
+- [Sprint FIX-245 — Opening Frontmatter Delimiter Trailing Whitespace](sprints/fix-245-opening-delimiter-trailing-whitespace.md)
+
+FIX-245 accepts spaces and tabs after an opening `---` delimiter before LF,
+CRLF, or EOF, while preserving strict closing-delimiter matching and the
+resulting `ERR_CONFIG_PARSE` for trailing-whitespace closing lines.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:
