@@ -357,7 +357,10 @@ fn compose_with_observer_emits_single_render_failure_event_for_multi_pass_errors
     )
     .unwrap_err();
 
-    assert!(error.to_string().contains("syntax error"));
+    let source = std::error::Error::source(&error)
+        .map(ToString::to_string)
+        .unwrap_or_default();
+    assert!(source.contains("syntax error"));
     assert_eq!(observer.render.len(), 1);
     assert_eq!(observer.render[0].rendered_bytes, None);
 }
