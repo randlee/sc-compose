@@ -763,6 +763,21 @@ the default single-pass, multi-pass, and custom-delimiter render paths. XML
 and HTML templates now escape interpolated markup while non-markup templates
 and the public in-memory `render_all()` API retain their unescaped behavior.
 
+### Follow-on Fix Sprint: FIX-270
+
+Status:
+
+- complete on `fix/270-dict-get-method-unsupported` at `619078a`
+
+Sprint entry:
+
+- [Sprint FIX-270 — Jinja Dict Get Method](sprints/fix-270-dict-get-method-unsupported.md)
+
+FIX-270 adds a narrow project-owned Minijinja unknown-method callback for map
+`.get(key[, default])` calls. Missing keys return `Undefined` or the supplied
+default, while unrelated methods, value kinds, and arities retain the original
+unknown-method behavior.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:

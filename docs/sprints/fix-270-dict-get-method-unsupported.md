@@ -1,7 +1,7 @@
 ---
 id: FIX-270
 title: "Jinja dict .get(key, default) method unsupported by render engine"
-status: in-progress
+status: complete
 branch: fix/270-dict-get-method-unsupported
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/270-dict-get-method-unsupported
 target: develop
@@ -123,4 +123,21 @@ one narrow behavior is actually needed.
 
 ## Closeout Evidence
 
-_Pending — to be filled in by comp on completion._
+- Red regression commit: `081e6f8` (`test: reproduce unsupported dict get
+  method`). The exact issue reproduction
+  `{{ row.get("k", "n/a") }}` against `{"row": {"k": "v"}}` failed before
+  the implementation with Minijinja's `UnknownMethod` error.
+- Green implementation commit: `619078a` (`fix: support dictionary get
+  method in templates`). It installs a project-owned unknown-method callback
+  limited to map values, the `get` method, and one or two arguments. Other
+  methods, value kinds, and arities still return `UnknownMethod`.
+- Regression coverage passes for present and missing keys with and without a
+  default, plus non-map rejection.
+- Production repro passed with exit code `0` for both
+  `atm-core/templates/smoke-report/smoke.md.j2` and
+  `atm-core/templates/smoke-report/smoke-thorough.md.j2`, using a temporary
+  vars file containing a non-PASS row and the FIX-270 binary.
+- `cargo fmt --all --check` — PASS.
+- `cargo test --workspace` — PASS (all workspace tests passed).
+- `cargo clippy --all-targets --all-features -- -D warnings` — PASS.
+- `git diff --check` — PASS.
