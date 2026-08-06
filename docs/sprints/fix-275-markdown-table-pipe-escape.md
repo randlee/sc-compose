@@ -1,6 +1,6 @@
 ---
 id: FIX-275
-status: dispatched
+status: complete
 branch: fix/275-markdown-table-pipe-escape
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/275-markdown-table-pipe-escape
 target: develop
@@ -142,3 +142,24 @@ in `legacy_auto_escape_callback` today and adding one is out of scope.
 - PR #284 (FIX-272), PR #287 (FIX-274), PR #288 (FIX-278)
 - Fuzz round 2 report, 2026-08-06 (adversarial fuzzing of `sc-compose`
   against production templates in `atm-core`)
+
+## Closeout Evidence
+
+- Red tests committed and pushed at `6e90d1e` (`test: reproduce markdown table
+  pipe corruption`). Before the filter was registered, the focused unit and
+  CLI tests failed with Minijinja's `unknown filter: md_table_safe` error.
+- Green implementation committed and pushed at `f4ad48d` (`fix: add markdown
+  table safe filter`), with the clippy cleanup committed and pushed at
+  `b5d225c` (`fix: satisfy clippy for markdown table filter`).
+- Focused validation passed: `cargo test -p sc-composer md_table_safe --
+  --nocapture` (3 passed) and `cargo test -p sc-compose --test cli
+  render_markdown_table_safe_cli_regression -- --nocapture` (1 passed).
+- Full validation passed: `cargo test --workspace`, `cargo fmt --all --check`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, and
+  `git diff --check`.
+- Bundled-template audit found no `.md.j2` file under `.claude/skills/` or
+  `examples/` with a Jinja interpolation on a Markdown table-row line, so no
+  in-repository callsite required a change. The five referenced coverage
+  templates are outside this repository and were not accessed.
+- No dependency was added. The fix remains an explicit opt-in filter; no
+  Markdown auto-escape mode was introduced.

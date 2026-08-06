@@ -823,6 +823,7 @@ subscripts/slices, binary operator fragments, Jinja filter names, and simple
 `{% set %}` locals while preserving real filter-argument references and
 loop-context diagnostics outside active loops.
 
+<<<<<<< HEAD
 ### Follow-on Fix Sprint: FIX-278
 
 Status:
@@ -847,11 +848,26 @@ Sprint entry:
 
 - [Sprint FIX-274 — Spoofed Frontmatter Delimiter](sprints/fix-274-spoofed-frontmatter-delimiter.md)
 
-FIX-274 adds an opt-in `frontmatter_safe` filter for interpolated values in
-frontmatter-shaped Markdown output. Standalone `---` and `...` lines are
-neutralized without changing ordinary text or mid-line delimiter sequences;
-the codex-orchestration sprint-plan template applies the filter to its title
-fields.
+ FIX-274 adds an opt-in `frontmatter_safe` filter for interpolated values in
+ frontmatter-shaped Markdown output. Standalone `---` and `...` lines are
+ neutralized without changing ordinary text or mid-line delimiter sequences;
+ the codex-orchestration sprint-plan template applies the filter to its title
+ fields.
+
+ ### Follow-on Fix Sprint: FIX-275
+
+Status:
+
+- complete on `fix/275-markdown-table-pipe-escape` at `b5d225c`
+
+Sprint entry:
+
+- [Sprint FIX-275 — Markdown Table Pipe Escape](sprints/fix-275-markdown-table-pipe-escape.md)
+
+FIX-275 adds the explicit `md_table_safe` filter for Markdown table cells. It
+ escapes literal pipes as `\|`, collapses embedded line breaks to spaces, and
+ leaves all other characters unchanged. The filter is opt-in so ordinary
+ Markdown text and existing auto-escape behavior remain unchanged.
 
 ### Standalone Repowise Cleanup: Render Request Module Split
 
