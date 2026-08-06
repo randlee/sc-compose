@@ -1,7 +1,7 @@
 //! Structured diagnostics and stable `ERR_*` codes.
 
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
@@ -180,7 +180,33 @@ pub enum DiagnosticCode {
     ErrExtractTomlAmbiguous,
 }
 
-pub(crate) fn is_filesystem_loop(error: &std::io::Error) -> bool {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum FilesystemErrorClass {
+    InvalidData,
+    PermissionDenied,
+    IsADirectory,
+    FilesystemLoop,
+    NotFound,
+}
+
+pub(crate) fn classify_filesystem_error(
+    path: &Path,
+    error: &std::io::Error,
+) -> FilesystemErrorClass {
+    if path.is_dir() {
+        return FilesystemErrorClass::IsADirectory;
+    }
+
+    match error.kind() {
+        std::io::ErrorKind::InvalidData => FilesystemErrorClass::InvalidData,
+        std::io::ErrorKind::PermissionDenied => FilesystemErrorClass::PermissionDenied,
+        std::io::ErrorKind::IsADirectory => FilesystemErrorClass::IsADirectory,
+        _ if is_filesystem_loop(error) => FilesystemErrorClass::FilesystemLoop,
+        _ => FilesystemErrorClass::NotFound,
+    }
+}
+
+fn is_filesystem_loop(error: &std::io::Error) -> bool {
     #[cfg(any(target_os = "linux", target_os = "android"))]
     {
         error.raw_os_error() == Some(40)

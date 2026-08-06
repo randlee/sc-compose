@@ -126,27 +126,27 @@ pub(crate) fn canonicalize_with_roots(
         root.join(path)
     };
     let canonical = std::fs::canonicalize(&candidate).map_err(|error| {
-        let kind = error.kind();
-        let (code, message) = match kind {
-            std::io::ErrorKind::PermissionDenied => (
-                DiagnosticCode::ErrIncludePermissionDenied,
-                format!(
-                    "permission denied reading template path: {}",
-                    candidate.display()
+        let (code, message) =
+            match crate::diagnostics::classify_filesystem_error(&candidate, &error) {
+                crate::diagnostics::FilesystemErrorClass::PermissionDenied => (
+                    DiagnosticCode::ErrIncludePermissionDenied,
+                    format!(
+                        "permission denied reading template path: {}",
+                        candidate.display()
+                    ),
                 ),
-            ),
-            _ if crate::diagnostics::is_filesystem_loop(&error) => (
-                DiagnosticCode::ErrIncludeFilesystemLoop,
-                format!(
-                    "template path is a filesystem symlink loop: {}",
-                    candidate.display()
+                crate::diagnostics::FilesystemErrorClass::FilesystemLoop => (
+                    DiagnosticCode::ErrIncludeFilesystemLoop,
+                    format!(
+                        "template path is a filesystem symlink loop: {}",
+                        candidate.display()
+                    ),
                 ),
-            ),
-            _ => (
-                DiagnosticCode::ErrResolveNotFound,
-                format!("template path not found: {}", candidate.display()),
-            ),
-        };
+                _ => (
+                    DiagnosticCode::ErrResolveNotFound,
+                    format!("template path not found: {}", candidate.display()),
+                ),
+            };
         ResolveError::new(code, message, vec![candidate.clone()]).with_source(error)
     })?;
 

@@ -129,31 +129,30 @@ fn expand_file(
     }
 
     let raw = std::fs::read_to_string(path).map_err(|error| {
-        let kind = error.kind();
-        let (code, message) = match kind {
-            std::io::ErrorKind::InvalidData => (
+        let (code, message) = match crate::diagnostics::classify_filesystem_error(path, &error) {
+            crate::diagnostics::FilesystemErrorClass::InvalidData => (
                 DiagnosticCode::ErrConfigRead,
                 format!("template file is not valid UTF-8: {}", path.display()),
             ),
-            std::io::ErrorKind::PermissionDenied => (
+            crate::diagnostics::FilesystemErrorClass::PermissionDenied => (
                 DiagnosticCode::ErrIncludePermissionDenied,
                 format!("permission denied reading include file: {}", path.display()),
             ),
-            std::io::ErrorKind::IsADirectory => (
+            crate::diagnostics::FilesystemErrorClass::IsADirectory => (
                 DiagnosticCode::ErrIncludeIsADirectory,
                 format!(
                     "include target is a directory, not a file: {}",
                     path.display()
                 ),
             ),
-            _ if crate::diagnostics::is_filesystem_loop(&error) => (
+            crate::diagnostics::FilesystemErrorClass::FilesystemLoop => (
                 DiagnosticCode::ErrIncludeFilesystemLoop,
                 format!(
                     "include target is a filesystem symlink loop: {}",
                     path.display()
                 ),
             ),
-            _ => (
+            crate::diagnostics::FilesystemErrorClass::NotFound => (
                 DiagnosticCode::ErrIncludeNotFound,
                 format!("include file not found: {}", path.display()),
             ),
@@ -269,27 +268,34 @@ fn canonicalize_include(
                 .into());
             }
 
-            let kind = error.kind();
-            let (code, message) = match kind {
-                _ if crate::diagnostics::is_filesystem_loop(&error) => (
-                    DiagnosticCode::ErrIncludeFilesystemLoop,
-                    format!(
-                        "include path is a filesystem symlink loop: {}",
-                        candidate.display()
+            let (code, message) =
+                match crate::diagnostics::classify_filesystem_error(candidate, &error) {
+                    crate::diagnostics::FilesystemErrorClass::IsADirectory => (
+                        DiagnosticCode::ErrIncludeIsADirectory,
+                        format!(
+                            "include target is a directory, not a file: {}",
+                            candidate.display()
+                        ),
                     ),
-                ),
-                std::io::ErrorKind::PermissionDenied => (
-                    DiagnosticCode::ErrIncludePermissionDenied,
-                    format!(
-                        "permission denied resolving include: {}",
-                        candidate.display()
+                    crate::diagnostics::FilesystemErrorClass::FilesystemLoop => (
+                        DiagnosticCode::ErrIncludeFilesystemLoop,
+                        format!(
+                            "include path is a filesystem symlink loop: {}",
+                            candidate.display()
+                        ),
                     ),
-                ),
-                _ => (
-                    DiagnosticCode::ErrIncludeNotFound,
-                    format!("include file not found: {}", candidate.display()),
-                ),
-            };
+                    crate::diagnostics::FilesystemErrorClass::PermissionDenied => (
+                        DiagnosticCode::ErrIncludePermissionDenied,
+                        format!(
+                            "permission denied resolving include: {}",
+                            candidate.display()
+                        ),
+                    ),
+                    _ => (
+                        DiagnosticCode::ErrIncludeNotFound,
+                        format!("include file not found: {}", candidate.display()),
+                    ),
+                };
             Err(IncludeError::new(code, message, stack.to_vec())
                 .with_source(error)
                 .into())
