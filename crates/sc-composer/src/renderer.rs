@@ -2,6 +2,7 @@
 
 use std::collections::BTreeMap;
 
+use minijinja::value::ValueKind;
 use minijinja::{
     AutoEscape, Environment, Error, Output, State, Value as JinjaValue, escape_formatter,
 };
@@ -106,6 +107,26 @@ fn format_sc_compose_markup(
         .map_err(Error::from)
 }
 
+fn map_get_unknown_method_callback(
+    _state: &State<'_, '_>,
+    value: &JinjaValue,
+    method: &str,
+    args: &[JinjaValue],
+) -> Result<JinjaValue, Error> {
+    if value.kind() != ValueKind::Map || method != "get" || !(1..=2).contains(&args.len()) {
+        return Err(Error::from(minijinja::ErrorKind::UnknownMethod));
+    }
+
+    let found = value.get_item(&args[0])?;
+    if !found.is_undefined() {
+        Ok(found)
+    } else if args.len() == 2 {
+        Ok(args[1].clone())
+    } else {
+        Ok(JinjaValue::UNDEFINED)
+    }
+}
+
 fn configure_environment(env: &mut Environment<'static>) {
     env.set_trim_blocks(true);
     env.set_lstrip_blocks(true);
@@ -113,6 +134,7 @@ fn configure_environment(env: &mut Environment<'static>) {
     // feature is enabled. JSON/YAML/JS templates are text outputs, not HTML.
     env.set_auto_escape_callback(legacy_auto_escape_callback);
     env.set_formatter(format_sc_compose_markup);
+    env.set_unknown_method_callback(map_get_unknown_method_callback);
 }
 
 impl Renderer {
@@ -386,7 +408,7 @@ mod tests {
         let error = renderer
             .render(r#"{{ row.get("k", "n/a") }}"#, json!({"row": "text"}))
             .unwrap_err();
-        let detail = error.to_string();
+        let detail = error.source().map(ToString::to_string).unwrap_or_default();
 
         assert!(
             detail.contains("unknown method") || detail.contains("has no method named get"),
