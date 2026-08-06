@@ -171,6 +171,16 @@ fn validate_required_path(
     validate_required_value(current, &remaining_segments, first)
 }
 
+pub(super) fn is_bound_path(
+    context: &BTreeMap<VariableName, InputValue>,
+    variable: &VariableName,
+) -> bool {
+    matches!(
+        validate_required_path(context, variable),
+        RequiredPathStatus::Satisfied
+    )
+}
+
 fn validate_required_value(
     current: &serde_json::Value,
     segments: &[&str],

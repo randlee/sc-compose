@@ -492,6 +492,10 @@ Semantics:
 
 - `strict_undeclared_variables: bool`
 - `unknown_variable_policy: UnknownVariablePolicy`
+- `unbound_variable_policy: Option<UnknownVariablePolicy>`; when omitted,
+  referenced-but-unbound diagnostics inherit `unknown_variable_policy` for
+  compatibility, while an explicit value keeps the two policy axes
+  independent
 - `max_include_depth: IncludeDepth`
 - `allowed_roots: Vec<ConfiningRoot>`
 - `resolver_policy: ResolverPolicy`
@@ -1605,6 +1609,7 @@ Canonical failures must map to stable error families and stable codes.
 | Required variable not satisfied after context merge | `ValidationError` | `ERR_VAL_MISSING_REQUIRED` |
 | Undeclared referenced token in strict validation or render mode | `ValidationError` | `ERR_VAL_UNDECLARED_TOKEN` |
 | Extra provided variable when policy is `error` | `ValidationError` | `ERR_VAL_EXTRA_INPUT` |
+| Referenced variable has no merged runtime binding when the unbound-variable policy is `error` | `ValidationError` | `ERR_VAL_UNBOUND_VARIABLE` |
 | Stdin read attempted twice | `RenderError` | `ERR_RENDER_STDIN_DOUBLE_READ` |
 | Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
 | Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |

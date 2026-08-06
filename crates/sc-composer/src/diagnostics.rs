@@ -84,6 +84,8 @@ pub enum DiagnosticCode {
     ErrValUndeclaredToken,
     /// A caller-provided variable was not declared or referenced.
     ErrValExtraInput,
+    /// A referenced variable had no value binding at render time.
+    ErrValUnboundVariable,
     /// A variable was not provided explicitly and a default value was used.
     InfoValDefaultUsed,
     /// The CLI attempted to read stdin twice for incompatible inputs.
@@ -274,6 +276,7 @@ impl DiagnosticCode {
             Self::ErrValArrayShapeMismatch => "ERR_VAL_ARRAY_SHAPE_MISMATCH",
             Self::ErrValUndeclaredToken => "ERR_VAL_UNDECLARED_TOKEN",
             Self::ErrValExtraInput => "ERR_VAL_EXTRA_INPUT",
+            Self::ErrValUnboundVariable => "ERR_VAL_UNBOUND_VARIABLE",
             Self::InfoValDefaultUsed => "INFO_VAL_DEFAULT_USED",
             Self::ErrRenderStdinDoubleRead => "ERR_RENDER_STDIN_DOUBLE_READ",
             Self::ErrRenderWrite => "ERR_RENDER_WRITE",

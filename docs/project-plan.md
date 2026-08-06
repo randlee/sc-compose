@@ -1515,6 +1515,7 @@ boundary defined by:
 - `docs/sprints/fix-252-varfile-missing-dir-misclassified.md`
 - `docs/sprints/fix-253-doubled-delimiter-error-message.md`
 - `docs/sprints/fix-254-varfile-negative-boundary-i128.md`
+- `docs/sprints/fix-283-unbound-variable-policy-noop.md`
 
 The current follow-on implementation track is:
 

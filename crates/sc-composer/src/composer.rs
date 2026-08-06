@@ -446,6 +446,32 @@ mod tests {
     }
 
     #[test]
+    fn compose_fails_closed_for_an_unbound_reference_under_error_policy() {
+        let root = temp_root("compose_unbound_error");
+        write_file(&root.join("template.md.j2"), "hello {{ missing }}");
+
+        let error = compose(&ComposeRequest {
+            runtime: None,
+            mode: ComposeMode::File {
+                template_path: PathBuf::from("template.md.j2"),
+            },
+            root: ConfiningRoot::new(&root).unwrap(),
+            vars_input: BTreeMap::default(),
+            vars_env: BTreeMap::default(),
+            vars_defaults: BTreeMap::default(),
+            guidance_block: None,
+            user_prompt: None,
+            policy: ComposePolicy {
+                unknown_variable_policy: crate::UnknownVariablePolicy::Error,
+                ..ComposePolicy::default()
+            },
+        })
+        .unwrap_err();
+
+        assert_eq!(error.code(), Some(DiagnosticCode::ErrValUnboundVariable));
+    }
+
+    #[test]
     fn compose_prefers_explicit_input_variable_sources() {
         let root = temp_root("compose_sources");
         write_file(
