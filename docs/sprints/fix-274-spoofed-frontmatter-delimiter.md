@@ -1,6 +1,6 @@
 ---
 id: FIX-274
-status: planned
+status: complete
 branch: fix/274-spoofed-frontmatter-delimiter
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/274-spoofed-frontmatter-delimiter
 target: develop
@@ -192,5 +192,33 @@ only at the known call site(s), not a blanket format change.
 
 ## Closeout Evidence
 
-_To be completed by comp on delivery: fix commit(s), validation results,
-per-template audit outcome for design step 3, and any deviations._
+- Red regression tests committed at `39b9c77` (`test: cover frontmatter
+  delimiter injection`). Before the fix, the unit tests failed because the
+  filter was unknown, and the real-template and CLI tests observed six
+  standalone `---` lines instead of the two real header delimiters.
+- Implementation committed at `2145245` (`fix: neutralize frontmatter
+  delimiter values`). It adds and registers `frontmatter_safe`, which
+  preserves ordinary text and mid-line `---`/`...` sequences while replacing
+  standalone delimiter lines with `\-\-\-` or `\.\.\.`. The sprint-plan
+  output header and repeated Markdown title interpolation both use the filter
+  so the complete rendered document does not reintroduce raw delimiter lines.
+- The additional-template audit found no matching vulnerable output header:
+  `quality-management-gh/findings-report.md.j2`,
+  `quality-management-gh/quality-report.md.j2`,
+  `sprint-report/report-detailed.md.j2`, `sprint-report/report.md.j2`,
+  `examples/hello.md.j2`, `examples/jagged-array-values.md.j2`,
+  `examples/changelog-categories.md.j2`, and
+  `examples/frontmatter-demo.md.j2` all use their `---` pairs for input
+  declaration frontmatter; their rendered bodies do not open a separate
+  literal frontmatter header containing interpolated values, so no additional
+  template was modified and no per-template regression test was required.
+- The sprint-plan output header audit found `id`, `branch`, `status`, and
+  `target` are constrained/internal fields at their call sites; `title` is the
+  free-text field and is the only header field requiring the new filter.
+- `docs/templates/architecture-adr.md.j2` and
+  `docs/templates/boundary-record.md.j2` are absent from this repository and
+  were not searched for outside the repository boundary.
+- Validation on `2145245` plus the closeout documentation changes: `cargo test
+  --workspace` passed with zero failures; `cargo fmt --all --check`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, and
+  `git diff --check` all passed.
