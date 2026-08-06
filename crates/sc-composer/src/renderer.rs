@@ -250,7 +250,10 @@ pub fn render_loaded_template(
 #[cfg(test)]
 mod tests {
     use std::error::Error as _;
+    use std::str;
 
+    use quick_xml::Reader;
+    use quick_xml::events::Event;
     use serde_json::json;
 
     use super::{LoadedTemplateRequest, NamedTemplateAsset, Renderer, render_loaded_template};
@@ -335,6 +338,82 @@ mod tests {
                 .unwrap();
             assert_eq!(output, "/tmp/path/to/report.xml", "changed {template_name}");
         }
+    }
+
+    #[test]
+    fn renderer_json_auto_escape_round_trips_json_string_values() {
+        let renderer = Renderer::new();
+        let original = "quote \" slash \\\nline";
+        let output = renderer
+            .render_named("payload.json.j2", "{{ value }}", json!({"value": original}))
+            .unwrap();
+
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(parsed, json!(original));
+    }
+
+    #[test]
+    fn renderer_json_auto_escape_prevents_injected_top_level_keys() {
+        let renderer = Renderer::new();
+        let injected = r#"x", "injected": true, "y": "x"#;
+        let output = renderer
+            .render_named(
+                "payload.json.j2",
+                r#"{"sprint_id": "{{ sprint_id }}"}"#,
+                json!({"sprint_id": injected}),
+            )
+            .unwrap();
+
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(parsed["sprint_id"], json!(injected));
+        assert!(parsed.get("injected").is_none());
+    }
+
+    #[test]
+    fn cdata_escape_round_trips_through_xml_parser() {
+        let renderer = Renderer::new();
+        let original = "before ]]> after";
+        let output = renderer
+            .render(
+                "<root><![CDATA[{{ value | cdata_escape }}]]></root>",
+                json!({"value": original}),
+            )
+            .unwrap();
+
+        let mut reader = Reader::from_str(&output);
+        reader.config_mut().trim_text(false);
+        let mut content = String::new();
+        loop {
+            match reader.read_event().unwrap() {
+                Event::CData(value) => content.push_str(str::from_utf8(value.as_ref()).unwrap()),
+                Event::Eof => break,
+                _ => {}
+            }
+        }
+        assert_eq!(content, original);
+    }
+
+    #[test]
+    fn cdata_escape_is_identity_without_cdata_terminator() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render("{{ value | cdata_escape }}", json!({"value": "plain text"}))
+            .unwrap();
+
+        assert_eq!(output, "plain text");
+    }
+
+    #[test]
+    fn turtle_escape_uses_turtle_string_literal_escapes() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render(
+                "{{ value | turtle_escape }}",
+                json!({"value": "\"\\\n\r\t"}),
+            )
+            .unwrap();
+
+        assert_eq!(output, "\\\"\\\\\\n\\r\\t");
     }
 
     #[test]
