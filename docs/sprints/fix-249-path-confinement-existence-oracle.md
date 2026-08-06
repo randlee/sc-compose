@@ -1,7 +1,7 @@
 ---
 id: FIX-249
 title: "Path-confinement diagnostics leak path-existence as an oracle"
-status: assigned
+status: complete
 branch: fix/249-path-confinement-existence-oracle
 worktree: ../sc-compose-worktrees/fix/249-path-confinement-existence-oracle
 target: develop
@@ -227,16 +227,17 @@ lines 501+), asserting on `canonicalize_with_roots` directly (it is
 
 (a) **Red-baseline regression test (mandatory `#[ignore]`d test — see
 Process section)**: build two `canonicalize_with_roots` calls against the
-same confined root — one candidate path that is absolute, outside the
-allowed root, and does not exist on disk; another candidate path that is
-absolute, outside the allowed root, and does exist on disk (e.g. a temp
-file created in a sibling directory outside `root`). Assert both calls
-return `ComposeError::Resolve` with `DiagnosticCode::ErrResolveNotFound`
-**and identical message text**. **Before the fix, this test fails** — the
+same confined root and the same absolute candidate outside the allowed
+root. Create the candidate, capture the existing-path error, remove it,
+then capture the missing-path error. Assert both calls return
+`ComposeError::Resolve` with `DiagnosticCode::ErrResolveNotFound` **and
+identical message text**. **Before the fix, this test fails** — the
 nonexistent case's message is `"template path not found: ..."` while the
 existing case's message is `"template path escapes configured roots:
 ..."` (a normal in-process string-equality assertion failure, not a
-crash — standard, non-crash-mode verification applies).
+crash — standard, non-crash-mode verification applies). Using the same
+candidate keeps the assertion focused on the existence oracle rather than
+on unrelated path text.
 
 (b) A candidate path that is lexically inside the allowed root but does
 not exist on disk still returns `ErrResolveNotFound` with the
@@ -285,6 +286,26 @@ string-prefix-matching the unnormalized candidate.
 - `cargo fmt --all --check` and
   `cargo clippy --all-targets --all-features -- -D warnings` clean.
 - GitHub issue #249 can be closed referencing the merged PR.
+
+## Closeout Evidence
+
+Status: **complete**.
+
+- Red regression commit: `7d92880` (`test: reproduce path existence oracle`).
+  The ignored baseline failed with different messages for an existing versus
+  missing out-of-root candidate.
+- Green implementation commit: `6aa2912` (`fix: close path existence
+  oracle`). The resolver now performs lexical confinement checks when
+  canonicalization fails, reusing `include::normalize_path`; the raw root
+  spelling is also retained so macOS `/var` and `/private/var` aliases do not
+  misclassify an in-root missing candidate as an escape.
+- Focused resolver tests: 9 passed.
+- Workspace tests: `cargo test --workspace` passed.
+- Quality gates: `cargo clippy --all-targets --all-features -- -D warnings`,
+  `cargo fmt --all --check`, and `git diff --check` passed.
+
+The regression test was created fresh on this branch and is now unignored;
+it was not promoted from another branch or previously closed issue.
 
 ## References
 

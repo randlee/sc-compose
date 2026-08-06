@@ -700,6 +700,22 @@ FIX-247 caps the effective recursive include depth at 128 inside
 unreasonably deep include chains return `ERR_INCLUDE_DEPTH` instead of
 overflowing the native stack.
 
+### Follow-on Fix Sprint: FIX-249
+
+Status:
+
+- complete on `fix/249-path-confinement-existence-oracle` at `6aa2912`
+
+Sprint entry:
+
+- [Sprint FIX-249 — Path-Confinement Existence Oracle](sprints/fix-249-path-confinement-existence-oracle.md)
+
+FIX-249 makes out-of-root resolver diagnostics independent of whether the
+candidate exists, while preserving the normal not-found diagnostic for
+lexically in-root missing paths. The implementation also handles macOS
+`/var`/`/private/var` temporary-directory aliases without weakening
+confinement.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:
