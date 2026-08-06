@@ -418,6 +418,82 @@ mod tests {
         assert!(parsed.get("injected").is_none());
     }
 
+    fn sprint_plan_body() -> &'static str {
+        let source = include_str!("../../../.claude/skills/codex-orchestration/sprint-plan.md.j2");
+        source
+            .strip_prefix("---\n")
+            .and_then(|source| source.split_once("\n---\n"))
+            .map(|(_, body)| body)
+            .expect("sprint-plan template must have declaration frontmatter")
+    }
+
+    fn sprint_plan_context(title: &str) -> serde_json::Value {
+        json!({
+            "id": "1.2",
+            "title": title,
+            "status": "planned",
+            "branch": "main",
+            "target": "develop",
+        })
+    }
+
+    fn standalone_frontmatter_delimiter_count(rendered: &str) -> usize {
+        rendered.lines().filter(|line| *line == "---").count()
+    }
+
+    #[test]
+    fn frontmatter_safe_escapes_standalone_delimiters() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render(
+                "{{ value | frontmatter_safe }}",
+                json!({"value": "before\n---\nafter"}),
+            )
+            .unwrap();
+
+        assert_eq!(output, "before\n\\-\\-\\-\nafter");
+    }
+
+    #[test]
+    fn frontmatter_safe_escapes_yaml_document_end_marker() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render(
+                "{{ value | frontmatter_safe }}",
+                json!({"value": "before\n...\nafter"}),
+            )
+            .unwrap();
+
+        assert_eq!(output, "before\n\\.\\.\\.\nafter");
+    }
+
+    #[test]
+    fn frontmatter_safe_leaves_non_delimiter_text_byte_identical() {
+        let renderer = Renderer::new();
+        for value in ["ordinary text", "a---b", "a...b"] {
+            let output = renderer
+                .render("{{ value | frontmatter_safe }}", json!({"value": value}))
+                .unwrap();
+            assert_eq!(output, value);
+        }
+    }
+
+    #[test]
+    fn real_sprint_plan_template_neutralizes_injected_frontmatter_delimiters() {
+        let title = "Injected frontmatter break\n---\nmalicious: true\n---";
+        let rendered = Renderer::new()
+            .render_named(
+                "sprint-plan.md.j2",
+                sprint_plan_body(),
+                sprint_plan_context(title),
+            )
+            .unwrap();
+
+        assert_eq!(standalone_frontmatter_delimiter_count(&rendered), 2);
+        assert!(rendered.contains("malicious: true"));
+        assert!(rendered.contains(r"\-\-\-"));
+    }
+
     #[test]
     fn cdata_escape_round_trips_through_xml_parser() {
         let renderer = Renderer::new();
