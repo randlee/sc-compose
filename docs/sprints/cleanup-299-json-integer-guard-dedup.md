@@ -23,3 +23,16 @@ mechanism and remove the documented-dead visitor path.
 ## References
 
 - Issue #299: https://github.com/randlee/sc-compose/issues/299
+
+## Closeout Evidence
+
+Validation was independently re-run for commit `e7e2e4f`:
+
+- `cargo test --workspace` — PASS; all workspace tests passed with 0 failures.
+- `cargo clippy --all-targets --all-features -- -D warnings` — PASS; 0 warnings.
+- `cargo fmt --all --check` — PASS; no formatting changes required.
+
+The standing red/green regression-test protocol does not require a red commit
+for this removal-only cleanup: the dead visitor path was deleted while the
+existing integer-boundary tests already prove the retained lexical scan's
+behavior, so no new behavior scenario was introduced.
