@@ -31,8 +31,9 @@ pub(crate) struct ContainmentEscape {
 /// Existing candidates are checked using their canonical path, which follows
 /// symlinks. Missing candidates are checked using normalized lexical paths so
 /// callers can preserve their existing not-found or filesystem diagnostics.
-/// `ConfiningRoot` values are already canonical by contract; the root and
-/// allowed-root list are therefore used as the shared containment boundary.
+/// Canonical roots and caller-preserved lexical aliases are both accepted as
+/// containment boundaries; missing-path checks normalize both candidates and
+/// roots before comparing them.
 pub(crate) fn canonicalize_within_roots(
     candidate: impl AsRef<Path>,
     root: &ConfiningRoot,
@@ -58,10 +59,17 @@ pub(crate) fn canonicalize_within_roots(
             Ok(Canonicalization::Existing(canonical))
         }
         Ok(_) => Err(ContainmentEscape { candidate }),
-        Err(_source) if !is_within_any(&normalize_path(&candidate), &approved_roots) => {
-            Err(ContainmentEscape { candidate })
+        Err(source) => {
+            let normalized_candidate = normalize_path(&candidate);
+            let normalized_roots = approved_roots
+                .iter()
+                .map(|root| normalize_path(root))
+                .collect::<Vec<_>>();
+            if !is_within_any(&normalized_candidate, &normalized_roots) {
+                return Err(ContainmentEscape { candidate });
+            }
+            Ok(Canonicalization::Missing { candidate, source })
         }
-        Err(source) => Ok(Canonicalization::Missing { candidate, source }),
     }
 }
 
@@ -83,4 +91,37 @@ fn normalize_path(path: &Path) -> PathBuf {
         }
     }
     normalized
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use super::{Canonicalization, canonicalize_within_roots};
+    use crate::types::ConfiningRoot;
+
+    #[test]
+    fn missing_paths_compare_normalized_approved_roots() {
+        let base = std::env::temp_dir().join(format!(
+            "sc-compose-path-containment-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let primary = base.join("primary");
+        let allowed = base.join("allowed");
+        fs::create_dir_all(&primary).unwrap();
+        fs::create_dir_all(allowed.join("nested")).unwrap();
+
+        let root = ConfiningRoot::new(&primary).unwrap();
+        let raw_allowed = ConfiningRoot::from_path_buf(allowed.join("nested/.."));
+        let candidate = allowed.join("missing.md.j2");
+
+        let result = canonicalize_within_roots(&candidate, &root, &[raw_allowed]);
+
+        assert!(matches!(result, Ok(Canonicalization::Missing { .. })));
+    }
 }

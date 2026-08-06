@@ -627,16 +627,15 @@ mod tests {
         assert_eq!(resolved, candidate.canonicalize().unwrap());
     }
 
-    #[cfg(unix)]
     #[test]
     fn symlink_escape_is_rejected_with_resolver_error_surface() {
-        use std::os::unix::fs::symlink;
-
         let root = temp_root("resolver_symlink_escape");
         let outside = root.parent().unwrap().join("resolver-symlink-outside.md");
         let linked = root.join("linked-template.md.j2");
         write_file(&outside, "outside");
-        symlink(&outside, &linked).unwrap();
+        if !create_symlink_if_supported(&outside, &linked) {
+            return;
+        }
 
         let error = super::canonicalize_with_roots(&linked, &root, &[]).unwrap_err();
 
@@ -727,5 +726,19 @@ mod tests {
             fs::create_dir_all(parent).unwrap();
         }
         fs::write(path, contents).unwrap();
+    }
+
+    #[cfg(unix)]
+    fn create_symlink_if_supported(target: &Path, link: &Path) -> bool {
+        std::os::unix::fs::symlink(target, link).is_ok()
+    }
+
+    #[cfg(windows)]
+    fn create_symlink_if_supported(target: &Path, link: &Path) -> bool {
+        match std::os::windows::fs::symlink_file(target, link) {
+            Ok(()) => true,
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => false,
+            Err(error) => panic!("failed to create symlink: {error}"),
+        }
     }
 }
