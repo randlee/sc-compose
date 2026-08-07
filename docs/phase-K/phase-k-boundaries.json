@@ -1,0 +1,35 @@
+{
+  "phase": "K",
+  "status": "planned",
+  "baseline": "5fc2f38",
+  "target": "develop",
+  "contracts": [
+    {
+      "id": "sc-composer-rust-python-surface",
+      "owners": ["K.1", "K.4", "K.5", "K.6", "K.7"],
+      "source_documents": ["docs/requirements.md", "docs/architecture.md", "bindings/python/README.md"],
+      "invariants": ["existing crate and crate-public paths remain available", "bindings/python remains a thin adapter", "no new public API is introduced"],
+      "validation": ["maturin develop", "pytest bindings/python/tests"]
+    },
+    {
+      "id": "cli-diagnostic-protocol",
+      "owners": ["K.2", "K.3", "K.4", "K.8"],
+      "source_documents": ["docs/error-code-registry.md", "docs/requirements.md", "docs/architecture.md"],
+      "invariants": ["CLI flags and exit codes are unchanged", "diagnostic code/severity/message/location fields are unchanged", "report metadata and artifact paths are unchanged"],
+      "machine_readable_surfaces": ["DiagnosticEnvelope<T>", "diagnostics[]", "report metadata JSON"]
+    },
+    {
+      "id": "include-filesystem-policy",
+      "owners": ["K.1", "K.3", "K.6", "K.8"],
+      "source_documents": ["docs/cross-platform-guidelines.md", "docs/architecture.md"],
+      "invariants": ["canonicalize_within_roots remains the single containment implementation", "PathBuf and platform-neutral path construction are retained", "temporary and subprocess tests remain isolated and bounded"]
+    },
+    {
+      "id": "phase-k-scope",
+      "owners": ["K.1", "K.2", "K.3", "K.4", "K.5", "K.6", "K.7", "K.8"],
+      "source_documents": ["docs/phase-K/phase-K-plan.md", "docs/issues-inventory.md", "docs/adrs/0015-phase-k-maintainability-decomposition.md"],
+      "invariants": ["structural decomposition only", "catalog.rs and resolver.rs remain follow-on candidates", "K.7 cannot close on tests-only work if no safe seam is found"],
+      "exit_rule": "K.7 requires either a merged safe decomposition or a QA-approved abandon-evidence record containing the baseline result, rationale, and confirmation that discovery.rs remained unchanged"
+    }
+  ]
+}

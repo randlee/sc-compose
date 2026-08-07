@@ -18,7 +18,10 @@ required to ship.
 - `requirements.md`, `architecture.md`, and this plan are the release source of
   truth.
 - No sprint may leave a known release blocker unassigned.
-- A later sprint may start only after the prior sprint exit gate passes.
+- A later sprint may start only after the prior sprint exit gate passes, unless
+  the authoritative phase plan explicitly declares independent tracks; in
+  that case, the sprint's own plan gate and declared dependency conditions
+  govern its start.
 - Deferred work is allowed only when it is explicitly out of scope for the
   initial release and does not reduce production readiness.
 - `sc-composer` remains a pure library.
@@ -612,6 +615,43 @@ Sprint entries:
 - [Sprint J.2 — Validation State and Context Assembly](phase-J/sprint-j-2-validation-state-assembly.md)
 - [Sprint J.3 — Validation Policy and Required-Path Diagnostics](phase-J/sprint-j-3-validation-policy-diagnostics.md)
 - [Sprint J.4 — Frontmatter Parser and Normalizer Split](phase-J/sprint-j-4-frontmatter-parser-split.md)
+
+### Phase K Sprint Plans
+
+Status:
+
+- planned from the Repowise hotspot review in issue #311 (`sc/repowise-update2`,
+  2026-08-07); the review identified ten candidates and Phase K selects eight
+  behavior-preserving decomposition sprints;
+- K.1, K.2, K.3, K.4, K.7, and K.8 are independently reviewable tracks;
+  K.5 and K.6 are separately gated and should follow K.4 when practical;
+- an out-of-order K.5 or K.6 start requires the sprint owner to record the K.4
+  export-stability check and the plan-gate reviewer to accept that evidence;
+- if K.7 finds no safe seam, its QA-approved abandon-evidence record is the
+  Phase K exit contribution in place of a merged decomposition, without a
+  decomposition-completion claim;
+- gate status: critical-plan-review (STEP3-R3) passed at `96c219c` and the
+  quality-mgr plan-gate review passed after consistency hardening at `eacbd08`;
+  implementation remains pending downstream dispatch;
+- all eight are implementation sprints, not planning/design sprints, and each
+  requires full behavior-preserving validation regardless of gate status.
+- issue disposition is tracked as `PHK-CLEANUP-001` in
+  [`docs/issues-inventory.md`](issues-inventory.md); the architecture decision
+  and boundary artifacts are [ADR-0015](adrs/0015-phase-k-maintainability-decomposition.md),
+  [phase-k-boundary-contract.md](phase-K/phase-k-boundary-contract.md), and
+  [phase-k-boundaries.json](phase-K/phase-k-boundaries.json).
+
+Sprint entries:
+
+- [Phase K plan](phase-K/phase-K-plan.md)
+- [Sprint K.1 — XML Extraction Decomposition](phase-K/sprint-k-1-xml-extraction-decomposition.md)
+- [Sprint K.2 — Compose Command Orchestration](phase-K/sprint-k-2-compose-command-orchestration.md)
+- [Sprint K.3 — Var-File Decoding and Validation](phase-K/sprint-k-3-var-file-decoding.md)
+- [Sprint K.4 — Diagnostic Schema and Envelope](phase-K/sprint-k-4-diagnostics-schema.md)
+- [Sprint K.5 — Error-Family Modules](phase-K/sprint-k-5-error-family-modules.md)
+- [Sprint K.6 — Include Expansion Seams](phase-K/sprint-k-6-include-expansion.md)
+- [Sprint K.7 — Template Discovery Seams](phase-K/sprint-k-7-discovery-seams.md)
+- [Sprint K.8 — Report Output Materialization](phase-K/sprint-k-8-report-output.md)
 
 ### Follow-on Fix Sprint: FIX-238
 
