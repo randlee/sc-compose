@@ -2,7 +2,7 @@
 id: K.5
 title: Error-Family Modules
 phase: K
-status: planned
+status: complete
 branch: sprint/k-5-error-family-modules
 worktree: ../sc-compose-worktrees/sprint/k-5-error-family-modules
 target: integrate/phase-k
@@ -104,3 +104,26 @@ before/after production-NLOC evidence.
 ## Dependencies and non-closure
 
 Recommended after K.4. No error-policy redesign, message rewrite, or new public error family is in scope.
+
+## Completion evidence
+
+- Implementation commit: `c7fc68b` on `sprint/k-5-error-family-modules`.
+- Baseline at `828da12` was 770 lines in `error.rs` and 462 production
+  nonblank/non-comment lines using the sprint's ownership-counting method.
+  The post-split compatibility root is 305 lines (83 production lines), with
+  family/helper ownership in private modules: `config` 63, `include` 62,
+  `recovery` 36, `render` 45, `resolve` 62, `validation` 108, and shared
+  `display` 49 production lines. The total production count is 508 because
+  each private Rust module retains explicit imports and documentation; the
+  central error façade is reduced from 770 to 305 lines.
+- Characterization coverage was strengthened from 10 to 11 root error tests,
+  including structured recovery-hint payload preservation across the config
+  and validation families. The public `crate::error` paths and all five
+  `ComposeError` conversions remain façade-owned.
+- Focused validation: `cargo test -p sc-composer error::tests` (11 passed),
+  `cargo test -p sc-composer --test integration -- error` (3 passed),
+  `cargo fmt --all --check`, and `git diff --check` all pass.
+- Full validation: `cargo clippy --all-targets --all-features -- -D warnings`,
+  `cargo test --workspace` (278 + 51 + 16 tests passed), `maturin develop`,
+  and `pytest bindings/python/tests` (52 passed) all pass. The Python suite
+  also passed 52 tests against the pre-split baseline worktree.
