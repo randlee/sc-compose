@@ -6,7 +6,7 @@ branch: integrate/phase-k
 worktree: ../sc-compose-worktrees/integrate/phase-k
 target: integrate/phase-k
 baseline: 5fc2f38
-final_commit: d82ba15
+final_commit: 2c2b875
 merge_forward_target: develop
 ---
 
@@ -14,7 +14,7 @@ merge_forward_target: develop
 
 ## Closeout status
 
-Phase K is complete on `integrate/phase-k` at `d82ba15`. All eight
+Phase K is complete on `integrate/phase-k` at `2c2b875`. All eight
 behavior-preserving decomposition sprints (K.1-K.8) are merged, their
 characterization and validation evidence is recorded in the sprint documents,
 and the integrated workspace gates pass. The next repository operation is a
@@ -128,7 +128,7 @@ surface/diff review, and full workspace gates are required evidence.
 
 ## Exit gate
 
-The Phase K exit gate was satisfied at `d82ba15`: all eight sprint documents
+The Phase K exit gate was satisfied at `2c2b875`: all eight sprint documents
 are QA-approved, their characterization tests remain green, the integrated
 workspace validation passes, and no hard-boundary file changed outside the
 declared scope. A fresh Repowise scan is a follow-on diagnostic for Phase L;
