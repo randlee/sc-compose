@@ -14,6 +14,34 @@ target: integrate/phase-k
 
 Issue #311 ranks `crates/sc-composer/src/extract/xml.rs` at 2.35/10 with CCN 13 and 672 NLOC. The file already has `xml_match`, `xml_reject`, and `xml_serialize` seams, but still owns document parsing/model lifetime handling, occurrence/evidence collection, and top-level extraction orchestration. This sprint makes those ownership boundaries explicit without changing the supported XML subset.
 
+## Goal
+
+Produce a production-ready private decomposition of the XML parser/model and
+occurrence/evidence ownership while preserving the existing extraction
+contract.
+
+## Required work
+
+- Record the focused characterization result against the Phase K baseline
+  before moving implementation code.
+- Implement only the seams listed under Exact targets and deliverables, retain
+  the existing public/crate-visible paths, and rerun the characterization
+  suite after the move.
+- Record ownership and production-NLOC evidence and complete every command in
+  Required validation before claiming closure.
+
+## Hard dependencies
+
+The hard dependencies are this sprint's plan-gate approval and
+`integrate/phase-k` as the merge-forward target. There is no hard dependency on
+another Phase K sprint.
+
+## Production-ready expectation
+
+Every deliverable listed below must land at production-ready quality for this
+sprint's behavior-preserving scope. Partial module movement, test-only work,
+or an unmeasured ownership split cannot satisfy the acceptance criteria.
+
 ## Exact targets and deliverables
 
 - `crates/sc-composer/src/extract/xml.rs`, specifically `XmlElement`/

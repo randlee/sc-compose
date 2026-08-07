@@ -50,6 +50,26 @@ code move abandoned, but it must not claim decomposition completion.
 
 The scan's `catalog.rs` and `resolver.rs` entries remain follow-on candidates. They are not included in this phase because K.8 owns the reporting output boundary and K.6 owns include path handling; adding both adjacent files now would enlarge fan-out without a separately characterized seam. `discovery.rs` is included despite recent stabilization because K.7 is explicitly characterization-first and may be stopped without moving code if the seam is not safe.
 
+## Traceability and contract documents
+
+The phase-level architecture decision is [ADR-0015: Phase-K Maintainability
+Decomposition Boundaries](../adrs/0015-phase-k-maintainability-decomposition.md),
+which is indexed in [`docs/adrs/README.md`](../adrs/README.md). The human and
+machine-readable interface inventory is [phase-k-boundary-contract.md](phase-k-boundary-contract.md)
+and [phase-k-boundaries.json](phase-k-boundaries.json). These documents freeze
+the existing Rust/crate-public paths, Python adapter imports, CLI diagnostic
+envelope, include confinement policy, report layout, and cross-platform test
+rules; they do not introduce a new runtime protocol or product feature.
+
+Affected-crate requirements and architecture are covered by the shared
+[`docs/requirements.md`](../requirements.md) and
+[`docs/architecture.md`](../architecture.md), with the Python adapter surface
+documented by [`bindings/python/README.md`](../../bindings/python/README.md).
+The issue-to-sprint disposition is recorded in
+[`docs/issues-inventory.md`](../issues-inventory.md). This phase does not
+change ATM workflow, QA routing, triage prompts, or protocol schemas, so no
+additional process-QA or protocol-migration deliverable is applicable.
+
 ## Sequence and dependencies
 
 K.1, K.2, K.3, K.4, K.7, and K.8 are independently reviewable
@@ -110,6 +130,10 @@ Phase K closes only when all eight sprint documents are QA-approved, their chara
 ## References
 
 - GitHub issue #311: Repowise Hot Spot Analysis — sc/repowise-update2
+- [ADR-0015: Phase-K Maintainability Decomposition Boundaries](../adrs/0015-phase-k-maintainability-decomposition.md)
+- [Phase K boundary contract](phase-k-boundary-contract.md)
+- [Phase K machine-readable boundaries](phase-k-boundaries.json)
+- [Issues inventory](../issues-inventory.md)
 - `docs/phase-J/phase-J-plan.md` for the prior decomposition precedent
 - `.claude/skills/plan-hardening/sprint-planning-guidelines.md`
 - `docs/git-workflows.md`

@@ -14,6 +14,34 @@ target: integrate/phase-k
 
 Issue #311 ranks `crates/sc-compose/src/commands/compose.rs` at 3.09/10 and 593 NLOC. The module combines request construction, custom-delimiter preflight, render execution, output writing, validation diagnostics, and CLI presentation. This sprint separates those private responsibilities while preserving the command surface.
 
+## Goal
+
+Produce a production-ready private decomposition of compose request,
+preflight, execution, and output/presentation responsibilities without
+changing CLI behavior.
+
+## Required work
+
+- Record the baseline CLI and JSON characterization before moving
+  implementation code.
+- Implement only the seams listed under Exact targets and deliverables, retain
+  the existing command entry points, and rerun the characterization suite
+  after the move.
+- Record ownership and production-NLOC evidence and complete every command in
+  Required validation before claiming closure.
+
+## Hard dependencies
+
+The hard dependencies are this sprint's plan-gate approval and
+`integrate/phase-k` as the merge-forward target. There is no hard dependency on
+another Phase K sprint.
+
+## Production-ready expectation
+
+Every deliverable listed below must land at production-ready quality for this
+sprint's behavior-preserving scope. Partial module movement, test-only work,
+or an unmeasured ownership split cannot satisfy the acceptance criteria.
+
 ## Exact targets and deliverables
 
 - `crates/sc-compose/src/commands/compose.rs`, including

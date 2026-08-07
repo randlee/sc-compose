@@ -14,6 +14,34 @@ target: integrate/phase-k
 
 Issue #311 ranks `crates/sc-compose/src/var_file.rs` at 3.91/10 with CCN 17 and 722 NLOC. It combines JSON/YAML decoding, lexical JSON integer protection, YAML merge-key scanning, duplicate-key visitors, object validation, and command-error mapping. The high branch count warrants a seam-first split rather than algorithm changes.
 
+## Goal
+
+Produce a production-ready format-specific decomposition of var-file
+decoding, scanning, and validation without changing accepted input or
+diagnostics.
+
+## Required work
+
+- Record the JSON and YAML characterization result against the Phase K
+  baseline before moving implementation code.
+- Implement only the seams listed under Exact targets and deliverables, retain
+  format-specific behavior and errors, and rerun the characterization suite
+  after the move.
+- Record ownership and production-NLOC evidence and complete every command in
+  Required validation before claiming closure.
+
+## Hard dependencies
+
+The hard dependencies are this sprint's plan-gate approval and
+`integrate/phase-k` as the merge-forward target. There is no hard dependency on
+another Phase K sprint.
+
+## Production-ready expectation
+
+Every deliverable listed below must land at production-ready quality for this
+sprint's behavior-preserving scope. Partial module movement, test-only work,
+or an unmeasured ownership split cannot satisfy the acceptance criteria.
+
 ## Exact targets and deliverables
 
 - `crates/sc-compose/src/var_file.rs`, especially `decode_var_file`,

@@ -14,6 +14,35 @@ target: integrate/phase-k
 
 Issue #311 ranks `crates/sc-composer/src/diagnostics.rs` at 3.90/10 and reports 38% duplication. The module combines the stable code enum/string mapping, filesystem error classification, diagnostic record construction, and generic serialized envelopes. These are distinct compatibility boundaries and should be separated without changing the wire schema.
 
+## Goal
+
+Produce a production-ready private decomposition of diagnostic code/schema,
+filesystem classification, records, and envelopes without changing the
+serialized protocol.
+
+## Required work
+
+- Record the baseline serialization and classification characterization before
+  moving implementation code.
+- Implement only the seams listed under Exact targets and deliverables, retain
+  existing exports and Python consumers, and rerun the characterization suite
+  after the move.
+- Record ownership and production-NLOC evidence and complete every command in
+  Required validation before claiming closure.
+
+## Hard dependencies
+
+The hard dependencies are this sprint's plan-gate approval and
+`integrate/phase-k` as the merge-forward target. K.5 and K.6 should follow K.4
+when practical, but are not hard source-level dependencies when exports remain
+stable.
+
+## Production-ready expectation
+
+Every deliverable listed below must land at production-ready quality for this
+sprint's behavior-preserving scope. Partial module movement, test-only work,
+or an unmeasured ownership split cannot satisfy the acceptance criteria.
+
 ## Exact targets and deliverables
 
 - `crates/sc-composer/src/diagnostics.rs`, including `DiagnosticCode`,

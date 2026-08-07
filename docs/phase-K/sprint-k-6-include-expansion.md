@@ -14,6 +14,34 @@ target: integrate/phase-k
 
 Issue #311 ranks `crates/sc-composer/src/include.rs` at 4.05/10, reports 54% duplication, and gives CCN 10. The module combines expansion state/source caching, recursive traversal, include directive recognition, path resolution, confinement, and depth/cycle errors. The path-containment behavior shipped in CLEANUP-298 is a hard contract for this sprint.
 
+## Goal
+
+Produce a production-ready private decomposition of include state, directives,
+and paths while preserving containment, expansion, and graph behavior.
+
+## Required work
+
+- Record the baseline include graph, confinement, filesystem, and depth
+  characterization before moving implementation code.
+- Implement only the seams listed under Exact targets and deliverables, retain
+  `canonicalize_within_roots`, and rerun the characterization suite after the
+  move.
+- Record ownership and production-NLOC evidence and complete every command in
+  Required validation before claiming closure.
+
+## Hard dependencies
+
+The hard dependencies are this sprint's plan-gate approval,
+`integrate/phase-k` as the merge-forward target, and the existing CLEANUP-298
+containment contract. K.4 is recommended first, but is not a hard dependency
+when the existing exports remain stable.
+
+## Production-ready expectation
+
+Every deliverable listed below must land at production-ready quality for this
+sprint's behavior-preserving scope. Partial module movement, test-only work,
+or an unmeasured ownership split cannot satisfy the acceptance criteria.
+
 ## Exact targets and deliverables
 
 - `crates/sc-composer/src/include.rs`, especially `ExpandedTemplate`,

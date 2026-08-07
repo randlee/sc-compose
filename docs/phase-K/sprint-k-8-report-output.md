@@ -14,6 +14,33 @@ target: integrate/phase-k
 
 Issue #311 ranks `crates/sc-compose/src/reporting/output.rs` at 4.21/10 and reports 28% duplication. The module combines report metadata models, latest/archive path policy, path validation, directory creation, artifact copying, metadata serialization, timestamp formatting, and output errors. This sprint makes those seams explicit without changing report artifacts.
 
+## Goal
+
+Produce a production-ready private decomposition of report path policy,
+materialization, and metadata while preserving the artifact contract.
+
+## Required work
+
+- Record the baseline report metadata, path, ordering, and error
+  characterization before moving implementation code.
+- Implement only the seams listed under Exact targets and deliverables, retain
+  reporting output call sites and catalog separation, and rerun the
+  characterization suite after the move.
+- Record ownership and production-NLOC evidence and complete every command in
+  Required validation before claiming closure.
+
+## Hard dependencies
+
+The hard dependencies are this sprint's plan-gate approval and
+`integrate/phase-k` as the merge-forward target. There is no hard dependency on
+another Phase K sprint.
+
+## Production-ready expectation
+
+Every deliverable listed below must land at production-ready quality for this
+sprint's behavior-preserving scope. Partial module movement, test-only work,
+or an unmeasured ownership split cannot satisfy the acceptance criteria.
+
 ## Exact targets and deliverables
 
 - `crates/sc-compose/src/reporting/output.rs`, especially

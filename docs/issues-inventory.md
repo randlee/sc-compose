@@ -26,6 +26,12 @@ scope; it maps each accepted cleanup issue to the sprint that closes it.
 | --- | --- | --- | --- | --- |
 | PHJ-CLEANUP-001 | Repowise issue #212 identifies maintainability hotspots in `crates/sc-compose/src/cli.rs`, `crates/sc-composer/src/validation.rs`, and `crates/sc-composer/src/frontmatter.rs`. | Planned | `J.1`-`J.4` | Phase J performs behavior-preserving structural decomposition with no new public surface; see `docs/phase-J/phase-J-plan.md` and ADR-0014. |
 
+## Phase K Cleanup Findings
+
+| ID | Finding | Status | Closing sprint | Notes |
+| --- | --- | --- | --- | --- |
+| PHK-CLEANUP-001 | Repowise issue #311 identifies eight behavior-preserving maintainability hotspots for structural decomposition. | Planned | `K.1`-`K.8` | `catalog.rs` and `resolver.rs` remain explicit follow-on candidates; see `docs/phase-K/phase-K-plan.md`, ADR-0015, and the Phase K boundary contract. |
+
 ## Inventory Rules
 
 - Every accepted follow-on cleanup issue must appear here with one owning

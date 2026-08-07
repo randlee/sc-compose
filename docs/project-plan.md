@@ -619,10 +619,15 @@ Status:
 
 - planned from the Repowise hotspot review in issue #311 (`sc/repowise-update2`,
   2026-08-07); eight behavior-preserving decomposition sprints are proposed;
-- K.1, K.2, K.3, K.5, K.6, K.7, and K.8 are independent implementation tracks;
-  K.4 is the recommended predecessor for the diagnostic/error/include chain;
+- K.1, K.2, K.3, K.4, K.7, and K.8 are independently reviewable tracks;
+  K.5 and K.6 are separately gated and should follow K.4 when practical;
 - this phase is planning-only until `/plan-hardening` and req-qa/arch-qa approve
   the authoritative phase plan and sprint documents.
+- issue disposition is tracked as `PHK-CLEANUP-001` in
+  [`docs/issues-inventory.md`](issues-inventory.md); the architecture decision
+  and boundary artifacts are [ADR-0015](adrs/0015-phase-k-maintainability-decomposition.md),
+  [phase-k-boundary-contract.md](phase-K/phase-k-boundary-contract.md), and
+  [phase-k-boundaries.json](phase-K/phase-k-boundaries.json).
 
 Sprint entries:
 
