@@ -2,7 +2,7 @@
 id: K.8
 title: Report Output Materialization
 phase: K
-status: planned
+status: complete
 branch: sprint/k-8-report-output
 worktree: ../sc-compose-worktrees/sprint/k-8-report-output
 target: integrate/phase-k
@@ -104,3 +104,32 @@ evidence.
 ## Dependencies and non-closure
 
 Independent from K.1-K.7. No new report formats, publication destinations, or catalog fields are in scope.
+
+## Completion evidence
+
+- Baseline characterization was run at merge-forward baseline `f8071de` before
+  moving implementation code. The direct output test filter matched 0 tests;
+  the JSON report characterization passed 28 tests; formatting and diff
+  checks passed.
+- Direct characterization now covers latest versus archive layout, timestamped
+  archive paths, relative-path containment, entrypoint-first artifact ordering,
+  metadata JSON fields and ordering, overwrite behavior, all filesystem error
+  categories, and `OutputError` display mappings. The post-move output suite
+  passed all 5 tests, and the existing 28 JSON report tests remained green.
+- The existing `reporting::output` call-site surface and serialized fields are
+  unchanged. No catalog code, report producer behavior, report format, or
+  publication destination was changed.
+- Private ownership is explicit: `layout.rs` owns latest/archive roots and
+  relative containment (37 production lines), `materialization.rs` owns
+  metadata writes and artifact copying (50), and `metadata.rs` owns metadata
+  shape, forward-slash serialization, and timestamps (44). The facade retains
+  the established request/result/error types and orchestration. Using the
+  same nonblank, noncomment count, the baseline output module had 257
+  production lines; the post-move largest private owner is 50 lines and the
+  facade is 182 lines including the unchanged public(crate) surface and error
+  display implementation.
+- Required post-move validation passed: `cargo test -p sc-compose
+  reporting::output::tests` (5), `cargo test -p sc-compose --test json_cli --
+  report` (28), `cargo fmt --all --check`, `git diff --check`, clippy with
+  `-D warnings`, and `cargo test --workspace` (266 unit, 51 extraction
+  integration, 16 integration).
