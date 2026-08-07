@@ -5,24 +5,13 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::frontmatter::ParsedTemplate;
 use crate::types::VariableName;
 
-const LOOP_CONTEXT_NAMES: &[&str] = &[
-    "loop",
-    "loop.index",
-    "loop.index0",
-    "loop.revindex",
-    "loop.revindex0",
-    "loop.first",
-    "loop.last",
-    "loop.length",
-    "loop.depth",
-    "loop.depth0",
-    "loop.cycle",
-];
+mod identifiers;
+mod scanner;
+mod scope;
 
-#[derive(Debug, Default)]
-struct LoopScope {
-    bound_names: BTreeSet<String>,
-}
+use identifiers::collect_identifiers;
+use scanner::{Delimiter, ExpressionDelimiters, walk_template};
+use scope::{LoopScope, parse_bare_for_loop_over, parse_for_loop_scope, parse_set_scope};
 
 /// Discover declared template variable tokens without running full validation.
 ///
@@ -116,298 +105,13 @@ pub fn discover_all_pass_tokens(
         .collect()
 }
 
-#[derive(Clone, Copy)]
-enum Delimiter {
-    Expression,
-    Statement,
-}
-
-struct ExpressionDelimiters {
-    open: String,
-    close: String,
-}
-
-impl ExpressionDelimiters {
-    fn with_delimiters(open_delimiter: &str, close_delimiter: &str) -> Self {
-        Self {
-            open: open_delimiter.to_owned(),
-            close: close_delimiter.to_owned(),
-        }
-    }
-}
-
-fn next_delimiter(
-    text: &str,
-    expression_delimiters: &ExpressionDelimiters,
-) -> Option<(Delimiter, usize)> {
-    match (
-        find_expression_open(text, expression_delimiters.open.as_str()),
-        text.find("{%"),
-    ) {
-        (Some(expression), Some(statement)) if expression <= statement => {
-            Some((Delimiter::Expression, expression))
-        }
-        (Some(_) | None, Some(statement)) => Some((Delimiter::Statement, statement)),
-        (Some(expression), None) => Some((Delimiter::Expression, expression)),
-        (None, None) => None,
-    }
-}
-
-fn walk_template<F>(text: &str, expression_delimiters: &ExpressionDelimiters, mut visit: F)
-where
-    F: FnMut(Delimiter, &str) -> bool,
-{
-    let mut cursor = text;
-    while let Some((delimiter, start)) = next_delimiter(cursor, expression_delimiters) {
-        let start_delimiter = match delimiter {
-            Delimiter::Expression => expression_delimiters.open.as_str(),
-            Delimiter::Statement => "{%",
-        };
-        let end_delimiter = match delimiter {
-            Delimiter::Expression => expression_delimiters.close.as_str(),
-            Delimiter::Statement => "%}",
-        };
-        let after_start = &cursor[start + start_delimiter.len()..];
-        let end = match delimiter {
-            Delimiter::Expression => find_expression_close(after_start, end_delimiter),
-            Delimiter::Statement => after_start.find(end_delimiter),
-        };
-        let Some(end) = end else { break };
-        let raw_content = &after_start[..end];
-        let without_leading_marker = raw_content.strip_prefix('-').unwrap_or(raw_content);
-        let without_markers = without_leading_marker
-            .strip_suffix('-')
-            .or_else(|| without_leading_marker.strip_suffix('+'))
-            .unwrap_or(without_leading_marker);
-        let expression = without_markers.trim();
-        if visit(delimiter, expression) {
-            break;
-        }
-        cursor = &after_start[end + end_delimiter.len()..];
-    }
-}
-
-fn find_expression_open(text: &str, open_delimiter: &str) -> Option<usize> {
-    find_exact_delimiter(text, open_delimiter)
-}
-
-fn find_expression_close(text: &str, close_delimiter: &str) -> Option<usize> {
-    find_exact_delimiter(text, close_delimiter)
-}
-
-fn find_exact_delimiter(text: &str, delimiter: &str) -> Option<usize> {
-    let repeated_byte = delimiter.as_bytes().first().copied()?;
-    let mut cursor = 0usize;
-    while cursor < text.len() {
-        let found = text[cursor..].find(delimiter)?;
-        let absolute = cursor + found;
-        let after = absolute + delimiter.len();
-        if text
-            .as_bytes()
-            .get(after)
-            .is_some_and(|byte| *byte == repeated_byte)
-        {
-            cursor = after;
-            continue;
-        }
-        return Some(absolute);
-    }
-    None
-}
-
-fn parse_for_loop_scope(
-    expression: &str,
-    scopes: &[LoopScope],
-    tokens: &mut BTreeSet<VariableName>,
-) -> Option<ParsedForLoop> {
-    let trimmed = expression.trim();
-    let remainder = trimmed.strip_prefix("for ")?;
-    let (binding, iterable) = remainder.split_once(" in ")?;
-    collect_identifiers(iterable, scopes, tokens);
-
-    let bound_names = binding
-        .split(',')
-        .filter_map(|candidate| {
-            let candidate = candidate
-                .trim()
-                .trim_matches(|character: char| matches!(character, '(' | ')'));
-            if candidate.is_empty() {
-                return None;
-            }
-            let root = candidate.split('.').next().unwrap_or(candidate);
-            Some(root.to_string())
-        })
-        .collect();
-    Some(ParsedForLoop {
-        scope: LoopScope { bound_names },
-    })
-}
-
-struct ParsedForLoop {
-    scope: LoopScope,
-}
-
-fn parse_bare_for_loop_over(expression: &str, variable: &str) -> bool {
-    let Some(remainder) = expression.strip_prefix("for ") else {
-        return false;
-    };
-    let Some((_binding, iterable)) = remainder.split_once(" in ") else {
-        return false;
-    };
-    let iterable = iterable.trim();
-    iterable == variable && is_bare_identifier(iterable)
-}
-
-fn is_bare_identifier(value: &str) -> bool {
-    let mut characters = value.chars();
-    matches!(characters.next(), Some(first) if first.is_ascii_alphabetic() || first == '_')
-        && characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
-}
-
-fn parse_set_scope(
-    expression: &str,
-    scopes: &[LoopScope],
-    tokens: &mut BTreeSet<VariableName>,
-) -> Option<String> {
-    let remainder = expression.trim().strip_prefix("set ")?;
-    let (name, value) = remainder.split_once('=')?;
-    let name = name.trim();
-    if name.is_empty()
-        || !name
-            .chars()
-            .all(|character| character.is_ascii_alphanumeric() || character == '_')
-    {
-        return None;
-    }
-    collect_identifiers(value, scopes, tokens);
-    Some(name.to_owned())
-}
-
-fn collect_identifiers(
-    expression: &str,
-    scopes: &[LoopScope],
-    tokens: &mut BTreeSet<VariableName>,
-) {
-    const KEYWORDS: &[&str] = &[
-        "if",
-        "else",
-        "elif",
-        "endif",
-        "for",
-        "endfor",
-        "in",
-        "set",
-        "true",
-        "false",
-        "none",
-        "not",
-        "and",
-        "or",
-        "block",
-        "endblock",
-        "macro",
-        "endmacro",
-        "filter",
-        "endfilter",
-    ];
-
-    let bound_names = scopes
-        .iter()
-        .flat_map(|scope| scope.bound_names.iter().map(String::as_str))
-        .collect::<BTreeSet<_>>();
-
-    let masked_expression = mask_filter_names(&mask_quoted_literals(expression));
-    for candidate in masked_expression.split(|character: char| {
-        !(character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.'))
-    }) {
-        if candidate.is_empty()
-            || KEYWORDS.contains(&candidate)
-            || !candidate
-                .chars()
-                .any(|character| character.is_ascii_alphabetic())
-        {
-            continue;
-        }
-        let root = candidate.split('.').next().unwrap_or(candidate);
-        if bound_names.contains(root) || is_loop_context_name(candidate, &masked_expression, scopes)
-        {
-            continue;
-        }
-        if let Ok(variable) = VariableName::new(candidate) {
-            tokens.insert(variable);
-        }
-    }
-}
-
-fn is_loop_context_name(candidate: &str, expression: &str, scopes: &[LoopScope]) -> bool {
-    if scopes.len() <= 1 {
-        return false;
-    }
-    if candidate != "loop.cycle" {
-        return LOOP_CONTEXT_NAMES.contains(&candidate);
-    }
-
-    let Some(start) = expression.find(candidate) else {
-        return false;
-    };
-    expression[start + candidate.len()..]
-        .trim_start()
-        .starts_with('(')
-}
-
-fn mask_quoted_literals(expression: &str) -> String {
-    let mut masked = String::with_capacity(expression.len());
-    let mut quote = None;
-    let mut escaped = false;
-    for character in expression.chars() {
-        if let Some(delimiter) = quote {
-            if escaped {
-                escaped = false;
-            } else if character == '\\' {
-                escaped = true;
-            } else if character == delimiter {
-                quote = None;
-            }
-            masked.push(' ');
-        } else if matches!(character, '\'' | '"') {
-            quote = Some(character);
-            masked.push(' ');
-        } else {
-            masked.push(character);
-        }
-    }
-    masked
-}
-
-fn mask_filter_names(expression: &str) -> String {
-    let mut masked = expression.chars().collect::<Vec<_>>();
-    let mut cursor = 0;
-    while cursor < masked.len() {
-        if masked[cursor] != '|' {
-            cursor += 1;
-            continue;
-        }
-        let mut filter_start = cursor + 1;
-        while filter_start < masked.len() && masked[filter_start].is_ascii_whitespace() {
-            filter_start += 1;
-        }
-        let mut filter_end = filter_start;
-        while filter_end < masked.len()
-            && (masked[filter_end].is_ascii_alphanumeric() || masked[filter_end] == '_')
-        {
-            filter_end += 1;
-        }
-        for character in &mut masked[filter_start..filter_end] {
-            *character = ' ';
-        }
-        cursor = filter_end;
-    }
-    masked.into_iter().collect()
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{discover_tokens, has_bare_for_loop_over};
+    use super::{
+        discover_all_pass_tokens, discover_tokens, discover_tokens_with_brace_count,
+        discover_tokens_with_delimiters, has_bare_for_loop_over,
+    };
+    use crate::parse_template_document;
 
     #[test]
     fn leading_statement_whitespace_control_marker_is_not_a_token() {
@@ -551,5 +255,77 @@ mod tests {
 
         assert!(tokens.contains(&crate::VariableName::new("x").unwrap()));
         assert!(tokens.contains(&crate::VariableName::new("other_var").unwrap()));
+    }
+
+    #[test]
+    fn custom_delimiters_are_scanned_without_matching_standard_expressions() {
+        let tokens =
+            discover_tokens_with_delimiters("{{ standard }} [[ custom.value ]]", "[[", "]]");
+
+        assert_eq!(
+            tokens,
+            [crate::VariableName::new("custom.value").unwrap()].into()
+        );
+    }
+
+    #[test]
+    fn brace_count_and_unclosed_delimiters_keep_scanner_boundaries() {
+        assert_eq!(
+            discover_tokens_with_brace_count("{{{ outer }}} {{ inner }}", 3),
+            [crate::VariableName::new("outer").unwrap()].into()
+        );
+        assert!(discover_tokens("{{ unclosed").is_empty());
+        assert!(discover_tokens("{% for item in items").is_empty());
+    }
+
+    #[test]
+    fn nested_shadowed_scopes_keep_outer_and_iterable_references() {
+        let tokens = discover_tokens(
+            "{% for item in items %}{% for item in nested %}{{ item.name }} {{ report.url }}{% endfor %}{% endfor %}",
+        );
+
+        assert_eq!(
+            tokens,
+            [
+                crate::VariableName::new("items").unwrap(),
+                crate::VariableName::new("nested").unwrap(),
+                crate::VariableName::new("report.url").unwrap(),
+            ]
+            .into()
+        );
+    }
+
+    #[test]
+    fn quoted_literals_and_filter_names_are_masked_but_arguments_remain() {
+        let tokens =
+            discover_tokens("{{ \"literal.variable\" }} {{ value | default(fallback) | lower }}");
+
+        assert_eq!(
+            tokens,
+            [
+                crate::VariableName::new("fallback").unwrap(),
+                crate::VariableName::new("value").unwrap(),
+            ]
+            .into()
+        );
+    }
+
+    #[test]
+    fn pass_maps_use_each_pass_brace_count() {
+        let parsed = parse_template_document(
+            "---\npass: 1\n---\n---\npass: 2\n---\n{{ inner }} {{{ outer }}}",
+        )
+        .unwrap();
+
+        let tokens = discover_all_pass_tokens(&parsed);
+
+        assert_eq!(
+            tokens.get(&1).cloned().unwrap_or_default(),
+            [crate::VariableName::new("inner").unwrap()].into()
+        );
+        assert_eq!(
+            tokens.get(&2).cloned().unwrap_or_default(),
+            [crate::VariableName::new("outer").unwrap()].into()
+        );
     }
 }

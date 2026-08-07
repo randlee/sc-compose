@@ -2,7 +2,7 @@
 id: K.4
 title: Diagnostic Schema and Envelope
 phase: K
-status: planned
+status: complete
 branch: sprint/k-4-diagnostics-schema
 worktree: ../sc-compose-worktrees/sprint/k-4-diagnostics-schema
 target: integrate/phase-k
@@ -93,7 +93,14 @@ serialized field, enum spelling, or source path is deleted or renamed.
 Run these focused commands against the baseline before the move and rerun the
 same commands after the move:
 
-- `cargo test -p sc-composer diagnostics::tests`
+- `cargo test -p sc-composer --lib diagnostics::envelope::tests` (1 direct
+  characterization test)
+- `cargo test -p sc-composer --lib diagnostics::filesystem::tests` (2 direct
+  characterization tests)
+- `cargo test -p sc-composer --lib diagnostics::record::tests` (1 direct
+  characterization test)
+- `cargo test -p sc-composer --lib diagnostics::schema::tests` (2 direct
+  characterization tests)
 - `cargo test -p sc-compose --test json_cli -- diagnostic`
 - `cargo test -p sc-compose --test cli -- diagnostic`
 - `cargo fmt --all --check`
@@ -106,6 +113,51 @@ same commands after the move:
 Run the full focused list, including the Python commands, before the move and
 again after the move. Record serialized fixtures, classification results, and
 before/after production-NLOC evidence.
+
+## Completion evidence
+
+- Baseline target was `d6ed03e` (`origin/integrate/phase-k`, including the
+  merged K.1 and K.3 work). Before the move, the legacy
+  `cargo test -p sc-composer diagnostics::tests` command passed 18 validation
+  tests, but it did not select K.4's direct tests because those tests did not
+  yet exist. JSON-CLI diagnostics passed 26 tests, the CLI diagnostic filter
+  completed with zero matched tests and no failures, and the workspace,
+  clippy, format, diff, `maturin develop`, and Python binding gates passed.
+  The baseline binding suite passed 52/52 in the isolated
+  `/tmp/sc-compose-k4-venv` environment.
+- The stable schema characterization now directly covers all 72
+  `DiagnosticCode` variants for both `as_str()` and serde spellings, all three
+  severity spellings, the envelope schema version/field shape, record defaults
+  and location/include-chain ordering, and each filesystem classification
+  boundary. The post-move direct characterization commands above passed 6
+  tests in total (1 envelope, 2 filesystem, 1 record, and 2 schema); the
+  broader diagnostics filter remains separately covered by the workspace
+  suite.
+- The decomposition keeps `DiagnosticCode`, `DiagnosticSeverity`,
+  `Diagnostic`, `DiagnosticEnvelope<T>`, and
+  `DIAGNOSTIC_SCHEMA_VERSION` at their existing crate paths and preserves the
+  exact public field layout and serialized names. No code was added, removed,
+  renamed, or repurposed; the crate-root re-exports and Python consumers are
+  unchanged.
+- Ownership evidence uses nonblank, non-comment Rust lines outside test
+  modules. The baseline `diagnostics.rs` contained 294 production lines in one
+  mixed owner. After the move, the private owners are: `schema.rs` 174 lines
+  (enum, severity, and string/serde schema), `filesystem.rs` 59 lines
+  (classification and platform loop mapping), `record.rs` 47 lines
+  (record fields and constructors), `envelope.rs` 18 lines (schema envelope),
+  and the `diagnostics.rs` facade 9 lines. The largest owner fell from 294 to
+  174 lines.
+- Duplication evidence by category: schema has one enum and one `as_str`
+  mapping; filesystem has one classifier and one platform-specific loop
+  helper; record construction has one field layout and one constructor chain;
+  envelope serialization has one generic struct and one schema-version source.
+  The facade contains only module declarations, the schema-version constant,
+  and re-exports, so no wire fields or code mappings are duplicated across
+  modules.
+- Post-move validation passed the focused commands, workspace tests (266 unit,
+  51 extraction integration, and 16 integration tests), clippy, formatting,
+  diff checks, `maturin develop --manifest-path bindings/python/Cargo.toml`,
+  and the Python binding suite (52/52).
 
 ## Dependencies and non-closure
 

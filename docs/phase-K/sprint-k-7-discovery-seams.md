@@ -2,7 +2,7 @@
 id: K.7
 title: Template Discovery Seams
 phase: K
-status: planned
+status: complete
 branch: sprint/k-7-discovery-seams
 worktree: ../sc-compose-worktrees/sprint/k-7-discovery-seams
 target: integrate/phase-k
@@ -112,3 +112,40 @@ before/after production-NLOC evidence.
 ## Dependencies and non-closure
 
 Independent, but should be reviewed after K.4 because discovery feeds diagnostics. No new Jinja syntax support is in scope.
+
+## Completion evidence
+
+- Baseline characterization was run at the merge-forward baseline
+  `d79bf98` before implementation: `cargo test -p sc-composer
+  discovery::tests` passed 14 tests; `cargo test -p sc-composer --test
+  integration -- discovery` matched 0 tests with no failures; clippy,
+  workspace tests, formatting, and diff checks passed; `maturin develop
+  --manifest-path bindings/python/Cargo.toml` succeeded and the Python suite
+  passed 52 tests.
+- The sprint branch was cut from K.2 at `d79bf98` and did not include K.4 in
+  its ancestry at branch creation time. The K.4 and K.7 changes are disjoint,
+  so this did not alter discovery behavior; the provenance is recorded here
+  explicitly rather than claiming a post-K.4 branch baseline.
+- Characterization found a safe behavior-preserving ownership split. The
+  public discovery facade remains unchanged, while private `scanner`, `scope`,
+  and `identifiers` modules own delimiter walking, loop/set scope parsing, and
+  identifier masking/collection respectively. No discovery path, API, token
+  contract, or Jinja syntax was added, removed, or renamed.
+- Direct discovery characterization now covers 19 tests: custom delimiters,
+  brace counts, whitespace markers, nested and shadowed loops, set locals,
+  filters and filter arguments, quoted literals, loop built-ins, malformed and
+  unclosed tags, and per-pass token maps. The post-move focused suite passed
+  all 19 tests, and the existing validation/discovery callers remained green.
+- Post-move validation passed: `cargo test -p sc-composer
+  discovery::tests` (19), the discovery-filtered integration target (0
+  matched), `cargo fmt --all --check`, `git diff --check`, clippy with
+  `-D warnings`, and `cargo test --workspace` (271 unit, 51 extraction
+  integration, 16 integration). `maturin develop --manifest-path
+  bindings/python/Cargo.toml` succeeded and `pytest bindings/python/tests`
+  passed 52 tests.
+- Ownership evidence from the same nonblank, noncomment line-count method:
+  the baseline `discovery.rs` had 364 production lines before its test module;
+  after the split the facade has 85 production lines and the private owners
+  have 131 (`identifiers.rs`), 88 (`scanner.rs`), and 69 (`scope.rs`). The
+  largest production owner therefore fell from 364 to 131 lines while the
+  behavior contract remained covered by the before/after characterization.
