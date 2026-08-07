@@ -9,3 +9,5 @@ mod reports;
 mod support;
 #[path = "cli/templates.rs"]
 mod templates;
+#[path = "cli/validate.rs"]
+mod validate;

@@ -27,6 +27,7 @@ by `sc-composer` and `sc-compose`.
 | `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` | `ValidationError` | reserved | legacy H2 nested-array restriction; retained for compatibility and not emitted for recursive JSON/YAML-compatible values | compatibility only |
 | `ERR_VAL_DUPLICATE` | `ValidationError` | error | duplicate frontmatter variable declaration | frontmatter normalization, validation pipeline |
 | `WARN_VAL_CONFLICTING_DEFAULT_SECTIONS` | `ValidationError` | warning | frontmatter declared both `defaults` and `input_defaults`; `input_defaults` overrides overlaps | frontmatter normalization, validation pipeline |
+| `WARN_LINT_REDUNDANT_FILTER_CHAIN` | `TemplateLint` | warning | template applies the redundant `frontmatter_safe | yaml_safe` filter chain | CLI `validate --lint` |
 | `WARN_CONFIG_SINGLE_PASS_ALL_FALLBACK` | `ConfigError` | warning | `--all` was requested for a template without stacked headers; the single pass is used as a documented fallback | CLI input/configuration layer |
 | `ERR_VAL_EMPTY` | `ValidationError` | error | template body is empty where composition requires content | validation pipeline |
 | `ERR_VAL_MISSING_FRONTMATTER` | `ValidationError` | warning | a root or included template file references variables but has no frontmatter block | validation pipeline |
