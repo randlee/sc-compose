@@ -63,9 +63,12 @@ same commands after the move:
 - `git diff --check`
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo test --workspace`
+- `maturin develop`
+- `pytest bindings/python/tests`
 
-Record the unchanged public surface/diff review and before/after
-production-NLOC evidence.
+Run the full focused list, including the Python commands, before the move and
+again after the move. Record the unchanged public surface/diff review and
+before/after production-NLOC evidence.
 
 ## Dependencies and non-closure
 

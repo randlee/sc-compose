@@ -64,9 +64,12 @@ same commands after the move:
 - `git diff --check`
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo test --workspace`
+- `maturin develop`
+- `pytest bindings/python/tests`
 
-Record path containment, graph ordering, and before/after production-NLOC
-evidence.
+Run the full focused list, including the Python commands, before the move and
+again after the move. Record path containment, graph ordering, and
+before/after production-NLOC evidence.
 
 ## Dependencies and non-closure
 

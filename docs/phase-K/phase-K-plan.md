@@ -52,7 +52,14 @@ The scan's `catalog.rs` and `resolver.rs` entries remain follow-on candidates. T
 
 ## Sequence and dependencies
 
-K.1, K.2, K.3, K.5, K.6, K.7, and K.8 are independent implementation sprints from `integrate/phase-k`; each has one file/module owner and may be reviewed independently. K.4 should land before K.5 and K.6 when practical because both consume diagnostic/error contracts, but it is not a source-level prerequisite if characterization tests prove the existing exports remain stable. No sprint may begin implementation until its own plan-gate review passes.
+K.1, K.2, K.3, K.4, K.7, and K.8 are independently reviewable
+implementation sprints from `integrate/phase-k`; K.5 and K.6 are also
+separately gated implementation sprints but should follow K.4 when practical
+because they consume diagnostic/error contracts. That K.4 → K.5/K.6 ordering
+is recommended rather than a hard source-level prerequisite when
+characterization tests prove the existing exports remain stable. Each sprint
+has one file/module owner, and no sprint may begin implementation until its
+own plan-gate review passes.
 
 Recommended merge order is K.4 → K.5 → K.6, with K.1/K.2/K.3/K.7/K.8 parallelized around that chain. The integration branch is the only merge-forward target; sprint branches must not repeatedly merge sibling branches into one another.
 
