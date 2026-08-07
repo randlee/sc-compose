@@ -281,6 +281,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn every_diagnostic_code_has_a_stable_serde_and_as_str_spelling() {
         use DiagnosticCode::*;
 
