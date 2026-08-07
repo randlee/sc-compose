@@ -58,12 +58,18 @@ All existing family types and `From` conversions remain available from
 
 ## Required validation
 
-Run `cargo test -p sc-composer error::tests` and
-`cargo test -p sc-composer --test integration -- error` against the baseline
-before the move and rerun the same commands after the move. Then run `cargo
-fmt --all --check`, `git diff --check`, `cargo clippy --all-targets
---all-features -- -D warnings`, and `cargo test --workspace`. Record display,
-source-chain, conversion, and before/after production-NLOC evidence.
+Run these focused commands against the baseline before the move and rerun the
+same commands after the move:
+
+- `cargo test -p sc-composer error::tests`
+- `cargo test -p sc-composer --test integration -- error`
+- `cargo fmt --all --check`
+- `git diff --check`
+- `cargo clippy --all-targets --all-features -- -D warnings`
+- `cargo test --workspace`
+
+Record display, source-chain, conversion, and before/after production-NLOC
+evidence.
 
 ## Dependencies and non-closure
 

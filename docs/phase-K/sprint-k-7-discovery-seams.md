@@ -60,12 +60,18 @@ source path is deleted or renamed, and no Jinja syntax is added.
 
 ## Required validation
 
-Run `cargo test -p sc-composer discovery::tests` and
-`cargo test -p sc-composer --test integration -- discovery` against the
-baseline before the move and rerun the same commands after the move. Then run
-`cargo fmt --all --check`, `git diff --check`, `cargo clippy --all-targets
---all-features -- -D warnings`, and `cargo test --workspace`. Record token,
-scope, and pass-map comparisons plus before/after production-NLOC evidence.
+Run these focused commands against the baseline before the move and rerun the
+same commands after the move:
+
+- `cargo test -p sc-composer discovery::tests`
+- `cargo test -p sc-composer --test integration -- discovery`
+- `cargo fmt --all --check`
+- `git diff --check`
+- `cargo clippy --all-targets --all-features -- -D warnings`
+- `cargo test --workspace`
+
+Record token, scope, and pass-map comparisons plus before/after
+production-NLOC evidence.
 
 ## Dependencies and non-closure
 

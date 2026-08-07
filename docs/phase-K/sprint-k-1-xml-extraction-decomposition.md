@@ -54,12 +54,18 @@ existing public/crate-visible paths. No path is deleted.
 
 ## Required validation
 
-Run `cargo test -p sc-composer --test extract_integration` and
-`cargo test -p sc-composer extract::xml` against the baseline before the move
-and rerun the same two commands after the move. Then run `cargo fmt --all
---check`, `git diff --check`, `cargo clippy --all-targets --all-features --
--D warnings`, and `cargo test --workspace`. Record the unchanged public
-surface/diff review and before/after production-NLOC evidence.
+Run these focused commands against the baseline before the move and rerun the
+same commands after the move:
+
+- `cargo test -p sc-composer --test extract_integration`
+- `cargo test -p sc-composer extract::xml`
+- `cargo fmt --all --check`
+- `git diff --check`
+- `cargo clippy --all-targets --all-features -- -D warnings`
+- `cargo test --workspace`
+
+Record the unchanged public surface/diff review and before/after
+production-NLOC evidence.
 
 ## Dependencies and non-closure
 
