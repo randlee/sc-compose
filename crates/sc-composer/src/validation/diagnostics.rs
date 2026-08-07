@@ -606,7 +606,10 @@ mod tests {
         let root = temp_root("diagnostics_missing_included_frontmatter");
         let root_template = root.join("template.md.j2");
         write_file(&root_template, "---\nrequired_variables:\n  - name\n---\n");
-        write_file(&root.join("partials/body.md.j2"), "hello {{ name }}\n");
+        write_file(
+            &root.join("partials").join("body.md.j2"),
+            "hello {{ name }}\n",
+        );
 
         let warnings = missing_frontmatter_warnings_for_path(
             &root_template,
@@ -614,18 +617,18 @@ mod tests {
                 text: "hello {{ name }}\n".to_owned(),
                 resolved_files: vec![
                     root.join("template.md.j2"),
-                    root.join("partials/body.md.j2"),
+                    root.join("partials").join("body.md.j2"),
                 ],
                 frontmatters: vec![
                     (
                         root.join("template.md.j2"),
                         vec![crate::Frontmatter::empty()],
                     ),
-                    (root.join("partials/body.md.j2"), Vec::new()),
+                    (root.join("partials").join("body.md.j2"), Vec::new()),
                 ],
                 include_chains: BTreeMap::default(),
                 source_texts: [(
-                    root.join("partials/body.md.j2"),
+                    root.join("partials").join("body.md.j2"),
                     "hello {{ name }}\n".to_owned(),
                 )]
                 .into_iter()
