@@ -40,7 +40,10 @@ pub mod validation;
 pub mod verify;
 
 #[doc(inline)]
-pub use composer::{compose, compose_with_observer, protect_higher_braces, render_all};
+pub use composer::{
+    compose, compose_with_observer, compose_with_observer_and_expanded, protect_higher_braces,
+    render_all,
+};
 #[doc(inline)]
 pub use diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope, DiagnosticSeverity,
@@ -97,7 +100,10 @@ pub use types::{
     validate_input_value,
 };
 #[doc(inline)]
-pub use validate::{validate, validate_with_observer, validate_with_observer_and_delimiters};
+pub use validate::{
+    validate, validate_with_observer, validate_with_observer_and_delimiters,
+    validate_with_observer_and_delimiters_with_expansion,
+};
 pub use validation::BUILTIN_VARIABLE_NAMES;
 #[doc(inline)]
 pub use verify::{verify, verify_with_observer};
