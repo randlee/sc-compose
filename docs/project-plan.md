@@ -1511,6 +1511,7 @@ boundary defined by:
 ## Fuzz-Queue Fix Sprint Index
 
 - `docs/sprints/cleanup-293-frontmatter-yaml-filter-chain.md`
+- `docs/sprints/cleanup-295-296-expansion-reuse.md`
 - `docs/sprints/cleanup-299-json-integer-guard-dedup.md`
 - `docs/sprints/cleanup-301-yaml-merge-key-scan.md`
 - `docs/sprints/cleanup-297-bare-loop-discovery.md`

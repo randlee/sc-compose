@@ -70,6 +70,47 @@ pub fn compose_with_observer(
         code: None,
     });
 
+    compose_expanded(request, observer, resolve_result, expanded)
+}
+
+/// Compose using a template expansion that was already resolved and read.
+///
+/// This entry point is for callers that perform a preflight expansion before
+/// rendering. It emits the normal resolve/include observer events and then
+/// reuses the supplied expansion without reading the template files again.
+///
+/// # Errors
+///
+/// Returns [`ComposeError`] for fatal validation or render failures.
+pub fn compose_with_observer_and_expanded(
+    request: &ComposeRequest,
+    observer: &mut dyn CompositionObserver,
+    resolve_result: crate::ResolveResult,
+    expanded: crate::ExpandedTemplate,
+) -> Result<ComposeResult, ComposeError> {
+    observer.on_resolve_attempt(&ResolveAttemptEvent {
+        template: resolve_attempt_label(request),
+    });
+    observer.on_resolve_outcome(&ResolveOutcomeEvent {
+        resolved_path: Some(resolve_result.resolved_path.clone()),
+        attempted_paths: resolve_result.attempted_paths.clone(),
+        code: None,
+    });
+    observer.on_include_outcome(&IncludeOutcomeEvent {
+        resolved_files: expanded.resolved_files.clone(),
+        include_chain: Vec::new(),
+        code: None,
+    });
+
+    compose_expanded(request, observer, resolve_result, expanded)
+}
+
+fn compose_expanded(
+    request: &ComposeRequest,
+    observer: &mut dyn CompositionObserver,
+    resolve_result: crate::ResolveResult,
+    expanded: crate::ExpandedTemplate,
+) -> Result<ComposeResult, ComposeError> {
     let (mut validation_report, mut validation_state) =
         crate::validation::validate_expanded(request, &expanded, resolve_result);
     let validation_outcome = ValidationOutcomeEvent {
