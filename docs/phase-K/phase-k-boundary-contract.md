@@ -2,7 +2,7 @@
 
 ## Status and authority
 
-Status: proposed with the Phase K plan. This document records the existing
+Status: Accepted at Phase K closeout commit `d82ba15`. This document records the existing
 contracts that the eight structural decomposition sprints must preserve; it
 does not add a runtime feature or a new public interface. The machine-readable
 inventory is [phase-k-boundaries.json](phase-k-boundaries.json).
