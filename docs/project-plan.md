@@ -613,6 +613,29 @@ Sprint entries:
 - [Sprint J.3 — Validation Policy and Required-Path Diagnostics](phase-J/sprint-j-3-validation-policy-diagnostics.md)
 - [Sprint J.4 — Frontmatter Parser and Normalizer Split](phase-J/sprint-j-4-frontmatter-parser-split.md)
 
+### Phase K Sprint Plans
+
+Status:
+
+- planned from the Repowise hotspot review in issue #311 (`sc/repowise-update2`,
+  2026-08-07); eight behavior-preserving decomposition sprints are proposed;
+- K.1, K.2, K.3, K.5, K.6, K.7, and K.8 are independent implementation tracks;
+  K.4 is the recommended predecessor for the diagnostic/error/include chain;
+- this phase is planning-only until `/plan-hardening` and req-qa/arch-qa approve
+  the authoritative phase plan and sprint documents.
+
+Sprint entries:
+
+- [Phase K plan](phase-K/phase-K-plan.md)
+- [Sprint K.1 — XML Extraction Decomposition](phase-K/sprint-k-1-xml-extraction-decomposition.md)
+- [Sprint K.2 — Compose Command Orchestration](phase-K/sprint-k-2-compose-command-orchestration.md)
+- [Sprint K.3 — Var-File Decoding and Validation](phase-K/sprint-k-3-var-file-decoding.md)
+- [Sprint K.4 — Diagnostic Schema and Envelope](phase-K/sprint-k-4-diagnostics-schema.md)
+- [Sprint K.5 — Error-Family Modules](phase-K/sprint-k-5-error-family-modules.md)
+- [Sprint K.6 — Include Expansion Seams](phase-K/sprint-k-6-include-expansion.md)
+- [Sprint K.7 — Template Discovery Seams](phase-K/sprint-k-7-discovery-seams.md)
+- [Sprint K.8 — Report Output Materialization](phase-K/sprint-k-8-report-output.md)
+
 ### Follow-on Fix Sprint: FIX-238
 
 Status:
