@@ -93,7 +93,14 @@ serialized field, enum spelling, or source path is deleted or renamed.
 Run these focused commands against the baseline before the move and rerun the
 same commands after the move:
 
-- `cargo test -p sc-composer diagnostics::tests`
+- `cargo test -p sc-composer --lib diagnostics::envelope::tests` (1 direct
+  characterization test)
+- `cargo test -p sc-composer --lib diagnostics::filesystem::tests` (2 direct
+  characterization tests)
+- `cargo test -p sc-composer --lib diagnostics::record::tests` (1 direct
+  characterization test)
+- `cargo test -p sc-composer --lib diagnostics::schema::tests` (2 direct
+  characterization tests)
 - `cargo test -p sc-compose --test json_cli -- diagnostic`
 - `cargo test -p sc-compose --test cli -- diagnostic`
 - `cargo fmt --all --check`
@@ -110,9 +117,11 @@ before/after production-NLOC evidence.
 ## Completion evidence
 
 - Baseline target was `d6ed03e` (`origin/integrate/phase-k`, including the
-  merged K.1 and K.3 work). Before the move, the focused diagnostics suite
-  passed 18 tests, JSON-CLI diagnostics passed 26 tests, the CLI diagnostic
-  filter completed with zero matched tests and no failures, and the workspace,
+  merged K.1 and K.3 work). Before the move, the legacy
+  `cargo test -p sc-composer diagnostics::tests` command passed 18 validation
+  tests, but it did not select K.4's direct tests because those tests did not
+  yet exist. JSON-CLI diagnostics passed 26 tests, the CLI diagnostic filter
+  completed with zero matched tests and no failures, and the workspace,
   clippy, format, diff, `maturin develop`, and Python binding gates passed.
   The baseline binding suite passed 52/52 in the isolated
   `/tmp/sc-compose-k4-venv` environment.
@@ -120,7 +129,10 @@ before/after production-NLOC evidence.
   `DiagnosticCode` variants for both `as_str()` and serde spellings, all three
   severity spellings, the envelope schema version/field shape, record defaults
   and location/include-chain ordering, and each filesystem classification
-  boundary. The post-move diagnostics characterization passed 26 tests.
+  boundary. The post-move direct characterization commands above passed 6
+  tests in total (1 envelope, 2 filesystem, 1 record, and 2 schema); the
+  broader diagnostics filter remains separately covered by the workspace
+  suite.
 - The decomposition keeps `DiagnosticCode`, `DiagnosticSeverity`,
   `Diagnostic`, `DiagnosticEnvelope<T>`, and
   `DIAGNOSTIC_SCHEMA_VERSION` at their existing crate paths and preserves the
