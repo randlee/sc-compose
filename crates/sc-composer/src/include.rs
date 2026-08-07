@@ -101,7 +101,7 @@ mod tests {
     }
 
     #[test]
-    fn captures_frontmatter_and_preserves_custom_delimiter_text() {
+    fn captures_frontmatter_and_child_body_with_default_policy() {
         let root = temp_root("include_frontmatter");
         write_file(
             &root.join("root.md.j2"),

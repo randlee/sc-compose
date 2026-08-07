@@ -622,7 +622,7 @@ Status:
 
 - complete: all eight behavior-preserving decomposition sprints from the
   Repowise hotspot review in issue #311 (`sc/repowise-update2`, 2026-08-07)
-  are merged into `integrate/phase-k` at `d82ba15`;
+  are merged into `integrate/phase-k` at `2c2b875`;
 - K.1, K.2, K.3, K.4, K.7, and K.8 are independently reviewable tracks;
   K.5 and K.6 are separately gated and should follow K.4 when practical;
 - an out-of-order K.5 or K.6 start requires the sprint owner to record the K.4
@@ -632,7 +632,9 @@ Status:
   decomposition-completion claim;
 - gate status: critical-plan-review (STEP3-R3) passed at `96c219c` and the
   quality-mgr plan-gate review passed after consistency hardening at `eacbd08`;
-  the phase-ending review and integrated validation passed at `d82ba15`;
+  the phase-ending review and integrated validation passed at `2c2b875`;
+- closeout record: the four phase-status artifacts self-reference
+  `final_commit: 2c2b875`, the actual tip of `integrate/phase-k`;
 - the Python package metadata is aligned with the workspace release at `1.3.1`;
   future releases should keep `bindings/python/pyproject.toml` synchronized
   with `Cargo.toml` through a release or CI consistency check;

@@ -3,7 +3,7 @@
   "status": "complete",
   "baseline": "5fc2f38",
   "target": "integrate/phase-k",
-  "final_commit": "d82ba15",
+  "final_commit": "2c2b875",
   "merge_forward_target": "develop",
   "contracts": [
     {
