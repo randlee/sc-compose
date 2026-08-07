@@ -1,8 +1,10 @@
 {
   "phase": "K",
-  "status": "planned",
+  "status": "complete",
   "baseline": "5fc2f38",
-  "target": "develop",
+  "target": "integrate/phase-k",
+  "final_commit": "d82ba15",
+  "merge_forward_target": "develop",
   "contracts": [
     {
       "id": "sc-composer-rust-python-surface",

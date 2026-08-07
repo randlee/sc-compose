@@ -1,14 +1,25 @@
 ---
 id: phase-K
 title: Repowise Hot-Spot Maintainability Cleanup
-status: planned
+status: complete
 branch: integrate/phase-k
 worktree: ../sc-compose-worktrees/integrate/phase-k
-target: develop
+target: integrate/phase-k
 baseline: 5fc2f38
+final_commit: d82ba15
+merge_forward_target: develop
 ---
 
 # Phase K — Repowise Hot-Spot Maintainability Cleanup
+
+## Closeout status
+
+Phase K is complete on `integrate/phase-k` at `d82ba15`. All eight
+behavior-preserving decomposition sprints (K.1-K.8) are merged, their
+characterization and validation evidence is recorded in the sprint documents,
+and the integrated workspace gates pass. The next repository operation is a
+merge-forward to `develop`; that operation is not part of the Phase K sprint
+scope.
 
 ## Objective
 
@@ -117,7 +128,11 @@ surface/diff review, and full workspace gates are required evidence.
 
 ## Exit gate
 
-Phase K closes only when all eight sprint documents are QA-approved, their characterization tests remain green, the full integration suite passes, no hard-boundary file changed outside declared scope, and a fresh Repowise scan is recorded for follow-up—not used to reject closure solely because scan timing or scoring varies.
+The Phase K exit gate was satisfied at `d82ba15`: all eight sprint documents
+are QA-approved, their characterization tests remain green, the integrated
+workspace validation passes, and no hard-boundary file changed outside the
+declared scope. A fresh Repowise scan is a follow-on diagnostic for Phase L;
+scan timing or score changes do not reopen this behavior-preserving closeout.
 
 K.7 contingency: if characterization proves that no safe seam exists, Phase K
 exit does not require a merged K.7 decomposition. It requires QA approval of a
@@ -127,6 +142,14 @@ left unchanged. That approved record satisfies K.7's exit contribution in
 place of a merged split; `discovery.rs` and the unresolved cleanup are carried
 forward in the follow-on issue inventory. The other seven sprints must still
 meet their normal closure gates.
+
+## Closeout-evidence checklist for future phases
+
+To prevent evidence-trail drift, future phase closeouts should record the
+baseline commit SHA, post-change commit SHA, and each exact validation command
+verbatim, together with the live pass count and whether a filtered command
+matched zero tests. Counts and citations should be copied from that single
+authoritative run rather than transcribed from an earlier sprint or branch.
 
 ## Sprint documents
 
