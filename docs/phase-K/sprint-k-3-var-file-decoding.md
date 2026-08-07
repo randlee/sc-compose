@@ -2,7 +2,7 @@
 id: K.3
 title: Var-File Decoding and Validation
 phase: K
-status: planned
+status: complete
 branch: sprint/k-3-var-file-decoding
 worktree: ../sc-compose-worktrees/sprint/k-3-var-file-decoding
 target: integrate/phase-k
@@ -96,6 +96,42 @@ same commands after the move:
 
 Record unchanged values, diagnostics, and before/after production-NLOC
 evidence.
+
+## Completion evidence
+
+- Baseline var-file characterization was captured before the move from the
+  Phase K plan baseline (`76d6c7f`); the subsequent target merge-forward
+  `4872876` added the already-merged K.1 XML decomposition and did not touch
+  `var_file.rs`. Baseline results were green: 25/25 `var_file::tests`, 15/15
+  CLI var-file tests, 2/2 JSON CLI var-file tests, formatting/diff checks,
+  clippy, and the workspace suite. The characterization covers duplicate JSON
+  keys, i64/u64 boundaries, YAML merge keys versus quoted `<<`, comments and
+  block scalars, nested arrays/objects, top-level non-object values, malformed
+  input, and source locations.
+- Post-move results are unchanged: 25/25 `var_file::tests`, 15/15 CLI
+  var-file tests, and 2/2 JSON CLI var-file tests passed. The full workspace
+  suite passed 266/266 unit tests plus 51 extraction-integration and 16
+  integration tests; formatting, diff, and clippy gates passed.
+- Ownership evidence uses a simple nonblank, non-comment Rust-line count and
+  reports production separately from the retained characterization tests. The
+  baseline file was 827 lines / 722 counted lines overall, with 313 counted
+  production lines before its test module. After the move, `var_file.rs` is
+  460 / 401 overall and 71 production lines; private `var_file_decode.rs` is
+  38 / 31, `var_file_json.rs` is 176 / 154, `var_file_yaml.rs` is 127 / 113,
+  and `var_file_validate.rs` is 55 / 51. The largest production owner fell
+  from 313 to 154 counted lines. The retained tests remain in `var_file.rs` as
+  the contract characterization corpus rather than being deleted or moved to
+  disguise ownership.
+- Format boundaries remain explicit: JSON duplicate-aware visitation and
+  integer scanning live in `var_file_json.rs`; YAML merge-key scanning and
+  object decoding live in `var_file_yaml.rs`; shared decoded-object
+  validation lives in `var_file_validate.rs`; and format dispatch plus the
+  preserved `VarFileDecodeError` boundary live in `var_file_decode.rs` and
+  `var_file.rs`. No generic JSON/YAML parser abstraction was introduced.
+- Public/diagnostic surface review passed: `load_var_file`,
+  `parse_var_file_contents`, `VarFileDecodeError`, parsed values, duplicate
+  behavior, integer boundaries, YAML merge diagnostics, line/column locations,
+  error codes, and error messages remain unchanged.
 
 ## Dependencies and non-closure
 
