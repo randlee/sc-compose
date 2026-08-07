@@ -2,7 +2,7 @@
 id: K.6
 title: Include Expansion Seams
 phase: K
-status: planned
+status: complete
 branch: sprint/k-6-include-expansion
 worktree: ../sc-compose-worktrees/sprint/k-6-include-expansion
 target: integrate/phase-k
@@ -102,3 +102,30 @@ before/after production-NLOC evidence.
 ## Dependencies and non-closure
 
 Recommended after K.4; depends on the existing CLEANUP-298 containment contract. No include syntax, depth policy, or resolver behavior changes are in scope.
+
+## Completion evidence
+
+- Implementation commit: `f65f844` on `sprint/k-6-include-expansion`.
+- Baseline at `e8b702a` measured `include.rs` at 811 lines and 243
+  production nonblank/non-comment lines using the sprint's ownership-counting
+  method. The post-split root façade is 573 lines including its unchanged
+  characterization tests, with 30 production lines. Private ownership is
+  recorded as `directive` 5, `expansion` 155, and `path` 75 production lines.
+  The root orchestration surface is therefore reduced from 243 to 30 lines;
+  the small total production increase reflects explicit module imports and
+  private-module boundaries, not a second implementation of any policy.
+- `canonicalize_within_roots` remains defined only in
+  `crates/sc-composer/src/path_containment.rs`; the private `include::path`
+  module delegates to it and only preserves include-specific diagnostic
+  mapping.
+- Characterization coverage increased from 18 to 20 include tests. Added
+  tests cover duplicate-include source caching and graph order, plus
+  frontmatter capture and preservation of custom-delimiter body text. The
+  existing integration include test remains green.
+- Focused validation: `cargo test -p sc-composer include::tests` (20 passed),
+  `cargo test -p sc-composer --test integration -- include` (1 passed),
+  `cargo fmt --all --check`, and `git diff --check` all pass.
+- Full validation: `cargo clippy --all-targets --all-features -- -D warnings`,
+  `cargo test --workspace` (280 + 51 + 16 tests passed), `maturin develop`,
+  and `pytest bindings/python/tests` (52 passed) all pass. The Python suite
+  also passed 52 tests against the pre-split baseline.
