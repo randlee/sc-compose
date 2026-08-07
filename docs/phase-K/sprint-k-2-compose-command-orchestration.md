@@ -122,6 +122,12 @@ evidence.
   CLI tests passed 70/70. The final workspace suite passed 266/266 unit tests
   plus all integration and doc-test suites; formatting, diff, and clippy gates
   also passed.
+- Merge-forward CI confirmation: PR #314's live CI run `31208754353` completed
+  green after commit `0ef675a`. It reported `156/156` CLI tests and passed the
+  JSON CLI, workspace, format, clippy, manifest-validation, and Python-wheel
+  jobs on Ubuntu, Windows, and macOS. This live executable count resolves the
+  earlier static `#[test]` count of 157; the authoritative CLI result remains
+  156/156.
 - Ownership evidence uses a simple nonblank, non-comment Rust-line count. The
   baseline `compose.rs` was 624 lines / 593 counted lines in one module. After
   the move, `compose.rs` is 166 / 158; `compose_request.rs` is 97 / 88;
