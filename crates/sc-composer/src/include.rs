@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use crate::DiagnosticCode;
 use crate::error::{ComposeError, IncludeError};
 use crate::frontmatter::{Frontmatter, parse_template_document};
+use crate::path_containment::{Canonicalization, canonicalize_within_roots};
 use crate::types::{ComposePolicy, ConfiningRoot, IncludeDepth};
 
 /// Expanded include graph returned from the include engine.
@@ -19,9 +20,17 @@ pub struct ExpandedTemplate {
     pub frontmatters: Vec<(PathBuf, Vec<Frontmatter>)>,
     /// Include chain recorded for each resolved file.
     pub include_chains: BTreeMap<PathBuf, Vec<PathBuf>>,
+    /// Raw source text keyed by each file visited during include expansion.
+    pub source_texts: BTreeMap<PathBuf, String>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+/// Private saturating-arithmetic traversal counter used during expansion.
+///
+/// This is intentionally distinct from the public, serde-transparent
+/// [`IncludeDepth`] policy bound: keeping the configured limit and current
+/// traversal state as separate types statically prevents swapping those
+/// parameters at [`expand_file`].
 struct CurrentIncludeDepth(u16);
 
 impl CurrentIncludeDepth {
@@ -80,6 +89,7 @@ pub fn expand_includes(
         resolved_files: state.resolved_files,
         frontmatters: state.frontmatters,
         include_chains: state.include_chains,
+        source_texts: state.source_texts,
     })
 }
 
@@ -89,6 +99,7 @@ struct ExpansionState {
     resolved_seen: BTreeSet<PathBuf>,
     frontmatters: Vec<(PathBuf, Vec<Frontmatter>)>,
     include_chains: BTreeMap<PathBuf, Vec<PathBuf>>,
+    source_texts: BTreeMap<PathBuf, String>,
 }
 
 fn expand_file(
@@ -163,6 +174,9 @@ fn expand_file(
         ComposeError::Config(error) => error.into(),
         other => other,
     })?;
+    if is_new {
+        state.source_texts.insert(path.to_path_buf(), raw.clone());
+    }
     state
         .frontmatters
         .push((path.to_path_buf(), parsed.passes().to_vec()));
@@ -219,57 +233,12 @@ fn canonicalize_include(
     allowed_roots: &[ConfiningRoot],
     stack: &[PathBuf],
 ) -> Result<PathBuf, ComposeError> {
-    let mut allowed_canonical = Vec::with_capacity(allowed_roots.len() + 1);
-    allowed_canonical.push(root.to_path_buf());
-    allowed_canonical.extend(
-        allowed_roots
-            .iter()
-            .map(|allowed_root| allowed_root.as_path().to_path_buf()),
-    );
-
-    match std::fs::canonicalize(candidate) {
-        Ok(canonical) => {
-            if allowed_canonical
-                .iter()
-                .any(|allowed_root| canonical.starts_with(allowed_root))
-            {
-                Ok(canonical)
-            } else {
-                Err(IncludeError::new(
-                    DiagnosticCode::ErrIncludeEscape,
-                    format!(
-                        "include path escapes confinement root: {}",
-                        candidate.display()
-                    ),
-                    stack.to_vec(),
-                )
-                .into())
-            }
-        }
-        Err(error) => {
-            let normalized_candidate = normalize_path(candidate);
-            let allowed_normalized = allowed_canonical
-                .iter()
-                .map(|allowed_root| normalize_path(allowed_root))
-                .collect::<Vec<_>>();
-
-            if !allowed_normalized
-                .iter()
-                .any(|allowed_root| normalized_candidate.starts_with(allowed_root))
-            {
-                return Err(IncludeError::new(
-                    DiagnosticCode::ErrIncludeEscape,
-                    format!(
-                        "include path escapes confinement root: {}",
-                        candidate.display()
-                    ),
-                    stack.to_vec(),
-                )
-                .into());
-            }
-
+    let root = ConfiningRoot::from_path_buf(root.to_path_buf());
+    match canonicalize_within_roots(candidate, &root, allowed_roots) {
+        Ok(Canonicalization::Existing(canonical)) => Ok(canonical),
+        Ok(Canonicalization::Missing { candidate, source }) => {
             let (code, message) =
-                match crate::diagnostics::classify_filesystem_error(candidate, &error) {
+                match crate::diagnostics::classify_filesystem_error(&candidate, &source) {
                     crate::diagnostics::FilesystemErrorClass::IsADirectory => (
                         DiagnosticCode::ErrIncludeIsADirectory,
                         format!(
@@ -297,29 +266,19 @@ fn canonicalize_include(
                     ),
                 };
             Err(IncludeError::new(code, message, stack.to_vec())
-                .with_source(error)
+                .with_source(source)
                 .into())
         }
+        Err(escape) => Err(IncludeError::new(
+            DiagnosticCode::ErrIncludeEscape,
+            format!(
+                "include path escapes confinement root: {}",
+                escape.candidate.display()
+            ),
+            stack.to_vec(),
+        )
+        .into()),
     }
-}
-
-pub(crate) fn normalize_path(path: &Path) -> PathBuf {
-    use std::path::Component;
-
-    let mut normalized = PathBuf::new();
-    for component in path.components() {
-        match component {
-            Component::Prefix(prefix) => normalized.push(prefix.as_os_str()),
-            Component::RootDir => normalized.push(component.as_os_str()),
-            Component::CurDir => {}
-            Component::ParentDir => {
-                normalized.pop();
-            }
-            Component::Normal(part) => normalized.push(part),
-        }
-    }
-
-    normalized
 }
 
 fn parse_include_directive(line: &str) -> Option<&str> {
@@ -616,6 +575,69 @@ mod tests {
     }
 
     #[test]
+    fn sibling_prefix_escape_attempts_are_rejected() {
+        let root = temp_root("include_sibling_prefix");
+        let sibling = root.parent().unwrap().join(format!(
+            "{}-evil",
+            root.file_name().unwrap().to_string_lossy()
+        ));
+        write_file(&sibling.join("outside.md"), "outside\n");
+        write_file(
+            &root.join("root.md.j2"),
+            &format!(
+                "@<../{}/outside.md>\n",
+                sibling.file_name().unwrap().to_string_lossy()
+            ),
+        );
+
+        let error = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap_err();
+
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludeEscape);
+                assert!(
+                    error
+                        .message()
+                        .contains("include path escapes confinement root")
+                );
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[test]
+    fn configured_allowed_root_remains_available_to_includes() {
+        let root = temp_root("include_allowed_root");
+        let allowed = temp_root("include_allowed_root_shared");
+        write_file(
+            &root.join("root.md.j2"),
+            &format!(
+                "@<../{}/part.md>\n",
+                allowed.file_name().unwrap().to_string_lossy()
+            ),
+        );
+        write_file(&allowed.join("part.md"), "shared\n");
+
+        let policy = ComposePolicy {
+            allowed_roots: vec![ConfiningRoot::new(&allowed).unwrap()],
+            ..ComposePolicy::default()
+        };
+        let expanded = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &policy,
+        )
+        .unwrap();
+
+        assert_eq!(expanded.text, "shared\n");
+    }
+
+    #[test]
     fn deep_include_chain_above_safe_ceiling_returns_include_depth_error() {
         const CHAIN_DEPTH: usize = 1_900;
         let root = temp_root("include_stack_overflow");
@@ -695,6 +717,45 @@ mod tests {
         match error {
             ComposeError::Include(error) => {
                 assert_eq!(error.code(), DiagnosticCode::ErrIncludeDepth);
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[test]
+    fn include_depth_exact_limit_succeeds_and_one_over_fails() {
+        let exact_root = temp_root("include_depth_exact_limit");
+        write_linear_chain(&exact_root, 3);
+        let exact_policy = ComposePolicy {
+            max_include_depth: IncludeDepth::new(3),
+            ..ComposePolicy::default()
+        };
+
+        let expanded = expand_includes(
+            exact_root.join("root.md.j2"),
+            &ConfiningRoot::new(&exact_root).unwrap(),
+            &exact_policy,
+        )
+        .unwrap();
+        assert_eq!(expanded.text, "done\n");
+
+        let over_root = temp_root("include_depth_one_over");
+        write_linear_chain(&over_root, 4);
+        let over_policy = ComposePolicy {
+            max_include_depth: IncludeDepth::new(3),
+            ..ComposePolicy::default()
+        };
+
+        let error = expand_includes(
+            over_root.join("root.md.j2"),
+            &ConfiningRoot::new(&over_root).unwrap(),
+            &over_policy,
+        )
+        .unwrap_err();
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludeDepth);
+                assert_eq!(error.message(), "include depth exceeded maximum of 3");
             }
             other => panic!("unexpected error: {other}"),
         }

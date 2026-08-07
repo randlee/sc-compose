@@ -120,6 +120,8 @@ impl PyDiagnosticCode {
     #[classattr]
     const ERR_VAL_EXTRA_INPUT: &'static str = "ERR_VAL_EXTRA_INPUT";
     #[classattr]
+    const ERR_VAL_UNBOUND_VARIABLE: &'static str = "ERR_VAL_UNBOUND_VARIABLE";
+    #[classattr]
     const INFO_VAL_DEFAULT_USED: &'static str = "INFO_VAL_DEFAULT_USED";
     #[classattr]
     const ERR_RENDER_STDIN_DOUBLE_READ: &'static str = "ERR_RENDER_STDIN_DOUBLE_READ";

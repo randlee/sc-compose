@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use crate::cli::{
     Mode, RenderArgs, RenderBehaviorArgs, ResolveArgs, ValidateArgs, parse_pass_inputs,
 };
+use crate::commands::template_lint::lint_request;
 use crate::path_utils::to_forward_slash;
 use crate::render_request::{
     build_multi_pass_request, build_request, read_block_pair,
@@ -35,13 +36,15 @@ pub(crate) fn run_render(
             BTreeMap::default(),
             &pass_inputs,
         )?;
-        let (_, _, root_passes) = preflight_template(&request)?;
+        let (resolve_result, expanded, root_passes) = preflight_template(&request)?;
         if root_passes.len() <= 1 {
             emit_single_pass_all_warning(observer);
-            return execute_render_with_extra_warnings(
+            return execute_render_with_expanded(
                 &request,
                 &args.render,
                 observer,
+                resolve_result,
+                expanded,
                 vec![single_pass_all_warning()],
             );
         } else if pass_inputs.len() != root_passes.len() {
@@ -54,7 +57,14 @@ pub(crate) fn run_render(
                 DiagnosticCode::ErrConfigParse,
             ));
         }
-        return execute_render(&request, &args.render, observer);
+        return execute_render_with_expanded(
+            &request,
+            &args.render,
+            observer,
+            resolve_result,
+            expanded,
+            Vec::new(),
+        );
     }
 
     if args.brace_count.is_some() || args.variable_delimiters.is_some() {
@@ -90,6 +100,33 @@ fn execute_render_with_extra_warnings(
 ) -> Result<i32, CommandError> {
     let result =
         sc_composer::compose_with_observer(request, observer).map_err(CommandError::compose)?;
+    extra_warnings.extend(result.warnings);
+    emit_render_output(
+        request,
+        args,
+        &result.resolve_result.resolved_path,
+        &result.rendered_text,
+        extra_warnings,
+    )?;
+
+    Ok(crate::exit_codes::SUCCESS)
+}
+
+fn execute_render_with_expanded(
+    request: &ComposeRequest,
+    args: &RenderBehaviorArgs,
+    observer: &mut dyn CompositionObserver,
+    resolve_result: ResolveResult,
+    expanded: ExpandedTemplate,
+    mut extra_warnings: Vec<Diagnostic>,
+) -> Result<i32, CommandError> {
+    let result = sc_composer::compose_with_observer_and_expanded(
+        request,
+        observer,
+        resolve_result,
+        expanded,
+    )
+    .map_err(CommandError::compose)?;
     extra_warnings.extend(result.warnings);
     emit_render_output(
         request,
@@ -178,12 +215,18 @@ pub(crate) fn run_validate(
     if single_pass_fallback {
         report.warnings.push(single_pass_all_warning());
     }
-    let diagnostics = report
+    let lint_diagnostics = if args.lint {
+        lint_request(&request)?
+    } else {
+        Vec::new()
+    };
+    let mut diagnostics = report
         .warnings
         .iter()
         .chain(report.errors.iter())
         .cloned()
         .collect::<Vec<_>>();
+    diagnostics.extend(lint_diagnostics);
     if args.json {
         print_json(
             serde_json::json!({
@@ -237,7 +280,7 @@ fn execute_custom_delimiter_render(
     observer: &mut dyn CompositionObserver,
 ) -> Result<i32, CommandError> {
     let (open, close) = custom_variable_delimiters(args)?;
-    let report = sc_composer::validate_with_observer_and_delimiters(
+    let (report, expanded) = sc_composer::validate_with_observer_and_delimiters_with_expansion(
         request,
         observer,
         Some((&open, &close)),
@@ -247,12 +290,6 @@ fn execute_custom_delimiter_render(
         return Err(validation_report_error(report.errors));
     }
     let resolve_result = report.resolve_result;
-    let expanded = sc_composer::expand_includes(
-        &resolve_result.resolved_path,
-        &request.root,
-        &request.policy,
-    )
-    .map_err(CommandError::compose)?;
     let root_passes = expanded
         .frontmatters
         .iter()
@@ -356,7 +393,9 @@ fn emit_render_output(
             })?,
         )
     } else {
-        Some(rendered_text.len())
+        // Plain stdout uses println!, so the logical render target includes
+        // its trailing newline even though the JSON body does not.
+        Some(rendered_text.len() + 1)
     };
 
     if args.json {

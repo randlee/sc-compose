@@ -239,6 +239,14 @@ HTML-Report follow-on design track:
 - Variables loaded through `--var-file` may be any supported render-context
   value type.
 - Variables loaded through `--env-prefix` are always strings.
+- After the final context merge, every referenced variable path must either
+  have a value binding or be handled by the unbound-variable policy described
+  in FR-2a. A missing binding is distinct from an undeclared token and from an
+  extra caller-provided variable.
+- `ComposePolicy.unbound_variable_policy` controls referenced-but-unbound
+  paths with `error`, `warn`, or `ignore` severity. When unset, it inherits
+  `unknown_variable_policy` for compatibility; an explicit value keeps the
+  two policy axes independent.
 - If frontmatter is absent:
   - the engine must discover referenced variables from the template and include
     graph,
@@ -280,6 +288,19 @@ Referenced tokens that are not declared in frontmatter must follow these rules:
 This behavior is distinct from missing required variables. A token that is
 undeclared is not automatically treated as required unless it is explicitly
 listed in `required_variables`.
+
+Referenced-but-unbound tokens are a separate axis from undeclared tokens:
+
+- A referenced token with no binding after the final context/default merge
+  emits `ERR_VAL_UNBOUND_VARIABLE` according to
+  `unbound_variable_policy`.
+- A referenced token may be declared in frontmatter and still be unbound; the
+  unbound-variable policy applies independently of `strict_undeclared_variables`.
+- A referenced token may be undeclared but bound by caller input; the strict
+  undeclared-token policy applies independently and the value is not reported
+  as unbound.
+- Loop locals, `{% set %}` locals, built-in render-context variables, and
+  nested paths satisfied by a merged object value count as bindings.
 
 ### FR-2b: Missing and Extra Variables
 
@@ -448,6 +469,8 @@ The CLI must support:
 - `--env-prefix <PREFIX_>`
 - `--strict`
 - `--unknown-var-mode <error|warn|ignore>`
+  - controls both extra caller-provided variables and referenced-but-unbound
+    variables; the CLI maps the selected mode to both policy axes.
 - `--root <path>`
 - `--file <path>`
 - `--output <path>` where applicable
@@ -1229,13 +1252,25 @@ Implemented in Phase HTML-Report.
 - Output path derivation removes only the trailing `.j2` suffix and therefore
   preserves the `.html` extension.
 - Rendered HTML is treated as a normal template artifact.
-- `sc-compose` does not enable MiniJinja auto-escaping for `.html.j2`
-  templates. Template authors remain responsible for escaping user-supplied
-  values.
+- `AutoEscape::Custom("sc-compose-html")` applies to `.html.j2`, `.htm.j2`,
+  `.xml.j2`, and `.xhtml.j2` templates. It automatically escapes markup and
+  represents XML-illegal control bytes with the legal replacement-character
+  NCR `&#xfffd;`; template authors do not need to opt in.
 - Self-contained output, XHTML shape, inline CSS, and browser-viewability are
   template-author responsibilities rather than core-engine enforcement.
 - Dry-run, diagnostics, validation, and output-path rules apply to HTML
   templates the same way they apply to other file-mode templates.
+
+#### ADR-style clarification (2026-08-06, FIX-278)
+
+The shipped renderer's filename-aware `AutoEscape::Custom("sc-compose-html")`
+policy covers `.html.j2`, `.htm.j2`, `.xml.j2`, and `.xhtml.j2`. The shared
+formatter escapes markup and converts XML-illegal C0 control bytes to the legal
+replacement-character NCR `&#xfffd;` while leaving tab, LF, and CR intact.
+This is automatic behavior and requires no author opt-in. See
+[architecture §21.6](architecture.md#216-h4-wrapper-owned-orchestration-pattern)
+for the corresponding boundary statement. This clarification records shipped
+behavior; it does not change the existing filename-dispatch mechanism.
 
 ### FR-15: Bundled HTML Report Example
 

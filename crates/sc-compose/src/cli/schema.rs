@@ -76,7 +76,7 @@ pub(crate) struct InputArgs {
         long,
         value_enum,
         default_value = "ignore",
-        help = "Control how extra caller-provided variables are reported"
+        help = "Control how extra caller-provided and referenced-but-unbound variables are reported"
     )]
     pub(crate) unknown_var_mode: UnknownVarMode,
 }
@@ -158,6 +158,11 @@ pub(crate) struct ValidateArgs {
     pub(crate) common: CommonArgs,
     #[arg(long, help = "Validate all stacked template passes")]
     pub(crate) all: bool,
+    #[arg(
+        long,
+        help = "Report redundant filter chains and other lint findings with source locations"
+    )]
+    pub(crate) lint: bool,
     #[arg(long)]
     pub(crate) json: bool,
 }

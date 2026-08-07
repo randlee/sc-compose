@@ -30,6 +30,7 @@ pub(crate) struct ValidationState {
     default_pass_numbers: BTreeMap<VariableName, BTreeSet<usize>>,
     pub(crate) declared_variables: BTreeSet<VariableName>,
     pub(crate) referenced_variables: BTreeSet<VariableName>,
+    pub(crate) source_texts: BTreeMap<PathBuf, String>,
     referenced_variables_by_pass: BTreeMap<usize, BTreeSet<VariableName>>,
     declared_variables_by_pass: BTreeMap<usize, BTreeSet<VariableName>>,
 }

@@ -56,48 +56,45 @@ pub fn discover_tokens_with_delimiters(
     }
 
     let mut tokens = BTreeSet::new();
-    let mut scopes = Vec::<LoopScope>::new();
-    let mut cursor = text;
+    let mut scopes = vec![LoopScope::default()];
     let expression_delimiters =
         ExpressionDelimiters::with_delimiters(open_delimiter, close_delimiter);
-
-    while let Some((delimiter, start)) = next_delimiter(cursor, &expression_delimiters) {
-        let start_delimiter = match delimiter {
-            Delimiter::Expression => expression_delimiters.open.as_str(),
-            Delimiter::Statement => "{%",
-        };
-        let end_delimiter = match delimiter {
-            Delimiter::Expression => expression_delimiters.close.as_str(),
-            Delimiter::Statement => "%}",
-        };
-
-        let after_start = &cursor[start + start_delimiter.len()..];
-        let end = match delimiter {
-            Delimiter::Expression => find_expression_close(after_start, end_delimiter),
-            Delimiter::Statement => after_start.find(end_delimiter),
-        };
-        let Some(end) = end else { break };
-        let raw_content = &after_start[..end];
-        let without_leading_marker = raw_content.strip_prefix('-').unwrap_or(raw_content);
-        let without_markers = without_leading_marker
-            .strip_suffix('-')
-            .unwrap_or(without_leading_marker);
-        let expression = without_markers.trim();
+    walk_template(text, &expression_delimiters, |delimiter, expression| {
         match delimiter {
             Delimiter::Expression => collect_identifiers(expression, &scopes, &mut tokens),
             Delimiter::Statement => {
                 if let Some(loop_scope) = parse_for_loop_scope(expression, &scopes, &mut tokens) {
-                    scopes.push(loop_scope);
+                    scopes.push(loop_scope.scope);
                 } else if expression.starts_with("endfor") {
-                    scopes.pop();
+                    if scopes.len() > 1 {
+                        scopes.pop();
+                    }
+                } else if let Some(name) = parse_set_scope(expression, &scopes, &mut tokens) {
+                    scopes[0].bound_names.insert(name);
                 } else {
                     collect_identifiers(expression, &scopes, &mut tokens);
                 }
             }
         }
-        cursor = &after_start[end + end_delimiter.len()..];
-    }
+        false
+    });
     tokens
+}
+
+/// Return whether `text` contains a bare-identifier loop over `variable`.
+pub(crate) fn has_bare_for_loop_over(text: &str, variable: &str) -> bool {
+    let expression_delimiters = ExpressionDelimiters::with_delimiters("{{", "}}");
+    let mut found = false;
+    walk_template(text, &expression_delimiters, |delimiter, expression| {
+        if matches!(delimiter, Delimiter::Statement)
+            && parse_bare_for_loop_over(expression, variable)
+        {
+            found = true;
+            return true;
+        }
+        false
+    });
+    found
 }
 
 /// Discover tokens for every parsed pass using that pass's brace count.
@@ -156,6 +153,40 @@ fn next_delimiter(
     }
 }
 
+fn walk_template<F>(text: &str, expression_delimiters: &ExpressionDelimiters, mut visit: F)
+where
+    F: FnMut(Delimiter, &str) -> bool,
+{
+    let mut cursor = text;
+    while let Some((delimiter, start)) = next_delimiter(cursor, expression_delimiters) {
+        let start_delimiter = match delimiter {
+            Delimiter::Expression => expression_delimiters.open.as_str(),
+            Delimiter::Statement => "{%",
+        };
+        let end_delimiter = match delimiter {
+            Delimiter::Expression => expression_delimiters.close.as_str(),
+            Delimiter::Statement => "%}",
+        };
+        let after_start = &cursor[start + start_delimiter.len()..];
+        let end = match delimiter {
+            Delimiter::Expression => find_expression_close(after_start, end_delimiter),
+            Delimiter::Statement => after_start.find(end_delimiter),
+        };
+        let Some(end) = end else { break };
+        let raw_content = &after_start[..end];
+        let without_leading_marker = raw_content.strip_prefix('-').unwrap_or(raw_content);
+        let without_markers = without_leading_marker
+            .strip_suffix('-')
+            .or_else(|| without_leading_marker.strip_suffix('+'))
+            .unwrap_or(without_leading_marker);
+        let expression = without_markers.trim();
+        if visit(delimiter, expression) {
+            break;
+        }
+        cursor = &after_start[end + end_delimiter.len()..];
+    }
+}
+
 fn find_expression_open(text: &str, open_delimiter: &str) -> Option<usize> {
     find_exact_delimiter(text, open_delimiter)
 }
@@ -188,7 +219,7 @@ fn parse_for_loop_scope(
     expression: &str,
     scopes: &[LoopScope],
     tokens: &mut BTreeSet<VariableName>,
-) -> Option<LoopScope> {
+) -> Option<ParsedForLoop> {
     let trimmed = expression.trim();
     let remainder = trimmed.strip_prefix("for ")?;
     let (binding, iterable) = remainder.split_once(" in ")?;
@@ -207,7 +238,49 @@ fn parse_for_loop_scope(
             Some(root.to_string())
         })
         .collect();
-    Some(LoopScope { bound_names })
+    Some(ParsedForLoop {
+        scope: LoopScope { bound_names },
+    })
+}
+
+struct ParsedForLoop {
+    scope: LoopScope,
+}
+
+fn parse_bare_for_loop_over(expression: &str, variable: &str) -> bool {
+    let Some(remainder) = expression.strip_prefix("for ") else {
+        return false;
+    };
+    let Some((_binding, iterable)) = remainder.split_once(" in ") else {
+        return false;
+    };
+    let iterable = iterable.trim();
+    iterable == variable && is_bare_identifier(iterable)
+}
+
+fn is_bare_identifier(value: &str) -> bool {
+    let mut characters = value.chars();
+    matches!(characters.next(), Some(first) if first.is_ascii_alphabetic() || first == '_')
+        && characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
+}
+
+fn parse_set_scope(
+    expression: &str,
+    scopes: &[LoopScope],
+    tokens: &mut BTreeSet<VariableName>,
+) -> Option<String> {
+    let remainder = expression.trim().strip_prefix("set ")?;
+    let (name, value) = remainder.split_once('=')?;
+    let name = name.trim();
+    if name.is_empty()
+        || !name
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || character == '_')
+    {
+        return None;
+    }
+    collect_identifiers(value, scopes, tokens);
+    Some(name.to_owned())
 }
 
 fn collect_identifiers(
@@ -243,11 +316,16 @@ fn collect_identifiers(
         .flat_map(|scope| scope.bound_names.iter().map(String::as_str))
         .collect::<BTreeSet<_>>();
 
-    let masked_expression = mask_quoted_literals(expression);
+    let masked_expression = mask_filter_names(&mask_quoted_literals(expression));
     for candidate in masked_expression.split(|character: char| {
         !(character.is_ascii_alphanumeric() || matches!(character, '_' | '-' | '.'))
     }) {
-        if candidate.is_empty() || KEYWORDS.contains(&candidate) {
+        if candidate.is_empty()
+            || KEYWORDS.contains(&candidate)
+            || !candidate
+                .chars()
+                .any(|character| character.is_ascii_alphabetic())
+        {
             continue;
         }
         let root = candidate.split('.').next().unwrap_or(candidate);
@@ -262,7 +340,7 @@ fn collect_identifiers(
 }
 
 fn is_loop_context_name(candidate: &str, expression: &str, scopes: &[LoopScope]) -> bool {
-    if scopes.is_empty() {
+    if scopes.len() <= 1 {
         return false;
     }
     if candidate != "loop.cycle" {
@@ -301,9 +379,35 @@ fn mask_quoted_literals(expression: &str) -> String {
     masked
 }
 
+fn mask_filter_names(expression: &str) -> String {
+    let mut masked = expression.chars().collect::<Vec<_>>();
+    let mut cursor = 0;
+    while cursor < masked.len() {
+        if masked[cursor] != '|' {
+            cursor += 1;
+            continue;
+        }
+        let mut filter_start = cursor + 1;
+        while filter_start < masked.len() && masked[filter_start].is_ascii_whitespace() {
+            filter_start += 1;
+        }
+        let mut filter_end = filter_start;
+        while filter_end < masked.len()
+            && (masked[filter_end].is_ascii_alphanumeric() || masked[filter_end] == '_')
+        {
+            filter_end += 1;
+        }
+        for character in &mut masked[filter_start..filter_end] {
+            *character = ' ';
+        }
+        cursor = filter_end;
+    }
+    masked.into_iter().collect()
+}
+
 #[cfg(test)]
 mod tests {
-    use super::discover_tokens;
+    use super::{discover_tokens, has_bare_for_loop_over};
 
     #[test]
     fn leading_statement_whitespace_control_marker_is_not_a_token() {
@@ -317,6 +421,55 @@ mod tests {
         let tokens = discover_tokens("{% if true -%}Hi{% endif %}");
 
         assert!(tokens.is_empty(), "unexpected tokens: {tokens:?}");
+    }
+
+    #[test]
+    fn trailing_plus_marker_is_shared_by_token_and_loop_discovery() {
+        let template = "{% for item in items +%}{{ item }}{% endfor %}";
+
+        assert_eq!(
+            discover_tokens(template),
+            [crate::VariableName::new("items").unwrap()].into()
+        );
+        assert!(has_bare_for_loop_over(template, "items"));
+    }
+
+    #[test]
+    fn bare_for_loop_detection_matches_the_contract_matrix() {
+        let cases = [
+            (
+                "simple bare loop",
+                "{% for item in items %}{{ item }}{% endfor %}",
+                "items",
+                true,
+            ),
+            (
+                "nested bare loop",
+                "{% for group in groups %}{% for item in items %}{{ item }}{% endfor %}{% endfor %}",
+                "items",
+                true,
+            ),
+            (
+                "filtered loop",
+                "{% for item in items|sort %}{{ item }}{% endfor %}",
+                "items",
+                false,
+            ),
+            (
+                "no loop",
+                "{% if items %}{{ items }}{% endif %}",
+                "items",
+                false,
+            ),
+        ];
+
+        for (description, template, variable, expected) in cases {
+            assert_eq!(
+                has_bare_for_loop_over(template, variable),
+                expected,
+                "unexpected result for {description}"
+            );
+        }
     }
 
     #[test]
@@ -341,5 +494,62 @@ mod tests {
             tokens,
             [crate::VariableName::new("task-id").unwrap()].into()
         );
+    }
+
+    #[test]
+    fn numeric_subscripts_and_slices_do_not_become_tokens() {
+        let tokens = discover_tokens("{{ items[0] }} {{ items[1:2] }}");
+
+        assert_eq!(tokens, [crate::VariableName::new("items").unwrap()].into());
+    }
+
+    #[test]
+    fn loop_builtins_are_not_discovered_inside_a_loop() {
+        let tokens = discover_tokens("{% for it in items %}{{ it }}{{ loop.index0 }}{% endfor %}");
+
+        assert_eq!(tokens, [crate::VariableName::new("items").unwrap()].into());
+    }
+
+    #[test]
+    fn binary_operator_fragments_are_not_tokens() {
+        let tokens = discover_tokens("{{ a - b }}");
+
+        assert_eq!(
+            tokens,
+            [
+                crate::VariableName::new("a").unwrap(),
+                crate::VariableName::new("b").unwrap(),
+            ]
+            .into()
+        );
+    }
+
+    #[test]
+    fn filter_names_are_not_discovered_as_variables() {
+        let tokens = discover_tokens("{{ x | e }} {{ x | e | lower }}");
+
+        assert_eq!(tokens, [crate::VariableName::new("x").unwrap()].into());
+    }
+
+    #[test]
+    fn set_locals_and_filter_names_are_not_discovered_as_variables() {
+        let tokens = discover_tokens("{% set greeting = 'Hi ' + name %}{{ greeting | e | lower }}");
+
+        assert_eq!(tokens, [crate::VariableName::new("name").unwrap()].into());
+    }
+
+    #[test]
+    fn loop_builtins_outside_a_loop_remain_undeclared() {
+        let tokens = discover_tokens("{{ loop.last }}");
+
+        assert!(tokens.contains(&crate::VariableName::new("loop.last").unwrap()));
+    }
+
+    #[test]
+    fn filter_argument_references_remain_discovered() {
+        let tokens = discover_tokens("{{ x | default(other_var) }}");
+
+        assert!(tokens.contains(&crate::VariableName::new("x").unwrap()));
+        assert!(tokens.contains(&crate::VariableName::new("other_var").unwrap()));
     }
 }

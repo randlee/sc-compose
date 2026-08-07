@@ -68,6 +68,8 @@ pub enum DiagnosticCode {
     WarnValConflictingDefaultSections,
     /// `--all` was requested for a template without stacked headers.
     WarnConfigSinglePassAllFallback,
+    /// A template uses a redundant frontmatter/YAML safety filter chain.
+    WarnLintRedundantFilterChain,
     /// A template body was empty when content was required.
     ErrValEmpty,
     /// The root template omitted a frontmatter block.
@@ -78,10 +80,14 @@ pub enum DiagnosticCode {
     ErrValMissingNestedField,
     /// Nested required-path traversal encountered the wrong intermediate shape.
     ErrValShapeMismatch,
+    /// A required variable consumed by a bare for-loop was not an array.
+    ErrValArrayShapeMismatch,
     /// A referenced token was not declared in frontmatter.
     ErrValUndeclaredToken,
     /// A caller-provided variable was not declared or referenced.
     ErrValExtraInput,
+    /// A referenced variable had no value binding at render time.
+    ErrValUnboundVariable,
     /// A variable was not provided explicitly and a default value was used.
     InfoValDefaultUsed,
     /// The CLI attempted to read stdin twice for incompatible inputs.
@@ -264,13 +270,16 @@ impl DiagnosticCode {
             Self::ErrValDuplicate => "ERR_VAL_DUPLICATE",
             Self::WarnValConflictingDefaultSections => "WARN_VAL_CONFLICTING_DEFAULT_SECTIONS",
             Self::WarnConfigSinglePassAllFallback => "WARN_CONFIG_SINGLE_PASS_ALL_FALLBACK",
+            Self::WarnLintRedundantFilterChain => "WARN_LINT_REDUNDANT_FILTER_CHAIN",
             Self::ErrValEmpty => "ERR_VAL_EMPTY",
             Self::ErrValMissingFrontmatter => "ERR_VAL_MISSING_FRONTMATTER",
             Self::ErrValMissingRequired => "ERR_VAL_MISSING_REQUIRED",
             Self::ErrValMissingNestedField => "ERR_VAL_MISSING_NESTED_FIELD",
             Self::ErrValShapeMismatch => "ERR_VAL_SHAPE_MISMATCH",
+            Self::ErrValArrayShapeMismatch => "ERR_VAL_ARRAY_SHAPE_MISMATCH",
             Self::ErrValUndeclaredToken => "ERR_VAL_UNDECLARED_TOKEN",
             Self::ErrValExtraInput => "ERR_VAL_EXTRA_INPUT",
+            Self::ErrValUnboundVariable => "ERR_VAL_UNBOUND_VARIABLE",
             Self::InfoValDefaultUsed => "INFO_VAL_DEFAULT_USED",
             Self::ErrRenderStdinDoubleRead => "ERR_RENDER_STDIN_DOUBLE_READ",
             Self::ErrRenderWrite => "ERR_RENDER_WRITE",

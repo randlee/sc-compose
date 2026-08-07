@@ -644,6 +644,65 @@ def test_repr_surface_is_informative(tmp_path: Path) -> None:
     assert "policy=ComposePolicy(" in request_repr
 
 
+def test_py_compose_file_enforces_unbound_variable_policy(tmp_path: Path) -> None:
+    write(
+        tmp_path / "probe.xml.j2",
+        "<probe><bound>{{ bound_var }}</bound><missing>{{ unbound_var }}</missing></probe>\n",
+    )
+
+    def request(policy: sc_compose.ComposePolicy) -> sc_compose.ComposeRequest:
+        return make_file_request(
+            tmp_path,
+            "probe.xml.j2",
+            vars_input={"bound_var": "present"},
+            policy=policy,
+        )
+
+    with pytest.raises(sc_compose.ScValidationError) as caught:
+        sc_compose.compose_file(
+            request(
+                sc_compose.ComposePolicy(
+                    unknown_variable_policy=sc_compose.UnknownVariablePolicy.IGNORE,
+                    unbound_variable_policy=sc_compose.UnknownVariablePolicy.ERROR,
+                )
+            )
+        )
+    assert caught.value.code == sc_compose.DiagnosticCode.ERR_VAL_UNBOUND_VARIABLE
+    assert "unbound_var" in str(caught.value)
+
+    warned = sc_compose.compose_file(
+        request(
+            sc_compose.ComposePolicy(
+                unbound_variable_policy=sc_compose.UnknownVariablePolicy.WARN,
+            )
+        )
+    )
+    assert warned.rendered_text == "<probe><bound>present</bound><missing></missing></probe>"
+    assert any(
+        diagnostic.code == sc_compose.DiagnosticCode.ERR_VAL_UNBOUND_VARIABLE
+        and "unbound variable: unbound_var" in diagnostic.message
+        for diagnostic in warned.warnings
+    )
+    assert not any(
+        diagnostic.code == sc_compose.DiagnosticCode.ERR_VAL_UNBOUND_VARIABLE
+        and "unbound variable: bound_var" in diagnostic.message
+        for diagnostic in warned.warnings
+    )
+
+    ignored = sc_compose.compose_file(
+        request(
+            sc_compose.ComposePolicy(
+                unbound_variable_policy=sc_compose.UnknownVariablePolicy.IGNORE,
+            )
+        )
+    )
+    assert ignored.rendered_text == warned.rendered_text
+    assert not any(
+        diagnostic.code == sc_compose.DiagnosticCode.ERR_VAL_UNBOUND_VARIABLE
+        for diagnostic in ignored.warnings
+    )
+
+
 def test_non_reporting_surface_smoke(tmp_path: Path) -> None:
     write(
         tmp_path / "template.md.j2",

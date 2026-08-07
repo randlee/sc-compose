@@ -18,7 +18,10 @@ required to ship.
 - `requirements.md`, `architecture.md`, and this plan are the release source of
   truth.
 - No sprint may leave a known release blocker unassigned.
-- A later sprint may start only after the prior sprint exit gate passes.
+- A later sprint may start only after the prior sprint exit gate passes, unless
+  the authoritative phase plan explicitly declares independent tracks; in
+  that case, the sprint's own plan gate and declared dependency conditions
+  govern its start.
 - Deferred work is allowed only when it is explicitly out of scope for the
   initial release and does not reduce production readiness.
 - `sc-composer` remains a pure library.
@@ -613,6 +616,43 @@ Sprint entries:
 - [Sprint J.3 — Validation Policy and Required-Path Diagnostics](phase-J/sprint-j-3-validation-policy-diagnostics.md)
 - [Sprint J.4 — Frontmatter Parser and Normalizer Split](phase-J/sprint-j-4-frontmatter-parser-split.md)
 
+### Phase K Sprint Plans
+
+Status:
+
+- planned from the Repowise hotspot review in issue #311 (`sc/repowise-update2`,
+  2026-08-07); the review identified ten candidates and Phase K selects eight
+  behavior-preserving decomposition sprints;
+- K.1, K.2, K.3, K.4, K.7, and K.8 are independently reviewable tracks;
+  K.5 and K.6 are separately gated and should follow K.4 when practical;
+- an out-of-order K.5 or K.6 start requires the sprint owner to record the K.4
+  export-stability check and the plan-gate reviewer to accept that evidence;
+- if K.7 finds no safe seam, its QA-approved abandon-evidence record is the
+  Phase K exit contribution in place of a merged decomposition, without a
+  decomposition-completion claim;
+- gate status: critical-plan-review (STEP3-R3) passed at `96c219c` and the
+  quality-mgr plan-gate review passed after consistency hardening at `eacbd08`;
+  implementation remains pending downstream dispatch;
+- all eight are implementation sprints, not planning/design sprints, and each
+  requires full behavior-preserving validation regardless of gate status.
+- issue disposition is tracked as `PHK-CLEANUP-001` in
+  [`docs/issues-inventory.md`](issues-inventory.md); the architecture decision
+  and boundary artifacts are [ADR-0015](adrs/0015-phase-k-maintainability-decomposition.md),
+  [phase-k-boundary-contract.md](phase-K/phase-k-boundary-contract.md), and
+  [phase-k-boundaries.json](phase-K/phase-k-boundaries.json).
+
+Sprint entries:
+
+- [Phase K plan](phase-K/phase-K-plan.md)
+- [Sprint K.1 — XML Extraction Decomposition](phase-K/sprint-k-1-xml-extraction-decomposition.md)
+- [Sprint K.2 — Compose Command Orchestration](phase-K/sprint-k-2-compose-command-orchestration.md)
+- [Sprint K.3 — Var-File Decoding and Validation](phase-K/sprint-k-3-var-file-decoding.md)
+- [Sprint K.4 — Diagnostic Schema and Envelope](phase-K/sprint-k-4-diagnostics-schema.md)
+- [Sprint K.5 — Error-Family Modules](phase-K/sprint-k-5-error-family-modules.md)
+- [Sprint K.6 — Include Expansion Seams](phase-K/sprint-k-6-include-expansion.md)
+- [Sprint K.7 — Template Discovery Seams](phase-K/sprint-k-7-discovery-seams.md)
+- [Sprint K.8 — Report Output Materialization](phase-K/sprint-k-8-report-output.md)
+
 ### Follow-on Fix Sprint: FIX-238
 
 Status:
@@ -776,6 +816,141 @@ Sprint entry:
 FIX-269 makes non-dry-run `render --json` stdout content observable through
 the optional `body` payload field while preserving file-output and dry-run
 payload shapes.
+
+### Follow-on Fix Sprint: FIX-272
+
+Status:
+
+- complete on `fix/272-format-aware-escaping` at `0ccff88`
+
+Sprint entry:
+
+- [Sprint FIX-272 — Format-Aware Escaping](sprints/fix-272-format-aware-escaping.md)
+
+FIX-272 adds filename-aware JSON escaping plus opt-in `cdata_escape` and
+`turtle_escape` filters, while preserving existing HTML/XML behavior. The
+plan-hardening CDATA fields now opt into safe CDATA splitting.
+
+### Follow-on Fix Sprint: FIX-270
+
+Status:
+
+- complete on `fix/270-dict-get-method-unsupported` at `6e61f7c` (squash-merged
+  via PR #281 to `develop`)
+
+Sprint entry:
+
+- [Sprint FIX-270 — Jinja Dict Get Method](sprints/fix-270-dict-get-method-unsupported.md)
+
+FIX-270 adds a narrow project-owned Minijinja unknown-method callback for map
+`.get(key[, default])` calls. Missing keys return `Undefined` or the supplied
+default, while unrelated methods, value kinds, and arities retain the original
+unknown-method behavior.
+
+### Follow-on Fix Sprint: FIX-242-271
+
+Status:
+
+- complete on `fix/242-undeclared-token-false-positives` at `eed3369`
+  (squash-merged via PR #282 to `develop` at `8992ad0`)
+
+Sprint entry:
+
+- [Sprint FIX-242-271 — Undeclared Token False Positives](sprints/fix-242-271-undeclared-token-false-positives.md)
+
+FIX-242-271 removes false undeclared-token diagnostics for numeric
+subscripts/slices, binary operator fragments, Jinja filter names, and simple
+`{% set %}` locals while preserving real filter-argument references and
+loop-context diagnostics outside active loops.
+
+### Follow-on Fix Sprint: FIX-278
+
+Status:
+
+- complete on `fix/278-control-chars-survive-escape-filter` at `388c6d8`
+
+Sprint entry:
+
+- [Sprint FIX-278 — XML Control Character Escaping](sprints/fix-278-control-chars-survive-escape-filter.md)
+
+FIX-278 makes the shared HTML/XML/XHTML escaping formatter XML-character-safe
+for forbidden C0 controls, adds the opt-in `xml_char_safe` filter, and covers
+the XHTML filename dispatch alongside explicit and implicit escaping paths.
+
+### Follow-on Fix Sprint: FIX-274
+
+Status:
+
+- complete on `fix/274-spoofed-frontmatter-delimiter` at `2145245`
+
+Sprint entry:
+
+- [Sprint FIX-274 — Spoofed Frontmatter Delimiter](sprints/fix-274-spoofed-frontmatter-delimiter.md)
+
+ FIX-274 adds an opt-in `frontmatter_safe` filter for interpolated values in
+ frontmatter-shaped Markdown output. Standalone `---` and `...` lines are
+ neutralized without changing ordinary text or mid-line delimiter sequences;
+ the codex-orchestration sprint-plan template applies the filter to its title
+ fields.
+
+ ### Follow-on Fix Sprint: FIX-275
+
+Status:
+
+- complete on `fix/275-markdown-table-pipe-escape` at `b5d225c`
+
+Sprint entry:
+
+- [Sprint FIX-275 — Markdown Table Pipe Escape](sprints/fix-275-markdown-table-pipe-escape.md)
+
+FIX-275 adds the explicit `md_table_safe` filter for Markdown table cells. It
+ escapes literal pipes as `\|`, collapses embedded line breaks to spaces, and
+ leaves all other characters unchanged. The filter is opt-in so ordinary
+ Markdown text and existing auto-escape behavior remain unchanged.
+
+### Follow-on Fix Sprint: FIX-273
+
+Status:
+
+- complete on `fix/273-array-typed-vars-accept-scalars` at `cca8486`
+
+Sprint entry:
+
+- [Sprint FIX-273 — Reject Scalar Input For Array-Only Required Variables](sprints/fix-273-array-typed-vars-accept-scalars.md)
+
+FIX-273 rejects present scalar and object values when a top-level required
+variable is consumed by a conservative bare-identifier for-loop, while
+preserving existing dotted-path validation and non-loop behavior.
+
+### Follow-on Fix Sprint: FIX-276
+
+Status:
+
+- complete on `fix/276-yaml-colon-space-unescaped` at `75e51d9`
+
+Sprint entry:
+
+- [Sprint FIX-276 — YAML Colon-Space Escaping](sprints/fix-276-yaml-colon-space-unescaped.md)
+
+FIX-276 adds the explicit `yaml_safe` filter for caller-controlled YAML
+mapping values. It emits a double-quoted scalar with scoped escaping for
+backslashes, quotes, and line-control characters, and applies the existing
+`frontmatter_safe` delimiter protection before YAML quoting in the sprint-plan
+template.
+
+### Follow-on Fix Sprint: FIX-277
+
+Status:
+
+- complete on `fix/277-bytes-written-off-by-one` at `07e4ca0`
+
+Sprint entry:
+
+- [Sprint FIX-277 — `bytes_written` Off-By-One](sprints/fix-277-bytes-written-off-by-one.md)
+
+FIX-277 corrects JSON stdout render metadata to include the trailing newline
+emitted by the equivalent plain-mode stdout path. File output and dry-run
+metadata remain unchanged.
 
 ### Standalone Repowise Cleanup: Render Request Module Split
 
@@ -1230,8 +1405,8 @@ Deliverables:
 - H3a adds:
   - at least one integration test verifying
     `sprint-report-html.html.j2 -> sprint-report-html.html`
-  - an explicit safety note that `.html.j2` templates do not use automatic
-    escaping
+  - an explicit safety note describing filename-aware automatic escaping and
+    limiting `| safe` to trusted, pre-rendered HTML fragments
 - H3b (FR-15 content): bundled example at
   `examples/sprint-report-html.html.j2`
 - H3b keeps all template content inline in a single flat file; no `_includes/`
@@ -1375,10 +1550,19 @@ boundary defined by:
 
 ## Fuzz-Queue Fix Sprint Index
 
+- `docs/sprints/cleanup-293-frontmatter-yaml-filter-chain.md`
+- `docs/sprints/cleanup-298-path-containment-centralize.md`
+- `docs/sprints/cleanup-294-validate-lint-mode.md`
+- `docs/sprints/cleanup-295-296-expansion-reuse.md`
+- `docs/sprints/cleanup-299-json-integer-guard-dedup.md`
+- `docs/sprints/cleanup-301-yaml-merge-key-scan.md`
+- `docs/sprints/cleanup-297-bare-loop-discovery.md`
+- `docs/sprints/cleanup-300-include-depth-wrapper.md`
 - `docs/sprints/fix-250-varfile-object-wording-inconsistent.md`
 - `docs/sprints/fix-252-varfile-missing-dir-misclassified.md`
 - `docs/sprints/fix-253-doubled-delimiter-error-message.md`
 - `docs/sprints/fix-254-varfile-negative-boundary-i128.md`
+- `docs/sprints/fix-283-unbound-variable-policy-noop.md`
 
 The current follow-on implementation track is:
 

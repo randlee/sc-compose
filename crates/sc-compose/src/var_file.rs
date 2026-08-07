@@ -182,12 +182,13 @@ fn find_yaml_merge_key(contents: &str) -> Option<(usize, usize)> {
             block_scalar_indent = None;
         }
 
-        if let Some(byte_index) = scan_yaml_line_for_merge_key(line) {
+        let scan = scan_yaml_line(line);
+        if let Some(byte_index) = scan.merge_key {
             let column = line[..byte_index].chars().count() + 1;
             return Some((line_index + 1, column));
         }
 
-        if has_yaml_block_scalar_indicator(line) {
+        if scan.block_scalar {
             block_scalar_indent = Some(indentation);
         }
     }
@@ -195,46 +196,50 @@ fn find_yaml_merge_key(contents: &str) -> Option<(usize, usize)> {
     None
 }
 
-fn scan_yaml_line_for_merge_key(line: &str) -> Option<usize> {
-    for (byte_index, _) in unquoted_uncommented(line) {
-        if !line[byte_index..].starts_with("<<") {
-            continue;
+struct YamlLineScan {
+    merge_key: Option<usize>,
+    block_scalar: bool,
+}
+
+fn scan_yaml_line(line: &str) -> YamlLineScan {
+    let outside_quote = unquoted_uncommented(line);
+    let merge_key = outside_quote.iter().find_map(|(byte_index, _)| {
+        if !line[*byte_index..].starts_with("<<") {
+            return None;
         }
-        let suffix = &line[byte_index + 2..];
+        let suffix = &line[*byte_index + 2..];
         if suffix
             .chars()
             .find(|character| !character.is_ascii_whitespace())
             .is_none_or(|character| character != ':')
         {
-            continue;
+            return None;
         }
 
-        let prefix = line[..byte_index].trim_end();
-        if prefix.is_empty()
+        let prefix = line[..*byte_index].trim_end();
+        (prefix.is_empty()
             || prefix == "-"
             || prefix.ends_with('{')
             || prefix.ends_with(',')
-            || prefix.ends_with('?')
-        {
-            return Some(byte_index);
-        }
+            || prefix.ends_with('?'))
+        .then_some(*byte_index)
+    });
+    let block_scalar = outside_quote
+        .iter()
+        .map(|(_, character)| *character)
+        .collect::<String>()
+        .split_whitespace()
+        .any(|token| {
+            matches!(
+                token.trim_end_matches(','),
+                "|" | ">" | "|-" | "|+" | ">-" | ">+"
+            )
+        });
+
+    YamlLineScan {
+        merge_key,
+        block_scalar,
     }
-
-    None
-}
-
-fn has_yaml_block_scalar_indicator(line: &str) -> bool {
-    let outside_quote: String = unquoted_uncommented(line)
-        .into_iter()
-        .map(|(_, character)| character)
-        .collect();
-
-    outside_quote.split_whitespace().any(|token| {
-        matches!(
-            token.trim_end_matches(','),
-            "|" | ">" | "|-" | "|+" | ">-" | ">+"
-        )
-    })
 }
 
 /// Return source characters outside YAML quotes and before an unquoted
@@ -409,37 +414,53 @@ mod tests {
     }
 
     #[test]
-    fn integer_visitor_methods_narrow_in_range_and_reject_out_of_range() {
-        let minimum = DuplicateAwareValueVisitor
-            .visit_i128::<serde_json::Error>(i128::from(i64::MIN))
-            .expect("i64 minimum");
-        assert_eq!(minimum, serde_json::json!(i64::MIN));
-        DuplicateAwareValueVisitor
-            .visit_i128::<serde_json::Error>(i128::from(i64::MIN) - 1)
-            .unwrap_err();
+    fn json_integer_scanner_enforces_exact_boundaries() {
+        let cases = [
+            (
+                r#"{"n":-9223372036854775809}"#,
+                Some("-9223372036854775809"),
+            ),
+            (r#"{"n":-9223372036854775808}"#, None),
+            (r#"{"n":-42}"#, None),
+            (r#"{"n":0}"#, None),
+            (r#"{"n":9223372036854775807}"#, None),
+            (r#"{"n":9223372036854775808}"#, None),
+            (r#"{"n":18446744073709551615}"#, None),
+            (
+                r#"{"n":18446744073709551616}"#,
+                Some("18446744073709551616"),
+            ),
+        ];
 
-        let maximum = DuplicateAwareValueVisitor
-            .visit_u128::<serde_json::Error>(u128::from(u64::MAX))
-            .expect("u64 maximum");
-        assert_eq!(maximum, serde_json::json!(u64::MAX));
-        DuplicateAwareValueVisitor
-            .visit_u128::<serde_json::Error>(u128::from(u64::MAX) + 1)
-            .unwrap_err();
+        for (contents, expected) in cases {
+            assert_eq!(
+                find_out_of_range_json_integer(contents).as_deref(),
+                expected,
+                "contents: {contents}"
+            );
+        }
     }
 
     #[test]
     fn in_range_json_integer_boundaries_remain_exact() {
-        let minimum = parse_var_file_contents(r#"{"n": -9223372036854775808}"#).unwrap();
-        let maximum = parse_var_file_contents(r#"{"n": 18446744073709551615}"#).unwrap();
+        let cases = [
+            (
+                r#"{"n": -9223372036854775808}"#,
+                serde_json::json!(i64::MIN),
+            ),
+            (r#"{"n": -42}"#, serde_json::json!(-42)),
+            (r#"{"n": 0}"#, serde_json::json!(0)),
+            (r#"{"n": 9223372036854775807}"#, serde_json::json!(i64::MAX)),
+            (
+                r#"{"n": 18446744073709551615}"#,
+                serde_json::json!(u64::MAX),
+            ),
+        ];
 
-        assert_eq!(
-            minimum[&VariableName::new("n").unwrap()],
-            serde_json::json!(i64::MIN)
-        );
-        assert_eq!(
-            maximum[&VariableName::new("n").unwrap()],
-            serde_json::json!(u64::MAX)
-        );
+        for (contents, expected) in cases {
+            let vars = parse_var_file_contents(contents).unwrap();
+            assert_eq!(vars[&VariableName::new("n").unwrap()], expected);
+        }
     }
 
     #[test]
@@ -631,18 +652,30 @@ mod tests {
     }
 
     #[test]
+    fn comments_and_block_scalar_text_are_not_merge_keys() {
+        let contents = "comment: value # <<: *defaults\nitem: |\n  <<: *defaults\n";
+        let vars = parse_var_file_contents(contents).expect("comment and block text");
+
+        assert_eq!(
+            vars[&VariableName::new("item").unwrap()],
+            serde_json::json!("<<: *defaults\n")
+        );
+    }
+
+    #[test]
     fn doubled_single_quote_preserves_option_b_scanner_behavior() {
         let merge_line = "map: {item: 'it''s', <<: *defaults}";
-        let merge_index = scan_yaml_line_for_merge_key(merge_line)
+        let merge_index = scan_yaml_line(merge_line)
+            .merge_key
             .expect("merge key after doubled quote should remain visible");
         assert_eq!(&merge_line[merge_index..merge_index + 2], "<<");
 
         let block_line = "item: 'it''s' |";
-        assert!(has_yaml_block_scalar_indicator(block_line));
+        assert!(scan_yaml_line(block_line).block_scalar);
 
         let quoted_merge_line = "map: {'it''s <<: *defaults'}";
-        assert_eq!(scan_yaml_line_for_merge_key(quoted_merge_line), None);
-        assert!(!has_yaml_block_scalar_indicator("item: 'it''s |'"));
+        assert_eq!(scan_yaml_line(quoted_merge_line).merge_key, None);
+        assert!(!scan_yaml_line("item: 'it''s |'").block_scalar);
     }
 
     #[test]
@@ -738,41 +771,6 @@ impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
 
     fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> {
         Ok(serde_json::Value::Number(v.into()))
-    }
-
-    /// Defense-in-depth callbacks for a `serde_json` dispatch path that is
-    /// currently unreachable with the workspace's default configuration.
-    /// The lexical `find_out_of_range_json_integer` scan is the primary and
-    /// currently effective enforcement gate; these callbacks preserve the
-    /// same narrowing contract if arbitrary-precision dispatch is enabled.
-    fn visit_i128<E>(self, v: i128) -> Result<Self::Value, E>
-    where
-        E: DeError,
-    {
-        i64::try_from(v)
-            .map(|v| serde_json::Value::Number(v.into()))
-            .map_err(|_error| {
-                E::custom(format!(
-                    "integer {v} is outside the representable range ({}..={})",
-                    i64::MIN,
-                    u64::MAX
-                ))
-            })
-    }
-
-    fn visit_u128<E>(self, v: u128) -> Result<Self::Value, E>
-    where
-        E: DeError,
-    {
-        u64::try_from(v)
-            .map(|v| serde_json::Value::Number(v.into()))
-            .map_err(|_error| {
-                E::custom(format!(
-                    "integer {v} is outside the representable range ({}..={})",
-                    i64::MIN,
-                    u64::MAX
-                ))
-            })
     }
 
     fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>

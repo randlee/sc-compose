@@ -38,15 +38,15 @@ defaults:
     - "git diff --check"
 ---
 ---
-id: {{ id }}
-title: {{ title }}
-status: {{ status }}
-branch: {{ branch }}
-{% if worktree %}worktree: {{ worktree }}
-{% endif %}target: {{ target }}
+id: {{ id | yaml_safe }}
+title: {{ title | yaml_safe }}
+status: {{ status | yaml_safe }}
+branch: {{ branch | yaml_safe }}
+{% if worktree %}worktree: {{ worktree | yaml_safe }}
+{% endif %}target: {{ target | yaml_safe }}
 ---
 
-# Sprint {{ id }} — {{ title }}
+# Sprint {{ id }} — {{ title | frontmatter_safe }}
 
 ## Goal
 
