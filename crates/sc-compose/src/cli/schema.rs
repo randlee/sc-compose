@@ -158,6 +158,11 @@ pub(crate) struct ValidateArgs {
     pub(crate) common: CommonArgs,
     #[arg(long, help = "Validate all stacked template passes")]
     pub(crate) all: bool,
+    #[arg(
+        long,
+        help = "Report redundant filter chains and other lint findings with source locations"
+    )]
+    pub(crate) lint: bool,
     #[arg(long)]
     pub(crate) json: bool,
 }
