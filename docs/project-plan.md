@@ -823,7 +823,6 @@ subscripts/slices, binary operator fragments, Jinja filter names, and simple
 `{% set %}` locals while preserving real filter-argument references and
 loop-context diagnostics outside active loops.
 
-<<<<<<< HEAD
 ### Follow-on Fix Sprint: FIX-278
 
 Status:
@@ -1511,6 +1510,7 @@ boundary defined by:
 
 ## Fuzz-Queue Fix Sprint Index
 
+- `docs/sprints/cleanup-299-json-integer-guard-dedup.md`
 - `docs/sprints/cleanup-301-yaml-merge-key-scan.md`
 - `docs/sprints/cleanup-297-bare-loop-discovery.md`
 - `docs/sprints/cleanup-300-include-depth-wrapper.md`
