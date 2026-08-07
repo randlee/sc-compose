@@ -2,7 +2,7 @@
 id: K.2
 title: Compose Command Orchestration
 phase: K
-status: planned
+status: complete
 branch: sprint/k-2-compose-command-orchestration
 worktree: ../sc-compose-worktrees/sprint/k-2-compose-command-orchestration
 target: integrate/phase-k
@@ -107,6 +107,45 @@ disposition.
 
 Record the unchanged CLI/JSON public surface and before/after production-NLOC
 evidence.
+
+## Completion evidence
+
+- Baseline commit: `76d6c7f` (`origin/develop` before the implementation
+  change). The existing characterization corpus was green before the move:
+  `cargo test -p sc-compose --test cli` passed 156/156,
+  `cargo test -p sc-compose --test json_cli` passed 70/70, the workspace suite
+  passed 266/266 unit tests plus its integration suites, clippy passed with
+  `-D warnings`, and formatting/diff checks passed. Those tests cover text and
+  JSON output, dry-run, custom delimiters, multi-pass `--all`, stdin,
+  output-file, validation failures, and observer events.
+- Post-move characterization is unchanged: CLI tests passed 156/156 and JSON
+  CLI tests passed 70/70. The final workspace suite passed 266/266 unit tests
+  plus all integration and doc-test suites; formatting, diff, and clippy gates
+  also passed.
+- Merge-forward CI confirmation: PR #314's live CI run `31208754353` completed
+  green after commit `0ef675a`. It reported `156/156` CLI tests and passed the
+  JSON CLI, workspace, format, clippy, manifest-validation, and Python-wheel
+  jobs on Ubuntu, Windows, and macOS. This live executable count resolves the
+  earlier static `#[test]` count of 157; the authoritative CLI result remains
+  156/156.
+- Ownership evidence uses a simple nonblank, non-comment Rust-line count. The
+  baseline `compose.rs` was 624 lines / 593 counted lines in one module. After
+  the move, `compose.rs` is 166 / 158; `compose_request.rs` is 97 / 88;
+  `compose_render.rs` is 262 / 249; and `compose_output.rs` is 167 / 153.
+  The aggregate is 692 / 648, while the largest owner fell from 593 to 249
+  counted lines. The three private modules have distinct primary ownership:
+  request/preflight assembly, render execution, and output/diagnostic
+  presentation.
+- Public-surface review passed: `run_render`, `run_validate`, `run_verify`,
+  `run_resolve`, and the existing `commands::compose::execute_render` path
+  remain available; no command behavior moved into `sc-composer`; no flags,
+  exit codes, JSON fields, diagnostics, observer events, output paths, or
+  newline behavior changed.
+- RULE-002 disposition: exempt/not applicable. `emit_render_output` does not
+  wrap `tracing` or other log output; it is the CLI output/presentation seam
+  for text, JSON, dry-run, file writes, and newline/byte-count behavior. The
+  rule targets custom wrappers around log events, so this function does not
+  meet the finding's prohibited pattern.
 
 ## Dependencies and non-closure
 
