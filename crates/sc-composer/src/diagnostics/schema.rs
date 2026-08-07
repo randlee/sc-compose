@@ -281,7 +281,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::too_many_lines)]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "the exhaustive compatibility table intentionally lists every stable code"
+    )]
     fn every_diagnostic_code_has_a_stable_serde_and_as_str_spelling() {
         use DiagnosticCode::*;
 
