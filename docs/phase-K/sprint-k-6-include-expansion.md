@@ -21,7 +21,10 @@ Issue #311 ranks `crates/sc-composer/src/include.rs` at 4.05/10, reports 54% dup
   `resolve_include_path`, `canonicalize_include`, and
   `parse_include_directive`.
 - Create private expansion, path, and directive modules while preserving `expand_includes`, `ExpandedTemplate`, `IncludeDepth`, cached source text, and all error behavior.
-- Characterize nested includes, duplicate includes/cache reuse, missing files, confinement escapes, symlink loops, cycles, depth ceilings, frontmatter capture, and custom delimiters before moving code.
+- Add or strengthen characterization tests for nested includes, duplicate
+  includes/cache reuse, missing files, confinement escapes, symlink loops,
+  cycles, depth ceilings, frontmatter capture, and custom delimiters before
+  moving code.
 
 ## Planned seam
 

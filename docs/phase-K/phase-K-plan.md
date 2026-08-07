@@ -23,7 +23,10 @@ deliverables, acceptance criteria, and required validation; a downstream
 dispatch or QA prompt must not narrow or replace those sections. All eight
 sprints are implementation sprints and therefore must land executable,
 behavior-preserving code plus characterization coverage. None is a planning-
-only sprint and none has a deletion deliverable.
+only sprint and none has a deletion deliverable. K.7 may be stopped before
+merge if its characterization proves that no safe seam exists, but that is a
+failed/non-closed sprint outcome, not a test-only completion or a Phase K
+exit contribution.
 
 The reviewed implementation baseline is `develop` at `5fc2f38` (the branch
 also contains this plan package at the plan-hardening commit). Before any
@@ -59,7 +62,11 @@ Recommended merge order is K.4 → K.5 → K.6, with K.1/K.2/K.3/K.7/K.8 paralle
 - Existing public paths remain available through re-exports. New modules are private implementation seams unless an existing item was already public.
 - Each sprint must add or strengthen characterization tests before moving code and retain those tests after the move.
 - No speculative abstraction, generic framework, algorithm rewrite, performance claim, or cross-hotspot cleanup is in scope.
-- A refactor may be abandoned after characterization if the proposed seam does not reduce ownership without increasing risk; the sprint then reports the evidence and leaves the original module intact.
+- A refactor may be stopped after characterization if the proposed seam does
+  not reduce ownership without increasing risk; the sprint then reports the
+  evidence, remains non-closed (or is explicitly re-planned), and leaves the
+  original module intact. It may not claim completion on characterization
+  tests alone.
 
 ## Phase-wide validation contract
 

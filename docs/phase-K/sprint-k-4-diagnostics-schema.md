@@ -20,7 +20,10 @@ Issue #311 ranks `crates/sc-composer/src/diagnostics.rs` at 3.90/10 and reports 
   `as_str`, filesystem classification, `Diagnostic`, constructors, and
   `DiagnosticEnvelope<T>`.
 - Create private schema, filesystem, record, and envelope modules behind the existing `crate::diagnostics` and crate-root re-exports.
-- Characterize every serialized code/severity spelling, envelope shape, path/line/column behavior, include-chain ordering, and filesystem classification before moving code.
+- Add or strengthen direct unit and JSON-CLI characterization tests for every
+  serialized code/severity spelling, envelope shape, path/line/column
+  behavior, include-chain ordering, and filesystem classification before
+  moving code.
 
 ## Planned seam
 

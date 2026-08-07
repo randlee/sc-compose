@@ -20,7 +20,10 @@ Issue #311 ranks `crates/sc-composer/src/error.rs` at 3.99/10 and reports 55% du
   `ResolveError`, `IncludeError`, `ValidationError`, `RenderError`,
   `ConfigError`, `ComposeError`, and shared display/source helpers.
 - Create private family modules and a compatibility root that re-exports all existing public types and conversion implementations.
-- Characterize constructors, accessors, `Display`, `Error::source`, backtrace presence, recovery hints, diagnostic formatting, and every `From<FamilyError> for ComposeError` conversion before moving code.
+- Add or strengthen characterization tests for constructors, accessors,
+  `Display`, `Error::source`, backtrace presence, recovery hints, diagnostic
+  formatting, and every `From<FamilyError> for ComposeError` conversion before
+  moving code.
 
 ## Planned seam
 

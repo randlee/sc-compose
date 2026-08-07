@@ -21,7 +21,9 @@ Issue #311 ranks `crates/sc-compose/src/reporting/output.rs` at 4.21/10 and repo
   `write_report_metadata_and_archive`, `finalize_report_outputs`, path
   helpers, copy/archive helpers, and `OutputError`.
 - Create private layout/validation, materialization, and metadata modules while preserving all current `reporting::output` call sites and serialized fields.
-- Characterize latest versus archive paths, timestamp names, relative-path containment, artifact ordering, metadata JSON, overwrite behavior, and each `OutputError` mapping before moving code.
+- Add or strengthen characterization tests for latest versus archive paths,
+  timestamp names, relative-path containment, artifact ordering, metadata JSON,
+  overwrite behavior, and each `OutputError` mapping before moving code.
 
 ## Planned seam
 

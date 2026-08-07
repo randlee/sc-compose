@@ -21,7 +21,9 @@ Issue #311 ranks `crates/sc-compose/src/commands/compose.rs` at 3.09/10 and 593 
   `execute_custom_delimiter_render`, `emit_render_output`,
   `preflight_template`, `build_custom_render_context`, and `assemble_output`.
 - Create private submodules for render orchestration, preflight/request assembly, and output/diagnostic presentation; keep existing `run_render`, `run_validate`, `run_verify`, and `run_resolve` entry points unchanged.
-- Characterize text/JSON output, dry-run, custom delimiters, multi-pass `--all`, stdin, output-file, validation failure, and observer events before moving code.
+- Add or strengthen characterization tests for text/JSON output, dry-run,
+  custom delimiters, multi-pass `--all`, stdin, output-file, validation
+  failure, and observer events before moving code.
 
 ## Planned seam
 

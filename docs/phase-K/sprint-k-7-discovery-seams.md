@@ -21,7 +21,10 @@ Issue #311 ranks `crates/sc-composer/src/discovery.rs` at 4.06/10 with CCN 9 and
   `parse_for_loop_scope`, `parse_set_scope`, `collect_identifiers`,
   `mask_quoted_literals`, and `mask_filter_names`.
 - If safe, create private scanner/scope/identifier modules behind unchanged `discover_tokens`, `discover_tokens_with_brace_count`, `discover_tokens_with_delimiters`, `discover_all_pass_tokens`, and `has_bare_for_loop_over` paths.
-- Characterize custom delimiters, brace counts, whitespace markers, nested/shadowed loops, set locals, filters, quoted literals, loop built-ins, malformed/unclosed tags, and pass maps before moving code.
+- Add or strengthen characterization tests for custom delimiters, brace counts,
+  whitespace markers, nested/shadowed loops, set locals, filters, quoted
+  literals, loop built-ins, malformed/unclosed tags, and pass maps before
+  moving code.
 
 ## Planned seam
 
@@ -45,11 +48,15 @@ source path is deleted or renamed, and no Jinja syntax is added.
 ## Acceptance criteria
 
 - Token sets, scope filtering, loop built-ins, delimiter behavior, and pass maps are identical.
-- The sprint either demonstrates a real ownership split or explicitly records why the move was abandoned after characterization; test strengthening alone is not claimed as a decomposition.
+- The sprint must demonstrate a real ownership split. If characterization
+  proves that no safe split exists, the sprint records the evidence as a
+  failure/non-closure result and does not merge or count toward Phase K exit;
+  test strengthening alone is never claimed as decomposition completion.
 - No extraction, validation, or discovery semantics change.
 - Characterization coverage is a prerequisite, not the closure claim: if no
-  safe ownership split emerges, the sprint closes with strengthened tests and
-  an explicit abandoned-move record rather than a fabricated decomposition.
+  safe ownership split emerges, the sprint remains open (or is explicitly
+  re-planned) with an abandoned-move record rather than a fabricated
+  decomposition.
 
 ## Required validation
 

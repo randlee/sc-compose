@@ -21,7 +21,10 @@ Issue #311 ranks `crates/sc-compose/src/var_file.rs` at 3.91/10 with CCN 17 and 
   `unquoted_uncommented`, `decode_*_object`, `validate_var_object`, and
   duplicate-aware JSON visitor code.
 - Create private decoding/scanning/validation modules while preserving `load_var_file`, `parse_var_file_contents`, `VarFileDecodeError`, and all existing command diagnostics.
-- Characterize JSON duplicate keys, i64/u64 boundaries, YAML merge keys versus quoted `<<`, comments/block scalars, nested arrays/objects, top-level non-object values, and malformed input before moving code.
+- Add or strengthen characterization tests for JSON duplicate keys, i64/u64
+  boundaries, YAML merge keys versus quoted `<<`, comments/block scalars,
+  nested arrays/objects, top-level non-object values, and malformed input
+  before moving code.
 
 ## Planned seam
 
