@@ -16,19 +16,50 @@ Issue #311 ranks `crates/sc-composer/src/extract/xml.rs` at 2.35/10 with CCN 13 
 
 ## Exact targets and deliverables
 
-- `crates/sc-composer/src/extract/xml.rs:1-743`, especially `XmlElement`/`XmlNode`/`XmlDocument`, `parse_xml`, `decode_*`, `collect_expected_*`, `collect_template_occurrences`, `path_exists`, and `extract_xml`.
+- `crates/sc-composer/src/extract/xml.rs`, specifically `XmlElement`/
+  `XmlNode`/`XmlDocument`, `parse_xml`, `decode_*`, `collect_expected_*`,
+  `collect_template_occurrences`, `path_exists`, and `extract_xml`.
 - Add private modules for document parsing/model utilities and occurrence/evidence collection; preserve existing `XmlPathSegment`, `XmlExtractionSource`, report aliases, and `extract_xml` behavior.
 - Add characterization tests for malformed XML, dirty-prefix recovery, missing occurrences, attributes/text/element content, repeated siblings, limits, and unsupported syntax before moving code.
+
+## Planned seam
+
+The existing extraction entry point remains the only caller-facing boundary;
+the proposed private helpers must preserve these signatures while ownership
+is split:
+
+```rust
+pub(crate) fn extract_xml(
+    request: &ExtractRequest<'_>,
+) -> Result<XmlExtractionReport, ExtractError>;
+fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError>;
+fn collect_expected_evidence(
+    root: &XmlElement,
+    evidence: &mut Evidence,
+) -> Result<(), ExtractError>;
+```
+
+The exact private module names may differ, but `XmlPathSegment`,
+`XmlExtractionSource`, the report aliases, and `extract_xml` remain in their
+existing public/crate-visible paths. No path is deleted.
 
 ## Acceptance criteria
 
 - All existing XML extraction values, paths, sources, confidence values, diagnostics, and error codes are identical.
 - `xml_match.rs`, `xml_reject.rs`, and `xml_serialize.rs` remain compatible and are not rewritten as part of this sprint.
 - Production-NLOC and largest-module evidence show reduced ownership concentration; no new public XML API is introduced.
+- No existing XML source path is deleted or renamed; any new module is private
+  and is removed from the sprint diff if characterization does not support the
+  split.
 
 ## Required validation
 
-Run the Phase K checklist: focused XML tests before and after the move, `cargo fmt --all --check`, `git diff --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo test --workspace`, and `cargo test --test extract_integration`.
+Run `cargo test -p sc-composer --test extract_integration` and
+`cargo test -p sc-composer extract::xml` against the baseline before the move
+and rerun the same two commands after the move. Then run `cargo fmt --all
+--check`, `git diff --check`, `cargo clippy --all-targets --all-features --
+-D warnings`, and `cargo test --workspace`. Record the unchanged public
+surface/diff review and before/after production-NLOC evidence.
 
 ## Dependencies and non-closure
 

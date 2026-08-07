@@ -16,19 +16,57 @@ Issue #311 ranks `crates/sc-compose/src/commands/compose.rs` at 3.09/10 and 593 
 
 ## Exact targets and deliverables
 
-- `crates/sc-compose/src/commands/compose.rs:95-624`, including `execute_render_with_extra_warnings`, `execute_render_with_expanded`, `execute_custom_delimiter_render`, `emit_render_output`, `preflight_template`, `build_custom_render_context`, and `assemble_output`.
+- `crates/sc-compose/src/commands/compose.rs`, including
+  `execute_render_with_extra_warnings`, `execute_render_with_expanded`,
+  `execute_custom_delimiter_render`, `emit_render_output`,
+  `preflight_template`, `build_custom_render_context`, and `assemble_output`.
 - Create private submodules for render orchestration, preflight/request assembly, and output/diagnostic presentation; keep existing `run_render`, `run_validate`, `run_verify`, and `run_resolve` entry points unchanged.
 - Characterize text/JSON output, dry-run, custom delimiters, multi-pass `--all`, stdin, output-file, validation failure, and observer events before moving code.
+
+## Planned seam
+
+The command entry points stay in `commands::compose`; only private request,
+execution, and presentation seams may move. The contract is represented by
+these existing signatures:
+
+```rust
+pub(crate) fn run_render(
+    args: &RenderArgs,
+    observer: &mut dyn CompositionObserver,
+) -> Result<i32, CommandError>;
+fn preflight_template(
+    request: &ComposeRequest,
+) -> Result<(ResolveResult, ExpandedTemplate, Vec<Frontmatter>), CommandError>;
+fn emit_render_output(
+    request: &ComposeRequest,
+    args: &RenderBehaviorArgs,
+    resolved_path: &Path,
+    rendered_text: &str,
+    warnings: Vec<Diagnostic>,
+) -> Result<(), CommandError>;
+```
+
+Private module names may differ, but `run_render`, `run_validate`,
+`run_verify`, and `run_resolve` remain at their existing paths. No command
+source path is deleted or renamed.
 
 ## Acceptance criteria
 
 - Existing flags, exit codes, JSON envelopes, diagnostics, observer events, output paths, and newline behavior are unchanged.
 - No command behavior moves into `sc-composer`; no public CLI API changes.
 - Production-NLOC evidence shows each new module has one primary responsibility and `compose.rs` no longer owns all execution paths.
+- No executable behavior is deleted or moved into `sc-composer`; a proposed
+  split that cannot preserve the signature contract is abandoned with
+  evidence rather than closed as a partial refactor.
 
 ## Required validation
 
-Run focused CLI and JSON CLI characterization tests before and after, `cargo fmt --all --check`, `git diff --check`, `cargo clippy --all-targets --all-features -- -D warnings`, and `cargo test --workspace`.
+Run `cargo test -p sc-compose --test cli` and `cargo test -p sc-compose
+--test json_cli` against the baseline before the move and rerun the same two
+commands after the move. Then run `cargo fmt --all --check`, `git diff
+--check`, `cargo clippy --all-targets --all-features -- -D warnings`, and
+`cargo test --workspace`. Record the unchanged CLI/JSON public surface and
+before/after production-NLOC evidence.
 
 ## Dependencies and non-closure
 

@@ -5,6 +5,7 @@ status: planned
 branch: integrate/phase-k
 worktree: ../sc-compose-worktrees/integrate/phase-k
 target: develop
+baseline: 5fc2f38
 ---
 
 # Phase K — Repowise Hot-Spot Maintainability Cleanup
@@ -12,6 +13,24 @@ target: develop
 ## Objective
 
 Reduce the maintainability risk identified by GitHub issue [#311](https://github.com/randlee/sc-compose/issues/311). The issue's 2026-08-07 Repowise scan analyzed 537 files, scored overall health 8.46/10 and hotspot health 5.75/10, and identified eight concrete files with the lowest hotspot scores. Phase K performs behavior-preserving decomposition only; it does not change rendering, extraction, diagnostics, CLI, Python bindings, error semantics, or report schemas.
+
+## Plan authority and review contract
+
+This phase plan is the scope authority for phase-wide boundaries, sprint
+numbering, dependencies, and the explicit follow-on exclusions below. Each
+sprint document is independently authoritative for its own exact targets,
+deliverables, acceptance criteria, and required validation; a downstream
+dispatch or QA prompt must not narrow or replace those sections. All eight
+sprints are implementation sprints and therefore must land executable,
+behavior-preserving code plus characterization coverage. None is a planning-
+only sprint and none has a deletion deliverable.
+
+The reviewed implementation baseline is `develop` at `5fc2f38` (the branch
+also contains this plan package at the plan-hardening commit). Before any
+sprint changes code, it must characterize the named baseline behavior, record
+the focused test result, and rerun the same test after the move. A refactor
+that cannot preserve the stated seam is explicitly allowed to close with the
+code move abandoned, but it must not claim decomposition completion.
 
 ## Evidence and scope ledger
 
@@ -42,9 +61,22 @@ Recommended merge order is K.4 → K.5 → K.6, with K.1/K.2/K.3/K.7/K.8 paralle
 - No speculative abstraction, generic framework, algorithm rewrite, performance claim, or cross-hotspot cleanup is in scope.
 - A refactor may be abandoned after characterization if the proposed seam does not reduce ownership without increasing risk; the sprint then reports the evidence and leaves the original module intact.
 
-## Authoritative validation
+## Phase-wide validation contract
 
-Every implementation sprint must pass its focused characterization tests, `cargo fmt --all --check`, `git diff --check`, `cargo clippy --all-targets --all-features -- -D warnings`, and `cargo test --workspace`. Sprints touching `sc-composer` public types or the Python-facing crate additionally run the applicable Python smoke suite. Each sprint records before/after production-NLOC and module ownership evidence; Repowise rescanning is a post-integration diagnostic, not a standalone closure gate.
+Every implementation sprint's Required validation section is the
+authoritative command list for that sprint and must include the following
+common gates verbatim: `cargo fmt --all --check`, `git diff --check`,
+`cargo clippy --all-targets --all-features -- -D warnings`, and
+`cargo test --workspace`. It must also name a focused command or test target
+for the sprint's seam, and require that command to pass both before and after
+the move. Sprints touching `sc-composer` public types or the Python-facing
+crate additionally run the applicable Python smoke suite. Each sprint records
+before/after production-NLOC and module ownership evidence. Repowise
+rescanning is a post-integration diagnostic, not a standalone closure gate.
+
+No sprint may close on a shape-only split, test-only addition, or an
+unmeasured line-count reduction. The focused characterization result, public
+surface/diff review, and full workspace gates are required evidence.
 
 ## Exit gate
 
@@ -67,3 +99,5 @@ Phase K closes only when all eight sprint documents are QA-approved, their chara
 - `docs/phase-J/phase-J-plan.md` for the prior decomposition precedent
 - `.claude/skills/plan-hardening/sprint-planning-guidelines.md`
 - `docs/git-workflows.md`
+- `docs/requirements.md` and `docs/architecture.md` for the unchanged
+  library/CLI boundary and observable contracts

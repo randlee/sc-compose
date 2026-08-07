@@ -16,19 +16,55 @@ Issue #311 ranks `crates/sc-composer/src/diagnostics.rs` at 3.90/10 and reports 
 
 ## Exact targets and deliverables
 
-- `crates/sc-composer/src/diagnostics.rs:1-417`, including `DiagnosticCode`, `as_str`, filesystem classification, `Diagnostic`, constructors, and `DiagnosticEnvelope<T>`.
+- `crates/sc-composer/src/diagnostics.rs`, including `DiagnosticCode`,
+  `as_str`, filesystem classification, `Diagnostic`, constructors, and
+  `DiagnosticEnvelope<T>`.
 - Create private schema, filesystem, record, and envelope modules behind the existing `crate::diagnostics` and crate-root re-exports.
 - Characterize every serialized code/severity spelling, envelope shape, path/line/column behavior, include-chain ordering, and filesystem classification before moving code.
+
+## Planned seam
+
+The stable diagnostic types remain at their current crate paths. The split may
+move implementation behind those paths, but must preserve these signatures:
+
+```rust
+pub struct Diagnostic {
+    pub severity: DiagnosticSeverity,
+    pub code: DiagnosticCode,
+    pub message: String,
+    pub path: Option<PathBuf>,
+    pub line: Option<usize>,
+    pub column: Option<usize>,
+    pub include_chain: Vec<PathBuf>,
+}
+
+pub struct DiagnosticEnvelope<T> {
+    pub schema_version: String,
+    pub payload: T,
+    pub diagnostics: Vec<Diagnostic>,
+}
+```
+
+`DiagnosticCode`, `DiagnosticSeverity`, `Diagnostic`, and
+`DiagnosticEnvelope<T>` remain re-exported from `crate::diagnostics`; no
+serialized field, enum spelling, or source path is deleted or renamed.
 
 ## Acceptance criteria
 
 - `DiagnosticCode::as_str`, serde names, schema version, JSON envelope fields, constructor defaults, and filesystem classifications are byte-for-byte compatible.
 - No diagnostic code is added, removed, renamed, or repurposed; no caller changes are required.
 - Duplication evidence is recorded by category, not by speculative line-count reduction alone.
+- No diagnostic type is made private and no new schema version is introduced.
 
 ## Required validation
 
-Run diagnostic unit tests and JSON CLI tests before and after, `cargo fmt --all --check`, `git diff --check`, `cargo clippy --all-targets --all-features -- -D warnings`, and `cargo test --workspace`.
+Run `cargo test -p sc-composer diagnostics::tests`, `cargo test -p sc-compose
+--test json_cli -- diagnostic`, and `cargo test -p sc-compose --test cli --
+diagnostic` against the baseline before the move and rerun the same commands
+after the move. Then run `cargo fmt --all --check`, `git diff --check`,
+`cargo clippy --all-targets --all-features -- -D warnings`, and `cargo test
+--workspace`. Record serialized fixtures, classification results, and
+before/after production-NLOC evidence.
 
 ## Dependencies and non-closure
 
