@@ -4,6 +4,7 @@ pub(crate) mod examples;
 pub(crate) mod extract;
 pub(crate) mod reports;
 pub(crate) mod template_init;
+pub(crate) mod template_lint;
 pub(crate) mod templates;
 pub(crate) mod verify;
 pub(crate) mod workspace;
