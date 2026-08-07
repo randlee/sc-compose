@@ -2,7 +2,7 @@
 id: K.1
 title: XML Extraction Decomposition
 phase: K
-status: planned
+status: complete
 branch: sprint/k-1-xml-extraction-decomposition
 worktree: ../sc-compose-worktrees/sprint/k-1-xml-extraction-decomposition
 target: integrate/phase-k
@@ -97,6 +97,39 @@ same commands after the move:
 Run the full focused list, including the Python commands, before the move and
 again after the move. Record the unchanged public surface/diff review and
 before/after production-NLOC evidence.
+
+## Completion evidence
+
+- Baseline commit: `76d6c7f` (`origin/develop` before the implementation
+  change). The baseline characterization passed: 51/51
+  `extract_integration` tests, `cargo test -p sc-composer extract::xml`
+  completed with zero failures (the filter matches no named tests), formatting
+  and diff checks passed, and the baseline workspace/clippy gates passed.
+  Baseline `maturin develop` succeeded in the isolated
+  `/tmp/sc-compose-k1-venv`; the binding suite passed 52/52 when run with the
+  baseline worktree explicitly on `PYTHONPATH`.
+- Post-move characterization is unchanged: 51/51 extraction integration tests
+  passed, the XML test filter completed with zero failures, and the XML cases
+  covering malformed input, dirty-prefix recovery, missing occurrences,
+  attributes/text/element content, repeated siblings, limits, and unsupported
+  syntax remained green.
+- Ownership evidence uses a simple nonblank, non-comment Rust-line count. The
+  baseline `xml.rs` was 743 lines / 670 counted lines in one module. After the
+  move, `xml.rs` is 368 lines / 321 counted lines; `xml_model.rs` is 261 / 238;
+  and `xml_evidence.rs` is 138 / 126. The aggregate is 767 lines / 685 counted
+  lines, while the largest owner fell from 670 to 321 counted lines. The new
+  modules are private and keep parsing/model and occurrence/evidence ownership
+  separate.
+- Public-surface and forbidden-path review passed: `XmlPathSegment`,
+  `XmlExtractionSource`, report aliases, and `extract_xml` remain in `xml.rs`;
+  `xml_match.rs`, `xml_reject.rs`, and `xml_serialize.rs` were not modified;
+  no XML source path was deleted or renamed.
+- Post-move validation passed: `cargo test -p sc-composer --test
+  extract_integration`, `cargo test -p sc-composer extract::xml`, `cargo fmt
+  --all --check`, `git diff --check`, `cargo clippy --all-targets
+  --all-features -- -D warnings`, `cargo test --workspace`, `maturin develop`,
+  and `pytest bindings/python/tests` (52/52 with the rebuilt worktree binding
+  selected explicitly).
 
 ## Dependencies and non-closure
 
