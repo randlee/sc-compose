@@ -30,7 +30,7 @@ scope; it maps each accepted cleanup issue to the sprint that closes it.
 
 | ID | Finding | Status | Closing sprint | Notes |
 | --- | --- | --- | --- | --- |
-| PHK-CLEANUP-001 | Repowise issue #311 identifies eight behavior-preserving maintainability hotspots for structural decomposition. | Planned | `K.1`-`K.8` | `catalog.rs` and `resolver.rs` remain explicit follow-on candidates; see `docs/phase-K/phase-K-plan.md`, ADR-0015, and the Phase K boundary contract. |
+| PHK-CLEANUP-001 | Repowise issue #311 identifies ten candidates; Phase K selects eight behavior-preserving maintainability hotspots for structural decomposition. | Planned | `K.1`-`K.8` | `catalog.rs` and `resolver.rs` remain explicit follow-on candidates; see `docs/phase-K/phase-K-plan.md`, ADR-0015, and the Phase K boundary contract. |
 
 ## Inventory Rules
 

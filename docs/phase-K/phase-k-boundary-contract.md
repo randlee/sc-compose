@@ -54,6 +54,14 @@ K.8 preserves latest/archive layout, metadata serialization, artifact ordering,
 path separators, and `OutputError` mapping. `catalog.rs` and report producer
 behavior are explicitly outside the K.8 boundary.
 
+### Discovery non-closure boundary
+
+K.7 may leave `discovery.rs` unchanged only when characterization demonstrates
+that no safe ownership seam exists. The sprint must then record the baseline
+result and rationale, and QA must confirm the unchanged file; that
+abandon-evidence record is the Phase K exit contribution in place of a merged
+decomposition.
+
 ## Non-applicable required documents
 
 Phase K does not change ATM workflow, QA routing, triage prompts, or any

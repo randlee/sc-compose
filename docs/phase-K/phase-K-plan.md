@@ -12,7 +12,7 @@ baseline: 5fc2f38
 
 ## Objective
 
-Reduce the maintainability risk identified by GitHub issue [#311](https://github.com/randlee/sc-compose/issues/311). The issue's 2026-08-07 Repowise scan analyzed 537 files, scored overall health 8.46/10 and hotspot health 5.75/10, and identified eight concrete files with the lowest hotspot scores. Phase K performs behavior-preserving decomposition only; it does not change rendering, extraction, diagnostics, CLI, Python bindings, error semantics, or report schemas.
+Reduce the maintainability risk identified by GitHub issue [#311](https://github.com/randlee/sc-compose/issues/311). The issue's 2026-08-07 Repowise scan analyzed 537 files, scored overall health 8.46/10 and hotspot health 5.75/10, and identified ten candidates; Phase K selects eight concrete files with the lowest hotspot scores. Phase K performs behavior-preserving decomposition only; it does not change rendering, extraction, diagnostics, CLI, Python bindings, error semantics, or report schemas.
 
 ## Plan authority and review contract
 
@@ -21,12 +21,13 @@ numbering, dependencies, and the explicit follow-on exclusions below. Each
 sprint document is independently authoritative for its own exact targets,
 deliverables, acceptance criteria, and required validation; a downstream
 dispatch or QA prompt must not narrow or replace those sections. All eight
-sprints are implementation sprints and therefore must land executable,
-behavior-preserving code plus characterization coverage. None is a planning-
-only sprint and none has a deletion deliverable. K.7 may be stopped before
-merge if its characterization proves that no safe seam exists; it then cannot
-claim decomposition completion and must satisfy the explicit evidence-only
-exit contingency below.
+sprints are implementation sprints and must execute their required
+characterization and validation. K.1-K.6 and K.8 must land executable,
+behavior-preserving code plus characterization coverage. K.7 must land that
+decomposition when a safe seam exists; if characterization proves that no safe
+seam exists, K.7 cannot claim decomposition completion and must satisfy the
+explicit evidence-only exit contingency below. None is a planning-only sprint
+and none has a deletion deliverable.
 
 The reviewed implementation baseline is `develop` at `5fc2f38` (the branch
 also contains this plan package at the plan-hardening commit). Before any

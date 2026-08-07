@@ -18,7 +18,10 @@ required to ship.
 - `requirements.md`, `architecture.md`, and this plan are the release source of
   truth.
 - No sprint may leave a known release blocker unassigned.
-- A later sprint may start only after the prior sprint exit gate passes.
+- A later sprint may start only after the prior sprint exit gate passes, unless
+  the authoritative phase plan explicitly declares independent tracks; in
+  that case, the sprint's own plan gate and declared dependency conditions
+  govern its start.
 - Deferred work is allowed only when it is explicitly out of scope for the
   initial release and does not reduce production readiness.
 - `sc-composer` remains a pure library.
@@ -618,9 +621,15 @@ Sprint entries:
 Status:
 
 - planned from the Repowise hotspot review in issue #311 (`sc/repowise-update2`,
-  2026-08-07); eight behavior-preserving decomposition sprints are proposed;
+  2026-08-07); the review identified ten candidates and Phase K selects eight
+  behavior-preserving decomposition sprints;
 - K.1, K.2, K.3, K.4, K.7, and K.8 are independently reviewable tracks;
   K.5 and K.6 are separately gated and should follow K.4 when practical;
+- an out-of-order K.5 or K.6 start requires the sprint owner to record the K.4
+  export-stability check and the plan-gate reviewer to accept that evidence;
+- if K.7 finds no safe seam, its QA-approved abandon-evidence record is the
+  Phase K exit contribution in place of a merged decomposition, without a
+  decomposition-completion claim;
 - gate status: awaiting critical-plan-review and quality-mgr/req-qa/arch-qa
   plan-gate sign-off for the authoritative phase plan and sprint documents;
 - all eight are implementation sprints, not planning/design sprints, and each

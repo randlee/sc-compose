@@ -28,7 +28,8 @@
       "id": "phase-k-scope",
       "owners": ["K.1", "K.2", "K.3", "K.4", "K.5", "K.6", "K.7", "K.8"],
       "source_documents": ["docs/phase-K/phase-K-plan.md", "docs/issues-inventory.md", "docs/adrs/0015-phase-k-maintainability-decomposition.md"],
-      "invariants": ["structural decomposition only", "catalog.rs and resolver.rs remain follow-on candidates", "K.7 cannot close on tests-only work if no safe seam is found"]
+      "invariants": ["structural decomposition only", "catalog.rs and resolver.rs remain follow-on candidates", "K.7 cannot close on tests-only work if no safe seam is found"],
+      "exit_rule": "K.7 requires either a merged safe decomposition or a QA-approved abandon-evidence record containing the baseline result, rationale, and confirmation that discovery.rs remained unchanged"
     }
   ]
 }

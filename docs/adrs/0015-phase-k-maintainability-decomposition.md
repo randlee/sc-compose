@@ -39,9 +39,14 @@ serialized schema, CLI flag, Python API, extraction feature, include policy,
 or report format is introduced.
 
 K.4 → K.5/K.6 is a recommended merge order, not a hard source-level
-dependency when characterization proves existing exports remain stable. K.7
-must remain non-closed if characterization cannot demonstrate a safe seam.
-`catalog.rs` and `resolver.rs` remain excluded follow-on candidates.
+dependency when characterization proves existing exports remain stable. For an
+out-of-order K.5 or K.6 start, the sprint owner records the K.4 export-stability
+check and the plan-gate reviewer accepts that evidence first. K.7 remains
+non-closed as decomposition work if characterization cannot demonstrate a
+safe seam; for Phase K exit, QA may approve an abandon-evidence record with
+the baseline result, rationale, and confirmation that `discovery.rs` stayed
+unchanged in place of a merged split. `catalog.rs` and `resolver.rs` remain
+excluded follow-on candidates.
 
 ## Consequences
 
