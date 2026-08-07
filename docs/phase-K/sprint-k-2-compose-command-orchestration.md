@@ -101,6 +101,10 @@ same commands after the move:
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo test --workspace`
 
+Before K.2 implementation sign-off, the implementation reviewer must check
+`emit_render_output` against the RULE-002 exemption criteria and record the
+disposition.
+
 Record the unchanged CLI/JSON public surface and before/after production-NLOC
 evidence.
 

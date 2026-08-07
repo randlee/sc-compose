@@ -630,8 +630,9 @@ Status:
 - if K.7 finds no safe seam, its QA-approved abandon-evidence record is the
   Phase K exit contribution in place of a merged decomposition, without a
   decomposition-completion claim;
-- gate status: awaiting critical-plan-review and quality-mgr/req-qa/arch-qa
-  plan-gate sign-off for the authoritative phase plan and sprint documents;
+- gate status: critical-plan-review (STEP3-R3) passed at `96c219c` and the
+  quality-mgr plan-gate review passed after consistency hardening at `eacbd08`;
+  implementation remains pending downstream dispatch;
 - all eight are implementation sprints, not planning/design sprints, and each
   requires full behavior-preserving validation regardless of gate status.
 - issue disposition is tracked as `PHK-CLEANUP-001` in
