@@ -122,6 +122,10 @@ Independent, but should be reviewed after K.4 because discovery feeds diagnostic
   workspace tests, formatting, and diff checks passed; `maturin develop
   --manifest-path bindings/python/Cargo.toml` succeeded and the Python suite
   passed 52 tests.
+- The sprint branch was cut from K.2 at `d79bf98` and did not include K.4 in
+  its ancestry at branch creation time. The K.4 and K.7 changes are disjoint,
+  so this did not alter discovery behavior; the provenance is recorded here
+  explicitly rather than claiming a post-K.4 branch baseline.
 - Characterization found a safe behavior-preserving ownership split. The
   public discovery facade remains unchanged, while private `scanner`, `scope`,
   and `identifiers` modules own delimiter walking, loop/set scope parsing, and
@@ -135,7 +139,7 @@ Independent, but should be reviewed after K.4 because discovery feeds diagnostic
 - Post-move validation passed: `cargo test -p sc-composer
   discovery::tests` (19), the discovery-filtered integration target (0
   matched), `cargo fmt --all --check`, `git diff --check`, clippy with
-  `-D warnings`, and `cargo test --workspace` (266 unit, 51 extraction
+  `-D warnings`, and `cargo test --workspace` (271 unit, 51 extraction
   integration, 16 integration). `maturin develop --manifest-path
   bindings/python/Cargo.toml` succeeded and `pytest bindings/python/tests`
   passed 52 tests.

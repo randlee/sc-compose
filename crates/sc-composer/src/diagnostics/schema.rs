@@ -281,7 +281,7 @@ mod tests {
     }
 
     #[test]
-    #[allow(
+    #[expect(
         clippy::too_many_lines,
         reason = "the exhaustive compatibility table intentionally lists every stable code"
     )]
