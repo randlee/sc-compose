@@ -24,9 +24,9 @@ dispatch or QA prompt must not narrow or replace those sections. All eight
 sprints are implementation sprints and therefore must land executable,
 behavior-preserving code plus characterization coverage. None is a planning-
 only sprint and none has a deletion deliverable. K.7 may be stopped before
-merge if its characterization proves that no safe seam exists, but that is a
-failed/non-closed sprint outcome, not a test-only completion or a Phase K
-exit contribution.
+merge if its characterization proves that no safe seam exists; it then cannot
+claim decomposition completion and must satisfy the explicit evidence-only
+exit contingency below.
 
 The reviewed implementation baseline is `develop` at `5fc2f38` (the branch
 also contains this plan package at the plan-hardening commit). Before any
@@ -77,9 +77,11 @@ implementation sprints from `integrate/phase-k`; K.5 and K.6 are also
 separately gated implementation sprints but should follow K.4 when practical
 because they consume diagnostic/error contracts. That K.4 → K.5/K.6 ordering
 is recommended rather than a hard source-level prerequisite when
-characterization tests prove the existing exports remain stable. Each sprint
-has one file/module owner, and no sprint may begin implementation until its
-own plan-gate review passes.
+characterization tests prove the existing exports remain stable. For an
+out-of-order K.5 or K.6 start, the sprint owner must record the K.4
+export-stability check result and the plan-gate reviewer must accept that
+evidence before implementation begins. Each sprint has one file/module owner,
+and no sprint may begin implementation until its own plan-gate review passes.
 
 Recommended merge order is K.4 → K.5 → K.6, with K.1/K.2/K.3/K.7/K.8 parallelized around that chain. The integration branch is the only merge-forward target; sprint branches must not repeatedly merge sibling branches into one another.
 
@@ -115,6 +117,15 @@ surface/diff review, and full workspace gates are required evidence.
 ## Exit gate
 
 Phase K closes only when all eight sprint documents are QA-approved, their characterization tests remain green, the full integration suite passes, no hard-boundary file changed outside declared scope, and a fresh Repowise scan is recorded for follow-up—not used to reject closure solely because scan timing or scoring varies.
+
+K.7 contingency: if characterization proves that no safe seam exists, Phase K
+exit does not require a merged K.7 decomposition. It requires QA approval of a
+K.7 abandon-evidence record containing the baseline characterization, the
+rationale for rejecting the seam, and confirmation that `discovery.rs` was
+left unchanged. That approved record satisfies K.7's exit contribution in
+place of a merged split; `discovery.rs` and the unresolved cleanup are carried
+forward in the follow-on issue inventory. The other seven sprints must still
+meet their normal closure gates.
 
 ## Sprint documents
 

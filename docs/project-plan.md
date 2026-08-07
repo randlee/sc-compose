@@ -621,8 +621,10 @@ Status:
   2026-08-07); eight behavior-preserving decomposition sprints are proposed;
 - K.1, K.2, K.3, K.4, K.7, and K.8 are independently reviewable tracks;
   K.5 and K.6 are separately gated and should follow K.4 when practical;
-- this phase is planning-only until `/plan-hardening` and req-qa/arch-qa approve
-  the authoritative phase plan and sprint documents.
+- gate status: awaiting critical-plan-review and quality-mgr/req-qa/arch-qa
+  plan-gate sign-off for the authoritative phase plan and sprint documents;
+- all eight are implementation sprints, not planning/design sprints, and each
+  requires full behavior-preserving validation regardless of gate status.
 - issue disposition is tracked as `PHK-CLEANUP-001` in
   [`docs/issues-inventory.md`](issues-inventory.md); the architecture decision
   and boundary artifacts are [ADR-0015](adrs/0015-phase-k-maintainability-decomposition.md),

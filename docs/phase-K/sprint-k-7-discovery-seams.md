@@ -79,13 +79,16 @@ source path is deleted or renamed, and no Jinja syntax is added.
 - Token sets, scope filtering, loop built-ins, delimiter behavior, and pass maps are identical.
 - The sprint must demonstrate a real ownership split. If characterization
   proves that no safe split exists, the sprint records the evidence as a
-  failure/non-closure result and does not merge or count toward Phase K exit;
-  test strengthening alone is never claimed as decomposition completion.
+  failure/non-closure result and does not merge as a decomposition; its
+  QA-approved abandon-evidence record may satisfy the Phase K exit contribution
+  only under the contingency defined in the phase plan. Test strengthening
+  alone is never claimed as decomposition completion.
 - No extraction, validation, or discovery semantics change.
 - Characterization coverage is a prerequisite, not the closure claim: if no
-  safe ownership split emerges, the sprint remains open (or is explicitly
-  re-planned) with an abandoned-move record rather than a fabricated
-  decomposition.
+  safe ownership split emerges, the sprint remains non-closed as decomposition
+  work (or is explicitly re-planned) with an abandoned-move record rather than
+  a fabricated decomposition; the record is an exit contribution only after
+  QA confirms the baseline result, rationale, and unchanged `discovery.rs`.
 
 ## Required validation
 
