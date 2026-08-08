@@ -19,6 +19,12 @@ with target-specific evidence and no changes to shared orchestration.
 
 L.2 must be merged to integrate/phase-l. This sprint has no dependency on
 any other post-infrastructure sprint and may run in parallel with all of them.
+L.1's bootstrap contract must first record whether the pinned sc-lint 0.4.0
+distribution can resolve every Python utility transitively used by the full
+profile without a consumer-side copy; this unresolved packaging question is
+tracked in sc-lint issue #83. If it cannot, this sprint must characterize the
+explicit `CLI.CONFIG_ERROR` class/non-pass result and actionable diagnostic;
+it must not add copied scripts or claim profile success.
 
 ## Parallel Execution
 
@@ -69,10 +75,13 @@ Run `lint full` on the final sprint commit. Fix minor full-profile findings
 immediately. For remaining findings, create `fix/l-14-profile-<class>` from
 this sprint worktree's final commit only for full-profile-owned changes;
 route analyzer/utility findings to the originating target sprint and do not
-duplicate fixes. Keep profile changes, crate-level constants, and one length
-refactor per worktree. Send each worktree and fix commit to team-lead for PR
-creation; team-lead sends the PR to quality-mgr for QA. L.14 cannot close until
-required fixes are QA-approved, merged, and rerun.
+duplicate fixes. For each routed finding, write a note keyed by `<rule-id> +
+<file-path>` under `reports/inputs/lint/lint-full/`, naming the atomic owner
+sprint and known fix branch/PR. Keep profile changes, crate-level constants,
+and one length refactor per worktree. Send each worktree or routing note and
+its commit to team-lead for PR creation; team-lead sends the PR to quality-mgr
+for QA. L.14 cannot close until required fixes are QA-approved, merged, and
+rerun.
 
 ## Explicit Code Samples
 
@@ -103,6 +112,8 @@ The focused test must assert this report identity:
 - Target-specific integration tests pass without modifying files owned by other
   L sprints.
 - No Python script or duplicated report template is introduced.
+
+- All required cleanup fixes are QA-approved, merged, and revalidated before sprint closure.
 
 ## Required Validation
 

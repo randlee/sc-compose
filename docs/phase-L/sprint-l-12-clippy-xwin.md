@@ -103,6 +103,8 @@ The focused test must assert this report identity:
   L sprints.
 - No Python script or duplicated report template is introduced.
 
+- All required cleanup fixes are QA-approved, merged, and revalidated before sprint closure.
+
 ## Required Validation
 
 - just clippy xwin

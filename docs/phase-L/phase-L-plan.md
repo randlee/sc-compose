@@ -62,6 +62,9 @@ Every consuming repository must expose the same recipes:
 - just clippy native|xwin
 - just ci — top-level sc-lint ci, including workspace tests
 
+`lint ci` is the lint-only CI profile and does not run workspace tests;
+top-level `ci` runs that lint profile plus `cargo test --workspace`.
+
 The recipes invoke the shared sc-compose integration, which invokes
 sc-lint --json. No repository-specific Python runner is permitted. JSON
 stdout, exit status, diagnostics, and target identity remain available as
@@ -167,3 +170,20 @@ final sprint commit before handoff. Classify findings before changing them:
 
 Each sprint document contains its expected finding classes and repeats this
 routing contract as a sprint-local handoff gate.
+
+## Atomic target ownership for composite profiles
+
+The atomic owner map is fixed for the Phase L wave: L.3 owns sc-boundary, L.4
+owns sc-portability, L.5 owns sc-runtime, L.6 owns line-counts, L.7 owns
+identity-literals, L.8 owns view findings, L.9 owns check native, L.10 owns
+check xwin, L.11 owns clippy native, and L.12 owns clippy xwin. L.13-L.16
+own only profile/workflow composition; they do not own analyzer findings
+emitted by those atomic targets.
+
+When L.13-L.16 see a finding attributable to an atomic target, they must not
+open a duplicate `fix/` branch. They must write a routing note keyed by
+`<rule-id> + <file-path>` under their owned
+`reports/inputs/lint/<profile>/` artifact directory, naming the atomic owner
+sprint and any known fix branch/PR, and send that note to team-lead. Only the
+atomic owner creates the fix worktree. This is the shared ownership mechanism
+for the parallel profile wave.

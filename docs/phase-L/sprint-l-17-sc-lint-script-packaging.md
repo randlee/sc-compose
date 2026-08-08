@@ -17,6 +17,9 @@ GitHub issue in `randlee/sc-lint` that inventories Python scripts used by
 sc-compose/sc-lint, records representative evidence, and recommends a
 pip-installable distribution for the commonly used utilities.
 
+This is a planning/design sprint with an external coordination deliverable;
+it does not implement executable packaging in sc-compose or sc-lint.
+
 ## Hard Dependencies
 
 L.1 through L.16 must be complete on `integrate/phase-l`. This sprint is not
@@ -104,6 +107,8 @@ scope corrections separate from document-length refactors. Send the worktree
 and fix commit to team-lead for PR creation; team-lead sends the PR to
 quality-mgr for QA. L.17 cannot close until required fixes are QA-approved,
 merged, and the remote issue/inventory are rechecked.
+
+- All required cleanup fixes are QA-approved, merged, and revalidated before sprint closure.
 
 ## Required Validation
 

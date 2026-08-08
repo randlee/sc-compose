@@ -19,6 +19,12 @@ with target-specific evidence and no changes to shared orchestration.
 
 L.2 must be merged to integrate/phase-l. This sprint has no dependency on
 any other post-infrastructure sprint and may run in parallel with all of them.
+L.1's bootstrap contract must first record whether the pinned sc-lint 0.4.0
+distribution can resolve `.just/lint_line_counts.py` and
+`.just/python_adapter.py` without a consumer-side copy; this unresolved
+packaging question is tracked in sc-lint issue #83. If it cannot, this sprint
+must characterize the explicit `CLI.CONFIG_ERROR` class/non-pass result and
+actionable diagnostic rather than adding copied scripts.
 
 ## Parallel Execution
 
@@ -101,6 +107,8 @@ The focused test must assert this report identity:
 - Target-specific integration tests pass without modifying files owned by other
   L sprints.
 - No Python script or duplicated report template is introduced.
+
+- All required cleanup fixes are QA-approved, merged, and revalidated before sprint closure.
 
 ## Required Validation
 

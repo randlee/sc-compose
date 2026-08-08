@@ -39,6 +39,7 @@ unblocks the mutually parallel target wave L.3-L.16. L.17 waits for that wave.
 - examples/sc-lint-report.html.j2
 - reports/inputs/lint/
 - docs/phase-L/sc-lint-reporting-contract.md
+- docs/adrs/0016-sc-lint-runner-allowlist-and-reporting.md
 
 ## Deliverables
 
@@ -56,6 +57,8 @@ unblocks the mutually parallel target wave L.3-L.16. L.17 waits for that wave.
   behavior in every consuming repository.
 - CI wiring that runs just lint and publishes the generated report/raw JSON
   artifacts.
+- ADR-0016 recording the command allowlist, subprocess boundary, JSON capture,
+  report ownership, and security rationale for the shared runner.
 
 ## Required Work
 
@@ -136,6 +139,8 @@ just ci                   # sc-lint ci
 - If a Python-backed target is unavailable because sc-lint resolves a utility
   under the consumer `.just/` path, the runner preserves an actionable
   structured diagnostic and does not silently copy or reimplement the script.
+
+- All required cleanup fixes are QA-approved, merged, and revalidated before sprint closure.
 
 ## Required Validation
 

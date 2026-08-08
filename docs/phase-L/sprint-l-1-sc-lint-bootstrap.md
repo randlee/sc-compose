@@ -124,6 +124,8 @@ sc-composer -/-> bindings/python
   script copy and links sc-lint issue #83 if it does not.
 - No Python runner or analyzer implementation is added to sc-compose.
 
+- All required cleanup fixes are QA-approved, merged, and revalidated before sprint closure.
+
 ## Required Validation
 
 - sc-lint version --json

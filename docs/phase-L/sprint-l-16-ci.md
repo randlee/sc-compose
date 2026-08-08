@@ -67,10 +67,13 @@ Run top-level `ci` on the final sprint commit. Fix minor CI composition,
 workflow, or command-identity findings immediately. For remaining findings,
 create `fix/l-16-ci-<class>-<owner>` from this sprint worktree's final commit;
 route lint-target findings to their originating sprint instead of duplicating
-them here. Keep workflow changes separate from crate-level constants and keep
-each length refactor separate. Send the worktree and fix commit to team-lead
-for PR creation; team-lead sends the PR to quality-mgr for QA. L.16 cannot
-close until fixes are QA-approved, merged, and rerun.
+them here. For each routed finding, write a note keyed by `<rule-id> +
+<file-path>` under `reports/inputs/lint/ci/`, naming the atomic owner sprint
+and known fix branch/PR. Keep workflow changes separate from crate-level
+constants and keep each length refactor separate. Send the worktree or routing
+note and its commit to team-lead for PR creation; team-lead sends the PR to
+quality-mgr for QA. L.16 cannot close until fixes are QA-approved, merged, and
+rerun.
 
 ## Explicit Code Samples
 
@@ -101,6 +104,8 @@ The focused test must assert this report identity:
 - Target-specific integration tests pass without modifying files owned by other
   L sprints.
 - No Python script or duplicated report template is introduced.
+
+- All required cleanup fixes are QA-approved, merged, and revalidated before sprint closure.
 
 ## Required Validation
 
