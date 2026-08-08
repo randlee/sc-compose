@@ -56,6 +56,18 @@ any other post-infrastructure sprint and may run in parallel with all of them.
   `../sc-lint/crates/sc-lint/src/dispatch.rs` as the authoritative command
   and finding contract. Do not invoke or copy the legacy helper directly.
 
+## sc-lint Cleanup Routing
+
+Run `lint sc-boundary` on the final sprint commit. Fix minor boundary,
+manifest, or caller-edge findings immediately. For remaining findings, create
+`fix/l-3-<class>-<owner>` from this sprint worktree's final commit; keep
+boundary graph changes, manifest policy changes, and unrelated refactors in
+separate worktrees. Group same-crate constant-string findings together, not
+one worktree per string. Send the worktree, parent commit, evidence, tests,
+and fix commit to team-lead for PR creation; team-lead sends the PR to
+quality-mgr for QA. L.3 cannot close until required fixes are QA-approved,
+merged, and revalidated.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

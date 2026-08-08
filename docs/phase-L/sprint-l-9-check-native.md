@@ -55,6 +55,16 @@ any other post-infrastructure sprint and may run in parallel with all of them.
   `../sc-lint/crates/sc-lint/src/command.rs` as the Rust workflow/identity
   contract; do not add a Python wrapper.
 
+## sc-lint Cleanup Routing
+
+Run `check native` on the final sprint commit. Fix minor process, command
+identity, portability, or workflow findings immediately. For remaining
+findings, create `fix/l-9-<class>-<owner>` from this sprint worktree's final
+commit; keep process/workflow changes separate from crate-level constants and
+one length refactor per worktree. Send the worktree and fix commit to
+team-lead for PR creation; team-lead sends the PR to quality-mgr for QA. L.9
+cannot close until fixes are QA-approved, merged, and revalidated.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

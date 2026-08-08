@@ -75,6 +75,18 @@ sprint's generic runner contract, not on one another.
   do not copy `run_lint.py`, `python_adapter.py`, or report converters into
   sc-compose. L.17 records the packaging gap and links maturin issue #83.
 
+## sc-lint Cleanup Routing
+
+Run all L.2 runner/Just/report targets on the final sprint commit. Fix minor
+runner portability, JSON/report schema, identity-literal, or line-count
+findings immediately. For remaining findings, create
+`fix/l-2-<class>-<owner>` from this sprint worktree's final commit. Keep
+report-schema changes, process/portability changes, constant strings, and
+length refactors in separate worktrees; group constant strings by owning crate
+and never by individual finding. Send each worktree and fix commit to
+team-lead for PR creation; team-lead sends it to quality-mgr for QA. L.2
+cannot close until all required fix PRs are QA-approved, merged, and rerun.
+
 ## Explicit Code Samples
 
 The stable orchestration seam must be equivalent to:

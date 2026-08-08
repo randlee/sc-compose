@@ -55,6 +55,16 @@ any other post-infrastructure sprint and may run in parallel with all of them.
   `../sc-lint/crates/sc-lint/src/command.rs` as the Rust workflow/identity
   contract; do not add a Python wrapper.
 
+## sc-lint Cleanup Routing
+
+Run `clippy native` on the final sprint commit. Fix minor clippy findings
+immediately. For remaining findings, create `fix/l-11-clippy-<class>-<owner>`
+from this sprint worktree's final commit; group only the same clippy rule and
+owning crate, keep constant-string cleanup crate-level, and keep each length
+refactor separate. Send the worktree and fix commit to team-lead for PR
+creation; team-lead sends the PR to quality-mgr for QA. L.11 cannot close
+until fixes are QA-approved, merged, and revalidated.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

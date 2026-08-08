@@ -57,6 +57,17 @@ any other post-infrastructure sprint and may run in parallel with all of them.
 - Reuse profile semantics through `sc-lint lint full`; do not copy the runner
   or utility scripts into sc-compose.
 
+## sc-lint Cleanup Routing
+
+Run `lint full` on the final sprint commit. Fix minor full-profile findings
+immediately. For remaining findings, create `fix/l-14-profile-<class>` from
+this sprint worktree's final commit only for full-profile-owned changes;
+route analyzer/utility findings to the originating target sprint and do not
+duplicate fixes. Keep profile changes, crate-level constants, and one length
+refactor per worktree. Send each worktree and fix commit to team-lead for PR
+creation; team-lead sends the PR to quality-mgr for QA. L.14 cannot close until
+required fixes are QA-approved, merged, and rerun.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

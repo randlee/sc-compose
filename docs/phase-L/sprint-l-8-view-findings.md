@@ -56,6 +56,17 @@ any other post-infrastructure sprint and may run in parallel with all of them.
   `../sc-lint/.just/tests/test_view_findings.py`. Reuse through sc-lint and
   retain the structured findings contract; do not copy a viewer into sc-compose.
 
+## sc-lint Cleanup Routing
+
+Run `view findings` and the report-path checks on the final sprint commit. Fix
+minor report schema, HTML/template, or identity findings immediately. For
+remaining findings, create `fix/l-8-<class>-<owner>` from this sprint
+worktree's final commit; keep schema/serialization changes separate from
+rendering refactors, and keep each length refactor separate. Group same-crate
+constant strings rather than individual literals. Send the worktree and fix
+commit to team-lead for PR creation; team-lead sends it to quality-mgr for QA.
+L.8 cannot close until fixes are QA-approved, merged, and revalidated.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

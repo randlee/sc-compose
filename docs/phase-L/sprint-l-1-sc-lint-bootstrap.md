@@ -68,6 +68,18 @@ plan-gate approval. It must land before L.2 and all target sprints.
 - This is the prerequisite documented for the final L.17 inventory and the
   related maturin/Python bindings issue #83.
 
+## sc-lint Cleanup Routing
+
+Run the bootstrap sc-lint smoke targets on the final sprint commit. Fix minor
+boundary, manifest, configuration, or CI portability findings immediately in
+this worktree. For remaining findings, create `fix/l-1-<class>-<owner>` from
+this sprint worktree's final commit; keep boundary/manifest findings separate
+from portability/config refactors, and group constant-string findings by
+owning crate rather than by finding. Send the worktree/branch, parent commit,
+evidence, tests, and fix commit to team-lead for PR creation; team-lead sends
+the PR to quality-mgr for independent QA. L.1 cannot close until those fixes
+are QA-approved, merged, and revalidated.
+
 ## Explicit Code Samples
 
 The repository-owned version contract must be equivalent to:

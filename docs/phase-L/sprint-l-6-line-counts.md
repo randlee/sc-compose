@@ -55,6 +55,17 @@ any other post-infrastructure sprint and may run in parallel with all of them.
   `../sc-lint/.just/tests/test_lint_line_counts.py`. Reuse the script through
   sc-lint; do not duplicate it or its adapter in sc-compose.
 
+## sc-lint Cleanup Routing
+
+Run `lint line-counts` on the final sprint commit. Fix minor findings
+immediately in this worktree. Every remaining length violation/refactor gets
+its own `fix/l-6-length-<owner>` worktree branched from this sprint worktree's
+final commit; do not combine unrelated refactors or hide them in a broad
+cleanup. Constant-string findings, if any, use a separate crate-level fix
+worktree. Send each worktree and fix commit to team-lead for PR creation;
+team-lead sends it to quality-mgr for QA. L.6 cannot close until all fixes are
+QA-approved, merged, and revalidated.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

@@ -55,6 +55,17 @@ any other post-infrastructure sprint and may run in parallel with all of them.
   `../sc-lint/crates/sc-lint/src/command.rs` as the Rust workflow/identity
   contract; do not add a Python wrapper.
 
+## sc-lint Cleanup Routing
+
+Run `check xwin` on the final sprint commit when the capability is available,
+and preserve explicit capability results otherwise. Fix minor xwin/cfg,
+portability, process, or command-identity findings immediately. For remaining
+findings, create `fix/l-10-<class>-<owner>` from this sprint worktree's final
+commit; keep cfg/portability fixes separate from process refactors and keep
+length refactors one per violation. Send the worktree and fix commit to
+team-lead for PR creation; team-lead sends the PR to quality-mgr for QA. L.10
+cannot close until fixes are QA-approved, merged, and revalidated.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

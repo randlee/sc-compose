@@ -55,6 +55,17 @@ any other post-infrastructure sprint and may run in parallel with all of them.
   `../sc-lint/crates/sc-lint/src/command.rs` as the Rust workflow/identity
   contract; do not add a Python wrapper.
 
+## sc-lint Cleanup Routing
+
+Run `clippy xwin` when the capability is available and preserve explicit
+unavailable results otherwise. Fix minor clippy/cfg findings immediately. For
+remaining findings, create `fix/l-12-<class>-<owner>` from this sprint
+worktree's final commit; keep xwin/cfg fixes separate from clippy semantic
+refactors, group same-crate constants, and keep each length refactor separate.
+Send the worktree and fix commit to team-lead for PR creation; team-lead sends
+the PR to quality-mgr for QA. L.12 cannot close until fixes are QA-approved,
+merged, and revalidated.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

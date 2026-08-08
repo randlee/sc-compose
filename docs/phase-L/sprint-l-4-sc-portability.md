@@ -55,6 +55,18 @@ any other post-infrastructure sprint and may run in parallel with all of them.
   and `../sc-lint/crates/sc-lint/src/dispatch.rs`. Reuse this logic through
   the supported sc-lint CLI; do not copy the script into sc-compose.
 
+## sc-lint Cleanup Routing
+
+Run `lint sc-portability` on the final sprint commit. Fix minor path,
+environment, shell, cfg, or platform-gating findings immediately. For
+remaining findings, create `fix/l-4-<class>-<owner>` from this sprint
+worktree's final commit; keep path/env/shell/cfg changes in separate worktrees
+unless the same mechanical edit owns them. Group same-crate constant strings
+together and keep length refactors one per violating file/refactor. Send the
+worktree and fix commit to team-lead for PR creation; team-lead sends it to
+quality-mgr for QA. L.4 cannot close until fixes are QA-approved, merged, and
+revalidated.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

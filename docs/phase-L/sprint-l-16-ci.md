@@ -55,6 +55,17 @@ any other post-infrastructure sprint and may run in parallel with all of them.
   of lint ci plus workspace tests, and reuse any transitively configured
   utilities through sc-lint. Do not add a sc-compose Python wrapper.
 
+## sc-lint Cleanup Routing
+
+Run top-level `ci` on the final sprint commit. Fix minor CI composition,
+workflow, or command-identity findings immediately. For remaining findings,
+create `fix/l-16-ci-<class>-<owner>` from this sprint worktree's final commit;
+route lint-target findings to their originating sprint instead of duplicating
+them here. Keep workflow changes separate from crate-level constants and keep
+each length refactor separate. Send the worktree and fix commit to team-lead
+for PR creation; team-lead sends the PR to quality-mgr for QA. L.16 cannot
+close until fixes are QA-approved, merged, and rerun.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

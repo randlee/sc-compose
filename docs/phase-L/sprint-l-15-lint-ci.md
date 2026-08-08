@@ -57,6 +57,17 @@ any other post-infrastructure sprint and may run in parallel with all of them.
   sc-compose. The packaging gap is owned by the final L.17 issue linked to
   maturin issue #83.
 
+## sc-lint Cleanup Routing
+
+Run `lint ci` on the final sprint commit. Fix minor CI-profile and workflow
+findings immediately. For remaining findings, create
+`fix/l-15-ci-<class>-<owner>` from this sprint worktree's final commit only
+for CI-profile-owned changes; route analyzer/utility findings to their
+originating target sprint. Keep CI workflow, constants, and length refactors
+separate. Send each worktree and fix commit to team-lead for PR creation;
+team-lead sends the PR to quality-mgr for QA. L.15 cannot close until fixes
+are QA-approved, merged, and rerun.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

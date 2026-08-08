@@ -55,6 +55,17 @@ any other post-infrastructure sprint and may run in parallel with all of them.
   `../sc-lint/.just/tests/test_lint_identity_literals.py`. Reuse the script
   through sc-lint; do not duplicate it or its adapter in sc-compose.
 
+## sc-lint Cleanup Routing
+
+Run `lint identity-literals` on the final sprint commit. Fix minor identity or
+constant-string findings immediately. For remaining findings, create
+`fix/l-7-identity-<crate>` from this sprint worktree's final commit, normally
+one worktree per owning crate and at most three where ownership/conflict risk
+requires a split—not one per literal. Keep length refactors and semantic
+identity redesigns separate. Send each worktree and fix commit to team-lead
+for PR creation; team-lead sends the PR to quality-mgr for QA. L.7 cannot
+close until fixes are QA-approved, merged, and revalidated.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

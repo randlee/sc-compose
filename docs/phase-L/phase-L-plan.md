@@ -135,3 +135,35 @@ recommend a pip-installable package/embedded-resource or module entrypoint
 that owns all commonly used scripts and preserves the JSON/schema contract.
 Until that issue is resolved, sc-compose may invoke only the supported
 `sc-lint --json` contract and may not vendor the scripts.
+
+## Mandatory sc-lint cleanup and QA routing
+
+Every L.1-L.16 sprint must run its applicable sc-lint targets against the
+final sprint commit before handoff. Classify findings before changing them:
+
+1. Fix minor findings immediately in the current sprint worktree and include
+   their tests/validation in the sprint handoff.
+2. For every remaining finding, create a dedicated `fix/` branch and worktree
+   (for example branch `fix/l-7-identity-sc-compose` at
+   `../sc-compose-worktrees/fix/l-7-identity-sc-compose`) from that sprint
+   worktree's final commit. Keep each fix worktree to one independent class of
+   change and one coherent ownership boundary.
+3. Group mechanical constant-string/identity findings by owning crate rather
+   than by individual finding; normally use one worktree per crate and split
+   into at most three only when ownership or conflict risk requires it. Never
+   create one worktree per string finding.
+4. Keep length-driven refactors separate, normally one worktree per violating
+   file/refactor. Do not mix them with constant-string, boundary, portability,
+   runtime, or clippy changes.
+5. Group other findings only when they share the same rule class, owner, and
+   mechanical change. Distinct semantic refactors require distinct worktrees.
+6. Send each fix worktree path, branch, parent sprint commit, finding class,
+   evidence, tests, and fix commit to team-lead. The developer does not create
+   the PR; team-lead creates the PR and sends it to quality-mgr for independent
+   QA approval.
+7. The parent sprint cannot be marked complete until every required fix PR is
+   QA-approved, merged, and revalidated. Profile sprints route findings back
+   to the originating target sprint and must not create duplicate fixes.
+
+Each sprint document contains its expected finding classes and repeats this
+routing contract as a sprint-local handoff gate.

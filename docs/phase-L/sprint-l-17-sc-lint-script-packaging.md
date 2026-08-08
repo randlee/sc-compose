@@ -89,6 +89,17 @@ sc-compose planning commit that records the result.
 - The inventory and issue are internally consistent and contain no claim that
   packaging has already been implemented.
 
+## sc-lint Cleanup Routing
+
+Run the applicable sc-lint documentation/configuration checks on the final
+sprint commit. Fix minor documentation findings immediately. If a remaining
+finding affects the inventory or issue evidence, create
+`fix/l-17-docs-<class>` from this sprint worktree's final commit; keep issue
+scope corrections separate from document-length refactors. Send the worktree
+and fix commit to team-lead for PR creation; team-lead sends the PR to
+quality-mgr for QA. L.17 cannot close until required fixes are QA-approved,
+merged, and the remote issue/inventory are rechecked.
+
 ## Required Validation
 
 - `rg`/source inspection of the final sc-compose tree and pinned sc-lint 0.4.0
