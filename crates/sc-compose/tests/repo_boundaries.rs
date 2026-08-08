@@ -137,7 +137,7 @@ fn repo_keeps_standalone_boundary_rules() {
     let forbidden_env = concat!("ATM", "_HOME");
     let forbidden_atm_import = concat!("use ", "atm", "_");
     let forbidden_agent_import = concat!("use ", "agent_", "team_", "mail::");
-    let forbidden_manifest_deps = [concat!("agent", "-team-mail"), "atm-", "sc-lint"];
+    let forbidden_manifest_deps = [concat!("agent", "-team-mail"), "atm-"];
     let forbidden_research_refs = [concat!("reverse", "_extract")];
     let mut violations = Vec::new();
 
@@ -172,6 +172,16 @@ fn repo_keeps_standalone_boundary_rules() {
                     path.display()
                 ));
             }
+        }
+
+        if (path == root.join("crates/sc-composer/Cargo.toml")
+            || path == root.join("crates/sc-compose/Cargo.toml"))
+            && contents.contains("sc-lint")
+        {
+            violations.push(format!(
+                "{}: forbidden sc-lint-family dependency",
+                path.display()
+            ));
         }
 
         if path == root.join("bindings/python/Cargo.toml") {
