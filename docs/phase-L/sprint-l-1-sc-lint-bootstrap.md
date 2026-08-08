@@ -2,7 +2,7 @@
 id: L.1
 title: sc-lint Repository and Tool Bootstrap
 phase: L
-status: complete
+status: in-progress
 branch: sprint/l-1-sc-lint-bootstrap
 worktree: ../sc-compose-worktrees/sprint/l-1-sc-lint-bootstrap
 target: integrate/phase-l
