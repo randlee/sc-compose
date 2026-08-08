@@ -20,6 +20,11 @@ set for all sc-lint consumers, with no repository-specific Python runner.
 L.1 must be merged to integrate/phase-l. L.3-L.16 are blocked only on this
 sprint's generic runner contract, not on one another.
 
+## Parallel Execution
+
+This sprint has no parallel Phase L sprint. It runs serially after L.1 and
+unblocks the mutually parallel target wave L.3-L.16. L.17 waits for that wave.
+
 ## Exact Targets
 
 - crates/sc-compose/src/cli/mod.rs

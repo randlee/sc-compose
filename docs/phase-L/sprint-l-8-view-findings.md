@@ -20,6 +20,12 @@ with target-specific evidence and no changes to shared orchestration.
 L.2 must be merged to integrate/phase-l. This sprint has no dependency on
 any other post-infrastructure sprint and may run in parallel with all of them.
 
+## Parallel Execution
+
+After L.2 is merged, L.8 may execute in parallel with L.3, L.4, L.5, L.6,
+L.7, L.9, L.10, L.11, L.12, L.13, L.14, L.15, and L.16. It does not run in
+parallel with prerequisite L.1/L.2 or final L.17.
+
 ## Exact Targets
 
 - .sc/sc-lint/targets/view-findings.toml

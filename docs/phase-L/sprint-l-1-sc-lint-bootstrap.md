@@ -20,6 +20,11 @@ that let sc-lint 0.4.0 analyze sc-compose successfully.
 This sprint starts from develop/origin/develop and requires the Phase L
 plan-gate approval. It must land before L.2 and all target sprints.
 
+## Parallel Execution
+
+This sprint has no parallel Phase L sprint. It is the serial prerequisite for
+L.2 and L.3-L.16; L.17 also waits for all earlier sprints.
+
 ## Exact Targets
 
 - boundaries/

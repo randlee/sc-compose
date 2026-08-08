@@ -23,6 +23,11 @@ L.1 through L.16 must be complete on `integrate/phase-l`. This sprint is not
 part of the parallel target wave and must not be started early: its inventory
 must describe the final integrated command/report surface.
 
+## Parallel Execution
+
+This sprint has no parallel Phase L sprint. L.17 starts only after L.1-L.16
+and all required cleanup worktrees are merged and QA-approved.
+
 ## Exact Targets
 
 - docs/phase-L/sc-lint-script-packaging-inventory.md
