@@ -2,14 +2,26 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use anyhow::anyhow;
-use sc_composer::{
-    DiagnosticCode, InputValue, RecoveryHint, RecoveryHintKind, VariableName,
-    input_value_from_yaml, validate_input_value,
-};
-use serde::Deserializer;
-use serde::de::{DeserializeSeed, Error as DeError, MapAccess, SeqAccess, Visitor};
+use sc_composer::{DiagnosticCode, InputValue, RecoveryHint, RecoveryHintKind, VariableName};
 
 use crate::CommandError;
+
+#[path = "var_file_decode.rs"]
+mod decode;
+#[path = "var_file_json.rs"]
+mod json;
+#[path = "var_file_validate.rs"]
+mod validate;
+#[path = "var_file_yaml.rs"]
+mod yaml;
+
+use decode::decode_var_file;
+use validate::validate_var_object;
+
+#[cfg(test)]
+use json::find_out_of_range_json_integer;
+#[cfg(test)]
+use yaml::scan_yaml_line;
 
 pub(crate) fn load_var_file(
     path: &Path,
@@ -64,285 +76,6 @@ impl VarFileDecodeError {
             ),
         }
     }
-}
-
-enum DecodedVarKey {
-    String(String),
-    Yaml(serde_yaml::Value),
-}
-
-enum DecodedVarValue {
-    Json(serde_json::Value),
-    Yaml(serde_yaml::Value),
-}
-
-struct DecodedVarEntry {
-    key: DecodedVarKey,
-    value: DecodedVarValue,
-}
-
-struct DecodedVarObject {
-    entries: Vec<DecodedVarEntry>,
-}
-
-fn decode_var_file(contents: &str) -> Result<DecodedVarObject, VarFileDecodeError> {
-    if let Ok(value) = parse_json_value_rejecting_duplicate_keys(contents) {
-        if let Some(value) = find_out_of_range_json_integer(contents) {
-            return Err(VarFileDecodeError::OutOfRangeInteger { value });
-        }
-        return decode_json_object(value);
-    }
-
-    let value = serde_yaml::from_str::<serde_yaml::Value>(contents)
-        .map_err(|error| VarFileDecodeError::InvalidFormat(anyhow!(error)))?;
-    if let Some((line, column)) = find_yaml_merge_key(contents) {
-        return Err(VarFileDecodeError::UnsupportedYamlMergeKey { line, column });
-    }
-    decode_yaml_object(value)
-}
-
-/// Find integer literals that `serde_json`'s default number representation cannot
-/// preserve without narrowing them to a lossy floating-point value.
-fn find_out_of_range_json_integer(contents: &str) -> Option<String> {
-    let bytes = contents.as_bytes();
-    let mut index = 0;
-    let mut in_string = false;
-    let mut escaped = false;
-
-    while index < bytes.len() {
-        let byte = bytes[index];
-        if in_string {
-            if escaped {
-                escaped = false;
-            } else if byte == b'\\' {
-                escaped = true;
-            } else if byte == b'"' {
-                in_string = false;
-            }
-            index += 1;
-            continue;
-        }
-        if byte == b'"' {
-            in_string = true;
-            index += 1;
-            continue;
-        }
-        if byte != b'-' && !byte.is_ascii_digit() {
-            index += 1;
-            continue;
-        }
-
-        let start = index;
-        index += 1;
-        while index < bytes.len()
-            && !matches!(
-                bytes[index],
-                b' ' | b'\t' | b'\r' | b'\n' | b',' | b']' | b'}'
-            )
-        {
-            index += 1;
-        }
-        let token = &contents[start..index];
-        if token.contains('.') || token.contains('e') || token.contains('E') {
-            continue;
-        }
-
-        if token.starts_with('-') {
-            match token.parse::<i128>() {
-                Ok(value) if value >= i128::from(i64::MIN) => {}
-                _ => return Some(token.to_owned()),
-            }
-        } else {
-            match token.parse::<u128>() {
-                Ok(value) if value <= u128::from(u64::MAX) => {}
-                _ => return Some(token.to_owned()),
-            }
-        }
-    }
-    None
-}
-
-/// Find YAML merge-key syntax while the source still retains quoting and
-/// comment boundaries. Inspecting only `serde_yaml::Value` would conflate a
-/// quoted ordinary key named `<<` with the YAML merge-key construct.
-fn find_yaml_merge_key(contents: &str) -> Option<(usize, usize)> {
-    let mut block_scalar_indent = None;
-
-    for (line_index, line) in contents.lines().enumerate() {
-        let indentation = line.bytes().take_while(|byte| *byte == b' ').count();
-        let has_content = line[indentation..]
-            .chars()
-            .next()
-            .is_some_and(|character| character != '#');
-
-        if let Some(base_indent) = block_scalar_indent {
-            if has_content && indentation > base_indent {
-                continue;
-            }
-            block_scalar_indent = None;
-        }
-
-        if let Some(byte_index) = scan_yaml_line_for_merge_key(line) {
-            let column = line[..byte_index].chars().count() + 1;
-            return Some((line_index + 1, column));
-        }
-
-        if has_yaml_block_scalar_indicator(line) {
-            block_scalar_indent = Some(indentation);
-        }
-    }
-
-    None
-}
-
-fn scan_yaml_line_for_merge_key(line: &str) -> Option<usize> {
-    for (byte_index, _) in unquoted_uncommented(line) {
-        if !line[byte_index..].starts_with("<<") {
-            continue;
-        }
-        let suffix = &line[byte_index + 2..];
-        if suffix
-            .chars()
-            .find(|character| !character.is_ascii_whitespace())
-            .is_none_or(|character| character != ':')
-        {
-            continue;
-        }
-
-        let prefix = line[..byte_index].trim_end();
-        if prefix.is_empty()
-            || prefix == "-"
-            || prefix.ends_with('{')
-            || prefix.ends_with(',')
-            || prefix.ends_with('?')
-        {
-            return Some(byte_index);
-        }
-    }
-
-    None
-}
-
-fn has_yaml_block_scalar_indicator(line: &str) -> bool {
-    let outside_quote: String = unquoted_uncommented(line)
-        .into_iter()
-        .map(|(_, character)| character)
-        .collect();
-
-    outside_quote.split_whitespace().any(|token| {
-        matches!(
-            token.trim_end_matches(','),
-            "|" | ">" | "|-" | "|+" | ">-" | ">+"
-        )
-    })
-}
-
-/// Return source characters outside YAML quotes and before an unquoted
-/// comment, preserving each character's original byte offset.
-fn unquoted_uncommented(line: &str) -> Vec<(usize, char)> {
-    let mut outside_quote = Vec::new();
-    let mut quote = None;
-    let mut escaped = false;
-
-    for (byte_index, character) in line.char_indices() {
-        match quote {
-            Some('"') => {
-                if escaped {
-                    escaped = false;
-                } else if character == '\\' {
-                    escaped = true;
-                } else if character == '"' {
-                    quote = None;
-                }
-            }
-            Some('\'') => {
-                if character == '\'' {
-                    quote = None;
-                }
-            }
-            Some(_) => unreachable!("only YAML single and double quotes are tracked"),
-            None if character == '#' => break,
-            None if character == '"' || character == '\'' => quote = Some(character),
-            None => outside_quote.push((byte_index, character)),
-        }
-    }
-
-    outside_quote
-}
-
-fn decode_json_object(value: serde_json::Value) -> Result<DecodedVarObject, VarFileDecodeError> {
-    let serde_json::Value::Object(object) = value else {
-        return Err(VarFileDecodeError::NotAnObject);
-    };
-    Ok(DecodedVarObject {
-        entries: object
-            .into_iter()
-            .map(|(key, value)| DecodedVarEntry {
-                key: DecodedVarKey::String(key),
-                value: DecodedVarValue::Json(value),
-            })
-            .collect(),
-    })
-}
-
-fn decode_yaml_object(value: serde_yaml::Value) -> Result<DecodedVarObject, VarFileDecodeError> {
-    let serde_yaml::Value::Mapping(object) = value else {
-        return Err(VarFileDecodeError::NotAnObject);
-    };
-    Ok(DecodedVarObject {
-        entries: object
-            .into_iter()
-            .map(|(key, value)| DecodedVarEntry {
-                key: DecodedVarKey::Yaml(key),
-                value: DecodedVarValue::Yaml(value),
-            })
-            .collect(),
-    })
-}
-
-fn validate_var_object(
-    object: DecodedVarObject,
-) -> Result<BTreeMap<VariableName, InputValue>, CommandError> {
-    let mut vars = BTreeMap::new();
-    for entry in object.entries {
-        let key = match entry.key {
-            DecodedVarKey::String(key) => key,
-            DecodedVarKey::Yaml(key) => key
-                .as_str()
-                .ok_or_else(|| {
-                    CommandError::usage_with_code(
-                        anyhow!("var-file keys must be strings"),
-                        DiagnosticCode::ErrConfigVarfile,
-                    )
-                })?
-                .to_owned(),
-        };
-        let variable_name = VariableName::new(key.clone()).map_err(|error| {
-            CommandError::usage_with_code(
-                anyhow!("invalid var-file key `{key}`: {error}"),
-                DiagnosticCode::ErrConfigVarfile,
-            )
-        })?;
-        let value = match entry.value {
-            DecodedVarValue::Json(value) => {
-                validate_input_value(&value).map_err(|error| {
-                    CommandError::usage_with_code(
-                        anyhow!("invalid var-file value for `{key}`: {error}"),
-                        error.code(),
-                    )
-                })?;
-                value
-            }
-            DecodedVarValue::Yaml(value) => input_value_from_yaml(value).map_err(|error| {
-                CommandError::usage_with_code(
-                    anyhow!("invalid var-file value for `{key}`: {error}"),
-                    error.code(),
-                )
-            })?,
-        };
-        vars.insert(variable_name, value);
-    }
-    Ok(vars)
 }
 
 #[cfg(test)]
@@ -409,37 +142,53 @@ mod tests {
     }
 
     #[test]
-    fn integer_visitor_methods_narrow_in_range_and_reject_out_of_range() {
-        let minimum = DuplicateAwareValueVisitor
-            .visit_i128::<serde_json::Error>(i128::from(i64::MIN))
-            .expect("i64 minimum");
-        assert_eq!(minimum, serde_json::json!(i64::MIN));
-        DuplicateAwareValueVisitor
-            .visit_i128::<serde_json::Error>(i128::from(i64::MIN) - 1)
-            .unwrap_err();
+    fn json_integer_scanner_enforces_exact_boundaries() {
+        let cases = [
+            (
+                r#"{"n":-9223372036854775809}"#,
+                Some("-9223372036854775809"),
+            ),
+            (r#"{"n":-9223372036854775808}"#, None),
+            (r#"{"n":-42}"#, None),
+            (r#"{"n":0}"#, None),
+            (r#"{"n":9223372036854775807}"#, None),
+            (r#"{"n":9223372036854775808}"#, None),
+            (r#"{"n":18446744073709551615}"#, None),
+            (
+                r#"{"n":18446744073709551616}"#,
+                Some("18446744073709551616"),
+            ),
+        ];
 
-        let maximum = DuplicateAwareValueVisitor
-            .visit_u128::<serde_json::Error>(u128::from(u64::MAX))
-            .expect("u64 maximum");
-        assert_eq!(maximum, serde_json::json!(u64::MAX));
-        DuplicateAwareValueVisitor
-            .visit_u128::<serde_json::Error>(u128::from(u64::MAX) + 1)
-            .unwrap_err();
+        for (contents, expected) in cases {
+            assert_eq!(
+                find_out_of_range_json_integer(contents).as_deref(),
+                expected,
+                "contents: {contents}"
+            );
+        }
     }
 
     #[test]
     fn in_range_json_integer_boundaries_remain_exact() {
-        let minimum = parse_var_file_contents(r#"{"n": -9223372036854775808}"#).unwrap();
-        let maximum = parse_var_file_contents(r#"{"n": 18446744073709551615}"#).unwrap();
+        let cases = [
+            (
+                r#"{"n": -9223372036854775808}"#,
+                serde_json::json!(i64::MIN),
+            ),
+            (r#"{"n": -42}"#, serde_json::json!(-42)),
+            (r#"{"n": 0}"#, serde_json::json!(0)),
+            (r#"{"n": 9223372036854775807}"#, serde_json::json!(i64::MAX)),
+            (
+                r#"{"n": 18446744073709551615}"#,
+                serde_json::json!(u64::MAX),
+            ),
+        ];
 
-        assert_eq!(
-            minimum[&VariableName::new("n").unwrap()],
-            serde_json::json!(i64::MIN)
-        );
-        assert_eq!(
-            maximum[&VariableName::new("n").unwrap()],
-            serde_json::json!(u64::MAX)
-        );
+        for (contents, expected) in cases {
+            let vars = parse_var_file_contents(contents).unwrap();
+            assert_eq!(vars[&VariableName::new("n").unwrap()], expected);
+        }
     }
 
     #[test]
@@ -631,18 +380,30 @@ mod tests {
     }
 
     #[test]
+    fn comments_and_block_scalar_text_are_not_merge_keys() {
+        let contents = "comment: value # <<: *defaults\nitem: |\n  <<: *defaults\n";
+        let vars = parse_var_file_contents(contents).expect("comment and block text");
+
+        assert_eq!(
+            vars[&VariableName::new("item").unwrap()],
+            serde_json::json!("<<: *defaults\n")
+        );
+    }
+
+    #[test]
     fn doubled_single_quote_preserves_option_b_scanner_behavior() {
         let merge_line = "map: {item: 'it''s', <<: *defaults}";
-        let merge_index = scan_yaml_line_for_merge_key(merge_line)
+        let merge_index = scan_yaml_line(merge_line)
+            .merge_key
             .expect("merge key after doubled quote should remain visible");
         assert_eq!(&merge_line[merge_index..merge_index + 2], "<<");
 
         let block_line = "item: 'it''s' |";
-        assert!(has_yaml_block_scalar_indicator(block_line));
+        assert!(scan_yaml_line(block_line).block_scalar);
 
         let quoted_merge_line = "map: {'it''s <<: *defaults'}";
-        assert_eq!(scan_yaml_line_for_merge_key(quoted_merge_line), None);
-        assert!(!has_yaml_block_scalar_indicator("item: 'it''s |'"));
+        assert_eq!(scan_yaml_line(quoted_merge_line).merge_key, None);
+        assert!(!scan_yaml_line("item: 'it''s |'").block_scalar);
     }
 
     #[test]
@@ -695,135 +456,5 @@ mod tests {
             vars[&VariableName::new("text").unwrap()],
             serde_json::json!("<<: literal\n")
         );
-    }
-}
-
-fn parse_json_value_rejecting_duplicate_keys(
-    contents: &str,
-) -> Result<serde_json::Value, serde_json::Error> {
-    let mut deserializer = serde_json::Deserializer::from_str(contents);
-    let value = deserializer.deserialize_any(DuplicateAwareValueVisitor)?;
-    deserializer.end()?;
-    Ok(value)
-}
-
-#[derive(Clone, Copy)]
-struct DuplicateAwareValueVisitor;
-
-impl<'de> DeserializeSeed<'de> for DuplicateAwareValueVisitor {
-    type Value = serde_json::Value;
-
-    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_any(self)
-    }
-}
-
-impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
-    type Value = serde_json::Value;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str("a JSON value without duplicate object keys")
-    }
-
-    fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E> {
-        Ok(serde_json::Value::Bool(v))
-    }
-
-    fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E> {
-        Ok(serde_json::Value::Number(v.into()))
-    }
-
-    fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E> {
-        Ok(serde_json::Value::Number(v.into()))
-    }
-
-    /// Defense-in-depth callbacks for a `serde_json` dispatch path that is
-    /// currently unreachable with the workspace's default configuration.
-    /// The lexical `find_out_of_range_json_integer` scan is the primary and
-    /// currently effective enforcement gate; these callbacks preserve the
-    /// same narrowing contract if arbitrary-precision dispatch is enabled.
-    fn visit_i128<E>(self, v: i128) -> Result<Self::Value, E>
-    where
-        E: DeError,
-    {
-        i64::try_from(v)
-            .map(|v| serde_json::Value::Number(v.into()))
-            .map_err(|_error| {
-                E::custom(format!(
-                    "integer {v} is outside the representable range ({}..={})",
-                    i64::MIN,
-                    u64::MAX
-                ))
-            })
-    }
-
-    fn visit_u128<E>(self, v: u128) -> Result<Self::Value, E>
-    where
-        E: DeError,
-    {
-        u64::try_from(v)
-            .map(|v| serde_json::Value::Number(v.into()))
-            .map_err(|_error| {
-                E::custom(format!(
-                    "integer {v} is outside the representable range ({}..={})",
-                    i64::MIN,
-                    u64::MAX
-                ))
-            })
-    }
-
-    fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
-    where
-        E: DeError,
-    {
-        serde_json::Number::from_f64(v)
-            .map(serde_json::Value::Number)
-            .ok_or_else(|| E::custom("JSON number is not finite"))
-    }
-
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E> {
-        Ok(serde_json::Value::String(v.to_owned()))
-    }
-
-    fn visit_string<E>(self, v: String) -> Result<Self::Value, E> {
-        Ok(serde_json::Value::String(v))
-    }
-
-    fn visit_none<E>(self) -> Result<Self::Value, E> {
-        Ok(serde_json::Value::Null)
-    }
-
-    fn visit_unit<E>(self) -> Result<Self::Value, E> {
-        Ok(serde_json::Value::Null)
-    }
-
-    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-    where
-        A: SeqAccess<'de>,
-    {
-        let mut values = Vec::new();
-        while let Some(value) = seq.next_element_seed(Self)? {
-            values.push(value);
-        }
-        Ok(serde_json::Value::Array(values))
-    }
-
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-    where
-        A: MapAccess<'de>,
-    {
-        let mut object = serde_json::Map::new();
-        while let Some(key) = map.next_key::<String>()? {
-            if object.contains_key(&key) {
-                return Err(A::Error::custom(format!(
-                    "duplicate entry with key \"{key}\""
-                )));
-            }
-            object.insert(key, map.next_value_seed(Self)?);
-        }
-        Ok(serde_json::Value::Object(object))
     }
 }

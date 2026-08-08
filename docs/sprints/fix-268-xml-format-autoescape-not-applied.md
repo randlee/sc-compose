@@ -222,6 +222,10 @@ field to the composer. Rationale:
 - Exact issue #268 reproduction (`repro.xml.j2` + `vars.json`) rendered to
   `out.xml`; `python3 -c "import xml.etree.ElementTree as ET; ET.parse('out.xml')"`
   passed.
+- The durable automated equivalent is
+  `crates/sc-compose/tests/cli/render.rs::render_xml_template_escapes_interpolated_special_characters`,
+  which independently renders the interpolated XML case and verifies the
+  escaped output remains well-formed.
 - Validation passed: `cargo fmt --all --check`, `cargo test --workspace`,
   `cargo clippy --all-targets --all-features -- -D warnings`, and
   `git diff --check`.

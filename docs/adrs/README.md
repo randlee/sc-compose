@@ -14,3 +14,4 @@
 - [ADR-0012: Phase-H Reverse-Extraction Extension Gates](0012-phase-h-reverse-extraction-extension-gates.md)
 - [ADR-0013: Phase-I Raw Text and Input-Safety Contract](0013-phase-i-raw-text-and-input-safety.md)
 - [ADR-0014: Phase-J Maintainability Decomposition Boundaries](0014-phase-j-maintainability-decomposition.md)
+- [ADR-0015: Phase-K Maintainability Decomposition Boundaries](0015-phase-k-maintainability-decomposition.md)

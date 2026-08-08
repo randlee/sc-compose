@@ -492,6 +492,10 @@ Semantics:
 
 - `strict_undeclared_variables: bool`
 - `unknown_variable_policy: UnknownVariablePolicy`
+- `unbound_variable_policy: Option<UnknownVariablePolicy>`; when omitted,
+  referenced-but-unbound diagnostics inherit `unknown_variable_policy` for
+  compatibility, while an explicit value keeps the two policy axes
+  independent
 - `max_include_depth: IncludeDepth`
 - `allowed_roots: Vec<ConfiningRoot>`
 - `resolver_policy: ResolverPolicy`
@@ -1605,6 +1609,7 @@ Canonical failures must map to stable error families and stable codes.
 | Required variable not satisfied after context merge | `ValidationError` | `ERR_VAL_MISSING_REQUIRED` |
 | Undeclared referenced token in strict validation or render mode | `ValidationError` | `ERR_VAL_UNDECLARED_TOKEN` |
 | Extra provided variable when policy is `error` | `ValidationError` | `ERR_VAL_EXTRA_INPUT` |
+| Referenced variable has no merged runtime binding when the unbound-variable policy is `error` | `ValidationError` | `ERR_VAL_UNBOUND_VARIABLE` |
 | Stdin read attempted twice | `RenderError` | `ERR_RENDER_STDIN_DOUBLE_READ` |
 | Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
 | Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |
@@ -1984,8 +1989,11 @@ Architectural boundaries:
 - H3 keeps the bundled example as a single flat file
   `examples/sprint-report-html.html.j2`,
 - directory-based example layout is deferred beyond H4,
-- `sc-compose` does not enable MiniJinja auto-escaping for `.html.j2`
-  templates; the bundled example documentation must call this out explicitly,
+- filename-aware `AutoEscape::Custom("sc-compose-html")` applies to
+  `.html.j2`, `.htm.j2`, `.xml.j2`, and `.xhtml.j2` templates. The shared
+  formatter escapes markup and represents XML-illegal control bytes with the
+  legal replacement-character NCR `&#xfffd;`; see
+  [FR-14 and its FIX-278 clarification](requirements.md#fr-14-html-template-output),
 - wrapper tooling such as `/sprint-report` owns open/display behavior and is
   documented in [`.claude/skills/sprint-report/SKILL.md`](../.claude/skills/sprint-report/SKILL.md),
 - the wrapper-owned orchestration flow is:
