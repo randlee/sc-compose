@@ -5,11 +5,20 @@ sc-compose := "cargo run --quiet --bin sc-compose --"
 reports-init:
     {{sc-compose}} reports init --root .
 
-lint:
-    {{sc-compose}} report-render-many --root . --id sc-lint --glob 'reports/inputs/lint/*.md' --template-family lint --output-dir reports/latest/sc-lint/panels
-    mkdir -p reports/latest/sc-lint
-    {{sc-compose}} render --mode file --root . --file examples/report-evidence-summary.html.j2 --var-file reports/vars/sc-lint-summary.json --output reports/latest/sc-lint/index.html
-    {{sc-compose}} reports finalize --root . --report-id sc-lint --kind lint --entrypoint reports/latest/sc-lint/index.html --artifact reports/latest/sc-lint/index.html --artifact reports/latest/sc-lint/panels/manifest.json --artifact reports/latest/sc-lint/panels/reports/inputs/lint/summary.html --artifact reports/latest/sc-lint/panels/reports/inputs/lint/whitespace.html --archive
+lint target="full":
+    {{sc-compose}} lint --root . --target {{target}} --json
+
+view target="findings":
+    {{sc-compose}} lint --root . --target view-{{target}} --json
+
+check target="native":
+    {{sc-compose}} lint --root . --target check-{{target}} --json
+
+clippy target="native":
+    {{sc-compose}} lint --root . --target clippy-{{target}} --json
+
+ci:
+    {{sc-compose}} lint --root . --target ci --json
 
 test:
     {{sc-compose}} report-render-many --root . --id test-evidence --glob 'reports/inputs/test/*.md' --template-family test --output-dir reports/latest/test-evidence/panels

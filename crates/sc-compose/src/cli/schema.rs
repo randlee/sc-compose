@@ -17,6 +17,8 @@ pub(crate) struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
+    #[command(about = "Run an allowlisted sc-lint target and write its report")]
+    Lint(ScLintArgs),
     #[command(about = "Render a template or resolved profile")]
     Render(RenderArgs),
     #[command(about = "Resolve a profile name to a concrete template path")]
@@ -48,6 +50,16 @@ pub(crate) enum Command {
     ReportRenderMany(ReportRenderManyArgs),
     #[command(hide = true, name = "report-catalog")]
     ReportCatalog(ReportCatalogArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct ScLintArgs {
+    #[arg(long, default_value = "full", help = "Allowlisted sc-lint target")]
+    pub(crate) target: String,
+    #[arg(long, default_value = ".", help = "Repository root passed to sc-lint")]
+    pub(crate) root: PathBuf,
+    #[arg(long, help = "Emit the sc-lint envelope as machine-readable JSON")]
+    pub(crate) json: bool,
 }
 
 #[derive(Debug, Clone, Args)]

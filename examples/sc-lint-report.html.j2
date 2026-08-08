@@ -1,0 +1,18 @@
+{# Canonical report shape. The Rust runner renders the same fields directly so
+   a target sprint adds a descriptor/fixture, never another converter. #}
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>sc-lint {{ command_id }}</title></head>
+<body>
+  <h1>sc-lint report</h1>
+  <dl>
+    <dt>Command</dt><dd>{{ command_id }}</dd>
+    <dt>Status</dt><dd>{{ outcome }}</dd>
+    <dt>Exit status</dt><dd>{{ exit_status }}</dd>
+    <dt>Findings</dt><dd>{{ findings_count }}</dd>
+  </dl>
+  <h2>Diagnostics</h2><pre>{{ diagnostics }}</pre>
+  <h2>Findings</h2><pre>{{ findings }}</pre>
+  <p><a href="{{ raw_artifact }}">Raw JSON payload</a></p>
+</body>
+</html>

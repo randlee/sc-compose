@@ -3,6 +3,7 @@ pub(crate) mod dispatch;
 pub(crate) mod examples;
 pub(crate) mod extract;
 pub(crate) mod reports;
+pub(crate) mod sc_lint;
 pub(crate) mod template_init;
 pub(crate) mod template_lint;
 pub(crate) mod templates;

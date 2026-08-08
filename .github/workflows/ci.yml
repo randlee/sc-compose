@@ -121,6 +121,20 @@ jobs:
       - name: Run workspace tests
         run: cargo test --workspace
 
+      - name: Install just
+        uses: taiki-e/install-action@just
+
+      - name: Run shared sc-lint contract
+        run: just lint
+
+      - name: Publish sc-lint report and raw JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sc-lint-${{ matrix.os }}
+          path: reports/latest/sc-lint/
+          if-no-files-found: warn
+
   python-wheels:
     needs: [test]
     strategy:
