@@ -11,6 +11,11 @@ use super::{
 };
 use super::{raw_text, xml_serialize};
 
+struct MatchDocuments<'a> {
+    template: &'a XmlDocument,
+    rendered: &'a XmlDocument,
+}
+
 pub(super) fn match_element(
     template_document: &XmlDocument,
     template_id: XmlElementId,
@@ -36,16 +41,12 @@ pub(super) fn match_element(
         ));
     }
     evidence.structural_matches += 1;
+    let documents = MatchDocuments {
+        template: template_document,
+        rendered: rendered_document,
+    };
     match_attributes(template, rendered, path, captures, evidence)?;
-    match_children(
-        template_document,
-        template,
-        rendered_document,
-        rendered,
-        path,
-        captures,
-        evidence,
-    )
+    match_children(&documents, template, rendered, path, captures, evidence)
 }
 
 fn match_attributes(
@@ -93,9 +94,8 @@ fn match_attributes(
 }
 
 fn match_children(
-    template_document: &XmlDocument,
+    documents: &MatchDocuments<'_>,
     template: &super::XmlElement,
-    rendered_document: &XmlDocument,
     rendered: &super::XmlElement,
     path: &[XmlPathSegment],
     captures: &mut Vec<Capture>,
@@ -113,7 +113,7 @@ fn match_children(
         .iter()
         .any(|child| matches!(child, XmlNode::Element(_)))
         && match_full_content(
-            rendered_document,
+            documents.rendered,
             template_children,
             rendered_children,
             path,
@@ -163,8 +163,7 @@ fn match_children(
     }
 
     match_child_sequence(
-        template_document,
-        rendered_document,
+        documents,
         template,
         template_children,
         rendered_children,
@@ -175,8 +174,7 @@ fn match_children(
 }
 
 fn match_child_sequence(
-    template_document: &XmlDocument,
-    rendered_document: &XmlDocument,
+    documents: &MatchDocuments<'_>,
     template: &super::XmlElement,
     template_children: &[XmlNode],
     rendered_children: &[XmlNode],
@@ -198,7 +196,7 @@ fn match_child_sequence(
                 )?;
             }
             (XmlNode::Element(template_id), XmlNode::Element(rendered_id)) => {
-                let template_element = template_document.element(*template_id);
+                let template_element = documents.template.element(*template_id);
                 let ordinal = element_ordinals
                     .entry(template_element.name.clone())
                     .or_default();
@@ -212,9 +210,9 @@ fn match_child_sequence(
                     .collect::<Vec<_>>();
                 *ordinal += 1;
                 match_element(
-                    template_document,
+                    documents.template,
                     *template_id,
-                    rendered_document,
+                    documents.rendered,
                     *rendered_id,
                     &child_path,
                     captures,
