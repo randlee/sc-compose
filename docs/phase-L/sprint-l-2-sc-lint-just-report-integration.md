@@ -35,6 +35,7 @@ unblocks the mutually parallel target wave L.3-L.16. L.17 waits for that wave.
 - crates/sc-compose/src/commands/reports/render.rs
 - crates/sc-compose/tests/sc_lint_runner.rs
 - Justfile
+- deny.toml
 - .github/workflows/ci.yml
 - .sc/sc-lint/targets/
 - reports/inputs/lint/

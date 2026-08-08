@@ -16,7 +16,8 @@ or Python runner is copied into this repository. `sc-composer` remains a pure
 rendering library.
 
 The repository configuration records the supported tool version and report
-locations in [`sc-lint.toml`](../../sc-lint.toml). The setup action installs
+locations in [`sc-lint.toml`](../../sc-lint.toml) and the cargo-deny policy in
+[`deny.toml`](../../deny.toml). The setup action installs
 the release archive containing `sc-lint`, `sc-lint-boundary`,
 `sc-lint-portability`, and `sc-lint-runtime`, then verifies the version before
 an analyzer target is used.
@@ -57,11 +58,9 @@ diagnostic details.
 
 sc-lint 0.4.0 has Python-backed adapters for line counts, identity literals,
 view findings, and related workflow helpers. The adapter currently resolves
-consumer-relative `.just/` paths, so installing the Rust release does not
-make those scripts available to sc-compose automatically. A direct probe of
-the adapter path therefore reports `CLI.CONFIG_ERROR` unless the consumer
-provides the expected utility. sc-compose must not copy those scripts as a
-workaround.
+consumer-relative `.just/` paths. The CI setup action therefore downloads the
+pinned sc-lint source archive and materializes those utilities into the
+runner workspace; no utility is copied into or maintained in sc-compose.
 
 This packaging gap is tracked by [sc-lint issue #83](https://github.com/randlee/sc-lint/issues/83), which requests a pip-installable/maturin-backed
 distribution or equivalent embedded-resource/module entrypoint. L.17 will
