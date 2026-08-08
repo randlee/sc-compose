@@ -5,7 +5,7 @@
       "command": "repowise",
       "args": [
         "mcp",
-        "/Users/randlee/Documents/github/sc-compose-worktrees/repowise-analysis",
+        "/Users/randlee/Documents/github/sc-compose-worktrees/sc/repowise-audit-3",
         "--transport",
         "stdio"
       ],
