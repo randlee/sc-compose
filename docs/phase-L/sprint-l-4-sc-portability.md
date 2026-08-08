@@ -48,6 +48,13 @@ any other post-infrastructure sprint and may run in parallel with all of them.
 - Verify that a failing analysis remains a failing command/report result rather
   than being converted to a successful report with warning text.
 
+## sc-lint Reuse Reference
+
+- Representative script: `../sc-lint/.just/lint_sc_portability.py`.
+- Supporting tests/contract: `../sc-lint/.just/tests/test_lint_sc_portability.py`
+  and `../sc-lint/crates/sc-lint/src/dispatch.rs`. Reuse this logic through
+  the supported sc-lint CLI; do not copy the script into sc-compose.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

@@ -57,6 +57,17 @@ plan-gate approval. It must land before L.2 and all target sprints.
 - Add a CI smoke step that runs a harmless version/root-discovery command
   before any analyzer target.
 
+## sc-lint Reuse Reference
+
+- Repository/config evidence: `../sc-lint/crates/sc-lint/src/config.rs`,
+  `../sc-lint/crates/sc-lint/src/python_adapter.rs`, and
+  `../sc-lint/.just/lint-config.toml`.
+- No Python script should be added for version or root discovery. Reuse the
+  installed sc-lint CLI contract and record whether the release makes its
+  Python-backed utilities available without a consumer `.just/` copy.
+- This is the prerequisite documented for the final L.17 inventory and the
+  related maturin/Python bindings issue #83.
+
 ## Explicit Code Samples
 
 The repository-owned version contract must be equivalent to:
@@ -91,6 +102,9 @@ sc-composer -/-> bindings/python
   without CLI.CONFIG_ERROR caused by a missing boundaries/ directory.
 - The inventory describes every workspace package and no forbidden edge.
 - CI verifies the same tool version on supported runners.
+- The bootstrap contract explicitly records whether the pinned distribution
+  supplies Python-backed utilities to a clean consumer without a `.just/`
+  script copy and links sc-lint issue #83 if it does not.
 - No Python runner or analyzer implementation is added to sc-compose.
 
 ## Required Validation

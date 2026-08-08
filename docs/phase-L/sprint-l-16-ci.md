@@ -48,6 +48,13 @@ any other post-infrastructure sprint and may run in parallel with all of them.
 - Verify that a failing analysis remains a failing command/report result rather
   than being converted to a successful report with warning text.
 
+## sc-lint Reuse Reference
+
+- No separate Python runner exists for top-level ci. Use
+  `../sc-lint/crates/sc-lint/src/workflow.rs` as the authoritative composition
+  of lint ci plus workspace tests, and reuse any transitively configured
+  utilities through sc-lint. Do not add a sc-compose Python wrapper.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

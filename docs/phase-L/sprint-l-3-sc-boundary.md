@@ -48,6 +48,14 @@ any other post-infrastructure sprint and may run in parallel with all of them.
 - Verify that a failing analysis remains a failing command/report result rather
   than being converted to a successful report with warning text.
 
+## sc-lint Reuse Reference
+
+- Legacy helper for inventory evidence: `../sc-lint/.just/lint_sc_boundary.py`.
+- Supported 0.4.0 behavior is Rust-backed; use
+  `../sc-lint/crates/sc-lint-boundary/README.md` and
+  `../sc-lint/crates/sc-lint/src/dispatch.rs` as the authoritative command
+  and finding contract. Do not invoke or copy the legacy helper directly.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

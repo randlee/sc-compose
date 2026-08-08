@@ -48,6 +48,13 @@ any other post-infrastructure sprint and may run in parallel with all of them.
 - Verify that a failing analysis remains a failing command/report result rather
   than being converted to a successful report with warning text.
 
+## sc-lint Reuse Reference
+
+- No representative Python helper exists for check xwin in sc-lint 0.4.0.
+  Use `../sc-lint/crates/sc-lint/src/workflow.rs` and
+  `../sc-lint/crates/sc-lint/src/command.rs` as the Rust workflow/identity
+  contract; do not add a Python wrapper.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

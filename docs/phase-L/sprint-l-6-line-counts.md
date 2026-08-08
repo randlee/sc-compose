@@ -48,6 +48,13 @@ any other post-infrastructure sprint and may run in parallel with all of them.
 - Verify that a failing analysis remains a failing command/report result rather
   than being converted to a successful report with warning text.
 
+## sc-lint Reuse Reference
+
+- Representative script: `../sc-lint/.just/lint_line_counts.py`.
+- Shared adapter and tests: `../sc-lint/.just/python_adapter.py` and
+  `../sc-lint/.just/tests/test_lint_line_counts.py`. Reuse the script through
+  sc-lint; do not duplicate it or its adapter in sc-compose.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

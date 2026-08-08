@@ -48,6 +48,14 @@ any other post-infrastructure sprint and may run in parallel with all of them.
 - Verify that a failing analysis remains a failing command/report result rather
   than being converted to a successful report with warning text.
 
+## sc-lint Reuse Reference
+
+- Representative profile sources: `../sc-lint/.just/run_lint.py` and
+  `../sc-lint/crates/sc-lint/src/workflow.rs`. The profile transitively uses
+  shared Python utilities such as `../sc-lint/.just/python_adapter.py`.
+- Reuse profile semantics through `sc-lint lint fast`; do not copy the runner
+  or utility scripts into sc-compose.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

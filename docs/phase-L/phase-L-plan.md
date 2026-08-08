@@ -46,6 +46,9 @@ After L.2 is merged to integrate/phase-l, L.3 through L.16 are independent.
 Each owns one sc-lint command target or profile, has a disjoint target
 descriptor and focused test fixture, and may be staffed or merged in parallel.
 No later sprint may edit the shared runner or duplicate a Python adapter.
+L.17 runs only after L.1-L.16 are complete; it is a closeout/documentation
+sprint that turns the script inventory and packaging recommendation into a
+tracked issue on the sc-lint repository.
 
 ## Standard consumer command set
 
@@ -85,6 +88,7 @@ materialization.
 | L.14 | lint full | Yes |
 | L.15 | lint ci | Yes |
 | L.16 | top-level ci | Yes |
+| L.17 | sc-lint Python script inventory and packaging issue | No; after L.1-L.16 |
 
 version is closed by L.1's version gate and is not duplicated as a feature
 sprint. view graph remains explicitly deferred because sc-lint 0.4.0 marks it
@@ -101,3 +105,33 @@ as a reserved capability surface.
   characterization case and verifies the target's report panel and raw JSON.
 - Every implementation sprint runs cargo test --workspace, formatting, clippy
   with -D warnings, and git diff --check.
+
+## Python script reuse and packaging constraint
+
+The sc-lint sibling repository is the source of truth for Python-backed
+utilities. Where a representative script exists, the target sprint must point
+to that script and reuse it through the sc-lint command contract; it must not
+copy the script into sc-compose or create a per-target wrapper. The current
+0.4.0 inventory is:
+
+| sc-compose target | Representative sc-lint source | Reuse decision |
+| --- | --- | --- |
+| lint sc-portability | `../sc-lint/.just/lint_sc_portability.py` | Reuse through `sc-lint`; retain its adapter tests |
+| lint line-counts | `../sc-lint/.just/lint_line_counts.py` and `../sc-lint/.just/python_adapter.py` | Reuse through `sc-lint`; do not duplicate |
+| lint identity-literals | `../sc-lint/.just/lint_identity_literals.py` and `../sc-lint/.just/python_adapter.py` | Reuse through `sc-lint`; do not duplicate |
+| view findings | `../sc-lint/.just/view_findings.py`, `view_common.py`, and `python_adapter.py` | Reuse through `sc-lint`; do not duplicate |
+| lint fast/full/ci | `../sc-lint/.just/run_lint.py` and `workflow.rs` | Reuse profile semantics; do not copy the runner |
+| lint sc-boundary | `../sc-lint/.just/lint_sc_boundary.py` (legacy helper) plus Rust dispatch/backend sources | Do not invoke the legacy helper directly; reuse the supported Rust-backed CLI |
+| lint sc-runtime, check, clippy | Rust dispatch/workflow/backend sources | No representative Python script exists in 0.4.0 |
+| ci | Rust workflow composition | No separate Python script exists in 0.4.0 |
+
+This inventory exposes a release concern: sc-lint 0.4.0's Python adapter
+resolves these scripts relative to the analyzed repository's `.just/` path.
+L.1 must record whether the supported distribution makes those utilities
+available to a consumer without copying them. A related maturin/Python
+bindings request is tracked in sc-lint issue #83. L.17 must create the final
+sc-lint inventory issue, link #83, include concrete failing-path evidence, and
+recommend a pip-installable package/embedded-resource or module entrypoint
+that owns all commonly used scripts and preserves the JSON/schema contract.
+Until that issue is resolved, sc-compose may invoke only the supported
+`sc-lint --json` contract and may not vendor the scripts.

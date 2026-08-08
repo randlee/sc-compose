@@ -48,6 +48,15 @@ any other post-infrastructure sprint and may run in parallel with all of them.
 - Verify that a failing analysis remains a failing command/report result rather
   than being converted to a successful report with warning text.
 
+## sc-lint Reuse Reference
+
+- Representative profile source: `../sc-lint/.just/run_lint.py`, with profile
+  membership authoritative in `../sc-lint/crates/sc-lint/src/workflow.rs`.
+  The profile transitively uses the shared Python utilities where configured.
+- Reuse `sc-lint lint ci`; do not copy `run_lint.py` or utility scripts into
+  sc-compose. The packaging gap is owned by the final L.17 issue linked to
+  maturin issue #83.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:

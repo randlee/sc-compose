@@ -65,6 +65,16 @@ sprint's generic runner contract, not on one another.
 - Ensure just lint defaults to sc-lint lint full, while explicit target recipes
   remain available for focused local and QA runs.
 
+## sc-lint Reuse Reference
+
+- Representative orchestration sources: `../sc-lint/.just/run_lint.py`,
+  `../sc-lint/.just/python_adapter.py`,
+  `../sc-lint/crates/sc-lint/src/contract.rs`, and
+  `../sc-lint/crates/sc-lint/src/render.rs`.
+- Reuse the sc-lint JSON/adapter/profile contract through the installed CLI;
+  do not copy `run_lint.py`, `python_adapter.py`, or report converters into
+  sc-compose. L.17 records the packaging gap and links maturin issue #83.
+
 ## Explicit Code Samples
 
 The stable orchestration seam must be equivalent to:
@@ -106,6 +116,9 @@ just ci                   # sc-lint ci
 - The recipe names and default profile match the Phase L command contract.
 - A clean repository checkout can run the runner with no Python dependency
   beyond existing sc-compose project tooling.
+- If a Python-backed target is unavailable because sc-lint resolves a utility
+  under the consumer `.just/` path, the runner preserves an actionable
+  structured diagnostic and does not silently copy or reimplement the script.
 
 ## Required Validation
 

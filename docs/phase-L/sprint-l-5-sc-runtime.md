@@ -48,6 +48,13 @@ any other post-infrastructure sprint and may run in parallel with all of them.
 - Verify that a failing analysis remains a failing command/report result rather
   than being converted to a successful report with warning text.
 
+## sc-lint Reuse Reference
+
+- No representative Python helper exists for sc-runtime in sc-lint 0.4.0.
+  Use `../sc-lint/crates/sc-lint-runtime/README.md` and
+  `../sc-lint/crates/sc-lint/src/dispatch.rs` as the Rust-backed source of
+  truth; do not create a Python replacement.
+
 ## Explicit Code Samples
 
 The descriptor must resolve to this stable command identity:
