@@ -39,7 +39,7 @@ unblocks the mutually parallel target wave L.3-L.16. L.17 waits for that wave.
 - examples/sc-lint-report.html.j2
 - reports/inputs/lint/
 - docs/phase-L/sc-lint-reporting-contract.md
-- docs/adrs/0016-sc-lint-runner-allowlist-and-reporting.md
+- docs/adrs/0017-sc-lint-runner-allowlist-and-reporting.md
 
 ## Deliverables
 
@@ -57,8 +57,11 @@ unblocks the mutually parallel target wave L.3-L.16. L.17 waits for that wave.
   behavior in every consuming repository.
 - CI wiring that runs just lint and publishes the generated report/raw JSON
   artifacts.
-- ADR-0016 recording the command allowlist, subprocess boundary, JSON capture,
+- ADR-0017 recording the command allowlist, subprocess boundary, JSON capture,
   report ownership, and security rationale for the shared runner.
+- The ADR explicitly defers composite-profile fix ownership to the Phase L
+  plan's Atomic target ownership section; that routing mechanism is outside
+  the ADR's runner/security decision.
 
 ## Required Work
 

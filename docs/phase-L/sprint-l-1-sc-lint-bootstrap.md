@@ -31,7 +31,7 @@ L.2 and L.3-L.16; L.17 also waits for all earlier sprints.
 - sc-lint.toml
 - .github/actions/setup-sc-lint/action.yml
 - docs/phase-L/sc-lint-bootstrap-contract.md
-- docs/adrs/0015-sc-lint-integration-boundary.md
+- docs/adrs/0016-sc-lint-integration-boundary.md
 - crates/sc-compose/tests/repo_boundaries.rs
 - tests/fixtures/sc-lint/bootstrap/
 
@@ -47,7 +47,7 @@ L.2 and L.3-L.16; L.17 also waits for all earlier sprints.
   when the required version is unavailable.
 - Documentation of the external-tool ownership boundary: sc-lint analyzes;
   sc-compose invokes, normalizes, and reports.
-- ADR-0015 recording the ownership, version-pinning, and no-duplicate-runner
+- ADR-0016 recording the ownership, version-pinning, and no-duplicate-runner
   decision for this integration.
 - Bootstrap characterization proving the command can discover the root and
   returns a machine-readable version result.
@@ -61,6 +61,9 @@ L.2 and L.3-L.16; L.17 also waits for all earlier sprints.
   parsing and not a duplicated Python checker.
 - Add a CI smoke step that runs a harmless version/root-discovery command
   before any analyzer target.
+- Before creating the ADR, inspect `docs/adrs/` and confirm 0016 remains the
+  next open number; if another phase lands an ADR first, select the next open
+  number and update this sprint's exact target and references consistently.
 
 ## sc-lint Reuse Reference
 

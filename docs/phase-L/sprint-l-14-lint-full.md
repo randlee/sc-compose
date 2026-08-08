@@ -104,8 +104,11 @@ The focused test must assert this report identity:
 
 ## Acceptance Criteria
 
-- The positive fixture produces a pass report with command lint.full and a retained
-  raw JSON artifact.
+- When L.1 records all transitive Python utilities as resolvable, the positive
+  fixture produces a pass report with command lint.full and a retained raw JSON
+  artifact. When L.1 records any utility as unresolvable, the positive-path
+  characterization instead produces the documented CLI.CONFIG_ERROR-class
+  structured diagnostic with retained raw JSON and report evidence.
 - The negative/capability fixture produces the expected non-pass result,
   structured diagnostics, and a rendered panel that identifies the tested input.
 - The target can be run through the standard just command lint full.
