@@ -46,7 +46,9 @@ impl Drop for TempRoot {
 fn fake_sc_lint_bin(root: &Path) -> PathBuf {
     let bin_dir = root.join("bin");
     fs::create_dir_all(&bin_dir).expect("fake bin directory");
-    if cfg!(windows) {
+
+    #[cfg(windows)]
+    {
         let path = bin_dir.join("sc-lint.cmd");
         fs::write(
             &path,
@@ -54,7 +56,10 @@ fn fake_sc_lint_bin(root: &Path) -> PathBuf {
         )
         .expect("fake sc-lint");
         path
-    } else {
+    }
+
+    #[cfg(unix)]
+    {
         let path = bin_dir.join("sc-lint");
         fs::write(
             &path,
@@ -97,6 +102,7 @@ fn runner_preserves_sc_lint_envelope_and_writes_both_artifacts() {
             "PATH",
             path_with_fake_bin(fake_bin.parent().expect("fake bin parent")),
         )
+        .env("SC_LOG_ROOT", root.path.join("logs"))
         .output()
         .expect("run sc-compose lint");
     assert_eq!(output.status.code(), Some(0));
@@ -116,6 +122,7 @@ fn runner_preserves_sc_lint_envelope_and_writes_both_artifacts() {
             .join("reports/latest/sc-lint/index.html")
             .is_file()
     );
+    assert!(root.path.join("logs").is_dir());
 }
 
 #[test]
@@ -130,6 +137,7 @@ fn runner_rejects_commands_without_a_descriptor() {
             "sh -c touch /tmp/not-allowed",
             "--json",
         ])
+        .env("SC_LOG_ROOT", root.path.join("logs"))
         .output()
         .expect("run sc-compose lint");
     assert_eq!(output.status.code(), Some(3));
