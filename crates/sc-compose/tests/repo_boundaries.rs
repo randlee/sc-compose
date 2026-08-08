@@ -1,5 +1,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
+
+use serde_json::Value;
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -7,6 +10,62 @@ fn repo_root() -> PathBuf {
         .join("..")
         .canonicalize()
         .expect("repo root")
+}
+
+fn sc_lint_json(root: &Path, args: &[&str]) -> Value {
+    let output = Command::new("sc-lint")
+        .args(["--json", "--root"])
+        .arg(root)
+        .args(args)
+        .output()
+        .unwrap_or_else(|error| panic!("sc-lint must be installed for L.1 validation: {error}"));
+    assert!(
+        output.status.success(),
+        "sc-lint command failed: {}\n{}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+    serde_json::from_slice(&output.stdout).unwrap_or_else(|error| {
+        panic!(
+            "sc-lint must return JSON: {error}\n{}",
+            String::from_utf8_lossy(&output.stdout)
+        )
+    })
+}
+
+#[test]
+fn sc_lint_version_is_pinned_to_the_bootstrap_contract() {
+    let output = Command::new("sc-lint")
+        .args(["version", "--json"])
+        .output()
+        .expect("sc-lint must be installed for L.1 validation");
+    assert!(
+        output.status.success(),
+        "sc-lint version failed: {}\n{}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let value: Value = serde_json::from_slice(&output.stdout).expect("version JSON");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["contract_schema"], "v1");
+    assert_eq!(value["data"]["crate_version"], "0.4.0");
+}
+
+#[test]
+fn sc_lint_discovers_repository_and_fixture_roots_without_config_error() {
+    for root in [
+        repo_root(),
+        repo_root().join("tests/fixtures/sc-lint/bootstrap"),
+    ] {
+        let value = sc_lint_json(&root, &["lint", "sc-boundary"]);
+        assert_eq!(value["ok"], true, "unexpected top-level failure: {value}");
+        assert_ne!(
+            value["error"]["code"], "CLI.CONFIG_ERROR",
+            "root discovery must not fail configuration: {value}"
+        );
+        assert_eq!(value["data"]["version"], "0.4.0");
+        assert!(value["data"]["scanned_crates"].as_u64().is_some());
+    }
 }
 
 fn walk_files(root: &Path, files: &mut Vec<PathBuf>) {

@@ -1,0 +1,94 @@
+name: Setup sc-lint
+description: Install and verify the pinned sc-lint release and sibling analyzers
+inputs:
+  version:
+    description: Released sc-lint version to install
+    required: false
+    default: "0.4.0"
+runs:
+  using: composite
+  steps:
+    - name: Install sc-lint release (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
+      env:
+        SC_LINT_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        case "${RUNNER_OS}:${RUNNER_ARCH}" in
+          Linux:X64) target="x86_64-unknown-linux-gnu" ;;
+          macOS:X64) target="x86_64-apple-darwin" ;;
+          macOS:ARM64) target="aarch64-apple-darwin" ;;
+          *)
+            echo "sc-lint setup: unsupported runner ${RUNNER_OS}/${RUNNER_ARCH}" >&2
+            exit 1
+            ;;
+        esac
+        archive="sc-lint_${SC_LINT_VERSION}_${target}.tar.gz"
+        url="https://github.com/randlee/sc-lint/releases/download/v${SC_LINT_VERSION}/${archive}"
+        install_dir="${RUNNER_TEMP}/sc-lint-${SC_LINT_VERSION}/${target}"
+        mkdir -p "${install_dir}"
+        curl --fail --location --retry 4 --retry-all-errors --silent --show-error \
+          --output "${RUNNER_TEMP}/${archive}" "${url}" || {
+          echo "sc-lint setup: could not download ${url}; verify that release v${SC_LINT_VERSION} publishes this runner asset" >&2
+          exit 1
+        }
+        tar -xzf "${RUNNER_TEMP}/${archive}" -C "${install_dir}"
+        test -x "${install_dir}/sc-lint" || {
+          echo "sc-lint setup: release archive is missing executable sc-lint" >&2
+          exit 1
+        }
+        for backend in sc-lint-boundary sc-lint-portability sc-lint-runtime; do
+          test -x "${install_dir}/${backend}" || {
+            echo "sc-lint setup: release archive is missing sibling backend ${backend}" >&2
+            exit 1
+          }
+        done
+        echo "${install_dir}" >> "${GITHUB_PATH}"
+    - name: Install sc-lint release (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      env:
+        SC_LINT_VERSION: ${{ inputs.version }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        if ($env:RUNNER_ARCH -ne 'X64') {
+          throw "sc-lint setup: unsupported Windows architecture $env:RUNNER_ARCH"
+        }
+        $target = 'x86_64-pc-windows-msvc'
+        $archive = "sc-lint_$env:SC_LINT_VERSION`_$target.zip"
+        $url = "https://github.com/randlee/sc-lint/releases/download/v$env:SC_LINT_VERSION/$archive"
+        $installDir = Join-Path $env:RUNNER_TEMP "sc-lint-$env:SC_LINT_VERSION\$target"
+        New-Item -ItemType Directory -Force -Path $installDir | Out-Null
+        $archivePath = Join-Path $env:RUNNER_TEMP $archive
+        try {
+          Invoke-WebRequest -Uri $url -OutFile $archivePath
+        } catch {
+          throw "sc-lint setup: could not download $url; verify that release v$env:SC_LINT_VERSION publishes this runner asset. $($_.Exception.Message)"
+        }
+        Expand-Archive -Path $archivePath -DestinationPath $installDir -Force
+        foreach ($binary in @('sc-lint.exe', 'sc-lint-boundary.exe', 'sc-lint-portability.exe', 'sc-lint-runtime.exe')) {
+          if (-not (Test-Path (Join-Path $installDir $binary))) {
+            throw "sc-lint setup: release archive is missing sibling backend $binary"
+          }
+        }
+        Add-Content -Path $env:GITHUB_PATH -Value $installDir
+    - name: Verify sc-lint version contract
+      if: runner.os != 'Windows'
+      shell: bash
+      env:
+        SC_LINT_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        version_json="$(sc-lint version --json)"
+        python3 -c 'import json, os, sys; value=json.load(sys.stdin); expected=os.environ["SC_LINT_VERSION"]; actual=value.get("data", {}).get("crate_version"); assert value.get("ok") is True and actual == expected, f"expected sc-lint {expected}, got {actual!r}: {value}"' <<<"${version_json}"
+    - name: Verify sc-lint version contract (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      env:
+        SC_LINT_VERSION: ${{ inputs.version }}
+      run: |
+        $value = sc-lint version --json | ConvertFrom-Json
+        if (-not $value.ok -or $value.data.crate_version -ne $env:SC_LINT_VERSION) {
+          throw "sc-lint setup: expected version $env:SC_LINT_VERSION, got $($value.data.crate_version)"
+        }
