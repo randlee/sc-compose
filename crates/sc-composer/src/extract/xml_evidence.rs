@@ -4,7 +4,10 @@ use std::collections::BTreeMap;
 
 use crate::types::VariableName;
 
-use super::{ExtractError, XmlElement, XmlNode, XmlPathSegment, parse_value_segments, raw_text};
+use super::{
+    ExtractError, XmlDocument, XmlElementId, XmlNode, XmlPathSegment, parse_value_segments,
+    raw_text,
+};
 
 pub(super) struct Capture {
     pub(super) variable: VariableName,
@@ -22,16 +25,18 @@ pub(super) struct Evidence {
 }
 
 pub(super) fn collect_expected_evidence(
-    element: &XmlElement,
+    document: &XmlDocument,
+    element_id: XmlElementId,
     evidence: &mut Evidence,
 ) -> Result<(), ExtractError> {
+    let element = document.element(element_id);
     evidence.expected_structural += 1;
     for value in element.attributes.values() {
         collect_expected_value_evidence(value, &[], evidence)?;
     }
     for child in &element.children {
         match child {
-            XmlNode::Element(child) => collect_expected_evidence(child, evidence)?,
+            XmlNode::Element(child) => collect_expected_evidence(document, *child, evidence)?,
             XmlNode::Text(value) => collect_expected_value_evidence(value, &[], evidence)?,
         }
     }
@@ -60,10 +65,12 @@ pub(super) struct TemplateOccurrence {
 }
 
 pub(super) fn collect_template_occurrences(
-    template: &XmlElement,
+    document: &XmlDocument,
+    template_id: XmlElementId,
     path: &[XmlPathSegment],
     occurrences: &mut Vec<TemplateOccurrence>,
 ) -> Result<(), ExtractError> {
+    let template = document.element(template_id);
     for (name, value) in &template.attributes {
         let mut attribute_path = path.to_owned();
         attribute_path.push(XmlPathSegment::Attribute { name: name.clone() });
@@ -89,7 +96,8 @@ pub(super) fn collect_template_occurrences(
                     }
                 }
             }
-            XmlNode::Element(element) => {
+            XmlNode::Element(element_id) => {
+                let element = document.element(*element_id);
                 let ordinal = element_ordinals.entry(element.name.clone()).or_default();
                 let child_path = path
                     .iter()
@@ -100,38 +108,52 @@ pub(super) fn collect_template_occurrences(
                     }])
                     .collect::<Vec<_>>();
                 *ordinal += 1;
-                collect_template_occurrences(element, &child_path, occurrences)?;
+                collect_template_occurrences(document, *element_id, &child_path, occurrences)?;
             }
         }
     }
     Ok(())
 }
 
-pub(super) fn path_exists(root: &XmlElement, path: &[XmlPathSegment]) -> bool {
+pub(super) fn path_exists(
+    document: &XmlDocument,
+    root_id: XmlElementId,
+    path: &[XmlPathSegment],
+) -> bool {
     let Some(XmlPathSegment::Element { name, ordinal }) = path.first() else {
         return false;
     };
-    if root.name != *name || *ordinal != 0 {
+    if document.element(root_id).name != *name || *ordinal != 0 {
         return false;
     }
-    let mut current = root;
+    let mut current_id = root_id;
     for segment in path.iter().skip(1) {
         match segment {
             XmlPathSegment::Element { name, ordinal } => {
                 let mut seen = 0;
-                let Some(element) = current.children.iter().find_map(|child| match child {
-                    XmlNode::Element(element) if element.name == *name => {
-                        let found = (seen == *ordinal).then_some(element);
-                        seen += 1;
-                        found
-                    }
-                    _ => None,
-                }) else {
+                let Some(element_id) =
+                    document
+                        .element(current_id)
+                        .children
+                        .iter()
+                        .find_map(|child| match child {
+                            XmlNode::Element(element_id)
+                                if document.element(*element_id).name == *name =>
+                            {
+                                let found = (seen == *ordinal).then_some(*element_id);
+                                seen += 1;
+                                found
+                            }
+                            _ => None,
+                        })
+                else {
                     return false;
                 };
-                current = element;
+                current_id = element_id;
             }
-            XmlPathSegment::Attribute { name } => return current.attributes.contains_key(name),
+            XmlPathSegment::Attribute { name } => {
+                return document.element(current_id).attributes.contains_key(name);
+            }
         }
     }
     true

@@ -1,0 +1,11 @@
+[package]
+name = "sc-lint-bootstrap-fixture"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+
+[workspace.package]
+version = "0.1.0"
+authors = ["sc-compose"]
+edition = "2024"

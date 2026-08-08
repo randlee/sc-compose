@@ -1,0 +1,36 @@
+boundary_id = "BOUNDARY-ScCompose"
+owner_package = "sc-compose"
+owner_crate_path = "sc_compose"
+name = "ScComposeCli"
+
+[public]
+facade = "run"
+
+[implementation]
+type = "cli_application"
+module = "sc_compose"
+visibility = "public"
+constructor = "none"
+
+[composition]
+roots = []
+
+[dependencies]
+allowed_dependents = []
+allowed_dependencies = ["sc-composer"]
+forbidden_edges = []
+
+[references]
+scope = "outside_owner_crate"
+forbidden = []
+
+[testing]
+allowed_test_double_paths = []
+forbidden_test_bypasses = []
+
+[enforcement]
+lint_rules = ["LINT-SC-COMPOSE-CLI-BOUNDARY"]
+review_gates = ["cli_only"]
+
+[status]
+state = "concrete_landed"

@@ -658,6 +658,38 @@ Sprint entries:
 - [Sprint K.7 — Template Discovery Seams](phase-K/sprint-k-7-discovery-seams.md)
 - [Sprint K.8 — Report Output Materialization](phase-K/sprint-k-8-report-output.md)
 
+### Phase L Sprint Plans
+
+Status:
+
+- L.1 bootstrap is complete on `sprint/l-1-sc-lint-bootstrap`; it establishes
+  the pinned sc-lint 0.4.0 release, canonical package boundaries, and the
+  reusable CI setup contract.
+- L.2 remains the serial infrastructure follow-on. L.3-L.16 are independent
+  target integrations after L.2, and L.17 is the final packaging/inventory
+  closeout after all target sprints.
+
+Sprint entries:
+
+- [Phase L plan](phase-L/phase-L-plan.md)
+- [Sprint L.1 — sc-lint Repository and Tool Bootstrap](phase-L/sprint-l-1-sc-lint-bootstrap.md)
+- [Sprint L.2 — sc-lint Just and Report Integration](phase-L/sprint-l-2-sc-lint-just-report-integration.md)
+- [Sprint L.3 — sc-boundary](phase-L/sprint-l-3-sc-boundary.md)
+- [Sprint L.4 — sc-portability](phase-L/sprint-l-4-sc-portability.md)
+- [Sprint L.5 — sc-runtime](phase-L/sprint-l-5-sc-runtime.md)
+- [Sprint L.6 — Line Counts](phase-L/sprint-l-6-line-counts.md)
+- [Sprint L.7 — Identity Literals](phase-L/sprint-l-7-identity-literals.md)
+- [Sprint L.8 — View Findings](phase-L/sprint-l-8-view-findings.md)
+- [Sprint L.9 — Check Native](phase-L/sprint-l-9-check-native.md)
+- [Sprint L.10 — Check Xwin](phase-L/sprint-l-10-check-xwin.md)
+- [Sprint L.11 — Clippy Native](phase-L/sprint-l-11-clippy-native.md)
+- [Sprint L.12 — Clippy Xwin](phase-L/sprint-l-12-clippy-xwin.md)
+- [Sprint L.13 — Lint Fast](phase-L/sprint-l-13-lint-fast.md)
+- [Sprint L.14 — Lint Full](phase-L/sprint-l-14-lint-full.md)
+- [Sprint L.15 — Lint CI](phase-L/sprint-l-15-lint-ci.md)
+- [Sprint L.16 — Top-Level CI](phase-L/sprint-l-16-ci.md)
+- [Sprint L.17 — sc-lint Script Packaging](phase-L/sprint-l-17-sc-lint-script-packaging.md)
+
 ### Follow-on Fix Sprint: FIX-238
 
 Status:
