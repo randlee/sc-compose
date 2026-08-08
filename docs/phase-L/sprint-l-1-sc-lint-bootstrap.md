@@ -30,6 +30,7 @@ L.2 and L.3-L.16; L.17 also waits for all earlier sprints.
 - boundaries/
 - sc-lint.toml
 - .github/actions/setup-sc-lint/action.yml
+- .github/workflows/ci.yml
 - docs/phase-L/sc-lint-bootstrap-contract.md
 - docs/adrs/0016-sc-lint-integration-boundary.md
 - docs/adrs/README.md
