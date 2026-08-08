@@ -1,5 +1,5 @@
 {
-  "last_sync_commit": "4af79d8fd2e83b4a14e90c8c746951b98eae2758",
+  "last_sync_commit": "5fc2f38005393324700ec79e3bc56b8c9690ae5c",
   "docs_enabled": false,
   "run_mode": "standard",
   "git_tier": "full",
@@ -25,21 +25,21 @@
   },
   "knowledge_graph": {
     "version": "1.0.0",
-    "node_count": 895,
+    "node_count": 1729,
     "layer_count": 6,
     "tour_steps": 12,
     "has_summaries": true,
-    "fingerprint": "073be5e3b0269837"
+    "fingerprint": "860ff48016c8ed0c"
   },
   "config_fingerprint": "64c31ef5e36169d07a55dfffd2d58a9afc7cee8fa1a0d573e4af24e186932c07",
   "store_format_version": 1,
-  "written_by_version": "0.37.0",
+  "written_by_version": "0.39.0",
   "total_pages": 70,
   "provider": "codex_cli",
   "model": "codex_cli/default",
   "total_tokens": 3011748,
   "docs_mode": "none",
-  "last_full_rescore_at": 1785382257.0,
-  "renderer_fingerprint": "8979c8cb0643c27fc7912d0da86b1f0be582abc8f2ac52da6941ab41cf3865c5",
+  "last_full_rescore_at": 1786066430.0,
+  "renderer_fingerprint": "3ccf0a761d6507c15360006a197bf56cd6d46c2698c8ae631ca6b789b87f06c4:2d6407057d94311810c91100d0497e1dc2b78aa2fab0fa8e08e4e8e789045f72",
   "last_docs_commit": "252f283ab977febe473abafa2605abab5bcb6a23"
 }
