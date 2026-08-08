@@ -1,63 +1,39 @@
 //! Private XML parser and tree-model ownership.
 
-use std::collections::BTreeMap;
-use std::mem;
-
 use quick_xml::Reader;
 use quick_xml::escape::unescape;
 use quick_xml::events::Event;
-use sc_lint_attributes::sc_lint;
+use std::collections::BTreeMap;
 
 use super::{ExtractError, input_limit_error};
 
 const MAX_XML_NESTING_DEPTH: usize = 64;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[sc_lint(boundary.allow("cycle.recursive_value_container"))]
 pub(super) struct XmlElement {
     pub(super) name: String,
     pub(super) attributes: BTreeMap<String, String>,
     pub(super) children: Vec<XmlNode>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) struct XmlElementId(usize);
+
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[sc_lint(boundary.allow("cycle.recursive_value_container"))]
 pub(super) enum XmlNode {
-    Element(XmlElement),
+    Element(XmlElementId),
     Text(String),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct XmlDocument {
-    pub(super) root: XmlElement,
+    pub(super) root: XmlElementId,
+    elements: Vec<XmlElement>,
 }
 
-fn drop_xml_children(children: &mut Vec<XmlNode>) {
-    let mut pending = mem::take(children);
-    while let Some(mut node) = pending.pop() {
-        if let XmlNode::Element(element) = &mut node {
-            pending.append(&mut element.children);
-        }
-    }
-}
-
-impl Drop for XmlElement {
-    fn drop(&mut self) {
-        drop_xml_children(&mut self.children);
-    }
-}
-
-impl Drop for XmlNode {
-    fn drop(&mut self) {
-        if let XmlNode::Element(element) = self {
-            drop_xml_children(&mut element.children);
-        }
-    }
-}
-
-impl Drop for XmlDocument {
-    fn drop(&mut self) {
-        drop_xml_children(&mut self.root.children);
+impl XmlDocument {
+    pub(super) fn element(&self, id: XmlElementId) -> &XmlElement {
+        &self.elements[id.0]
     }
 }
 
@@ -67,6 +43,7 @@ pub(super) fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
     reader.config_mut().check_end_names = true;
     let mut stack: Vec<(String, BTreeMap<String, String>, Vec<XmlNode>)> = Vec::new();
     let mut root = None;
+    let mut elements = Vec::new();
     loop {
         let event = reader.read_event().map_err(|error| {
             super::malformed_with_source(format!("XML parser rejected input: {error}"), error)
@@ -85,6 +62,7 @@ pub(super) fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
                 attach_element(
                     &mut stack,
                     &mut root,
+                    &mut elements,
                     XmlElement {
                         name,
                         attributes,
@@ -105,6 +83,7 @@ pub(super) fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
                 attach_element(
                     &mut stack,
                     &mut root,
+                    &mut elements,
                     XmlElement {
                         name,
                         attributes,
@@ -133,7 +112,7 @@ pub(super) fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
                 attach_text(&mut stack, value)?;
             }
             Event::Decl(_) | Event::Comment(_) | Event::PI(_) => {
-                reject_post_root_content(root.as_ref(), &stack)?;
+                reject_post_root_content(root, &stack)?;
             }
             Event::DocType(_) => {
                 return Err(ExtractError::unsupported(
@@ -150,7 +129,7 @@ pub(super) fn parse_xml(source: &str) -> Result<XmlDocument, ExtractError> {
         ));
     }
     let root = root.ok_or_else(|| super::malformed("XML input has no root element".to_owned()))?;
-    Ok(XmlDocument { root })
+    Ok(XmlDocument { root, elements })
 }
 
 fn decode_xml_text(bytes: &[u8]) -> Result<String, ExtractError> {
@@ -171,7 +150,7 @@ fn decode_xml_cdata(bytes: &[u8]) -> Result<String, ExtractError> {
 }
 
 fn reject_post_root_content(
-    root: Option<&XmlElement>,
+    root: Option<XmlElementId>,
     stack: &[(String, BTreeMap<String, String>, Vec<XmlNode>)],
 ) -> Result<(), ExtractError> {
     if root.is_some() && stack.is_empty() {
@@ -216,17 +195,20 @@ fn decode_attributes(
 
 fn attach_element(
     stack: &mut [(String, BTreeMap<String, String>, Vec<XmlNode>)],
-    root: &mut Option<XmlElement>,
+    root: &mut Option<XmlElementId>,
+    elements: &mut Vec<XmlElement>,
     element: XmlElement,
 ) -> Result<(), ExtractError> {
+    let id = XmlElementId(elements.len());
+    elements.push(element);
     if let Some((_, _, children)) = stack.last_mut() {
-        children.push(XmlNode::Element(element));
+        children.push(XmlNode::Element(id));
     } else if root.is_some() {
         return Err(super::malformed(
             "XML input contains more than one root element".to_owned(),
         ));
     } else {
-        *root = Some(element);
+        *root = Some(id);
     }
     Ok(())
 }

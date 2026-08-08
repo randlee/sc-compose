@@ -5,11 +5,15 @@ use std::process::Command;
 use serde_json::Value;
 
 fn repo_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+    let canonical = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("..")
         .join("..")
         .canonicalize()
-        .expect("repo root")
+        .expect("repo root");
+    let Some(path) = canonical.to_str() else {
+        return canonical;
+    };
+    PathBuf::from(path.strip_prefix(r"\\?\").unwrap_or(path))
 }
 
 fn sc_lint_json(root: &Path, args: &[&str]) -> Value {
@@ -133,7 +137,7 @@ fn repo_keeps_standalone_boundary_rules() {
     let forbidden_env = concat!("ATM", "_HOME");
     let forbidden_atm_import = concat!("use ", "atm", "_");
     let forbidden_agent_import = concat!("use ", "agent_", "team_", "mail::");
-    let forbidden_manifest_deps = [concat!("agent", "-team-mail"), "atm-"];
+    let forbidden_manifest_deps = [concat!("agent", "-team-mail"), "atm-", "sc-lint"];
     let forbidden_research_refs = [concat!("reverse", "_extract")];
     let mut violations = Vec::new();
 

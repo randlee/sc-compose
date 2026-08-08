@@ -1,4 +1,3 @@
-use sc_lint_attributes::sc_lint;
 use serde::Deserializer;
 use serde::de::{DeserializeSeed, Error as DeError, MapAccess, SeqAccess, Visitor};
 
@@ -148,19 +147,17 @@ impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
         Ok(serde_json::Value::Null)
     }
 
-    #[sc_lint(boundary.allow("cycle.type_method_self_loop"))]
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: SeqAccess<'de>,
     {
         let mut values = Vec::new();
-        while let Some(value) = seq.next_element_seed(Self)? {
+        while let Some(value) = seq.next_element_seed(DuplicateAwareValueSeed)? {
             values.push(value);
         }
         Ok(serde_json::Value::Array(values))
     }
 
-    #[sc_lint(boundary.allow("cycle.type_method_self_loop"))]
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
     where
         A: MapAccess<'de>,
@@ -172,8 +169,29 @@ impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
                     "duplicate entry with key \"{key}\""
                 )));
             }
-            object.insert(key, map.next_value_seed(Self)?);
+            object.insert(key, map.next_value_seed(DuplicateAwareValueSeed)?);
         }
         Ok(serde_json::Value::Object(object))
     }
+}
+
+#[derive(Clone, Copy)]
+struct DuplicateAwareValueSeed;
+
+impl<'de> DeserializeSeed<'de> for DuplicateAwareValueSeed {
+    type Value = serde_json::Value;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserialize_json_value(deserializer)
+    }
+}
+
+fn deserialize_json_value<'de, D>(deserializer: D) -> Result<serde_json::Value, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    deserializer.deserialize_any(DuplicateAwareValueVisitor)
 }

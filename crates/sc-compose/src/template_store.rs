@@ -5,7 +5,6 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, anyhow};
 use sc_composer::{InputValue, VariableName, validate_input_value};
-use sc_lint_attributes::sc_lint;
 use serde::Deserialize;
 
 const TEMPLATE_ROOT_README: &str = "# sc-compose templates\n\n\
@@ -183,7 +182,6 @@ impl TemplateStore {
         }
     }
 
-    #[sc_lint(boundary.allow("cycle.type_method_self_loop"))]
     pub(crate) fn get_template(
         &self,
         name: &str,
@@ -193,7 +191,7 @@ impl TemplateStore {
             "TemplateStore::get_template requires StoreKind::Templates"
         );
         self.find_template_dir(name)
-            .map(|path| Self::load_template_pack(&path))
+            .map(|path| load_template_pack(&path))
             .transpose()
     }
 
@@ -324,21 +322,21 @@ impl TemplateStore {
         let candidate = self.source_dir.join(name);
         candidate.is_dir().then_some(candidate)
     }
+}
 
-    fn load_template_pack(path: &Path) -> std::result::Result<TemplatePack, GetTemplateError> {
-        let manifest = load_manifest(path).map_err(GetTemplateError::Parse)?;
-        let input_defaults = manifest
-            .map(|manifest| validate_manifest_defaults(path, manifest.input_defaults))
-            .transpose()
-            .map_err(GetTemplateError::Parse)?
-            .unwrap_or_default();
-        let template_path = resolve_template_entrypoint(path)?;
-        Ok(TemplatePack {
-            root: path.to_path_buf(),
-            template_path,
-            input_defaults,
-        })
-    }
+fn load_template_pack(path: &Path) -> std::result::Result<TemplatePack, GetTemplateError> {
+    let manifest = load_manifest(path).map_err(GetTemplateError::Parse)?;
+    let input_defaults = manifest
+        .map(|manifest| validate_manifest_defaults(path, manifest.input_defaults))
+        .transpose()
+        .map_err(GetTemplateError::Parse)?
+        .unwrap_or_default();
+    let template_path = resolve_template_entrypoint(path)?;
+    Ok(TemplatePack {
+        root: path.to_path_buf(),
+        template_path,
+        input_defaults,
+    })
 }
 
 pub(crate) fn data_dir() -> Result<PathBuf> {
