@@ -6,12 +6,14 @@ use std::mem;
 use quick_xml::Reader;
 use quick_xml::escape::unescape;
 use quick_xml::events::Event;
+use sc_lint_attributes::sc_lint;
 
 use super::{ExtractError, input_limit_error};
 
 const MAX_XML_NESTING_DEPTH: usize = 64;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[sc_lint(boundary.allow("cycle.recursive_value_container"))]
 pub(super) struct XmlElement {
     pub(super) name: String,
     pub(super) attributes: BTreeMap<String, String>,
@@ -19,6 +21,7 @@ pub(super) struct XmlElement {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[sc_lint(boundary.allow("cycle.recursive_value_container"))]
 pub(super) enum XmlNode {
     Element(XmlElement),
     Text(String),

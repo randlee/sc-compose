@@ -1,3 +1,4 @@
+use sc_lint_attributes::sc_lint;
 use serde::Deserializer;
 use serde::de::{DeserializeSeed, Error as DeError, MapAccess, SeqAccess, Visitor};
 
@@ -147,6 +148,7 @@ impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
         Ok(serde_json::Value::Null)
     }
 
+    #[sc_lint(boundary.allow("cycle.type_method_self_loop"))]
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: SeqAccess<'de>,
@@ -158,6 +160,7 @@ impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
         Ok(serde_json::Value::Array(values))
     }
 
+    #[sc_lint(boundary.allow("cycle.type_method_self_loop"))]
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
     where
         A: MapAccess<'de>,

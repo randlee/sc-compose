@@ -444,6 +444,7 @@ dependencies = [
  "glob",
  "mimalloc",
  "sc-composer",
+ "sc-lint-attributes",
  "sc-observability",
  "sc-observability-types",
  "serde",
@@ -470,6 +471,7 @@ version = "1.3.1"
 dependencies = [
  "minijinja",
  "quick-xml",
+ "sc-lint-attributes",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -477,6 +479,27 @@ dependencies = [
  "thiserror",
  "time",
  "toml",
+]
+
+[[package]]
+name = "sc-lint-attributes"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d171ed3b766d7156eaff8a4bdb0b18b4dca0492b0900a785245df054b958695"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "sc-lint-directives",
+ "syn",
+]
+
+[[package]]
+name = "sc-lint-directives"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c59d16ee010b347f206134c9af1f0278cb541a6a5c8cc0bd9ca26323e35fd5b8"
+dependencies = [
+ "syn",
 ]
 
 [[package]]

@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, anyhow};
 use sc_composer::{InputValue, VariableName, validate_input_value};
+use sc_lint_attributes::sc_lint;
 use serde::Deserialize;
 
 const TEMPLATE_ROOT_README: &str = "# sc-compose templates\n\n\
@@ -182,6 +183,7 @@ impl TemplateStore {
         }
     }
 
+    #[sc_lint(boundary.allow("cycle.type_method_self_loop"))]
     pub(crate) fn get_template(
         &self,
         name: &str,
