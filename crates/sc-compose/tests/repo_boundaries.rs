@@ -5,11 +5,15 @@ use std::process::Command;
 use serde_json::Value;
 
 fn repo_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+    let canonical = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("..")
         .join("..")
         .canonicalize()
-        .expect("repo root")
+        .expect("repo root");
+    let Some(path) = canonical.to_str() else {
+        return canonical;
+    };
+    PathBuf::from(path.strip_prefix(r"\\?\").unwrap_or(path))
 }
 
 fn sc_lint_json(root: &Path, args: &[&str]) -> Value {
@@ -168,6 +172,16 @@ fn repo_keeps_standalone_boundary_rules() {
                     path.display()
                 ));
             }
+        }
+
+        if (path == root.join("crates/sc-composer/Cargo.toml")
+            || path == root.join("crates/sc-compose/Cargo.toml"))
+            && contents.contains("sc-lint")
+        {
+            violations.push(format!(
+                "{}: forbidden sc-lint-family dependency",
+                path.display()
+            ));
         }
 
         if path == root.join("bindings/python/Cargo.toml") {
