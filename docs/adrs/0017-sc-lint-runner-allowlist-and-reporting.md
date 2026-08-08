@@ -12,17 +12,22 @@ would leave every consumer with a different `just lint` contract.
 
 ## Decision
 
-- `sc-compose` invokes only the explicit `ScLintCommand` allowlist. Target
-  descriptors cannot introduce arbitrary executables or arguments.
+- `.sc/sc-lint/targets/<id>.toml` is the sole target registry. The descriptor
+  supplies the stable dotted command identity and report kind; the runner
+  validates the command shape and invokes only the fixed `sc-lint` executable.
+  Descriptors cannot introduce arbitrary executables or shell arguments.
 - The subprocess receives `--json --root <root>` and its stdout and stderr are
   captured independently. The upstream JSON envelope and exit status are
   preserved in the result and raw artifact.
 - sc-compose owns report materialization; sc-lint owns analyzers, diagnostics,
   and the JSON protocol. One generic HTML path renders command, status,
   diagnostics, findings, stderr, and a raw payload link.
-- Configuration failures use `CLI.CONFIG_ERROR`; missing host capabilities use
-  `CLI.CAPABILITY_ERROR`. The consumer result uses a closed outcome enum so a
-  new ad-hoc boolean cannot accidentally erase a failure class.
+- The upstream configuration/capability classes remain in the raw envelope.
+  Descriptor reads, descriptor parsing, unavailable executables, and artifact
+  writes use distinct consumer diagnostic codes (`ERR_CONFIG_READ`,
+  `ERR_CONFIG_PARSE`, `ERR_CONFIG_MODE`, and `ERR_RENDER_WRITE`). The consumer
+  result uses a closed outcome enum so a new ad-hoc boolean cannot accidentally
+  erase a failure class.
 - The canonical Just recipes are `lint`, `view`, `check`, `clippy`, and `ci`.
   Feature sprints add a registry descriptor/fixture only and do not add a
   target-specific recipe or Python converter.

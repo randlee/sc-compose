@@ -1,0 +1,2 @@
+command = "lint.ci"
+report_kind = "lint"

@@ -18,7 +18,7 @@ clippy target="native":
     {{sc-compose}} lint --root . --target clippy-{{target}} --json
 
 ci:
-    {{sc-compose}} lint --root . --target ci --json
+    {{sc-compose}} lint --root . --target ci-all --json
 
 test:
     {{sc-compose}} report-render-many --root . --id test-evidence --glob 'reports/inputs/test/*.md' --template-family test --output-dir reports/latest/test-evidence/panels

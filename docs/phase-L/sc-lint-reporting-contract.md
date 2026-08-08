@@ -13,10 +13,12 @@ The runner always invokes the installed tool as:
 sc-lint --json --root <repo-root> <allowlisted command>
 ```
 
-The allowlist is the closed `ScLintCommand` enum in
-`crates/sc-compose/src/commands/sc_lint.rs`. `reports/inputs/lint/targets.toml`
-is the declarative inventory for target sprints and review tooling. A target
-descriptor never becomes an arbitrary subprocess argument.
+The registry is the per-target descriptor at
+`.sc/sc-lint/targets/<id>.toml`. Its `command` field is the sole source of
+target identity and its `report_kind` must be `lint`. The runner validates the
+command shape before invoking the fixed `sc-lint` executable; a descriptor
+cannot become an arbitrary subprocess or shell command. Target sprints add
+their descriptor and fixture without editing the runner or Justfile.
 
 ## Result shape
 
@@ -34,10 +36,13 @@ sc-compose result adds:
 | `raw_artifact` | Relative link to the exact stdout payload |
 | `report` | Relative link to the HTML summary |
 
-`CLI.CONFIG_ERROR` means repository/tool configuration is invalid. A
-`CLI.CAPABILITY_ERROR` means configuration is valid but the host lacks a
-required capability. Unknown non-zero results remain `failed`; they are never
-silently converted to a pass.
+`CLI.CONFIG_ERROR` from sc-lint remains in the raw payload. At the sc-compose
+boundary, descriptor reads use `ERR_CONFIG_READ`, descriptor syntax/command
+validation uses `ERR_CONFIG_PARSE`, unavailable sc-lint uses `ERR_CONFIG_MODE`,
+and artifact writes use `ERR_RENDER_WRITE`. A `CLI.CAPABILITY_ERROR` from
+sc-lint means configuration is valid but the host lacks a required capability.
+Unknown non-zero results remain `failed`; they are never silently converted to
+a pass.
 
 ## Artifacts and Just contract
 
@@ -63,3 +68,8 @@ just ci                   # lint.ci
 No recipe invokes a target-specific Python converter. Python-backed utility
 ownership stays in sc-lint until the packaging/maturin work tracked by sc-lint
 #83 is complete.
+
+Until that packaging work lands, the CI setup action downloads the pinned
+sc-lint source archive and materializes its `.just/*.py` utilities into the
+runner workspace. This keeps the consumer checkout free of duplicated scripts
+while preserving the same `just` contract on clean CI runners.

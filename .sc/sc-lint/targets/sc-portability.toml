@@ -1,0 +1,2 @@
+command = "lint.sc-portability"
+report_kind = "lint"

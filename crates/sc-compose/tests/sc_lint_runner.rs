@@ -1,27 +1,102 @@
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
 
-fn workspace_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
-        .canonicalize()
-        .expect("workspace root")
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+
+struct TempRoot {
+    path: PathBuf,
+}
+
+impl TempRoot {
+    fn new() -> Self {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock")
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "sc-compose-sc-lint-runner-{}-{nonce}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&path).expect("temporary root");
+        Self { path }
+    }
+
+    fn install_target(&self, target: &str, command: &str) {
+        let target_dir = self.path.join(".sc/sc-lint/targets");
+        fs::create_dir_all(&target_dir).expect("target registry");
+        fs::write(
+            target_dir.join(format!("{target}.toml")),
+            format!("command = \"{command}\"\nreport_kind = \"lint\"\n"),
+        )
+        .expect("target descriptor");
+    }
+}
+
+impl Drop for TempRoot {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.path);
+    }
+}
+
+fn fake_sc_lint_bin(root: &Path) -> PathBuf {
+    let bin_dir = root.join("bin");
+    fs::create_dir_all(&bin_dir).expect("fake bin directory");
+    if cfg!(windows) {
+        let path = bin_dir.join("sc-lint.cmd");
+        fs::write(
+            &path,
+            "@echo {\"ok\":true,\"command\":\"lint.sc-boundary\",\"data\":{\"findings\":[]},\"diagnostics\":[]}\r\n",
+        )
+        .expect("fake sc-lint");
+        path
+    } else {
+        let path = bin_dir.join("sc-lint");
+        fs::write(
+            &path,
+            "#!/bin/sh\nprintf '%s\\n' '{\"ok\":true,\"command\":\"lint.sc-boundary\",\"data\":{\"findings\":[]},\"diagnostics\":[]}'\n",
+        )
+        .expect("fake sc-lint");
+        let mut permissions = fs::metadata(&path).expect("fake metadata").permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&path, permissions).expect("fake executable");
+        path
+    }
+}
+
+fn path_with_fake_bin(bin_dir: &Path) -> String {
+    let mut paths = vec![bin_dir.to_path_buf()];
+    if let Some(existing) = std::env::var_os("PATH") {
+        paths.extend(std::env::split_paths(&existing));
+    }
+    std::env::join_paths(paths)
+        .expect("PATH entries")
+        .to_string_lossy()
+        .into_owned()
 }
 
 #[test]
 fn runner_preserves_sc_lint_envelope_and_writes_both_artifacts() {
-    let root = workspace_root();
+    let root = TempRoot::new();
+    root.install_target("sc-boundary", "lint.sc-boundary");
+    let fake_bin = fake_sc_lint_bin(&root.path);
     let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
         .args([
             "lint",
             "--root",
-            root.to_str().expect("UTF-8 root"),
+            root.path.to_str().expect("UTF-8 root"),
             "--target",
             "sc-boundary",
             "--json",
         ])
+        .env(
+            "PATH",
+            path_with_fake_bin(fake_bin.parent().expect("fake bin parent")),
+        )
         .output()
         .expect("run sc-compose lint");
     assert_eq!(output.status.code(), Some(0));
@@ -32,20 +107,25 @@ fn runner_preserves_sc_lint_envelope_and_writes_both_artifacts() {
     assert_eq!(payload["raw_payload"]["command"], "lint.sc-boundary");
     assert_eq!(payload["exit_status"], 0);
     assert!(
-        root.join("reports/latest/sc-lint/raw/lint.sc-boundary.json")
+        root.path
+            .join("reports/latest/sc-lint/raw/lint.sc-boundary.json")
             .is_file()
     );
-    assert!(root.join("reports/latest/sc-lint/index.html").is_file());
+    assert!(
+        root.path
+            .join("reports/latest/sc-lint/index.html")
+            .is_file()
+    );
 }
 
 #[test]
-fn runner_rejects_commands_outside_the_allowlist() {
-    let root = workspace_root();
+fn runner_rejects_commands_without_a_descriptor() {
+    let root = TempRoot::new();
     let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
         .args([
             "lint",
             "--root",
-            root.to_str().expect("UTF-8 root"),
+            root.path.to_str().expect("UTF-8 root"),
             "--target",
             "sh -c touch /tmp/not-allowed",
             "--json",
@@ -54,5 +134,5 @@ fn runner_rejects_commands_outside_the_allowlist() {
         .expect("run sc-compose lint");
     assert_eq!(output.status.code(), Some(3));
     let envelope: Value = serde_json::from_slice(&output.stdout).expect("JSON error envelope");
-    assert!(envelope["diagnostics"][0]["message"].as_str().is_some());
+    assert_eq!(envelope["diagnostics"][0]["code"], "ERR_CONFIG_READ");
 }

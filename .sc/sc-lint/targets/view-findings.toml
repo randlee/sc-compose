@@ -1,0 +1,2 @@
+command = "view.findings"
+report_kind = "lint"

@@ -1,0 +1,2 @@
+command = "lint.identity-literals"
+report_kind = "lint"

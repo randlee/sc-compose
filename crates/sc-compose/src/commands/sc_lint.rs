@@ -6,7 +6,7 @@ use std::process::Command;
 
 use anyhow::anyhow;
 use sc_composer::DiagnosticCode;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::CommandError;
@@ -16,102 +16,69 @@ use crate::print_json;
 const RAW_REPORT_DIR: &str = "reports/latest/sc-lint/raw";
 const REPORT_PATH: &str = "reports/latest/sc-lint/index.html";
 
-/// A closed set of commands that sc-compose is permitted to execute.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub(crate) enum ScLintCommand {
-    LintScBoundary,
-    LintScPortability,
-    LintScRuntime,
-    LintLineCounts,
-    LintIdentityLiterals,
-    LintFast,
-    LintFull,
-    LintCi,
-    ViewFindings,
-    CheckNative,
-    CheckXwin,
-    ClippyNative,
-    ClippyXwin,
-    Ci,
+const TARGET_REGISTRY_DIR: &str = ".sc/sc-lint/targets";
+
+/// A command loaded from one `.sc/sc-lint/targets/<id>.toml` descriptor.
+///
+/// Descriptors are the target registry's sole source of truth. The command
+/// shape is still checked before it reaches a subprocess, so a descriptor
+/// cannot select an executable or smuggle shell syntax into the runner.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ScLintCommand {
+    id: String,
+    args: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct TargetDescriptor {
+    command: String,
+    report_kind: String,
 }
 
 impl ScLintCommand {
-    pub(crate) fn parse(target: &str) -> Option<Self> {
-        Some(match target {
-            "sc-boundary" => Self::LintScBoundary,
-            "sc-portability" => Self::LintScPortability,
-            "sc-runtime" => Self::LintScRuntime,
-            "line-counts" => Self::LintLineCounts,
-            "identity-literals" => Self::LintIdentityLiterals,
-            "fast" => Self::LintFast,
-            "full" => Self::LintFull,
-            "ci" => Self::LintCi,
-            "view-findings" => Self::ViewFindings,
-            "check-native" => Self::CheckNative,
-            "check-xwin" => Self::CheckXwin,
-            "clippy-native" => Self::ClippyNative,
-            "clippy-xwin" => Self::ClippyXwin,
-            "ci-all" => Self::Ci,
-            _ => return None,
+    fn load(root: &Path, target: &str) -> Result<Self, CommandError> {
+        let descriptor_target = descriptor_target(target);
+        let path = root
+            .join(TARGET_REGISTRY_DIR)
+            .join(format!("{descriptor_target}.toml"));
+        let contents = std::fs::read_to_string(&path).map_err(|error| {
+            CommandError::usage_with_code(
+                anyhow!("read sc-lint target descriptor {}: {error}", path.display()),
+                DiagnosticCode::ErrConfigRead,
+            )
+        })?;
+        let descriptor = toml::from_str::<TargetDescriptor>(&contents).map_err(|error| {
+            CommandError::usage_with_code(
+                anyhow!(
+                    "parse sc-lint target descriptor {}: {error}",
+                    path.display()
+                ),
+                DiagnosticCode::ErrConfigParse,
+            )
+        })?;
+        if descriptor.report_kind != "lint" {
+            return Err(CommandError::usage_with_code(
+                anyhow!(
+                    "sc-lint target descriptor {} must declare report_kind = \"lint\"",
+                    path.display()
+                ),
+                DiagnosticCode::ErrConfigParse,
+            ));
+        }
+        let args = command_args(&descriptor.command).ok_or_else(|| {
+            CommandError::usage_with_code(
+                anyhow!(
+                    "unsupported sc-lint command `{}` in {}",
+                    descriptor.command,
+                    path.display()
+                ),
+                DiagnosticCode::ErrConfigParse,
+            )
+        })?;
+        Ok(Self {
+            id: descriptor.command,
+            args,
         })
-    }
-
-    pub(crate) const fn id(self) -> &'static str {
-        match self {
-            Self::LintScBoundary => "lint.sc-boundary",
-            Self::LintScPortability => "lint.sc-portability",
-            Self::LintScRuntime => "lint.sc-runtime",
-            Self::LintLineCounts => "lint.line-counts",
-            Self::LintIdentityLiterals => "lint.identity-literals",
-            Self::LintFast => "lint.fast",
-            Self::LintFull => "lint.full",
-            Self::LintCi => "lint.ci",
-            Self::ViewFindings => "view.findings",
-            Self::CheckNative => "check.native",
-            Self::CheckXwin => "check.xwin",
-            Self::ClippyNative => "clippy.native",
-            Self::ClippyXwin => "clippy.xwin",
-            Self::Ci => "ci",
-        }
-    }
-
-    const fn args(self) -> &'static [&'static str] {
-        match self {
-            Self::LintScBoundary => &["lint", "sc-boundary"],
-            Self::LintScPortability => &["lint", "sc-portability"],
-            Self::LintScRuntime => &["lint", "sc-runtime"],
-            Self::LintLineCounts => &["lint", "line-counts"],
-            Self::LintIdentityLiterals => &["lint", "identity-literals"],
-            Self::LintFast => &["lint", "fast"],
-            Self::LintFull => &["lint", "full"],
-            Self::LintCi => &["lint", "ci"],
-            Self::ViewFindings => &["view", "findings"],
-            Self::CheckNative => &["check", "native"],
-            Self::CheckXwin => &["check", "xwin"],
-            Self::ClippyNative => &["clippy", "native"],
-            Self::ClippyXwin => &["clippy", "xwin"],
-            Self::Ci => &["ci"],
-        }
-    }
-
-    pub(crate) const fn all() -> &'static [Self] {
-        &[
-            Self::LintScBoundary,
-            Self::LintScPortability,
-            Self::LintScRuntime,
-            Self::LintLineCounts,
-            Self::LintIdentityLiterals,
-            Self::LintFast,
-            Self::LintFull,
-            Self::LintCi,
-            Self::ViewFindings,
-            Self::CheckNative,
-            Self::CheckXwin,
-            Self::ClippyNative,
-            Self::ClippyXwin,
-            Self::Ci,
-        ]
     }
 }
 
@@ -146,25 +113,23 @@ pub(crate) fn run_sc_lint(
     root: &Path,
     command: ScLintCommand,
 ) -> Result<ScLintResult, CommandError> {
+    let ScLintCommand { id, args } = command;
     let output = Command::new("sc-lint")
         .args(["--json", "--root"])
         .arg(root)
-        .args(command.args())
+        .args(&args)
         .current_dir(root)
         .output()
         .map_err(|error| {
             CommandError::usage_with_code(
-                anyhow!(
-                    "sc-lint capability unavailable for {}: {error}",
-                    command.id()
-                ),
-                DiagnosticCode::ErrConfigParse,
+                anyhow!("sc-lint capability unavailable for {id}: {error}"),
+                DiagnosticCode::ErrConfigMode,
             )
         })?;
 
     let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
     let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
-    let (raw_json, raw_payload) = parse_raw_payload(&stdout, &stderr, command);
+    let (raw_json, raw_payload) = parse_raw_payload(&stdout, &stderr, &id);
     let outcome = classify_outcome(&raw_payload, output.status.code());
     let findings = raw_payload
         .get("data")
@@ -178,19 +143,25 @@ pub(crate) fn run_sc_lint(
         .filter(|value| value.as_array().is_some_and(|items| !items.is_empty()))
         .or_else(|| raw_payload.get("error").map(|error| json!([error])))
         .unwrap_or_else(|| Value::Array(Vec::new()));
-    let raw_path = root
-        .join(RAW_REPORT_DIR)
-        .join(format!("{}.json", command.id()));
+    let raw_path = root.join(RAW_REPORT_DIR).join(format!("{id}.json"));
     let report_path = root.join(REPORT_PATH);
     std::fs::create_dir_all(raw_path.parent().expect("raw artifact has a parent")).map_err(
-        |error| CommandError::usage(anyhow!("create sc-lint report directory: {error}")),
+        |error| {
+            CommandError::usage_with_code(
+                anyhow!("create sc-lint report directory: {error}"),
+                DiagnosticCode::ErrRenderWrite,
+            )
+        },
     )?;
     std::fs::write(&raw_path, raw_json).map_err(|error| {
-        CommandError::usage(anyhow!("write sc-lint raw JSON artifact: {error}"))
+        CommandError::usage_with_code(
+            anyhow!("write sc-lint raw JSON artifact: {error}"),
+            DiagnosticCode::ErrRenderWrite,
+        )
     })?;
     let result = ScLintResult {
-        command_id: command.id().to_owned(),
-        target: command.id().to_owned(),
+        command_id: id.clone(),
+        target: id,
         outcome,
         exit_status: output.status.code(),
         stdout,
@@ -203,14 +174,23 @@ pub(crate) fn run_sc_lint(
         report: relative_path(root, &report_path),
     };
     std::fs::create_dir_all(report_path.parent().expect("report has a parent")).map_err(
-        |error| CommandError::usage(anyhow!("create sc-lint report directory: {error}")),
+        |error| {
+            CommandError::usage_with_code(
+                anyhow!("create sc-lint report directory: {error}"),
+                DiagnosticCode::ErrRenderWrite,
+            )
+        },
     )?;
-    std::fs::write(&report_path, render_html_report(&result))
-        .map_err(|error| CommandError::usage(anyhow!("write sc-lint HTML report: {error}")))?;
+    std::fs::write(&report_path, render_html_report(&result)).map_err(|error| {
+        CommandError::usage_with_code(
+            anyhow!("write sc-lint HTML report: {error}"),
+            DiagnosticCode::ErrRenderWrite,
+        )
+    })?;
     Ok(result)
 }
 
-fn parse_raw_payload(stdout: &str, stderr: &str, command: ScLintCommand) -> (String, Value) {
+fn parse_raw_payload(stdout: &str, stderr: &str, command_id: &str) -> (String, Value) {
     if let Ok(payload) = serde_json::from_str(stdout) {
         return (stdout.to_owned(), payload);
     }
@@ -220,7 +200,7 @@ fn parse_raw_payload(stdout: &str, stderr: &str, command: ScLintCommand) -> (Str
     let error = serde_json::from_str::<Value>(stdout).expect_err("stdout was checked above");
     let payload = json!({
         "ok": false,
-        "command": command.id(),
+        "command": command_id,
         "error": {
             "code": "CLI.BACKEND_PROTOCOL_ERROR",
             "kind": "backend_protocol",
@@ -235,21 +215,7 @@ fn parse_raw_payload(stdout: &str, stderr: &str, command: ScLintCommand) -> (Str
 }
 
 pub(crate) fn run_sc_lint_command(args: &ScLintArgs) -> Result<i32, CommandError> {
-    let command = ScLintCommand::parse(&args.target).ok_or_else(|| {
-        let supported = ScLintCommand::all()
-            .iter()
-            .map(|command| command.id())
-            .collect::<Vec<_>>()
-            .join(", ");
-        CommandError::usage_with_code(
-            anyhow!(
-                "unsupported sc-lint target `{}`; supported command IDs: {supported}",
-                args.target
-            ),
-            DiagnosticCode::ErrConfigParse,
-        )
-    })?;
-    ensure_target_registered(&args.root, &args.target)?;
+    let command = ScLintCommand::load(&args.root, &args.target)?;
     let result = run_sc_lint(&args.root, command)?;
     let exit_status = result.exit_status.unwrap_or(1);
     if args.json {
@@ -266,42 +232,28 @@ pub(crate) fn run_sc_lint_command(args: &ScLintArgs) -> Result<i32, CommandError
     Ok(exit_status)
 }
 
-fn ensure_target_registered(root: &Path, target: &str) -> Result<(), CommandError> {
-    let path = root.join("reports/inputs/lint/targets.toml");
-    let contents = std::fs::read_to_string(&path).map_err(|error| {
-        CommandError::usage_with_code(
-            anyhow!("read sc-lint target registry {}: {error}", path.display()),
-            DiagnosticCode::ErrConfigParse,
-        )
-    })?;
-    let document = contents.parse::<toml::Value>().map_err(|error| {
-        CommandError::usage_with_code(
-            anyhow!("parse sc-lint target registry {}: {error}", path.display()),
-            DiagnosticCode::ErrConfigParse,
-        )
-    })?;
-    let registered = document
-        .get("targets")
-        .and_then(toml::Value::as_array)
-        .is_some_and(|targets| {
-            targets.iter().any(|entry| {
-                entry
-                    .get("id")
-                    .and_then(toml::Value::as_str)
-                    .is_some_and(|id| id == target)
-            })
-        });
-    if registered {
-        Ok(())
-    } else {
-        Err(CommandError::usage_with_code(
-            anyhow!(
-                "sc-lint target `{target}` is not declared in {}",
-                path.display()
-            ),
-            DiagnosticCode::ErrConfigParse,
-        ))
+fn descriptor_target(target: &str) -> String {
+    match target {
+        "fast" | "full" | "ci" => format!("lint-{target}"),
+        "ci-all" => String::from("ci"),
+        _ => target.to_owned(),
     }
+}
+
+fn command_args(command: &str) -> Option<Vec<String>> {
+    if command == "ci" {
+        return Some(vec![String::from("ci")]);
+    }
+    let (family, target) = command.split_once('.')?;
+    if !matches!(family, "lint" | "view" | "check" | "clippy")
+        || target.is_empty()
+        || !target.chars().all(|character| {
+            character.is_ascii_lowercase() || character.is_ascii_digit() || character == '-'
+        })
+    {
+        return None;
+    }
+    Some(vec![family.to_owned(), target.to_owned()])
 }
 
 fn classify_outcome(payload: &Value, exit_status: Option<i32>) -> ScLintOutcome {
@@ -388,14 +340,19 @@ fn html_escape(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{ScLintCommand, ScLintOutcome, classify_outcome};
+    use super::{ScLintOutcome, classify_outcome, command_args, descriptor_target};
     use serde_json::json;
 
     #[test]
-    fn allowlist_contains_every_phase_l_contract_target() {
-        assert_eq!(ScLintCommand::all().len(), 14);
-        assert!(ScLintCommand::parse("sc-boundary").is_some());
-        assert!(ScLintCommand::parse("arbitrary-shell-command").is_none());
+    fn descriptor_command_shape_is_closed_to_sc_lint_subcommands() {
+        assert_eq!(descriptor_target("full"), "lint-full");
+        assert_eq!(descriptor_target("ci-all"), "ci");
+        assert_eq!(
+            command_args("lint.sc-boundary"),
+            Some(vec![String::from("lint"), String::from("sc-boundary")])
+        );
+        assert!(command_args("sh.-c").is_none());
+        assert!(command_args("arbitrary-shell-command").is_none());
     }
 
     #[test]

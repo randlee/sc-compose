@@ -1,0 +1,2 @@
+command = "lint.sc-runtime"
+report_kind = "lint"

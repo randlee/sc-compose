@@ -36,7 +36,7 @@ unblocks the mutually parallel target wave L.3-L.16. L.17 waits for that wave.
 - crates/sc-compose/tests/sc_lint_runner.rs
 - Justfile
 - .github/workflows/ci.yml
-- examples/sc-lint-report.html.j2
+- .sc/sc-lint/targets/
 - reports/inputs/lint/
 - docs/phase-L/sc-lint-reporting-contract.md
 - docs/adrs/0017-sc-lint-runner-allowlist-and-reporting.md
@@ -46,12 +46,13 @@ unblocks the mutually parallel target wave L.3-L.16. L.17 waits for that wave.
 - A CLI-owned sc-compose lint orchestration command that executes an allowlisted
   sc-lint command, passes --json --root, preserves exit status, captures
   stdout/stderr separately, and records raw JSON as an artifact.
-- A declarative target registry with stable command IDs for every L.3-L.16
-  target. The registry is read by the generic runner; target sprints add only
-  their own descriptor/fixture and do not edit the shared runner.
+- A declarative target registry at `.sc/sc-lint/targets/<id>.toml` with stable
+  command IDs for every L.3-L.16 target. Each target sprint adds only its own
+  descriptor/fixture and does not edit the shared runner.
 - Generic JSON-source report ingestion and a single sc-compose HTML/XHTML
   materialization path that shows command, status, diagnostics, findings, and
-  raw payload links.
+  raw payload links. The renderer is the sole report materialization path;
+  there is no unused alternate template.
 - A canonical Justfile recipe set: lint, lint <target>, view findings,
   check <target>, clippy <target>, and ci, with the same names and default
   behavior in every consuming repository.
@@ -139,9 +140,9 @@ just ci                   # sc-lint ci
 - The recipe names and default profile match the Phase L command contract.
 - A clean repository checkout can run the runner with no Python dependency
   beyond existing sc-compose project tooling.
-- If a Python-backed target is unavailable because sc-lint resolves a utility
-  under the consumer `.just/` path, the runner preserves an actionable
-  structured diagnostic and does not silently copy or reimplement the script.
+- The CI setup action materializes the pinned sc-lint `.just/*.py` utilities at
+  runner time when a Python-backed target needs them; no utility is copied into
+  or maintained in this repository.
 
 - All required cleanup fixes are QA-approved, merged, and revalidated before sprint closure.
 
