@@ -25,6 +25,44 @@ fn temp_root_with_prefix(label: &str, prefix: &str) -> PathBuf {
     root
 }
 
+pub struct TempFixture {
+    pub path: PathBuf,
+}
+
+impl TempFixture {
+    pub fn new(label: &str) -> Self {
+        Self {
+            path: temp_root_with_prefix(label, "sc-compose-fixture"),
+        }
+    }
+
+    pub fn from_checked_in_fixture(fixture: &str, name: &str, target: &str) -> Self {
+        let fixture_root = Self::new(&format!("{fixture}-{name}"));
+        let source = repo_root()
+            .join("tests/fixtures/sc-lint")
+            .join(fixture)
+            .join(name);
+        copy_directory(&source, &fixture_root.path);
+
+        let target_dir = fixture_root.path.join(".sc/sc-lint/targets");
+        fs::create_dir_all(&target_dir).unwrap();
+        fs::copy(
+            repo_root()
+                .join(".sc/sc-lint/targets")
+                .join(format!("{target}.toml")),
+            target_dir.join(format!("{target}.toml")),
+        )
+        .unwrap();
+        fixture_root
+    }
+}
+
+impl Drop for TempFixture {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.path);
+    }
+}
+
 pub fn write_file(path: &Path, contents: &str) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
@@ -191,14 +229,14 @@ sets = ["publish", "diagram"]
     );
 }
 
-fn copy_dir_all(src: &Path, dst: &Path) {
+pub fn copy_directory(src: &Path, dst: &Path) {
     fs::create_dir_all(dst).unwrap();
     for entry in fs::read_dir(src).unwrap() {
         let entry = entry.unwrap();
         let path = entry.path();
         let target = dst.join(entry.file_name());
         if path.is_dir() {
-            copy_dir_all(&path, &target);
+            copy_directory(&path, &target);
         } else {
             if let Some(parent) = target.parent() {
                 fs::create_dir_all(parent).unwrap();
@@ -209,8 +247,8 @@ fn copy_dir_all(src: &Path, dst: &Path) {
 }
 
 pub fn stage_phase_b_reference_assets(root: &Path) {
-    copy_dir_all(&repo_root().join("examples"), &root.join("examples"));
-    copy_dir_all(&repo_root().join("reports"), &root.join("reports"));
+    copy_directory(&repo_root().join("examples"), &root.join("examples"));
+    copy_directory(&repo_root().join("reports"), &root.join("reports"));
 }
 
 pub fn render_report_summary(root: &Path, vars_path: &str, output_path: &str) {
