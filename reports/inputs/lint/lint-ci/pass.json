@@ -1,0 +1,19 @@
+{
+  "ok": false,
+  "command": "lint.ci",
+  "error": {
+    "kind": "backend_failure",
+    "code": "CLI.BACKEND_EXEC_FAILURE",
+    "message": "sc-boundary failed",
+    "details": {
+      "command": "python3 .just/lint_sc_boundary.py",
+      "exit_code": 1,
+      "root": "tests/fixtures/sc-lint/lint-ci/pass",
+      "stderr": "",
+      "stdout": "sc-boundary failed\n  error: package(s) `sc-lint-boundary` not found in workspace `tests/fixtures/sc-lint/lint-ci/pass`\n  full log: .just/logs/sc-boundary.log",
+      "step": "sc-boundary"
+    },
+    "cause": "sc-boundary failed\n  error: package(s) `sc-lint-boundary` not found in workspace `tests/fixtures/sc-lint/lint-ci/pass`"
+  },
+  "diagnostics": []
+}
