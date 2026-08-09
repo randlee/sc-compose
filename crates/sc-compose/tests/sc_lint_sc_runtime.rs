@@ -1,66 +1,10 @@
 use std::fs;
-use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
 
-struct TempFixture {
-    path: PathBuf,
-}
-
-impl TempFixture {
-    fn from_checked_in_fixture(name: &str) -> Self {
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "sc-compose-sc-runtime-{name}-{}-{nonce}",
-            std::process::id()
-        ));
-        let source = repo_root()
-            .join("tests/fixtures/sc-lint/sc-runtime")
-            .join(name);
-        copy_directory(&source, &path);
-        let target_dir = path.join(".sc/sc-lint/targets");
-        fs::create_dir_all(&target_dir).expect("target registry");
-        fs::copy(
-            repo_root().join(".sc/sc-lint/targets/sc-runtime.toml"),
-            target_dir.join("sc-runtime.toml"),
-        )
-        .expect("sc-runtime target descriptor");
-        Self { path }
-    }
-}
-
-impl Drop for TempFixture {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.path);
-    }
-}
-
-fn repo_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .expect("workspace root")
-        .to_path_buf()
-}
-
-fn copy_directory(source: &Path, destination: &Path) {
-    fs::create_dir_all(destination).expect("fixture destination");
-    for entry in fs::read_dir(source).expect("fixture source") {
-        let entry = entry.expect("fixture entry");
-        let source_path = entry.path();
-        let destination_path = destination.join(entry.file_name());
-        if source_path.is_dir() {
-            copy_directory(&source_path, &destination_path);
-        } else {
-            fs::copy(&source_path, &destination_path).expect("fixture file");
-        }
-    }
-}
+mod support;
+use support::{TempFixture, normalize_path_str};
 
 fn run_sc_runtime(fixture: &TempFixture) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_sc-compose"))
@@ -83,7 +27,7 @@ fn result_payload(output: &std::process::Output) -> Value {
 
 #[test]
 fn runtime_pass_preserves_envelope_and_materializes_evidence() {
-    let fixture = TempFixture::from_checked_in_fixture("pass");
+    let fixture = TempFixture::from_checked_in_fixture("sc-runtime", "pass", "sc-runtime");
     let output = run_sc_runtime(&fixture);
     assert_eq!(
         output.status.code(),
@@ -119,7 +63,7 @@ fn runtime_pass_preserves_envelope_and_materializes_evidence() {
 
 #[test]
 fn runtime_unsafe_wait_stays_non_pass_with_structured_finding() {
-    let fixture = TempFixture::from_checked_in_fixture("unsafe-wait");
+    let fixture = TempFixture::from_checked_in_fixture("sc-runtime", "unsafe-wait", "sc-runtime");
     let output = run_sc_runtime(&fixture);
     assert_eq!(
         output.status.code(),
@@ -152,7 +96,7 @@ fn runtime_unsafe_wait_stays_non_pass_with_structured_finding() {
         "crate::runtime-unsafe::runtime_unsafe::block_until_ready"
     );
     let finding_message = finding["message"].as_str().expect("finding message");
-    let normalized_finding_message = finding_message.replace('\\', "/");
+    let normalized_finding_message = normalize_path_str(finding_message);
     assert!(normalized_finding_message.contains("crates/runtime-unsafe/src/lib.rs:7:"));
     assert!(finding_message.contains("SCB-RUNTIME-001"));
 

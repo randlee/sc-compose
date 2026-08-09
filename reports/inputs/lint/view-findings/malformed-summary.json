@@ -1,0 +1,14 @@
+{
+  "ok": false,
+  "command": "view.findings",
+  "error": {
+    "kind": "backend_protocol",
+    "code": "CLI.BACKEND_PROTOCOL_ERROR",
+    "message": "failed to build findings view: Expecting property name enclosed in double quotes: line 3 column 1 (char 31)",
+    "details": {
+      "script": ".just/view_findings.py",
+      "tool": "sc-lint-view-findings"
+    }
+  },
+  "diagnostics": []
+}
