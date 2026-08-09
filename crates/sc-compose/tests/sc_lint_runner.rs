@@ -1,4 +1,5 @@
 use std::fs;
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 mod support;
 use support::{TempFixture, parse_stdout, sc_compose, write_file};
@@ -17,6 +18,26 @@ fn sc_compose_log_root_is_removed_when_command_finishes() {
         "sc-compose log root leaked: {}",
         log_root.display()
     );
+}
+
+#[test]
+fn fixture_cleanup_survives_a_panicking_assertion() {
+    let mut fixture_path = None;
+    let mut log_root = None;
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        let fixture = TempFixture::new("sc-lint-runner-panic");
+        fixture_path = Some(fixture.path.clone());
+
+        let command = sc_compose();
+        log_root = Some(command.log_root_path().to_path_buf());
+
+        let should_pass = std::hint::black_box(false);
+        assert!(should_pass, "intentional panic to exercise RAII cleanup");
+    }));
+
+    assert!(result.is_err());
+    assert!(!fixture_path.expect("fixture path").exists());
+    assert!(!log_root.expect("log root").exists());
 }
 
 #[cfg(unix)]

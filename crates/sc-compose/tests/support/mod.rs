@@ -225,6 +225,7 @@ pub const SC_LINT_PYTHON_TOOLS: &[&str] = &[
     "lint_identity_literals.py",
 ];
 
+// Serialize rustc shim compilation so concurrent tests do not race on its output path.
 static FAKE_CARGO_COMPILE_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
 pub fn write_fake_cargo(root: &Path, options: FakeCargoOptions) {
