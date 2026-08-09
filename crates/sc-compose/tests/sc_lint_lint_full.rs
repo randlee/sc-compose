@@ -16,6 +16,23 @@ use support::TempFixture;
 
 const TARGET: &str = "lint-full";
 const COMMAND_ID: &str = "lint.full";
+const PYTHON_TOOLS: &[&str] = &[
+    "lint_cargo_deny.py",
+    "lint_cargo_shear.py",
+    "check_version_sync.py",
+    "lint_manifests.py",
+    "lint_codespell.py",
+    "run_pytests.py",
+    "lint_sc_boundary.py",
+    "lint_sc_portability.py",
+];
+const PYTHON_PASS_OUTPUT: &str = r#"import json
+print(json.dumps({"adapter_schema": "sc-lint-python-v1", "ok": True, "summary": "fixture utility passed", "data": {"findings": []}, "diagnostics": []}))
+"#;
+const PYTHON_FINDING_OUTPUT: &str = r#"import json
+print(json.dumps({"adapter_schema": "sc-lint-python-v1", "ok": False, "summary": "fixture utility found a problem", "data": {"findings": [{"rule_id": "LINT-FULL-FINDING-001", "path": "src/lib.rs", "message": "fixture full-profile finding"}]}, "diagnostics": ["fixture finding is intentionally non-pass"]}))
+raise SystemExit(1)
+"#;
 
 #[derive(Clone, Copy)]
 enum ToolMode {
@@ -29,9 +46,23 @@ fn lint_full_fixture(name: &str, mode: ToolMode) -> TempFixture {
     if matches!(mode, ToolMode::MissingUtilities) {
         write_fake_cargo(&fixture.path, false);
     } else {
+        materialize_python_tools(&fixture.path, mode);
         write_fake_tools(&fixture.path, mode);
     }
     fixture
+}
+
+fn materialize_python_tools(root: &Path, mode: ToolMode) {
+    let just = root.join(".just");
+    fs::create_dir_all(&just).expect("fixture just directory");
+    let output = match mode {
+        ToolMode::Pass => PYTHON_PASS_OUTPUT,
+        ToolMode::Finding => PYTHON_FINDING_OUTPUT,
+        ToolMode::MissingUtilities => unreachable!(),
+    };
+    for tool in PYTHON_TOOLS {
+        fs::write(just.join(tool), output).expect("fixture Python utility");
+    }
 }
 
 impl TempFixture {
@@ -266,12 +297,26 @@ fn write_fake_cargo(root: &Path, xwin_available: bool) {
     #[cfg(windows)]
     {
         let exit_code = if xwin_available { "0" } else { "1" };
+        let source = bin.join("fake-cargo.rs");
+        let executable = bin.join("cargo.exe");
         fs::write(
-            bin.join("cargo.cmd"),
+            &source,
             format!(
-                "@echo off\r\nif \"%1\"==\"xwin\" if \"%2\"==\"--version\" exit /b {exit_code}\r\nexit /b 0\r\n"
+                "fn main() {{\n    let mut args = std::env::args().skip(1);\n    let success = args.next().as_deref() == Some(\"xwin\") && args.next().as_deref() == Some(\"--version\");\n    std::process::exit(if success {{ {exit_code} }} else {{ 0 }});\n}}\n"
             ),
         )
-        .expect("fake cargo");
+        .expect("fake cargo source");
+        let status = Command::new("rustc")
+            .args([
+                "--edition",
+                "2021",
+                source.to_str().expect("fake cargo source path"),
+                "-o",
+                executable.to_str().expect("fake cargo executable path"),
+            ])
+            .status()
+            .expect("compile fake cargo");
+        assert!(status.success(), "fake cargo compilation failed: {status}");
+        fs::remove_file(source).expect("remove fake cargo source");
     }
 }

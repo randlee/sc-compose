@@ -9,6 +9,8 @@ mod support;
 
 use std::fs;
 use std::path::{Path, PathBuf};
+#[cfg(windows)]
+use std::process::Command;
 use std::process::Output;
 
 use support::{parse_stdout, repo_root, sc_compose, temp_root};
@@ -261,18 +263,28 @@ fn write_fake_cargo(root: &Path, xwin_available: bool, test_failure: bool) {
     #[cfg(windows)]
     {
         let xwin_code = if xwin_available { "0" } else { "1" };
-        let test_branch = if test_failure {
-            "if \"%1\"==\"test\" (echo {\"findings\":[{\"rule_id\":\"CI-TEST-FINDING-001\",\"path\":\"tests/fixture\",\"message\":\"workspace test failed\"}] 1>&2 & exit /b 1)\r\n"
-        } else {
-            ""
-        };
+        let source = bin.join("fake-cargo.rs");
+        let executable = bin.join("cargo.exe");
         fs::write(
-            bin.join("cargo.cmd"),
+            &source,
             format!(
-                "@echo off\r\nif \"%1\"==\"xwin\" if \"%2\"==\"--version\" exit /b {xwin_code}\r\n{test_branch}exit /b 0\r\n"
+                "fn main() {{\n    let mut args = std::env::args().skip(1);\n    let first = args.next();\n    let second = args.next();\n    if first.as_deref() == Some(\"xwin\") && second.as_deref() == Some(\"--version\") {{\n        std::process::exit({xwin_code});\n    }}\n    if {test_failure} && first.as_deref() == Some(\"test\") {{\n        eprintln!(r#\"{{\\\"findings\\\":[{{\\\"rule_id\\\":\\\"CI-TEST-FINDING-001\\\",\\\"path\\\":\\\"tests/fixture\\\",\\\"message\\\":\\\"workspace test failed\\\"}}]}}\"#);\n        std::process::exit(1);\n    }}\n    std::process::exit(0);\n}}\n",
+                test_failure = test_failure,
             ),
         )
-        .expect("fake cargo");
+        .expect("fake cargo source");
+        let status = Command::new("rustc")
+            .args([
+                "--edition",
+                "2021",
+                source.to_str().expect("fake cargo source path"),
+                "-o",
+                executable.to_str().expect("fake cargo executable path"),
+            ])
+            .status()
+            .expect("compile fake cargo");
+        assert!(status.success(), "fake cargo compilation failed: {status}");
+        fs::remove_file(source).expect("remove fake cargo source");
     }
 }
 
