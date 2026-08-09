@@ -1,0 +1,19 @@
+{
+  "ok": false,
+  "command": "clippy.xwin",
+  "error": {
+    "kind": "backend_failure",
+    "code": "CLI.BACKEND_EXEC_FAILURE",
+    "message": "clippy.xwin failed",
+    "details": {
+      "command": "cargo xwin clippy --workspace --all-targets --target x86_64-pc-windows-msvc -- -D warnings",
+      "exit_code": 101,
+      "root": "tests/fixtures/sc-lint/clippy-xwin/failing-analysis",
+      "stderr": "error: variable does not need to be mutable\n --> crates/clippy-xwin-failing/src/lib.rs:3:9\n  |\n3 |     let mut value = 1;\n  |         ----^^^^^\n  |         |\n  |         help: remove this `mut`\n  |\n  = note: `-D unused-mut` implied by `-D warnings`\n\nerror: returning the result of a `let` binding from a block\n --> crates/clippy-xwin-failing/src/lib.rs:4:5\n  |\n3 |     let mut value = 1;\n  |     ------------------ unnecessary `let` binding\n4 |     value\n  |     ^^^^^\n  |\n  = note: `-D clippy::let-and-return` implied by `-D warnings`\n\nerror: could not compile `clippy-xwin-failing` (lib) due to 2 previous errors",
+      "stdout": "",
+      "step": "clippy.xwin"
+    },
+    "cause": "error: variable does not need to be mutable; -D unused-mut implied by -D warnings; error: could not compile clippy-xwin-failing"
+  },
+  "diagnostics": []
+}
