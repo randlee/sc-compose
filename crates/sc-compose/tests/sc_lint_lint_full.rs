@@ -7,16 +7,15 @@
 
 use serde_json::Value;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Command, Output};
-use std::time::{SystemTime, UNIX_EPOCH};
+
+mod support;
+
+use support::TempFixture;
 
 const TARGET: &str = "lint-full";
 const COMMAND_ID: &str = "lint.full";
-
-struct TempFixture {
-    path: PathBuf,
-}
 
 #[derive(Clone, Copy)]
 enum ToolMode {
@@ -25,35 +24,17 @@ enum ToolMode {
     MissingUtilities,
 }
 
-impl TempFixture {
-    fn from_checked_in_fixture(name: &str, mode: ToolMode) -> Self {
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "sc-compose-lint-full-{name}-{}-{nonce}",
-            std::process::id()
-        ));
-        let source = repo_root()
-            .join("tests/fixtures/sc-lint/lint-full")
-            .join(name);
-        copy_directory(&source, &path);
-        let target_dir = path.join(".sc/sc-lint/targets");
-        fs::create_dir_all(&target_dir).expect("target registry");
-        fs::copy(
-            repo_root().join(".sc/sc-lint/targets/lint-full.toml"),
-            target_dir.join("lint-full.toml"),
-        )
-        .expect("lint-full target descriptor");
-        if matches!(mode, ToolMode::MissingUtilities) {
-            write_fake_cargo(&path, false);
-        } else {
-            write_fake_tools(&path, mode);
-        }
-        Self { path }
+fn lint_full_fixture(name: &str, mode: ToolMode) -> TempFixture {
+    let fixture = support::TempFixture::from_checked_in_fixture("lint-full", name, "lint-full");
+    if matches!(mode, ToolMode::MissingUtilities) {
+        write_fake_cargo(&fixture.path, false);
+    } else {
+        write_fake_tools(&fixture.path, mode);
     }
+    fixture
+}
 
+impl TempFixture {
     fn path_with_fake_tools(&self) -> String {
         let bin = self.path.join("fake-bin");
         let mut paths = vec![bin];
@@ -67,19 +48,9 @@ impl TempFixture {
     }
 }
 
-impl Drop for TempFixture {
-    fn drop(&mut self) {
-        if std::env::var_os("SC_LINT_L14_KEEP").is_some() {
-            eprintln!("preserved lint.full fixture: {}", self.path.display());
-        } else {
-            let _ = fs::remove_dir_all(&self.path);
-        }
-    }
-}
-
 #[test]
 fn lint_full_pass_preserves_profile_envelope_and_report() {
-    let fixture = TempFixture::from_checked_in_fixture("pass", ToolMode::Pass);
+    let fixture = lint_full_fixture("pass", ToolMode::Pass);
     let output = run_lint_full(&fixture);
     assert_eq!(
         output.status.code(),
@@ -111,12 +82,12 @@ fn lint_full_pass_preserves_profile_envelope_and_report() {
 
 #[test]
 fn lint_full_finding_stays_non_pass_with_structured_backend_payload() {
-    let fixture = TempFixture::from_checked_in_fixture("finding-negative", ToolMode::Finding);
+    let fixture = lint_full_fixture("finding-negative", ToolMode::Finding);
     let output = run_lint_full(&fixture);
     assert_eq!(
         output.status.code(),
-        Some(5),
-        "full-profile finding must retain sc-lint's failure status: {output:?}"
+        Some(2),
+        "full-profile finding must return the CLI validation-failure status: {output:?}"
     );
 
     let payload = &result_payload(&output)["payload"];
@@ -150,13 +121,12 @@ fn lint_full_finding_stays_non_pass_with_structured_backend_payload() {
 
 #[test]
 fn lint_full_without_materialized_utilities_is_explicit_config_error() {
-    let fixture =
-        TempFixture::from_checked_in_fixture("config-negative", ToolMode::MissingUtilities);
+    let fixture = lint_full_fixture("config-negative", ToolMode::MissingUtilities);
     let output = run_lint_full(&fixture);
     assert_eq!(
         output.status.code(),
-        Some(5),
-        "missing utility must retain sc-lint config status: {output:?}"
+        Some(3),
+        "missing utility must return the CLI usage-failure status: {output:?}"
     );
 
     let payload = &result_payload(&output)["payload"];
@@ -304,33 +274,4 @@ fn write_fake_cargo(root: &Path, xwin_available: bool) {
         )
         .expect("fake cargo");
     }
-}
-
-fn copy_directory(source: &Path, destination: &Path) {
-    fs::create_dir_all(destination).expect("fixture destination");
-    for entry in fs::read_dir(source).expect("fixture source") {
-        let entry = entry.expect("fixture entry");
-        let source_path = entry.path();
-        let destination_path = destination.join(entry.file_name());
-        if source_path.is_dir() {
-            copy_directory(&source_path, &destination_path);
-        } else {
-            if let Some(parent) = destination_path.parent() {
-                fs::create_dir_all(parent).expect("fixture parent");
-            }
-            fs::copy(source_path, destination_path).expect("fixture file");
-        }
-    }
-}
-
-fn repo_root() -> PathBuf {
-    let canonical = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..")
-        .canonicalize()
-        .expect("repo root");
-    let Some(path) = canonical.to_str() else {
-        return canonical;
-    };
-    PathBuf::from(path.strip_prefix(r"\\?\").unwrap_or(path))
 }
