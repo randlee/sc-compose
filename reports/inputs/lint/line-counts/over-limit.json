@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "command": "lint.line-counts",
+  "data": {
+    "adapter": "sc-lint-python-v1",
+    "artifact_dir": "artifacts/findings/line-counts",
+    "config_scope": "line_counts",
+    "crate_totals": [
+      {
+        "crate": "line-counts-over-limit",
+        "prod": 18,
+        "prod_test": 18,
+        "test": 0,
+        "total": 25
+      }
+    ],
+    "elapsed_ms": 0,
+    "files": [
+      {
+        "crate": "line-counts-over-limit",
+        "path": "crates/line-counts-over-limit/src/lib.rs",
+        "prod": 18,
+        "prod_test": 18,
+        "test": 0,
+        "total": 25
+      }
+    ],
+    "findings": [
+      "crates/line-counts-over-limit/src/lib.rs: prod=18 exceeds limit 5"
+    ],
+    "limits": {
+      "exclusions": {},
+      "max_production_lines": 5,
+      "max_scoped_code_lines": null,
+      "max_total_lines": null,
+      "summary": "prod<=5"
+    },
+    "script": ".just/lint_line_counts.py",
+    "status": "fail",
+    "summary": "source file size limits exceeded",
+    "tool": "sc-lint-line-counts"
+  },
+  "diagnostics": []
+}
