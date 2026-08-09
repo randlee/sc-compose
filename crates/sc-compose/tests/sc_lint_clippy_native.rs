@@ -123,10 +123,7 @@ fn clippy_native_pass_preserves_workflow_envelope_and_materializes_evidence() {
         payload["raw_payload"]["data"]["steps"][0]["command"],
         "cargo clippy --workspace --all-targets -- -D warnings"
     );
-    assert_eq!(
-        payload["raw_payload"]["data"]["steps"][0]["kind"],
-        "clippy"
-    );
+    assert_eq!(payload["raw_payload"]["data"]["steps"][0]["kind"], "clippy");
     assert_eq!(payload["raw_payload"]["data"]["steps"][0]["status"], "pass");
     assert!(payload["raw_payload"]["diagnostics"].is_array());
     assert_eq!(payload["findings_count"], 0);
