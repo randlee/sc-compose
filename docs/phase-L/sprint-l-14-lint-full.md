@@ -2,7 +2,7 @@
 id: L.14
 title: Full Lint Profile
 phase: L
-status: planned
+status: complete
 branch: sprint/l-14-lint-full
 worktree: ../sc-compose-worktrees/sprint/l-14-lint-full
 target: integrate/phase-l
