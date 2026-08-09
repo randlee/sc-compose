@@ -25,6 +25,8 @@ const PYTHON_TOOLS: &[&str] = &[
     "run_pytests.py",
     "lint_sc_boundary.py",
     "lint_sc_portability.py",
+    "lint_line_counts.py",
+    "lint_identity_literals.py",
 ];
 const PYTHON_PASS_OUTPUT: &str = r#"import json
 print(json.dumps({"adapter_schema": "sc-lint-python-v1", "ok": True, "summary": "fixture utility passed", "data": {"findings": []}, "diagnostics": []}))
