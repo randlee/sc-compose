@@ -1,0 +1,42 @@
+{
+  "ok": true,
+  "command": "lint.line-counts",
+  "data": {
+    "adapter": "sc-lint-python-v1",
+    "artifact_dir": "artifacts/findings/line-counts",
+    "config_scope": "line_counts",
+    "crate_totals": [
+      {
+        "crate": "line-counts-pass",
+        "prod": 3,
+        "prod_test": 3,
+        "test": 0,
+        "total": 5
+      }
+    ],
+    "elapsed_ms": 0,
+    "files": [
+      {
+        "crate": "line-counts-pass",
+        "path": "crates/line-counts-pass/src/lib.rs",
+        "prod": 3,
+        "prod_test": 3,
+        "test": 0,
+        "total": 5
+      }
+    ],
+    "findings": [],
+    "limits": {
+      "exclusions": {},
+      "max_production_lines": 20,
+      "max_scoped_code_lines": null,
+      "max_total_lines": null,
+      "summary": "prod<=20"
+    },
+    "script": ".just/lint_line_counts.py",
+    "status": "pass",
+    "summary": "source file size limits satisfied",
+    "tool": "sc-lint-line-counts"
+  },
+  "diagnostics": []
+}

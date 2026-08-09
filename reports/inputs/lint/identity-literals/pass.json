@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "command": "lint.identity-literals",
+  "data": {
+    "adapter": "sc-lint-python-v1",
+    "artifact_dir": "artifacts/findings/identity-literals",
+    "config_scope": "identities",
+    "elapsed_ms": 0,
+    "findings": [],
+    "forbidden_literals": [
+      "team-lead@example.invalid"
+    ],
+    "production_canonical_literals": {
+      "team-lead@example.invalid": [
+        "crates/demo/src/constants.rs"
+      ]
+    },
+    "script": ".just/lint_identity_literals.py",
+    "status": "pass",
+    "summary": "no disallowed raw production literals found in Rust code",
+    "tool": "sc-lint-identity-literals",
+    "violation_kinds": []
+  },
+  "diagnostics": []
+}
