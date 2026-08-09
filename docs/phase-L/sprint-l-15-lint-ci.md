@@ -2,7 +2,7 @@
 id: L.15
 title: CI Lint Profile
 phase: L
-status: planned
+status: complete
 branch: sprint/l-15-lint-ci
 worktree: ../sc-compose-worktrees/sprint/l-15-lint-ci
 target: integrate/phase-l
