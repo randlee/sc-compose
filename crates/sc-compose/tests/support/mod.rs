@@ -271,7 +271,7 @@ pub fn write_fake_cargo(root: &Path, options: FakeCargoOptions) {
                 "fn main() {{\n    let mut args = std::env::args().skip(1);\n    let first = args.next();\n    let second = args.next();\n    if first.as_deref() == Some(\"xwin\") && matches!(second.as_deref(), Some(\"--version\") | Some(\"check\")) {{\n        std::process::exit({xwin_code});\n    }}\n    if {test_failure} && first.as_deref() == Some(\"test\") {{\n        eprintln!(\"{{{{\\\"findings\\\":[{{{{\\\"rule_id\\\":\\\"CI-TEST-FINDING-001\\\",\\\"path\\\":\\\"tests/fixture\\\",\\\"message\\\":\\\"workspace test failed\\\"}}}}]}}}}\");\n        std::process::exit(1);\n    }}\n    std::process::exit({fallback});\n}}\n",
                 xwin_code = xwin_code,
                 test_failure = options.test_failure,
-                fallback = if options.fail_closed { 1 } else { 0 },
+                fallback = i32::from(options.fail_closed),
             ),
         )
         .expect("fake cargo source");
