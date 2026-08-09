@@ -1,0 +1,12 @@
+[package]
+name = "boundary-app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+boundary-api = { path = "../boundary-api", version = "0.1.0" }
