@@ -1,0 +1,18 @@
+{
+  "tool": "sc-lint-runtime",
+  "status": "fail",
+  "summary": "unsafe wait pattern retained for review",
+  "findings": [
+    {
+      "kind": "condvar_wait_without_timeout",
+      "message": "SCB-RUNTIME-001 retained in the findings artifact",
+      "node_ids": [
+        "crate::runtime-unsafe::runtime_unsafe::block_until_ready"
+      ],
+      "owner_ids": [
+        "crate::runtime-unsafe::runtime_unsafe"
+      ],
+      "rule_id": "SCB-RUNTIME-001"
+    }
+  ]
+}

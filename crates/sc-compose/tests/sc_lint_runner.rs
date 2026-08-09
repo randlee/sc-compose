@@ -1,47 +1,14 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
 
+mod support;
+use support::{TempFixture, write_file};
+
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
-
-struct TempRoot {
-    path: PathBuf,
-}
-
-impl TempRoot {
-    fn new() -> Self {
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "sc-compose-sc-lint-runner-{}-{nonce}",
-            std::process::id()
-        ));
-        fs::create_dir_all(&path).expect("temporary root");
-        Self { path }
-    }
-
-    fn install_target(&self, target: &str, command: &str) {
-        let target_dir = self.path.join(".sc/sc-lint/targets");
-        fs::create_dir_all(&target_dir).expect("target registry");
-        fs::write(
-            target_dir.join(format!("{target}.toml")),
-            format!("command = \"{command}\"\nreport_kind = \"lint\"\n"),
-        )
-        .expect("target descriptor");
-    }
-}
-
-impl Drop for TempRoot {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.path);
-    }
-}
 
 fn fake_sc_lint_bin(root: &Path) -> PathBuf {
     let bin_dir = root.join("bin");
@@ -86,8 +53,11 @@ fn path_with_fake_bin(bin_dir: &Path) -> String {
 
 #[test]
 fn runner_preserves_sc_lint_envelope_and_writes_both_artifacts() {
-    let root = TempRoot::new();
-    root.install_target("sc-boundary", "lint.sc-boundary");
+    let root = TempFixture::new("sc-lint-runner");
+    write_file(
+        &root.path.join(".sc/sc-lint/targets/sc-boundary.toml"),
+        "command = \"lint.sc-boundary\"\nreport_kind = \"lint\"\n",
+    );
     let fake_bin = fake_sc_lint_bin(&root.path);
     let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
         .args([
@@ -133,7 +103,7 @@ fn runner_preserves_sc_lint_envelope_and_writes_both_artifacts() {
 
 #[test]
 fn runner_rejects_commands_without_a_descriptor() {
-    let root = TempRoot::new();
+    let root = TempFixture::new("sc-lint-runner");
     let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
         .args([
             "lint",

@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "command": "lint.sc-runtime",
+  "data": {
+    "findings": [
+      {
+        "kind": "condvar_wait_without_timeout",
+        "message": "tests/fixtures/sc-lint/sc-runtime/unsafe-wait/crates/runtime-unsafe/src/lib.rs:7: SCB-RUNTIME-001 bare Condvar::wait(...) in non-test production code; use wait_timeout(...) or wait_timeout_while(...) and inspect the WaitTimeoutResult",
+        "node_ids": [
+          "crate::runtime-unsafe::runtime_unsafe::block_until_ready"
+        ],
+        "owner_ids": [
+          "crate::runtime-unsafe::runtime_unsafe"
+        ],
+        "rule_id": "SCB-RUNTIME-001"
+      }
+    ],
+    "scanned_crates": 1,
+    "schema_version": "0.1.0",
+    "status": "fail",
+    "tool": "sc-lint-runtime",
+    "version": "0.4.0"
+  },
+  "diagnostics": []
+}

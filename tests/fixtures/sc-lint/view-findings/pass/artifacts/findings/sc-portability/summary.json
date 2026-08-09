@@ -1,0 +1,6 @@
+{
+  "tool": "sc-lint-portability",
+  "status": "pass",
+  "summary": "platform-neutral paths verified",
+  "findings": []
+}
