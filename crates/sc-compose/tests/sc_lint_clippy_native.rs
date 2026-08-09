@@ -156,7 +156,7 @@ fn clippy_native_warning_remains_non_pass_with_structured_diagnostics() {
     let output = run_clippy_native(&fixture);
     assert_eq!(
         output.status.code(),
-        Some(5),
+        Some(2),
         "clippy native should retain the workflow failure exit status; stderr: {}",
         String::from_utf8_lossy(&output.stderr),
     );
