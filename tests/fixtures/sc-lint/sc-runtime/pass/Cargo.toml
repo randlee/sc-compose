@@ -1,0 +1,12 @@
+[workspace]
+members = ["crates/runtime-pass"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.94.1"
+authors = ["sc-compose"]
+license = "MIT"
+repository = "https://example.invalid/sc-compose-runtime-pass"
+homepage = "https://example.invalid/sc-compose-runtime-pass"
