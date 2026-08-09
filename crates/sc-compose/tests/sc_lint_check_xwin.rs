@@ -110,8 +110,8 @@ fn check_xwin_unavailable_remains_explicit_capability_failure() {
     let output = run_check_xwin(&fixture);
     assert_eq!(
         output.status.code(),
-        Some(4),
-        "capability failure must retain sc-lint's exit code: {output:?}"
+        Some(3),
+        "capability failure must use sc-compose's normalized exit code: {output:?}"
     );
 
     let envelope = result_payload(&output);
@@ -217,13 +217,27 @@ fn write_fake_cargo(root: &Path, xwin_available: bool) {
     #[cfg(windows)]
     {
         let exit_code = if xwin_available { "0" } else { "1" };
+        let source = bin.join("fake-cargo.rs");
+        let executable = bin.join("cargo.exe");
         fs::write(
-            bin.join("cargo.cmd"),
+            &source,
             format!(
-                "@echo off\r\nif \"%1\"==\"xwin\" if \"%2\"==\"--version\" exit /b {exit_code}\r\nif \"%1\"==\"xwin\" if \"%2\"==\"check\" exit /b {exit_code}\r\nexit /b 1\r\n"
+                "fn main() {{\n    let mut args = std::env::args().skip(1);\n    let success = args.next().as_deref() == Some(\"xwin\")\n        && matches!(args.next().as_deref(), Some(\"--version\") | Some(\"check\"));\n    std::process::exit(if success {{ {exit_code} }} else {{ 1 }});\n}}\n"
             ),
         )
-        .expect("fake cargo");
+        .expect("fake cargo source");
+        let status = Command::new("rustc")
+            .args([
+                "--edition",
+                "2021",
+                source.to_str().expect("fake cargo source path"),
+                "-o",
+                executable.to_str().expect("fake cargo executable path"),
+            ])
+            .status()
+            .expect("compile fake cargo");
+        assert!(status.success(), "fake cargo compilation failed: {status}");
+        fs::remove_file(source).expect("remove fake cargo source");
     }
 }
 

@@ -3,7 +3,7 @@ id: L.10
 title: Windows Cross-Target Check
 phase: L
 status: complete
-branch: sprint/l-10-check-xwin
+branch: fix/l-10-xwin-and-exitcode-comp3
 worktree: ../sc-compose-worktrees/sprint/l-10-check-xwin
 target: integrate/phase-l
 ---
