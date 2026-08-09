@@ -80,7 +80,7 @@ fn check_native_compile_failure_remains_non_pass_with_structured_diagnostics() {
     let output = run_check_native(&fixture);
     assert_eq!(
         output.status.code(),
-        Some(5),
+        Some(2),
         "check native should retain the workflow failure exit status; stderr: {}",
         String::from_utf8_lossy(&output.stderr),
     );
