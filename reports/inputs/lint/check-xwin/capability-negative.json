@@ -1,0 +1,16 @@
+{
+  "ok": false,
+  "command": "check.xwin",
+  "error": {
+    "kind": "capability",
+    "code": "CLI.CAPABILITY_ERROR",
+    "message": "check.xwin requires `cargo xwin`, but that capability is not available",
+    "details": {
+      "command": "check.xwin",
+      "target": "x86_64-pc-windows-msvc",
+      "tool": "cargo xwin"
+    },
+    "suggested_action": "Install `cargo-xwin` to enable Windows preflight or use the native check/clippy path instead."
+  },
+  "diagnostics": []
+}

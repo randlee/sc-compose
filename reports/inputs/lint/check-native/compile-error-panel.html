@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>check.native compile-error fixture</title>
+</head>
+<body>
+  <main data-template-family="base">
+    <header class="report-header">
+      <h1>check.native compile-error fixture</h1>
+    </header>
+    <section class="report-panels">
+      <article id="reports-inputs-lint-check-native-compile-error-md" class="report-panel">
+        <header class="panel-header">
+          <h2>check.native compile-error fixture</h2>
+        </header>
+        <div class="panel-body">
+Input fixture: `tests/fixtures/sc-lint/check-native/compile-error`.
+
+The actual `sc-lint --json --root &lt;fixture&gt; check native` invocation preserves
+the native `cargo check --workspace` failure as a non-pass command result.
+The structured error is `CLI.BACKEND_EXEC_FAILURE` for step `check.native` and
+retains the compiler's `MissingType` diagnostic; the raw envelope is retained
+as `compile-error.json` and the rendered panel as `compile-error-panel.html`.</div>
+        <footer class="panel-footer">
+          <button type="button" data-copy-text="
+Input fixture: `tests/fixtures/sc-lint/check-native/compile-error`.
+
+The actual `sc-lint --json --root &lt;fixture&gt; check native` invocation preserves
+the native `cargo check --workspace` failure as a non-pass command result.
+The structured error is `CLI.BACKEND_EXEC_FAILURE` for step `check.native` and
+retains the compiler's `MissingType` diagnostic; the raw envelope is retained
+as `compile-error.json` and the rendered panel as `compile-error-panel.html`." >Copy text</button>
+          <button type="button" data-copy-json="{&quot;command&quot;:&quot;check.native&quot;,&quot;fixture&quot;:&quot;tests/fixtures/sc-lint/check-native/compile-error&quot;,&quot;outcome&quot;:&quot;failed&quot;,&quot;rule_id&quot;:&quot;CLI.BACKEND_EXEC_FAILURE&quot;,&quot;raw_artifact&quot;:&quot;reports/inputs/lint/check-native/compile-error.json&quot;}">Copy json</button>
+        </footer>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
