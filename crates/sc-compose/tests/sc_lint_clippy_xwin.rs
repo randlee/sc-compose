@@ -98,7 +98,7 @@ fn clippy_xwin_pass_preserves_identity_and_materializes_report() {
     } else {
         assert_eq!(output.status.code(), Some(3));
         assert_eq!(payload["outcome"], "capability_error");
-        assert_eq!(payload["exit_status"], 5);
+        assert_eq!(payload["exit_status"], 4);
         assert_eq!(
             payload["raw_payload"]["error"]["code"],
             "CLI.CAPABILITY_ERROR"
@@ -155,7 +155,7 @@ fn clippy_xwin_failure_stays_non_pass_with_structured_diagnostics() {
     } else {
         assert_eq!(output.status.code(), Some(3));
         assert_eq!(payload["outcome"], "capability_error");
-        assert_eq!(payload["exit_status"], 5);
+        assert_eq!(payload["exit_status"], 4);
         assert_eq!(
             payload["raw_payload"]["error"]["code"],
             "CLI.CAPABILITY_ERROR"
