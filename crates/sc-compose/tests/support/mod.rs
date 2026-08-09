@@ -3,9 +3,11 @@
     reason = "shared helpers are selected by separate integration-test binaries"
 )]
 
+use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
@@ -29,6 +31,20 @@ pub struct TempFixture {
     pub path: PathBuf,
 }
 
+#[derive(Clone, Copy)]
+pub struct CheckedInFixture<'a> {
+    pub group: &'a str,
+    pub name: &'a str,
+    pub target: &'a str,
+}
+
+#[derive(Clone, Copy)]
+pub struct FakeCargoOptions {
+    pub xwin_available: bool,
+    pub test_failure: bool,
+    pub fail_closed: bool,
+}
+
 impl TempFixture {
     pub fn new(label: &str) -> Self {
         Self {
@@ -36,12 +52,12 @@ impl TempFixture {
         }
     }
 
-    pub fn from_checked_in_fixture(fixture: &str, name: &str, target: &str) -> Self {
-        let fixture_root = Self::new(&format!("{fixture}-{name}"));
+    pub fn from_checked_in_fixture(spec: CheckedInFixture<'_>) -> Self {
+        let fixture_root = Self::new(&format!("{}-{}", spec.group, spec.name));
         let source = repo_root()
             .join("tests/fixtures/sc-lint")
-            .join(fixture)
-            .join(name);
+            .join(spec.group)
+            .join(spec.name);
         copy_directory(&source, &fixture_root.path);
 
         let target_dir = fixture_root.path.join(".sc/sc-lint/targets");
@@ -49,11 +65,22 @@ impl TempFixture {
         fs::copy(
             repo_root()
                 .join(".sc/sc-lint/targets")
-                .join(format!("{target}.toml")),
-            target_dir.join(format!("{target}.toml")),
+                .join(format!("{}.toml", spec.target)),
+            target_dir.join(format!("{}.toml", spec.target)),
         )
         .unwrap();
         fixture_root
+    }
+
+    pub fn path_with_fake_tools(&self) -> String {
+        let mut paths = vec![self.path.join("fake-bin")];
+        if let Some(existing) = std::env::var_os("PATH") {
+            paths.extend(std::env::split_paths(&existing));
+        }
+        std::env::join_paths(paths)
+            .expect("PATH entries")
+            .to_string_lossy()
+            .into_owned()
     }
 }
 
@@ -70,24 +97,212 @@ pub fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
-pub fn sc_compose() -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_sc-compose"));
-    command.env("SC_LOG_ROOT", test_log_root("sc-compose-test"));
-    command
+pub struct ScComposeCommand {
+    command: Command,
+    log_root: TempFixture,
 }
 
-fn test_log_root(prefix: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let root = std::env::temp_dir().join(format!("{prefix}-logs-{}-{nanos}", std::process::id()));
-    fs::create_dir_all(&root).unwrap();
-    root
+impl ScComposeCommand {
+    pub fn log_root_path(&self) -> &Path {
+        &self.log_root.path
+    }
+
+    pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Self {
+        self.command.arg(arg);
+        self
+    }
+
+    pub fn args<I, S>(&mut self, args: I) -> &mut Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        self.command.args(args);
+        self
+    }
+
+    pub fn env<K, V>(&mut self, key: K, value: V) -> &mut Self
+    where
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        self.command.env(key, value);
+        self
+    }
+
+    pub fn stdin(&mut self, cfg: Stdio) -> &mut Self {
+        self.command.stdin(cfg);
+        self
+    }
+
+    pub fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Self {
+        self.command.current_dir(dir);
+        self
+    }
+
+    pub fn status(&mut self) -> std::io::Result<std::process::ExitStatus> {
+        self.command.status()
+    }
+
+    pub fn output(&mut self) -> std::io::Result<std::process::Output> {
+        self.command.output()
+    }
+}
+
+pub fn sc_compose() -> ScComposeCommand {
+    let log_root = TempFixture::new("sc-compose-logs");
+    let mut command = Command::new(env!("CARGO_BIN_EXE_sc-compose"));
+    command.env("SC_LOG_ROOT", &log_root.path);
+    ScComposeCommand { command, log_root }
+}
+
+pub fn sc_lint_just_root(required_files: &[&str]) -> PathBuf {
+    try_sc_lint_just_root(required_files).unwrap_or_else(|| {
+        panic!(
+            "sc-lint Python utilities are unavailable; run the setup-sc-lint action or set SC_LINT_SOURCE_ROOT"
+        )
+    })
+}
+
+pub fn try_sc_lint_just_root(required_files: &[&str]) -> Option<PathBuf> {
+    let mut candidates = Vec::new();
+    if let Some(source_root) = std::env::var_os("SC_LINT_SOURCE_ROOT") {
+        candidates.push(PathBuf::from(source_root).join(".just"));
+    }
+    candidates.push(repo_root().join(".just"));
+    for ancestor in repo_root().ancestors() {
+        candidates.push(ancestor.join("sc-lint").join(".just"));
+    }
+
+    candidates.into_iter().find(|candidate| {
+        required_files
+            .iter()
+            .all(|file| candidate.join(file).is_file())
+    })
+}
+
+pub fn materialize_sc_lint_runtime(root: &Path, required_files: &[&str]) {
+    let source = sc_lint_just_root(required_files);
+    materialize_sc_lint_runtime_from(root, &source, required_files, false);
+}
+
+pub fn materialize_sc_lint_runtime_with_config(root: &Path, required_files: &[&str]) {
+    let source = sc_lint_just_root(required_files);
+    materialize_sc_lint_runtime_from(root, &source, required_files, true);
+}
+
+fn materialize_sc_lint_runtime_from(
+    root: &Path,
+    source: &Path,
+    required_files: &[&str],
+    include_config: bool,
+) {
+    let destination = root.join(".just");
+    fs::create_dir_all(&destination).unwrap();
+    for file in required_files {
+        fs::copy(source.join(file), destination.join(file))
+            .unwrap_or_else(|error| panic!("materialize sc-lint utility {file}: {error}"));
+    }
+    if include_config {
+        let config = source.join("lint-config.toml");
+        if config.is_file() {
+            fs::copy(config, destination.join("lint-config.toml"))
+                .expect("materialize sc-lint lint config");
+        }
+    }
+}
+
+pub const SC_LINT_PYTHON_TOOLS: &[&str] = &[
+    "lint_cargo_deny.py",
+    "lint_cargo_shear.py",
+    "check_version_sync.py",
+    "lint_manifests.py",
+    "lint_codespell.py",
+    "run_pytests.py",
+    "lint_sc_boundary.py",
+    "lint_sc_portability.py",
+    "lint_line_counts.py",
+    "lint_identity_literals.py",
+];
+
+// Serialize rustc shim compilation so concurrent tests do not race on its output path.
+static FAKE_CARGO_COMPILE_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+
+pub fn write_fake_cargo(root: &Path, options: FakeCargoOptions) {
+    let bin = root.join("fake-bin");
+    fs::create_dir_all(&bin).expect("fake tools directory");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        let xwin_code = if options.xwin_available { "0" } else { "1" };
+        let test_branch = if options.test_failure {
+            "if [ \"$1\" = \"test\" ]; then\n  printf '%s\\n' '{\"findings\":[{\"rule_id\":\"CI-TEST-FINDING-001\",\"path\":\"tests/fixture\",\"message\":\"workspace test failed\"}]}' >&2\n  exit 1\nfi\n"
+        } else {
+            ""
+        };
+        let fallback = if options.fail_closed {
+            "exit 1"
+        } else {
+            "exit 0"
+        };
+        let cargo = bin.join("cargo");
+        fs::write(
+            &cargo,
+            format!(
+                "#!/bin/sh\nif [ \"$1\" = \"xwin\" ] && {{ [ \"$2\" = \"--version\" ] || [ \"$2\" = \"check\" ]; }}; then\n  exit {xwin_code}\nfi\n{test_branch}{fallback}\n"
+            ),
+        )
+        .expect("fake cargo");
+        let mut permissions = fs::metadata(&cargo)
+            .expect("fake cargo metadata")
+            .permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(cargo, permissions).expect("fake cargo permissions");
+    }
+
+    #[cfg(windows)]
+    {
+        let xwin_code = if options.xwin_available { "0" } else { "1" };
+        let source = bin.join("fake-cargo.rs");
+        let executable = bin.join("cargo.exe");
+        fs::write(
+            &source,
+            format!(
+                "fn main() {{\n    let mut args = std::env::args().skip(1);\n    let first = args.next();\n    let second = args.next();\n    if first.as_deref() == Some(\"xwin\") && matches!(second.as_deref(), Some(\"--version\") | Some(\"check\")) {{\n        std::process::exit({xwin_code});\n    }}\n    if {test_failure} && first.as_deref() == Some(\"test\") {{\n        eprintln!(\"{{{{\\\"findings\\\":[{{{{\\\"rule_id\\\":\\\"CI-TEST-FINDING-001\\\",\\\"path\\\":\\\"tests/fixture\\\",\\\"message\\\":\\\"workspace test failed\\\"}}}}]}}}}\");\n        std::process::exit(1);\n    }}\n    std::process::exit({fallback});\n}}\n",
+                xwin_code = xwin_code,
+                test_failure = options.test_failure,
+                fallback = i32::from(options.fail_closed),
+            ),
+        )
+        .expect("fake cargo source");
+        let _guard = FAKE_CARGO_COMPILE_LOCK
+            .get_or_init(|| Mutex::new(()))
+            .lock()
+            .expect("fake cargo compile lock");
+        let status = Command::new("rustc")
+            .args([
+                "--edition",
+                "2021",
+                source.to_str().expect("fake cargo source path"),
+                "-o",
+                executable.to_str().expect("fake cargo executable path"),
+            ])
+            .status()
+            .expect("compile fake cargo");
+        assert!(status.success(), "fake cargo compilation failed: {status}");
+        fs::remove_file(source).expect("remove fake cargo source");
+    }
 }
 
 pub fn parse_stdout(output: &std::process::Output) -> Value {
-    serde_json::from_slice(&output.stdout).unwrap()
+    serde_json::from_slice(&output.stdout).unwrap_or_else(|error| {
+        panic!(
+            "sc-compose did not emit JSON: {error}; stdout={} stderr={}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+    })
 }
 
 pub fn assert_envelope(value: &Value) {

@@ -1,11 +1,44 @@
 use std::fs;
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
-use std::process::Command;
-
-use serde_json::Value;
-
 mod support;
-use support::{TempFixture, write_file};
+use support::{TempFixture, parse_stdout, sc_compose, write_file};
+
+#[test]
+fn sc_compose_log_root_is_removed_when_command_finishes() {
+    let (log_root, output) = {
+        let mut command = sc_compose();
+        let log_root = command.log_root_path().to_path_buf();
+        let output = command.arg("--help").output().expect("run sc-compose help");
+        (log_root, output)
+    };
+    assert!(output.status.success());
+    assert!(
+        !log_root.exists(),
+        "sc-compose log root leaked: {}",
+        log_root.display()
+    );
+}
+
+#[test]
+fn fixture_cleanup_survives_a_panicking_assertion() {
+    let mut fixture_path = None;
+    let mut log_root = None;
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        let fixture = TempFixture::new("sc-lint-runner-panic");
+        fixture_path = Some(fixture.path.clone());
+
+        let command = sc_compose();
+        log_root = Some(command.log_root_path().to_path_buf());
+
+        let should_pass = std::hint::black_box(false);
+        assert!(should_pass, "intentional panic to exercise RAII cleanup");
+    }));
+
+    assert!(result.is_err());
+    assert!(!fixture_path.expect("fixture path").exists());
+    assert!(!log_root.expect("log root").exists());
+}
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -59,7 +92,7 @@ fn runner_preserves_sc_lint_envelope_and_writes_both_artifacts() {
         "command = \"lint.sc-boundary\"\nreport_kind = \"lint\"\n",
     );
     let fake_bin = fake_sc_lint_bin(&root.path);
-    let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    let output = sc_compose()
         .args([
             "lint",
             "--root",
@@ -72,7 +105,6 @@ fn runner_preserves_sc_lint_envelope_and_writes_both_artifacts() {
             "PATH",
             path_with_fake_bin(fake_bin.parent().expect("fake bin parent")),
         )
-        .env("SC_LOG_ROOT", root.path.join("logs"))
         .output()
         .expect("run sc-compose lint");
     assert_eq!(
@@ -83,7 +115,7 @@ fn runner_preserves_sc_lint_envelope_and_writes_both_artifacts() {
         String::from_utf8_lossy(&output.stdout),
     );
 
-    let envelope: Value = serde_json::from_slice(&output.stdout).expect("JSON envelope");
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "lint.sc-boundary");
     assert_eq!(payload["raw_payload"]["command"], "lint.sc-boundary");
@@ -98,13 +130,12 @@ fn runner_preserves_sc_lint_envelope_and_writes_both_artifacts() {
             .join("reports/latest/sc-lint/index.html")
             .is_file()
     );
-    assert!(root.path.join("logs").is_dir());
 }
 
 #[test]
 fn runner_rejects_commands_without_a_descriptor() {
     let root = TempFixture::new("sc-lint-runner");
-    let output = Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    let output = sc_compose()
         .args([
             "lint",
             "--root",
@@ -113,10 +144,9 @@ fn runner_rejects_commands_without_a_descriptor() {
             "sh -c touch /tmp/not-allowed",
             "--json",
         ])
-        .env("SC_LOG_ROOT", root.path.join("logs"))
         .output()
         .expect("run sc-compose lint");
     assert_eq!(output.status.code(), Some(3));
-    let envelope: Value = serde_json::from_slice(&output.stdout).expect("JSON error envelope");
+    let envelope = parse_stdout(&output);
     assert_eq!(envelope["diagnostics"][0]["code"], "ERR_CONFIG_READ");
 }

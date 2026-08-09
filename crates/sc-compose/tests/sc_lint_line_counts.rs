@@ -1,46 +1,34 @@
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::Command;
-
-use serde_json::Value;
-
 mod support;
-use support::{TempFixture, copy_directory, normalize_path_str, repo_root};
-
-fn sc_lint_utilities() -> Option<PathBuf> {
-    let root = repo_root();
-    let adjacent_sibling = root.parent().map(|parent| parent.join("sc-lint/.just"));
-    let worktree_sibling = root
-        .parent()
-        .and_then(Path::parent)
-        .and_then(Path::parent)
-        .map(|parent| parent.join("sc-lint/.just"));
-    [Some(root.join(".just")), adjacent_sibling, worktree_sibling]
-        .into_iter()
-        .flatten()
-        .find(|path| path.join("lint_line_counts.py").is_file())
-}
+use support::{
+    CheckedInFixture, TempFixture, materialize_sc_lint_runtime, normalize_path_str, parse_stdout,
+    sc_compose,
+};
 
 fn line_counts_fixture(name: &str) -> TempFixture {
-    let fixture = TempFixture::from_checked_in_fixture("line-counts", name, "line-counts");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "line-counts",
+        name,
+        target: "line-counts",
+    });
 
     // CI materializes the pinned sc-lint Python utilities in the consumer
     // checkout. Copying them into the ephemeral fixture exercises that
     // supported adapter contract without vendoring scripts in sc-compose.
-    let utilities = sc_lint_utilities();
-    assert!(
-        utilities.is_some(),
-        "sc-lint Python utilities are unavailable; run the Phase L setup action first"
-    );
-    copy_directory(
-        &utilities.expect("checked sc-lint utility directory"),
-        &fixture.path.join(".just"),
+    materialize_sc_lint_runtime(
+        &fixture.path,
+        &[
+            "lint_line_counts.py",
+            "python_adapter.py",
+            "lint_common.py",
+            "view_common.py",
+        ],
     );
     fixture
 }
 
 fn run_line_counts(fixture: &TempFixture) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    sc_compose()
         .args([
             "lint",
             "--root",
@@ -49,13 +37,8 @@ fn run_line_counts(fixture: &TempFixture) -> std::process::Output {
             "line-counts",
             "--json",
         ])
-        .env("SC_LOG_ROOT", fixture.path.join("logs"))
         .output()
         .expect("run sc-compose lint line-counts")
-}
-
-fn result_payload(output: &std::process::Output) -> Value {
-    serde_json::from_slice(&output.stdout).expect("sc-compose JSON envelope")
 }
 
 #[test]
@@ -70,7 +53,7 @@ fn line_counts_pass_preserves_adapter_envelope_and_materializes_evidence() {
         String::from_utf8_lossy(&output.stdout),
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "lint.line-counts");
     assert_eq!(payload["target"], "lint.line-counts");
@@ -109,7 +92,7 @@ fn line_counts_over_limit_remains_failed_with_structured_finding() {
         String::from_utf8_lossy(&output.stderr),
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "lint.line-counts");
     assert_eq!(payload["outcome"], "findings");

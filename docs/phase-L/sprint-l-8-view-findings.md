@@ -2,7 +2,7 @@
 id: L.8
 title: Findings View
 phase: L
-status: planned
+status: complete
 branch: sprint/l-8-view-findings
 worktree: ../sc-compose-worktrees/sprint/l-8-view-findings
 target: integrate/phase-l

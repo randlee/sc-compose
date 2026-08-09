@@ -8,25 +8,16 @@
 mod support;
 
 use std::fs;
-use std::path::{Path, PathBuf};
-#[cfg(windows)]
-use std::process::Command;
+use std::path::Path;
 use std::process::Output;
 
-use support::{parse_stdout, repo_root, sc_compose, temp_root};
+use support::{
+    CheckedInFixture, FakeCargoOptions, SC_LINT_PYTHON_TOOLS, TempFixture, parse_stdout,
+    sc_compose, write_fake_cargo,
+};
 
 const TARGET: &str = "ci-all";
 const COMMAND_ID: &str = "ci";
-const PYTHON_TOOLS: &[&str] = &[
-    "lint_cargo_deny.py",
-    "lint_cargo_shear.py",
-    "check_version_sync.py",
-    "lint_manifests.py",
-    "lint_codespell.py",
-    "run_pytests.py",
-    "lint_sc_boundary.py",
-    "lint_sc_portability.py",
-];
 const PYTHON_TOOL_OUTPUT: &str = r#"import json
 print(json.dumps({"adapter_schema": "sc-lint-python-v1", "ok": True, "summary": "fixture utility passed", "data": {"findings": []}, "diagnostics": []}))
 "#;
@@ -73,7 +64,7 @@ fn ci_pass_preserves_composite_envelope_and_excludes_xwin() {
                 .is_some_and(|name| name.contains("xwin")))
     );
 
-    assert_report_materialized(&root, &[COMMAND_ID, "pass", "tests_included"]);
+    assert_report_materialized(&root.path, &[COMMAND_ID, "pass", "tests_included"]);
 }
 
 #[test]
@@ -108,7 +99,7 @@ fn ci_test_failure_stays_non_pass_with_structured_diagnostics() {
             .is_some_and(|items| !items.is_empty())
     );
 
-    assert_report_materialized(&root, &[COMMAND_ID, "failed", "CI-TEST-FINDING-001"]);
+    assert_report_materialized(&root.path, &[COMMAND_ID, "failed", "CI-TEST-FINDING-001"]);
 }
 
 #[test]
@@ -135,38 +126,39 @@ fn ci_without_materialized_utilities_is_explicit_config_error() {
             .as_array()
             .is_some_and(|items| !items.is_empty())
     );
-    assert_report_materialized(&root, &[COMMAND_ID, "config_error", ".just/"]);
+    assert_report_materialized(&root.path, &[COMMAND_ID, "config_error", ".just/"]);
 }
 
-fn run_ci(fixture: &str, mode: ToolMode) -> (PathBuf, Output) {
-    let root = temp_root(&format!("sc-lint-ci-{fixture}"));
-    copy_directory(
-        &repo_root().join("tests/fixtures/sc-lint/ci").join(fixture),
-        &root,
-    );
-    fs::create_dir_all(root.join(".sc/sc-lint/targets")).expect("target registry");
-    fs::copy(
-        repo_root().join(".sc/sc-lint/targets/ci.toml"),
-        root.join(".sc/sc-lint/targets/ci.toml"),
-    )
-    .expect("ci descriptor");
+fn run_ci(fixture: &str, mode: ToolMode) -> (TempFixture, Output) {
+    let root = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "ci",
+        name: fixture,
+        target: "ci",
+    });
     if matches!(mode, ToolMode::MissingUtilities) {
-        write_fake_cargo(&root, false, false);
+        write_fake_cargo(
+            &root.path,
+            FakeCargoOptions {
+                xwin_available: false,
+                test_failure: false,
+                fail_closed: false,
+            },
+        );
     } else {
-        materialize_python_tools(&root);
-        write_fake_tools(&root, mode);
+        materialize_python_tools(&root.path);
+        write_fake_tools(&root.path, mode);
     }
 
     let output = sc_compose()
         .args([
             "lint",
             "--root",
-            root.to_str().expect("UTF-8 fixture root"),
+            root.path.to_str().expect("UTF-8 fixture root"),
             "--target",
             TARGET,
             "--json",
         ])
-        .env("PATH", path_with_fake_tools(&root))
+        .env("PATH", root.path_with_fake_tools())
         .output()
         .expect("run sc-compose ci");
     (root, output)
@@ -175,7 +167,7 @@ fn run_ci(fixture: &str, mode: ToolMode) -> (PathBuf, Output) {
 fn materialize_python_tools(root: &Path) {
     let just = root.join(".just");
     fs::create_dir_all(&just).expect("fixture just directory");
-    for tool in PYTHON_TOOLS {
+    for tool in SC_LINT_PYTHON_TOOLS {
         fs::write(just.join(tool), PYTHON_TOOL_OUTPUT).expect("fixture Python utility");
     }
 }
@@ -201,8 +193,11 @@ fn assert_report_materialized(root: &Path, expected_fragments: &[&str]) {
 fn write_fake_tools(root: &Path, mode: ToolMode) {
     write_fake_cargo(
         root,
-        matches!(mode, ToolMode::Pass),
-        matches!(mode, ToolMode::TestFailure),
+        FakeCargoOptions {
+            xwin_available: matches!(mode, ToolMode::Pass),
+            test_failure: matches!(mode, ToolMode::TestFailure),
+            fail_closed: false,
+        },
     );
     let bin = root.join("fake-bin");
     #[cfg(unix)]
@@ -229,89 +224,5 @@ fn write_fake_tools(root: &Path, mode: ToolMode) {
             "@echo off\r\necho {\"adapter_schema\":\"sc-lint-python-v1\",\"ok\":true,\"summary\":\"fixture utility passed\",\"data\":{\"findings\":[]},\"diagnostics\":[]}\r\nexit /b 0\r\n",
         )
         .expect("fake python");
-    }
-}
-
-fn write_fake_cargo(root: &Path, xwin_available: bool, test_failure: bool) {
-    let bin = root.join("fake-bin");
-    fs::create_dir_all(&bin).expect("fake tools directory");
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-
-        let xwin_code = if xwin_available { "0" } else { "1" };
-        let test_branch = if test_failure {
-            "if [ \"$1\" = \"test\" ]; then\n  printf '%s\\n' '{\"findings\":[{\"rule_id\":\"CI-TEST-FINDING-001\",\"path\":\"tests/fixture\",\"message\":\"workspace test failed\"}]}' >&2\n  exit 1\nfi\n"
-        } else {
-            ""
-        };
-        let cargo = bin.join("cargo");
-        fs::write(
-            &cargo,
-            format!(
-                "#!/bin/sh\nif [ \"$1\" = \"xwin\" ] && [ \"$2\" = \"--version\" ]; then\n  exit {xwin_code}\nfi\n{test_branch}exit 0\n"
-            ),
-        )
-        .expect("fake cargo");
-        let mut permissions = fs::metadata(&cargo)
-            .expect("fake cargo metadata")
-            .permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(cargo, permissions).expect("fake cargo permissions");
-    }
-
-    #[cfg(windows)]
-    {
-        let xwin_code = if xwin_available { "0" } else { "1" };
-        let source = bin.join("fake-cargo.rs");
-        let executable = bin.join("cargo.exe");
-        fs::write(
-            &source,
-            format!(
-                "fn main() {{\n    let mut args = std::env::args().skip(1);\n    let first = args.next();\n    let second = args.next();\n    if first.as_deref() == Some(\"xwin\") && second.as_deref() == Some(\"--version\") {{\n        std::process::exit({xwin_code});\n    }}\n    if {test_failure} && first.as_deref() == Some(\"test\") {{\n        eprintln!(\"{{{{\\\"findings\\\":[{{{{\\\"rule_id\\\":\\\"CI-TEST-FINDING-001\\\",\\\"path\\\":\\\"tests/fixture\\\",\\\"message\\\":\\\"workspace test failed\\\"}}}}]}}}}\");\n        std::process::exit(1);\n    }}\n    std::process::exit(0);\n}}\n",
-                test_failure = test_failure,
-            ),
-        )
-        .expect("fake cargo source");
-        let status = Command::new("rustc")
-            .args([
-                "--edition",
-                "2021",
-                source.to_str().expect("fake cargo source path"),
-                "-o",
-                executable.to_str().expect("fake cargo executable path"),
-            ])
-            .status()
-            .expect("compile fake cargo");
-        assert!(status.success(), "fake cargo compilation failed: {status}");
-        fs::remove_file(source).expect("remove fake cargo source");
-    }
-}
-
-fn path_with_fake_tools(root: &Path) -> String {
-    let mut paths = vec![root.join("fake-bin")];
-    if let Some(existing) = std::env::var_os("PATH") {
-        paths.extend(std::env::split_paths(&existing));
-    }
-    std::env::join_paths(paths)
-        .expect("PATH entries")
-        .to_string_lossy()
-        .into_owned()
-}
-
-fn copy_directory(source: &Path, destination: &Path) {
-    fs::create_dir_all(destination).expect("fixture destination");
-    for entry in fs::read_dir(source).expect("fixture source") {
-        let entry = entry.expect("fixture entry");
-        let source_path = entry.path();
-        let destination_path = destination.join(entry.file_name());
-        if source_path.is_dir() {
-            copy_directory(&source_path, &destination_path);
-        } else {
-            if let Some(parent) = destination_path.parent() {
-                fs::create_dir_all(parent).expect("fixture parent");
-            }
-            fs::copy(source_path, destination_path).expect("fixture file");
-        }
     }
 }

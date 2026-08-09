@@ -2,7 +2,7 @@
 id: L.6
 title: Line-Count Utility
 phase: L
-status: planned
+status: complete
 branch: sprint/l-6-line-counts
 worktree: ../sc-compose-worktrees/sprint/l-6-line-counts
 target: integrate/phase-l

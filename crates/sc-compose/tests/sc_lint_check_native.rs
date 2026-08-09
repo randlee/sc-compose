@@ -1,13 +1,9 @@
 use std::fs;
-use std::process::Command;
-
-use serde_json::Value;
-
 mod support;
-use support::TempFixture;
+use support::{CheckedInFixture, TempFixture, parse_stdout, sc_compose};
 
 fn run_check_native(fixture: &TempFixture) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    sc_compose()
         .args([
             "lint",
             "--root",
@@ -21,13 +17,13 @@ fn run_check_native(fixture: &TempFixture) -> std::process::Output {
         .expect("run sc-compose check native")
 }
 
-fn result_payload(output: &std::process::Output) -> Value {
-    serde_json::from_slice(&output.stdout).expect("sc-compose JSON envelope")
-}
-
 #[test]
 fn check_native_pass_preserves_workflow_envelope_and_materializes_evidence() {
-    let fixture = TempFixture::from_checked_in_fixture("check-native", "pass", "check-native");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "check-native",
+        name: "pass",
+        target: "check-native",
+    });
     let output = run_check_native(&fixture);
     assert_eq!(
         output.status.code(),
@@ -37,7 +33,7 @@ fn check_native_pass_preserves_workflow_envelope_and_materializes_evidence() {
         String::from_utf8_lossy(&output.stdout),
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "check.native");
     assert_eq!(payload["target"], "check.native");
@@ -75,8 +71,11 @@ fn check_native_pass_preserves_workflow_envelope_and_materializes_evidence() {
 
 #[test]
 fn check_native_compile_failure_remains_non_pass_with_structured_diagnostics() {
-    let fixture =
-        TempFixture::from_checked_in_fixture("check-native", "compile-error", "check-native");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "check-native",
+        name: "compile-error",
+        target: "check-native",
+    });
     let output = run_check_native(&fixture);
     assert_eq!(
         output.status.code(),
@@ -85,7 +84,7 @@ fn check_native_compile_failure_remains_non_pass_with_structured_diagnostics() {
         String::from_utf8_lossy(&output.stderr),
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "check.native");
     assert_eq!(payload["outcome"], "failed");

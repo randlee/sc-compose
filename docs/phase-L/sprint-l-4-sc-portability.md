@@ -2,7 +2,7 @@
 id: L.4
 title: Portability Analyzer
 phase: L
-status: planned
+status: complete
 branch: sprint/l-4-sc-portability
 worktree: ../sc-compose-worktrees/sprint/l-4-sc-portability
 target: integrate/phase-l

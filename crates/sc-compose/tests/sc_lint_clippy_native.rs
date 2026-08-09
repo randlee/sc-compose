@@ -1,80 +1,10 @@
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
 
-use serde_json::Value;
-
-struct TempFixture {
-    path: PathBuf,
-}
-
-impl TempFixture {
-    fn from_checked_in_fixture(name: &str) -> Self {
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "sc-compose-clippy-native-{name}-{}-{nonce}",
-            std::process::id()
-        ));
-        let source = repo_root()
-            .join("tests")
-            .join("fixtures")
-            .join("sc-lint")
-            .join("clippy-native")
-            .join(name);
-        copy_directory(&source, &path);
-        let target_dir = path.join(".sc").join("sc-lint").join("targets");
-        fs::create_dir_all(&target_dir).expect("target registry");
-        fs::copy(
-            repo_root()
-                .join(".sc")
-                .join("sc-lint")
-                .join("targets")
-                .join("clippy-native.toml"),
-            target_dir.join("clippy-native.toml"),
-        )
-        .expect("clippy-native target descriptor");
-        Self { path }
-    }
-}
-
-impl Drop for TempFixture {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.path);
-    }
-}
-
-fn repo_root() -> PathBuf {
-    let canonical = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..")
-        .canonicalize()
-        .expect("repo root");
-    let Some(path) = canonical.to_str() else {
-        return canonical;
-    };
-    PathBuf::from(path.strip_prefix(r"\\?\").unwrap_or(path))
-}
-
-fn copy_directory(source: &Path, destination: &Path) {
-    fs::create_dir_all(destination).expect("fixture destination");
-    for entry in fs::read_dir(source).expect("fixture source") {
-        let entry = entry.expect("fixture entry");
-        let source_path = entry.path();
-        let destination_path = destination.join(entry.file_name());
-        if source_path.is_dir() {
-            copy_directory(&source_path, &destination_path);
-        } else {
-            fs::copy(&source_path, &destination_path).expect("fixture file");
-        }
-    }
-}
+mod support;
+use support::{CheckedInFixture, TempFixture, parse_stdout, sc_compose};
 
 fn run_clippy_native(fixture: &TempFixture) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    sc_compose()
         .args([
             "lint",
             "--root",
@@ -88,13 +18,13 @@ fn run_clippy_native(fixture: &TempFixture) -> std::process::Output {
         .expect("run sc-compose clippy native")
 }
 
-fn result_payload(output: &std::process::Output) -> Value {
-    serde_json::from_slice(&output.stdout).expect("sc-compose JSON envelope")
-}
-
 #[test]
 fn clippy_native_pass_preserves_workflow_envelope_and_materializes_evidence() {
-    let fixture = TempFixture::from_checked_in_fixture("pass");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "clippy-native",
+        name: "pass",
+        target: "clippy-native",
+    });
     let output = run_clippy_native(&fixture);
     assert_eq!(
         output.status.code(),
@@ -104,7 +34,7 @@ fn clippy_native_pass_preserves_workflow_envelope_and_materializes_evidence() {
         String::from_utf8_lossy(&output.stdout),
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "clippy.native");
     assert_eq!(payload["target"], "clippy.native");
@@ -152,7 +82,11 @@ fn clippy_native_pass_preserves_workflow_envelope_and_materializes_evidence() {
 
 #[test]
 fn clippy_native_warning_remains_non_pass_with_structured_diagnostics() {
-    let fixture = TempFixture::from_checked_in_fixture("warning");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "clippy-native",
+        name: "warning",
+        target: "clippy-native",
+    });
     let output = run_clippy_native(&fixture);
     assert_eq!(
         output.status.code(),
@@ -161,7 +95,7 @@ fn clippy_native_warning_remains_non_pass_with_structured_diagnostics() {
         String::from_utf8_lossy(&output.stderr),
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "clippy.native");
     assert_eq!(payload["outcome"], "failed");

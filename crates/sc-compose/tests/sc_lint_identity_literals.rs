@@ -6,13 +6,12 @@
 
 mod support;
 
-use serde_json::Value;
-use std::env;
 use std::fs;
-use std::path::{Path, PathBuf};
 use std::process::Output;
 
-use support::{repo_root, sc_compose, temp_root};
+use support::{
+    CheckedInFixture, TempFixture, materialize_sc_lint_runtime, parse_stdout, sc_compose,
+};
 
 const TARGET: &str = "identity-literals";
 const IDENTITY: &str = "team-lead@example.invalid";
@@ -59,16 +58,15 @@ fn identity_literals_pass_preserves_adapter_envelope_and_report() {
         "reports/latest/sc-lint/raw/lint.identity-literals.json"
     );
 
-    let report = fs::read_to_string(root.join("reports/latest/sc-lint/index.html"))
+    let report = fs::read_to_string(root.path.join("reports/latest/sc-lint/index.html"))
         .expect("identity-literals report");
     assert!(report.contains("lint.identity-literals"));
     assert!(report.contains("pass"));
     assert!(
-        root.join("reports/latest/sc-lint/raw/lint.identity-literals.json")
+        root.path
+            .join("reports/latest/sc-lint/raw/lint.identity-literals.json")
             .is_file()
     );
-
-    remove_fixture(&root);
 }
 
 #[test]
@@ -115,40 +113,31 @@ fn identity_literals_findings_remain_non_pass_with_structured_evidence() {
             .all(|finding| finding.as_str().unwrap().contains(IDENTITY))
     );
 
-    let report = fs::read_to_string(root.join("reports/latest/sc-lint/index.html"))
+    let report = fs::read_to_string(root.path.join("reports/latest/sc-lint/index.html"))
         .expect("identity-literals report");
     assert!(report.contains("findings"));
     assert!(report.contains("crates/demo/src/lib.rs"));
     assert!(report.contains(IDENTITY));
     assert!(
-        root.join("reports/latest/sc-lint/raw/lint.identity-literals.json")
+        root.path
+            .join("reports/latest/sc-lint/raw/lint.identity-literals.json")
             .is_file()
     );
-
-    remove_fixture(&root);
 }
 
-fn run_target(fixture: &str) -> (PathBuf, Output) {
-    let root = temp_root(&format!("sc-lint-identity-literals-{fixture}"));
-    copy_directory(
-        &repo_root()
-            .join("tests/fixtures/sc-lint/identity-literals")
-            .join(fixture),
-        &root,
-    );
-    materialize_sc_lint_runtime(&root);
-    fs::create_dir_all(root.join(".sc/sc-lint/targets")).expect("target registry");
-    fs::copy(
-        repo_root().join(".sc/sc-lint/targets/identity-literals.toml"),
-        root.join(".sc/sc-lint/targets/identity-literals.toml"),
-    )
-    .expect("identity-literals descriptor");
+fn run_target(fixture: &str) -> (TempFixture, Output) {
+    let root = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "identity-literals",
+        name: fixture,
+        target: "identity-literals",
+    });
+    materialize_sc_lint_runtime(&root.path, RUNTIME_FILES);
 
     let output = sc_compose()
         .args([
             "lint",
             "--root",
-            root.to_str().expect("UTF-8 fixture root"),
+            root.path.to_str().expect("UTF-8 fixture root"),
             "--target",
             TARGET,
             "--json",
@@ -156,68 +145,6 @@ fn run_target(fixture: &str) -> (PathBuf, Output) {
         .output()
         .expect("run sc-compose identity-literals");
     (root, output)
-}
-
-fn materialize_sc_lint_runtime(root: &Path) {
-    let source = sc_lint_just_root();
-    let destination = root.join(".just");
-    fs::create_dir_all(&destination).expect("fixture just directory");
-    for file in RUNTIME_FILES {
-        let source_file = source.join(file);
-        assert!(
-            source_file.is_file(),
-            "missing sc-lint runtime file: {}",
-            source_file.display()
-        );
-        fs::copy(&source_file, destination.join(file)).expect("materialize sc-lint runtime");
-    }
-}
-
-fn sc_lint_just_root() -> PathBuf {
-    let mut candidates = Vec::new();
-    if let Some(source_root) = env::var_os("SC_LINT_SOURCE_ROOT") {
-        candidates.push(PathBuf::from(source_root).join(".just"));
-    }
-    candidates.push(repo_root().join(".just"));
-    for ancestor in repo_root().ancestors() {
-        candidates.push(ancestor.join("sc-lint/.just"));
-    }
-
-    candidates
-        .into_iter()
-        .find(|candidate| candidate.join("lint_identity_literals.py").is_file())
-        .unwrap_or_else(|| {
-            panic!(
-                "sc-lint Python utilities are unavailable; run the setup-sc-lint action or set SC_LINT_SOURCE_ROOT"
-            )
-        })
-}
-
-fn copy_directory(source: &Path, destination: &Path) {
-    fs::create_dir_all(destination).expect("fixture destination");
-    for entry in fs::read_dir(source).expect("fixture source") {
-        let entry = entry.expect("fixture entry");
-        let source_path = entry.path();
-        let destination_path = destination.join(entry.file_name());
-        if source_path.is_dir() {
-            copy_directory(&source_path, &destination_path);
-        } else {
-            if let Some(parent) = destination_path.parent() {
-                fs::create_dir_all(parent).expect("fixture parent");
-            }
-            fs::copy(source_path, destination_path).expect("fixture file");
-        }
-    }
-}
-
-fn parse_stdout(output: &Output) -> Value {
-    serde_json::from_slice(&output.stdout).unwrap_or_else(|error| {
-        panic!(
-            "sc-compose did not emit JSON: {error}; stdout={} stderr={}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
-        )
-    })
 }
 
 fn assert_success(output: &Output) {
@@ -228,8 +155,4 @@ fn assert_success(output: &Output) {
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
-}
-
-fn remove_fixture(root: &Path) {
-    fs::remove_dir_all(root).expect("remove temporary identity-literals fixture");
 }

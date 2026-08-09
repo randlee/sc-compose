@@ -1,13 +1,9 @@
 use std::fs;
-use std::process::Command;
-
-use serde_json::Value;
-
 mod support;
-use support::TempFixture;
+use support::{CheckedInFixture, TempFixture, parse_stdout, sc_compose};
 
 fn run_sc_portability(fixture: &TempFixture) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    sc_compose()
         .args([
             "lint",
             "--root",
@@ -21,13 +17,13 @@ fn run_sc_portability(fixture: &TempFixture) -> std::process::Output {
         .expect("run sc-compose lint sc-portability")
 }
 
-fn result_payload(output: &std::process::Output) -> Value {
-    serde_json::from_slice(&output.stdout).expect("sc-compose JSON envelope")
-}
-
 #[test]
 fn portability_pass_preserves_envelope_and_materializes_evidence() {
-    let fixture = TempFixture::from_checked_in_fixture("sc-portability", "pass", "sc-portability");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "sc-portability",
+        name: "pass",
+        target: "sc-portability",
+    });
     let output = run_sc_portability(&fixture);
     assert_eq!(
         output.status.code(),
@@ -37,7 +33,7 @@ fn portability_pass_preserves_envelope_and_materializes_evidence() {
         String::from_utf8_lossy(&output.stdout),
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "lint.sc-portability");
     assert_eq!(payload["target"], "lint.sc-portability");
@@ -62,8 +58,11 @@ fn portability_pass_preserves_envelope_and_materializes_evidence() {
 
 #[test]
 fn portability_path_violation_stays_non_pass_with_structured_finding() {
-    let fixture =
-        TempFixture::from_checked_in_fixture("sc-portability", "failing-path", "sc-portability");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "sc-portability",
+        name: "failing-path",
+        target: "sc-portability",
+    });
     let output = run_sc_portability(&fixture);
     assert_eq!(
         output.status.code(),
@@ -72,7 +71,7 @@ fn portability_path_violation_stays_non_pass_with_structured_finding() {
         String::from_utf8_lossy(&output.stderr),
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "lint.sc-portability");
     assert_eq!(payload["outcome"], "findings");

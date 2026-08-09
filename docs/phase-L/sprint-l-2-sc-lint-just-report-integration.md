@@ -2,7 +2,7 @@
 id: L.2
 title: Shared sc-lint Runner, Reports, and Just Contract
 phase: L
-status: in-progress
+status: complete
 branch: sprint/l-2-sc-lint-just-report-integration
 worktree: ../sc-compose-worktrees/sprint/l-2-sc-lint-just-report-integration
 target: integrate/phase-l
