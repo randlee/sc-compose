@@ -13,6 +13,19 @@ by `sc-composer` and `sc-compose`.
   - `docs/project-plan.md` acceptance criteria where relevant
   - automated tests and snapshots
 
+### sc-lint CLI Integration Classes
+
+The `CLI.*` classes are stable diagnostics from the sc-lint subprocess
+boundary. They are distinct from the `ERR_*` codes emitted by the
+sc-composer library and are normalized by the shared lint runner.
+
+| Code | Error family | Severity | Trigger condition | Expected primary emitter |
+| --- | --- | --- | --- | --- |
+| `CLI.CONFIG_ERROR` | `ScLintOutcome::ConfigError` | error | repository configuration or a required sc-lint utility is missing or malformed | sc-lint integration runner |
+| `CLI.CAPABILITY_ERROR` | `ScLintOutcome::CapabilityError` | error | repository configuration is valid but the host lacks a required lint capability | sc-lint integration runner |
+| `CLI.BACKEND_EXEC_FAILURE` | `ScLintOutcome::Failed` | error | an allowlisted sc-lint workflow step exits unsuccessfully | sc-lint integration runner |
+| `CLI.BACKEND_PROTOCOL_ERROR` | `ScLintOutcome::Failed` or `ConfigError` | error | sc-lint returns malformed adapter JSON; missing view utilities are normalized to `CLI.CONFIG_ERROR` | sc-lint integration runner |
+
 ## Canonical Codes
 
 | Code | Error family | Severity | Trigger condition | Expected primary emitter |
