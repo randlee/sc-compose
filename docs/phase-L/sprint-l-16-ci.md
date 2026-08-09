@@ -2,7 +2,7 @@
 id: L.16
 title: Top-Level CI
 phase: L
-status: planned
+status: complete
 branch: sprint/l-16-ci
 worktree: ../sc-compose-worktrees/sprint/l-16-ci
 target: integrate/phase-l
