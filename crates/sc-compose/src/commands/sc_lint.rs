@@ -1,7 +1,8 @@
 //! The sc-lint subprocess boundary owned by the CLI.
 
 use std::fmt::Write as _;
-use std::path::Path;
+use std::io;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::anyhow;
@@ -114,7 +115,13 @@ pub(crate) fn run_sc_lint(
     command: ScLintCommand,
 ) -> Result<ScLintResult, CommandError> {
     let ScLintCommand { id, args } = command;
-    let output = Command::new("sc-lint")
+    let executable = find_sc_lint_executable().map_err(|error| {
+        CommandError::usage_with_code(
+            anyhow!("sc-lint capability unavailable for {id}: {error}"),
+            DiagnosticCode::ErrConfigMode,
+        )
+    })?;
+    let output = sc_lint_process(&executable)
         .args(["--json", "--root"])
         .arg(root)
         .args(&args)
@@ -188,6 +195,43 @@ pub(crate) fn run_sc_lint(
         )
     })?;
     Ok(result)
+}
+
+fn find_sc_lint_executable() -> io::Result<PathBuf> {
+    let path = std::env::var_os("PATH").ok_or_else(|| {
+        io::Error::new(io::ErrorKind::NotFound, "PATH is not set; install sc-lint")
+    })?;
+    #[cfg(windows)]
+    let names: &[&str] = &["sc-lint.exe", "sc-lint.cmd", "sc-lint.bat", "sc-lint"];
+    #[cfg(not(windows))]
+    let names: &[&str] = &["sc-lint"];
+    for directory in std::env::split_paths(&path) {
+        for name in names {
+            let candidate = directory.join(name);
+            if candidate.is_file() {
+                return Ok(candidate);
+            }
+        }
+    }
+    Err(io::Error::new(
+        io::ErrorKind::NotFound,
+        "sc-lint was not found on PATH; install it before running lint",
+    ))
+}
+
+fn sc_lint_process(executable: &Path) -> Command {
+    #[cfg(windows)]
+    if matches!(
+        executable
+            .extension()
+            .and_then(|extension| extension.to_str()),
+        Some("cmd" | "bat")
+    ) {
+        let mut command = Command::new("cmd.exe");
+        command.args(["/D", "/C"]).arg(executable);
+        return command;
+    }
+    Command::new(executable)
 }
 
 fn parse_raw_payload(stdout: &str, stderr: &str, command_id: &str) -> (String, Value) {

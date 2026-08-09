@@ -101,6 +101,11 @@ jobs:
           toolchain: 1.94.1
           components: rustfmt, clippy
 
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny@0.19.4
+
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:

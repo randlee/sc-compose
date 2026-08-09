@@ -105,7 +105,13 @@ fn runner_preserves_sc_lint_envelope_and_writes_both_artifacts() {
         .env("SC_LOG_ROOT", root.path.join("logs"))
         .output()
         .expect("run sc-compose lint");
-    assert_eq!(output.status.code(), Some(0));
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "sc-compose lint failed; stderr: {}\nstdout: {}",
+        String::from_utf8_lossy(&output.stderr),
+        String::from_utf8_lossy(&output.stdout),
+    );
 
     let envelope: Value = serde_json::from_slice(&output.stdout).expect("JSON envelope");
     let payload = &envelope["payload"];
