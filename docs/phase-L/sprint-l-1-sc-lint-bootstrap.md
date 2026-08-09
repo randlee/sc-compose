@@ -2,7 +2,7 @@
 id: L.1
 title: sc-lint Repository and Tool Bootstrap
 phase: L
-status: planned
+status: in-progress
 branch: sprint/l-1-sc-lint-bootstrap
 worktree: ../sc-compose-worktrees/sprint/l-1-sc-lint-bootstrap
 target: integrate/phase-l
@@ -30,8 +30,11 @@ L.2 and L.3-L.16; L.17 also waits for all earlier sprints.
 - boundaries/
 - sc-lint.toml
 - .github/actions/setup-sc-lint/action.yml
+- .github/workflows/ci.yml
 - docs/phase-L/sc-lint-bootstrap-contract.md
 - docs/adrs/0016-sc-lint-integration-boundary.md
+- docs/adrs/README.md
+- docs/project-plan.md
 - crates/sc-compose/tests/repo_boundaries.rs
 - tests/fixtures/sc-lint/bootstrap/
 

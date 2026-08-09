@@ -2,7 +2,7 @@
 id: L.17
 title: sc-lint Script Inventory and Packaging Issue
 phase: L
-status: planned
+status: complete
 branch: sprint/l-17-sc-lint-script-packaging
 worktree: ../sc-compose-worktrees/sprint/l-17-sc-lint-script-packaging
 target: integrate/phase-l

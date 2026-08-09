@@ -2,20 +2,21 @@
 
 use quick_xml::escape::escape;
 
-use super::{XmlElement, XmlNode};
+use super::{XmlDocument, XmlElement, XmlNode};
 
-pub(super) fn canonical_inner_content(children: &[XmlNode]) -> String {
+pub(super) fn canonical_inner_content(document: &XmlDocument, children: &[XmlNode]) -> String {
     let mut output = String::new();
     for child in children {
-        append_canonical_node(child, &mut output);
+        append_canonical_node(document, child, &mut output);
     }
     output
 }
 
-fn append_canonical_node(node: &XmlNode, output: &mut String) {
+fn append_canonical_node(document: &XmlDocument, node: &XmlNode, output: &mut String) {
     match node {
         XmlNode::Text(value) => output.push_str(&escape(value)),
-        XmlNode::Element(element) => {
+        XmlNode::Element(element_id) => {
+            let element = document.element(*element_id);
             output.push('<');
             output.push_str(&element.name);
             append_attributes(element, output);
@@ -25,7 +26,7 @@ fn append_canonical_node(node: &XmlNode, output: &mut String) {
             }
             output.push('>');
             for child in &element.children {
-                append_canonical_node(child, output);
+                append_canonical_node(document, child, output);
             }
             output.push_str("</");
             output.push_str(&element.name);

@@ -18,7 +18,7 @@ use super::{
 use xml_evidence::{
     Capture, Evidence, collect_expected_evidence, collect_template_occurrences, path_exists,
 };
-use xml_model::{XmlDocument, XmlElement, XmlNode, parse_xml};
+use xml_model::{XmlDocument, XmlElement, XmlElementId, XmlNode, parse_xml};
 
 #[path = "xml_evidence.rs"]
 mod xml_evidence;
@@ -105,14 +105,16 @@ pub(crate) fn extract_xml(
 
     let mut captures = Vec::new();
     let mut evidence = Evidence::default();
-    collect_expected_evidence(&template.root, &mut evidence)?;
+    collect_expected_evidence(&template, template.root, &mut evidence)?;
     let root_path = vec![XmlPathSegment::Element {
-        name: template.root.name.clone(),
+        name: template.element(template.root).name.clone(),
         ordinal: 0,
     }];
     xml_match::match_element(
-        &template.root,
-        &rendered.root,
+        &template,
+        template.root,
+        &rendered,
+        rendered.root,
         &root_path,
         &mut captures,
         &mut evidence,
@@ -193,9 +195,10 @@ fn missing_occurrence_report(
 ) -> Result<Option<XmlExtractionReport>, ExtractError> {
     let mut template_occurrences = Vec::new();
     collect_template_occurrences(
-        &template.root,
+        template,
+        template.root,
         &[XmlPathSegment::Element {
-            name: template.root.name.clone(),
+            name: template.element(template.root).name.clone(),
             ordinal: 0,
         }],
         &mut template_occurrences,
@@ -203,7 +206,7 @@ fn missing_occurrence_report(
     let missing_variables = template_occurrences
         .iter()
         .filter(|occurrence| selected_variable(&occurrence.variable, request))
-        .filter(|occurrence| !path_exists(&rendered.root, &occurrence.path))
+        .filter(|occurrence| !path_exists(rendered, rendered.root, &occurrence.path))
         .map(|occurrence| occurrence.variable.clone())
         .collect::<BTreeSet<_>>();
     if missing_variables.is_empty() {

@@ -152,7 +152,7 @@ impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
         A: SeqAccess<'de>,
     {
         let mut values = Vec::new();
-        while let Some(value) = seq.next_element_seed(Self)? {
+        while let Some(value) = seq.next_element_seed(DuplicateAwareValueSeed)? {
             values.push(value);
         }
         Ok(serde_json::Value::Array(values))
@@ -169,8 +169,29 @@ impl<'de> Visitor<'de> for DuplicateAwareValueVisitor {
                     "duplicate entry with key \"{key}\""
                 )));
             }
-            object.insert(key, map.next_value_seed(Self)?);
+            object.insert(key, map.next_value_seed(DuplicateAwareValueSeed)?);
         }
         Ok(serde_json::Value::Object(object))
     }
+}
+
+#[derive(Clone, Copy)]
+struct DuplicateAwareValueSeed;
+
+impl<'de> DeserializeSeed<'de> for DuplicateAwareValueSeed {
+    type Value = serde_json::Value;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserialize_json_value(deserializer)
+    }
+}
+
+fn deserialize_json_value<'de, D>(deserializer: D) -> Result<serde_json::Value, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    deserializer.deserialize_any(DuplicateAwareValueVisitor)
 }

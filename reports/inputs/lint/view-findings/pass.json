@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "command": "view.findings",
+  "data": {
+    "adapter": "sc-lint-python-v1",
+    "artifact_dir": "artifacts/view/findings",
+    "config_scope": "view.findings",
+    "script": ".just/view_findings.py",
+    "source_root": "artifacts/findings",
+    "status": "pass",
+    "summary": "collated 2 findings artifact set(s)",
+    "tool": "sc-lint-view-findings",
+    "views": [
+      {
+        "artifact_dir": "artifacts/findings/sc-portability",
+        "finding_count": 0,
+        "status": "pass",
+        "summary": "platform-neutral paths verified",
+        "summary_json": "artifacts/findings/sc-portability/summary.json",
+        "tool": "sc-lint-portability"
+      },
+      {
+        "artifact_dir": "artifacts/findings/sc-runtime",
+        "finding_count": 1,
+        "status": "fail",
+        "summary": "unsafe wait pattern retained for review",
+        "summary_json": "artifacts/findings/sc-runtime/summary.json",
+        "tool": "sc-lint-runtime"
+      }
+    ]
+  },
+  "diagnostics": []
+}

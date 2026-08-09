@@ -1,0 +1,2 @@
+command = "lint.sc-boundary"
+report_kind = "lint"

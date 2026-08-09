@@ -217,9 +217,14 @@ fn current_hostname() -> String {
 }
 
 fn current_username() -> String {
-    std::env::var("USER")
-        .or_else(|_| std::env::var("USERNAME"))
-        .unwrap_or_else(|_| "unknown".to_owned())
+    environment_value("USER")
+        .or_else(|| environment_value("USERNAME"))
+        .and_then(|value| value.into_string().ok())
+        .unwrap_or_else(|| "unknown".to_owned())
+}
+
+fn environment_value(name: &str) -> Option<std::ffi::OsString> {
+    std::env::vars_os().find_map(|(key, value)| (key == name).then_some(value))
 }
 
 fn merge_frontmatter(

@@ -1,0 +1,19 @@
+{
+  "ok": false,
+  "command": "check.native",
+  "error": {
+    "kind": "backend_failure",
+    "code": "CLI.BACKEND_EXEC_FAILURE",
+    "message": "check.native failed",
+    "details": {
+      "command": "cargo check --workspace",
+      "exit_code": 101,
+      "root": "tests/fixtures/sc-lint/check-native/compile-error",
+      "stderr": "error[E0425]: cannot find type `MissingType` in this scope\nerror[E0425]: cannot find value `MissingType` in this scope\nerror: could not compile `check-native-error` due to 2 previous errors",
+      "stdout": "",
+      "step": "check.native"
+    },
+    "cause": "cargo check --workspace exited with status 101"
+  },
+  "diagnostics": []
+}

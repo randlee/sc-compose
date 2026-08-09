@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>lint.full missing-utility configuration fixture</title>
+</head>
+<body>
+  <main data-template-family="base">
+    <header class="report-header">
+      <h1>lint.full missing-utility configuration fixture</h1>
+    </header>
+    <section class="report-panels">
+      <article id="reports-inputs-lint-lint-full-config-negative-md" class="report-panel">
+        <header class="panel-header">
+          <h2>lint.full missing-utility configuration fixture</h2>
+        </header>
+        <div class="panel-body">
+Input fixture: `tests/fixtures/sc-lint/lint-full/config-negative`.
+
+Without the CI-materialized `.just` utilities, the real profile stops at the
+missing `lint_cargo_deny.py` utility. sc-compose preserves the upstream
+`CLI.BACKEND_EXEC_FAILURE` payload while classifying the result as
+`config_error`; this is the documented L.1 packaging characterization.</div>
+        <footer class="panel-footer">
+          <button type="button" data-copy-text="
+Input fixture: `tests/fixtures/sc-lint/lint-full/config-negative`.
+
+Without the CI-materialized `.just` utilities, the real profile stops at the
+missing `lint_cargo_deny.py` utility. sc-compose preserves the upstream
+`CLI.BACKEND_EXEC_FAILURE` payload while classifying the result as
+`config_error`; this is the documented L.1 packaging characterization.">Copy text</button>
+          <button type="button" data-copy-json="{&quot;command&quot;:&quot;lint.full&quot;,&quot;fixture&quot;:&quot;tests/fixtures/sc-lint/lint-full/config-negative&quot;,&quot;outcome&quot;:&quot;config_error&quot;,&quot;raw_artifact&quot;:&quot;reports/inputs/lint/lint-full/config-negative.json&quot;}">Copy json</button>
+        </footer>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- Upgraded `anyhow` from `1.0.102` to `1.0.103` and `quick-xml` from `0.38.4`
+  to `0.41.0` to resolve RUSTSEC-2026-0190, RUSTSEC-2026-0194, and
+  RUSTSEC-2026-0195; removed the deprecated `cargo-deny` 0.19.4 keys from
+  `deny.toml`.
+- XML attribute extraction now follows `quick-xml` 0.41's XML 1.0 AVNormalize
+  behavior, collapsing embedded tab, carriage-return, and line-feed characters
+  to spaces after entity decoding.
+
 ## [1.3.1] - 2026-08-05
 
 ### Fixed

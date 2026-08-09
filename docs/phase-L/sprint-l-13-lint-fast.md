@@ -2,7 +2,7 @@
 id: L.13
 title: Fast Lint Profile
 phase: L
-status: planned
+status: complete
 branch: sprint/l-13-lint-fast
 worktree: ../sc-compose-worktrees/sprint/l-13-lint-fast
 target: integrate/phase-l
