@@ -113,7 +113,7 @@ jobs:
 
       - name: Install codespell (Unix)
         if: runner.os != 'Windows'
-        run: python3 -m pip install codespell==2.4.2
+        run: python3 -m pip install --break-system-packages codespell==2.4.2
 
       - name: Install codespell (Windows)
         if: runner.os == 'Windows'
