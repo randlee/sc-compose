@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "command": "lint.identity-literals",
+  "data": {
+    "adapter": "sc-lint-python-v1",
+    "artifact_dir": "artifacts/findings/identity-literals",
+    "config_scope": "identities",
+    "elapsed_ms": 0,
+    "findings": [
+      "crates/demo/src/lib.rs:2: \"team-lead@example.invalid\"",
+      "crates/demo/tests/identity_literals.rs:3: let owner = \"team-lead@example.invalid\";",
+      "crates/demo/tests/identity_literals.rs:4: assert_eq!(owner, \"team-lead@example.invalid\");"
+    ],
+    "forbidden_literals": [
+      "team-lead@example.invalid"
+    ],
+    "production_canonical_literals": {
+      "team-lead@example.invalid": [
+        "crates/demo/src/constants.rs"
+      ]
+    },
+    "script": ".just/lint_identity_literals.py",
+    "status": "fail",
+    "summary": "raw production literals found in Rust code",
+    "tool": "sc-lint-identity-literals",
+    "violation_kinds": [
+      "production_scope_canonical_literal",
+      "test_scope_forbidden_literal",
+      "test_scope_forbidden_literal"
+    ]
+  },
+  "diagnostics": []
+}

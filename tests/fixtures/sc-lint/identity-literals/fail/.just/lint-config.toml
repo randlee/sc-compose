@@ -1,0 +1,5 @@
+[identities]
+forbidden_literals = ["team-lead@example.invalid"]
+
+[identities.production_canonical_literals]
+"team-lead@example.invalid" = ["crates/demo/src/constants.rs"]
