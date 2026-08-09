@@ -662,12 +662,38 @@ Sprint entries:
 
 Status:
 
-- L.1 bootstrap is complete on `sprint/l-1-sc-lint-bootstrap`; it establishes
-  the pinned sc-lint 0.4.0 release, canonical package boundaries, and the
-  reusable CI setup contract.
-- L.2 remains the serial infrastructure follow-on. L.3-L.16 are independent
-  target integrations after L.2, and L.17 is the final packaging/inventory
-  closeout after all target sprints.
+- complete: all seventeen sc-lint integration sprints are merged into
+  `integrate/phase-l` at `904d8dd`;
+- L.1 (PR #329, fix #330) bootstrapped the pinned sc-lint 0.4.0 release,
+  canonical package boundaries, and the reusable CI setup contract; L.2
+  (PR #331, cleanup #332) landed the shared sc-lint runner, reporting
+  contract, and Just integration that every later target sprint reuses;
+- L.3 through L.11 (PRs #333, #335, #336, #337, #340, #338, #341, #342, #343)
+  integrated the sc-boundary, sc-portability, sc-runtime, line-counts,
+  identity-literals, view-findings, check-native, check-xwin, and
+  clippy-native targets independently, each following the L.2 runner
+  contract;
+- L.12 through L.16 (PRs #344, #345, #346/#350, #348, #349) integrated the
+  clippy-xwin target and the lint-fast/lint-full/lint-ci/ci composite
+  profiles; this group surfaced and closed out the phase's recurring
+  cross-cutting defect classes: incomplete `PYTHON_TOOLS` fixture lists in
+  `sc_lint_lint_full.rs` (QM-L14-002, QM-L14-004), a macOS PEP 668
+  externally-managed-Python `pip install codespell` regression shared by
+  L.13/L.15 (QM-L13-002, QM-L15-002), and a windows-latest raw-string
+  escaping compile failure in `sc_lint_ci.rs`'s `write_fake_cargo()`
+  (QM-L16-003);
+- L.14's original PR #346 auto-closed as merged when its head branch
+  converged with PR #349's identical commit; its actual closing fix
+  (QM-L14-004) landed via the follow-up PR #350 opened directly against
+  `integrate/phase-l`;
+- L.17 (PR #351) is a documentation/external-coordination-only sprint —
+  `cargo test --workspace` is explicitly not a closure gate for it — and
+  produced [`sc-lint-script-packaging-inventory.md`](phase-L/sc-lint-script-packaging-inventory.md)
+  plus [randlee/sc-lint#86](https://github.com/randlee/sc-lint/issues/86),
+  scoped against the pre-existing randlee/sc-lint#83;
+- every merge in this phase required an explicit quality-mgr QA PASS with
+  live-CI re-verification (not local-review-only) before merge, per the
+  standing merge-gate rule; no sprint bypassed this gate.
 
 Sprint entries:
 
