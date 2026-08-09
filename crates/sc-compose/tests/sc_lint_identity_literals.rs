@@ -9,7 +9,9 @@ mod support;
 use std::fs;
 use std::process::Output;
 
-use support::{TempFixture, materialize_sc_lint_runtime, parse_stdout, sc_compose};
+use support::{
+    CheckedInFixture, TempFixture, materialize_sc_lint_runtime, parse_stdout, sc_compose,
+};
 
 const TARGET: &str = "identity-literals";
 const IDENTITY: &str = "team-lead@example.invalid";
@@ -124,8 +126,11 @@ fn identity_literals_findings_remain_non_pass_with_structured_evidence() {
 }
 
 fn run_target(fixture: &str) -> (TempFixture, Output) {
-    let root =
-        TempFixture::from_checked_in_fixture("identity-literals", fixture, "identity-literals");
+    let root = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "identity-literals",
+        name: fixture,
+        target: "identity-literals",
+    });
     materialize_sc_lint_runtime(&root.path, RUNTIME_FILES);
 
     let output = sc_compose()

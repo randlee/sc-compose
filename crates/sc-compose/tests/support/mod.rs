@@ -3,10 +3,11 @@
     reason = "shared helpers are selected by separate integration-test binaries"
 )]
 
+use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::sync::OnceLock;
+use std::process::{Command, Stdio};
+use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
@@ -30,6 +31,20 @@ pub struct TempFixture {
     pub path: PathBuf,
 }
 
+#[derive(Clone, Copy)]
+pub struct CheckedInFixture<'a> {
+    pub group: &'a str,
+    pub name: &'a str,
+    pub target: &'a str,
+}
+
+#[derive(Clone, Copy)]
+pub struct FakeCargoOptions {
+    pub xwin_available: bool,
+    pub test_failure: bool,
+    pub fail_closed: bool,
+}
+
 impl TempFixture {
     pub fn new(label: &str) -> Self {
         Self {
@@ -37,12 +52,12 @@ impl TempFixture {
         }
     }
 
-    pub fn from_checked_in_fixture(fixture: &str, name: &str, target: &str) -> Self {
-        let fixture_root = Self::new(&format!("{fixture}-{name}"));
+    pub fn from_checked_in_fixture(spec: CheckedInFixture<'_>) -> Self {
+        let fixture_root = Self::new(&format!("{}-{}", spec.group, spec.name));
         let source = repo_root()
             .join("tests/fixtures/sc-lint")
-            .join(fixture)
-            .join(name);
+            .join(spec.group)
+            .join(spec.name);
         copy_directory(&source, &fixture_root.path);
 
         let target_dir = fixture_root.path.join(".sc/sc-lint/targets");
@@ -50,8 +65,8 @@ impl TempFixture {
         fs::copy(
             repo_root()
                 .join(".sc/sc-lint/targets")
-                .join(format!("{target}.toml")),
-            target_dir.join(format!("{target}.toml")),
+                .join(format!("{}.toml", spec.target)),
+            target_dir.join(format!("{}.toml", spec.target)),
         )
         .unwrap();
         fixture_root
@@ -82,25 +97,63 @@ pub fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
-pub fn sc_compose() -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_sc-compose"));
-    command.env("SC_LOG_ROOT", test_log_root("sc-compose-test"));
-    command
+pub struct ScComposeCommand {
+    command: Command,
+    log_root: TempFixture,
 }
 
-fn test_log_root(prefix: &str) -> PathBuf {
-    static ROOT: OnceLock<PathBuf> = OnceLock::new();
-    ROOT.get_or_init(|| {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let root =
-            std::env::temp_dir().join(format!("{prefix}-logs-{}-{nanos}", std::process::id()));
-        fs::create_dir_all(&root).unwrap();
-        root
-    })
-    .clone()
+impl ScComposeCommand {
+    pub fn log_root_path(&self) -> &Path {
+        &self.log_root.path
+    }
+
+    pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Self {
+        self.command.arg(arg);
+        self
+    }
+
+    pub fn args<I, S>(&mut self, args: I) -> &mut Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        self.command.args(args);
+        self
+    }
+
+    pub fn env<K, V>(&mut self, key: K, value: V) -> &mut Self
+    where
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        self.command.env(key, value);
+        self
+    }
+
+    pub fn stdin(&mut self, cfg: Stdio) -> &mut Self {
+        self.command.stdin(cfg);
+        self
+    }
+
+    pub fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Self {
+        self.command.current_dir(dir);
+        self
+    }
+
+    pub fn status(&mut self) -> std::io::Result<std::process::ExitStatus> {
+        self.command.status()
+    }
+
+    pub fn output(&mut self) -> std::io::Result<std::process::Output> {
+        self.command.output()
+    }
+}
+
+pub fn sc_compose() -> ScComposeCommand {
+    let log_root = TempFixture::new("sc-compose-logs");
+    let mut command = Command::new(env!("CARGO_BIN_EXE_sc-compose"));
+    command.env("SC_LOG_ROOT", &log_root.path);
+    ScComposeCommand { command, log_root }
 }
 
 pub fn sc_lint_just_root(required_files: &[&str]) -> PathBuf {
@@ -159,24 +212,44 @@ fn materialize_sc_lint_runtime_from(
     }
 }
 
-pub fn write_fake_cargo(root: &Path, xwin_available: bool, test_failure: bool) {
+pub const SC_LINT_PYTHON_TOOLS: &[&str] = &[
+    "lint_cargo_deny.py",
+    "lint_cargo_shear.py",
+    "check_version_sync.py",
+    "lint_manifests.py",
+    "lint_codespell.py",
+    "run_pytests.py",
+    "lint_sc_boundary.py",
+    "lint_sc_portability.py",
+    "lint_line_counts.py",
+    "lint_identity_literals.py",
+];
+
+static FAKE_CARGO_COMPILE_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+
+pub fn write_fake_cargo(root: &Path, options: FakeCargoOptions) {
     let bin = root.join("fake-bin");
     fs::create_dir_all(&bin).expect("fake tools directory");
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
 
-        let xwin_code = if xwin_available { "0" } else { "1" };
-        let test_branch = if test_failure {
+        let xwin_code = if options.xwin_available { "0" } else { "1" };
+        let test_branch = if options.test_failure {
             "if [ \"$1\" = \"test\" ]; then\n  printf '%s\\n' '{\"findings\":[{\"rule_id\":\"CI-TEST-FINDING-001\",\"path\":\"tests/fixture\",\"message\":\"workspace test failed\"}]}' >&2\n  exit 1\nfi\n"
         } else {
             ""
+        };
+        let fallback = if options.fail_closed {
+            "exit 1"
+        } else {
+            "exit 0"
         };
         let cargo = bin.join("cargo");
         fs::write(
             &cargo,
             format!(
-                "#!/bin/sh\nif [ \"$1\" = \"xwin\" ] && {{ [ \"$2\" = \"--version\" ] || [ \"$2\" = \"check\" ]; }}; then\n  exit {xwin_code}\nfi\n{test_branch}exit 0\n"
+                "#!/bin/sh\nif [ \"$1\" = \"xwin\" ] && {{ [ \"$2\" = \"--version\" ] || [ \"$2\" = \"check\" ]; }}; then\n  exit {xwin_code}\nfi\n{test_branch}{fallback}\n"
             ),
         )
         .expect("fake cargo");
@@ -189,17 +262,23 @@ pub fn write_fake_cargo(root: &Path, xwin_available: bool, test_failure: bool) {
 
     #[cfg(windows)]
     {
+        let xwin_code = if options.xwin_available { "0" } else { "1" };
         let source = bin.join("fake-cargo.rs");
         let executable = bin.join("cargo.exe");
         fs::write(
             &source,
             format!(
-                "fn main() {{\n    let mut args = std::env::args().skip(1);\n    let first = args.next();\n    let second = args.next();\n    if first.as_deref() == Some(\"xwin\") && matches!(second.as_deref(), Some(\"--version\") | Some(\"check\")) {{\n        std::process::exit({xwin_code});\n    }}\n    if {test_failure} && first.as_deref() == Some(\"test\") {{\n        eprintln!(\"{{{{\\\"findings\\\":[{{{{\\\"rule_id\\\":\\\"CI-TEST-FINDING-001\\\",\\\"path\\\":\\\"tests/fixture\\\",\\\"message\\\":\\\"workspace test failed\\\"}}}}]}}}}\");\n        std::process::exit(1);\n    }}\n    std::process::exit(0);\n}}\n",
+                "fn main() {{\n    let mut args = std::env::args().skip(1);\n    let first = args.next();\n    let second = args.next();\n    if first.as_deref() == Some(\"xwin\") && matches!(second.as_deref(), Some(\"--version\") | Some(\"check\")) {{\n        std::process::exit({xwin_code});\n    }}\n    if {test_failure} && first.as_deref() == Some(\"test\") {{\n        eprintln!(\"{{{{\\\"findings\\\":[{{{{\\\"rule_id\\\":\\\"CI-TEST-FINDING-001\\\",\\\"path\\\":\\\"tests/fixture\\\",\\\"message\\\":\\\"workspace test failed\\\"}}}}]}}}}\");\n        std::process::exit(1);\n    }}\n    std::process::exit({fallback});\n}}\n",
                 xwin_code = xwin_code,
-                test_failure = test_failure,
+                test_failure = options.test_failure,
+                fallback = if options.fail_closed { 1 } else { 0 },
             ),
         )
         .expect("fake cargo source");
+        let _guard = FAKE_CARGO_COMPILE_LOCK
+            .get_or_init(|| Mutex::new(()))
+            .lock()
+            .expect("fake cargo compile lock");
         let status = Command::new("rustc")
             .args([
                 "--edition",
@@ -216,7 +295,13 @@ pub fn write_fake_cargo(root: &Path, xwin_available: bool, test_failure: bool) {
 }
 
 pub fn parse_stdout(output: &std::process::Output) -> Value {
-    serde_json::from_slice(&output.stdout).unwrap()
+    serde_json::from_slice(&output.stdout).unwrap_or_else(|error| {
+        panic!(
+            "sc-compose did not emit JSON: {error}; stdout={} stderr={}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+    })
 }
 
 pub fn assert_envelope(value: &Value) {

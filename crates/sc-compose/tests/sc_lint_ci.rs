@@ -11,20 +11,13 @@ use std::fs;
 use std::path::Path;
 use std::process::Output;
 
-use support::{TempFixture, parse_stdout, sc_compose, write_fake_cargo};
+use support::{
+    CheckedInFixture, FakeCargoOptions, SC_LINT_PYTHON_TOOLS, TempFixture, parse_stdout,
+    sc_compose, write_fake_cargo,
+};
 
 const TARGET: &str = "ci-all";
 const COMMAND_ID: &str = "ci";
-const PYTHON_TOOLS: &[&str] = &[
-    "lint_cargo_deny.py",
-    "lint_cargo_shear.py",
-    "check_version_sync.py",
-    "lint_manifests.py",
-    "lint_codespell.py",
-    "run_pytests.py",
-    "lint_sc_boundary.py",
-    "lint_sc_portability.py",
-];
 const PYTHON_TOOL_OUTPUT: &str = r#"import json
 print(json.dumps({"adapter_schema": "sc-lint-python-v1", "ok": True, "summary": "fixture utility passed", "data": {"findings": []}, "diagnostics": []}))
 "#;
@@ -137,9 +130,20 @@ fn ci_without_materialized_utilities_is_explicit_config_error() {
 }
 
 fn run_ci(fixture: &str, mode: ToolMode) -> (TempFixture, Output) {
-    let root = TempFixture::from_checked_in_fixture("ci", fixture, "ci");
+    let root = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "ci",
+        name: fixture,
+        target: "ci",
+    });
     if matches!(mode, ToolMode::MissingUtilities) {
-        write_fake_cargo(&root.path, false, false);
+        write_fake_cargo(
+            &root.path,
+            FakeCargoOptions {
+                xwin_available: false,
+                test_failure: false,
+                fail_closed: false,
+            },
+        );
     } else {
         materialize_python_tools(&root.path);
         write_fake_tools(&root.path, mode);
@@ -163,7 +167,7 @@ fn run_ci(fixture: &str, mode: ToolMode) -> (TempFixture, Output) {
 fn materialize_python_tools(root: &Path) {
     let just = root.join(".just");
     fs::create_dir_all(&just).expect("fixture just directory");
-    for tool in PYTHON_TOOLS {
+    for tool in SC_LINT_PYTHON_TOOLS {
         fs::write(just.join(tool), PYTHON_TOOL_OUTPUT).expect("fixture Python utility");
     }
 }
@@ -189,8 +193,11 @@ fn assert_report_materialized(root: &Path, expected_fragments: &[&str]) {
 fn write_fake_tools(root: &Path, mode: ToolMode) {
     write_fake_cargo(
         root,
-        matches!(mode, ToolMode::Pass),
-        matches!(mode, ToolMode::TestFailure),
+        FakeCargoOptions {
+            xwin_available: matches!(mode, ToolMode::Pass),
+            test_failure: matches!(mode, ToolMode::TestFailure),
+            fail_closed: false,
+        },
     );
     let bin = root.join("fake-bin");
     #[cfg(unix)]

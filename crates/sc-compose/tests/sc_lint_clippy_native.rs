@@ -1,12 +1,10 @@
-use serde_json::Value;
 use std::fs;
-use std::process::Command;
 
 mod support;
-use support::TempFixture;
+use support::{CheckedInFixture, TempFixture, parse_stdout, sc_compose};
 
 fn run_clippy_native(fixture: &TempFixture) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    sc_compose()
         .args([
             "lint",
             "--root",
@@ -20,13 +18,13 @@ fn run_clippy_native(fixture: &TempFixture) -> std::process::Output {
         .expect("run sc-compose clippy native")
 }
 
-fn result_payload(output: &std::process::Output) -> Value {
-    serde_json::from_slice(&output.stdout).expect("sc-compose JSON envelope")
-}
-
 #[test]
 fn clippy_native_pass_preserves_workflow_envelope_and_materializes_evidence() {
-    let fixture = TempFixture::from_checked_in_fixture("clippy-native", "pass", "clippy-native");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "clippy-native",
+        name: "pass",
+        target: "clippy-native",
+    });
     let output = run_clippy_native(&fixture);
     assert_eq!(
         output.status.code(),
@@ -36,7 +34,7 @@ fn clippy_native_pass_preserves_workflow_envelope_and_materializes_evidence() {
         String::from_utf8_lossy(&output.stdout),
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "clippy.native");
     assert_eq!(payload["target"], "clippy.native");
@@ -84,7 +82,11 @@ fn clippy_native_pass_preserves_workflow_envelope_and_materializes_evidence() {
 
 #[test]
 fn clippy_native_warning_remains_non_pass_with_structured_diagnostics() {
-    let fixture = TempFixture::from_checked_in_fixture("clippy-native", "warning", "clippy-native");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "clippy-native",
+        name: "warning",
+        target: "clippy-native",
+    });
     let output = run_clippy_native(&fixture);
     assert_eq!(
         output.status.code(),
@@ -93,7 +95,7 @@ fn clippy_native_warning_remains_non_pass_with_structured_diagnostics() {
         String::from_utf8_lossy(&output.stderr),
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "clippy.native");
     assert_eq!(payload["outcome"], "failed");

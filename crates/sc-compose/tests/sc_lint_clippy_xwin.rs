@@ -3,11 +3,9 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::{Mutex, OnceLock};
 
-use serde_json::Value;
-
 mod support;
 
-use support::{TempFixture, normalize_path_str};
+use support::{CheckedInFixture, TempFixture, normalize_path_str, parse_stdout, sc_compose};
 
 static CLIPPY_XWIN_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
@@ -16,7 +14,7 @@ fn run_clippy_xwin(fixture: &TempFixture) -> std::process::Output {
         .get_or_init(|| Mutex::new(()))
         .lock()
         .expect("clippy xwin test lock");
-    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    sc_compose()
         .args([
             "lint",
             "--root",
@@ -25,13 +23,8 @@ fn run_clippy_xwin(fixture: &TempFixture) -> std::process::Output {
             "clippy-xwin",
             "--json",
         ])
-        .env("SC_LOG_ROOT", fixture.path.join("logs"))
         .output()
         .expect("run sc-compose clippy xwin")
-}
-
-fn result_payload(output: &std::process::Output) -> Value {
-    serde_json::from_slice(&output.stdout).expect("sc-compose JSON envelope")
 }
 
 fn cargo_xwin_available() -> bool {
@@ -67,9 +60,13 @@ fn assert_report_materialized(fixture: &TempFixture, report_text: &str) {
 
 #[test]
 fn clippy_xwin_pass_preserves_identity_and_materializes_report() {
-    let fixture = TempFixture::from_checked_in_fixture("clippy-xwin", "pass", "clippy-xwin");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "clippy-xwin",
+        name: "pass",
+        target: "clippy-xwin",
+    });
     let output = run_clippy_xwin(&fixture);
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
 
     assert_eq!(envelope["schema_version"], "1");
@@ -109,10 +106,13 @@ fn clippy_xwin_pass_preserves_identity_and_materializes_report() {
 
 #[test]
 fn clippy_xwin_failure_stays_non_pass_with_structured_diagnostics() {
-    let fixture =
-        TempFixture::from_checked_in_fixture("clippy-xwin", "failing-analysis", "clippy-xwin");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "clippy-xwin",
+        name: "failing-analysis",
+        target: "clippy-xwin",
+    });
     let output = run_clippy_xwin(&fixture);
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
 
     assert_eq!(envelope["schema_version"], "1");

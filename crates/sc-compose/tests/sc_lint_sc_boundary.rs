@@ -1,13 +1,9 @@
 use std::fs;
-use std::process::Command;
-
-use serde_json::Value;
-
 mod support;
-use support::TempFixture;
+use support::{CheckedInFixture, TempFixture, parse_stdout, sc_compose};
 
 fn run_sc_boundary(fixture: &TempFixture) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    sc_compose()
         .args([
             "lint",
             "--root",
@@ -21,13 +17,13 @@ fn run_sc_boundary(fixture: &TempFixture) -> std::process::Output {
         .expect("run sc-compose lint sc-boundary")
 }
 
-fn result_payload(output: &std::process::Output) -> Value {
-    serde_json::from_slice(&output.stdout).expect("sc-compose JSON envelope")
-}
-
 #[test]
 fn boundary_pass_uses_shared_runner_and_materializes_evidence() {
-    let fixture = TempFixture::from_checked_in_fixture("sc-boundary", "pass", "sc-boundary");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "sc-boundary",
+        name: "pass",
+        target: "sc-boundary",
+    });
     let output = run_sc_boundary(&fixture);
     assert_eq!(
         output.status.code(),
@@ -37,7 +33,7 @@ fn boundary_pass_uses_shared_runner_and_materializes_evidence() {
         String::from_utf8_lossy(&output.stdout),
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "lint.sc-boundary");
     assert_eq!(payload["outcome"], "pass");
@@ -63,10 +59,13 @@ fn boundary_pass_uses_shared_runner_and_materializes_evidence() {
 
 #[test]
 fn boundary_dependency_violation_stays_non_pass_with_structured_finding() {
-    let fixture =
-        TempFixture::from_checked_in_fixture("sc-boundary", "dependency-violation", "sc-boundary");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "sc-boundary",
+        name: "dependency-violation",
+        target: "sc-boundary",
+    });
     let output = run_sc_boundary(&fixture);
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
 
     assert_eq!(payload["command_id"], "lint.sc-boundary");

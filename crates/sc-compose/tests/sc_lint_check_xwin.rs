@@ -4,13 +4,14 @@
 //! requiring a Windows target toolchain during this host-side integration test.
 //! The unavailable branch is asserted as a capability result, never as pass.
 
-use serde_json::Value;
 use std::fs;
 use std::path::Path;
-use std::process::{Command, Output};
+use std::process::Output;
 
 mod support;
-use support::{TempFixture, write_fake_cargo};
+use support::{
+    CheckedInFixture, FakeCargoOptions, TempFixture, parse_stdout, sc_compose, write_fake_cargo,
+};
 
 const TARGET: &str = "check-xwin";
 const COMMAND_ID: &str = "check.xwin";
@@ -26,7 +27,7 @@ fn check_xwin_pass_preserves_workflow_envelope_and_report() {
         "unexpected check failure: {output:?}"
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], COMMAND_ID);
     assert_eq!(payload["target"], COMMAND_ID);
@@ -68,7 +69,7 @@ fn check_xwin_unavailable_remains_explicit_capability_failure() {
         "capability failure must use sc-compose's normalized exit code: {output:?}"
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], COMMAND_ID);
     assert_eq!(payload["outcome"], "capability_error");
@@ -102,7 +103,7 @@ fn check_xwin_unavailable_remains_explicit_capability_failure() {
 }
 
 fn run_check_xwin(fixture: &TempFixture) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    sc_compose()
         .args([
             "lint",
             "--root",
@@ -112,7 +113,6 @@ fn run_check_xwin(fixture: &TempFixture) -> Output {
             "--json",
         ])
         .env("PATH", fixture.path_with_fake_tools())
-        .env("SC_LOG_ROOT", fixture.path.join("logs"))
         .output()
         .expect("run sc-compose lint check-xwin")
 }
@@ -135,18 +135,19 @@ fn assert_report_materialized(root: &Path, expected_fragments: &[&str]) {
     }
 }
 
-fn result_payload(output: &Output) -> Value {
-    serde_json::from_slice(&output.stdout).unwrap_or_else(|error| {
-        panic!(
-            "sc-compose did not emit JSON: {error}; stdout={} stderr={}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
-        )
-    })
-}
-
 fn check_xwin_fixture(name: &str, xwin_available: bool) -> TempFixture {
-    let fixture = TempFixture::from_checked_in_fixture("check-xwin", name, "check-xwin");
-    write_fake_cargo(&fixture.path, xwin_available, false);
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "check-xwin",
+        name,
+        target: "check-xwin",
+    });
+    write_fake_cargo(
+        &fixture.path,
+        FakeCargoOptions {
+            xwin_available,
+            test_failure: false,
+            fail_closed: true,
+        },
+    );
     fixture
 }

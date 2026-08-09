@@ -5,29 +5,19 @@
 //! is deterministic on a developer host and on Windows CI. No Python utility
 //! or report template is copied into this repository.
 
-use serde_json::Value;
 use std::fs;
 use std::path::Path;
-use std::process::{Command, Output};
+use std::process::Output;
 
 mod support;
 
-use support::{TempFixture, write_fake_cargo};
+use support::{
+    CheckedInFixture, FakeCargoOptions, SC_LINT_PYTHON_TOOLS, TempFixture, parse_stdout,
+    sc_compose, write_fake_cargo,
+};
 
 const TARGET: &str = "lint-full";
 const COMMAND_ID: &str = "lint.full";
-const PYTHON_TOOLS: &[&str] = &[
-    "lint_cargo_deny.py",
-    "lint_cargo_shear.py",
-    "check_version_sync.py",
-    "lint_manifests.py",
-    "lint_codespell.py",
-    "run_pytests.py",
-    "lint_sc_boundary.py",
-    "lint_sc_portability.py",
-    "lint_line_counts.py",
-    "lint_identity_literals.py",
-];
 const PYTHON_PASS_OUTPUT: &str = r#"import json
 print(json.dumps({"adapter_schema": "sc-lint-python-v1", "ok": True, "summary": "fixture utility passed", "data": {"findings": []}, "diagnostics": []}))
 "#;
@@ -44,9 +34,20 @@ enum ToolMode {
 }
 
 fn lint_full_fixture(name: &str, mode: ToolMode) -> TempFixture {
-    let fixture = support::TempFixture::from_checked_in_fixture("lint-full", name, "lint-full");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "lint-full",
+        name,
+        target: "lint-full",
+    });
     if matches!(mode, ToolMode::MissingUtilities) {
-        write_fake_cargo(&fixture.path, false, false);
+        write_fake_cargo(
+            &fixture.path,
+            FakeCargoOptions {
+                xwin_available: false,
+                test_failure: false,
+                fail_closed: false,
+            },
+        );
     } else {
         materialize_python_tools(&fixture.path, mode);
         write_fake_tools(&fixture.path, mode);
@@ -62,7 +63,7 @@ fn materialize_python_tools(root: &Path, mode: ToolMode) {
         ToolMode::Finding => PYTHON_FINDING_OUTPUT,
         ToolMode::MissingUtilities => unreachable!(),
     };
-    for tool in PYTHON_TOOLS {
+    for tool in SC_LINT_PYTHON_TOOLS {
         fs::write(just.join(tool), output).expect("fixture Python utility");
     }
 }
@@ -77,7 +78,7 @@ fn lint_full_pass_preserves_profile_envelope_and_report() {
         "unexpected lint.full failure: {output:?}"
     );
 
-    let payload = &result_payload(&output)["payload"];
+    let payload = &parse_stdout(&output)["payload"];
     assert_eq!(payload["command_id"], COMMAND_ID);
     assert_eq!(payload["target"], COMMAND_ID);
     assert_eq!(payload["outcome"], "pass");
@@ -109,7 +110,7 @@ fn lint_full_finding_stays_non_pass_with_structured_backend_payload() {
         "full-profile finding must return the CLI validation-failure status: {output:?}"
     );
 
-    let payload = &result_payload(&output)["payload"];
+    let payload = &parse_stdout(&output)["payload"];
     assert_eq!(payload["command_id"], COMMAND_ID);
     assert_eq!(payload["outcome"], "failed");
     assert_eq!(payload["exit_status"], 5);
@@ -148,7 +149,7 @@ fn lint_full_without_materialized_utilities_is_explicit_config_error() {
         "missing utility must return the CLI usage-failure status: {output:?}"
     );
 
-    let payload = &result_payload(&output)["payload"];
+    let payload = &parse_stdout(&output)["payload"];
     assert_eq!(payload["command_id"], COMMAND_ID);
     assert_eq!(payload["outcome"], "config_error");
     assert_eq!(payload["exit_status"], 5);
@@ -167,7 +168,7 @@ fn lint_full_without_materialized_utilities_is_explicit_config_error() {
 }
 
 fn run_lint_full(fixture: &TempFixture) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    sc_compose()
         .args([
             "lint",
             "--root",
@@ -177,7 +178,6 @@ fn run_lint_full(fixture: &TempFixture) -> Output {
             "--json",
         ])
         .env("PATH", fixture.path_with_fake_tools())
-        .env("SC_LOG_ROOT", fixture.path.join("logs"))
         .output()
         .expect("run sc-compose lint full")
 }
@@ -200,18 +200,15 @@ fn assert_report_materialized(root: &Path, expected_fragments: &[&str]) {
     }
 }
 
-fn result_payload(output: &Output) -> Value {
-    serde_json::from_slice(&output.stdout).unwrap_or_else(|error| {
-        panic!(
-            "sc-compose did not emit JSON: {error}; stdout={} stderr={}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
-        )
-    })
-}
-
 fn write_fake_tools(root: &Path, mode: ToolMode) {
-    write_fake_cargo(root, matches!(mode, ToolMode::Pass), false);
+    write_fake_cargo(
+        root,
+        FakeCargoOptions {
+            xwin_available: matches!(mode, ToolMode::Pass),
+            test_failure: false,
+            fail_closed: false,
+        },
+    );
     let bin = root.join("fake-bin");
     #[cfg(unix)]
     {

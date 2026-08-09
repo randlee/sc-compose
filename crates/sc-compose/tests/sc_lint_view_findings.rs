@@ -1,10 +1,9 @@
 use std::fs;
-use std::process::Command;
-
-use serde_json::Value;
-
 mod support;
-use support::{TempFixture, normalize_path_str, try_sc_lint_just_root};
+use support::{
+    CheckedInFixture, TempFixture, normalize_path_str, parse_stdout, sc_compose,
+    try_sc_lint_just_root,
+};
 
 const VIEW_UTILITY_FILES: &[&str] = &[
     "view_findings.py",
@@ -27,7 +26,7 @@ fn install_pinned_view_utilities(fixture: &TempFixture) -> bool {
 }
 
 fn run_view_findings(fixture: &TempFixture) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    sc_compose()
         .args([
             "lint",
             "--root",
@@ -36,21 +35,20 @@ fn run_view_findings(fixture: &TempFixture) -> std::process::Output {
             "view-findings",
             "--json",
         ])
-        .env("SC_LOG_ROOT", fixture.path.join("logs"))
         .output()
         .expect("run sc-compose view findings")
 }
 
-fn result_envelope(output: &std::process::Output) -> Value {
-    serde_json::from_slice(&output.stdout).expect("sc-compose JSON envelope")
-}
-
 #[test]
 fn view_findings_pass_preserves_identity_and_materializes_report() {
-    let fixture = TempFixture::from_checked_in_fixture("view-findings", "pass", "view-findings");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "view-findings",
+        name: "pass",
+        target: "view-findings",
+    });
     let utilities_available = install_pinned_view_utilities(&fixture);
     let output = run_view_findings(&fixture);
-    let envelope = result_envelope(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
 
     assert_eq!(envelope["schema_version"], "1");
@@ -115,11 +113,14 @@ fn view_findings_pass_preserves_identity_and_materializes_report() {
 
 #[test]
 fn view_findings_malformed_payload_stays_non_pass_with_diagnostics() {
-    let fixture =
-        TempFixture::from_checked_in_fixture("view-findings", "malformed-summary", "view-findings");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "view-findings",
+        name: "malformed-summary",
+        target: "view-findings",
+    });
     let utilities_available = install_pinned_view_utilities(&fixture);
     let output = run_view_findings(&fixture);
-    let envelope = result_envelope(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
 
     assert_eq!(envelope["schema_version"], "1");

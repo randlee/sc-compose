@@ -1,13 +1,16 @@
 use std::fs;
-use std::process::Command;
-
-use serde_json::Value;
-
 mod support;
-use support::{TempFixture, materialize_sc_lint_runtime, normalize_path_str};
+use support::{
+    CheckedInFixture, TempFixture, materialize_sc_lint_runtime, normalize_path_str, parse_stdout,
+    sc_compose,
+};
 
 fn line_counts_fixture(name: &str) -> TempFixture {
-    let fixture = TempFixture::from_checked_in_fixture("line-counts", name, "line-counts");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "line-counts",
+        name,
+        target: "line-counts",
+    });
 
     // CI materializes the pinned sc-lint Python utilities in the consumer
     // checkout. Copying them into the ephemeral fixture exercises that
@@ -25,7 +28,7 @@ fn line_counts_fixture(name: &str) -> TempFixture {
 }
 
 fn run_line_counts(fixture: &TempFixture) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    sc_compose()
         .args([
             "lint",
             "--root",
@@ -34,13 +37,8 @@ fn run_line_counts(fixture: &TempFixture) -> std::process::Output {
             "line-counts",
             "--json",
         ])
-        .env("SC_LOG_ROOT", fixture.path.join("logs"))
         .output()
         .expect("run sc-compose lint line-counts")
-}
-
-fn result_payload(output: &std::process::Output) -> Value {
-    serde_json::from_slice(&output.stdout).expect("sc-compose JSON envelope")
 }
 
 #[test]
@@ -55,7 +53,7 @@ fn line_counts_pass_preserves_adapter_envelope_and_materializes_evidence() {
         String::from_utf8_lossy(&output.stdout),
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "lint.line-counts");
     assert_eq!(payload["target"], "lint.line-counts");
@@ -94,7 +92,7 @@ fn line_counts_over_limit_remains_failed_with_structured_finding() {
         String::from_utf8_lossy(&output.stderr),
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "lint.line-counts");
     assert_eq!(payload["outcome"], "findings");

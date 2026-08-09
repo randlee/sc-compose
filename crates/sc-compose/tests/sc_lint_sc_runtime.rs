@@ -1,13 +1,9 @@
 use std::fs;
-use std::process::Command;
-
-use serde_json::Value;
-
 mod support;
-use support::{TempFixture, normalize_path_str};
+use support::{CheckedInFixture, TempFixture, normalize_path_str, parse_stdout, sc_compose};
 
 fn run_sc_runtime(fixture: &TempFixture) -> std::process::Output {
-    Command::new(env!("CARGO_BIN_EXE_sc-compose"))
+    sc_compose()
         .args([
             "lint",
             "--root",
@@ -21,13 +17,13 @@ fn run_sc_runtime(fixture: &TempFixture) -> std::process::Output {
         .expect("run sc-compose lint sc-runtime")
 }
 
-fn result_payload(output: &std::process::Output) -> Value {
-    serde_json::from_slice(&output.stdout).expect("sc-compose JSON envelope")
-}
-
 #[test]
 fn runtime_pass_preserves_envelope_and_materializes_evidence() {
-    let fixture = TempFixture::from_checked_in_fixture("sc-runtime", "pass", "sc-runtime");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "sc-runtime",
+        name: "pass",
+        target: "sc-runtime",
+    });
     let output = run_sc_runtime(&fixture);
     assert_eq!(
         output.status.code(),
@@ -37,7 +33,7 @@ fn runtime_pass_preserves_envelope_and_materializes_evidence() {
         String::from_utf8_lossy(&output.stdout),
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     assert_eq!(envelope["schema_version"], "1");
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "lint.sc-runtime");
@@ -63,7 +59,11 @@ fn runtime_pass_preserves_envelope_and_materializes_evidence() {
 
 #[test]
 fn runtime_unsafe_wait_stays_non_pass_with_structured_finding() {
-    let fixture = TempFixture::from_checked_in_fixture("sc-runtime", "unsafe-wait", "sc-runtime");
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "sc-runtime",
+        name: "unsafe-wait",
+        target: "sc-runtime",
+    });
     let output = run_sc_runtime(&fixture);
     assert_eq!(
         output.status.code(),
@@ -72,7 +72,7 @@ fn runtime_unsafe_wait_stays_non_pass_with_structured_finding() {
         String::from_utf8_lossy(&output.stderr),
     );
 
-    let envelope = result_payload(&output);
+    let envelope = parse_stdout(&output);
     assert_eq!(envelope["schema_version"], "1");
     let payload = &envelope["payload"];
     assert_eq!(payload["command_id"], "lint.sc-runtime");

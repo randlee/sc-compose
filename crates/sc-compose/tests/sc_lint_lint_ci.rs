@@ -3,7 +3,10 @@ mod support;
 use std::fs;
 use std::process::Output;
 
-use support::{TempFixture, materialize_sc_lint_runtime_with_config, parse_stdout, sc_compose};
+use support::{
+    CheckedInFixture, TempFixture, materialize_sc_lint_runtime_with_config, parse_stdout,
+    sc_compose,
+};
 
 #[test]
 fn lint_ci_preserves_known_sc_lint_boundary_packaging_defect() {
@@ -122,7 +125,11 @@ fn lint_ci_manifest_failure_remains_non_pass_with_structured_diagnostics() {
 }
 
 fn run_target(fixture: &str) -> (TempFixture, Output) {
-    let root = TempFixture::from_checked_in_fixture("lint-ci", fixture, "lint-ci");
+    let root = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "lint-ci",
+        name: fixture,
+        target: "lint-ci",
+    });
     materialize_sc_lint_runtime_with_config(
         &root.path,
         &[
