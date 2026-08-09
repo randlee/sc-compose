@@ -1,0 +1,47 @@
+{
+  "ok": true,
+  "command": "lint.fast",
+  "data": {
+    "profile": "fast",
+    "status": "pass",
+    "step_count": 5,
+    "steps": [
+      {
+        "command": "cargo fmt --all --check",
+        "kind": "lint",
+        "name": "fmt",
+        "status": "pass"
+      },
+      {
+        "command": "python3 .just/check_version_sync.py",
+        "kind": "lint",
+        "name": "version",
+        "status": "pass"
+      },
+      {
+        "command": "python3 .just/lint_manifests.py",
+        "kind": "lint",
+        "name": "manifests",
+        "status": "pass"
+      },
+      {
+        "command": "python3 .just/lint_codespell.py",
+        "kind": "lint",
+        "name": "spell",
+        "status": "pass"
+      },
+      {
+        "command": "python3 .just/run_pytests.py",
+        "kind": "lint",
+        "name": "pytests",
+        "status": "pass"
+      }
+    ],
+    "xwin": {
+      "available": true,
+      "included": false,
+      "target": "x86_64-pc-windows-msvc"
+    }
+  },
+  "diagnostics": []
+}
