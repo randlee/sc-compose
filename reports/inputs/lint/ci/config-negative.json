@@ -1,0 +1,19 @@
+{
+  "ok": false,
+  "command": "ci",
+  "error": {
+    "kind": "backend_failure",
+    "code": "CLI.BACKEND_EXEC_FAILURE",
+    "message": "deny failed",
+    "details": {
+      "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-test-sc-lint-ci-config-negative-56796-1786245047136707000/.just/lint_cargo_deny.py",
+      "exit_code": 2,
+      "root": "/private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-test-sc-lint-ci-config-negative-56796-1786245047136707000",
+      "stderr": "/Library/Frameworks/Python.framework/Versions/3.11/Resources/Python.app/Contents/MacOS/Python: can't open file '/private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-test-sc-lint-ci-config-negative-56796-1786245047136707000/.just/lint_cargo_deny.py': [Errno 2] No such file or directory",
+      "stdout": "",
+      "step": "deny"
+    },
+    "cause": "/Library/Frameworks/Python.framework/Versions/3.11/Resources/Python.app/Contents/MacOS/Python: can't open file '/private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-test-sc-lint-ci-config-negative-56796-1786245047136707000/.just/lint_cargo_deny.py': [Errno 2] No such file or directory"
+  },
+  "diagnostics": []
+}

@@ -1,0 +1,19 @@
+{
+  "ok": false,
+  "command": "ci",
+  "error": {
+    "kind": "backend_failure",
+    "code": "CLI.BACKEND_EXEC_FAILURE",
+    "message": "test failed",
+    "details": {
+      "command": "cargo test --workspace",
+      "exit_code": 1,
+      "root": "/private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-test-sc-lint-ci-test-failure-56796-1786245046512618000",
+      "stderr": "{\"findings\":[{\"rule_id\":\"CI-TEST-FINDING-001\",\"path\":\"tests/fixture\",\"message\":\"workspace test failed\"}]}",
+      "stdout": "",
+      "step": "test"
+    },
+    "cause": "{\"findings\":[{\"rule_id\":\"CI-TEST-FINDING-001\",\"path\":\"tests/fixture\",\"message\":\"workspace test failed\"}]}"
+  },
+  "diagnostics": []
+}
