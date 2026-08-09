@@ -150,6 +150,7 @@ pub(crate) fn run_sc_lint(
         .filter(|value| value.as_array().is_some_and(|items| !items.is_empty()))
         .or_else(|| raw_payload.get("error").map(|error| json!([error])))
         .unwrap_or_else(|| Value::Array(Vec::new()));
+    let diagnostics = normalize_diagnostics(diagnostics, outcome);
     let raw_path = root.join(RAW_REPORT_DIR).join(format!("{id}.json"));
     let report_path = root.join(REPORT_PATH);
     std::fs::create_dir_all(raw_path.parent().expect("raw artifact has a parent")).map_err(
@@ -261,7 +262,7 @@ fn parse_raw_payload(stdout: &str, stderr: &str, command_id: &str) -> (String, V
 pub(crate) fn run_sc_lint_command(args: &ScLintArgs) -> Result<i32, CommandError> {
     let command = ScLintCommand::load(&args.root, &args.target)?;
     let result = run_sc_lint(&args.root, command)?;
-    let exit_status = result.exit_status.unwrap_or(1);
+    let exit_status = lint_exit_code(result.outcome);
     if args.json {
         print_json(&result, Vec::new()).map_err(CommandError::usage)?;
     } else {
@@ -274,6 +275,16 @@ pub(crate) fn run_sc_lint_command(args: &ScLintArgs) -> Result<i32, CommandError
         }
     }
     Ok(exit_status)
+}
+
+fn lint_exit_code(outcome: ScLintOutcome) -> i32 {
+    match outcome {
+        ScLintOutcome::Pass | ScLintOutcome::Findings => crate::exit_codes::SUCCESS,
+        ScLintOutcome::ConfigError | ScLintOutcome::CapabilityError => {
+            crate::exit_codes::USAGE_FAIL
+        }
+        ScLintOutcome::Failed => crate::exit_codes::VALIDATION_OR_RENDER_FAIL,
+    }
 }
 
 fn descriptor_target(target: &str) -> String {
@@ -310,7 +321,14 @@ fn classify_outcome(payload: &Value, exit_status: Option<i32>) -> ScLintOutcome 
         .get("error")
         .map(std::string::ToString::to_string)
         .unwrap_or_default();
+    let missing_view_utility = code == "CLI.BACKEND_PROTOCOL_ERROR"
+        && payload
+            .get("error")
+            .and_then(|error| error.get("message"))
+            .and_then(Value::as_str)
+            == Some("sc-lint-view-findings returned malformed adapter json");
     if code == "CLI.CONFIG_ERROR"
+        || missing_view_utility
         || (code == "CLI.BACKEND_EXEC_FAILURE"
             && error_text.contains(".just/")
             && (error_text.contains("can't open file") || error_text.contains("No such file")))
@@ -334,6 +352,22 @@ fn classify_outcome(payload: &Value, exit_status: Option<i32>) -> ScLintOutcome 
     } else {
         ScLintOutcome::Failed
     }
+}
+
+fn normalize_diagnostics(mut diagnostics: Value, outcome: ScLintOutcome) -> Value {
+    if outcome == ScLintOutcome::ConfigError
+        && let Some(items) = diagnostics.as_array_mut()
+    {
+        for item in items {
+            if let Some(object) = item.as_object_mut() {
+                object.insert(
+                    String::from("code"),
+                    Value::String(String::from("CLI.CONFIG_ERROR")),
+                );
+            }
+        }
+    }
+    diagnostics
 }
 
 fn relative_path(root: &Path, path: &Path) -> String {
@@ -384,7 +418,7 @@ fn html_escape(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{ScLintOutcome, classify_outcome, command_args, descriptor_target};
+    use super::{ScLintOutcome, classify_outcome, command_args, descriptor_target, lint_exit_code};
     use serde_json::json;
 
     #[test]
@@ -426,5 +460,27 @@ mod tests {
             ),
             ScLintOutcome::CapabilityError
         );
+        assert_eq!(
+            classify_outcome(
+                &json!({
+                    "ok": false,
+                    "error": {
+                        "code": "CLI.BACKEND_PROTOCOL_ERROR",
+                        "message": "sc-lint-view-findings returned malformed adapter json"
+                    }
+                }),
+                Some(6)
+            ),
+            ScLintOutcome::ConfigError
+        );
+    }
+
+    #[test]
+    fn lint_exit_codes_follow_cli_contract() {
+        assert_eq!(lint_exit_code(ScLintOutcome::Pass), 0);
+        assert_eq!(lint_exit_code(ScLintOutcome::Findings), 0);
+        assert_eq!(lint_exit_code(ScLintOutcome::ConfigError), 3);
+        assert_eq!(lint_exit_code(ScLintOutcome::CapabilityError), 3);
+        assert_eq!(lint_exit_code(ScLintOutcome::Failed), 2);
     }
 }
