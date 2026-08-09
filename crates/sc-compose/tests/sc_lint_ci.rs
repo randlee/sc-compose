@@ -268,7 +268,7 @@ fn write_fake_cargo(root: &Path, xwin_available: bool, test_failure: bool) {
         fs::write(
             &source,
             format!(
-                "fn main() {{\n    let mut args = std::env::args().skip(1);\n    let first = args.next();\n    let second = args.next();\n    if first.as_deref() == Some(\"xwin\") && second.as_deref() == Some(\"--version\") {{\n        std::process::exit({xwin_code});\n    }}\n    if {test_failure} && first.as_deref() == Some(\"test\") {{\n        eprintln!(r#\"{{\\\"findings\\\":[{{\\\"rule_id\\\":\\\"CI-TEST-FINDING-001\\\",\\\"path\\\":\\\"tests/fixture\\\",\\\"message\\\":\\\"workspace test failed\\\"}}]}}\"#);\n        std::process::exit(1);\n    }}\n    std::process::exit(0);\n}}\n",
+                "fn main() {{\n    let mut args = std::env::args().skip(1);\n    let first = args.next();\n    let second = args.next();\n    if first.as_deref() == Some(\"xwin\") && second.as_deref() == Some(\"--version\") {{\n        std::process::exit({xwin_code});\n    }}\n    if {test_failure} && first.as_deref() == Some(\"test\") {{\n        eprintln!(\"{{{{\\\"findings\\\":[{{{{\\\"rule_id\\\":\\\"CI-TEST-FINDING-001\\\",\\\"path\\\":\\\"tests/fixture\\\",\\\"message\\\":\\\"workspace test failed\\\"}}}}]}}}}\");\n        std::process::exit(1);\n    }}\n    std::process::exit(0);\n}}\n",
                 test_failure = test_failure,
             ),
         )
