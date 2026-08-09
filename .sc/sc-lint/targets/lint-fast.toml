@@ -1,0 +1,2 @@
+command = "lint.fast"
+report_kind = "lint"

@@ -97,6 +97,41 @@ runs:
         if (-not $value.ok -or $value.data.crate_version -ne $env:SC_LINT_VERSION) {
           throw "sc-lint setup: expected version $env:SC_LINT_VERSION, got $($value.data.crate_version)"
         }
+    - name: Materialize pinned sc-lint Python utilities (Unix)
+      if: runner.os != 'Windows'
+      shell: bash
+      env:
+        SC_LINT_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        archive="${RUNNER_TEMP}/sc-lint-source-${SC_LINT_VERSION}.tar.gz"
+        source_root="${RUNNER_TEMP}/sc-lint-source-${SC_LINT_VERSION}"
+        mkdir -p "${source_root}"
+        curl --fail --location --retry 4 --retry-all-errors --silent --show-error \
+          --output "${archive}" \
+          "https://github.com/randlee/sc-lint/archive/refs/tags/v${SC_LINT_VERSION}.tar.gz"
+        tar -xzf "${archive}" -C "${source_root}" --strip-components=1
+        mkdir -p "${GITHUB_WORKSPACE}/.just"
+        cp "${source_root}/.just/"*.py "${GITHUB_WORKSPACE}/.just/"
+        test -f "${GITHUB_WORKSPACE}/.just/run_lint.py"
+    - name: Materialize pinned sc-lint Python utilities (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      env:
+        SC_LINT_VERSION: ${{ inputs.version }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $archive = Join-Path $env:RUNNER_TEMP "sc-lint-source-$env:SC_LINT_VERSION.zip"
+        $sourceRoot = Join-Path $env:RUNNER_TEMP "sc-lint-source-$env:SC_LINT_VERSION"
+        Invoke-WebRequest -Uri "https://github.com/randlee/sc-lint/archive/refs/tags/v$env:SC_LINT_VERSION.zip" -OutFile $archive
+        Expand-Archive -Path $archive -DestinationPath $sourceRoot -Force
+        $extracted = Get-ChildItem -Directory $sourceRoot | Select-Object -First 1
+        $justRoot = Join-Path $env:GITHUB_WORKSPACE '.just'
+        New-Item -ItemType Directory -Force -Path $justRoot | Out-Null
+        Copy-Item (Join-Path $extracted.FullName '.just\*.py') $justRoot -Force
+        if (-not (Test-Path (Join-Path $justRoot 'run_lint.py'))) {
+          throw 'sc-lint setup: source archive is missing .just/run_lint.py'
+        }
     - name: Smoke-test repository root discovery (Unix)
       if: runner.os != 'Windows'
       shell: bash

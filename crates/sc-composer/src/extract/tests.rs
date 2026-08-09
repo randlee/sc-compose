@@ -368,6 +368,17 @@ fn xml_decodes_entities_preserves_whitespace_and_supports_empty_values() {
 }
 
 #[test]
+fn xml_attribute_values_apply_xml_whitespace_normalization() {
+    let report = extract(&xml_request(
+        r#"<doc data="{{ value }}"/>"#,
+        "<doc data=\"a\tb\rc\nd &amp; e\"/>",
+    ))
+    .unwrap();
+
+    assert_eq!(report.values[&variable("value")], "a b c d & e");
+}
+
+#[test]
 fn xml_conflicting_same_variable_occurrences_are_ambiguous() {
     let report = extract(&xml_request(
         "<root><item>{{ name }}</item><item>{{ name }}</item></root>",

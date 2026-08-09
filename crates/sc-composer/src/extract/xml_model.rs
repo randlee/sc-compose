@@ -1,8 +1,8 @@
 //! Private XML parser and tree-model ownership.
 
-use quick_xml::Reader;
 use quick_xml::escape::unescape;
 use quick_xml::events::Event;
+use quick_xml::{Reader, XmlVersion};
 use std::collections::BTreeMap;
 
 use super::{ExtractError, input_limit_error};
@@ -183,7 +183,7 @@ fn decode_attributes(
             return Err(super::malformed(format!("duplicate XML attribute: {name}")));
         }
         let value = attribute
-            .decode_and_unescape_value(reader.decoder())
+            .decoded_and_normalized_value(XmlVersion::Implicit1_0, reader.decoder())
             .map_err(|error| {
                 super::malformed_with_source(format!("invalid XML attribute value: {error}"), error)
             })?

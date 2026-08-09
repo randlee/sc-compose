@@ -1,0 +1,2 @@
+command = "check.xwin"
+report_kind = "lint"

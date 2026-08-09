@@ -1,0 +1,2 @@
+command = "clippy.xwin"
+report_kind = "lint"

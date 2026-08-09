@@ -1,0 +1,2 @@
+command = "lint.line-counts"
+report_kind = "lint"

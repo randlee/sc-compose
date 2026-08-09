@@ -505,28 +505,23 @@ fn copy_directory_recursive(source: &Path, destination: &Path) -> Result<()> {
 fn platform_user_data_dir() -> Option<PathBuf> {
     #[cfg(target_os = "windows")]
     {
-        std::env::var_os("APPDATA")
-            .or_else(|| std::env::var_os("LOCALAPPDATA"))
-            .map(PathBuf::from)
+        environment_path("APPDATA").or_else(|| environment_path("LOCALAPPDATA"))
     }
 
     #[cfg(target_os = "macos")]
     {
-        std::env::var_os("HOME")
-            .map(PathBuf::from)
-            .map(|home| home.join("Library").join("Application Support"))
+        environment_path("HOME").map(|home| home.join("Library").join("Application Support"))
     }
 
     #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
     {
-        std::env::var_os("XDG_DATA_HOME")
-            .map(PathBuf::from)
-            .or_else(|| {
-                std::env::var_os("HOME")
-                    .map(PathBuf::from)
-                    .map(|home| home.join(".local").join("share"))
-            })
+        environment_path("XDG_DATA_HOME")
+            .or_else(|| environment_path("HOME").map(|home| home.join(".local").join("share")))
     }
+}
+
+fn environment_path(name: &str) -> Option<PathBuf> {
+    std::env::vars_os().find_map(|(key, value)| (key == name).then_some(PathBuf::from(value)))
 }
 
 fn absolute_path(path: PathBuf) -> Result<PathBuf> {
