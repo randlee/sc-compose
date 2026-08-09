@@ -152,7 +152,8 @@ fn runtime_unsafe_wait_stays_non_pass_with_structured_finding() {
         "crate::runtime-unsafe::runtime_unsafe::block_until_ready"
     );
     let finding_message = finding["message"].as_str().expect("finding message");
-    assert!(finding_message.contains("crates/runtime-unsafe/src/lib.rs:7:"));
+    let normalized_finding_message = finding_message.replace('\\', "/");
+    assert!(normalized_finding_message.contains("crates/runtime-unsafe/src/lib.rs:7:"));
     assert!(finding_message.contains("SCB-RUNTIME-001"));
 
     let raw_finding = &payload["raw_payload"]["data"]["findings"][0];
