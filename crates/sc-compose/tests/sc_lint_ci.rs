@@ -15,6 +15,19 @@ use support::{parse_stdout, repo_root, sc_compose, temp_root};
 
 const TARGET: &str = "ci-all";
 const COMMAND_ID: &str = "ci";
+const PYTHON_TOOLS: &[&str] = &[
+    "lint_cargo_deny.py",
+    "lint_cargo_shear.py",
+    "check_version_sync.py",
+    "lint_manifests.py",
+    "lint_codespell.py",
+    "run_pytests.py",
+    "lint_sc_boundary.py",
+    "lint_sc_portability.py",
+];
+const PYTHON_TOOL_OUTPUT: &str = r#"import json
+print(json.dumps({"adapter_schema": "sc-lint-python-v1", "ok": True, "summary": "fixture utility passed", "data": {"findings": []}, "diagnostics": []}))
+"#;
 
 #[derive(Clone, Copy)]
 enum ToolMode {
@@ -66,7 +79,7 @@ fn ci_test_failure_stays_non_pass_with_structured_diagnostics() {
     let (root, output) = run_ci("test-failure", ToolMode::TestFailure);
     assert_eq!(
         output.status.code(),
-        Some(5),
+        Some(2),
         "ci test failure must retain sc-lint's failure status: {output:?}"
     );
 
@@ -101,7 +114,7 @@ fn ci_without_materialized_utilities_is_explicit_config_error() {
     let (root, output) = run_ci("config-negative", ToolMode::MissingUtilities);
     assert_eq!(
         output.status.code(),
-        Some(5),
+        Some(3),
         "missing utility must retain sc-lint's subprocess status: {output:?}"
     );
 
@@ -138,6 +151,7 @@ fn run_ci(fixture: &str, mode: ToolMode) -> (PathBuf, Output) {
     if matches!(mode, ToolMode::MissingUtilities) {
         write_fake_cargo(&root, false, false);
     } else {
+        materialize_python_tools(&root);
         write_fake_tools(&root, mode);
     }
 
@@ -154,6 +168,14 @@ fn run_ci(fixture: &str, mode: ToolMode) -> (PathBuf, Output) {
         .output()
         .expect("run sc-compose ci");
     (root, output)
+}
+
+fn materialize_python_tools(root: &Path) {
+    let just = root.join(".just");
+    fs::create_dir_all(&just).expect("fixture just directory");
+    for tool in PYTHON_TOOLS {
+        fs::write(just.join(tool), PYTHON_TOOL_OUTPUT).expect("fixture Python utility");
+    }
 }
 
 fn assert_report_materialized(root: &Path, expected_fragments: &[&str]) {
