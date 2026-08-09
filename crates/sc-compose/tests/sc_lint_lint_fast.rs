@@ -2,9 +2,12 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
+
+mod support;
+
+use support::{TempFixture, repo_root};
 
 const RUNTIME_FILES: &[&str] = &[
     "check_version_sync.py",
@@ -14,59 +17,11 @@ const RUNTIME_FILES: &[&str] = &[
     "lint_common.py",
 ];
 
-struct TempFixture {
-    path: PathBuf,
-}
-
-impl TempFixture {
-    fn from_checked_in_fixture(name: &str) -> Self {
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock")
-            .as_nanos();
-        let path = env::temp_dir().join(format!(
-            "sc-compose-lint-fast-{name}-{}-{nonce}",
-            std::process::id()
-        ));
-        let source = repo_root()
-            .join("tests")
-            .join("fixtures")
-            .join("sc-lint")
-            .join("lint-fast")
-            .join(name);
-        copy_directory(&source, &path);
-        materialize_sc_lint_runtime(&path);
-        let target_dir = path.join(".sc").join("sc-lint").join("targets");
-        fs::create_dir_all(&target_dir).expect("target registry");
-        fs::copy(
-            repo_root()
-                .join(".sc")
-                .join("sc-lint")
-                .join("targets")
-                .join("lint-fast.toml"),
-            target_dir.join("lint-fast.toml"),
-        )
-        .expect("lint-fast target descriptor");
-        Self { path }
-    }
-}
-
-impl Drop for TempFixture {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.path);
-    }
-}
-
-fn repo_root() -> PathBuf {
-    let canonical = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..")
-        .canonicalize()
-        .expect("repo root");
-    let Some(path) = canonical.to_str() else {
-        return canonical;
-    };
-    PathBuf::from(path.strip_prefix(r"\\?\").unwrap_or(path))
+fn lint_fast_fixture(name: &str) -> TempFixture {
+    let fixture = support::TempFixture::from_checked_in_fixture("lint-fast", name, "lint-fast");
+    let path = fixture.path.clone();
+    materialize_sc_lint_runtime(&path);
+    fixture
 }
 
 fn sc_lint_just_root() -> PathBuf {
@@ -102,20 +57,6 @@ fn materialize_sc_lint_runtime(root: &Path) {
     }
 }
 
-fn copy_directory(source: &Path, destination: &Path) {
-    fs::create_dir_all(destination).expect("fixture destination");
-    for entry in fs::read_dir(source).expect("fixture source") {
-        let entry = entry.expect("fixture entry");
-        let source_path = entry.path();
-        let destination_path = destination.join(entry.file_name());
-        if source_path.is_dir() {
-            copy_directory(&source_path, &destination_path);
-        } else {
-            fs::copy(&source_path, &destination_path).expect("fixture file");
-        }
-    }
-}
-
 fn run_lint_fast(fixture: &TempFixture) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_sc-compose"))
         .args([
@@ -137,7 +78,7 @@ fn result_payload(output: &std::process::Output) -> Value {
 
 #[test]
 fn lint_fast_pass_preserves_composite_profile_and_materializes_evidence() {
-    let fixture = TempFixture::from_checked_in_fixture("pass");
+    let fixture = lint_fast_fixture("pass");
     let output = run_lint_fast(&fixture);
     assert_eq!(
         output.status.code(),
@@ -208,12 +149,12 @@ fn lint_fast_pass_preserves_composite_profile_and_materializes_evidence() {
 
 #[test]
 fn lint_fast_manifest_failure_remains_non_pass_with_structured_diagnostics() {
-    let fixture = TempFixture::from_checked_in_fixture("failing-manifest");
+    let fixture = lint_fast_fixture("failing-manifest");
     let output = run_lint_fast(&fixture);
     assert_eq!(
         output.status.code(),
-        Some(5),
-        "lint fast should retain profile failure exit status; stderr: {}",
+        Some(2),
+        "lint fast should return the CLI validation-failure status; stderr: {}",
         String::from_utf8_lossy(&output.stderr),
     );
 
