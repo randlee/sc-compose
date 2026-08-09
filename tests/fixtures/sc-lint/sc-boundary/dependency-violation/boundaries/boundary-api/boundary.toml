@@ -1,0 +1,36 @@
+boundary_id = "BOUNDARY-BoundaryApi"
+owner_package = "boundary-api"
+owner_crate_path = "boundary_api"
+name = "BoundaryApi"
+
+[public]
+facade = "Api"
+
+[implementation]
+type = "fixture"
+module = "boundary_api"
+visibility = "public"
+constructor = "none"
+
+[composition]
+roots = ["Api"]
+
+[dependencies]
+allowed_dependents = ["boundary-app"]
+allowed_dependencies = []
+forbidden_edges = []
+
+[references]
+scope = "outside_owner_crate"
+forbidden = []
+
+[testing]
+allowed_test_double_paths = []
+forbidden_test_bypasses = []
+
+[enforcement]
+lint_rules = []
+review_gates = []
+
+[status]
+state = "concrete_landed"

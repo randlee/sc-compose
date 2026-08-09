@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "command": "lint.sc-boundary",
+  "data": {
+    "findings": [
+      {
+        "kind": "package_dependency_not_allowed",
+        "message": "workspace package `boundary-app` directly depends on `boundary-api` but `boundary-api` is not listed in `BOUNDARY-BoundaryApp` allowed_dependencies",
+        "node_ids": [],
+        "owner_ids": [
+          "boundary-app",
+          "boundary-api"
+        ],
+        "rule_id": "SCB-DEPENDENCY-001"
+      }
+    ],
+    "scanned_crates": 2,
+    "schema_version": "0.1.0",
+    "status": "fail",
+    "tool": "sc-lint-boundary",
+    "version": "0.4.0"
+  },
+  "diagnostics": []
+}
