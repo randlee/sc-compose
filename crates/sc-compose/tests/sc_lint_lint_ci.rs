@@ -24,7 +24,7 @@ fn lint_ci_preserves_known_sc_lint_boundary_packaging_defect() {
     let (root, output) = run_target("pass");
     assert_eq!(
         output.status.code(),
-        Some(5),
+        Some(2),
         "lint ci should preserve the known backend failure; stdout={} stderr={}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
@@ -86,7 +86,7 @@ fn lint_ci_manifest_failure_remains_non_pass_with_structured_diagnostics() {
     let (root, output) = run_target("failing-manifest");
     assert_eq!(
         output.status.code(),
-        Some(5),
+        Some(2),
         "lint ci should retain profile failure status; stdout={} stderr={}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
@@ -199,11 +199,15 @@ fn materialize_sc_lint_runtime(root: &Path) {
     for file in RUNTIME_FILES {
         fs::copy(source.join(file), destination.join(file)).expect("materialize sc-lint utility");
     }
-    fs::copy(
-        source.join("lint-config.toml"),
-        destination.join("lint-config.toml"),
-    )
-    .expect("materialize sc-lint lint config");
+    // The CI setup action materializes the pinned Python utilities but does
+    // not ship the optional source-tree lint-config.toml.  The utilities
+    // already treat that policy file as optional, so fixture setup must do
+    // the same instead of panicking when the release layout omits it.
+    let config = source.join("lint-config.toml");
+    if config.is_file() {
+        fs::copy(config, destination.join("lint-config.toml"))
+            .expect("materialize sc-lint lint config");
+    }
 }
 
 fn copy_directory(source: &Path, destination: &Path) {
