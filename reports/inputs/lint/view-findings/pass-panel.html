@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>view findings stored-artifact collation</title>
+</head>
+<body>
+  <main data-template-family="base">
+    <header class="report-header">
+      <h1>view findings stored-artifact collation</h1>
+    </header>
+    <section class="report-panels">
+      <article id="reports-inputs-lint-view-findings-pass-md" class="report-panel">
+        <header class="panel-header">
+          <h2>view findings stored-artifact collation</h2>
+        </header>
+        <div class="panel-body">
+Input fixture: `tests/fixtures/sc-lint/view-findings/pass`.
+
+The stored findings payload contains one failing runtime finding and one
+passing portability artifact. The expected result is `command =
+&quot;view.findings&quot;`, `data.status = &quot;pass&quot;`, and two collated view entries;
+the raw envelope is retained as `pass.json` and the rendered panel is
+`pass-panel.html`. The runtime entry retains `SCB-RUNTIME-001` in its source
+summary payload.</div>
+        <footer class="panel-footer">
+          <button type="button" data-copy-text="
+Input fixture: `tests/fixtures/sc-lint/view-findings/pass`.
+
+The stored findings payload contains one failing runtime finding and one
+passing portability artifact. The expected result is `command =
+&quot;view.findings&quot;`, `data.status = &quot;pass&quot;`, and two collated view entries;
+the raw envelope is retained as `pass.json` and the rendered panel is
+`pass-panel.html`. The runtime entry retains `SCB-RUNTIME-001` in its source
+summary payload.">Copy text</button>
+          <button type="button" data-copy-json="{&quot;command&quot;:&quot;view.findings&quot;,&quot;fixture&quot;:&quot;tests/fixtures/sc-lint/view-findings/pass&quot;,&quot;outcome&quot;:&quot;pass&quot;,&quot;raw_artifact&quot;:&quot;reports/inputs/lint/view-findings/pass.json&quot;}">Copy json</button>
+        </footer>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

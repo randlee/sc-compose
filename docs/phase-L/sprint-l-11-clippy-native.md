@@ -2,7 +2,7 @@
 id: L.11
 title: Native Clippy
 phase: L
-status: planned
+status: complete
 branch: sprint/l-11-clippy-native
 worktree: ../sc-compose-worktrees/sprint/l-11-clippy-native
 target: integrate/phase-l
