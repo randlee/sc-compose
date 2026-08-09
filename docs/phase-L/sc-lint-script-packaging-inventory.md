@@ -1,7 +1,8 @@
 # sc-lint 0.4.0 Script Packaging Inventory
 
-Status: inventory prepared from sc-compose commit `4586830` (integrated
-Phase L.1–L.16) and the local sc-lint `v0.4.0` tag (`a2d8cce`).
+Status: inventory prepared from the Phase L.1–L.16 baseline commit `4586830`,
+with the sprint result recorded by final planning commit `cd2ef4b`; sc-lint is
+the local `v0.4.0` tag (`a2d8cce`).
 
 Issue: [#86](https://github.com/randlee/sc-lint/issues/86) — Package sc-lint's reusable Python utilities for clean consumers.
 
@@ -93,6 +94,34 @@ sc-lint v0.4.0 source tree at `../sc-lint`.
 | `.just/lint_cargo_modules.py` | Checks Cargo module/dependency organization | `.just/tests/test_lint_cargo_modules.py` | Keep as sc-lint-owned CI utility; no consumer copy |
 | `.just/run_version.py`, `.just/run_fmt.py`, `.just/print_help.py` | Just-facing helper/report adapters | `.just/tests/test_run_version.py`, `.just/tests/test_run_fmt.py`, `.just/tests/test_print_help.py` | Internal sc-lint tooling; do not expose as duplicated consumer scripts |
 | `.just/fixture_constants.py` | Fixture/test support only | Imported by sc-lint `.just/tests` | Keep test-only; never package as a consumer utility |
+
+### Per-row reuse-without-copying tags
+
+The inventory rows above use these explicit tags for the clean-consumer
+question. `YES` means the utility is a candidate for a packaged module or
+entry point; `NO` means it remains sc-lint-owned/internal and must not be
+copied into a consumer checkout.
+
+| Script/module | Reusable without copying into the consumer? |
+| --- | --- |
+| `.just/python_adapter.py` | **YES** — package as the stable protocol module |
+| `.just/lint_common.py` | **YES** — package as an internal shared module |
+| `.just/view_common.py` | **YES** — package as an internal shared module |
+| `.just/lint_line_counts.py` | **YES** — package entry point |
+| `.just/lint_identity_literals.py` | **YES** — package entry point |
+| `.just/view_findings.py` | **YES** — package entry point |
+| `.just/lint_sc_portability.py` | **NO** — compatibility wrapper; use Rust CLI |
+| `.just/lint_sc_boundary.py` | **NO** — compatibility wrapper; use Rust CLI |
+| `.just/run_lint.py` | **YES** — only after runner ownership is consolidated |
+| `.just/check_version_sync.py` | **NO** — sc-lint-owned profile check |
+| `.just/lint_manifests.py` | **NO** — sc-lint-owned profile check |
+| `.just/lint_codespell.py` | **NO** — sc-lint-owned CI check |
+| `.just/run_pytests.py` | **NO** — sc-lint developer/test utility |
+| `.just/lint_cargo_deny.py` | **NO** — sc-lint-owned CI utility |
+| `.just/lint_cargo_shear.py` | **NO** — sc-lint-owned CI utility |
+| `.just/lint_cargo_modules.py` | **NO** — sc-lint-owned CI utility |
+| `.just/run_version.py`, `.just/run_fmt.py`, `.just/print_help.py` | **NO** — sc-lint internal tooling |
+| `.just/fixture_constants.py` | **NO** — test-only support |
 
 ## The current failure mode
 
@@ -192,6 +221,26 @@ Validation commands:
 
 ```text
 sc-lint version --json
-gh issue view <recorded-number> --repo randlee/sc-lint --json number,url,title,body
+gh issue view 86 --repo randlee/sc-lint --json number,url,title,body
 git diff --check
 ```
+
+Captured validation output:
+
+```text
+$ sc-lint version --json
+{"ok":true,"command":"version","data":{"contract_schema":"v1","crate_name":"sc-lint","crate_version":"0.4.0","status":"dispatch_ready"},"diagnostics":[]}
+
+$ gh issue view 86 --repo randlee/sc-lint --json number,url,title,body
+{"number":86,"url":"https://github.com/randlee/sc-lint/issues/86","title":"Package sc-lint's reusable Python utilities for clean consumers"}
+
+$ git diff --check
+# no output; exit 0
+```
+
+## Non-closure boundary
+
+This inventory and external issue are planning/evidence deliverables only.
+They do not implement pip packaging, maturin/PyO3 bindings, or a Rust-adapter
+migration; those remain sc-lint work. Creating issue #86 does not claim that
+the packaging gap is fixed.
