@@ -1,0 +1,19 @@
+{
+  "ok": false,
+  "command": "lint.full",
+  "error": {
+    "kind": "backend_failure",
+    "code": "CLI.BACKEND_EXEC_FAILURE",
+    "message": "deny failed",
+    "details": {
+      "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-lint-full-finding-negative-33962-1786244495217050000/.just/lint_cargo_deny.py",
+      "exit_code": 1,
+      "root": "/private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-lint-full-finding-negative-33962-1786244495217050000",
+      "stderr": "",
+      "stdout": "{\"adapter_schema\":\"sc-lint-python-v1\",\"ok\":false,\"summary\":\"fixture utility found a problem\",\"data\":{\"findings\":[{\"rule_id\":\"LINT-FULL-FINDING-001\",\"path\":\"src/lib.rs\",\"message\":\"fixture full-profile finding\"}]},\"diagnostics\":[\"fixture finding is intentionally non-pass\"]}",
+      "step": "deny"
+    },
+    "cause": "{\"adapter_schema\":\"sc-lint-python-v1\",\"ok\":false,\"summary\":\"fixture utility found a problem\",\"data\":{\"findings\":[{\"rule_id\":\"LINT-FULL-FINDING-001\",\"path\":\"src/lib.rs\",\"message\":\"fixture full-profile finding\"}]},\"diagnostics\":[\"fixture finding is intentionally non-pass\"]}"
+  },
+  "diagnostics": []
+}
