@@ -1,25 +1,10 @@
 use std::fs;
-use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use serde_json::Value;
 
 mod support;
-use support::{TempFixture, copy_directory, normalize_path_str, repo_root};
-
-fn sc_lint_utilities() -> Option<PathBuf> {
-    let root = repo_root();
-    let adjacent_sibling = root.parent().map(|parent| parent.join("sc-lint/.just"));
-    let worktree_sibling = root
-        .parent()
-        .and_then(Path::parent)
-        .and_then(Path::parent)
-        .map(|parent| parent.join("sc-lint/.just"));
-    [Some(root.join(".just")), adjacent_sibling, worktree_sibling]
-        .into_iter()
-        .flatten()
-        .find(|path| path.join("lint_line_counts.py").is_file())
-}
+use support::{TempFixture, materialize_sc_lint_runtime, normalize_path_str};
 
 fn line_counts_fixture(name: &str) -> TempFixture {
     let fixture = TempFixture::from_checked_in_fixture("line-counts", name, "line-counts");
@@ -27,14 +12,14 @@ fn line_counts_fixture(name: &str) -> TempFixture {
     // CI materializes the pinned sc-lint Python utilities in the consumer
     // checkout. Copying them into the ephemeral fixture exercises that
     // supported adapter contract without vendoring scripts in sc-compose.
-    let utilities = sc_lint_utilities();
-    assert!(
-        utilities.is_some(),
-        "sc-lint Python utilities are unavailable; run the Phase L setup action first"
-    );
-    copy_directory(
-        &utilities.expect("checked sc-lint utility directory"),
-        &fixture.path.join(".just"),
+    materialize_sc_lint_runtime(
+        &fixture.path,
+        &[
+            "lint_line_counts.py",
+            "python_adapter.py",
+            "lint_common.py",
+            "view_common.py",
+        ],
     );
     fixture
 }

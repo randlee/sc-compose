@@ -1,7 +1,7 @@
 ---
 id: FIX-354-355
 title: "Phase L follow-up: sc_lint_*.rs RAII/duplication sweep + sprint-doc frontmatter sync"
-status: planned
+status: complete
 branch: fix/phase-l-followup-raii-frontmatter
 worktree: ../sc-compose-worktrees/fix/phase-l-followup-raii-frontmatter
 target: develop

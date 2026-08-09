@@ -6,65 +6,19 @@
 
 use serde_json::Value;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Command, Output};
-use std::time::{SystemTime, UNIX_EPOCH};
+
+mod support;
+use support::{TempFixture, write_fake_cargo};
 
 const TARGET: &str = "check-xwin";
 const COMMAND_ID: &str = "check.xwin";
 const WINDOWS_TARGET: &str = "x86_64-pc-windows-msvc";
 
-struct TempFixture {
-    path: PathBuf,
-}
-
-impl TempFixture {
-    fn from_checked_in_fixture(name: &str, xwin_available: bool) -> Self {
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "sc-compose-check-xwin-{name}-{}-{nonce}",
-            std::process::id()
-        ));
-        let source = repo_root()
-            .join("tests/fixtures/sc-lint/check-xwin")
-            .join(name);
-        copy_directory(&source, &path);
-        let target_dir = path.join(".sc/sc-lint/targets");
-        fs::create_dir_all(&target_dir).expect("target registry");
-        fs::copy(
-            repo_root().join(".sc/sc-lint/targets/check-xwin.toml"),
-            target_dir.join("check-xwin.toml"),
-        )
-        .expect("check-xwin target descriptor");
-        write_fake_cargo(&path, xwin_available);
-        Self { path }
-    }
-
-    fn path_with_fake_cargo(&self) -> String {
-        let bin = self.path.join("fake-bin");
-        let mut paths = vec![bin];
-        if let Some(existing) = std::env::var_os("PATH") {
-            paths.extend(std::env::split_paths(&existing));
-        }
-        std::env::join_paths(paths)
-            .expect("PATH entries")
-            .to_string_lossy()
-            .into_owned()
-    }
-}
-
-impl Drop for TempFixture {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.path);
-    }
-}
-
 #[test]
 fn check_xwin_pass_preserves_workflow_envelope_and_report() {
-    let fixture = TempFixture::from_checked_in_fixture("pass", true);
+    let fixture = check_xwin_fixture("pass", true);
     let output = run_check_xwin(&fixture);
     assert_eq!(
         output.status.code(),
@@ -106,7 +60,7 @@ fn check_xwin_pass_preserves_workflow_envelope_and_report() {
 
 #[test]
 fn check_xwin_unavailable_remains_explicit_capability_failure() {
-    let fixture = TempFixture::from_checked_in_fixture("capability-negative", false);
+    let fixture = check_xwin_fixture("capability-negative", false);
     let output = run_check_xwin(&fixture);
     assert_eq!(
         output.status.code(),
@@ -157,7 +111,7 @@ fn run_check_xwin(fixture: &TempFixture) -> Output {
             TARGET,
             "--json",
         ])
-        .env("PATH", fixture.path_with_fake_cargo())
+        .env("PATH", fixture.path_with_fake_tools())
         .env("SC_LOG_ROOT", fixture.path.join("logs"))
         .output()
         .expect("run sc-compose lint check-xwin")
@@ -191,81 +145,8 @@ fn result_payload(output: &Output) -> Value {
     })
 }
 
-fn write_fake_cargo(root: &Path, xwin_available: bool) {
-    let bin = root.join("fake-bin");
-    fs::create_dir_all(&bin).expect("fake cargo directory");
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-
-        let exit_code = if xwin_available { "0" } else { "1" };
-        let path = bin.join("cargo");
-        fs::write(
-            &path,
-            format!(
-                "#!/bin/sh\nif [ \"$1\" = \"xwin\" ] && {{ [ \"$2\" = \"--version\" ] || [ \"$2\" = \"check\" ]; }}; then\n  exit {exit_code}\nfi\nexit 1\n"
-            ),
-        )
-        .expect("fake cargo");
-        let mut permissions = fs::metadata(&path)
-            .expect("fake cargo metadata")
-            .permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(path, permissions).expect("fake cargo permissions");
-    }
-
-    #[cfg(windows)]
-    {
-        let exit_code = if xwin_available { "0" } else { "1" };
-        let source = bin.join("fake-cargo.rs");
-        let executable = bin.join("cargo.exe");
-        fs::write(
-            &source,
-            format!(
-                "fn main() {{\n    let mut args = std::env::args().skip(1);\n    let success = args.next().as_deref() == Some(\"xwin\")\n        && matches!(args.next().as_deref(), Some(\"--version\") | Some(\"check\"));\n    std::process::exit(if success {{ {exit_code} }} else {{ 1 }});\n}}\n"
-            ),
-        )
-        .expect("fake cargo source");
-        let status = Command::new("rustc")
-            .args([
-                "--edition",
-                "2021",
-                source.to_str().expect("fake cargo source path"),
-                "-o",
-                executable.to_str().expect("fake cargo executable path"),
-            ])
-            .status()
-            .expect("compile fake cargo");
-        assert!(status.success(), "fake cargo compilation failed: {status}");
-        fs::remove_file(source).expect("remove fake cargo source");
-    }
-}
-
-fn copy_directory(source: &Path, destination: &Path) {
-    fs::create_dir_all(destination).expect("fixture destination");
-    for entry in fs::read_dir(source).expect("fixture source") {
-        let entry = entry.expect("fixture entry");
-        let source_path = entry.path();
-        let destination_path = destination.join(entry.file_name());
-        if source_path.is_dir() {
-            copy_directory(&source_path, &destination_path);
-        } else {
-            if let Some(parent) = destination_path.parent() {
-                fs::create_dir_all(parent).expect("fixture parent");
-            }
-            fs::copy(source_path, destination_path).expect("fixture file");
-        }
-    }
-}
-
-fn repo_root() -> PathBuf {
-    let canonical = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..")
-        .canonicalize()
-        .expect("repo root");
-    let Some(path) = canonical.to_str() else {
-        return canonical;
-    };
-    PathBuf::from(path.strip_prefix(r"\\?\").unwrap_or(path))
+fn check_xwin_fixture(name: &str, xwin_available: bool) -> TempFixture {
+    let fixture = TempFixture::from_checked_in_fixture("check-xwin", name, "check-xwin");
+    write_fake_cargo(&fixture.path, xwin_available, false);
+    fixture
 }

@@ -1,11 +1,10 @@
 use std::fs;
-use std::path::PathBuf;
 use std::process::Command;
 
 use serde_json::Value;
 
 mod support;
-use support::{TempFixture, normalize_path_str, repo_root};
+use support::{TempFixture, normalize_path_str, try_sc_lint_just_root};
 
 const VIEW_UTILITY_FILES: &[&str] = &[
     "view_findings.py",
@@ -14,23 +13,8 @@ const VIEW_UTILITY_FILES: &[&str] = &[
     "lint_common.py",
 ];
 
-fn find_pinned_utility_directory() -> Option<PathBuf> {
-    let root = repo_root();
-    let mut candidates = vec![root.join(".just")];
-    let mut ancestor = root.as_path();
-    while let Some(parent) = ancestor.parent() {
-        candidates.push(parent.join("sc-lint/.just"));
-        ancestor = parent;
-    }
-    candidates.into_iter().find(|directory| {
-        VIEW_UTILITY_FILES
-            .iter()
-            .all(|file| directory.join(file).is_file())
-    })
-}
-
 fn install_pinned_view_utilities(fixture: &TempFixture) -> bool {
-    let Some(source_dir) = find_pinned_utility_directory() else {
+    let Some(source_dir) = try_sc_lint_just_root(VIEW_UTILITY_FILES) else {
         return false;
     };
     let destination_dir = fixture.path.join(".just");

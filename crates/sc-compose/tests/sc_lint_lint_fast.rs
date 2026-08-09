@@ -1,13 +1,11 @@
-use std::env;
 use std::fs;
-use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use serde_json::Value;
 
 mod support;
 
-use support::{TempFixture, repo_root};
+use support::{TempFixture, materialize_sc_lint_runtime};
 
 const RUNTIME_FILES: &[&str] = &[
     "check_version_sync.py",
@@ -19,42 +17,8 @@ const RUNTIME_FILES: &[&str] = &[
 
 fn lint_fast_fixture(name: &str) -> TempFixture {
     let fixture = support::TempFixture::from_checked_in_fixture("lint-fast", name, "lint-fast");
-    let path = fixture.path.clone();
-    materialize_sc_lint_runtime(&path);
+    materialize_sc_lint_runtime(&fixture.path, RUNTIME_FILES);
     fixture
-}
-
-fn sc_lint_just_root() -> PathBuf {
-    let mut candidates = Vec::new();
-    if let Some(source_root) = env::var_os("SC_LINT_SOURCE_ROOT") {
-        candidates.push(PathBuf::from(source_root).join(".just"));
-    }
-    candidates.push(repo_root().join(".just"));
-    for ancestor in repo_root().ancestors() {
-        candidates.push(ancestor.join("sc-lint").join(".just"));
-    }
-
-    candidates
-        .into_iter()
-        .find(|candidate| {
-            RUNTIME_FILES
-                .iter()
-                .all(|file| candidate.join(file).is_file())
-        })
-        .unwrap_or_else(|| {
-            panic!(
-                "sc-lint Python utilities are unavailable; run the setup-sc-lint action or set SC_LINT_SOURCE_ROOT"
-            )
-        })
-}
-
-fn materialize_sc_lint_runtime(root: &Path) {
-    let source = sc_lint_just_root();
-    let destination = root.join(".just");
-    fs::create_dir_all(&destination).expect("fixture just directory");
-    for file in RUNTIME_FILES {
-        fs::copy(source.join(file), destination.join(file)).expect("materialize sc-lint utility");
-    }
 }
 
 fn run_lint_fast(fixture: &TempFixture) -> std::process::Output {

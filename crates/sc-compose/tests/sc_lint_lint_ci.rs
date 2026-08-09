@@ -1,23 +1,9 @@
 mod support;
 
-use std::env;
 use std::fs;
-use std::path::{Path, PathBuf};
 use std::process::Output;
 
-use support::{parse_stdout, repo_root, sc_compose, temp_root};
-
-const RUNTIME_FILES: &[&str] = &[
-    "lint_cargo_deny.py",
-    "lint_cargo_shear.py",
-    "check_version_sync.py",
-    "lint_manifests.py",
-    "lint_codespell.py",
-    "run_pytests.py",
-    "lint_sc_boundary.py",
-    "lint_sc_portability.py",
-    "lint_common.py",
-];
+use support::{TempFixture, materialize_sc_lint_runtime_with_config, parse_stdout, sc_compose};
 
 #[test]
 fn lint_ci_preserves_known_sc_lint_boundary_packaging_defect() {
@@ -66,7 +52,7 @@ fn lint_ci_preserves_known_sc_lint_boundary_packaging_defect() {
         "CLI.BACKEND_EXEC_FAILURE"
     );
 
-    let report = root.join("reports/latest/sc-lint/index.html");
+    let report = root.path.join("reports/latest/sc-lint/index.html");
     assert!(report.is_file());
     let report_text = fs::read_to_string(report).expect("known defect report");
     assert!(report_text.contains("lint.ci"));
@@ -74,11 +60,10 @@ fn lint_ci_preserves_known_sc_lint_boundary_packaging_defect() {
     assert!(report_text.contains("sc-boundary"));
     assert!(report_text.contains("sc-lint-boundary"));
     assert!(
-        root.join("reports/latest/sc-lint/raw/lint.ci.json")
+        root.path
+            .join("reports/latest/sc-lint/raw/lint.ci.json")
             .is_file()
     );
-
-    remove_fixture(&root);
 }
 
 #[test]
@@ -123,107 +108,47 @@ fn lint_ci_manifest_failure_remains_non_pass_with_structured_diagnostics() {
         "CLI.BACKEND_EXEC_FAILURE"
     );
 
-    let report = root.join("reports/latest/sc-lint/index.html");
+    let report = root.path.join("reports/latest/sc-lint/index.html");
     assert!(report.is_file());
     let report_text = fs::read_to_string(report).expect("manifest failure report");
     assert!(report_text.contains("lint.ci"));
     assert!(report_text.contains("failed"));
     assert!(report_text.contains("homepage"));
     assert!(
-        root.join("reports/latest/sc-lint/raw/lint.ci.json")
+        root.path
+            .join("reports/latest/sc-lint/raw/lint.ci.json")
             .is_file()
     );
-
-    remove_fixture(&root);
 }
 
-fn run_target(fixture: &str) -> (PathBuf, Output) {
-    let root = temp_root(&format!("sc-lint-ci-{fixture}"));
-    copy_directory(
-        &repo_root()
-            .join("tests/fixtures/sc-lint/lint-ci")
-            .join(fixture),
-        &root,
+fn run_target(fixture: &str) -> (TempFixture, Output) {
+    let root = TempFixture::from_checked_in_fixture("lint-ci", fixture, "lint-ci");
+    materialize_sc_lint_runtime_with_config(
+        &root.path,
+        &[
+            "lint_cargo_deny.py",
+            "lint_cargo_shear.py",
+            "check_version_sync.py",
+            "lint_manifests.py",
+            "lint_codespell.py",
+            "run_pytests.py",
+            "lint_sc_boundary.py",
+            "lint_sc_portability.py",
+            "lint_common.py",
+        ],
     );
-    materialize_sc_lint_runtime(&root);
-    fs::create_dir_all(root.join(".sc/sc-lint/targets")).expect("target registry");
-    fs::copy(
-        repo_root().join(".sc/sc-lint/targets/lint-ci.toml"),
-        root.join(".sc/sc-lint/targets/lint-ci.toml"),
-    )
-    .expect("lint-ci descriptor");
 
     let output = sc_compose()
         .args([
             "lint",
             "--root",
-            root.to_str().expect("UTF-8 fixture root"),
+            root.path.to_str().expect("UTF-8 fixture root"),
             "--target",
             "lint-ci",
             "--json",
         ])
-        .env("SC_LOG_ROOT", root.join("logs"))
+        .env("SC_LOG_ROOT", root.path.join("logs"))
         .output()
         .expect("run sc-compose lint ci");
     (root, output)
-}
-
-fn sc_lint_just_root() -> PathBuf {
-    let mut candidates = Vec::new();
-    if let Some(source_root) = env::var_os("SC_LINT_SOURCE_ROOT") {
-        candidates.push(PathBuf::from(source_root).join(".just"));
-    }
-    candidates.push(repo_root().join(".just"));
-    for ancestor in repo_root().ancestors() {
-        candidates.push(ancestor.join("sc-lint").join(".just"));
-    }
-
-    candidates
-        .into_iter()
-        .find(|candidate| {
-            RUNTIME_FILES
-                .iter()
-                .all(|file| candidate.join(file).is_file())
-        })
-        .unwrap_or_else(|| {
-            panic!(
-                "sc-lint Python utilities are unavailable; run the setup-sc-lint action or set SC_LINT_SOURCE_ROOT"
-            )
-        })
-}
-
-fn materialize_sc_lint_runtime(root: &Path) {
-    let source = sc_lint_just_root();
-    let destination = root.join(".just");
-    fs::create_dir_all(&destination).expect("fixture just directory");
-    for file in RUNTIME_FILES {
-        fs::copy(source.join(file), destination.join(file)).expect("materialize sc-lint utility");
-    }
-    // The CI setup action materializes the pinned Python utilities but does
-    // not ship the optional source-tree lint-config.toml.  The utilities
-    // already treat that policy file as optional, so fixture setup must do
-    // the same instead of panicking when the release layout omits it.
-    let config = source.join("lint-config.toml");
-    if config.is_file() {
-        fs::copy(config, destination.join("lint-config.toml"))
-            .expect("materialize sc-lint lint config");
-    }
-}
-
-fn copy_directory(source: &Path, destination: &Path) {
-    fs::create_dir_all(destination).expect("fixture destination");
-    for entry in fs::read_dir(source).expect("fixture source") {
-        let entry = entry.expect("fixture entry");
-        let source_path = entry.path();
-        let destination_path = destination.join(entry.file_name());
-        if source_path.is_dir() {
-            copy_directory(&source_path, &destination_path);
-        } else {
-            fs::copy(&source_path, &destination_path).expect("fixture file");
-        }
-    }
-}
-
-fn remove_fixture(root: &Path) {
-    fs::remove_dir_all(root).expect("remove temporary lint-ci fixture");
 }

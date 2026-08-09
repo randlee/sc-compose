@@ -2,7 +2,7 @@
 id: L.7
 title: Identity-Literal Utility
 phase: L
-status: planned
+status: complete
 branch: sprint/l-7-identity-literals
 worktree: ../sc-compose-worktrees/sprint/l-7-identity-literals
 target: integrate/phase-l

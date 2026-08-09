@@ -1,7 +1,7 @@
 ---
 phase: L
 title: sc-lint Integration
-status: planned
+status: complete
 target: integrate/phase-l
 ---
 

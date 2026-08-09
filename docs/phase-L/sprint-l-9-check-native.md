@@ -2,7 +2,7 @@
 id: L.9
 title: Native Check
 phase: L
-status: planned
+status: complete
 branch: sprint/l-9-check-native
 worktree: ../sc-compose-worktrees/sprint/l-9-check-native
 target: integrate/phase-l

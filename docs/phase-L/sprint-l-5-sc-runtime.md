@@ -2,7 +2,7 @@
 id: L.5
 title: Runtime Analyzer
 phase: L
-status: planned
+status: complete
 branch: sprint/l-5-sc-runtime
 worktree: ../sc-compose-worktrees/sprint/l-5-sc-runtime
 target: integrate/phase-l

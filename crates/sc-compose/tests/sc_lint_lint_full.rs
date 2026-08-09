@@ -12,7 +12,7 @@ use std::process::{Command, Output};
 
 mod support;
 
-use support::TempFixture;
+use support::{TempFixture, write_fake_cargo};
 
 const TARGET: &str = "lint-full";
 const COMMAND_ID: &str = "lint.full";
@@ -46,7 +46,7 @@ enum ToolMode {
 fn lint_full_fixture(name: &str, mode: ToolMode) -> TempFixture {
     let fixture = support::TempFixture::from_checked_in_fixture("lint-full", name, "lint-full");
     if matches!(mode, ToolMode::MissingUtilities) {
-        write_fake_cargo(&fixture.path, false);
+        write_fake_cargo(&fixture.path, false, false);
     } else {
         materialize_python_tools(&fixture.path, mode);
         write_fake_tools(&fixture.path, mode);
@@ -64,20 +64,6 @@ fn materialize_python_tools(root: &Path, mode: ToolMode) {
     };
     for tool in PYTHON_TOOLS {
         fs::write(just.join(tool), output).expect("fixture Python utility");
-    }
-}
-
-impl TempFixture {
-    fn path_with_fake_tools(&self) -> String {
-        let bin = self.path.join("fake-bin");
-        let mut paths = vec![bin];
-        if let Some(existing) = std::env::var_os("PATH") {
-            paths.extend(std::env::split_paths(&existing));
-        }
-        std::env::join_paths(paths)
-            .expect("PATH entries")
-            .to_string_lossy()
-            .into_owned()
     }
 }
 
@@ -225,7 +211,7 @@ fn result_payload(output: &Output) -> Value {
 }
 
 fn write_fake_tools(root: &Path, mode: ToolMode) {
-    write_fake_cargo(root, matches!(mode, ToolMode::Pass));
+    write_fake_cargo(root, matches!(mode, ToolMode::Pass), false);
     let bin = root.join("fake-bin");
     #[cfg(unix)]
     {
@@ -270,55 +256,5 @@ fn write_fake_tools(root: &Path, mode: ToolMode) {
             format!("@echo off\r\n{body}\r\nexit /b {exit_code}\r\n"),
         )
         .expect("fake python");
-    }
-}
-
-fn write_fake_cargo(root: &Path, xwin_available: bool) {
-    let bin = root.join("fake-bin");
-    fs::create_dir_all(&bin).expect("fake tools directory");
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-
-        let exit_code = if xwin_available { "0" } else { "1" };
-        let cargo = bin.join("cargo");
-        fs::write(
-            &cargo,
-            format!(
-                "#!/bin/sh\nif [ \"$1\" = \"xwin\" ] && [ \"$2\" = \"--version\" ]; then\n  exit {exit_code}\nfi\nexit 0\n"
-            ),
-        )
-        .expect("fake cargo");
-        let mut permissions = fs::metadata(&cargo)
-            .expect("fake cargo metadata")
-            .permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(cargo, permissions).expect("fake cargo permissions");
-    }
-
-    #[cfg(windows)]
-    {
-        let exit_code = if xwin_available { "0" } else { "1" };
-        let source = bin.join("fake-cargo.rs");
-        let executable = bin.join("cargo.exe");
-        fs::write(
-            &source,
-            format!(
-                "fn main() {{\n    let mut args = std::env::args().skip(1);\n    let success = args.next().as_deref() == Some(\"xwin\") && args.next().as_deref() == Some(\"--version\");\n    std::process::exit(if success {{ {exit_code} }} else {{ 0 }});\n}}\n"
-            ),
-        )
-        .expect("fake cargo source");
-        let status = Command::new("rustc")
-            .args([
-                "--edition",
-                "2021",
-                source.to_str().expect("fake cargo source path"),
-                "-o",
-                executable.to_str().expect("fake cargo executable path"),
-            ])
-            .status()
-            .expect("compile fake cargo");
-        assert!(status.success(), "fake cargo compilation failed: {status}");
-        fs::remove_file(source).expect("remove fake cargo source");
     }
 }

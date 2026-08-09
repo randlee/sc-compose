@@ -6,6 +6,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
@@ -55,6 +56,17 @@ impl TempFixture {
         .unwrap();
         fixture_root
     }
+
+    pub fn path_with_fake_tools(&self) -> String {
+        let mut paths = vec![self.path.join("fake-bin")];
+        if let Some(existing) = std::env::var_os("PATH") {
+            paths.extend(std::env::split_paths(&existing));
+        }
+        std::env::join_paths(paths)
+            .expect("PATH entries")
+            .to_string_lossy()
+            .into_owned()
+    }
 }
 
 impl Drop for TempFixture {
@@ -77,13 +89,130 @@ pub fn sc_compose() -> Command {
 }
 
 fn test_log_root(prefix: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let root = std::env::temp_dir().join(format!("{prefix}-logs-{}-{nanos}", std::process::id()));
-    fs::create_dir_all(&root).unwrap();
-    root
+    static ROOT: OnceLock<PathBuf> = OnceLock::new();
+    ROOT.get_or_init(|| {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("{prefix}-logs-{}-{nanos}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        root
+    })
+    .clone()
+}
+
+pub fn sc_lint_just_root(required_files: &[&str]) -> PathBuf {
+    try_sc_lint_just_root(required_files).unwrap_or_else(|| {
+        panic!(
+            "sc-lint Python utilities are unavailable; run the setup-sc-lint action or set SC_LINT_SOURCE_ROOT"
+        )
+    })
+}
+
+pub fn try_sc_lint_just_root(required_files: &[&str]) -> Option<PathBuf> {
+    let mut candidates = Vec::new();
+    if let Some(source_root) = std::env::var_os("SC_LINT_SOURCE_ROOT") {
+        candidates.push(PathBuf::from(source_root).join(".just"));
+    }
+    candidates.push(repo_root().join(".just"));
+    for ancestor in repo_root().ancestors() {
+        candidates.push(ancestor.join("sc-lint").join(".just"));
+    }
+
+    candidates.into_iter().find(|candidate| {
+        required_files
+            .iter()
+            .all(|file| candidate.join(file).is_file())
+    })
+}
+
+pub fn materialize_sc_lint_runtime(root: &Path, required_files: &[&str]) {
+    let source = sc_lint_just_root(required_files);
+    materialize_sc_lint_runtime_from(root, &source, required_files, false);
+}
+
+pub fn materialize_sc_lint_runtime_with_config(root: &Path, required_files: &[&str]) {
+    let source = sc_lint_just_root(required_files);
+    materialize_sc_lint_runtime_from(root, &source, required_files, true);
+}
+
+fn materialize_sc_lint_runtime_from(
+    root: &Path,
+    source: &Path,
+    required_files: &[&str],
+    include_config: bool,
+) {
+    let destination = root.join(".just");
+    fs::create_dir_all(&destination).unwrap();
+    for file in required_files {
+        fs::copy(source.join(file), destination.join(file))
+            .unwrap_or_else(|error| panic!("materialize sc-lint utility {file}: {error}"));
+    }
+    if include_config {
+        let config = source.join("lint-config.toml");
+        if config.is_file() {
+            fs::copy(config, destination.join("lint-config.toml"))
+                .expect("materialize sc-lint lint config");
+        }
+    }
+}
+
+pub fn write_fake_cargo(root: &Path, xwin_available: bool, test_failure: bool) {
+    let bin = root.join("fake-bin");
+    fs::create_dir_all(&bin).expect("fake tools directory");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        let xwin_code = if xwin_available { "0" } else { "1" };
+        let test_branch = if test_failure {
+            "if [ \"$1\" = \"test\" ]; then\n  printf '%s\\n' '{\"findings\":[{\"rule_id\":\"CI-TEST-FINDING-001\",\"path\":\"tests/fixture\",\"message\":\"workspace test failed\"}]}' >&2\n  exit 1\nfi\n"
+        } else {
+            ""
+        };
+        let cargo = bin.join("cargo");
+        fs::write(
+            &cargo,
+            format!(
+                "#!/bin/sh\nif [ \"$1\" = \"xwin\" ] && {{ [ \"$2\" = \"--version\" ] || [ \"$2\" = \"check\" ]; }}; then\n  exit {xwin_code}\nfi\n{test_branch}exit 0\n"
+            ),
+        )
+        .expect("fake cargo");
+        let mut permissions = fs::metadata(&cargo)
+            .expect("fake cargo metadata")
+            .permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(cargo, permissions).expect("fake cargo permissions");
+    }
+
+    #[cfg(windows)]
+    {
+        let source = bin.join("fake-cargo.rs");
+        let executable = bin.join("cargo.exe");
+        fs::write(
+            &source,
+            format!(
+                "fn main() {{\n    let mut args = std::env::args().skip(1);\n    let first = args.next();\n    let second = args.next();\n    if first.as_deref() == Some(\"xwin\") && matches!(second.as_deref(), Some(\"--version\") | Some(\"check\")) {{\n        std::process::exit({xwin_code});\n    }}\n    if {test_failure} && first.as_deref() == Some(\"test\") {{\n        eprintln!(\"{{{{\\\"findings\\\":[{{{{\\\"rule_id\\\":\\\"CI-TEST-FINDING-001\\\",\\\"path\\\":\\\"tests/fixture\\\",\\\"message\\\":\\\"workspace test failed\\\"}}}}]}}}}\");\n        std::process::exit(1);\n    }}\n    std::process::exit(0);\n}}\n",
+                xwin_code = xwin_code,
+                test_failure = test_failure,
+            ),
+        )
+        .expect("fake cargo source");
+        let status = Command::new("rustc")
+            .args([
+                "--edition",
+                "2021",
+                source.to_str().expect("fake cargo source path"),
+                "-o",
+                executable.to_str().expect("fake cargo executable path"),
+            ])
+            .status()
+            .expect("compile fake cargo");
+        assert!(status.success(), "fake cargo compilation failed: {status}");
+        fs::remove_file(source).expect("remove fake cargo source");
+    }
 }
 
 pub fn parse_stdout(output: &std::process::Output) -> Value {
