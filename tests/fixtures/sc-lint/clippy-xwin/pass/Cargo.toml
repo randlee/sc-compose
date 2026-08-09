@@ -1,0 +1,3 @@
+[workspace]
+members = ["crates/clippy-xwin-pass"]
+resolver = "2"

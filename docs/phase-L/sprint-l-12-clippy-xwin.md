@@ -2,8 +2,8 @@
 id: L.12
 title: Windows Cross-Target Clippy
 phase: L
-status: planned
-branch: sprint/l-12-clippy-xwin
+status: complete
+branch: fix/l-12-json-field-comp3
 worktree: ../sc-compose-worktrees/sprint/l-12-clippy-xwin
 target: integrate/phase-l
 ---
