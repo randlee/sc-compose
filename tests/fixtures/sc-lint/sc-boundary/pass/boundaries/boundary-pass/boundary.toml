@@ -1,0 +1,36 @@
+boundary_id = "BOUNDARY-BoundaryPass"
+owner_package = "boundary-pass"
+owner_crate_path = "boundary_pass"
+name = "BoundaryPass"
+
+[public]
+facade = "run"
+
+[implementation]
+type = "fixture"
+module = "boundary_pass"
+visibility = "public"
+constructor = "none"
+
+[composition]
+roots = ["run"]
+
+[dependencies]
+allowed_dependents = []
+allowed_dependencies = []
+forbidden_edges = []
+
+[references]
+scope = "outside_owner_crate"
+forbidden = []
+
+[testing]
+allowed_test_double_paths = []
+forbidden_test_bypasses = []
+
+[enforcement]
+lint_rules = []
+review_gates = []
+
+[status]
+state = "concrete_landed"
