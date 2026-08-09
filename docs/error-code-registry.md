@@ -63,6 +63,19 @@ by `sc-composer` and `sc-compose`.
 | `WARN_EXTRACT_LOW_CONFIDENCE` | `ExtractionReport` | warning | structural or static evidence is insufficient for a high-confidence report | XML extraction engine; Phase I/I.2 raw-text mode |
 | `WARN_EXTRACT_DIRTY_PREFIX_STRIPPED` | `ExtractionReport` | warning | rendered XML had an accepted leading text preamble removed before parsing | Phase I.4 XML dirty-prefix normalizer |
 
+### sc-lint CLI Integration Classes
+
+The `CLI.*` classes are stable diagnostics from the sc-lint subprocess
+boundary. They are distinct from the `ERR_*` codes emitted by the
+sc-composer library and are normalized by the shared lint runner.
+
+| Code | Error family | Severity | Trigger condition | Expected primary emitter |
+| --- | --- | --- | --- | --- |
+| `CLI.CONFIG_ERROR` | `ScLintOutcome::ConfigError` | error | repository configuration or a required sc-lint utility is missing or malformed | sc-lint integration runner |
+| `CLI.CAPABILITY_ERROR` | `ScLintOutcome::CapabilityError` | error | repository configuration is valid but the host lacks a required lint capability | sc-lint integration runner |
+| `CLI.BACKEND_EXEC_FAILURE` | `ScLintOutcome::Failed` | error | an allowlisted sc-lint workflow step exits unsuccessfully | sc-lint integration runner |
+| `CLI.BACKEND_PROTOCOL_ERROR` | `ScLintOutcome::Failed` or `ConfigError` | error | sc-lint returns malformed adapter JSON; missing view utilities are normalized to `CLI.CONFIG_ERROR` | sc-lint integration runner |
+
 ### Accepted Phase-H Cross-Format Extraction Codes
 
 These codes are accepted by H.1 and are required implementation targets for
