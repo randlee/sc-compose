@@ -30,6 +30,8 @@ mod path_utils;
 pub mod renderer;
 /// Runtime-aware profile resolution and search tracing.
 pub mod resolver;
+/// Raw-byte SHA-256 template identity.
+pub mod template_hash;
 /// Filesystem-free MiniJinja dependency-statement inspection.
 pub mod template_syntax;
 /// Foundational request, result, and value-model types.
@@ -92,6 +94,8 @@ pub use renderer::{
 };
 #[doc(inline)]
 pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_template_path};
+#[doc(inline)]
+pub use template_hash::{TemplateSha256, template_sha256};
 #[doc(inline)]
 pub use template_syntax::{TemplateDirective, TemplateDirectiveKind, inspect_template_directives};
 #[doc(inline)]
