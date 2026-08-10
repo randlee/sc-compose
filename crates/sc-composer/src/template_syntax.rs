@@ -224,7 +224,7 @@ mod tests {
     #[test]
     fn does_not_classify_prefixes_or_keywords_inside_quoted_arguments() {
         let source = concat!(
-            "{% includee \"not-a-directive.j2\" %}",
+            "{% includex \"not-a-directive.j2\" %}",
             "{% from helper %}",
             "{% set source = \"%} include\" %}",
             "{% include \"a%}b.j2\" %}"
