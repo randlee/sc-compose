@@ -1,15 +1,16 @@
 //! Template renderer wrapper.
 
 use std::collections::BTreeMap;
+use std::path::{Component, Path};
 
 use minijinja::value::ValueKind;
 use minijinja::{
-    AutoEscape, Environment, Error, Output, State, Value as JinjaValue, escape_formatter,
+    AutoEscape, Environment, Error, ErrorKind, Output, State, Value as JinjaValue, escape_formatter,
 };
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::RenderError;
+use crate::{ConfiningRoot, RenderError};
 
 const XML_REPLACEMENT_NCR: &str = "&#xfffd;";
 
@@ -43,6 +44,24 @@ pub struct RenderedArtifact {
     pub rendered: String,
     /// Stable template identifier used during rendering.
     pub template_name: String,
+}
+
+/// Request for a `MiniJinja` render with filesystem dependencies confined to a
+/// canonical root.
+///
+/// The primary template is supplied directly by the caller.  Each `{% include
+/// %}`, `{% import %}`, or `{% from ... import %}` target is loaded only after
+/// it has been proven to be a relative path below [`Self::root`].
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct ConfinedTemplateRequest {
+    /// Canonical root that contains every loadable dependency template.
+    pub root: ConfiningRoot,
+    /// Stable name assigned to the caller-provided primary template.
+    pub template_name: String,
+    /// Caller-provided primary template text.
+    pub template_text: String,
+    /// Render context supplied by the caller.
+    pub context: BTreeMap<String, Value>,
 }
 
 /// Pure template-engine wrapper used by composition entry points.
@@ -364,18 +383,94 @@ pub fn render_loaded_template(
     })
 }
 
+/// Render a caller-provided template while confining all `MiniJinja` dependency
+/// loads beneath a canonical root.
+///
+/// This is deliberately the only filesystem-backed `MiniJinja` render API.  It
+/// rejects absolute targets and any lexical `..` component before attempting
+/// I/O, canonicalizes every remaining target, and rejects symlink escapes.
+/// It applies equally to `include`, `import`, and `from ... import`, because
+/// `MiniJinja` resolves each through the same loader.
+///
+/// # Errors
+///
+/// Returns [`RenderError`] when the template is invalid, a dependency is
+/// absent, a dependency escapes the root, or rendering otherwise fails.
+pub fn render_template_within_root(
+    request: ConfinedTemplateRequest,
+) -> Result<RenderedArtifact, RenderError> {
+    let root = request.root.into_inner();
+    let mut env = Environment::new();
+    configure_environment(&mut env);
+    env.set_loader(move |name| load_confined_template(&root, name));
+    env.add_template_owned(request.template_name.clone(), request.template_text)
+        .map_err(RenderError::render)?;
+    let rendered = env
+        .get_template(&request.template_name)
+        .map_err(RenderError::render)?
+        .render(&request.context)
+        .map_err(RenderError::render)?;
+    Ok(RenderedArtifact {
+        rendered,
+        template_name: request.template_name,
+    })
+}
+
+fn load_confined_template(root: &Path, name: &str) -> Result<Option<String>, Error> {
+    let requested = Path::new(name);
+    if requested.is_absolute()
+        || requested
+            .components()
+            .any(|component| matches!(component, Component::ParentDir))
+    {
+        return Err(Error::new(
+            ErrorKind::BadInclude,
+            format!("template dependency escapes confinement root: {name}"),
+        ));
+    }
+
+    let candidate = root.join(requested);
+    let canonical = std::fs::canonicalize(&candidate).map_err(|error| {
+        Error::new(
+            ErrorKind::BadInclude,
+            format!("template dependency cannot be resolved: {name}: {error}"),
+        )
+    })?;
+    if !canonical.starts_with(root) {
+        return Err(Error::new(
+            ErrorKind::BadInclude,
+            format!("template dependency escapes confinement root: {name}"),
+        ));
+    }
+    std::fs::read_to_string(&canonical)
+        .map(Some)
+        .map_err(|error| {
+            Error::new(
+                ErrorKind::BadInclude,
+                format!("template dependency cannot be read: {name}: {error}"),
+            )
+        })
+}
+
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
     use std::error::Error as _;
+    use std::fs;
+    use std::path::{Path, PathBuf};
     use std::str;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     use quick_xml::Reader;
     use quick_xml::events::Event;
     use serde_json::json;
 
+    use crate::ConfiningRoot;
+
     use super::{
-        LoadedTemplateRequest, NamedTemplateAsset, Renderer, XML_REPLACEMENT_NCR,
-        render_loaded_template, turtle_escape_filter,
+        ConfinedTemplateRequest, LoadedTemplateRequest, NamedTemplateAsset, Renderer,
+        XML_REPLACEMENT_NCR, render_loaded_template, render_template_within_root,
+        turtle_escape_filter,
     };
 
     #[test]
@@ -1020,10 +1115,106 @@ mod tests {
     }
 
     #[test]
+    fn confined_renderer_loads_include_import_and_from_import_under_root() {
+        let root = temp_root("confined_renderer_all_dependency_forms");
+        write_file(&root.join("include.j2"), "include={{ name }}");
+        write_file(
+            &root.join("macros.j2"),
+            "{% macro label(value) %}[{{ value }}]{% endmacro %}",
+        );
+        write_file(
+            &root.join("buttons.j2"),
+            "{% macro button(value) %}<{{ value }}>{% endmacro %}",
+        );
+
+        let rendered = render_template_within_root(ConfinedTemplateRequest {
+            root: ConfiningRoot::new(&root).unwrap(),
+            template_name: "main.j2".to_owned(),
+            template_text: concat!(
+                "{% include \"include.j2\" %}|",
+                "{% import \"macros.j2\" as macros %}{{ macros.label(name) }}|",
+                "{% from \"buttons.j2\" import button %}{{ button(name) }}"
+            )
+            .to_owned(),
+            context: json!({ "name": "Ada" })
+                .as_object()
+                .unwrap()
+                .clone()
+                .into_iter()
+                .collect(),
+        })
+        .unwrap();
+
+        assert_eq!(rendered.rendered, "include=Ada|[Ada]|<Ada>");
+    }
+
+    #[test]
+    fn confined_renderer_rejects_absolute_and_parent_escape_before_loading() {
+        let root = temp_root("confined_renderer_escape");
+        let canonical_root = ConfiningRoot::new(&root).unwrap();
+
+        for source in [
+            "{% include \"/etc/passwd\" %}",
+            "{% include \"../outside.j2\" %}",
+        ] {
+            let error = render_template_within_root(ConfinedTemplateRequest {
+                root: canonical_root.clone(),
+                template_name: "main.j2".to_owned(),
+                template_text: source.to_owned(),
+                context: BTreeMap::new(),
+            })
+            .unwrap_err();
+
+            let detail = error.source().map(ToString::to_string).unwrap_or_default();
+            assert!(detail.contains("escapes confinement root"), "got: {detail}");
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn confined_renderer_rejects_symlink_escape() {
+        use std::os::unix::fs::symlink;
+
+        let root = temp_root("confined_renderer_symlink_escape");
+        let outside = temp_root("confined_renderer_outside");
+        write_file(&outside.join("outside.j2"), "outside");
+        symlink(outside.join("outside.j2"), root.join("escape.j2")).unwrap();
+
+        let error = render_template_within_root(ConfinedTemplateRequest {
+            root: ConfiningRoot::new(&root).unwrap(),
+            template_name: "main.j2".to_owned(),
+            template_text: "{% include \"escape.j2\" %}".to_owned(),
+            context: BTreeMap::new(),
+        })
+        .unwrap_err();
+
+        let detail = error.source().map(ToString::to_string).unwrap_or_default();
+        assert!(detail.contains("escapes confinement root"), "got: {detail}");
+    }
+
+    #[test]
     fn with_delimiters_rejects_invalid_syntax_with_typed_error() {
         let error = Renderer::with_delimiters("", "}}").unwrap_err();
 
         assert_eq!(error.code(), None);
         assert_eq!(error.to_string(), "template rendering failed");
+    }
+
+    fn temp_root(label: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("sc-compose-{label}-{}-{nanos}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        root
+    }
+
+    fn write_file(path: &Path, contents: &str) {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+        fs::write(path, contents).unwrap();
     }
 }
