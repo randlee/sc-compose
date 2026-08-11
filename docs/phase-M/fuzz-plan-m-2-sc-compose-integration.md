@@ -12,4 +12,4 @@
 
 ## Output
 - Findings filed as GitHub issues (existing `Fuzz: ...` convention) or routed straight into the M.2 fix cycle if blocking.
-- Fuzz run report via the standard `docs/sprint-fuzz-run-report-template.md` artifact layout.
+- Fuzz run report goes to `site/reports/<run-id>-fuzz-report(.html)`, per the standard `docs/sprint-fuzz-run-report-template.md` artifact layout.
