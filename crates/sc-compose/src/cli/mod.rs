@@ -4,7 +4,8 @@ mod schema;
 
 pub(crate) use capability::command_wants_json;
 pub(crate) use pass_input::{
-    PassInputArgs, filtered_args_for_clap, parse_cli, parse_pass_inputs, parse_var,
+    PassInputArgs, filtered_args_for_clap, parse_cli_from, parse_pass_inputs, parse_var,
+    raw_args_want_json,
 };
 pub(crate) use schema::*;
 
