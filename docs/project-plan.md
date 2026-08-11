@@ -1017,6 +1017,19 @@ for independent regression QA.
   bundled single-panel `sprint-report-html` example, and wrapper-owned HTML
   rendering integration.
 
+### Follow-on Issue: Nested Template Composition Fingerprints
+
+The current content-only SHA/fingerprint model is not sufficient as the
+identity of a composed template: it does not distinguish identical content at
+different canonical paths and does not change when a transitive nested include
+changes. GitHub issue [#360](https://github.com/randlee/sc-compose/issues/360)
+tracks the required versioned Merkle-style composition fingerprint. The issue
+requires a deterministic dependency manifest for auditability plus one root
+`composition_sha` derived from canonical paths, exact source bytes, ordered
+include edges, repeated occurrences, and relevant render context. This remains
+follow-on work and is not claimed by the completed extraction or maintainability
+phases.
+
 ### Sprint S9: User Data Directory Unification (`~/.sc-compose`)
 
 Status:

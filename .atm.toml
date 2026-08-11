@@ -19,7 +19,7 @@ approval_policy = "on-failure"
 
 # ── rmux: pane layout ─────
 [rmux]
-session = "atm-dev"
+session = "sc-compose"
 
 [[rmux.windows]]
 name = "sc-compose"
@@ -44,3 +44,19 @@ model = "sonnet"
 color = "red"
 dir = "/Users/randlee/Documents/github/sc-compose"
 env = { ATM_IDENTITY = "quality-mgr", ATM_TEAM = "sc-compose", CLAUDE_CODE_TASK_LIST_ID = "sc-compose" }
+
+[[rmux.windows]]
+name = "dev2"
+layout = "even-horizontal"
+
+[[rmux.windows.panes]]
+name = "comp2"
+command = "codex -c features.codex_hooks=true --yolo"
+dir = "/Users/randlee/Documents/github/sc-compose"
+env = { ATM_IDENTITY = "comp2", ATM_TEAM = "sc-compose", CLAUDE_CODE_TASK_LIST_ID = "sc-compose" }
+
+[[rmux.windows.panes]]
+name = "comp3"
+command = "codex -c features.codex_hooks=true --yolo"
+dir = "/Users/randlee/Documents/github/sc-compose"
+env = { ATM_IDENTITY = "comp3", ATM_TEAM = "sc-compose", CLAUDE_CODE_TASK_LIST_ID = "sc-compose" }
