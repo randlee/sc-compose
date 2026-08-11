@@ -119,8 +119,22 @@ where
     Ok(parsed)
 }
 
-pub(crate) fn parse_cli() -> Cli {
-    Cli::parse_from(super::filtered_args_for_clap(std::env::args_os()))
+pub(crate) fn parse_cli_from<I>(args: I) -> Result<Cli, clap::Error>
+where
+    I: IntoIterator<Item = OsString>,
+{
+    let args = args.into_iter().collect::<Vec<_>>();
+    Cli::try_parse_from(super::filtered_args_for_clap(args))
+}
+
+pub(crate) fn raw_args_want_json<I>(args: I) -> bool
+where
+    I: IntoIterator<Item = OsString>,
+{
+    args.into_iter().skip(1).any(|arg| {
+        let arg = arg.to_string_lossy();
+        arg == "--json" || arg.starts_with("--json=")
+    })
 }
 
 pub(crate) fn filtered_args_for_clap<I>(args: I) -> Vec<OsString>

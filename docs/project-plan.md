@@ -780,6 +780,20 @@ the separate `.code` attribute used for error-code dispatch. Python callers
 now receive the human-readable message from `str(error)` instead of the raw
 `(code, message)` argument-tuple representation.
 
+### Follow-on Fix Sprint: FIX-252
+
+Status:
+
+- complete on `fix/252-varfile-missing-dir-misclassified` at `bd8a748`
+
+Sprint entry:
+
+- [Sprint FIX-252 — Route missing/directory --var-file open errors through ERR_CONFIG_READ instead of ERR_CONFIG_PARSE](sprints/fix-252-varfile-missing-dir-misclassified.md)
+
+FIX-252 routes missing and directory `--var-file` open failures through
+`ERR_CONFIG_READ` with an `InspectPath` recovery hint, while preserving
+`ERR_CONFIG_PARSE` for malformed content that was successfully read.
+
 ### Follow-on Fix Sprint: FIX-370-371
 
 Status:
@@ -1719,6 +1733,7 @@ boundary defined by:
 - `docs/sprints/fix-254-varfile-negative-boundary-i128.md`
 - `docs/sprints/fix-283-unbound-variable-policy-noop.md`
 - `docs/sprints/fix-372-chained-ternary-dynamic-classification.md`
+- `docs/sprints/fix-386-cli-json-envelope-clap-bypass.md`
 
 The current follow-on implementation track is:
 

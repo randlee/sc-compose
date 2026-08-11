@@ -182,3 +182,89 @@ fn malformed_frontmatter_json_output_remains_structured_and_stable() {
         "failed to parse YAML frontmatter"
     );
 }
+
+/// FUZZ-002 (adversarial fuzz campaign 20260811-3, boundary-probe): a
+/// malformed `--var` value (missing the `key=value` separator) is rejected
+/// by clap's own value-parser error path before sc-compose's application
+/// layer ever runs, so the tool prints plain-text usage text on stderr and
+/// leaves stdout empty even though `--json` was explicitly requested. Every
+/// diagnostic emitted while `--json` is set, including CLI-usage errors,
+/// must stay inside the tool's stable JSON envelope.
+#[test]
+fn malformed_var_argument_does_not_bypass_the_json_output_contract() {
+    let output = sc_compose()
+        .args(["validate", "--json", "--var", "novalue"])
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    assert!(
+        !output.stdout.is_empty(),
+        "expected a JSON envelope on stdout, got empty stdout; stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+}
+
+/// FUZZ-003 (adversarial fuzz campaign 20260811-3, template-probe): `--all`
+/// is declared `conflicts_with_all` against `--brace-count` and
+/// `--variable-delimiters`, and clap enforces that conflict before
+/// sc-compose's application layer runs, so the resulting argument-conflict
+/// error is plain clap usage text on stderr rather than the tool's stable
+/// JSON envelope, even though `--json` was explicitly requested.
+#[test]
+fn all_and_brace_count_conflict_does_not_bypass_the_json_output_contract() {
+    let root = temp_root("fuzz-all-brace-count-json-contract");
+    write_file(&root.join("t.j2"), "Hello {{ name }}\n");
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--json",
+            "--all",
+            "--brace-count",
+            "3",
+            "--file",
+            "t.j2",
+            "--root",
+        ])
+        .arg(&root)
+        .output()
+        .unwrap();
+
+    assert!(!output.status.success());
+    assert!(
+        !output.stdout.is_empty(),
+        "expected a JSON envelope on stdout, got empty stdout; stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+}
+
+#[test]
+fn help_and_version_with_json_preserve_clap_display_output() {
+    for (args, expected_text) in [
+        (&["--version", "--json"][..], "sc-compose"),
+        (&["render", "--help", "--json"][..], "render [OPTIONS]"),
+    ] {
+        let output = sc_compose().args(args).output().unwrap();
+
+        assert!(output.status.success(), "args={args:?}: {output:?}");
+        assert!(
+            output.stderr.is_empty(),
+            "args={args:?}: unexpected stderr: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.contains(expected_text),
+            "args={args:?}: expected {expected_text:?} in stdout: {stdout}"
+        );
+        assert!(
+            !stdout.trim_start().starts_with('{'),
+            "args={args:?}: display output must not be a JSON envelope: {stdout}"
+        );
+    }
+}
