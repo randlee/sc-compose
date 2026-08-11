@@ -125,3 +125,11 @@ def test_malformed_manifest_and_invalid_utf8_have_stable_codes() -> None:
     with pytest.raises(sc_sha.ScShaError) as str_error:
         sc_sha.calculate_hash({"utf8_file_bytes": "hello"})
     assert str_error.value.code == "SC_SHA_INVALID_INPUT"
+
+
+def test_sc_sha_error_str_is_human_readable_and_preserves_code() -> None:
+    with pytest.raises(sc_sha.ScShaError) as error:
+        sc_sha.calculate_hash({"utf8_file_bytes": "hello"})
+
+    assert error.value.code == "SC_SHA_INVALID_INPUT"
+    assert str(error.value) == "utf8_file_bytes must be bytes; encode text as UTF-8 explicitly"
