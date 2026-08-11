@@ -174,3 +174,11 @@ def test_parse_nodes_rejects_missing_source_as_invalid_manifest() -> None:
         )
 
     assert error.value.code == "SC_SHA_INVALID_MANIFEST"
+
+
+def test_sc_sha_error_str_is_human_readable_and_preserves_code() -> None:
+    with pytest.raises(sc_sha.ScShaError) as error:
+        sc_sha.calculate_hash({"utf8_file_bytes": "hello"})
+
+    assert error.value.code == "SC_SHA_INVALID_INPUT"
+    assert str(error.value) == "utf8_file_bytes must be bytes; encode text as UTF-8 explicitly"

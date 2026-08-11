@@ -746,6 +746,7 @@ Sprint entries:
 - [Sprint M.2 — sc-compose Integration](phase-M/sprint-m-2-sc-compose-integration.md)
 - [Sprint FIX-373 — Diamond Frontmatter Dedup](sprints/fix-373-diamond-frontmatter-dedup.md)
 - [Sprint FIX-374 — sc-sha Digest Error Code](sprints/fix-374-sc-sha-digest-error-code.md)
+- [Sprint FIX-375 — ScShaError __str__](sprints/fix-375-scshaerror-str.md)
 
 ### Follow-on Fix Sprint: FIX-373
 
@@ -762,6 +763,21 @@ frontmatter-less leaf shared through a diamond-shaped include graph. The
 existing `is_new` gate now covers `resolved_files`, `source_texts`, and
 `frontmatters`, so the diagnostic is emitted once per canonical file while
 distinct graph edges remain preserved.
+
+### Follow-on Fix Sprint: FIX-375
+
+Status:
+
+- complete on `fix/375-scshaerror-str` at `b06b07d`
+
+Sprint entry:
+
+- [Sprint FIX-375 — ScShaError __str__](sprints/fix-375-scshaerror-str.md)
+
+FIX-375 gives `ScShaError` a readable string representation while preserving
+the separate `.code` attribute used for error-code dispatch. Python callers
+now receive the human-readable message from `str(error)` instead of the raw
+`(code, message)` argument-tuple representation.
 
 ### Follow-on Fix Sprint: FIX-238
 

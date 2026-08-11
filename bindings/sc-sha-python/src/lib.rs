@@ -24,6 +24,10 @@ impl ScShaError {
     fn new(code: String, message: String) -> Self {
         Self { code, message }
     }
+
+    fn __str__(&self) -> &str {
+        &self.message
+    }
 }
 
 fn error(py: Python<'_>, code: impl Into<String>, message: impl Into<String>) -> PyErr {
