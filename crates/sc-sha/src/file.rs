@@ -49,7 +49,9 @@ impl ShaError {
 impl Display for ShaError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InvalidUtf8 => f.write_str("text-file bytes are not valid UTF-8"),
+            Self::InvalidUtf8 => f.write_str(
+                "text-file bytes are not valid UTF-8; encode the source as UTF-8 before hashing",
+            ),
         }
     }
 }
@@ -162,6 +164,7 @@ mod tests {
         .expect_err("invalid UTF-8 must fail");
         assert_eq!(error, ShaError::InvalidUtf8);
         assert_eq!(error.code(), "SC_SHA_INVALID_UTF8");
+        assert!(error.to_string().contains("encode the source as UTF-8"));
     }
 
     #[test]

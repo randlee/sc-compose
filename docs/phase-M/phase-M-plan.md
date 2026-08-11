@@ -460,11 +460,14 @@ pub enum ShaError {
     InvalidUtf8,
 }
 
+pub enum CanonicalSourceError {
+    InvalidRepresentation,
+}
+
 pub enum CompositionError {
     UnsupportedManifestSchema,
     DuplicateSource,
     UnknownEdgeEndpoint,
-    InvalidTaggedSource,
 }
 ```
 
@@ -478,10 +481,10 @@ an explicit typed result.
 | Code | Error type | Cause | Recovery guidance |
 | --- | --- | --- | --- |
 | `SC_SHA_INVALID_UTF8` | `ShaError::InvalidUtf8` | Text bytes cannot be strictly decoded. | Fix the source encoding or provide a valid UTF-8 text input. |
-| `SC_SHA_MANIFEST_SCHEMA` | `CompositionError::UnsupportedManifestSchema` | Manifest encoding version is unsupported. | Rebuild the manifest with a supported schema. |
-| `SC_SHA_MANIFEST_DUPLICATE_SOURCE` | `CompositionError::DuplicateSource` | Caller supplied duplicate manifest nodes. | Fix the sc-compose node builder; do not silently deduplicate. |
-| `SC_SHA_MANIFEST_UNKNOWN_EDGE` | `CompositionError::UnknownEdgeEndpoint` | An edge references no manifest node. | Rebuild the resolved manifest from the validated graph. |
-| `SC_SHA_MANIFEST_INVALID_SOURCE` | `CompositionError::InvalidTaggedSource` | Tagged source representation is malformed. | Re-canonicalize at the owning resolver boundary. |
+| `SC_SHA_INVALID_CANONICAL_SOURCE` | `CanonicalSourceError::InvalidRepresentation` | A canonical path or URL is empty, contains control characters, or uses a backslash separator. | Re-canonicalize the source at the owning resolver boundary, then construct the tagged source again. |
+| `SC_SHA_UNSUPPORTED_MANIFEST_SCHEMA` | `CompositionError::UnsupportedManifestSchema` | Manifest encoding version is unsupported. | Provide `ManifestSchemaVersion::V1` or upgrade the consumer. |
+| `SC_SHA_DUPLICATE_SOURCE` | `CompositionError::DuplicateSource` | Caller supplied duplicate manifest nodes. | Deduplicate nodes in the sc-compose node builder before hashing. |
+| `SC_SHA_UNKNOWN_EDGE_ENDPOINT` | `CompositionError::UnknownEdgeEndpoint` | An edge references no manifest node. | Include every edge endpoint in the resolved manifest node list. |
 
 ### Resolver error inventory
 

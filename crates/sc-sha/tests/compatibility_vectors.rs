@@ -87,6 +87,26 @@ fn invalid_utf8_has_no_digest() {
     assert_eq!(error.code(), "SC_SHA_INVALID_UTF8");
 }
 
+#[derive(Debug, Eq, PartialEq)]
+struct PackageFilesRecord {
+    path: &'static str,
+    sha256: String,
+}
+
+#[test]
+fn maps_file_identity_to_representative_package_files_sha256_field() {
+    let record = PackageFilesRecord {
+        path: "templates/readme.md",
+        sha256: hash_hex("# Hello, 世界\r\n".as_bytes()),
+    };
+
+    assert_eq!(record.path, "templates/readme.md");
+    assert_eq!(
+        record.sha256,
+        "04e34393ce5abea9763b57b66dc8a68914dbcf294dc21a51d8a9e59e751eed91"
+    );
+}
+
 #[test]
 fn composition_vector_is_stable_and_tagged() {
     let root = CanonicalSource::LocalPath(

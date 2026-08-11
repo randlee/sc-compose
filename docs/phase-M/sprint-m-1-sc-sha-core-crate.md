@@ -222,7 +222,8 @@ The shared crate must test:
 - tagged local-path versus URL source encoding;
 - length-delimited node/edge framing and adversarial injectivity cases for
   source values, node order, per-file hashes, edge order, and occurrences;
-- duplicate-node, unknown-edge, unsupported-schema, and malformed-source errors;
+- duplicate-node, unknown-edge, unsupported-schema, and canonical-source
+  constructor errors;
 - caller-supplied manifest composition vectors independent of resolver policy.
 
 ## This Sprint Does Not Close

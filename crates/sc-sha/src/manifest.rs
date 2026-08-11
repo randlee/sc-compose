@@ -13,12 +13,24 @@ pub enum CanonicalSourceError {
 impl Display for CanonicalSourceError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InvalidRepresentation => f.write_str("invalid canonical source representation"),
+            Self::InvalidRepresentation => f.write_str(
+                "invalid canonical source representation; provide a non-empty canonical path or URL with forward-slash separators and no control characters",
+            ),
         }
     }
 }
 
 impl std::error::Error for CanonicalSourceError {}
+
+impl CanonicalSourceError {
+    /// Stable machine-readable error code.
+    #[must_use]
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::InvalidRepresentation => "SC_SHA_INVALID_CANONICAL_SOURCE",
+        }
+    }
+}
 
 /// An already-canonical, host-independent template path.
 #[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -94,8 +106,15 @@ mod tests {
     #[test]
     fn constructors_reject_noncanonical_representations() {
         assert_eq!(
-            CanonicalTemplatePath::try_from(String::new()),
-            Err(CanonicalSourceError::InvalidRepresentation)
+            CanonicalTemplatePath::try_from(String::new())
+                .expect_err("empty path must be rejected")
+                .code(),
+            "SC_SHA_INVALID_CANONICAL_SOURCE"
+        );
+        assert!(
+            CanonicalSourceError::InvalidRepresentation
+                .to_string()
+                .contains("provide a non-empty canonical path or URL")
         );
         assert_eq!(
             CanonicalTemplatePath::try_from("nested\\template.md".to_owned()),
