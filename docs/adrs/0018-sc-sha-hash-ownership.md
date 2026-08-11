@@ -61,28 +61,11 @@ unrelated hashing consumers outside this repo's own CLI/bindings.
   docs; this ADR records the ownership/boundary decision, not the
   implementation plan.
 
-### Proposed `CLAUDE.md` amendment
+### `CLAUDE.md` amendment
 
-Append to the existing Boundary Rules section (currently numbered 1-7):
-
-```diff
- 6. Do not read `ATM_HOME`.
- 7. Any ATM integration belongs in ATM adapters, not in this repo.
-+8. `sc-sha` is a pure computation crate. It may depend only on the approved
-+   hashing/encoding implementation dependencies, and may be depended on only
-+   by `sc-composer` and `bindings/sc-sha-python`. It must not depend on
-+   `sc-compose`, `sc-composer`, MiniJinja, filesystem/CLI libraries, ATM
-+   crates, PyO3, or maturin, and must not implement resolver, path-policy,
-+   cycle-detection, or depth-limiting behavior.
-+9. `bindings/sc-sha-python` is a Python-facing adapter for `sc-sha` only. It
-+   may depend on published `sc-sha` plus PyO3/maturin packaging dependencies
-+   only. It must not depend on `sc-compose`, `sc-composer`, ATM-specific
-+   crates, or read `ATM_HOME`, and it must delegate both public operations to
-+   `sc-sha` without a Python-only algorithm.
-```
-
-This amendment does not take effect, and no source under `crates/sc-sha/` or
-`bindings/sc-sha-python/` may be authored, until team-lead accepts this ADR.
+This ADR adds two new Boundary Rules (8 and 9) to `CLAUDE.md`, stated there
+in short form with a pointer back to this ADR for rationale. See
+`CLAUDE.md`'s Boundary Rules section for the accepted text.
 
 ## Consequences
 
