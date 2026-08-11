@@ -143,3 +143,34 @@ def test_malformed_manifest_digest_preserves_invalid_digest_code() -> None:
         )
 
     assert error.value.code == "SC_SHA_INVALID_DIGEST"
+
+
+def test_parse_nodes_rejects_non_list_nodes_as_invalid_manifest() -> None:
+    with pytest.raises(sc_sha.ScShaError) as error:
+        sc_sha.calculate_composition_hash(
+            {"schema": "sc-sha/manifest/v1", "nodes": {}, "edges": []}
+        )
+
+    assert error.value.code == "SC_SHA_INVALID_MANIFEST"
+
+
+def test_parse_nodes_rejects_non_mapping_node_as_invalid_manifest() -> None:
+    with pytest.raises(sc_sha.ScShaError) as error:
+        sc_sha.calculate_composition_hash(
+            {"schema": "sc-sha/manifest/v1", "nodes": [1], "edges": []}
+        )
+
+    assert error.value.code == "SC_SHA_INVALID_MANIFEST"
+
+
+def test_parse_nodes_rejects_missing_source_as_invalid_manifest() -> None:
+    with pytest.raises(sc_sha.ScShaError) as error:
+        sc_sha.calculate_composition_hash(
+            {
+                "schema": "sc-sha/manifest/v1",
+                "nodes": [{"sha256": "0" * 64}],
+                "edges": [],
+            }
+        )
+
+    assert error.value.code == "SC_SHA_INVALID_MANIFEST"
