@@ -787,7 +787,7 @@ Status:
 
 Sprint entry:
 
-- [Sprint FIX-252 -- Route missing/directory --var-file open errors through ERR_CONFIG_READ instead of ERR_CONFIG_PARSE](sprints/fix-252-varfile-missing-dir-misclassified.md)
+- [Sprint FIX-252 — Route missing/directory --var-file open errors through ERR_CONFIG_READ instead of ERR_CONFIG_PARSE](sprints/fix-252-varfile-missing-dir-misclassified.md)
 
 FIX-252 routes missing and directory `--var-file` open failures through
 `ERR_CONFIG_READ` with an `InspectPath` recovery hint, while preserving
