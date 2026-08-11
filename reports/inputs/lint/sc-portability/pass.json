@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "command": "lint.sc-portability",
+  "data": {
+    "findings": [],
+    "scanned_crates": 1,
+    "schema_version": "0.1.0",
+    "status": "pass",
+    "tool": "sc-lint-portability",
+    "version": "0.4.0"
+  },
+  "diagnostics": []
+}

@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "sc-compose"
-version = "1.3.0"
+version = "1.3.1"
 description = "Python bindings for sc-compose composition APIs"
 readme = "README.md"
 requires-python = ">=3.11"

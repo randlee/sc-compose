@@ -57,8 +57,60 @@ pub(super) fn collect_policy_diagnostics(
     }
 
     push_extra_input_diagnostics(request, state, resolved_path, &mut warnings, &mut errors);
+    push_unbound_variable_diagnostics(request, state, resolved_path, &mut warnings, &mut errors);
 
     (warnings, errors)
+}
+
+fn push_unbound_variable_diagnostics(
+    request: &ComposeRequest,
+    state: &ValidationState,
+    resolved_path: &Path,
+    warnings: &mut Vec<Diagnostic>,
+    errors: &mut Vec<Diagnostic>,
+) {
+    let policy = request
+        .policy
+        .unbound_variable_policy
+        .unwrap_or(request.policy.unknown_variable_policy);
+    if matches!(policy, UnknownVariablePolicy::Ignore) {
+        return;
+    }
+
+    let referenced = per_pass_referenced_variables(state).map_or_else(
+        || state.referenced_variables.clone(),
+        |by_pass| by_pass.values().flatten().cloned().collect(),
+    );
+    for variable in referenced {
+        if is_builtin_variable(&variable)
+            || super::required_paths::is_bound_path(&state.context, &variable)
+        {
+            continue;
+        }
+
+        let diagnostic = Diagnostic::new(
+            match policy {
+                UnknownVariablePolicy::Error => DiagnosticSeverity::Error,
+                UnknownVariablePolicy::Warn => DiagnosticSeverity::Warning,
+                UnknownVariablePolicy::Ignore => unreachable!(),
+            },
+            DiagnosticCode::ErrValUnboundVariable,
+            format!("unbound variable: {variable}"),
+        )
+        .with_path(resolved_path.to_path_buf());
+
+        match policy {
+            UnknownVariablePolicy::Error => errors.push(diagnostic),
+            UnknownVariablePolicy::Warn => warnings.push(diagnostic),
+            UnknownVariablePolicy::Ignore => unreachable!(),
+        }
+    }
+}
+
+fn is_builtin_variable(variable: &VariableName) -> bool {
+    super::BUILTIN_VARIABLE_NAMES
+        .iter()
+        .any(|name| *name == variable.as_str())
 }
 
 fn push_extra_input_diagnostics(
@@ -116,7 +168,7 @@ pub(super) fn missing_frontmatter_warnings_for_path(
         .frontmatters
         .iter()
         .filter_map(|(path, frontmatters)| {
-            if !frontmatters.is_empty() || !file_references_variables(path) {
+            if !frontmatters.is_empty() || !file_references_variables(path, expanded) {
                 return None;
             }
             let message = if path == resolved_path {
@@ -142,11 +194,11 @@ pub(super) fn missing_frontmatter_warnings_for_path(
         .collect()
 }
 
-fn file_references_variables(path: &Path) -> bool {
-    let Ok(raw) = std::fs::read_to_string(path) else {
+fn file_references_variables(path: &Path, expanded: &ExpandedTemplate) -> bool {
+    let Some(raw) = expanded.source_texts.get(path) else {
         return false;
     };
-    let Ok(parsed) = parse_template_document(&raw) else {
+    let Ok(parsed) = parse_template_document(raw) else {
         return false;
     };
     !discover_tokens(parsed.body()).is_empty()
@@ -336,6 +388,183 @@ mod tests {
     }
 
     #[test]
+    fn unknown_error_policy_rejects_referenced_but_unbound_variables() {
+        let root = temp_root("diagnostics_unbound_error");
+        write_file(
+            &root.join("template.md.j2"),
+            "Task: {{ bound }}\nMissing: {{ missing }}\n",
+        );
+
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unknown_variable_policy: UnknownVariablePolicy::Error,
+                ..ComposePolicy::default()
+            },
+        );
+        request
+            .vars_input
+            .insert(crate::VariableName::new("bound").unwrap(), json!("hello"));
+
+        let report = validate(&request).unwrap();
+
+        assert!(!report.ok, "unbound reference was accepted: {report:?}");
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUnboundVariable
+                && diagnostic.message.contains("missing")
+        }));
+        assert!(!report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUnboundVariable
+                && diagnostic.message.contains("unbound variable: bound")
+        }));
+    }
+
+    #[test]
+    fn unknown_warn_policy_distinguishes_referenced_but_unbound_variables() {
+        let root = temp_root("diagnostics_unbound_warn");
+        write_file(&root.join("template.md.j2"), "Missing: {{ missing }}\n");
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unknown_variable_policy: UnknownVariablePolicy::Warn,
+                ..ComposePolicy::default()
+            },
+        ))
+        .unwrap();
+
+        assert!(
+            report.ok,
+            "warn policy should remain renderable: {report:?}"
+        );
+        assert!(report.warnings.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUnboundVariable
+                && diagnostic.message.contains("missing")
+        }));
+    }
+
+    #[test]
+    fn explicit_unbound_policy_is_independent_of_extra_input_policy() {
+        let root = temp_root("diagnostics_unbound_policy_independent");
+        write_file(&root.join("template.md.j2"), "Missing: {{ missing }}\n");
+
+        let mut error_request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unknown_variable_policy: UnknownVariablePolicy::Ignore,
+                unbound_variable_policy: Some(UnknownVariablePolicy::Error),
+                ..ComposePolicy::default()
+            },
+        );
+        error_request
+            .vars_input
+            .insert(crate::VariableName::new("extra").unwrap(), json!("value"));
+        let error_report = validate(&error_request).unwrap();
+        assert!(
+            error_report
+                .errors
+                .iter()
+                .any(|diagnostic| { diagnostic.code == DiagnosticCode::ErrValUnboundVariable })
+        );
+        assert!(
+            !error_report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValExtraInput)
+        );
+
+        let ignore_report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unknown_variable_policy: UnknownVariablePolicy::Error,
+                unbound_variable_policy: Some(UnknownVariablePolicy::Ignore),
+                ..ComposePolicy::default()
+            },
+        ))
+        .unwrap();
+        assert!(
+            !ignore_report
+                .errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValUnboundVariable)
+        );
+    }
+
+    #[test]
+    fn bound_defaults_and_locals_are_not_reported_as_unbound() {
+        let root = temp_root("diagnostics_bound_scopes");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\ndefaults:\n  fallback: default\nrequired_variables:\n  - items\n---\n{% for item in items %}{{ item.name }}{% endfor %}{% set local = fallback %}{{ local }}\n",
+        );
+
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                unbound_variable_policy: Some(UnknownVariablePolicy::Error),
+                ..ComposePolicy::default()
+            },
+        );
+        request.vars_input.insert(
+            crate::VariableName::new("items").unwrap(),
+            json!([{ "name": "one" }]),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(report.ok, "bound values were reported missing: {report:?}");
+        assert!(
+            !report
+                .warnings
+                .iter()
+                .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrValUnboundVariable)
+        );
+    }
+
+    #[test]
+    fn unbound_and_undeclared_axes_are_reported_independently() {
+        let root = temp_root("diagnostics_unbound_vs_undeclared");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\nrequired_variables:\n  - declared_missing\n---\n{{ declared_missing }} {{ supplied_undeclared }}\n",
+        );
+
+        let mut request = request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy {
+                strict_undeclared_variables: true,
+                unbound_variable_policy: Some(UnknownVariablePolicy::Error),
+                ..ComposePolicy::default()
+            },
+        );
+        request.vars_input.insert(
+            crate::VariableName::new("supplied_undeclared").unwrap(),
+            json!("present"),
+        );
+
+        let report = validate(&request).unwrap();
+
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUnboundVariable
+                && diagnostic.message.contains("declared_missing")
+        }));
+        assert!(report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUndeclaredToken
+                && diagnostic.message.contains("supplied_undeclared")
+        }));
+        assert!(!report.errors.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValUnboundVariable
+                && diagnostic.message.contains("supplied_undeclared")
+        }));
+    }
+
+    #[test]
     fn strict_mode_fails_on_undeclared_tokens() {
         let root = temp_root("diagnostics_strict_undeclared");
         write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
@@ -373,11 +602,85 @@ mod tests {
     }
 
     #[test]
+    fn missing_frontmatter_in_diamond_include_is_reported_once_per_file() {
+        let root = temp_root("diagnostics_missing_frontmatter_diamond");
+        let leaf_path = root.join("leaf.md.j2");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\n---\n@<parent-a.md.j2>\n@<parent-b.md.j2>\n",
+        );
+        write_file(&root.join("parent-a.md.j2"), "---\n---\n@<leaf.md.j2>\n");
+        write_file(&root.join("parent-b.md.j2"), "---\n---\n@<leaf.md.j2>\n");
+        write_file(&leaf_path, "hello {{ name }}\n");
+        let leaf = leaf_path.canonicalize().unwrap();
+
+        let request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        let resolved = crate::resolve_template_path(&request).unwrap();
+        let expanded =
+            crate::expand_includes(&resolved.resolved_path, &request.root, &request.policy)
+                .unwrap();
+
+        assert_eq!(
+            expanded
+                .resolved_files
+                .iter()
+                .filter(|path| *path == &leaf)
+                .count(),
+            1
+        );
+        assert!(expanded.source_texts.contains_key(&leaf));
+
+        let report = validate(&request).unwrap();
+        assert_eq!(
+            report
+                .warnings
+                .iter()
+                .filter(|diagnostic| {
+                    diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
+                        && diagnostic.message.contains("leaf.md.j2")
+                })
+                .count(),
+            1,
+            "diamond include emitted duplicate missing-frontmatter diagnostics: {report:?}"
+        );
+    }
+
+    #[test]
+    fn missing_frontmatter_in_single_include_is_reported_once() {
+        let root = temp_root("diagnostics_missing_frontmatter_single");
+        write_file(&root.join("template.md.j2"), "---\n---\n@<leaf.md.j2>\n");
+        write_file(&root.join("leaf.md.j2"), "hello {{ name }}\n");
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert_eq!(
+            report
+                .warnings
+                .iter()
+                .filter(|diagnostic| {
+                    diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
+                        && diagnostic.message.contains("leaf.md.j2")
+                })
+                .count(),
+            1,
+            "single include emitted an unexpected missing-frontmatter count: {report:?}"
+        );
+    }
+
+    #[test]
     fn missing_included_frontmatter_emits_fixup_warning_for_include() {
         let root = temp_root("diagnostics_missing_included_frontmatter");
         let root_template = root.join("template.md.j2");
         write_file(&root_template, "---\nrequired_variables:\n  - name\n---\n");
-        write_file(&root.join("partials/body.md.j2"), "hello {{ name }}\n");
+        write_file(
+            &root.join("partials").join("body.md.j2"),
+            "hello {{ name }}\n",
+        );
 
         let warnings = missing_frontmatter_warnings_for_path(
             &root_template,
@@ -385,25 +688,66 @@ mod tests {
                 text: "hello {{ name }}\n".to_owned(),
                 resolved_files: vec![
                     root.join("template.md.j2"),
-                    root.join("partials/body.md.j2"),
+                    root.join("partials").join("body.md.j2"),
                 ],
                 frontmatters: vec![
                     (
                         root.join("template.md.j2"),
                         vec![crate::Frontmatter::empty()],
                     ),
-                    (root.join("partials/body.md.j2"), Vec::new()),
+                    (root.join("partials").join("body.md.j2"), Vec::new()),
                 ],
                 include_chains: BTreeMap::default(),
+                source_texts: [(
+                    root.join("partials").join("body.md.j2"),
+                    "hello {{ name }}\n".to_owned(),
+                )]
+                .into_iter()
+                .collect(),
+                composition_fingerprint: None,
             },
         );
 
+        let included_name = Path::new("partials").join("body.md.j2");
+        let included_name = included_name.to_string_lossy();
         assert!(warnings.iter().any(|diagnostic| {
             diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
                 && diagnostic
                     .message
                     .contains("included file has no frontmatter")
-                && diagnostic.message.contains("partials/body.md.j2")
+                && diagnostic.message.contains(included_name.as_ref())
+        }));
+    }
+
+    #[test]
+    fn missing_included_frontmatter_uses_cached_source_after_disk_mutation() {
+        let root = temp_root("diagnostics_cached_source_text");
+        let root_template = root.join("template.md.j2");
+        let included = root.join("partials/body.md.j2");
+        write_file(
+            &root_template,
+            "---\nname: template\n---\n@<partials/body.md.j2>\n",
+        );
+        write_file(&included, "hello {{ name }}\n");
+
+        let request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        let resolved = crate::resolve_template_path(&request).unwrap();
+        let expanded =
+            crate::expand_includes(&resolved.resolved_path, &request.root, &request.policy)
+                .unwrap();
+
+        write_file(&included, "plain text after expansion\n");
+
+        let warnings = missing_frontmatter_warnings_for_path(&resolved.resolved_path, &expanded);
+
+        let included_name = Path::new("partials").join("body.md.j2");
+        let included_name = included_name.to_string_lossy();
+        assert!(warnings.iter().any(|diagnostic| {
+            diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
+                && diagnostic
+                    .message
+                    .contains("included file has no frontmatter")
+                && diagnostic.message.contains(included_name.as_ref())
         }));
     }
 

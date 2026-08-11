@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "command": "clippy.xwin",
+  "data": {
+    "mode": "xwin",
+    "status": "pass",
+    "step_count": 1,
+    "steps": [
+      {
+        "command": "cargo xwin clippy --workspace --all-targets --target x86_64-pc-windows-msvc -- -D warnings",
+        "kind": "clippy",
+        "name": "clippy.xwin",
+        "status": "pass"
+      }
+    ],
+    "tool": "cargo",
+    "xwin": {
+      "available": true,
+      "target": "x86_64-pc-windows-msvc"
+    }
+  },
+  "diagnostics": []
+}

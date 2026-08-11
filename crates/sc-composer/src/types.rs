@@ -329,7 +329,7 @@ pub enum ComposeMode {
     },
 }
 
-/// Policy applied to unexpected caller-provided variables.
+/// Policy values used for variable diagnostics.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum UnknownVariablePolicy {
@@ -387,8 +387,16 @@ impl Default for PassConfig {
 pub struct ComposePolicy {
     /// Whether undeclared referenced variables are fatal.
     pub strict_undeclared_variables: bool,
-    /// How to handle extra caller-provided variables.
+    /// How to handle caller-provided variables that are not declared or used.
     pub unknown_variable_policy: UnknownVariablePolicy,
+    /// How to handle referenced variables with no value at render time.
+    ///
+    /// `None` preserves compatibility with callers that only set
+    /// `unknown_variable_policy`: the effective unbound-variable policy then
+    /// inherits that value. Set this explicitly when the two diagnostic axes
+    /// need different behavior.
+    #[serde(default)]
+    pub unbound_variable_policy: Option<UnknownVariablePolicy>,
     /// Maximum include depth allowed by the pipeline.
     pub max_include_depth: IncludeDepth,
     /// Allowed confinement roots for file access.
@@ -404,6 +412,7 @@ impl Default for ComposePolicy {
         Self {
             strict_undeclared_variables: false,
             unknown_variable_policy: UnknownVariablePolicy::Ignore,
+            unbound_variable_policy: None,
             max_include_depth: IncludeDepth::new(32),
             allowed_roots: Vec::new(),
             resolver_policy: ResolverPolicy::default(),
@@ -477,6 +486,9 @@ pub struct ComposeResult {
     pub variable_sources: BTreeMap<VariableName, VariableSource>,
     /// Non-fatal diagnostics emitted during composition.
     pub warnings: Vec<Diagnostic>,
+    /// Source-composition identity and manifest, when file composition was used.
+    #[serde(skip)]
+    pub composition_fingerprint: Option<crate::CompositionFingerprint>,
 }
 
 /// Structured validation result without rendered output.

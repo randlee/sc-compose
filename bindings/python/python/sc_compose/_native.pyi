@@ -67,6 +67,7 @@ class DiagnosticCode:
     ERR_INCLUDE_NOT_FOUND: str
     ERR_INCLUDE_CYCLE: str
     ERR_INCLUDE_DEPTH: str
+    ERR_INCLUDE_DYNAMIC_UNRESOLVED: str
     ERR_VAL_OBJECT_SHAPE: str
     ERR_VAL_NESTED_ARRAY_UNSUPPORTED: str
     ERR_VAL_DUPLICATE: str
@@ -78,6 +79,7 @@ class DiagnosticCode:
     ERR_VAL_SHAPE_MISMATCH: str
     ERR_VAL_UNDECLARED_TOKEN: str
     ERR_VAL_EXTRA_INPUT: str
+    ERR_VAL_UNBOUND_VARIABLE: str
     INFO_VAL_DEFAULT_USED: str
     ERR_RENDER_STDIN_DOUBLE_READ: str
     ERR_RENDER_WRITE: str
@@ -165,6 +167,7 @@ class ComposePolicy:
         self,
         strict_undeclared_variables: bool = False,
         unknown_variable_policy: str = "ignore",
+        unbound_variable_policy: str | None = None,
         max_include_depth: int = 32,
         allowed_roots: list[str | PathLike[str] | ConfiningRoot] | None = None,
         passes: list[PassConfig] | None = None,
@@ -173,6 +176,8 @@ class ComposePolicy:
     def strict_undeclared_variables(self) -> bool: ...
     @property
     def unknown_variable_policy(self) -> str: ...
+    @property
+    def unbound_variable_policy(self) -> str | None: ...
     @property
     def max_include_depth(self) -> int: ...
     @property
@@ -313,6 +318,8 @@ class ComposeResult:
     @property
     def resolved_files(self) -> list[str]: ...
     @property
+    def composition_sha256(self) -> str | None: ...
+    @property
     def resolve_result(self) -> ResolveResult: ...
     @property
     def warnings(self) -> list[Diagnostic]: ...
@@ -400,6 +407,8 @@ class ExpandedTemplate:
     def text(self) -> str: ...
     @property
     def resolved_files(self) -> list[str]: ...
+    @property
+    def composition_sha256(self) -> str | None: ...
     @property
     # Legacy compatibility view: returns only the outermost frontmatter block
     # for each file. Use `frontmatter_passes` for the complete multi-pass data.

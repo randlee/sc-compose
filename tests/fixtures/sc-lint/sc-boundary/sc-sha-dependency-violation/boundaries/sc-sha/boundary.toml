@@ -1,0 +1,36 @@
+boundary_id = "BOUNDARY-ScSha"
+owner_package = "sc-sha"
+owner_crate_path = "sc_sha"
+name = "ScShaSharedLibrary"
+
+[public]
+facade = "calculate_hash,calculate_composition_hash"
+
+[implementation]
+type = "shared_hash_library"
+module = "sc_sha"
+visibility = "public"
+constructor = "none"
+
+[composition]
+roots = ["calculate_hash", "calculate_composition_hash"]
+
+[dependencies]
+allowed_dependents = ["sc-composer", "sc-sha-python"]
+allowed_dependencies = ["sha2"]
+forbidden_edges = []
+
+[references]
+scope = "outside_owner_crate"
+forbidden = ["ATM_HOME", "agent_team_mail", "atm_core"]
+
+[testing]
+allowed_test_double_paths = []
+forbidden_test_bypasses = []
+
+[enforcement]
+lint_rules = ["LINT-SC-SHA-MINIMAL-DEPENDENCIES"]
+review_gates = ["shared_library_boundary"]
+
+[status]
+state = "concrete_landed"

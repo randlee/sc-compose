@@ -1,0 +1,19 @@
+{
+  "ok": false,
+  "command": "lint.fast",
+  "error": {
+    "kind": "backend_failure",
+    "code": "CLI.BACKEND_EXEC_FAILURE",
+    "message": "manifests failed",
+    "details": {
+      "command": "python3 .just/lint_manifests.py",
+      "exit_code": 1,
+      "root": "tests/fixtures/sc-lint/lint-fast/failing-manifest",
+      "stderr": "",
+      "stdout": "manifests failed\n  crates/lint-fast-failing/Cargo.toml: set [package].homepage.workspace = true\n  full log: .just/logs/manifests.log",
+      "step": "manifests"
+    },
+    "cause": "manifests failed\n  crates/lint-fast-failing/Cargo.toml: set [package].homepage.workspace = true\n  full log: .just/logs/manifests.log"
+  },
+  "diagnostics": []
+}

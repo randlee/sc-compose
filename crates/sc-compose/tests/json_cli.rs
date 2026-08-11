@@ -9,3 +9,5 @@ mod reports;
 mod support;
 #[path = "json_cli/templates.rs"]
 mod templates;
+#[path = "json_cli/validate.rs"]
+mod validate;

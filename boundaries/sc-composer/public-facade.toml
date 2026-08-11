@@ -1,0 +1,36 @@
+boundary_id = "BOUNDARY-ScComposer"
+owner_package = "sc-composer"
+owner_crate_path = "sc_composer"
+name = "ScComposer"
+
+[public]
+facade = "render"
+
+[implementation]
+type = "template_composition_library"
+module = "sc_composer"
+visibility = "public"
+constructor = "none"
+
+[composition]
+roots = []
+
+[dependencies]
+allowed_dependents = ["sc-compose", "sc-compose-py"]
+allowed_dependencies = ["sc-sha"]
+forbidden_edges = []
+
+[references]
+scope = "outside_owner_crate"
+forbidden = []
+
+[testing]
+allowed_test_double_paths = []
+forbidden_test_bypasses = []
+
+[enforcement]
+lint_rules = ["LINT-SC-COMPOSER-ISOLATION"]
+review_gates = ["pure_library"]
+
+[status]
+state = "concrete_landed"

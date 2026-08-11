@@ -1,0 +1,36 @@
+boundary_id = "BOUNDARY-BoundaryApp"
+owner_package = "boundary-app"
+owner_crate_path = "boundary_app"
+name = "BoundaryApp"
+
+[public]
+facade = "run"
+
+[implementation]
+type = "fixture"
+module = "boundary_app"
+visibility = "public"
+constructor = "none"
+
+[composition]
+roots = ["run"]
+
+[dependencies]
+allowed_dependents = []
+allowed_dependencies = []
+forbidden_edges = []
+
+[references]
+scope = "outside_owner_crate"
+forbidden = []
+
+[testing]
+allowed_test_double_paths = []
+forbidden_test_bypasses = []
+
+[enforcement]
+lint_rules = []
+review_gates = []
+
+[status]
+state = "concrete_landed"

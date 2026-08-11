@@ -19,6 +19,11 @@ pub(super) fn compose_policy(input: &InputArgs) -> sc_composer::ComposePolicy {
             UnknownVarMode::Warn => UnknownVariablePolicy::Warn,
             UnknownVarMode::Ignore => UnknownVariablePolicy::Ignore,
         },
+        unbound_variable_policy: Some(match input.unknown_var_mode {
+            UnknownVarMode::Error => UnknownVariablePolicy::Error,
+            UnknownVarMode::Warn => UnknownVariablePolicy::Warn,
+            UnknownVarMode::Ignore => UnknownVariablePolicy::Ignore,
+        }),
         ..sc_composer::ComposePolicy::default()
     }
 }

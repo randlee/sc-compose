@@ -6,18 +6,27 @@ use crate::error::RecoveryHintKind;
 
 use super::{
     Capture, DiagnosticCode, Evidence, ExtractError, ExtractionDiagnosticKind, MAX_XML_OCCURRENCES,
-    XmlElement, XmlExtractionSource, XmlNode, XmlPathSegment, input_limit_error,
+    XmlDocument, XmlElementId, XmlExtractionSource, XmlNode, XmlPathSegment, input_limit_error,
     is_single_variable, map_raw_text_error, parse_value_segments, with_span,
 };
 use super::{raw_text, xml_serialize};
 
+struct MatchDocuments<'a> {
+    template: &'a XmlDocument,
+    rendered: &'a XmlDocument,
+}
+
 pub(super) fn match_element(
-    template: &XmlElement,
-    rendered: &XmlElement,
+    template_document: &XmlDocument,
+    template_id: XmlElementId,
+    rendered_document: &XmlDocument,
+    rendered_id: XmlElementId,
     path: &[XmlPathSegment],
     captures: &mut Vec<Capture>,
     evidence: &mut Evidence,
 ) -> Result<(), ExtractError> {
+    let template = template_document.element(template_id);
+    let rendered = rendered_document.element(rendered_id);
     if template.name != rendered.name {
         return Err(ExtractError::format_error(
             DiagnosticCode::ErrExtractXmlElementMismatch,
@@ -32,13 +41,17 @@ pub(super) fn match_element(
         ));
     }
     evidence.structural_matches += 1;
+    let documents = MatchDocuments {
+        template: template_document,
+        rendered: rendered_document,
+    };
     match_attributes(template, rendered, path, captures, evidence)?;
-    match_children(template, rendered, path, captures, evidence)
+    match_children(&documents, template, rendered, path, captures, evidence)
 }
 
 fn match_attributes(
-    template: &XmlElement,
-    rendered: &XmlElement,
+    template: &super::XmlElement,
+    rendered: &super::XmlElement,
     path: &[XmlPathSegment],
     captures: &mut Vec<Capture>,
     evidence: &mut Evidence,
@@ -81,8 +94,9 @@ fn match_attributes(
 }
 
 fn match_children(
-    template: &XmlElement,
-    rendered: &XmlElement,
+    documents: &MatchDocuments<'_>,
+    template: &super::XmlElement,
+    rendered: &super::XmlElement,
     path: &[XmlPathSegment],
     captures: &mut Vec<Capture>,
     evidence: &mut Evidence,
@@ -99,6 +113,7 @@ fn match_children(
         .iter()
         .any(|child| matches!(child, XmlNode::Element(_)))
         && match_full_content(
+            documents.rendered,
             template_children,
             rendered_children,
             path,
@@ -148,6 +163,7 @@ fn match_children(
     }
 
     match_child_sequence(
+        documents,
         template,
         template_children,
         rendered_children,
@@ -158,7 +174,8 @@ fn match_children(
 }
 
 fn match_child_sequence(
-    template: &XmlElement,
+    documents: &MatchDocuments<'_>,
+    template: &super::XmlElement,
     template_children: &[XmlNode],
     rendered_children: &[XmlNode],
     path: &[XmlPathSegment],
@@ -178,7 +195,8 @@ fn match_child_sequence(
                     evidence,
                 )?;
             }
-            (XmlNode::Element(template_element), XmlNode::Element(rendered_element)) => {
+            (XmlNode::Element(template_id), XmlNode::Element(rendered_id)) => {
+                let template_element = documents.template.element(*template_id);
                 let ordinal = element_ordinals
                     .entry(template_element.name.clone())
                     .or_default();
@@ -192,8 +210,10 @@ fn match_child_sequence(
                     .collect::<Vec<_>>();
                 *ordinal += 1;
                 match_element(
-                    template_element,
-                    rendered_element,
+                    documents.template,
+                    *template_id,
+                    documents.rendered,
+                    *rendered_id,
                     &child_path,
                     captures,
                     evidence,
@@ -219,6 +239,7 @@ fn match_child_sequence(
 }
 
 fn match_full_content(
+    rendered_document: &XmlDocument,
     template_children: &[XmlNode],
     rendered_children: &[XmlNode],
     path: &[XmlPathSegment],
@@ -232,7 +253,8 @@ fn match_full_content(
     let [raw_text::RawTextSegment::Variable(variable)] = segments.as_slice() else {
         return Ok(false);
     };
-    let rendered_content = xml_serialize::canonical_inner_content(rendered_children);
+    let rendered_content =
+        xml_serialize::canonical_inner_content(rendered_document, rendered_children);
     let matched = raw_text::match_raw_text(&raw_text::RawTextMatchInput {
         segments: &[raw_text::RawTextSegment::Variable(variable.clone())],
         rendered_candidate: &rendered_content,

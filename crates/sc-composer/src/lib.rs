@@ -24,6 +24,7 @@ pub mod include;
 pub mod init_workspace;
 /// Observer traits and event payloads.
 pub mod observer;
+mod path_containment;
 mod path_utils;
 /// Template renderer wrapper.
 pub mod renderer;
@@ -39,7 +40,10 @@ pub mod validation;
 pub mod verify;
 
 #[doc(inline)]
-pub use composer::{compose, compose_with_observer, protect_higher_braces, render_all};
+pub use composer::{
+    compose, compose_with_observer, compose_with_observer_and_expanded, protect_higher_braces,
+    render_all,
+};
 #[doc(inline)]
 pub use diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope, DiagnosticSeverity,
@@ -68,7 +72,7 @@ pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};
 #[doc(inline)]
 pub use frontmatter_init::frontmatter_init;
 #[doc(inline)]
-pub use include::{ExpandedTemplate, expand_includes};
+pub use include::{CompositionFingerprint, ExpandedTemplate, expand_includes};
 #[doc(inline)]
 pub use init_workspace::{init_workspace, read_optional_text_file};
 #[doc(inline)]
@@ -87,6 +91,13 @@ pub use renderer::{
 #[doc(inline)]
 pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_template_path};
 #[doc(inline)]
+pub use sc_sha::{
+    CanonicalSource, CanonicalSourceError, CanonicalSourceUrl, CanonicalTemplatePath,
+    CompositionError, CompositionSha256, HashInput, HashResult, ManifestSchemaVersion,
+    ResolvedIncludeEdge, ResolvedTemplateManifest, ResolvedTemplateNode, ShaError, TemplateSha256,
+    calculate_composition_hash, calculate_hash,
+};
+#[doc(inline)]
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
     FrontmatterInitResult, IncludeDepth, InitResult, InputValue, InvalidInputValueError,
@@ -96,7 +107,10 @@ pub use types::{
     validate_input_value,
 };
 #[doc(inline)]
-pub use validate::{validate, validate_with_observer, validate_with_observer_and_delimiters};
+pub use validate::{
+    validate, validate_with_observer, validate_with_observer_and_delimiters,
+    validate_with_observer_and_delimiters_with_expansion,
+};
 pub use validation::BUILTIN_VARIABLE_NAMES;
 #[doc(inline)]
 pub use verify::{verify, verify_with_observer};

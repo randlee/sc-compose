@@ -1,29 +1,14 @@
 use std::fmt;
 use std::path::{Path, PathBuf};
 
-use serde::{Deserialize, Serialize};
-use time::OffsetDateTime;
-use time::format_description::FormatItem;
-use time::format_description::well_known::Rfc3339;
-use time::macros::format_description;
+use serde::Serialize;
 
-use crate::path_utils::to_forward_slash;
+mod layout;
+mod materialization;
+mod metadata;
 
-pub(crate) const LATEST_ROOT_RELATIVE_PATH: &str = "reports/latest";
-pub(crate) const ARCHIVE_ROOT_RELATIVE_PATH: &str = "reports/archive";
-
-const ARCHIVE_TIMESTAMP_FORMAT: &[FormatItem<'static>] =
-    format_description!("[year]-[month]-[day]T[hour]-[minute]-[second]Z");
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub(crate) struct ReportMetadata {
-    pub(crate) report_id: String,
-    pub(crate) kind: String,
-    pub(crate) produced_at: String,
-    pub(crate) status: String,
-    pub(crate) entrypoint: String,
-    pub(crate) artifacts: Vec<String>,
-}
+pub(crate) use layout::{ARCHIVE_ROOT_RELATIVE_PATH, LATEST_ROOT_RELATIVE_PATH};
+pub(crate) use metadata::ReportMetadata;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ReportOutputRequest {
@@ -90,66 +75,28 @@ pub(crate) fn write_report_metadata_and_archive(
     root: &Path,
     request: &ReportOutputRequest,
 ) -> Result<MaterializedReport, OutputError> {
-    let now = OffsetDateTime::now_utc();
-    let produced_at = now.format(&Rfc3339).map_err(OutputError::TimeFormat)?;
-    let archive_label = now
-        .format(ARCHIVE_TIMESTAMP_FORMAT)
-        .map_err(OutputError::TimeFormat)?;
-
-    let latest_report_root = latest_report_root(&request.entrypoint, &request.report_id)?;
-    let metadata = ReportMetadata {
-        report_id: request.report_id.clone(),
-        kind: request.kind.clone(),
-        produced_at: produced_at.clone(),
-        status: request.status.clone(),
-        entrypoint: to_forward_slash(&request.entrypoint),
-        artifacts: request
-            .latest_artifacts
-            .iter()
-            .chain(std::iter::once(&request.metadata_path))
-            .map(|path| to_forward_slash(path))
-            .collect(),
+    let (produced_at, archive_label) = metadata::timestamp_pair()?;
+    let latest_report_root = layout::latest_report_root(&request.entrypoint, &request.report_id)?;
+    let metadata = metadata::build(request, produced_at.clone());
+    materialization::write_metadata(
+        root,
+        &request.metadata_path,
+        metadata::serialize(&metadata)?,
+    )?;
+    let archived_artifacts = if request.archive {
+        materialization::archive_artifacts(
+            root,
+            &latest_report_root,
+            &layout::archive_root(&archive_label, &request.report_id),
+            request
+                .latest_artifacts
+                .iter()
+                .chain(std::iter::once(&request.metadata_path))
+                .map(PathBuf::as_path),
+        )?
+    } else {
+        Vec::new()
     };
-    let metadata_json =
-        serde_json::to_vec_pretty(&metadata).map_err(OutputError::SerializeMetadata)?;
-    let metadata_absolute = root.join(&request.metadata_path);
-    if let Some(parent) = metadata_absolute.parent() {
-        std::fs::create_dir_all(parent).map_err(|source| OutputError::CreateDir {
-            path: parent.to_path_buf(),
-            source,
-        })?;
-    }
-    std::fs::write(&metadata_absolute, metadata_json).map_err(|source| {
-        OutputError::WriteMetadata {
-            path: metadata_absolute.clone(),
-            source,
-        }
-    })?;
-
-    let mut archived_artifacts = Vec::new();
-    if request.archive {
-        let archive_root = PathBuf::from(ARCHIVE_ROOT_RELATIVE_PATH)
-            .join(&archive_label)
-            .join(&request.report_id);
-        for artifact in request
-            .latest_artifacts
-            .iter()
-            .chain(std::iter::once(&request.metadata_path))
-        {
-            let archive_path =
-                archive_root.join(artifact.strip_prefix(&latest_report_root).map_err(
-                    |_strip_error| OutputError::InvalidPath {
-                        path: artifact.clone(),
-                        message: format!(
-                            "artifact must remain under {}",
-                            latest_report_root.display()
-                        ),
-                    },
-                )?);
-            copy_relative_file(root, artifact, &archive_path)?;
-            archived_artifacts.push(archive_path);
-        }
-    }
 
     Ok(MaterializedReport {
         report_id: request.report_id.clone(),
@@ -166,34 +113,6 @@ pub(crate) fn write_report_metadata_and_archive(
             .collect(),
         archived_artifacts,
     })
-}
-
-fn latest_report_root(entrypoint: &Path, report_id: &str) -> Result<PathBuf, OutputError> {
-    let report_root = PathBuf::from(LATEST_ROOT_RELATIVE_PATH).join(report_id);
-    if !entrypoint.starts_with(&report_root) {
-        return Err(OutputError::InvalidPath {
-            path: entrypoint.to_path_buf(),
-            message: format!("entrypoint must remain under {}", report_root.display()),
-        });
-    }
-    Ok(report_root)
-}
-
-fn copy_relative_file(root: &Path, from: &Path, to: &Path) -> Result<(), OutputError> {
-    let absolute_from = root.join(from);
-    let absolute_to = root.join(to);
-    if let Some(parent) = absolute_to.parent() {
-        std::fs::create_dir_all(parent).map_err(|source| OutputError::CreateDir {
-            path: parent.to_path_buf(),
-            source,
-        })?;
-    }
-    std::fs::copy(&absolute_from, &absolute_to).map_err(|source| OutputError::CopyFile {
-        from: absolute_from,
-        to: absolute_to,
-        source,
-    })?;
-    Ok(())
 }
 
 impl fmt::Display for OutputError {
@@ -242,7 +161,7 @@ pub(crate) fn finalize_report_outputs(
     root: &Path,
     request: &FinalizeReportRequest,
 ) -> Result<MaterializedReport, OutputError> {
-    let latest_report_root = latest_report_root(&request.entrypoint, &request.report_id)?;
+    let latest_report_root = layout::latest_report_root(&request.entrypoint, &request.report_id)?;
     let mut latest_artifacts = Vec::new();
     latest_artifacts.push(request.entrypoint.clone());
     for artifact in &request.artifacts {
@@ -273,4 +192,220 @@ pub(crate) fn finalize_report_outputs(
             archive: request.archive,
         },
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    use super::{
+        FinalizeReportRequest, OutputError, ReportOutputRequest, write_report_metadata_and_archive,
+    };
+
+    static NEXT_ROOT: AtomicU64 = AtomicU64::new(0);
+
+    fn temp_root(label: &str) -> PathBuf {
+        let sequence = NEXT_ROOT.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!(
+            "sc-compose-report-output-{label}-{}-{sequence}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        root
+    }
+
+    fn latest_request(archive: bool) -> ReportOutputRequest {
+        ReportOutputRequest {
+            report_id: "demo".to_owned(),
+            kind: "smoke".to_owned(),
+            status: "complete".to_owned(),
+            entrypoint: PathBuf::from("reports/latest/demo/index.html"),
+            metadata_path: PathBuf::from("reports/latest/demo/report.json"),
+            latest_artifacts: vec![
+                PathBuf::from("reports/latest/demo/index.html"),
+                PathBuf::from("reports/latest/demo/assets/style.css"),
+            ],
+            archive,
+        }
+    }
+
+    fn write_file(root: &Path, relative: &Path, contents: &str) {
+        let path = root.join(relative);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, contents).unwrap();
+    }
+
+    #[test]
+    fn latest_and_archive_materialization_preserves_layout_and_order() {
+        let root = temp_root("layout");
+        let request = latest_request(true);
+        write_file(&root, &request.latest_artifacts[0], "<html>report</html>");
+        write_file(&root, &request.latest_artifacts[1], "body{}");
+
+        let materialized = write_report_metadata_and_archive(&root, &request).unwrap();
+
+        assert_eq!(
+            materialized.latest_artifacts,
+            vec![
+                PathBuf::from("reports/latest/demo/index.html"),
+                PathBuf::from("reports/latest/demo/assets/style.css"),
+                PathBuf::from("reports/latest/demo/report.json"),
+            ]
+        );
+        assert_eq!(materialized.archived_artifacts.len(), 3);
+        assert!(
+            materialized
+                .archived_artifacts
+                .iter()
+                .all(|path| path.starts_with("reports/archive/"))
+        );
+        assert_eq!(
+            fs::read_to_string(root.join(&materialized.archived_artifacts[0])).unwrap(),
+            "<html>report</html>"
+        );
+        assert_eq!(
+            fs::read_to_string(root.join(&materialized.archived_artifacts[1])).unwrap(),
+            "body{}"
+        );
+
+        let metadata: serde_json::Value = serde_json::from_slice(
+            &fs::read(root.join("reports/latest/demo/report.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(metadata["report_id"], "demo");
+        assert_eq!(metadata["kind"], "smoke");
+        assert_eq!(metadata["status"], "complete");
+        assert_eq!(metadata["entrypoint"], "reports/latest/demo/index.html");
+        assert_eq!(
+            metadata["artifacts"],
+            serde_json::json!([
+                "reports/latest/demo/index.html",
+                "reports/latest/demo/assets/style.css",
+                "reports/latest/demo/report.json"
+            ])
+        );
+        assert!(metadata["produced_at"].as_str().unwrap().contains('T'));
+    }
+
+    #[test]
+    fn finalize_rejects_outside_artifacts_and_keeps_entrypoint_first() {
+        let root = temp_root("containment");
+        let request = FinalizeReportRequest {
+            report_id: "demo".to_owned(),
+            kind: "smoke".to_owned(),
+            status: "complete".to_owned(),
+            entrypoint: PathBuf::from("reports/latest/demo/index.html"),
+            artifacts: vec![PathBuf::from("outside.txt")],
+            archive: false,
+        };
+        assert!(matches!(
+            super::finalize_report_outputs(&root, &request),
+            Err(OutputError::InvalidPath { .. })
+        ));
+
+        let valid = FinalizeReportRequest {
+            artifacts: vec![
+                request.entrypoint.clone(),
+                PathBuf::from("reports/latest/demo/second.html"),
+            ],
+            ..request
+        };
+        write_file(&root, &valid.entrypoint, "entrypoint");
+        write_file(&root, &valid.artifacts[1], "second");
+        let materialized = super::finalize_report_outputs(&root, &valid).unwrap();
+        assert_eq!(
+            materialized.latest_artifacts,
+            vec![
+                PathBuf::from("reports/latest/demo/index.html"),
+                PathBuf::from("reports/latest/demo/second.html"),
+                PathBuf::from("reports/latest/demo/report.json"),
+            ]
+        );
+    }
+
+    #[test]
+    fn metadata_write_overwrites_previous_status_and_content() {
+        let root = temp_root("overwrite");
+        let mut request = latest_request(false);
+        write_file(&root, &request.latest_artifacts[0], "v1");
+        write_file(&root, &request.latest_artifacts[1], "style-v1");
+        write_report_metadata_and_archive(&root, &request).unwrap();
+
+        request.status = "replaced".to_owned();
+        fs::write(root.join(&request.latest_artifacts[0]), "v2").unwrap();
+        write_report_metadata_and_archive(&root, &request).unwrap();
+
+        let metadata: serde_json::Value =
+            serde_json::from_slice(&fs::read(root.join(&request.metadata_path)).unwrap()).unwrap();
+        assert_eq!(metadata["status"], "replaced");
+        assert_eq!(metadata["artifacts"][0], "reports/latest/demo/index.html");
+    }
+
+    #[test]
+    fn filesystem_failures_preserve_output_error_categories() {
+        let missing_root = temp_root("copy-error");
+        let mut missing = latest_request(true);
+        missing.latest_artifacts[1] = PathBuf::from("reports/latest/demo/missing.css");
+        write_file(&missing_root, &missing.latest_artifacts[0], "entrypoint");
+        assert!(matches!(
+            write_report_metadata_and_archive(&missing_root, &missing),
+            Err(OutputError::CopyFile { .. })
+        ));
+
+        let create_root = temp_root("create-error");
+        fs::write(create_root.join("reports"), "not-a-directory").unwrap();
+        let create_request = latest_request(false);
+        assert!(matches!(
+            write_report_metadata_and_archive(&create_root, &create_request),
+            Err(OutputError::CreateDir { .. })
+        ));
+
+        let write_root = temp_root("write-error");
+        let write_request = latest_request(false);
+        write_file(
+            &write_root,
+            &write_request.latest_artifacts[0],
+            "entrypoint",
+        );
+        write_file(&write_root, &write_request.latest_artifacts[1], "style");
+        fs::create_dir_all(write_root.join("reports/latest/demo/report.json")).unwrap();
+        assert!(matches!(
+            write_report_metadata_and_archive(&write_root, &write_request),
+            Err(OutputError::WriteMetadata { .. })
+        ));
+    }
+
+    #[test]
+    fn output_error_display_covers_all_error_families() {
+        let serialize_error = serde_json::from_str::<serde_json::Value>("not-json").unwrap_err();
+        let format_error = time::Date::MIN
+            .format(&time::macros::format_description!("[hour]"))
+            .unwrap_err();
+        let errors = [
+            OutputError::TimeFormat(format_error),
+            OutputError::InvalidPath {
+                path: PathBuf::from("bad"),
+                message: "outside root".to_owned(),
+            },
+            OutputError::CreateDir {
+                path: PathBuf::from("dir"),
+                source: std::io::Error::other("create"),
+            },
+            OutputError::CopyFile {
+                from: PathBuf::from("from"),
+                to: PathBuf::from("to"),
+                source: std::io::Error::other("copy"),
+            },
+            OutputError::WriteMetadata {
+                path: PathBuf::from("metadata"),
+                source: std::io::Error::other("write"),
+            },
+            OutputError::SerializeMetadata(serialize_error),
+        ];
+        for error in errors {
+            assert!(!error.to_string().is_empty());
+        }
+    }
 }

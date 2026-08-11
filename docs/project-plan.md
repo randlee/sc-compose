@@ -18,7 +18,10 @@ required to ship.
 - `requirements.md`, `architecture.md`, and this plan are the release source of
   truth.
 - No sprint may leave a known release blocker unassigned.
-- A later sprint may start only after the prior sprint exit gate passes.
+- A later sprint may start only after the prior sprint exit gate passes, unless
+  the authoritative phase plan explicitly declares independent tracks; in
+  that case, the sprint's own plan gate and declared dependency conditions
+  govern its start.
 - Deferred work is allowed only when it is explicitly out of scope for the
   initial release and does not reduce production readiness.
 - `sc-composer` remains a pure library.
@@ -613,6 +616,184 @@ Sprint entries:
 - [Sprint J.3 — Validation Policy and Required-Path Diagnostics](phase-J/sprint-j-3-validation-policy-diagnostics.md)
 - [Sprint J.4 — Frontmatter Parser and Normalizer Split](phase-J/sprint-j-4-frontmatter-parser-split.md)
 
+### Phase K Sprint Plans
+
+Status:
+
+- complete: all eight behavior-preserving decomposition sprints from the
+  Repowise hotspot review in issue #311 (`sc/repowise-update2`, 2026-08-07)
+  are merged into `integrate/phase-k` at `2c2b875`;
+- K.1, K.2, K.3, K.4, K.7, and K.8 are independently reviewable tracks;
+  K.5 and K.6 are separately gated and should follow K.4 when practical;
+- an out-of-order K.5 or K.6 start requires the sprint owner to record the K.4
+  export-stability check and the plan-gate reviewer to accept that evidence;
+- if K.7 finds no safe seam, its QA-approved abandon-evidence record is the
+  Phase K exit contribution in place of a merged decomposition, without a
+  decomposition-completion claim;
+- gate status: critical-plan-review (STEP3-R3) passed at `96c219c` and the
+  quality-mgr plan-gate review passed after consistency hardening at `eacbd08`;
+  the phase-ending review and integrated validation passed at `2c2b875`;
+- closeout record: the four phase-status artifacts self-reference
+  `final_commit: 2c2b875`, the actual tip of `integrate/phase-k`;
+- the Python package metadata is aligned with the workspace release at `1.3.1`;
+  future releases should keep `bindings/python/pyproject.toml` synchronized
+  with `Cargo.toml` through a release or CI consistency check;
+- all eight are implementation sprints, not planning/design sprints, and each
+  requires full behavior-preserving validation regardless of gate status.
+- issue disposition is tracked as `PHK-CLEANUP-001` in
+  [`docs/issues-inventory.md`](issues-inventory.md); the architecture decision
+  and boundary artifacts are [ADR-0015](adrs/0015-phase-k-maintainability-decomposition.md),
+  [phase-k-boundary-contract.md](phase-K/phase-k-boundary-contract.md), and
+  [phase-k-boundaries.json](phase-K/phase-k-boundaries.json).
+
+Sprint entries:
+
+- [Phase K plan](phase-K/phase-K-plan.md)
+- [Sprint K.1 — XML Extraction Decomposition](phase-K/sprint-k-1-xml-extraction-decomposition.md)
+- [Sprint K.2 — Compose Command Orchestration](phase-K/sprint-k-2-compose-command-orchestration.md)
+- [Sprint K.3 — Var-File Decoding and Validation](phase-K/sprint-k-3-var-file-decoding.md)
+- [Sprint K.4 — Diagnostic Schema and Envelope](phase-K/sprint-k-4-diagnostics-schema.md)
+- [Sprint K.5 — Error-Family Modules](phase-K/sprint-k-5-error-family-modules.md)
+- [Sprint K.6 — Include Expansion Seams](phase-K/sprint-k-6-include-expansion.md)
+- [Sprint K.7 — Template Discovery Seams](phase-K/sprint-k-7-discovery-seams.md)
+- [Sprint K.8 — Report Output Materialization](phase-K/sprint-k-8-report-output.md)
+
+### Phase L Sprint Plans
+
+Status:
+
+- complete: all seventeen sc-lint integration sprints are merged into
+  `integrate/phase-l` at `904d8dd`;
+- L.1 (PR #329, fix #330) bootstrapped the pinned sc-lint 0.4.0 release,
+  canonical package boundaries, and the reusable CI setup contract; L.2
+  (PR #331, cleanup #332) landed the shared sc-lint runner, reporting
+  contract, and Just integration that every later target sprint reuses;
+- L.3 through L.11 (PRs #333, #335, #336, #337, #340, #338, #341, #342, #343)
+  integrated the sc-boundary, sc-portability, sc-runtime, line-counts,
+  identity-literals, view-findings, check-native, check-xwin, and
+  clippy-native targets independently, each following the L.2 runner
+  contract;
+- L.12 through L.16 (PRs #344, #345, #346/#350, #348, #349) integrated the
+  clippy-xwin target and the lint-fast/lint-full/lint-ci/ci composite
+  profiles; this group surfaced and closed out the phase's recurring
+  cross-cutting defect classes: incomplete `PYTHON_TOOLS` fixture lists in
+  `sc_lint_lint_full.rs` (QM-L14-002, QM-L14-004), a macOS PEP 668
+  externally-managed-Python `pip install codespell` regression shared by
+  L.13/L.15 (QM-L13-002, QM-L15-002), and a windows-latest raw-string
+  escaping compile failure in `sc_lint_ci.rs`'s `write_fake_cargo()`
+  (QM-L16-003);
+- L.14's original PR #346 auto-closed as merged when its head branch
+  converged with PR #349's identical commit; its actual closing fix
+  (QM-L14-004) landed via the follow-up PR #350 opened directly against
+  `integrate/phase-l`;
+- L.17 (PR #351) is a documentation/external-coordination-only sprint —
+  `cargo test --workspace` is explicitly not a closure gate for it — and
+  produced [`sc-lint-script-packaging-inventory.md`](phase-L/sc-lint-script-packaging-inventory.md)
+  plus [randlee/sc-lint#86](https://github.com/randlee/sc-lint/issues/86),
+  scoped against the pre-existing randlee/sc-lint#83;
+- every merge in this phase required an explicit quality-mgr QA PASS with
+  live-CI re-verification (not local-review-only) before merge, per the
+  standing merge-gate rule; no sprint bypassed this gate.
+
+Sprint entries:
+
+- [Phase L plan](phase-L/phase-L-plan.md)
+- [Sprint L.1 — sc-lint Repository and Tool Bootstrap](phase-L/sprint-l-1-sc-lint-bootstrap.md)
+- [Sprint L.2 — sc-lint Just and Report Integration](phase-L/sprint-l-2-sc-lint-just-report-integration.md)
+- [Sprint L.3 — sc-boundary](phase-L/sprint-l-3-sc-boundary.md)
+- [Sprint L.4 — sc-portability](phase-L/sprint-l-4-sc-portability.md)
+- [Sprint L.5 — sc-runtime](phase-L/sprint-l-5-sc-runtime.md)
+- [Sprint L.6 — Line Counts](phase-L/sprint-l-6-line-counts.md)
+- [Sprint L.7 — Identity Literals](phase-L/sprint-l-7-identity-literals.md)
+- [Sprint L.8 — View Findings](phase-L/sprint-l-8-view-findings.md)
+- [Sprint L.9 — Check Native](phase-L/sprint-l-9-check-native.md)
+- [Sprint L.10 — Check Xwin](phase-L/sprint-l-10-check-xwin.md)
+- [Sprint L.11 — Clippy Native](phase-L/sprint-l-11-clippy-native.md)
+- [Sprint L.12 — Clippy Xwin](phase-L/sprint-l-12-clippy-xwin.md)
+- [Sprint L.13 — Lint Fast](phase-L/sprint-l-13-lint-fast.md)
+- [Sprint L.14 — Lint Full](phase-L/sprint-l-14-lint-full.md)
+- [Sprint L.15 — Lint CI](phase-L/sprint-l-15-lint-ci.md)
+- [Sprint L.16 — Top-Level CI](phase-L/sprint-l-16-ci.md)
+- [Sprint L.17 — sc-lint Script Packaging](phase-L/sprint-l-17-sc-lint-script-packaging.md)
+
+### Phase M Sprint Plans
+
+Status:
+
+- planned: plan-gate QA passed at `639d623` on `plan/sha-crate`
+  (`PLAN-GATE-SHA-CRATE-001-R5`) after five review rounds; subsequent
+  plan-hardening commits `c0efa37` and `29bd1c1` make the boundary and
+  public-source-type contracts explicit; extracts the `sc-compose`-owned SHA
+  hashing logic (`crates/sc-composer/src/template_hash.rs`, from PR #358)
+  into a standalone `sc-sha` crate plus a `bindings/sc-sha-python` adapter,
+  compatibility-verified against the real hash-calculation needs of the
+  sibling `synaptic-canvas-dolt` repo;
+- hard pre-implementation gate: no source under `crates/sc-sha/` or
+  `bindings/sc-sha-python/` may be authored until CLAUDE.md's Boundary Rules
+  are amended for these two crates and ADR-0018 is signed off, per explicit
+  team-lead ruling — not yet cleared;
+- M.1 and M.2 are both implementation sprints (non-doc Exact Targets,
+  `cargo test --workspace` required validation), contiguous, no gaps;
+- the pre-implementation gate, public constructor/accessor signatures for
+  `CanonicalTemplatePath`/`CanonicalSourceUrl`, and this status wording are
+  now recorded in the planning worktree; the proposed ADR remains unaccepted
+  until team-lead approves its number and scope.
+
+Sprint entries:
+
+- [Phase M plan](phase-M/phase-M-plan.md)
+- [Sprint M.1 — sc-sha Core Crate](phase-M/sprint-m-1-sc-sha-core-crate.md)
+- [Sprint M.2 — sc-compose Integration](phase-M/sprint-m-2-sc-compose-integration.md)
+- [Sprint FIX-373 — Diamond Frontmatter Dedup](sprints/fix-373-diamond-frontmatter-dedup.md)
+- [Sprint FIX-374 — sc-sha Digest Error Code](sprints/fix-374-sc-sha-digest-error-code.md)
+- [Sprint FIX-375 — ScShaError __str__](sprints/fix-375-scshaerror-str.md)
+
+### Follow-on Fix Sprint: FIX-373
+
+Status:
+
+- complete on `fix/373-diamond-frontmatter-dedup` at `cc828b8`
+
+Sprint entry:
+
+- [Sprint FIX-373 — Diamond Frontmatter Dedup](sprints/fix-373-diamond-frontmatter-dedup.md)
+
+FIX-373 deduplicates the missing-frontmatter diagnostic for a
+frontmatter-less leaf shared through a diamond-shaped include graph. The
+existing `is_new` gate now covers `resolved_files`, `source_texts`, and
+`frontmatters`, so the diagnostic is emitted once per canonical file while
+distinct graph edges remain preserved.
+
+### Follow-on Fix Sprint: FIX-375
+
+Status:
+
+- complete on `fix/375-scshaerror-str` at `b06b07d`
+
+Sprint entry:
+
+- [Sprint FIX-375 — ScShaError __str__](sprints/fix-375-scshaerror-str.md)
+
+FIX-375 gives `ScShaError` a readable string representation while preserving
+the separate `.code` attribute used for error-code dispatch. Python callers
+now receive the human-readable message from `str(error)` instead of the raw
+`(code, message)` argument-tuple representation.
+
+### Follow-on Fix Sprint: FIX-370-371
+
+Status:
+
+- complete on `fix/370-371-include-path-error-swallowing` at `f76700e`
+
+Sprint entry:
+
+- [Sprint FIX-370-371 — Include Resolver Error Swallowing](sprints/fix-370-371-include-path-error-swallowing.md)
+
+FIX-370-371 makes include resolution fall back from a relative candidate only
+for a genuine not-found error. Permission-denied and other filesystem errors
+now retain their original diagnostic and actual candidate path, preventing
+silent substitution from a same-named root-relative decoy.
+
 ### Follow-on Fix Sprint: FIX-238
 
 Status:
@@ -716,6 +897,7 @@ template resolution boundaries, while preserving existing invalid-data,
 confinement, and not-found behavior. The follow-up also centralizes the
 filesystem classification and makes directory-target handling independent of
 Windows `io::ErrorKind` mappings.
+
 ### Follow-on Fix Sprint: FIX-248
 
 Status:
@@ -730,6 +912,186 @@ FIX-248 removes the raw `serde_yaml` source attachment from frontmatter
 syntax errors on the CLI text path while preserving the stable diagnostic
 message, recovery hint, JSON envelope, and all other configuration-error
 source handling.
+
+### Follow-on Fix Sprint: FIX-249
+
+Status:
+
+- complete on `fix/249-path-confinement-existence-oracle` at `6aa2912`
+
+Sprint entry:
+
+- [Sprint FIX-249 — Path-Confinement Existence Oracle](sprints/fix-249-path-confinement-existence-oracle.md)
+
+FIX-249 makes out-of-root resolver diagnostics independent of whether the
+candidate exists, while preserving the normal not-found diagnostic for
+lexically in-root missing paths. The implementation also handles macOS
+`/var`/`/private/var` temporary-directory aliases without weakening
+confinement.
+
+### Follow-on Fix Sprint: FIX-268
+
+Status:
+
+- complete on `fix/268-xml-format-autoescape-not-applied` at `19953ad`
+
+Sprint entry:
+
+- [Sprint FIX-268 — XML/HTML Filename-Aware Auto-Escape](sprints/fix-268-xml-format-autoescape-not-applied.md)
+
+FIX-268 preserves the existing filename-extension auto-escape convention on
+the default single-pass, multi-pass, and custom-delimiter render paths. XML
+and HTML templates now escape interpolated markup while non-markup templates
+and the public in-memory `render_all()` API retain their unescaped behavior.
+
+### Follow-on Fix Sprint: FIX-269
+
+Status:
+
+- complete on `fix/269-json-stdout-content-loss` at `352c91f`
+
+Sprint entry:
+
+- [Sprint FIX-269 — JSON Render Stdout Body](sprints/fix-269-json-stdout-content-loss.md)
+
+FIX-269 makes non-dry-run `render --json` stdout content observable through
+the optional `body` payload field while preserving file-output and dry-run
+payload shapes.
+
+### Follow-on Fix Sprint: FIX-272
+
+Status:
+
+- complete on `fix/272-format-aware-escaping` at `0ccff88`
+
+Sprint entry:
+
+- [Sprint FIX-272 — Format-Aware Escaping](sprints/fix-272-format-aware-escaping.md)
+
+FIX-272 adds filename-aware JSON escaping plus opt-in `cdata_escape` and
+`turtle_escape` filters, while preserving existing HTML/XML behavior. The
+plan-hardening CDATA fields now opt into safe CDATA splitting.
+
+### Follow-on Fix Sprint: FIX-270
+
+Status:
+
+- complete on `fix/270-dict-get-method-unsupported` at `6e61f7c` (squash-merged
+  via PR #281 to `develop`)
+
+Sprint entry:
+
+- [Sprint FIX-270 — Jinja Dict Get Method](sprints/fix-270-dict-get-method-unsupported.md)
+
+FIX-270 adds a narrow project-owned Minijinja unknown-method callback for map
+`.get(key[, default])` calls. Missing keys return `Undefined` or the supplied
+default, while unrelated methods, value kinds, and arities retain the original
+unknown-method behavior.
+
+### Follow-on Fix Sprint: FIX-242-271
+
+Status:
+
+- complete on `fix/242-undeclared-token-false-positives` at `eed3369`
+  (squash-merged via PR #282 to `develop` at `8992ad0`)
+
+Sprint entry:
+
+- [Sprint FIX-242-271 — Undeclared Token False Positives](sprints/fix-242-271-undeclared-token-false-positives.md)
+
+FIX-242-271 removes false undeclared-token diagnostics for numeric
+subscripts/slices, binary operator fragments, Jinja filter names, and simple
+`{% set %}` locals while preserving real filter-argument references and
+loop-context diagnostics outside active loops.
+
+### Follow-on Fix Sprint: FIX-278
+
+Status:
+
+- complete on `fix/278-control-chars-survive-escape-filter` at `388c6d8`
+
+Sprint entry:
+
+- [Sprint FIX-278 — XML Control Character Escaping](sprints/fix-278-control-chars-survive-escape-filter.md)
+
+FIX-278 makes the shared HTML/XML/XHTML escaping formatter XML-character-safe
+for forbidden C0 controls, adds the opt-in `xml_char_safe` filter, and covers
+the XHTML filename dispatch alongside explicit and implicit escaping paths.
+
+### Follow-on Fix Sprint: FIX-274
+
+Status:
+
+- complete on `fix/274-spoofed-frontmatter-delimiter` at `2145245`
+
+Sprint entry:
+
+- [Sprint FIX-274 — Spoofed Frontmatter Delimiter](sprints/fix-274-spoofed-frontmatter-delimiter.md)
+
+ FIX-274 adds an opt-in `frontmatter_safe` filter for interpolated values in
+ frontmatter-shaped Markdown output. Standalone `---` and `...` lines are
+ neutralized without changing ordinary text or mid-line delimiter sequences;
+ the codex-orchestration sprint-plan template applies the filter to its title
+ fields.
+
+ ### Follow-on Fix Sprint: FIX-275
+
+Status:
+
+- complete on `fix/275-markdown-table-pipe-escape` at `b5d225c`
+
+Sprint entry:
+
+- [Sprint FIX-275 — Markdown Table Pipe Escape](sprints/fix-275-markdown-table-pipe-escape.md)
+
+FIX-275 adds the explicit `md_table_safe` filter for Markdown table cells. It
+ escapes literal pipes as `\|`, collapses embedded line breaks to spaces, and
+ leaves all other characters unchanged. The filter is opt-in so ordinary
+ Markdown text and existing auto-escape behavior remain unchanged.
+
+### Follow-on Fix Sprint: FIX-273
+
+Status:
+
+- complete on `fix/273-array-typed-vars-accept-scalars` at `cca8486`
+
+Sprint entry:
+
+- [Sprint FIX-273 — Reject Scalar Input For Array-Only Required Variables](sprints/fix-273-array-typed-vars-accept-scalars.md)
+
+FIX-273 rejects present scalar and object values when a top-level required
+variable is consumed by a conservative bare-identifier for-loop, while
+preserving existing dotted-path validation and non-loop behavior.
+
+### Follow-on Fix Sprint: FIX-276
+
+Status:
+
+- complete on `fix/276-yaml-colon-space-unescaped` at `75e51d9`
+
+Sprint entry:
+
+- [Sprint FIX-276 — YAML Colon-Space Escaping](sprints/fix-276-yaml-colon-space-unescaped.md)
+
+FIX-276 adds the explicit `yaml_safe` filter for caller-controlled YAML
+mapping values. It emits a double-quoted scalar with scoped escaping for
+backslashes, quotes, and line-control characters, and applies the existing
+`frontmatter_safe` delimiter protection before YAML quoting in the sprint-plan
+template.
+
+### Follow-on Fix Sprint: FIX-277
+
+Status:
+
+- complete on `fix/277-bytes-written-off-by-one` at `07e4ca0`
+
+Sprint entry:
+
+- [Sprint FIX-277 — `bytes_written` Off-By-One](sprints/fix-277-bytes-written-off-by-one.md)
+
+FIX-277 corrects JSON stdout render metadata to include the trailing newline
+emitted by the equivalent plain-mode stdout path. File output and dry-run
+metadata remain unchanged.
 
 ### Standalone Repowise Cleanup: Render Request Module Split
 
@@ -790,6 +1152,19 @@ for independent regression QA.
   Phase HTML-Report scope is limited to the structured-input model, the
   bundled single-panel `sprint-report-html` example, and wrapper-owned HTML
   rendering integration.
+
+### Follow-on Issue: Nested Template Composition Fingerprints
+
+The current content-only SHA/fingerprint model is not sufficient as the
+identity of a composed template: it does not distinguish identical content at
+different canonical paths and does not change when a transitive nested include
+changes. GitHub issue [#360](https://github.com/randlee/sc-compose/issues/360)
+tracks the required versioned Merkle-style composition fingerprint. The issue
+requires a deterministic dependency manifest for auditability plus one root
+`composition_sha` derived from canonical paths, exact source bytes, ordered
+include edges, repeated occurrences, and relevant render context. This remains
+follow-on work and is not claimed by the completed extraction or maintainability
+phases.
 
 ### Sprint S9: User Data Directory Unification (`~/.sc-compose`)
 
@@ -1184,8 +1559,8 @@ Deliverables:
 - H3a adds:
   - at least one integration test verifying
     `sprint-report-html.html.j2 -> sprint-report-html.html`
-  - an explicit safety note that `.html.j2` templates do not use automatic
-    escaping
+  - an explicit safety note describing filename-aware automatic escaping and
+    limiting `| safe` to trusted, pre-rendered HTML fragments
 - H3b (FR-15 content): bundled example at
   `examples/sprint-report-html.html.j2`
 - H3b keeps all template content inline in a single flat file; no `_includes/`
@@ -1326,6 +1701,23 @@ boundary defined by:
 - `docs/publishing.md`
 
 ## Follow-on Implementation Track (Phase B)
+
+## Fuzz-Queue Fix Sprint Index
+
+- `docs/sprints/cleanup-293-frontmatter-yaml-filter-chain.md`
+- `docs/sprints/cleanup-298-path-containment-centralize.md`
+- `docs/sprints/cleanup-294-validate-lint-mode.md`
+- `docs/sprints/cleanup-295-296-expansion-reuse.md`
+- `docs/sprints/cleanup-299-json-integer-guard-dedup.md`
+- `docs/sprints/cleanup-301-yaml-merge-key-scan.md`
+- `docs/sprints/cleanup-297-bare-loop-discovery.md`
+- `docs/sprints/cleanup-300-include-depth-wrapper.md`
+- `docs/sprints/fix-250-varfile-object-wording-inconsistent.md`
+- `docs/sprints/fix-252-varfile-missing-dir-misclassified.md`
+- `docs/sprints/fix-253-doubled-delimiter-error-message.md`
+- `docs/sprints/fix-254-varfile-negative-boundary-i128.md`
+- `docs/sprints/fix-283-unbound-variable-policy-noop.md`
+- `docs/sprints/fix-372-chained-ternary-dynamic-classification.md`
 
 The current follow-on implementation track is:
 

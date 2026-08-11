@@ -1,0 +1,11 @@
+# Pinned by the Phase L integration contract. The setup action verifies this
+# value before any analyzer command runs.
+version = "0.4.0"
+
+[logging]
+root = "reports/latest/sc-lint/logs"
+console = false
+
+[artifacts]
+root = "reports/latest/sc-lint"
+raw_json = "reports/latest/sc-lint/raw"

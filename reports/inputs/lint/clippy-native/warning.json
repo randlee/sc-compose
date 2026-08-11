@@ -1,0 +1,19 @@
+{
+  "ok": false,
+  "command": "clippy.native",
+  "error": {
+    "kind": "backend_failure",
+    "code": "CLI.BACKEND_EXEC_FAILURE",
+    "message": "clippy.native failed",
+    "details": {
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "exit_code": 101,
+      "root": "tests/fixtures/sc-lint/clippy-native/warning",
+      "stderr": "error: length comparison to zero\n --> crates/clippy-native-warning/src/lib.rs:4:5\n  |\n4 |     items.len() > 0\n  |     ^^^^^^^^^^^^^^^ help: using `!is_empty` is clearer and more explicit: `!items.is_empty()`\n  |\n  = note: `-D clippy::len-zero` implied by `-D warnings`\nerror: could not compile `clippy-native-warning` due to 1 previous error",
+      "stdout": "",
+      "step": "clippy.native"
+    },
+    "cause": "cargo clippy --workspace --all-targets -- -D warnings exited with status 101"
+  },
+  "diagnostics": []
+}

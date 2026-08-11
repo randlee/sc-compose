@@ -1,0 +1,84 @@
+{
+  "ok": true,
+  "command": "ci",
+  "data": {
+    "lint_profile": "ci",
+    "status": "pass",
+    "step_count": 11,
+    "steps": [
+      {
+        "command": "cargo fmt --all --check",
+        "kind": "lint",
+        "name": "fmt",
+        "status": "pass"
+      },
+      {
+        "command": "cargo clippy --workspace --all-targets -- -D warnings",
+        "kind": "lint",
+        "name": "clippy",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-test-sc-lint-ci-pass-56796-1786245045316475000/.just/lint_cargo_deny.py",
+        "kind": "lint",
+        "name": "deny",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-test-sc-lint-ci-pass-56796-1786245045316475000/.just/lint_cargo_shear.py",
+        "kind": "lint",
+        "name": "shear",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-test-sc-lint-ci-pass-56796-1786245045316475000/.just/check_version_sync.py",
+        "kind": "lint",
+        "name": "version",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-test-sc-lint-ci-pass-56796-1786245045316475000/.just/lint_manifests.py",
+        "kind": "lint",
+        "name": "manifests",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-test-sc-lint-ci-pass-56796-1786245045316475000/.just/lint_codespell.py",
+        "kind": "lint",
+        "name": "spell",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-test-sc-lint-ci-pass-56796-1786245045316475000/.just/run_pytests.py",
+        "kind": "lint",
+        "name": "pytests",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-test-sc-lint-ci-pass-56796-1786245045316475000/.just/lint_sc_boundary.py",
+        "kind": "lint",
+        "name": "sc-boundary",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-test-sc-lint-ci-pass-56796-1786245045316475000/.just/lint_sc_portability.py",
+        "kind": "lint",
+        "name": "sc-portability",
+        "status": "pass"
+      },
+      {
+        "command": "cargo test --workspace",
+        "kind": "test",
+        "name": "test",
+        "status": "pass"
+      }
+    ],
+    "tests_included": true,
+    "xwin": {
+      "available": true,
+      "included": false,
+      "target": "x86_64-pc-windows-msvc"
+    }
+  },
+  "diagnostics": []
+}

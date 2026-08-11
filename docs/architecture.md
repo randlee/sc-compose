@@ -492,6 +492,10 @@ Semantics:
 
 - `strict_undeclared_variables: bool`
 - `unknown_variable_policy: UnknownVariablePolicy`
+- `unbound_variable_policy: Option<UnknownVariablePolicy>`; when omitted,
+  referenced-but-unbound diagnostics inherit `unknown_variable_policy` for
+  compatibility, while an explicit value keeps the two policy axes
+  independent
 - `max_include_depth: IncludeDepth`
 - `allowed_roots: Vec<ConfiningRoot>`
 - `resolver_policy: ResolverPolicy`
@@ -1029,9 +1033,14 @@ The schemas below define the `payload` shape for each command.
 {
   "output_path": "stdout",
   "bytes_written": 123,
-  "template": "path/to/template.md.j2"
+  "template": "path/to/template.md.j2",
+  "body": "rendered document text"
 }
 ```
+
+For non-dry-run stdout renders, `body` contains the rendered document. When
+`--output <file>` is supplied, `body` is omitted because the file is the
+source of truth.
 
 `render --dry-run --json`
 
@@ -1594,12 +1603,14 @@ Canonical failures must map to stable error families and stable codes.
 | Include path escapes confinement root | `IncludeError` | `ERR_INCLUDE_ESCAPE` |
 | Include cycle detected | `IncludeError` | `ERR_INCLUDE_CYCLE` |
 | Include depth exceeds limit | `IncludeError` | `ERR_INCLUDE_DEPTH` |
+| Include target cannot be exhaustively enumerated as a static dependency | `IncludeError` | `ERR_INCLUDE_DYNAMIC_UNRESOLVED` |
 | Duplicate frontmatter variable | `ValidationError` | `ERR_VAL_DUPLICATE` |
 | Empty template body | `ValidationError` | `ERR_VAL_EMPTY` |
 | Root template has no frontmatter block | `ValidationError` | `ERR_VAL_MISSING_FRONTMATTER` |
 | Required variable not satisfied after context merge | `ValidationError` | `ERR_VAL_MISSING_REQUIRED` |
 | Undeclared referenced token in strict validation or render mode | `ValidationError` | `ERR_VAL_UNDECLARED_TOKEN` |
 | Extra provided variable when policy is `error` | `ValidationError` | `ERR_VAL_EXTRA_INPUT` |
+| Referenced variable has no merged runtime binding when the unbound-variable policy is `error` | `ValidationError` | `ERR_VAL_UNBOUND_VARIABLE` |
 | Stdin read attempted twice | `RenderError` | `ERR_RENDER_STDIN_DOUBLE_READ` |
 | Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
 | Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |
@@ -1979,8 +1990,11 @@ Architectural boundaries:
 - H3 keeps the bundled example as a single flat file
   `examples/sprint-report-html.html.j2`,
 - directory-based example layout is deferred beyond H4,
-- `sc-compose` does not enable MiniJinja auto-escaping for `.html.j2`
-  templates; the bundled example documentation must call this out explicitly,
+- filename-aware `AutoEscape::Custom("sc-compose-html")` applies to
+  `.html.j2`, `.htm.j2`, `.xml.j2`, and `.xhtml.j2` templates. The shared
+  formatter escapes markup and represents XML-illegal control bytes with the
+  legal replacement-character NCR `&#xfffd;`; see
+  [FR-14 and its FIX-278 clarification](requirements.md#fr-14-html-template-output),
 - wrapper tooling such as `/sprint-report` owns open/display behavior and is
   documented in [`.claude/skills/sprint-report/SKILL.md`](../.claude/skills/sprint-report/SKILL.md),
 - the wrapper-owned orchestration flow is:
@@ -2002,3 +2016,25 @@ Follow-on work may explore:
 - optional post-render hook designs that remain outside `sc-composer` and do
   not become implicit `sc-compose` behavior without an explicit later
   architecture amendment.
+
+### 21.8 Source Composition Identity
+
+The native `@<path>` include expansion path is the ownership point for source
+composition discovery. It returns a first-seen, path-deduplicated manifest of
+canonical local sources and ordered include occurrences, then delegates the
+per-file and composition calculations to the two published `sc-sha`
+operations. `sc-composer` does not maintain a second hash implementation.
+
+The resulting `CompositionFingerprint` is exposed alongside the expanded
+template and successful composition result. MiniJinja dependency statements
+remain a separately tested inspection/loading capability until they are wired
+to this same manifest contract; they must not grow a second fingerprint
+algorithm. The standalone `sc-sha-python` package is a thin maturin adapter
+with no dependency on `sc-compose`, `sc-composer`, or ATM runtime packages.
+
+Native includes may use a statically enumerable conditional path expression,
+such as `@<{{ "partials/item.md" if mode == "item" else "partials/other-item.md" }}>`.
+The include walker hashes both branch
+candidates and preserves the condition in the expanded template so rendering
+still selects one branch. Other dynamic targets remain
+`ERR_INCLUDE_DYNAMIC_UNRESOLVED` and cannot produce a cacheable fingerprint.

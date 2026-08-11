@@ -1,0 +1,36 @@
+boundary_id = "BOUNDARY-BootstrapFixture"
+owner_package = "sc-lint-bootstrap-fixture"
+owner_crate_path = "sc_lint_bootstrap_fixture"
+name = "BootstrapFixture"
+
+[public]
+facade = "fixture"
+
+[implementation]
+type = "fixture_library"
+module = "sc_lint_bootstrap_fixture"
+visibility = "public"
+constructor = "none"
+
+[composition]
+roots = []
+
+[dependencies]
+allowed_dependents = []
+allowed_dependencies = []
+forbidden_edges = []
+
+[references]
+scope = "outside_owner_crate"
+forbidden = []
+
+[testing]
+allowed_test_double_paths = []
+forbidden_test_bypasses = []
+
+[enforcement]
+lint_rules = []
+review_gates = []
+
+[status]
+state = "concrete_landed"

@@ -1,517 +1,25 @@
 //! Canonical crate-owned error families.
 
-use std::backtrace::Backtrace;
-use std::error::Error as StdError;
-use std::fmt;
-use std::path::PathBuf;
-
-use crate::Diagnostic;
 use crate::diagnostics::DiagnosticCode;
-use crate::types::VariableName;
 
-type BoxedError = Box<dyn StdError + Send + Sync + 'static>;
+use std::fmt;
 
-fn write_error_display(
-    f: &mut fmt::Formatter<'_>,
-    message: &str,
-    source: Option<&(dyn StdError + 'static)>,
-    backtrace: &Backtrace,
-) -> fmt::Result {
-    write!(f, "{message}")?;
-    if let Some(source) = source {
-        writeln!(f)?;
-        write!(f, "caused by:")?;
-        let mut current = Some(source);
-        while let Some(error) = current {
-            write!(f, "\n- {error}")?;
-            current = error.source();
-        }
-    }
-    write!(f, "\nbacktrace:\n{backtrace}")
-}
+mod config;
+mod display;
+mod include;
+mod recovery;
+mod render;
+mod resolve;
+mod validation;
 
-fn format_diagnostic_message(diagnostic: &Diagnostic) -> String {
-    let mut parts = vec![format!(
-        "{}: {}",
-        diagnostic.code.as_str(),
-        diagnostic.message
-    )];
-    if let Some(path) = &diagnostic.path {
-        let location = match (diagnostic.line, diagnostic.column) {
-            (Some(line), Some(column)) => format!("{}:{line}:{column}", path.display()),
-            _ => path.display().to_string(),
-        };
-        parts.push(format!("location={location}"));
-    }
-    if !diagnostic.include_chain.is_empty() {
-        parts.push(format!(
-            "include_chain={}",
-            diagnostic
-                .include_chain
-                .iter()
-                .map(|path| path.display().to_string())
-                .collect::<Vec<_>>()
-                .join(" -> ")
-        ));
-    }
-    parts.join(" | ")
-}
+pub use config::ConfigError;
+pub use include::IncludeError;
+pub use recovery::{RecoveryHint, RecoveryHintKind};
+pub use render::RenderError;
+pub use resolve::ResolveError;
+pub use validation::ValidationError;
 
-/// Structured recovery hint attached to configuration or validation failures.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct RecoveryHint {
-    /// Stable kind describing the hint payload.
-    pub kind: RecoveryHintKind,
-}
-
-impl RecoveryHint {
-    /// Create a structured recovery hint.
-    #[must_use]
-    pub const fn new(kind: RecoveryHintKind) -> Self {
-        Self { kind }
-    }
-}
-
-/// Structured recovery-hint payload.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum RecoveryHintKind {
-    /// Suggest a follow-up command.
-    RunCommand {
-        /// Command to execute.
-        command: String,
-    },
-    /// Suggest reviewing a path.
-    InspectPath {
-        /// Path to inspect.
-        path: PathBuf,
-    },
-    /// Suggest supplying a missing variable.
-    ProvideVariable {
-        /// Variable to provide.
-        variable: VariableName,
-    },
-    /// Suggest correcting a configuration key.
-    ReviewConfiguration {
-        /// Configuration key to revisit.
-        key: String,
-    },
-    /// Suggest inspecting an input payload or source document.
-    InspectInput {
-        /// Description of the input to inspect.
-        description: String,
-    },
-    /// Suggest reviewing occurrence paths and selection rules.
-    DisambiguateOccurrences {
-        /// Description of the ambiguity to resolve.
-        description: String,
-    },
-    /// Suggest replacing a construct outside the supported contract.
-    UnsupportedConstruct {
-        /// Description of the unsupported construct and its supported alternative.
-        description: String,
-    },
-}
-
-/// Canonical resolver error family.
-#[derive(Debug)]
-pub struct ResolveError {
-    code: DiagnosticCode,
-    message: String,
-    attempted_paths: Vec<PathBuf>,
-    source: Option<BoxedError>,
-    backtrace: Backtrace,
-}
-
-impl ResolveError {
-    /// Create a new resolver error without an underlying source.
-    #[must_use]
-    pub(crate) fn new(
-        code: DiagnosticCode,
-        message: impl Into<String>,
-        attempted_paths: Vec<PathBuf>,
-    ) -> Self {
-        Self {
-            code,
-            message: message.into(),
-            attempted_paths,
-            source: None,
-            backtrace: Backtrace::capture(),
-        }
-    }
-
-    /// Attach an underlying source error.
-    #[must_use]
-    pub(crate) fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
-        self.source = Some(Box::new(source));
-        self
-    }
-
-    /// Return the stable diagnostic code when one is available.
-    #[must_use]
-    pub const fn code(&self) -> DiagnosticCode {
-        self.code
-    }
-
-    /// Return the attempted paths recorded for this failure.
-    #[must_use]
-    pub fn attempted_paths(&self) -> &[PathBuf] {
-        &self.attempted_paths
-    }
-
-    /// Return the human-readable message.
-    #[must_use]
-    pub fn message(&self) -> &str {
-        &self.message
-    }
-
-    /// Return the captured backtrace.
-    pub const fn backtrace(&self) -> &Backtrace {
-        &self.backtrace
-    }
-}
-
-impl fmt::Display for ResolveError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write_error_display(f, &self.message, self.source(), &self.backtrace)
-    }
-}
-
-impl StdError for ResolveError {
-    fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        self.source
-            .as_deref()
-            .map(|error| error as &(dyn StdError + 'static))
-    }
-}
-
-/// Canonical include-processing error family.
-#[derive(Debug)]
-pub struct IncludeError {
-    code: DiagnosticCode,
-    message: String,
-    include_chain: Vec<PathBuf>,
-    source: Option<BoxedError>,
-    backtrace: Backtrace,
-}
-
-impl IncludeError {
-    /// Create a new include error.
-    #[must_use]
-    pub(crate) fn new(
-        code: DiagnosticCode,
-        message: impl Into<String>,
-        include_chain: Vec<PathBuf>,
-    ) -> Self {
-        Self {
-            code,
-            message: message.into(),
-            include_chain,
-            source: None,
-            backtrace: Backtrace::capture(),
-        }
-    }
-
-    /// Attach an underlying source error.
-    #[must_use]
-    pub(crate) fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
-        self.source = Some(Box::new(source));
-        self
-    }
-
-    /// Return the stable diagnostic code when one is available.
-    #[must_use]
-    pub const fn code(&self) -> DiagnosticCode {
-        self.code
-    }
-
-    /// Return the include chain captured for the failure.
-    #[must_use]
-    pub fn include_chain(&self) -> &[PathBuf] {
-        &self.include_chain
-    }
-
-    /// Return the human-readable message.
-    #[must_use]
-    pub fn message(&self) -> &str {
-        &self.message
-    }
-
-    /// Return the captured backtrace.
-    pub const fn backtrace(&self) -> &Backtrace {
-        &self.backtrace
-    }
-}
-
-impl fmt::Display for IncludeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write_error_display(f, &self.message, self.source(), &self.backtrace)
-    }
-}
-
-impl StdError for IncludeError {
-    fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        self.source
-            .as_deref()
-            .map(|error| error as &(dyn StdError + 'static))
-    }
-}
-
-/// Canonical validation error family.
-#[derive(Debug)]
-pub struct ValidationError {
-    code: DiagnosticCode,
-    message: String,
-    diagnostics: Vec<Diagnostic>,
-    recovery_hints: Vec<RecoveryHint>,
-    source: Option<BoxedError>,
-    backtrace: Backtrace,
-}
-
-impl ValidationError {
-    /// Create a new validation error.
-    #[must_use]
-    pub(crate) fn new(code: DiagnosticCode, message: impl Into<String>) -> Self {
-        Self {
-            code,
-            message: message.into(),
-            diagnostics: Vec::new(),
-            recovery_hints: Vec::new(),
-            source: None,
-            backtrace: Backtrace::capture(),
-        }
-    }
-
-    /// Create a validation error from a full diagnostics set.
-    #[must_use]
-    pub(crate) fn from_diagnostics(diagnostics: Vec<Diagnostic>) -> Self {
-        let code = diagnostics
-            .first()
-            .map_or(DiagnosticCode::ErrValEmpty, |diagnostic| diagnostic.code);
-        let message = diagnostics
-            .iter()
-            .map(format_diagnostic_message)
-            .collect::<Vec<_>>()
-            .join("\n");
-        let mut error = Self {
-            code,
-            message,
-            diagnostics,
-            recovery_hints: Vec::new(),
-            source: None,
-            backtrace: Backtrace::capture(),
-        };
-        if let Some(path) = error
-            .diagnostics
-            .iter()
-            .find_map(|diagnostic| diagnostic.path.clone())
-        {
-            error =
-                error.with_recovery_hint(RecoveryHint::new(RecoveryHintKind::InspectPath { path }));
-        }
-        error
-    }
-
-    /// Create a duplicate-frontmatter validation error.
-    #[must_use]
-    pub(crate) fn duplicate_variable(variable: &VariableName) -> Self {
-        Self::new(
-            DiagnosticCode::ErrValDuplicate,
-            format!("duplicate frontmatter variable declaration: {variable}"),
-        )
-        .with_recovery_hint(RecoveryHint::new(RecoveryHintKind::ReviewConfiguration {
-            key: "required_variables".to_owned(),
-        }))
-    }
-
-    /// Create a validation error for an invalid input-value shape.
-    #[must_use]
-    pub(crate) fn invalid_input_value(code: DiagnosticCode, message: impl Into<String>) -> Self {
-        Self::new(code, message)
-    }
-
-    /// Attach a structured recovery hint.
-    #[must_use]
-    pub(crate) fn with_recovery_hint(mut self, recovery_hint: RecoveryHint) -> Self {
-        self.recovery_hints.push(recovery_hint);
-        self
-    }
-
-    /// Return the stable diagnostic code when one is available.
-    #[must_use]
-    pub const fn code(&self) -> DiagnosticCode {
-        self.code
-    }
-
-    /// Return structured recovery hints.
-    #[must_use]
-    pub fn recovery_hints(&self) -> &[RecoveryHint] {
-        &self.recovery_hints
-    }
-
-    /// Return the diagnostics preserved for this validation failure.
-    #[must_use]
-    pub fn diagnostics(&self) -> &[Diagnostic] {
-        &self.diagnostics
-    }
-
-    /// Return the human-readable message.
-    #[must_use]
-    pub fn message(&self) -> &str {
-        &self.message
-    }
-
-    /// Return the captured backtrace.
-    pub const fn backtrace(&self) -> &Backtrace {
-        &self.backtrace
-    }
-}
-
-impl fmt::Display for ValidationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write_error_display(f, &self.message, self.source(), &self.backtrace)
-    }
-}
-
-impl StdError for ValidationError {
-    fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        self.source
-            .as_deref()
-            .map(|error| error as &(dyn StdError + 'static))
-    }
-}
-
-/// Canonical render error for template compilation and rendering failures.
-///
-/// This type is only constructed by the library; callers receive it as an
-/// opaque error value by design.
-#[derive(Debug)]
-pub struct RenderError {
-    code: Option<DiagnosticCode>,
-    message: String,
-    source: BoxedError,
-    backtrace: Backtrace,
-}
-
-impl RenderError {
-    /// Construct a canonical render error from an underlying render cause.
-    ///
-    /// This constructor exists so the library can erase engine-specific error
-    /// types at the public API boundary.
-    #[must_use]
-    pub(crate) fn render(source: impl StdError + Send + Sync + 'static) -> Self {
-        let message = source.to_string();
-        Self {
-            code: None,
-            message,
-            source: Box::new(source),
-            backtrace: Backtrace::capture(),
-        }
-    }
-
-    /// Return the captured backtrace for the render failure.
-    pub const fn backtrace(&self) -> &Backtrace {
-        &self.backtrace
-    }
-
-    /// Return the stable diagnostic code when one was attached by the caller.
-    #[must_use]
-    pub const fn code(&self) -> Option<DiagnosticCode> {
-        self.code
-    }
-
-    /// Return the render-failure message.
-    #[must_use]
-    pub fn message(&self) -> &str {
-        &self.message
-    }
-}
-
-impl fmt::Display for RenderError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "template rendering failed: {}", self.source)
-    }
-}
-
-impl StdError for RenderError {
-    fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        Some(self.source.as_ref())
-    }
-}
-
-/// Canonical configuration and parsing error family.
-#[derive(Debug)]
-pub struct ConfigError {
-    code: DiagnosticCode,
-    message: String,
-    recovery_hints: Vec<RecoveryHint>,
-    source: Option<BoxedError>,
-    backtrace: Backtrace,
-}
-
-impl ConfigError {
-    /// Create a new configuration error.
-    #[must_use]
-    pub(crate) fn new(code: DiagnosticCode, message: impl Into<String>) -> Self {
-        Self {
-            code,
-            message: message.into(),
-            recovery_hints: Vec::new(),
-            source: None,
-            backtrace: Backtrace::capture(),
-        }
-    }
-
-    /// Attach an underlying source error.
-    #[must_use]
-    pub(crate) fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
-        self.source = Some(Box::new(source));
-        self
-    }
-
-    /// Attach a structured recovery hint.
-    #[must_use]
-    pub(crate) fn with_recovery_hint(mut self, recovery_hint: RecoveryHint) -> Self {
-        self.recovery_hints.push(recovery_hint);
-        self
-    }
-
-    /// Return the stable diagnostic code when one is available.
-    #[must_use]
-    pub const fn code(&self) -> DiagnosticCode {
-        self.code
-    }
-
-    /// Return structured recovery hints.
-    #[must_use]
-    pub fn recovery_hints(&self) -> &[RecoveryHint] {
-        &self.recovery_hints
-    }
-
-    /// Return the human-readable message.
-    #[must_use]
-    pub fn message(&self) -> &str {
-        &self.message
-    }
-
-    /// Return the captured backtrace.
-    pub const fn backtrace(&self) -> &Backtrace {
-        &self.backtrace
-    }
-}
-
-impl fmt::Display for ConfigError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write_error_display(f, &self.message, self.source(), &self.backtrace)
-    }
-}
-
-impl StdError for ConfigError {
-    fn source(&self) -> Option<&(dyn StdError + 'static)> {
-        self.source
-            .as_deref()
-            .map(|error| error as &(dyn StdError + 'static))
-    }
-}
+use std::error::Error as StdError;
 
 /// Top-level failure returned from compose, validate, and helper entry points.
 #[derive(Debug)]
@@ -602,11 +110,38 @@ mod tests {
     use std::path::PathBuf;
 
     use super::{
-        ComposeError, ConfigError, IncludeError, RenderError, ResolveError, ValidationError,
+        ComposeError, ConfigError, IncludeError, RecoveryHint, RecoveryHintKind, RenderError,
+        ResolveError, ValidationError,
     };
     use crate::Diagnostic;
     use crate::diagnostics::{DiagnosticCode, DiagnosticSeverity};
+    use crate::renderer::Renderer;
     use crate::types::VariableName;
+
+    #[test]
+    fn empty_custom_delimiter_error_does_not_duplicate_source_text() {
+        let error = ComposeError::from(Renderer::with_delimiters("", "").unwrap_err());
+        let mut formatted = error.to_string();
+        if let Some(source) = error.source() {
+            formatted.push_str(": ");
+            formatted.push_str(&source.to_string());
+        }
+
+        assert_eq!(formatted.matches("invalid custom delimiters").count(), 1);
+    }
+
+    #[test]
+    fn non_delimiter_render_error_keeps_source_detail() {
+        let error = ComposeError::from(RenderError::render(std::io::Error::other("render failed")));
+        let mut formatted = error.to_string();
+        if let Some(source) = error.source() {
+            formatted.push_str(": ");
+            formatted.push_str(&source.to_string());
+        }
+
+        assert!(!formatted.is_empty());
+        assert!(formatted.contains("render failed"));
+    }
 
     #[test]
     fn resolve_error_constructor_roundtrip_and_display() {
@@ -682,6 +217,32 @@ mod tests {
         assert!(error.to_string().contains("parse"));
         assert!(error.to_string().contains("backtrace"));
         assert!(error.source().is_some());
+    }
+
+    #[test]
+    fn recovery_hints_keep_structured_payloads_across_families() {
+        let config = ConfigError::new(DiagnosticCode::ErrConfigParse, "config").with_recovery_hint(
+            RecoveryHint::new(RecoveryHintKind::RunCommand {
+                command: "sc-compose validate".to_owned(),
+            }),
+        );
+        assert_eq!(
+            config.recovery_hints()[0].kind,
+            RecoveryHintKind::RunCommand {
+                command: "sc-compose validate".to_owned(),
+            }
+        );
+
+        let validation = ValidationError::new(DiagnosticCode::ErrValEmpty, "validation")
+            .with_recovery_hint(RecoveryHint::new(RecoveryHintKind::UnsupportedConstruct {
+                description: "dynamic key".to_owned(),
+            }));
+        assert_eq!(
+            validation.recovery_hints()[0].kind,
+            RecoveryHintKind::UnsupportedConstruct {
+                description: "dynamic key".to_owned(),
+            }
+        );
     }
 
     #[test]
