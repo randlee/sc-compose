@@ -82,6 +82,12 @@ The issue-to-sprint disposition is recorded in
 change ATM workflow, QA routing, triage prompts, or protocol schemas, so no
 additional process-QA or protocol-migration deliverable is applicable.
 
+K.6 preserves the existing include graph and expansion behavior; it does not
+define a composition identity for nested templates. The follow-on gap is
+tracked in [sc-compose issue #360](https://github.com/randlee/sc-compose/issues/360),
+which specifies a versioned Merkle-style root fingerprint and an inspectable
+dependency manifest.
+
 ## Sequence and dependencies
 
 K.1, K.2, K.3, K.4, K.7, and K.8 are independently reviewable

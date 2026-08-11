@@ -8,6 +8,18 @@ reports-init:
 lint target="full":
     {{sc-compose}} lint --root . --target {{target}} --json
 
+# Temporary consumer profile while sc-lint's released full/ci profile is broken
+# (sc-lint#84). Restore `lint full` after its profile fix; identity-literals is
+# also skipped because v0.4.0 crashes on valid Rust unicode escapes.
+lint-ci-consumer:
+    {{sc-compose}} lint --root . --target fast --json
+    cargo deny check --config deny.toml advisories bans licenses sources
+    cargo shear
+    {{sc-compose}} lint --root . --target sc-boundary --json
+    {{sc-compose}} lint --root . --target sc-portability --json
+    {{sc-compose}} lint --root . --target line-counts --json
+    @echo "sc-lint identity-literals skipped: v0.4.0 parser rejects Rust unicode escapes"
+
 view target="findings":
     {{sc-compose}} lint --root . --target view-{{target}} --json
 
