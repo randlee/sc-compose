@@ -720,14 +720,14 @@ Sprint entries:
 
 Status:
 
-- planned: plan-gate QA passed at `639d623` on `plan/sha-crate`; subsequent
-  plan-hardening commits `c0efa37` and the current planning commit make the
-  boundary and public-source-type contracts explicit;
-  (`PLAN-GATE-SHA-CRATE-001-R5`) after five review rounds; extracts the
-  `sc-compose`-owned SHA hashing logic (`crates/sc-composer/src/template_hash.rs`,
-  from PR #358) into a standalone `sc-sha` crate plus a `bindings/sc-sha-python`
-  adapter, compatibility-verified against the real hash-calculation needs of
-  the sibling `synaptic-canvas-dolt` repo;
+- planned: plan-gate QA passed at `639d623` on `plan/sha-crate`
+  (`PLAN-GATE-SHA-CRATE-001-R5`) after five review rounds; subsequent
+  plan-hardening commits `c0efa37` and `29bd1c1` make the boundary and
+  public-source-type contracts explicit; extracts the `sc-compose`-owned SHA
+  hashing logic (`crates/sc-composer/src/template_hash.rs`, from PR #358)
+  into a standalone `sc-sha` crate plus a `bindings/sc-sha-python` adapter,
+  compatibility-verified against the real hash-calculation needs of the
+  sibling `synaptic-canvas-dolt` repo;
 - hard pre-implementation gate: no source under `crates/sc-sha/` or
   `bindings/sc-sha-python/` may be authored until CLAUDE.md's Boundary Rules
   are amended for these two crates and ADR-0018 is signed off, per explicit
