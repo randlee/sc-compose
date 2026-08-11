@@ -749,7 +749,7 @@ Sprint entries:
 
 Status:
 
-- complete on `fix/370-371-include-path-error-swallowing`
+- complete on `fix/370-371-include-path-error-swallowing` at `f76700e`
 
 Sprint entry:
 

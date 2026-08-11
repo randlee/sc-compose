@@ -69,6 +69,25 @@ not a fabricated `ERR_INCLUDE_NOT_FOUND`.
 - Closeout Evidence records exact fix commit(s) and confirms both issues
   closed by the same code change.
 
+## Closeout Evidence
+
+Commit `f76700e` closes both #370 and #371 through the same
+`resolve_include_path()` error-classification change: relative resolution now
+falls back to the root-relative candidate only for `ERR_INCLUDE_NOT_FOUND`,
+while permission-denied and other non-not-found errors are propagated with the
+actual relative candidate path. The regression tests cover the decoy
+substitution case, the real permission-denied diagnostic, and the existing
+not-found fallback behavior.
+
+Validation for `f76700e` passed cleanly:
+
+- `cargo test --workspace`
+- `cargo fmt --all --check`
+- `cargo clippy --all-targets --all-features -- -D warnings`
+
+The fix and validation were independently confirmed by both team-lead and
+quality-mgr.
+
 ## References
 
 - Issue #370: https://github.com/randlee/sc-compose/issues/370
