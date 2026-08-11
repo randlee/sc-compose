@@ -745,6 +745,21 @@ Sprint entries:
 - [Sprint M.1 — sc-sha Core Crate](phase-M/sprint-m-1-sc-sha-core-crate.md)
 - [Sprint M.2 — sc-compose Integration](phase-M/sprint-m-2-sc-compose-integration.md)
 
+### Follow-on Fix Sprint: FIX-370-371
+
+Status:
+
+- complete on `fix/370-371-include-path-error-swallowing` at `f76700e`
+
+Sprint entry:
+
+- [Sprint FIX-370-371 — Include Resolver Error Swallowing](sprints/fix-370-371-include-path-error-swallowing.md)
+
+FIX-370-371 makes include resolution fall back from a relative candidate only
+for a genuine not-found error. Permission-denied and other filesystem errors
+now retain their original diagnostic and actual candidate path, preventing
+silent substitution from a same-named root-relative decoy.
+
 ### Follow-on Fix Sprint: FIX-238
 
 Status:
