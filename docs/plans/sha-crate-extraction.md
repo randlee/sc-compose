@@ -164,10 +164,10 @@ Canvas runtime dependency to sc-compose. The integration contract is:
 - The lockfile also records package version/channel and the Dolt commit needed
   to identify the package revision; those are release/install metadata, not
   part of the per-file digest.
-- `TemplateNodeSha256` and `CompositionSha256` are sc-compose recursive-source
-  identities. They must not replace the per-file value in `package_files.sha256`
-  or `[skills.files]` unless Synaptic Canvas separately versions its schema for
-  that purpose.
+- `OrderedTemplateHashes` and `CompositionSha256` are sc-compose
+  recursive-source identities. They must not replace the per-file value in
+  `package_files.sha256` or `[skills.files]` unless Synaptic Canvas separately
+  versions its schema for that purpose.
 
 The online integration test is an end-to-end release gate owned jointly with
 synaptic-canvas-dolt: ingest a UTF-8 Markdown/log fixture, fetch it from the
@@ -239,90 +239,73 @@ diverges from the verified text contract.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct TemplateSha256([u8; 32]);
 
-impl TemplateSha256 {
-    pub const fn as_bytes(&self) -> &[u8; 32];
-    pub fn to_hex(self) -> String;
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct CommandSha256([u8; 32]);
+
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct JsonVarsSha256([u8; 32]);
+
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct TemplateContextSha256([u8; 32]);
+
+pub enum HashInput<'a> {
+    FileText { utf8_file_bytes: &'a [u8] },
+    CommandText { command: &'a str },
+    JsonVariables { canonical_json: &'a [u8] },
+    GraphContext {
+        graph: &'a OrderedTemplateHashes,
+        canonical_json: Option<&'a [u8]>,
+    },
 }
 
-impl std::fmt::Display for TemplateSha256 { /* lowercase contract */ }
+pub enum HashResult {
+    File(TemplateSha256),
+    Command(CommandSha256),
+    JsonVariables(JsonVarsSha256),
+    Composition(CompositionSha256),
+    Context(TemplateContextSha256),
+}
 
-#[must_use]
-/// Hash text using the synaptic-canvas-dolt file contract. This function
-/// applies universal-newline normalization before UTF-8 hashing.
-pub fn sha256_text(content: &str) -> TemplateSha256;
+/// The single public hash operation. The tagged input and result prevent
+/// callers from confusing file, command, JSON-variable, and graph identities.
+pub fn calculate_hash(input: HashInput<'_>) -> Result<HashResult, ShaError>;
 
-/// Hash a command string as synaptic-canvas-dolt hashes `cmd_sha256`: direct
-/// UTF-8 bytes, without file newline normalization.
-pub fn sha256_command_text(command: &str) -> TemplateSha256;
-
-/// Optional migration facade for UTF-8 file bytes. Its conversion and newline
-/// policy must be proven equivalent to the synaptic-canvas-dolt reader.
-pub fn template_sha256(utf8_file_bytes: &[u8]) -> Result<TemplateSha256, ShaError>;
+/// The single public graph operation. It discovers dependencies, validates
+/// paths/cycles/depth, and returns the deterministic ordered graph consumed by
+/// `HashInput::GraphContext`.
+pub fn calculate_graph_and_order<S: DependencySource>(
+    root_path: &str,
+    source: &mut S,
+) -> Result<OrderedTemplateHashes, GraphError<S::Error>>;
 ```
 
-`sha256_text` is the canonical file-content compatibility function;
-`template_sha256` strictly decodes bytes, applies the same normalization, and
-delegates to it. `sha256_command_text` is intentionally separate because
-`cmd_sha256` hashes a command string directly rather than reading a file. None
-of these APIs accepts arbitrary binary content as a synaptic-canvas-dolt file
-identity. If a raw-byte digest is useful for another consumer, expose it under
-a distinct name and do not use it for the compatible identity.
+`HashInput::FileText` strictly decodes UTF-8, applies the verified newline
+policy, and returns `HashResult::File`. `HashInput::CommandText` hashes command
+text directly for `cmd_sha256`; `HashInput::JsonVariables` hashes canonical
+JSON variables; and `HashInput::GraphContext` hashes the completed graph and,
+when present, derives the rendered-context identity from graph plus variables.
+None of these variants accepts arbitrary binary content as a
+synaptic-canvas-dolt file identity. If a raw-byte digest is useful for another
+consumer, it must be a separately named, explicitly non-compatible domain.
 
 The digest type retains the currently proposed `as_bytes`, `to_hex`, and
 lowercase `Display` surface. Add compile-level/API-shape examples showing that
 a consumer can obtain the stored-compatible string without reaching into
 private fields.
 
-`TemplateSha256` is deliberately the content-only identity consumed by
-synaptic-canvas-dolt. Recursive composition needs a separate, explicitly
-versioned node identity so two different files with identical content cannot
-silently collapse into one node:
+`TemplateSha256` remains the content-only identity consumed by
+synaptic-canvas-dolt. The graph operation returns a deduplicated, ordered list
+of path/content identities rather than a second per-node hash type:
 
 ```rust
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct TemplateNodeSha256([u8; 32]);
-
-pub fn template_node_sha256(
-    canonical_relative_path: &str,
-    file_sha: TemplateSha256,
-) -> TemplateNodeSha256;
-```
-
-The proposed node encoding is domain-separated and length-delimited, for
-example `sc-sha-node-v1` + NUL + canonical relative path + NUL + the 32-byte
-content digest. This is a new sc-sha composition identity, not a replacement
-for the upstream content-only digest. Its exact encoding must be frozen with
-golden vectors before consumers persist it.
-
-The recursive API must prevent accidental mixing of a file digest and a
-composition digest. Prefer distinct types even if both currently contain 32
-bytes:
-
-```rust
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct DependencyEdge {
-    /// Canonical, repository-relative include target using `/` separators.
-    pub include_path: String,
-    /// Child node identity after its canonical path and file identity are
-    /// incorporated.
-    pub child_sha: TemplateNodeSha256,
-    /// Zero-based occurrence in the parent's source order.
-    pub occurrence: u32,
+pub struct TemplateHashEntry {
+    pub canonical_path: String,
+    pub file_sha: TemplateSha256,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CompositionManifest {
-    /// Versioned algorithm/domain identifier.
-    pub algorithm: String,
-    /// Canonical path of the composed root.
-    pub root_path: String,
-    /// Identity of the root node.
-    pub root_sha: TemplateNodeSha256,
-    /// Ordered edges, including repeated occurrences.
-    pub edges: Vec<DependencyEdge>,
-    /// Optional canonical render-option identity when source alone is not
-    /// sufficient to determine the rendered artifact.
-    pub render_options_sha: Option<TemplateSha256>,
+pub struct OrderedTemplateHashes {
+    /// Root entry first; each canonical path appears at most once.
+    pub entries: Vec<TemplateHashEntry>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -333,9 +316,15 @@ impl CompositionSha256 {
     pub fn to_hex(self) -> String;
 }
 
-#[must_use]
-pub fn composition_sha256(manifest: &CompositionManifest) -> CompositionSha256;
 ```
+
+The list is ordered by deterministic first discovery from the root, while
+deduplication is by canonical path. Repeated references to an already-seen
+path do not create another list entry because the referring template's own
+content hash already captures its include syntax, condition, and occurrence.
+Consumers that need one aggregate identity may pass the list to
+`HashInput::GraphContext` with explicit parent/root framing; consumers that
+need per-file identities may retain the list directly.
 
 ### Hash-domain taxonomy
 
@@ -345,12 +334,12 @@ differ:
 
 | Domain | Proposed identity/API | Owner and storage |
 | --- | --- | --- |
-| File content | `TemplateSha256` / `template_sha256` | `sc-sha`; consumed by synaptic-canvas-dolt as `package_files.sha256` and installer lockfile file entries |
-| Command text | `sha256_command_text` / `CommandSha256` if a distinct type is needed | `sc-sha` calculation; consumed by synaptic-canvas-dolt as `package_deps.cmd_sha256` |
-| JSON variables | `JsonVarsSha256` / `json_vars_sha256` | `sc-sha` calculation; consumed by atm-core cache rows |
-| Recursive template node | `TemplateNodeSha256` | `sc-sha` calculation for path-aware sc-compose source identity |
+| File content | `HashInput::FileText` → `HashResult::File(TemplateSha256)` | `sc-sha`; consumed by synaptic-canvas-dolt as `package_files.sha256` and installer lockfile file entries |
+| Command text | `HashInput::CommandText` → `HashResult::Command(CommandSha256)` | `sc-sha` calculation; consumed by synaptic-canvas-dolt as `package_deps.cmd_sha256` |
+| JSON variables | `HashInput::JsonVariables` → `HashResult::JsonVariables(JsonVarsSha256)` | `sc-sha` calculation; consumed by atm-core cache rows |
+| Recursive template list | `OrderedTemplateHashes` of `(canonical path, TemplateSha256)` entries | `sc-sha` graph operation; transient input to aggregate/context hashing |
 | Recursive composition | `CompositionSha256` | `sc-sha` calculation; consumed by sc-compose composition metadata, not a replacement for per-file hashes |
-| Rendered context | `TemplateContextSha256` / `template_context_sha256` | `sc-sha` calculation from composition plus JSON-variable identities; consumed by atm-core cache restoration |
+| Rendered context | `HashInput::GraphContext` → `HashResult::Context(TemplateContextSha256)` | `sc-sha` calculation from composition plus JSON-variable identities; consumed by atm-core cache restoration |
 | Package aggregate | `PackageSha256` or equivalent | synaptic-canvas-dolt owns sorted path-plus-file-hash framing and package/lockfile schema |
 | Release/artifact checksum | release-specific SHA-256 value | publishing/distribution tooling owns the artifact bytes and checksum metadata |
 
@@ -360,28 +349,23 @@ different field. Package aggregation and release checksums may reuse the
 primitive internally, but they must not silently reuse the file-text or
 recursive-composition contract.
 
-#### API separation requirement
+#### API simplicity requirement
 
-Per-file and recursive operations must have different public entry points and
-different result types:
+The core has exactly two public operations: `calculate_hash` and
+`calculate_graph_and_order`. There is no generic boolean such as
+`hash(input, recursive: bool)`, no parallel convenience function family, and
+no bare digest result whose domain the caller must infer. The tagged
+`HashInput`/`HashResult` pair is the single justified mechanism for keeping the
+supported hash domains explicit. The same two-operation shape applies to the
+maturin adapter.
 
-```rust
-pub fn template_sha256(bytes: &[u8]) -> Result<TemplateSha256, ShaError>;
-
-pub fn recursive_composition_sha256<S: DependencySource>(
-    root_path: &str,
-    source: &mut S,
-) -> Result<CompositionFingerprint, CompositionHashError<S::Error>>;
-```
-
-There must be no generic `hash(input, recursive: bool)` API and no API that
-returns a bare digest while leaving the caller to infer which calculation took
-place. If an FFI or JSON transport needs one envelope, it must carry an
-explicit tagged domain such as `file`, `node`, or `composition`, and decoding
-must reject a domain/value mismatch. The same separation applies to the
-maturin bindings: `sha256_text`/`template_sha256` return file-content results,
-while `recursive_composition_sha256` returns composition evidence and a
-`CompositionSha256` root result.
+The hash implementation may have a private/generic streaming core and a file
+adapter layered over it. The file adapter opens the source, applies the same
+explicit UTF-8/newline policy, and delegates to the stream implementation; it
+must not duplicate hashing or normalization logic. This is an implementation
+seam, not a third public hash operation. Filesystem traversal and dependency
+ordering remain the responsibility of `calculate_graph_and_order`'s injected
+resolver.
 
 The final field names and encoding remain subject to the synaptic-canvas-dolt
 verification gate. The plan requires the following invariants regardless of
@@ -394,14 +378,17 @@ the final spelling:
 - exact UTF-8 text identity matching the upstream reader, with the explicit
   newline normalization contract above;
 - nested and transitive dependencies included recursively;
-- include order and repeated occurrences preserved;
+- include order and repeated occurrences remain represented by the referring
+  template's content hash; the returned path/hash list deduplicates paths;
 - render-option identity included only when it affects output;
-- no mtime, directory traversal order, locale, or host-path dependence;
+- no mtime, incidental resolver traversal order, locale, or host-path
+  dependence; only the defined deterministic candidate-discovery order may be
+  represented;
 - cycles and missing dependencies fail before producing a success fingerprint.
 
-The manifest is diagnostic evidence. Consumers compare the single
-`CompositionSha256`; they must not use an unordered array of child hashes as
-the identity.
+The ordered path/hash list is diagnostic evidence. Consumers may compare a
+single `CompositionSha256` when they need an aggregate, but they must not use
+an unordered array of child hashes as the identity.
 
 ### Recursive resolver API
 
@@ -423,10 +410,10 @@ pub trait DependencySource {
         -> Result<TemplateSource, Self::Error>;
 }
 
-pub fn recursive_composition_sha256<S: DependencySource>(
+pub fn calculate_graph_and_order<S: DependencySource>(
     root_path: &str,
     source: &mut S,
-) -> Result<CompositionFingerprint, CompositionHashError<S::Error>>;
+) -> Result<OrderedTemplateHashes, GraphError<S::Error>>;
 ```
 
 The exact ownership of `TemplateSource` and the error wrapper may change after
@@ -435,7 +422,8 @@ the synaptic-canvas-dolt API is verified, but the behavior is mandatory:
 - maintain an active recursion stack and reject a path already on that stack;
 - return a typed cycle error containing the deterministic cycle path;
 - enforce a configurable depth ceiling before recursion can overflow the stack;
-- cache completed node identities without dropping repeated edge occurrences;
+- cache completed path identities without dropping statically discoverable
+  candidate templates;
 - load dependencies in declared/source order;
 - reject malformed canonical paths before hashing;
 - never return a successful root fingerprint for a missing, cyclic, or failed
@@ -446,36 +434,30 @@ implemented by sc-composer; an in-memory resolver can be used by atm-core,
 Python, and deterministic tests. This keeps `sc-sha` reusable without hiding
 filesystem security policy inside a hash crate.
 
-The returned `CompositionFingerprint` must include the `CompositionManifest`
-and root `CompositionSha256`. It may include per-node evidence, but the public
-contract must make the single root identity easy to consume.
+The graph operation returns the ordered path/hash list. The hash operation
+returns the tagged `CompositionSha256` or `TemplateContextSha256` result;
+callers do not rebuild ordering from rendered text.
 
-### Required atm-core cache consumer
+### atm-core consumer contract (no atm-core implementation here)
 
-Recursive hashing is a required atm-core use case, not an optional consumer.
-atm-core caches templates and must restore the correct rendered context from
-the persisted JSON variables plus the current recursive template identity. A
-per-file hash is insufficient because changing an included template must
-invalidate a cached root even when the root file itself is unchanged.
+Recursive hashing is a required atm-core consumer use case, not an optional
+sc-compose feature. atm-core must be able to restore the correct rendered
+context from its persisted JSON variables plus the current recursive template
+identity. A per-file hash is insufficient because changing an included
+template must invalidate a cached root even when the root file itself is
+unchanged.
 
-The cache key contract must contain three separately typed values:
+The sc-sha API must provide three separately typed values:
 
 ```rust
 pub struct JsonVarsSha256([u8; 32]);
 pub struct TemplateContextSha256([u8; 32]);
-
-pub fn json_vars_sha256(canonical_json: &[u8]) -> JsonVarsSha256;
-
-pub fn template_context_sha256(
-    composition_sha: CompositionSha256,
-    vars_sha: JsonVarsSha256,
-) -> TemplateContextSha256;
 ```
 
-The recursive atm-core operation must obtain `CompositionSha256` through the
-same `recursive_composition_sha256` API, hash the canonical JSON variables
-with a versioned JSON domain, and derive `TemplateContextSha256` using an
-explicit context domain. The canonical JSON contract must define object-key
+The recursive atm-core operation must obtain the ordered graph through
+`calculate_graph_and_order`, then call `calculate_hash` with
+`HashInput::JsonVariables` and `HashInput::GraphContext`. The canonical JSON
+contract must define object-key
 ordering, number representation, Unicode escaping, duplicate-key rejection,
 and whitespace handling; semantically identical JSON objects must produce the
 same `JsonVarsSha256` regardless of input formatting or map iteration order.
@@ -483,13 +465,12 @@ The API may accept already canonical JSON bytes to keep `sc-sha` independent of
 a particular JSON crate, but canonicalization must be one shared, tested
 contract rather than an atm-core-only convention.
 
-An atm-core cache row must retain enough evidence to restore and validate the
-context: canonical JSON variables (or an equivalent lossless representation),
-`JsonVarsSha256`, `CompositionSha256`, and the derived
-`TemplateContextSha256`. On restore, atm-core recomputes the recursive graph
-and JSON-variable identity and rejects stale/mismatched rows; it must not trust
-an isolated stored SHA or reconstruct context from the root file alone. This
-consumer integration is a release-blocking acceptance test for `sc-sha`.
+The atm-core consumer must recompute the graph and JSON-variable identity on
+restore and reject stale/mismatched cache state; it must not trust an isolated
+SHA or reconstruct context from the root file alone. Its database schema and
+cache-row storage are outside this sc-compose plan. The consumer contract is a
+release-blocking acceptance test for `sc-sha`, not an atm-core implementation
+sprint here.
 
 ### Maturin/Python API
 
@@ -498,19 +479,21 @@ should expose a stable Python module named `sc_sha` and delegate every
 calculation to Rust:
 
 ```python
-from sc_sha import sha256_text, recursive_composition_sha256
+from sc_sha import calculate_hash, calculate_graph_and_order
 
-sha256_text("template text")
-# -> lowercase hexadecimal string
+calculate_hash({"kind": "file", "content": "template text"})
+# -> tagged file result with lowercase hexadecimal value
 
-recursive_composition_sha256(
+graph = calculate_graph_and_order(
     root_path="root.md",
     templates={
         "root.md": {"text": "@<partial.md>\n", "dependencies": ["partial.md"]},
         "partial.md": {"text": "body\n", "dependencies": []},
     },
 )
-# -> a stable result containing composition_sha and manifest evidence
+calculate_hash({"kind": "graph-context", "graph": graph,
+                "json_variables": {}})
+# -> tagged composition/context result with graph evidence
 ```
 
 The final Python names and result mapping must be reconciled with the verified
@@ -521,14 +504,15 @@ synaptic-canvas-dolt public API. The adapter must define:
 - lowercase hex and explicitly documented text/bytes input-output behavior;
 - typed Python exceptions for invalid paths, missing nodes, cycles, and depth
   exhaustion;
-- deterministic dictionary/list serialization for manifest evidence;
+- deterministic dictionary/list serialization for path/hash evidence;
 - minimum supported Python versions and platform wheels;
 - package/module version alignment with the Rust algorithm version;
 - a clean-consumer `maturin develop` and wheel-install test.
 
-The Python API must not accept an unordered set as the only representation of
-dependencies. A mapping may be used for node lookup, but each node's ordered
-dependency list remains authoritative.
+The Python API must expose the same two operations as the Rust API. It must not
+accept an unordered set as the only representation of dependencies. A mapping
+may be used for node lookup, but each node's ordered dependency list remains
+authoritative.
 
 ## What moves from PR #358
 
@@ -564,8 +548,8 @@ composition discovery. It already resolves `@<path>` includes, enforces root
 confinement, detects cycles/depth, and records resolved files and source text.
 However, its first-seen file collection cannot represent the full identity:
 
-- repeated includes are deduplicated in `resolved_files`;
-- the public model does not expose an ordered edge list for each occurrence;
+- the public model does not expose a deterministic ordered list of unique
+  `(canonical path, file hash)` entries;
 - source text is retained as `String`, while the hash contract may require raw
   bytes;
 - the MiniJinja loader introduced by PR #358 is separate from the native
@@ -576,36 +560,48 @@ hashing whichever list happens to be available.
 
 ### Required graph behavior
 
-During expansion, record an ordered edge for every include occurrence:
+The graph operation is a conservative static dependency walk, not an
+execution trace. If an include appears inside a condition, the result contains
+every statically discoverable template that may be selected. The result is an
+ordered, deduplicated list:
 
 ```text
-root.md
-  edge[0] -> partials/header.md
-  edge[1] -> partials/item.md
-  edge[2] -> partials/item.md   # repeated occurrence is retained
+root.md                 -> sha(root)
+partials/header.md      -> sha(header)
+partials/item.md        -> sha(item)
+partials/other-item.md  -> sha(other-item)  # conditional candidate
 ```
 
-For each visited node:
+The root is first, and each canonical path appears once at its first
+deterministic discovery. A repeated reference does not add another entry:
+the referring template's own content hash already captures its include syntax,
+condition, and occurrence. This list is the transient graph evidence; it is
+not required to be duplicated in atm-core storage.
+
+For each visited/candidate node:
 
 1. Resolve and canonicalize the path under the existing confinement policy.
 2. Read and retain source text under the verified upstream text policy.
 3. Retain raw bytes separately only when diagnostics or a distinct
    non-compatible digest require them; they are not the upstream file identity.
-4. Compute the content-only `TemplateSha256` from verified source text, then
-   compute the path-aware `TemplateNodeSha256` from the canonical relative path
-   and content digest.
-5. Append each parent-to-child edge in source order, retaining occurrence.
-6. Recurse into the child and fail deterministically for missing files, cycles,
-   invalid source, or depth exhaustion.
-7. Compute the root composition identity only after the complete graph is
-   known.
+4. Compute the content-only `TemplateSha256` from verified source text and add
+   one deduplicated `(canonical relative path, TemplateSha256)` entry to the
+   ordered result.
+5. Recurse into every statically discoverable candidate and fail
+   deterministically for missing files, cycles, invalid source, or depth
+   exhaustion.
+6. If a dynamic include cannot be conservatively enumerated, return an
+   explicit unresolved-dependency result; do not silently claim the list is
+   exhaustive or produce a cacheable identity.
+7. Compute an optional aggregate/context identity only after the complete
+   deduplicated list is known.
 
 The result should expose both the source identity and inspectable evidence:
 
 ```rust
 pub struct CompositionFingerprint {
     pub source_sha: sc_sha::CompositionSha256,
-    pub manifest: sc_sha::CompositionManifest,
+    pub hashes: sc_sha::OrderedTemplateHashes,
     pub resolved_files: Vec<PathBuf>,
 }
 ```
@@ -628,8 +624,9 @@ scopes:
   dependency loading as a separately tested renderer capability until it is
   wired into the same graph model.
 - **Required follow-on if MiniJinja loading becomes production composition:**
-  adapt its loader callbacks to emit the same canonical graph edges and use the
-  same `sc-sha` manifest API. Do not create a second fingerprint algorithm.
+  adapt its loader callbacks to emit the same canonical path/hash list and use
+  the same `sc-sha` graph/hash APIs. Do not create a second fingerprint
+  algorithm.
 
 This avoids claiming that scanning a directive span is equivalent to resolving
 and hashing the dependency it names.
@@ -663,10 +660,13 @@ integration branch after this plan is approved.
 **Deliverables:**
 
 - Workspace member and publishable `sc-sha` crate.
+- Migrate the existing PR #358 calculation as the starting point; correct its
+  raw-byte/text encoding behavior rather than inventing a parallel algorithm.
 - Verified file-hash calculation and public API compatibility with
   synaptic-canvas-dolt.
-- Resolver-driven recursive composition-hash API with deterministic encoding,
-  cycle detection, and typed errors.
+- Two-operation public API: hash calculation plus graph/order calculation.
+- Stream-backed hash implementation with an optional file adapter that
+  delegates to the stream path.
 - JSON-variable and rendered-context identity APIs sufficient for atm-core's
   cache restore contract.
 - sc-composer re-export/migration surface without duplicate hash code.
@@ -674,7 +674,7 @@ integration branch after this plan is approved.
 
 **Non-closure:**
 
-- Does not yet discover recursive include edges in sc-compose.
+- Does not yet discover recursive include candidates in sc-compose.
 - Does not change renderer loading behavior.
 - Does not claim issue #360 is closed until the recursive integration slice
   lands.
@@ -685,103 +685,42 @@ integration branch after this plan is approved.
 - Must land before the PR #358 final merge if PR #358 is to expose this hash
   API; after comp2 QA, PR #358 should be updated to consume `sc-sha`.
 
-### Implementation slice 2 — `sc-sha` maturin/Python adapter
+### Implementation sprint 2 — sc-compose integration and Python adapter
 
-**Branch/worktree:** `sprint/<phase>-2-sc-sha-python`, created from the
-integration branch containing slice 1.
-
-**Exact targets:**
-
-- `Cargo.toml` workspace member list
-- `bindings/sc-sha-python/Cargo.toml`
-- `bindings/sc-sha-python/pyproject.toml`
-- `bindings/sc-sha-python/src/lib.rs`
-- `bindings/sc-sha-python/tests/test_compatibility.py`
-- Python package metadata and wheel CI configuration, if the repository owns
-  the release workflow
-
-**Deliverables:**
-
-- Maturin-built `sc_sha` module that delegates to `sc-sha`.
-- File and recursive composition hash functions.
-- Stable hex/result/error contracts documented and tested.
-- Linux, macOS, and Windows wheel/build characterization.
-- Python compatibility vectors matching Rust and synaptic-canvas-dolt.
-
-**Hard dependency:** slice 1's verified Rust API and algorithm vectors.
-
-**Parallelism:** can run in parallel with implementation slice 3 after slice 1
-  lands. It can also proceed while comp2 completes PR #358 CI fixes, but it
-  must not fork or reimplement the PR's hash logic.
-
-**Non-closure:** does not modify `bindings/python` or expose sc-compose CLI
-  behavior through Python; it provides the standalone `sc_sha` package only.
-
-### Implementation slice 3 — recursive sc-compose composition fingerprint
-
-**Branch/worktree:** `sprint/<phase>-3-recursive-composition-sha`, created from
-the integration branch containing slice 1.
+**Branch/worktree:** `sprint/<phase>-2-sc-sha-consumers`, created from the
+integration branch containing sprint 1.
 
 **Exact targets:**
 
 - `crates/sc-composer/src/include.rs`
 - `crates/sc-composer/src/include/expansion.rs`
-- `crates/sc-composer/src/include/path.rs` if canonical path data needs a
-  narrow helper
-- the chosen public result/type module for `CompositionFingerprint`
-- recursive include fixtures and integration tests
-- `docs/architecture.md` and `docs/requirements.md` only where the public
-  contract requires normative updates
+- `crates/sc-composer/src/include/path.rs` only if a narrow canonical-path
+  helper is required
+- the chosen sc-composer public result/type module
+- `bindings/sc-sha-python/Cargo.toml`
+- `bindings/sc-sha-python/pyproject.toml`
+- `bindings/sc-sha-python/src/lib.rs`
+- recursive include fixtures, compatibility vectors, and Python tests
 
 **Deliverables:**
 
-- Ordered, occurrence-preserving dependency edges from actual expansion.
-- Verified source-text retention or a documented equivalent compatible with
-  `sc-sha`.
-- Recursive source composition fingerprint returned with inspectable manifest.
-- Deterministic failure behavior for missing files, cycles, depth limits, and
-  confinement violations.
-- Documented compatibility behavior for non-nested templates.
+- Exhaustive candidate discovery for static includes and an ordered,
+  path-deduplicated `(canonical path, TemplateSha256)` list.
+- sc-compose integration using the two published `sc-sha` operations without
+  duplicate hashing or graph logic.
+- Separate maturin-built `sc_sha` adapter exposing the same two operations.
+- Deterministic failure behavior for missing files, cycles, depth limits,
+  confinement violations, and unresolved dynamic includes.
+- Cross-platform Rust/Python vectors and non-nested compatibility evidence.
 
-**Non-closure:**
+**Hard dependency:** sprint 1's verified Rust API and algorithm vectors.
 
-- Does not implement the synaptic-canvas-dolt algorithm in sc-compose.
-- Does not modify atm-core; its required cache-consumer integration is a
-  separate external-repository sprint using the published `sc-sha` API.
-- Does not hash rendered output unless a separately approved requirement adds
-  that contract.
+**Parallelism:** may proceed while comp2 completes PR #358 CI fixes, but must
+not fork or reimplement its hash logic. It is the only planned follow-on sprint
+unless QA identifies a genuinely independent fix class.
 
-**Parallelism:**
-
-- Starts only after slice 1 is merged to the integration branch.
-- Can run in parallel with slice 2 and unrelated PR #358 CI/QA follow-up after
-  the shared crate API is stable, but cannot merge before slice 1.
-
-### Consumer slice 4 — atm-core recursive template-cache integration
-
-**Repository/worktree:** atm-core, in a separately requested worktree based on
-the atm-core integration branch; this is not a source change in sc-compose.
-
-**Exact targets:** the atm-core template-cache/database schema, JSON-variable
-canonicalization boundary, cache lookup/restore path, and integration tests
-that consume the published `sc-sha` crate.
-
-**Deliverables:**
-
-- Cache rows retain canonical JSON variables (or lossless equivalent),
-  `JsonVarsSha256`, `CompositionSha256`, and `TemplateContextSha256`.
-- Cache lookup recomputes the recursive template graph through `sc-sha` and
-  recomputes the JSON-variable identity before restoring context.
-- A change in any nested template, dependency ordering, cycle/error state, or
-  JSON variables invalidates the prior context deterministically.
-- Cross-repository integration evidence proves atm-core consumes the released
-  `sc-sha` API rather than copying the algorithm.
-
-**Hard dependency:** slice 1's frozen recursive and JSON/context API contract.
-
-**Parallelism:** may proceed in parallel with slices 2 and 3 after slice 1's
-  API is stable. It is a release-blocking consumer sprint, not optional follow-
-  up work.
+**Non-closure:** does not modify atm-core or synaptic-canvas-dolt. Those repos
+consume the published API and provide external acceptance evidence.
 
 ## Sequence recommendation
 
@@ -798,11 +737,12 @@ Rationale:
 4. Once `sc-sha` is available, PR #358 can be rebased or amended to remove its
    local `template_hash.rs`, depend on `sc-sha`, and retain its existing public
    compatibility surface through a re-export if needed.
-5. The recursive composition sprint and the atm-core cache-consumer sprint can
-   proceed in parallel with the Python adapter once the shared API is stable.
-6. Release readiness requires atm-core to prove recursive cache restoration
-   from JSON variables plus composition SHA; this is not deferred because the
-   cache would otherwise be unable to detect nested-template changes.
+5. Sprint 2 combines the small sc-compose integration and Python adapter after
+   the shared API is stable, avoiding unnecessary worktrees and coordination
+   overhead.
+6. Release acceptance requires atm-core to prove recursive cache restoration
+   from JSON variables plus composition SHA; this is consumer evidence, not an
+   atm-core implementation sprint in this plan.
 
 The merge gate is therefore:
 
@@ -810,10 +750,9 @@ The merge gate is therefore:
 plan approved
   -> verify synaptic-canvas-dolt algorithm
   -> sc-sha core implementation + QA
-  -> (sc-sha Python adapter + QA || recursive sc-compose fingerprint + QA
-      || atm-core recursive cache consumer + QA)
+  -> sc-compose integration + Python adapter + QA
   -> PR #358 updated to consume sc-sha + QA
-  -> online integration/release gate
+  -> external consumer acceptance/release gate
 ```
 
 Comp2's current PR work and QA may proceed concurrently with the first two
@@ -831,10 +770,12 @@ The shared crate must test:
   those are part of the verified contract;
 - exact digest bytes and lowercase hex display;
 - canonical path separator behavior;
-- path-collision distinction when paths are part of node identity;
-- deterministic manifest encoding independent of map/traversal order;
+- path-collision distinction when paths are part of the path/hash list;
+- deterministic path/hash-list encoding independent of map/traversal
+  implementation details;
 - algorithm/version domain separation;
-- repeated and reordered edges producing distinct composition identities;
+- conditional candidates are exhaustive, while include order/repetition remain
+  represented by the referring template's file hash;
 - canonical JSON-variable vectors with reordered keys, equivalent whitespace,
   Unicode escapes, numeric edge cases, and duplicate-key rejection;
 - distinct JSON-variable, composition, and rendered-context identities;
@@ -847,9 +788,9 @@ The adapter must test:
 - Rust/Python equality for every authoritative file vector;
 - Rust/Python equality for every recursive composition fixture;
 - exact `bytes` versus `str` input policy;
-- lowercase hex output and manifest result shape;
+- lowercase hex output and path/hash result shape;
 - missing dependency, cycle, depth, and invalid-path exception mapping;
-- repeated and reordered dependency preservation;
+- exhaustive candidate preservation and path deduplication;
 - `maturin develop` in a clean virtual environment;
 - wheel build and install on the supported platform matrix.
 
@@ -862,19 +803,20 @@ Use checked-in fixtures covering:
 3. multi-level include;
 4. changing only a nested child;
 5. identical bytes at two different canonical paths;
-6. adding and removing an edge;
-7. reordering edges;
-8. repeating an edge;
+6. adding and removing a candidate include;
+7. reordering or repeating an include in the parent source;
+8. repeated candidate paths deduplicating to one list entry;
 9. mixed directory nesting and canonical `/` paths;
 10. CRLF/LF/BOM/final-newline behavior;
 11. missing include;
 12. cyclic include;
 13. depth-limit failure;
 14. confinement/symlink escape;
-15. render-option changes when those options are included in the contract;
-16. legacy non-nested compatibility behavior.
+15. dynamic/unresolved include becoming explicitly non-cacheable;
+16. render-option changes when those options are included in the contract;
+17. legacy non-nested compatibility behavior.
 
-Every test must assert both the single root fingerprint and enough manifest
+Every test must assert both the single root fingerprint and enough path/hash
 evidence to explain why it changed or remained stable.
 
 ### atm-core cache-consumer tests
@@ -918,9 +860,10 @@ consumers.
 QA must review directly from the sprint document and verify:
 
 - no duplicate SHA implementation remains in sc-composer;
-- no unordered or first-seen-only dependency list is used as identity;
+- no unordered dependency list is used as identity; path deduplication is
+  deterministic;
 - nested changes alter the root fingerprint;
-- exact path and occurrence rules are tested;
+- exact path and candidate-set rules are tested;
 - failure cases do not produce a misleading success fingerprint;
 - PR #358's CI fixes remain isolated from the hash-contract migration.
 
@@ -1001,9 +944,10 @@ Additional boundary checks:
 
 - [ ] Add `crates/sc-sha` to the workspace.
 - [ ] Move the verified file hash and tests.
-- [ ] Add composition manifest types and deterministic hash function.
+- [ ] Add ordered, path-deduplicated template-hash list types and deterministic
+      aggregate/context framing.
 - [ ] Add canonical JSON-variable, rendered-context, and distinct typed
-      identity APIs required by atm-core cache restoration.
+      identity results required by atm-core cache restoration.
 - [ ] Add resolver-driven recursive hashing with active-stack cycle detection,
       depth protection, and deterministic typed errors.
 - [ ] Remove duplicate `template_hash.rs` implementation from sc-composer.
@@ -1015,7 +959,8 @@ Additional boundary checks:
 
 - [ ] Add the separate `bindings/sc-sha-python` package and stable `sc_sha`
       module.
-- [ ] Delegate file and recursive composition calculations to `sc-sha`.
+- [ ] Delegate both `calculate_hash` and `calculate_graph_and_order` to
+      `sc-sha`.
 - [ ] Verify Python API values, result shape, errors, and package version
       against synaptic-canvas-dolt.
 - [ ] Build/install a wheel in a clean environment on the supported platforms.
@@ -1031,27 +976,26 @@ Additional boundary checks:
 
 ### Recursive integration sprint
 
-- [ ] Add ordered dependency occurrence tracking to include expansion.
+- [ ] Add exhaustive candidate discovery and path-deduplicated hash-list
+      tracking to include expansion.
 - [ ] Preserve the verified source text semantics needed by the hash contract;
       retain raw file bytes only when required for diagnostics or a separately
       named non-compatible digest.
-- [ ] Compute and expose the recursive manifest/root fingerprint.
+- [ ] Compute and expose the recursive path/hash-list and optional root
+      fingerprint.
 - [ ] Add all required nested, ordering, repetition, collision, and failure
       fixtures.
 - [ ] Update normative architecture/requirements documentation.
 - [ ] Run full validation and obtain independent QA approval.
 
-### atm-core cache consumer sprint
+### External consumer acceptance (no consumer implementation here)
 
-- [ ] Add the published `sc-sha` dependency through atm-core's normal external
-      crate boundary.
-- [ ] Persist canonical JSON variables plus `JsonVarsSha256`,
-      `CompositionSha256`, and `TemplateContextSha256` in the cache model.
-- [ ] Recompute recursive template and JSON-variable identities before cache
-      restore; reject stale, missing, cyclic, or mismatched entries.
-- [ ] Prove nested-template invalidation and JSON-variable invalidation with
-      integration fixtures.
-- [ ] Run independent QA and record cross-repository release evidence.
+- [ ] Provide atm-core with the published two-operation API and compatibility
+      vectors for recursive cache restoration.
+- [ ] Record evidence that atm-core can recompute recursive and JSON-variable
+      identities before restoring context.
+- [ ] Provide synaptic-canvas-dolt with the per-file compatibility vectors and
+      public API mapping for database/lockfile consumption.
 
 ## Explicit non-goals
 
@@ -1061,6 +1005,7 @@ Additional boundary checks:
 - Do not make atm-core depend on a path inside the sc-compose repository.
 - Do not make sc-sha aware of MiniJinja syntax or `@<path>` syntax.
 - Do not put PyO3/maturin into the core `sc-sha` dependency graph.
-- Do not include absolute paths, mtimes, host-specific separators, or traversal
-  order in the identity.
+- Do not include absolute paths, mtimes, host-specific separators, or
+  incidental resolver traversal order in the identity; the defined
+  deterministic discovery order is part of the path/hash-list contract.
 - Do not claim PR #358 or this planning document closes issue #360 by itself.
