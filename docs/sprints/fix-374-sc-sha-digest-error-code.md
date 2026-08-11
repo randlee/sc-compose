@@ -83,3 +83,13 @@ correctly by `calculate_hash_py`/`calculate_composition_hash_py`.
   `cargo clippy --all-targets --all-features -- -D warnings`, and
   `git diff --check` pass. The rebuilt maturin wheel passes all 8
   `bindings/sc-sha-python/tests` tests.
+- QA follow-up: `2d53347` adds direct coverage for all three `parse_nodes`
+  manifest-shape error branches: non-list nodes, non-mapping nodes, and a
+  node missing `source`. Each retains `SC_SHA_INVALID_MANIFEST`; the
+  malformed-digest regression remains `SC_SHA_INVALID_DIGEST`.
+- Follow-up validation: the five targeted digest/parse-node tests and all 11
+  Python adapter tests pass; formatting, clippy, and diff checks pass. The
+  full workspace gate was green at `fc86a04` before this test-only follow-up;
+  a later rerun reproduced unrelated existing `sc_lint_lint_ci` fixture
+  assertions (`deny` observed instead of the expected `sc-boundary` and
+  `manifests`) with no affected production-file diff.
