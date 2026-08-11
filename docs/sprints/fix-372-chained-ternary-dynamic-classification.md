@@ -1,6 +1,6 @@
 ---
 id: FIX-372
-status: in-progress
+status: complete
 branch: fix/372-chained-ternary-dynamic-classification
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/372-chained-ternary-dynamic-classification
 target: integrate/phase-M
@@ -75,3 +75,16 @@ intact; document the choice in Closeout Evidence.
 - `crates/sc-composer/src/include/directive.rs::quoted_literal()`
 - Fuzz campaign `m2-include-fuzz-20260811-1`, report
   `site/reports/20260811-2-fuzz-report.html`
+
+## Closeout Evidence
+
+- Fix commit: `b2d5d4f` (`fix: classify chained ternary includes as dynamic`).
+- `quoted_literal()` now rejects de-quoted bodies containing ` if ` or
+  ` else `, so a chained conditional cannot be accepted as one malformed
+  literal path. The expression falls through to `IncludeDirective::Dynamic`,
+  preserving the existing conservative classification contract.
+- Regression coverage asserts the exact three-arm reproduction is `Dynamic`.
+- Positive-control coverage asserts a single ternary remains
+  `IncludeDirective::Conditional` with both static candidates.
+- Validation passed: `cargo test --workspace`, `cargo fmt --all --check`, and
+  `cargo clippy --all-targets --all-features -- -D warnings`.
