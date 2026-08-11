@@ -347,8 +347,10 @@ differ:
 | --- | --- | --- |
 | File content | `TemplateSha256` / `template_sha256` | `sc-sha`; consumed by synaptic-canvas-dolt as `package_files.sha256` and installer lockfile file entries |
 | Command text | `sha256_command_text` / `CommandSha256` if a distinct type is needed | `sc-sha` calculation; consumed by synaptic-canvas-dolt as `package_deps.cmd_sha256` |
+| JSON variables | `JsonVarsSha256` / `json_vars_sha256` | `sc-sha` calculation; consumed by atm-core cache rows |
 | Recursive template node | `TemplateNodeSha256` | `sc-sha` calculation for path-aware sc-compose source identity |
 | Recursive composition | `CompositionSha256` | `sc-sha` calculation; consumed by sc-compose composition metadata, not a replacement for per-file hashes |
+| Rendered context | `TemplateContextSha256` / `template_context_sha256` | `sc-sha` calculation from composition plus JSON-variable identities; consumed by atm-core cache restoration |
 | Package aggregate | `PackageSha256` or equivalent | synaptic-canvas-dolt owns sorted path-plus-file-hash framing and package/lockfile schema |
 | Release/artifact checksum | release-specific SHA-256 value | publishing/distribution tooling owns the artifact bytes and checksum metadata |
 
@@ -447,6 +449,47 @@ filesystem security policy inside a hash crate.
 The returned `CompositionFingerprint` must include the `CompositionManifest`
 and root `CompositionSha256`. It may include per-node evidence, but the public
 contract must make the single root identity easy to consume.
+
+### Required atm-core cache consumer
+
+Recursive hashing is a required atm-core use case, not an optional consumer.
+atm-core caches templates and must restore the correct rendered context from
+the persisted JSON variables plus the current recursive template identity. A
+per-file hash is insufficient because changing an included template must
+invalidate a cached root even when the root file itself is unchanged.
+
+The cache key contract must contain three separately typed values:
+
+```rust
+pub struct JsonVarsSha256([u8; 32]);
+pub struct TemplateContextSha256([u8; 32]);
+
+pub fn json_vars_sha256(canonical_json: &[u8]) -> JsonVarsSha256;
+
+pub fn template_context_sha256(
+    composition_sha: CompositionSha256,
+    vars_sha: JsonVarsSha256,
+) -> TemplateContextSha256;
+```
+
+The recursive atm-core operation must obtain `CompositionSha256` through the
+same `recursive_composition_sha256` API, hash the canonical JSON variables
+with a versioned JSON domain, and derive `TemplateContextSha256` using an
+explicit context domain. The canonical JSON contract must define object-key
+ordering, number representation, Unicode escaping, duplicate-key rejection,
+and whitespace handling; semantically identical JSON objects must produce the
+same `JsonVarsSha256` regardless of input formatting or map iteration order.
+The API may accept already canonical JSON bytes to keep `sc-sha` independent of
+a particular JSON crate, but canonicalization must be one shared, tested
+contract rather than an atm-core-only convention.
+
+An atm-core cache row must retain enough evidence to restore and validate the
+context: canonical JSON variables (or an equivalent lossless representation),
+`JsonVarsSha256`, `CompositionSha256`, and the derived
+`TemplateContextSha256`. On restore, atm-core recomputes the recursive graph
+and JSON-variable identity and rejects stale/mismatched rows; it must not trust
+an isolated stored SHA or reconstruct context from the root file alone. This
+consumer integration is a release-blocking acceptance test for `sc-sha`.
 
 ### Maturin/Python API
 
@@ -624,6 +667,8 @@ integration branch after this plan is approved.
   synaptic-canvas-dolt.
 - Resolver-driven recursive composition-hash API with deterministic encoding,
   cycle detection, and typed errors.
+- JSON-variable and rendered-context identity APIs sufficient for atm-core's
+  cache restore contract.
 - sc-composer re-export/migration surface without duplicate hash code.
 - Boundary and dependency review evidence.
 
@@ -701,7 +746,8 @@ the integration branch containing slice 1.
 **Non-closure:**
 
 - Does not implement the synaptic-canvas-dolt algorithm in sc-compose.
-- Does not add ATM runtime dependencies or direct atm-core integration.
+- Does not modify atm-core; its required cache-consumer integration is a
+  separate external-repository sprint using the published `sc-sha` API.
 - Does not hash rendered output unless a separately approved requirement adds
   that contract.
 
@@ -710,6 +756,32 @@ the integration branch containing slice 1.
 - Starts only after slice 1 is merged to the integration branch.
 - Can run in parallel with slice 2 and unrelated PR #358 CI/QA follow-up after
   the shared crate API is stable, but cannot merge before slice 1.
+
+### Consumer slice 4 — atm-core recursive template-cache integration
+
+**Repository/worktree:** atm-core, in a separately requested worktree based on
+the atm-core integration branch; this is not a source change in sc-compose.
+
+**Exact targets:** the atm-core template-cache/database schema, JSON-variable
+canonicalization boundary, cache lookup/restore path, and integration tests
+that consume the published `sc-sha` crate.
+
+**Deliverables:**
+
+- Cache rows retain canonical JSON variables (or lossless equivalent),
+  `JsonVarsSha256`, `CompositionSha256`, and `TemplateContextSha256`.
+- Cache lookup recomputes the recursive template graph through `sc-sha` and
+  recomputes the JSON-variable identity before restoring context.
+- A change in any nested template, dependency ordering, cycle/error state, or
+  JSON variables invalidates the prior context deterministically.
+- Cross-repository integration evidence proves atm-core consumes the released
+  `sc-sha` API rather than copying the algorithm.
+
+**Hard dependency:** slice 1's frozen recursive and JSON/context API contract.
+
+**Parallelism:** may proceed in parallel with slices 2 and 3 after slice 1's
+  API is stable. It is a release-blocking consumer sprint, not optional follow-
+  up work.
 
 ## Sequence recommendation
 
@@ -726,8 +798,11 @@ Rationale:
 4. Once `sc-sha` is available, PR #358 can be rebased or amended to remove its
    local `template_hash.rs`, depend on `sc-sha`, and retain its existing public
    compatibility surface through a re-export if needed.
-5. The recursive composition sprint then consumes the same crate without
-   another hash migration.
+5. The recursive composition sprint and the atm-core cache-consumer sprint can
+   proceed in parallel with the Python adapter once the shared API is stable.
+6. Release readiness requires atm-core to prove recursive cache restoration
+   from JSON variables plus composition SHA; this is not deferred because the
+   cache would otherwise be unable to detect nested-template changes.
 
 The merge gate is therefore:
 
@@ -735,8 +810,10 @@ The merge gate is therefore:
 plan approved
   -> verify synaptic-canvas-dolt algorithm
   -> sc-sha core implementation + QA
-  -> (sc-sha Python adapter + QA || recursive sc-compose fingerprint + QA)
+  -> (sc-sha Python adapter + QA || recursive sc-compose fingerprint + QA
+      || atm-core recursive cache consumer + QA)
   -> PR #358 updated to consume sc-sha + QA
+  -> online integration/release gate
 ```
 
 Comp2's current PR work and QA may proceed concurrently with the first two
@@ -758,6 +835,9 @@ The shared crate must test:
 - deterministic manifest encoding independent of map/traversal order;
 - algorithm/version domain separation;
 - repeated and reordered edges producing distinct composition identities;
+- canonical JSON-variable vectors with reordered keys, equivalent whitespace,
+  Unicode escapes, numeric edge cases, and duplicate-key rejection;
+- distinct JSON-variable, composition, and rendered-context identities;
 - optional render-option identity behavior.
 
 ### Maturin/Python tests
@@ -796,6 +876,22 @@ Use checked-in fixtures covering:
 
 Every test must assert both the single root fingerprint and enough manifest
 evidence to explain why it changed or remained stable.
+
+### atm-core cache-consumer tests
+
+The atm-core integration must additionally prove:
+
+1. the same recursive template graph plus semantically equivalent canonical
+   JSON variables restores the same context;
+2. changing a nested template invalidates the cache even when the root file and
+   JSON variables are unchanged;
+3. changing JSON variables invalidates the cache even when the template graph
+   is unchanged;
+4. changing dependency order, occurrence count, or renderer-relevant options
+   invalidates the cache when those inputs affect rendering;
+5. missing/cyclic/depth-exhausted graphs never restore a prior context;
+6. cache rows retain and validate all typed identities rather than trusting a
+   bare or mismatched SHA string.
 
 ### Required validation
 
@@ -906,6 +1002,8 @@ Additional boundary checks:
 - [ ] Add `crates/sc-sha` to the workspace.
 - [ ] Move the verified file hash and tests.
 - [ ] Add composition manifest types and deterministic hash function.
+- [ ] Add canonical JSON-variable, rendered-context, and distinct typed
+      identity APIs required by atm-core cache restoration.
 - [ ] Add resolver-driven recursive hashing with active-stack cycle detection,
       depth protection, and deterministic typed errors.
 - [ ] Remove duplicate `template_hash.rs` implementation from sc-composer.
@@ -942,6 +1040,18 @@ Additional boundary checks:
       fixtures.
 - [ ] Update normative architecture/requirements documentation.
 - [ ] Run full validation and obtain independent QA approval.
+
+### atm-core cache consumer sprint
+
+- [ ] Add the published `sc-sha` dependency through atm-core's normal external
+      crate boundary.
+- [ ] Persist canonical JSON variables plus `JsonVarsSha256`,
+      `CompositionSha256`, and `TemplateContextSha256` in the cache model.
+- [ ] Recompute recursive template and JSON-variable identities before cache
+      restore; reject stale, missing, cyclic, or mismatched entries.
+- [ ] Prove nested-template invalidation and JSON-variable invalidation with
+      integration fixtures.
+- [ ] Run independent QA and record cross-repository release evidence.
 
 ## Explicit non-goals
 
