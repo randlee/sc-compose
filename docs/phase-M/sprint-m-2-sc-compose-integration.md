@@ -79,10 +79,11 @@ fix class if it is not covered by M.2's exact targets.
   unrelated runtime dependencies.
 - Keep MiniJinja loader integration as the explicitly deferred scope described
   in `Native includes and MiniJinja directives`.
-- After M.2's sc-compose merge, update PR #358 to consume the published
-  `sc-sha` API, remove its local hash implementation, preserve its
-  directive-span and confined-loader scope, and rerun its full CI/QA. This
-  follow-up is owned by M.2 and is not an unowned third sprint.
+- Record the post-M.2 handoff for PR #358 to consume the published `sc-sha`
+  API, remove its local hash implementation, preserve its directive-span and
+  confined-loader scope, and rerun its full CI/QA. This follow-up is a
+  phase-level gate after M.2, not an M.2 deliverable or an unowned third
+  sprint.
 
 ## Explicit Code Samples
 
@@ -108,8 +109,8 @@ def calculate_composition_hash(manifest: dict) -> dict: ...
 - Deterministic missing-file, cycle, depth, confinement, and unresolved
   dynamic-include outcomes.
 - Cross-platform Rust/Python vectors, nested fixtures, and wheel evidence.
-- A reviewed PR #358 follow-up that consumes `sc-sha` without restoring a
-  duplicate implementation.
+- A complete handoff record for the post-M.2 PR #358 follow-up, which will
+  consume `sc-sha` without restoring a duplicate implementation.
 
 ## Acceptance Criteria
 
@@ -137,9 +138,9 @@ def calculate_composition_hash(manifest: dict) -> dict: ...
   with only the approved `sc-sha`/PyO3 dependency edges and a negative fixture
   rejects an attempted dependency on sc-compose, sc-composer, ATM, or an
   unrelated runtime package.
-- `[SHA-N2, SHA-N3]` PR #358's follow-up CI passes with its renderer/directive
-  behavior isolated from the shared hash migration, and quality-mgr receives
-  the combined evidence before that PR is merged.
+- `[SHA-N2, SHA-N3]` The PR #358 follow-up is recorded as a post-M.2 phase
+  gate, with its renderer/directive behavior isolated from the shared hash
+  migration. M.2 closure does not depend on that separate PR being merged.
 
 ## Required Validation
 
@@ -160,6 +161,10 @@ targets, fixtures, requirement mapping, validation output, wheel artifact
 evidence, and any sc-lint findings. Team-lead opens the PR and routes it to
 quality-mgr. M.2 is not complete until QA approval, merge, and post-merge
 revalidation are recorded.
+
+The PR #358 follow-up is not part of this sprint's closure boundary. Its
+post-M.2 phase gate remains recorded in `phase-M-plan.md` and must be routed
+through its own CI and QA handoff before Phase M closes.
 
 The phase plan's `sc-lint cleanup and QA routing` section is authoritative for
 minor findings and dedicated `fix/` worktree routing; this sprint handoff must

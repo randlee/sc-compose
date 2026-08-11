@@ -9,3 +9,5 @@ sc-sha = { path = "../sc-sha" }
 sc-composer = { path = "../sc-composer" }
 sc-compose = { path = "../sc-compose" }
 pyo3 = { path = "../pyo3" }
+atmcore = { path = "../atmcore" }
+unrelated-runtime = { path = "../unrelated-runtime" }

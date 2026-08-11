@@ -5,6 +5,8 @@ members = [
   "crates/sc-composer",
   "crates/sc-compose",
   "crates/pyo3",
+  "crates/atmcore",
+  "crates/unrelated-runtime",
 ]
 resolver = "2"
 

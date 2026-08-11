@@ -106,7 +106,7 @@ fn boundary_dependency_violation_stays_non_pass_with_structured_finding() {
 }
 
 #[test]
-fn sc_sha_python_boundary_rejects_runtime_dependency_edges() {
+fn sc_sha_python_boundary_rejects_all_forbidden_dependency_classes() {
     let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
         group: "sc-boundary",
         name: "sc-sha-python-dependency-violation",
@@ -123,16 +123,21 @@ fn sc_sha_python_boundary_rejects_runtime_dependency_edges() {
         String::from_utf8_lossy(&output.stderr)
     );
     let findings = payload["findings"].as_array().expect("findings array");
-    assert!(findings.iter().any(|finding| {
-        finding["message"]
-            .as_str()
-            .is_some_and(|message| message.contains("sc-compose"))
-    }));
-    assert!(findings.iter().any(|finding| {
-        finding["message"]
-            .as_str()
-            .is_some_and(|message| message.contains("sc-composer"))
-    }));
+    let dependency_findings = findings
+        .iter()
+        .filter(|finding| finding["rule_id"] == "SCB-DEPENDENCY-001")
+        .collect::<Vec<_>>();
+    assert_eq!(dependency_findings.len(), 4);
+    for dependency in ["sc-compose", "sc-composer", "atmcore", "unrelated-runtime"] {
+        assert!(
+            dependency_findings.iter().any(|finding| {
+                finding["message"]
+                    .as_str()
+                    .is_some_and(|message| message.contains(dependency))
+            }),
+            "missing forbidden dependency finding for {dependency}: {findings:?}"
+        );
+    }
 }
 
 #[test]
