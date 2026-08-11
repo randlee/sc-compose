@@ -602,6 +602,77 @@ mod tests {
     }
 
     #[test]
+    fn missing_frontmatter_in_diamond_include_is_reported_once_per_file() {
+        let root = temp_root("diagnostics_missing_frontmatter_diamond");
+        let leaf_path = root.join("leaf.md.j2");
+        write_file(
+            &root.join("template.md.j2"),
+            "---\n---\n@<parent-a.md.j2>\n@<parent-b.md.j2>\n",
+        );
+        write_file(&root.join("parent-a.md.j2"), "---\n---\n@<leaf.md.j2>\n");
+        write_file(&root.join("parent-b.md.j2"), "---\n---\n@<leaf.md.j2>\n");
+        write_file(&leaf_path, "hello {{ name }}\n");
+        let leaf = leaf_path.canonicalize().unwrap();
+
+        let request = request_for_file(&root, "template.md.j2", ComposePolicy::default());
+        let resolved = crate::resolve_template_path(&request).unwrap();
+        let expanded =
+            crate::expand_includes(&resolved.resolved_path, &request.root, &request.policy)
+                .unwrap();
+
+        assert_eq!(
+            expanded
+                .resolved_files
+                .iter()
+                .filter(|path| *path == &leaf)
+                .count(),
+            1
+        );
+        assert!(expanded.source_texts.contains_key(&leaf));
+
+        let report = validate(&request).unwrap();
+        assert_eq!(
+            report
+                .warnings
+                .iter()
+                .filter(|diagnostic| {
+                    diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
+                        && diagnostic.message.contains("leaf.md.j2")
+                })
+                .count(),
+            1,
+            "diamond include emitted duplicate missing-frontmatter diagnostics: {report:?}"
+        );
+    }
+
+    #[test]
+    fn missing_frontmatter_in_single_include_is_reported_once() {
+        let root = temp_root("diagnostics_missing_frontmatter_single");
+        write_file(&root.join("template.md.j2"), "---\n---\n@<leaf.md.j2>\n");
+        write_file(&root.join("leaf.md.j2"), "hello {{ name }}\n");
+
+        let report = validate(&request_for_file(
+            &root,
+            "template.md.j2",
+            ComposePolicy::default(),
+        ))
+        .unwrap();
+
+        assert_eq!(
+            report
+                .warnings
+                .iter()
+                .filter(|diagnostic| {
+                    diagnostic.code == DiagnosticCode::ErrValMissingFrontmatter
+                        && diagnostic.message.contains("leaf.md.j2")
+                })
+                .count(),
+            1,
+            "single include emitted an unexpected missing-frontmatter count: {report:?}"
+        );
+    }
+
+    #[test]
     fn missing_included_frontmatter_emits_fixup_warning_for_include() {
         let root = temp_root("diagnostics_missing_included_frontmatter");
         let root_template = root.join("template.md.j2");
