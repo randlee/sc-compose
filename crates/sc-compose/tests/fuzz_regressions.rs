@@ -242,3 +242,32 @@ fn all_and_brace_count_conflict_does_not_bypass_the_json_output_contract() {
     let value = parse_stdout(&output);
     assert_envelope(&value);
 }
+
+#[test]
+fn help_and_version_with_json_preserve_clap_display_output() {
+    for (args, expected_text) in [
+        (&["--version", "--json"][..], "sc-compose"),
+        (
+            &["render", "--help", "--json"][..],
+            "Usage: sc-compose render",
+        ),
+    ] {
+        let output = sc_compose().args(args).output().unwrap();
+
+        assert!(output.status.success(), "args={args:?}: {output:?}");
+        assert!(
+            output.stderr.is_empty(),
+            "args={args:?}: unexpected stderr: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.contains(expected_text),
+            "args={args:?}: expected {expected_text:?} in stdout: {stdout}"
+        );
+        assert!(
+            !stdout.trim_start().starts_with('{'),
+            "args={args:?}: display output must not be a JSON envelope: {stdout}"
+        );
+    }
+}

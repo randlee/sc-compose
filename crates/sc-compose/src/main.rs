@@ -14,6 +14,7 @@ mod template_store;
 mod var_file;
 
 use anyhow::{Result, anyhow};
+use clap::error::ErrorKind;
 use mimalloc::MiMalloc;
 use sc_composer::{Diagnostic, DiagnosticCode};
 use serde::Serialize;
@@ -39,7 +40,14 @@ fn report_cli_parse_error(error: &clap::Error, wants_json: bool) -> i32 {
     let rendered = error.render().to_string();
     let exit_code = error.exit_code();
 
-    if wants_json {
+    let is_display_request = matches!(
+        error.kind(),
+        ErrorKind::DisplayHelp
+            | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+            | ErrorKind::DisplayVersion
+    );
+
+    if wants_json && !is_display_request {
         let command_error = CommandError::usage_with_code(
             anyhow!(rendered.trim_end().to_owned()),
             DiagnosticCode::ErrConfigParse,
