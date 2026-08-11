@@ -418,7 +418,7 @@ pub fn render_template_within_root(
 
 fn load_confined_template(root: &Path, name: &str) -> Result<Option<String>, Error> {
     let requested = Path::new(name);
-    if requested.is_absolute()
+    if is_lexically_absolute_template_name(name)
         || requested
             .components()
             .any(|component| matches!(component, Component::ParentDir))
@@ -450,6 +450,23 @@ fn load_confined_template(root: &Path, name: &str) -> Result<Option<String>, Err
                 format!("template dependency cannot be read: {name}: {error}"),
             )
         })
+}
+
+/// Reject filesystem-rooted dependency names independently of the host OS.
+///
+/// Template source is portable: a template authored on Unix can contain a
+/// Windows drive path, and vice versa. `Path::is_absolute` only recognizes the
+/// current platform's syntax, which would allow a Windows-style absolute path
+/// through a Unix host (or `/etc/passwd` through a Windows host) until the
+/// loader tried I/O. Keep the confinement decision lexical and platform-neutral
+/// before touching the filesystem.
+fn is_lexically_absolute_template_name(name: &str) -> bool {
+    let bytes = name.as_bytes();
+    name.starts_with('/') || name.starts_with('\\') || requested_is_windows_drive_path(bytes)
+}
+
+fn requested_is_windows_drive_path(bytes: &[u8]) -> bool {
+    matches!(bytes, [drive, b':', ..] if drive.is_ascii_alphabetic())
 }
 
 #[cfg(test)]
@@ -1155,6 +1172,8 @@ mod tests {
 
         for source in [
             "{% include \"/etc/passwd\" %}",
+            r#"{% include "C:\\Windows\\win.ini" %}"#,
+            r#"{% include "\\\\server\\share\\template.j2" %}"#,
             "{% include \"../outside.j2\" %}",
         ] {
             let error = render_template_within_root(ConfinedTemplateRequest {
