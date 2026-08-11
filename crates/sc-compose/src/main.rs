@@ -30,12 +30,12 @@ fn main() {
     let wants_json = raw_args_want_json(raw_args.iter().cloned());
     let code = match parse_cli_from(raw_args) {
         Ok(cli) => run_cli(cli),
-        Err(error) => report_cli_parse_error(error, wants_json),
+        Err(error) => report_cli_parse_error(&error, wants_json),
     };
     std::process::exit(code);
 }
 
-fn report_cli_parse_error(error: clap::Error, wants_json: bool) -> i32 {
+fn report_cli_parse_error(error: &clap::Error, wants_json: bool) -> i32 {
     let rendered = error.render().to_string();
     let exit_code = error.exit_code();
 
