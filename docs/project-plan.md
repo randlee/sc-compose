@@ -779,6 +779,21 @@ the separate `.code` attribute used for error-code dispatch. Python callers
 now receive the human-readable message from `str(error)` instead of the raw
 `(code, message)` argument-tuple representation.
 
+### Follow-on Fix Sprint: FIX-370-371
+
+Status:
+
+- complete on `fix/370-371-include-path-error-swallowing` at `f76700e`
+
+Sprint entry:
+
+- [Sprint FIX-370-371 — Include Resolver Error Swallowing](sprints/fix-370-371-include-path-error-swallowing.md)
+
+FIX-370-371 makes include resolution fall back from a relative candidate only
+for a genuine not-found error. Permission-denied and other filesystem errors
+now retain their original diagnostic and actual candidate path, preventing
+silent substitution from a same-named root-relative decoy.
+
 ### Follow-on Fix Sprint: FIX-238
 
 Status:

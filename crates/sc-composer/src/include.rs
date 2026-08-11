@@ -560,6 +560,98 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
+    fn permission_denied_relative_include_does_not_use_root_decoy() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = temp_root("include_permission_denied_decoy");
+        let restricted_dir = root.join("nested/private");
+        let restricted_target = restricted_dir.join("target.md");
+        write_file(&root.join("root.md.j2"), "@<nested/parent.md>\n");
+        write_file(&root.join("nested/parent.md"), "@<private/target.md>\n");
+        write_file(&restricted_target, "secret\n");
+        write_file(&root.join("private/target.md"), "DECOY\n");
+
+        let mut permissions = fs::metadata(&restricted_dir).unwrap().permissions();
+        permissions.set_mode(0o000);
+        fs::set_permissions(&restricted_dir, permissions).unwrap();
+
+        let error = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap_err();
+
+        let mut restore = fs::metadata(&restricted_dir).unwrap().permissions();
+        restore.set_mode(0o700);
+        fs::set_permissions(&restricted_dir, restore).unwrap();
+
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludePermissionDenied);
+                assert!(error.message().contains("nested/private/target.md"));
+                assert!(!error.message().contains("DECOY"));
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn permission_denied_relative_include_does_not_become_not_found() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = temp_root("include_permission_denied_no_decoy");
+        let restricted_dir = root.join("nested/private");
+        let restricted_target = restricted_dir.join("target.md");
+        write_file(&root.join("root.md.j2"), "@<nested/parent.md>\n");
+        write_file(&root.join("nested/parent.md"), "@<private/target.md>\n");
+        write_file(&restricted_target, "secret\n");
+
+        let mut permissions = fs::metadata(&restricted_dir).unwrap().permissions();
+        permissions.set_mode(0o000);
+        fs::set_permissions(&restricted_dir, permissions).unwrap();
+
+        let error = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap_err();
+
+        let mut restore = fs::metadata(&restricted_dir).unwrap().permissions();
+        restore.set_mode(0o700);
+        fs::set_permissions(&restricted_dir, restore).unwrap();
+
+        match error {
+            ComposeError::Include(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludePermissionDenied);
+                assert!(error.message().contains("nested/private/target.md"));
+                assert!(!error.message().contains("ERR_INCLUDE_NOT_FOUND"));
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[test]
+    fn missing_relative_include_still_falls_back_to_root() {
+        let root = temp_root("include_missing_relative_fallback");
+        write_file(&root.join("root.md.j2"), "@<nested/parent.md>\n");
+        write_file(&root.join("nested/parent.md"), "@<shared/target.md>\n");
+        write_file(&root.join("shared/target.md"), "root fallback\n");
+
+        let expanded = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap();
+
+        assert_eq!(expanded.text, "root fallback\n");
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn symlink_loop_include_reports_filesystem_loop() {
         use std::os::unix::fs::symlink;
 

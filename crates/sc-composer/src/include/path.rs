@@ -16,8 +16,10 @@ pub(super) fn resolve_include_path(
         .parent()
         .unwrap_or(root)
         .join(include_target);
-    if let Ok(path) = canonicalize_include(&relative_candidate, root, allowed_roots, stack) {
-        return Ok(path);
+    match canonicalize_include(&relative_candidate, root, allowed_roots, stack) {
+        Ok(path) => return Ok(path),
+        Err(error) if error.code() == Some(DiagnosticCode::ErrIncludeNotFound) => {}
+        Err(error) => return Err(error),
     }
 
     let root_candidate = root.join(include_target);
