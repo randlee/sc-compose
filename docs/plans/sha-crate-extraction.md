@@ -50,7 +50,7 @@ on conversation history.
 | SHA-N1 | Hash identity is deterministic across macOS, Linux, and Windows and independent of host path separators/line endings. | `Source-of-truth verification gate`; cross-platform fixtures | X.1 and X.2 |
 | SHA-N2 | Keep filesystem policy, template syntax, CLI behavior, and persistence outside the core crate. | `Proposed workspace layout` and boundary rules | X.1 and X.2 |
 | SHA-N3 | Keep the implementation production-ready: typed failures, consumer-owned bounded recursion, no duplicate implementation, and reproducible validation evidence. | `API simplicity requirement`, required validation, and QA routing | X.1 and X.2 |
-| ADR-SHA-001 | Record shared hash ownership, domain separation, and the sc-compose/consumer boundary in `docs/adrs/0016-sc-sha-hash-ownership.md`. | Required architecture decision in X.1 | X.1 |
+| ADR-SHA-001 | Record shared hash ownership, domain separation, and the sc-compose/consumer boundary in `docs/adrs/0018-sc-sha-hash-ownership.md`. | Required architecture decision in X.1; `docs/adrs/0018-*` was verified free before this revision | X.1 |
 
 Each sprint record must cite the applicable IDs in its acceptance criteria. A
 requirement is not closed merely because a type or file exists; the cited test,
@@ -358,14 +358,21 @@ pub struct ResolvedTemplateManifest {
 }
 ```
 
-`CanonicalTemplatePath` and `CanonicalSourceUrl` are opaque tagged keys.
+`CanonicalTemplatePath` is an opaque newtype around a canonical path string;
+`CanonicalSourceUrl` is an opaque newtype around a canonical URL string; and
+`ManifestSchemaVersion` is an explicit version enum whose supported value is
+`V1`. `CanonicalTemplatePath` and `CanonicalSourceUrl` are opaque tagged keys.
 sc-compose constructs them after applying filesystem canonicalization and
 confinement; sc-sha only encodes their already-canonical representation and
 never decides whether a path exists or is allowed. The source tag ensures a
 future URL include cannot collide with or false-deduplicate against a local
-path. The public manifest constructor validates structural invariants but does
-not discover, reorder, deduplicate, or cycle-check the graph; manifest creation
-is owned by sc-compose.
+path. The public fields remain caller-constructible for manifest assembly; no
+validating manifest constructor is promised. `calculate_composition_hash` is
+the sole public structural-validation gate: it rejects duplicate nodes,
+unknown edge endpoints, unsupported schema versions, and malformed tagged
+sources before producing a digest. It does not discover, reorder, deduplicate,
+or cycle-check the graph; graph creation and resolver policy remain owned by
+sc-compose.
 
 The composition encoding is explicitly injective before SHA-256:
 
@@ -375,7 +382,8 @@ The composition encoding is explicitly injective before SHA-256:
 3. encode edge count, then each ordered edge as tagged parent, tagged child, and
    occurrence number with unambiguous length framing;
 4. reject duplicate nodes, unknown edge endpoints, unsupported schema versions,
-   and malformed tagged sources before hashing.
+   and malformed tagged sources inside `calculate_composition_hash`, before
+   hashing the framed bytes.
 
 The encoding is required to be provably injective: different source tags,
 paths/URLs, node order, per-file hashes, edge order, or occurrence structure
@@ -411,6 +419,19 @@ documented in the implementation sprint:
 | `SC_SHA_MANIFEST_DUPLICATE_SOURCE` | `CompositionError::DuplicateSource` | Caller supplied duplicate manifest nodes. | Fix the sc-compose node builder; do not silently deduplicate. |
 | `SC_SHA_MANIFEST_UNKNOWN_EDGE` | `CompositionError::UnknownEdgeEndpoint` | An edge references no manifest node. | Rebuild the resolved manifest from the validated graph. |
 | `SC_SHA_MANIFEST_INVALID_SOURCE` | `CompositionError::InvalidTaggedSource` | Tagged source representation is malformed. | Re-canonicalize at the owning resolver boundary. |
+
+The following resolver failures are owned by sc-compose, not `sc-sha`. Their
+stable codes and family mapping must be preserved in the X.2 implementation and
+added to the architecture failure matrix where a new dynamic-include code is
+needed:
+
+| Stable code | Type/variant | Architecture family | Cause and recovery |
+| --- | --- | --- | --- |
+| `ERR_INCLUDE_NOT_FOUND` | `IncludeError` / `DiagnosticCode::ErrIncludeNotFound` | Existing `IncludeError` family | The include target is missing; correct the target or package contents. |
+| `ERR_INCLUDE_CYCLE` | `IncludeError` / `DiagnosticCode::ErrIncludeCycle` | Existing `IncludeError` family | The include graph cycles; remove the cycle before requesting a cacheable manifest. |
+| `ERR_INCLUDE_DEPTH` | `IncludeError` / `DiagnosticCode::ErrIncludeDepth` | Existing `IncludeError` family | The configured depth bound is exceeded; reduce nesting or raise the consumer policy explicitly. |
+| `ERR_INCLUDE_ESCAPE` | `IncludeError` / `DiagnosticCode::ErrIncludeEscape` | Existing `IncludeError` family | A path or symlink escapes the allowed root; correct the include or confinement configuration. |
+| `ERR_INCLUDE_DYNAMIC_UNRESOLVED` | `IncludeError` / new `DiagnosticCode::ErrIncludeDynamicUnresolved` | Existing `IncludeError` family; add this missing code to `docs/architecture.md` before implementation | A dynamic include cannot be exhaustively enumerated; resolve it statically or mark the result non-cacheable rather than hashing an incomplete graph. |
 
 ### API simplicity requirement
 
@@ -589,8 +610,9 @@ For each visited/candidate node, sc-compose must:
 5. If a dynamic include cannot be conservatively enumerated, return an explicit
    unresolved-dependency result; do not silently claim the manifest is
    exhaustive or produce a cacheable identity.
-6. After the complete validated manifest exists, call
-   `sc_sha::calculate_composition_hash` exactly once.
+6. After the complete graph manifest is assembled, call
+   `sc_sha::calculate_composition_hash` exactly once; that operation is the
+   sole sc-sha structural-validation gate before the digest is produced.
 
 The result should expose both the source identity and inspectable evidence:
 
@@ -691,7 +713,7 @@ not branches to create before X is assigned.
 - `crates/sc-composer/Cargo.toml`
 - `crates/sc-composer/src/lib.rs`
 - `CLAUDE.md` (Boundary Rules amendment)
-- `docs/adrs/0016-sc-sha-hash-ownership.md`
+- `docs/adrs/0018-sc-sha-hash-ownership.md`
 
 #### Paths to Delete
 
@@ -858,6 +880,11 @@ fix class if it is not covered by X.2's exact targets.
   `ResolvedTemplateManifest`; enumerate all statically discoverable conditional
   candidates, deduplicate canonical source nodes, preserve ordered edges, and
   fail explicitly for unresolved dynamic includes.
+- Preserve the five resolver failure mappings in the resolver error inventory:
+  missing target, cycle, depth exhaustion, confinement/symlink escape, and
+  unresolved dynamic include. Use the existing `IncludeError` family and stable
+  `docs/architecture.md` codes; add the explicitly named dynamic-unresolved
+  code to the architecture matrix before implementation if it is still absent.
 - Memoize each canonical source's `TemplateSha256` exactly once per graph
   computation, including diamond dependencies, then call
   `sc_sha::calculate_composition_hash` only after the manifest is complete.
@@ -918,7 +945,9 @@ def calculate_composition_hash(manifest: dict) -> dict: ...
   operations, values, result shapes, and typed errors as Rust.
 - `[SHA-N2, SHA-N3]` Missing, cyclic, depth-exhausted, confinement-violating,
   and unresolved dynamic graphs are rejected by sc-compose and never passed as
-  a successful manifest; no duplicate implementation remains.
+  a successful manifest; each failure has the stable code and `IncludeError`
+  mapping listed in the resolver error inventory; no duplicate implementation
+  remains.
 - `[SHA-N2, SHA-N3]` PR #358's follow-up CI passes with its renderer/directive
   behavior isolated from the shared hash migration, and quality-mgr receives
   the combined evidence before that PR is merged.
