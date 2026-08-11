@@ -98,3 +98,40 @@ fn boundary_dependency_violation_stays_non_pass_with_structured_finding() {
     assert!(report_text.contains("SCB-DEPENDENCY-001"));
     assert!(report_text.contains("boundary-api"));
 }
+
+#[test]
+fn sc_sha_boundary_rejects_renderer_dependency() {
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "sc-boundary",
+        name: "sc-sha-dependency-violation",
+        target: "sc-boundary",
+    });
+    let output = run_sc_boundary(&fixture);
+    let envelope = parse_stdout(&output);
+    let payload = &envelope["payload"];
+    assert_eq!(payload["command_id"], "lint.sc-boundary");
+    assert_eq!(payload["outcome"], "findings");
+    assert_eq!(payload["findings_count"], 6);
+    let messages = payload["findings"]
+        .as_array()
+        .expect("finding array")
+        .iter()
+        .map(|finding| {
+            assert_eq!(finding["rule_id"], "SCB-DEPENDENCY-001");
+            finding["message"].as_str().expect("finding message")
+        })
+        .collect::<Vec<_>>();
+    for package in [
+        "sc-composer",
+        "sc-compose",
+        "sc-compose-py",
+        "filesystem-support",
+        "cache-host",
+        "unrelated-runtime",
+    ] {
+        assert!(
+            messages.iter().any(|message| message.contains(package)),
+            "missing forbidden dependency finding for {package}: {messages:?}"
+        );
+    }
+}

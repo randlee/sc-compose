@@ -16,8 +16,8 @@ constructor = "none"
 roots = []
 
 [dependencies]
-allowed_dependents = ["sc-compose", "sc-compose-py"]
-allowed_dependencies = ["sc-sha"]
+allowed_dependents = ["sc-sha"]
+allowed_dependencies = []
 forbidden_edges = []
 
 [references]
@@ -29,8 +29,8 @@ allowed_test_double_paths = []
 forbidden_test_bypasses = []
 
 [enforcement]
-lint_rules = ["LINT-SC-COMPOSER-ISOLATION"]
-review_gates = ["pure_library"]
+lint_rules = []
+review_gates = []
 
 [status]
 state = "concrete_landed"
