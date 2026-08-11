@@ -24,6 +24,10 @@ impl ScShaError {
     fn new(code: String, message: String) -> Self {
         Self { code, message }
     }
+
+    fn __str__(&self) -> &str {
+        &self.message
+    }
 }
 
 fn error(py: Python<'_>, code: impl Into<String>, message: impl Into<String>) -> PyErr {
@@ -96,13 +100,8 @@ fn parse_source<'py>(py: Python<'py>, value: &Bound<'py, PyAny>) -> PyResult<Can
     }
 }
 
-fn parse_digest(value: &str) -> Result<TemplateSha256, &'static str> {
-    TemplateSha256::from_hex(value).map_err(|error| match error {
-        sc_sha::ShaError::InvalidDigestHex => {
-            "sha256 must contain exactly 64 hexadecimal characters"
-        }
-        sc_sha::ShaError::InvalidUtf8 => "sha256 must be hexadecimal",
-    })
+fn parse_digest(value: &str) -> Result<TemplateSha256, sc_sha::ShaError> {
+    TemplateSha256::from_hex(value)
 }
 
 fn parse_nodes(py: Python<'_>, value: &Bound<'_, PyAny>) -> PyResult<Vec<ResolvedTemplateNode>> {
@@ -131,7 +130,7 @@ fn parse_nodes(py: Python<'_>, value: &Bound<'_, PyAny>) -> PyResult<Vec<Resolve
         })?;
         let source = parse_source(py, &source_value)?;
         let digest = parse_digest(&string_field(py, node, "sha256")?)
-            .map_err(|message| error(py, "SC_SHA_INVALID_MANIFEST", message))?;
+            .map_err(|parse_error| error(py, parse_error.code(), parse_error.to_string()))?;
         parsed_nodes.push(ResolvedTemplateNode {
             source,
             content_hash: digest,
