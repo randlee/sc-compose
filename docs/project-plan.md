@@ -716,6 +716,35 @@ Sprint entries:
 - [Sprint L.16 — Top-Level CI](phase-L/sprint-l-16-ci.md)
 - [Sprint L.17 — sc-lint Script Packaging](phase-L/sprint-l-17-sc-lint-script-packaging.md)
 
+### Phase M Sprint Plans
+
+Status:
+
+- planned: plan-gate QA passed at `639d623` on `plan/sha-crate`
+  (`PLAN-GATE-SHA-CRATE-001-R5`) after five review rounds; subsequent
+  plan-hardening commits `c0efa37` and `29bd1c1` make the boundary and
+  public-source-type contracts explicit; extracts the `sc-compose`-owned SHA
+  hashing logic (`crates/sc-composer/src/template_hash.rs`, from PR #358)
+  into a standalone `sc-sha` crate plus a `bindings/sc-sha-python` adapter,
+  compatibility-verified against the real hash-calculation needs of the
+  sibling `synaptic-canvas-dolt` repo;
+- hard pre-implementation gate: no source under `crates/sc-sha/` or
+  `bindings/sc-sha-python/` may be authored until CLAUDE.md's Boundary Rules
+  are amended for these two crates and ADR-0018 is signed off, per explicit
+  team-lead ruling — not yet cleared;
+- M.1 and M.2 are both implementation sprints (non-doc Exact Targets,
+  `cargo test --workspace` required validation), contiguous, no gaps;
+- the pre-implementation gate, public constructor/accessor signatures for
+  `CanonicalTemplatePath`/`CanonicalSourceUrl`, and this status wording are
+  now recorded in the planning worktree; the proposed ADR remains unaccepted
+  until team-lead approves its number and scope.
+
+Sprint entries:
+
+- [Phase M plan](phase-M/phase-M-plan.md)
+- [Sprint M.1 — sc-sha Core Crate](phase-M/sprint-m-1-sc-sha-core-crate.md)
+- [Sprint M.2 — sc-compose Integration](phase-M/sprint-m-2-sc-compose-integration.md)
+
 ### Follow-on Fix Sprint: FIX-238
 
 Status:
@@ -1074,6 +1103,19 @@ for independent regression QA.
   Phase HTML-Report scope is limited to the structured-input model, the
   bundled single-panel `sprint-report-html` example, and wrapper-owned HTML
   rendering integration.
+
+### Follow-on Issue: Nested Template Composition Fingerprints
+
+The current content-only SHA/fingerprint model is not sufficient as the
+identity of a composed template: it does not distinguish identical content at
+different canonical paths and does not change when a transitive nested include
+changes. GitHub issue [#360](https://github.com/randlee/sc-compose/issues/360)
+tracks the required versioned Merkle-style composition fingerprint. The issue
+requires a deterministic dependency manifest for auditability plus one root
+`composition_sha` derived from canonical paths, exact source bytes, ordered
+include edges, repeated occurrences, and relevant render context. This remains
+follow-on work and is not claimed by the completed extraction or maintainability
+phases.
 
 ### Sprint S9: User Data Directory Unification (`~/.sc-compose`)
 
