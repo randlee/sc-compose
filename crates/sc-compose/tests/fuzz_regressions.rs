@@ -247,10 +247,7 @@ fn all_and_brace_count_conflict_does_not_bypass_the_json_output_contract() {
 fn help_and_version_with_json_preserve_clap_display_output() {
     for (args, expected_text) in [
         (&["--version", "--json"][..], "sc-compose"),
-        (
-            &["render", "--help", "--json"][..],
-            "Usage: sc-compose render",
-        ),
+        (&["render", "--help", "--json"][..], "render [OPTIONS]"),
     ] {
         let output = sc_compose().args(args).output().unwrap();
 

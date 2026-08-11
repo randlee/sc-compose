@@ -42,9 +42,7 @@ fn report_cli_parse_error(error: &clap::Error, wants_json: bool) -> i32 {
 
     let is_display_request = matches!(
         error.kind(),
-        ErrorKind::DisplayHelp
-            | ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
-            | ErrorKind::DisplayVersion
+        ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
     );
 
     if wants_json && !is_display_request {
