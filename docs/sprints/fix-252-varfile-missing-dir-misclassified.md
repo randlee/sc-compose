@@ -1,7 +1,7 @@
 ---
 id: FIX-252
 title: "Route missing/directory --var-file open errors through ERR_CONFIG_READ instead of ERR_CONFIG_PARSE"
-status: assigned
+status: complete
 branch: fix/252-varfile-missing-dir-misclassified
 worktree: ../sc-compose-worktrees/fix/252-varfile-missing-dir-misclassified
 target: develop
@@ -175,6 +175,22 @@ for this sprint too:
 - `cargo fmt --all --check` and
   `cargo clippy --all-targets --all-features -- -D warnings` clean.
 - GitHub issue #252 can be closed referencing the merged PR.
+
+## Closeout Evidence
+
+Status: **complete**.
+
+- Red baseline: `61bf00c` (`test: reproduce varfile read diagnostic mismatch`).
+  The fresh missing-path regression failed with `ErrConfigParse` before the
+  implementation change.
+- Green implementation: `bd8a748` (`fix: classify varfile read errors`).
+  Missing and directory var-file paths now use `ErrConfigRead` with an
+  `InspectPath` recovery hint; malformed content remains unchanged.
+- Full validation: `cargo test --workspace`,
+  `cargo clippy --all-targets --all-features -- -D warnings`,
+  `cargo fmt --all --check`, and `git diff --check`: PASS.
+
+All regression tests were created fresh on this branch.
 
 ## References
 

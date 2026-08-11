@@ -779,6 +779,20 @@ the separate `.code` attribute used for error-code dispatch. Python callers
 now receive the human-readable message from `str(error)` instead of the raw
 `(code, message)` argument-tuple representation.
 
+### Follow-on Fix Sprint: FIX-252
+
+Status:
+
+- complete on `fix/252-varfile-missing-dir-misclassified` at `bd8a748`
+
+Sprint entry:
+
+- [Sprint FIX-252 — Route missing/directory --var-file open errors through ERR_CONFIG_READ instead of ERR_CONFIG_PARSE](sprints/fix-252-varfile-missing-dir-misclassified.md)
+
+FIX-252 routes missing and directory `--var-file` open failures through
+`ERR_CONFIG_READ` with an `InspectPath` recovery hint, while preserving
+`ERR_CONFIG_PARSE` for malformed content that was successfully read.
+
 ### Follow-on Fix Sprint: FIX-370-371
 
 Status:
