@@ -563,6 +563,25 @@ mod tests {
         assert!(parsed.get("injected").is_none());
     }
 
+    // FUZZ-001 (adversarial fuzz campaign 20260811-3, shape-probe): JSON
+    // auto-escape owns quoting for bare placeholders produced by
+    // `template-init`; keeping the placeholder bare avoids double quoting.
+    #[test]
+    fn renderer_json_auto_escape_does_not_double_quote_a_pre_quoted_string_placeholder() {
+        let renderer = Renderer::new();
+        let output = renderer
+            .render_named(
+                "payload.json.j2",
+                r#"{"worktree_path": {{ worktree_path }}}"#,
+                json!({"worktree_path": "/tmp/wt"}),
+            )
+            .unwrap();
+
+        let parsed: serde_json::Value = serde_json::from_str(&output)
+            .unwrap_or_else(|error| panic!("expected valid JSON, got {output:?}: {error}"));
+        assert_eq!(parsed["worktree_path"], json!("/tmp/wt"));
+    }
+
     fn sprint_plan_body() -> &'static str {
         let source = include_str!("../../../.claude/skills/codex-orchestration/sprint-plan.md.j2");
         source
