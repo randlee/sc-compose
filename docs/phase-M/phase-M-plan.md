@@ -234,6 +234,10 @@ bindings/
     src/lib.rs
     tests/
       test_compatibility.py
+
+boundaries/
+  sc-sha/shared-library.toml
+  sc-sha-python/python-adapter.toml
 ```
 
 The exact module split may change during implementation, but the public crate
@@ -262,6 +266,19 @@ workspace-managed, but `sc-sha` should not depend on MiniJinja, serde, a
 filesystem abstraction, ATM crates, or CLI libraries merely to compute a
 digest. Canonical manifest encoding should be deterministic without relying on
 map iteration or platform-specific serialization.
+
+The `sc-boundary` inventory is part of the implementation, not merely review
+documentation. M.1 must add `boundaries/sc-sha/shared-library.toml` with an
+explicit allowlist containing only the approved hashing/framing dependencies
+and permitted dependents (`sc-composer` and the future `sc-sha-python`
+adapter). An unlisted dependency must fail the boundary check; this protects
+against accidental dependencies on `sc-compose`, `sc-composer` in the wrong
+direction, MiniJinja, filesystem/CLI libraries, ATM crates, PyO3, maturin, or
+other runtime/tooling packages. M.2 must add the separate
+`boundaries/sc-sha-python/python-adapter.toml`, allowing only published
+`sc-sha` plus the approved PyO3 adapter dependencies. These records make the
+shared-library-first design executable by the repository's existing sc-lint
+boundary enforcement.
 
 ## Proposed `sc-sha` public API
 
@@ -704,6 +721,11 @@ must not depend on `sc-compose`, `sc-composer`, MiniJinja, filesystem/CLI
 libraries, ATM crates, PyO3, or maturin, and it must not implement resolver,
 path-policy, cycle, or depth behavior.
 
+The same sprint must add `boundaries/sc-sha/shared-library.toml` and prove it
+with `just lint sc-boundary` plus a deliberate forbidden-dependency fixture.
+The boundary record is the machine-checked allowlist; `CLAUDE.md` and
+ADR-SHA-001 explain its rationale and ownership.
+
 ### Proposed Rule 9 — `sc-sha-python` adapter boundary
 
 Sprint M.1 must also amend `CLAUDE.md` to state that
@@ -713,6 +735,11 @@ packaging dependencies only. It must not depend on `sc-compose`,
 public operations without a Python-only algorithm. These proposed rules are
 not effective until team-lead explicitly rules on them and signs off
 `ADR-SHA-001`.
+
+M.2 must add the corresponding `boundaries/sc-sha-python/python-adapter.toml`
+record and prove that the adapter cannot acquire `sc-compose`,
+`sc-composer`, ATM, or unrelated runtime dependencies through the same
+`sc-boundary` command.
 
 Additional boundary checks:
 

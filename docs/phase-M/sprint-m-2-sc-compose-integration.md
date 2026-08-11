@@ -52,6 +52,7 @@ independent rule class under the phase-level routing policy.
 - `bindings/sc-sha-python/pyproject.toml`
 - `bindings/sc-sha-python/src/lib.rs`
 - `bindings/sc-sha-python/tests/test_compatibility.py`
+- `boundaries/sc-sha-python/python-adapter.toml`
 - recursive include fixtures and compatibility vectors
 
 ## Paths to Delete
@@ -68,6 +69,10 @@ fix class if it is not covered by M.2's exact targets.
   per-source hashing, and deterministic resolver failures.
 - Implement a separate maturin `sc_sha` adapter delegating the same two Rust
   operations, with stable result/error mappings and clean wheel installation.
+- Add `boundaries/sc-sha-python/python-adapter.toml` with an explicit allowlist
+  for published `sc-sha` and the approved PyO3 adapter dependencies only;
+  prove that the adapter cannot acquire sc-compose, sc-composer, ATM, or
+  unrelated runtime dependencies.
 - Keep MiniJinja loader integration as the explicitly deferred scope described
   in `Native includes and MiniJinja directives`.
 - After M.2's sc-compose merge, update PR #358 to consume the published
@@ -124,6 +129,10 @@ def calculate_composition_hash(manifest: dict) -> dict: ...
   a successful manifest; each failure has the stable code and `IncludeError`
   mapping listed in the [resolver error inventory](phase-M-plan.md#resolver-error-inventory);
   no duplicate implementation remains.
+- `[SHA-N2]` The Python adapter boundary record passes `just lint sc-boundary`
+  with only the approved `sc-sha`/PyO3 dependency edges and a negative fixture
+  rejects an attempted dependency on sc-compose, sc-composer, ATM, or an
+  unrelated runtime package.
 - `[SHA-N2, SHA-N3]` PR #358's follow-up CI passes with its renderer/directive
   behavior isolated from the shared hash migration, and quality-mgr receives
   the combined evidence before that PR is merged.
@@ -133,6 +142,8 @@ def calculate_composition_hash(manifest: dict) -> dict: ...
 - `cargo fmt --all --check`
 - `cargo test --workspace`
 - `cargo clippy --all-targets --all-features -- -D warnings`
+- `just lint sc-boundary`
+- `cargo test -p sc-compose --test sc_lint_sc_boundary`
 - complete recursive fixture suite on Linux, macOS, and Windows CI
 - `maturin build` followed by installation into a clean virtual environment
 - Rust/Python compatibility-vector and result/error-shape tests

@@ -26,10 +26,14 @@ for the Python consumption proof that completes SHA-R1.
 
 ## Hard Dependencies
 
-None. The sprint starts from `integrate/phase-M`, whose selected parent commit
-is recorded by team-lead after plan approval. It may run in parallel with
-comp2's independent PR #358 CI fixes and QA, but neither branch may merge a
-duplicate hash implementation.
+Before any source file under `crates/sc-sha/` or
+`bindings/sc-sha-python/` is authored or staged, team-lead must record the
+explicit ruling on the proposed `CLAUDE.md` boundary amendment and sign off
+ADR-SHA-001. The ruling and ADR decision are hard prerequisites, not a
+post-implementation review item. The sprint starts from `integrate/phase-M`,
+whose selected parent commit is recorded by team-lead after that gate is
+approved. It may run in parallel with comp2's independent PR #358 CI fixes and
+QA, but neither branch may merge a duplicate hash implementation.
 
 **Target:** `develop` through `integrate/phase-M`.
 
@@ -57,6 +61,8 @@ open.
 - `crates/sc-sha/tests/compatibility_vectors.rs`
 - `crates/sc-composer/Cargo.toml`
 - `crates/sc-composer/src/lib.rs`
+- `boundaries/sc-sha/shared-library.toml`
+- `tests/fixtures/sc-lint/sc-boundary/sc-sha-dependency-violation/Cargo.toml`
 - `CLAUDE.md` (Boundary Rules amendment)
 - `docs/adrs/0018-sc-sha-hash-ownership.md`
 
@@ -68,8 +74,22 @@ has passed its compile tests.
 
 ## Required Work
 
+- Complete the hard pre-implementation gate first: record the team-lead ruling
+  and ADR-SHA-001 sign-off before authoring or staging any sc-sha or Python
+  adapter source. A local plan review or an unapproved draft does not satisfy
+  this gate.
 - Record the exact synaptic-canvas-dolt source commit and authoritative vector
   fixture before implementation changes the algorithm.
+- Add `boundaries/sc-sha/shared-library.toml` at the same time as the crate.
+  Its dependency allowlist must contain only the approved hashing/framing
+  dependencies; all other Cargo edges fail `sc-boundary`. Its dependent
+  allowlist permits `sc-composer` and the future `sc-sha-python` adapter, but
+  never permits a reverse dependency on sc-compose or sc-composer.
+- Add the deliberate sc-boundary negative fixture named in Exact Targets,
+  proving that an attempted dependency on a renderer, CLI, filesystem, ATM,
+  Python-binding, or unrelated runtime package is reported rather than
+  silently accepted. Keep the fixture representative and do not add those
+  dependencies to the real crate.
 - Migrate PR #358's calculation as the starting point, correcting it to the
   one strict-UTF-8/universal-newline-normalized `TemplateSha256` contract.
 - Implement exactly `calculate_hash` and `calculate_composition_hash`; keep any
@@ -126,6 +146,10 @@ pub fn calculate_composition_hash(
 - `[SHA-N2, SHA-N3]` Manifest encoding tests prove version-tagged, framed,
   injective node/edge encoding and typed structural errors without graph
   discovery or policy enforcement in sc-sha.
+- `[SHA-N2]` `boundaries/sc-sha/shared-library.toml` is present with an
+  explicit minimal dependency/dependent allowlist; `just lint sc-boundary` and
+  the deliberate negative fixture prove that forbidden renderer, CLI,
+  filesystem, ATM, Python-binding, and unrelated runtime edges fail.
 - `[ADR-SHA-001]` The team-lead ruling and ADR sign-off approve the new
   `CLAUDE.md` Boundary Rules for `sc-sha` and `bindings/sc-sha-python`,
   including dependency constraints and the extended `ATM_HOME` prohibition.
@@ -139,6 +163,8 @@ pub fn calculate_composition_hash(
 - `cargo fmt --all --check`
 - `cargo test --workspace`
 - `cargo clippy --all-targets --all-features -- -D warnings`
+- `just lint sc-boundary`
+- `cargo test -p sc-compose --test sc_lint_sc_boundary`
 - compatibility-vector tests against the recorded upstream source commit
 - `git diff --check`
 
