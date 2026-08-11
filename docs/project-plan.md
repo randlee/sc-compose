@@ -747,6 +747,7 @@ Sprint entries:
 - [Sprint FIX-373 — Diamond Frontmatter Dedup](sprints/fix-373-diamond-frontmatter-dedup.md)
 - [Sprint FIX-374 — sc-sha Digest Error Code](sprints/fix-374-sc-sha-digest-error-code.md)
 - [Sprint FIX-375 — ScShaError __str__](sprints/fix-375-scshaerror-str.md)
+- [Sprint FIX-385 — Template-Init JSON Round Trip](sprints/fix-385-template-init-json-round-trip.md)
 
 ### Follow-on Fix Sprint: FIX-373
 

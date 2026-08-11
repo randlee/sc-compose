@@ -1,7 +1,7 @@
 ---
 id: FIX-385
 title: "template-init followed by render silently corrupts round-trip JSON via double-quoting auto-escape"
-status: assigned
+status: complete
 branch: fix/385-template-init-json-round-trip
 worktree: ../sc-compose-worktrees/fix/385-template-init-json-round-trip
 target: develop
@@ -78,3 +78,19 @@ contract; `template_init.rs` is the side with the mismatched assumption.
 
 Fuzz-discovered production bug; dispatched immediately, comp assigned as the
 harder of the two 2026-08-11 fuzz-campaign fixes.
+
+## Closeout Evidence
+
+- Status: **complete**.
+- Implementation: `31b3ef2` (`fix: preserve JSON string round trips from
+  template init`) consumes the surrounding quote characters when replacing
+  string values in JSON targets, including `.json`, `.json.j2`, `.json.jinja2`,
+  and `.json.jinja` names. The renderer's JSON auto-escape behavior remains
+  unchanged and continues to own quoting for the resulting bare placeholder.
+- Regression coverage: `template_init_json_round_trips_string_values_through_render`
+  verifies that template-init followed by JSON rendering reproduces the
+  concrete document byte-for-byte; the existing renderer contract test remains
+  green with the bare-placeholder form.
+- Validation: focused template-init and renderer regressions, `cargo fmt
+  --all --check`, and `git diff --check` pass. Full workspace test and clippy
+  validation were run after the docs closeout commit.
