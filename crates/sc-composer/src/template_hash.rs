@@ -24,7 +24,7 @@ impl TemplateSha256 {
 
     /// Render this digest as lowercase hexadecimal.
     #[must_use]
-    pub fn to_hex(self) -> String {
+    pub fn to_hex(&self) -> String {
         self.to_string()
     }
 }
