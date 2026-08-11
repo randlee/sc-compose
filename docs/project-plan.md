@@ -754,7 +754,7 @@ Sprint entries:
 
 Status:
 
-- assigned on `fix/390-clap-exit-code-fr7b`
+- complete on `fix/390-clap-exit-code-fr7b` at `ff5d74b`
 
 Sprint entry:
 
