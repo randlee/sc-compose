@@ -1,6 +1,6 @@
 ---
 id: FIX-375
-status: in-progress
+status: complete
 branch: fix/375-scshaerror-str
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/375-scshaerror-str
 target: integrate/phase-M
@@ -61,3 +61,19 @@ work unchanged.
 
 - Issue #375: https://github.com/randlee/sc-compose/issues/375
 - `bindings/sc-sha-python/src/lib.rs` (`ScShaError`)
+
+## Closeout Evidence
+
+- Status: **complete**.
+- Red regression baseline: `1356f8f` (`test: require readable sc-sha
+  exception strings`) reproduced Python's raw `(code, message)` tuple repr
+  from `str(e)` while confirming `.code` remained dispatchable.
+- Implementation: `ef0a601` (`fix: render sc-sha errors with their message`)
+  adds `ScShaError.__str__`, returning only the human-readable message while
+  preserving the separate `.code` attribute.
+- The exact input-error repro now renders the message directly via `str(e)`;
+  `.code == "SC_SHA_INVALID_INPUT"` remains unchanged.
+- Validation: `cargo test --workspace`, `cargo fmt --all --check`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, and
+  `git diff --check` pass. The rebuilt maturin wheel passes all 8
+  `bindings/sc-sha-python/tests` tests.

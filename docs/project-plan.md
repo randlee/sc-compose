@@ -744,6 +744,7 @@ Sprint entries:
 - [Phase M plan](phase-M/phase-M-plan.md)
 - [Sprint M.1 — sc-sha Core Crate](phase-M/sprint-m-1-sc-sha-core-crate.md)
 - [Sprint M.2 — sc-compose Integration](phase-M/sprint-m-2-sc-compose-integration.md)
+- [Sprint FIX-375 — ScShaError __str__](sprints/fix-375-scshaerror-str.md)
 
 ### Follow-on Fix Sprint: FIX-238
 
