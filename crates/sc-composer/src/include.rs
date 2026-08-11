@@ -59,7 +59,9 @@ pub fn expand_includes(
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::ops::Deref;
     use std::path::{Path, PathBuf};
+    use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use crate::types::{ComposePolicy, ConfiningRoot, IncludeDepth};
@@ -926,15 +928,50 @@ mod tests {
         }
     }
 
-    fn temp_root(label: &str) -> PathBuf {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let root =
-            std::env::temp_dir().join(format!("sc-compose-{label}-{}-{nanos}", std::process::id()));
-        fs::create_dir_all(&root).unwrap();
-        root
+    struct TempFixture {
+        path: PathBuf,
+    }
+
+    impl TempFixture {
+        fn new(label: &str) -> Self {
+            static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(0);
+
+            let nanos = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let sequence = NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed);
+            let path = std::env::temp_dir().join(format!(
+                "sc-compose-{label}-{}-{nanos}-{sequence}",
+                std::process::id()
+            ));
+            fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+    }
+
+    impl AsRef<Path> for TempFixture {
+        fn as_ref(&self) -> &Path {
+            &self.path
+        }
+    }
+
+    impl Deref for TempFixture {
+        type Target = Path;
+
+        fn deref(&self) -> &Self::Target {
+            &self.path
+        }
+    }
+
+    impl Drop for TempFixture {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.path);
+        }
+    }
+
+    fn temp_root(label: &str) -> TempFixture {
+        TempFixture::new(label)
     }
 
     fn write_file(path: &Path, contents: &str) {

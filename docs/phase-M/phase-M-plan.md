@@ -820,6 +820,15 @@ Additional boundary checks:
 - [ ] At phase close, the integration branch has the two QA-approved sprint
       commits, all routed sc-lint fix worktrees merged/revalidated, and the
       external acceptance evidence below.
+- [ ] **QM-010 release-artifact gate (explicitly deferred from M.2):** the
+      `team-lead`/release maintainers must register both `sc-sha` and
+      `sc-sha-python` in `release/publish-artifacts.toml` before any release
+      containing either artifact. That registration must include matching
+      crate/package publish entries, all-platform wheel build/install/test
+      coverage in `.github/workflows/release.yml`, and a passing release
+      preflight. M.2 does not publish these artifacts and does not change the
+      release workflow; the release registration is a named post-M.2 gate,
+      not an untracked omission.
 
 ### External consumer acceptance (no consumer implementation here)
 
