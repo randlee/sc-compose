@@ -1,5 +1,6 @@
 //! Per-content text hashing.
 
+use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 
 use sha2::{Digest, Sha256};
@@ -103,7 +104,11 @@ pub fn calculate_hash(input: HashInput<'_>) -> Result<HashResult, ShaError> {
     Ok(HashResult::Template(TemplateSha256(bytes)))
 }
 
-fn normalize_newlines(text: &str) -> String {
+fn normalize_newlines(text: &str) -> Cow<'_, str> {
+    if !text.as_bytes().contains(&b'\r') {
+        return Cow::Borrowed(text);
+    }
+
     let mut normalized = String::with_capacity(text.len());
     let mut characters = text.chars().peekable();
     while let Some(character) = characters.next() {
@@ -116,12 +121,14 @@ fn normalize_newlines(text: &str) -> String {
             normalized.push(character);
         }
     }
-    normalized
+    Cow::Owned(normalized)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{HashInput, ShaError, calculate_hash};
+    use std::borrow::Cow;
+
+    use super::{HashInput, ShaError, calculate_hash, normalize_newlines};
 
     #[test]
     fn normalizes_crlf_and_bare_cr() {
@@ -155,5 +162,11 @@ mod tests {
         .expect_err("invalid UTF-8 must fail");
         assert_eq!(error, ShaError::InvalidUtf8);
         assert_eq!(error.code(), "SC_SHA_INVALID_UTF8");
+    }
+
+    #[test]
+    fn avoids_allocating_when_text_has_no_carriage_return() {
+        assert!(matches!(normalize_newlines("plain text"), Cow::Borrowed(_)));
+        assert!(matches!(normalize_newlines("plain\rtext"), Cow::Owned(_)));
     }
 }

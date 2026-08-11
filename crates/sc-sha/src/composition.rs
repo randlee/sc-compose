@@ -18,8 +18,6 @@ pub enum CompositionError {
     DuplicateSource,
     /// An edge refers to a source absent from the node list.
     UnknownEdgeEndpoint,
-    /// A tagged source fails its canonical representation invariant.
-    InvalidTaggedSource,
 }
 
 impl CompositionError {
@@ -30,7 +28,6 @@ impl CompositionError {
             Self::UnsupportedManifestSchema => "SC_SHA_UNSUPPORTED_MANIFEST_SCHEMA",
             Self::DuplicateSource => "SC_SHA_DUPLICATE_SOURCE",
             Self::UnknownEdgeEndpoint => "SC_SHA_UNKNOWN_EDGE_ENDPOINT",
-            Self::InvalidTaggedSource => "SC_SHA_INVALID_TAGGED_SOURCE",
         }
     }
 }
@@ -38,10 +35,15 @@ impl CompositionError {
 impl Display for CompositionError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
-            Self::UnsupportedManifestSchema => "unsupported resolved manifest schema",
-            Self::DuplicateSource => "resolved manifest contains a duplicate source",
-            Self::UnknownEdgeEndpoint => "resolved manifest edge has an unknown endpoint",
-            Self::InvalidTaggedSource => "resolved manifest contains an invalid tagged source",
+            Self::UnsupportedManifestSchema => {
+                "unsupported resolved manifest schema; provide ManifestSchemaVersion::V1"
+            }
+            Self::DuplicateSource => {
+                "resolved manifest contains a duplicate source; deduplicate nodes before hashing"
+            }
+            Self::UnknownEdgeEndpoint => {
+                "resolved manifest edge has an unknown endpoint; include every endpoint in nodes"
+            }
         })
     }
 }
@@ -93,20 +95,11 @@ pub fn calculate_composition_hash(
 
     let mut known_sources = HashSet::with_capacity(manifest.nodes.len());
     for node in &manifest.nodes {
-        node.source
-            .validate()
-            .map_err(|_error| CompositionError::InvalidTaggedSource)?;
         if !known_sources.insert(&node.source) {
             return Err(CompositionError::DuplicateSource);
         }
     }
     for edge in &manifest.edges {
-        edge.parent
-            .validate()
-            .map_err(|_error| CompositionError::InvalidTaggedSource)?;
-        edge.child
-            .validate()
-            .map_err(|_error| CompositionError::InvalidTaggedSource)?;
         if !known_sources.contains(&edge.parent) || !known_sources.contains(&edge.child) {
             return Err(CompositionError::UnknownEdgeEndpoint);
         }
@@ -290,6 +283,17 @@ mod tests {
         assert_ne!(
             calculate_composition_hash(&with_occurrence).expect("first occurrence"),
             calculate_composition_hash(&with_second_occurrence).expect("second occurrence")
+        );
+
+        assert!(
+            CompositionError::DuplicateSource
+                .to_string()
+                .contains("deduplicate nodes")
+        );
+        assert!(
+            CompositionError::UnknownEdgeEndpoint
+                .to_string()
+                .contains("include every endpoint")
         );
     }
 }

@@ -78,15 +78,6 @@ pub enum CanonicalSource {
     Url(CanonicalSourceUrl),
 }
 
-impl CanonicalSource {
-    pub(crate) fn validate(&self) -> Result<(), CanonicalSourceError> {
-        match self {
-            Self::LocalPath(path) => validate_representation(path.as_str()),
-            Self::Url(url) => validate_representation(url.as_str()),
-        }
-    }
-}
-
 /// Version of the resolved manifest framing contract.
 #[derive(Debug, Copy, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum ManifestSchemaVersion {
