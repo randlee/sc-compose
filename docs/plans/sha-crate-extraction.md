@@ -358,6 +358,29 @@ different field. Package aggregation and release checksums may reuse the
 primitive internally, but they must not silently reuse the file-text or
 recursive-composition contract.
 
+#### API separation requirement
+
+Per-file and recursive operations must have different public entry points and
+different result types:
+
+```rust
+pub fn template_sha256(bytes: &[u8]) -> Result<TemplateSha256, ShaError>;
+
+pub fn recursive_composition_sha256<S: DependencySource>(
+    root_path: &str,
+    source: &mut S,
+) -> Result<CompositionFingerprint, CompositionHashError<S::Error>>;
+```
+
+There must be no generic `hash(input, recursive: bool)` API and no API that
+returns a bare digest while leaving the caller to infer which calculation took
+place. If an FFI or JSON transport needs one envelope, it must carry an
+explicit tagged domain such as `file`, `node`, or `composition`, and decoding
+must reject a domain/value mismatch. The same separation applies to the
+maturin bindings: `sha256_text`/`template_sha256` return file-content results,
+while `recursive_composition_sha256` returns composition evidence and a
+`CompositionSha256` root result.
+
 The final field names and encoding remain subject to the synaptic-canvas-dolt
 verification gate. The plan requires the following invariants regardless of
 the final spelling:
