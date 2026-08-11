@@ -91,6 +91,13 @@ pub use renderer::{
 #[doc(inline)]
 pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_template_path};
 #[doc(inline)]
+pub use sc_sha::{
+    CanonicalSource, CanonicalSourceError, CanonicalSourceUrl, CanonicalTemplatePath,
+    CompositionError, CompositionSha256, HashInput, HashResult, ManifestSchemaVersion,
+    ResolvedIncludeEdge, ResolvedTemplateManifest, ResolvedTemplateNode, ShaError, TemplateSha256,
+    calculate_composition_hash, calculate_hash,
+};
+#[doc(inline)]
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
     FrontmatterInitResult, IncludeDepth, InitResult, InputValue, InvalidInputValueError,
