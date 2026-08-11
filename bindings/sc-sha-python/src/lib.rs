@@ -97,20 +97,12 @@ fn parse_source<'py>(py: Python<'py>, value: &Bound<'py, PyAny>) -> PyResult<Can
 }
 
 fn parse_digest(value: &str) -> Result<TemplateSha256, &'static str> {
-    if value.len() != 64 {
-        return Err("sha256 must contain exactly 64 hexadecimal characters");
-    }
-    let mut bytes = [0; 32];
-    for (index, pair) in value.as_bytes().chunks_exact(2).enumerate() {
-        let high = (pair[0] as char)
-            .to_digit(16)
-            .ok_or("sha256 must be hexadecimal")?;
-        let low = (pair[1] as char)
-            .to_digit(16)
-            .ok_or("sha256 must be hexadecimal")?;
-        bytes[index] = u8::try_from((high << 4) | low).expect("hex byte is at most 255");
-    }
-    Ok(TemplateSha256::from_bytes(bytes))
+    TemplateSha256::from_hex(value).map_err(|error| match error {
+        sc_sha::ShaError::InvalidDigestHex => {
+            "sha256 must contain exactly 64 hexadecimal characters"
+        }
+        sc_sha::ShaError::InvalidUtf8 => "sha256 must be hexadecimal",
+    })
 }
 
 fn parse_nodes(py: Python<'_>, value: &Bound<'_, PyAny>) -> PyResult<Vec<ResolvedTemplateNode>> {

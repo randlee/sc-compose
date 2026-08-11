@@ -121,19 +121,3 @@ pub(super) fn next_occurrence(
     *occurrence = occurrence.saturating_add(1);
     current
 }
-
-impl Default for CompositionFingerprint {
-    fn default() -> Self {
-        let manifest = ResolvedTemplateManifest {
-            schema: ManifestSchemaVersion::V1,
-            nodes: Vec::new(),
-            edges: Vec::new(),
-        };
-        Self {
-            source_sha: calculate_composition_hash(&manifest)
-                .expect("empty v1 manifest is structurally valid"),
-            manifest,
-            resolved_files: Vec::new(),
-        }
-    }
-}

@@ -34,6 +34,9 @@ impl HashResult {
 pub enum ShaError {
     /// The supplied bytes are not valid UTF-8.
     InvalidUtf8,
+    /// A supplied digest is not exactly 32 bytes represented as lowercase or
+    /// uppercase hexadecimal.
+    InvalidDigestHex,
 }
 
 impl ShaError {
@@ -42,6 +45,7 @@ impl ShaError {
     pub const fn code(self) -> &'static str {
         match self {
             Self::InvalidUtf8 => "SC_SHA_INVALID_UTF8",
+            Self::InvalidDigestHex => "SC_SHA_INVALID_DIGEST",
         }
     }
 }
@@ -52,6 +56,9 @@ impl Display for ShaError {
             Self::InvalidUtf8 => f.write_str(
                 "text-file bytes are not valid UTF-8; encode the source as UTF-8 before hashing",
             ),
+            Self::InvalidDigestHex => {
+                f.write_str("SHA-256 digest must contain exactly 64 hexadecimal characters")
+            }
         }
     }
 }
@@ -79,6 +86,35 @@ impl TemplateSha256 {
     #[must_use]
     pub fn to_hex(self) -> String {
         self.to_string()
+    }
+
+    /// Parse a canonical 64-character hexadecimal SHA-256 digest.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ShaError::InvalidDigestHex`] when the input is not exactly
+    /// 64 hexadecimal characters.
+    pub fn from_hex(value: &str) -> Result<Self, ShaError> {
+        if value.len() != 64 {
+            return Err(ShaError::InvalidDigestHex);
+        }
+
+        let mut bytes = [0; 32];
+        for (index, pair) in value.as_bytes().chunks_exact(2).enumerate() {
+            let high = hex_nibble(pair[0]).ok_or(ShaError::InvalidDigestHex)?;
+            let low = hex_nibble(pair[1]).ok_or(ShaError::InvalidDigestHex)?;
+            bytes[index] = (high << 4) | low;
+        }
+        Ok(Self(bytes))
+    }
+}
+
+fn hex_nibble(value: u8) -> Option<u8> {
+    match value {
+        b'0'..=b'9' => Some(value - b'0'),
+        b'a'..=b'f' => Some(value - b'a' + 10),
+        b'A'..=b'F' => Some(value - b'A' + 10),
+        _ => None,
     }
 }
 
@@ -136,7 +172,7 @@ fn normalize_newlines(text: &str) -> Cow<'_, str> {
 mod tests {
     use std::borrow::Cow;
 
-    use super::{HashInput, ShaError, calculate_hash, normalize_newlines};
+    use super::{HashInput, ShaError, TemplateSha256, calculate_hash, normalize_newlines};
 
     #[test]
     fn normalizes_crlf_and_bare_cr() {
@@ -177,5 +213,21 @@ mod tests {
     fn avoids_allocating_when_text_has_no_carriage_return() {
         assert!(matches!(normalize_newlines("plain text"), Cow::Borrowed(_)));
         assert!(matches!(normalize_newlines("plain\rtext"), Cow::Owned(_)));
+    }
+
+    #[test]
+    fn parses_and_rejects_hex_digests() {
+        let digest = TemplateSha256::from_hex(
+            "5891B5B522D5DF086D0FF0B110FBD9D21BB4FC7163AF34D08286A2E846F6BE03",
+        )
+        .expect("valid digest");
+        assert_eq!(
+            digest.to_hex(),
+            "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"
+        );
+        assert_eq!(
+            TemplateSha256::from_hex("not-a-digest").expect_err("invalid digest"),
+            ShaError::InvalidDigestHex
+        );
     }
 }

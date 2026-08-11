@@ -303,6 +303,12 @@ Use checked-in fixtures covering:
     manifest model;
 14. legacy non-nested compatibility behavior.
 
+Conditional-candidate coverage uses the native statically enumerable form
+`@<{{ "item.md" if mode == "item" else "other-item.md" }}>`. Both branch
+paths must enter the manifest while the expanded template preserves the Jinja
+condition for render-time selection; arbitrary dynamic targets remain an
+explicit unresolved-dependency error.
+
 Every test must assert the composition fingerprint and enough manifest
 node/edge evidence to explain why it changed or remained stable.
 

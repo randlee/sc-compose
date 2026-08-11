@@ -1,7 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
-use super::directive::parse_include_directive;
+use super::directive::{IncludeDirective, parse_include_directive};
 use super::fingerprint::{add_node, canonical_source, next_occurrence};
 use super::path::{canonicalize_include, resolve_include_path};
 use crate::DiagnosticCode;
@@ -127,55 +128,105 @@ fn expand_file(
         state.resolved_seen.insert(path_buf);
     }
 
-    let mut expanded = String::new();
-    for line in parsed.body().split_inclusive('\n') {
-        if let Some(include_target) = parse_include_directive(line) {
-            if include_target.contains("{{")
-                || include_target.contains("{%")
-                || include_target.contains("${")
-            {
-                return Err(IncludeError::new(
-                    DiagnosticCode::ErrIncludeDynamicUnresolved,
-                    "include target is dynamic; enumerate a static @<path> candidate",
-                    stack.clone(),
-                )
-                .into());
-            }
-            let resolved_include =
-                resolve_include_path(include_target, path, root, allowed_roots, stack)?;
-            let parent = canonical_source(path, root, allowed_roots)?;
-            let child = canonical_source(&resolved_include, root, allowed_roots)?;
-            let occurrence = next_occurrence(&mut state.occurrence_counts, &parent);
-            state.edges.push(sc_sha::ResolvedIncludeEdge {
-                parent,
-                child,
-                occurrence,
-            });
-            let nested = expand_file(
-                &resolved_include,
-                root,
-                allowed_roots,
-                max_depth,
-                depth.next(),
-                stack,
-                state,
-            )?;
-            expanded.push_str(&nested);
-        } else if line.trim_start().starts_with("@<") {
-            return Err(IncludeError::new(
-                DiagnosticCode::ErrIncludeDynamicUnresolved,
-                "include target is dynamic or malformed; enumerate a static @<path> candidate",
-                stack.clone(),
-            )
-            .into());
-        } else {
-            expanded.push_str(line);
-        }
-    }
+    let mut context = ExpansionContext {
+        root,
+        allowed_roots,
+        max_depth,
+        depth,
+        stack,
+        state,
+    };
+    let expanded = context.expand_body(parsed.body(), path)?;
 
     stack.pop();
     state.active_chain.clone_from(stack);
     Ok(expanded)
+}
+
+struct ExpansionContext<'a> {
+    root: &'a Path,
+    allowed_roots: &'a [ConfiningRoot],
+    max_depth: IncludeDepth,
+    depth: CurrentIncludeDepth,
+    stack: &'a mut Vec<PathBuf>,
+    state: &'a mut ExpansionState,
+}
+
+impl ExpansionContext<'_> {
+    fn expand_body(&mut self, body: &str, path: &Path) -> Result<String, ComposeError> {
+        let mut expanded = String::new();
+        for line in body.split_inclusive('\n') {
+            match parse_include_directive(line) {
+                Some(IncludeDirective::Static(target)) if is_static_target(&target) => {
+                    expanded.push_str(&self.expand_candidate(&target, path)?);
+                }
+                Some(IncludeDirective::Conditional {
+                    condition,
+                    candidates,
+                }) => {
+                    let mut candidates = candidates.into_iter();
+                    let first = self.expand_candidate(
+                        &candidates
+                            .next()
+                            .expect("conditional include has a then candidate"),
+                        path,
+                    )?;
+                    let second = self.expand_candidate(
+                        &candidates
+                            .next()
+                            .expect("conditional include has an else candidate"),
+                        path,
+                    )?;
+                    let _ = write!(
+                        expanded,
+                        "{{% if {condition} %}}{first}{{% else %}}{second}{{% endif %}}"
+                    );
+                }
+                Some(IncludeDirective::Dynamic | IncludeDirective::Static(_)) | None
+                    if line.trim_start().starts_with("@<") =>
+                {
+                    return Err(dynamic_include_error(self.stack));
+                }
+                _ => expanded.push_str(line),
+            }
+        }
+        Ok(expanded)
+    }
+
+    fn expand_candidate(&mut self, target: &str, path: &Path) -> Result<String, ComposeError> {
+        let resolved =
+            resolve_include_path(target, path, self.root, self.allowed_roots, self.stack)?;
+        let parent = canonical_source(path, self.root, self.allowed_roots)?;
+        let child = canonical_source(&resolved, self.root, self.allowed_roots)?;
+        let occurrence = next_occurrence(&mut self.state.occurrence_counts, &parent);
+        self.state.edges.push(sc_sha::ResolvedIncludeEdge {
+            parent,
+            child,
+            occurrence,
+        });
+        expand_file(
+            &resolved,
+            self.root,
+            self.allowed_roots,
+            self.max_depth,
+            self.depth.next(),
+            self.stack,
+            self.state,
+        )
+    }
+}
+
+fn is_static_target(target: &str) -> bool {
+    !target.contains("{{") && !target.contains("{%") && !target.contains("${")
+}
+
+fn dynamic_include_error(stack: &[PathBuf]) -> ComposeError {
+    IncludeError::new(
+        DiagnosticCode::ErrIncludeDynamicUnresolved,
+        "include target is dynamic or malformed; enumerate a static @<path> candidate",
+        stack.to_vec(),
+    )
+    .into()
 }
 
 fn classify_read_error(path: &Path, error: &std::io::Error) -> (DiagnosticCode, String) {

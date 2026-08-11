@@ -68,7 +68,7 @@ mod tests {
     use super::expand_includes;
 
     #[test]
-    fn expands_successful_include_chain() {
+    fn one_level_and_multi_level_includes_have_ordered_manifest() {
         let root = temp_root("include_success");
         write_file(&root.join("root.md.j2"), "top\n@<partials/one.md>\n");
         write_file(&root.join("partials/one.md"), "middle\n@<two.md>\n");
@@ -85,6 +85,56 @@ mod tests {
         assert!(expanded.text.contains("middle"));
         assert!(expanded.text.contains("bottom"));
         assert_eq!(expanded.resolved_files.len(), 3);
+        let fingerprint = expanded.composition_fingerprint.unwrap();
+        assert_eq!(fingerprint.manifest.nodes.len(), 3);
+        assert_eq!(fingerprint.manifest.edges.len(), 2);
+        assert_eq!(fingerprint.resolved_files.len(), 3);
+    }
+
+    #[test]
+    fn root_only_template_has_a_single_manifest_node() {
+        let root = temp_root("include_root_only");
+        write_file(&root.join("root.md"), "root\n");
+
+        let expanded = expand_includes(
+            root.join("root.md"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap();
+        let fingerprint = expanded.composition_fingerprint.unwrap();
+
+        assert_eq!(fingerprint.manifest.nodes.len(), 1);
+        assert!(fingerprint.manifest.edges.is_empty());
+        assert_eq!(fingerprint.resolved_files.len(), 1);
+    }
+
+    #[test]
+    fn legacy_non_nested_template_behavior_remains_unchanged() {
+        let root = temp_root("include_legacy_non_nested");
+        write_file(&root.join("legacy.md"), "plain legacy text\n");
+
+        let expanded = expand_includes(
+            root.join("legacy.md"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap();
+
+        assert_eq!(expanded.text, "plain legacy text\n");
+        assert_eq!(
+            expanded.resolved_files,
+            vec![root.join("legacy.md").canonicalize().unwrap()]
+        );
+        assert_eq!(
+            expanded
+                .composition_fingerprint
+                .unwrap()
+                .manifest
+                .edges
+                .len(),
+            0
+        );
     }
 
     #[test]
@@ -186,6 +236,214 @@ mod tests {
                 .count(),
             1
         );
+    }
+
+    #[test]
+    fn identical_content_at_distinct_paths_remains_distinct_sources() {
+        let root = temp_root("include_distinct_sources");
+        write_file(&root.join("root.md"), "@<a.md>\n@<b.md>\n");
+        write_file(&root.join("a.md"), "same\n");
+        write_file(&root.join("b.md"), "same\n");
+
+        let fingerprint = expand_includes(
+            root.join("root.md"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap()
+        .composition_fingerprint
+        .unwrap();
+
+        assert_eq!(fingerprint.manifest.nodes.len(), 3);
+        assert_eq!(
+            fingerprint.manifest.nodes[1].content_hash,
+            fingerprint.manifest.nodes[2].content_hash
+        );
+        assert_ne!(
+            fingerprint.manifest.nodes[1].source,
+            fingerprint.manifest.nodes[2].source
+        );
+    }
+
+    #[test]
+    fn conditional_path_candidates_are_exhaustive_and_renderable() {
+        let root = temp_root("include_conditional_candidates");
+        write_file(
+            &root.join("root.md"),
+            "@<{{ \"item.md\" if mode == \"item\" else \"other-item.md\" }}>\n",
+        );
+        write_file(&root.join("item.md"), "item\n");
+        write_file(&root.join("other-item.md"), "other\n");
+
+        let expanded = expand_includes(
+            root.join("root.md"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap();
+        let fingerprint = expanded.composition_fingerprint.unwrap();
+
+        assert_eq!(fingerprint.manifest.nodes.len(), 3);
+        assert_eq!(fingerprint.manifest.edges.len(), 2);
+        assert!(expanded.text.contains("{% if mode == \"item\" %}"));
+        assert!(expanded.text.contains("item\n"));
+        assert!(expanded.text.contains("other\n"));
+
+        write_file(&root.join("root.md"), "@<item.md>\n");
+        let single_candidate = expand_includes(
+            root.join("root.md"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap()
+        .composition_fingerprint
+        .unwrap();
+        assert_ne!(fingerprint.source_sha, single_candidate.source_sha);
+        assert_eq!(single_candidate.manifest.nodes.len(), 2);
+    }
+
+    #[test]
+    fn reordering_include_occurrences_changes_composition_identity() {
+        let root = temp_root("include_reordering");
+        write_file(&root.join("root.md"), "@<a.md>\n@<b.md>\n");
+        write_file(&root.join("a.md"), "a\n");
+        write_file(&root.join("b.md"), "b\n");
+        let policy = ComposePolicy::default();
+        let first = expand_includes(
+            root.join("root.md"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &policy,
+        )
+        .unwrap()
+        .composition_fingerprint
+        .unwrap();
+
+        write_file(&root.join("root.md"), "@<b.md>\n@<a.md>\n");
+        let reordered = expand_includes(
+            root.join("root.md"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &policy,
+        )
+        .unwrap()
+        .composition_fingerprint
+        .unwrap();
+
+        assert_ne!(first.source_sha, reordered.source_sha);
+        assert_eq!(first.manifest.nodes.len(), reordered.manifest.nodes.len());
+        assert_eq!(first.manifest.edges.len(), reordered.manifest.edges.len());
+    }
+
+    #[test]
+    fn nested_paths_use_forward_slash_canonical_sources() {
+        let root = temp_root("include_nested_paths");
+        write_file(&root.join("root.md"), "@<nested/deep/child.md>\n");
+        write_file(&root.join("nested/deep/child.md"), "child\n");
+
+        let fingerprint = expand_includes(
+            root.join("root.md"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap()
+        .composition_fingerprint
+        .unwrap();
+
+        assert_eq!(
+            fingerprint.manifest.nodes[1].source,
+            sc_sha::CanonicalSource::LocalPath(
+                sc_sha::CanonicalTemplatePath::try_from("nested/deep/child.md".to_owned()).unwrap()
+            )
+        );
+    }
+
+    #[test]
+    fn text_hash_boundary_is_stable_for_line_endings_and_sensitive_to_bom() {
+        let root = temp_root("include_text_hash_boundary");
+        write_file(&root.join("root.md"), "@<child.md>\n");
+        write_bytes(&root.join("child.md"), b"line\r\n");
+        let policy = ComposePolicy::default();
+        let crlf = expand_includes(
+            root.join("root.md"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &policy,
+        )
+        .unwrap()
+        .composition_fingerprint
+        .unwrap()
+        .source_sha;
+
+        write_bytes(&root.join("child.md"), b"line\n");
+        let lf = expand_includes(
+            root.join("root.md"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &policy,
+        )
+        .unwrap()
+        .composition_fingerprint
+        .unwrap()
+        .source_sha;
+        assert_eq!(crlf, lf);
+
+        write_bytes(&root.join("child.md"), b"\xef\xbb\xbfline\n");
+        let bom = expand_includes(
+            root.join("root.md"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &policy,
+        )
+        .unwrap()
+        .composition_fingerprint
+        .unwrap()
+        .source_sha;
+        assert_ne!(lf, bom);
+
+        write_bytes(&root.join("child.md"), b"line");
+        let no_final_newline = expand_includes(
+            root.join("root.md"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &policy,
+        )
+        .unwrap()
+        .composition_fingerprint
+        .unwrap()
+        .source_sha;
+        assert_ne!(lf, no_final_newline);
+    }
+
+    #[test]
+    fn tagged_url_and_local_sources_do_not_collide() {
+        let digest = sc_sha::calculate_hash(sc_sha::HashInput::TextFileBytes {
+            utf8_file_bytes: b"same\n",
+        })
+        .unwrap()
+        .template()
+        .to_owned();
+        let local = sc_sha::CanonicalSource::LocalPath(
+            sc_sha::CanonicalTemplatePath::try_from("same.md".to_owned()).unwrap(),
+        );
+        let url = sc_sha::CanonicalSource::Url(
+            sc_sha::CanonicalSourceUrl::try_from("https://example.test/same.md".to_owned())
+                .unwrap(),
+        );
+        let local_hash = sc_sha::calculate_composition_hash(&sc_sha::ResolvedTemplateManifest {
+            schema: sc_sha::ManifestSchemaVersion::V1,
+            nodes: vec![sc_sha::ResolvedTemplateNode {
+                source: local,
+                content_hash: digest,
+            }],
+            edges: Vec::new(),
+        })
+        .unwrap();
+        let url_hash = sc_sha::calculate_composition_hash(&sc_sha::ResolvedTemplateManifest {
+            schema: sc_sha::ManifestSchemaVersion::V1,
+            nodes: vec![sc_sha::ResolvedTemplateNode {
+                source: url,
+                content_hash: digest,
+            }],
+            edges: Vec::new(),
+        })
+        .unwrap();
+
+        assert_ne!(local_hash, url_hash);
     }
 
     #[test]
@@ -680,6 +938,13 @@ mod tests {
     }
 
     fn write_file(path: &Path, contents: &str) {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+        fs::write(path, contents).unwrap();
+    }
+
+    fn write_bytes(path: &Path, contents: &[u8]) {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).unwrap();
         }
