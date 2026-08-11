@@ -1,3 +1,12 @@
+---
+id: SHA
+title: sc-sha Extraction and Recursive Template Composition Fingerprints
+status: planned
+branch: plan/sha-crate
+worktree: ../sc-compose-worktrees/plan/sha-crate
+target: develop
+---
+
 # Plan: `sc-sha` Extraction and Recursive Template Composition Fingerprints
 
 ## Plan status
@@ -15,25 +24,57 @@
 This document is intentionally planning-only. It does not add a Cargo member,
 move `template_hash.rs`, alter PR #358, or implement recursive hashing.
 
+It is the authoritative phase-neutral parent plan, not an implementation
+sprint or a substitute for the two standalone sprint documents required before
+development begins. The phase letter is intentionally not invented here:
+team-lead must assign it, then copy the complete authoritative sprint records
+below into `docs/phase-X/sprint-x-1-sc-sha-core.md` and
+`docs/phase-X/sprint-x-2-sc-sha-consumers.md`, replacing `X.1`/`X.2` and the
+branch/worktree placeholders with the assigned phase letter. Until that gate
+passes, this plan produces no executable artifact and must not be treated as a
+runtime-delivery sprint.
+
+## Requirements, ADR, and NFR traceability
+
+The following IDs are the authoritative traceability vocabulary for both
+implementation sprint records. They make the scope reviewable without relying
+on conversation history.
+
+| ID | Requirement or constraint | Evidence/authority | Sprint closure |
+| --- | --- | --- | --- |
+| SHA-R1 | Match synaptic-canvas-dolt's verified UTF-8 text, newline, error, digest, and `package_files.sha256` consumption contract. | Issue [#360](https://github.com/randlee/sc-compose/issues/360), PR [#358](https://github.com/randlee/sc-compose/pull/358), source vectors in `Source-of-truth verification gate` | X.1 defines; X.2 verifies Rust/Python consumption |
+| SHA-R2 | Provide exactly two public operations: typed per-content hash calculation and composition hashing over a caller-supplied resolved manifest. | User-approved API constraint; `Proposed sc-sha public API` | X.1 defines; X.2 consumes |
+| SHA-R3 | sc-compose owns dependency discovery, canonicalization, ordering, deduplication, memoization, cycle/depth checks, and produces an injectively encodable resolved manifest for sc-sha. | `Recursive sc-compose integration` and `Resolved manifest contract` | X.2 |
+| SHA-R4 | Allow atm-core to restore cached context from JSON variables plus recursive template identity; graph construction and persistence remain atm-core concerns. | atm-core consumer contract and acceptance fixtures | X.1 defines; external acceptance after X.2 |
+| SHA-R5 | Provide a thin maturin/PyO3 adapter with the same two operations and no duplicated algorithm. | `Maturin/Python API` | X.2 |
+| SHA-N1 | Hash identity is deterministic across macOS, Linux, and Windows and independent of host path separators/line endings. | `Source-of-truth verification gate`; cross-platform fixtures | X.1 and X.2 |
+| SHA-N2 | Keep filesystem policy, template syntax, CLI behavior, and persistence outside the core crate. | `Proposed workspace layout` and boundary rules | X.1 and X.2 |
+| SHA-N3 | Keep the implementation production-ready: typed failures, consumer-owned bounded recursion, no duplicate implementation, and reproducible validation evidence. | `API simplicity requirement`, required validation, and QA routing | X.1 and X.2 |
+| ADR-SHA-001 | Record shared hash ownership, domain separation, and the sc-compose/consumer boundary in `docs/adrs/0016-sc-sha-hash-ownership.md`. | Required architecture decision in X.1 | X.1 |
+
+Each sprint record must cite the applicable IDs in its acceptance criteria. A
+requirement is not closed merely because a type or file exists; the cited test,
+vector, or external-consumer evidence must be present.
+
 ## Goal
 
 Create a standalone workspace crate named `sc-sha` that owns the canonical
 file/hash identity primitives shared by sc-compose, atm-core, and
 synaptic-canvas-dolt consumers. The crate must match synaptic-canvas-dolt in
-both calculation and public API behavior, expose recursive composition hashing
-with cycle protection, and provide a maturin-built Python module. Then extend
+both calculation and public API behavior, expose composition hashing over a
+caller-supplied resolved manifest, and provide a maturin-built Python module. Then extend
 sc-compose so its include expansion can produce a deterministic recursive
 composition fingerprint covering the root template and every included
 dependency.
 
-The design has two distinct layers:
+The design has three distinct layers:
 
-1. `sc-sha` hashes caller-supplied text and walks a caller-supplied dependency
-   source resolver. It does not parse MiniJinja, understand `@<path>` syntax,
-   or make filesystem-policy decisions.
-2. `sc-composer` adapts its include resolver to the `sc-sha` resolver contract,
-   supplies canonical paths and source text under the verified text policy, and
-   exposes the resulting fingerprint to its consumers.
+1. `sc-sha` hashes caller-supplied text and a caller-supplied, already resolved
+   manifest. It does not discover dependencies, parse MiniJinja, understand
+   `@<path>` syntax, or make filesystem-policy decisions.
+2. `sc-composer` resolves its include graph, applies canonical-path and
+   confinement policy, orders and deduplicates nodes, memoizes per-source
+   hashes, and supplies the completed manifest to `sc-sha`.
 3. `sc-sha-python` is a thin maturin/PyO3 adapter over the same Rust crate. It
    must not reimplement hashing or maintain a Python-only algorithm.
 
@@ -42,9 +83,10 @@ algorithm while keeping filesystem and template-engine policy in sc-compose.
 
 ## Source-of-truth verification gate
 
-Team-lead located the current synaptic-canvas-dolt implementation. The
-reference is plain SHA-256 over UTF-8 text, rendered as lowercase 64-character
-hexadecimal:
+Team-lead located the current synaptic-canvas-dolt implementation. Its only
+currently verified sc-sha consumer contract is the per-file value stored in
+`package_files.sha256`: plain SHA-256 over UTF-8 text, rendered as lowercase
+64-character hexadecimal:
 
 ```python
 content = full_path.read_text(encoding="utf-8")
@@ -55,9 +97,11 @@ Evidence locations:
 
 - `synaptic-canvas-dolt/tools/dolt-ingest.py:285` (`_scan_file`)
 - `synaptic-canvas-dolt/tools/dolt-export.py:321` (export verification)
-- `synaptic-canvas-dolt/sql/001-create-tables.sql:51,81` (`sha256` and
-  `cmd_sha256` are `VARCHAR(64)`)
-- `synaptic-canvas-dolt/src/pkg/models/package.go:37,86,113`
+- `synaptic-canvas-dolt/sql/001-create-tables.sql:51` (`package_files.sha256`)
+- `synaptic-canvas-dolt/sql/001-create-tables.sql:81` (`cmd_sha256` exists as a
+  future-verification column but is not populated by the ingest path)
+- `synaptic-canvas-dolt/src/pkg/models/package.go:37,86,113` (model fields,
+  including the currently unverified command field)
 - `synaptic-canvas-dolt/src/pkg/dolt/queries.go:12,15,18` and
   `client.go:164,189,218`
 
@@ -66,22 +110,27 @@ existing shared public Rust API to copy. Therefore the compatibility target is
 the stored value and its consumable shape, not an invented Noms abstraction.
 
 Before implementation begins, the plan must still record the exact
-synaptic-canvas-dolt source commit and produce cross-language vectors for:
+synaptic-canvas-dolt source commit and produce cross-language vectors for the
+verified file-text domain:
 
 - ordinary Unicode text;
 - LF and CRLF files;
 - BOM and no-final-newline inputs;
 - empty text;
-- invalid UTF-8 behavior at the file-reading boundary;
-- command strings used for `cmd_sha256`.
+- invalid UTF-8 behavior at the file-reading boundary.
+
+Command hashing is not a current compatibility target. The `cmd_sha256` column
+exists in the schema, but the live ingest path does not populate or verify it;
+any command-hash API is explicitly speculative and forward-looking until
+synaptic-canvas-dolt defines a live contract.
 
 The verification must cover both layers:
 
 | Compatibility surface | Required proof |
 | --- | --- |
-| Calculation | Identical UTF-8 text produces the same digest bytes and lowercase hex as synaptic-canvas-dolt across the complete authoritative vector set. |
-| Rust public API | The `sc-sha` API exposes equivalent input, output, error, and encoding semantics, or a documented adapter with compile/test evidence. |
-| Python public API | The maturin module exposes the same digest values and stable string/bytes behavior needed by synaptic-canvas-dolt Python consumers. |
+| Calculation | Identical UTF-8 text produces the same digest bytes and lowercase hex as synaptic-canvas-dolt across the complete authoritative file-text vector set. |
+| Rust public API | The `sc-sha` text-domain API exposes equivalent input, output, error, and encoding semantics, or a documented adapter with compile/test evidence. |
+| Python public API | The maturin module exposes the same file-text digest values and stable string/bytes behavior; it does not claim that synaptic-canvas-dolt currently consumes a Python package. |
 | Versioning | The crate/package version and algorithm identifier prevent silent cross-version collisions. |
 
 The resolved file compatibility contract is:
@@ -120,63 +169,52 @@ digest.
 The verification artifact must be committed as documentation or test vectors in
 the `sc-sha` implementation sprint. A plain SHA-256 implementation that merely
 matches the empty-string vector is not evidence of compatibility. PR #358's
-raw-byte function must be changed to apply this contract before it is used as
-the synaptic-canvas-dolt-compatible file identity.
+raw-byte implementation must be corrected or migrated to this normalized
+`TemplateSha256` identity before it is used for persisted template identity; it
+must not silently preserve a byte-oriented contract that differs from
+synaptic-canvas-dolt.
 
-If the verified text behavior differs from PR #358's current
-`template_sha256(raw_file_bytes)` behavior, the synaptic-canvas-dolt contract
-wins. PR #358 must consume `sc-sha` rather than preserve a competing local
-implementation.
+ATM may retain the original source bytes separately for rendering/audit, but
+the persisted template identity is the one normalized `TemplateSha256` value;
+there is no second sc-sha raw-byte type.
 
 ### Cross-repository consumption proof
 
-“Compatible” means synaptic-canvas-dolt can consume the result without a
-translation shim or algorithm-specific special case. The `sc-sha` sprint must
+“Compatible” means synaptic-canvas-dolt can consume the file-text result without
+a translation shim or algorithm-specific special case. The `sc-sha` sprint must
 therefore produce a small interop fixture containing:
 
 - input text;
 - `sc-sha` Rust output;
-- `sc-sha` Python/maturin output;
+- `sc-sha` Python/maturin file-text output;
 - the expected lowercase 64-character value;
-- the value inserted into a representative `package_files.sha256` or
-  `package_deps.cmd_sha256` record;
+- the value inserted into a representative `package_files.sha256` record;
 - synaptic-canvas-dolt ingest/export verification that accepts and reproduces
   the same value.
+
+There is no equivalent current compatibility fixture for `cmd_sha256`, package
+aggregate hashes, or a lockfile. Those are explicitly future proposals and
+must not be represented as verified sc-sha consumers.
 
 The public API review must confirm that consumers can obtain the same string
 using supported public functions. Matching a digest while requiring callers to
 reach into private bytes, re-normalize values, or reinterpret an error is not
 an API-compatible result.
 
-### Online-install integration boundary
+### External persistence boundary
 
 `synaptic-canvas-dolt` owns persistence and installation state; `sc-sha` owns
-the calculation. The sc-sha plan must not add a lockfile writer or a Synaptic
-Canvas runtime dependency to sc-compose. The integration contract is:
+calculation. The only current verified integration is the per-file
+`package_files.sha256` field and its ingest/export comparison. The local
+repository contains no verified `.synaptic/manifest.lock` writer or installer
+implementation, and no package-aggregate SHA algorithm was found in the live
+Dolt code. The earlier lockfile/package-aggregate discussion is therefore a
+future proposal, not an integration contract or sprint deliverable.
 
-- Dolt `package_files.sha256` stores the lowercase hexadecimal
-  `TemplateSha256` content identity for the source text ingested into the
-  package database.
-- After install-time template rendering, the Synaptic Canvas installer stores
-  the resulting per-file `TemplateSha256` values in
-  `{repo-root}/.synaptic/manifest.lock` under `[skills.files]`, keyed by the
-  materialized relative path.
-- The lockfile also records package version/channel and the Dolt commit needed
-  to identify the package revision; those are release/install metadata, not
-  part of the per-file digest.
-- `OrderedTemplateHashes` and `CompositionSha256` are sc-compose
-  recursive-source identities. They must not replace the per-file value in
-  `package_files.sha256` or `[skills.files]` unless Synaptic Canvas separately
-  versions its schema for that purpose.
-
-The online integration test is an end-to-end release gate owned jointly with
-synaptic-canvas-dolt: ingest a UTF-8 Markdown/log fixture, fetch it from the
-database, materialize it into a temporary project, write the lockfile through
-the installer, and verify the local file against the recorded hash. Repeat
-with CRLF and LF representations on the supported OS matrix, rendered
-templates, Unicode/non-BMP content, modified files, and missing files. This
-proves that the published crate/API can support the actual online workflow
-without requiring a local algorithm fork.
+Any future installer/lockfile or package aggregate must be a separately scoped
+consumer change with its own schema and compatibility decision. It must not
+make `sc-sha` own persistence, invent a `PackageSha256` compatibility claim, or
+replace `package_files.sha256` with a recursive composition identity.
 
 ## Proposed workspace layout
 
@@ -209,10 +247,10 @@ than a path into sc-compose.
 Cargo dependency direction:
 
 ```text
-sc-compose-py -> sc-composer -> sc-sha
+bindings/python -> sc-composer -> sc-sha
 sc-compose    -> sc-composer
 atm-core      -> published sc-sha
-synaptic-canvas-dolt -> published sc-sha or compatibility implementation
+synaptic-canvas-dolt -> published sc-sha or future compatibility implementation
 sc-sha-python -> sc-sha
 ```
 
@@ -230,213 +268,158 @@ map iteration or platform-specific serialization.
 
 ## Proposed `sc-sha` public API
 
-The API must preserve the digest and output behavior consumed by
-synaptic-canvas-dolt and atm-core. PR #358's current raw-byte API is a
-candidate surface, not the authority; it must be corrected if its behavior
-diverges from the verified text contract.
+`sc-sha` owns byte/text normalization, typed per-content identities, and
+injective hashing of a completed manifest. It does not discover dependencies,
+parse MiniJinja or `@<path>`, canonicalize filesystem paths, access a
+filesystem, order/deduplicate nodes, detect cycles, or enforce depth/confinement
+policy. Those are sc-compose resolver responsibilities.
+
+The core has exactly two public operations:
 
 ```rust
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub fn calculate_hash(input: HashInput<'_>) -> Result<HashResult, ShaError>;
+
+pub fn calculate_composition_hash(
+    manifest: &ResolvedTemplateManifest,
+) -> Result<CompositionSha256, CompositionError>;
+```
+
+`calculate_hash` is the per-content/identity operation. The second operation
+accepts a caller-supplied manifest that is already resolved, ordered,
+deduplicated by canonical source node, and checked by sc-compose. It never
+accepts a resolver callback or performs graph discovery. A stream implementation
+and a file adapter may share private code; the file adapter must delegate to
+the stream path.
+
+### Explicit hash domain
+
+There is one current sc-sha template identity: strict UTF-8 text decoded from
+caller-supplied file bytes, normalized with the verified universal-newline
+policy, then hashed as UTF-8. ATM may retain original source bytes separately
+for rendering or audit, but that is ATM storage behavior and is not a second
+sc-sha identity.
+
+```rust
 pub struct TemplateSha256([u8; 32]);
-
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct CommandSha256([u8; 32]);
-
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct JsonVarsSha256([u8; 32]);
-
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct TemplateContextSha256([u8; 32]);
+pub struct CompositionSha256([u8; 32]);
 
 pub enum HashInput<'a> {
-    FileText { utf8_file_bytes: &'a [u8] },
-    CommandText { command: &'a str },
-    JsonVariables { canonical_json: &'a [u8] },
-    GraphContext {
-        graph: &'a OrderedTemplateHashes,
-        canonical_json: Option<&'a [u8]>,
-    },
+    TextFileBytes { utf8_file_bytes: &'a [u8] },
 }
 
 pub enum HashResult {
-    File(TemplateSha256),
-    Command(CommandSha256),
-    JsonVariables(JsonVarsSha256),
-    Composition(CompositionSha256),
-    Context(TemplateContextSha256),
+    Template(TemplateSha256),
 }
-
-/// The single public hash operation. The tagged input and result prevent
-/// callers from confusing file, command, JSON-variable, and graph identities.
-pub fn calculate_hash(input: HashInput<'_>) -> Result<HashResult, ShaError>;
-
-/// The single public graph operation. It discovers dependencies, validates
-/// paths/cycles/depth, and returns the deterministic ordered graph consumed by
-/// `HashInput::GraphContext`.
-pub fn calculate_graph_and_order<S: DependencySource>(
-    root_path: &str,
-    source: &mut S,
-) -> Result<OrderedTemplateHashes, GraphError<S::Error>>;
 ```
 
-`HashInput::FileText` strictly decodes UTF-8, applies the verified newline
-policy, and returns `HashResult::File`. `HashInput::CommandText` hashes command
-text directly for `cmd_sha256`; `HashInput::JsonVariables` hashes canonical
-JSON variables; and `HashInput::GraphContext` hashes the completed graph and,
-when present, derives the rendered-context identity from graph plus variables.
-None of these variants accepts arbitrary binary content as a
-synaptic-canvas-dolt file identity. If a raw-byte digest is useful for another
-consumer, it must be a separately named, explicitly non-compatible domain.
+`TextFileBytes` strictly decodes UTF-8, applies the verified newline policy,
+and returns the single `TemplateSha256` domain. It must work for Markdown,
+logs, combining marks, CJK, emoji, and other valid Unicode text. The digest
+types expose `as_bytes`, lowercase `to_hex`, and `Display` without requiring
+private-field access. A private streaming helper and a caller-supplied byte
+byte-slice adapter may share implementation; sc-sha does not open files.
 
-The digest type retains the currently proposed `as_bytes`, `to_hex`, and
-lowercase `Display` surface. Add compile-level/API-shape examples showing that
-a consumer can obtain the stored-compatible string without reaching into
-private fields.
+JSON-variable serialization, renderer options, cache-context identity, and
+whether ATM also stores original bytes are ATM concerns. They are not sc-sha
+public input domains or requirements in this plan. There is no current
+command-hash operation. A future `CommandSha256` domain may be added only
+after synaptic-canvas-dolt makes its currently unused `cmd_sha256` column a
+live, specified consumer contract.
 
-`TemplateSha256` remains the content-only identity consumed by
-synaptic-canvas-dolt. The graph operation returns a deduplicated, ordered list
-of path/content identities rather than a second per-node hash type:
+### Resolved manifest contract
+
+The graph is constructed by sc-compose, not by sc-sha. The manifest has unique
+nodes but preserves ordered include occurrences as edges so repeated references
+and edge order are not lost:
 
 ```rust
-pub struct TemplateHashEntry {
-    pub canonical_path: String,
-    pub file_sha: TemplateSha256,
+pub struct CanonicalTemplatePath(String);
+
+pub enum CanonicalSource {
+    LocalPath(CanonicalTemplatePath),
+    Url(CanonicalSourceUrl),
 }
 
-pub struct OrderedTemplateHashes {
-    /// Root entry first; each canonical path appears at most once.
-    pub entries: Vec<TemplateHashEntry>,
+pub struct ResolvedTemplateNode {
+    pub source: CanonicalSource,
+    pub content_hash: TemplateSha256,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct CompositionSha256([u8; 32]);
-
-impl CompositionSha256 {
-    pub const fn as_bytes(&self) -> &[u8; 32];
-    pub fn to_hex(self) -> String;
+pub struct ResolvedIncludeEdge {
+    pub parent: CanonicalSource,
+    pub child: CanonicalSource,
+    pub occurrence: u32,
 }
 
+pub struct ResolvedTemplateManifest {
+    pub schema: ManifestSchemaVersion,
+    pub nodes: Vec<ResolvedTemplateNode>,
+    pub edges: Vec<ResolvedIncludeEdge>,
+}
 ```
 
-The list is ordered by deterministic first discovery from the root, while
-deduplication is by canonical path. Repeated references to an already-seen
-path do not create another list entry because the referring template's own
-content hash already captures its include syntax, condition, and occurrence.
-Consumers that need one aggregate identity may pass the list to
-`HashInput::GraphContext` with explicit parent/root framing; consumers that
-need per-file identities may retain the list directly.
+`CanonicalTemplatePath` and `CanonicalSourceUrl` are opaque tagged keys.
+sc-compose constructs them after applying filesystem canonicalization and
+confinement; sc-sha only encodes their already-canonical representation and
+never decides whether a path exists or is allowed. The source tag ensures a
+future URL include cannot collide with or false-deduplicate against a local
+path. The public manifest constructor validates structural invariants but does
+not discover, reorder, deduplicate, or cycle-check the graph; manifest creation
+is owned by sc-compose.
+
+The composition encoding is explicitly injective before SHA-256:
+
+1. emit a fixed `sc-sha/manifest/v1` domain and schema tag;
+2. encode node count, then each ordered node as source-kind tag, length-delimited
+   source value, and length-delimited `TemplateSha256` bytes;
+3. encode edge count, then each ordered edge as tagged parent, tagged child, and
+   occurrence number with unambiguous length framing;
+4. reject duplicate nodes, unknown edge endpoints, unsupported schema versions,
+   and malformed tagged sources before hashing.
+
+The encoding is required to be provably injective: different source tags,
+paths/URLs, node order, per-file hashes, edge order, or occurrence structure
+must produce different pre-hash bytes. Cycles are rejected by sc-compose before
+manifest construction; sc-sha never detects them or returns a fingerprint for
+an invalid manifest. A diamond dependency hashes a canonical source once in
+sc-compose's memoized node builder, while both edges remain in the manifest.
 
 ### Hash-domain taxonomy
 
-The algorithm primitive is SHA-256, but these identities are not
-interchangeable because their inputs, normalization, framing, and owners
-differ:
-
-| Domain | Proposed identity/API | Owner and storage |
+| Domain | API/result | Current authority and scope |
 | --- | --- | --- |
-| File content | `HashInput::FileText` → `HashResult::File(TemplateSha256)` | `sc-sha`; consumed by synaptic-canvas-dolt as `package_files.sha256` and installer lockfile file entries |
-| Command text | `HashInput::CommandText` → `HashResult::Command(CommandSha256)` | `sc-sha` calculation; consumed by synaptic-canvas-dolt as `package_deps.cmd_sha256` |
-| JSON variables | `HashInput::JsonVariables` → `HashResult::JsonVariables(JsonVarsSha256)` | `sc-sha` calculation; consumed by atm-core cache rows |
-| Recursive template list | `OrderedTemplateHashes` of `(canonical path, TemplateSha256)` entries | `sc-sha` graph operation; transient input to aggregate/context hashing |
-| Recursive composition | `CompositionSha256` | `sc-sha` calculation; consumed by sc-compose composition metadata, not a replacement for per-file hashes |
-| Rendered context | `HashInput::GraphContext` → `HashResult::Context(TemplateContextSha256)` | `sc-sha` calculation from composition plus JSON-variable identities; consumed by atm-core cache restoration |
-| Package aggregate | `PackageSha256` or equivalent | synaptic-canvas-dolt owns sorted path-plus-file-hash framing and package/lockfile schema |
-| Release/artifact checksum | release-specific SHA-256 value | publishing/distribution tooling owns the artifact bytes and checksum metadata |
+| Normalized file text | `calculate_hash(TextFileBytes)` → `TemplateSha256` | **Verified current synaptic-canvas-dolt need** for `package_files.sha256`; also the single sc-sha template identity used by callers. |
+| Resolved composition | `calculate_composition_hash(manifest)` → `CompositionSha256` | sc-sha framing over sc-compose-owned manifest; not a per-file replacement. |
+| ATM cache context | ATM-owned composition/JSON/options framing around sc-sha results | ATM owns its graph-manifest model, JSON serialization, cache rows, and stale-cache rules; not a sc-sha domain in this plan. |
+| Original source bytes | ATM-owned rendering/audit storage | May coexist with `TemplateSha256`, but is not a second sc-sha hash domain. |
+| Command text | Future-only `CommandSha256` proposal | `package_deps.cmd_sha256` is currently unpopulated/unverified in synaptic-canvas-dolt. |
+| Package aggregate | Future consumer proposal only | No aggregate algorithm was found in live synaptic-canvas-dolt; no `PackageSha256` compatibility claim. |
+| Installer lockfile | Future consumer proposal only | No verified `.synaptic/manifest.lock` writer or installer exists in live synaptic-canvas-dolt. |
 
-Every persisted field must document its domain and framing. The API must not
-return one untyped `[u8; 32]` value that callers can accidentally place in a
-different field. Package aggregation and release checksums may reuse the
-primitive internally, but they must not silently reuse the file-text or
-recursive-composition contract.
+Every persisted field must name its domain and framing. No caller receives an
+untyped `[u8; 32]` value that can be placed in a different field by accident.
 
-#### API simplicity requirement
+### Error inventory
 
-The core has exactly two public operations: `calculate_hash` and
-`calculate_graph_and_order`. There is no generic boolean such as
-`hash(input, recursive: bool)`, no parallel convenience function family, and
-no bare digest result whose domain the caller must infer. The tagged
-`HashInput`/`HashResult` pair is the single justified mechanism for keeping the
-supported hash domains explicit. The same two-operation shape applies to the
-maturin adapter.
+These stable codes are part of the public Rust/Python contract and must be
+documented in the implementation sprint:
 
-The hash implementation may have a private/generic streaming core and a file
-adapter layered over it. The file adapter opens the source, applies the same
-explicit UTF-8/newline policy, and delegates to the stream implementation; it
-must not duplicate hashing or normalization logic. This is an implementation
-seam, not a third public hash operation. Filesystem traversal and dependency
-ordering remain the responsibility of `calculate_graph_and_order`'s injected
-resolver.
+| Code | Error type | Cause | Recovery guidance |
+| --- | --- | --- | --- |
+| `SC_SHA_INVALID_UTF8` | `ShaError::InvalidUtf8` | Text bytes cannot be strictly decoded. | Fix the source encoding or provide a valid UTF-8 text input. |
+| `SC_SHA_MANIFEST_SCHEMA` | `CompositionError::UnsupportedManifestSchema` | Manifest encoding version is unsupported. | Rebuild the manifest with a supported schema. |
+| `SC_SHA_MANIFEST_DUPLICATE_SOURCE` | `CompositionError::DuplicateSource` | Caller supplied duplicate manifest nodes. | Fix the sc-compose node builder; do not silently deduplicate. |
+| `SC_SHA_MANIFEST_UNKNOWN_EDGE` | `CompositionError::UnknownEdgeEndpoint` | An edge references no manifest node. | Rebuild the resolved manifest from the validated graph. |
+| `SC_SHA_MANIFEST_INVALID_SOURCE` | `CompositionError::InvalidTaggedSource` | Tagged source representation is malformed. | Re-canonicalize at the owning resolver boundary. |
 
-The final field names and encoding remain subject to the synaptic-canvas-dolt
-verification gate. The plan requires the following invariants regardless of
-the final spelling:
+### API simplicity requirement
 
-- canonical relative paths only; no absolute machine-specific paths;
-- normalized `/` separators;
-- deterministic length-delimited or equivalently unambiguous encoding;
-- explicit algorithm/version domain separation;
-- exact UTF-8 text identity matching the upstream reader, with the explicit
-  newline normalization contract above;
-- nested and transitive dependencies included recursively;
-- include order and repeated occurrences remain represented by the referring
-  template's content hash; the returned path/hash list deduplicates paths;
-- render-option identity included only when it affects output;
-- no mtime, incidental resolver traversal order, locale, or host-path
-  dependence; only the defined deterministic candidate-discovery order may be
-  represented;
-- cycles and missing dependencies fail before producing a success fingerprint.
-
-The ordered path/hash list is diagnostic evidence. Consumers may compare a
-single `CompositionSha256` when they need an aggregate, but they must not use
-an unordered array of child hashes as the identity.
-
-### Recursive resolver API
-
-The recursive computation belongs in `sc-sha`, but file discovery remains with
-the caller. Use a resolver trait or equivalent generic callback so the core
-crate can enforce recursion and cycle invariants without reading a filesystem:
-
-```rust
-pub struct TemplateSource {
-    pub canonical_path: String,
-    pub source_text: String,
-    pub dependencies: Vec<String>,
-}
-
-pub trait DependencySource {
-    type Error;
-
-    fn load(&mut self, canonical_path: &str)
-        -> Result<TemplateSource, Self::Error>;
-}
-
-pub fn calculate_graph_and_order<S: DependencySource>(
-    root_path: &str,
-    source: &mut S,
-) -> Result<OrderedTemplateHashes, GraphError<S::Error>>;
-```
-
-The exact ownership of `TemplateSource` and the error wrapper may change after
-the synaptic-canvas-dolt API is verified, but the behavior is mandatory:
-
-- maintain an active recursion stack and reject a path already on that stack;
-- return a typed cycle error containing the deterministic cycle path;
-- enforce a configurable depth ceiling before recursion can overflow the stack;
-- cache completed path identities without dropping statically discoverable
-  candidate templates;
-- load dependencies in declared/source order;
-- reject malformed canonical paths before hashing;
-- never return a successful root fingerprint for a missing, cyclic, or failed
-  dependency.
-
-The resolver must be deliberately generic. A filesystem-backed resolver can be
-implemented by sc-composer; an in-memory resolver can be used by atm-core,
-Python, and deterministic tests. This keeps `sc-sha` reusable without hiding
-filesystem security policy inside a hash crate.
-
-The graph operation returns the ordered path/hash list. The hash operation
-returns the tagged `CompositionSha256` or `TemplateContextSha256` result;
-callers do not rebuild ordering from rendered text.
+The core and maturin adapter expose exactly `calculate_hash` and
+`calculate_composition_hash`. There is no resolver trait, filesystem callback,
+path-policy helper, graph-discovery operation, generic `recursive: bool`, or
+optional context field. The manifest is caller-supplied and the ownership
+boundary is testable by compiling sc-sha without sc-composer, MiniJinja, or
+filesystem dependencies.
 
 ### atm-core consumer contract (no atm-core implementation here)
 
@@ -447,29 +430,28 @@ identity. A per-file hash is insufficient because changing an included
 template must invalidate a cached root even when the root file itself is
 unchanged.
 
-The sc-sha API must provide three separately typed values:
+The sc-sha API provides the normalized template and composition values needed by
+atm-core:
 
 ```rust
-pub struct JsonVarsSha256([u8; 32]);
-pub struct TemplateContextSha256([u8; 32]);
+pub struct TemplateSha256([u8; 32]);
+pub struct CompositionSha256([u8; 32]);
 ```
 
-The recursive atm-core operation must obtain the ordered graph through
-`calculate_graph_and_order`, then call `calculate_hash` with
-`HashInput::JsonVariables` and `HashInput::GraphContext`. The canonical JSON
-contract must define object-key
-ordering, number representation, Unicode escaping, duplicate-key rejection,
-and whitespace handling; semantically identical JSON objects must produce the
-same `JsonVarsSha256` regardless of input formatting or map iteration order.
-The API may accept already canonical JSON bytes to keep `sc-sha` independent of
-a particular JSON crate, but canonicalization must be one shared, tested
-contract rather than an atm-core-only convention.
+The recursive atm-core consumer obtains or builds its own resolved manifest,
+calls `calculate_composition_hash`, and combines that result with its own JSON
+variable serialization and cache-row identity rules. No sc-sha resolver
+callback, JSON canonicalizer, renderer-option model, or context-row schema is
+involved. ATM may use the same `calculate_hash` operation for its own
+caller-supplied serialized values, but those serialization rules remain an ATM
+contract rather than a sc-sha requirement.
 
-The atm-core consumer must recompute the graph and JSON-variable identity on
-restore and reject stale/mismatched cache state; it must not trust an isolated
-SHA or reconstruct context from the root file alone. Its database schema and
-cache-row storage are outside this sc-compose plan. The consumer contract is a
-release-blocking acceptance test for `sc-sha`, not an atm-core implementation
+The atm-core consumer must recompute its resolved manifest and combine the
+composition result with its own persisted JSON/cache identity on restore; it
+must not trust an isolated per-file SHA or reconstruct context from the root
+file alone. Its database schema, graph-manifest model, JSON serialization, and
+stale-cache rules are outside this sc-compose plan. The consumer contract is
+external acceptance evidence for `sc-sha`, not an atm-core implementation
 sprint here.
 
 ### Maturin/Python API
@@ -479,57 +461,66 @@ should expose a stable Python module named `sc_sha` and delegate every
 calculation to Rust:
 
 ```python
-from sc_sha import calculate_hash, calculate_graph_and_order
+from sc_sha import calculate_hash, calculate_composition_hash
 
-calculate_hash({"kind": "file", "content": "template text"})
-# -> tagged file result with lowercase hexadecimal value
+calculate_hash({"kind": "text-file", "content": "template text"})
+# -> tagged TemplateSha256 result with lowercase hexadecimal value
 
-graph = calculate_graph_and_order(
-    root_path="root.md",
-    templates={
-        "root.md": {"text": "@<partial.md>\n", "dependencies": ["partial.md"]},
-        "partial.md": {"text": "body\n", "dependencies": []},
-    },
-)
-calculate_hash({"kind": "graph-context", "graph": graph,
-                "json_variables": {}})
-# -> tagged composition/context result with graph evidence
+manifest = {
+    "schema": "sc-sha/manifest/v1",
+    "nodes": [
+        {"source": {"kind": "local-path", "value": "root.md"},
+         "content_hash": "..."},
+        {"source": {"kind": "local-path", "value": "partial.md"},
+         "content_hash": "..."},
+    ],
+    "edges": [
+        {"parent": "root.md", "child": "partial.md", "occurrence": 0},
+    ],
+}
+calculate_composition_hash(manifest)
+# -> CompositionSha256; graph construction remains with the caller
 ```
 
 The final Python names and result mapping must be reconciled with the verified
-synaptic-canvas-dolt public API. The adapter must define:
+sc-sha API and synaptic-canvas-dolt's file-field consumption shape; the Dolt
+repository has no existing shared Rust or Python API to copy. The adapter must
+define:
 
-- accepted Python types for bytes, paths, dependency records, and optional
-  render options;
+- accepted Python types for UTF-8 text bytes and tagged manifest sources;
 - lowercase hex and explicitly documented text/bytes input-output behavior;
-- typed Python exceptions for invalid paths, missing nodes, cycles, and depth
-  exhaustion;
-- deterministic dictionary/list serialization for path/hash evidence;
+- typed Python exceptions for invalid domains and malformed manifests;
+- deterministic dictionary/list serialization for the caller-supplied manifest;
 - minimum supported Python versions and platform wheels;
 - package/module version alignment with the Rust algorithm version;
 - a clean-consumer `maturin develop` and wheel-install test.
 
 The Python API must expose the same two operations as the Rust API. It must not
-accept an unordered set as the only representation of dependencies. A mapping
-may be used for node lookup, but each node's ordered dependency list remains
-authoritative.
+discover dependencies or accept an unordered set as the only representation of
+the manifest. The caller's ordered nodes and edges remain authoritative.
 
 ## What moves from PR #358
 
-The implementation currently proposed in
-`crates/sc-composer/src/template_hash.rs` moves into `sc-sha`:
+The implementation currently proposed in PR #358 moves into `sc-sha` with
+explicit domain names:
 
-- `TemplateSha256` storage and trait implementations;
+- `TemplateSha256` storage and trait implementations for the verified
+  synaptic-canvas-dolt text behavior;
 - `as_bytes()`;
 - `to_hex()`;
 - `Display` hexadecimal formatting;
-- the text SHA function and any explicitly retained UTF-8 migration facade;
+- the stream-based normalization and any explicitly retained UTF-8 migration
+  facade; ATM-owned original source bytes remain outside sc-sha;
 - text golden vectors and line-ending/BOM/final-newline tests, updated to the
   verified synaptic-canvas-dolt vectors.
 
 The `sha2` dependency moves with the implementation. `sc-composer/src/lib.rs`
 stops declaring or implementing the hash directly and re-exports the shared
 types/functions only if its public API needs to remain source-compatible.
+It must re-export only the single normalized `TemplateSha256` identity when
+source compatibility requires it; ATM's separately retained original bytes are
+not a second sc-sha type. The PR #358 follow-up must document that the
+persisted template identity is LF-normalized.
 
 The following PR #358 features stay in sc-composer:
 
@@ -546,71 +537,76 @@ real graph and the graph is hashed through `sc-sha`.
 The existing include engine is the correct ownership point for recursive
 composition discovery. It already resolves `@<path>` includes, enforces root
 confinement, detects cycles/depth, and records resolved files and source text.
-However, its first-seen file collection cannot represent the full identity:
+sc-compose must build the resolved manifest and then call
+`sc_sha::calculate_composition_hash`; sc-sha must not absorb any of those
+resolver responsibilities. The current first-seen file collection cannot
+represent the full identity:
 
 - the public model does not expose a deterministic ordered list of unique
-  `(canonical path, file hash)` entries;
+  tagged source/hash nodes plus ordered include edges;
 - source text is retained as `String`, while the hash contract may require raw
-  bytes;
+  bytes at the file-reading boundary before strict UTF-8 normalization;
 - the MiniJinja loader introduced by PR #358 is separate from the native
   `@<path>` expansion path.
 
 The integration sprint must make these choices explicit rather than silently
-hashing whichever list happens to be available.
+hashing whichever traversal list happens to be available.
 
 ### Required graph behavior
 
-The graph operation is a conservative static dependency walk, not an
-execution trace. If an include appears inside a condition, the result contains
-every statically discoverable template that may be selected. The result is an
-ordered, deduplicated list:
+The sc-compose graph builder is a conservative static dependency walk, not an
+execution trace. If an include appears inside a condition, the manifest
+contains every statically discoverable template that may be selected. The
+caller-owned manifest contains unique nodes and ordered edges:
 
 ```text
 root.md                 -> sha(root)
 partials/header.md      -> sha(header)
 partials/item.md        -> sha(item)
 partials/other-item.md  -> sha(other-item)  # conditional candidate
+root.md -> partials/item.md (occurrence 0)
 ```
 
-The root is first, and each canonical path appears once at its first
-deterministic discovery. A repeated reference does not add another entry:
-the referring template's own content hash already captures its include syntax,
-condition, and occurrence. This list is the transient graph evidence; it is
-not required to be duplicated in atm-core storage.
+Nodes are ordered by deterministic first discovery and deduplicated by the
+tagged canonical source. Repeated references do not duplicate a node, but each
+ordered edge/occurrence is retained so the composition encoding remains
+injective. The referring template's content hash also captures its include
+syntax, condition, and occurrence. This manifest is transient graph evidence;
+ATM need not duplicate it when every child is already stored individually.
 
-For each visited/candidate node:
+For each visited/candidate node, sc-compose must:
 
-1. Resolve and canonicalize the path under the existing confinement policy.
-2. Read and retain source text under the verified upstream text policy.
-3. Retain raw bytes separately only when diagnostics or a distinct
-   non-compatible digest require them; they are not the upstream file identity.
-4. Compute the content-only `TemplateSha256` from verified source text and add
-   one deduplicated `(canonical relative path, TemplateSha256)` entry to the
-   ordered result.
-5. Recurse into every statically discoverable candidate and fail
+1. Resolve and canonicalize the local path under the existing confinement
+   policy, then wrap it as `CanonicalSource::LocalPath(CanonicalTemplatePath)`.
+2. Read source bytes, call `sc_sha::calculate_hash`, and memoize the resulting
+   `TemplateSha256` by the tagged canonical source. A diamond dependency must
+   hash a source exactly once per graph computation.
+3. Add one node per canonical source and preserve every ordered include
+   occurrence as an edge.
+4. Recurse into every statically discoverable candidate and fail
    deterministically for missing files, cycles, invalid source, or depth
-   exhaustion.
-6. If a dynamic include cannot be conservatively enumerated, return an
-   explicit unresolved-dependency result; do not silently claim the list is
+   exhaustion. These are sc-compose errors, not sc-sha errors.
+5. If a dynamic include cannot be conservatively enumerated, return an explicit
+   unresolved-dependency result; do not silently claim the manifest is
    exhaustive or produce a cacheable identity.
-7. Compute an optional aggregate/context identity only after the complete
-   deduplicated list is known.
+6. After the complete validated manifest exists, call
+   `sc_sha::calculate_composition_hash` exactly once.
 
 The result should expose both the source identity and inspectable evidence:
 
 ```rust
 pub struct CompositionFingerprint {
     pub source_sha: sc_sha::CompositionSha256,
-    pub hashes: sc_sha::OrderedTemplateHashes,
+    pub manifest: sc_sha::ResolvedTemplateManifest,
     pub resolved_files: Vec<PathBuf>,
 }
 ```
 
 The exact public placement may be `ExpandedTemplate` or a dedicated
 `CompositionFingerprint` result, but it must not require consumers to rebuild
-the graph from rendered text. A separately named rendered-output SHA may be
-added later when output verification is required; it must not be conflated
-with the source composition identity.
+the manifest from rendered text. A separately named rendered-output SHA may be
+added later when output verification is required; it must not be conflated with
+the source composition identity.
 
 ### Native includes and MiniJinja directives
 
@@ -631,96 +627,332 @@ scopes:
 This avoids claiming that scanning a directive span is equivalent to resolving
 and hashing the dependency it names.
 
-## Proposed implementation sprint decomposition
+## Authoritative implementation sprint records
 
-The following are implementation slices to be turned into normal numbered
-sprint documents after team-lead assigns the phase letter. They are kept
-separate because the shared crate can be reviewed independently from recursive
-filesystem/renderer behavior.
+The following two records are the single source of truth for implementation
+scope. They are deliberately separate because the shared crate/API can be
+reviewed independently from recursive filesystem/renderer behavior. Once the
+phase letter is assigned, copy each record verbatim into the filename specified
+in the phase-assignment gate above; do not create a narrower prompt from it.
 
-### Implementation slice 1 — `sc-sha` core crate and compatibility contract
+### Sprint X.1 — `sc-sha` core crate and compatibility contract
 
-**Branch/worktree:** `sprint/<phase>-1-sc-sha-crate`, created from the
-integration branch after this plan is approved.
+**Status:** planned; implementation sprint (not a documentation-only sprint).
 
-**Exact targets:**
+#### Goal
+
+Extract the verified file/composition hash contract into a publishable `sc-sha`
+crate, expose the two typed public operations, and remove duplicate hash
+ownership from sc-composer.
+
+**Traceability:** closes SHA-R1 (Rust definition), SHA-R2 (API definition),
+SHA-R3 (manifest framing contract), SHA-R4 (composition consumer contract), SHA-N1 (normalization), SHA-N2
+(boundary), SHA-N3 (production-readiness), and ADR-SHA-001. X.2 is responsible
+for the Python consumption proof that completes SHA-R1.
+
+**Standalone sprint metadata after phase assignment:**
+
+```yaml
+id: X.1
+title: sc-sha core crate and compatibility contract
+status: planned
+branch: sprint/x-1-sc-sha-core
+target: integrate/phase-x
+worktree: ../sc-compose-worktrees/sprint/x-1-sc-sha-core
+```
+
+#### Hard Dependencies
+
+None. The sprint starts from `integrate/phase-X`, whose selected parent commit
+is recorded by team-lead after plan approval. It may run in parallel with
+comp2's independent PR #358 CI fixes and QA, but neither branch may merge a
+duplicate hash implementation.
+
+**Target:** `develop` through `integrate/phase-X`.
+
+The selected parent commit is recorded by team-lead after plan approval; X.2
+does not block X.1.
+
+**Branch/worktree after phase assignment:**
+`sprint/x-1-sc-sha-core` from `integrate/phase-x`, with worktree
+`../sc-compose-worktrees/sprint/x-1-sc-sha-core`. These are naming templates,
+not branches to create before X is assigned.
+
+#### Exact Targets
 
 - `Cargo.toml`
 - `Cargo.lock`
 - `crates/sc-sha/Cargo.toml`
 - `crates/sc-sha/src/lib.rs`
-- `crates/sc-sha/src/file.rs` and/or `composition.rs`
+- `crates/sc-sha/src/file.rs`
+- `crates/sc-sha/src/manifest.rs`
+- `crates/sc-sha/src/composition.rs`
 - `crates/sc-sha/tests/compatibility_vectors.rs`
 - `crates/sc-composer/Cargo.toml`
 - `crates/sc-composer/src/lib.rs`
-- `crates/sc-composer/src/template_hash.rs` (delete after migration)
-- `docs/architecture.md` or a dedicated ADR for the shared hash ownership
-  decision
+- `CLAUDE.md` (Boundary Rules amendment)
+- `docs/adrs/0016-sc-sha-hash-ownership.md`
 
-**Deliverables:**
+#### Paths to Delete
 
-- Workspace member and publishable `sc-sha` crate.
-- Migrate the existing PR #358 calculation as the starting point; correct its
-  raw-byte/text encoding behavior rather than inventing a parallel algorithm.
-- Verified file-hash calculation and public API compatibility with
-  synaptic-canvas-dolt.
-- Two-operation public API: hash calculation plus graph/order calculation.
-- Stream-backed hash implementation with an optional file adapter that
-  delegates to the stream path.
-- JSON-variable and rendered-context identity APIs sufficient for atm-core's
-  cache restore contract.
-- sc-composer re-export/migration surface without duplicate hash code.
-- Boundary and dependency review evidence.
+`crates/sc-composer/src/template_hash.rs`, only after
+all supported call sites use `sc-sha` and the compatibility facade/re-export
+has passed its compile tests.
 
-**Non-closure:**
+#### Required Work
 
-- Does not yet discover recursive include candidates in sc-compose.
-- Does not change renderer loading behavior.
-- Does not claim issue #360 is closed until the recursive integration slice
-  lands.
+- Record the exact synaptic-canvas-dolt source commit and authoritative vector
+  fixture before implementation changes the algorithm.
+- Migrate PR #358's calculation as the starting point, correcting it to the
+  one strict-UTF-8/universal-newline-normalized `TemplateSha256` contract.
+- Implement exactly `calculate_hash` and `calculate_composition_hash`; keep any
+  stream/file layering private and do not add resolver, filesystem, path-policy,
+  cycle, or depth APIs to sc-sha.
+- Implement the caller-supplied tagged manifest types, versioned injective
+  framing, and structural manifest errors without discovering or reordering
+  graph data.
+- Add `ADR-SHA-001` and update `CLAUDE.md` Boundary Rules with new numbered
+  rules covering `sc-sha` and `bindings/sc-sha-python` dependency constraints
+  and the `ATM_HOME` prohibition. The amendment requires an explicit
+  team-lead ruling and ADR sign-off before it is committed.
+- Remove duplicate sc-composer hash ownership without introducing a second
+  raw/text identity type.
 
-**Parallelism:**
+#### Explicit Code Samples
 
-- Can proceed in parallel with comp2's CI fixes and QA on PR #358.
-- Must land before the PR #358 final merge if PR #358 is to expose this hash
-  API; after comp2 QA, PR #358 should be updated to consume `sc-sha`.
+```rust
+pub enum HashInput<'a> {
+    TextFileBytes { utf8_file_bytes: &'a [u8] },
+}
 
-### Implementation sprint 2 — sc-compose integration and Python adapter
+pub enum HashResult {
+    Template(TemplateSha256),
+}
 
-**Branch/worktree:** `sprint/<phase>-2-sc-sha-consumers`, created from the
-integration branch containing sprint 1.
+pub fn calculate_hash(input: HashInput<'_>) -> Result<HashResult, ShaError>;
+pub fn calculate_composition_hash(
+    manifest: &ResolvedTemplateManifest,
+) -> Result<CompositionSha256, CompositionError>;
+```
 
-**Exact targets:**
+#### Deliverables
+
+- A publishable workspace member `sc-sha` with no MiniJinja, CLI, ATM, Python,
+  or filesystem-traversal dependency.
+- Verified synaptic-canvas-dolt-compatible normalized file calculation and
+  public Rust API shape; command hashing is not a claimed deliverable.
+- The two-operation typed API and caller-supplied manifest framing required by
+  X.2 and the atm-core consumer contract.
+- A migrated sc-composer surface with no duplicate SHA implementation.
+- `ADR-SHA-001`, the CLAUDE.md boundary amendment, and a reviewable
+  validation-evidence package.
+
+#### Acceptance Criteria
+
+- `[SHA-R1, SHA-N1]` All authoritative normalized-text vectors pass, including
+  Unicode, non-BMP text, LF/CRLF, BOM, final-newline, empty, and invalid-UTF-8;
+  output matches the recorded upstream commit and remains host-invariant.
+- `[SHA-R2]` Compile tests prove there are exactly two public operations and
+  that callers receive `TemplateSha256` and `CompositionSha256` through public
+  accessors without private-field access; no resolver or filesystem surface is
+  exported by sc-sha.
+- `[SHA-N2, SHA-N3]` Manifest encoding tests prove version-tagged, framed,
+  injective node/edge encoding and typed structural errors without graph
+  discovery or policy enforcement in sc-sha.
+- `[ADR-SHA-001]` The team-lead ruling and ADR sign-off approve the new
+  `CLAUDE.md` Boundary Rules for `sc-sha` and `bindings/sc-sha-python`,
+  including dependency constraints and the extended `ATM_HOME` prohibition.
+- `[SHA-N3]` Missing/invalid inputs produce typed errors and no success digest;
+  the compatibility fixture includes Rust output, expected lowercase hex, and
+  representative `package_files.sha256` field mapping. X.2 adds Python output
+  equality; X.1 does not claim that adapter evidence prematurely.
+
+#### Required Validation
+
+- `cargo fmt --all --check`
+- `cargo test --workspace`
+- `cargo clippy --all-targets --all-features -- -D warnings`
+- compatibility-vector tests against the recorded upstream source commit
+- `git diff --check`
+
+#### QA Handoff
+
+Send team-lead the branch/worktree, parent integration commit,
+exact targets, deleted-path evidence, requirement/ADR mapping, validation
+output, compatibility fixtures, and any sc-lint findings. Team-lead opens the
+PR and routes it to quality-mgr. X.1 is not complete until QA approval, merge,
+and post-merge revalidation are recorded.
+
+#### Parallelism
+
+X.1 may run in parallel with comp2's independent PR #358 CI fixes and QA. It
+must not run in parallel with X.2 because X.2 consumes X.1's merged API. The
+PR #358 branch may not merge a duplicate hash implementation while X.1 is
+open.
+
+#### This Sprint Does Not Close
+
+Recursive sc-compose include discovery,
+renderer loading changes, the Python wheel, or issue #360. It does not modify
+atm-core or synaptic-canvas-dolt.
+
+### Sprint X.2 — sc-compose integration and Python adapter
+
+**Status:** planned; implementation sprint (not a documentation-only sprint).
+
+#### Goal
+
+Connect sc-compose's production include graph to the shared two-operation API
+and ship the thin maturin adapter with deterministic nested-graph evidence.
+
+**Traceability:** closes SHA-R2 (API consumption), SHA-R3 (recursive graph),
+SHA-R4 (external cache-restore evidence), SHA-R5 (maturin adapter), SHA-N1
+(cross-platform behavior), SHA-N2 (ownership boundary), and SHA-N3 (failure and
+validation evidence).
+
+**Standalone sprint metadata after phase assignment:**
+
+```yaml
+id: X.2
+title: sc-compose integration and Python adapter
+status: planned
+branch: sprint/x-2-sc-sha-consumers
+target: integrate/phase-x
+worktree: ../sc-compose-worktrees/sprint/x-2-sc-sha-consumers
+```
+
+#### Hard Dependencies
+
+X.1's merged, QA-approved public Rust API and algorithm
+vectors. It must start from `integrate/phase-x` after X.1 is merged. It may
+run in parallel with comp2's PR #358 CI fixes and QA, but it may not fork or
+reimplement hash logic. No other planned sprint is required.
+
+**Target:** `integrate/phase-x` after X.1 is merged.
+
+**Branch/worktree after phase assignment:**
+`sprint/x-2-sc-sha-consumers` from `integrate/phase-x`, with worktree
+`../sc-compose-worktrees/sprint/x-2-sc-sha-consumers`. These are naming
+templates, not branches to create before X is assigned.
+
+#### Exact Targets
 
 - `crates/sc-composer/src/include.rs`
 - `crates/sc-composer/src/include/expansion.rs`
-- `crates/sc-composer/src/include/path.rs` only if a narrow canonical-path
-  helper is required
-- the chosen sc-composer public result/type module
+- `crates/sc-composer/src/include/path.rs`
 - `bindings/sc-sha-python/Cargo.toml`
 - `bindings/sc-sha-python/pyproject.toml`
 - `bindings/sc-sha-python/src/lib.rs`
-- recursive include fixtures, compatibility vectors, and Python tests
+- `bindings/sc-sha-python/tests/test_compatibility.py`
+- recursive include fixtures and compatibility vectors
 
-**Deliverables:**
+#### Paths to Delete
 
-- Exhaustive candidate discovery for static includes and an ordered,
-  path-deduplicated `(canonical path, TemplateSha256)` list.
-- sc-compose integration using the two published `sc-sha` operations without
+None planned; if implementation reveals a duplicate
+hash/graph helper, record it here before deletion and route it as a separate
+fix class if it is not covered by X.2's exact targets.
+
+#### Required Work
+
+- Adapt the production `@<path>` resolver to build the caller-supplied
+  `ResolvedTemplateManifest`; enumerate all statically discoverable conditional
+  candidates, deduplicate canonical source nodes, preserve ordered edges, and
+  fail explicitly for unresolved dynamic includes.
+- Memoize each canonical source's `TemplateSha256` exactly once per graph
+  computation, including diamond dependencies, then call
+  `sc_sha::calculate_composition_hash` only after the manifest is complete.
+- Expose inspectable ordered manifest evidence and the composition identity
+  without rebuilding the graph from rendered text.
+- Implement a separate maturin `sc_sha` adapter delegating the same two Rust
+  operations, with stable result/error mappings and clean wheel installation.
+- Keep MiniJinja loader integration as the explicitly deferred scope described
+  in `Native includes and MiniJinja directives`.
+- After X.2's sc-compose merge, update PR #358 to consume the published
+  `sc-sha` API, remove its local hash implementation, preserve its
+  directive-span and confined-loader scope, and rerun its full CI/QA. This
+  follow-up is owned by X.2 and is not an unowned third sprint.
+
+#### Explicit Code Samples
+
+```rust
+pub fn calculate_hash(input: HashInput<'_>) -> Result<HashResult, ShaError>;
+pub fn calculate_composition_hash(
+    manifest: &ResolvedTemplateManifest,
+) -> Result<CompositionSha256, CompositionError>;
+```
+
+```python
+def calculate_hash(input: dict) -> dict: ...
+def calculate_composition_hash(manifest: dict) -> dict: ...
+```
+
+#### Deliverables
+
+- Exhaustive static candidate discovery and deterministic,
+  path-deduplicated manifest nodes plus ordered include edges.
+- sc-compose integration using the two published sc-sha operations without
   duplicate hashing or graph logic.
-- Separate maturin-built `sc_sha` adapter exposing the same two operations.
-- Deterministic failure behavior for missing files, cycles, depth limits,
-  confinement violations, and unresolved dynamic includes.
-- Cross-platform Rust/Python vectors and non-nested compatibility evidence.
+- A maturin-built `sc_sha` adapter exposing those same two operations.
+- Deterministic missing-file, cycle, depth, confinement, and unresolved
+  dynamic-include outcomes.
+- Cross-platform Rust/Python vectors, nested fixtures, and wheel evidence.
+- A reviewed PR #358 follow-up that consumes `sc-sha` without restoring a
+  duplicate implementation.
 
-**Hard dependency:** sprint 1's verified Rust API and algorithm vectors.
+#### Acceptance Criteria
 
-**Parallelism:** may proceed while comp2 completes PR #358 CI fixes, but must
-not fork or reimplement its hash logic. It is the only planned follow-on sprint
-unless QA identifies a genuinely independent fix class.
+- `[SHA-R2, SHA-R3]` The root appears first, each tagged canonical source node
+  appears once, conditional candidates are exhaustive, and repeated references
+  remain represented as ordered edges while nodes are deduplicated.
+- `[SHA-R3]` A diamond fixture proves each canonical source is hashed once per
+  graph computation, while all distinct edges remain in the manifest.
+- `[SHA-R3]` The manifest encoder's version tag and length-delimited framing are
+  proven injective by adversarial path/tag/order/hash/edge fixtures; malformed
+  manifests fail before hashing.
+- `[SHA-N1]` Linux, macOS, and Windows CI produce identical path/hash and
+  composition results for the defined fixtures.
+- `[SHA-R4]` Consumer evidence proves a nested child change changes
+  `CompositionSha256`, while touching an unrelated file outside the graph does
+  not change it; no atm-core code is added to this repository.
+- `[SHA-R5]` `maturin develop` and a clean wheel install expose the same two
+  operations, values, result shapes, and typed errors as Rust.
+- `[SHA-N2, SHA-N3]` Missing, cyclic, depth-exhausted, confinement-violating,
+  and unresolved dynamic graphs are rejected by sc-compose and never passed as
+  a successful manifest; no duplicate implementation remains.
+- `[SHA-N2, SHA-N3]` PR #358's follow-up CI passes with its renderer/directive
+  behavior isolated from the shared hash migration, and quality-mgr receives
+  the combined evidence before that PR is merged.
 
-**Non-closure:** does not modify atm-core or synaptic-canvas-dolt. Those repos
-consume the published API and provide external acceptance evidence.
+#### Required Validation
+
+- `cargo fmt --all --check`
+- `cargo test --workspace`
+- `cargo clippy --all-targets --all-features -- -D warnings`
+- complete recursive fixture suite on Linux, macOS, and Windows CI
+- `maturin build` followed by installation into a clean virtual environment
+- Rust/Python compatibility-vector and result/error-shape tests
+- `git diff --check`
+
+#### QA Handoff
+
+Send team-lead the branch/worktree, X.1 parent commit, exact
+targets, fixtures, requirement mapping, validation output, wheel artifact
+evidence, and any sc-lint findings. Team-lead opens the PR and routes it to
+quality-mgr. X.2 is not complete until QA approval, merge, and post-merge
+revalidation are recorded.
+
+#### Parallelism
+
+X.2 is parallel only with comp2's independent PR #358 CI/QA
+work after X.1 is merged; it is not parallel with X.1 because it consumes the
+verified API. Any sc-lint cleanup worktree is created from X.2's final commit
+and grouped by independent rule class under the routing policy below.
+
+#### This Sprint Does Not Close
+
+atm-core or synaptic-canvas-dolt code changes,
+their persistence/schema changes, MiniJinja recursive loading unless separately
+approved, or issue #360 until external consumer acceptance is complete.
 
 ## Sequence recommendation
 
@@ -737,11 +969,12 @@ Rationale:
 4. Once `sc-sha` is available, PR #358 can be rebased or amended to remove its
    local `template_hash.rs`, depend on `sc-sha`, and retain its existing public
    compatibility surface through a re-export if needed.
-5. Sprint 2 combines the small sc-compose integration and Python adapter after
+5. X.2 combines the small sc-compose integration and Python adapter after
    the shared API is stable, avoiding unnecessary worktrees and coordination
    overhead.
 6. Release acceptance requires atm-core to prove recursive cache restoration
-   from JSON variables plus composition SHA; this is consumer evidence, not an
+   from JSON variables plus composition SHA; atm-core builds the resolved
+   manifest and owns its cache schema. This is consumer evidence, not an
    atm-core implementation sprint in this plan.
 
 The merge gate is therefore:
@@ -769,17 +1002,13 @@ The shared crate must test:
 - empty input, ordinary UTF-8, LF, CRLF, BOM, and no-final-newline cases when
   those are part of the verified contract;
 - exact digest bytes and lowercase hex display;
-- canonical path separator behavior;
-- path-collision distinction when paths are part of the path/hash list;
-- deterministic path/hash-list encoding independent of map/traversal
-  implementation details;
-- algorithm/version domain separation;
-- conditional candidates are exhaustive, while include order/repetition remain
-  represented by the referring template's file hash;
-- canonical JSON-variable vectors with reordered keys, equivalent whitespace,
-  Unicode escapes, numeric edge cases, and duplicate-key rejection;
-- distinct JSON-variable, composition, and rendered-context identities;
-- optional render-option identity behavior.
+- strict invalid-UTF-8 errors;
+- manifest schema/domain tags;
+- tagged local-path versus URL source encoding;
+- length-delimited node/edge framing and adversarial injectivity cases for
+  source values, node order, per-file hashes, edge order, and occurrences;
+- duplicate-node, unknown-edge, unsupported-schema, and malformed-source errors;
+- caller-supplied manifest composition vectors independent of resolver policy.
 
 ### Maturin/Python tests
 
@@ -788,9 +1017,9 @@ The adapter must test:
 - Rust/Python equality for every authoritative file vector;
 - Rust/Python equality for every recursive composition fixture;
 - exact `bytes` versus `str` input policy;
-- lowercase hex output and path/hash result shape;
-- missing dependency, cycle, depth, and invalid-path exception mapping;
-- exhaustive candidate preservation and path deduplication;
+- lowercase hex output and manifest/result shape;
+- malformed-manifest and invalid-text exception mapping;
+- preservation of caller-supplied node order and edge occurrences;
 - `maturin develop` in a clean virtual environment;
 - wheel build and install on the supported platform matrix.
 
@@ -799,91 +1028,76 @@ The adapter must test:
 Use checked-in fixtures covering:
 
 1. root only;
-2. one-level include;
-3. multi-level include;
-4. changing only a nested child;
-5. identical bytes at two different canonical paths;
-6. adding and removing a candidate include;
-7. reordering or repeating an include in the parent source;
-8. repeated candidate paths deduplicating to one list entry;
-9. mixed directory nesting and canonical `/` paths;
-10. CRLF/LF/BOM/final-newline behavior;
-11. missing include;
-12. cyclic include;
-13. depth-limit failure;
-14. confinement/symlink escape;
-15. dynamic/unresolved include becoming explicitly non-cacheable;
-16. render-option changes when those options are included in the contract;
-17. legacy non-nested compatibility behavior.
+2. one-level and multi-level includes;
+3. changing exactly one nested child changes `CompositionSha256`;
+4. touching an unrelated file outside the graph leaves `CompositionSha256`
+   unchanged;
+5. identical content at two distinct canonical paths remains two tagged nodes;
+6. adding/removing a conditional candidate changes the manifest;
+7. reordering or repeating an include changes ordered edges while preserving
+   node deduplication;
+8. a diamond dependency hashes one source once but retains both edges;
+9. mixed directory nesting and canonical local-path representation;
+10. CRLF/LF/BOM/final-newline behavior at the text-hash boundary;
+11. missing include, cyclic include, depth-limit, and confinement/symlink
+    escape errors owned by sc-compose;
+12. dynamic/unresolved include becoming explicitly non-cacheable;
+13. tagged URL/local-source non-collision fixtures for the forward-compatible
+    manifest model;
+14. legacy non-nested compatibility behavior.
 
-Every test must assert both the single root fingerprint and enough path/hash
-evidence to explain why it changed or remained stable.
+Every test must assert the composition fingerprint and enough manifest
+node/edge evidence to explain why it changed or remained stable.
 
 ### atm-core cache-consumer tests
 
 The atm-core integration must additionally prove:
 
-1. the same recursive template graph plus semantically equivalent canonical
-   JSON variables restores the same context;
-2. changing a nested template invalidates the cache even when the root file and
-   JSON variables are unchanged;
-3. changing JSON variables invalidates the cache even when the template graph
-   is unchanged;
-4. changing dependency order, occurrence count, or renderer-relevant options
-   invalidates the cache when those inputs affect rendering;
+1. the same recursively resolved manifest restores the same context when ATM's
+   own JSON-variable/cache identity is unchanged;
+2. changing a nested template invalidates the cache even when the root file is
+   unchanged;
+3. changing ATM-owned JSON variables or renderer options invalidates the cache
+   even when the manifest is unchanged;
+4. changing dependency order or occurrence count invalidates the cache when
+   those inputs affect rendering;
 5. missing/cyclic/depth-exhausted graphs never restore a prior context;
-6. cache rows retain and validate all typed identities rather than trusting a
-   bare or mismatched SHA string.
+6. cache rows retain and validate the sc-sha per-file/composition values rather
+   than trusting a bare or mismatched SHA string. These tests run in atm-core;
+   they are external acceptance evidence, not sc-compose implementation.
 
-### Required validation
+### Phase-level QA aggregation
 
-Each implementation sprint must run:
+The two sprint records above own their deliverables, acceptance criteria, and
+required validation; this section intentionally does not restate those lists.
+At phase close, quality-mgr aggregates the two QA approvals and verifies the
+following cross-sprint gates:
 
-```text
-cargo fmt --all --check
-cargo test --workspace
-cargo clippy --all-targets --all-features -- -D warnings
-git diff --check
-```
-
-The shared crate sprint must additionally run its compatibility-vector tests
-against the exact source commit recorded in the verification artifact. The
-recursive sprint must run the complete include fixture suite on Linux, macOS,
-and Windows CI because path, separator, and filesystem confinement behavior
-are part of the contract.
-
-The Python adapter sprint must additionally run `maturin build` and install the
-resulting wheel into a clean environment before QA handoff. A source checkout
-import is not sufficient evidence that the package is usable by Python
-consumers.
-
-QA must review directly from the sprint document and verify:
-
-- no duplicate SHA implementation remains in sc-composer;
-- no unordered dependency list is used as identity; path deduplication is
-  deterministic;
-- nested changes alter the root fingerprint;
-- exact path and candidate-set rules are tested;
-- failure cases do not produce a misleading success fingerprint;
-- PR #358's CI fixes remain isolated from the hash-contract migration.
+- X.1 and X.2 each have a merged commit, an independent QA result, and
+  post-merge revalidation on `integrate/phase-X`.
+- The final integration branch has no duplicate SHA implementation in
+  sc-composer and PR #358's renderer/directive CI fixes remain isolated from
+  the hash-contract migration until its follow-up is explicitly reviewed.
+- The external atm-core and synaptic-canvas-dolt acceptance artifacts named in
+  this plan exist before issue #360 is marked complete.
 
 ## sc-lint cleanup and QA routing
 
-Each implementation slice must run the applicable sc-lint checks on its final
-commit. Minor findings are fixed immediately in the slice worktree. Remaining
+Each implementation sprint must run the applicable sc-lint checks on its final
+commit. Minor findings are fixed immediately in the sprint worktree. Remaining
 findings are grouped by independent rule class and ownership boundary, not by
 individual occurrence:
 
-- create a dedicated `fix/` worktree from the slice's final commit;
+- create a dedicated `fix/` worktree from the sprint's final commit;
 - keep constant/string findings grouped by owning crate;
 - keep length-driven refactors separate from semantic or boundary changes;
 - send the worktree path, parent commit, finding evidence, tests, and fix
   commit to team-lead;
 - team-lead creates the PR and sends it to quality-mgr for independent QA;
-- the implementation slice does not close until required fix PRs are QA
+- the implementation sprint does not close until required fix PRs are QA
   approved, merged, and revalidated.
 
-The Python adapter slice applies the same routing to Rust, PyO3, Python, and
+The Python adapter sprint applies the same routing to Rust, PyO3, Python, and
 packaging findings, while keeping wheel/build failures separate from core hash
 semantic fixes.
 
@@ -915,11 +1129,31 @@ Neither `sc-sha` nor the sc-composer integration reads `ATM_HOME` or any ATM
 runtime path. ATM-core consumes the published crate through its own adapter
 boundary, outside this repository.
 
+### Proposed Rule 8 — `sc-sha` core dependency boundary
+
+Sprint X.1 must amend `CLAUDE.md` to make this boundary explicit: `sc-sha` may
+depend only on the approved hashing/encoding implementation dependencies. It
+must not depend on `sc-compose`, `sc-composer`, MiniJinja, filesystem/CLI
+libraries, ATM crates, PyO3, or maturin, and it must not implement resolver,
+path-policy, cycle, or depth behavior.
+
+### Proposed Rule 9 — `sc-sha-python` adapter boundary
+
+Sprint X.1 must also amend `CLAUDE.md` to state that
+`bindings/sc-sha-python` may depend on published `sc-sha` plus PyO3/maturin
+packaging dependencies only. It must not depend on `sc-compose`,
+`sc-composer`, ATM-specific crates, or read `ATM_HOME`; it delegates both
+public operations without a Python-only algorithm. These proposed rules are
+not effective until team-lead explicitly rules on them and signs off
+`ADR-SHA-001`.
+
 Additional boundary checks:
 
 - No `agent-team-mail-*`, `atm_*`, or `agent_team_mail` dependency is added.
 - No `use agent_team_mail::` or `use atm_*::` import is introduced.
 - No filesystem traversal, MiniJinja, or CLI dependency is added to `sc-sha`.
+- No resolver callback, canonical-path policy, cycle detector, depth limiter,
+  or filesystem access is added to `sc-sha`; these remain sc-compose-owned.
 - PyO3/maturin dependencies are confined to `bindings/sc-sha-python`; they are
   not optional dependencies of the core crate.
 - The new adapter is not silently folded into `bindings/python`, whose existing
@@ -927,66 +1161,33 @@ Additional boundary checks:
 - The shared crate may be used by external consumers only through its published
   versioned API and compatibility vectors.
 
-## Migration and release checklist
+## Phase-level gates and external handoff
 
 ### Before implementation
 
 - [ ] Team-lead records the synaptic-canvas-dolt source commit and algorithm.
 - [ ] Compatibility vectors are copied into the plan review evidence.
-- [ ] The synaptic-canvas-dolt Rust/public API and Python/public API are mapped
-      to `sc-sha` symbols and tested, not merely compared by digest output.
+- [ ] The verified synaptic-canvas-dolt file-field consumption shape is mapped
+      to `sc-sha` symbols and tested, not merely compared by digest output; no
+      nonexistent Dolt Rust/Python API is treated as an authority.
 - [ ] Team-lead assigns the actual phase/sprint numbers; this document does not
       reserve a phase number.
 - [ ] Confirm whether `sc-sha` is published from this workspace or extracted
       to its own repository while preserving the same crate name and API.
 
-### Shared crate sprint
+### Phase-level gates
 
-- [ ] Add `crates/sc-sha` to the workspace.
-- [ ] Move the verified file hash and tests.
-- [ ] Add ordered, path-deduplicated template-hash list types and deterministic
-      aggregate/context framing.
-- [ ] Add canonical JSON-variable, rendered-context, and distinct typed
-      identity results required by atm-core cache restoration.
-- [ ] Add resolver-driven recursive hashing with active-stack cycle detection,
-      depth protection, and deterministic typed errors.
-- [ ] Remove duplicate `template_hash.rs` implementation from sc-composer.
-- [ ] Re-export compatible names from sc-composer if PR #358 requires them.
-- [ ] Update Cargo.lock and dependency manifests.
-- [ ] Run full validation and obtain independent QA approval.
-
-### Maturin adapter
-
-- [ ] Add the separate `bindings/sc-sha-python` package and stable `sc_sha`
-      module.
-- [ ] Delegate both `calculate_hash` and `calculate_graph_and_order` to
-      `sc-sha`.
-- [ ] Verify Python API values, result shape, errors, and package version
-      against synaptic-canvas-dolt.
-- [ ] Build/install a wheel in a clean environment on the supported platforms.
-- [ ] Obtain independent QA approval.
-
-### PR #358 follow-up
-
-- [ ] Comp2 completes current CI fixes and QA without mixing the extraction.
-- [ ] Rebase/amend PR #358 onto the merged `sc-sha` crate.
-- [ ] Remove its local SHA implementation and point the public API at sc-sha.
-- [ ] Preserve directive-span and confined-loader scope separately.
-- [ ] Re-run PR #358's full CI and request QA review of the combined contract.
-
-### Recursive integration sprint
-
-- [ ] Add exhaustive candidate discovery and path-deduplicated hash-list
-      tracking to include expansion.
-- [ ] Preserve the verified source text semantics needed by the hash contract;
-      retain raw file bytes only when required for diagnostics or a separately
-      named non-compatible digest.
-- [ ] Compute and expose the recursive path/hash-list and optional root
-      fingerprint.
-- [ ] Add all required nested, ordering, repetition, collision, and failure
-      fixtures.
-- [ ] Update normative architecture/requirements documentation.
-- [ ] Run full validation and obtain independent QA approval.
+- [ ] Before X.1 starts, team-lead records the synaptic-canvas-dolt source
+      commit, authoritative vectors, assigned phase letter, and final sprint
+      filenames/branches.
+- [ ] After X.1 merges, its QA evidence and the `sc-sha` publication/API
+      decision are attached to the integration branch before X.2 starts.
+- [ ] After X.2 merges, the PR #358 follow-up is rebased/amended to consume
+      `sc-sha`; its directive-span and confined-loader scope remains separate,
+      then its full CI and QA are rerun.
+- [ ] At phase close, the integration branch has the two QA-approved sprint
+      commits, all routed sc-lint fix worktrees merged/revalidated, and the
+      external acceptance evidence below.
 
 ### External consumer acceptance (no consumer implementation here)
 
@@ -995,7 +1196,8 @@ Additional boundary checks:
 - [ ] Record evidence that atm-core can recompute recursive and JSON-variable
       identities before restoring context.
 - [ ] Provide synaptic-canvas-dolt with the per-file compatibility vectors and
-      public API mapping for database/lockfile consumption.
+      public API mapping for `package_files.sha256` consumption. Any future
+      database/lockfile integration is separately scoped and not claimed here.
 
 ## Explicit non-goals
 
@@ -1006,6 +1208,6 @@ Additional boundary checks:
 - Do not make sc-sha aware of MiniJinja syntax or `@<path>` syntax.
 - Do not put PyO3/maturin into the core `sc-sha` dependency graph.
 - Do not include absolute paths, mtimes, host-specific separators, or
-  incidental resolver traversal order in the identity; the defined
-  deterministic discovery order is part of the path/hash-list contract.
+  incidental resolver traversal order in the identity; sc-compose/atm-core
+  must provide the deterministic ordered manifest consumed by sc-sha.
 - Do not claim PR #358 or this planning document closes issue #360 by itself.
