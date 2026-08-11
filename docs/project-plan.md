@@ -1668,6 +1668,7 @@ boundary defined by:
 - `docs/sprints/fix-253-doubled-delimiter-error-message.md`
 - `docs/sprints/fix-254-varfile-negative-boundary-i128.md`
 - `docs/sprints/fix-283-unbound-variable-policy-noop.md`
+- `docs/sprints/fix-372-chained-ternary-dynamic-classification.md`
 
 The current follow-on implementation track is:
 
