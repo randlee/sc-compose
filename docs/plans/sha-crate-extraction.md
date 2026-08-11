@@ -337,6 +337,27 @@ impl CompositionSha256 {
 pub fn composition_sha256(manifest: &CompositionManifest) -> CompositionSha256;
 ```
 
+### Hash-domain taxonomy
+
+The algorithm primitive is SHA-256, but these identities are not
+interchangeable because their inputs, normalization, framing, and owners
+differ:
+
+| Domain | Proposed identity/API | Owner and storage |
+| --- | --- | --- |
+| File content | `TemplateSha256` / `template_sha256` | `sc-sha`; consumed by synaptic-canvas-dolt as `package_files.sha256` and installer lockfile file entries |
+| Command text | `sha256_command_text` / `CommandSha256` if a distinct type is needed | `sc-sha` calculation; consumed by synaptic-canvas-dolt as `package_deps.cmd_sha256` |
+| Recursive template node | `TemplateNodeSha256` | `sc-sha` calculation for path-aware sc-compose source identity |
+| Recursive composition | `CompositionSha256` | `sc-sha` calculation; consumed by sc-compose composition metadata, not a replacement for per-file hashes |
+| Package aggregate | `PackageSha256` or equivalent | synaptic-canvas-dolt owns sorted path-plus-file-hash framing and package/lockfile schema |
+| Release/artifact checksum | release-specific SHA-256 value | publishing/distribution tooling owns the artifact bytes and checksum metadata |
+
+Every persisted field must document its domain and framing. The API must not
+return one untyped `[u8; 32]` value that callers can accidentally place in a
+different field. Package aggregation and release checksums may reuse the
+primitive internally, but they must not silently reuse the file-text or
+recursive-composition contract.
+
 The final field names and encoding remain subject to the synaptic-canvas-dolt
 verification gate. The plan requires the following invariants regardless of
 the final spelling:
