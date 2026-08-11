@@ -148,6 +148,36 @@ using supported public functions. Matching a digest while requiring callers to
 reach into private bytes, re-normalize values, or reinterpret an error is not
 an API-compatible result.
 
+### Online-install integration boundary
+
+`synaptic-canvas-dolt` owns persistence and installation state; `sc-sha` owns
+the calculation. The sc-sha plan must not add a lockfile writer or a Synaptic
+Canvas runtime dependency to sc-compose. The integration contract is:
+
+- Dolt `package_files.sha256` stores the lowercase hexadecimal
+  `TemplateSha256` content identity for the source text ingested into the
+  package database.
+- After install-time template rendering, the Synaptic Canvas installer stores
+  the resulting per-file `TemplateSha256` values in
+  `{repo-root}/.synaptic/manifest.lock` under `[skills.files]`, keyed by the
+  materialized relative path.
+- The lockfile also records package version/channel and the Dolt commit needed
+  to identify the package revision; those are release/install metadata, not
+  part of the per-file digest.
+- `TemplateNodeSha256` and `CompositionSha256` are sc-compose recursive-source
+  identities. They must not replace the per-file value in `package_files.sha256`
+  or `[skills.files]` unless Synaptic Canvas separately versions its schema for
+  that purpose.
+
+The online integration test is an end-to-end release gate owned jointly with
+synaptic-canvas-dolt: ingest a UTF-8 Markdown/log fixture, fetch it from the
+database, materialize it into a temporary project, write the lockfile through
+the installer, and verify the local file against the recorded hash. Repeat
+with CRLF and LF representations on the supported OS matrix, rendered
+templates, Unicode/non-BMP content, modified files, and missing files. This
+proves that the published crate/API can support the actual online workflow
+without requiring a local algorithm fork.
+
 ## Proposed workspace layout
 
 Add one new core workspace member and one separate Python adapter member:
