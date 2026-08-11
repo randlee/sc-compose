@@ -486,6 +486,9 @@ pub struct ComposeResult {
     pub variable_sources: BTreeMap<VariableName, VariableSource>,
     /// Non-fatal diagnostics emitted during composition.
     pub warnings: Vec<Diagnostic>,
+    /// Source-composition identity and manifest, when file composition was used.
+    #[serde(skip)]
+    pub composition_fingerprint: Option<crate::CompositionFingerprint>,
 }
 
 /// Structured validation result without rendered output.

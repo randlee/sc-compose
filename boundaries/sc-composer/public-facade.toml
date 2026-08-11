@@ -17,7 +17,7 @@ roots = []
 
 [dependencies]
 allowed_dependents = ["sc-compose", "sc-compose-py"]
-allowed_dependencies = []
+allowed_dependencies = ["sc-sha"]
 forbidden_edges = []
 
 [references]

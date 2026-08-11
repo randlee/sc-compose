@@ -67,6 +67,7 @@ class DiagnosticCode:
     ERR_INCLUDE_NOT_FOUND: str
     ERR_INCLUDE_CYCLE: str
     ERR_INCLUDE_DEPTH: str
+    ERR_INCLUDE_DYNAMIC_UNRESOLVED: str
     ERR_VAL_OBJECT_SHAPE: str
     ERR_VAL_NESTED_ARRAY_UNSUPPORTED: str
     ERR_VAL_DUPLICATE: str
@@ -317,6 +318,8 @@ class ComposeResult:
     @property
     def resolved_files(self) -> list[str]: ...
     @property
+    def composition_sha256(self) -> str | None: ...
+    @property
     def resolve_result(self) -> ResolveResult: ...
     @property
     def warnings(self) -> list[Diagnostic]: ...
@@ -404,6 +407,8 @@ class ExpandedTemplate:
     def text(self) -> str: ...
     @property
     def resolved_files(self) -> list[str]: ...
+    @property
+    def composition_sha256(self) -> str | None: ...
     @property
     # Legacy compatibility view: returns only the outermost frontmatter block
     # for each file. Use `frontmatter_passes` for the complete multi-pass data.

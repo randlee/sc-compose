@@ -744,6 +744,40 @@ Sprint entries:
 - [Phase M plan](phase-M/phase-M-plan.md)
 - [Sprint M.1 — sc-sha Core Crate](phase-M/sprint-m-1-sc-sha-core-crate.md)
 - [Sprint M.2 — sc-compose Integration](phase-M/sprint-m-2-sc-compose-integration.md)
+- [Sprint FIX-373 — Diamond Frontmatter Dedup](sprints/fix-373-diamond-frontmatter-dedup.md)
+- [Sprint FIX-374 — sc-sha Digest Error Code](sprints/fix-374-sc-sha-digest-error-code.md)
+- [Sprint FIX-375 — ScShaError __str__](sprints/fix-375-scshaerror-str.md)
+
+### Follow-on Fix Sprint: FIX-373
+
+Status:
+
+- complete on `fix/373-diamond-frontmatter-dedup` at `cc828b8`
+
+Sprint entry:
+
+- [Sprint FIX-373 — Diamond Frontmatter Dedup](sprints/fix-373-diamond-frontmatter-dedup.md)
+
+FIX-373 deduplicates the missing-frontmatter diagnostic for a
+frontmatter-less leaf shared through a diamond-shaped include graph. The
+existing `is_new` gate now covers `resolved_files`, `source_texts`, and
+`frontmatters`, so the diagnostic is emitted once per canonical file while
+distinct graph edges remain preserved.
+
+### Follow-on Fix Sprint: FIX-375
+
+Status:
+
+- complete on `fix/375-scshaerror-str` at `b06b07d`
+
+Sprint entry:
+
+- [Sprint FIX-375 — ScShaError __str__](sprints/fix-375-scshaerror-str.md)
+
+FIX-375 gives `ScShaError` a readable string representation while preserving
+the separate `.code` attribute used for error-code dispatch. Python callers
+now receive the human-readable message from `str(error)` instead of the raw
+`(code, message)` argument-tuple representation.
 
 ### Follow-on Fix Sprint: FIX-370-371
 
@@ -1683,6 +1717,7 @@ boundary defined by:
 - `docs/sprints/fix-253-doubled-delimiter-error-message.md`
 - `docs/sprints/fix-254-varfile-negative-boundary-i128.md`
 - `docs/sprints/fix-283-unbound-variable-policy-noop.md`
+- `docs/sprints/fix-372-chained-ternary-dynamic-classification.md`
 
 The current follow-on implementation track is:
 

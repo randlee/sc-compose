@@ -298,6 +298,7 @@ mod tests {
             frontmatters: vec![(root.clone(), parsed.passes().to_vec())],
             include_chains: BTreeMap::new(),
             source_texts: [(root, document.to_owned())].into_iter().collect(),
+            composition_fingerprint: None,
         };
 
         let state = collect_validation_state(&empty_request(), &expanded);
@@ -334,6 +335,7 @@ mod tests {
             frontmatters: vec![(root.clone(), parsed.passes().to_vec())],
             include_chains: BTreeMap::new(),
             source_texts: [(root.clone(), document.to_owned())].into_iter().collect(),
+            composition_fingerprint: None,
         };
         let mut request = empty_request();
         request
@@ -426,6 +428,7 @@ mod tests {
             ]
             .into_iter()
             .collect(),
+            composition_fingerprint: None,
         };
 
         let state = collect_validation_state(&empty_request(), &expanded);

@@ -72,7 +72,7 @@ pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};
 #[doc(inline)]
 pub use frontmatter_init::frontmatter_init;
 #[doc(inline)]
-pub use include::{ExpandedTemplate, expand_includes};
+pub use include::{CompositionFingerprint, ExpandedTemplate, expand_includes};
 #[doc(inline)]
 pub use init_workspace::{init_workspace, read_optional_text_file};
 #[doc(inline)]
@@ -90,6 +90,13 @@ pub use renderer::{
 };
 #[doc(inline)]
 pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_template_path};
+#[doc(inline)]
+pub use sc_sha::{
+    CanonicalSource, CanonicalSourceError, CanonicalSourceUrl, CanonicalTemplatePath,
+    CompositionError, CompositionSha256, HashInput, HashResult, ManifestSchemaVersion,
+    ResolvedIncludeEdge, ResolvedTemplateManifest, ResolvedTemplateNode, ShaError, TemplateSha256,
+    calculate_composition_hash, calculate_hash,
+};
 #[doc(inline)]
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
