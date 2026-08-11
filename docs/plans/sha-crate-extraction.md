@@ -84,12 +84,44 @@ The verification must cover both layers:
 | Python public API | The maturin module exposes the same digest values and stable string/bytes behavior needed by synaptic-canvas-dolt Python consumers. |
 | Versioning | The crate/package version and algorithm identifier prevent silent cross-version collisions. |
 
+The resolved file compatibility contract is:
+
+1. Decode bytes as strict UTF-8.
+2. Apply Python universal-newline behavior: `CRLF -> LF` and lone `CR -> LF`.
+3. Preserve a decoded UTF-8 BOM as `U+FEFF`; do not use `utf-8-sig` semantics.
+4. Preserve the presence or absence of the final newline.
+5. Hash the normalized Unicode text re-encoded as UTF-8 with SHA-256.
+6. Return a typed invalid-UTF-8 error rather than a digest for undecodable
+   input.
+
+This normalization is explicit and platform-invariant: macOS, Linux, and
+Windows must produce the same digest for the same decoded text regardless of
+the host filesystem's native line-ending convention. The Rust implementation
+must not delegate this behavior to OS-specific file APIs.
+
+This is a text-file contract, not an assertion that one character occupies one
+byte. UTF-8 is the wire encoding and Unicode code points are the decoded text;
+valid UTF-8 Markdown, log, and other text files remain fully representable,
+including accented characters, CJK text, combining marks, and emoji/non-BMP
+characters. Re-encoding the decoded text as UTF-8 preserves those code points.
+The implementation must not truncate, reinterpret, or hash UTF-16 code units.
+The compatibility vector set must include representative multilingual and
+non-BMP text, as well as Markdown punctuation and log-style lines.
+
+This cross-platform behavior is required because the digest is persisted in a
+database and later compared with a file in a user's working copy. A logical
+UTF-8 Markdown or log file must therefore retain the same database identity
+when checked out or edited on Linux, macOS, or Windows. The database identity
+is not the host-specific sequence of newline bytes. Files encoded in a legacy
+non-UTF-8 encoding, or arbitrary binary files, are outside this text identity
+contract and must fail with a typed error rather than receive a misleading
+digest.
+
 The verification artifact must be committed as documentation or test vectors in
 the `sc-sha` implementation sprint. A plain SHA-256 implementation that merely
-matches the empty-string vector is not evidence of compatibility. The
-implementation must explicitly settle whether newline translation occurs at
-the file-reading boundary, because PR #358 currently hashes an arbitrary byte
-slice while synaptic-canvas-dolt hashes text loaded with `read_text`.
+matches the empty-string vector is not evidence of compatibility. PR #358's
+raw-byte function must be changed to apply this contract before it is used as
+the synaptic-canvas-dolt-compatible file identity.
 
 If the verified text behavior differs from PR #358's current
 `template_sha256(raw_file_bytes)` behavior, the synaptic-canvas-dolt contract
@@ -185,24 +217,52 @@ impl TemplateSha256 {
 impl std::fmt::Display for TemplateSha256 { /* lowercase contract */ }
 
 #[must_use]
+/// Hash text using the synaptic-canvas-dolt file contract. This function
+/// applies universal-newline normalization before UTF-8 hashing.
 pub fn sha256_text(content: &str) -> TemplateSha256;
+
+/// Hash a command string as synaptic-canvas-dolt hashes `cmd_sha256`: direct
+/// UTF-8 bytes, without file newline normalization.
+pub fn sha256_command_text(command: &str) -> TemplateSha256;
 
 /// Optional migration facade for UTF-8 file bytes. Its conversion and newline
 /// policy must be proven equivalent to the synaptic-canvas-dolt reader.
 pub fn template_sha256(utf8_file_bytes: &[u8]) -> Result<TemplateSha256, ShaError>;
 ```
 
-`sha256_text` is the canonical compatibility function. `template_sha256` may
-remain as a migration facade for PR #358 only if its UTF-8 decoding and newline
-policy are proven equivalent. It must not imply that arbitrary binary bytes are
-accepted when the upstream contract is text-based. If a raw-byte digest is
-useful for a separate consumer, expose it under a distinct name and do not use
-it for synaptic-canvas-dolt-compatible identity.
+`sha256_text` is the canonical file-content compatibility function;
+`template_sha256` strictly decodes bytes, applies the same normalization, and
+delegates to it. `sha256_command_text` is intentionally separate because
+`cmd_sha256` hashes a command string directly rather than reading a file. None
+of these APIs accepts arbitrary binary content as a synaptic-canvas-dolt file
+identity. If a raw-byte digest is useful for another consumer, expose it under
+a distinct name and do not use it for the compatible identity.
 
 The digest type retains the currently proposed `as_bytes`, `to_hex`, and
 lowercase `Display` surface. Add compile-level/API-shape examples showing that
 a consumer can obtain the stored-compatible string without reaching into
 private fields.
+
+`TemplateSha256` is deliberately the content-only identity consumed by
+synaptic-canvas-dolt. Recursive composition needs a separate, explicitly
+versioned node identity so two different files with identical content cannot
+silently collapse into one node:
+
+```rust
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct TemplateNodeSha256([u8; 32]);
+
+pub fn template_node_sha256(
+    canonical_relative_path: &str,
+    file_sha: TemplateSha256,
+) -> TemplateNodeSha256;
+```
+
+The proposed node encoding is domain-separated and length-delimited, for
+example `sc-sha-node-v1` + NUL + canonical relative path + NUL + the 32-byte
+content digest. This is a new sc-sha composition identity, not a replacement
+for the upstream content-only digest. Its exact encoding must be frozen with
+golden vectors before consumers persist it.
 
 The recursive API must prevent accidental mixing of a file digest and a
 composition digest. Prefer distinct types even if both currently contain 32
@@ -213,8 +273,9 @@ bytes:
 pub struct DependencyEdge {
     /// Canonical, repository-relative include target using `/` separators.
     pub include_path: String,
-    /// Child node identity after path and verified source text are incorporated.
-    pub child_sha: TemplateSha256,
+    /// Child node identity after its canonical path and file identity are
+    /// incorporated.
+    pub child_sha: TemplateNodeSha256,
     /// Zero-based occurrence in the parent's source order.
     pub occurrence: u32,
 }
@@ -226,7 +287,7 @@ pub struct CompositionManifest {
     /// Canonical path of the composed root.
     pub root_path: String,
     /// Identity of the root node.
-    pub root_sha: TemplateSha256,
+    pub root_sha: TemplateNodeSha256,
     /// Ordered edges, including repeated occurrences.
     pub edges: Vec<DependencyEdge>,
     /// Optional canonical render-option identity when source alone is not
@@ -254,8 +315,8 @@ the final spelling:
 - normalized `/` separators;
 - deterministic length-delimited or equivalently unambiguous encoding;
 - explicit algorithm/version domain separation;
-- exact UTF-8 text identity matching the upstream reader, or an explicitly
-  documented source normalization rule;
+- exact UTF-8 text identity matching the upstream reader, with the explicit
+  newline normalization contract above;
 - nested and transitive dependencies included recursively;
 - include order and repeated occurrences preserved;
 - render-option identity included only when it affects output;
@@ -412,9 +473,10 @@ For each visited node:
 1. Resolve and canonicalize the path under the existing confinement policy.
 2. Read and retain source text under the verified upstream text policy.
 3. Retain raw bytes separately only when diagnostics or a distinct
-   non-compatible digest require them.
-4. Compute the node identity from the canonical relative path and verified
-   source text, if required by the verified algorithm.
+   non-compatible digest require them; they are not the upstream file identity.
+4. Compute the content-only `TemplateSha256` from verified source text, then
+   compute the path-aware `TemplateNodeSha256` from the canonical relative path
+   and content digest.
 5. Append each parent-to-child edge in source order, retaining occurrence.
 6. Recurse into the child and fail deterministically for missing files, cycles,
    invalid source, or depth exhaustion.
