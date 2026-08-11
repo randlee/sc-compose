@@ -1,6 +1,6 @@
 ---
 id: FIX-374
-status: in-progress
+status: complete
 branch: fix/374-sc-sha-digest-error-code
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/374-sc-sha-digest-error-code
 target: integrate/phase-M
@@ -66,3 +66,20 @@ correctly by `calculate_hash_py`/`calculate_composition_hash_py`.
 - `bindings/sc-sha-python/src/lib.rs` (`parse_digest`, `parse_nodes`)
 - `docs/error-code-registry.md`
 - `sc_sha::ShaError::InvalidDigestHex`
+
+## Closeout Evidence
+
+- Status: **complete**.
+- Red regression baseline: `f0439e0` (`test: preserve sc-sha digest error
+  code`) reproduced `SC_SHA_INVALID_MANIFEST` for a malformed `sha256`
+  digest, while the malformed-manifest control remained correctly classified.
+- Implementation: `6784f32` (`fix: forward malformed digest error code`)
+  preserves the typed `sc_sha::ShaError` from `parse_digest` and forwards its
+  stable code and message through `parse_nodes`.
+- The exact malformed-hex repro now raises `SC_SHA_INVALID_DIGEST`;
+  malformed manifest shape, invalid UTF-8, and unsupported schema controls
+  retain their existing codes.
+- Validation: `cargo test --workspace`, `cargo fmt --all --check`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, and
+  `git diff --check` pass. The rebuilt maturin wheel passes all 8
+  `bindings/sc-sha-python/tests` tests.
