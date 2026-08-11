@@ -1,6 +1,6 @@
 ---
 id: FIX-373
-status: in-progress
+status: complete
 branch: fix/373-diamond-frontmatter-dedup
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/373-diamond-frontmatter-dedup
 target: integrate/phase-M
@@ -64,3 +64,22 @@ once per canonical file regardless of how many edges reference it.
 - `crates/sc-composer/src/include/expansion.rs::expand_file()`
 - Fuzz campaign `m2-include-fuzz-20260811-1`, report
   `site/reports/20260811-2-fuzz-report.html`
+
+## Closeout Evidence
+
+- Status: **complete**.
+- Red regression baseline: `769b834` (`test: cover diamond frontmatter
+  warning dedup`) reproduced two missing-frontmatter diagnostics for the
+  shared leaf; the single-reference control and resolved-file/source-text
+  dedup controls passed.
+- Implementation: `4c498ab` (`fix: deduplicate frontmatter expansion state`)
+  moves the `frontmatters` push under the existing `is_new` gate, matching
+  `resolved_files` and `source_texts`. Follow-up `3ea9def` updates the
+  duplicate-include characterization assertion from three frontmatter
+  entries to the intended two canonical files.
+- The diamond regression now emits exactly one
+  `ERR_VAL_MISSING_FRONTMATTER`; the single-reference control emits exactly
+  one, while the include graph retains two edges and two unique nodes.
+- Validation: `cargo test --workspace`, `cargo fmt --all --check`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, and
+  `git diff --check` all pass.
