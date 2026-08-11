@@ -1,6 +1,6 @@
 ---
 id: FIX-370-371
-status: in-progress
+status: complete
 branch: fix/370-371-include-path-error-swallowing
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/370-371-include-path-error-swallowing
 target: develop
