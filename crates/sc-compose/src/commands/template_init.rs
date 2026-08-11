@@ -218,7 +218,8 @@ fn template_init_file(
     }
 
     let replacements = plan_replacements(passes);
-    let rewritten_body = apply_replacements(&contents, &replacements)?;
+    let rewritten_body =
+        apply_replacements(&contents, &replacements, is_json_template_path(&canonical))?;
     let frontmatter_text = build_stacked_frontmatter(passes)?;
     let template_text = format!(
         "{frontmatter_text}{}",
@@ -278,6 +279,7 @@ fn plan_replacements(passes: &[InitPass]) -> Vec<PlannedReplacement> {
 fn apply_replacements(
     original: &str,
     replacements: &[PlannedReplacement],
+    consume_json_string_quotes: bool,
 ) -> Result<String, CommandError> {
     let mut missing = Vec::new();
     for replacement in replacements {
@@ -304,7 +306,12 @@ fn apply_replacements(
     let mut unavailable = Vec::new();
 
     for replacement in replacements {
-        let spans = find_available_spans(original, &replacement.value, &occupied);
+        let spans = find_available_spans(
+            original,
+            &replacement.value,
+            &occupied,
+            consume_json_string_quotes,
+        );
         if spans.is_empty() {
             unavailable.push(format!(
                 "{}={}",
@@ -345,21 +352,51 @@ fn find_available_spans(
     haystack: &str,
     needle: &str,
     occupied: &[(usize, usize)],
+    consume_json_string_quotes: bool,
 ) -> Vec<(usize, usize)> {
     let mut spans = Vec::new();
     let mut search_from = 0;
     while let Some(relative_start) = haystack[search_from..].find(needle) {
-        let start = search_from + relative_start;
-        let end = start + needle.len();
+        let value_start = search_from + relative_start;
+        let value_end = value_start + needle.len();
+        let consumes_quotes = consume_json_string_quotes
+            && value_start > 0
+            && value_end < haystack.len()
+            && haystack.as_bytes()[value_start - 1] == b'"'
+            && haystack.as_bytes()[value_end] == b'"';
+        let start = if consumes_quotes {
+            value_start - 1
+        } else {
+            value_start
+        };
+        let end = if consumes_quotes {
+            value_end + 1
+        } else {
+            value_end
+        };
         if !occupied
             .iter()
             .any(|(taken_start, taken_end)| start < *taken_end && end > *taken_start)
         {
             spans.push((start, end));
         }
-        search_from = start + needle.len();
+        search_from = value_end;
     }
     spans
+}
+
+fn is_json_template_path(path: &Path) -> bool {
+    let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    let stripped = [".j2", ".jinja2", ".jinja"]
+        .iter()
+        .find_map(|suffix| file_name.strip_suffix(suffix))
+        .unwrap_or(file_name);
+    Path::new(stripped)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        == Some("json")
 }
 
 fn build_stacked_frontmatter(passes: &[InitPass]) -> Result<String, CommandError> {
@@ -414,7 +451,7 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::{InitPass, normalize_pass_number, serialize_header, template_init_file};
-    use sc_composer::VariableName;
+    use sc_composer::{Renderer, VariableName, parse_template_document};
     use serde::ser::{Error as _, Serializer};
 
     #[test]
@@ -469,6 +506,44 @@ mod tests {
         );
         assert!(result.template_text.contains("{{ task }}"));
         assert!(!result.template_text.contains("pass: 1"));
+    }
+
+    #[test]
+    fn template_init_json_round_trips_string_values_through_render() {
+        let root = temp_root("template_init_json_round_trip");
+        let template = root.join("payload.json");
+        let original = "{\n  \"worktree_path\": \"/tmp/wt\",\n  \"enabled\": true\n}";
+        write_file(&template, original);
+
+        let result = template_init_file(
+            &template,
+            &[InitPass {
+                pass_number: 1,
+                variables: vec![(
+                    VariableName::new("worktree_path").unwrap(),
+                    "/tmp/wt".to_owned(),
+                )],
+            }],
+            false,
+            true,
+        )
+        .unwrap();
+
+        let parsed = parse_template_document(&result.template_text).unwrap();
+        assert!(
+            parsed
+                .body()
+                .contains("\"worktree_path\": {{ worktree_path }}")
+        );
+
+        let rendered = Renderer::new()
+            .render_named(
+                "payload.json.j2",
+                parsed.body(),
+                serde_json::json!({"worktree_path": "/tmp/wt"}),
+            )
+            .unwrap();
+        assert_eq!(rendered, original);
     }
 
     #[test]

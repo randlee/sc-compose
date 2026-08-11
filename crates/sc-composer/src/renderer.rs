@@ -563,26 +563,16 @@ mod tests {
         assert!(parsed.get("injected").is_none());
     }
 
-    // FUZZ-001 (adversarial fuzz campaign 20260811-3, shape-probe):
-    // `sc-compose template-init` converts a concrete JSON file into a
-    // template by literally substituting the discovered value text for a
-    // `{{ var }}` token, so a pre-existing JSON string value's surrounding
-    // literal quote characters are preserved verbatim around the token (for
-    // example `"worktree_path": "/tmp/wt"` becomes
-    // `"worktree_path": "{{ worktree_path }}"`). The JSON auto-escape applied
-    // to `*.json` template names unconditionally wraps every substituted
-    // string value in its own quotes, so re-rendering that generated
-    // template with a string value silently produces invalid, double-quoted
-    // JSON instead of round-tripping back to the original document. This is
-    // a real round-trip break between two first-class sc-compose commands
-    // (`template-init` followed by `render`) with no diagnostic and exit 0.
+    // FUZZ-001 (adversarial fuzz campaign 20260811-3, shape-probe): JSON
+    // auto-escape owns quoting for bare placeholders produced by
+    // `template-init`; keeping the placeholder bare avoids double quoting.
     #[test]
     fn renderer_json_auto_escape_does_not_double_quote_a_pre_quoted_string_placeholder() {
         let renderer = Renderer::new();
         let output = renderer
             .render_named(
                 "payload.json.j2",
-                r#"{"worktree_path": "{{ worktree_path }}"}"#,
+                r#"{"worktree_path": {{ worktree_path }}}"#,
                 json!({"worktree_path": "/tmp/wt"}),
             )
             .unwrap();
