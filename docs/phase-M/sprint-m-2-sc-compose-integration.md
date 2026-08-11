@@ -2,7 +2,7 @@
 id: M.2
 title: sc-compose Integration and Python Adapter
 phase: M
-status: planned
+status: complete
 branch: sprint/m-2-sc-compose-integration
 worktree: ../sc-compose-worktrees/sprint/m-2-sc-compose-integration
 target: integrate/phase-m
@@ -45,12 +45,16 @@ independent rule class under the phase-level routing policy.
 
 - `crates/sc-composer/src/include.rs`
 - `crates/sc-composer/src/include/expansion.rs`
+- `crates/sc-composer/src/include/fingerprint.rs`
 - `crates/sc-composer/src/include/path.rs`
 - `crates/sc-composer/src/diagnostics/schema.rs`
 - `docs/architecture.md`
 - `bindings/sc-sha-python/Cargo.toml`
 - `bindings/sc-sha-python/pyproject.toml`
 - `bindings/sc-sha-python/src/lib.rs`
+- `bindings/sc-sha-python/README.md`
+- `bindings/sc-sha-python/python/sc_sha/__init__.py`
+- `bindings/sc-sha-python/python/sc_sha/__init__.pyi`
 - `bindings/sc-sha-python/tests/test_compatibility.py`
 - `boundaries/sc-sha-python/python-adapter.toml`
 - recursive include fixtures and compatibility vectors
@@ -237,6 +241,11 @@ The exact public placement may be `ExpandedTemplate` or a dedicated
 the manifest from rendered text. A separately named rendered-output SHA may be
 added later when output verification is required; it must not be conflated with
 the source composition identity.
+
+M.2 places `CompositionFingerprint` on `ExpandedTemplate` and carries it
+through `ComposeResult`. The existing Python `ExpandedTemplate` and
+`ComposeResult` adapters expose its `composition_sha256`; the standalone
+`sc_sha` package exposes the complete two-operation dictionary contract.
 
 ### Native includes and MiniJinja directives
 

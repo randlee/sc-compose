@@ -63,6 +63,12 @@ impl std::error::Error for ShaError {}
 pub struct TemplateSha256([u8; 32]);
 
 impl TemplateSha256 {
+    /// Construct a digest from its canonical raw 32-byte representation.
+    #[must_use]
+    pub const fn from_bytes(bytes: [u8; 32]) -> Self {
+        Self(bytes)
+    }
+
     /// Borrow the raw 32-byte digest.
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; 32] {

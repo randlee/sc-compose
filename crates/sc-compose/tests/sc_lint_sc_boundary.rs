@@ -69,7 +69,13 @@ fn boundary_dependency_violation_stays_non_pass_with_structured_finding() {
     let payload = &envelope["payload"];
 
     assert_eq!(payload["command_id"], "lint.sc-boundary");
-    assert_eq!(payload["outcome"], "findings");
+    assert_eq!(
+        payload["outcome"],
+        "findings",
+        "lint config failed: {} stdout={}",
+        String::from_utf8_lossy(&output.stderr),
+        String::from_utf8_lossy(&output.stdout)
+    );
     assert_eq!(
         payload["exit_status"].as_i64(),
         output.status.code().map(i64::from)
@@ -97,6 +103,36 @@ fn boundary_dependency_violation_stays_non_pass_with_structured_finding() {
     assert!(report_text.contains("findings"));
     assert!(report_text.contains("SCB-DEPENDENCY-001"));
     assert!(report_text.contains("boundary-api"));
+}
+
+#[test]
+fn sc_sha_python_boundary_rejects_runtime_dependency_edges() {
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "sc-boundary",
+        name: "sc-sha-python-dependency-violation",
+        target: "sc-boundary",
+    });
+    let output = run_sc_boundary(&fixture);
+    let envelope = parse_stdout(&output);
+    let payload = &envelope["payload"];
+    assert_eq!(
+        payload["outcome"],
+        "findings",
+        "lint config failed: stdout={} stderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let findings = payload["findings"].as_array().expect("findings array");
+    assert!(findings.iter().any(|finding| {
+        finding["message"]
+            .as_str()
+            .is_some_and(|message| message.contains("sc-compose"))
+    }));
+    assert!(findings.iter().any(|finding| {
+        finding["message"]
+            .as_str()
+            .is_some_and(|message| message.contains("sc-composer"))
+    }));
 }
 
 #[test]

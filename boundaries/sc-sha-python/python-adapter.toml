@@ -1,0 +1,39 @@
+boundary_id = "BOUNDARY-ScShaPython"
+owner_package = "sc-sha-python"
+owner_crate_path = "sc_sha_python"
+name = "ScShaPythonAdapter"
+
+[public]
+facade = "calculate_hash,calculate_composition_hash"
+
+[implementation]
+type = "python_extension_adapter"
+module = "sc_sha_native"
+visibility = "public"
+constructor = "none"
+
+[composition]
+roots = ["calculate_hash,calculate_composition_hash"]
+
+[dependencies]
+allowed_dependents = []
+allowed_dependencies = ["sc-sha", "pyo3"]
+forbidden_edges = [
+  { from = "sc-sha-python", to = "sc-compose" },
+  { from = "sc-sha-python", to = "sc-composer" },
+]
+
+[references]
+scope = "outside_owner_crate"
+forbidden = ["ATM_HOME", "agent_team_mail", "atm_core", "sc_compose"]
+
+[testing]
+allowed_test_double_paths = []
+forbidden_test_bypasses = []
+
+[enforcement]
+lint_rules = ["LINT-SC-SHA-PYTHON-THIN-ADAPTER"]
+review_gates = ["python_adapter_boundary"]
+
+[status]
+state = "concrete_landed"

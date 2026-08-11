@@ -633,6 +633,7 @@ mod tests {
                 )]
                 .into_iter()
                 .collect(),
+                composition_fingerprint: None,
             },
         );
 

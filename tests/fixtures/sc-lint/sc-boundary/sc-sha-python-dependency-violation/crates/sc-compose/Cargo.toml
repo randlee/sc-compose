@@ -1,0 +1,5 @@
+[package]
+name = "sc-compose"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true

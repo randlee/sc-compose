@@ -48,6 +48,8 @@ pub enum DiagnosticCode {
     ErrIncludeCycle,
     /// The include graph exceeded the configured maximum depth.
     ErrIncludeDepth,
+    /// An include target could not be enumerated as a static dependency.
+    ErrIncludeDynamicUnresolved,
     /// Structured object input used an unsupported shape.
     ErrValObjectShape,
     /// Legacy code reserved for a retired nested-array validation restriction.
@@ -194,6 +196,7 @@ impl DiagnosticCode {
             Self::ErrIncludeFilesystemLoop => "ERR_INCLUDE_FILESYSTEM_LOOP",
             Self::ErrIncludeCycle => "ERR_INCLUDE_CYCLE",
             Self::ErrIncludeDepth => "ERR_INCLUDE_DEPTH",
+            Self::ErrIncludeDynamicUnresolved => "ERR_INCLUDE_DYNAMIC_UNRESOLVED",
             Self::ErrValObjectShape => "ERR_VAL_OBJECT_SHAPE",
             Self::ErrValNestedArrayUnsupported => "ERR_VAL_NESTED_ARRAY_UNSUPPORTED",
             Self::ErrValDuplicate => "ERR_VAL_DUPLICATE",
@@ -298,6 +301,10 @@ mod tests {
             (ErrIncludeFilesystemLoop, "ERR_INCLUDE_FILESYSTEM_LOOP"),
             (ErrIncludeCycle, "ERR_INCLUDE_CYCLE"),
             (ErrIncludeDepth, "ERR_INCLUDE_DEPTH"),
+            (
+                ErrIncludeDynamicUnresolved,
+                "ERR_INCLUDE_DYNAMIC_UNRESOLVED",
+            ),
             (ErrValObjectShape, "ERR_VAL_OBJECT_SHAPE"),
             (
                 ErrValNestedArrayUnsupported,
@@ -429,7 +436,7 @@ mod tests {
             (ErrExtractTomlAmbiguous, "ERR_EXTRACT_TOML_AMBIGUOUS"),
         ];
 
-        assert_eq!(codes.len(), 72);
+        assert_eq!(codes.len(), 73);
         for (code, spelling) in codes {
             assert_eq!(code.as_str(), spelling);
             assert_eq!(

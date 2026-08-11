@@ -486,6 +486,14 @@ impl PyComposeResult {
             .map(|(key, value)| (key.to_string(), variable_source_str(value).to_owned()))
             .collect()
     }
+
+    #[getter]
+    fn composition_sha256(&self) -> Option<String> {
+        self.inner
+            .composition_fingerprint
+            .as_ref()
+            .map(|fingerprint| fingerprint.source_sha.to_hex())
+    }
 }
 
 #[pyclass(name = "ValidationReport", skip_from_py_object)]
@@ -718,6 +726,14 @@ impl PyExpandedTemplate {
                 )
             })
             .collect()
+    }
+
+    #[getter]
+    fn composition_sha256(&self) -> Option<String> {
+        self.inner
+            .composition_fingerprint
+            .as_ref()
+            .map(|fingerprint| fingerprint.source_sha.to_hex())
     }
 }
 

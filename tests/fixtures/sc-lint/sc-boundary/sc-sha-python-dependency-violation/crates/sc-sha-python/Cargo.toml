@@ -1,0 +1,11 @@
+[package]
+name = "sc-sha-python"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+sc-sha = { path = "../sc-sha" }
+sc-composer = { path = "../sc-composer" }
+sc-compose = { path = "../sc-compose" }
+pyo3 = { path = "../pyo3" }

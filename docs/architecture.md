@@ -2015,3 +2015,18 @@ Follow-on work may explore:
 - optional post-render hook designs that remain outside `sc-composer` and do
   not become implicit `sc-compose` behavior without an explicit later
   architecture amendment.
+
+### 21.8 Source Composition Identity
+
+The native `@<path>` include expansion path is the ownership point for source
+composition discovery. It returns a first-seen, path-deduplicated manifest of
+canonical local sources and ordered include occurrences, then delegates the
+per-file and composition calculations to the two published `sc-sha`
+operations. `sc-composer` does not maintain a second hash implementation.
+
+The resulting `CompositionFingerprint` is exposed alongside the expanded
+template and successful composition result. MiniJinja dependency statements
+remain a separately tested inspection/loading capability until they are wired
+to this same manifest contract; they must not grow a second fingerprint
+algorithm. The standalone `sc-sha-python` package is a thin maturin adapter
+with no dependency on `sc-compose`, `sc-composer`, or ATM runtime packages.

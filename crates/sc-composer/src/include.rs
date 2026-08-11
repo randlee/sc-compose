@@ -9,7 +9,10 @@ use crate::types::{ComposePolicy, ConfiningRoot};
 
 mod directive;
 mod expansion;
+mod fingerprint;
 mod path;
+
+pub use fingerprint::CompositionFingerprint;
 
 /// Expanded include graph returned from the include engine.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -24,6 +27,8 @@ pub struct ExpandedTemplate {
     pub include_chains: BTreeMap<PathBuf, Vec<PathBuf>>,
     /// Raw source text keyed by each file visited during include expansion.
     pub source_texts: BTreeMap<PathBuf, String>,
+    /// Deterministic source-composition identity and its inspectable manifest.
+    pub composition_fingerprint: Option<CompositionFingerprint>,
 }
 
 /// Expand `@<path>` directives starting from the provided template path.
@@ -39,6 +44,7 @@ pub fn expand_includes(
     policy: &ComposePolicy,
 ) -> Result<ExpandedTemplate, ComposeError> {
     let (text, state) = expansion::expand(template_path, root, policy)?;
+    let composition_fingerprint = state.composition_fingerprint()?;
 
     Ok(ExpandedTemplate {
         text,
@@ -46,6 +52,7 @@ pub fn expand_includes(
         frontmatters: state.frontmatters,
         include_chains: state.include_chains,
         source_texts: state.source_texts,
+        composition_fingerprint: Some(composition_fingerprint),
     })
 }
 
@@ -98,6 +105,103 @@ mod tests {
         assert_eq!(expanded.source_texts.len(), 2);
         assert_eq!(expanded.include_chains.len(), 2);
         assert_eq!(expanded.frontmatters.len(), 3);
+        let fingerprint = expanded
+            .composition_fingerprint
+            .as_ref()
+            .expect("fingerprint");
+        assert_eq!(fingerprint.manifest.nodes.len(), 2);
+        assert_eq!(fingerprint.manifest.edges.len(), 2);
+        assert_eq!(fingerprint.manifest.edges[0].occurrence, 0);
+        assert_eq!(fingerprint.manifest.edges[1].occurrence, 1);
+    }
+
+    #[test]
+    fn nested_child_changes_composition_but_unrelated_file_does_not() {
+        let root = temp_root("include_fingerprint_changes");
+        write_file(&root.join("root.md.j2"), "@<partials/child.md>\n");
+        write_file(&root.join("partials/child.md"), "child v1\n");
+        write_file(&root.join("unrelated.md"), "outside v1\n");
+        let policy = ComposePolicy::default();
+        let first = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &policy,
+        )
+        .unwrap()
+        .composition_fingerprint
+        .unwrap()
+        .source_sha;
+
+        write_file(&root.join("unrelated.md"), "outside v2\n");
+        let unrelated = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &policy,
+        )
+        .unwrap()
+        .composition_fingerprint
+        .unwrap()
+        .source_sha;
+        assert_eq!(first, unrelated);
+
+        write_file(&root.join("partials/child.md"), "child v2\n");
+        let nested = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &policy,
+        )
+        .unwrap()
+        .composition_fingerprint
+        .unwrap()
+        .source_sha;
+        assert_ne!(first, nested);
+    }
+
+    #[test]
+    fn diamond_dependency_deduplicates_nodes_and_keeps_edges() {
+        let root = temp_root("include_fingerprint_diamond");
+        write_file(&root.join("root.md.j2"), "@<a.md>\n@<b.md>\n");
+        write_file(&root.join("a.md"), "@<shared.md>\n");
+        write_file(&root.join("b.md"), "@<shared.md>\n");
+        write_file(&root.join("shared.md"), "shared\n");
+
+        let expanded = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap();
+        let fingerprint = expanded.composition_fingerprint.unwrap();
+        assert_eq!(fingerprint.manifest.nodes.len(), 4);
+        assert_eq!(fingerprint.manifest.edges.len(), 4);
+        assert_eq!(
+            fingerprint
+                .manifest
+                .nodes
+                .iter()
+                .filter(|node| node.source
+                    == sc_sha::CanonicalSource::LocalPath(
+                        sc_sha::CanonicalTemplatePath::try_from("shared.md".to_owned()).unwrap()
+                    ))
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn dynamic_include_is_explicitly_non_cacheable() {
+        let root = temp_root("include_dynamic");
+        write_file(&root.join("root.md.j2"), "@<{{ name }}.md>\n");
+        let error = expand_includes(
+            root.join("root.md.j2"),
+            &ConfiningRoot::new(&root).unwrap(),
+            &ComposePolicy::default(),
+        )
+        .unwrap_err();
+        assert_eq!(
+            error.code(),
+            Some(DiagnosticCode::ErrIncludeDynamicUnresolved)
+        );
     }
 
     #[test]
