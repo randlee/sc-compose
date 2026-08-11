@@ -1,7 +1,7 @@
 ---
 id: FIX-390
 title: "clap usage errors exit with code 2 instead of FR-7b's mandated code 3"
-status: assigned
+status: complete
 branch: fix/390-clap-exit-code-fr7b
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/390-clap-exit-code-fr7b
 target: crates/sc-compose/src/main.rs
@@ -83,3 +83,16 @@ both modes.
 
 Release-blocking — explicit user directive: do not release with this CLI
 contract violation open.
+
+## Closeout Evidence
+
+- implementation commit: `0cfe85e` (`fix: map clap usage errors to exit code 3`)
+- follow-up test commit: `15e17e1` (`test: update clap usage exit expectation`)
+- `report_cli_parse_error` now maps non-display clap errors to
+  `exit_codes::USAGE_FAIL` (`3`) in both JSON and plain-text modes; help and
+  version display requests retain exit code `0`.
+- regression coverage includes malformed `--var`, `--all`/`--brace-count`
+  conflict, unknown flags, and help/version behavior in both output modes.
+- validation PASS: `cargo fmt --all --check`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, and
+  `cargo test --workspace`.
