@@ -57,6 +57,39 @@ fn quoted_literal(value: &str) -> Option<String> {
     (!literal.is_empty()
         && !literal.chars().any(char::is_control)
         && !literal.contains("{{")
-        && !literal.contains("}}"))
+        && !literal.contains("}}")
+        // A chained conditional can begin and end with quotes while the
+        // middle arm still contains `if`/`else` expression text. Treat that
+        // as an expression boundary rather than a single literal path.
+        && !literal.contains(" if ")
+        && !literal.contains(" else "))
     .then(|| literal.to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{IncludeDirective, parse_include_directive};
+
+    #[test]
+    fn chained_ternary_is_dynamic_instead_of_a_garbage_literal() {
+        let line = "@<{{ \"a.md\" if x else \"b.md\" if y else \"c.md\" }}>";
+
+        assert_eq!(
+            parse_include_directive(line),
+            Some(IncludeDirective::Dynamic)
+        );
+    }
+
+    #[test]
+    fn single_ternary_remains_conditional() {
+        let line = "@<{{ \"a.md\" if x else \"b.md\" }}>";
+
+        assert_eq!(
+            parse_include_directive(line),
+            Some(IncludeDirective::Conditional {
+                condition: "x".to_owned(),
+                candidates: vec!["a.md".to_owned(), "b.md".to_owned()],
+            })
+        );
+    }
 }
