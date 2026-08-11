@@ -334,6 +334,11 @@ and edge order are not lost:
 
 ```rust
 pub struct CanonicalTemplatePath(String);
+pub struct CanonicalSourceUrl(String);
+
+pub enum ManifestSchemaVersion {
+    V1,
+}
 
 pub enum CanonicalSource {
     LocalPath(CanonicalTemplatePath),
