@@ -78,7 +78,7 @@ normal human-readable usage output unchanged.
 
 ## Closeout Evidence
 
-- Fix commits: `f68079e` and `e79b279`.
+- Fix commits: `f68079e`, `e79b279`, and QA follow-up `9299344`.
 - Raw argv JSON detection now covers clap parser failures before application
   dispatch, while non-JSON invocations retain clap's normal output stream and
   exit code.
@@ -86,6 +86,8 @@ normal human-readable usage output unchanged.
   standard `DiagnosticEnvelope` on stdout.
 - Regression coverage for malformed `--var` input and the `--all`/
   `--brace-count` conflict passes.
+- Clap display requests (`--help` and `--version`) remain plain stdout output
+  with exit code 0 even when `--json` is present.
 - Validation passed: `cargo test --workspace`, `cargo fmt --all --check`, and
   `cargo clippy --all-targets --all-features -- -D warnings`.
 
