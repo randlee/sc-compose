@@ -156,7 +156,7 @@ mod tests {
         assert_eq!(expanded.resolved_files.len(), 2);
         assert_eq!(expanded.source_texts.len(), 2);
         assert_eq!(expanded.include_chains.len(), 2);
-        assert_eq!(expanded.frontmatters.len(), 3);
+        assert_eq!(expanded.frontmatters.len(), 2);
         let fingerprint = expanded
             .composition_fingerprint
             .as_ref()

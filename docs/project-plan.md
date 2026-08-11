@@ -744,6 +744,23 @@ Sprint entries:
 - [Phase M plan](phase-M/phase-M-plan.md)
 - [Sprint M.1 — sc-sha Core Crate](phase-M/sprint-m-1-sc-sha-core-crate.md)
 - [Sprint M.2 — sc-compose Integration](phase-M/sprint-m-2-sc-compose-integration.md)
+- [Sprint FIX-373 — Diamond Frontmatter Dedup](sprints/fix-373-diamond-frontmatter-dedup.md)
+
+### Follow-on Fix Sprint: FIX-373
+
+Status:
+
+- complete on `fix/373-diamond-frontmatter-dedup` at `cc828b8`
+
+Sprint entry:
+
+- [Sprint FIX-373 — Diamond Frontmatter Dedup](sprints/fix-373-diamond-frontmatter-dedup.md)
+
+FIX-373 deduplicates the missing-frontmatter diagnostic for a
+frontmatter-less leaf shared through a diamond-shaped include graph. The
+existing `is_new` gate now covers `resolved_files`, `source_texts`, and
+`frontmatters`, so the diagnostic is emitted once per canonical file while
+distinct graph edges remain preserved.
 
 ### Follow-on Fix Sprint: FIX-238
 

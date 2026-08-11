@@ -120,10 +120,10 @@ fn expand_file(
     })?;
     if is_new {
         state.source_texts.insert(path.to_path_buf(), raw.clone());
+        state
+            .frontmatters
+            .push((path.to_path_buf(), parsed.passes().to_vec()));
     }
-    state
-        .frontmatters
-        .push((path.to_path_buf(), parsed.passes().to_vec()));
     if is_new {
         state.resolved_seen.insert(path_buf);
     }
