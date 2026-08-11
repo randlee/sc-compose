@@ -78,7 +78,8 @@ normal human-readable usage output unchanged.
 
 ## Closeout Evidence
 
-- Fix commits: `f68079e`, `e79b279`, and QA follow-up `9299344`.
+- Fix commits: `f68079e`, `e79b279`, and QA follow-ups `9299344` and
+  `6d6f880`.
 - Raw argv JSON detection now covers clap parser failures before application
   dispatch, while non-JSON invocations retain clap's normal output stream and
   exit code.
