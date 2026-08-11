@@ -1,0 +1,36 @@
+boundary_id = "BOUNDARY-ScShaPython"
+owner_package = "sc-sha-python"
+owner_crate_path = "sc_sha_python"
+name = "ScShaPythonAdapter"
+
+[public]
+facade = "run"
+
+[implementation]
+type = "python_extension_adapter"
+module = "sc_sha_python"
+visibility = "public"
+constructor = "none"
+
+[composition]
+roots = ["run"]
+
+[dependencies]
+allowed_dependents = []
+allowed_dependencies = ["sc-sha", "pyo3"]
+forbidden_edges = []
+
+[references]
+scope = "outside_owner_crate"
+forbidden = []
+
+[testing]
+allowed_test_double_paths = []
+forbidden_test_bypasses = []
+
+[enforcement]
+lint_rules = []
+review_gates = []
+
+[status]
+state = "concrete_landed"

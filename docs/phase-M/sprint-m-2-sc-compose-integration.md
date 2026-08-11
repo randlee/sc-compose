@@ -2,7 +2,7 @@
 id: M.2
 title: sc-compose Integration and Python Adapter
 phase: M
-status: planned
+status: complete
 branch: sprint/m-2-sc-compose-integration
 worktree: ../sc-compose-worktrees/sprint/m-2-sc-compose-integration
 target: integrate/phase-m
@@ -45,12 +45,16 @@ independent rule class under the phase-level routing policy.
 
 - `crates/sc-composer/src/include.rs`
 - `crates/sc-composer/src/include/expansion.rs`
+- `crates/sc-composer/src/include/fingerprint.rs`
 - `crates/sc-composer/src/include/path.rs`
 - `crates/sc-composer/src/diagnostics/schema.rs`
 - `docs/architecture.md`
 - `bindings/sc-sha-python/Cargo.toml`
 - `bindings/sc-sha-python/pyproject.toml`
 - `bindings/sc-sha-python/src/lib.rs`
+- `bindings/sc-sha-python/README.md`
+- `bindings/sc-sha-python/python/sc_sha/__init__.py`
+- `bindings/sc-sha-python/python/sc_sha/__init__.pyi`
 - `bindings/sc-sha-python/tests/test_compatibility.py`
 - `boundaries/sc-sha-python/python-adapter.toml`
 - recursive include fixtures and compatibility vectors
@@ -75,10 +79,11 @@ fix class if it is not covered by M.2's exact targets.
   unrelated runtime dependencies.
 - Keep MiniJinja loader integration as the explicitly deferred scope described
   in `Native includes and MiniJinja directives`.
-- After M.2's sc-compose merge, update PR #358 to consume the published
-  `sc-sha` API, remove its local hash implementation, preserve its
-  directive-span and confined-loader scope, and rerun its full CI/QA. This
-  follow-up is owned by M.2 and is not an unowned third sprint.
+- Record the post-M.2 handoff for PR #358 to consume the published `sc-sha`
+  API, remove its local hash implementation, preserve its directive-span and
+  confined-loader scope, and rerun its full CI/QA. This follow-up is a
+  phase-level gate after M.2, not an M.2 deliverable or an unowned third
+  sprint.
 
 ## Explicit Code Samples
 
@@ -104,8 +109,8 @@ def calculate_composition_hash(manifest: dict) -> dict: ...
 - Deterministic missing-file, cycle, depth, confinement, and unresolved
   dynamic-include outcomes.
 - Cross-platform Rust/Python vectors, nested fixtures, and wheel evidence.
-- A reviewed PR #358 follow-up that consumes `sc-sha` without restoring a
-  duplicate implementation.
+- A complete handoff record for the post-M.2 PR #358 follow-up, which will
+  consume `sc-sha` without restoring a duplicate implementation.
 
 ## Acceptance Criteria
 
@@ -133,9 +138,9 @@ def calculate_composition_hash(manifest: dict) -> dict: ...
   with only the approved `sc-sha`/PyO3 dependency edges and a negative fixture
   rejects an attempted dependency on sc-compose, sc-composer, ATM, or an
   unrelated runtime package.
-- `[SHA-N2, SHA-N3]` PR #358's follow-up CI passes with its renderer/directive
-  behavior isolated from the shared hash migration, and quality-mgr receives
-  the combined evidence before that PR is merged.
+- `[SHA-N2, SHA-N3]` The PR #358 follow-up is recorded as a post-M.2 phase
+  gate, with its renderer/directive behavior isolated from the shared hash
+  migration. M.2 closure does not depend on that separate PR being merged.
 
 ## Required Validation
 
@@ -156,6 +161,10 @@ targets, fixtures, requirement mapping, validation output, wheel artifact
 evidence, and any sc-lint findings. Team-lead opens the PR and routes it to
 quality-mgr. M.2 is not complete until QA approval, merge, and post-merge
 revalidation are recorded.
+
+The PR #358 follow-up is not part of this sprint's closure boundary. Its
+post-M.2 phase gate remains recorded in `phase-M-plan.md` and must be routed
+through its own CI and QA handoff before Phase M closes.
 
 The phase plan's `sc-lint cleanup and QA routing` section is authoritative for
 minor findings and dedicated `fix/` worktree routing; this sprint handoff must
@@ -238,6 +247,11 @@ the manifest from rendered text. A separately named rendered-output SHA may be
 added later when output verification is required; it must not be conflated with
 the source composition identity.
 
+M.2 places `CompositionFingerprint` on `ExpandedTemplate` and carries it
+through `ComposeResult`. The existing Python `ExpandedTemplate` and
+`ComposeResult` adapters expose its `composition_sha256`; the standalone
+`sc_sha` package exposes the complete two-operation dictionary contract.
+
 ### Native includes and MiniJinja directives
 
 PR #358 adds MiniJinja `{% include %}`, `{% import %}`, and `{% from %}`
@@ -293,6 +307,12 @@ Use checked-in fixtures covering:
 13. tagged URL/local-source non-collision fixtures for the forward-compatible
     manifest model;
 14. legacy non-nested compatibility behavior.
+
+Conditional-candidate coverage uses the native statically enumerable form
+`@<{{ "item.md" if mode == "item" else "other-item.md" }}>`. Both branch
+paths must enter the manifest while the expanded template preserves the Jinja
+condition for render-time selection; arbitrary dynamic targets remain an
+explicit unresolved-dependency error.
 
 Every test must assert the composition fingerprint and enough manifest
 node/edge evidence to explain why it changed or remained stable.

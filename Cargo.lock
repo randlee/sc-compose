@@ -561,6 +561,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "sc-sha-python"
+version = "1.3.1"
+dependencies = [
+ "pyo3",
+ "sc-sha",
+]
+
+[[package]]
 name = "serde"
 version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"

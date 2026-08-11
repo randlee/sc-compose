@@ -659,6 +659,13 @@ Comp2's current PR work and QA may proceed concurrently with the first two
 planning/implementation activities, but a green CI result on the current PR
 does not authorize merging a duplicate hash implementation.
 
+The PR #358 follow-up is a post-M.2 phase gate, not an M.2 closure criterion.
+M.2 may be marked complete once its own implementation, QA, merge, and
+revalidation evidence is complete. The follow-up must still be rebased or
+amended to consume `sc-sha`, receive full CI and quality-mgr QA, and land before
+Phase M closes; this separation prevents an open external PR from making the
+M.2 sprint's own status self-contradictory.
+
 ## External consumer acceptance and phase QA
 ### atm-core cache-consumer tests
 
@@ -814,12 +821,23 @@ Additional boundary checks:
       filenames/branches.
 - [ ] After M.1 merges, its QA evidence and the `sc-sha` publication/API
       decision are attached to the integration branch before M.2 starts.
-- [ ] After M.2 merges, the PR #358 follow-up is rebased/amended to consume
-      `sc-sha`; its directive-span and confined-loader scope remains separate,
-      then its full CI and QA are rerun.
+- [ ] **Post-M.2 PR #358 gate:** after M.2 merges, the PR #358 follow-up is
+      rebased/amended to consume `sc-sha`; its directive-span and
+      confined-loader scope remain separate, then its full CI and quality-mgr
+      QA are rerun before Phase M closes. This is not an M.2 closure
+      criterion.
 - [ ] At phase close, the integration branch has the two QA-approved sprint
       commits, all routed sc-lint fix worktrees merged/revalidated, and the
       external acceptance evidence below.
+- [ ] **QM-010 release-artifact gate (explicitly deferred from M.2):** the
+      `team-lead`/release maintainers must register both `sc-sha` and
+      `sc-sha-python` in `release/publish-artifacts.toml` before any release
+      containing either artifact. That registration must include matching
+      crate/package publish entries, all-platform wheel build/install/test
+      coverage in `.github/workflows/release.yml`, and a passing release
+      preflight. M.2 does not publish these artifacts and does not change the
+      release workflow; the release registration is a named post-M.2 gate,
+      not an untracked omission.
 
 ### External consumer acceptance (no consumer implementation here)
 

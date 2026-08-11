@@ -171,6 +171,7 @@ fn compose_expanded(
         resolve_result: validation_report.resolve_result,
         variable_sources: validation_state.variable_sources,
         warnings: validation_outcome.warnings,
+        composition_fingerprint: expanded.composition_fingerprint,
     })
 }
 

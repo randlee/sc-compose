@@ -72,7 +72,7 @@ pub use frontmatter::{Frontmatter, ParsedTemplate, parse_template_document};
 #[doc(inline)]
 pub use frontmatter_init::frontmatter_init;
 #[doc(inline)]
-pub use include::{ExpandedTemplate, expand_includes};
+pub use include::{CompositionFingerprint, ExpandedTemplate, expand_includes};
 #[doc(inline)]
 pub use init_workspace::{init_workspace, read_optional_text_file};
 #[doc(inline)]

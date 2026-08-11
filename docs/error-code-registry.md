@@ -36,6 +36,7 @@ sc-composer library and are normalized by the shared lint runner.
 | `ERR_INCLUDE_ESCAPE` | `IncludeError` | error | include path escapes confinement root | include engine |
 | `ERR_INCLUDE_CYCLE` | `IncludeError` | error | include graph revisits a file already on the active include stack | include engine |
 | `ERR_INCLUDE_DEPTH` | `IncludeError` | error | include depth exceeds configured maximum | include engine |
+| `ERR_INCLUDE_DYNAMIC_UNRESOLVED` | `IncludeError` | error | include target cannot be exhaustively enumerated as a static dependency | include engine |
 | `ERR_VAL_OBJECT_SHAPE` | `ValidationError` | error | structured input object uses an unsupported shape such as a non-string key | structured input parsing, validation pipeline |
 | `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` | `ValidationError` | reserved | legacy H2 nested-array restriction; retained for compatibility and not emitted for recursive JSON/YAML-compatible values | compatibility only |
 | `ERR_VAL_DUPLICATE` | `ValidationError` | error | duplicate frontmatter variable declaration | frontmatter normalization, validation pipeline |
@@ -52,6 +53,7 @@ sc-composer library and are normalized by the shared lint runner.
 | `ERR_VAL_UNBOUND_VARIABLE` | `ValidationError` | warning/error | referenced variable has no value binding after context/default merge | validation pipeline |
 | `INFO_VAL_DEFAULT_USED` | `ValidationError` | info | variable was not provided explicitly and a default value was used | validation pipeline, CLI `validate`, CLI `render --dry-run` |
 | `SC_SHA_INVALID_UTF8` | `ShaError` | error | text-file bytes cannot be strictly decoded as UTF-8 | `sc_sha::calculate_hash()` |
+| `SC_SHA_INVALID_DIGEST` | `ShaError` | error | a manifest digest is not exactly 64 hexadecimal characters | `TemplateSha256::from_hex()` |
 | `SC_SHA_INVALID_CANONICAL_SOURCE` | `CanonicalSourceError` | error | canonical path or URL is empty, contains control characters, or uses a backslash separator | `CanonicalTemplatePath` / `CanonicalSourceUrl` constructors |
 | `SC_SHA_UNSUPPORTED_MANIFEST_SCHEMA` | `CompositionError` | error | resolved manifest schema is not supported by the hashing crate | `sc_sha::calculate_composition_hash()` |
 | `SC_SHA_DUPLICATE_SOURCE` | `CompositionError` | error | caller supplied duplicate resolved-manifest nodes | `sc_sha::calculate_composition_hash()` |
