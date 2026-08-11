@@ -1,7 +1,7 @@
 ---
 id: FIX-386
 title: "clap argument-parsing errors (--var, --all/--brace-count conflicts) bypass the --json DiagnosticEnvelope contract"
-status: assigned
+status: complete
 branch: fix/386-cli-json-envelope-clap-bypass
 worktree: ../sc-compose-worktrees/fix/386-cli-json-envelope-clap-bypass
 target: develop
@@ -75,6 +75,19 @@ normal human-readable usage output unchanged.
 - Fuzz findings FUZZ-002, FUZZ-003, campaign report
   `site/reports/20260811-3-fuzz-report.json`
 - `docs/requirements.md` FR-8a
+
+## Closeout Evidence
+
+- Fix commits: `f68079e` and `e79b279`.
+- Raw argv JSON detection now covers clap parser failures before application
+  dispatch, while non-JSON invocations retain clap's normal output stream and
+  exit code.
+- JSON clap failures are rendered as `ERR_CONFIG_PARSE` diagnostics inside the
+  standard `DiagnosticEnvelope` on stdout.
+- Regression coverage for malformed `--var` input and the `--all`/
+  `--brace-count` conflict passes.
+- Validation passed: `cargo test --workspace`, `cargo fmt --all --check`, and
+  `cargo clippy --all-targets --all-features -- -D warnings`.
 
 ## Priority
 

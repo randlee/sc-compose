@@ -1718,6 +1718,7 @@ boundary defined by:
 - `docs/sprints/fix-254-varfile-negative-boundary-i128.md`
 - `docs/sprints/fix-283-unbound-variable-policy-noop.md`
 - `docs/sprints/fix-372-chained-ternary-dynamic-classification.md`
+- `docs/sprints/fix-386-cli-json-envelope-clap-bypass.md`
 
 The current follow-on implementation track is:
 
