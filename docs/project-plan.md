@@ -720,7 +720,9 @@ Sprint entries:
 
 Status:
 
-- planned: plan-gate QA passed at `639d623` on `plan/sha-crate`
+- planned: plan-gate QA passed at `639d623` on `plan/sha-crate`; subsequent
+  plan-hardening commits `c0efa37` and the current planning commit make the
+  boundary and public-source-type contracts explicit;
   (`PLAN-GATE-SHA-CRATE-001-R5`) after five review rounds; extracts the
   `sc-compose`-owned SHA hashing logic (`crates/sc-composer/src/template_hash.rs`,
   from PR #358) into a standalone `sc-sha` crate plus a `bindings/sc-sha-python`
@@ -732,12 +734,10 @@ Status:
   team-lead ruling — not yet cleared;
 - M.1 and M.2 are both implementation sprints (non-doc Exact Targets,
   `cargo test --workspace` required validation), contiguous, no gaps;
-- three non-blocking follow-ups from the R5 plan-gate PASS are deferred into
-  M.1's own dev-QA cycle rather than a further plan-gate round: tighten the
-  pre-implementation gate phrasing to explicitly forbid authoring source
-  before the ADR ruling; add public constructor/accessor signatures for
-  `CanonicalTemplatePath`/`CanonicalSourceUrl`; this project-plan.md entry
-  itself (`ATM-QA-002`).
+- the pre-implementation gate, public constructor/accessor signatures for
+  `CanonicalTemplatePath`/`CanonicalSourceUrl`, and this status wording are
+  now recorded in the planning worktree; the proposed ADR remains unaccepted
+  until team-lead approves its number and scope.
 
 Sprint entries:
 

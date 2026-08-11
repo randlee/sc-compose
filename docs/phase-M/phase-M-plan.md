@@ -47,7 +47,7 @@ on conversation history.
 | SHA-N1 | Hash identity is deterministic across macOS, Linux, and Windows and independent of host path separators/line endings. | `Source-of-truth verification gate`; cross-platform fixtures | M.1 and M.2 |
 | SHA-N2 | Keep filesystem policy, template syntax, CLI behavior, and persistence outside the core crate. | `Proposed workspace layout` and boundary rules | M.1 and M.2 |
 | SHA-N3 | Keep the implementation production-ready: typed failures, consumer-owned bounded recursion, no duplicate implementation, and reproducible validation evidence. | `API simplicity requirement`, required validation, and QA routing | M.1 and M.2 |
-| ADR-SHA-001 | Record shared hash ownership, domain separation, and the sc-compose/consumer boundary in `docs/adrs/0018-sc-sha-hash-ownership.md`. | Required architecture decision in M.1; `docs/adrs/0018-*` was verified free before this revision | M.1 |
+| ADR-SHA-001 | Record shared hash ownership, domain separation, and the sc-compose/consumer boundary in the proposed `docs/adrs/0018-sc-sha-hash-ownership.md`. | Proposed architecture decision; the next ADR number and scope require team-lead approval before M.1 implementation | M.1 |
 
 Each sprint record must cite the applicable IDs in its acceptance criteria. A
 requirement is not closed merely because a type or file exists; the cited test,
@@ -350,6 +350,28 @@ and edge order are not lost:
 pub struct CanonicalTemplatePath(String);
 pub struct CanonicalSourceUrl(String);
 
+pub enum CanonicalSourceError {
+    InvalidRepresentation,
+}
+
+impl TryFrom<String> for CanonicalTemplatePath {
+    type Error = CanonicalSourceError;
+    fn try_from(value: String) -> Result<Self, Self::Error>;
+}
+
+impl CanonicalTemplatePath {
+    pub fn as_str(&self) -> &str;
+}
+
+impl TryFrom<String> for CanonicalSourceUrl {
+    type Error = CanonicalSourceError;
+    fn try_from(value: String) -> Result<Self, Self::Error>;
+}
+
+impl CanonicalSourceUrl {
+    pub fn as_str(&self) -> &str;
+}
+
 pub enum ManifestSchemaVersion {
     V1,
 }
@@ -381,9 +403,11 @@ pub struct ResolvedTemplateManifest {
 `CanonicalSourceUrl` is an opaque newtype around a canonical URL string; and
 `ManifestSchemaVersion` is an explicit version enum whose supported value is
 `V1`. `CanonicalTemplatePath` and `CanonicalSourceUrl` are opaque tagged keys.
-sc-compose constructs them after applying filesystem canonicalization and
-confinement; sc-sha only encodes their already-canonical representation and
-never decides whether a path exists or is allowed. The source tag ensures a
+sc-compose applies filesystem canonicalization and confinement before calling
+the `TryFrom<String>` constructors; the constructors validate only the
+already-canonical representation and `as_str()` is the read-only encoding
+accessor. sc-sha never decides whether a path exists or is allowed. The source
+tag ensures a
 future URL include cannot collide with or false-deduplicate against a local
 path. The public fields remain caller-constructible for manifest assembly; no
 validating manifest constructor is promised. `calculate_composition_hash` is
@@ -740,6 +764,17 @@ M.2 must add the corresponding `boundaries/sc-sha-python/python-adapter.toml`
 record and prove that the adapter cannot acquire `sc-compose`,
 `sc-composer`, ATM, or unrelated runtime dependencies through the same
 `sc-boundary` command.
+
+### Proposed ADR status
+
+`ADR-SHA-001` is a plan traceability identifier, not an accepted ADR. The
+repository currently ends at ADR-0017;
+`docs/adrs/0018-sc-sha-hash-ownership.md` is only the proposed next filename
+and does not exist yet. Team-lead must approve the number and scope, then M.1
+may author the ADR and obtain sign-off before any `sc-sha` or
+`sc-sha-python` implementation source is authored or staged. If the ADR index
+assigns a different number, all plan references must be updated before the
+implementation gate opens.
 
 Additional boundary checks:
 

@@ -98,6 +98,10 @@ has passed its compile tests.
 - Implement the caller-supplied tagged manifest types, versioned injective
   framing, and structural manifest errors without discovering or reordering
   graph data.
+- Implement the public `TryFrom<String>` constructors and `as_str()` accessors
+  for `CanonicalTemplatePath` and `CanonicalSourceUrl`. Constructors validate
+  only already-canonical representations; sc-compose performs filesystem
+  canonicalization and confinement before calling them.
 - Add `ADR-SHA-001` and update `CLAUDE.md` Boundary Rules with new numbered
   rules covering `sc-sha` and `bindings/sc-sha-python` dependency constraints
   and the `ATM_HOME` prohibition. The amendment requires an explicit
@@ -108,6 +112,28 @@ has passed its compile tests.
 ## Explicit Code Samples
 
 ```rust
+pub enum CanonicalSourceError {
+    InvalidRepresentation,
+}
+
+pub struct CanonicalTemplatePath(String);
+impl TryFrom<String> for CanonicalTemplatePath {
+    type Error = CanonicalSourceError;
+    fn try_from(value: String) -> Result<Self, Self::Error>;
+}
+impl CanonicalTemplatePath {
+    pub fn as_str(&self) -> &str;
+}
+
+pub struct CanonicalSourceUrl(String);
+impl TryFrom<String> for CanonicalSourceUrl {
+    type Error = CanonicalSourceError;
+    fn try_from(value: String) -> Result<Self, Self::Error>;
+}
+impl CanonicalSourceUrl {
+    pub fn as_str(&self) -> &str;
+}
+
 pub enum HashInput<'a> {
     TextFileBytes { utf8_file_bytes: &'a [u8] },
 }
@@ -141,8 +167,10 @@ pub fn calculate_composition_hash(
   output matches the recorded upstream commit and remains host-invariant.
 - `[SHA-R2]` Compile tests prove there are exactly two public operations and
   that callers receive `TemplateSha256` and `CompositionSha256` through public
-  accessors without private-field access; no resolver or filesystem surface is
-  exported by sc-sha.
+  accessors without private-field access; compile tests also prove that
+  sc-compose can construct both tagged source types through `TryFrom<String>`
+  and sc-sha can read them through `as_str()` without private-field access. No
+  resolver or filesystem surface is exported by sc-sha.
 - `[SHA-N2, SHA-N3]` Manifest encoding tests prove version-tagged, framed,
   injective node/edge encoding and typed structural errors without graph
   discovery or policy enforcement in sc-sha.
