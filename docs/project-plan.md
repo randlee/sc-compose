@@ -756,8 +756,9 @@ Sprint entries:
 
 Status:
 
-- complete on `feat/help-manual-core` at `0a62c0e`; implementation is in
-  `7cd42a3` and closeout evidence is recorded in the sprint document.
+- complete on `feat/help-manual-core` at `c10d9d9`; implementation is in
+  `7cd42a3`, QA follow-up is in `04c55ad`/`c10d9d9`, and closeout evidence is
+  recorded in the sprint document.
 - CI checks for PR #397 are green; the remaining QA follow-up findings are
   addressed by the branch's follow-up fix commit.
 

@@ -168,6 +168,8 @@ Medium — customer-facing documentation gap, not release-blocking.
 ## Closeout Evidence
 
 - implementation commit: `7cd42a3` (`feat: add bundled help manual core`)
+- QA follow-up commits: `04c55ad` (diagnostics, JSON envelope, planning
+  evidence) and `c10d9d9` (diagnostic registry test count correction)
 - `sc-compose help` prints the bundled manual index, `help --list` emits the
   stable topic names, and `help exit-codes` prints the four-code contract;
   unknown topics return usage failure `3` and list valid topics.
