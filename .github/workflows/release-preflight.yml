@@ -94,6 +94,9 @@ jobs:
             --workspace-toml Cargo.toml \
             --version '${{ steps.meta.outputs.release_version }}'
 
+      - name: Verify release version lockstep
+        run: python3 scripts/release_artifacts.py verify-version-lockstep --workspace-toml Cargo.toml
+
       - name: Verify release version is unpublished on crates.io
         run: |
           python3 scripts/release_artifacts.py check-version-unpublished \

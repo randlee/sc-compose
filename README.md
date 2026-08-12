@@ -154,7 +154,7 @@ Pre-built wheels for macOS, Linux, Windows (Python 3.11+).
 | Any (Rust) | crates.io | `cargo install sc-compose` |
 | Any (Python) | PyPI | `pip install sc-compose` |
 | Any (source) | cargo | `cargo build --release -p sc-compose` |
-| Rust lib | Cargo.toml | `sc-composer = "1.3.1"` |
+| Rust lib | Cargo.toml | `sc-composer = "1.4.0"` |
 
 Bundled examples are guaranteed in Homebrew, Winget, and GitHub Release
 installs. `cargo install` ships the binary only — set `SC_COMPOSE_DATA_DIR` for
@@ -166,11 +166,11 @@ examples.
 
 | | |
 |---|---|
-| Version | 1.3.1 |
+| Version | 1.4.0 |
 | MSRV | Rust 1.94.1 |
 | Rust edition | 2024 |
 | Platforms | macOS, Linux, Windows |
-| Stability | stable 1.3 release line |
+| Stability | stable 1.4 release line |
 
 ---
 

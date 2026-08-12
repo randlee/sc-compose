@@ -1,21 +1,35 @@
 schema_version = 1
 
 [[crates]]
+artifact = "sc-sha"
+package = "sc-sha"
+cargo_toml = "crates/sc-sha/Cargo.toml"
+publish_order = 1
+wait_after_publish_seconds = 30
+
+[[crates]]
 artifact = "sc-composer"
 package = "sc-composer"
 cargo_toml = "crates/sc-composer/Cargo.toml"
-publish_order = 1
+publish_order = 2
 wait_after_publish_seconds = 30
 
 [[crates]]
 artifact = "sc-compose"
 package = "sc-compose"
 cargo_toml = "crates/sc-compose/Cargo.toml"
-publish_order = 2
+publish_order = 3
 wait_after_publish_seconds = 0
 
 [[release_binaries]]
 name = "sc-compose"
+
+[[python_packages]]
+artifact = "sc-sha-python"
+package = "sc-sha"
+manifest = "bindings/sc-sha-python/pyproject.toml"
+module = "sc_sha"
+publish = "pypi"
 
 [[python_packages]]
 artifact = "sc-compose-python"
@@ -23,6 +37,12 @@ package = "sc-compose"
 manifest = "bindings/python/pyproject.toml"
 module = "sc_compose"
 publish = "pypi"
+
+[[python_distributions]]
+name = "sc-sha"
+source = "bindings/sc-sha-python"
+sdist = true
+wheels = ["ubuntu-latest", "macos-latest", "windows-latest"]
 
 [[python_distributions]]
 name = "sc-compose"
