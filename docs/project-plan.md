@@ -751,6 +751,22 @@ Sprint entries:
 - [Sprint FIX-390 — Clap Usage Exit Code](sprints/fix-390-clap-exit-code-fr7b.md)
 - [Sprint FIX-SIMP-001 — Shared Template Suffix Helper](sprints/fix-simp-001-shared-suffix-helper.md)
 - [Sprint FEAT-HELP-MANUAL-CORE — Core Help Manuals](sprints/feat-help-manual-core.md)
+- [Sprint FEAT-HELP-MANUAL-TOPICS-1 — Group 1 Help Manuals](sprints/feat-help-manual-topics-1.md)
+
+### Follow-on Feature Sprint: FEAT-HELP-MANUAL-TOPICS-1
+
+Status:
+
+- complete on `feat/help-manual-topics-1` at `b23c93e`
+
+Sprint entry:
+
+- [Sprint FEAT-HELP-MANUAL-TOPICS-1 — Group 1 Help Manuals](sprints/feat-help-manual-topics-1.md)
+
+FEAT-HELP-MANUAL-TOPICS-1 adds the six group-one feature manuals for render,
+resolve, validate, verify, extract, and template-init. Each document is
+embedded in the CLI's ordered help-topic registry and is also linked from the
+repository manual index.
 
 ### Follow-on Feature Sprint: FEAT-HELP-MANUAL-CORE
 

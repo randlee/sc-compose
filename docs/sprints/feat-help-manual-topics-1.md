@@ -1,7 +1,7 @@
 ---
 id: FEAT-HELP-MANUAL-TOPICS-1
 title: Help-manual content, group 1 (render/resolve/validate/verify/extract/template-init)
-status: assigned
+status: complete
 branch: feat/help-manual-topics-1
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/help-manual-topics-1
 target: feat/help-manual-core
@@ -98,6 +98,16 @@ the remaining five topics. Do not touch any topic owned by that sprint.
 - FR-22, docs/requirements.md (PR #396)
 - FEAT-HELP-MANUAL-CORE, docs/sprints/feat-help-manual-core.md (PR #397)
 - Sibling sprint: FEAT-HELP-MANUAL-TOPICS-2 (branch `feat/help-manual-topics-2`)
+
+## Closeout Evidence
+
+- Implementation commit: `b23c93e` (rebased onto core `7cd42a3` and
+  `01b589e`).
+- Added accurate manuals for `render`, `resolve`, `validate`, `verify`,
+  `extract`, and `template-init`; registered all six topics and added one
+  content sanity test per topic.
+- Validation passed: `cargo test --workspace`, `cargo fmt --all --check`,
+  and `cargo clippy --all-targets --all-features -- -D warnings`.
 
 ## Priority
 
