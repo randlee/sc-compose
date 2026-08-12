@@ -36,6 +36,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
       - name: Set up lint toolchain
         uses: ./.github/actions/setup-lint-toolchain
 
@@ -44,11 +49,6 @@ jobs:
         with:
           toolchain: 1.94.1
           components: rustfmt, clippy
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
 
       - name: Normalize version input
         id: meta
