@@ -443,7 +443,7 @@ mod tests {
             (ErrExtractTomlAmbiguous, "ERR_EXTRACT_TOML_AMBIGUOUS"),
         ];
 
-        assert_eq!(codes.len(), 73);
+        assert_eq!(codes.len(), 74);
         for (code, spelling) in codes {
             assert_eq!(code.as_str(), spelling);
             assert_eq!(
