@@ -1,0 +1,101 @@
+{
+  "ok": true,
+  "command": "lint.full",
+  "data": {
+    "profile": "full",
+    "status": "pass",
+    "step_count": 14,
+    "steps": [
+      {
+        "command": "cargo fmt --all --check",
+        "kind": "lint",
+        "name": "fmt",
+        "status": "pass"
+      },
+      {
+        "command": "cargo clippy --workspace --all-targets -- -D warnings",
+        "kind": "lint",
+        "name": "clippy",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-lint-full-pass-33962-1786244495853130000/.just/lint_cargo_deny.py",
+        "kind": "lint",
+        "name": "deny",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-lint-full-pass-33962-1786244495853130000/.just/lint_cargo_shear.py",
+        "kind": "lint",
+        "name": "shear",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-lint-full-pass-33962-1786244495853130000/.just/check_version_sync.py",
+        "kind": "lint",
+        "name": "version",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-lint-full-pass-33962-1786244495853130000/.just/lint_manifests.py",
+        "kind": "lint",
+        "name": "manifests",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-lint-full-pass-33962-1786244495853130000/.just/lint_codespell.py",
+        "kind": "lint",
+        "name": "spell",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-lint-full-pass-33962-1786244495853130000/.just/run_pytests.py",
+        "kind": "lint",
+        "name": "pytests",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-lint-full-pass-33962-1786244495853130000/.just/lint_sc_boundary.py",
+        "kind": "lint",
+        "name": "sc-boundary",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-lint-full-pass-33962-1786244495853130000/.just/lint_sc_portability.py",
+        "kind": "lint",
+        "name": "sc-portability",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-lint-full-pass-33962-1786244495853130000/.just/lint_line_counts.py",
+        "kind": "lint",
+        "name": "line-counts",
+        "status": "pass"
+      },
+      {
+        "command": "python3 /private/var/folders/zk/zklzmbr52q55r1y8zv_k84k80000gn/T/sc-compose-lint-full-pass-33962-1786244495853130000/.just/lint_identity_literals.py",
+        "kind": "lint",
+        "name": "identity-literals",
+        "status": "pass"
+      },
+      {
+        "command": "cargo xwin check --workspace --target x86_64-pc-windows-msvc",
+        "kind": "check",
+        "name": "check.xwin",
+        "status": "pass"
+      },
+      {
+        "command": "cargo xwin clippy --workspace --all-targets --target x86_64-pc-windows-msvc -- -D warnings",
+        "kind": "clippy",
+        "name": "clippy.xwin",
+        "status": "pass"
+      }
+    ],
+    "xwin": {
+      "available": true,
+      "included": true,
+      "target": "x86_64-pc-windows-msvc"
+    }
+  },
+  "diagnostics": []
+}

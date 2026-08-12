@@ -26,7 +26,10 @@ reports/latest/
 reports/archive/
 .prompts/
 .sc-compose/
-.sc/
+.sc/*
+!.sc/sc-lint/
+!.sc/sc-lint/targets/
+!.sc/sc-lint/targets/*.toml
 .serena/
 .tmp/
 docs/phase-D/.review-findings.json
@@ -46,3 +49,5 @@ docs/phase-D/.review-findings.json
 #.idea/
 .repowise/sessions/
 .repowise/state.json
+.repowise/.augment-session.json
+.repowise/.augment-warned

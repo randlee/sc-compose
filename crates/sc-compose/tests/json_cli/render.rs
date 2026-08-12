@@ -37,6 +37,133 @@ fn render_json_uses_diagnostic_envelope() {
 }
 
 #[test]
+fn render_json_stdout_includes_body_matching_plain_render() {
+    let root = temp_root("render-json-stdout-body");
+    let template = "---\ndefaults:\n  name: café\n---\nhello {{ name }}\n";
+    write_file(&root.join("template.md.j2"), template);
+
+    let json_output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--json")
+        .output()
+        .unwrap();
+    let plain_output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .output()
+        .unwrap();
+
+    assert!(
+        json_output.status.success(),
+        "stderr: {:?}",
+        json_output.stderr
+    );
+    assert!(
+        plain_output.status.success(),
+        "stderr: {:?}",
+        plain_output.stderr
+    );
+    assert!(json_output.stderr.is_empty());
+    let value = parse_stdout(&json_output);
+    assert_envelope(&value);
+    let body = value["payload"]["body"].as_str().expect("JSON stdout body");
+    // JSON reports the logical stdout target, which includes plain-mode's
+    // trailing newline even though the JSON body itself does not.
+    assert_eq!(body.len() as u64 + 1, value["payload"]["bytes_written"]);
+    assert_eq!(
+        body.as_bytes(),
+        plain_output
+            .stdout
+            .strip_suffix(b"\n")
+            .expect("plain render transport newline")
+    );
+}
+
+#[test]
+fn render_json_stdout_bytes_written_includes_trailing_newline() {
+    let root = temp_root("render-json-stdout-bytes-written");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("name=world")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    let value = parse_stdout(&output);
+    let body = value["payload"]["body"].as_str().unwrap();
+    assert_eq!(value["payload"]["bytes_written"], body.len() as u64 + 1);
+}
+
+#[test]
+fn render_json_stdout_bytes_match_plain_stdout_bytes() {
+    let root = temp_root("render-json-stdout-byte-parity");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}");
+
+    let plain_output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("name=world")
+        .output()
+        .unwrap();
+    let json_output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("name=world")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(
+        plain_output.status.success(),
+        "stderr: {:?}",
+        plain_output.stderr
+    );
+    assert!(
+        json_output.status.success(),
+        "stderr: {:?}",
+        json_output.stderr
+    );
+    let value = parse_stdout(&json_output);
+    assert_eq!(
+        value["payload"]["bytes_written"],
+        plain_output.stdout.len() as u64
+    );
+}
+
+#[test]
 fn render_dry_run_json_uses_diagnostic_envelope() {
     let root = temp_root("render-dry-run-json");
     write_file(
@@ -70,6 +197,7 @@ fn render_dry_run_json_uses_diagnostic_envelope() {
         normalize_path_str(fs::canonicalize(root.join("template.md.j2")).unwrap())
     );
     assert_eq!(value["payload"]["would_change"], true);
+    assert_eq!(value["payload"]["rendered_preview"], "hello world");
 }
 
 #[test]
@@ -497,6 +625,8 @@ fn render_json_reports_actual_bytes_written_for_output_file() {
         value["payload"]["bytes_written"].as_u64().unwrap(),
         fs::metadata(&output_path).unwrap().len()
     );
+    assert!(value["payload"].get("body").is_none());
+    assert_eq!(fs::read_to_string(output_path).unwrap(), "hello café");
 }
 
 #[test]

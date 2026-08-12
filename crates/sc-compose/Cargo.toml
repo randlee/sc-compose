@@ -1,5 +1,6 @@
 [package]
 name = "sc-compose"
+authors.workspace = true
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -19,7 +20,7 @@ mimalloc = { version = "0.1" }
 serde.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true
-sc-composer = { path = "../sc-composer", version = "1.1.0" }
+sc-composer = { path = "../sc-composer", version = "1.4.0" }
 sc-observability.workspace = true
 sc-observability-types.workspace = true
 time.workspace = true

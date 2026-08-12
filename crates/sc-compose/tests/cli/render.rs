@@ -7,7 +7,7 @@ use crate::support::*;
 use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
+use std::process::{Command, Stdio};
 
 #[test]
 fn render_dry_run_does_not_create_output_file() {
@@ -81,6 +81,39 @@ fn exit_code_two_for_validation_failure() {
 }
 
 #[test]
+fn render_rejects_scalar_for_existing_jagged_array_fixture() {
+    let root = temp_root("jagged-array-scalar");
+    write_file(
+        &root.join("jagged-array-values.md.j2"),
+        include_str!("../../../../examples/jagged-array-values.md.j2"),
+    );
+    let vars_file = root.join("vars.json");
+    write_file(&vars_file, r#"{"rows":"ab"}"#);
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "jagged-array-values.md.j2",
+            "--var-file",
+            vars_file.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("ERR_VAL_ARRAY_SHAPE_MISMATCH"), "{stderr}");
+    assert!(
+        output.stdout.is_empty(),
+        "unexpected output: {:?}",
+        output.stdout
+    );
+}
+
+#[test]
 fn exit_code_three_for_resolve_failure() {
     let root = temp_root("exit-resolve");
 
@@ -96,6 +129,213 @@ fn exit_code_three_for_resolve_failure() {
         .unwrap();
 
     assert_eq!(status.code(), Some(3));
+}
+
+#[test]
+fn empty_custom_variable_delimiters_report_source_once() {
+    let root = temp_root("empty-custom-delimiters");
+    write_file(&root.join("template.md.j2"), "hello\n");
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "template.md.j2",
+            "--variable-delimiters",
+            "",
+            "",
+        ])
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(output.status.code(), Some(3), "stderr: {stderr}");
+    assert_eq!(stderr.matches("invalid custom delimiters").count(), 1);
+    assert!(
+        stderr.contains("ERR_CONFIG_PARSE: template rendering failed: invalid custom delimiters"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
+fn render_xml_template_escapes_interpolated_special_characters() {
+    let root = temp_root("xml-autoescape");
+    write_file(
+        &root.join("repro.xml.j2"),
+        "---\nname: repro\nversion: 1.0.0\ndescription: XML escaping regression\nformat: xml\nrequired_variables:\n  - note\n---\n<root>\n  <note>{{ note }}</note>\n</root>\n",
+    );
+    write_file(
+        &root.join("vars.json"),
+        r#"{"note":"record with <tag> & \"quotes\" & 'apostrophe' & ampersand&here"}"#,
+    );
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "repro.xml.j2",
+            "--var-file",
+            root.join("vars.json").to_str().unwrap(),
+            "--output",
+            root.join("out.xml").to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    assert_eq!(
+        fs::read_to_string(root.join("out.xml")).unwrap(),
+        "<root>\n  <note>record with &lt;tag&gt; &amp; &quot;quotes&quot; &amp; &#x27;apostrophe&#x27; &amp; ampersand&amp;here</note>\n</root>"
+    );
+}
+
+#[test]
+fn render_custom_delimiter_xml_template_escapes_interpolated_special_characters() {
+    let root = temp_root("xml-autoescape-custom-delimiters");
+    write_file(
+        &root.join("custom.xml.j2"),
+        "<root>\n  <note><< note >></note>\n</root>\n",
+    );
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "custom.xml.j2",
+            "--variable-delimiters",
+            "<<",
+            ">>",
+            "--var",
+            "note=record with <tag> & quotes",
+            "--output",
+            root.join("out.xml").to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    assert_eq!(
+        fs::read_to_string(root.join("out.xml")).unwrap(),
+        "<root>\n  <note>record with &lt;tag&gt; &amp; quotes</note>\n</root>"
+    );
+}
+
+#[test]
+fn render_html_template_escapes_interpolated_special_characters() {
+    let root = temp_root("html-autoescape");
+    write_file(&root.join("report.html.j2"), "<p>{{ note }}</p>\n");
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "report.html.j2",
+            "--var",
+            "note=record with <tag> & quotes",
+            "--output",
+            root.join("out.html").to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    assert_eq!(
+        fs::read_to_string(root.join("out.html")).unwrap(),
+        "<p>record with &lt;tag&gt; &amp; quotes</p>"
+    );
+}
+
+#[test]
+fn render_non_markup_template_keeps_interpolated_special_characters_raw() {
+    let root = temp_root("non-markup-no-autoescape");
+    write_file(&root.join("notes.md.j2"), "{{ note }}\n");
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "notes.md.j2",
+            "--var",
+            "note=record with <tag> & quotes",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim_end(),
+        "record with <tag> & quotes"
+    );
+}
+
+#[test]
+fn render_sprint_plan_yaml_safe_cli_regression() {
+    let root = temp_root("sprint-plan-yaml-safe");
+    let template = fs::read_to_string(
+        repo_root().join(".claude/skills/codex-orchestration/sprint-plan.md.j2"),
+    )
+    .unwrap();
+    write_file(&root.join("sprint-plan.md.j2"), &template);
+    write_file(
+        &root.join("vars.json"),
+        serde_json::json!({
+            "id": "FIX-276",
+            "title": "Architecture: plan",
+            "status": "planned",
+            "branch": "fix/276-yaml-colon-space-unescaped",
+            "worktree": "/tmp/sc-compose",
+            "target": "develop"
+        })
+        .to_string()
+        .as_str(),
+    );
+
+    let output_path = root.join("rendered.md");
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "sprint-plan.md.j2",
+            "--var-file",
+            root.join("vars.json").to_str().unwrap(),
+            "--output",
+            output_path.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let rendered = fs::read_to_string(output_path).unwrap();
+    let start = rendered
+        .find("---\nid:")
+        .expect("rendered sprint plan must contain generated frontmatter")
+        + 4;
+    let body = &rendered[start..];
+    let end = body
+        .find("\n---\n")
+        .expect("generated sprint plan frontmatter must close");
+    let frontmatter: serde_yaml::Value = serde_yaml::from_str(&body[..end]).unwrap();
+    assert_eq!(frontmatter["title"], "Architecture: plan");
 }
 
 #[test]
@@ -123,6 +363,85 @@ fn render_uses_json_var_file_inputs() {
         String::from_utf8_lossy(&output.stdout).trim(),
         "hello json-world"
     );
+}
+
+#[test]
+fn validate_and_render_adjacent_jinja_document_frontmatter() {
+    let root = temp_root("adjacent-jinja-document-frontmatter");
+    write_file(
+        &root.join("template.md.j2"),
+        "---\nrequired_variables:\n  - id\ndefaults:\n  worktree: \"\"\n---\n---\nid: {{ id }}\n{% if worktree %}worktree: {{ worktree }}\n{% endif %}target: x\n---\nbody\n",
+    );
+    let vars_set = root.join("vars-set.json");
+    write_file(
+        &vars_set,
+        "{\"id\":\"item\",\"worktree\":\"../worktree\"}\n",
+    );
+    let vars_unset = root.join("vars-unset.json");
+    write_file(&vars_unset, "{\"id\":\"item\"}\n");
+
+    let validate = sc_compose()
+        .arg("validate")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_set)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert!(validate.status.success(), "{validate:?}");
+    let validate_json: Value = serde_json::from_slice(&validate.stdout).unwrap();
+    let validate_codes = validate_json["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|diagnostic| diagnostic["code"].as_str())
+        .collect::<Vec<_>>();
+    assert!(!validate_codes.contains(&"ERR_CONFIG_PARSE"));
+
+    let rendered_set = root.join("rendered-set.md");
+    let render_set = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_set)
+        .arg("--output")
+        .arg(&rendered_set)
+        .output()
+        .unwrap();
+    assert!(render_set.status.success(), "{render_set:?}");
+    let rendered_set_text = fs::read_to_string(&rendered_set).unwrap();
+    assert!(rendered_set_text.contains("worktree: ../worktree"));
+    assert!(rendered_set_text.contains("id: item"));
+
+    let rendered_unset = root.join("rendered-unset.md");
+    let render_unset = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var-file")
+        .arg(&vars_unset)
+        .arg("--output")
+        .arg(&rendered_unset)
+        .output()
+        .unwrap();
+    assert!(render_unset.status.success(), "{render_unset:?}");
+    let rendered_unset_text = fs::read_to_string(&rendered_unset).unwrap();
+    assert!(!rendered_unset_text.contains("worktree:"));
+    assert!(rendered_unset_text.contains("id: item"));
 }
 
 #[test]
@@ -705,7 +1024,7 @@ fn render_variable_delimiters_reports_invalid_delimiters_without_panicking() {
     assert_eq!(output.status.code(), Some(3), "{output:?}");
     let stderr = String::from_utf8(output.stderr).unwrap();
     assert!(stderr.contains("ERR_CONFIG_PARSE"));
-    assert!(stderr.contains("invalid custom delimiters: invalid custom delimiters"));
+    assert_eq!(stderr.matches("invalid custom delimiters").count(), 1);
     assert!(!stderr.contains("panicked at"));
     assert!(!stderr.contains("stack backtrace"));
 }
@@ -916,7 +1235,7 @@ fn render_brace_count_rejects_values_below_two() {
         .output()
         .unwrap();
 
-    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
     assert!(
         !String::from_utf8_lossy(&output.stderr).trim().is_empty(),
         "{output:?}"
@@ -988,6 +1307,50 @@ fn validate_still_errors_for_variables_not_in_required_or_input_defaults() {
     assert_eq!(output.status.code(), Some(2));
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("ERR_VAL_EXTRA_INPUT"));
+}
+
+#[test]
+fn render_unknown_var_mode_errors_on_referenced_unbound_variable() {
+    let root = temp_root("unbound-variable-policy");
+    write_file(
+        &root.join("template.md.j2"),
+        "bound={{ bound }} missing={{ missing }}\n",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("template.md.j2")
+        .arg("--var")
+        .arg("bound=present")
+        .arg("--unknown-var-mode")
+        .arg("error")
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2));
+    let combined = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(combined.contains("ERR_VAL_UNBOUND_VARIABLE"), "{combined}");
+    assert!(combined.contains("missing"), "{combined}");
+    assert!(!combined.contains("unbound variable: bound"), "{combined}");
+}
+
+#[test]
+fn unknown_var_mode_help_describes_both_policy_axes() {
+    let output = sc_compose().args(["render", "--help"]).output().unwrap();
+
+    assert!(output.status.success());
+    let help = String::from_utf8_lossy(&output.stdout);
+    assert!(help.contains("extra caller-provided"), "{help}");
+    assert!(help.contains("referenced-but-unbound"), "{help}");
 }
 
 #[test]
@@ -1524,6 +1887,154 @@ fn render_accepts_recursive_values_in_frontmatter_defaults() {
         String::from_utf8_lossy(&output.stderr)
     );
     assert!(String::from_utf8_lossy(&output.stdout).contains("Added:frontmatter item"));
+}
+
+#[test]
+fn render_xml_control_byte_output_is_well_formed() {
+    let root = temp_root("xml-control-byte");
+    write_file(
+        &root.join("report.xml.j2"),
+        "<root><title>{{ value }}</title></root>\n",
+    );
+    write_file(&root.join("vars.json"), "{\"value\": \"\\u0000\"}\n");
+    let output_path = root.join("rendered.xml");
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("report.xml.j2")
+        .arg("--var-file")
+        .arg(root.join("vars.json"))
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let rendered = fs::read_to_string(&output_path).unwrap();
+    assert!(rendered.contains("&#xfffd;"), "rendered XML: {rendered}");
+
+    let python_code = "import sys, xml.etree.ElementTree as ET; ET.fromstring(sys.argv[1])";
+    let python = if Command::new("python3")
+        .arg("--version")
+        .output()
+        .map(|probe| probe.status.success())
+        .unwrap_or(false)
+    {
+        "python3"
+    } else {
+        "python"
+    };
+    let parsed = Command::new(python)
+        .arg("-c")
+        .arg(python_code)
+        .arg(&rendered)
+        .output()
+        .unwrap();
+    assert!(
+        parsed.status.success(),
+        "Python XML parse failed: {}\nXML: {rendered}",
+        String::from_utf8_lossy(&parsed.stderr)
+    );
+}
+
+#[test]
+fn render_markdown_table_safe_cli_regression() {
+    let root = temp_root("markdown-table-safe");
+    write_file(
+        &root.join("table.md.j2"),
+        "| Value |\n| --- |\n| {{ value | md_table_safe }} |\n",
+    );
+    write_file(
+        &root.join("vars.json"),
+        r#"{"value":"cache|hit\nnext"}
+"#,
+    );
+    let output_path = root.join("rendered.md");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("table.md.j2")
+        .arg("--var-file")
+        .arg(root.join("vars.json"))
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let rendered = fs::read_to_string(&output_path).unwrap();
+    assert!(
+        rendered.contains(r"cache\|hit next"),
+        "rendered: {rendered}"
+    );
+}
+
+#[test]
+fn render_sprint_plan_cli_neutralizes_injected_frontmatter_delimiters() {
+    let root = temp_root("sprint-plan-frontmatter-injection");
+    let template_path = root
+        .join(".claude")
+        .join("skills")
+        .join("codex-orchestration")
+        .join("sprint-plan.md.j2");
+    write_file(
+        &template_path,
+        include_str!("../../../../.claude/skills/codex-orchestration/sprint-plan.md.j2"),
+    );
+    let vars_path = root.join("repro-vars.json");
+    write_file(
+        &vars_path,
+        r#"{
+  "id": "1.2",
+  "title": "Injected frontmatter break\n---\nmalicious: true\n---",
+  "branch": "main",
+  "target": "develop"
+}
+"#,
+    );
+    let output_path = root.join("rendered.md");
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg(".claude/skills/codex-orchestration/sprint-plan.md.j2")
+        .arg("--var-file")
+        .arg(&vars_path)
+        .arg("--output")
+        .arg(&output_path)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "stderr:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let rendered = fs::read_to_string(&output_path).unwrap();
+    assert_eq!(rendered.lines().filter(|line| *line == "---").count(), 2);
+    assert!(rendered.contains("malicious: true"));
+    assert!(rendered.contains(r"\-\-\-"));
 }
 
 #[test]

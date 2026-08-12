@@ -1,0 +1,2 @@
+command = "clippy.native"
+report_kind = "lint"

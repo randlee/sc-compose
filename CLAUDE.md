@@ -38,6 +38,13 @@ This repo is intentionally independent from ATM. Do not introduce
 5. `sc-composer` must not depend on `bindings/python`.
 6. Do not read `ATM_HOME`.
 7. Any ATM integration belongs in ATM adapters, not in this repo.
+8. `sc-sha` is a pure computation crate. It may depend only on approved
+   hashing/encoding dependencies, and may be depended on only by
+   `sc-composer` and `bindings/sc-sha-python`. See
+   [ADR-0018](./docs/adrs/0018-sc-sha-hash-ownership.md).
+9. `bindings/sc-sha-python` is a Python-facing adapter for `sc-sha` only. It
+   may depend on published `sc-sha` plus PyO3/maturin packaging dependencies
+   only. See [ADR-0018](./docs/adrs/0018-sc-sha-hash-ownership.md).
 
 ## Team Communication
 

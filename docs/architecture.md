@@ -88,7 +88,14 @@ dependency on `sc-observability`.
 - bundled example-pack discovery,
 - user template-pack discovery and storage,
 - pack metadata parsing,
-- templates add workflows.
+- templates add workflows,
+- bundled CLI feature manuals (`help_topics` module: one ordered
+  `(topic_name, content)` registry, each entry's content embedded from a
+  single `docs/manual/<topic>.md` file via `include_str!`; no per-topic
+  Rust modules or hand-written string constants).
+- exclusive ownership of the `help_topics` module and ordered manual-topic
+  registry; `sc-composer` and `bindings/python` do not define, import, or
+  mutate manual-topic metadata.
 
 ### 3.3 `bindings/python`
 
@@ -185,6 +192,10 @@ ATM integration is an adapter concern outside this repository.
     repeated rendering,
   - keeps `render_template()` as a one-shot convenience wrapper,
   - renders template content under normal or strict undeclared-token policy.
+- `template_ext`
+  - exposes `strip_template_suffix`, the single shared
+    `.j2`/`.jinja2`/`.jinja` suffix-stripping helper used by the renderer's
+    auto-escape callback and by `sc-compose`'s template-init JSON detection.
 - `validate`
   - produces validation reports and diagnostics without writing output.
 - `verify`
@@ -492,6 +503,10 @@ Semantics:
 
 - `strict_undeclared_variables: bool`
 - `unknown_variable_policy: UnknownVariablePolicy`
+- `unbound_variable_policy: Option<UnknownVariablePolicy>`; when omitted,
+  referenced-but-unbound diagnostics inherit `unknown_variable_policy` for
+  compatibility, while an explicit value keeps the two policy axes
+  independent
 - `max_include_depth: IncludeDepth`
 - `allowed_roots: Vec<ConfiningRoot>`
 - `resolver_policy: ResolverPolicy`
@@ -877,6 +892,7 @@ Command mapping:
 - `template-init` -> CLI-owned `template_init_file` rewrite path
 - `init` -> `init_workspace`
 - `verify` -> `verify`
+- `extract` -> `extract`
 - `observability-health` -> CLI logger initialization, then `Logger::health()`
 - `examples list` -> list bundled example packs
 - `examples <name>` -> resolve the bundled example-pack file, merge pack
@@ -898,6 +914,8 @@ Command mapping:
 - `reports verify` -> verify required report artifacts exist for the catalog
 - `reports publish-manifest` -> emit one machine-readable publish handoff from
   current latest report outputs
+- `help [topic]` / `help --list` -> CLI-owned `help_topics` registry lookup
+  (no library call; see FR-22)
 
 The CLI must not reimplement core composition semantics. If a command requires
 logic useful to non-CLI callers, that logic belongs in the library.
@@ -992,6 +1010,25 @@ Command-specific rules:
   - skips optional reports whose latest artifact sets are absent,
   - fails when required report evidence is missing,
   - lists intended publish destinations without owning upload behavior.
+- `help`
+  - with no topic and no `--list`, prints a human-readable topic index,
+  - `--list` prints a UTF-8, newline-delimited topic name per line in registry
+    order, with no labels or indentation, as the stable shell-pipeline form,
+  - `--json` uses the versioned `DiagnosticEnvelope`; the index/list payload is
+    `{ "topics": ["..."] }`, and a topic payload is
+    `{ "topic": "...", "manual": "..." }`,
+  - a valid topic prints that topic's bundled manual content verbatim,
+  - an unknown topic fails closed with exit `3` and lists valid topic names,
+  - has no rendering side effects and does not go through `compose`,
+  - is an explicit CLI command: clap's automatic `help` subcommand is disabled
+    while the generated `--help` flag remains enabled,
+  - resolves topic names only after the `help` command has been selected, so a
+    topic may equal a real root command (`help render` versus `render`) without
+    shadowing or reinterpreting that root command.
+- The generated root `sc-compose --help` output must retain a final
+  discoverability footer directing users to `sc-compose help` (and
+  `sc-compose help <topic>`) for the complete bundled manual index. This is a
+  CLI parser/help-rendering concern, not a `sc-composer` library concern.
 
 Guidance and prompt input model:
 
@@ -1021,6 +1058,28 @@ All `--json` command output uses the versioned `DiagnosticEnvelope` transport:
 }
 ```
 
+`help --list --json` and `help --json` use this payload shape:
+
+```json
+{
+  "topics": ["exit-codes", "render"]
+}
+```
+
+`help <topic> --json` uses this payload shape:
+
+```json
+{
+  "topic": "render",
+  "manual": "# sc-compose render\n..."
+}
+```
+
+The non-JSON `help --list` schema is intentionally line-oriented for shell
+pipelines: UTF-8 topic names, one per line, in registry order, with no labels
+or indentation. The JSON form is the machine-readable alternative and carries
+the same ordered topic data inside the envelope.
+
 The schemas below define the `payload` shape for each command.
 
 `render --json`
@@ -1029,9 +1088,14 @@ The schemas below define the `payload` shape for each command.
 {
   "output_path": "stdout",
   "bytes_written": 123,
-  "template": "path/to/template.md.j2"
+  "template": "path/to/template.md.j2",
+  "body": "rendered document text"
 }
 ```
+
+For non-dry-run stdout renders, `body` contains the rendered document. When
+`--output <file>` is supplied, `body` is omitted because the file is the
+source of truth.
 
 `render --dry-run --json`
 
@@ -1594,12 +1658,14 @@ Canonical failures must map to stable error families and stable codes.
 | Include path escapes confinement root | `IncludeError` | `ERR_INCLUDE_ESCAPE` |
 | Include cycle detected | `IncludeError` | `ERR_INCLUDE_CYCLE` |
 | Include depth exceeds limit | `IncludeError` | `ERR_INCLUDE_DEPTH` |
+| Include target cannot be exhaustively enumerated as a static dependency | `IncludeError` | `ERR_INCLUDE_DYNAMIC_UNRESOLVED` |
 | Duplicate frontmatter variable | `ValidationError` | `ERR_VAL_DUPLICATE` |
 | Empty template body | `ValidationError` | `ERR_VAL_EMPTY` |
 | Root template has no frontmatter block | `ValidationError` | `ERR_VAL_MISSING_FRONTMATTER` |
 | Required variable not satisfied after context merge | `ValidationError` | `ERR_VAL_MISSING_REQUIRED` |
 | Undeclared referenced token in strict validation or render mode | `ValidationError` | `ERR_VAL_UNDECLARED_TOKEN` |
 | Extra provided variable when policy is `error` | `ValidationError` | `ERR_VAL_EXTRA_INPUT` |
+| Referenced variable has no merged runtime binding when the unbound-variable policy is `error` | `ValidationError` | `ERR_VAL_UNBOUND_VARIABLE` |
 | Stdin read attempted twice | `RenderError` | `ERR_RENDER_STDIN_DOUBLE_READ` |
 | Output write failure | `RenderError` | `ERR_RENDER_WRITE` |
 | Frontmatter rewrite refused on read-only target | `ConfigError` | `ERR_CONFIG_READONLY` |
@@ -1612,6 +1678,7 @@ Canonical failures must map to stable error families and stable codes.
 | Nested required path expects an object but receives a scalar, or vice versa | `ValidationError` | `ERR_VAL_SHAPE_MISMATCH` |
 | Nested required field absent inside a present object or array member | `ValidationError` | `ERR_VAL_MISSING_NESTED_FIELD` |
 | Example or template pack name not found | `ConfigError` | `ERR_CONFIG_PACK_NOT_FOUND` |
+| Help topic name is not registered | `ConfigError` | `ERR_CONFIG_HELP_TOPIC_NOT_FOUND` |
 | Named pack is not renderable because a bundled example name is ambiguous or a template pack has zero or multiple root-level `*.j2` files | `ConfigError` | `ERR_CONFIG_PACK_NOT_RENDERABLE` |
 | `templates add` target name already exists | `ConfigError` | `ERR_CONFIG_TEMPLATE_EXISTS` |
 
@@ -1979,8 +2046,11 @@ Architectural boundaries:
 - H3 keeps the bundled example as a single flat file
   `examples/sprint-report-html.html.j2`,
 - directory-based example layout is deferred beyond H4,
-- `sc-compose` does not enable MiniJinja auto-escaping for `.html.j2`
-  templates; the bundled example documentation must call this out explicitly,
+- filename-aware `AutoEscape::Custom("sc-compose-html")` applies to
+  `.html.j2`, `.htm.j2`, `.xml.j2`, and `.xhtml.j2` templates. The shared
+  formatter escapes markup and represents XML-illegal control bytes with the
+  legal replacement-character NCR `&#xfffd;`; see
+  [FR-14 and its FIX-278 clarification](requirements.md#fr-14-html-template-output),
 - wrapper tooling such as `/sprint-report` owns open/display behavior and is
   documented in [`.claude/skills/sprint-report/SKILL.md`](../.claude/skills/sprint-report/SKILL.md),
 - the wrapper-owned orchestration flow is:
@@ -2002,3 +2072,25 @@ Follow-on work may explore:
 - optional post-render hook designs that remain outside `sc-composer` and do
   not become implicit `sc-compose` behavior without an explicit later
   architecture amendment.
+
+### 21.8 Source Composition Identity
+
+The native `@<path>` include expansion path is the ownership point for source
+composition discovery. It returns a first-seen, path-deduplicated manifest of
+canonical local sources and ordered include occurrences, then delegates the
+per-file and composition calculations to the two published `sc-sha`
+operations. `sc-composer` does not maintain a second hash implementation.
+
+The resulting `CompositionFingerprint` is exposed alongside the expanded
+template and successful composition result. MiniJinja dependency statements
+remain a separately tested inspection/loading capability until they are wired
+to this same manifest contract; they must not grow a second fingerprint
+algorithm. The standalone `sc-sha-python` package is a thin maturin adapter
+with no dependency on `sc-compose`, `sc-composer`, or ATM runtime packages.
+
+Native includes may use a statically enumerable conditional path expression,
+such as `@<{{ "partials/item.md" if mode == "item" else "partials/other-item.md" }}>`.
+The include walker hashes both branch
+candidates and preserves the condition in the expanded template so rendering
+still selects one branch. Other dynamic targets remain
+`ERR_INCLUDE_DYNAMIC_UNRESOLVED` and cannot produce a cacheable fingerprint.

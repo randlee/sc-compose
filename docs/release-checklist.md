@@ -1,13 +1,17 @@
 # Release Checklist
 
-Use this checklist before every crates.io release of `sc-composer` and `sc-compose`.
+Use this checklist before every crates.io release of `sc-sha`, `sc-composer`, and `sc-compose`.
 
 ## Pre-Release: Version Alignment
 
 - [ ] Workspace `Cargo.toml` `[workspace.package] version` reflects the target release version
+- [ ] `crates/sc-sha/Cargo.toml` inherits or matches workspace version
 - [ ] `crates/sc-composer/Cargo.toml` inherits or matches workspace version
 - [ ] `crates/sc-compose/Cargo.toml` inherits or matches workspace version
-- [ ] `release/publish-artifacts.toml` lists both crates with correct `cargo_toml` paths
+- [ ] `release/publish-artifacts.toml` lists `sc-sha`, `sc-composer`, and `sc-compose`
+      with correct `cargo_toml` paths and dependency-aware publish order
+- [ ] `bindings/python/pyproject.toml` and `bindings/sc-sha-python/pyproject.toml`
+      match the workspace version, and their explicit Cargo path-dependency pins do too
 - [ ] Target release version is strictly higher than the last version published from the
       `agent-team-mail` workspace for these crate names
 
@@ -35,13 +39,16 @@ Use this checklist before every crates.io release of `sc-composer` and `sc-compo
 
 ## Pre-Release: crates.io Ownership
 
+- [ ] Verify crate owners for `sc-sha` on crates.io:
+  - run `cargo owner --list sc-sha` and confirm expected owners
 - [ ] Verify crate owners for `sc-composer` on crates.io:
   - run `cargo owner --list sc-composer` and confirm expected owners
 - [ ] Verify crate owners for `sc-compose` on crates.io:
   - run `cargo owner --list sc-compose` and confirm expected owners
 - [ ] Confirm that the publish token (CARGO_REGISTRY_TOKEN) is configured in GitHub
       Actions secrets for the `release` environment
-- [ ] Confirm the token has permission to publish both `sc-composer` and `sc-compose`
+- [ ] Confirm the token has permission to publish `sc-sha`, `sc-composer`, and `sc-compose`
+- [ ] Verify PyPI ownership for `sc-sha` and `sc-compose` before publishing their wheels
 - [ ] Confirm `HOMEBREW_TAP_TOKEN` is configured in repo secrets before running the
       release workflow
 
@@ -52,13 +59,16 @@ Use this checklist before every crates.io release of `sc-composer` and `sc-compo
 
 ## Publish Order (MANDATORY)
 
-Publish crates in this exact order. Do NOT publish `sc-compose` before `sc-composer` resolves
+Publish crates in this exact order. Do NOT publish a dependent before its dependency resolves
 on crates.io, or the dependency graph will be broken.
 
-1. **`sc-composer`** — publish first (`publish_order = 1`)
+1. **`sc-sha`** — publish first (`publish_order = 1`)
+   - `cargo publish -p sc-sha`
+   - Wait at least 30 seconds for crates.io index propagation (`wait_after_publish_seconds = 30`)
+2. **`sc-composer`** — publish second (`publish_order = 2`)
    - `cargo publish -p sc-composer`
    - Wait at least 30 seconds for crates.io index propagation (`wait_after_publish_seconds = 30`)
-2. **`sc-compose`** — publish second (`publish_order = 2`)
+3. **`sc-compose`** — publish third (`publish_order = 3`)
    - `cargo publish -p sc-compose`
 
 The `.github/workflows/release.yml` workflow enforces this order automatically when
@@ -66,6 +76,7 @@ triggered by a release tag.
 
 ## Post-Publish Verification
 
+- [ ] Verify `sc-sha` is visible on crates.io at the expected version
 - [ ] Verify `sc-composer` is visible on crates.io at the expected version
 - [ ] Verify `sc-compose` is visible on crates.io at the expected version
 - [ ] Run `cargo add sc-composer@<version>` in a scratch workspace to confirm the crate resolves

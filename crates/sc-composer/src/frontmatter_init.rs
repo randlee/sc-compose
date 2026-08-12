@@ -134,6 +134,46 @@ mod tests {
         );
     }
 
+    #[test]
+    fn frontmatter_init_missing_path_reports_not_found() {
+        let root = temp_root("frontmatter_init_missing");
+        let missing = root.join("missing.md.j2");
+
+        let error = frontmatter_init(&missing, false, true).unwrap_err();
+
+        match error {
+            ComposeError::Resolve(error) => {
+                assert_eq!(error.code(), crate::DiagnosticCode::ErrResolveNotFound);
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[test]
+    fn frontmatter_init_rejects_symlink_escape() {
+        let root = temp_root("frontmatter_init_symlink_escape");
+        let outside = root.parent().unwrap().join("frontmatter-init-outside.md");
+        let linked = root.join("linked-template.md.j2");
+        write_file(&outside, "outside");
+        if !create_symlink_if_supported(&outside, &linked) {
+            return;
+        }
+
+        let error = frontmatter_init(&linked, false, true).unwrap_err();
+
+        match error {
+            ComposeError::Resolve(error) => {
+                assert_eq!(error.code(), crate::DiagnosticCode::ErrResolveNotFound);
+                assert!(
+                    error
+                        .message()
+                        .contains("template path escapes configured roots")
+                );
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
     fn temp_root(label: &str) -> PathBuf {
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -150,5 +190,19 @@ mod tests {
             fs::create_dir_all(parent).unwrap();
         }
         fs::write(path, contents).unwrap();
+    }
+
+    #[cfg(unix)]
+    fn create_symlink_if_supported(target: &Path, link: &Path) -> bool {
+        std::os::unix::fs::symlink(target, link).is_ok()
+    }
+
+    #[cfg(windows)]
+    fn create_symlink_if_supported(target: &Path, link: &Path) -> bool {
+        match std::os::windows::fs::symlink_file(target, link) {
+            Ok(()) => true,
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => false,
+            Err(error) => panic!("failed to create symlink: {error}"),
+        }
     }
 }

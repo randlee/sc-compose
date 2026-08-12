@@ -47,6 +47,53 @@ def workspace_version(workspace_toml: Path) -> str:
     return data["workspace"]["package"]["version"]
 
 
+def _resolve_workspace_path(workspace_toml: Path, relative_path: str) -> Path:
+    return workspace_toml.parent / relative_path
+
+
+def _assert_workspace_inherited_version(workspace_toml: Path, relative_path: str) -> None:
+    path = _resolve_workspace_path(workspace_toml, relative_path)
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    value = data.get("package", {}).get("version")
+    if not isinstance(value, dict) or value.get("workspace") is not True:
+        raise SystemExit(
+            f"{relative_path}: [package].version must inherit workspace.package.version"
+        )
+
+
+def _assert_dependency_version(
+    workspace_toml: Path,
+    relative_path: str,
+    dependency: str,
+    expected_version: str,
+) -> None:
+    path = _resolve_workspace_path(workspace_toml, relative_path)
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    dependency_spec = data.get("dependencies", {}).get(dependency)
+    if not isinstance(dependency_spec, dict):
+        raise SystemExit(f"{relative_path}: [dependencies].{dependency} must be an inline table")
+    actual_version = dependency_spec.get("version")
+    if actual_version != expected_version:
+        raise SystemExit(
+            f"{relative_path}: [dependencies].{dependency}.version mismatch: "
+            f"expected {expected_version}, got {actual_version!r}"
+        )
+
+
+def _assert_python_package_version(
+    workspace_toml: Path,
+    relative_path: str,
+    expected_version: str,
+) -> None:
+    path = _resolve_workspace_path(workspace_toml, relative_path)
+    actual_version = _python_project_version(path)
+    if actual_version != expected_version:
+        raise SystemExit(
+            f"{relative_path}: [project].version mismatch: "
+            f"expected {expected_version}, got {actual_version!r}"
+        )
+
+
 def _python_project_version(pyproject_toml: Path) -> str:
     data = tomllib.loads(pyproject_toml.read_text(encoding="utf-8"))
     project = data.get("project", {})
@@ -175,6 +222,32 @@ def cmd_verify_version(args: argparse.Namespace) -> int:
         if actual != version:
             raise SystemExit(f"{crate['package']}: version mismatch: expected {version}, got {actual}")
     print("version verification passed")
+    return 0
+
+
+def cmd_verify_version_lockstep(args: argparse.Namespace) -> int:
+    workspace_toml = Path(args.workspace_toml)
+    version = workspace_version(workspace_toml)
+    for relative_path in (
+        "crates/sc-sha/Cargo.toml",
+        "crates/sc-composer/Cargo.toml",
+        "crates/sc-compose/Cargo.toml",
+        "bindings/python/Cargo.toml",
+        "bindings/sc-sha-python/Cargo.toml",
+    ):
+        _assert_workspace_inherited_version(workspace_toml, relative_path)
+    for relative_path, dependency in (
+        ("crates/sc-compose/Cargo.toml", "sc-composer"),
+        ("bindings/python/Cargo.toml", "sc-composer"),
+        ("bindings/sc-sha-python/Cargo.toml", "sc-sha"),
+    ):
+        _assert_dependency_version(workspace_toml, relative_path, dependency, version)
+    for relative_path in (
+        "bindings/python/pyproject.toml",
+        "bindings/sc-sha-python/pyproject.toml",
+    ):
+        _assert_python_package_version(workspace_toml, relative_path, version)
+    print("version lockstep verification passed")
     return 0
 
 
@@ -319,6 +392,10 @@ def main() -> int:
     p.add_argument("--pyproject", required=True)
     p.add_argument("--version", required=True)
     p.set_defaults(func=cmd_verify_python_version)
+
+    p = sub.add_parser("verify-version-lockstep")
+    p.add_argument("--workspace-toml", required=True)
+    p.set_defaults(func=cmd_verify_version_lockstep)
 
     p = sub.add_parser("sync-python-version")
     p.add_argument("--workspace-toml", required=True)

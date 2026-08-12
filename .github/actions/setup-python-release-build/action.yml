@@ -12,6 +12,10 @@ inputs:
     description: Python version to install.
     required: false
     default: "3.11"
+  pyproject:
+    description: Python package manifest whose version must match the workspace release.
+    required: false
+    default: "bindings/python/pyproject.toml"
 
 runs:
   using: composite
@@ -33,11 +37,11 @@ runs:
       run: |
         python3 scripts/release_artifacts.py sync-python-version \
           --workspace-toml Cargo.toml \
-          --pyproject bindings/python/pyproject.toml
+          --pyproject '${{ inputs.pyproject }}'
     - name: Verify Python package version
       shell: bash
       run: |
         python3 scripts/release_artifacts.py verify-python-version \
           --workspace-toml Cargo.toml \
-          --pyproject bindings/python/pyproject.toml \
+          --pyproject '${{ inputs.pyproject }}' \
           --version '${{ inputs.release_version }}'

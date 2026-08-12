@@ -76,6 +76,9 @@ jobs:
             --manifest release/publish-artifacts.toml \
             --workspace-toml Cargo.toml
 
+      - name: Verify release version lockstep
+        run: python3 scripts/release_artifacts.py verify-version-lockstep --workspace-toml Cargo.toml
+
       - name: Run manifest validation regression tests
         run: python3 -m pytest scripts/tests/test_release_artifacts.py
 
@@ -92,10 +95,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up sc-lint
+        uses: ./.github/actions/setup-sc-lint
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.94.1
+          components: rustfmt, clippy
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny@0.19.4
+
+      - name: Install cargo-shear
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-shear@1.13.3
+
+      - name: Install codespell (Unix)
+        if: runner.os != 'Windows'
+        run: python3 -m pip install --break-system-packages codespell==2.4.2
+
+      - name: Install codespell (Windows)
+        if: runner.os == 'Windows'
+        run: python -m pip install codespell==2.4.2
 
       - name: Cache cargo registry
         uses: actions/cache@v4
@@ -117,6 +142,22 @@ jobs:
 
       - name: Run workspace tests
         run: cargo test --workspace
+
+      - name: Install just
+        uses: taiki-e/install-action@just
+
+      - name: Run shared sc-lint contract
+        # sc-lint 0.4.0's full/ci profile still runs source-tree Cargo wrappers
+        # for boundary/portability. Use native targets until sc-lint#84 lands.
+        run: just lint-ci-consumer
+
+      - name: Publish sc-lint report and raw JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sc-lint-${{ matrix.os }}
+          path: reports/latest/sc-lint/
+          if-no-files-found: warn
 
   python-wheels:
     needs: [test]
@@ -167,3 +208,47 @@ jobs:
       - name: Run Python smoke tests
         working-directory: bindings/python
         run: python -m pytest tests/test_smoke.py
+
+  sc-sha-python-wheels:
+    name: sc-sha-python wheel (${{ matrix.os }})
+    needs: [test]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.11"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+
+      - name: Install build tooling
+        run: python -m pip install maturin==1.9.4 pytest
+
+      - name: Verify sc-sha Python package version
+        run: |
+          python scripts/release_artifacts.py verify-python-version \
+            --workspace-toml Cargo.toml \
+            --pyproject bindings/sc-sha-python/pyproject.toml \
+            --version "$(python -c "from pathlib import Path; import tomllib; print(tomllib.loads(Path('Cargo.toml').read_text(encoding='utf-8'))['workspace']['package']['version'])")"
+        shell: bash
+
+      - name: Build sc-sha wheel
+        run: maturin build --manifest-path bindings/sc-sha-python/Cargo.toml --out dist
+
+      - name: Install built wheel
+        run: |
+          python -c "from pathlib import Path; import subprocess, sys; wheel = next(Path('dist').glob('*.whl')); subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--force-reinstall', str(wheel)])"
+
+      - name: Run sc-sha Python tests
+        working-directory: bindings/sc-sha-python
+        run: python -m pytest -q tests

@@ -1,0 +1,17 @@
+[package]
+name = "sc-sha"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+sc-composer = { path = "../sc-composer", version = "0.1.0" }
+sc-compose = { path = "../sc-compose", version = "0.1.0" }
+sc-compose-py = { path = "../sc-compose-py", version = "0.1.0" }
+filesystem-support = { path = "../filesystem-support", version = "0.1.0" }
+cache-host = { path = "../cache-host", version = "0.1.0" }
+unrelated-runtime = { path = "../unrelated-runtime", version = "0.1.0" }

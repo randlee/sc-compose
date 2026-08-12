@@ -70,6 +70,47 @@ pub fn compose_with_observer(
         code: None,
     });
 
+    compose_expanded(request, observer, resolve_result, expanded)
+}
+
+/// Compose using a template expansion that was already resolved and read.
+///
+/// This entry point is for callers that perform a preflight expansion before
+/// rendering. It emits the normal resolve/include observer events and then
+/// reuses the supplied expansion without reading the template files again.
+///
+/// # Errors
+///
+/// Returns [`ComposeError`] for fatal validation or render failures.
+pub fn compose_with_observer_and_expanded(
+    request: &ComposeRequest,
+    observer: &mut dyn CompositionObserver,
+    resolve_result: crate::ResolveResult,
+    expanded: crate::ExpandedTemplate,
+) -> Result<ComposeResult, ComposeError> {
+    observer.on_resolve_attempt(&ResolveAttemptEvent {
+        template: resolve_attempt_label(request),
+    });
+    observer.on_resolve_outcome(&ResolveOutcomeEvent {
+        resolved_path: Some(resolve_result.resolved_path.clone()),
+        attempted_paths: resolve_result.attempted_paths.clone(),
+        code: None,
+    });
+    observer.on_include_outcome(&IncludeOutcomeEvent {
+        resolved_files: expanded.resolved_files.clone(),
+        include_chain: Vec::new(),
+        code: None,
+    });
+
+    compose_expanded(request, observer, resolve_result, expanded)
+}
+
+fn compose_expanded(
+    request: &ComposeRequest,
+    observer: &mut dyn CompositionObserver,
+    resolve_result: crate::ResolveResult,
+    expanded: crate::ExpandedTemplate,
+) -> Result<ComposeResult, ComposeError> {
     let (mut validation_report, mut validation_state) =
         crate::validation::validate_expanded(request, &expanded, resolve_result);
     let validation_outcome = ValidationOutcomeEvent {
@@ -87,6 +128,7 @@ pub fn compose_with_observer(
         })
         .unwrap_or_default();
     let parsed = ParsedTemplate::from_parts(root_passes, expanded.text.clone());
+    let template_name = resolved_template_name(&validation_report.resolve_result.resolved_path);
     let rendered_text = if parsed.passes().len() > 1 {
         let contexts = build_pass_contexts(
             parsed.passes(),
@@ -94,11 +136,12 @@ pub fn compose_with_observer(
             &mut validation_state,
             &validation_report.resolve_result.resolved_path,
         );
-        render_all_with_observer(&parsed, &contexts, observer)?
+        render_all_with_observer(&parsed, &contexts, &template_name, observer)?
     } else {
         let renderer = Renderer::new();
         renderer
-            .render(
+            .render_named(
+                &template_name,
                 &expanded.text,
                 build_render_context(
                     &mut validation_state,
@@ -128,6 +171,7 @@ pub fn compose_with_observer(
         resolve_result: validation_report.resolve_result,
         variable_sources: validation_state.variable_sources,
         warnings: validation_outcome.warnings,
+        composition_fingerprint: expanded.composition_fingerprint,
     })
 }
 
@@ -143,7 +187,7 @@ pub fn render_all(
     contexts: &[(u8, BTreeMap<VariableName, InputValue>)],
 ) -> Result<String, ComposeError> {
     let mut observer = NoopObserver;
-    render_all_with_observer(parsed, contexts, &mut observer)
+    render_all_with_observer(parsed, contexts, "inline", &mut observer)
 }
 
 /// Protect next-higher-brace expressions from lower-brace rendering passes.
@@ -186,6 +230,13 @@ fn resolve_attempt_label(request: &ComposeRequest) -> String {
         crate::types::ComposeMode::Profile { kind, name } => format!("{kind:?}:{name}"),
         crate::types::ComposeMode::File { template_path } => to_forward_slash(template_path),
     }
+}
+
+fn resolved_template_name(path: &Path) -> String {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("inline")
+        .to_owned()
 }
 
 fn notify_resolve_error(observer: &mut dyn CompositionObserver, error: &ComposeError) {
@@ -280,6 +331,7 @@ fn build_pass_contexts(
 fn render_all_with_observer(
     parsed: &ParsedTemplate,
     contexts: &[(u8, BTreeMap<VariableName, InputValue>)],
+    template_name: &str,
     observer: &mut dyn CompositionObserver,
 ) -> Result<String, ComposeError> {
     if contexts.len() != parsed.passes().len() {
@@ -326,7 +378,7 @@ fn render_all_with_observer(
 
         observer.on_pass_start(&PassStartEvent::new(header_pass_number));
         body = renderer
-            .render(&protected_body, render_context)
+            .render_named(template_name, &protected_body, render_context)
             .inspect_err(|error| {
                 observer.on_render_outcome(&RenderOutcomeEvent {
                     rendered_bytes: None,
@@ -433,6 +485,32 @@ mod tests {
                 .get(&VariableName::new("name").unwrap()),
             Some(&VariableSource::FrontmatterDefault)
         );
+    }
+
+    #[test]
+    fn compose_fails_closed_for_an_unbound_reference_under_error_policy() {
+        let root = temp_root("compose_unbound_error");
+        write_file(&root.join("template.md.j2"), "hello {{ missing }}");
+
+        let error = compose(&ComposeRequest {
+            runtime: None,
+            mode: ComposeMode::File {
+                template_path: PathBuf::from("template.md.j2"),
+            },
+            root: ConfiningRoot::new(&root).unwrap(),
+            vars_input: BTreeMap::default(),
+            vars_env: BTreeMap::default(),
+            vars_defaults: BTreeMap::default(),
+            guidance_block: None,
+            user_prompt: None,
+            policy: ComposePolicy {
+                unknown_variable_policy: crate::UnknownVariablePolicy::Error,
+                ..ComposePolicy::default()
+            },
+        })
+        .unwrap_err();
+
+        assert_eq!(error.code(), Some(DiagnosticCode::ErrValUnboundVariable));
     }
 
     #[test]

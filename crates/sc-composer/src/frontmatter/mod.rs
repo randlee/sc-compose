@@ -85,6 +85,61 @@ mod tests {
     }
 
     #[test]
+    fn preserves_jinja_body_after_single_frontmatter_block() {
+        let parsed = parse_template_document(
+            "---\nrequired_variables:\n  - id\n---\n{% if id %}{{ id }}{% endif %}\n",
+        )
+        .unwrap();
+
+        assert_eq!(parsed.passes().len(), 1);
+        assert_eq!(parsed.body(), "{% if id %}{{ id }}{% endif %}\n");
+    }
+
+    #[test]
+    fn preserves_adjacent_plain_yaml_header_stack() {
+        let parsed = parse_template_document(
+            "---\nname: config\n---\n---\nmetadata:\n  id: rendered\n---\nbody\n",
+        )
+        .unwrap();
+
+        assert_eq!(parsed.passes().len(), 2);
+        assert_eq!(parsed.body(), "body\n");
+    }
+
+    #[test]
+    fn treats_adjacent_jinja_document_header_as_body() {
+        let parsed = parse_template_document(
+            "---\nname: config\n---\n---\nid: {{ id }}\n{% if worktree %}worktree: {{ worktree }}\n{% endif %}target: x\n---\nbody\n",
+        )
+        .unwrap();
+
+        assert_eq!(parsed.passes().len(), 1);
+        assert_eq!(
+            parsed.body(),
+            "---\nid: {{ id }}\n{% if worktree %}worktree: {{ worktree }}\n{% endif %}target: x\n---\nbody\n"
+        );
+    }
+
+    #[test]
+    fn preserves_recognized_stacked_frontmatter_headers() {
+        let parsed = parse_template_document(
+            "---\npass: 2\ndefaults:\n  outer: value\n---\n---\npass: 1\ndefaults:\n  inner: value\n---\nbody\n",
+        )
+        .unwrap();
+
+        assert_eq!(parsed.passes().len(), 2);
+        assert_eq!(parsed.body(), "body\n");
+    }
+
+    #[test]
+    fn treats_adjacent_unrecognized_yaml_block_as_body() {
+        let parsed = parse_template_document("---\n{}\n---\n---\na: b\n---\nBODY\n").unwrap();
+
+        assert_eq!(parsed.passes().len(), 1);
+        assert_eq!(parsed.body(), "---\na: b\n---\nBODY\n");
+    }
+
+    #[test]
     fn malformed_yaml_fails_closed() {
         let error = parse_template_document("---\ndefaults: [\n---\nbody").unwrap_err();
 

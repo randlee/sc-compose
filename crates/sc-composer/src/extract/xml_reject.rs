@@ -1,6 +1,6 @@
 //! XML template and document rejection rules.
 
-use super::{ExtractError, XmlDocument, XmlElement, XmlNode};
+use super::{ExtractError, XmlDocument, XmlElementId, XmlNode};
 
 pub(super) fn reject_unsupported_template_syntax(template: &str) -> Result<(), ExtractError> {
     if template.contains("{%") || template.contains("{#") {
@@ -41,16 +41,17 @@ pub(super) fn reject_dynamic_element_syntax(template: &str) -> Result<(), Extrac
 }
 
 pub(super) fn reject_dynamic_element_names(document: &XmlDocument) -> Result<(), ExtractError> {
-    fn visit(element: &XmlElement) -> bool {
+    fn visit(document: &XmlDocument, element_id: XmlElementId) -> bool {
+        let element = document.element(element_id);
         element.name.contains('{')
             || element.name.contains('}')
             || element.children.iter().any(|child| match child {
-                XmlNode::Element(child) => visit(child),
+                XmlNode::Element(child_id) => visit(document, *child_id),
                 XmlNode::Text(_) => false,
             })
     }
 
-    if visit(&document.root) {
+    if visit(document, document.root) {
         Err(ExtractError::format_error(
             super::DiagnosticCode::ErrExtractXmlDynamicElementName,
             super::ExtractionDiagnosticKind::Unsupported,
@@ -65,19 +66,20 @@ pub(super) fn reject_dynamic_element_names(document: &XmlDocument) -> Result<(),
 }
 
 pub(super) fn reject_namespaces(document: &XmlDocument) -> Result<(), ExtractError> {
-    fn visit(element: &XmlElement) -> bool {
+    fn visit(document: &XmlDocument, element_id: XmlElementId) -> bool {
+        let element = document.element(element_id);
         element.name.contains(':')
             || element
                 .attributes
                 .keys()
                 .any(|name| name == "xmlns" || name.starts_with("xmlns:"))
             || element.children.iter().any(|child| match child {
-                XmlNode::Element(child) => visit(child),
+                XmlNode::Element(child_id) => visit(document, *child_id),
                 XmlNode::Text(_) => false,
             })
     }
 
-    if visit(&document.root) {
+    if visit(document, document.root) {
         Err(ExtractError::format_error(
             super::DiagnosticCode::ErrExtractXmlNamespaceUnsupported,
             super::ExtractionDiagnosticKind::Unsupported,

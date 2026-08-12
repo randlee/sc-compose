@@ -2,6 +2,51 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+## [1.4.0] - 2026-08-12
+
+### Added
+
+- Added the standalone `sc-sha` crate to the release pipeline, together with
+  the `sc-sha` Python distribution. `sc-sha` provides the portable,
+  LF-normalized content and composition hashing contract consumed by
+  `sc-composer` and other projects without bringing in renderer or CLI code.
+
+### Changed
+
+- Bumped the Rust workspace and both PyPI packages from `1.3.1` to `1.4.0`.
+  This is a semver-minor release because the public `ComposePolicy`,
+  `ComposeResult`, and `ExpandedTemplate` structures gained fields and the
+  rendering/validation surface grew; a patch release would not be appropriate
+  for literal construction by downstream users.
+- Corrected the dependency-aware publish order to `sc-sha` → `sc-composer` →
+  `sc-compose`. `sc-composer` has a real path dependency on `sc-sha`, so
+  `sc-sha` must be available in the crates.io index before Cargo can resolve
+  the published `sc-composer` package. The missing manifest entry previously
+  made `cargo publish --dry-run -p sc-composer` fail.
+- Added release metadata checks that keep workspace-inherited crate versions,
+  explicit Cargo path-dependency pins, and the hard-coded PyPI package
+  versions in lockstep, preventing Rust/Python release-version skew.
+
+### Changed
+
+- Upgraded `anyhow` from `1.0.102` to `1.0.103` and `quick-xml` from `0.38.4`
+  to `0.41.0` to resolve RUSTSEC-2026-0190, RUSTSEC-2026-0194, and
+  RUSTSEC-2026-0195; removed the deprecated `cargo-deny` 0.19.4 keys from
+  `deny.toml`.
+- XML attribute extraction now follows `quick-xml` 0.41's XML 1.0 AVNormalize
+  behavior, collapsing embedded tab, carriage-return, and line-feed characters
+  to spaces after entity decoding.
+
+## [1.3.1] - 2026-08-05
+
+### Fixed
+
+- Fix issue #238 where an adjacent rendered-document frontmatter block
+  containing Jinja syntax was incorrectly parsed as a second YAML config block,
+  causing `ERR_CONFIG_PARSE` during validation and rendering.
+
 ## [1.3.0] - 2026-08-04
 
 This release covers all work landed on `develop` since `1.2.0`: Phases D

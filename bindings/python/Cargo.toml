@@ -1,5 +1,6 @@
 [package]
 name = "sc-compose-py"
+authors.workspace = true
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -21,7 +22,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 pyo3 = "0.29"
-sc-composer = { path = "../../crates/sc-composer", version = "1.1.0" }
+sc-composer = { path = "../../crates/sc-composer", version = "1.4.0" }
 serde_json = "1"
 serde_yaml.workspace = true
 

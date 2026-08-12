@@ -8,6 +8,7 @@ use crate::error::{ComposeError, ConfigError, ResolveError};
 use crate::observer::{
     CompositionObserver, NoopObserver, ResolveAttemptEvent, ResolveOutcomeEvent,
 };
+use crate::path_containment::{Canonicalization, ContainmentEscape, canonicalize_within_roots};
 use crate::types::{
     ComposeMode, ComposeRequest, ConfiningRoot, ProfileKind, ProfileName, ResolveResult,
     ResolverPolicy, RuntimeKind,
@@ -119,42 +120,59 @@ pub(crate) fn canonicalize_with_roots(
     root: &Path,
     allowed_roots: &[ConfiningRoot],
 ) -> Result<PathBuf, ComposeError> {
-    let path = path.as_ref();
-    let candidate = if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        root.join(path)
-    };
-    let canonical = std::fs::canonicalize(&candidate).map_err(|error| {
-        ResolveError::new(
-            DiagnosticCode::ErrResolveNotFound,
-            format!("template path not found: {}", candidate.display()),
-            vec![candidate.clone()],
+    let root_path = root;
+    let root = ConfiningRoot::new(root_path).map_err(|error| {
+        ConfigError::new(
+            DiagnosticCode::ErrConfigParse,
+            format!("failed to canonicalize root: {}", root_path.display()),
         )
         .with_source(error)
     })?;
 
-    let mut allowed = Vec::with_capacity(allowed_roots.len() + 1);
-    allowed.push(std::fs::canonicalize(root).map_err(|error| {
-        ConfigError::new(
-            DiagnosticCode::ErrConfigParse,
-            format!("failed to canonicalize root: {}", root.display()),
-        )
-        .with_source(error)
-    })?);
-    allowed.extend(
-        allowed_roots
-            .iter()
-            .map(|root| root.as_path().to_path_buf()),
-    );
+    let mut containment_roots = allowed_roots.to_vec();
+    // Preserve the caller's lexical root alias for missing absolute paths
+    // (for example `/var` versus its canonical `/private/var` on macOS).
+    containment_roots.push(ConfiningRoot::from_path_buf(root_path.to_path_buf()));
 
-    if allowed
-        .iter()
-        .any(|allowed_root| canonical.starts_with(allowed_root))
-    {
-        Ok(canonical)
-    } else {
-        Err(ResolveError::new(
+    match canonicalize_within_roots(path, &root, &containment_roots) {
+        Ok(Canonicalization::Existing(canonical)) => Ok(canonical),
+        Ok(Canonicalization::Missing { candidate, source }) => {
+            match crate::diagnostics::classify_filesystem_error(&candidate, &source) {
+                crate::diagnostics::FilesystemErrorClass::PermissionDenied => {
+                    return Err(ResolveError::new(
+                        DiagnosticCode::ErrIncludePermissionDenied,
+                        format!(
+                            "permission denied reading template path: {}",
+                            candidate.display()
+                        ),
+                        vec![candidate],
+                    )
+                    .with_source(source)
+                    .into());
+                }
+                crate::diagnostics::FilesystemErrorClass::FilesystemLoop => {
+                    return Err(ResolveError::new(
+                        DiagnosticCode::ErrIncludeFilesystemLoop,
+                        format!(
+                            "template path is a filesystem symlink loop: {}",
+                            candidate.display()
+                        ),
+                        vec![candidate],
+                    )
+                    .with_source(source)
+                    .into());
+                }
+                _ => {}
+            }
+            Err(ResolveError::new(
+                DiagnosticCode::ErrResolveNotFound,
+                format!("template path not found: {}", candidate.display()),
+                vec![candidate],
+            )
+            .with_source(source)
+            .into())
+        }
+        Err(ContainmentEscape { candidate }) => Err(ResolveError::new(
             DiagnosticCode::ErrResolveNotFound,
             format!(
                 "template path escapes configured roots: {}",
@@ -162,7 +180,7 @@ pub(crate) fn canonicalize_with_roots(
             ),
             vec![candidate],
         )
-        .into())
+        .into()),
     }
 }
 
@@ -440,6 +458,200 @@ mod tests {
         assert!(result.resolved_path.ends_with("nested/template.md.j2"));
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn permission_denied_file_mode_reports_permission_denied() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = temp_root("resolver_permission_denied");
+        let blocked = root.join("blocked");
+        let template = blocked.join("template.md.j2");
+        write_file(&template, "hello");
+        let mut permissions = fs::metadata(&blocked).unwrap().permissions();
+        permissions.set_mode(0o000);
+        fs::set_permissions(&blocked, permissions).unwrap();
+
+        let error = super::canonicalize_with_roots(&template, &root, &[]).unwrap_err();
+
+        let mut restore = fs::metadata(&blocked).unwrap().permissions();
+        restore.set_mode(0o700);
+        fs::set_permissions(&blocked, restore).unwrap();
+
+        match error {
+            ComposeError::Resolve(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrIncludePermissionDenied);
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[test]
+    fn missing_file_mode_still_reports_not_found() {
+        let root = temp_root("resolver_missing_file");
+        let error = super::canonicalize_with_roots(Path::new("missing/template.md.j2"), &root, &[])
+            .unwrap_err();
+
+        match error {
+            ComposeError::Resolve(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrResolveNotFound);
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[test]
+    fn out_of_root_resolution_does_not_reveal_path_existence() {
+        let root = temp_root("resolver_existence_oracle");
+        let outside = root.parent().unwrap();
+        let candidate = outside.join(format!(
+            "sc-compose-oracle-{}-{}.md.j2",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+
+        write_file(&candidate, "outside");
+        let existing_error = super::canonicalize_with_roots(&candidate, &root, &[]).unwrap_err();
+        let _ = fs::remove_file(&candidate);
+        let missing_error = super::canonicalize_with_roots(&candidate, &root, &[]).unwrap_err();
+
+        match (missing_error, existing_error) {
+            (ComposeError::Resolve(missing), ComposeError::Resolve(existing)) => {
+                assert_eq!(missing.code(), DiagnosticCode::ErrResolveNotFound);
+                assert_eq!(existing.code(), DiagnosticCode::ErrResolveNotFound);
+                assert_eq!(missing.message(), existing.message());
+            }
+            (missing, existing) => panic!("unexpected errors: {missing}, {existing}"),
+        }
+    }
+
+    #[test]
+    fn in_root_missing_file_remains_not_found() {
+        let root = temp_root("resolver_in_root_missing");
+        let candidate = root.join("missing/template.md.j2");
+        let error = super::canonicalize_with_roots(&candidate, &root, &[]).unwrap_err();
+
+        match error {
+            ComposeError::Resolve(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrResolveNotFound);
+                assert_eq!(
+                    error.message(),
+                    format!("template path not found: {}", candidate.display())
+                );
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
+    #[test]
+    fn in_root_existing_file_still_resolves() {
+        let root = temp_root("resolver_in_root_existing");
+        let candidate = root.join("nested/template.md.j2");
+        write_file(&candidate, "hello");
+
+        let resolved = super::canonicalize_with_roots(&candidate, &root, &[]).unwrap();
+
+        assert_eq!(resolved, candidate.canonicalize().unwrap());
+    }
+
+    #[test]
+    fn dot_dot_escape_has_existence_independent_message() {
+        let root = temp_root("resolver_dot_dot_escape");
+        let candidate = root.join("../sc-compose-dot-dot-oracle.md.j2");
+        write_file(&candidate, "outside");
+
+        let existing_error = super::canonicalize_with_roots(&candidate, &root, &[]).unwrap_err();
+        fs::remove_file(&candidate).unwrap();
+        let missing_error = super::canonicalize_with_roots(&candidate, &root, &[]).unwrap_err();
+
+        match (existing_error, missing_error) {
+            (ComposeError::Resolve(existing), ComposeError::Resolve(missing)) => {
+                assert_eq!(existing.code(), DiagnosticCode::ErrResolveNotFound);
+                assert_eq!(missing.code(), DiagnosticCode::ErrResolveNotFound);
+                assert_eq!(existing.message(), missing.message());
+                assert!(
+                    existing
+                        .message()
+                        .contains("template path escapes configured roots")
+                );
+            }
+            (existing, missing) => panic!("unexpected errors: {existing}, {missing}"),
+        }
+    }
+
+    #[test]
+    fn sibling_prefix_escape_has_existence_independent_message() {
+        let root = temp_root("resolver_sibling_prefix");
+        let sibling = root.parent().unwrap().join(format!(
+            "{}-evil",
+            root.file_name().unwrap().to_string_lossy()
+        ));
+        let candidate = sibling.join("template.md.j2");
+        write_file(&candidate, "outside");
+
+        let existing_error = super::canonicalize_with_roots(&candidate, &root, &[]).unwrap_err();
+        fs::remove_file(&candidate).unwrap();
+        let missing_error = super::canonicalize_with_roots(&candidate, &root, &[]).unwrap_err();
+
+        match (existing_error, missing_error) {
+            (ComposeError::Resolve(existing), ComposeError::Resolve(missing)) => {
+                assert_eq!(existing.code(), DiagnosticCode::ErrResolveNotFound);
+                assert_eq!(missing.code(), DiagnosticCode::ErrResolveNotFound);
+                assert_eq!(existing.message(), missing.message());
+                assert!(
+                    existing
+                        .message()
+                        .contains("template path escapes configured roots")
+                );
+            }
+            (existing, missing) => panic!("unexpected errors: {existing}, {missing}"),
+        }
+    }
+
+    #[test]
+    fn configured_allowed_root_remains_available_to_file_resolution() {
+        let root = temp_root("resolver_allowed_root");
+        let allowed = temp_root("resolver_allowed_root_shared");
+        let candidate = allowed.join("template.md.j2");
+        write_file(&candidate, "hello");
+
+        let resolved = super::canonicalize_with_roots(
+            &candidate,
+            &root,
+            &[ConfiningRoot::new(&allowed).unwrap()],
+        )
+        .unwrap();
+
+        assert_eq!(resolved, candidate.canonicalize().unwrap());
+    }
+
+    #[test]
+    fn symlink_escape_is_rejected_with_resolver_error_surface() {
+        let root = temp_root("resolver_symlink_escape");
+        let outside = root.parent().unwrap().join("resolver-symlink-outside.md");
+        let linked = root.join("linked-template.md.j2");
+        write_file(&outside, "outside");
+        if !create_symlink_if_supported(&outside, &linked) {
+            return;
+        }
+
+        let error = super::canonicalize_with_roots(&linked, &root, &[]).unwrap_err();
+
+        match error {
+            ComposeError::Resolve(error) => {
+                assert_eq!(error.code(), DiagnosticCode::ErrResolveNotFound);
+                assert!(
+                    error
+                        .message()
+                        .contains("template path escapes configured roots")
+                );
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+    }
+
     #[test]
     fn resolve_profile_rejects_file_mode_with_mode_code() {
         let root = temp_root("resolver_mode_mismatch");
@@ -514,5 +726,19 @@ mod tests {
             fs::create_dir_all(parent).unwrap();
         }
         fs::write(path, contents).unwrap();
+    }
+
+    #[cfg(unix)]
+    fn create_symlink_if_supported(target: &Path, link: &Path) -> bool {
+        std::os::unix::fs::symlink(target, link).is_ok()
+    }
+
+    #[cfg(windows)]
+    fn create_symlink_if_supported(target: &Path, link: &Path) -> bool {
+        match std::os::windows::fs::symlink_file(target, link) {
+            Ok(()) => true,
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => false,
+            Err(error) => panic!("failed to create symlink: {error}"),
+        }
     }
 }

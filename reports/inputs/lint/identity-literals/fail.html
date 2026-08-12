@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Identity literals — duplicated and test-scope values</title>
+</head>
+<body>
+  <main data-template-family="base">
+    <header class="report-header">
+      <h1>Identity literals — duplicated and test-scope values</h1>
+    </header>
+    <section class="report-panels">
+      <article id="reports-inputs-lint-identity-literals-fail-md" class="report-panel">
+        <header class="panel-header">
+          <h2>Identity literals — duplicated and test-scope values</h2>
+        </header>
+        <div class="panel-body">
+The fail fixture declares the fictional `team-lead@example.invalid` value as
+canonical only in `crates/demo/src/constants.rs`, then repeats it in
+`crates/demo/src/lib.rs` and in a test. sc-lint reports one production-scope
+canonical-literal finding and two test-scope forbidden-literal findings. The
+sc-compose report must retain that structured non-pass result rather than
+turning it into a successful report with warning text.</div>
+        <footer class="panel-footer">
+          <button type="button" data-copy-text="
+The fail fixture declares the fictional `team-lead@example.invalid` value as
+canonical only in `crates/demo/src/constants.rs`, then repeats it in
+`crates/demo/src/lib.rs` and in a test. sc-lint reports one production-scope
+canonical-literal finding and two test-scope forbidden-literal findings. The
+sc-compose report must retain that structured non-pass result rather than
+turning it into a successful report with warning text.">Copy text</button>
+        </footer>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

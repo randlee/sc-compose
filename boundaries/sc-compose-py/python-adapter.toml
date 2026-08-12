@@ -1,0 +1,36 @@
+boundary_id = "BOUNDARY-ScComposePy"
+owner_package = "sc-compose-py"
+owner_crate_path = "sc_compose_py"
+name = "ScComposePythonAdapter"
+
+[public]
+facade = "sc_compose_native"
+
+[implementation]
+type = "python_extension_adapter"
+module = "sc_compose_native"
+visibility = "public"
+constructor = "none"
+
+[composition]
+roots = []
+
+[dependencies]
+allowed_dependents = []
+allowed_dependencies = ["sc-composer"]
+forbidden_edges = []
+
+[references]
+scope = "outside_owner_crate"
+forbidden = []
+
+[testing]
+allowed_test_double_paths = []
+forbidden_test_bypasses = []
+
+[enforcement]
+lint_rules = ["LINT-SC-COMPOSE-PY-THIN-ADAPTER"]
+review_gates = ["no_cli_dependency"]
+
+[status]
+state = "concrete_landed"

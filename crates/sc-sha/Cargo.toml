@@ -1,0 +1,19 @@
+[package]
+name = "sc-sha"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Deterministic text and resolved-template composition SHA-256 identities."
+readme = "../../README.md"
+keywords = ["sha256", "templates", "identity"]
+categories = ["cryptography", "data-structures"]
+
+[dependencies]
+sha2.workspace = true
+
+[lints]
+workspace = true

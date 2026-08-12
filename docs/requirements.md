@@ -91,10 +91,16 @@ The initial product explicitly does not provide:
 Frontmatter must support this schema:
 
 ```yaml
+pass: 1
 required_variables:
   - variable_name
+variables:
+  variable_name:
+    required: true
 defaults:
   variable_name: value
+input_defaults:
+  variable_name: fallback
 metadata:
   key: value
 ```
@@ -102,12 +108,18 @@ metadata:
 Schema rules:
 
 - `required_variables` is optional.
+- `pass` is optional and identifies an explicit pass number for stacked
+  frontmatter blocks.
 - `defaults` is optional.
 - `input_defaults` is accepted as an alias for `defaults` in frontmatter.
 - For compatibility with existing template metadata, a frontmatter
   `variables` map with `{ required: true }` declarations is accepted as an
   equivalent spelling of `required_variables`.
 - `metadata` is optional.
+- The recognized top-level frontmatter keys are `pass`,
+  `required_variables`, `variables`, `defaults`, `input_defaults`, and
+  `metadata`. When scanning stacked frontmatter, a later block containing an
+  unrecognized top-level key is treated as template body content.
 - If a frontmatter block exists and a field is omitted, it defaults to:
   - `required_variables: []`
   - `defaults: {}`
@@ -227,6 +239,14 @@ HTML-Report follow-on design track:
 - Variables loaded through `--var-file` may be any supported render-context
   value type.
 - Variables loaded through `--env-prefix` are always strings.
+- After the final context merge, every referenced variable path must either
+  have a value binding or be handled by the unbound-variable policy described
+  in FR-2a. A missing binding is distinct from an undeclared token and from an
+  extra caller-provided variable.
+- `ComposePolicy.unbound_variable_policy` controls referenced-but-unbound
+  paths with `error`, `warn`, or `ignore` severity. When unset, it inherits
+  `unknown_variable_policy` for compatibility; an explicit value keeps the
+  two policy axes independent.
 - If frontmatter is absent:
   - the engine must discover referenced variables from the template and include
     graph,
@@ -268,6 +288,19 @@ Referenced tokens that are not declared in frontmatter must follow these rules:
 This behavior is distinct from missing required variables. A token that is
 undeclared is not automatically treated as required unless it is explicitly
 listed in `required_variables`.
+
+Referenced-but-unbound tokens are a separate axis from undeclared tokens:
+
+- A referenced token with no binding after the final context/default merge
+  emits `ERR_VAL_UNBOUND_VARIABLE` according to
+  `unbound_variable_policy`.
+- A referenced token may be declared in frontmatter and still be unbound; the
+  unbound-variable policy applies independently of `strict_undeclared_variables`.
+- A referenced token may be undeclared but bound by caller input; the strict
+  undeclared-token policy applies independently and the value is not reported
+  as unbound.
+- Loop locals, `{% set %}` locals, built-in render-context variables, and
+  nested paths satisfied by a merged object value count as bindings.
 
 ### FR-2b: Missing and Extra Variables
 
@@ -418,10 +451,12 @@ Each block may be empty. Ordering is never caller-defined.
 - `template-init`
 - `init`
 - `verify`
+- `extract`
 - `observability-health`
 - `examples`
 - `templates`
 - `reports`
+- `help` (see FR-22)
 
 The CLI must support:
 
@@ -436,6 +471,8 @@ The CLI must support:
 - `--env-prefix <PREFIX_>`
 - `--strict`
 - `--unknown-var-mode <error|warn|ignore>`
+  - controls both extra caller-provided variables and referenced-but-unbound
+    variables; the CLI maps the selected mode to both policy axes.
 - `--root <path>`
 - `--file <path>`
 - `--output <path>` where applicable
@@ -646,7 +683,8 @@ envelope.
   "payload": {
     "output_path": "stdout",
     "bytes_written": 123,
-    "template": "path/to/template.md.j2"
+    "template": "path/to/template.md.j2",
+    "body": "rendered document text"
   },
   "diagnostics": []
 }
@@ -658,6 +696,9 @@ Schema rules:
 - `bytes_written` is the actual byte count written to the selected output
   target; when writing to stdout it is the UTF-8 byte length emitted to stdout.
 - `template` is the resolved template path as a string.
+- `body` is present only for non-dry-run stdout renders and contains the full
+  rendered document. It is omitted when `--output <file>` is supplied because
+  the file is the source of truth.
 
 `render --dry-run --json`
 
@@ -1145,6 +1186,67 @@ sprints.
 - Valid JSON/YAML objects and existing duplicate-key, non-string-key, and
   value-shape policies shall remain unchanged.
 
+### FR-22: CLI Conceptual Help Manuals
+
+- The CLI shall provide a `sc-compose help [topic]` command distinct from
+  clap-generated `--help`. `sc-compose help` with no argument shall print an
+  index of available topics; `sc-compose help --list` shall print the same
+  index in a stable, scriptable form.
+- Each topic shall be a static, versioned manual page shipped inside the
+  binary (no filesystem lookup, no network access) covering one CLI feature
+  area: at minimum `render`, `resolve`, `validate`, `verify`, `extract`,
+  `template-init`, `frontmatter-init`, `init`, `examples`, `templates`,
+  `reports`, `observability-health`, and `exit-codes`. The `exit-codes` topic
+  shall document the FR-7b contract (`0`/`1`/`2`/`3`) in full, since that
+  contract is otherwise only discoverable by reading `docs/requirements.md`
+  in the repository.
+- Topic content shall be authored as one Markdown file per topic under
+  `docs/manual/` (e.g. `docs/manual/render.md`), each embedded into the
+  binary at compile time via a single canonical registry (one ordered
+  `(topic_name, content)` array), not as hand-written Rust string constants
+  and not as separate per-topic Rust modules. This registry is the single
+  seam every topic-content change touches; the dispatch/command-handling
+  code that reads it stays flat and topic-count-independent, so it cannot
+  grow unbounded as topics are added. A scaffolding change must establish
+  this registry mechanism and structure before any per-topic content is
+  added, so that concurrent per-topic contributions only ever add a
+  Markdown file plus one registry entry, never new Rust modules or
+  dispatch branches.
+- An unknown topic name shall fail closed with a usage-class exit code (per
+  FR-7b, exit `3`) and shall list the valid topic names in its error output.
+- The root parser shall disable clap's automatically registered `help`
+  subcommand while retaining the generated `--help` flag, then register this
+  conceptual `help` command explicitly. This keeps `sc-compose help` as one
+  unambiguous route to the manual system and prevents clap's generated
+  subcommand from colliding with it.
+- Topic names are scoped to the explicit `help` command, not the root command
+  namespace. A topic may therefore have the same name as a real command (for
+  example, `sc-compose help render` displays the `render` manual while
+  `sc-compose render` runs the renderer); topic lookup must not shadow or
+  reinterpret any root command.
+- `help` and `help --list` shall accept `--json` and use the versioned
+  `DiagnosticEnvelope` transport. In text mode, `help --list` is a UTF-8,
+  newline-delimited sequence containing exactly one canonical topic name per
+  line, in registry order, with no labels or indentation; this explicit
+  line-oriented schema is the stable shell-pipeline form. In JSON mode, its
+  payload is `{ "topics": ["..."] }` in the standard envelope. A topic JSON
+  response uses `{ "topic": "...", "manual": "..." }` as its payload.
+- “Versioned” means the Markdown bytes are committed under `docs/manual/`,
+  embedded into the same released binary as the CLI, and identified by that
+  binary's `sc-compose --version`; there is no independently fetched page or
+  separate page-version field. A behavior change must update the source page
+  and the corresponding CLI release together.
+- The `help_topics` module and its ordered registry are exclusively owned by
+  `sc-compose`; `sc-composer` and the Python bindings must not define, import,
+  or mutate manual-topic metadata.
+- Manual content shall be reviewed for drift against the corresponding
+  command's actual flags/behavior whenever that command's CLI surface
+  changes; this is a documentation-accuracy expectation, not an automated
+  gate.
+- The root `sc-compose --help` output shall end with a line pointing callers
+  to `sc-compose help` for the full manual/topic index, so the manual system
+  is discoverable without already knowing it exists.
+
 ### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 
 ### FR-12: Map/Object Variable Inputs
@@ -1213,13 +1315,25 @@ Implemented in Phase HTML-Report.
 - Output path derivation removes only the trailing `.j2` suffix and therefore
   preserves the `.html` extension.
 - Rendered HTML is treated as a normal template artifact.
-- `sc-compose` does not enable MiniJinja auto-escaping for `.html.j2`
-  templates. Template authors remain responsible for escaping user-supplied
-  values.
+- `AutoEscape::Custom("sc-compose-html")` applies to `.html.j2`, `.htm.j2`,
+  `.xml.j2`, and `.xhtml.j2` templates. It automatically escapes markup and
+  represents XML-illegal control bytes with the legal replacement-character
+  NCR `&#xfffd;`; template authors do not need to opt in.
 - Self-contained output, XHTML shape, inline CSS, and browser-viewability are
   template-author responsibilities rather than core-engine enforcement.
 - Dry-run, diagnostics, validation, and output-path rules apply to HTML
   templates the same way they apply to other file-mode templates.
+
+#### ADR-style clarification (2026-08-06, FIX-278)
+
+The shipped renderer's filename-aware `AutoEscape::Custom("sc-compose-html")`
+policy covers `.html.j2`, `.htm.j2`, `.xml.j2`, and `.xhtml.j2`. The shared
+formatter escapes markup and converts XML-illegal C0 control bytes to the legal
+replacement-character NCR `&#xfffd;` while leaving tab, LF, and CR intact.
+This is automatic behavior and requires no author opt-in. See
+[architecture §21.6](architecture.md#216-h4-wrapper-owned-orchestration-pattern)
+for the corresponding boundary statement. This clarification records shipped
+behavior; it does not change the existing filename-dispatch mechanism.
 
 ### FR-15: Bundled HTML Report Example
 

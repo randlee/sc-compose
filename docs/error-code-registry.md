@@ -13,6 +13,19 @@ by `sc-composer` and `sc-compose`.
   - `docs/project-plan.md` acceptance criteria where relevant
   - automated tests and snapshots
 
+### sc-lint CLI Integration Classes
+
+The `CLI.*` classes are stable diagnostics from the sc-lint subprocess
+boundary. They are distinct from the `ERR_*` codes emitted by the
+sc-composer library and are normalized by the shared lint runner.
+
+| Code | Error family | Severity | Trigger condition | Expected primary emitter |
+| --- | --- | --- | --- | --- |
+| `CLI.CONFIG_ERROR` | `ScLintOutcome::ConfigError` | error | repository configuration or a required sc-lint utility is missing or malformed | sc-lint integration runner |
+| `CLI.CAPABILITY_ERROR` | `ScLintOutcome::CapabilityError` | error | repository configuration is valid but the host lacks a required lint capability | sc-lint integration runner |
+| `CLI.BACKEND_EXEC_FAILURE` | `ScLintOutcome::Failed` | error | an allowlisted sc-lint workflow step exits unsuccessfully | sc-lint integration runner |
+| `CLI.BACKEND_PROTOCOL_ERROR` | `ScLintOutcome::Failed` or `ConfigError` | error | sc-lint returns malformed adapter JSON; missing view utilities are normalized to `CLI.CONFIG_ERROR` | sc-lint integration runner |
+
 ## Canonical Codes
 
 | Code | Error family | Severity | Trigger condition | Expected primary emitter |
@@ -23,10 +36,12 @@ by `sc-composer` and `sc-compose`.
 | `ERR_INCLUDE_ESCAPE` | `IncludeError` | error | include path escapes confinement root | include engine |
 | `ERR_INCLUDE_CYCLE` | `IncludeError` | error | include graph revisits a file already on the active include stack | include engine |
 | `ERR_INCLUDE_DEPTH` | `IncludeError` | error | include depth exceeds configured maximum | include engine |
+| `ERR_INCLUDE_DYNAMIC_UNRESOLVED` | `IncludeError` | error | include target cannot be exhaustively enumerated as a static dependency | include engine |
 | `ERR_VAL_OBJECT_SHAPE` | `ValidationError` | error | structured input object uses an unsupported shape such as a non-string key | structured input parsing, validation pipeline |
 | `ERR_VAL_NESTED_ARRAY_UNSUPPORTED` | `ValidationError` | reserved | legacy H2 nested-array restriction; retained for compatibility and not emitted for recursive JSON/YAML-compatible values | compatibility only |
 | `ERR_VAL_DUPLICATE` | `ValidationError` | error | duplicate frontmatter variable declaration | frontmatter normalization, validation pipeline |
 | `WARN_VAL_CONFLICTING_DEFAULT_SECTIONS` | `ValidationError` | warning | frontmatter declared both `defaults` and `input_defaults`; `input_defaults` overrides overlaps | frontmatter normalization, validation pipeline |
+| `WARN_LINT_REDUNDANT_FILTER_CHAIN` | `TemplateLint` | warning | template applies the redundant `frontmatter_safe | yaml_safe` filter chain | CLI `validate --lint` |
 | `WARN_CONFIG_SINGLE_PASS_ALL_FALLBACK` | `ConfigError` | warning | `--all` was requested for a template without stacked headers; the single pass is used as a documented fallback | CLI input/configuration layer |
 | `ERR_VAL_EMPTY` | `ValidationError` | error | template body is empty where composition requires content | validation pipeline |
 | `ERR_VAL_MISSING_FRONTMATTER` | `ValidationError` | warning | a root or included template file references variables but has no frontmatter block | validation pipeline |
@@ -35,7 +50,14 @@ by `sc-composer` and `sc-compose`.
 | `ERR_VAL_SHAPE_MISMATCH` | `ValidationError` | error | nested required-path traversal expected an object but found a scalar or array | validation pipeline |
 | `ERR_VAL_UNDECLARED_TOKEN` | `ValidationError` | warning/error | referenced token is not declared in frontmatter | validation pipeline |
 | `ERR_VAL_EXTRA_INPUT` | `ValidationError` | warning/error | caller provided a variable that is neither declared nor referenced | validation pipeline |
+| `ERR_VAL_UNBOUND_VARIABLE` | `ValidationError` | warning/error | referenced variable has no value binding after context/default merge | validation pipeline |
 | `INFO_VAL_DEFAULT_USED` | `ValidationError` | info | variable was not provided explicitly and a default value was used | validation pipeline, CLI `validate`, CLI `render --dry-run` |
+| `SC_SHA_INVALID_UTF8` | `ShaError` | error | text-file bytes cannot be strictly decoded as UTF-8 | `sc_sha::calculate_hash()` |
+| `SC_SHA_INVALID_DIGEST` | `ShaError` | error | a manifest digest is not exactly 64 hexadecimal characters | `TemplateSha256::from_hex()` |
+| `SC_SHA_INVALID_CANONICAL_SOURCE` | `CanonicalSourceError` | error | canonical path or URL is empty, contains control characters, or uses a backslash separator | `CanonicalTemplatePath` / `CanonicalSourceUrl` constructors |
+| `SC_SHA_UNSUPPORTED_MANIFEST_SCHEMA` | `CompositionError` | error | resolved manifest schema is not supported by the hashing crate | `sc_sha::calculate_composition_hash()` |
+| `SC_SHA_DUPLICATE_SOURCE` | `CompositionError` | error | caller supplied duplicate resolved-manifest nodes | `sc_sha::calculate_composition_hash()` |
+| `SC_SHA_UNKNOWN_EDGE_ENDPOINT` | `CompositionError` | error | an include edge references no node in the resolved manifest | `sc_sha::calculate_composition_hash()` |
 | `ERR_RENDER_STDIN_DOUBLE_READ` | `RenderError` | error | CLI attempts to consume stdin twice for guidance/prompt inputs | CLI input layer |
 | `ERR_RENDER_WRITE` | `RenderError` | error | output write or output-target materialization failure | CLI output layer |
 | `ERR_CONFIG_READONLY` | `ConfigError` | error | frontmatter rewrite or workspace update refused on read-only target | `frontmatter_init()`, `init_workspace()` |
@@ -44,6 +66,7 @@ by `sc-composer` and `sc-compose`.
 | `ERR_CONFIG_PARSE` | `ConfigError` | error | malformed or unreadable configuration input | var-file/config parsing |
 | `ERR_CONFIG_VARFILE` | `ConfigError` | error | invalid var-file shape or unsupported structure, including YAML merge keys (`<<`) rejected with a source line/column and explicit-mapping recovery guidance | var-file parsing |
 | `ERR_CONFIG_PACK_NOT_FOUND` | `ConfigError` | error | named example or template pack does not exist under the selected pack root | CLI `examples`, CLI `templates` |
+| `ERR_CONFIG_HELP_TOPIC_NOT_FOUND` | `ConfigError` | error | requested `sc-compose help <topic>` is not registered | CLI `help` |
 | `ERR_CONFIG_PACK_NOT_RENDERABLE` | `ConfigError` | error | named pack cannot be rendered because it is ambiguous or lacks exactly one renderable root template | CLI `examples`, CLI `templates` |
 | `ERR_CONFIG_TEMPLATE_EXISTS` | `ConfigError` | error | `templates add` target pack already exists | CLI `templates add` |
 | `ERR_EXTRACT_INVALID_REQUEST` | `ExtractError` | error | in-memory extraction request violates source, filter, or report invariants | `sc_composer::extract()` and report construction |
@@ -60,6 +83,19 @@ by `sc-composer` and `sc-compose`.
 | `WARN_EXTRACT_NOT_OBSERVED` | `ExtractionReport` | warning | a declared scalar occurrence is absent from the rendered XML | XML extraction engine |
 | `WARN_EXTRACT_LOW_CONFIDENCE` | `ExtractionReport` | warning | structural or static evidence is insufficient for a high-confidence report | XML extraction engine; Phase I/I.2 raw-text mode |
 | `WARN_EXTRACT_DIRTY_PREFIX_STRIPPED` | `ExtractionReport` | warning | rendered XML had an accepted leading text preamble removed before parsing | Phase I.4 XML dirty-prefix normalizer |
+
+### sc-lint CLI Integration Classes
+
+The `CLI.*` classes are stable diagnostics from the sc-lint subprocess
+boundary. They are distinct from the `ERR_*` codes emitted by the
+sc-composer library and are normalized by the shared lint runner.
+
+| Code | Error family | Severity | Trigger condition | Expected primary emitter |
+| --- | --- | --- | --- | --- |
+| `CLI.CONFIG_ERROR` | `ScLintOutcome::ConfigError` | error | repository configuration or a required sc-lint utility is missing or malformed | sc-lint integration runner |
+| `CLI.CAPABILITY_ERROR` | `ScLintOutcome::CapabilityError` | error | repository configuration is valid but the host lacks a required lint capability | sc-lint integration runner |
+| `CLI.BACKEND_EXEC_FAILURE` | `ScLintOutcome::Failed` | error | an allowlisted sc-lint workflow step exits unsuccessfully | sc-lint integration runner |
+| `CLI.BACKEND_PROTOCOL_ERROR` | `ScLintOutcome::Failed` or `ConfigError` | error | sc-lint returns malformed adapter JSON; missing view utilities are normalized to `CLI.CONFIG_ERROR` | sc-lint integration runner |
 
 ### Accepted Phase-H Cross-Format Extraction Codes
 

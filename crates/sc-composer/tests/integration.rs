@@ -11,7 +11,8 @@ use sc_composer::observer::{
 };
 use sc_composer::{
     ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, VariableName, compose,
-    compose_with_observer, parse_template_document, protect_higher_braces, render_all,
+    compose_with_observer, compose_with_observer_and_expanded, expand_includes,
+    parse_template_document, protect_higher_braces, render_all, resolve_template_path,
 };
 
 #[derive(Default)]
@@ -117,6 +118,22 @@ fn render_all_renders_three_pass_template() {
     .unwrap();
 
     assert_eq!(rendered, "Org=acme\nTeam=platform\nUser=randlee");
+}
+
+#[test]
+fn render_all_public_api_keeps_inline_template_unescaped() {
+    let parsed =
+        parse_template_document("---\nname: inline\n---\n<root>{{ note }}</root>\n").unwrap();
+    let rendered = render_all(
+        &parsed,
+        &[(
+            1,
+            BTreeMap::from([(VariableName::new("note").unwrap(), json!("<tag> &"))]),
+        )],
+    )
+    .unwrap();
+
+    assert_eq!(rendered, "<root><tag> &</root>");
 }
 
 #[test]
@@ -289,6 +306,41 @@ fn compose_with_observer_emits_pass_events_for_multi_pass_template() {
 }
 
 #[test]
+fn compose_with_expanded_reuses_preflight_source_after_include_mutation() {
+    let root = temp_root("compose_reuse_preflight_expansion");
+    let template_path = root.join("template.md.j2");
+    let included_path = root.join("partials/body.md.j2");
+    write_file(&template_path, "@<partials/body.md.j2>\n");
+    write_file(&included_path, "hello {{ name }}\n");
+
+    let request = ComposeRequest {
+        runtime: None,
+        mode: ComposeMode::File {
+            template_path: PathBuf::from("template.md.j2"),
+        },
+        root: ConfiningRoot::new(&root).unwrap(),
+        vars_input: BTreeMap::from([(VariableName::new("name").unwrap(), json!("world"))]),
+        vars_env: BTreeMap::default(),
+        vars_defaults: BTreeMap::default(),
+        guidance_block: None,
+        user_prompt: None,
+        policy: ComposePolicy::default(),
+    };
+    let resolved = resolve_template_path(&request).unwrap();
+    let expanded =
+        expand_includes(&resolved.resolved_path, &request.root, &request.policy).unwrap();
+
+    write_file(&included_path, "mutated after preflight {{ name }}\n");
+
+    let mut observer = CapturingObserver::default();
+    let result =
+        compose_with_observer_and_expanded(&request, &mut observer, resolved, expanded).unwrap();
+
+    assert_eq!(result.rendered_text, "hello world");
+    assert_eq!(observer.include.len(), 1);
+}
+
+#[test]
 fn compose_multi_pass_preserves_still_higher_brace_literals_across_lower_passes() {
     let root = temp_root("higher-brace-literal");
     write_file(
@@ -357,7 +409,10 @@ fn compose_with_observer_emits_single_render_failure_event_for_multi_pass_errors
     )
     .unwrap_err();
 
-    assert!(error.to_string().contains("syntax error"));
+    let source = std::error::Error::source(&error)
+        .map(ToString::to_string)
+        .unwrap_or_default();
+    assert!(source.contains("syntax error"));
     assert_eq!(observer.render.len(), 1);
     assert_eq!(observer.render[0].rendered_bytes, None);
 }

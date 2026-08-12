@@ -1,0 +1,16 @@
+[build-system]
+requires = ["maturin>=1.9.4,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "sc-sha"
+version = "1.4.0"
+description = "Python adapter for deterministic sc-sha file and composition identities"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+[tool.maturin]
+python-source = "python"
+module-name = "sc_sha._native"
+features = ["python-extension"]
+include = [{ path = "python/sc_sha/py.typed", format = ["sdist", "wheel"] }]

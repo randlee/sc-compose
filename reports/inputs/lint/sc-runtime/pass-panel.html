@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>sc-runtime safe synchronization fixture</title>
+</head>
+<body>
+  <main data-template-family="base">
+    <header class="report-header">
+      <h1>sc-runtime safe synchronization fixture</h1>
+    </header>
+    <section class="report-panels">
+      <article id="reports-inputs-lint-sc-runtime-pass-md" class="report-panel">
+        <header class="panel-header">
+          <h2>sc-runtime safe synchronization fixture</h2>
+        </header>
+        <div class="panel-body">
+Input fixture: `tests/fixtures/sc-lint/sc-runtime/pass`.
+
+The production synchronization helper uses `wait_timeout(...)` and inspects the
+returned `WaitTimeoutResult`. The expected structured result is
+`command = "lint.sc-runtime"`, `data.status = "pass"`, and no findings; the
+raw envelope is retained as `pass.json` and the rendered panel is
+`pass-panel.html`.</div>
+        <footer class="panel-footer">
+          <button type="button" data-copy-text="
+Input fixture: `tests/fixtures/sc-lint/sc-runtime/pass`.
+
+The production synchronization helper uses `wait_timeout(...)` and inspects the
+returned `WaitTimeoutResult`. The expected structured result is
+`command = &quot;lint.sc-runtime&quot;`, `data.status = &quot;pass&quot;`, and no findings; the
+raw envelope is retained as `pass.json` and the rendered panel is
+`pass-panel.html`." >Copy text</button>
+          <button type="button" data-copy-json="{&quot;command&quot;:&quot;lint.sc-runtime&quot;,&quot;fixture&quot;:&quot;tests/fixtures/sc-lint/sc-runtime/pass&quot;,&quot;outcome&quot;:&quot;pass&quot;,&quot;raw_artifact&quot;:&quot;reports/inputs/lint/sc-runtime/pass.json&quot;}">Copy json</button>
+        </footer>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

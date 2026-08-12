@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>sc-portability hardcoded Unix path fixture</title>
+</head>
+<body>
+  <main data-template-family="base">
+    <header class="report-header">
+      <h1>sc-portability hardcoded Unix path fixture</h1>
+    </header>
+    <section class="report-panels">
+      <article id="reports-inputs-lint-sc-portability-failing-path-md" class="report-panel">
+        <header class="panel-header">
+          <h2>sc-portability hardcoded Unix path fixture</h2>
+        </header>
+        <div class="panel-body">
+Input fixture: `tests/fixtures/sc-lint/sc-portability/failing-path`.
+
+The test helper deliberately constructs `/tmp/sc-compose-portability`, a
+Unix-only path. The expected structured result is `PORT-001` with
+`data.status = "fail"`; the raw envelope is retained as `failing-path.json`
+and the rendered panel is `failing-path-panel.html`.</div>
+        <footer class="panel-footer">
+          <button type="button" data-copy-text="
+Input fixture: `tests/fixtures/sc-lint/sc-portability/failing-path`.
+
+The test helper deliberately constructs `/tmp/sc-compose-portability`, a
+Unix-only path. The expected structured result is `PORT-001` with
+`data.status = &quot;fail&quot;`; the raw envelope is retained as `failing-path.json`
+and the rendered panel is `failing-path-panel.html`." >Copy text</button>
+          <button type="button" data-copy-json="{&quot;command&quot;:&quot;lint.sc-portability&quot;,&quot;fixture&quot;:&quot;tests/fixtures/sc-lint/sc-portability/failing-path&quot;,&quot;outcome&quot;:&quot;findings&quot;,&quot;rule_id&quot;:&quot;PORT-001&quot;,&quot;raw_artifact&quot;:&quot;reports/inputs/lint/sc-portability/failing-path.json&quot;}">Copy json</button>
+        </footer>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "command": "clippy.native",
+  "data": {
+    "mode": "native",
+    "status": "pass",
+    "step_count": 1,
+    "steps": [
+      {
+        "command": "cargo clippy --workspace --all-targets -- -D warnings",
+        "kind": "clippy",
+        "name": "clippy.native",
+        "status": "pass"
+      }
+    ],
+    "tool": "cargo",
+    "xwin": {
+      "available": true,
+      "target": null
+    }
+  },
+  "diagnostics": []
+}

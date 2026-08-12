@@ -5,7 +5,7 @@ use crate::observer::{
     ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
 use crate::path_utils::to_forward_slash;
-use crate::{ComposeError, ComposeRequest, ValidationReport};
+use crate::{ComposeError, ComposeRequest, ExpandedTemplate, ValidationReport};
 
 /// Validate a compose request without rendering output.
 ///
@@ -26,6 +26,39 @@ pub fn validate_with_observer(
     request: &ComposeRequest,
     observer: &mut dyn CompositionObserver,
 ) -> Result<ValidationReport, ComposeError> {
+    validate_with_observer_and_delimiters(request, observer, None)
+}
+
+/// Validate a compose request using caller-provided variable delimiters.
+///
+/// The delimiters must match those used for the subsequent render operation.
+/// Statement delimiters remain the standard Jinja `{% ... %}` delimiters.
+///
+/// # Errors
+///
+/// Returns [`ComposeError`] when resolution or include expansion fails.
+pub fn validate_with_observer_and_delimiters(
+    request: &ComposeRequest,
+    observer: &mut dyn CompositionObserver,
+    variable_delimiters: Option<(&str, &str)>,
+) -> Result<ValidationReport, ComposeError> {
+    validate_with_observer_and_delimiters_with_expansion(request, observer, variable_delimiters)
+        .map(|(report, _)| report)
+}
+
+/// Validate a compose request and return the exact expansion used for validation.
+///
+/// Callers that render after validation can pass the returned expansion to a
+/// rendering operation to avoid resolving and reading includes a second time.
+///
+/// # Errors
+///
+/// Returns [`ComposeError`] when resolution or include expansion fails.
+pub fn validate_with_observer_and_delimiters_with_expansion(
+    request: &ComposeRequest,
+    observer: &mut dyn CompositionObserver,
+    variable_delimiters: Option<(&str, &str)>,
+) -> Result<(ValidationReport, ExpandedTemplate), ComposeError> {
     observer.on_resolve_attempt(&ResolveAttemptEvent {
         template: match &request.mode {
             crate::types::ComposeMode::Profile { kind, name } => format!("{kind:?}:{name}"),
@@ -67,7 +100,12 @@ pub fn validate_with_observer(
         code: None,
     });
 
-    let (mut report, _) = crate::validation::validate_expanded(request, &expanded, resolve_result);
+    let (mut report, _) = crate::validation::validate_expanded_with_delimiters(
+        request,
+        &expanded,
+        resolve_result,
+        variable_delimiters,
+    );
     let event = ValidationOutcomeEvent {
         warnings: std::mem::take(&mut report.warnings),
         errors: std::mem::take(&mut report.errors),
@@ -76,7 +114,7 @@ pub fn validate_with_observer(
     report.warnings = event.warnings;
     report.errors = event.errors;
 
-    Ok(report)
+    Ok((report, expanded))
 }
 
 #[cfg(test)]

@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "command": "lint.sc-portability",
+  "data": {
+    "findings": [
+      {
+        "kind": "hardcoded_unix_path_constructor",
+        "message": "tests/fixtures/sc-lint/sc-portability/failing-path/crates/portability-failing/src/lib.rs:12: PORT-001 hardcoded Unix-only absolute path `/tmp/sc-compose-portability` in test code; prefer std::env::temp_dir(), dirs::home_dir(), or another platform-aware path source",
+        "node_ids": [
+          "crate::portability-failing::portability_failing::uses_a_platform_specific_path"
+        ],
+        "owner_ids": [
+          "crate::portability-failing::portability_failing"
+        ],
+        "rule_id": "PORT-001"
+      }
+    ],
+    "scanned_crates": 1,
+    "schema_version": "0.1.0",
+    "status": "fail",
+    "tool": "sc-lint-portability",
+    "version": "0.4.0"
+  },
+  "diagnostics": []
+}

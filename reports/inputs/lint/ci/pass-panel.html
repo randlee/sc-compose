@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>top-level ci pass fixture</title>
+</head>
+<body>
+  <main data-template-family="base">
+    <header class="report-header">
+      <h1>top-level ci pass fixture</h1>
+    </header>
+    <section class="report-panels">
+      <article id="reports-inputs-lint-ci-pass-md" class="report-panel">
+        <header class="panel-header">
+          <h2>top-level ci pass fixture</h2>
+        </header>
+        <div class="panel-body">
+Input fixture: `tests/fixtures/sc-lint/ci/pass`.
+
+The actual `sc-lint --json --root &lt;fixture&gt; ci` workflow completed the CI lint
+profile and the final workspace-test step. The run had xwin available, but the
+top-level CI profile correctly excluded xwin-only steps. The raw envelope is
+retained as `pass.json`.</div>
+        <footer class="panel-footer">
+          <button type="button" data-copy-text="
+Input fixture: `tests/fixtures/sc-lint/ci/pass`.
+
+The actual `sc-lint --json --root &lt;fixture&gt; ci` workflow completed the CI lint
+profile and the final workspace-test step. The run had xwin available, but the
+top-level CI profile correctly excluded xwin-only steps. The raw envelope is
+retained as `pass.json`.">Copy text</button>
+          <button type="button" data-copy-json="{&quot;command&quot;:&quot;ci&quot;,&quot;fixture&quot;:&quot;tests/fixtures/sc-lint/ci/pass&quot;,&quot;outcome&quot;:&quot;pass&quot;,&quot;raw_artifact&quot;:&quot;reports/inputs/lint/ci/pass.json&quot;}">Copy json</button>
+        </footer>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

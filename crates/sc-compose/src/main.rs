@@ -2,6 +2,7 @@ mod cli;
 mod command_error;
 mod commands;
 mod exit_codes;
+mod help_topics;
 mod json_output;
 #[cfg(test)]
 mod main_tests;
@@ -13,12 +14,13 @@ mod reporting;
 mod template_store;
 mod var_file;
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
+use clap::error::ErrorKind;
 use mimalloc::MiMalloc;
-use sc_composer::Diagnostic;
+use sc_composer::{Diagnostic, DiagnosticCode};
 use serde::Serialize;
 
-use crate::cli::{Cli, command_wants_json, parse_cli};
+use crate::cli::{Cli, command_wants_json, parse_cli_from, raw_args_want_json};
 pub(crate) use crate::command_error::CommandError;
 use sc_observability::Logger;
 
@@ -26,7 +28,44 @@ use sc_observability::Logger;
 static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() {
-    std::process::exit(run_cli(parse_cli()));
+    let raw_args = std::env::args_os().collect::<Vec<_>>();
+    let wants_json = raw_args_want_json(raw_args.iter().cloned());
+    let code = match parse_cli_from(raw_args) {
+        Ok(cli) => run_cli(cli),
+        Err(error) => report_cli_parse_error(&error, wants_json),
+    };
+    std::process::exit(code);
+}
+
+fn print_rendered(rendered: &str, use_stderr: bool) {
+    if use_stderr {
+        eprint!("{rendered}");
+    } else {
+        print!("{rendered}");
+    }
+}
+
+fn report_cli_parse_error(error: &clap::Error, wants_json: bool) -> i32 {
+    let rendered = error.render().to_string();
+    if matches!(
+        error.kind(),
+        ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
+    ) {
+        print_rendered(&rendered, error.use_stderr());
+        return error.exit_code();
+    }
+
+    let command_error = CommandError::usage_with_code(
+        anyhow!(rendered.trim_end().to_owned()),
+        DiagnosticCode::ErrConfigParse,
+    );
+    if wants_json {
+        report_error(&command_error, true);
+    } else {
+        print_rendered(&rendered, error.use_stderr());
+    }
+
+    command_error.exit_code
 }
 
 fn run_cli(cli: Cli) -> i32 {
