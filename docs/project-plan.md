@@ -757,8 +757,8 @@ Sprint entries:
 Status:
 
 - complete on `feat/help-manual-core` at final PR branch commit `1d016d4`;
-  implementation and QA fixes are included in its history, and the
-  post-merge JSON-envelope deduplication follow-up is `7a47997`.
+  implementation and QA fixes are included in its history; the post-merge
+  JSON-envelope deduplication follow-up is included in this branch.
 - CI checks for PR #397 are green for final branch commit `1d016d4`, including
   the workspace and platform-specific checks; closeout evidence is recorded
   in the sprint document.

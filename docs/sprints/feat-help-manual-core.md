@@ -169,8 +169,6 @@ Medium — customer-facing documentation gap, not release-blocking.
 
 - final PR branch commit: `1d016d4` (`docs: clarify feature manual guidance`);
   the implementation and QA fixes are included in its history.
-- post-merge minor cleanup: `7a47997` (`refactor: deduplicate help topic JSON
-  output`)
 - `sc-compose help` prints the bundled manual index, `help --list` emits the
   stable topic names, and `help exit-codes` prints the four-code contract;
   unknown topics return usage failure `3` and list valid topics.
