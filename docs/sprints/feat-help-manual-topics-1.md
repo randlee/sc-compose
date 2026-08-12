@@ -1,0 +1,116 @@
+---
+id: FEAT-HELP-MANUAL-TOPICS-1
+title: Help-manual content, group 1 (render/resolve/validate/verify/extract/template-init)
+status: complete
+branch: feat/help-manual-topics-1
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/help-manual-topics-1
+target: feat/help-manual-core
+---
+
+## Root Cause
+
+FR-22 (docs/requirements.md, PR #396) requires a manual page per major CLI
+feature. FEAT-HELP-MANUAL-CORE (PR #397, branch `feat/help-manual-core`)
+builds the `docs/manual/` structure, the `help_topics` registry
+(`include_str!`-based, `TOPICS: &[(&str, &str)]`), and the `sc-compose
+help <topic>` command — but ships content for only one topic
+(`exit-codes`). This sprint fills in six of the remaining topics.
+
+This sprint depends on `feat/help-manual-core` and targets that branch,
+not `develop` — the `help_topics` registry it extends does not exist on
+`develop` yet. A sibling sprint, FEAT-HELP-MANUAL-TOPICS-2, is running
+concurrently on its own branch (also based on `feat/help-manual-core`) for
+the remaining five topics. Do not touch any topic owned by that sprint.
+
+## Scope — topics owned by this sprint
+
+- `render`
+- `resolve`
+- `validate`
+- `verify`
+- `extract`
+- `template-init`
+
+## Fix Design
+
+1. Before starting, `git fetch origin && git rebase origin/feat/help-manual-core`
+   (or merge, if rebase conflicts with in-flight work — use judgment, but
+   the goal is: your branch must contain comp's latest pushed commits on
+   `feat/help-manual-core` before you write code against `help_topics`).
+   If `feat/help-manual-core` has not been pushed yet or the registry
+   module/functions described below don't exist yet, wait and re-check
+   rather than re-inventing the registry shape yourself.
+2. For each topic above, add `docs/manual/<topic>.md` — real prose
+   documentation of that CLI subcommand: what it does, its required and
+   optional flags/args, one or two runnable examples, and common failure
+   modes with the diagnostic code(s) involved (check the corresponding
+   command's existing `--help` text and `crates/sc-compose/src/cli/schema.rs`
+   Args struct for accuracy — do not invent flags). Match the tone and
+   depth of `docs/manual/exit-codes.md` (from `feat/help-manual-core`) —
+   read it first for the expected format.
+3. Add one line per topic to `docs/manual/README.md`'s index (the file
+   already exists on `feat/help-manual-core`; you are appending entries,
+   not creating the file).
+4. Add one entry per topic to the `help_topics::TOPICS` registry array in
+   `crates/sc-compose/src/help_topics/mod.rs` (the exact seam described in
+   that sprint's doc comment) — each entry is
+   `("render", include_str!("../../../../docs/manual/render.md"))` (adjust
+   the relative path depth to whatever `feat/help-manual-core` actually
+   used; verify with `cargo build`, don't assume the depth from this text).
+5. Add a test per topic in the existing help-command test module (added by
+   `feat/help-manual-core` — find it via `grep -r "help_topics\|fn.*help" crates/sc-compose/tests/`)
+   asserting `sc-compose help <topic>` exits 0 and prints content that
+   plausibly matches that command's real behavior (e.g. mentions the
+   command's key flag or purpose — not a placeholder assertion).
+
+## Required Changes / Tests
+
+- `docs/manual/render.md`, `resolve.md`, `validate.md`, `verify.md`,
+  `extract.md`, `template-init.md` (new).
+- `docs/manual/README.md`: six new index lines (edit, not create).
+- `crates/sc-compose/src/help_topics/mod.rs`: six new `TOPICS` entries
+  (edit, not create).
+- Tests: `sc-compose help <topic>` for each of the six topics, exit 0,
+  content sanity-checked against that command's real flags/purpose.
+
+## Out of Scope
+
+- The `help_topics` registry, `Help` command, CLI wiring, `docs/manual/README.md`
+  creation, or the `exit-codes` topic — all owned by `feat/help-manual-core`
+  (FEAT-HELP-MANUAL-CORE). If any of these are missing when you start, stop
+  and report rather than building them yourself.
+- Topics owned by FEAT-HELP-MANUAL-TOPICS-2: `frontmatter-init`, `init`,
+  `examples`, `templates`, `reports`.
+- Any change to `docs/requirements.md` or exit-code values.
+
+## Acceptance Criteria
+
+- `cargo fmt --all --check`, `cargo clippy --all-targets --all-features --
+  -D warnings`, and `cargo test --workspace` all pass.
+- All six topics render real, accurate content via `sc-compose help <topic>`
+  and are listed in `docs/manual/README.md`.
+- No file owned by FEAT-HELP-MANUAL-CORE or FEAT-HELP-MANUAL-TOPICS-2 is
+  modified beyond the shared append points (`docs/manual/README.md`,
+  `help_topics::TOPICS`) called out above.
+
+## References
+
+- FR-22, docs/requirements.md (PR #396)
+- FEAT-HELP-MANUAL-CORE, docs/sprints/feat-help-manual-core.md (PR #397)
+- Sibling sprint: FEAT-HELP-MANUAL-TOPICS-2 (branch `feat/help-manual-topics-2`)
+
+## Closeout Evidence
+
+- Implementation commit: `76db0c1` (rebased onto the current core tip
+  `b237ef7`).
+- Voice-review commit: `73c68f7`, which rewrites each opening to lead with
+  purpose and when-to-use guidance before flags, examples, and failures.
+- Added accurate manuals for `render`, `resolve`, `validate`, `verify`,
+  `extract`, and `template-init`; registered all six topics and added one
+  content sanity test per topic.
+- Validation passed: `cargo fmt --all --check`, `cargo clippy --workspace
+  --all-targets --all-features -- -D warnings`, and `cargo test --workspace`.
+
+## Priority
+
+Medium — customer-facing documentation gap, not release-blocking.

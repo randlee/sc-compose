@@ -9,6 +9,12 @@ Run `sc-compose help` for a human-readable index. Run `sc-compose help --list`
 when a script needs the same topic names as one stable, newline-delimited list.
 
 - [Exit codes](exit-codes.md) — the process-status contract for automation.
+- [Render](render.md) — resolve, validate, and write a rendered template.
+- [Resolve](resolve.md) — locate a concrete profile template and inspect its search trace.
+- [Validate](validate.md) — check templates, variables, and stacked passes without rendering.
+- [Verify](verify.md) — compare rendered output with a deployed file.
+- [Extract](extract.md) — recover values from a known template and rendered output.
+- [Template init](template-init.md) — convert a concrete file into a pass-aware template.
 - [Frontmatter initialization](frontmatter-init.md) — add required-variable
   frontmatter to a concrete template file.
 - [Workspace initialization](init.md) — bootstrap `.prompts/` and validate

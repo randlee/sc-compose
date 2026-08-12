@@ -751,7 +751,23 @@ Sprint entries:
 - [Sprint FIX-390 — Clap Usage Exit Code](sprints/fix-390-clap-exit-code-fr7b.md)
 - [Sprint FIX-SIMP-001 — Shared Template Suffix Helper](sprints/fix-simp-001-shared-suffix-helper.md)
 - [Sprint FEAT-HELP-MANUAL-CORE — Core Help Manuals](sprints/feat-help-manual-core.md)
+- [Sprint FEAT-HELP-MANUAL-TOPICS-1 — Group 1 Help Manuals](sprints/feat-help-manual-topics-1.md)
 - [Sprint FEAT-HELP-MANUAL-TOPICS-2 — Help Manuals: Workspace and Reports](sprints/feat-help-manual-topics-2.md)
+
+### Follow-on Feature Sprint: FEAT-HELP-MANUAL-TOPICS-1
+
+Status:
+
+- complete on `feat/help-manual-topics-1` at `73c68f7`
+
+Sprint entry:
+
+- [Sprint FEAT-HELP-MANUAL-TOPICS-1 — Group 1 Help Manuals](sprints/feat-help-manual-topics-1.md)
+
+FEAT-HELP-MANUAL-TOPICS-1 adds the six group-one feature manuals for render,
+resolve, validate, verify, extract, and template-init. Each document is
+embedded in the CLI's ordered help-topic registry and is also linked from the
+repository manual index.
 
 ### Follow-on Feature Sprint: FEAT-HELP-MANUAL-TOPICS-2
 
@@ -771,11 +787,12 @@ CLI's deterministic help-topic index with matching command-level sanity tests.
 
 Status:
 
-- complete on `feat/help-manual-core` at `c10d9d9`; implementation is in
-  `7cd42a3`, QA follow-up is in `04c55ad`/`c10d9d9`, and closeout evidence is
-  recorded in the sprint document.
-- CI checks for PR #397 are green; the remaining QA follow-up findings are
-  addressed by the branch's follow-up fix commit.
+- complete on `feat/help-manual-core` at final PR branch commit `1d016d4`;
+  implementation and QA fixes are included in its history; the post-merge
+  JSON-envelope deduplication follow-up is included in this branch.
+- CI checks for PR #397 are green for final branch commit `1d016d4`, including
+  the workspace and platform-specific checks; closeout evidence is recorded
+  in the sprint document.
 
 Sprint entry:
 
