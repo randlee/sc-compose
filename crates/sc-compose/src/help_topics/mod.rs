@@ -5,10 +5,29 @@
 /// Follow-on feature manuals should add one ordered entry here and a linked
 /// document under `docs/manual/`; the command and list output then stay
 /// deterministic without duplicating topic metadata elsewhere.
-pub(crate) const TOPICS: &[(&str, &str)] = &[(
-    "exit-codes",
-    include_str!("../../../../docs/manual/exit-codes.md"),
-)];
+pub(crate) const TOPICS: &[(&str, &str)] = &[
+    (
+        "exit-codes",
+        include_str!("../../../../docs/manual/exit-codes.md"),
+    ),
+    (
+        "frontmatter-init",
+        include_str!("../../../../docs/manual/frontmatter-init.md"),
+    ),
+    ("init", include_str!("../../../../docs/manual/init.md")),
+    (
+        "examples",
+        include_str!("../../../../docs/manual/examples.md"),
+    ),
+    (
+        "templates",
+        include_str!("../../../../docs/manual/templates.md"),
+    ),
+    (
+        "reports",
+        include_str!("../../../../docs/manual/reports.md"),
+    ),
+];
 
 pub(crate) fn topic_names() -> Vec<&'static str> {
     TOPICS.iter().map(|(name, _)| *name).collect()

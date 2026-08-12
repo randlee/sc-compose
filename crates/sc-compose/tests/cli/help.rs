@@ -15,7 +15,10 @@ fn help_list_is_stable_and_scriptable() {
     let output = sc_compose().args(["help", "--list"]).output().unwrap();
 
     assert!(output.status.success(), "{output:?}");
-    assert_eq!(String::from_utf8_lossy(&output.stdout), "exit-codes\n");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "exit-codes\nfrontmatter-init\ninit\nexamples\ntemplates\nreports\n"
+    );
 }
 
 #[test]
@@ -27,6 +30,64 @@ fn exit_codes_manual_documents_all_statuses() {
     for code in ["`0`", "`1`", "`2`", "`3`"] {
         assert!(stdout.contains(code), "missing {code} in {stdout}");
     }
+}
+
+#[test]
+fn frontmatter_init_manual_documents_file_and_force_flags() {
+    let output = sc_compose()
+        .args(["help", "frontmatter-init"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("frontmatter-init"), "{stdout}");
+    assert!(stdout.contains("--file"), "{stdout}");
+    assert!(stdout.contains("--force"), "{stdout}");
+}
+
+#[test]
+fn init_manual_documents_prompts_workspace_bootstrap() {
+    let output = sc_compose().args(["help", "init"]).output().unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains(".prompts/"), "{stdout}");
+    assert!(stdout.contains("--dry-run"), "{stdout}");
+    assert!(stdout.contains("--root"), "{stdout}");
+}
+
+#[test]
+fn examples_manual_documents_listing_and_var_file_rendering() {
+    let output = sc_compose().args(["help", "examples"]).output().unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("examples list"), "{stdout}");
+    assert!(stdout.contains("--var-file"), "{stdout}");
+    assert!(stdout.contains("SC_COMPOSE_DATA_DIR"), "{stdout}");
+}
+
+#[test]
+fn templates_manual_documents_add_and_pack_requirements() {
+    let output = sc_compose().args(["help", "templates"]).output().unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("templates add"), "{stdout}");
+    assert!(stdout.contains("template.json"), "{stdout}");
+    assert!(stdout.contains("SC_COMPOSE_TEMPLATE_DIR"), "{stdout}");
+}
+
+#[test]
+fn reports_manual_documents_catalog_and_publish_workflow() {
+    let output = sc_compose().args(["help", "reports"]).output().unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("reports smoke"), "{stdout}");
+    assert!(stdout.contains("reports/catalog/reports.toml"), "{stdout}");
+    assert!(stdout.contains("publish-manifest"), "{stdout}");
 }
 
 #[test]
