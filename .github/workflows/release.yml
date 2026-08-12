@@ -68,6 +68,9 @@ jobs:
             --workspace-toml Cargo.toml \
             --version '${{ steps.meta.outputs.release_version }}'
 
+      - name: Verify release version lockstep
+        run: python3 scripts/release_artifacts.py verify-version-lockstep --workspace-toml Cargo.toml
+
       - name: Run release gate
         run: scripts/release_gate.sh origin/main origin/develop '${{ steps.meta.outputs.release_version }}' "${RELEASE_ARTIFACT_MANIFEST}"
 
@@ -275,33 +278,79 @@ jobs:
           name: python-sdist
           path: dist/*.tar.gz
 
+  build-sc-sha-python-wheels:
+    needs: gate-and-tag
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate-and-tag.outputs.release_ref }}
+      - uses: ./.github/actions/setup-python-release-build
+        with:
+          release_ref: ${{ needs.gate-and-tag.outputs.release_ref }}
+          release_version: ${{ needs.gate-and-tag.outputs.release_version }}
+          pyproject: bindings/sc-sha-python/pyproject.toml
+      - name: Build sc-sha wheels
+        run: maturin build --release --manifest-path bindings/sc-sha-python/Cargo.toml --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sc-sha-python-wheels-${{ matrix.os }}
+          path: dist/*.whl
+
+  build-sc-sha-python-sdist:
+    needs: gate-and-tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate-and-tag.outputs.release_ref }}
+      - uses: ./.github/actions/setup-python-release-build
+        with:
+          release_ref: ${{ needs.gate-and-tag.outputs.release_ref }}
+          release_version: ${{ needs.gate-and-tag.outputs.release_version }}
+          pyproject: bindings/sc-sha-python/pyproject.toml
+      - name: Build sc-sha sdist
+        run: maturin sdist --manifest-path bindings/sc-sha-python/Cargo.toml --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sc-sha-python-sdist
+          path: dist/*.tar.gz
+
   publish-pypi:
-    needs: [gate-and-tag, build-python-wheels, build-python-sdist]
+    needs: [gate-and-tag, build-python-wheels, build-python-sdist, build-sc-sha-python-wheels, build-sc-sha-python-sdist]
     runs-on: ubuntu-latest
     environment: ${{ needs.gate-and-tag.outputs.release_target == 'production' && 'pypi' || 'testpypi' }}
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: python-wheels-*
+          pattern: '*python-wheels-*'
           merge-multiple: true
           path: dist
       - uses: actions/download-artifact@v4
         with:
           name: python-sdist
           path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: sc-sha-python-sdist
+          path: dist
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - name: Install maturin
         run: python -m pip install maturin==1.9.4
-      - name: Assert unique sdist
+      - name: Assert both Python sdists are present
         shell: bash
         run: |
           set -euo pipefail
           shopt -s nullglob
           sdists=(dist/*.tar.gz)
-          if [[ "${#sdists[@]}" -ne 1 ]]; then
-            echo "expected exactly one sdist, found ${#sdists[@]}" >&2
+          if [[ "${#sdists[@]}" -ne 2 ]]; then
+            echo "expected exactly two sdists (sc-compose and sc-sha), found ${#sdists[@]}" >&2
             exit 1
           fi
       - name: Publish wheels and sdist to TestPyPI
@@ -320,7 +369,7 @@ jobs:
 
   release:
     if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
-    needs: [gate-and-tag, build, publish, build-python-wheels, build-python-sdist, publish-pypi]
+    needs: [gate-and-tag, build, publish, build-python-wheels, build-python-sdist, build-sc-sha-python-wheels, build-sc-sha-python-sdist, publish-pypi]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

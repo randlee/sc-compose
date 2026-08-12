@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 
@@ -146,6 +147,12 @@ def release_workflow_text() -> str:
     return (repo_root() / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
 
 
+def release_manifest() -> dict:
+    return tomllib.loads(
+        (repo_root() / "release" / "publish-artifacts.toml").read_text(encoding="utf-8")
+    )
+
+
 def python_pyproject_text() -> str:
     return (repo_root() / "bindings" / "python" / "pyproject.toml").read_text(encoding="utf-8")
 
@@ -176,6 +183,26 @@ def test_validate_manifest_rejects_wheel_matrix_drift(tmp_path: Path) -> None:
     assert "wheels mismatch" in result.stderr
 
 
+def test_release_manifest_publishes_sc_sha_before_its_consumers() -> None:
+    """Keep the registry dependency order explicit and regression-tested."""
+    manifest = release_manifest()
+
+    assert [
+        (entry["artifact"], entry["package"], entry["publish_order"], entry["wait_after_publish_seconds"])
+        for entry in manifest["crates"]
+    ] == [
+        ("sc-sha", "sc-sha", 1, 30),
+        ("sc-composer", "sc-composer", 2, 30),
+        ("sc-compose", "sc-compose", 3, 0),
+    ]
+    assert {
+        entry["name"]: entry["source"] for entry in manifest["python_distributions"]
+    } == {
+        "sc-sha": "bindings/sc-sha-python",
+        "sc-compose": "bindings/python",
+    }
+
+
 def test_release_workflow_enforces_python_release_invariants() -> None:
     text = release_workflow_text()
     action_text = (
@@ -183,15 +210,15 @@ def test_release_workflow_enforces_python_release_invariants() -> None:
     ).read_text(encoding="utf-8")
 
     assert (
-        "needs: [gate-and-tag, build, publish, build-python-wheels, build-python-sdist, publish-pypi]"
+        "needs: [gate-and-tag, build, publish, build-python-wheels, build-python-sdist, build-sc-sha-python-wheels, build-sc-sha-python-sdist, publish-pypi]"
         in text
     )
     assert "name: python-sdist" in text
     assert "default: testpypi" in text
     assert "type: choice" in text
     assert "release_target == 'production' && 'pypi' || 'testpypi'" in text
-    assert "pattern: python-wheels-*" in text
-    assert "expected exactly one sdist" in text
+    assert "pattern: '*python-wheels-*'" in text
+    assert "expected exactly two sdists (sc-compose and sc-sha)" in text
     assert "TEST_PYPI_API_TOKEN" in text
     assert "--repository testpypi" in text
     assert "maturin upload --non-interactive dist/*.whl dist/*.tar.gz" in text
@@ -201,6 +228,7 @@ def test_release_workflow_enforces_python_release_invariants() -> None:
     assert "verify-python-version" in action_text
     assert "sync-python-version" in action_text
     assert "release_ref" in action_text
+    assert "pyproject" in action_text
 
 
 def test_release_workflow_collects_wheels_without_redundant_zip_sweep() -> None:
@@ -248,6 +276,9 @@ def test_release_workflow_checks_out_repo_before_local_python_setup_action() -> 
 
     assert wheels_job in text
     assert sdist_job in text
+    assert "build-sc-sha-python-wheels:" in text
+    assert "build-sc-sha-python-sdist:" in text
+    assert "bindings/sc-sha-python/Cargo.toml" in text
 
 
 def test_python_package_metadata_uses_local_readme_for_sdist() -> None:
@@ -328,6 +359,65 @@ def run_verify_readme_version(workspace: Path, readme: Path) -> subprocess.Compl
     )
 
 
+def write_version_lockstep_fixture(
+    tmp_path: Path,
+    *,
+    python_version: str = "1.4.0",
+    dependency_version: str = "1.4.0",
+) -> Path:
+    workspace = tmp_path / "Cargo.toml"
+    workspace.write_text(
+        "[workspace.package]\nversion = \"1.4.0\"\n",
+        encoding="utf-8",
+    )
+    for relative_path in (
+        "crates/sc-sha/Cargo.toml",
+        "crates/sc-composer/Cargo.toml",
+        "crates/sc-compose/Cargo.toml",
+        "bindings/python/Cargo.toml",
+        "bindings/sc-sha-python/Cargo.toml",
+    ):
+        path = tmp_path / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        dependencies = ""
+        if relative_path == "crates/sc-compose/Cargo.toml":
+            dependencies = f'\n[dependencies]\nsc-composer = {{ version = "{dependency_version}" }}\n'
+        elif relative_path == "bindings/python/Cargo.toml":
+            dependencies = f'\n[dependencies]\nsc-composer = {{ version = "{dependency_version}" }}\n'
+        elif relative_path == "bindings/sc-sha-python/Cargo.toml":
+            dependencies = f'\n[dependencies]\nsc-sha = {{ version = "{dependency_version}" }}\n'
+        path.write_text(
+            "[package]\nname = \"fixture\"\nversion.workspace = true\n" + dependencies,
+            encoding="utf-8",
+        )
+    for relative_path in (
+        "bindings/python/pyproject.toml",
+        "bindings/sc-sha-python/pyproject.toml",
+    ):
+        path = tmp_path / relative_path
+        path.write_text(
+            f'[project]\nname = "fixture"\nversion = "{python_version}"\n',
+            encoding="utf-8",
+        )
+    return workspace
+
+
+def run_verify_version_lockstep(workspace: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            "scripts/release_artifacts.py",
+            "verify-version-lockstep",
+            "--workspace-toml",
+            str(workspace),
+        ],
+        cwd=Path(__file__).resolve().parents[2],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
 def test_verify_readme_version_passes_when_readme_matches_workspace(tmp_path: Path) -> None:
     workspace, readme = write_readme_fixture(
         tmp_path, dependency_version="1.2.0", status_version="1.2.0", stability_minor="1.2"
@@ -374,3 +464,30 @@ def test_sync_readme_version_rewrites_stale_references(tmp_path: Path) -> None:
 
     verify_result = run_verify_readme_version(workspace, readme)
     assert verify_result.returncode == 0, verify_result.stderr
+
+
+def test_verify_version_lockstep_accepts_all_release_version_sources(tmp_path: Path) -> None:
+    result = run_verify_version_lockstep(write_version_lockstep_fixture(tmp_path))
+
+    assert result.returncode == 0, result.stderr
+    assert "version lockstep verification passed" in result.stdout
+
+
+def test_verify_version_lockstep_names_the_drifting_dependency_field(tmp_path: Path) -> None:
+    result = run_verify_version_lockstep(
+        write_version_lockstep_fixture(tmp_path, dependency_version="1.3.1")
+    )
+
+    assert result.returncode != 0
+    assert "crates/sc-compose/Cargo.toml" in result.stderr
+    assert "[dependencies].sc-composer.version mismatch" in result.stderr
+
+
+def test_verify_version_lockstep_rejects_python_package_drift(tmp_path: Path) -> None:
+    result = run_verify_version_lockstep(
+        write_version_lockstep_fixture(tmp_path, python_version="1.3.1")
+    )
+
+    assert result.returncode != 0
+    assert "bindings/python/pyproject.toml" in result.stderr
+    assert "[project].version mismatch" in result.stderr
