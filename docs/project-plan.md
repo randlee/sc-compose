@@ -303,6 +303,12 @@ Exit gate:
   - Phase D keeps render and validation failures on `2`
   - Phase D keeps usage and configuration failures, including `template-init`
     literal-miss cases, on `3`
+- FR-22:
+  - PR #396 defines the shipped conceptual-help command, its static bundled
+    manual registry, topic coverage, parser collision rules, and text/JSON
+    output schemas
+  - the `help_topics` registry remains exclusively owned by `sc-compose`, with
+    topic names resolved only within the explicit `help` command namespace
 - FR-8 and FR-8a:
   - Sprint 1 finalizes command and health schemas
   - Sprint 2 implements the logger-facing command output
@@ -802,6 +808,43 @@ FEAT-HELP-MANUAL-CORE adds the CLI-owned bundled manual registry, the initial
 `exit-codes` manual, and the `sc-compose help` discovery surface. Follow-on
 feature sprints can add one markdown manual and one ordered registry entry at a
 time.
+
+### Phase N Sprint Plans
+
+Status:
+
+- planned: FR-22 (CLI Conceptual Help Manuals), plan-gated via PR #396
+  (`plan/help-manual-system`);
+- sequencing: N.1 (core scaffolding) must land its `help_topics` registry,
+  `docs/manual/README.md`, and `docs/manual/exit-codes.md` before N.2 and
+  N.3 can add content — N.2/N.3 branch from N.1's tip and merge back into
+  it, not into `develop`, until N.1 itself merges;
+- N.2 and N.3 run concurrently once N.1's registry exists, each owning a
+  disjoint topic set (N.2: render/resolve/validate/verify/extract/
+  template-init; N.3: frontmatter-init/init/examples/templates/reports) —
+  no shared files beyond appending to `docs/manual/README.md` and the
+  `help_topics::TOPICS` array;
+- validation for all three sprints: `cargo fmt --all --check`, `cargo
+  clippy --all-targets --all-features -- -D warnings`, `cargo test
+  --workspace`.
+
+Sprint entries:
+
+- Sprint N.1 — Help-Manual Core Scaffolding: sprint doc lives on
+  `feat/help-manual-core` at `docs/sprints/feat-help-manual-core.md`
+  ([PR #397](https://github.com/randlee/sc-compose/pull/397)); not yet on
+  this branch or `develop`, so no relative link is given here to avoid a
+  dangling reference — it will resolve once that branch merges.
+- Sprint N.2 — Help-Manual Content, Group 1: sprint doc lives on
+  `feat/help-manual-topics-1` at
+  `docs/sprints/feat-help-manual-topics-1.md`
+  ([PR #398](https://github.com/randlee/sc-compose/pull/398)), stacked on
+  N.1.
+- Sprint N.3 — Help-Manual Content, Group 2: sprint doc lives on
+  `feat/help-manual-topics-2` at
+  `docs/sprints/feat-help-manual-topics-2.md`
+  ([PR #399](https://github.com/randlee/sc-compose/pull/399)), stacked on
+  N.1.
 
 ### Follow-on Fix Sprint: FIX-390
 

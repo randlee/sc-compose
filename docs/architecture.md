@@ -93,6 +93,9 @@ dependency on `sc-observability`.
   `(topic_name, content)` registry, each entry's content embedded from a
   single `docs/manual/<topic>.md` file via `include_str!`; no per-topic
   Rust modules or hand-written string constants).
+- exclusive ownership of the `help_topics` module and ordered manual-topic
+  registry; `sc-composer` and `bindings/python` do not define, import, or
+  mutate manual-topic metadata.
 
 ### 3.3 `bindings/python`
 
@@ -889,6 +892,7 @@ Command mapping:
 - `template-init` -> CLI-owned `template_init_file` rewrite path
 - `init` -> `init_workspace`
 - `verify` -> `verify`
+- `extract` -> `extract`
 - `observability-health` -> CLI logger initialization, then `Logger::health()`
 - `examples list` -> list bundled example packs
 - `examples <name>` -> resolve the bundled example-pack file, merge pack
@@ -1008,10 +1012,23 @@ Command-specific rules:
   - lists intended publish destinations without owning upload behavior.
 - `help`
   - with no topic and no `--list`, prints a human-readable topic index,
-  - `--list` prints topic names one per line in a stable, scriptable form,
+  - `--list` prints a UTF-8, newline-delimited topic name per line in registry
+    order, with no labels or indentation, as the stable shell-pipeline form,
+  - `--json` uses the versioned `DiagnosticEnvelope`; the index/list payload is
+    `{ "topics": ["..."] }`, and a topic payload is
+    `{ "topic": "...", "manual": "..." }`,
   - a valid topic prints that topic's bundled manual content verbatim,
   - an unknown topic fails closed with exit `3` and lists valid topic names,
-  - has no rendering side effects and does not go through `compose`.
+  - has no rendering side effects and does not go through `compose`,
+  - is an explicit CLI command: clap's automatic `help` subcommand is disabled
+    while the generated `--help` flag remains enabled,
+  - resolves topic names only after the `help` command has been selected, so a
+    topic may equal a real root command (`help render` versus `render`) without
+    shadowing or reinterpreting that root command.
+- The generated root `sc-compose --help` output must retain a final
+  discoverability footer directing users to `sc-compose help` (and
+  `sc-compose help <topic>`) for the complete bundled manual index. This is a
+  CLI parser/help-rendering concern, not a `sc-composer` library concern.
 
 Guidance and prompt input model:
 
@@ -1040,6 +1057,28 @@ All `--json` command output uses the versioned `DiagnosticEnvelope` transport:
   "diagnostics": []
 }
 ```
+
+`help --list --json` and `help --json` use this payload shape:
+
+```json
+{
+  "topics": ["exit-codes", "render"]
+}
+```
+
+`help <topic> --json` uses this payload shape:
+
+```json
+{
+  "topic": "render",
+  "manual": "# sc-compose render\n..."
+}
+```
+
+The non-JSON `help --list` schema is intentionally line-oriented for shell
+pipelines: UTF-8 topic names, one per line, in registry order, with no labels
+or indentation. The JSON form is the machine-readable alternative and carries
+the same ordered topic data inside the envelope.
 
 The schemas below define the `payload` shape for each command.
 

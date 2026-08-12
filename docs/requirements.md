@@ -451,6 +451,7 @@ Each block may be empty. Ordering is never caller-defined.
 - `template-init`
 - `init`
 - `verify`
+- `extract`
 - `observability-health`
 - `examples`
 - `templates`
@@ -1195,9 +1196,10 @@ sprints.
   binary (no filesystem lookup, no network access) covering one CLI feature
   area: at minimum `render`, `resolve`, `validate`, `verify`, `extract`,
   `template-init`, `frontmatter-init`, `init`, `examples`, `templates`,
-  `reports`, and `exit-codes`. The `exit-codes` topic shall document the
-  FR-7b contract (`0`/`1`/`2`/`3`) in full, since that contract is otherwise
-  only discoverable by reading `docs/requirements.md` in the repository.
+  `reports`, `observability-health`, and `exit-codes`. The `exit-codes` topic
+  shall document the FR-7b contract (`0`/`1`/`2`/`3`) in full, since that
+  contract is otherwise only discoverable by reading `docs/requirements.md`
+  in the repository.
 - Topic content shall be authored as one Markdown file per topic under
   `docs/manual/` (e.g. `docs/manual/render.md`), each embedded into the
   binary at compile time via a single canonical registry (one ordered
@@ -1212,6 +1214,31 @@ sprints.
   dispatch branches.
 - An unknown topic name shall fail closed with a usage-class exit code (per
   FR-7b, exit `3`) and shall list the valid topic names in its error output.
+- The root parser shall disable clap's automatically registered `help`
+  subcommand while retaining the generated `--help` flag, then register this
+  conceptual `help` command explicitly. This keeps `sc-compose help` as one
+  unambiguous route to the manual system and prevents clap's generated
+  subcommand from colliding with it.
+- Topic names are scoped to the explicit `help` command, not the root command
+  namespace. A topic may therefore have the same name as a real command (for
+  example, `sc-compose help render` displays the `render` manual while
+  `sc-compose render` runs the renderer); topic lookup must not shadow or
+  reinterpret any root command.
+- `help` and `help --list` shall accept `--json` and use the versioned
+  `DiagnosticEnvelope` transport. In text mode, `help --list` is a UTF-8,
+  newline-delimited sequence containing exactly one canonical topic name per
+  line, in registry order, with no labels or indentation; this explicit
+  line-oriented schema is the stable shell-pipeline form. In JSON mode, its
+  payload is `{ "topics": ["..."] }` in the standard envelope. A topic JSON
+  response uses `{ "topic": "...", "manual": "..." }` as its payload.
+- “Versioned” means the Markdown bytes are committed under `docs/manual/`,
+  embedded into the same released binary as the CLI, and identified by that
+  binary's `sc-compose --version`; there is no independently fetched page or
+  separate page-version field. A behavior change must update the source page
+  and the corresponding CLI release together.
+- The `help_topics` module and its ordered registry are exclusively owned by
+  `sc-compose`; `sc-composer` and the Python bindings must not define, import,
+  or mutate manual-topic metadata.
 - Manual content shall be reviewed for drift against the corresponding
   command's actual flags/behavior whenever that command's CLI surface
   changes; this is a documentation-accuracy expectation, not an automated
