@@ -4,6 +4,7 @@
 ///
 /// The suffix list and order preserve sc-compose's historical handling of
 /// `.j2`, `.jinja2`, and `.jinja` template filenames.
+#[must_use]
 pub fn strip_template_suffix(name: &str) -> &str {
     [".j2", ".jinja2", ".jinja"]
         .iter()
