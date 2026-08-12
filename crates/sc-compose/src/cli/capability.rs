@@ -3,6 +3,7 @@ use super::{Command, ExamplesSubcommand, TemplatesSubcommand};
 pub(crate) fn command_wants_json(command: &Command) -> bool {
     match command {
         Command::Lint(args) => args.json,
+        Command::Help(_) => false,
         Command::Render(args) => args.render.json,
         Command::Resolve(args) => args.json,
         Command::Validate(args) => args.json,

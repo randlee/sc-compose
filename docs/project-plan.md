@@ -750,6 +750,7 @@ Sprint entries:
 - [Sprint FIX-385 — Template-Init JSON Round Trip](sprints/fix-385-template-init-json-round-trip.md)
 - [Sprint FIX-390 — Clap Usage Exit Code](sprints/fix-390-clap-exit-code-fr7b.md)
 - [Sprint FIX-SIMP-001 — Shared Template Suffix Helper](sprints/fix-simp-001-shared-suffix-helper.md)
+- [Sprint FEAT-HELP-MANUAL-CORE — Core Help Manuals](sprints/feat-help-manual-core.md)
 
 ### Follow-on Fix Sprint: FIX-390
 
