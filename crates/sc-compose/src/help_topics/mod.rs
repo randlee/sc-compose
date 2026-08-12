@@ -28,6 +28,23 @@ pub(crate) const TOPICS: &[(&str, &str)] = &[
         "template-init",
         include_str!("../../../../docs/manual/template-init.md"),
     ),
+    (
+        "frontmatter-init",
+        include_str!("../../../../docs/manual/frontmatter-init.md"),
+    ),
+    ("init", include_str!("../../../../docs/manual/init.md")),
+    (
+        "examples",
+        include_str!("../../../../docs/manual/examples.md"),
+    ),
+    (
+        "templates",
+        include_str!("../../../../docs/manual/templates.md"),
+    ),
+    (
+        "reports",
+        include_str!("../../../../docs/manual/reports.md"),
+    ),
 ];
 
 pub(crate) fn topic_names() -> Vec<&'static str> {

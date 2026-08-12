@@ -752,6 +752,7 @@ Sprint entries:
 - [Sprint FIX-SIMP-001 — Shared Template Suffix Helper](sprints/fix-simp-001-shared-suffix-helper.md)
 - [Sprint FEAT-HELP-MANUAL-CORE — Core Help Manuals](sprints/feat-help-manual-core.md)
 - [Sprint FEAT-HELP-MANUAL-TOPICS-1 — Group 1 Help Manuals](sprints/feat-help-manual-topics-1.md)
+- [Sprint FEAT-HELP-MANUAL-TOPICS-2 — Help Manuals: Workspace and Reports](sprints/feat-help-manual-topics-2.md)
 
 ### Follow-on Feature Sprint: FEAT-HELP-MANUAL-TOPICS-1
 
@@ -767,6 +768,20 @@ FEAT-HELP-MANUAL-TOPICS-1 adds the six group-one feature manuals for render,
 resolve, validate, verify, extract, and template-init. Each document is
 embedded in the CLI's ordered help-topic registry and is also linked from the
 repository manual index.
+
+### Follow-on Feature Sprint: FEAT-HELP-MANUAL-TOPICS-2
+
+Status:
+
+- complete on `feat/help-manual-topics-2` at `feb7ca6`
+
+Sprint entry:
+
+- [Sprint FEAT-HELP-MANUAL-TOPICS-2 — Help Manuals: Workspace and Reports](sprints/feat-help-manual-topics-2.md)
+
+FEAT-HELP-MANUAL-TOPICS-2 adds bundled manuals for `frontmatter-init`,
+`init`, `examples`, `templates`, and `reports`, registering each page in the
+CLI's deterministic help-topic index with matching command-level sanity tests.
 
 ### Follow-on Feature Sprint: FEAT-HELP-MANUAL-CORE
 

@@ -15,6 +15,14 @@ when a script needs the same topic names as one stable, newline-delimited list.
 - [Verify](verify.md) — compare rendered output with a deployed file.
 - [Extract](extract.md) — recover values from a known template and rendered output.
 - [Template init](template-init.md) — convert a concrete file into a pass-aware template.
+- [Frontmatter initialization](frontmatter-init.md) — add required-variable
+  frontmatter to a concrete template file.
+- [Workspace initialization](init.md) — bootstrap `.prompts/` and validate
+  workspace templates.
+- [Examples](examples.md) — list and render bundled example packs.
+- [Templates](templates.md) — import, list, and render user template packs.
+- [Reports](reports.md) — create, materialize, verify, and publish report
+  artifacts.
 
 Additional feature manuals should add a document here and register it in the
 CLI's ordered manual-topic registry so the index and `--list` output stay in
