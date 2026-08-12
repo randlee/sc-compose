@@ -751,6 +751,21 @@ Sprint entries:
 - [Sprint FIX-390 — Clap Usage Exit Code](sprints/fix-390-clap-exit-code-fr7b.md)
 - [Sprint FIX-SIMP-001 — Shared Template Suffix Helper](sprints/fix-simp-001-shared-suffix-helper.md)
 - [Sprint FEAT-HELP-MANUAL-CORE — Core Help Manuals](sprints/feat-help-manual-core.md)
+- [Sprint FEAT-HELP-MANUAL-TOPICS-2 — Help Manuals: Workspace and Reports](sprints/feat-help-manual-topics-2.md)
+
+### Follow-on Feature Sprint: FEAT-HELP-MANUAL-TOPICS-2
+
+Status:
+
+- complete on `feat/help-manual-topics-2` at `feb7ca6`
+
+Sprint entry:
+
+- [Sprint FEAT-HELP-MANUAL-TOPICS-2 — Help Manuals: Workspace and Reports](sprints/feat-help-manual-topics-2.md)
+
+FEAT-HELP-MANUAL-TOPICS-2 adds bundled manuals for `frontmatter-init`,
+`init`, `examples`, `templates`, and `reports`, registering each page in the
+CLI's deterministic help-topic index with matching command-level sanity tests.
 
 ### Follow-on Feature Sprint: FEAT-HELP-MANUAL-CORE
 

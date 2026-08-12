@@ -1,7 +1,7 @@
 ---
 id: FEAT-HELP-MANUAL-TOPICS-2
 title: Help-manual content, group 2 (frontmatter-init/init/examples/templates/reports)
-status: assigned
+status: complete
 branch: feat/help-manual-topics-2
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/help-manual-topics-2
 target: feat/help-manual-core
@@ -104,3 +104,19 @@ the other six topics. Do not touch any topic owned by that sprint.
 ## Priority
 
 Medium — customer-facing documentation gap, not release-blocking.
+
+## Closeout Evidence
+
+Status: **complete**.
+
+- Core dependency: rebased onto `7cd42a3` and `01b589e` from
+  `feat/help-manual-core`.
+- Implementation: `feb7ca6` (`feat(help): add workspace and report manuals`).
+  The branch adds all five topic pages, their ordered registry entries,
+  manual-index links, and one content sanity test per topic.
+- The five manuals describe the real command schemas, runnable examples,
+  report layout or template-pack requirements where applicable, and common
+  diagnostic codes.
+- Validation: `cargo test --workspace`, `cargo fmt --all --check`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, and
+  `git diff --check`: PASS.
