@@ -1,7 +1,7 @@
 ---
 id: FEAT-HELP-MANUAL-CORE
 title: Core scaffolding for sc-compose help manuals (FR-22)
-status: assigned
+status: complete
 branch: feat/help-manual-core
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feat/help-manual-core
 target: develop
@@ -164,3 +164,14 @@ progressive discovery from `README.md` down to one document per feature.
 ## Priority
 
 Medium — customer-facing documentation gap, not release-blocking.
+
+## Closeout Evidence
+
+- implementation commit: `7cd42a3` (`feat: add bundled help manual core`)
+- `sc-compose help` prints the bundled manual index, `help --list` emits the
+  stable topic names, and `help exit-codes` prints the four-code contract;
+  unknown topics return usage failure `3` and list valid topics.
+- root `sc-compose --help` points users to the shipped manuals.
+- validation PASS: `cargo fmt --all --check`,
+  `cargo clippy --workspace --all-targets --all-features -- -D warnings`,
+  and `cargo test --workspace`.
