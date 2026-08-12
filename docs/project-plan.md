@@ -836,6 +836,24 @@ Sprint entries:
 - Follow-on plan gate — CLI Conceptual Help Manuals
   ([PR #396](https://github.com/randlee/sc-compose/pull/396)); complete.
 
+### Phase O Sprint Plans
+
+Status:
+
+- planned: JSON escape-mode compatibility and fail-closed rendered-output
+  validation after the 1.4.0 double-quote regression
+- O.1 is the infrastructure sprint; O.2 and O.3 may execute in parallel after
+  O.1 merges; O.4 is the release-corpus and fuzz closeout sprint
+- target: `integrate/phase-o`
+
+Sprint entries:
+
+- [Phase O plan](phase-O/phase-O-plan.md)
+- [Sprint O.1 — JSON Mode Contract](phase-O/sprint-o-1-json-mode-contract.md)
+- [Sprint O.2 — Checked Render Contract](phase-O/sprint-o-2-checked-render-contract.md)
+- [Sprint O.3 — Template Lint and Repository Target](phase-O/sprint-o-3-template-lint-and-repo-target.md)
+- [Sprint O.4 — Migration, Release Corpus, and Fuzz Gate](phase-O/sprint-o-4-migration-release-fuzz-gate.md)
+
 ### Follow-on Fix Sprint: FIX-390
 
 Status:
