@@ -780,6 +780,19 @@ used by renderer auto-escape classification and template-init JSON detection
 in the pure `sc-composer` crate, eliminating the duplicated heuristic without
 changing either caller's behavior.
 
+### Follow-on Fix Sprint: FIX-SIMP-001-FOLLOWUP
+
+Status:
+
+- complete on `fix/simp-001-followup-architecture-doc`
+
+Sprint entry:
+
+- [Sprint FIX-SIMP-001-FOLLOWUP — Architecture Doc Module List](sprints/fix-simp-001-followup-architecture-doc.md)
+
+FIX-SIMP-001-FOLLOWUP adds the `template_ext` module to `docs/architecture.md`
+Section 4's module list, closing the ATM-QA-003 finding from FIX-SIMP-001 QA.
+
 ### Follow-on Fix Sprint: FIX-373
 
 Status:
