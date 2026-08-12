@@ -15,7 +15,10 @@ fn help_list_is_stable_and_scriptable() {
     let output = sc_compose().args(["help", "--list"]).output().unwrap();
 
     assert!(output.status.success(), "{output:?}");
-    assert_eq!(String::from_utf8_lossy(&output.stdout), "exit-codes\n");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "exit-codes\nrender\nresolve\nvalidate\nverify\nextract\ntemplate-init\n"
+    );
 }
 
 #[test]
@@ -90,4 +93,60 @@ fn root_help_points_to_shipped_manuals() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("manuals ship with this CLI"), "{stdout}");
     assert!(stdout.contains("sc-compose help <topic>"), "{stdout}");
+}
+
+#[test]
+fn render_manual_describes_render_options() {
+    assert_topic_contains("render", ["--output", "--brace-count", "--json"]);
+}
+
+#[test]
+fn resolve_manual_describes_profile_resolution() {
+    assert_topic_contains(
+        "resolve",
+        ["--mode profile", "--agent", "ERR_RESOLVE_NOT_FOUND"],
+    );
+}
+
+#[test]
+fn validate_manual_describes_validation_options() {
+    assert_topic_contains("validate", ["--lint", "--all", "ERR_VAL_MISSING_REQUIRED"]);
+}
+
+#[test]
+fn verify_manual_describes_drift_comparison() {
+    assert_topic_contains("verify", ["DEPLOYED", "--quiet", "exit code `1`"]);
+}
+
+#[test]
+fn extract_manual_describes_recovery_formats() {
+    assert_topic_contains(
+        "extract",
+        [
+            "--format xml|json|yaml|toml|raw",
+            "--include",
+            "ERR_EXTRACT_AMBIGUOUS",
+        ],
+    );
+}
+
+#[test]
+fn template_init_manual_describes_pass_groups() {
+    assert_topic_contains(
+        "template-init",
+        ["--pass N", "--var KEY=VALUE", "--dry-run"],
+    );
+}
+
+fn assert_topic_contains<const N: usize>(topic: &str, expected: [&str; N]) {
+    let output = sc_compose().args(["help", topic]).output().unwrap();
+
+    assert!(output.status.success(), "topic={topic}: {output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for needle in expected {
+        assert!(
+            stdout.contains(needle),
+            "topic={topic}: missing {needle:?}: {stdout}"
+        );
+    }
 }
