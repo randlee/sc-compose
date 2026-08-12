@@ -68,6 +68,8 @@ pub(crate) struct HelpArgs {
     pub(crate) topic: Option<String>,
     #[arg(long, conflicts_with = "topic", help = "List available manual topics")]
     pub(crate) list: bool,
+    #[arg(long, help = "Emit the manual response as a diagnostic JSON envelope")]
+    pub(crate) json: bool,
 }
 
 #[derive(Debug, Clone, Args)]

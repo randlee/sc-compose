@@ -40,6 +40,46 @@ fn unknown_manual_topic_returns_usage_failure_and_valid_topics() {
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("unknown manual topic"), "{stderr}");
     assert!(stderr.contains("exit-codes"), "{stderr}");
+    assert!(
+        stderr.contains("recovery: run `sc-compose help --list`"),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn unknown_manual_topic_json_uses_diagnostic_envelope() {
+    let output = sc_compose()
+        .args(["help", "not-a-real-topic", "--json"])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    assert!(
+        output.stderr.is_empty(),
+        "unexpected stderr: {:?}",
+        output.stderr
+    );
+    let envelope: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(
+        envelope["diagnostics"][0]["code"],
+        "ERR_CONFIG_HELP_TOPIC_NOT_FOUND"
+    );
+    assert!(
+        envelope["diagnostics"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("exit-codes")
+    );
+}
+
+#[test]
+fn help_json_returns_the_standard_envelope() {
+    let output = sc_compose().args(["help", "--json"]).output().unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let envelope: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert!(envelope["payload"]["topics"].is_array());
+    assert!(envelope["diagnostics"].is_array());
 }
 
 #[test]

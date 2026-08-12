@@ -172,6 +172,8 @@ Medium — customer-facing documentation gap, not release-blocking.
   stable topic names, and `help exit-codes` prints the four-code contract;
   unknown topics return usage failure `3` and list valid topics.
 - root `sc-compose --help` points users to the shipped manuals.
+- CI evidence: [PR #397 checks](https://github.com/randlee/sc-compose/pull/397/checks)
+  for commit `01b589e` are green, including the workspace test job.
 - validation PASS: `cargo fmt --all --check`,
   `cargo clippy --workspace --all-targets --all-features -- -D warnings`,
   and `cargo test --workspace`.
