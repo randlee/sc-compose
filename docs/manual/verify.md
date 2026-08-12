@@ -1,9 +1,10 @@
 # sc-compose verify
 
-`verify` renders a template and compares it with an already deployed file.
-It does not modify either input. A clean comparison exits successfully; drift
-is reported as a distinct exit status so release scripts can reject stale
-deployed output.
+After deploying a generated file, use `verify` to answer the practical
+question “does this file still match its template?” It renders the template
+and compares it with the deployed file without modifying either input. A
+clean comparison exits successfully; drift gets a distinct status so release
+scripts can reject stale output.
 
 ## Basic usage
 

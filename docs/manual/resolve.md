@@ -1,8 +1,9 @@
 # sc-compose resolve
 
-`resolve` finds the concrete template path for a named profile without
-rendering it. It is intended for inspecting profile search behavior or for a
-script that needs the selected path before a later operation.
+When you need to know which file a named profile will use, reach for
+`resolve` before rendering. It finds the concrete template path without
+changing or rendering it, making profile search behavior easy to inspect and
+safe to use from a script that needs the path for a later operation.
 
 ## Basic usage
 

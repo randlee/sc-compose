@@ -1,9 +1,10 @@
 # sc-compose validate
 
-`validate` resolves and checks a template without producing rendered output.
-It verifies frontmatter, required inputs, referenced variables, and template
-structure. A successful text invocation prints `valid`; JSON mode preserves
-the result and diagnostics in the standard envelope.
+Before writing generated output, use `validate` to find missing inputs or
+template mistakes early. It resolves and checks frontmatter, required inputs,
+referenced variables, and template structure without producing rendered
+output. A successful text invocation prints `valid`; JSON mode preserves the
+result and diagnostics in the standard envelope.
 
 ## Basic usage
 

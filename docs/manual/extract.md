@@ -1,8 +1,9 @@
 # sc-compose extract
 
-`extract` recovers variable values by comparing a known template with its
-rendered output. It supports structured XML, JSON, YAML, and TOML output, plus
-`raw` mode for known-template text.
+When you inherit a rendered document but need the values that produced it,
+use `extract` with the known template as a guide. It compares the two files
+and recovers values conservatively, supporting structured XML, JSON, YAML, and
+TOML output plus `raw` mode for known-template text.
 
 ## Basic usage
 

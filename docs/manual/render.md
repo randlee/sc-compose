@@ -1,8 +1,10 @@
 # sc-compose render
 
-`render` resolves a template, validates its inputs, and writes the rendered
-result. With no `--output`, the result is written to standard output. The same
-manual is available in the installed binary with `sc-compose help render`.
+When you need to turn a template into a concrete document, use `render`. It
+prepares the template's inputs, checks them, and writes the finished result so
+you can use it in a file, a pipeline, or another command. With no `--output`,
+the result goes to standard output. The same manual is available in the
+installed binary with `sc-compose help render`.
 
 ## Basic usage
 

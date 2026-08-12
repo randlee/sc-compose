@@ -1,9 +1,9 @@
 # sc-compose template-init
 
-`template-init` converts a concrete file into a pass-aware sc-compose
-template. It discovers the values you identify, adds frontmatter, and writes
-the template back to the same file. Use `--dry-run` to inspect the proposed
-template without writing it.
+When you have a concrete document and want to make it reusable, use
+`template-init` to turn it into a pass-aware sc-compose template. It records
+the values you identify, adds frontmatter, and writes the template back to the
+same file; use `--dry-run` when you want to review the proposed change first.
 
 ## Basic usage
 
