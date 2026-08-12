@@ -45,6 +45,10 @@ pub(crate) const TOPICS: &[(&str, &str)] = &[
         "reports",
         include_str!("../../../../docs/manual/reports.md"),
     ),
+    (
+        "observability-health",
+        include_str!("../../../../docs/manual/observability-health.md"),
+    ),
 ];
 
 pub(crate) fn topic_names() -> Vec<&'static str> {

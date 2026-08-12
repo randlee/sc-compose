@@ -813,38 +813,28 @@ time.
 
 Status:
 
-- planned: FR-22 (CLI Conceptual Help Manuals), plan-gated via PR #396
-  (`plan/help-manual-system`);
-- sequencing: N.1 (core scaffolding) must land its `help_topics` registry,
-  `docs/manual/README.md`, and `docs/manual/exit-codes.md` before N.2 and
-  N.3 can add content — N.2/N.3 branch from N.1's tip and merge back into
-  it, not into `develop`, until N.1 itself merges;
-- N.2 and N.3 run concurrently once N.1's registry exists, each owning a
-  disjoint topic set (N.2: render/resolve/validate/verify/extract/
-  template-init; N.3: frontmatter-init/init/examples/templates/reports) —
-  no shared files beyond appending to `docs/manual/README.md` and the
-  `help_topics::TOPICS` array;
-- validation for all three sprints: `cargo fmt --all --check`, `cargo
-  clippy --all-targets --all-features -- -D warnings`, `cargo test
-  --workspace`.
+- complete on `develop` after PRs #397, #398, #399, and #396 merged.
+- N.1 established the CLI-owned `help_topics` registry and initial manual;
+  N.2 and N.3 added the remaining command manuals; PR #396 finalized the
+  FR-22 requirement, parser collision rules, and text/JSON output schemas.
+- The merged registry now ships manuals for `exit-codes`, `render`, `resolve`,
+  `validate`, `verify`, `extract`, `template-init`, `frontmatter-init`,
+  `init`, `examples`, `templates`, `reports`, and
+  `observability-health`.
+- Validation for the completed sequence passed `cargo fmt --all --check`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, and
+  `cargo test --workspace`.
 
 Sprint entries:
 
-- Sprint N.1 — Help-Manual Core Scaffolding: sprint doc lives on
-  `feat/help-manual-core` at `docs/sprints/feat-help-manual-core.md`
-  ([PR #397](https://github.com/randlee/sc-compose/pull/397)); not yet on
-  this branch or `develop`, so no relative link is given here to avoid a
-  dangling reference — it will resolve once that branch merges.
-- Sprint N.2 — Help-Manual Content, Group 1: sprint doc lives on
-  `feat/help-manual-topics-1` at
-  `docs/sprints/feat-help-manual-topics-1.md`
-  ([PR #398](https://github.com/randlee/sc-compose/pull/398)), stacked on
-  N.1.
-- Sprint N.3 — Help-Manual Content, Group 2: sprint doc lives on
-  `feat/help-manual-topics-2` at
-  `docs/sprints/feat-help-manual-topics-2.md`
-  ([PR #399](https://github.com/randlee/sc-compose/pull/399)), stacked on
-  N.1.
+- Sprint N.1 — [Help-Manual Core Scaffolding](sprints/feat-help-manual-core.md)
+  ([PR #397](https://github.com/randlee/sc-compose/pull/397)); complete.
+- Sprint N.2 — [Help-Manual Content, Group 1](sprints/feat-help-manual-topics-1.md)
+  ([PR #398](https://github.com/randlee/sc-compose/pull/398)); complete.
+- Sprint N.3 — [Help-Manual Content, Group 2](sprints/feat-help-manual-topics-2.md)
+  ([PR #399](https://github.com/randlee/sc-compose/pull/399)); complete.
+- Follow-on plan gate — CLI Conceptual Help Manuals
+  ([PR #396](https://github.com/randlee/sc-compose/pull/396)); complete.
 
 ### Follow-on Fix Sprint: FIX-390
 
