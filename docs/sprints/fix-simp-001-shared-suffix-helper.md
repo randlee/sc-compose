@@ -1,7 +1,7 @@
 ---
 id: FIX-SIMP-001
 title: "Duplicated .j2/.jinja2/.jinja suffix-stripping heuristic between template_init.rs and renderer.rs"
-status: assigned
+status: complete
 branch: fix/simp-001-shared-suffix-helper
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/simp-001-shared-suffix-helper
 target: crates/sc-composer/src/renderer.rs, crates/sc-compose/src/commands/template_init.rs
@@ -69,6 +69,16 @@ use — not the other direction.
 - `docs/sprints/fix-385-template-init-json-round-trip.md`
 - Boundary Rules 1-2 (`CLAUDE.md`): sc-composer stays a pure library;
   sc-compose may depend on sc-composer only.
+
+## Closeout Evidence
+
+- Implementation commits: `26b6472` and `60c6df6`.
+- Exported `sc_composer::strip_template_suffix` is the sole copy of the
+  recognized template-suffix stripping logic; both renderer auto-escape and
+  template-init JSON detection call it.
+- Added unit coverage for all supported suffixes and the unchanged-name path.
+- Validation passed: `cargo test --workspace`, `cargo fmt --all --check`, and
+  `cargo clippy --all-targets --all-features -- -D warnings`.
 
 ## Priority
 

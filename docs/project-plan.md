@@ -749,6 +749,7 @@ Sprint entries:
 - [Sprint FIX-375 — ScShaError __str__](sprints/fix-375-scshaerror-str.md)
 - [Sprint FIX-385 — Template-Init JSON Round Trip](sprints/fix-385-template-init-json-round-trip.md)
 - [Sprint FIX-390 — Clap Usage Exit Code](sprints/fix-390-clap-exit-code-fr7b.md)
+- [Sprint FIX-SIMP-001 — Shared Template Suffix Helper](sprints/fix-simp-001-shared-suffix-helper.md)
 
 ### Follow-on Fix Sprint: FIX-390
 
@@ -763,6 +764,21 @@ Sprint entry:
 FIX-390 aligns clap-originated usage failures with FR-7b by returning exit code
 `3` in both JSON and plain-text modes, while preserving exit code `0` for
 `--help` and `--version` display requests.
+
+### Follow-on Fix Sprint: FIX-SIMP-001
+
+Status:
+
+- complete on `fix/simp-001-shared-suffix-helper` at `60c6df6`
+
+Sprint entry:
+
+- [Sprint FIX-SIMP-001 — Shared Template Suffix Helper](sprints/fix-simp-001-shared-suffix-helper.md)
+
+FIX-SIMP-001 centralizes the `.j2`, `.jinja2`, and `.jinja` suffix stripping
+used by renderer auto-escape classification and template-init JSON detection
+in the pure `sc-composer` crate, eliminating the duplicated heuristic without
+changing either caller's behavior.
 
 ### Follow-on Fix Sprint: FIX-373
 
