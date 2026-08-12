@@ -809,9 +809,21 @@ Status:
 
 Sprint entries:
 
-- [Sprint N.1 — Help-Manual Core Scaffolding](sprints/feat-help-manual-core.md)
-- [Sprint N.2 — Help-Manual Content, Group 1](sprints/feat-help-manual-topics-1.md)
-- [Sprint N.3 — Help-Manual Content, Group 2](sprints/feat-help-manual-topics-2.md)
+- Sprint N.1 — Help-Manual Core Scaffolding: sprint doc lives on
+  `feat/help-manual-core` at `docs/sprints/feat-help-manual-core.md`
+  ([PR #397](https://github.com/randlee/sc-compose/pull/397)); not yet on
+  this branch or `develop`, so no relative link is given here to avoid a
+  dangling reference — it will resolve once that branch merges.
+- Sprint N.2 — Help-Manual Content, Group 1: sprint doc lives on
+  `feat/help-manual-topics-1` at
+  `docs/sprints/feat-help-manual-topics-1.md`
+  ([PR #398](https://github.com/randlee/sc-compose/pull/398)), stacked on
+  N.1.
+- Sprint N.3 — Help-Manual Content, Group 2: sprint doc lives on
+  `feat/help-manual-topics-2` at
+  `docs/sprints/feat-help-manual-topics-2.md`
+  ([PR #399](https://github.com/randlee/sc-compose/pull/399)), stacked on
+  N.1.
 
 ### Follow-on Fix Sprint: FIX-390
 
