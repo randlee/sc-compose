@@ -1,11 +1,11 @@
 # sc-compose frontmatter-init
 
-`frontmatter-init` turns a concrete file into a minimally configured
-sc-compose template. It reads one file, discovers the variables referenced by
-its Jinja body, and inserts normalized YAML frontmatter containing
-`required_variables`, an empty `defaults` map, and an empty `metadata` map.
-It does not replace literal values; use `template-init` when the file also
-needs pass-scoped substitutions.
+Reach for `frontmatter-init` when you already have a concrete file with Jinja
+placeholders and want to make it a usable sc-compose template quickly. It
+discovers the variables in the body and adds the smallest useful declaration:
+normalized YAML frontmatter with `required_variables`, an empty `defaults`
+map, and an empty `metadata` map. It does not replace literal values; use
+`template-init` when the file also needs pass-scoped substitutions.
 
 ## Usage
 

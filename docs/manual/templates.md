@@ -1,10 +1,11 @@
 # sc-compose templates
 
-`templates` manages user-owned template packs. Packs live below the user
-template directory, which can be overridden with `SC_COMPOSE_TEMPLATE_DIR`.
-Each renderable pack is a directory containing exactly one root-level `*.j2`
-file. An optional `template.json` may provide `description`, `version`, and
-validated `input_defaults` values.
+Reach for `templates` when a reusable template should live beyond one
+workspace or be shared as a named pack. It manages user-owned template packs
+below the user template directory, which can be overridden with
+`SC_COMPOSE_TEMPLATE_DIR`. Each renderable pack is a directory containing
+exactly one root-level `*.j2` file; an optional `template.json` may provide
+`description`, `version`, and validated `input_defaults` values.
 
 ## Usage
 

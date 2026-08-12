@@ -1,10 +1,11 @@
 # sc-compose reports
 
-The `reports` command family creates and checks a shared report workspace.
-Reports use a catalog at `reports/catalog/reports.toml`, latest outputs below
-`reports/latest/`, and optional timestamped copies below `reports/archive/`.
-Each catalog entry identifies an id, kind, producer, required flag, entrypoint,
-and metadata path.
+Reach for the `reports` command family when a build or review pipeline needs
+its evidence collected in a predictable layout and checked before handoff.
+The family creates and checks a shared report workspace using a catalog at
+`reports/catalog/reports.toml`, latest outputs below `reports/latest/`, and
+optional timestamped copies below `reports/archive/`. Each catalog entry
+identifies an id, kind, producer, required flag, entrypoint, and metadata path.
 
 ## Commands
 

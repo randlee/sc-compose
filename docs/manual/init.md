@@ -1,9 +1,10 @@
 # sc-compose init
 
-`init` bootstraps a workspace for composed outputs. It creates a `.prompts/`
-directory when needed, ensures `.gitignore` contains `.prompts/`, and scans
-the workspace's `.j2` files for validation recommendations. The scan skips
-`.git` and `target` directories. Existing template files are not rewritten.
+Reach for `init` when you are preparing a repository to hold composed prompt
+outputs. It creates a `.prompts/` directory when needed, ensures `.gitignore`
+contains `.prompts/`, and scans the workspace's `.j2` files for validation
+recommendations. The scan skips `.git` and `target` directories, and existing
+template files are not rewritten.
 
 ## Usage
 

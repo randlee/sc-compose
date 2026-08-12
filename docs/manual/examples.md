@@ -1,9 +1,10 @@
 # sc-compose examples
 
-`examples` lists and renders the bundled example packs shipped with
-sc-compose. A pack is selected by name; the bundled data directory can be
-overridden with `SC_COMPOSE_DATA_DIR` when testing a checkout or a custom
-installation.
+Reach for `examples` when you want to explore a known-good template, learn the
+rendering workflow, or produce a bundled example without assembling a pack
+yourself. It lists and renders the example packs shipped with sc-compose. A
+pack is selected by name; the bundled data directory can be overridden with
+`SC_COMPOSE_DATA_DIR` when testing a checkout or a custom installation.
 
 ## Usage
 
