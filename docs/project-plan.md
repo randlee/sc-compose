@@ -748,6 +748,21 @@ Sprint entries:
 - [Sprint FIX-374 — sc-sha Digest Error Code](sprints/fix-374-sc-sha-digest-error-code.md)
 - [Sprint FIX-375 — ScShaError __str__](sprints/fix-375-scshaerror-str.md)
 - [Sprint FIX-385 — Template-Init JSON Round Trip](sprints/fix-385-template-init-json-round-trip.md)
+- [Sprint FIX-390 — Clap Usage Exit Code](sprints/fix-390-clap-exit-code-fr7b.md)
+
+### Follow-on Fix Sprint: FIX-390
+
+Status:
+
+- complete on `fix/390-clap-exit-code-fr7b` at `ff5d74b`
+
+Sprint entry:
+
+- [Sprint FIX-390 — Clap Usage Exit Code](sprints/fix-390-clap-exit-code-fr7b.md)
+
+FIX-390 aligns clap-originated usage failures with FR-7b by returning exit code
+`3` in both JSON and plain-text modes, while preserving exit code `0` for
+`--help` and `--version` display requests.
 
 ### Follow-on Fix Sprint: FIX-373
 

@@ -198,6 +198,7 @@ fn malformed_var_argument_does_not_bypass_the_json_output_contract() {
         .unwrap();
 
     assert!(!output.status.success());
+    assert_eq!(output.status.code(), Some(3));
     assert!(
         !output.stdout.is_empty(),
         "expected a JSON envelope on stdout, got empty stdout; stderr={}",
@@ -234,6 +235,7 @@ fn all_and_brace_count_conflict_does_not_bypass_the_json_output_contract() {
         .unwrap();
 
     assert!(!output.status.success());
+    assert_eq!(output.status.code(), Some(3));
     assert!(
         !output.stdout.is_empty(),
         "expected a JSON envelope on stdout, got empty stdout; stderr={}",
@@ -244,10 +246,34 @@ fn all_and_brace_count_conflict_does_not_bypass_the_json_output_contract() {
 }
 
 #[test]
-fn help_and_version_with_json_preserve_clap_display_output() {
+fn clap_usage_errors_exit_with_usage_fail_in_plain_text_mode() {
+    for args in [
+        &["validate", "--var", "novalue"][..],
+        &["render", "--all", "--brace-count", "3", "--file", "t.j2"][..],
+        &["validate", "--unknown-flag"][..],
+    ] {
+        let output = sc_compose().args(args).output().unwrap();
+
+        assert_eq!(
+            output.status.code(),
+            Some(3),
+            "expected usage failure for {args:?}, stderr={}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(
+            !output.stderr.is_empty(),
+            "expected usage text for {args:?}"
+        );
+    }
+}
+
+#[test]
+fn help_and_version_preserve_clap_display_output_in_both_modes() {
     for (args, expected_text) in [
         (&["--version", "--json"][..], "sc-compose"),
         (&["render", "--help", "--json"][..], "render [OPTIONS]"),
+        (&["--version"][..], "sc-compose"),
+        (&["render", "--help"][..], "render [OPTIONS]"),
     ] {
         let output = sc_compose().args(args).output().unwrap();
 

@@ -38,12 +38,15 @@ fn main() {
 
 fn report_cli_parse_error(error: &clap::Error, wants_json: bool) -> i32 {
     let rendered = error.render().to_string();
-    let exit_code = error.exit_code();
-
     let is_display_request = matches!(
         error.kind(),
         ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
     );
+    let exit_code = if is_display_request {
+        error.exit_code()
+    } else {
+        crate::exit_codes::USAGE_FAIL
+    };
 
     if wants_json && !is_display_request {
         let command_error = CommandError::usage_with_code(
