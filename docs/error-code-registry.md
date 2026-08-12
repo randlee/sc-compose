@@ -66,6 +66,7 @@ sc-composer library and are normalized by the shared lint runner.
 | `ERR_CONFIG_PARSE` | `ConfigError` | error | malformed or unreadable configuration input | var-file/config parsing |
 | `ERR_CONFIG_VARFILE` | `ConfigError` | error | invalid var-file shape or unsupported structure, including YAML merge keys (`<<`) rejected with a source line/column and explicit-mapping recovery guidance | var-file parsing |
 | `ERR_CONFIG_PACK_NOT_FOUND` | `ConfigError` | error | named example or template pack does not exist under the selected pack root | CLI `examples`, CLI `templates` |
+| `ERR_CONFIG_HELP_TOPIC_NOT_FOUND` | `ConfigError` | error | requested `sc-compose help <topic>` is not registered | CLI `help` |
 | `ERR_CONFIG_PACK_NOT_RENDERABLE` | `ConfigError` | error | named pack cannot be rendered because it is ambiguous or lacks exactly one renderable root template | CLI `examples`, CLI `templates` |
 | `ERR_CONFIG_TEMPLATE_EXISTS` | `ConfigError` | error | `templates add` target pack already exists | CLI `templates add` |
 | `ERR_EXTRACT_INVALID_REQUEST` | `ExtractError` | error | in-memory extraction request violates source, filter, or report invariants | `sc_composer::extract()` and report construction |

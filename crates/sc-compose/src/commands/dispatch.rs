@@ -7,6 +7,7 @@ use crate::cli::{Cli, Command, ExamplesSubcommand, TemplatesSubcommand};
 use crate::commands::compose::{run_render, run_resolve, run_validate};
 use crate::commands::examples::{run_examples_list, run_examples_render};
 use crate::commands::extract::run_extract;
+use crate::commands::help::run_help;
 use crate::commands::reports::{
     ReportsArgs, ReportsSubcommand, run_report_catalog, run_report_render_many,
     run_reports_finalize, run_reports_index, run_reports_init, run_reports_publish_manifest,
@@ -26,6 +27,7 @@ pub(crate) fn run(cli: Cli, observer: &mut CliObserver) -> Result<i32, CommandEr
         Command::Lint(args) => observe_command(observer, "lint", args.json, |_observer| {
             run_sc_lint_command(&args)
         }),
+        Command::Help(args) => run_help(&args),
         Command::Render(args) => {
             observe_command(observer, "render", args.render.json, |observer| {
                 run_render(&args, observer)

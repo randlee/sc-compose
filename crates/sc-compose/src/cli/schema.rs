@@ -10,6 +10,10 @@ pub(crate) use crate::commands::reports::{
 #[command(name = "sc-compose")]
 #[command(version)]
 #[command(about = "Standalone template composition CLI")]
+#[command(disable_help_subcommand = true)]
+#[command(
+    after_help = "Detailed feature manuals ship with this CLI — run `sc-compose help` (or `sc-compose help <topic>`) to read them, starting from the exit-code contract."
+)]
 pub(crate) struct Cli {
     #[command(subcommand)]
     pub(crate) command: Command,
@@ -19,6 +23,8 @@ pub(crate) struct Cli {
 pub(crate) enum Command {
     #[command(about = "Run an allowlisted sc-lint target and write its report")]
     Lint(ScLintArgs),
+    #[command(about = "Show a feature manual, or list available manual topics")]
+    Help(HelpArgs),
     #[command(about = "Render a template or resolved profile")]
     Render(RenderArgs),
     #[command(about = "Resolve a profile name to a concrete template path")]
@@ -50,6 +56,20 @@ pub(crate) enum Command {
     ReportRenderMany(ReportRenderManyArgs),
     #[command(hide = true, name = "report-catalog")]
     ReportCatalog(ReportCatalogArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct HelpArgs {
+    #[arg(
+        value_name = "TOPIC",
+        conflicts_with = "list",
+        help = "Manual topic to display"
+    )]
+    pub(crate) topic: Option<String>,
+    #[arg(long, conflicts_with = "topic", help = "List available manual topics")]
+    pub(crate) list: bool,
+    #[arg(long, help = "Emit the manual response as a diagnostic JSON envelope")]
+    pub(crate) json: bool,
 }
 
 #[derive(Debug, Clone, Args)]

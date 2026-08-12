@@ -750,6 +750,26 @@ Sprint entries:
 - [Sprint FIX-385 — Template-Init JSON Round Trip](sprints/fix-385-template-init-json-round-trip.md)
 - [Sprint FIX-390 — Clap Usage Exit Code](sprints/fix-390-clap-exit-code-fr7b.md)
 - [Sprint FIX-SIMP-001 — Shared Template Suffix Helper](sprints/fix-simp-001-shared-suffix-helper.md)
+- [Sprint FEAT-HELP-MANUAL-CORE — Core Help Manuals](sprints/feat-help-manual-core.md)
+
+### Follow-on Feature Sprint: FEAT-HELP-MANUAL-CORE
+
+Status:
+
+- complete on `feat/help-manual-core` at `c10d9d9`; implementation is in
+  `7cd42a3`, QA follow-up is in `04c55ad`/`c10d9d9`, and closeout evidence is
+  recorded in the sprint document.
+- CI checks for PR #397 are green; the remaining QA follow-up findings are
+  addressed by the branch's follow-up fix commit.
+
+Sprint entry:
+
+- [Sprint FEAT-HELP-MANUAL-CORE — Core Help Manuals](sprints/feat-help-manual-core.md)
+
+FEAT-HELP-MANUAL-CORE adds the CLI-owned bundled manual registry, the initial
+`exit-codes` manual, and the `sc-compose help` discovery surface. Follow-on
+feature sprints can add one markdown manual and one ordered registry entry at a
+time.
 
 ### Follow-on Fix Sprint: FIX-390
 

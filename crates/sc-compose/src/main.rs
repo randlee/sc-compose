@@ -2,6 +2,7 @@ mod cli;
 mod command_error;
 mod commands;
 mod exit_codes;
+mod help_topics;
 mod json_output;
 #[cfg(test)]
 mod main_tests;

@@ -1,5 +1,7 @@
 #[path = "cli/extract.rs"]
 mod extract;
+#[path = "cli/help.rs"]
+mod help;
 #[path = "cli/observability.rs"]
 mod observability;
 #[path = "cli/render.rs"]

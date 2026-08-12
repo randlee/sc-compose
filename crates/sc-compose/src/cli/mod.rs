@@ -217,6 +217,7 @@ mod tests {
                 "--json",
             ],
             &["sc-compose", "report-catalog", "--json"],
+            &["sc-compose", "help", "--json"],
         ];
 
         for args in json_commands {

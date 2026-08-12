@@ -88,7 +88,11 @@ dependency on `sc-observability`.
 - bundled example-pack discovery,
 - user template-pack discovery and storage,
 - pack metadata parsing,
-- templates add workflows.
+- templates add workflows,
+- bundled CLI feature manuals (`help_topics` module: one ordered
+  `(topic_name, content)` registry, each entry's content embedded from a
+  single `docs/manual/<topic>.md` file via `include_str!`; no per-topic
+  Rust modules or hand-written string constants).
 
 ### 3.3 `bindings/python`
 
@@ -906,6 +910,8 @@ Command mapping:
 - `reports verify` -> verify required report artifacts exist for the catalog
 - `reports publish-manifest` -> emit one machine-readable publish handoff from
   current latest report outputs
+- `help [topic]` / `help --list` -> CLI-owned `help_topics` registry lookup
+  (no library call; see FR-22)
 
 The CLI must not reimplement core composition semantics. If a command requires
 logic useful to non-CLI callers, that logic belongs in the library.
@@ -1000,6 +1006,12 @@ Command-specific rules:
   - skips optional reports whose latest artifact sets are absent,
   - fails when required report evidence is missing,
   - lists intended publish destinations without owning upload behavior.
+- `help`
+  - with no topic and no `--list`, prints a human-readable topic index,
+  - `--list` prints topic names one per line in a stable, scriptable form,
+  - a valid topic prints that topic's bundled manual content verbatim,
+  - an unknown topic fails closed with exit `3` and lists valid topic names,
+  - has no rendering side effects and does not go through `compose`.
 
 Guidance and prompt input model:
 
@@ -1627,6 +1639,7 @@ Canonical failures must map to stable error families and stable codes.
 | Nested required path expects an object but receives a scalar, or vice versa | `ValidationError` | `ERR_VAL_SHAPE_MISMATCH` |
 | Nested required field absent inside a present object or array member | `ValidationError` | `ERR_VAL_MISSING_NESTED_FIELD` |
 | Example or template pack name not found | `ConfigError` | `ERR_CONFIG_PACK_NOT_FOUND` |
+| Help topic name is not registered | `ConfigError` | `ERR_CONFIG_HELP_TOPIC_NOT_FOUND` |
 | Named pack is not renderable because a bundled example name is ambiguous or a template pack has zero or multiple root-level `*.j2` files | `ConfigError` | `ERR_CONFIG_PACK_NOT_RENDERABLE` |
 | `templates add` target name already exists | `ConfigError` | `ERR_CONFIG_TEMPLATE_EXISTS` |
 

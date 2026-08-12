@@ -102,6 +102,8 @@ pub enum DiagnosticCode {
     ErrConfigVarfile,
     /// A named example or template pack could not be found.
     ErrConfigPackNotFound,
+    /// A requested CLI help topic was not registered.
+    ErrConfigHelpTopicNotFound,
     /// A named template pack was not renderable by name.
     ErrConfigPackNotRenderable,
     /// A template import target already exists.
@@ -221,6 +223,7 @@ impl DiagnosticCode {
             Self::ErrConfigParse => "ERR_CONFIG_PARSE",
             Self::ErrConfigVarfile => "ERR_CONFIG_VARFILE",
             Self::ErrConfigPackNotFound => "ERR_CONFIG_PACK_NOT_FOUND",
+            Self::ErrConfigHelpTopicNotFound => "ERR_CONFIG_HELP_TOPIC_NOT_FOUND",
             Self::ErrConfigPackNotRenderable => "ERR_CONFIG_PACK_NOT_RENDERABLE",
             Self::ErrConfigTemplateExists => "ERR_CONFIG_TEMPLATE_EXISTS",
             Self::ErrExtractInvalidRequest => "ERR_EXTRACT_INVALID_REQUEST",
@@ -341,6 +344,10 @@ mod tests {
             (ErrConfigParse, "ERR_CONFIG_PARSE"),
             (ErrConfigVarfile, "ERR_CONFIG_VARFILE"),
             (ErrConfigPackNotFound, "ERR_CONFIG_PACK_NOT_FOUND"),
+            (
+                ErrConfigHelpTopicNotFound,
+                "ERR_CONFIG_HELP_TOPIC_NOT_FOUND",
+            ),
             (ErrConfigPackNotRenderable, "ERR_CONFIG_PACK_NOT_RENDERABLE"),
             (ErrConfigTemplateExists, "ERR_CONFIG_TEMPLATE_EXISTS"),
             (ErrExtractInvalidRequest, "ERR_EXTRACT_INVALID_REQUEST"),
@@ -436,7 +443,7 @@ mod tests {
             (ErrExtractTomlAmbiguous, "ERR_EXTRACT_TOML_AMBIGUOUS"),
         ];
 
-        assert_eq!(codes.len(), 73);
+        assert_eq!(codes.len(), 74);
         for (code, spelling) in codes {
             assert_eq!(code.as_str(), spelling);
             assert_eq!(
