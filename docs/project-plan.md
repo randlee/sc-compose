@@ -754,7 +754,7 @@ Sprint entries:
 
 Status:
 
-- complete on `fix/390-clap-exit-code-fr7b` at `ff5d74b`
+- complete on `fix/390-clap-exit-code-fr7b` at `6528f67`
 
 Sprint entry:
 
@@ -763,6 +763,19 @@ Sprint entry:
 FIX-390 aligns clap-originated usage failures with FR-7b by returning exit code
 `3` in both JSON and plain-text modes, while preserving exit code `0` for
 `--help` and `--version` display requests.
+
+### Follow-on Fix Sprint: FIX-390-FOLLOWUP
+
+Status:
+
+- assigned on `fix/390-followup-exit-code-source-of-truth`
+
+Sprint entry:
+
+- [Sprint FIX-390-FOLLOWUP — Exit-Code Source of Truth](sprints/fix-390-followup-exit-code-source-of-truth.md)
+
+FIX-390-FOLLOWUP removes the duplicate exit-code computation from the clap
+parse-error path and synchronizes the FIX-390 completion commit reference.
 
 ### Follow-on Fix Sprint: FIX-373
 
