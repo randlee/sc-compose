@@ -756,11 +756,12 @@ Sprint entries:
 
 Status:
 
-- complete on `feat/help-manual-core` at `c10d9d9`; implementation is in
-  `7cd42a3`, QA follow-up is in `04c55ad`/`c10d9d9`, and closeout evidence is
-  recorded in the sprint document.
-- CI checks for PR #397 are green; the remaining QA follow-up findings are
-  addressed by the branch's follow-up fix commit.
+- complete on `feat/help-manual-core` at final PR branch commit `1d016d4`;
+  implementation and QA fixes are included in its history, and the
+  post-merge JSON-envelope deduplication follow-up is `7a47997`.
+- CI checks for PR #397 are green for final branch commit `1d016d4`, including
+  the workspace and platform-specific checks; closeout evidence is recorded
+  in the sprint document.
 
 Sprint entry:
 
