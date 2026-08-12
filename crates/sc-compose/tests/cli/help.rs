@@ -1,5 +1,18 @@
 use crate::support::*;
 
+fn assert_topic_contains(topic: &str, expected: &[&str]) {
+    let output = sc_compose().args(["help", topic]).output().unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for needle in expected {
+        assert!(
+            stdout.contains(needle),
+            "missing {needle} in {topic} help output: {stdout}"
+        );
+    }
+}
+
 #[test]
 fn help_without_topic_prints_manual_index() {
     let output = sc_compose().arg("help").output().unwrap();
@@ -34,60 +47,43 @@ fn exit_codes_manual_documents_all_statuses() {
 
 #[test]
 fn frontmatter_init_manual_documents_file_and_force_flags() {
-    let output = sc_compose()
-        .args(["help", "frontmatter-init"])
-        .output()
-        .unwrap();
-
-    assert!(output.status.success(), "{output:?}");
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("frontmatter-init"), "{stdout}");
-    assert!(stdout.contains("--file"), "{stdout}");
-    assert!(stdout.contains("--force"), "{stdout}");
+    assert_topic_contains(
+        "frontmatter-init",
+        &["frontmatter-init", "--file", "--force"],
+    );
 }
 
 #[test]
 fn init_manual_documents_prompts_workspace_bootstrap() {
-    let output = sc_compose().args(["help", "init"]).output().unwrap();
-
-    assert!(output.status.success(), "{output:?}");
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains(".prompts/"), "{stdout}");
-    assert!(stdout.contains("--dry-run"), "{stdout}");
-    assert!(stdout.contains("--root"), "{stdout}");
+    assert_topic_contains("init", &[".prompts/", "--dry-run", "--root"]);
 }
 
 #[test]
 fn examples_manual_documents_listing_and_var_file_rendering() {
-    let output = sc_compose().args(["help", "examples"]).output().unwrap();
-
-    assert!(output.status.success(), "{output:?}");
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("examples list"), "{stdout}");
-    assert!(stdout.contains("--var-file"), "{stdout}");
-    assert!(stdout.contains("SC_COMPOSE_DATA_DIR"), "{stdout}");
+    assert_topic_contains(
+        "examples",
+        &["examples list", "--var-file", "SC_COMPOSE_DATA_DIR"],
+    );
 }
 
 #[test]
 fn templates_manual_documents_add_and_pack_requirements() {
-    let output = sc_compose().args(["help", "templates"]).output().unwrap();
-
-    assert!(output.status.success(), "{output:?}");
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("templates add"), "{stdout}");
-    assert!(stdout.contains("template.json"), "{stdout}");
-    assert!(stdout.contains("SC_COMPOSE_TEMPLATE_DIR"), "{stdout}");
+    assert_topic_contains(
+        "templates",
+        &["templates add", "template.json", "SC_COMPOSE_TEMPLATE_DIR"],
+    );
 }
 
 #[test]
 fn reports_manual_documents_catalog_and_publish_workflow() {
-    let output = sc_compose().args(["help", "reports"]).output().unwrap();
-
-    assert!(output.status.success(), "{output:?}");
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("reports smoke"), "{stdout}");
-    assert!(stdout.contains("reports/catalog/reports.toml"), "{stdout}");
-    assert!(stdout.contains("publish-manifest"), "{stdout}");
+    assert_topic_contains(
+        "reports",
+        &[
+            "reports smoke",
+            "reports/catalog/reports.toml",
+            "publish-manifest",
+        ],
+    );
 }
 
 #[test]
