@@ -30,6 +30,8 @@ mod path_utils;
 pub mod renderer;
 /// Runtime-aware profile resolution and search tracing.
 pub mod resolver;
+/// Template filename extension helpers.
+pub mod template_ext;
 /// Foundational request, result, and value-model types.
 pub mod types;
 /// Public validation entrypoint.
@@ -97,6 +99,8 @@ pub use sc_sha::{
     ResolvedIncludeEdge, ResolvedTemplateManifest, ResolvedTemplateNode, ShaError, TemplateSha256,
     calculate_composition_hash, calculate_hash,
 };
+#[doc(inline)]
+pub use template_ext::strip_template_suffix;
 #[doc(inline)]
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,

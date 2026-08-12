@@ -9,7 +9,7 @@ use minijinja::{
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::RenderError;
+use crate::{RenderError, strip_template_suffix};
 
 const XML_REPLACEMENT_NCR: &str = "&#xfffd;";
 
@@ -52,13 +52,7 @@ pub struct Renderer {
 }
 
 fn legacy_auto_escape_callback(name: &str) -> AutoEscape {
-    let mut name = name;
-    for extension in [".j2", ".jinja2", ".jinja"] {
-        if let Some(stripped) = name.strip_suffix(extension) {
-            name = stripped;
-            break;
-        }
-    }
+    let name = strip_template_suffix(name);
 
     match name.rsplit('.').next() {
         Some("html" | "htm" | "xml" | "xhtml") => AutoEscape::Custom("sc-compose-html"),
