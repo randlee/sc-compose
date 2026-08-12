@@ -303,6 +303,12 @@ Exit gate:
   - Phase D keeps render and validation failures on `2`
   - Phase D keeps usage and configuration failures, including `template-init`
     literal-miss cases, on `3`
+- FR-22:
+  - PR #396 defines the shipped conceptual-help command, its static bundled
+    manual registry, topic coverage, parser collision rules, and text/JSON
+    output schemas
+  - the `help_topics` registry remains exclusively owned by `sc-compose`, with
+    topic names resolved only within the explicit `help` command namespace
 - FR-8 and FR-8a:
   - Sprint 1 finalizes command and health schemas
   - Sprint 2 implements the logger-facing command output
