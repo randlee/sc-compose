@@ -1,7 +1,7 @@
 ---
 id: FIX-390-FOLLOWUP
 title: "FIX-390 follow-up: exit-code single source of truth + project-plan.md sha sync"
-status: assigned
+status: complete
 branch: fix/390-followup-exit-code-source-of-truth
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/390-followup-exit-code-source-of-truth
 target: crates/sc-compose/src/main.rs, docs/project-plan.md
@@ -68,3 +68,14 @@ the standing "fix every finding, no unrouted backlog" rule:
 ## Priority
 
 Minor, non-blocking cleanup — no release impact.
+
+## Closeout Evidence
+
+- implementation commit: `b045594`
+- `report_cli_parse_error` now returns the `CommandError::exit_code` field
+  for non-display clap errors, eliminating the duplicate literal source.
+- `docs/project-plan.md` now cites FIX-390 at `6528f67` and includes this
+  follow-up sprint entry.
+- validation PASS: `cargo fmt --all --check`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, and
+  `cargo test --workspace`.

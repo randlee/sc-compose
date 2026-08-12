@@ -768,7 +768,7 @@ FIX-390 aligns clap-originated usage failures with FR-7b by returning exit code
 
 Status:
 
-- assigned on `fix/390-followup-exit-code-source-of-truth`
+- complete on `fix/390-followup-exit-code-source-of-truth` at `b045594`
 
 Sprint entry:
 
