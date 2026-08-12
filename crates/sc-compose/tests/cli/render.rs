@@ -1235,7 +1235,7 @@ fn render_brace_count_rejects_values_below_two() {
         .output()
         .unwrap();
 
-    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
     assert!(
         !String::from_utf8_lossy(&output.stderr).trim().is_empty(),
         "{output:?}"
