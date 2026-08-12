@@ -455,6 +455,7 @@ Each block may be empty. Ordering is never caller-defined.
 - `examples`
 - `templates`
 - `reports`
+- `help` (see FR-22)
 
 The CLI must support:
 
@@ -1183,6 +1184,41 @@ sprints.
   explicitly, which is the portable recovery.
 - Valid JSON/YAML objects and existing duplicate-key, non-string-key, and
   value-shape policies shall remain unchanged.
+
+### FR-22: CLI Conceptual Help Manuals
+
+- The CLI shall provide a `sc-compose help [topic]` command distinct from
+  clap-generated `--help`. `sc-compose help` with no argument shall print an
+  index of available topics; `sc-compose help --list` shall print the same
+  index in a stable, scriptable form.
+- Each topic shall be a static, versioned manual page shipped inside the
+  binary (no filesystem lookup, no network access) covering one CLI feature
+  area: at minimum `render`, `resolve`, `validate`, `verify`, `extract`,
+  `template-init`, `frontmatter-init`, `init`, `examples`, `templates`,
+  `reports`, and `exit-codes`. The `exit-codes` topic shall document the
+  FR-7b contract (`0`/`1`/`2`/`3`) in full, since that contract is otherwise
+  only discoverable by reading `docs/requirements.md` in the repository.
+- Topic content shall be authored as one Markdown file per topic under
+  `docs/manual/` (e.g. `docs/manual/render.md`), each embedded into the
+  binary at compile time via a single canonical registry (one ordered
+  `(topic_name, content)` array), not as hand-written Rust string constants
+  and not as separate per-topic Rust modules. This registry is the single
+  seam every topic-content change touches; the dispatch/command-handling
+  code that reads it stays flat and topic-count-independent, so it cannot
+  grow unbounded as topics are added. A scaffolding change must establish
+  this registry mechanism and structure before any per-topic content is
+  added, so that concurrent per-topic contributions only ever add a
+  Markdown file plus one registry entry, never new Rust modules or
+  dispatch branches.
+- An unknown topic name shall fail closed with a usage-class exit code (per
+  FR-7b, exit `3`) and shall list the valid topic names in its error output.
+- Manual content shall be reviewed for drift against the corresponding
+  command's actual flags/behavior whenever that command's CLI surface
+  changes; this is a documentation-accuracy expectation, not an automated
+  gate.
+- The root `sc-compose --help` output shall end with a line pointing callers
+  to `sc-compose help` for the full manual/topic index, so the manual system
+  is discoverable without already knowing it exists.
 
 ### Phase HTML-Report Functional Requirements (FR-12 through FR-15)
 
