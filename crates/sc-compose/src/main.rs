@@ -38,21 +38,23 @@ fn main() {
 
 fn report_cli_parse_error(error: &clap::Error, wants_json: bool) -> i32 {
     let rendered = error.render().to_string();
-    let is_display_request = matches!(
+    if matches!(
         error.kind(),
         ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
-    );
-    let exit_code = if is_display_request {
-        error.exit_code()
-    } else {
-        crate::exit_codes::USAGE_FAIL
-    };
+    ) {
+        if error.use_stderr() {
+            eprint!("{rendered}");
+        } else {
+            print!("{rendered}");
+        }
+        return error.exit_code();
+    }
 
-    if wants_json && !is_display_request {
-        let command_error = CommandError::usage_with_code(
-            anyhow!(rendered.trim_end().to_owned()),
-            DiagnosticCode::ErrConfigParse,
-        );
+    let command_error = CommandError::usage_with_code(
+        anyhow!(rendered.trim_end().to_owned()),
+        DiagnosticCode::ErrConfigParse,
+    );
+    if wants_json {
         report_error(&command_error, true);
     } else if error.use_stderr() {
         eprint!("{rendered}");
@@ -60,7 +62,7 @@ fn report_cli_parse_error(error: &clap::Error, wants_json: bool) -> i32 {
         print!("{rendered}");
     }
 
-    exit_code
+    command_error.exit_code
 }
 
 fn run_cli(cli: Cli) -> i32 {
