@@ -806,6 +806,20 @@ Sprint entry:
 FIX-SIMP-001-FOLLOWUP adds the `template_ext` module to `docs/architecture.md`
 Section 4's module list, closing the ATM-QA-003 finding from FIX-SIMP-001 QA.
 
+### Follow-on Fix Sprint: FIX-390-PRINT-RENDERED-HELPER
+
+Status:
+
+- complete on `fix/390-print-rendered-helper` at `8a014e9`
+
+Sprint entry:
+
+- [Sprint FIX-390-PRINT-RENDERED-HELPER — Extract print_rendered Helper](sprints/fix-390-print-rendered-helper.md)
+
+FIX-390-PRINT-RENDERED-HELPER extracts a shared `print_rendered` helper in
+`report_cli_parse_error`, removing the duplicated stderr/stdout print block
+flagged by simplification-reviewer on FIX-390-FOLLOWUP QA (PR #393).
+
 ### Follow-on Fix Sprint: FIX-373
 
 Status:
