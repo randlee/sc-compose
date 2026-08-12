@@ -501,5 +501,9 @@ jobs:
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
           identifier: randlee.sc-compose
+          # This workflow is dispatched manually, so github.event.release.tag_name
+          # (the action's default for release-tag) is always empty and the action
+          # 404s looking up a release by empty tag. Pass the tag explicitly.
+          release-tag: ${{ needs.gate-and-tag.outputs.release_tag }}
           installers-regex: 'sc-compose_.*_x86_64-pc-windows-msvc\.zip$'
           token: ${{ secrets.GITHUB_TOKEN }}
