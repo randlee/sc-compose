@@ -1201,7 +1201,8 @@ sprints.
   contract is otherwise only discoverable by reading `docs/requirements.md`
   in the repository.
 - Topic content shall be authored as one Markdown file per topic under
-  `docs/manual/` (e.g. `docs/manual/render.md`), each embedded into the
+  `crates/sc-compose/docs/manual/` (e.g.
+  `crates/sc-compose/docs/manual/render.md`), each embedded into the
   binary at compile time via a single canonical registry (one ordered
   `(topic_name, content)` array), not as hand-written Rust string constants
   and not as separate per-topic Rust modules. This registry is the single
@@ -1231,7 +1232,8 @@ sprints.
   line-oriented schema is the stable shell-pipeline form. In JSON mode, its
   payload is `{ "topics": ["..."] }` in the standard envelope. A topic JSON
   response uses `{ "topic": "...", "manual": "..." }` as its payload.
-- “Versioned” means the Markdown bytes are committed under `docs/manual/`,
+- “Versioned” means the Markdown bytes are committed under
+  `crates/sc-compose/docs/manual/`,
   embedded into the same released binary as the CLI, and identified by that
   binary's `sc-compose --version`; there is no independently fetched page or
   separate page-version field. A behavior change must update the source page

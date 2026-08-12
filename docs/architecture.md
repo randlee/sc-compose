@@ -91,8 +91,11 @@ dependency on `sc-observability`.
 - templates add workflows,
 - bundled CLI feature manuals (`help_topics` module: one ordered
   `(topic_name, content)` registry, each entry's content embedded from a
-  single `docs/manual/<topic>.md` file via `include_str!`; no per-topic
-  Rust modules or hand-written string constants).
+  single `crates/sc-compose/docs/manual/<topic>.md` file via `include_str!`;
+  no per-topic Rust modules or hand-written string constants; manual sources
+  live inside the crate directory, not under top-level `docs/`, because
+  `cargo package`'s isolated verify build cannot see files outside the
+  package root).
 - exclusive ownership of the `help_topics` module and ordered manual-topic
   registry; `sc-composer` and `bindings/python` do not define, import, or
   mutate manual-topic metadata.
