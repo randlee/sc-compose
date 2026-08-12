@@ -757,7 +757,7 @@ Sprint entries:
 
 Status:
 
-- complete on `feat/help-manual-topics-1` at `b23c93e`
+- complete on `feat/help-manual-topics-1` at `73c68f7`
 
 Sprint entry:
 

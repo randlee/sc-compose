@@ -101,13 +101,15 @@ the remaining five topics. Do not touch any topic owned by that sprint.
 
 ## Closeout Evidence
 
-- Implementation commit: `b23c93e` (rebased onto core `7cd42a3` and
-  `01b589e`).
+- Implementation commit: `76db0c1` (rebased onto the current core tip
+  `b237ef7`).
+- Voice-review commit: `73c68f7`, which rewrites each opening to lead with
+  purpose and when-to-use guidance before flags, examples, and failures.
 - Added accurate manuals for `render`, `resolve`, `validate`, `verify`,
   `extract`, and `template-init`; registered all six topics and added one
   content sanity test per topic.
-- Validation passed: `cargo test --workspace`, `cargo fmt --all --check`,
-  and `cargo clippy --all-targets --all-features -- -D warnings`.
+- Validation passed: `cargo fmt --all --check`, `cargo clippy --workspace
+  --all-targets --all-features -- -D warnings`, and `cargo test --workspace`.
 
 ## Priority
 
