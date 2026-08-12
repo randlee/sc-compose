@@ -185,6 +185,10 @@ ATM integration is an adapter concern outside this repository.
     repeated rendering,
   - keeps `render_template()` as a one-shot convenience wrapper,
   - renders template content under normal or strict undeclared-token policy.
+- `template_ext`
+  - exposes `strip_template_suffix`, the single shared
+    `.j2`/`.jinja2`/`.jinja` suffix-stripping helper used by the renderer's
+    auto-escape callback and by `sc-compose`'s template-init JSON detection.
 - `validate`
   - produces validation reports and diagnostics without writing output.
 - `verify`
