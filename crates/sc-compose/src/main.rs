@@ -36,17 +36,21 @@ fn main() {
     std::process::exit(code);
 }
 
+fn print_rendered(rendered: &str, use_stderr: bool) {
+    if use_stderr {
+        eprint!("{rendered}");
+    } else {
+        print!("{rendered}");
+    }
+}
+
 fn report_cli_parse_error(error: &clap::Error, wants_json: bool) -> i32 {
     let rendered = error.render().to_string();
     if matches!(
         error.kind(),
         ErrorKind::DisplayHelp | ErrorKind::DisplayVersion
     ) {
-        if error.use_stderr() {
-            eprint!("{rendered}");
-        } else {
-            print!("{rendered}");
-        }
+        print_rendered(&rendered, error.use_stderr());
         return error.exit_code();
     }
 
@@ -56,10 +60,8 @@ fn report_cli_parse_error(error: &clap::Error, wants_json: bool) -> i32 {
     );
     if wants_json {
         report_error(&command_error, true);
-    } else if error.use_stderr() {
-        eprint!("{rendered}");
     } else {
-        print!("{rendered}");
+        print_rendered(&rendered, error.use_stderr());
     }
 
     command_error.exit_code
