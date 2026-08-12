@@ -4,6 +4,7 @@ title: JSON Render Contract and Fail-Closed Output Validation
 status: planned
 target: integrate/phase-o
 planning_branch: plan/json-format-escape-mode
+design_acceptance: required before sprint dispatch
 ---
 
 # Phase O — JSON Render Contract and Fail-Closed Output Validation
@@ -17,7 +18,7 @@ malformed JSON body must not be emitted with exit status 0, and ATM-core must be
 able to distinguish static validation from a successful render of a specific
 context.
 
-This phase is based on the agreed design in
+This phase is based on the design in
 `docs/sprints/plan-json-format-escape-mode.md`. The phase documents the
 implementation work as independently reviewable sprints; it does not add
 production code in this planning worktree.
@@ -25,6 +26,21 @@ production code in this planning worktree.
 The detailed design source remains the linked plan above; this Phase O folder
 is the authoritative execution index and sprint decomposition for team
 dispatch, dependency tracking, and QA handoff.
+
+The detailed design document is still marked `proposed` until team-lead and
+quality-mgr accept this review round. The sprint documents may be prepared and
+reviewed while `status: planned`, but no O sprint may be dispatched or receive
+an implementation worktree until that design-acceptance gate is recorded.
+
+## ADR reservation and dispatch gate
+
+Reserve `ADR-0019 — JSON Render Contract and Fail-Closed Output Validation`.
+The ADR owner is team-lead/architecture, with quality-mgr review. O.1 must
+create or amend the accepted ADR before implementation handoff; the reserved
+path is listed in O.1/O.2/O.3 as a planning target, not as an instruction to
+edit an ADR in this plan-only worktree. No O implementation worktree may be
+dispatched while either the detailed design acceptance or ADR-0019 acceptance
+is missing.
 
 ## Incident and evidence
 
@@ -79,6 +95,10 @@ Effective mode precedence:
 3. 1.4.1 compatibility default `legacy` for unannotated existing JSON
    templates.
 
+The CLI spelling is fixed as `--json-escape-mode <legacy|auto>` and the root
+frontmatter key is `json_escape_mode: legacy|auto`. No alternate flag spelling
+or implicit mode alias is part of this phase.
+
 `legacy` must never mean raw interpolation. It must safely escape quotes,
 backslashes, control characters, and JSON string content. A future breaking
 release may change the absent-mode default to `auto` after the migration and
@@ -102,10 +122,11 @@ Python or shell logic.
 | O-R4 | A checked JSON render parses the complete body before emission and fails closed. | O.2 |
 | O-R5 | Machine-readable results distinguish static contract validity from context-specific render validity. | O.2 |
 | O-R6 | `validate`, `validate --lint`, `render`, `sc-compose lint`, and `just lint` expose the appropriate shared checks without conflating scope. | O.2, O.3 |
-| O-R7 | The six known repository templates are migrated or explicitly declared legacy and tested semantically. | O.4 |
+| O-R7 | The six known repository templates have a reviewed source-shape classification and migration/legacy decision. | O.4 |
 | O-R8 | ATM-core has an actionable integration contract and must not use exit status alone. | O.2, O.4 |
-| O-R9 | Fuzz campaigns test both interpolation shapes and parse every successful JSON body. | O.4 |
-| O-R10 | No JSON escaping regression reopens the FIX-272 injection vulnerability. | O.1, O.2, O.4 |
+| O-R9 | Six known repository templates are migrated where safe, with compatibility fixtures green for every legacy exception. | O.4 |
+| O-R10 | Cross-repository release-corpus inventory and fuzz campaigns test both interpolation shapes and parse every successful JSON body. | O.5 |
+| O-R11 | No JSON escaping regression reopens the FIX-272 injection vulnerability. | O.1, O.2, O.4, O.5 |
 
 ## Scope boundary
 
@@ -150,6 +171,63 @@ The commands remain separate because they have different scope and dependency
 costs. They share the mode resolver, scanner, output checker, and diagnostic
 schema so their conclusions cannot drift.
 
+## Authoritative checked-render contract
+
+This section is the single source of truth for the parser gate and
+`RenderCheckReport`. O.2, the CLI contract table, and the ATM-core section
+below must implement or reference this contract; they must not introduce
+alternate field names, default behavior, or parser timing.
+
+The authoritative API shape is:
+
+```rust
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum JsonEscapeMode {
+    Legacy,
+    Auto,
+}
+
+pub fn check_rendered_output(
+    format: OutputFormat,
+    template: &Path,
+    rendered: &str,
+) -> Result<OutputCheck, OutputCheckError>;
+
+pub struct RenderCheckReport {
+    pub template_contract_valid: bool,
+    pub render_checked: bool,
+    pub render_valid_for_context: Option<bool>,
+    pub output_format: OutputFormat,
+    pub json_escape_mode: Option<JsonEscapeMode>,
+    pub diagnostics: Vec<Diagnostic>,
+}
+
+pub struct OutputCheck {
+    pub valid: bool,
+    pub diagnostics: Vec<Diagnostic>,
+}
+
+pub enum OutputCheckError {
+    InvalidJson {
+        line: usize,
+        column: usize,
+        byte_offset: usize,
+    },
+}
+```
+
+For JSON, `check_rendered_output` parses the complete body before emission,
+returns stable line/column/offset diagnostics without echoing the payload, and
+is a no-op for formats outside this phase. `render --check-render` and the
+1.4.1 default JSON render path invoke it before stdout/file emission.
+`validate --check-render` invokes it in memory and emits no body. Plain
+`validate` sets `render_checked: false` and does not claim output validity.
+
+The 1.4.1 default is resolved now: ordinary unflagged JSON `render` fails
+closed before emitting malformed JSON. There is no opt-in transition period.
+Legacy compatibility is provided by the explicit mode, not by allowing an
+unchecked render.
+
 ## ATM-core contract
 
 The library/CLI result must expose at least:
@@ -179,16 +257,26 @@ types, safe escaping, and core parser-check API.
 
 After O.1 is merged to `integrate/phase-o`, O.2 and O.3 may execute in parallel:
 
-- O.2 owns checked-render behavior, CLI render/validate paths, and the ATM-core
-  machine contract.
-- O.3 owns source lint, repository target registration, report aggregation,
-  and `just lint` wiring.
+- O.2 owns checked-render behavior, `render`/`validate` CLI integration, and the
+  ATM-core machine contract.
+- O.3 owns `validate --lint` source rules, the `sc-compose lint` command's
+  template-contract target, report aggregation, and `just lint` wiring. It
+  does not own O.2's render/validate parser gate.
 
-O.4 depends on the merged behavior from O.2 and O.3. It owns migrations,
-release-corpus verification, fuzz-oracle changes, and the 1.4.1 release gate.
+O.4 depends on the merged behavior from O.2 and O.3. It owns only the six
+in-repository template migrations and compatibility fixtures. O.5 then owns
+the cross-repository inventory, release-corpus verification, fuzz-oracle
+changes, and 1.4.1 release gate.
 
 O.2 and O.3 must not duplicate the shared parser or mode implementation. O.4
-must not begin release-corpus claims until both parent contracts are available.
+and O.5 must not begin release-corpus claims until both parent contracts and
+the six-template migration are available.
+
+O.2 and O.3 both touch `crates/sc-composer/src/diagnostics/schema.rs` for
+additive diagnostic codes. To avoid concurrent edit loss, O.2 owns the initial
+registry insertion; O.3 must rebase onto O.2's merged commit before adding its
+codes, may only add non-overlapping entries, and must not rewrite O.2 entries.
+If O.2's registry shape changes during QA, O.3 pauses and rebases again.
 
 ## Sc-lint findings and QA routing
 
@@ -214,11 +302,12 @@ merged, and revalidated. Each sprint below repeats this handoff gate locally.
 | O.1 | JSON mode contract, safe escaping, template-init alignment | none; starts from approved phase parent | infrastructure; blocks O.2/O.3 |
 | O.2 | Checked render API/CLI, parser gate, ATM-core contract | O.1 merged | parallel with O.3 |
 | O.3 | Template lint, sc-compose lint target, just lint/report integration | O.1 merged | parallel with O.2 |
-| O.4 | Six-template migration, release corpus, fuzz oracle, 1.4.1 gate | O.2 and O.3 merged | final closure |
+| O.4 | Six-template migration and compatibility fixtures | O.2 and O.3 merged | parallel with inventory preparation; blocks O.5 |
+| O.5 | Cross-repository inventory, release corpus, fuzz oracle, 1.4.1 gate | O.4 merged | final closure; no parallel O sprint |
 
 ## Phase acceptance
 
-- [ ] O.1–O.4 have QA-approved merge evidence.
+- [ ] O.1–O.5 have QA-approved merge evidence.
 - [ ] 1.4.1 preserves safe legacy compatibility without raw interpolation.
 - [ ] auto mode remains injection-safe for hostile strings and structured
       values.
@@ -230,17 +319,19 @@ merged, and revalidated. Each sprint below repeats this handoff gate locally.
 - [ ] ATM-core integration guidance uses the checked result and exact context.
 - [ ] all six known templates are migrated or explicitly legacy and parsed by
       semantic tests.
-- [ ] release-candidate fuzz runs both old and new interpolation shapes.
+- [ ] cross-repository release-candidate fuzz runs both old and new
+      interpolation shapes.
 - [ ] `cargo test --workspace`, formatting, clippy, and repository lint pass.
 
 ## Phase handoff
 
 Before Phase O is marked complete, team-lead must have:
 
-- merged O.1 through O.4 into `integrate/phase-o`;
+- merged O.1 through O.5 into `integrate/phase-o`;
 - QA reports for every sprint and routed fix worktree;
 - release-candidate commit/version and exact command evidence;
 - six-template migration results;
+- named downstream inventory source and scan evidence;
 - fuzz reports proving the parser oracle ran;
 - documented ATM-core consumer contract;
 - a decision on when the compatibility default may change to `auto`.

@@ -1,7 +1,7 @@
 ---
 id: O.2
 title: Checked Render API, JSON Parser Gate, and ATM-core Contract
-phase: N
+phase: O
 status: planned
 branch: sprint/o-2-checked-render-contract
 worktree: ../sc-compose-worktrees/sprint/o-2-checked-render-contract
@@ -24,15 +24,20 @@ O.2 must not duplicate mode selection or JSON escaping from O.1.
 
 ## Exact targets
 
-- `crates/sc-composer/src/` checked-render/output-validation module
-- `crates/sc-composer/src/diagnostics/`
+- `crates/sc-composer/src/render_check.rs` (new library module)
+- `crates/sc-composer/src/lib.rs`
+- `crates/sc-composer/src/diagnostics/schema.rs`
 - `crates/sc-compose/src/commands/compose.rs`
 - `crates/sc-compose/src/commands/compose_render.rs`
 - `crates/sc-compose/src/commands/compose_output.rs`
-- `crates/sc-compose/src/cli/`
-- `crates/sc-compose/tests/`
+- `crates/sc-compose/src/cli/schema.rs`
+- `crates/sc-compose/src/main.rs`
+- `crates/sc-compose/tests/cli/render.rs`
+- `crates/sc-compose/tests/cli/validate.rs`
+- `crates/sc-compose/tests/json_cli/render.rs`
+- `crates/sc-compose/tests/json_cli/validate.rs`
 - `docs/requirements.md` FR-7, FR-8, and FR-8a
-- ATM-core integration documentation or a handoff note, without ATM code
+- `docs/atm-adapter-notes.md` (ATM-core handoff only; no ATM code)
 
 ## Required work
 
@@ -56,21 +61,23 @@ O.2 must not duplicate mode selection or JSON escaping from O.1.
    human and JSON output.
 5. Make `validate --check-render` render in memory and emit no body/file.
 6. Make `render --check-render` validate before writing/emitting.
-7. Make ordinary JSON `render` fail closed by default in 1.4.1, unless the
-   release review explicitly approves a short opt-in transition; it must never
-   silently accept malformed output.
+7. Make ordinary JSON `render` fail closed by default in 1.4.1 before any
+   stdout/file write; there is no opt-in transition that permits malformed
+   output.
 8. Ensure `render --json` wraps output-parser errors in the existing
    `DiagnosticEnvelope`, not plain stderr text.
 9. Ensure ATM-core guidance says to inspect structured fields and diagnostics,
    not only process exit status.
 
-## Guarantee boundaries
+## Authoritative contract reference
 
-The report must distinguish static contract validity from exact-context output
-validity. A successful static check without a context is not a claim that all
-future conditional branches will parse. Auto mode may claim safe arbitrary
-string interpolation only when the template does not use an untyped raw JSON
-bypass.
+Implement the `Authoritative checked-render contract` in
+`docs/phase-O/phase-O-plan.md`; that section is the only source for the enum,
+checker signature, report fields, parser timing, and 1.4.1 fail-closed default.
+This sprint may add implementation-specific error types, but must not rename
+or weaken those fields. The report must distinguish static contract validity
+from exact-context output validity; a successful static check without a context
+is not a claim that all future conditional branches will parse.
 
 ## Required tests
 
@@ -86,6 +93,11 @@ bypass.
 - checked and unchecked non-JSON formats preserve current behavior;
 - six-template-style double quotes fail closed in auto mode and succeed safely
   in legacy mode.
+- ordinary unflagged JSON `render` rejects malformed output before writing any
+  stdout/file bytes;
+- all checked-render paths use the authoritative checker and report fields;
+- ADR-0019 is accepted before implementation handoff; this sprint does not
+  dispatch source work while the Phase O design-acceptance gate is open.
 
 ## Deliverables
 
@@ -104,7 +116,10 @@ bypass.
 - [ ] `validate` does not silently become a rendering command.
 - [ ] `validate --check-render`, `render`, and `render --json` share the same
       parser implementation and diagnostic code.
+- [ ] Unflagged JSON `render` fails closed before emission; no release-review
+      exception or opt-in transition remains in the implementation.
 - [ ] Existing envelope and exit-code requirements remain satisfied.
+- [ ] ADR-0019 is accepted before implementation handoff.
 - [ ] All workspace and targeted quality checks pass.
 
 ## Sc-lint cleanup and QA handoff

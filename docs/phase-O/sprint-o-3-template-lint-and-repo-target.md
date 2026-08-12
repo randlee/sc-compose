@@ -1,7 +1,7 @@
 ---
 id: O.3
 title: JSON Template Lint, sc-compose lint Target, and just lint Integration
-phase: N
+phase: O
 status: planned
 branch: sprint/o-3-template-lint-and-repo-target
 worktree: ../sc-compose-worktrees/sprint/o-3-template-lint-and-repo-target
@@ -23,15 +23,25 @@ after O.1 merges. O.4 consumes the target and its report contract. O.3 must
 not implement the post-render parser; it consumes O.2's shared checker when
 fixture-backed render checks are enabled.
 
+O.2 owns the initial additions to `diagnostics/schema.rs`. After O.2 merges,
+rebase this sprint onto that commit before adding O.3's non-overlapping source
+lint and capability diagnostics. Add entries only; do not rewrite O.2 entries.
+If the schema shape changes during O.2 QA, pause and rebase again.
+
 ## Exact targets
 
 - `crates/sc-compose/src/commands/template_lint.rs`
 - `crates/sc-compose/src/commands/sc_lint.rs`
+- `crates/sc-composer/src/diagnostics/schema.rs`
 - `.sc/sc-lint/targets/template-contracts.toml`
 - `justfile`
-- `crates/sc-compose/tests/`
-- `tests/fixtures/` template-contract fixtures
-- `docs/requirements.md`, `docs/architecture.md`, and lint documentation
+- `crates/sc-compose/tests/cli/validate.rs`
+- `crates/sc-compose/tests/json_cli/validate.rs`
+- `crates/sc-compose/tests/sc_lint_runner.rs`
+- `crates/sc-compose/tests/sc_lint_lint_full.rs`
+- `crates/sc-compose/tests/template_contracts/` (new fixture module)
+- `docs/requirements.md`
+- `docs/architecture.md`
 
 ## Required work
 
@@ -53,6 +63,10 @@ fixture-backed render checks are enabled.
    reported as a green pass.
 8. Preserve the existing external sc-lint boundary and report materialization
    contracts.
+
+The shared parser/checker and mode resolver are O.1/O.2-owned. This sprint
+only consumes them; it must not add a second parser, escape implementation, or
+diagnostic vocabulary.
 
 ## Diagnostic policy
 
@@ -98,6 +112,9 @@ fixture-backed render checks are enabled.
 - [ ] `just lint` includes the target in the appropriate profile.
 - [ ] Missing tools/fixtures are explicit config/capability failures.
 - [ ] Existing sc-lint targets and report paths remain unchanged.
+- [ ] O.3 diagnostic entries were added additively after rebasing onto the
+      merged O.2 registry.
+- [ ] ADR-0019 is accepted before implementation handoff.
 - [ ] All workspace and targeted quality checks pass.
 
 ## Sc-lint cleanup and QA handoff

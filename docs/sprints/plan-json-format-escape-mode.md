@@ -299,7 +299,9 @@ campaign while adding a compatibility matrix and a parser-backed output oracle.
 - machine-readable result for ATM-core and other callers;
 - `template-init` generation aligned with the selected mode;
 - migration fixtures for the six known repository templates;
-- release-corpus checks for the likely 20–30 downstream repositories;
+- release-corpus checks for every repository enumerated and pinned in
+  `docs/phase-O/release-corpus-roots.txt` (the campaign reports the actual
+  count rather than assuming 20–30);
 - fuzz-oracle and regression-test improvements.
 
 ### 5.2 Out of scope
@@ -475,26 +477,23 @@ For JSON it must:
    variable-validation failure.
 
 The checker must run before any file write or stdout emission when the caller
-requests a checked render. For an ordinary `render` command, the recommended
-1.4.1 default is fail-closed for JSON because emitting invalid JSON with exit 0
-is the production incident being fixed. If rollout data shows that default
-would be too disruptive, the fallback is an explicit `--check-output` opt-in
-for 1.4.1 plus a warning on unchecked JSON render; the plan must not ship a
-silent acceptance path as the final behavior.
+requests a checked render. For an ordinary `render` command, the 1.4.1 default
+is fail-closed for JSON because emitting invalid JSON with exit 0 is the
+production incident being fixed. There is no `--check-output` opt-in
+transition and no silent acceptance path: malformed JSON is rejected before
+emission.
 
 ### 7.3 Render API and CLI flag
 
-Introduce a clear render-check switch rather than overloading `validate`:
+Introduce the canonical `--check-render` switch rather than overloading
+`validate`:
 
 ```text
 --check-render       perform composition and format-aware output validation
---check-output       alias only if CLI naming review confirms it is clearer
 ```
 
-The implementation must choose one canonical spelling and use it in help,
-requirements, examples, and integration tests. This plan recommends
-`--check-render` because it names the operation and avoids ambiguity with file
-output checks.
+`--check-output` is not an alias. The implementation, help, requirements,
+examples, and integration tests must use only `--check-render`.
 
 The flag should be available to `render` and `validate`, with the following
 semantics:
@@ -1001,11 +1000,10 @@ ADR only where needed:
 6. update FR-8/FR-8a language to cover parser-backed output diagnostics;
 7. add a migration note for existing quoted placeholders.
 
-Do not create a new ADR solely to restate an implementation detail. If an
-existing ADR owns renderer escaping or diagnostic contracts, amend that ADR and
-record the decision link in the sprint closeout. If no existing requirement
-owns the compatibility/default decision, create one narrowly scoped decision
-record rather than scattering mode rules across README files.
+Reserve `ADR-0019 — JSON Render Contract and Fail-Closed Output Validation`.
+Architecture owns acceptance and O.1 must not dispatch implementation before
+the ADR and detailed design acceptance are recorded. The ADR is a planning
+gate, not a request to create a second implementation of the renderer rules.
 
 ## 16. Acceptance criteria
 
@@ -1075,7 +1073,8 @@ questions:
    while retaining their different scopes?
 6. Can ATM-core consume a stable result without importing ATM runtime code?
 7. Are all six known templates covered by semantic JSON tests?
-8. Would a 20–30 repository inventory identify old quoted templates before the
+8. Does the pinned `docs/phase-O/release-corpus-roots.txt` inventory identify
+   old quoted templates in every available consumer repository before the
    compatibility default is removed?
 9. Does the fuzz oracle test both source forms and parse successful output?
 10. Does the rollout ship the renderer, detector, diagnostics, and migration
@@ -1097,17 +1096,19 @@ This document has been grounded against:
 - `docs/sprints/fix-272-format-aware-escaping.md`;
 - the 2026-08-11 fuzz report and adversarial-fuzzing oracle.
 
-The following are pending external review rather than silently assumed:
+The planning decisions are resolved as follows:
 
-- final CLI flag spelling;
-- whether 1.4.1 should make JSON render checks fail-closed by default or use
-  one short opt-in period;
-- whether the compatibility default should apply to all unannotated JSON
-  templates or only templates identified as pre-1.4 by an explicit marker;
-- whether the six templates can all migrate immediately without a raw-JSON
-  field requiring a separate structured-value fixture;
-- the exact ATM-core adapter/API call and cache integration;
-- the final deprecation removal release.
+- the only CLI spelling is `--check-render`;
+- ordinary unflagged JSON `render` is fail-closed in 1.4.1 before emission;
+- `legacy` is the compatibility default for every unannotated JSON template in
+  1.4.1, with a deprecation diagnostic; no pre-1.4 marker is required;
+- O.4 must migrate all six known templates or record a reviewed, fixture-backed
+  legacy exception before O.5 release-corpus work begins;
+- ATM-core consumes the structured `RenderCheckReport` defined by the Phase O
+  plan and supplies the exact context; consumer-side adapter implementation is
+  not sc-compose production scope;
+- removal of the legacy default is a later breaking-release decision, gated by
+  migration and corpus evidence, and is not an open Phase O dependency.
 
 ## 19. Closeout evidence
 

@@ -1,7 +1,7 @@
 ---
 id: O.1
 title: JSON Escape Mode Contract and Safe Renderer Compatibility
-phase: N
+phase: O
 status: planned
 branch: sprint/o-1-json-mode-contract
 worktree: ../sc-compose-worktrees/sprint/o-1-json-mode-contract
@@ -28,17 +28,21 @@ sprint may implement a second mode resolver or escape algorithm.
 ## Exact targets
 
 - `crates/sc-composer/src/renderer.rs`
-- `crates/sc-composer/src/frontmatter/` or the existing frontmatter model
-- `crates/sc-composer/src/diagnostics/`
+- `crates/sc-composer/src/frontmatter/model.rs`
+- `crates/sc-composer/src/frontmatter/parser.rs`
+- `crates/sc-composer/src/diagnostics/schema.rs`
 - `crates/sc-compose/src/commands/template_init.rs`
-- `crates/sc-compose/src/cli/`
-- `crates/sc-composer/tests/` or renderer unit-test module
-- `crates/sc-compose/tests/`
-- `docs/requirements.md` and the applicable ADR/diagnostic registry entry
+- `crates/sc-compose/src/cli/schema.rs`
+- `crates/sc-compose/src/render_request/request.rs`
+- `crates/sc-composer/src/renderer.rs` tests
+- `crates/sc-compose/tests/cli/templates.rs`
+- `docs/requirements.md`
+- `docs/adrs/0019-json-render-contract.md` (reserved; acceptance gate)
 
 ## Required work
 
-1. Add a typed `JsonEscapeMode` with `Legacy` and `Auto` values.
+1. Add the typed `JsonEscapeMode` defined by the phase plan's authoritative
+   checked-render contract, with `Legacy` and `Auto` values.
 2. Resolve mode using CLI override, root frontmatter, then 1.4.1 compatibility
    default `legacy`.
 3. Restrict mode semantics to effective JSON templates using the existing
@@ -80,6 +84,16 @@ Legacy is not raw interpolation. A hostile value such as
 - template-init followed by render is a semantic JSON round-trip;
 - existing HTML/XML/CDATA/Turtle renderer tests remain unchanged.
 
+The canonical Rust signature is:
+
+```rust
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum JsonEscapeMode {
+    Legacy,
+    Auto,
+}
+```
+
 ## Deliverables
 
 - typed mode and resolver;
@@ -98,6 +112,8 @@ Legacy is not raw interpolation. A hostile value such as
 - [ ] CLI/frontmatter/default precedence is tested.
 - [ ] No non-JSON renderer behavior changes.
 - [ ] All required tests and workspace quality checks pass.
+- [ ] ADR-0019 is accepted before implementation handoff; this sprint does
+      not dispatch source work while the Phase O design-acceptance gate is open.
 
 ## Sc-lint cleanup and QA handoff
 
