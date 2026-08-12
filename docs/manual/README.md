@@ -23,6 +23,8 @@ when a script needs the same topic names as one stable, newline-delimited list.
 - [Templates](templates.md) — import, list, and render user template packs.
 - [Reports](reports.md) — create, materialize, verify, and publish report
   artifacts.
+- [Observability health](observability-health.md) — inspect process-local
+  logger, sink, queue, and retained-log maintenance health.
 
 Additional feature manuals should add a document here and register it in the
 CLI's ordered manual-topic registry so the index and `--list` output stay in
