@@ -36,6 +36,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up sc-lint
+        uses: ./.github/actions/setup-sc-lint
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
