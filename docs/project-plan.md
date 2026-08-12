@@ -788,6 +788,31 @@ FEAT-HELP-MANUAL-CORE adds the CLI-owned bundled manual registry, the initial
 feature sprints can add one markdown manual and one ordered registry entry at a
 time.
 
+### Phase N Sprint Plans
+
+Status:
+
+- planned: FR-22 (CLI Conceptual Help Manuals), plan-gated via PR #396
+  (`plan/help-manual-system`);
+- sequencing: N.1 (core scaffolding) must land its `help_topics` registry,
+  `docs/manual/README.md`, and `docs/manual/exit-codes.md` before N.2 and
+  N.3 can add content — N.2/N.3 branch from N.1's tip and merge back into
+  it, not into `develop`, until N.1 itself merges;
+- N.2 and N.3 run concurrently once N.1's registry exists, each owning a
+  disjoint topic set (N.2: render/resolve/validate/verify/extract/
+  template-init; N.3: frontmatter-init/init/examples/templates/reports) —
+  no shared files beyond appending to `docs/manual/README.md` and the
+  `help_topics::TOPICS` array;
+- validation for all three sprints: `cargo fmt --all --check`, `cargo
+  clippy --all-targets --all-features -- -D warnings`, `cargo test
+  --workspace`.
+
+Sprint entries:
+
+- [Sprint N.1 — Help-Manual Core Scaffolding](sprints/feat-help-manual-core.md)
+- [Sprint N.2 — Help-Manual Content, Group 1](sprints/feat-help-manual-topics-1.md)
+- [Sprint N.3 — Help-Manual Content, Group 2](sprints/feat-help-manual-topics-2.md)
+
 ### Follow-on Fix Sprint: FIX-390
 
 Status:
