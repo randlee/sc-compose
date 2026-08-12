@@ -1025,6 +1025,10 @@ Command-specific rules:
   - resolves topic names only after the `help` command has been selected, so a
     topic may equal a real root command (`help render` versus `render`) without
     shadowing or reinterpreting that root command.
+- The generated root `sc-compose --help` output must retain a final
+  discoverability footer directing users to `sc-compose help` (and
+  `sc-compose help <topic>`) for the complete bundled manual index. This is a
+  CLI parser/help-rendering concern, not a `sc-composer` library concern.
 
 Guidance and prompt input model:
 
