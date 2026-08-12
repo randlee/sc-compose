@@ -167,15 +167,15 @@ Medium — customer-facing documentation gap, not release-blocking.
 
 ## Closeout Evidence
 
-- implementation commit: `7cd42a3` (`feat: add bundled help manual core`)
-- QA follow-up commits: `04c55ad` (diagnostics, JSON envelope, planning
-  evidence) and `c10d9d9` (diagnostic registry test count correction)
+- final PR branch commit: `1d016d4` (`docs: clarify feature manual guidance`);
+  the implementation and QA fixes are included in its history.
 - `sc-compose help` prints the bundled manual index, `help --list` emits the
   stable topic names, and `help exit-codes` prints the four-code contract;
   unknown topics return usage failure `3` and list valid topics.
 - root `sc-compose --help` points users to the shipped manuals.
 - CI evidence: [PR #397 checks](https://github.com/randlee/sc-compose/pull/397/checks)
-  for commit `01b589e` are green, including the workspace test job.
+  for final branch commit `1d016d4` are green, including the workspace test
+  job and platform-specific checks.
 - validation PASS: `cargo fmt --all --check`,
   `cargo clippy --workspace --all-targets --all-features -- -D warnings`,
   and `cargo test --workspace`.
