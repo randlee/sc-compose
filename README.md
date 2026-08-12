@@ -183,7 +183,7 @@ examples.
 - [docs/git-workflows.md](docs/git-workflows.md) — branching and review rules
 - [docs/cross-platform-guidelines.md](docs/cross-platform-guidelines.md) — platform testing rules
 - [docs/atm-adapter-notes.md](docs/atm-adapter-notes.md) — adapter boundary and integration
-- [docs/manual/README.md](docs/manual/README.md) — bundled CLI feature manuals, also available via `sc-compose help <topic>`
+- [crates/sc-compose/docs/manual/README.md](crates/sc-compose/docs/manual/README.md) — bundled CLI feature manuals, also available via `sc-compose help <topic>`
 - [RELEASING.md](RELEASING.md) — step-by-step release checklist
 - [docs/repowise/README.md](docs/repowise/README.md) — code health analysis pipeline and regeneration
 
