@@ -5,7 +5,7 @@ use anyhow::anyhow;
 use sc_composer::types::default_pass_number;
 use sc_composer::{
     DiagnosticCode, FrontmatterInitResult, RecoveryHint, RecoveryHintKind, VariableName,
-    parse_template_document,
+    parse_template_document, strip_template_suffix,
 };
 
 use crate::cli::{FrontmatterInitArgs, TemplateInitArgs, parse_pass_inputs};
@@ -389,10 +389,7 @@ fn is_json_template_path(path: &Path) -> bool {
     let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
         return false;
     };
-    let stripped = [".j2", ".jinja2", ".jinja"]
-        .iter()
-        .find_map(|suffix| file_name.strip_suffix(suffix))
-        .unwrap_or(file_name);
+    let stripped = strip_template_suffix(file_name);
     Path::new(stripped)
         .extension()
         .and_then(|extension| extension.to_str())
