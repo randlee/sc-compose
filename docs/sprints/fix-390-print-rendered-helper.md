@@ -1,7 +1,7 @@
 ---
 id: FIX-390-PRINT-RENDERED-HELPER
 title: Extract print_rendered helper from report_cli_parse_error
-status: assigned
+status: complete
 branch: fix/390-print-rendered-helper
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/390-print-rendered-helper
 target: develop
@@ -74,3 +74,13 @@ duplication while preserving identical behavior.
 ## Priority
 
 Low — code-quality cleanup, not release-blocking.
+
+## Closeout Evidence
+
+- implementation commit: `8a014e9`
+- `print_rendered` is shared by both display-request and plain-text usage
+  error paths; `report_cli_parse_error` contains no duplicated print block.
+- existing CLI parse-error tests passed without modification.
+- validation PASS: `cargo fmt --all --check`,
+  `cargo clippy --all-targets --all-features -- -D warnings`, and
+  `cargo test --workspace`.

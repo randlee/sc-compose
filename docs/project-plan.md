@@ -810,7 +810,7 @@ Section 4's module list, closing the ATM-QA-003 finding from FIX-SIMP-001 QA.
 
 Status:
 
-- assigned on `fix/390-print-rendered-helper`
+- complete on `fix/390-print-rendered-helper` at `8a014e9`
 
 Sprint entry:
 
