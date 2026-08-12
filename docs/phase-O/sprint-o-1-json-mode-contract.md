@@ -87,7 +87,7 @@ Legacy is not raw interpolation. A hostile value such as
 The canonical Rust signature is:
 
 ```rust
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum JsonEscapeMode {
     Legacy,
     Auto,

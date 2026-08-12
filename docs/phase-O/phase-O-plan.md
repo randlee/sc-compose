@@ -181,38 +181,76 @@ alternate field names, default behavior, or parser timing.
 The authoritative API shape is:
 
 ```rust
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum JsonEscapeMode {
     Legacy,
     Auto,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct RenderCheckMeta {
+    pub template: PathBuf,
+    pub output_format: OutputFormat,
+    pub json_escape_mode: Option<JsonEscapeMode>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(tag = "state", rename_all = "snake_case")]
+pub enum RenderCheckReport {
+    StaticOnly {
+        meta: RenderCheckMeta,
+        diagnostics: Vec<Diagnostic>,
+    },
+    ContractInvalid {
+        meta: RenderCheckMeta,
+        diagnostics: Vec<Diagnostic>,
+    },
+    ContextRequired {
+        meta: RenderCheckMeta,
+        diagnostics: Vec<Diagnostic>,
+    },
+    RenderInvalid {
+        meta: RenderCheckMeta,
+        diagnostics: Vec<Diagnostic>,
+    },
+    RenderChecked {
+        meta: RenderCheckMeta,
+        checked_context: ContextSummary,
+        diagnostics: Vec<Diagnostic>,
+    },
+}
+
+pub struct CheckedOutput {
+    body: String,
+    meta: RenderCheckMeta,
+}
+
+impl CheckedOutput {
+    pub fn emit<W: std::io::Write>(&self, writer: W) -> std::io::Result<()>;
 }
 
 pub fn check_rendered_output(
     format: OutputFormat,
     template: &Path,
     rendered: &str,
-) -> Result<OutputCheck, OutputCheckError>;
+) -> Result<CheckedOutput, OutputCheckError>;
 
-pub struct RenderCheckReport {
-    pub template_contract_valid: bool,
-    pub render_checked: bool,
-    pub render_valid_for_context: Option<bool>,
-    pub output_format: OutputFormat,
-    pub json_escape_mode: Option<JsonEscapeMode>,
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct OutputCheckError {
+    pub reason: OutputCheckReason,
     pub diagnostics: Vec<Diagnostic>,
 }
 
-pub struct OutputCheck {
-    pub valid: bool,
-    pub diagnostics: Vec<Diagnostic>,
-}
-
-pub enum OutputCheckError {
+#[derive(Debug)]
+pub enum OutputCheckReason {
     InvalidJson {
         line: usize,
         column: usize,
         byte_offset: usize,
     },
+    ContractViolation,
+    RenderFailure,
 }
 ```
 
@@ -221,7 +259,17 @@ returns stable line/column/offset diagnostics without echoing the payload, and
 is a no-op for formats outside this phase. `render --check-render` and the
 1.4.1 default JSON render path invoke it before stdout/file emission.
 `validate --check-render` invokes it in memory and emits no body. Plain
-`validate` sets `render_checked: false` and does not claim output validity.
+`validate` returns `RenderCheckReport::StaticOnly` and does not claim output
+validity. The report is state-shaped: callers cannot represent contradictory
+combinations of static validity, render execution, and render validity.
+
+The channel rule is authoritative: `check_rendered_output` returns
+`Err(OutputCheckError { reason: InvalidJson { .. }, .. })` for a structural
+parse failure and never returns an `Ok` value with `valid: false`; an `Ok`
+`CheckedOutput` is the only value permitted to reach an emitter, while
+`RenderCheckReport::RenderInvalid` is its structured serialized projection for
+callers and not a recoverable success channel. Advisory diagnostics may be
+reported in the non-emitting states only.
 
 The 1.4.1 default is resolved now: ordinary unflagged JSON `render` fails
 closed before emitting malformed JSON. There is no opt-in transition period.
@@ -234,21 +282,22 @@ The library/CLI result must expose at least:
 
 ```json
 {
+  "state": "render_checked",
   "template": "path/to/assignment.json.j2",
   "output_format": "json",
   "json_escape_mode": "auto",
-  "template_contract_valid": true,
-  "render_checked": true,
-  "render_valid_for_context": true,
+  "checked_context": "caller-defined exact context summary",
   "diagnostics": []
 }
 ```
 
 ATM-core must supply the exact context it will use, call the checked validation
-or library API, inspect the structured result, and cache/send only after the
-result says `render_valid_for_context: true`. Static validity without a context
-must not be represented as proof that a future render will parse. The result
-must not include the full prompt body unless explicitly requested.
+or library API, inspect the structured result, and cache/send only when
+`state == "render_checked"`. `static_only`, `context_required`,
+`contract_invalid`, and `render_invalid` states are not permission to send or
+cache. Static validity without a context must not be represented as proof that
+a future render will parse. The result must not include the full prompt body
+unless explicitly requested.
 
 ## Ordering and parallelism
 
@@ -272,11 +321,15 @@ O.2 and O.3 must not duplicate the shared parser or mode implementation. O.4
 and O.5 must not begin release-corpus claims until both parent contracts and
 the six-template migration are available.
 
-O.2 and O.3 both touch `crates/sc-composer/src/diagnostics/schema.rs` for
-additive diagnostic codes. To avoid concurrent edit loss, O.2 owns the initial
-registry insertion; O.3 must rebase onto O.2's merged commit before adding its
-codes, may only add non-overlapping entries, and must not rewrite O.2 entries.
-If O.2's registry shape changes during QA, O.3 pauses and rebases again.
+O.2 and O.3 both touch these four shared files for diagnostics, CLI fixtures,
+and requirements: `crates/sc-composer/src/diagnostics/schema.rs`,
+`crates/sc-compose/tests/cli/validate.rs`,
+`crates/sc-compose/tests/json_cli/validate.rs`, and
+`docs/requirements.md`. To avoid concurrent edit loss, O.2 owns the initial
+changes in all four files; O.3 must rebase onto O.2's merged commit before
+adding its non-overlapping source-lint changes, may only add entries/fixtures,
+and must not rewrite O.2 changes. If any shared file's shape changes during
+O.2 QA, O.3 pauses and rebases again.
 
 ## Sc-lint findings and QA routing
 
@@ -312,6 +365,8 @@ merged, and revalidated. Each sprint below repeats this handoff gate locally.
 - [ ] auto mode remains injection-safe for hostile strings and structured
       values.
 - [ ] malformed JSON cannot be emitted as a successful checked render.
+- [ ] `RenderCheckReport` is state-shaped, parser failure uses the typed
+      `Err` channel, and only `CheckedOutput` can reach an emitter.
 - [ ] `validate` clearly reports static-only status.
 - [ ] `validate --lint` reports quoted-placeholder source findings.
 - [ ] `sc-compose lint --target template-contracts` and `just lint` run the

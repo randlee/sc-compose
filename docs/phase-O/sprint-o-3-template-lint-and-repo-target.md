@@ -23,10 +23,14 @@ after O.1 merges. O.4 consumes the target and its report contract. O.3 must
 not implement the post-render parser; it consumes O.2's shared checker when
 fixture-backed render checks are enabled.
 
-O.2 owns the initial additions to `diagnostics/schema.rs`. After O.2 merges,
-rebase this sprint onto that commit before adding O.3's non-overlapping source
-lint and capability diagnostics. Add entries only; do not rewrite O.2 entries.
-If the schema shape changes during O.2 QA, pause and rebase again.
+O.2 owns the initial changes in these four shared files:
+`crates/sc-composer/src/diagnostics/schema.rs`,
+`crates/sc-compose/tests/cli/validate.rs`,
+`crates/sc-compose/tests/json_cli/validate.rs`, and
+`docs/requirements.md`. After O.2 merges, rebase this sprint onto that commit
+before adding O.3's non-overlapping source-lint diagnostics, fixtures, and
+requirements text. Add entries/fixtures only; do not rewrite O.2 changes. If
+any shared file's shape changes during O.2 QA, pause and rebase again.
 
 ## Exact targets
 
@@ -112,8 +116,8 @@ diagnostic vocabulary.
 - [ ] `just lint` includes the target in the appropriate profile.
 - [ ] Missing tools/fixtures are explicit config/capability failures.
 - [ ] Existing sc-lint targets and report paths remain unchanged.
-- [ ] O.3 diagnostic entries were added additively after rebasing onto the
-      merged O.2 registry.
+- [ ] O.3 changes to all four shared files were additive after rebasing onto
+      the merged O.2 commit.
 - [ ] ADR-0019 is accepted before implementation handoff.
 - [ ] All workspace and targeted quality checks pass.
 

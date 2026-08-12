@@ -47,11 +47,11 @@ O.2 must not duplicate mode selection or JSON escaping from O.1.
 
    ```json
    {
-     "template_contract_valid": true,
-     "render_checked": true,
-     "render_valid_for_context": true,
+     "state": "render_checked",
+     "template": "path/to/assignment.json.j2",
      "output_format": "json",
      "json_escape_mode": "auto",
+     "checked_context": "caller-defined exact context summary",
      "diagnostics": []
    }
    ```
@@ -86,7 +86,7 @@ is not a claim that all future conditional branches will parse.
 - parser errors do not include full secret payloads;
 - parser failure prevents stdout/file emission;
 - `render --json` preserves the diagnostic envelope;
-- `validate` reports `render_checked: false`;
+- `validate` reports the `static_only` state;
 - `validate --check-render` proves the exact context;
 - `validate --lint --check-render` combines diagnostics;
 - multi-pass render checks identify the failing pass;
@@ -118,6 +118,8 @@ is not a claim that all future conditional branches will parse.
       parser implementation and diagnostic code.
 - [ ] Unflagged JSON `render` fails closed before emission; no release-review
       exception or opt-in transition remains in the implementation.
+- [ ] `RenderCheckReport` uses explicit states and only `CheckedOutput` has an
+      emission method; parser failures are typed `Err` results.
 - [ ] Existing envelope and exit-code requirements remain satisfied.
 - [ ] ADR-0019 is accepted before implementation handoff.
 - [ ] All workspace and targeted quality checks pass.
@@ -138,6 +140,5 @@ post-merge revalidation.
 cargo test --workspace
 cargo fmt --all --check
 cargo clippy --all-targets --all-features -- -D warnings
-just lint target=template-contracts   # after O.3 target registration
 git diff --check
 ```

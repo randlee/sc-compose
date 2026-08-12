@@ -149,8 +149,7 @@ the checked validation/render contract with the exact variable context it is
 about to use, inspect the structured result, and proceed only when:
 
 ```text
-template_contract_valid == true
-render_valid_for_context == true
+state == "render_checked"
 output_format == expected format
 diagnostics contain no error severity
 ```
@@ -425,26 +424,67 @@ say “compatibility mode; migrate to `auto`” rather than promise a date.
 
 ### 7.1 Library-owned result
 
-Add a library-level result type in `sc-composer`, with names finalized during
-implementation but equivalent fields to:
+Use the Phase O plan's authoritative state-shaped result type. The following
+is the required public shape; implementation may add private metadata but may
+not restore independent booleans or a second report vocabulary:
 
 ```rust
-pub struct RenderCheckReport {
+#[derive(Clone, Debug, Serialize)]
+pub struct RenderCheckMeta {
     pub template: PathBuf,
     pub output_format: OutputFormat,
     pub json_escape_mode: Option<JsonEscapeMode>,
-    pub template_contract_valid: bool,
-    pub rendered: bool,
-    pub render_valid_for_context: Option<bool>,
-    pub checked_context: ContextSummary,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub enum RenderCheckReport {
+    StaticOnly { meta: RenderCheckMeta, diagnostics: Vec<Diagnostic> },
+    ContractInvalid { meta: RenderCheckMeta, diagnostics: Vec<Diagnostic> },
+    ContextRequired { meta: RenderCheckMeta, diagnostics: Vec<Diagnostic> },
+    RenderInvalid { meta: RenderCheckMeta, diagnostics: Vec<Diagnostic> },
+    RenderChecked {
+        meta: RenderCheckMeta,
+        checked_context: ContextSummary,
+        diagnostics: Vec<Diagnostic>,
+    },
+}
+
+pub struct CheckedOutput {
+    body: String,
+    meta: RenderCheckMeta,
+}
+
+impl CheckedOutput {
+    pub fn emit<W: std::io::Write>(&self, writer: W) -> std::io::Result<()>;
+}
+
+pub fn check_rendered_output(
+    format: OutputFormat,
+    template: &Path,
+    rendered: &str,
+) -> Result<CheckedOutput, OutputCheckError>;
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct OutputCheckError {
+    pub reason: OutputCheckReason,
     pub diagnostics: Vec<Diagnostic>,
+}
+
+#[derive(Debug)]
+pub enum OutputCheckReason {
+    InvalidJson { line: usize, column: usize, byte_offset: usize },
+    ContractViolation,
+    RenderFailure,
 }
 ```
 
-The public result must not contain the full rendered body by default. A caller
-that already requested a render may retain the body separately. The report
-must contain enough information for an external integration to decide whether
-to continue, and it must be serializable into the existing diagnostic envelope.
+`check_rendered_output` returns `Err(OutputCheckError { reason: InvalidJson {
+.. }, .. })` for structural parse failure and never returns an `Ok` value with
+`valid: false`. Only `CheckedOutput` has an emitter, so the type boundary
+prevents an unchecked body from reaching output. `RenderCheckReport` is the
+machine-readable state projection and must be serializable into the existing
+diagnostic envelope; it does not contain the full rendered body by default.
 
 The report should distinguish these cases:
 
@@ -460,8 +500,12 @@ The report should distinguish these cases:
 Create one reusable format-aware post-render checker in `sc-composer` or a
 small adjacent module owned by the library:
 
-```text
-check_rendered_output(format, template_path, rendered_text)
+```rust
+check_rendered_output(
+    format,
+    template_path,
+    rendered_text,
+) -> Result<CheckedOutput, OutputCheckError>
 ```
 
 For JSON it must:
@@ -520,14 +564,11 @@ dependent, and potentially side-effectful.
 Instead, update the help text and JSON payload to say:
 
 ```text
-valid: true
-template_contract_valid: true
-render_checked: false
-render_valid_for_context: null
+state: static_only
 ```
 
-This removes the misleading interpretation of `valid` without making plain
-validation perform work the caller did not request.
+This removes the misleading interpretation of independent validity flags
+without making plain validation perform work the caller did not request.
 
 ## 8. Static template lint design
 
@@ -696,12 +737,11 @@ The CLI payload should include at least:
 
 ```json
 {
+  "state": "render_checked",
   "template": "path/to/assignment.json.j2",
   "output_format": "json",
   "json_escape_mode": "auto",
-  "template_contract_valid": true,
-  "render_checked": true,
-  "render_valid_for_context": true,
+  "checked_context": "caller-defined exact context summary",
   "context_fingerprint": "optional caller-owned identifier",
   "diagnostics": []
 }
