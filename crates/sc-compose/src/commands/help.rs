@@ -7,12 +7,15 @@ use crate::exit_codes;
 use crate::help_topics;
 use crate::print_json;
 
+fn print_topic_index_json(topics: Vec<&'static str>) -> Result<(), CommandError> {
+    print_json(serde_json::json!({ "topics": topics }), Vec::new()).map_err(CommandError::usage)
+}
+
 pub(crate) fn run_help(args: &HelpArgs) -> Result<i32, CommandError> {
     if args.list {
         let topics = help_topics::topic_names();
         if args.json {
-            print_json(serde_json::json!({ "topics": topics }), Vec::new())
-                .map_err(CommandError::usage)?;
+            print_topic_index_json(topics)?;
         } else {
             for topic in topics {
                 println!("{topic}");
@@ -48,11 +51,7 @@ pub(crate) fn run_help(args: &HelpArgs) -> Result<i32, CommandError> {
     }
 
     if args.json {
-        print_json(
-            serde_json::json!({ "topics": help_topics::topic_names() }),
-            Vec::new(),
-        )
-        .map_err(CommandError::usage)?;
+        print_topic_index_json(help_topics::topic_names())?;
     } else {
         print!("{}", help_topics::index());
     }
