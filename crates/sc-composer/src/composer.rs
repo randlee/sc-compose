@@ -141,12 +141,15 @@ fn compose_expanded(
             &contexts,
             &template_name,
             observer,
-            effective_json_escape_mode(request, parsed.frontmatter()),
+            crate::resolve_json_escape_mode(
+                request.policy.json_escape_mode,
+                parsed.frontmatter().and_then(Frontmatter::json_escape_mode),
+            ),
         )?
     } else {
-        let renderer = Renderer::with_json_escape_mode(effective_json_escape_mode(
-            request,
-            parsed.frontmatter(),
+        let renderer = Renderer::with_json_escape_mode(crate::resolve_json_escape_mode(
+            request.policy.json_escape_mode,
+            parsed.frontmatter().and_then(Frontmatter::json_escape_mode),
         ));
         renderer
             .render_named(
@@ -203,17 +206,6 @@ pub fn render_all(
         &mut observer,
         crate::JsonEscapeMode::Auto,
     )
-}
-
-fn effective_json_escape_mode(
-    request: &ComposeRequest,
-    root_frontmatter: Option<&Frontmatter>,
-) -> crate::JsonEscapeMode {
-    request
-        .policy
-        .json_escape_mode
-        .or_else(|| root_frontmatter.and_then(Frontmatter::json_escape_mode))
-        .unwrap_or_default()
 }
 
 /// Protect next-higher-brace expressions from lower-brace rendering passes.

@@ -28,6 +28,22 @@ pub enum JsonEscapeMode {
     Auto,
 }
 
+/// Resolve JSON interpolation mode using CLI override, root frontmatter, and
+/// the 1.4.1-compatible `auto` default, in that order.
+#[must_use]
+pub const fn resolve_json_escape_mode(
+    cli_override: Option<JsonEscapeMode>,
+    frontmatter_mode: Option<JsonEscapeMode>,
+) -> JsonEscapeMode {
+    match cli_override {
+        Some(mode) => mode,
+        None => match frontmatter_mode {
+            Some(mode) => mode,
+            None => JsonEscapeMode::Auto,
+        },
+    }
+}
+
 /// Additional named templates that the main template may extend or include.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct NamedTemplateAsset {
@@ -437,7 +453,7 @@ mod tests {
 
     use super::{
         JsonEscapeMode, LoadedTemplateRequest, NamedTemplateAsset, Renderer, XML_REPLACEMENT_NCR,
-        render_loaded_template, turtle_escape_filter,
+        render_loaded_template, resolve_json_escape_mode, turtle_escape_filter,
     };
 
     #[test]
@@ -606,6 +622,19 @@ mod tests {
 
         let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
         assert_eq!(parsed, json!(original));
+    }
+
+    #[test]
+    fn json_escape_mode_resolution_uses_cli_then_frontmatter_then_auto() {
+        assert_eq!(
+            resolve_json_escape_mode(Some(JsonEscapeMode::Legacy), Some(JsonEscapeMode::Auto)),
+            JsonEscapeMode::Legacy
+        );
+        assert_eq!(
+            resolve_json_escape_mode(None, Some(JsonEscapeMode::Legacy)),
+            JsonEscapeMode::Legacy
+        );
+        assert_eq!(resolve_json_escape_mode(None, None), JsonEscapeMode::Auto);
     }
 
     #[test]

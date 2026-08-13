@@ -96,15 +96,12 @@ pub(super) fn execute_custom_delimiter_render(
         .and_then(|name| name.to_str())
         .unwrap_or("inline")
         .to_owned();
-    let json_escape_mode = request
-        .policy
-        .json_escape_mode
-        .or_else(|| {
-            root_passes
-                .first()
-                .and_then(sc_composer::Frontmatter::json_escape_mode)
-        })
-        .unwrap_or_default();
+    let json_escape_mode = sc_composer::resolve_json_escape_mode(
+        request.policy.json_escape_mode,
+        root_passes
+            .first()
+            .and_then(sc_composer::Frontmatter::json_escape_mode),
+    );
     let rendered_text =
         Renderer::with_delimiters_and_json_escape_mode(&open, &close, json_escape_mode)
             .map_err(|error| {

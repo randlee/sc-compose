@@ -1001,6 +1001,92 @@ fn render_variable_delimiters_uses_explicit_delimiter_pair() {
 }
 
 #[test]
+fn render_json_custom_delimiters_respect_mode_precedence() {
+    let cli_override_root = temp_root("json-custom-delimiters-cli-override");
+    write_file(
+        &cli_override_root.join("payload.json.j2"),
+        "---\njson_escape_mode: legacy\n---\n{\"value\": {{{ value }}}}\n",
+    );
+    let cli_override = sc_compose()
+        .args([
+            "render",
+            "--variable-delimiters",
+            "{{{",
+            "}}}",
+            "--json-escape-mode",
+            "auto",
+            "--mode",
+            "file",
+            "--root",
+            cli_override_root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=cli override",
+        ])
+        .output()
+        .unwrap();
+    assert!(cli_override.status.success(), "{cli_override:?}");
+    let cli_value: Value =
+        serde_json::from_slice(&cli_override.stdout).expect("CLI override must produce valid JSON");
+    assert_eq!(cli_value["value"], "cli override");
+
+    let frontmatter_root = temp_root("json-custom-delimiters-frontmatter");
+    write_file(
+        &frontmatter_root.join("payload.json.j2"),
+        "---\njson_escape_mode: legacy\n---\n{\"value\": \"{{{ value }}}\"}\n",
+    );
+    let frontmatter = sc_compose()
+        .args([
+            "render",
+            "--variable-delimiters",
+            "{{{",
+            "}}}",
+            "--mode",
+            "file",
+            "--root",
+            frontmatter_root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=frontmatter fallback",
+        ])
+        .output()
+        .unwrap();
+    assert!(frontmatter.status.success(), "{frontmatter:?}");
+    let frontmatter_value: Value = serde_json::from_slice(&frontmatter.stdout)
+        .expect("frontmatter mode must produce valid JSON");
+    assert_eq!(frontmatter_value["value"], "frontmatter fallback");
+
+    let default_root = temp_root("json-custom-delimiters-default");
+    write_file(
+        &default_root.join("payload.json.j2"),
+        "{\"value\": {{{ value }}}}\n",
+    );
+    let default = sc_compose()
+        .args([
+            "render",
+            "--variable-delimiters",
+            "{{{",
+            "}}}",
+            "--mode",
+            "file",
+            "--root",
+            default_root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=default auto",
+        ])
+        .output()
+        .unwrap();
+    assert!(default.status.success(), "{default:?}");
+    let default_value: Value =
+        serde_json::from_slice(&default.stdout).expect("default mode must produce valid JSON");
+    assert_eq!(default_value["value"], "default auto");
+}
+
+#[test]
 fn render_variable_delimiters_reports_invalid_delimiters_without_panicking() {
     let root = temp_root("variable-delimiters-invalid");
     write_file(&root.join("template.md.j2"), "hello {{ name }}\n");

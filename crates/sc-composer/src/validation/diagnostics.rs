@@ -5,7 +5,7 @@ use crate::ExpandedTemplate;
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
 use crate::discovery::discover_tokens;
 use crate::frontmatter::parse_template_document;
-use crate::renderer::{JSON_LEGACY_WARNING, JsonEscapeMode};
+use crate::renderer::JSON_LEGACY_WARNING;
 use crate::strip_template_suffix;
 use crate::types::{ComposeRequest, UnknownVariablePolicy, VariableName, VariableSource};
 
@@ -100,12 +100,8 @@ fn json_mode_diagnostics(
     }
 
     let legacy_mode = matches!(
-        request
-            .policy
-            .json_escape_mode
-            .or(declared_mode)
-            .unwrap_or_default(),
-        JsonEscapeMode::Legacy
+        crate::resolve_json_escape_mode(request.policy.json_escape_mode, declared_mode),
+        crate::JsonEscapeMode::Legacy
     );
     let quoted_names = quoted_json_placeholder_names(&expanded.text);
     if legacy_mode || !quoted_names.is_empty() {
