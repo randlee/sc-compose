@@ -52,13 +52,19 @@ their owners.
 - [x] O5-014 — Re-read the sprint plan and verify the campaign acceptance
   criteria; record the one remaining repository-level gate blocker rather
   than claiming a clean release.
-- [x] O5-015 — Resolve `O5-SC-LINT-BOOTSTRAP-001`: the full local `just lint`
-  wrapper remains unavailable in a bare standalone worktree because the
-  `sc-lint`, `sc-lint-boundary`, `sc-lint-portability`, and `sc-lint-runtime`
-  release binaries are absent, but CI provisions them through
+- [x] O5-015 — Re-scope `O5-SC-LINT-BOOTSTRAP-001`: the
+  CI-authoritative `just lint-ci-consumer` profile now runs the
+  production-scoped `template-contracts` gate and asserts its structured pass
+  result, excluding intentional negative fixtures under
+  `tests/fixtures/sc-lint/template-contracts/findings/` and non-production
+  fixtures under `crates/sc-composer/tests/fixtures/`. A bare standalone
+  worktree still cannot run the documented full local `just lint` wrapper
+  because the `sc-lint`, `sc-lint-boundary`, `sc-lint-portability`, and
+  `sc-lint-runtime` release binaries are absent; CI provisions them through
   `.github/actions/setup-sc-lint/action.yml`. The authoritative provisioned
   gate is green: PR #430 `gh pr checks` 12/12 and PR #431 `gh pr checks` 12/12.
-  No suppression was added.
+  This reduced CI profile is not a claim of local full-lint parity, and no
+  suppression was added.
 
 ## Final verification
 
@@ -73,10 +79,11 @@ their owners.
   report sidecar.
 - [x] `just test`, workspace tests, formatting, clippy, fast lint, direct
   sc-boundary, report validation, and diff checks pass.
-- [x] Full local `just lint` is green in the authoritative provisioned CI
-  environment: a bare standalone worktree still lacks the `sc-lint`,
-  `sc-lint-boundary`, `sc-lint-portability`, and `sc-lint-runtime` release
-  binaries (`O5-SC-LINT-BOOTSTRAP-001`), while CI provisions them through
-  `.github/actions/setup-sc-lint/action.yml`. PR #430 `gh pr checks` 12/12 and
-  PR #431 `gh pr checks` 12/12 confirm the green `just lint-ci-consumer` gate;
-  no lint suppression was added.
+- [x] The CI-authoritative `just lint-ci-consumer` profile is green, including
+  the production-scoped `template-contracts` assertion; PR #430 `gh pr checks`
+  12/12 and PR #431 `gh pr checks` 12/12 confirm the provisioned gate. Full
+  local `just lint` remains a separate, provisioned gate because the bare
+  standalone worktree does not contain the four release lint binaries; CI
+  supplies them through `.github/actions/setup-sc-lint/action.yml`. This
+  checklist does not claim local full-lint parity, and no lint suppression was
+  added.

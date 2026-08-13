@@ -212,28 +212,75 @@ fn is_json_template_path(path: &Path) -> bool {
 fn quoted_json_placeholder_expressions(body: &str) -> Vec<String> {
     let mut expressions = Vec::new();
     let mut search_from = 0;
-    while let Some(relative_open) = body[search_from..].find("{{") {
-        let open = search_from + relative_open;
-        let Some(relative_close) = body[open + 2..].find("}}") else {
-            break;
-        };
-        let close = open + 2 + relative_close + 2;
+    while let Some((open, expression_start, close)) =
+        next_json_variable_expression(body, search_from)
+    {
         let before = body[..open]
             .chars()
             .rev()
             .find(|character| !character.is_whitespace());
-        let after = body[close..]
+        let after = body[close + 2..]
             .chars()
             .find(|character| !character.is_whitespace());
         if before == Some('"') && after == Some('"') {
-            let expression = body[open + 2..close - 2].trim();
+            let expression = body[expression_start..close].trim();
             if !expression.is_empty() {
                 expressions.push(expression.to_owned());
             }
         }
-        search_from = close;
+        search_from = close + 2;
     }
     expressions
+}
+
+/// Find variable expressions while ignoring Jinja comments and raw blocks.
+/// This is deliberately lexical, matching the repository template scanner's
+/// conservative behavior without attempting to interpret Jinja expressions.
+fn next_json_variable_expression(
+    source: &str,
+    mut search_from: usize,
+) -> Option<(usize, usize, usize)> {
+    while search_from < source.len() {
+        let remainder = &source[search_from..];
+        let variable = remainder.find("{{");
+        let comment = remainder.find("{#");
+        let statement = remainder.find("{% ").or_else(|| remainder.find("{%"));
+        if variable.is_none() && comment.is_none() && statement.is_none() {
+            return None;
+        }
+
+        let variable_offset = variable.map(|offset| search_from + offset);
+        let comment_offset = comment.map(|offset| search_from + offset);
+        let statement_offset = statement.map(|offset| search_from + offset);
+        let next = [variable_offset, comment_offset, statement_offset]
+            .into_iter()
+            .flatten()
+            .min()?;
+
+        if Some(next) == comment_offset {
+            let end = source[next + 2..].find("#}")?;
+            search_from = next + 2 + end + 2;
+            continue;
+        }
+
+        if Some(next) == statement_offset {
+            let end = source[next + 2..].find("%}")?;
+            let statement_text = source[next + 2..next + 2 + end].trim();
+            if statement_text == "raw" {
+                let raw_end = source[next + 2 + end + 2..].find("{% endraw %}")?;
+                search_from = next + 2 + end + 2 + raw_end + "{% endraw %}".len();
+            } else {
+                search_from = next + 2 + end + 2;
+            }
+            continue;
+        }
+
+        let expression_start = next + 2;
+        let relative_close = source[expression_start..].find("}}")?;
+        let close = expression_start + relative_close;
+        return Some((next, expression_start, close));
+    }
+    None
 }
 
 fn push_unbound_variable_diagnostics(
@@ -537,7 +584,17 @@ mod tests {
     };
     use crate::{DiagnosticCode, DiagnosticSeverity, ExpandedTemplate, validate};
 
-    use super::missing_frontmatter_warnings_for_path;
+    use super::{missing_frontmatter_warnings_for_path, quoted_json_placeholder_expressions};
+
+    const JSON_SCANNER_PARITY_FIXTURE: &str = "{# {\"ignored\": \"{{ comment }}\"} #}\n{% raw %}{\"ignored\": \"{{ raw }}\"}{% endraw %}\n{\"value\": \"{{ value }}\"}\n{{ \"{{ literal }}\" }}\n";
+
+    #[test]
+    fn quoted_json_scanner_skips_comments_raw_blocks_and_literals() {
+        assert_eq!(
+            quoted_json_placeholder_expressions(JSON_SCANNER_PARITY_FIXTURE),
+            vec!["value"]
+        );
+    }
 
     #[test]
     fn default_mode_preserves_undeclared_tokens_as_warnings() {

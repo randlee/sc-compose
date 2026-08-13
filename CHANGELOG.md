@@ -10,6 +10,12 @@ All notable changes to this project will be documented in this file.
   modes. `ERR_JSON_MODE_INCLUDE_CONFLICT` identifies the root and included
   template paths and both modes; matching or undeclared include modes inherit
   the root without a false positive.
+- Clarified ADR-0019's scope: checked output is enforced at the `sc-compose`
+  CLI emitter, while direct `sc-composer` library consumers must follow the
+  named Checked-Emission Caller Contract and run `check_rendered_output` on
+  `ComposeResult::rendered_text` before emission or caching. A bundled
+  `compose_checked()` helper is deferred to a future Checked Library
+  Composition API sprint.
 - Migrated the six in-repository JSON assignment templates to explicit
   `json_escape_mode: auto`, with semantic hostile-value fixtures and a
   documented legacy compatibility fixture. See
@@ -23,6 +29,11 @@ All notable changes to this project will be documented in this file.
   current 1.4.1 recommendation is conditional pending the pinned atm-core
   template migration across the seven pinned roots; see
   `docs/phase-O/evidence/o5-release-corpus.md`.
+- Closed the Phase O CI lint-gate gap: the CI-authoritative lint profile now
+  scans production templates with an explicit structured pass assertion,
+  excludes intentional negative and non-production test fixtures, and keeps
+  validation and repository lint aligned when scanning Jinja comments and raw
+  blocks.
 
 ## [1.4.0] - 2026-08-12
 

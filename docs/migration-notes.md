@@ -12,6 +12,20 @@ release line on `develop` is `1.1.0`, which stays above that baseline so crates.
 version ordering remains correct through the source-of-truth cutover and the Phase B
 reporting expansion.
 
+## ADR-0019 scope clarification
+
+ADR-0019's checked-output enforcement claim is scoped to `sc-compose` CLI
+emitters. Direct `sc-composer` library consumers receive a public
+`ComposeResult::rendered_text` string, so the library boundary does not
+automatically prevent a caller from emitting unchecked text.
+
+Library consumers must follow the named **Checked-Emission Caller Contract**:
+compose with the exact intended context, call `check_rendered_output` on the
+complete final text, and emit or cache only the resulting `CheckedOutput`.
+`OutputCheckError` denies emission. The future **Checked Library Composition
+API** sprint may evaluate a small additive helper such as `compose_checked()`;
+no new library API is introduced by this scope clarification.
+
 ## What Changes for Downstream Consumers
 
 ### crates.io Consumers
