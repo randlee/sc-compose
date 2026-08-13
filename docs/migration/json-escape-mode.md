@@ -29,7 +29,10 @@ Template uses legacy JSON escape mode. Migrate to bare placeholders (auto mode) 
 
 The same mode can be selected for a command with
 `--json-escape-mode legacy|auto`; the CLI override takes precedence over root
-frontmatter, and the default is `auto`. Migrate each quoted placeholder by
+frontmatter, and the default is `auto`. Included templates must not declare a
+different mode from the root; such declaration-only conflicts fail validation
+with `ERR_JSON_MODE_INCLUDE_CONFLICT`, which names both template paths and
+modes. Migrate each quoted placeholder by
 removing its source quotes and selecting `auto` explicitly if the template is
 shared across versions. Keep the value's intended JSON type in the fixture
 used to validate the template.

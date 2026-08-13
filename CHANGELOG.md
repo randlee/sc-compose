@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Added declaration-only include-chain validation for conflicting JSON escape
+  modes. `ERR_JSON_MODE_INCLUDE_CONFLICT` identifies the root and included
+  template paths and both modes; matching or undeclared include modes inherit
+  the root without a false positive.
 - Clarified ADR-0019's scope: checked output is enforced at the `sc-compose`
   CLI emitter, while direct `sc-composer` library consumers must follow the
   named Checked-Emission Caller Contract and run `check_rendered_output` on
