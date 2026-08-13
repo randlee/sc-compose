@@ -4,12 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Added fail-closed include-chain validation for JSON escape modes across
+  `validate`, `validate --lint`, and `render`. An included template that
+  explicitly declares a mode different from the root's effective mode now
+  receives the stable `ERR_JSON_MODE_INCLUDE_CONFLICT` diagnostic with the
+  participating template paths and modes; matching or undeclared includes
+  continue to inherit the root mode.
+- Added one shared Jinja variable-expression scanner in `sc-composer` for
+  template lint and validation. It returns named
+  `JinjaVariableExpressionSpan` offsets, keeping comment, raw-block, and
+  expression boundary handling consistent across both callers.
+- Added Python diagnostic-code bindings for
+  `ERR_JSON_MODE_INCLUDE_CONFLICT` and `WARN_LINT_REDUNDANT_FILTER_CHAIN` so
+  the native and Python surfaces expose the same stable codes.
+
 ### Changed
 
-- Added declaration-only include-chain validation for conflicting JSON escape
-  modes. `ERR_JSON_MODE_INCLUDE_CONFLICT` identifies the root and included
-  template paths and both modes; matching or undeclared include modes inherit
-  the root without a false positive.
 - Clarified ADR-0019's scope: checked output is enforced at the `sc-compose`
   CLI emitter, while direct `sc-composer` library consumers must follow the
   named Checked-Emission Caller Contract and run `check_rendered_output` on
@@ -31,10 +43,17 @@ All notable changes to this project will be documented in this file.
   (atm-core, cpo, raptor, sc-lint, synaptic-canvas, and roslyn-lint); see
   `docs/phase-O/evidence/o5-release-corpus.md`.
 - Closed the Phase O CI lint-gate gap: the CI-authoritative lint profile now
-  scans production templates with an explicit structured pass assertion,
-  excludes intentional negative and non-production test fixtures, and keeps
-  validation and repository lint aligned when scanning Jinja comments and raw
-  blocks.
+  enforces the production `template-contracts` target through
+  `just lint-ci-consumer` with an explicit structured pass assertion, excludes
+  intentional negative and non-production test fixtures, and keeps validation
+  and repository lint aligned when scanning Jinja comments and raw blocks.
+
+### Fixed
+
+- Preserved the underlying `serde_yaml` parse error as the source cause for
+  malformed YAML frontmatter, so callers can inspect the original parser
+  failure through the `ConfigError` chain instead of receiving only the
+  normalized configuration diagnostic.
 
 ## [1.4.0] - 2026-08-12
 
