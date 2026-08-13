@@ -5,7 +5,7 @@
 > Document role: Normative release requirements for both crates
 
 This document supersedes the prior high-level placeholder. It is the normative
-release requirements baseline for `sc-compose` v1.0.
+release requirements baseline for `sc-compose` v1.4.1.
 
 ## 1. Intent
 

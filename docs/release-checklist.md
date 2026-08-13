@@ -20,7 +20,7 @@ Use this checklist before every crates.io release of `sc-sha`, `sc-composer`, an
 - [ ] `cargo test --workspace` passes with zero failures on the release tag commit
 - [ ] `cargo clippy --all-targets --all-features -- -D warnings` passes
 - [ ] `cargo fmt --all --check` passes
-- [ ] The full `1.1.0` promoted surface is cleared on the release branch:
+- [ ] The full promoted surface for the target release is cleared on the release branch:
   - HTML-report functionality and examples remain covered by tests
   - Phase A and Phase B reporting commands remain covered by tests:
     `reports init`, `reports smoke`, `reports finalize`, `reports render-spec`,
@@ -90,7 +90,7 @@ triggered by a release tag.
 
 ## Release Authorization
 
-- [ ] The `1.1.0` promoted surface is cleared on the release branch:
+- [ ] The promoted surface for the target release is cleared on the release branch:
   - HTML-report line remains release-ready
   - Phase A and Phase B reporting runtime remains release-ready
   - publish-manifest handoff remains release-ready

@@ -6,9 +6,9 @@ Accepted
 
 ## Context
 
-`crates/sc-composer/src/template_hash.rs` currently owns the SHA-256 hashing
-logic used to identify rendered template content and, per PR #358, whole
-compositions. Two other consumers need the same hash contract without
+Before Phase M, `crates/sc-composer/src/template_hash.rs` owned the SHA-256
+hashing logic used to identify rendered template content and, per PR #358,
+whole compositions. Two other consumers need the same hash contract without
 inheriting sc-compose's rendering, resolver, or ATM-adjacent surface:
 
 - A Python-facing binding (`bindings/sc-sha-python`), so non-Rust callers can
@@ -53,12 +53,11 @@ unrelated hashing consumers outside this repo's own CLI/bindings.
   checked via `boundaries/sc-sha/shared-library.toml` and
   `boundaries/sc-sha-python/python-adapter.toml` (`sc-boundary` allowlists) in
   addition to this ADR's prose rationale.
-- No source under `crates/sc-sha/` or `bindings/sc-sha-python/` is authored or
-  staged until this ADR and the `CLAUDE.md` amendment are both accepted by
-  team-lead. Full implementation detail (public API signatures, manifest
-  encoding, error taxonomy, migration steps) lives in
-  [`docs/phase-M/phase-M-plan.md`](../phase-M/phase-M-plan.md) and its sprint
-  docs; this ADR records the ownership/boundary decision, not the
+- Phase M.1 and M.2 implemented this accepted extraction under
+  `crates/sc-sha/` and `bindings/sc-sha-python/`; the public API signatures,
+  manifest encoding, error taxonomy, and migration details remain documented
+  in [`docs/phase-M/phase-M-plan.md`](../phase-M/phase-M-plan.md) and its sprint
+  docs. This ADR records the ownership/boundary decision, not the
   implementation plan.
 
 ### `CLAUDE.md` amendment
@@ -78,10 +77,8 @@ in short form with a pointer back to this ADR for rationale. See
   `boundaries/sc-sha-python/python-adapter.toml` (`sc-boundary`-enforced
   allowlists) rather than review discipline alone — an unlisted dependency
   edge fails CI instead of silently landing.
-- PR #358's in-progress hash work in `sc-composer` must be migrated to call
-  `sc-sha` rather than reimplement it once M.1/M.2 land; until this ADR is
-  accepted, PR #358 continues on its existing `template_hash.rs`
-  implementation unchanged.
+- PR #358's hash work was migrated during M.1/M.2; `sc-composer` now calls
+  `sc-sha` rather than carrying a duplicate `template_hash.rs` implementation.
 - `sc-sha`'s API surface is deliberately minimal (two functions); any future
   hash-domain addition (e.g. a raw-byte variant) requires a new ADR rather
   than a silent extension, consistent with the "no duplicate implementation"

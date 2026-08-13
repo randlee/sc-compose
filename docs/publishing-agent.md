@@ -1,6 +1,6 @@
 # Publishing Agent Guide
 
-This document is the operator playbook for the first standalone `1.0.x`
+This document is the operator playbook for the current standalone `1.4.x`
 release line of `sc-compose`.
 
 ## Scope
@@ -8,6 +8,7 @@ release line of `sc-compose`.
 The release surface is:
 
 - crates.io:
+  - `sc-sha`
   - `sc-composer`
   - `sc-compose`
 - GitHub Releases:
@@ -17,6 +18,7 @@ The release surface is:
 - `winget`:
   - package id `randlee.sc-compose`
 - PyPI:
+  - package `sc-sha`
   - package `sc-compose`
 
 ## Hard Rules
@@ -31,7 +33,7 @@ The release surface is:
 ## Required Secrets
 
 - `CARGO_REGISTRY_TOKEN`
-  - required for publishing both crates to crates.io
+  - required for publishing `sc-sha`, `sc-composer`, and `sc-compose` to crates.io
 - `HOMEBREW_TAP_TOKEN`
   - required so the workflow can update `randlee/homebrew-tap`
 - `PYPI_API_TOKEN`
@@ -53,7 +55,7 @@ an extra repository secret.
 5. Run the `Release` workflow with the same version input.
 6. Monitor the workflow until completion.
 7. Verify all channels:
-   - crates.io: both crates published in order
+   - crates.io: all three crates published in dependency order
    - GitHub Release: archives include `bin/sc-compose` and
      `share/sc-compose/examples`
    - Homebrew: `sc-compose.rb` updated in `randlee/homebrew-tap`
@@ -64,6 +66,7 @@ an extra repository secret.
 ## Manual Checks
 
 - Verify crate owners:
+  - `cargo owner --list sc-sha`
   - `cargo owner --list sc-composer`
   - `cargo owner --list sc-compose`
 - Verify the target version is unpublished before the workflow runs:

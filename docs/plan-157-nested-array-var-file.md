@@ -42,7 +42,7 @@ The two ingress paths then expose the same restriction:
   `sc_composer::input_value_from_yaml`, which validates the converted value.
 
 The same public validation gate is also used by frontmatter defaults in
-`crates/sc-composer/src/frontmatter.rs::normalize_frontmatter` and
+`crates/sc-composer/src/frontmatter/normalizer.rs::normalize_frontmatter` and
 `template.json` defaults in
 `crates/sc-compose/src/template_store.rs::validate_manifest_defaults`.
 Broadening the shared contract therefore keeps all structured-input sources

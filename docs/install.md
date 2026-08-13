@@ -61,7 +61,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-sc-composer = "1.3.0"
+sc-composer = "1.4.1"
 ```
 
 The crate re-exports `compose`, `compose_with_observer`,
