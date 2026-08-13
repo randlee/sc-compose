@@ -83,19 +83,19 @@ The migration guide is owned by Phase O.1 at
 `docs/migration/json-escape-mode.md`; O.3 owns diagnostic emission and O.4
 updates the guide with the six-template migration matrix.
 
-### 3. Check JSON output before emission
+### 3. Check JSON output before CLI emission
 
-Every JSON render path that emits output invokes the shared output checker
-before writing stdout or a file. The checker parses the complete rendered body
-and returns structured location data without echoing the potentially sensitive
-payload. A structural JSON parse failure is an error, not a successful result
-with a false flag.
+Every JSON render path in the `sc-compose` CLI invokes the shared output
+checker before writing stdout or a file. The checker parses the complete
+rendered body and returns structured location data without echoing the
+potentially sensitive payload. A structural JSON parse failure is an error,
+not a successful result with a false flag.
 
-The checked-output capability is the only value accepted by an emitter. A
-caller cannot construct a successful checked output directly or bypass the
-parser gate through a boolean. `validate --check-render` performs the same
-check in memory and emits no body. Plain `validate` remains static-only and
-does not claim that a future context will render valid JSON.
+Within that CLI path, the checked-output capability is the only value accepted
+by an emitter. A caller cannot construct a successful checked output directly
+or bypass the parser gate through a boolean. `validate --check-render`
+performs the same check in memory and emits no body. Plain `validate` remains
+static-only and does not claim that a future context will render valid JSON.
 
 The authoritative Rust-level shape is:
 
@@ -181,6 +181,29 @@ projection for callers and is not a recoverable emission channel. The report
 is state-shaped so callers cannot represent contradictory combinations such as
 “not checked” with “render valid.”
 
+### 3.1 Library boundary: Checked-Emission Caller Contract
+
+The CLI-only enforcement above does not make the public
+`sc_composer::compose()` library boundary typestate-safe.
+`sc_composer::compose()` returns a public `ComposeResult` whose
+`rendered_text` is a plain `String`; a library consumer can read that string
+without calling the checker. Therefore the following is a named caller
+contract for every library consumer that emits or caches a composition:
+
+1. Compose with the exact context and options intended for emission.
+2. Run `check_rendered_output` on the complete final text, using the resolved
+   template path and the appropriate `OutputFormat`.
+3. Discard the raw `ComposeResult::rendered_text` for emission and emit only
+   the returned `CheckedOutput` through `CheckedOutput::emit` after the check
+   succeeds. Any `OutputCheckError` denies emission or caching.
+
+This is a documented caller responsibility, not an automatically enforced
+guarantee at the `sc-composer` boundary. A bundled `compose_checked()` API is
+not added by ADR-0019: making it correct would require deciding how callers'
+format policy, final output assembly, and checked-report context should be
+represented. That additive API is deferred to a future, explicitly named
+**Checked Library Composition API** sprint.
+
 ### 4. Define the command and consumer contract
 
 The commands retain distinct scopes while sharing the mode resolver, source
@@ -208,11 +231,14 @@ permission from process exit status alone.
   contract and default to `auto`.
 - Existing quoted templates remain usable through an explicit, safely escaped
   `legacy` mode while every validation path directs owners to migrate.
-- Malformed JSON cannot be emitted through a checked render path, and callers
-  receive stable machine-readable failure states and locations.
+- Malformed JSON cannot be emitted through the CLI's checked render path, and
+  callers receive stable machine-readable failure states and locations.
 - ATM-core integration has an explicit capability boundary: it must provide a
   context and inspect `RenderCheckReport` rather than treating static validity
   as proof of render validity.
+- Library consumers of `sc-composer::compose()` must follow the named
+  Checked-Emission Caller Contract; the public raw `ComposeResult` string is
+  not itself proof that output was checked.
 - `validate`, `validate --lint`, `sc-compose lint`, and `just lint` can share
   implementation without becoming interchangeable commands or duplicating
   scanner logic.

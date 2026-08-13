@@ -6,6 +6,12 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Clarified ADR-0019's scope: checked output is enforced at the `sc-compose`
+  CLI emitter, while direct `sc-composer` library consumers must follow the
+  named Checked-Emission Caller Contract and run `check_rendered_output` on
+  `ComposeResult::rendered_text` before emission or caching. A bundled
+  `compose_checked()` helper is deferred to a future Checked Library
+  Composition API sprint.
 - Migrated the six in-repository JSON assignment templates to explicit
   `json_escape_mode: auto`, with semantic hostile-value fixtures and a
   documented legacy compatibility fixture. See
