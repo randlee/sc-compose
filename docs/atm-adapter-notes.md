@@ -50,7 +50,10 @@ the type of `ComposeResult`: `compose()` returns a public raw
 
 1. compose with the exact context intended for emission;
 2. call `check_rendered_output` on the complete final `rendered_text`, using
-   `OutputFormat` and the resolved template path;
+   the persisted `OutputFormat` and the resolved template path. If the adapter
+   also persists JSON mode or other render metadata, pass it through
+   `check_rendered_output_with_meta` rather than replacing metadata after the
+   check;
 3. emit or cache only the resulting `CheckedOutput` via `CheckedOutput::emit`,
    and deny emission on `OutputCheckError`.
 

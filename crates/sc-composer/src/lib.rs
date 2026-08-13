@@ -98,7 +98,7 @@ pub use path_utils::to_forward_slash;
 #[doc(inline)]
 pub use render_check::{
     CheckedOutput, ContextSummary, OutputCheckError, OutputCheckReason, OutputFormat,
-    RenderCheckMeta, RenderCheckReport, check_rendered_output,
+    RenderCheckMeta, RenderCheckReport, check_rendered_output, check_rendered_output_with_meta,
 };
 #[doc(inline)]
 pub use renderer::{

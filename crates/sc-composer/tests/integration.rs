@@ -11,9 +11,9 @@ use sc_composer::observer::{
 };
 use sc_composer::{
     ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, DiagnosticCode, OutputFormat,
-    VariableName, check_rendered_output, compose, compose_with_observer,
-    compose_with_observer_and_expanded, expand_includes, parse_template_document,
-    protect_higher_braces, render_all, resolve_template_path,
+    VariableName, check_rendered_output, check_rendered_output_with_meta, compose,
+    compose_with_observer, compose_with_observer_and_expanded, expand_includes,
+    parse_template_document, protect_higher_braces, render_all, resolve_template_path,
 };
 
 #[derive(Default)]
@@ -464,7 +464,10 @@ fn compose_then_checked_output_rejects_malformed_json_without_echoing_rendered_v
 #[test]
 fn compose_then_checked_output_emits_valid_json_only_through_checked_output() {
     let root = temp_root("checked-json-valid");
-    write_file(&root.join("payload.json.j2"), r#"{"value": {{ value }}}"#);
+    write_file(
+        &root.join("payload.json.j2"),
+        include_str!("fixtures/checked-render/atm-core-catalog.json.j2"),
+    );
 
     let result = compose(&ComposeRequest {
         runtime: None,
@@ -472,7 +475,13 @@ fn compose_then_checked_output_emits_valid_json_only_through_checked_output() {
             template_path: PathBuf::from("payload.json.j2"),
         },
         root: ConfiningRoot::new(&root).unwrap(),
-        vars_input: BTreeMap::from([(VariableName::new("value").unwrap(), json!("checked-value"))]),
+        vars_input: BTreeMap::from([
+            (
+                VariableName::new("message").unwrap(),
+                json!("checked-value"),
+            ),
+            (VariableName::new("unicode").unwrap(), json!("café 🚀")),
+        ]),
         vars_env: BTreeMap::default(),
         vars_defaults: BTreeMap::default(),
         guidance_block: None,
@@ -492,6 +501,55 @@ fn compose_then_checked_output_emits_valid_json_only_through_checked_output() {
 
     assert_eq!(checked.body(), result.rendered_text);
     assert_eq!(String::from_utf8(emitted).unwrap(), result.rendered_text);
+}
+
+#[test]
+fn checked_render_validates_the_complete_final_body_with_guidance_and_prompt() {
+    let root = temp_root("checked-json-final-body");
+    write_file(&root.join("payload.json.j2"), r#"{"value": {{ value }}}"#);
+
+    let result = compose(&ComposeRequest {
+        runtime: None,
+        mode: ComposeMode::File {
+            template_path: PathBuf::from("payload.json.j2"),
+        },
+        root: ConfiningRoot::new(&root).unwrap(),
+        vars_input: BTreeMap::from([(VariableName::new("value").unwrap(), json!("secret"))]),
+        vars_env: BTreeMap::default(),
+        vars_defaults: BTreeMap::default(),
+        guidance_block: Some("guidance block".to_owned()),
+        user_prompt: Some("user prompt".to_owned()),
+        policy: ComposePolicy::default(),
+    })
+    .unwrap();
+
+    assert!(result.rendered_text.contains("guidance block"));
+    assert!(result.rendered_text.contains("user prompt"));
+    let error = check_rendered_output(
+        OutputFormat::Json,
+        &result.resolve_result.resolved_path,
+        &result.rendered_text,
+    )
+    .expect_err("the complete assembled body is not valid JSON");
+    assert_eq!(
+        error.diagnostics[0].code,
+        DiagnosticCode::ErrRenderJsonMalformed
+    );
+    assert!(!format!("{error:?}").contains("secret"));
+}
+
+#[test]
+fn catalog_admission_metadata_survives_checked_render_for_atm_core() {
+    let meta = sc_composer::RenderCheckMeta::for_template_with_format(
+        "catalog-entry.md.j2",
+        OutputFormat::Json,
+    );
+    let checked = check_rendered_output_with_meta(meta.clone(), "{\"message\":\"ok\"}")
+        .expect("catalog-admitted JSON remains valid");
+
+    assert_eq!(checked.meta(), &meta);
+    assert_eq!(checked.meta().output_format(), OutputFormat::Json);
+    assert_eq!(checked.meta().template(), Path::new("catalog-entry.md.j2"));
 }
 
 fn temp_root(label: &str) -> PathBuf {

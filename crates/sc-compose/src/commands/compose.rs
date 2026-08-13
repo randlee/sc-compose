@@ -189,19 +189,13 @@ fn run_checked_validate(
     let meta = render_check_meta(request, resolved_path);
     let report = match sc_composer::compose_with_observer(request, observer) {
         Ok(result) => {
-            let mut checked = sc_composer::check_rendered_output(
-                meta.output_format,
-                &meta.template,
-                &result.rendered_text,
-            );
-            match &mut checked {
-                Ok(output) => output.meta = meta.clone(),
-                Err(error) => {
-                    let annotated = error.clone().with_failing_pass(failing_pass(request));
-                    diagnostics.extend(annotated.diagnostics.clone());
-                    *error = annotated;
-                }
-            }
+            let checked =
+                sc_composer::check_rendered_output_with_meta(meta.clone(), &result.rendered_text)
+                    .map_err(|error| {
+                        let annotated = error.clone().with_failing_pass(failing_pass(request));
+                        diagnostics.extend(annotated.diagnostics.clone());
+                        annotated
+                    });
             match checked {
                 Ok(_) => sc_composer::RenderCheckReport::RenderChecked {
                     meta,

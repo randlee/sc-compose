@@ -114,9 +114,16 @@ pub enum JsonEscapeMode {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct RenderCheckMeta {
-    pub template: PathBuf,
-    pub output_format: OutputFormat,
-    pub json_escape_mode: Option<JsonEscapeMode>,
+    template: PathBuf,
+    output_format: OutputFormat,
+    json_escape_mode: Option<JsonEscapeMode>,
+}
+
+impl RenderCheckMeta {
+    pub fn for_template_with_format(template: impl Into<PathBuf>, format: OutputFormat) -> Self;
+    pub fn template(&self) -> &Path;
+    pub fn output_format(&self) -> OutputFormat;
+    pub fn json_escape_mode(&self) -> Option<JsonEscapeMode>;
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -160,6 +167,11 @@ pub fn check_rendered_output(
     rendered: &str,
 ) -> Result<CheckedOutput, OutputCheckError>;
 
+pub fn check_rendered_output_with_meta(
+    meta: RenderCheckMeta,
+    rendered: &str,
+) -> Result<CheckedOutput, OutputCheckError>;
+
 #[derive(Debug)]
 #[non_exhaustive]
 pub struct OutputCheckError {
@@ -185,6 +197,13 @@ For a structural JSON parse failure, `check_rendered_output` returns
 projection for callers and is not a recoverable emission channel. The report
 is state-shaped so callers cannot represent contradictory combinations such as
 “not checked” with “render valid.”
+
+The supplied `OutputFormat` is authoritative for validation and metadata; it
+is never re-inferred from the template path. `RenderCheckMeta` and
+`CheckedOutput` expose read-only accessors. A catalog-backed caller that has
+already persisted the effective format and JSON mode uses
+`check_rendered_output_with_meta`, which moves that metadata into the checked
+value so it cannot be changed after validation.
 
 ### 3.1 Library boundary: Checked-Emission Caller Contract
 

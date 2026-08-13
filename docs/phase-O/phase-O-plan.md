@@ -187,9 +187,16 @@ pub enum JsonEscapeMode {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct RenderCheckMeta {
-    pub template: PathBuf,
-    pub output_format: OutputFormat,
-    pub json_escape_mode: Option<JsonEscapeMode>,
+    template: PathBuf,
+    output_format: OutputFormat,
+    json_escape_mode: Option<JsonEscapeMode>,
+}
+
+impl RenderCheckMeta {
+    pub fn for_template_with_format(template: impl Into<PathBuf>, format: OutputFormat) -> Self;
+    pub fn template(&self) -> &Path;
+    pub fn output_format(&self) -> OutputFormat;
+    pub fn json_escape_mode(&self) -> Option<JsonEscapeMode>;
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -233,6 +240,11 @@ pub fn check_rendered_output(
     rendered: &str,
 ) -> Result<CheckedOutput, OutputCheckError>;
 
+pub fn check_rendered_output_with_meta(
+    meta: RenderCheckMeta,
+    rendered: &str,
+) -> Result<CheckedOutput, OutputCheckError>;
+
 #[derive(Debug)]
 #[non_exhaustive]
 pub struct OutputCheckError {
@@ -268,6 +280,13 @@ parse failure and never returns an `Ok` value with `valid: false`; an `Ok`
 `RenderCheckReport::RenderInvalid` is its structured serialized projection for
 callers and not a recoverable success channel. Advisory diagnostics may be
 reported in the non-emitting states only.
+
+The caller-supplied `OutputFormat` is authoritative for both validation and
+the returned metadata; the checker never re-derives it from the template path.
+`RenderCheckMeta` and `CheckedOutput` expose read-only accessors. Callers that
+already have catalog metadata, including a persisted format or JSON mode, use
+`check_rendered_output_with_meta` so that metadata is moved into the checked
+value and cannot be changed after validation.
 
 The 1.4.1 default is resolved now: ordinary unflagged JSON `render` fails
 closed before emitting malformed JSON. There is no opt-in transition period.
