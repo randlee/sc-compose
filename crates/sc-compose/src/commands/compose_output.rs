@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use anyhow::anyhow;
@@ -14,16 +15,23 @@ pub(super) fn emit_render_output(
     request: &ComposeRequest,
     args: &RenderBehaviorArgs,
     resolved_path: &Path,
-    rendered_text: &str,
+    checked_output: &sc_composer::CheckedOutput,
     warnings: Vec<Diagnostic>,
+    render_check: Option<sc_composer::RenderCheckReport>,
 ) -> Result<(), CommandError> {
+    let rendered_text = checked_output.body();
     let output_path = args.output.clone();
     let derived_path = derived_output_path(request, output_path.as_deref());
     let would_change = render_would_change(&derived_path, rendered_text);
     let bytes_written = if args.dry_run {
         None
     } else if let Some(output) = output_path.as_ref() {
-        std::fs::write(output, rendered_text).map_err(|error| {
+        let mut file = std::fs::File::create(output).map_err(|error| {
+            CommandError::render_write(
+                anyhow!(error).context(format!("failed to write {}", output.display())),
+            )
+        })?;
+        checked_output.emit(&mut file).map_err(|error| {
             CommandError::render_write(
                 anyhow!(error).context(format!("failed to write {}", output.display())),
             )
@@ -53,27 +61,33 @@ pub(super) fn emit_render_output(
 
     if args.json {
         let payload = if args.dry_run {
-            serde_json::json!({
+            let mut payload = serde_json::json!({
                 "would_write": to_forward_slash(&derived_path),
                 "would_change": would_change,
                 "template": to_forward_slash(resolved_path),
                 "rendered_preview": rendered_text,
-            })
+            });
+            add_render_check(&mut payload, render_check);
+            payload
         } else if output_path.is_none() {
-            serde_json::json!({
+            let mut payload = serde_json::json!({
                 "output_path": "stdout",
                 "bytes_written": bytes_written.unwrap_or_default(),
                 "template": to_forward_slash(resolved_path),
                 "body": rendered_text,
-            })
+            });
+            add_render_check(&mut payload, render_check);
+            payload
         } else {
-            serde_json::json!({
+            let mut payload = serde_json::json!({
                 "output_path": output_path
                     .as_ref()
                     .map_or_else(|| "stdout".to_owned(), |path| to_forward_slash(path)),
                 "bytes_written": bytes_written.unwrap_or_default(),
                 "template": to_forward_slash(resolved_path),
-            })
+            });
+            add_render_check(&mut payload, render_check);
+            payload
         };
         print_json(payload, warnings).map_err(CommandError::usage)?;
     } else if args.dry_run {
@@ -87,10 +101,28 @@ pub(super) fn emit_render_output(
         println!();
         println!("{rendered_text}");
     } else {
-        println!("{rendered_text}");
+        let mut stdout = std::io::stdout().lock();
+        checked_output
+            .emit(&mut stdout)
+            .and_then(|()| writeln!(stdout))
+            .map_err(|error| CommandError::render_write(anyhow!(error)))?;
     }
 
     Ok(())
+}
+
+fn add_render_check(
+    payload: &mut serde_json::Value,
+    report: Option<sc_composer::RenderCheckReport>,
+) {
+    if let Some(report) = report {
+        payload["render_check"] = serde_json::to_value(report).unwrap_or_else(|_| {
+            serde_json::json!({
+                "state": "contract_invalid",
+                "diagnostics": []
+            })
+        });
+    }
 }
 
 pub(super) fn emit_single_pass_all_warning(observer: &mut dyn CompositionObserver) {

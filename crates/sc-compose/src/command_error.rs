@@ -77,6 +77,18 @@ impl CommandError {
         }
     }
 
+    pub(crate) fn render_check(error: sc_composer::OutputCheckError) -> Self {
+        let diagnostic_code = error.diagnostics.first().map(|diagnostic| diagnostic.code);
+        let message = error.to_string();
+        Self {
+            exit_code: crate::exit_codes::VALIDATION_OR_RENDER_FAIL,
+            diagnostic_code,
+            diagnostics: error.diagnostics,
+            recovery_hints: Vec::new(),
+            error: anyhow!(message),
+        }
+    }
+
     pub(crate) fn stdin_double_read() -> Self {
         Self {
             exit_code: crate::exit_codes::VALIDATION_OR_RENDER_FAIL,

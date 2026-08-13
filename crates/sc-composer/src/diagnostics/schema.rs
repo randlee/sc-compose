@@ -100,6 +100,8 @@ pub enum DiagnosticCode {
     ErrJsonEscapeModeNonJson,
     /// Legacy JSON interpolation received a non-string value in a quoted slot.
     ErrJsonLegacyNonString,
+    /// Rendered JSON failed the complete-body parser gate.
+    ErrRenderJsonMalformed,
     /// A configuration or text file could not be read as valid text.
     ErrConfigRead,
     /// Configuration or YAML parsing failed.
@@ -228,6 +230,7 @@ impl DiagnosticCode {
             Self::ErrConfigMode => "ERR_CONFIG_MODE",
             Self::ErrJsonEscapeModeNonJson => "ERR_JSON_ESCAPE_MODE_NON_JSON",
             Self::ErrJsonLegacyNonString => "ERR_JSON_LEGACY_NON_STRING",
+            Self::ErrRenderJsonMalformed => "ERR_RENDER_JSON_MALFORMED",
             Self::ErrConfigRead => "ERR_CONFIG_READ",
             Self::ErrConfigParse => "ERR_CONFIG_PARSE",
             Self::ErrConfigVarfile => "ERR_CONFIG_VARFILE",
@@ -352,6 +355,7 @@ mod tests {
             (ErrConfigMode, "ERR_CONFIG_MODE"),
             (ErrJsonEscapeModeNonJson, "ERR_JSON_ESCAPE_MODE_NON_JSON"),
             (ErrJsonLegacyNonString, "ERR_JSON_LEGACY_NON_STRING"),
+            (ErrRenderJsonMalformed, "ERR_RENDER_JSON_MALFORMED"),
             (ErrConfigRead, "ERR_CONFIG_READ"),
             (ErrConfigParse, "ERR_CONFIG_PARSE"),
             (ErrConfigVarfile, "ERR_CONFIG_VARFILE"),
@@ -455,7 +459,7 @@ mod tests {
             (ErrExtractTomlAmbiguous, "ERR_EXTRACT_TOML_AMBIGUOUS"),
         ];
 
-        assert_eq!(codes.len(), 77);
+        assert_eq!(codes.len(), 78);
         for (code, spelling) in codes {
             assert_eq!(code.as_str(), spelling);
             assert_eq!(

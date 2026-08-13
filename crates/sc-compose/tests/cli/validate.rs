@@ -22,7 +22,70 @@ fn validate_default_output_remains_unchanged_without_lint() {
         .unwrap();
 
     assert!(output.status.success(), "{output:?}");
-    assert_eq!(String::from_utf8_lossy(&output.stdout), "valid\n");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "valid (static_only)\n"
+    );
+}
+
+#[test]
+fn validate_check_render_reports_context_valid_without_emitting_body() {
+    let root = temp_root("validate-check-render");
+    write_file(&root.join("payload.json.j2"), "{\"value\": {{ value }}}");
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--check-render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "state: render_checked\n"
+    );
+    assert!(!root.join("payload.json").exists());
+}
+
+#[test]
+fn validate_check_render_fails_closed_for_malformed_json() {
+    let root = temp_root("validate-check-render-invalid");
+    write_file(
+        &root.join("payload.json.j2"),
+        "{\"value\": \"{{ value }}\"}",
+    );
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--check-render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("state: render_invalid"), "{stdout}");
+    assert!(stdout.contains("ERR_RENDER_JSON_MALFORMED"), "{stdout}");
+    assert!(!stdout.contains("hello"), "secret/context leaked: {stdout}");
 }
 
 #[test]
