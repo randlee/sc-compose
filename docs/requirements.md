@@ -174,6 +174,15 @@ Schema rules:
 The render-context value model accepts any finite JSON/YAML-compatible tree
 that the existing `serde_json::Value` and Minijinja context can represent.
 
+The six Phase O.4 repository assignment templates are explicit `auto`-mode
+consumers of this contract. Their scalar interpolation slots and scalar loop
+elements are bare; `carry_forward_findings_json` is the only reviewed raw-JSON
+fragment and must contain a validated JSON array. The O.4 semantic fixture
+corpus is the acceptance evidence for quotes, backslashes, Unicode, newlines,
+empty and optional values, arrays, objects, null branches, and injection-safe
+control characters. The migration matrix and legacy exception are maintained
+in `docs/migration/json-escape-mode.md`.
+
 - Variables used by template rendering must be one of:
   - string
   - number

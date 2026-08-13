@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Migrated the six in-repository JSON assignment templates to explicit
+  `json_escape_mode: auto`, with semantic hostile-value fixtures and a
+  documented legacy compatibility fixture. See
+  `docs/migration/json-escape-mode.md` for the source-shape matrix. This is
+  repository-local migration evidence; cross-repository release readiness
+  remains a Phase O.5 responsibility.
+
 ## [1.4.0] - 2026-08-12
 
 ### Added

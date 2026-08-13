@@ -1,5 +1,7 @@
 #[path = "json_cli/extract.rs"]
 mod extract;
+#[path = "json_cli/o4_templates.rs"]
+mod o4_templates;
 #[path = "json_cli/observability.rs"]
 mod observability;
 #[path = "json_cli/render.rs"]
