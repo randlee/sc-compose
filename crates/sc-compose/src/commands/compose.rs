@@ -199,7 +199,7 @@ fn run_checked_validate(
             match checked {
                 Ok(_) => sc_composer::RenderCheckReport::RenderChecked {
                     meta,
-                    checked_context: context_summary(request),
+                    checked_context: context_summary(request, Some(&result.variable_sources)),
                     diagnostics: diagnostics.clone(),
                 },
                 Err(_) => sc_composer::RenderCheckReport::RenderInvalid {
@@ -272,13 +272,55 @@ fn declared_json_escape_mode(source: &str) -> Option<sc_composer::JsonEscapeMode
     parsed.frontmatter()?.json_escape_mode()
 }
 
-pub(crate) fn context_summary(request: &sc_composer::ComposeRequest) -> String {
+pub(crate) fn context_summary(
+    request: &sc_composer::ComposeRequest,
+    variable_sources: Option<&BTreeMap<sc_composer::VariableName, sc_composer::VariableSource>>,
+) -> String {
+    let mut explicit = Vec::new();
+    let mut environment = Vec::new();
+    let mut caller_defaults = Vec::new();
+    let mut template_defaults = Vec::new();
+
+    if let Some(variable_sources) = variable_sources {
+        for (name, source) in variable_sources {
+            match source {
+                sc_composer::VariableSource::ExplicitInput => explicit.push(name.to_string()),
+                sc_composer::VariableSource::Environment => environment.push(name.to_string()),
+                sc_composer::VariableSource::TemplateInputDefault => {
+                    caller_defaults.push(name.to_string());
+                }
+                sc_composer::VariableSource::FrontmatterDefault
+                | sc_composer::VariableSource::IncludedDefault => {
+                    template_defaults.push(name.to_string());
+                }
+                sc_composer::VariableSource::Builtin => {}
+            }
+        }
+    } else {
+        explicit.extend(request.vars_input.keys().map(ToString::to_string));
+        environment.extend(request.vars_env.keys().map(ToString::to_string));
+        caller_defaults.extend(request.vars_defaults.keys().map(ToString::to_string));
+    }
+
     format!(
-        "{} explicit, {} environment, and {} default variables",
-        request.vars_input.len(),
-        request.vars_env.len(),
-        request.vars_defaults.len()
+        "{} explicit caller values{}; {} environment values{}; {} caller default values{}; {} template-authored default values{}",
+        explicit.len(),
+        format_context_names(&explicit),
+        environment.len(),
+        format_context_names(&environment),
+        caller_defaults.len(),
+        format_context_names(&caller_defaults),
+        template_defaults.len(),
+        format_context_names(&template_defaults),
     )
+}
+
+fn format_context_names(names: &[String]) -> String {
+    if names.is_empty() {
+        String::new()
+    } else {
+        format!(" ({})", names.join(", "))
+    }
 }
 
 fn report_state(report: &sc_composer::RenderCheckReport) -> &'static str {
