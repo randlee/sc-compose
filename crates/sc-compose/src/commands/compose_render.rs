@@ -8,6 +8,7 @@ use sc_composer::{
 };
 
 use super::compose_output::emit_render_output;
+use super::{context_summary, render_check_meta};
 use crate::cli::{RenderArgs, RenderBehaviorArgs};
 use crate::path_utils::to_forward_slash;
 use crate::{CommandError, exit_codes};
@@ -29,12 +30,19 @@ pub(super) fn execute_render_with_extra_warnings(
     let result =
         sc_composer::compose_with_observer(request, observer).map_err(CommandError::compose)?;
     extra_warnings.extend(result.warnings);
+    let (checked_output, render_check) = checked_render_output(
+        request,
+        &result.resolve_result.resolved_path,
+        &result.rendered_text,
+        args,
+    )?;
     emit_render_output(
         request,
         args,
         &result.resolve_result.resolved_path,
-        &result.rendered_text,
+        &checked_output,
         extra_warnings,
+        render_check,
     )?;
 
     Ok(exit_codes::SUCCESS)
@@ -56,12 +64,19 @@ pub(super) fn execute_render_with_expanded(
     )
     .map_err(CommandError::compose)?;
     extra_warnings.extend(result.warnings);
+    let (checked_output, render_check) = checked_render_output(
+        request,
+        &result.resolve_result.resolved_path,
+        &result.rendered_text,
+        args,
+    )?;
     emit_render_output(
         request,
         args,
         &result.resolve_result.resolved_path,
-        &result.rendered_text,
+        &checked_output,
         extra_warnings,
+        render_check,
     )?;
 
     Ok(exit_codes::SUCCESS)
@@ -136,14 +151,66 @@ pub(super) fn execute_custom_delimiter_render(
         request.guidance_block.as_deref(),
         request.user_prompt.as_deref(),
     );
+    let (checked_output, render_check) = checked_render_output(
+        request,
+        &resolve_result.resolved_path,
+        &rendered_text,
+        &args.render,
+    )?;
     emit_render_output(
         request,
         &args.render,
         &resolve_result.resolved_path,
-        &rendered_text,
+        &checked_output,
         report.warnings,
+        render_check,
     )?;
     Ok(exit_codes::SUCCESS)
+}
+
+fn checked_render_output(
+    request: &sc_composer::ComposeRequest,
+    resolved_path: &Path,
+    rendered_text: &str,
+    args: &RenderBehaviorArgs,
+) -> Result<
+    (
+        sc_composer::CheckedOutput,
+        Option<sc_composer::RenderCheckReport>,
+    ),
+    CommandError,
+> {
+    let meta = render_check_meta(request, resolved_path);
+    let should_check = args.check_render || meta.output_format == sc_composer::OutputFormat::Json;
+    if !should_check {
+        let checked = sc_composer::check_rendered_output(
+            sc_composer::OutputFormat::Text,
+            resolved_path,
+            rendered_text,
+        )
+        .map_err(|error| {
+            CommandError::render_check(error.with_failing_pass(failing_pass(request)))
+        })?;
+        return Ok((checked, None));
+    }
+    let mut checked =
+        sc_composer::check_rendered_output(meta.output_format, &meta.template, rendered_text)
+            .map_err(|error| {
+                CommandError::render_check(error.with_failing_pass(failing_pass(request)))
+            })?;
+    checked.meta = meta.clone();
+    let report = sc_composer::RenderCheckReport::RenderChecked {
+        meta,
+        checked_context: context_summary(request),
+        diagnostics: Vec::new(),
+    };
+    Ok((checked, Some(report)))
+}
+
+fn failing_pass(request: &sc_composer::ComposeRequest) -> Option<u8> {
+    (request.policy.passes.len() > 1)
+        .then(|| request.policy.passes.last().map(|pass| pass.pass_number))
+        .flatten()
 }
 
 fn custom_variable_delimiters(args: &RenderArgs) -> Result<(String, String), CommandError> {

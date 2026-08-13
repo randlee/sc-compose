@@ -197,6 +197,11 @@ pub(crate) struct RenderBehaviorArgs {
     pub(crate) json: bool,
     #[arg(long, help = "Report the derived output target without writing files")]
     pub(crate) dry_run: bool,
+    #[arg(
+        long,
+        help = "Check rendered output before emitting stdout or writing a file"
+    )]
+    pub(crate) check_render: bool,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -208,6 +213,10 @@ pub(crate) struct ResolveArgs {
 }
 
 #[derive(Debug, Clone, Args)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "CLI flags are independent user-facing switches"
+)]
 pub(crate) struct ValidateArgs {
     #[command(flatten)]
     pub(crate) common: CommonArgs,
@@ -218,6 +227,11 @@ pub(crate) struct ValidateArgs {
         help = "Report redundant filter chains and other lint findings with source locations"
     )]
     pub(crate) lint: bool,
+    #[arg(
+        long,
+        help = "Render in memory and check the exact output without emitting a body or file"
+    )]
+    pub(crate) check_render: bool,
     #[arg(long)]
     pub(crate) json: bool,
 }

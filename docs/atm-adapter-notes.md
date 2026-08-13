@@ -31,3 +31,22 @@ integration code.
   repo.
 - The standalone release checklist lives in `docs/release-checklist.md`; ATM
   cutover follows that published release.
+
+## Checked-render handoff
+
+An ATM adapter that will send or cache a rendered template must supply the
+exact context it intends to use and run `validate --check-render --json` (or
+call the library's `check_rendered_output` after rendering). It must inspect
+the structured `payload.state`, not infer success from human-readable output:
+
+- `render_checked` permits sending or caching the exact checked result.
+- `static_only`, `context_required`, `contract_invalid`, and `render_invalid`
+  deny sending or caching.
+
+Plain `validate` is intentionally static-only and emits no rendered body.
+Validation and checked-render responses contain diagnostics and a redacted
+context summary; adapters must not require the complete prompt body merely to
+decide whether a render is safe. A JSON parser failure uses the stable
+`ERR_RENDER_JSON_MALFORMED` diagnostic and includes source location without
+echoing variable values. Multi-pass failures identify the final render pass
+that produced the rejected body.

@@ -26,6 +26,8 @@ pub mod init_workspace;
 pub mod observer;
 mod path_containment;
 mod path_utils;
+/// Format-aware output validation before emission.
+pub mod render_check;
 /// Template renderer wrapper.
 pub mod renderer;
 /// Runtime-aware profile resolution and search tracing.
@@ -85,6 +87,11 @@ pub use observer::{
 };
 #[doc(inline)]
 pub use path_utils::to_forward_slash;
+#[doc(inline)]
+pub use render_check::{
+    CheckedOutput, ContextSummary, OutputCheckError, OutputCheckReason, OutputFormat,
+    RenderCheckMeta, RenderCheckReport, check_rendered_output,
+};
 #[doc(inline)]
 pub use renderer::{
     JSON_LEGACY_WARNING, JsonEscapeMode, LoadedTemplateRequest, NamedTemplateAsset,

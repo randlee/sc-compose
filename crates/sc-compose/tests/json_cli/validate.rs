@@ -249,3 +249,103 @@ fn validate_json_rejects_json_escape_mode_on_non_json_templates() {
             .any(|diagnostic| diagnostic["code"] == "ERR_JSON_ESCAPE_MODE_NON_JSON")
     );
 }
+
+#[test]
+fn validate_json_reports_static_only_state_without_rendering() {
+    let root = temp_root("validate-json-static-only");
+    write_file(&root.join("payload.json.j2"), "{\"value\": {{ value }}}");
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["state"], "static_only");
+    assert_eq!(value["payload"]["valid"], true);
+    assert!(value["payload"].get("checked_context").is_none());
+}
+
+#[test]
+fn validate_json_check_render_reports_exact_context_and_no_body() {
+    let root = temp_root("validate-json-check-render");
+    write_file(&root.join("payload.json.j2"), "{\"value\": {{ value }}}");
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--check-render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["state"], "render_checked");
+    assert_eq!(value["payload"]["output_format"], "json");
+    assert_eq!(value["payload"]["json_escape_mode"], "auto");
+    assert!(value["payload"]["checked_context"].is_string());
+    assert!(!value["payload"].to_string().contains("hello"));
+}
+
+#[test]
+fn validate_json_lint_check_render_combines_diagnostics() {
+    let root = temp_root("validate-json-lint-check-render");
+    write_file(
+        &root.join("payload.json.j2"),
+        "{\"value\": {{ value | frontmatter_safe | yaml_safe }}}",
+    );
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--lint",
+            "--check-render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["state"], "render_checked");
+    assert!(
+        value["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|diagnostic| diagnostic["code"] == "WARN_LINT_REDUNDANT_FILTER_CHAIN")
+    );
+}

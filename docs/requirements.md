@@ -156,6 +156,14 @@ Schema rules:
   mode) to avoid double-quoting issues. See docs/migration/json-escape-mode.md`
 - A JSON render must not emit output until the complete body parses
   successfully.
+- The parser gate applies to ordinary `render` as well as `render --check-render`
+  and runs before stdout, file, dry-run preview, or JSON-envelope emission.
+- `validate` remains static-only and must report that state explicitly. The
+  `validate --check-render` variant renders in memory with the supplied exact
+  context, reports the checked-render state, and emits no body or file.
+- A malformed rendered JSON body must fail closed with the stable
+  `ERR_RENDER_JSON_MALFORMED` diagnostic. The diagnostic includes template,
+  line, column, and byte offset, but never echoes rendered values.
 
 The render-context value model accepts any finite JSON/YAML-compatible tree
 that the existing `serde_json::Value` and Minijinja context can represent.
@@ -678,6 +686,13 @@ Authors may opt out for a specific block with the standard Jinja `+` modifier.
   - severity.
 - JSON diagnostics must use a stable, versioned schema suitable for machine
   consumers.
+- Checked rendering must expose a state-shaped result with the states
+  `static_only`, `contract_invalid`, `context_required`, `render_invalid`, and
+  `render_checked`. Only `render_checked` authorizes a caller to send or cache
+  the exact checked output.
+- `render --json` must place checked-render parser failures in the standard
+  `DiagnosticEnvelope`; it must not print a malformed body as a successful
+  payload.
 
 ### FR-8a: Command JSON and Dry-Run Schemas
 
@@ -719,6 +734,24 @@ Schema rules:
 - `body` is present only for non-dry-run stdout renders and contains the full
   rendered document. It is omitted when `--output <file>` is supplied because
   the file is the source of truth.
+- For JSON templates, ordinary render performs the complete-body parser gate
+  before producing this payload. On parser failure the payload is `{}` and
+  `diagnostics` contains `ERR_RENDER_JSON_MALFORMED`; no body or file is
+  emitted. A successful checked JSON render includes:
+
+  ```json
+  "render_check": {
+    "state": "render_checked",
+    "template": "path/to/assignment.json.j2",
+    "output_format": "json",
+    "json_escape_mode": "auto",
+    "checked_context": "caller-defined exact context summary",
+    "diagnostics": []
+  }
+  ```
+
+- `render --check-render` adds the same `render_check` object for text output
+  while preserving the existing body/output behavior after a successful gate.
 
 `render --dry-run --json`
 
@@ -801,6 +834,17 @@ Schema rules:
   ]
 }
 ```
+
+Schema rules:
+
+- Plain `validate` is static-only and includes
+  `"state": "static_only"` alongside `valid`; it does not render.
+- `validate --check-render` renders in memory and returns one of the
+  checked-render states. It never includes a rendered body or output-file
+  field. Only `render_checked` has permission to send or cache the exact
+  context-specific result.
+- `validate --lint --check-render` combines lint and render diagnostics in the
+  same envelope.
 
 `init --json`
 
