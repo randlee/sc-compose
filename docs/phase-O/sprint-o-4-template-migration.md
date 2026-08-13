@@ -2,10 +2,11 @@
 id: O.4
 title: Six-Template Migration and Compatibility Fixtures
 phase: O
-status: planned
+status: complete
 branch: sprint/o-4-template-migration
 worktree: ../sc-compose-worktrees/sprint/o-4-template-migration
 target: integrate/phase-o
+merge: PR #428 at e3e38ca
 ---
 
 # Sprint O.4 — six-template migration and compatibility fixtures
@@ -97,16 +98,16 @@ changes are O.5 or handoff artifacts, not source edits in this sprint.
 
 ## Acceptance criteria
 
-- [ ] Six known templates are auto-mode and semantically parseable, or have an
+- [x] Six known templates are auto-mode and semantically parseable, or have an
       explicit documented legacy exception with a migration owner.
-- [ ] Every affected interpolation has an explicit source-shape classification
+- [x] Every affected interpolation has an explicit source-shape classification
       and migration/legacy decision.
-- [ ] Six-template semantic fixtures cover representative and hostile values.
-- [ ] O.5 has a precise handoff containing the six-template corpus, expected
+- [x] Six-template semantic fixtures cover representative and hostile values.
+- [x] O.5 has a precise handoff containing the six-template corpus, expected
       JSON values, and compatibility exceptions.
-- [ ] Changelog and migration documentation are complete.
-- [ ] ADR-0019 is accepted before implementation handoff.
-- [ ] All workspace and targeted lint gates pass.
+- [x] Changelog and migration documentation are complete.
+- [x] ADR-0019 is accepted before implementation handoff.
+- [x] All workspace and targeted lint gates pass.
 
 ## Sc-lint cleanup and QA handoff
 

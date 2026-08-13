@@ -1,8 +1,9 @@
 ---
 phase: O
 title: JSON Render Contract and Fail-Closed Output Validation
-status: planned
+status: complete
 target: integrate/phase-o
+final_merge: 4d37280 (PR #438), with follow-on fixes in PRs #440 and #441
 planning_branch: plan/json-format-escape-mode
 design_acceptance: recorded 2026-08-13 (PR #420, quality-mgr PASS at d380ff3)
 adr_acceptance: recorded 2026-08-13 (ADR-0019, PR #421, quality-mgr PASS)
@@ -372,35 +373,37 @@ merged, and revalidated. Each sprint below repeats this handoff gate locally.
 | O.4 | Six-template migration and compatibility fixtures | O.2 and O.3 merged | parallel with inventory preparation; blocks O.5 |
 | O.5 | Cross-repository inventory, release corpus, fuzz oracle, 1.4.1 gate | O.4 merged | final closure; no parallel O sprint |
 
-## Phase acceptance
+## Phase acceptance and closeout
 
-- [ ] O.1–O.5 have QA-approved merge evidence.
-- [ ] 1.4.1 preserves safe legacy compatibility without raw interpolation.
-- [ ] auto mode remains injection-safe for hostile strings and structured
+- [x] O.1–O.5 have QA-approved merge evidence.
+- [x] 1.4.1 preserves safe legacy compatibility without raw interpolation.
+- [x] auto mode remains injection-safe for hostile strings and structured
       values.
-- [ ] malformed JSON cannot be emitted as a successful checked render.
-- [ ] `RenderCheckReport` is state-shaped, parser failure uses the typed
+- [x] malformed JSON cannot be emitted as a successful checked render.
+- [x] `RenderCheckReport` is state-shaped, parser failure uses the typed
       `Err` channel, and only `CheckedOutput` can reach an emitter.
-- [ ] `validate` clearly reports static-only status.
-- [ ] `validate --lint` reports quoted-placeholder source findings.
-- [ ] `sc-compose lint --target template-contracts` and `just lint` run the
+- [x] `validate` clearly reports static-only status.
+- [x] `validate --lint` reports quoted-placeholder source findings.
+- [x] `sc-compose lint --target template-contracts` and `just lint` run the
       shared check without duplicate implementation.
-- [ ] ATM-core integration guidance uses the checked result and exact context.
-- [ ] all six known templates are migrated or explicitly legacy and parsed by
+- [x] ATM-core integration guidance uses the checked result and exact context.
+- [x] all six known templates are migrated or explicitly legacy and parsed by
       semantic tests.
-- [ ] cross-repository release-candidate fuzz runs both old and new
+- [x] cross-repository release-candidate fuzz runs both old and new
       interpolation shapes.
-- [ ] `cargo test --workspace`, formatting, clippy, and repository lint pass.
+- [x] `cargo test --workspace`, formatting, clippy, and the authoritative
+      provisioned repository-lint profile pass; bare local `just lint` remains
+      blocked only when its CI-provided sibling binaries are absent.
 
 ## Phase handoff
 
-Before Phase O is marked complete, team-lead must have:
+Phase O is complete on `integrate/phase-o` at `4d37280`. Team-lead has:
 
-- merged O.1 through O.5 into `integrate/phase-o`;
-- QA reports for every sprint and routed fix worktree;
-- release-candidate commit/version and exact command evidence;
-- six-template migration results;
-- named downstream inventory source and scan evidence;
-- fuzz reports proving the parser oracle ran;
-- documented ATM-core consumer contract;
-- a decision on when explicit legacy mode may be removed.
+- [x] merged O.1 through O.5 into `integrate/phase-o`;
+- [x] QA reports for every sprint and routed fix worktree;
+- [x] release-candidate commit/version and exact command evidence;
+- [x] six-template migration results;
+- [x] named downstream inventory source and scan evidence;
+- [x] fuzz reports proving the parser oracle ran;
+- [x] documented ATM-core consumer contract;
+- [x] a decision on when explicit legacy mode may be removed.

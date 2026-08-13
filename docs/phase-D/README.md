@@ -3,8 +3,8 @@
 ## Status
 
 Complete. All eight Phase D sprints (`D.1`-`D.4`, `D.1-py`-`D.4-py`) have
-passed QA and merged into `integrate/phase-d`. PR #140 is open to promote
-that phase-complete branch to `develop`.
+passed QA and merged into `integrate/phase-d`, then promoted to `develop` via
+PR #140 (merge commit `0d09652`). Follow-up fixes landed through PRs #141–#144.
 
 ## Objective
 
@@ -94,12 +94,12 @@ serially gate the next Rust sprint. The Python track is therefore contingent on
 the Rust track, but non-blocking with respect to subsequent Rust implementation
 work.
 
-**Current landing status:** as of Monday, July 20, 2026, all eight Phase D
-sprints have passed QA and merged to `integrate/phase-d`: Rust track `D.1`–
+**Landing checkpoint:** as of Monday, July 20, 2026, all eight Phase D
+sprints had passed QA and merged to `integrate/phase-d`: Rust track `D.1`–
 `D.4` via PRs #129, #130, #131, and #133, plus Python track `D.1-py`–
-`D.4-py` via PRs #134, #135, #136, and #137. PR #140 is the open
-`integrate/phase-d -> develop` promotion branch for the complete Phase D
-delivery.
+`D.4-py` via PRs #134, #135, #136, and #137. The phase-complete branch was
+subsequently promoted to `develop` by PR #140; the current status is recorded
+at the top of this document.
 
 ## Python Binding Parity
 

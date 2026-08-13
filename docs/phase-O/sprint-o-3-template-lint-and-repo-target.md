@@ -2,10 +2,11 @@
 id: O.3
 title: JSON Template Lint, sc-compose lint Target, and just lint Integration
 phase: O
-status: planned
+status: complete
 branch: sprint/o-3-template-lint-and-repo-target
 worktree: ../sc-compose-worktrees/sprint/o-3-template-lint-and-repo-target
 target: integrate/phase-o
+merge: PR #426 at 8448f77
 ---
 
 # Sprint O.3 — JSON template lint and repository lint integration
@@ -121,19 +122,19 @@ JSON still fails closed through O.2's parser gate.
 
 ## Acceptance criteria
 
-- [ ] `validate --lint` finds the six-template anti-pattern with locations and
+- [x] `validate --lint` finds the six-template anti-pattern with locations and
       migration guidance.
-- [ ] `sc-compose lint --target template-contracts` reports the same rule code
+- [x] `sc-compose lint --target template-contracts` reports the same rule code
       and does not reimplement the scanner.
-- [ ] `just lint` includes the target in the appropriate profile.
-- [ ] Missing tools/fixtures are explicit config/capability failures.
-- [ ] Existing sc-lint targets and report paths remain unchanged.
-- [ ] `validate` and `validate --lint` emit O-R12's exact migration-directed
+- [x] `just lint` includes the target in the appropriate profile.
+- [x] Missing tools/fixtures are explicit config/capability failures.
+- [x] Existing sc-lint targets and report paths remain unchanged.
+- [x] `validate` and `validate --lint` emit O-R12's exact migration-directed
       warning for explicit legacy mode or detected quoted placeholders.
-- [ ] O.3 changes to all four shared files were additive after rebasing onto
+- [x] O.3 changes to all four shared files were additive after rebasing onto
       the merged O.2 commit.
-- [ ] ADR-0019 is accepted before implementation handoff.
-- [ ] All workspace and targeted quality checks pass.
+- [x] ADR-0019 is accepted before implementation handoff.
+- [x] All workspace and targeted quality checks pass.
 
 ## Sc-lint cleanup and QA handoff
 

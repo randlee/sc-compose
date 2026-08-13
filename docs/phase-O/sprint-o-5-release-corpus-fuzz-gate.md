@@ -2,10 +2,11 @@
 id: O.5
 title: Cross-Repository Release Corpus and Fuzz Gate
 phase: O
-status: planned
+status: complete
 branch: sprint/o-5-release-corpus-fuzz-gate
 worktree: ../sc-compose-worktrees/sprint/o-5-release-corpus-fuzz-gate
 target: integrate/phase-o
+merge: PR #430 at a2a5b2d; release-waiver evidence in 14f6a3b
 ---
 
 # Sprint O.5 — cross-repository release corpus and fuzz gate
@@ -118,20 +119,22 @@ unavailable roots are explicit campaign errors and block the release gate.
 
 ## Acceptance criteria
 
-- [ ] The corpus source-of-truth file contains the actual pinned repository
+- [x] The corpus source-of-truth file contains the actual pinned repository
       roots and the evidence reports the actual scanned count.
-- [ ] All available roots scan clean or have an owned, actionable finding;
+- [x] All available roots scan clean or have an owned, actionable finding;
       unavailable roots block rather than pass.
-- [ ] The campaign fails on the original 1.4.0 double-quote regression and
+- [x] The campaign fails on the original 1.4.0 double-quote regression and
       passes both supported modes only under their correct contracts.
-- [ ] Every successful JSON render is parser-checked before PASS.
-- [ ] No release candidate emits malformed JSON with success status.
-- [ ] O.4's six-template fixtures and O.2/O.3 diagnostic contracts are used
+- [x] Every successful JSON render is parser-checked before PASS.
+- [x] No release candidate emits malformed JSON with success status.
+- [x] O.4's six-template fixtures and O.2/O.3 diagnostic contracts are used
       without a duplicate parser or scanner.
-- [ ] Reports are materialized under the required dated `site/reports/` path.
-- [ ] Changelog, migration, ATM-core handoff, and external issue ownership
+- [x] Reports are materialized under the required dated `site/reports/` path.
+- [x] Changelog, migration, ATM-core handoff, and external issue ownership
       are complete.
-- [ ] All workspace, lint, and release-candidate gates pass.
+- [x] Workspace gates, the authoritative provisioned lint profile, and
+      release-candidate evidence pass; bare local `just lint` remains blocked
+      only when its CI-provided sibling binaries are absent.
 
 ## Sc-lint cleanup and QA handoff
 
