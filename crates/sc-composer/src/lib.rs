@@ -43,8 +43,8 @@ pub mod verify;
 
 #[doc(inline)]
 pub use composer::{
-    compose, compose_with_observer, compose_with_observer_and_expanded, protect_higher_braces,
-    render_all,
+    assemble_output, compose, compose_with_observer, compose_with_observer_and_expanded,
+    protect_higher_braces, render_all,
 };
 #[doc(inline)]
 pub use diagnostics::{
@@ -87,8 +87,9 @@ pub use observer::{
 pub use path_utils::to_forward_slash;
 #[doc(inline)]
 pub use renderer::{
-    LoadedTemplateRequest, NamedTemplateAsset, RenderedArtifact, Renderer, render_loaded_template,
-    render_template,
+    JSON_LEGACY_WARNING, JsonEscapeMode, LoadedTemplateRequest, NamedTemplateAsset,
+    RenderedArtifact, Renderer, render_loaded_template,
+    render_loaded_template_with_json_escape_mode, render_template, resolve_json_escape_mode,
 };
 #[doc(inline)]
 pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_template_path};

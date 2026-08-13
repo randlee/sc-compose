@@ -103,6 +103,7 @@ input_defaults:
   variable_name: fallback
 metadata:
   key: value
+json_escape_mode: auto
 ```
 
 Schema rules:
@@ -116,9 +117,12 @@ Schema rules:
   `variables` map with `{ required: true }` declarations is accepted as an
   equivalent spelling of `required_variables`.
 - `metadata` is optional.
+- `json_escape_mode` is optional for JSON templates and accepts only `auto` or
+  `legacy`. `auto` is the default; `legacy` is an explicit compatibility mode
+  for manually quoted string placeholders and emits a migration warning.
 - The recognized top-level frontmatter keys are `pass`,
-  `required_variables`, `variables`, `defaults`, `input_defaults`, and
-  `metadata`. When scanning stacked frontmatter, a later block containing an
+  `required_variables`, `variables`, `defaults`, `input_defaults`,
+  `metadata`, and `json_escape_mode`. When scanning stacked frontmatter, a later block containing an
   unrecognized top-level key is treated as template body content.
 - If a frontmatter block exists and a field is omitted, it defaults to:
   - `required_variables: []`
@@ -136,6 +140,22 @@ Schema rules:
   unless a future requirement explicitly assigns meaning to a metadata key.
 
 ### FR-1b: Value Types
+
+### FR-1b-json: JSON interpolation contract
+
+- JSON templates use complete-value `auto` interpolation by default. Bare
+  placeholders own their JSON quoting and preserve scalar, object, array, and
+  null types.
+- An explicit `legacy` mode safely escapes string contents without adding
+  surrounding quotes already present in manually quoted source.
+- CLI mode selection takes precedence over root frontmatter, followed by the
+  default `auto` mode.
+- `validate` and `validate --lint` emit the migration-directed warning for
+  legacy mode or quoted placeholders detected in JSON context:
+  `Template uses legacy JSON escape mode. Migrate to bare placeholders (auto
+  mode) to avoid double-quoting issues. See docs/migration/json-escape-mode.md`
+- A JSON render must not emit output until the complete body parses
+  successfully.
 
 The render-context value model accepts any finite JSON/YAML-compatible tree
 that the existing `serde_json::Value` and Minijinja context can represent.

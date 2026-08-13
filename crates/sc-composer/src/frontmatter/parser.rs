@@ -126,6 +126,7 @@ fn is_recognized_frontmatter(content: &str) -> bool {
                 | "defaults"
                 | "input_defaults"
                 | "metadata"
+                | "json_escape_mode"
         )
     })
 }

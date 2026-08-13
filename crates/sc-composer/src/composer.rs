@@ -136,9 +136,21 @@ fn compose_expanded(
             &mut validation_state,
             &validation_report.resolve_result.resolved_path,
         );
-        render_all_with_observer(&parsed, &contexts, &template_name, observer)?
+        render_all_with_observer(
+            &parsed,
+            &contexts,
+            &template_name,
+            observer,
+            crate::resolve_json_escape_mode(
+                request.policy.json_escape_mode,
+                parsed.frontmatter().and_then(Frontmatter::json_escape_mode),
+            ),
+        )?
     } else {
-        let renderer = Renderer::new();
+        let renderer = Renderer::with_json_escape_mode(crate::resolve_json_escape_mode(
+            request.policy.json_escape_mode,
+            parsed.frontmatter().and_then(Frontmatter::json_escape_mode),
+        ));
         renderer
             .render_named(
                 &template_name,
@@ -187,7 +199,13 @@ pub fn render_all(
     contexts: &[(u8, BTreeMap<VariableName, InputValue>)],
 ) -> Result<String, ComposeError> {
     let mut observer = NoopObserver;
-    render_all_with_observer(parsed, contexts, "inline", &mut observer)
+    render_all_with_observer(
+        parsed,
+        contexts,
+        "inline",
+        &mut observer,
+        crate::JsonEscapeMode::Auto,
+    )
 }
 
 /// Protect next-higher-brace expressions from lower-brace rendering passes.
@@ -333,6 +351,7 @@ fn render_all_with_observer(
     contexts: &[(u8, BTreeMap<VariableName, InputValue>)],
     template_name: &str,
     observer: &mut dyn CompositionObserver,
+    json_escape_mode: crate::JsonEscapeMode,
 ) -> Result<String, ComposeError> {
     if contexts.len() != parsed.passes().len() {
         return Err(ConfigError::new(
@@ -365,7 +384,8 @@ fn render_all_with_observer(
         let brace_count = usize::from(header_pass_number) + 1;
         let open = "{".repeat(brace_count);
         let close = "}".repeat(brace_count);
-        let renderer = Renderer::with_delimiters(&open, &close)?;
+        let renderer =
+            Renderer::with_delimiters_and_json_escape_mode(&open, &close, json_escape_mode)?;
         let protected_body = protect_higher_braces(&body, brace_count);
         let mut merged_variables = frontmatter.defaults().clone();
         for (name, value) in variables {
@@ -391,7 +411,9 @@ fn render_all_with_observer(
     Ok(body)
 }
 
-fn assemble_output(
+/// Combine rendered content with optional guidance and user-prompt blocks.
+#[must_use]
+pub fn assemble_output(
     profile_body: &str,
     guidance_block: Option<&str>,
     user_prompt: Option<&str>,

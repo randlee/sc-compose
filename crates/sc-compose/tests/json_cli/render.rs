@@ -10,6 +10,114 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 #[test]
+fn render_json_legacy_mode_supports_existing_quoted_placeholders() {
+    let root = temp_root("render-json-legacy-mode");
+    write_file(&root.join("payload.json.j2"), r#"{"value": "{{ value }}"}"#);
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("payload.json.j2")
+        .arg("--var")
+        .arg(r#"value=quote " slash \ newline"#)
+        .arg("--json-escape-mode")
+        .arg("legacy")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    let rendered: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(rendered["value"], r#"quote " slash \ newline"#);
+}
+
+#[test]
+fn render_json_frontmatter_mode_is_used_when_cli_mode_is_absent() {
+    let root = temp_root("render-json-frontmatter-mode");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\njson_escape_mode: legacy\n---\n{\"value\": \"{{ value }}\"}",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("payload.json.j2")
+        .arg("--var")
+        .arg("value=hello")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    let rendered: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(rendered["value"], "hello");
+}
+
+#[test]
+fn render_json_cli_mode_overrides_frontmatter_mode() {
+    let root = temp_root("render-json-cli-mode");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\njson_escape_mode: legacy\n---\n{\"value\": {{ value }}}",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("payload.json.j2")
+        .arg("--var")
+        .arg("value=hello")
+        .arg("--json-escape-mode")
+        .arg("auto")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    let rendered: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(rendered["value"], "hello");
+}
+
+#[test]
+fn render_json_auto_mode_preserves_types_for_bare_placeholders() {
+    let root = temp_root("render-json-auto-mode");
+    write_file(
+        &root.join("payload.json.j2"),
+        r#"{"count": {{ count }}, "enabled": {{ enabled }}}"#,
+    );
+    let vars_file = root.join("vars.json");
+    write_file(&vars_file, r#"{"count": 3, "enabled": true}"#);
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("payload.json.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    let rendered: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(rendered["count"], 3);
+    assert_eq!(rendered["enabled"], true);
+}
+
+#[test]
 fn render_json_uses_diagnostic_envelope() {
     let root = temp_root("render-json");
     write_file(

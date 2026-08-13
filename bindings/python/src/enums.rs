@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use sc_composer::{
-    DiagnosticSeverity, ExtractFormat, ProfileKind, RuntimeKind, UnknownVariablePolicy,
-    VariableSource,
+    DiagnosticSeverity, ExtractFormat, JsonEscapeMode, ProfileKind, RuntimeKind,
+    UnknownVariablePolicy, VariableSource,
 };
 
 use crate::errors::config_error;
@@ -45,6 +45,17 @@ impl PyUnknownVariablePolicy {
     const WARN: &'static str = "warn";
     #[classattr]
     const IGNORE: &'static str = "ignore";
+}
+
+#[pyclass(name = "JsonEscapeMode")]
+pub(crate) struct PyJsonEscapeMode;
+
+#[pymethods]
+impl PyJsonEscapeMode {
+    #[classattr]
+    const AUTO: &'static str = "auto";
+    #[classattr]
+    const LEGACY: &'static str = "legacy";
 }
 
 #[pyclass(name = "VariableSource")]
@@ -214,6 +225,12 @@ impl PyDiagnosticCode {
     #[classattr]
     const ERR_EXTRACT_TOML_AMBIGUOUS: &'static str = "ERR_EXTRACT_TOML_AMBIGUOUS";
     #[classattr]
+    const ERR_JSON_ESCAPE_MODE_NON_JSON: &'static str = "ERR_JSON_ESCAPE_MODE_NON_JSON";
+    #[classattr]
+    const ERR_JSON_LEGACY_NON_STRING: &'static str = "ERR_JSON_LEGACY_NON_STRING";
+    #[classattr]
+    const WARN_JSON_LEGACY_ESCAPE_MODE: &'static str = "WARN_JSON_LEGACY_ESCAPE_MODE";
+    #[classattr]
     const WARN_EXTRACT_NOT_OBSERVED: &'static str = "WARN_EXTRACT_NOT_OBSERVED";
     #[classattr]
     const WARN_EXTRACT_LOW_CONFIDENCE: &'static str = "WARN_EXTRACT_LOW_CONFIDENCE";
@@ -225,6 +242,7 @@ pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<PyRuntimeKind>()?;
     module.add_class::<PyProfileKind>()?;
     module.add_class::<PyUnknownVariablePolicy>()?;
+    module.add_class::<PyJsonEscapeMode>()?;
     module.add_class::<PyVariableSource>()?;
     module.add_class::<PyDiagnosticSeverity>()?;
     module.add_class::<PyDiagnosticCode>()?;
@@ -263,6 +281,17 @@ pub(crate) fn parse_unknown_variable_policy(value: &str) -> PyResult<UnknownVari
         "ignore" => Ok(UnknownVariablePolicy::Ignore),
         other => Err(config_error(
             format!("unknown unknown-variable policy: {other}"),
+            Some("ERR_CONFIG_MODE"),
+        )),
+    }
+}
+
+pub(crate) fn parse_json_escape_mode(value: &str) -> PyResult<JsonEscapeMode> {
+    match value {
+        "auto" => Ok(JsonEscapeMode::Auto),
+        "legacy" => Ok(JsonEscapeMode::Legacy),
+        other => Err(config_error(
+            format!("unknown JSON escape mode: {other}"),
             Some("ERR_CONFIG_MODE"),
         )),
     }

@@ -39,6 +39,7 @@ pub(super) fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, 
         defaults: raw_defaults,
         input_defaults: raw_input_defaults,
         metadata: raw_metadata,
+        json_escape_mode,
     } = raw;
 
     let mut required_variables =
@@ -106,6 +107,7 @@ pub(super) fn normalize_frontmatter(raw: RawFrontmatter) -> Result<Frontmatter, 
         required_variables,
         defaults,
         metadata,
+        json_escape_mode,
         diagnostics,
     })
 }

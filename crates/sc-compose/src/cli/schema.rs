@@ -150,6 +150,29 @@ pub(crate) struct CommonArgs {
     pub(crate) root: PathBuf,
     #[arg(long, help = "Template path in file mode")]
     pub(crate) file: Option<PathBuf>,
+    #[arg(
+        long,
+        value_enum,
+        help = "Select JSON interpolation mode; default is auto unless frontmatter declares one"
+    )]
+    pub(crate) json_escape_mode: Option<JsonEscapeModeArg>,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+pub(crate) enum JsonEscapeModeArg {
+    /// Render complete JSON values, including string quotes.
+    Auto,
+    /// Preserve manually quoted JSON string placeholders safely.
+    Legacy,
+}
+
+impl From<JsonEscapeModeArg> for sc_composer::JsonEscapeMode {
+    fn from(value: JsonEscapeModeArg) -> Self {
+        match value {
+            JsonEscapeModeArg::Auto => Self::Auto,
+            JsonEscapeModeArg::Legacy => Self::Legacy,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Args, Default)]
