@@ -1,7 +1,7 @@
 ---
 id: phase-B
 title: SC-Reporting Phase B Plan
-status: draft
+status: complete
 branch: plan/phase-B
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
 ---
@@ -10,9 +10,9 @@ worktree: /Users/randlee/Documents/github/sc-compose-worktrees/plan/phase-B
 
 ## Status
 
-Draft implementation plan for review only. This phase is follow-on work after
-the accepted Phase A contract set and does not get committed or pushed until
-`team-lead` approves the sprint set.
+Phase B implementation is complete. The B1-B10 implementation line shipped on
+the Phase-B integration branch; the remaining production-readiness gaps are
+tracked separately in the follow-on cleanup slices below.
 
 The note in `docs/phase-B/recommended-sc-just-upgrades.md` is a supporting
 integration handoff for the external `sc-just` package. It is not a source of
@@ -50,8 +50,8 @@ Phase A already shipped one observability implementation sprint:
 - `A9`
   - `sc-observability` `1.1.0` adoption in `sc-compose`
 
-Phase B therefore focuses on the still-missing reporting runtime and the tools
-that make it easy for consumer repos to adopt.
+Phase B focused on the reporting runtime and the tools that make it easy for
+consumer repos to adopt.
 
 ## Design Direction
 
@@ -138,9 +138,9 @@ model is genuinely reusable rather than tuned to one repo:
 - adding a repo-specific custom producer must require only new catalog entries
   and templates/specs, not a new aggregator or verification model
 
-## Exit Direction
+## Shipped Surface
 
-Phase B should leave the repo with:
+Phase B left the repo with:
 
 - one implemented report artifact contract with:
   - report catalog/manifest

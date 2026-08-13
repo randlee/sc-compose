@@ -4,13 +4,26 @@
 
 `sc-composer` and `sc-compose` were previously developed and published from inside the
 `agent-team-mail` monorepo workspace. This repository (`sc-compose`) is the new standalone
-home for both crates. All future development and releases happen here.
+home for the published crates and adapters. All future development and releases happen here.
 
 The last versions of these crates published from the `agent-team-mail` workspace are the
 baseline. This repo's first standalone release was `1.0.0`; the current standalone
-release line on `develop` is `1.1.0`, which stays above that baseline so crates.io
-version ordering remains correct through the source-of-truth cutover and the Phase B
-reporting expansion.
+release line is `1.4.1`, which stays above that baseline so crates.io version ordering
+remains correct through the source-of-truth cutover and subsequent feature releases.
+
+## ADR-0019 scope clarification
+
+ADR-0019's checked-output enforcement claim is scoped to `sc-compose` CLI
+emitters. Direct `sc-composer` library consumers receive a public
+`ComposeResult::rendered_text` string, so the library boundary does not
+automatically prevent a caller from emitting unchecked text.
+
+Library consumers must follow the named **Checked-Emission Caller Contract**:
+compose with the exact intended context, call `check_rendered_output` on the
+complete final text, and emit or cache only the resulting `CheckedOutput`.
+`OutputCheckError` denies emission. The future **Checked Library Composition
+API** sprint may evaluate a small additive helper such as `compose_checked()`;
+no new library API is introduced by this scope clarification.
 
 ## What Changes for Downstream Consumers
 
@@ -40,7 +53,7 @@ Cutover steps for the ATM workspace maintainer:
    sc-composer = { path = "../sc-composer" }
 
    # After (crates.io pin):
-   sc-composer = "1.1.0"
+   sc-composer = "1.4.1"
    ```
 3. Run `cargo update` to resolve the dependency graph.
 4. Run `cargo test --workspace` to verify nothing broke.
@@ -173,12 +186,12 @@ Downstream consumers that shell out to `sc-compose` should expect:
 ## Release And Cutover Order
 
 The first standalone crates.io release for this repo was `1.0.0`. The current release
-line for this repo is `1.1.0`.
+line for this repo is `1.4.1`.
 
 Recommended downstream cutover order:
 
-1. Publish `sc-composer` and `sc-compose` version `1.1.0` from this repo when promoting
-   the current standalone line.
+1. Publish `sc-sha`, `sc-composer`, and `sc-compose` version `1.4.1` from this repo
+   when promoting the current standalone line.
 2. Verify crates.io resolution and installation using the release checklist.
 3. Update downstream consumers such as ATM to the published versions.
 4. Run downstream integration validation after the published release is live.
@@ -187,7 +200,62 @@ Recommended downstream cutover order:
 
 After the first standalone release:
 
-- All future `sc-composer` and `sc-compose` releases come from this repo only.
+- All future `sc-sha`, `sc-composer`, and `sc-compose` releases come from this repo only.
 - The `agent-team-mail` workspace no longer owns or publishes these crate names.
 - crates.io ownership records should reflect this repo as the canonical source.
 - See `docs/release-checklist.md` for the publish procedure.
+
+## Phase O.4 JSON Assignment Template Migration
+
+The six in-repository assignment templates migrated in Phase O.4 now declare
+`json_escape_mode: auto` and use bare placeholders wherever a value occupies a
+complete JSON slot. This prevents the 1.4 double-quoting regression while
+preserving strings, arrays, booleans, objects, and nulls according to their
+actual JSON types.
+
+The migration is intentionally not a mechanical quote removal. Each template
+has a source-shape classification in
+[`docs/migration/json-escape-mode.md`](migration/json-escape-mode.md). The
+`carry_forward_findings_json` field is the only reviewed raw JSON exception;
+callers must provide a validated JSON fragment. The O.4 integration fixture
+renders all six templates with hostile values and compares parsed semantic
+values, including an injection-resistance assertion. A separate legacy
+fixture proves that the old quoted shape remains valid during the deprecation
+window and emits one migration warning.
+
+O.4 provides repository-local evidence only. Cross-repository inventory,
+release-candidate fuzzing, and release-readiness decisions are owned by O.5.
+
+## Phase O.5 Release-Corpus Gate
+
+O.5 adds a pinned, read-only inventory and parser-backed release campaign. The
+source of truth is
+[`docs/phase-O/release-corpus-roots.txt`](phase-O/release-corpus-roots.txt);
+the path-level result is
+[`docs/phase-O/evidence/o5-release-corpus.md`](phase-O/evidence/o5-release-corpus.md).
+The campaign does not edit consumer repositories. Each external finding is
+handed to its repository owner with the exact pinned commit, path, source
+shape, expected oracle, and migration action.
+
+The 2026-08-13 campaign scanned 40 JSON-template paths across the seven pinned
+roots: 11 in the merged O.4 sc-compose root, 7 in atm-core, 7 in cpo, 3 in
+raptor, 6 in sc-lint, 3 in synaptic-canvas, and 3 in roslyn-lint. The local six-template
+production corpus passed hostile-value and complete-document JSON parsing.
+The external roots contain 28 unannotated, manually quoted production
+templates; these are owned actionable findings, so the 1.4.1 recommendation
+is conditional until each owner closes them and the campaign is rerun on
+merged consumer commits.
+
+The recommendation to each owner, in order: (1) run sc-compose v1.4.1 or
+later — the minimum version required to run these templates under the 1.4.0
+escape-mode change, and (2) fix the templates by migrating them to explicit
+`auto` mode with bare placeholders. `auto` and `legacy` are the two
+available `json_escape_mode` values, listed here as possible template
+configurations, not as an either/or recommendation: `legacy` is a temporary
+compatibility bridge for owners who cannot migrate immediately, not a
+permanent, equally-valid alternative to migrating.
+
+Legacy mode remains a compatibility bridge, not a permanent release default.
+Its removal requires a clean pinned-consumer inventory and a parser-backed
+campaign covering scalar, structured, null, loop, include, conditional,
+Unicode, and hostile-string inputs.

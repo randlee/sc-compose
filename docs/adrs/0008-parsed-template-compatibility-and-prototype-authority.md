@@ -6,12 +6,15 @@ Accepted
 
 ## Context
 
-Phase D changes parsed template shape from one optional frontmatter block to
-stacked passes. The current shipped Rust code in
-`crates/sc-composer/src/frontmatter.rs` defines:
+Phase D changed the parsed template shape from one optional frontmatter block
+to stacked passes. At the time this ADR was written, the pre-Phase-D Rust code
+in `crates/sc-composer/src/frontmatter/model.rs` defined:
 
 - a private `frontmatter: Option<Frontmatter>` field on `ParsedTemplate`
 - a public `frontmatter() -> Option<&Frontmatter>` accessor
+
+The current model keeps the compatibility accessor while storing the full
+stacked-pass shape in its private `passes: Vec<Frontmatter>` field.
 
 That means the real compatibility question is not public struct-field access;
 it is the accessor semantics when a template contains multiple headers.

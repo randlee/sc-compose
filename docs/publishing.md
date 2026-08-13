@@ -3,6 +3,7 @@
 ## Purpose
 
 This repo is the publishing source of truth for:
+- `sc-sha`
 - `sc-composer`
 - `sc-compose`
 
@@ -93,7 +94,7 @@ Required secrets:
 
 - `CARGO_REGISTRY_TOKEN`
   - must be configured in the GitHub Actions `crates-io` environment
-  - must be able to publish both `sc-composer` and `sc-compose`
+  - must be able to publish `sc-sha`, `sc-composer`, and `sc-compose`
 - `HOMEBREW_TAP_TOKEN`
   - must be configured in the repo secrets before Homebrew automation can
     update `randlee/homebrew-tap`
@@ -105,6 +106,7 @@ Required secrets:
 Manual verification steps:
 
 - verify crate owners:
+  - `cargo owner --list sc-sha`
   - `cargo owner --list sc-composer`
   - `cargo owner --list sc-compose`
 - verify the target version is unpublished before tagging:
@@ -114,11 +116,11 @@ Manual verification steps:
 
 The standalone release path covers:
 
-- crates.io publication for `sc-composer` and `sc-compose`
+- crates.io publication for `sc-sha`, `sc-composer`, and `sc-compose`
 - GitHub Release archives for Linux, macOS, and Windows
 - Homebrew formula updates in `randlee/homebrew-tap`
 - `winget` publication for package id `randlee.sc-compose`
-- PyPI publication for package `sc-compose`
+- PyPI publication for packages `sc-sha` and `sc-compose`
 
 Python release-train rule:
 

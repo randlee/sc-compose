@@ -42,6 +42,10 @@ sc-composer library and are normalized by the shared lint runner.
 | `ERR_VAL_DUPLICATE` | `ValidationError` | error | duplicate frontmatter variable declaration | frontmatter normalization, validation pipeline |
 | `WARN_VAL_CONFLICTING_DEFAULT_SECTIONS` | `ValidationError` | warning | frontmatter declared both `defaults` and `input_defaults`; `input_defaults` overrides overlaps | frontmatter normalization, validation pipeline |
 | `WARN_LINT_REDUNDANT_FILTER_CHAIN` | `TemplateLint` | warning | template applies the redundant `frontmatter_safe | yaml_safe` filter chain | CLI `validate --lint` |
+| `WARN_JSON_LEGACY_ESCAPE_MODE` | `TemplateLint`/`ValidationError` | warning | explicit legacy mode or a quoted JSON placeholder needs migration guidance | validation and CLI `validate --lint` |
+| `WARN_JSON_QUOTED_PLACEHOLDER` | `TemplateLint` | warning | a quoted JSON expression is too complex to classify safely | CLI `validate --lint`, `template-contracts` |
+| `ERR_JSON_MODE_CONTRACT` | `TemplateLint` | error | an auto-mode quoted scalar placeholder is incompatible with complete-value JSON interpolation | CLI `validate --lint`, `template-contracts` |
+| `ERR_JSON_MODE_INCLUDE_CONFLICT` | `TemplateLint` | error | an included template declares a JSON escape mode that conflicts with the root template's effective mode | include expansion and validation pipeline |
 | `WARN_CONFIG_SINGLE_PASS_ALL_FALLBACK` | `ConfigError` | warning | `--all` was requested for a template without stacked headers; the single pass is used as a documented fallback | CLI input/configuration layer |
 | `ERR_VAL_EMPTY` | `ValidationError` | error | template body is empty where composition requires content | validation pipeline |
 | `ERR_VAL_MISSING_FRONTMATTER` | `ValidationError` | warning | a root or included template file references variables but has no frontmatter block | validation pipeline |

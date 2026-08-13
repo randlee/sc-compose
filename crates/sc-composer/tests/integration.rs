@@ -10,9 +10,10 @@ use sc_composer::observer::{
     ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
 use sc_composer::{
-    ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, VariableName, compose,
-    compose_with_observer, compose_with_observer_and_expanded, expand_includes,
-    parse_template_document, protect_higher_braces, render_all, resolve_template_path,
+    ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, DiagnosticCode, OutputFormat,
+    VariableName, check_rendered_output, compose, compose_with_observer,
+    compose_with_observer_and_expanded, expand_includes, parse_template_document,
+    protect_higher_braces, render_all, resolve_template_path,
 };
 
 #[derive(Default)]
@@ -415,6 +416,82 @@ fn compose_with_observer_emits_single_render_failure_event_for_multi_pass_errors
     assert!(source.contains("syntax error"));
     assert_eq!(observer.render.len(), 1);
     assert_eq!(observer.render[0].rendered_bytes, None);
+}
+
+#[test]
+fn compose_then_checked_output_rejects_malformed_json_without_echoing_rendered_value() {
+    let root = temp_root("checked-json-malformed");
+    let template_path = root.join("payload.json.j2");
+    let secret = "TOP_SECRET_CHECKED_OUTPUT";
+    write_file(&template_path, r#"{"value": "{{ value }}"}"#);
+
+    let result = compose(&ComposeRequest {
+        runtime: None,
+        mode: ComposeMode::File {
+            template_path: PathBuf::from("payload.json.j2"),
+        },
+        root: ConfiningRoot::new(&root).unwrap(),
+        vars_input: BTreeMap::from([(VariableName::new("value").unwrap(), json!(secret))]),
+        vars_env: BTreeMap::default(),
+        vars_defaults: BTreeMap::default(),
+        guidance_block: None,
+        user_prompt: None,
+        policy: ComposePolicy::default(),
+    })
+    .unwrap();
+
+    let error = check_rendered_output(
+        OutputFormat::Json,
+        &result.resolve_result.resolved_path,
+        &result.rendered_text,
+    )
+    .expect_err("manually quoted placeholder must fail the auto JSON contract");
+
+    assert_eq!(
+        error.diagnostics[0].code,
+        DiagnosticCode::ErrRenderJsonMalformed
+    );
+    assert_eq!(
+        error.diagnostics[0].path,
+        Some(result.resolve_result.resolved_path.clone())
+    );
+    assert!(error.diagnostics[0].line.is_some());
+    assert!(error.diagnostics[0].column.is_some());
+    assert!(!format!("{error}").contains(secret));
+    assert!(!format!("{error:?}").contains(secret));
+}
+
+#[test]
+fn compose_then_checked_output_emits_valid_json_only_through_checked_output() {
+    let root = temp_root("checked-json-valid");
+    write_file(&root.join("payload.json.j2"), r#"{"value": {{ value }}}"#);
+
+    let result = compose(&ComposeRequest {
+        runtime: None,
+        mode: ComposeMode::File {
+            template_path: PathBuf::from("payload.json.j2"),
+        },
+        root: ConfiningRoot::new(&root).unwrap(),
+        vars_input: BTreeMap::from([(VariableName::new("value").unwrap(), json!("checked-value"))]),
+        vars_env: BTreeMap::default(),
+        vars_defaults: BTreeMap::default(),
+        guidance_block: None,
+        user_prompt: None,
+        policy: ComposePolicy::default(),
+    })
+    .unwrap();
+
+    let checked = check_rendered_output(
+        OutputFormat::Json,
+        &result.resolve_result.resolved_path,
+        &result.rendered_text,
+    )
+    .expect("valid JSON must produce CheckedOutput");
+    let mut emitted = Vec::new();
+    checked.emit(&mut emitted).unwrap();
+
+    assert_eq!(checked.body(), result.rendered_text);
+    assert_eq!(String::from_utf8(emitted).unwrap(), result.rendered_text);
 }
 
 fn temp_root(label: &str) -> PathBuf {

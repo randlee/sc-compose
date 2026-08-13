@@ -8,6 +8,7 @@ use sc_composer::{
 };
 
 use super::compose_output::emit_render_output;
+use super::{context_summary, render_check_meta};
 use crate::cli::{RenderArgs, RenderBehaviorArgs};
 use crate::path_utils::to_forward_slash;
 use crate::{CommandError, exit_codes};
@@ -29,12 +30,19 @@ pub(super) fn execute_render_with_extra_warnings(
     let result =
         sc_composer::compose_with_observer(request, observer).map_err(CommandError::compose)?;
     extra_warnings.extend(result.warnings);
+    let (checked_output, render_check) = checked_render_output(
+        request,
+        &result.resolve_result.resolved_path,
+        &result.rendered_text,
+        args,
+    )?;
     emit_render_output(
         request,
         args,
         &result.resolve_result.resolved_path,
-        &result.rendered_text,
+        &checked_output,
         extra_warnings,
+        render_check,
     )?;
 
     Ok(exit_codes::SUCCESS)
@@ -56,12 +64,19 @@ pub(super) fn execute_render_with_expanded(
     )
     .map_err(CommandError::compose)?;
     extra_warnings.extend(result.warnings);
+    let (checked_output, render_check) = checked_render_output(
+        request,
+        &result.resolve_result.resolved_path,
+        &result.rendered_text,
+        args,
+    )?;
     emit_render_output(
         request,
         args,
         &result.resolve_result.resolved_path,
-        &result.rendered_text,
+        &checked_output,
         extra_warnings,
+        render_check,
     )?;
 
     Ok(exit_codes::SUCCESS)
@@ -96,47 +111,106 @@ pub(super) fn execute_custom_delimiter_render(
         .and_then(|name| name.to_str())
         .unwrap_or("inline")
         .to_owned();
-    let rendered_text = Renderer::with_delimiters(&open, &close)
-        .map_err(|error| {
-            CommandError::usage_with_code(
-                anyhow!(error),
-                sc_composer::DiagnosticCode::ErrConfigParse,
+    let json_escape_mode = sc_composer::resolve_json_escape_mode(
+        request.policy.json_escape_mode,
+        root_passes
+            .first()
+            .and_then(sc_composer::Frontmatter::json_escape_mode),
+    );
+    let rendered_text =
+        Renderer::with_delimiters_and_json_escape_mode(&open, &close, json_escape_mode)
+            .map_err(|error| {
+                CommandError::usage_with_code(
+                    anyhow!(error),
+                    sc_composer::DiagnosticCode::ErrConfigParse,
+                )
+            })?
+            .render_named(
+                &template_name,
+                parsed.body(),
+                build_custom_render_context(request, &resolve_result.resolved_path, &root_passes),
             )
-        })?
-        .render_named(
-            &template_name,
-            parsed.body(),
-            build_custom_render_context(request, &resolve_result.resolved_path, &root_passes),
-        )
-        .inspect_err(|error| {
-            observer.on_render_outcome(&RenderOutcomeEvent {
-                rendered_bytes: None,
-                code: error.code(),
-            });
-        })
-        .map_err(|error| {
-            CommandError::usage_with_code(
-                anyhow!(error),
-                sc_composer::DiagnosticCode::ErrConfigParse,
-            )
-        })?;
+            .inspect_err(|error| {
+                observer.on_render_outcome(&RenderOutcomeEvent {
+                    rendered_bytes: None,
+                    code: error.code(),
+                });
+            })
+            .map_err(|error| {
+                CommandError::usage_with_code(
+                    anyhow!(error),
+                    sc_composer::DiagnosticCode::ErrConfigParse,
+                )
+            })?;
     observer.on_render_outcome(&RenderOutcomeEvent {
         rendered_bytes: Some(rendered_text.len()),
         code: None,
     });
-    let rendered_text = assemble_output(
+    let rendered_text = sc_composer::assemble_output(
         &rendered_text,
         request.guidance_block.as_deref(),
         request.user_prompt.as_deref(),
     );
+    let (checked_output, render_check) = checked_render_output(
+        request,
+        &resolve_result.resolved_path,
+        &rendered_text,
+        &args.render,
+    )?;
     emit_render_output(
         request,
         &args.render,
         &resolve_result.resolved_path,
-        &rendered_text,
+        &checked_output,
         report.warnings,
+        render_check,
     )?;
     Ok(exit_codes::SUCCESS)
+}
+
+fn checked_render_output(
+    request: &sc_composer::ComposeRequest,
+    resolved_path: &Path,
+    rendered_text: &str,
+    args: &RenderBehaviorArgs,
+) -> Result<
+    (
+        sc_composer::CheckedOutput,
+        Option<sc_composer::RenderCheckReport>,
+    ),
+    CommandError,
+> {
+    let meta = render_check_meta(request, resolved_path);
+    let should_check = args.check_render || meta.output_format == sc_composer::OutputFormat::Json;
+    if !should_check {
+        let checked = sc_composer::check_rendered_output(
+            sc_composer::OutputFormat::Text,
+            resolved_path,
+            rendered_text,
+        )
+        .map_err(|error| {
+            CommandError::render_check(error.with_failing_pass(failing_pass(request)))
+        })?;
+        return Ok((checked, None));
+    }
+    let mut checked =
+        sc_composer::check_rendered_output(meta.output_format, &meta.template, rendered_text)
+            .map_err(|error| {
+                CommandError::render_check(error.with_failing_pass(failing_pass(request)))
+            })?;
+    checked.meta = meta.clone();
+    let report = sc_composer::RenderCheckReport::RenderChecked {
+        meta,
+        checked_context: context_summary(request),
+        diagnostics: Vec::new(),
+    };
+    Ok((checked, Some(report)))
+}
+
+fn failing_pass(request: &sc_composer::ComposeRequest) -> Option<u8> {
+    (request.policy.passes.len() > 1)
+        .then(|| request.policy.passes.last().map(|pass| pass.pass_number))
+        .flatten()
 }
 
 fn custom_variable_delimiters(args: &RenderArgs) -> Result<(String, String), CommandError> {
@@ -236,21 +310,6 @@ fn current_username() -> String {
 
 fn environment_value(name: &str) -> Option<std::ffi::OsString> {
     std::env::vars_os().find_map(|(key, value)| (key == name).then_some(value))
-}
-
-fn assemble_output(
-    profile_body: &str,
-    guidance_block: Option<&str>,
-    user_prompt: Option<&str>,
-) -> String {
-    let mut blocks = vec![profile_body.trim_end().to_owned()];
-    if let Some(guidance) = guidance_block.filter(|value| !value.is_empty()) {
-        blocks.push(guidance.to_owned());
-    }
-    if let Some(prompt) = user_prompt.filter(|value| !value.is_empty()) {
-        blocks.push(prompt.to_owned());
-    }
-    blocks.join("\n\n")
 }
 
 fn validation_report_error(errors: Vec<sc_composer::Diagnostic>) -> CommandError {

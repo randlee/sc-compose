@@ -13,7 +13,7 @@ use crate::convert::{
     extract_profile_name, extract_var_map, extract_variable_names, json_to_py,
 };
 use crate::enums::{
-    parse_profile_kind, parse_unknown_variable_policy, profile_kind_str,
+    parse_json_escape_mode, parse_profile_kind, parse_unknown_variable_policy, profile_kind_str,
     unknown_variable_policy_str,
 };
 use crate::errors::{compose_error_to_pyerr, config_error, validation_error};
@@ -48,7 +48,7 @@ pub(crate) fn compose_mode_repr(mode: &ComposeMode) -> String {
 
 pub(crate) fn compose_policy_repr(policy: &ComposePolicy) -> String {
     format!(
-        "ComposePolicy(strict_undeclared_variables={}, unknown_variable_policy={}, unbound_variable_policy={}, max_include_depth={}, allowed_roots={:?}, resolver_policy={}, passes={})",
+        "ComposePolicy(strict_undeclared_variables={}, unknown_variable_policy={}, unbound_variable_policy={}, max_include_depth={}, allowed_roots={:?}, resolver_policy={}, passes={}, json_escape_mode={})",
         python_bool_repr(policy.strict_undeclared_variables),
         python_string_repr(unknown_variable_policy_str(policy.unknown_variable_policy)),
         policy.unbound_variable_policy.map_or_else(
@@ -65,7 +65,11 @@ pub(crate) fn compose_policy_repr(policy: &ComposePolicy) -> String {
             inner: policy.resolver_policy.clone(),
         }
         .__repr__(),
-        policy.passes.len()
+        policy.passes.len(),
+        policy.json_escape_mode.map_or_else(
+            || "None".to_owned(),
+            |mode| format!("{mode:?}").to_lowercase(),
+        )
     )
 }
 
@@ -239,7 +243,7 @@ pub(crate) struct PyComposePolicy {
 #[pymethods]
 impl PyComposePolicy {
     #[new]
-    #[pyo3(signature = (strict_undeclared_variables=false, unknown_variable_policy="ignore", unbound_variable_policy=None, max_include_depth=32, allowed_roots=None, passes=None))]
+    #[pyo3(signature = (strict_undeclared_variables=false, unknown_variable_policy="ignore", unbound_variable_policy=None, max_include_depth=32, allowed_roots=None, passes=None, json_escape_mode=None))]
     fn new(
         strict_undeclared_variables: bool,
         unknown_variable_policy: &str,
@@ -247,6 +251,7 @@ impl PyComposePolicy {
         max_include_depth: u16,
         allowed_roots: Option<&Bound<'_, PyAny>>,
         passes: Option<&Bound<'_, PyAny>>,
+        json_escape_mode: Option<&str>,
     ) -> PyResult<Self> {
         Ok(Self {
             inner: ComposePolicy {
@@ -259,6 +264,7 @@ impl PyComposePolicy {
                 allowed_roots: extract_allowed_roots(allowed_roots)?,
                 resolver_policy: ResolverPolicy::default(),
                 passes: extract_pass_configs(passes)?,
+                json_escape_mode: json_escape_mode.map(parse_json_escape_mode).transpose()?,
             },
         })
     }
@@ -309,6 +315,13 @@ impl PyComposePolicy {
             .cloned()
             .map(|inner| PyPassConfig { inner })
             .collect()
+    }
+
+    #[getter]
+    fn json_escape_mode(&self) -> Option<String> {
+        self.inner
+            .json_escape_mode
+            .map(|mode| format!("{mode:?}").to_lowercase())
     }
 
     fn __repr__(&self) -> String {

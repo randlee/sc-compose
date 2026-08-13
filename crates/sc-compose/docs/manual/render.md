@@ -22,10 +22,26 @@ In file mode (the default), provide `--file TEMPLATE` and, when needed,
 - `--runtime RUNTIME` and `--root ROOT` for profile selection and path
   confinement.
 
+For JSON templates, `--json-escape-mode auto|legacy` selects the interpolation
+contract. `auto` is the default and expects bare placeholders such as
+`{{ value }}` in a JSON value position; the renderer owns JSON quoting and
+preserves the value's type. `legacy` safely supports existing manually quoted
+string placeholders such as `"{{ value }}"` without adding a second set of
+quotes. A root frontmatter `json_escape_mode` is used when the flag is absent.
+
 Rendering options are `--output PATH`, `--guidance TEXT`,
 `--guidance-file PATH` (or `-` for standard input), `--prompt TEXT`, and
-`--prompt-file PATH`. Use `--json` for the versioned JSON envelope and
-`--dry-run` to report the derived output target without writing files.
+`--prompt-file PATH`. Use `--json` for the versioned JSON envelope,
+`--dry-run` to report the derived output target without writing files, and
+`--check-render` to request an explicit checked-render report before emission.
+
+JSON templates are always checked before ordinary `render` emits stdout or
+creates an output file. A malformed result fails closed with
+`ERR_RENDER_JSON_MALFORMED`; the rendered body is never emitted. The
+`--check-render` flag also applies this gate to non-JSON text and includes a
+`render_check` object in JSON output. A successful check reports
+`state: "render_checked"`; callers must not treat a static validation result
+as proof that a context-specific render is safe.
 
 ## Multiple passes and delimiters
 
@@ -55,6 +71,13 @@ sc-compose render --all --file staged.md.j2 \
 - `ERR_RENDER_WRITE` identifies an output-file or standard-output write
   failure. Invalid option combinations and malformed pass groups use
   `ERR_CONFIG_PARSE`.
+- `WARN_JSON_LEGACY_ESCAPE_MODE` identifies a quoted-placeholder shape or
+  explicit legacy mode that should be migrated to bare placeholders and
+  `auto`. `ERR_JSON_ESCAPE_MODE_NON_JSON` means a JSON mode was selected for a
+  non-JSON template.
+- `ERR_RENDER_JSON_MALFORMED` identifies a complete rendered JSON body that
+  failed parsing. Its diagnostic includes the template, line, column, and byte
+  offset but does not echo rendered values.
 
 Use `--json` when a caller needs diagnostics and recovery hints in a stable
 machine-readable envelope; text mode prints the human-readable diagnostics.

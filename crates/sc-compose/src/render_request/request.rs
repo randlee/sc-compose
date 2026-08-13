@@ -19,6 +19,8 @@ pub(crate) fn build_request(
 ) -> Result<ComposeRequest, CommandError> {
     let root = build_root(&args.root)?;
     let mode = build_mode(args)?;
+    let mut policy = compose_policy(&args.input);
+    policy.json_escape_mode = args.json_escape_mode.map(Into::into);
 
     Ok(ComposeRequest {
         runtime: args.runtime.map(runtime_kind),
@@ -29,7 +31,7 @@ pub(crate) fn build_request(
         vars_defaults,
         guidance_block: blocks.0,
         user_prompt: blocks.1,
-        policy: compose_policy(&args.input),
+        policy,
     })
 }
 
@@ -44,10 +46,11 @@ pub(crate) fn build_multi_pass_request(
 
     let vars_input = collect_pass_union(pass_inputs)?;
     let vars_env = load_prefixed_env_vars(&args.input)?;
-    let policy = sc_composer::ComposePolicy {
+    let mut policy = sc_composer::ComposePolicy {
         passes: build_pass_configs(pass_inputs)?,
         ..compose_policy(&args.input)
     };
+    policy.json_escape_mode = args.json_escape_mode.map(Into::into);
 
     Ok(ComposeRequest {
         runtime: args.runtime.map(runtime_kind),

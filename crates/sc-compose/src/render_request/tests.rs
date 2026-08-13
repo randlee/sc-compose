@@ -57,6 +57,7 @@ fn common_args(root: &Path) -> CommonArgs {
         input: input_args(),
         root: root.to_path_buf(),
         file: Some(PathBuf::from("template.md.j2")),
+        json_escape_mode: None,
     }
 }
 

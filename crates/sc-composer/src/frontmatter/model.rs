@@ -6,6 +6,7 @@ use serde::Deserialize;
 
 use crate::diagnostics::Diagnostic;
 use crate::error::ComposeError;
+use crate::renderer::JsonEscapeMode;
 use crate::types::{InputValue, MetadataValue, VariableName, default_pass_number};
 
 /// Typed YAML frontmatter parsed from a template header.
@@ -16,6 +17,7 @@ pub struct Frontmatter {
     pub(super) required_variables: Vec<VariableName>,
     pub(super) defaults: BTreeMap<VariableName, InputValue>,
     pub(super) metadata: BTreeMap<String, MetadataValue>,
+    pub(super) json_escape_mode: Option<JsonEscapeMode>,
     pub(super) diagnostics: Vec<Diagnostic>,
 }
 
@@ -27,6 +29,7 @@ impl Default for Frontmatter {
             required_variables: Vec::new(),
             defaults: BTreeMap::new(),
             metadata: BTreeMap::new(),
+            json_escape_mode: None,
             diagnostics: Vec::new(),
         }
     }
@@ -61,6 +64,12 @@ impl Frontmatter {
     #[must_use]
     pub fn metadata(&self) -> &BTreeMap<String, MetadataValue> {
         &self.metadata
+    }
+
+    /// Return the optional JSON interpolation mode declared by this header.
+    #[must_use]
+    pub fn json_escape_mode(&self) -> Option<JsonEscapeMode> {
+        self.json_escape_mode
     }
 
     /// Borrow non-fatal diagnostics produced while normalizing frontmatter.
@@ -136,6 +145,8 @@ pub(super) struct RawFrontmatter {
     pub(super) input_defaults: BTreeMap<String, serde_yaml::Value>,
     #[serde(default)]
     pub(super) metadata: BTreeMap<String, serde_yaml::Value>,
+    #[serde(default)]
+    pub(super) json_escape_mode: Option<JsonEscapeMode>,
 }
 
 #[derive(Debug, Deserialize)]

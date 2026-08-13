@@ -2,10 +2,11 @@
 id: O.2
 title: Checked Render API, JSON Parser Gate, and ATM-core Contract
 phase: O
-status: planned
+status: complete
 branch: sprint/o-2-checked-render-contract
 worktree: ../sc-compose-worktrees/sprint/o-2-checked-render-contract
 target: integrate/phase-o
+merge: PR #425 at 23e8c0d
 ---
 
 # Sprint O.2 — checked render API, JSON parser gate, and ATM-core contract
@@ -110,19 +111,19 @@ is not a claim that all future conditional branches will parse.
 
 ## Acceptance criteria
 
-- [ ] No checked render can emit malformed JSON with success status.
-- [ ] ATM-core can distinguish static-only, context-required, failed, and
+- [x] No checked render can emit malformed JSON with success status.
+- [x] ATM-core can distinguish static-only, context-required, failed, and
       context-valid results without parsing human text.
-- [ ] `validate` does not silently become a rendering command.
-- [ ] `validate --check-render`, `render`, and `render --json` share the same
+- [x] `validate` does not silently become a rendering command.
+- [x] `validate --check-render`, `render`, and `render --json` share the same
       parser implementation and diagnostic code.
-- [ ] Unflagged JSON `render` fails closed before emission; no release-review
+- [x] Unflagged JSON `render` fails closed before emission; no release-review
       exception or opt-in transition remains in the implementation.
-- [ ] `RenderCheckReport` uses explicit states and only `CheckedOutput` has an
+- [x] `RenderCheckReport` uses explicit states and only `CheckedOutput` has an
       emission method; parser failures are typed `Err` results.
-- [ ] Existing envelope and exit-code requirements remain satisfied.
-- [ ] ADR-0019 is accepted before implementation handoff.
-- [ ] All workspace and targeted quality checks pass.
+- [x] Existing envelope and exit-code requirements remain satisfied.
+- [x] ADR-0019 is accepted before implementation handoff.
+- [x] All workspace and targeted quality checks pass.
 
 ## Sc-lint cleanup and QA handoff
 

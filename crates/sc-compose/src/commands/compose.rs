@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::path::Path;
 
 use crate::cli::{Mode, RenderArgs, ResolveArgs, ValidateArgs};
 use crate::commands::template_lint::lint_request;
@@ -136,6 +137,9 @@ pub(crate) fn run_validate(
     } else {
         Vec::new()
     };
+    let lint_failed = lint_diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.severity == sc_composer::DiagnosticSeverity::Error);
     let mut diagnostics = report
         .warnings
         .iter()
@@ -143,24 +147,158 @@ pub(crate) fn run_validate(
         .cloned()
         .collect::<Vec<_>>();
     diagnostics.extend(lint_diagnostics);
-    if args.json {
-        print_json(
-            serde_json::json!({
-                "valid": report.ok,
-            }),
+    if args.check_render {
+        return run_checked_validate(
+            &request,
+            &report.resolve_result.resolved_path,
+            args,
+            observer,
             diagnostics,
-        )
-        .map_err(CommandError::usage)?;
+        );
+    }
+    let render_report = sc_composer::RenderCheckReport::StaticOnly {
+        meta: render_check_meta(&request, &report.resolve_result.resolved_path),
+        diagnostics: diagnostics.clone(),
+    };
+    if args.json {
+        let mut payload = serde_json::to_value(render_report)
+            .map_err(|error| CommandError::usage(anyhow!(error)))?;
+        payload["valid"] = serde_json::Value::Bool(report.ok);
+        print_json(payload, diagnostics).map_err(CommandError::usage)?;
     } else if diagnostics.is_empty() {
-        println!("valid");
+        println!("valid (static_only)");
     } else {
         for diagnostic in &diagnostics {
             println!("{}", format_diagnostic(diagnostic));
         }
     }
-    Ok(if report.ok {
+    Ok(if report.ok && !lint_failed {
         crate::exit_codes::SUCCESS
     } else {
         crate::exit_codes::VALIDATION_OR_RENDER_FAIL
     })
+}
+
+fn run_checked_validate(
+    request: &sc_composer::ComposeRequest,
+    resolved_path: &Path,
+    args: &ValidateArgs,
+    observer: &mut dyn CompositionObserver,
+    mut diagnostics: Vec<sc_composer::Diagnostic>,
+) -> Result<i32, CommandError> {
+    let meta = render_check_meta(request, resolved_path);
+    let report = match sc_composer::compose_with_observer(request, observer) {
+        Ok(result) => {
+            let mut checked = sc_composer::check_rendered_output(
+                meta.output_format,
+                &meta.template,
+                &result.rendered_text,
+            );
+            match &mut checked {
+                Ok(output) => output.meta = meta.clone(),
+                Err(error) => {
+                    let annotated = error.clone().with_failing_pass(failing_pass(request));
+                    diagnostics.extend(annotated.diagnostics.clone());
+                    *error = annotated;
+                }
+            }
+            match checked {
+                Ok(_) => sc_composer::RenderCheckReport::RenderChecked {
+                    meta,
+                    checked_context: context_summary(request),
+                    diagnostics: diagnostics.clone(),
+                },
+                Err(_) => sc_composer::RenderCheckReport::RenderInvalid {
+                    meta,
+                    diagnostics: diagnostics.clone(),
+                },
+            }
+        }
+        Err(error) => {
+            let command_error = CommandError::compose(error);
+            diagnostics.extend(command_error.diagnostics.clone());
+            let context_required = command_error.diagnostics.iter().any(|diagnostic| {
+                matches!(
+                    diagnostic.code,
+                    sc_composer::DiagnosticCode::ErrValMissingRequired
+                        | sc_composer::DiagnosticCode::ErrValMissingNestedField
+                        | sc_composer::DiagnosticCode::ErrValShapeMismatch
+                        | sc_composer::DiagnosticCode::ErrValArrayShapeMismatch
+                        | sc_composer::DiagnosticCode::ErrValUnboundVariable
+                )
+            });
+            if context_required {
+                sc_composer::RenderCheckReport::ContextRequired {
+                    meta,
+                    diagnostics: diagnostics.clone(),
+                }
+            } else {
+                sc_composer::RenderCheckReport::ContractInvalid {
+                    meta,
+                    diagnostics: diagnostics.clone(),
+                }
+            }
+        }
+    };
+    let success = report.permits_emission();
+    if args.json {
+        let mut payload =
+            serde_json::to_value(&report).map_err(|error| CommandError::usage(anyhow!(error)))?;
+        payload["valid"] = serde_json::Value::Bool(success);
+        print_json(payload, diagnostics).map_err(CommandError::usage)?;
+    } else {
+        println!("state: {}", report_state(&report));
+        for diagnostic in report.diagnostics() {
+            println!("{}", format_diagnostic(diagnostic));
+        }
+    }
+    Ok(if success {
+        crate::exit_codes::SUCCESS
+    } else {
+        crate::exit_codes::VALIDATION_OR_RENDER_FAIL
+    })
+}
+
+fn failing_pass(request: &sc_composer::ComposeRequest) -> Option<u8> {
+    (request.policy.passes.len() > 1)
+        .then(|| request.policy.passes.last().map(|pass| pass.pass_number))
+        .flatten()
+}
+
+pub(crate) fn render_check_meta(
+    request: &sc_composer::ComposeRequest,
+    template: &Path,
+) -> sc_composer::RenderCheckMeta {
+    let declared_mode = std::fs::read_to_string(template)
+        .ok()
+        .and_then(|source| declared_json_escape_mode(&source));
+    let output_format = sc_composer::OutputFormat::from_template_path(template);
+    let mode = (output_format == sc_composer::OutputFormat::Json).then(|| {
+        sc_composer::resolve_json_escape_mode(request.policy.json_escape_mode, declared_mode)
+    });
+    sc_composer::RenderCheckMeta::for_template(template).with_json_escape_mode(mode)
+}
+
+fn declared_json_escape_mode(source: &str) -> Option<sc_composer::JsonEscapeMode> {
+    let parsed = sc_composer::parse_template_document(source).ok()?;
+    parsed.frontmatter()?.json_escape_mode()
+}
+
+pub(crate) fn context_summary(request: &sc_composer::ComposeRequest) -> String {
+    format!(
+        "{} explicit, {} environment, and {} default variables",
+        request.vars_input.len(),
+        request.vars_env.len(),
+        request.vars_defaults.len()
+    )
+}
+
+fn report_state(report: &sc_composer::RenderCheckReport) -> &'static str {
+    match report {
+        sc_composer::RenderCheckReport::StaticOnly { .. } => "static_only",
+        sc_composer::RenderCheckReport::ContractInvalid { .. } => "contract_invalid",
+        sc_composer::RenderCheckReport::ContextRequired { .. } => "context_required",
+        sc_composer::RenderCheckReport::RenderInvalid { .. } => "render_invalid",
+        sc_composer::RenderCheckReport::RenderChecked { .. } => "render_checked",
+    }
 }

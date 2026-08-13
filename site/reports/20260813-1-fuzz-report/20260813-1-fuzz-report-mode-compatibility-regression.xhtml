@@ -1,0 +1,47 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>mode-compatibility-regression</h2>
+      <p class="agent-meta">Session o5-20260813-0001 · Worker mode-compatibility-regression</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;:&quot;mode-compatibility-regression&quot;,&quot;agent_id&quot;:&quot;mode-compatibility-regression&quot;,&quot;target&quot;:&quot;json-mode-contract&quot;,&quot;status&quot;:&quot;success&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;fuzz_run_description&quot;:&quot;Auto/legacy mode contract, 1.4.0 regression, and fail-closed output probes&quot;,&quot;cases_run&quot;:6,&quot;iterations&quot;:6,&quot;passed&quot;:6,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;command&quot;:&quot;cargo test -p sc-compose --test json_cli render_json_auto_mode_rejects_quoted_placeholder_before_stdout_emission -- --nocapture; cargo test -p sc-compose --test json_cli render_json_legacy_mode_supports_existing_quoted_placeholders -- --nocapture&quot;,&quot;finding_ids&quot;:[],&quot;error&quot;:null,&quot;context_text&quot;:&quot;The original quoted {{ value }} shape is rejected in auto before body emission; explicit legacy renders one safely escaped string and warns once. Bare strings and structured values parse successfully.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;regression-auto-quoted&quot;,&quot;description&quot;:&quot;Original 1.4.0 shape {\&quot;value\&quot;: \&quot;{{ value }}\&quot;}&quot;,&quot;minimal_template&quot;:&quot;tests/fixtures/sc-lint/template-contracts/findings/auto.json.j2&quot;,&quot;minimal_input&quot;:&quot;value=quote \\\&quot; slash&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: ERR_JSON_MODE_CONTRACT before stdout/body emission&quot;},{&quot;case_id&quot;:&quot;compat-legacy-quoted&quot;,&quot;description&quot;:&quot;Explicit legacy quoted scalar&quot;,&quot;minimal_template&quot;:&quot;legacy.json.j2 with json_escape_mode: legacy&quot;,&quot;minimal_input&quot;:&quot;value=quote \\\&quot; slash newline&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: valid JSON string and one WARN_JSON_LEGACY_ESCAPE_MODE&quot;},{&quot;case_id&quot;:&quot;auto-bare-string&quot;,&quot;description&quot;:&quot;Bare string complete JSON slot&quot;,&quot;minimal_template&quot;:&quot;{\&quot;value\&quot;: {{ value }}}&quot;,&quot;minimal_input&quot;:&quot;value=Unicode snowman&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: serde_json parsed string&quot;},{&quot;case_id&quot;:&quot;auto-array-object&quot;,&quot;description&quot;:&quot;Bare array/object values&quot;,&quot;minimal_template&quot;:&quot;{\&quot;items\&quot;: {{ items }}}&quot;,&quot;minimal_input&quot;:&quot;items=[{\&quot;id\&quot;:1}]&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: serde_json preserved array/object&quot;},{&quot;case_id&quot;:&quot;checked-render&quot;,&quot;description&quot;:&quot;validate --check-render parser gate&quot;,&quot;minimal_template&quot;:&quot;O.4 auto template&quot;,&quot;minimal_input&quot;:&quot;hostile context&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: render_checked state and no emitted body&quot;},{&quot;case_id&quot;:&quot;malformed-output&quot;,&quot;description&quot;:&quot;Malformed rendered JSON&quot;,&quot;minimal_template&quot;:&quot;{\&quot;value\&quot;: {{ value }}}&quot;,&quot;minimal_input&quot;:&quot;value=malformed raw fragment&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: ERR_RENDER_JSON_MALFORMED and no output file&quot;}],&quot;findings&quot;:[]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="The original quoted {{ value }} shape is rejected in auto before body emission; explicit legacy renders one safely escaped string and warns once. Bare strings and structured values parse successfully.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Auto/legacy mode contract, 1.4.0 regression, and fail-closed output probes</th>
+        <td>6</td>
+        <td>6/6</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">regression-auto-quoted</th><td><code>Original 1.4.0 shape {&quot;value&quot;: &quot;{{ value }}&quot;}</code></td><td>PASS: ERR_JSON_MODE_CONTRACT before stdout/body emission</td></tr>
+        <tr><th scope="row">compat-legacy-quoted</th><td><code>Explicit legacy quoted scalar</code></td><td>PASS: valid JSON string and one WARN_JSON_LEGACY_ESCAPE_MODE</td></tr>
+        <tr><th scope="row">auto-bare-string</th><td><code>Bare string complete JSON slot</code></td><td>PASS: serde_json parsed string</td></tr>
+        <tr><th scope="row">auto-array-object</th><td><code>Bare array/object values</code></td><td>PASS: serde_json preserved array/object</td></tr>
+        <tr><th scope="row">checked-render</th><td><code>validate --check-render parser gate</code></td><td>PASS: render_checked state and no emitted body</td></tr>
+        <tr><th scope="row">malformed-output</th><td><code>Malformed rendered JSON</code></td><td>PASS: ERR_RENDER_JSON_MALFORMED and no output file</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>

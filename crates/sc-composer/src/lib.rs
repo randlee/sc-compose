@@ -9,6 +9,8 @@
 pub mod composer;
 /// Structured diagnostics and the stable `ERR_*` code registry.
 pub mod diagnostics;
+/// Parser-backed inspection of Jinja template-loading directives.
+pub mod directive_inspection;
 mod discovery;
 /// Canonical crate-owned error types.
 pub mod error;
@@ -26,12 +28,16 @@ pub mod init_workspace;
 pub mod observer;
 mod path_containment;
 mod path_utils;
+/// Format-aware output validation before emission.
+pub mod render_check;
 /// Template renderer wrapper.
 pub mod renderer;
 /// Runtime-aware profile resolution and search tracing.
 pub mod resolver;
 /// Template filename extension helpers.
 pub mod template_ext;
+/// Shared lexical scanning for Jinja variable expressions.
+pub mod template_scanner;
 /// Foundational request, result, and value-model types.
 pub mod types;
 /// Public validation entrypoint.
@@ -43,12 +49,16 @@ pub mod verify;
 
 #[doc(inline)]
 pub use composer::{
-    compose, compose_with_observer, compose_with_observer_and_expanded, protect_higher_braces,
-    render_all,
+    assemble_output, compose, compose_with_observer, compose_with_observer_and_expanded,
+    protect_higher_braces, render_all,
 };
 #[doc(inline)]
 pub use diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope, DiagnosticSeverity,
+};
+#[doc(inline)]
+pub use directive_inspection::{
+    SourceSpan, TemplateDirective, TemplateDirectiveKind, inspect_template_directives,
 };
 pub use discovery::{
     discover_all_pass_tokens, discover_tokens, discover_tokens_with_brace_count,
@@ -86,9 +96,15 @@ pub use observer::{
 #[doc(inline)]
 pub use path_utils::to_forward_slash;
 #[doc(inline)]
+pub use render_check::{
+    CheckedOutput, ContextSummary, OutputCheckError, OutputCheckReason, OutputFormat,
+    RenderCheckMeta, RenderCheckReport, check_rendered_output,
+};
+#[doc(inline)]
 pub use renderer::{
-    LoadedTemplateRequest, NamedTemplateAsset, RenderedArtifact, Renderer, render_loaded_template,
-    render_template,
+    JSON_LEGACY_WARNING, JsonEscapeMode, LoadedTemplateRequest, NamedTemplateAsset,
+    RenderedArtifact, Renderer, render_loaded_template,
+    render_loaded_template_with_json_escape_mode, render_template, resolve_json_escape_mode,
 };
 #[doc(inline)]
 pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_template_path};

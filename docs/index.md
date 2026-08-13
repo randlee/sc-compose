@@ -135,7 +135,7 @@ sc-compose examples pytest-fixture \
       <tr><td>Any (Rust)</td><td>crates.io</td><td><code>cargo install sc-compose</code></td></tr>
       <tr><td>Any (Python)</td><td>PyPI</td><td><code>pip install sc-compose</code></td></tr>
       <tr><td>Any (source)</td><td>cargo</td><td><code>cargo build --release -p sc-compose</code></td></tr>
-      <tr><td>Rust lib</td><td>Cargo.toml</td><td><code>sc-composer = "1.3.0"</code></td></tr>
+      <tr><td>Rust lib</td><td>Cargo.toml</td><td><code>sc-composer = "1.4.1"</code></td></tr>
     </tbody>
   </table>
 
@@ -194,7 +194,7 @@ sc-compose examples pytest-fixture \
   <h2>Status</h2>
 
   <table>
-    <tr><td>Version</td><td><strong>1.3.0</strong></td></tr>
+    <tr><td>Version</td><td><strong>1.4.1</strong></td></tr>
     <tr><td>MSRV</td><td>Rust 1.94.1</td></tr>
     <tr><td>Edition</td><td>2024</td></tr>
     <tr><td>Platforms</td><td>macOS, Linux, Windows</td></tr>

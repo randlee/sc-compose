@@ -10,6 +10,359 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 #[test]
+fn render_json_legacy_mode_supports_existing_quoted_placeholders() {
+    let root = temp_root("render-json-legacy-mode");
+    write_file(&root.join("payload.json.j2"), r#"{"value": "{{ value }}"}"#);
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("payload.json.j2")
+        .arg("--var")
+        .arg(r#"value=quote " slash \ newline"#)
+        .arg("--json-escape-mode")
+        .arg("legacy")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    let rendered: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(rendered["value"], r#"quote " slash \ newline"#);
+}
+
+#[test]
+fn render_json_frontmatter_mode_is_used_when_cli_mode_is_absent() {
+    let root = temp_root("render-json-frontmatter-mode");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\njson_escape_mode: legacy\n---\n{\"value\": \"{{ value }}\"}",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("payload.json.j2")
+        .arg("--var")
+        .arg("value=hello")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    let rendered: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(rendered["value"], "hello");
+}
+
+#[test]
+fn render_json_rejects_conflicting_included_mode_before_output() {
+    let root = temp_root("render-json-include-mode-conflict");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\njson_escape_mode: auto\n---\n{\n  \"value\": {{ value }},\n@<fragment.json.j2>\n}\n",
+    );
+    write_file(
+        &root.join("fragment.json.j2"),
+        "---\njson_escape_mode: legacy\n---\n\"fragment\": \"static\"\n",
+    );
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"], serde_json::json!({}));
+    assert!(
+        value["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|diagnostic| diagnostic["code"] == "ERR_JSON_MODE_INCLUDE_CONFLICT")
+    );
+    assert!(!value.to_string().contains("hello"));
+}
+
+#[test]
+fn render_json_cli_mode_overrides_frontmatter_mode() {
+    let root = temp_root("render-json-cli-mode");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\njson_escape_mode: legacy\n---\n{\"value\": {{ value }}}",
+    );
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("payload.json.j2")
+        .arg("--var")
+        .arg("value=hello")
+        .arg("--json-escape-mode")
+        .arg("auto")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    let rendered: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(rendered["value"], "hello");
+}
+
+#[test]
+fn render_json_auto_mode_preserves_types_for_bare_placeholders() {
+    let root = temp_root("render-json-auto-mode");
+    write_file(
+        &root.join("payload.json.j2"),
+        r#"{"count": {{ count }}, "enabled": {{ enabled }}}"#,
+    );
+    let vars_file = root.join("vars.json");
+    write_file(&vars_file, r#"{"count": 3, "enabled": true}"#);
+
+    let output = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("payload.json.j2")
+        .arg("--var-file")
+        .arg(&vars_file)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    let rendered: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(rendered["count"], 3);
+    assert_eq!(rendered["enabled"], true);
+}
+
+#[test]
+fn render_json_auto_mode_rejects_quoted_placeholder_before_stdout_emission() {
+    let root = temp_root("render-json-malformed-output");
+    write_file(&root.join("payload.json.j2"), r#"{"value": "{{ value }}"}"#);
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(
+        output.stdout.is_empty(),
+        "malformed body was emitted: {output:?}"
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("ERR_RENDER_JSON_MALFORMED"), "{stderr}");
+    assert!(!stderr.contains("hello"), "context leaked: {stderr}");
+}
+
+#[test]
+fn render_json_multi_pass_failure_identifies_the_failing_pass() {
+    let root = temp_root("render-json-multi-pass-malformed");
+    write_file(
+        &root.join("payload.2.json.j2"),
+        "---\npass: 2\nrequired_variables:\n  - value\n---\n---\npass: 1\n---\n{\"value\": \"{{{ value }}}\"}",
+    );
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--all",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.2.json.j2",
+            "--pass",
+            "2",
+            "--var",
+            "value=hello",
+            "--pass",
+            "1",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"], serde_json::json!({}));
+    assert_eq!(value["diagnostics"][0]["code"], "ERR_RENDER_JSON_MALFORMED");
+    assert!(
+        value["diagnostics"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("after render pass 1")
+    );
+    assert!(!value.to_string().contains("hello"), "context leaked");
+}
+
+#[test]
+fn render_check_render_preserves_non_json_output_behavior() {
+    let root = temp_root("render-text-check-render");
+    write_file(&root.join("template.md.j2"), "hello {{ name }}\n");
+
+    let plain = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "template.md.j2",
+            "--var",
+            "name=world",
+        ])
+        .output()
+        .unwrap();
+    let checked = sc_compose()
+        .args([
+            "render",
+            "--check-render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "template.md.j2",
+            "--var",
+            "name=world",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(plain.status.success(), "{plain:?}");
+    assert!(checked.status.success(), "{checked:?}");
+    assert_eq!(plain.stdout, checked.stdout);
+}
+
+#[test]
+fn render_json_parser_failure_preserves_diagnostic_envelope() {
+    let root = temp_root("render-json-malformed-envelope");
+    write_file(&root.join("payload.json.j2"), r#"{"value": "{{ value }}"}"#);
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"], serde_json::json!({}));
+    assert_eq!(value["diagnostics"][0]["code"], "ERR_RENDER_JSON_MALFORMED");
+    assert!(!value.to_string().contains("hello"));
+}
+
+#[test]
+fn render_json_file_parser_failure_does_not_create_output() {
+    let root = temp_root("render-json-malformed-file");
+    let output_path = root.join("payload.json");
+    write_file(&root.join("payload.json.j2"), r#"{"value": "{{ value }}"}"#);
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+            "--output",
+            output_path.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(!output_path.exists());
+}
+
+#[test]
+fn render_json_check_render_reports_checked_contract() {
+    let root = temp_root("render-json-check-render");
+    write_file(&root.join("payload.json.j2"), r#"{"value": {{ value }}}"#);
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--check-render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["render_check"]["state"], "render_checked");
+    assert_eq!(value["payload"]["render_check"]["output_format"], "json");
+    assert_eq!(value["payload"]["render_check"]["json_escape_mode"], "auto");
+    let body: Value = serde_json::from_str(value["payload"]["body"].as_str().unwrap()).unwrap();
+    assert_eq!(body["value"], "hello");
+}
+
+#[test]
 fn render_json_uses_diagnostic_envelope() {
     let root = temp_root("render-json");
     write_file(

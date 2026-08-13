@@ -22,7 +22,70 @@ fn validate_default_output_remains_unchanged_without_lint() {
         .unwrap();
 
     assert!(output.status.success(), "{output:?}");
-    assert_eq!(String::from_utf8_lossy(&output.stdout), "valid\n");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "valid (static_only)\n"
+    );
+}
+
+#[test]
+fn validate_check_render_reports_context_valid_without_emitting_body() {
+    let root = temp_root("validate-check-render");
+    write_file(&root.join("payload.json.j2"), "{\"value\": {{ value }}}");
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--check-render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "state: render_checked\n"
+    );
+    assert!(!root.join("payload.json").exists());
+}
+
+#[test]
+fn validate_check_render_fails_closed_for_malformed_json() {
+    let root = temp_root("validate-check-render-invalid");
+    write_file(
+        &root.join("payload.json.j2"),
+        "{\"value\": \"{{ value }}\"}",
+    );
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--check-render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("state: render_invalid"), "{stdout}");
+    assert!(stdout.contains("ERR_RENDER_JSON_MALFORMED"), "{stdout}");
+    assert!(!stdout.contains("hello"), "secret/context leaked: {stdout}");
 }
 
 #[test]
@@ -52,6 +115,36 @@ fn validate_lint_reports_filter_chain_location_and_recommendation() {
     assert!(stdout.contains("WARN_LINT_REDUNDANT_FILTER_CHAIN"));
     assert!(stdout.contains("template.md.j2:5:"), "{stdout}");
     assert!(stdout.contains("recommendation: use `yaml_safe` alone"));
+}
+
+#[test]
+fn validate_lint_auto_json_quote_is_a_mode_contract_error() {
+    let root = temp_root("validate-lint-auto-json-contract");
+    write_file(&root.join("payload.json.j2"), r#"{"value": "{{ value }}"}"#);
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--lint",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "stderr: {:?}", output.stderr);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("ERR_JSON_MODE_CONTRACT"), "{stdout}");
+    assert!(
+        stdout.contains("docs/migration/json-escape-mode.md"),
+        "{stdout}"
+    );
 }
 
 #[test]

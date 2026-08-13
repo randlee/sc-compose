@@ -5,6 +5,8 @@ use crate::ExpandedTemplate;
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
 use crate::discovery::discover_tokens;
 use crate::frontmatter::parse_template_document;
+use crate::renderer::JSON_LEGACY_WARNING;
+use crate::strip_template_suffix;
 use crate::types::{ComposeRequest, UnknownVariablePolicy, VariableName, VariableSource};
 
 use super::ValidationState;
@@ -34,6 +36,10 @@ pub(super) fn collect_policy_diagnostics(
         expanded,
     ));
     warnings.extend(frontmatter_diagnostics(expanded));
+    let (json_mode_warnings, json_mode_errors) =
+        json_mode_diagnostics(request, expanded, resolved_path, state);
+    warnings.extend(json_mode_warnings);
+    errors.extend(json_mode_errors);
     warnings.extend(default_usage_diagnostics(state));
     errors.extend(super::required_paths::required_path_diagnostics(state));
 
@@ -60,6 +66,171 @@ pub(super) fn collect_policy_diagnostics(
     push_unbound_variable_diagnostics(request, state, resolved_path, &mut warnings, &mut errors);
 
     (warnings, errors)
+}
+
+fn json_mode_diagnostics(
+    request: &ComposeRequest,
+    expanded: &ExpandedTemplate,
+    resolved_path: &Path,
+    state: &ValidationState,
+) -> (Vec<Diagnostic>, Vec<Diagnostic>) {
+    let mut warnings = Vec::new();
+    let mut errors = Vec::new();
+    let root_frontmatter = expanded
+        .frontmatters
+        .iter()
+        .find_map(|(path, passes)| (path == resolved_path).then(|| passes.first()))
+        .flatten();
+    let declared_mode =
+        root_frontmatter.and_then(crate::frontmatter::Frontmatter::json_escape_mode);
+    let mode_is_declared = request.policy.json_escape_mode.is_some() || declared_mode.is_some();
+
+    if !is_json_template_path(resolved_path) {
+        if mode_is_declared {
+            errors.push(
+                Diagnostic::new(
+                    DiagnosticSeverity::Error,
+                    DiagnosticCode::ErrJsonEscapeModeNonJson,
+                    "JSON escape mode is only valid for JSON templates",
+                )
+                .with_path(resolved_path.to_path_buf()),
+            );
+        }
+        return (warnings, errors);
+    }
+
+    let effective_mode =
+        crate::resolve_json_escape_mode(request.policy.json_escape_mode, declared_mode);
+    errors.extend(json_mode_include_conflict_diagnostics(
+        expanded,
+        resolved_path,
+        effective_mode,
+    ));
+
+    let legacy_mode = matches!(effective_mode, crate::JsonEscapeMode::Legacy);
+    let quoted_expressions = quoted_json_placeholder_expressions(&expanded.text);
+    if legacy_mode || !quoted_expressions.is_empty() {
+        warnings.push(
+            Diagnostic::new(
+                DiagnosticSeverity::Warning,
+                DiagnosticCode::WarnJsonLegacyEscapeMode,
+                JSON_LEGACY_WARNING,
+            )
+            .with_path(resolved_path.to_path_buf()),
+        );
+    }
+
+    if legacy_mode {
+        for expression in quoted_expressions {
+            let name = expression;
+            let Ok(name) = VariableName::new(&name) else {
+                continue;
+            };
+            if state
+                .context
+                .get(&name)
+                .is_some_and(|value| !value.is_string())
+            {
+                errors.push(
+                    Diagnostic::new(
+                        DiagnosticSeverity::Error,
+                        DiagnosticCode::ErrJsonLegacyNonString,
+                        format!(
+                            "legacy JSON escape mode requires a string value for quoted placeholder `{name}`"
+                        ),
+                    )
+                    .with_path(resolved_path.to_path_buf()),
+                );
+            }
+        }
+    }
+
+    (warnings, errors)
+}
+
+fn json_mode_include_conflict_diagnostics(
+    expanded: &ExpandedTemplate,
+    resolved_path: &Path,
+    root_mode: crate::JsonEscapeMode,
+) -> Vec<Diagnostic> {
+    expanded
+        .frontmatters
+        .iter()
+        .filter_map(|(path, frontmatters)| {
+            if path == resolved_path {
+                return None;
+            }
+            let included_mode = frontmatters
+                .iter()
+                .find_map(crate::frontmatter::Frontmatter::json_escape_mode)?;
+            if included_mode == root_mode {
+                return None;
+            }
+
+            let include_chain = expanded
+                .include_chains
+                .get(path)
+                .cloned()
+                .unwrap_or_default();
+            Some(
+                Diagnostic::new(
+                    DiagnosticSeverity::Error,
+                    DiagnosticCode::ErrJsonModeIncludeConflict,
+                    format!(
+                        "included template JSON escape mode conflicts with root: root `{}` uses effective mode `{}`, but included template `{}` declares `{}`; included templates must match the root mode",
+                        resolved_path.display(),
+                        json_mode_name(root_mode),
+                        path.display(),
+                        json_mode_name(included_mode),
+                    ),
+                )
+                .with_path(resolved_path.to_path_buf())
+                .with_include_chain(include_chain),
+            )
+        })
+        .collect()
+}
+
+const fn json_mode_name(mode: crate::JsonEscapeMode) -> &'static str {
+    match mode {
+        crate::JsonEscapeMode::Legacy => "legacy",
+        crate::JsonEscapeMode::Auto => "auto",
+    }
+}
+
+fn is_json_template_path(path: &Path) -> bool {
+    let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    let stripped = strip_template_suffix(file_name);
+    Path::new(stripped)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        == Some("json")
+}
+
+fn quoted_json_placeholder_expressions(body: &str) -> Vec<String> {
+    let mut expressions = Vec::new();
+    let mut search_from = 0;
+    while let Some(span) =
+        crate::template_scanner::next_jinja_variable_expression(body, search_from)
+    {
+        let before = body[..span.open]
+            .chars()
+            .rev()
+            .find(|character| !character.is_whitespace());
+        let after = body[span.close + 2..]
+            .chars()
+            .find(|character| !character.is_whitespace());
+        if before == Some('"') && after == Some('"') {
+            let expression = body[span.expression_start..span.close].trim();
+            if !expression.is_empty() {
+                expressions.push(expression.to_owned());
+            }
+        }
+        search_from = span.close + 2;
+    }
+    expressions
 }
 
 fn push_unbound_variable_diagnostics(
@@ -363,7 +534,17 @@ mod tests {
     };
     use crate::{DiagnosticCode, DiagnosticSeverity, ExpandedTemplate, validate};
 
-    use super::missing_frontmatter_warnings_for_path;
+    use super::{missing_frontmatter_warnings_for_path, quoted_json_placeholder_expressions};
+
+    #[test]
+    fn quoted_json_scanner_skips_comments_raw_blocks_and_literals() {
+        assert_eq!(
+            quoted_json_placeholder_expressions(include_str!(
+                "../../../../tests/fixtures/json-scanner-parity.j2"
+            )),
+            vec!["value"]
+        );
+    }
 
     #[test]
     fn default_mode_preserves_undeclared_tokens_as_warnings() {

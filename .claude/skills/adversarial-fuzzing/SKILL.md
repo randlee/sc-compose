@@ -108,6 +108,45 @@ after the campaign unless a failure artifact is being preserved.
     examples belong under `docs/examples/fuzz-run-report/`, not
     `site/reports/`.
 
+## Release-corpus gate (O.5)
+
+For a release-candidate campaign, the coordinator must load the pinned root
+inventory supplied by the sprint. A root is usable only when both its path and
+its pinned commit exist and `git -C ROOT rev-parse PINNED_COMMIT` succeeds.
+Never replace an unavailable root with a local copy or report an unverified
+root as clean. Record an unavailable root as a blocking campaign error with an
+owner and handoff action.
+
+For every usable root, enumerate hidden files with `rg --files --hidden
+-g '!.git'`, count the supported JSON-template suffixes, and record every
+path-level result. Search literal-quoted placeholders separately from bare
+complete-value placeholders. Keep the repository name, root, pinned commit,
+path, mode/annotation, diagnostic code, and migration owner in the durable
+evidence. External repositories are read-only; fixes are separate owner
+worktrees and PRs.
+
+The release oracle has two independent assertions:
+
+1. A successful JSON render is a PASS only after parsing the complete emitted
+   body with `serde_json`. Capture the exact template, context, effective mode,
+   parser result, and diagnostic code in the worker envelope. A parser error,
+   success-status/body mismatch, timeout, or emitted partial body is FAIL.
+2. The permanent compatibility probe must reject the quoted
+   `{"value": "{{ value }}"}` shape under `auto` before emitting a body, and
+   must render one safe string plus exactly one deprecation diagnostic under
+   explicit `legacy`. This catches the 1.4.0 double-quote regression without
+   treating intentional negative fixtures as release failures.
+
+The release report must distinguish `clean`, `intentional_boundary`, and
+`owned_actionable` findings. A root with owned findings may pass campaign
+execution only when each finding has a named owner, exact path, minimal
+reproducer, expected oracle, observed result, reproduction count, and
+follow-up commit/PR requirement; it cannot produce an unconditional release
+recommendation. The release gate is green only when all pinned roots are
+available, parser-backed campaign cases pass, and no owned actionable finding
+remains. Keep the actual scanned count and root inventory in the report; do
+not repeat an estimated repository count as evidence.
+
 ## Worker portfolio
 
 Ask the coordinator to deploy only the workers relevant to `target`; use all
