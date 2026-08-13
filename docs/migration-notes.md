@@ -4,13 +4,12 @@
 
 `sc-composer` and `sc-compose` were previously developed and published from inside the
 `agent-team-mail` monorepo workspace. This repository (`sc-compose`) is the new standalone
-home for both crates. All future development and releases happen here.
+home for the published crates and adapters. All future development and releases happen here.
 
 The last versions of these crates published from the `agent-team-mail` workspace are the
 baseline. This repo's first standalone release was `1.0.0`; the current standalone
-release line on `develop` is `1.1.0`, which stays above that baseline so crates.io
-version ordering remains correct through the source-of-truth cutover and the Phase B
-reporting expansion.
+release line is `1.4.1`, which stays above that baseline so crates.io version ordering
+remains correct through the source-of-truth cutover and subsequent feature releases.
 
 ## ADR-0019 scope clarification
 
@@ -54,7 +53,7 @@ Cutover steps for the ATM workspace maintainer:
    sc-composer = { path = "../sc-composer" }
 
    # After (crates.io pin):
-   sc-composer = "1.1.0"
+   sc-composer = "1.4.1"
    ```
 3. Run `cargo update` to resolve the dependency graph.
 4. Run `cargo test --workspace` to verify nothing broke.
@@ -187,12 +186,12 @@ Downstream consumers that shell out to `sc-compose` should expect:
 ## Release And Cutover Order
 
 The first standalone crates.io release for this repo was `1.0.0`. The current release
-line for this repo is `1.1.0`.
+line for this repo is `1.4.1`.
 
 Recommended downstream cutover order:
 
-1. Publish `sc-composer` and `sc-compose` version `1.1.0` from this repo when promoting
-   the current standalone line.
+1. Publish `sc-sha`, `sc-composer`, and `sc-compose` version `1.4.1` from this repo
+   when promoting the current standalone line.
 2. Verify crates.io resolution and installation using the release checklist.
 3. Update downstream consumers such as ATM to the published versions.
 4. Run downstream integration validation after the published release is live.
@@ -201,7 +200,7 @@ Recommended downstream cutover order:
 
 After the first standalone release:
 
-- All future `sc-composer` and `sc-compose` releases come from this repo only.
+- All future `sc-sha`, `sc-composer`, and `sc-compose` releases come from this repo only.
 - The `agent-team-mail` workspace no longer owns or publishes these crate names.
 - crates.io ownership records should reflect this repo as the canonical source.
 - See `docs/release-checklist.md` for the publish procedure.
