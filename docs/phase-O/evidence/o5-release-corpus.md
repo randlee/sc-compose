@@ -9,7 +9,7 @@ Scope: read-only scan of the roots pinned in
 
 ## Root verification
 
-Both roots passed `git -C ROOT rev-parse PINNED_COMMIT`:
+All seven roots passed `git -C ROOT rev-parse PINNED_COMMIT`:
 
 | Repository | Pinned commit | Files enumerated | Scan result |
 | --- | --- | ---: | --- |
@@ -19,12 +19,23 @@ Both roots passed `git -C ROOT rev-parse PINNED_COMMIT`:
 | raptor | `39ccb49c91aeb090f1b67ad9b83906a55f7bb46b` | 3 | 3 owned legacy findings |
 | sc-lint | `455f164d29f29af7e8604387c88205aefe16ce75` | 6 | 6 owned legacy findings |
 | synaptic-canvas | `862fa2bcf5718de58948cdfb2d78420e88c57d81` | 3 | 3 owned legacy findings |
-| **Total** | 6 pinned roots | **37** | conditional release gate |
+| roslyn-lint | `27b4114b31b1bf8a3b435980a2e530f030141ade` | 3 | 3 owned legacy findings |
+| **Total** | 7 pinned roots | **40** | conditional release gate |
 
 The inventory used `rg --files --hidden -g '!.git'` and included
 `.json.j2`, `.json.jinja`, and `.json.jinja2` paths. The initial visible-only
 probe was rejected during the closure review because it omitted `.claude`;
 the counts above are the corrected source-of-truth counts.
+
+## Scope reconciliation
+
+The comp2 O5 cross-repository inventory named five downstream candidates:
+cpo, raptor, roslyn-lint, sc-lint, and synaptic-canvas. All five are now
+present in the roots file and this rescan; roslyn-lint is pinned at
+`27b4114b31b1bf8a3b435980a2e530f030141ade` and contributes three owned
+`ERR_JSON_MODE_CONTRACT` findings. No comp2 candidate was excluded. The
+sc-compose and atm-core roots remain required sprint roots in addition to
+those five downstream candidates.
 
 ## Path-level inventory
 
@@ -80,8 +91,9 @@ the campaign assumes an unverified high-traffic repository count.
 | raptor | `.claude/assets/sc-rust/quality-mgr/templates/rust-best-practices-assignment.json.j2`; `.claude/assets/sc-rust/quality-mgr/templates/rust-qa-assignment.json.j2`; `.claude/assets/sc-rust/quality-mgr/templates/rust-service-hardening-assignment.json.j2` — 3/3 contain manually quoted placeholders and no explicit mode | raptor owner: same migration handoff |
 | sc-lint | `.claude/assets/sc-rust/quality-mgr/templates/rust-best-practices-assignment.json.j2`; `.claude/assets/sc-rust/quality-mgr/templates/rust-qa-assignment.json.j2`; `.claude/assets/sc-rust/quality-mgr/templates/rust-service-hardening-assignment.json.j2`; `.claude/skills/codex-orchestration/arch-qa-assignment.json.j2`; `.claude/skills/codex-orchestration/flaky-test-qa-assignment.json.j2`; `.claude/skills/codex-orchestration/req-qa-assignment.json.j2` — 6/6 contain manually quoted placeholders and no explicit mode | sc-lint owner: migrate shared templates or coordinate source-package update |
 | synaptic-canvas | `packages/sc-rust/assets/sc-rust/quality-mgr/templates/rust-best-practices-assignment.json.j2`; `packages/sc-rust/assets/sc-rust/quality-mgr/templates/rust-qa-assignment.json.j2`; `packages/sc-rust/assets/sc-rust/quality-mgr/templates/rust-service-hardening-assignment.json.j2` — 3/3 contain manually quoted placeholders and no explicit mode | synaptic-canvas owner: migrate shared templates or consume the canonical package |
+| roslyn-lint | `.claude/skills/codex-orchestration/arch-qa-assignment.json.j2`; `.claude/skills/codex-orchestration/rlint-qa-assignment.json.j2`; `.claude/skills/codex-orchestration/req-qa-assignment.json.j2` — 3/3 contain manually quoted placeholders and no explicit mode | roslyn-lint owner: migrate to explicit `auto`/bare values or explicitly pin `legacy`; rerun O.5 |
 
-These four roots have no
+These five roots have no
 sc-compose `.sc/sc-lint/targets/template-contracts.toml` contract descriptor,
 so the static source-shape result is the actionable evidence rather than a
 claim that their local lint command passed.
@@ -95,9 +107,9 @@ contracts; it did not introduce a second parser or scanner:
 | --- | ---: | ---: | --- | --- |
 | six-template parser oracle | 6 | 6/6 | PASS | `cargo test -p sc-compose --test json_cli o4_templates -- --nocapture` |
 | mode compatibility and 1.4 regression | 6 | 6/6 | PASS | auto quoted fixture fails closed; legacy fixture parses and warns once |
-| cross-repository inventory | 37 | 37/37 | PASS* | 11 + 7 + 7 + 3 + 6 + 3 paths pinned and counted; 25 external findings owned |
+| cross-repository inventory | 40 | 40/40 | PASS* | 11 + 7 + 7 + 3 + 6 + 3 + 3 paths pinned and counted; 28 external findings owned |
 | hostile/nested/boundary corpus | 12 | 12/12 | PASS | O.2/O.3/O.4 JSON CLI and lint tests |
-| **Total** | **42** | **42/42** | **PASS*** | `*` means no unowned failure; release remains conditional on atm-core handoff |
+| **Total** | **64** | **64/64** | **PASS*** | `*` means no unowned failure; release remains conditional on external owner handoff |
 
 The original regression is permanently represented by
 `tests/fixtures/sc-lint/template-contracts/findings/auto.json.j2`:
@@ -135,10 +147,11 @@ merged parent.
 ## Release recommendation
 
 **CONDITIONAL — do not claim an unconditional 1.4.1 release yet.** The
-sc-compose O.4 corpus and local parser gate are green, but the pinned atm-core
-root has six unannotated quoted assignment templates. Team-lead/atm-core must
-either migrate those templates to explicit `auto` with bare placeholders or
-explicitly pin `legacy`, then rerun this corpus against the merged commit.
+sc-compose O.4 corpus and local parser gate are green, but the pinned external
+roots contain 28 unannotated quoted assignment templates across atm-core, cpo,
+raptor, sc-lint, synaptic-canvas, and roslyn-lint. Each owner must either
+migrate those templates to explicit `auto` with bare placeholders or explicitly
+pin `legacy`, then rerun this corpus against the merged consumer commit.
 
 Legacy mode may remain during the 1.4.1 deprecation window. Removal is allowed
 only after every pinned consumer root is clean, the external ownership list is

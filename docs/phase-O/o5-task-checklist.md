@@ -26,20 +26,23 @@ their owners.
   descriptor, owner, exact paths, and handoff action without editing atm-core.
 - [x] O5-009 — Add release-readiness, deprecation, migration, changelog, and
   ATM-core handoff documentation.
-- [x] O5-009a — Add the pinned cpo, raptor, sc-lint, and synaptic-canvas roots
-  supplied during campaign exploration; record their actual counts and
-  read-only legacy findings.
+- [x] O5-009a — Add the pinned cpo, raptor, roslyn-lint, sc-lint, and
+  synaptic-canvas roots supplied during campaign exploration; record their
+  actual counts and read-only legacy findings.
 
 ## Re-audit findings and closure
 
 - [x] O5-010 — The initial inventory used only visible paths; rerun with
   hidden-path enumeration so `.claude` templates are included. The final
-  counts are 11 sc-compose, 7 atm-core, 7 cpo, 3 raptor, 6 sc-lint, and 3
-  synaptic-canvas paths (37 total).
+  counts are 11 sc-compose, 7 atm-core, 7 cpo, 3 raptor, 6 sc-lint, 3
+  synaptic-canvas, and 3 roslyn-lint paths (40 total).
 - [x] O5-011 — The report must not call atm-core clean when its six quoted
   production templates are unannotated. Mark them owned/actionable and make
   the release recommendation conditional on migration or an explicit legacy
   pin.
+- [x] O5-011a — Reconcile comp2's five downstream candidates. Add the pinned
+  roslyn-lint root and its three findings; confirm that cpo, raptor, sc-lint,
+  and synaptic-canvas are also present and that none was silently excluded.
 - [x] O5-012 — Keep expected negative fixtures in the evidence while
   separating them from production findings; repository-wide lint is not a
   release pass when intentional negative fixtures are present.

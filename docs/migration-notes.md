@@ -224,11 +224,11 @@ The campaign does not edit consumer repositories. Each external finding is
 handed to its repository owner with the exact pinned commit, path, source
 shape, expected oracle, and migration action.
 
-The 2026-08-13 campaign scanned 37 JSON-template paths across the six pinned
+The 2026-08-13 campaign scanned 40 JSON-template paths across the seven pinned
 roots: 11 in the merged O.4 sc-compose root, 7 in atm-core, 7 in cpo, 3 in
-raptor, 6 in sc-lint, and 3 in synaptic-canvas. The local six-template
+raptor, 6 in sc-lint, 3 in synaptic-canvas, and 3 in roslyn-lint. The local six-template
 production corpus passed hostile-value and complete-document JSON parsing.
-The external roots contain 25 unannotated, manually quoted production
+The external roots contain 28 unannotated, manually quoted production
 templates; these are owned actionable findings, so the 1.4.1 recommendation
 is conditional until each owner migrates templates to explicit `auto`/bare
 values or explicitly pins `legacy` and the campaign is rerun on merged

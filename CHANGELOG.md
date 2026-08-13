@@ -17,7 +17,8 @@ All notable changes to this project will be documented in this file.
   JSON before emission, preserves the auto/legacy compatibility probe, and
   reports external migration owners without editing their repositories. The
   current 1.4.1 recommendation is conditional pending the pinned atm-core
-  template migration; see `docs/phase-O/evidence/o5-release-corpus.md`.
+  template migration across the seven pinned roots; see
+  `docs/phase-O/evidence/o5-release-corpus.md`.
 
 ## [1.4.0] - 2026-08-12
 

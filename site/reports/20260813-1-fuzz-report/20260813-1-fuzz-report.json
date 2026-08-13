@@ -7,7 +7,7 @@
     "baseline_ref": "0b24aa7e72eaab911d66520a762449e8597a7eb5",
     "seed": 157,
     "max_workers": 4,
-    "cases_per_worker": 37,
+    "cases_per_worker": 40,
     "per_worker_timeout_s": 120,
     "promote_regressions": false,
     "execution_mode": "bounded local probes; external roots read-only",
@@ -19,7 +19,8 @@
     {"repository": "cpo", "root": "/Users/randlee/Documents/github/cpo", "commit": "478de8f00151cc911160fb3ea13253af8bde6d03", "templates_scanned": 7},
     {"repository": "raptor", "root": "/Users/randlee/Documents/github/raptor", "commit": "39ccb49c91aeb090f1b67ad9b83906a55f7bb46b", "templates_scanned": 3},
     {"repository": "sc-lint", "root": "/Users/randlee/Documents/github/sc-lint", "commit": "455f164d29f29af7e8604387c88205aefe16ce75", "templates_scanned": 6},
-    {"repository": "synaptic-canvas", "root": "/Users/randlee/Documents/github/synaptic-canvas", "commit": "862fa2bcf5718de58948cdfb2d78420e88c57d81", "templates_scanned": 3}
+    {"repository": "synaptic-canvas", "root": "/Users/randlee/Documents/github/synaptic-canvas", "commit": "862fa2bcf5718de58948cdfb2d78420e88c57d81", "templates_scanned": 3},
+    {"repository": "roslyn-lint", "root": "/Users/randlee/Documents/github/roslyn-lint", "commit": "27b4114b31b1bf8a3b435980a2e530f030141ade", "templates_scanned": 3}
   ],
   "workers": [
     {
@@ -106,30 +107,32 @@
       "target": "pinned-consumer-corpus",
       "status": "success",
       "classification": "confirmed_bug",
-      "fuzz_run_description": "Pinned six-root inventory and external legacy-template ownership scan",
-      "cases_run": 37,
-      "iterations": 37,
-      "passed": 37,
+      "fuzz_run_description": "Pinned seven-root inventory and external legacy-template ownership scan",
+      "cases_run": 40,
+      "iterations": 40,
+      "passed": 40,
       "failed": 0,
       "result": "FAIL",
       "command": "git -C ROOT rev-parse PINNED_COMMIT; rg --files --hidden -g '!.git' ROOT -g '*.json.j2' -g '*.json.jinja' -g '*.json.jinja2'",
-      "finding_ids": ["O5-ATM-001", "O5-CPO-001", "O5-RAPTOR-001", "O5-SCLINT-001", "O5-SYNAPTIC-001"],
+      "finding_ids": ["O5-ATM-001", "O5-CPO-001", "O5-RAPTOR-001", "O5-SCLINT-001", "O5-SYNAPTIC-001", "O5-ROSLYN-001"],
       "error": null,
-      "context_text": "All six roots were available and pinned. The sc-compose O.4 root is locally clean apart from intentional fixtures. Twenty-five external production templates retain manually quoted placeholders without explicit mode; they are owned actionable release findings, not silently treated as clean.",
+      "context_text": "All seven roots were available and pinned. The sc-compose O.4 root is locally clean apart from intentional fixtures. Twenty-eight external production templates retain manually quoted placeholders without explicit mode; they are owned actionable release findings, not silently treated as clean.",
       "test_inputs": [
         {"case_id": "root-sc-compose", "description": "Pinned sc-compose O.4 root", "minimal_template": "release-corpus-roots.txt entry", "minimal_input": "commit 0b24aa7e72eaab911d66520a762449e8597a7eb5", "passed": true, "outcome": "PASS: 11 paths counted; expected fixtures classified"},
         {"case_id": "root-atm-core", "description": "Pinned atm-core root", "minimal_template": "release-corpus-roots.txt entry", "minimal_input": "commit aebfc5b18a7a1c086726fb2ecd2ec47a074891b5", "passed": true, "outcome": "PASS: 7 paths counted; 6 owned findings"},
         {"case_id": "root-cpo", "description": "Pinned cpo root", "minimal_template": "release-corpus-roots.txt entry", "minimal_input": "commit 478de8f00151cc911160fb3ea13253af8bde6d03", "passed": true, "outcome": "PASS: 7 paths counted; 7 owned findings"},
         {"case_id": "root-raptor", "description": "Pinned raptor root", "minimal_template": "release-corpus-roots.txt entry", "minimal_input": "commit 39ccb49c91aeb090f1b67ad9b83906a55f7bb46b", "passed": true, "outcome": "PASS: 3 paths counted; 3 owned findings"},
         {"case_id": "root-sc-lint", "description": "Pinned sc-lint root", "minimal_template": "release-corpus-roots.txt entry", "minimal_input": "commit 455f164d29f29af7e8604387c88205aefe16ce75", "passed": true, "outcome": "PASS: 6 paths counted; 6 owned findings"},
-        {"case_id": "root-synaptic", "description": "Pinned synaptic-canvas root", "minimal_template": "release-corpus-roots.txt entry", "minimal_input": "commit 862fa2bcf5718de58948cdfb2d78420e88c57d81", "passed": true, "outcome": "PASS: 3 paths counted; 3 owned findings"}
+        {"case_id": "root-synaptic", "description": "Pinned synaptic-canvas root", "minimal_template": "release-corpus-roots.txt entry", "minimal_input": "commit 862fa2bcf5718de58948cdfb2d78420e88c57d81", "passed": true, "outcome": "PASS: 3 paths counted; 3 owned findings"},
+        {"case_id": "root-roslyn-lint", "description": "Pinned roslyn-lint root", "minimal_template": "release-corpus-roots.txt entry", "minimal_input": "commit 27b4114b31b1bf8a3b435980a2e530f030141ade", "passed": true, "outcome": "PASS: 3 paths counted; 3 owned findings"}
       ],
       "findings": [
         {"finding_id": "O5-ATM-001", "status": "confirmed_bug", "subsystem": "consumer-template-corpus", "minimal_template": "atm-core: six .claude assignment JSON templates listed in docs/phase-O/evidence/o5-release-corpus.md", "minimal_input": "hostile string value in a manually quoted placeholder", "observed_result": "No explicit mode; 1.4.1 auto contract will reject quoted placeholders or risk double quoting", "expected_oracle": "Migrate to explicit auto/bare values or explicitly pin legacy", "diagnostic": "ERR_JSON_MODE_CONTRACT after migration / missing mode before migration", "requirement_trace": "docs/requirements.md FR-1b-json; ADR-0019", "requirement_follow_up": "atm-core owner creates migration PR and reruns O5", "root_cause": "Consumer templates predate the 1.4.1 mode contract", "recommended_fix": "Migrate six paths in atm-core; add parser-backed tests", "reproduction_count": 1},
         {"finding_id": "O5-CPO-001", "status": "confirmed_bug", "subsystem": "consumer-template-corpus", "minimal_template": "cpo: seven JSON assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md", "minimal_input": "hostile string value in a manually quoted placeholder", "observed_result": "No explicit mode and quoted placeholders across all seven paths", "expected_oracle": "Migrate to explicit auto/bare values or explicitly pin legacy", "diagnostic": "ERR_JSON_MODE_CONTRACT after migration / missing mode before migration", "requirement_trace": "docs/requirements.md FR-1b-json; ADR-0019", "requirement_follow_up": "cpo owner creates migration PR and reruns O5", "root_cause": "Consumer templates predate the 1.4.1 mode contract", "recommended_fix": "Migrate seven paths and add parser-backed tests", "reproduction_count": 1},
         {"finding_id": "O5-RAPTOR-001", "status": "confirmed_bug", "subsystem": "consumer-template-corpus", "minimal_template": "raptor: three .claude/assets/sc-rust assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md", "minimal_input": "hostile string value in a manually quoted placeholder", "observed_result": "No explicit mode and quoted placeholders across all three paths", "expected_oracle": "Migrate to explicit auto/bare values or explicitly pin legacy", "diagnostic": "ERR_JSON_MODE_CONTRACT after migration / missing mode before migration", "requirement_trace": "docs/requirements.md FR-1b-json; ADR-0019", "requirement_follow_up": "raptor owner creates migration PR and reruns O5", "root_cause": "Consumer templates predate the 1.4.1 mode contract", "recommended_fix": "Migrate three paths and add parser-backed tests", "reproduction_count": 1},
         {"finding_id": "O5-SCLINT-001", "status": "confirmed_bug", "subsystem": "consumer-template-corpus", "minimal_template": "sc-lint: six assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md", "minimal_input": "hostile string value in a manually quoted placeholder", "observed_result": "No explicit mode and quoted placeholders across all six paths", "expected_oracle": "Migrate to explicit auto/bare values or explicitly pin legacy", "diagnostic": "ERR_JSON_MODE_CONTRACT after migration / missing mode before migration", "requirement_trace": "docs/requirements.md FR-1b-json; ADR-0019", "requirement_follow_up": "sc-lint owner creates migration PR or coordinates canonical package update", "root_cause": "Shared templates predate the 1.4.1 mode contract", "recommended_fix": "Migrate six paths and add parser-backed tests", "reproduction_count": 1},
-        {"finding_id": "O5-SYNAPTIC-001", "status": "confirmed_bug", "subsystem": "consumer-template-corpus", "minimal_template": "synaptic-canvas: three packages/sc-rust assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md", "minimal_input": "hostile string value in a manually quoted placeholder", "observed_result": "No explicit mode and quoted placeholders across all three paths", "expected_oracle": "Migrate to explicit auto/bare values or explicitly pin legacy", "diagnostic": "ERR_JSON_MODE_CONTRACT after migration / missing mode before migration", "requirement_trace": "docs/requirements.md FR-1b-json; ADR-0019", "requirement_follow_up": "synaptic-canvas owner creates migration PR or consumes canonical package", "root_cause": "Consumer templates predate the 1.4.1 mode contract", "recommended_fix": "Migrate three paths and add parser-backed tests", "reproduction_count": 1}
+        {"finding_id": "O5-SYNAPTIC-001", "status": "confirmed_bug", "subsystem": "consumer-template-corpus", "minimal_template": "synaptic-canvas: three packages/sc-rust assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md", "minimal_input": "hostile string value in a manually quoted placeholder", "observed_result": "No explicit mode and quoted placeholders across all three paths", "expected_oracle": "Migrate to explicit auto/bare values or explicitly pin legacy", "diagnostic": "ERR_JSON_MODE_CONTRACT after migration / missing mode before migration", "requirement_trace": "docs/requirements.md FR-1b-json; ADR-0019", "requirement_follow_up": "synaptic-canvas owner creates migration PR or consumes canonical package", "root_cause": "Consumer templates predate the 1.4.1 mode contract", "recommended_fix": "Migrate three paths and add parser-backed tests", "reproduction_count": 1},
+        {"finding_id": "O5-ROSLYN-001", "status": "confirmed_bug", "subsystem": "consumer-template-corpus", "minimal_template": "roslyn-lint: three .claude/skills/codex-orchestration assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md", "minimal_input": "hostile string value in a manually quoted placeholder", "observed_result": "No explicit mode and quoted placeholders across all three paths", "expected_oracle": "Migrate to explicit auto/bare values or explicitly pin legacy", "diagnostic": "ERR_JSON_MODE_CONTRACT after migration / missing mode before migration", "requirement_trace": "docs/requirements.md FR-1b-json; ADR-0019", "requirement_follow_up": "roslyn-lint owner creates migration PR and reruns O5", "root_cause": "Consumer templates predate the 1.4.1 mode contract", "recommended_fix": "Migrate three paths and add parser-backed tests", "reproduction_count": 3}
       ]
     }
   ],
@@ -139,17 +142,18 @@
     {"finding_id": "O5-CPO-001", "next_owner": "team-lead@cpo"},
     {"finding_id": "O5-RAPTOR-001", "next_owner": "team-lead@raptor"},
     {"finding_id": "O5-SCLINT-001", "next_owner": "team-lead@sc-lint"},
-    {"finding_id": "O5-SYNAPTIC-001", "next_owner": "team-lead@synaptic-canvas"}
+    {"finding_id": "O5-SYNAPTIC-001", "next_owner": "team-lead@synaptic-canvas"},
+    {"finding_id": "O5-ROSLYN-001", "next_owner": "team-lead@roslyn-lint"}
   ],
   "summary": {
     "all_successful": true,
-    "confirmed_bugs": 5,
+    "confirmed_bugs": 6,
     "intentional_boundaries": 3,
     "inconclusive": 0,
     "failed_workers": 0,
-    "templates_scanned": 37,
+    "templates_scanned": 40,
     "release_recommendation": "CONDITIONAL",
-    "blocking_reason": "25 external production templates require owner migration or explicit legacy pin before unconditional 1.4.1 release; full just lint is blocked because the standalone workspace lacks the sc-lint-boundary package"
+    "blocking_reason": "28 external production templates require owner migration or explicit legacy pin before unconditional 1.4.1 release; full just lint is blocked because the standalone workspace lacks the sc-lint-boundary package"
   },
   "gate_results": {
     "just_test": "PASS",

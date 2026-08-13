@@ -9,9 +9,10 @@ cpo	/Users/randlee/Documents/github/cpo	478de8f00151cc911160fb3ea13253af8bde6d03
 raptor	/Users/randlee/Documents/github/raptor	39ccb49c91aeb090f1b67ad9b83906a55f7bb46b	team-lead@raptor
 sc-lint	/Users/randlee/Documents/github/sc-lint	455f164d29f29af7e8604387c88205aefe16ce75	team-lead@sc-lint
 synaptic-canvas	/Users/randlee/Documents/github/synaptic-canvas	862fa2bcf5718de58948cdfb2d78420e88c57d81	team-lead@synaptic-canvas
+roslyn-lint	/Users/randlee/Documents/github/roslyn-lint	27b4114b31b1bf8a3b435980a2e530f030141ade	team-lead@roslyn-lint
 
 # Exclusions
-# The historical 20–30 estimate is not counted as evidence. The five
+# The historical 20–30 estimate is not counted as evidence. The six
 # additional roots above were supplied during the campaign exploration and
 # were pinned before being included.
 # The atm-core checkout is read-only in this sprint; fixes require an
