@@ -287,8 +287,8 @@ pub fn check_rendered_output(
 
 /// Check a complete rendered body with caller-owned metadata.
 ///
-/// This is the metadata-preserving form for callers such as atm-core that
-/// resolve output format and interpolation mode at catalog admission. The
+/// This is the metadata-preserving form for catalog-backed callers that
+/// resolve output format and interpolation mode before rendering. The
 /// metadata is moved into the returned [`CheckedOutput`], so it cannot be
 /// changed after validation.
 ///
