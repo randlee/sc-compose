@@ -595,7 +595,8 @@ fn validate_json_check_render_attributes_template_defaults_and_caller_overrides(
     assert_eq!(value["payload"]["state"], "render_checked");
     let checked_context = value["payload"]["checked_context"].as_str().unwrap();
     assert!(checked_context.contains("1 explicit caller values (overridden)"));
-    assert!(checked_context.contains("1 template-authored default values (fallback)"));
+    assert!(checked_context.contains("1 root frontmatter defaults (fallback)"));
+    assert!(checked_context.contains("0 template-pack defaults"));
     assert!(!checked_context.contains("overridden, fallback"));
 
     let diagnostics = value["diagnostics"].as_array().unwrap();

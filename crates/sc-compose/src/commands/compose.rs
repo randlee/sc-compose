@@ -199,7 +199,7 @@ fn run_checked_validate(
             match checked {
                 Ok(_) => sc_composer::RenderCheckReport::RenderChecked {
                     meta,
-                    checked_context: context_summary(request, Some(&result.variable_sources)),
+                    checked_context: context_summary(&result.variable_sources),
                     diagnostics: diagnostics.clone(),
                 },
                 Err(_) => sc_composer::RenderCheckReport::RenderInvalid {
@@ -273,45 +273,41 @@ fn declared_json_escape_mode(source: &str) -> Option<sc_composer::JsonEscapeMode
 }
 
 pub(crate) fn context_summary(
-    request: &sc_composer::ComposeRequest,
-    variable_sources: Option<&BTreeMap<sc_composer::VariableName, sc_composer::VariableSource>>,
+    variable_sources: &BTreeMap<sc_composer::VariableName, sc_composer::VariableSource>,
 ) -> String {
     let mut explicit = Vec::new();
     let mut environment = Vec::new();
-    let mut caller_defaults = Vec::new();
-    let mut template_defaults = Vec::new();
+    let mut template_pack_defaults = Vec::new();
+    let mut root_defaults = Vec::new();
+    let mut included_defaults = Vec::new();
 
-    if let Some(variable_sources) = variable_sources {
-        for (name, source) in variable_sources {
-            match source {
-                sc_composer::VariableSource::ExplicitInput => explicit.push(name.to_string()),
-                sc_composer::VariableSource::Environment => environment.push(name.to_string()),
-                sc_composer::VariableSource::TemplateInputDefault => {
-                    caller_defaults.push(name.to_string());
-                }
-                sc_composer::VariableSource::FrontmatterDefault
-                | sc_composer::VariableSource::IncludedDefault => {
-                    template_defaults.push(name.to_string());
-                }
-                sc_composer::VariableSource::Builtin => {}
+    for (name, source) in variable_sources {
+        match source {
+            sc_composer::VariableSource::ExplicitInput => explicit.push(name.to_string()),
+            sc_composer::VariableSource::Environment => environment.push(name.to_string()),
+            sc_composer::VariableSource::TemplateInputDefault => {
+                template_pack_defaults.push(name.to_string());
             }
+            sc_composer::VariableSource::FrontmatterDefault => root_defaults.push(name.to_string()),
+            sc_composer::VariableSource::IncludedDefault => {
+                included_defaults.push(name.to_string())
+            }
+            sc_composer::VariableSource::Builtin => {}
         }
-    } else {
-        explicit.extend(request.vars_input.keys().map(ToString::to_string));
-        environment.extend(request.vars_env.keys().map(ToString::to_string));
-        caller_defaults.extend(request.vars_defaults.keys().map(ToString::to_string));
     }
 
     format!(
-        "{} explicit caller values{}; {} environment values{}; {} caller default values{}; {} template-authored default values{}",
+        "{} explicit caller values{}; {} environment values{}; {} template-pack defaults{}; {} root frontmatter defaults{}; {} included frontmatter defaults{}",
         explicit.len(),
         format_context_names(&explicit),
         environment.len(),
         format_context_names(&environment),
-        caller_defaults.len(),
-        format_context_names(&caller_defaults),
-        template_defaults.len(),
-        format_context_names(&template_defaults),
+        template_pack_defaults.len(),
+        format_context_names(&template_pack_defaults),
+        root_defaults.len(),
+        format_context_names(&root_defaults),
+        included_defaults.len(),
+        format_context_names(&included_defaults),
     )
 }
 
