@@ -63,7 +63,7 @@ fn lint_source_with_mode(
     let mut search_start = 0;
 
     while let Some((open_offset, expression_start, close_offset)) =
-        next_variable_expression(source, search_start)
+        sc_composer::template_scanner::next_jinja_variable_expression(source, search_start)
     {
         let expression = &source[expression_start..close_offset];
 
@@ -172,55 +172,6 @@ fn is_identifier(value: &str) -> bool {
         .next()
         .is_some_and(|first| first == '_' || first.is_ascii_alphabetic())
         && chars.all(|character| character == '_' || character.is_ascii_alphanumeric())
-}
-
-/// Return the next rendered Jinja variable while skipping comments and
-/// malformed/unterminated blocks. This is deliberately a small lexical pass;
-/// expression semantics remain owned by Minijinja and the renderer.
-fn next_variable_expression(
-    source: &str,
-    mut search_start: usize,
-) -> Option<(usize, usize, usize)> {
-    while search_start < source.len() {
-        let remainder = &source[search_start..];
-        let variable = remainder.find("{{");
-        let comment = remainder.find("{#");
-        let statement = remainder.find("{% ").or_else(|| remainder.find("{%"));
-        if variable.is_none() && comment.is_none() && statement.is_none() {
-            return None;
-        }
-
-        let variable_offset = variable.map(|offset| search_start + offset);
-        let comment_offset = comment.map(|offset| search_start + offset);
-        let statement_offset = statement.map(|offset| search_start + offset);
-        let next = [variable_offset, comment_offset, statement_offset]
-            .into_iter()
-            .flatten()
-            .min()?;
-
-        if Some(next) == comment_offset {
-            let end = source[next + 2..].find("#}")?;
-            search_start = next + 2 + end + 2;
-            continue;
-        }
-
-        if Some(next) == statement_offset {
-            let end = source[next + 2..].find("%}")?;
-            let statement_text = source[next + 2..next + 2 + end].trim();
-            if statement_text == "raw" {
-                let raw_end = source[next + 2 + end + 2..].find("{% endraw %}")?;
-                search_start = next + 2 + end + 2 + raw_end + "{% endraw %}".len();
-            } else {
-                search_start = next + 2 + end + 2;
-            }
-            continue;
-        }
-
-        let expression_start = next + 2;
-        let close_offset = expression_start + source[expression_start..].find("}}")?;
-        return Some((next, expression_start, close_offset));
-    }
-    None
 }
 
 /// Structured result for the repository-level template contract target.
@@ -558,7 +509,7 @@ mod tests {
     fn legacy_mode_warns_but_comments_and_jinja_literals_are_ignored() {
         let diagnostics = super::lint_source_with_mode(
             std::path::Path::new("payload.json.j2"),
-            "{# {\"ignored\": \"{{ comment }}\"} #}\n{% raw %}{\"ignored\": \"{{ raw }}\"}{% endraw %}\n{\"value\": \"{{ value }}\"}\n{{ \"{{ literal }}\" }}\n",
+            include_str!("../../../../tests/fixtures/json-scanner-parity.j2"),
             sc_composer::JsonEscapeMode::Legacy,
             true,
             &[],

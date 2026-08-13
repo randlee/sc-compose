@@ -856,6 +856,19 @@ Sprint entries:
 - [Sprint O.4 — Six-Template Migration and Compatibility Fixtures](phase-O/sprint-o-4-template-migration.md)
 - [Sprint O.5 — Cross-Repository Release Corpus and Fuzz Gate](phase-O/sprint-o-5-release-corpus-fuzz-gate.md)
 
+### Follow-on Fix Sprint: FIX-434
+
+Status:
+
+- complete on `integrate/phase-o` at `fda36d5` via PR #434
+
+Sprint entry:
+
+- [PR #434 — O.6 CI Template Contracts Gate](https://github.com/randlee/sc-compose/pull/434)
+
+FIX-434 added the O.6 CI template-contracts gate and its cross-platform
+validation coverage for the repository-level template lint target.
+
 ### Follow-on Fix Sprint: FIX-390
 
 Status:

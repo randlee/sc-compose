@@ -199,6 +199,9 @@ ATM integration is an adapter concern outside this repository.
   - exposes `strip_template_suffix`, the single shared
     `.j2`/`.jinja2`/`.jinja` suffix-stripping helper used by the renderer's
     auto-escape callback and by `sc-compose`'s template-init JSON detection.
+- `template_scanner`
+  - exposes the shared lexical Jinja variable-expression scanner used by
+    library JSON diagnostics and the `sc-compose` template-lint command.
 - `validate`
   - produces validation reports and diagnostics without writing output.
 - `verify`
@@ -1261,7 +1264,7 @@ Schema notes:
 ### 13.2 JSON Template Contract Lint
 
 `validate --lint` and the repository-level `template-contracts` target share
-the source scanner in `crates/sc-compose/src/commands/template_lint.rs`.
+the source scanner in `crates/sc-composer/src/template_scanner.rs`.
 The scanner expands includes through `sc-composer`, classifies JSON templates
 using the shared suffix helper, and reports source paths, include chains,
 line/column locations, effective mode, and canonical diagnostics. The
