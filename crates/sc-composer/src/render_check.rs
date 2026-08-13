@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
+use crate::is_json_template_path;
 use crate::renderer::JsonEscapeMode;
 
 /// Output formats understood by the checked-render contract.
@@ -23,16 +24,7 @@ impl OutputFormat {
     /// Infer the output format from a template path.
     #[must_use]
     pub fn from_template_path(path: &Path) -> Self {
-        let file_name = path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or_default();
-        let normalized = strip_all_template_suffixes(file_name);
-        if Path::new(normalized)
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .is_some_and(|ext| ext.eq_ignore_ascii_case("json"))
-        {
+        if is_json_template_path(path) {
             Self::Json
         } else {
             Self::Text
@@ -273,23 +265,6 @@ pub fn check_rendered_output(
             byte_offset,
         },
         diagnostics: vec![diagnostic],
-    })
-}
-
-fn strip_all_template_suffixes(mut name: &str) -> &str {
-    while let Some(stripped) = strip_one_template_suffix_case_insensitive(name) {
-        name = stripped;
-    }
-    name
-}
-
-fn strip_one_template_suffix_case_insensitive(name: &str) -> Option<&str> {
-    [".j2", ".jinja2", ".jinja"].iter().find_map(|suffix| {
-        let start = name.len().checked_sub(suffix.len())?;
-        let candidate = name.get(start..)?;
-        candidate
-            .eq_ignore_ascii_case(suffix)
-            .then_some(&name[..start])
     })
 }
 
