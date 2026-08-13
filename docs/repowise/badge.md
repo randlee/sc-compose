@@ -1,6 +1,5 @@
-repowise health — 
-/Users/randlee/Documents/github/sc-compose-worktrees/repowise-develop
-Static badge (current score):
+repowise health — generated snapshot for the recorded develop baseline
+Static badge (recorded snapshot):
   !(https://img.shields.io/badge/health-8.7%2F10-brightgreen)
 
 Live badge (running Repowise server or hosted repo):

@@ -175,14 +175,15 @@ provisioning gap, not a missing `.just/` script or a repository regression:
 the pinned sc-lint release binaries are supplied by CI's setup action. CI's
 green `just lint-ci-consumer` run is the authoritative provisioned lint gate.
 
-## Release recommendation
+## Campaign-time release recommendation
 
-**CONDITIONAL — do not claim an unconditional 1.4.1 release yet.** The
-sc-compose O.4 corpus and local parser gate are green, but the pinned external
-roots contain 28 unannotated quoted assignment templates across atm-core, cpo,
-raptor, sc-lint, synaptic-canvas, and roslyn-lint. Each owner must either
-migrate those templates to explicit `auto` with bare placeholders or explicitly
-pin `legacy`, then rerun this corpus against the merged consumer commit.
+**CONDITIONAL at campaign time — do not claim an unconditional 1.4.1 release
+without an explicit waiver.** The sc-compose O.4 corpus and local parser gate
+were green, but the pinned external roots contained 28 unannotated quoted
+assignment templates across atm-core, cpo, raptor, sc-lint, synaptic-canvas,
+and roslyn-lint. Each owner must either migrate those templates to explicit
+`auto` with bare placeholders or explicitly pin `legacy`, then rerun this
+corpus against the merged consumer commit.
 
 Legacy mode may remain during the 1.4.1 deprecation window. Removal is allowed
 only after every pinned consumer root is clean, the external ownership list is
@@ -210,3 +211,7 @@ disposition tracking remains open per the acceptance checklist in
 `docs/phase-O/phase-O-plan.md` and is not closed by this waiver — only the
 "do not claim an unconditional 1.4.1 release yet" restriction is waived for
 this specific release.
+
+Current disposition: the waiver supersedes the campaign-time conditional
+wording for 1.4.1. External migration tracking remains open during the
+legacy-mode deprecation window.

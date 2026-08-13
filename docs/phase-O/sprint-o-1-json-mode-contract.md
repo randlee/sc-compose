@@ -2,10 +2,11 @@
 id: O.1
 title: JSON Escape Mode Contract and Safe Renderer Compatibility
 phase: O
-status: planned
+status: complete
 branch: sprint/o-1-json-mode-contract
 worktree: ../sc-compose-worktrees/sprint/o-1-json-mode-contract
 target: integrate/phase-o
+merge: PR #424 at 64a1b31
 ---
 
 # Sprint O.1 — JSON escape mode contract and safe renderer compatibility
@@ -115,18 +116,18 @@ The lowercase serde representation is intentional: it is the stable
 
 ## Acceptance criteria
 
-- [ ] Existing six-template source shape can be rendered safely in legacy mode.
-- [ ] Unannotated JSON templates resolve to `auto`, while legacy requires an
+- [x] Existing six-template source shape can be rendered safely in legacy mode.
+- [x] Unannotated JSON templates resolve to `auto`, while legacy requires an
       explicit frontmatter or CLI selection.
-- [ ] Auto mode remains safe for the FIX-272 injection value.
-- [ ] No raw/unescaped legacy path exists.
-- [ ] New template-init JSON output selects auto mode and renders valid JSON.
-- [ ] CLI/frontmatter/default precedence is tested.
-- [ ] `validate` and `validate --lint` emit the exact migration-directed
+- [x] Auto mode remains safe for the FIX-272 injection value.
+- [x] No raw/unescaped legacy path exists.
+- [x] New template-init JSON output selects auto mode and renders valid JSON.
+- [x] CLI/frontmatter/default precedence is tested.
+- [x] `validate` and `validate --lint` emit the exact migration-directed
       deprecation warning and link `docs/migration/json-escape-mode.md`.
-- [ ] No non-JSON renderer behavior changes.
-- [ ] All required tests and workspace quality checks pass.
-- [ ] ADR-0019 is accepted before implementation handoff; this sprint does
+- [x] No non-JSON renderer behavior changes.
+- [x] All required tests and workspace quality checks pass.
+- [x] ADR-0019 is accepted before implementation handoff; this sprint does
       not dispatch source work while the Phase O design-acceptance gate is open.
 
 ## Sc-lint cleanup and QA handoff
