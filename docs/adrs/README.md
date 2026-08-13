@@ -16,3 +16,4 @@
 - [ADR-0014: Phase-J Maintainability Decomposition Boundaries](0014-phase-j-maintainability-decomposition.md)
 - [ADR-0015: Phase-K Maintainability Decomposition Boundaries](0015-phase-k-maintainability-decomposition.md)
 - [ADR-0016: sc-lint Integration Boundary](0016-sc-lint-integration-boundary.md)
+- [ADR-0019: JSON Render Contract and Fail-Closed Output Validation](0019-json-render-contract-and-fail-closed-output-validation.md)
