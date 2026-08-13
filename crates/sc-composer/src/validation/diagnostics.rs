@@ -99,10 +99,15 @@ fn json_mode_diagnostics(
         return (warnings, errors);
     }
 
-    let legacy_mode = matches!(
-        crate::resolve_json_escape_mode(request.policy.json_escape_mode, declared_mode),
-        crate::JsonEscapeMode::Legacy
-    );
+    let effective_mode =
+        crate::resolve_json_escape_mode(request.policy.json_escape_mode, declared_mode);
+    errors.extend(json_mode_include_conflict_diagnostics(
+        expanded,
+        resolved_path,
+        effective_mode,
+    ));
+
+    let legacy_mode = matches!(effective_mode, crate::JsonEscapeMode::Legacy);
     let quoted_expressions = quoted_json_placeholder_expressions(&expanded.text);
     if legacy_mode || !quoted_expressions.is_empty() {
         warnings.push(
@@ -141,6 +146,56 @@ fn json_mode_diagnostics(
     }
 
     (warnings, errors)
+}
+
+fn json_mode_include_conflict_diagnostics(
+    expanded: &ExpandedTemplate,
+    resolved_path: &Path,
+    root_mode: crate::JsonEscapeMode,
+) -> Vec<Diagnostic> {
+    expanded
+        .frontmatters
+        .iter()
+        .filter_map(|(path, frontmatters)| {
+            if path == resolved_path {
+                return None;
+            }
+            let included_mode = frontmatters
+                .iter()
+                .find_map(crate::frontmatter::Frontmatter::json_escape_mode)?;
+            if included_mode == root_mode {
+                return None;
+            }
+
+            let include_chain = expanded
+                .include_chains
+                .get(path)
+                .cloned()
+                .unwrap_or_default();
+            Some(
+                Diagnostic::new(
+                    DiagnosticSeverity::Error,
+                    DiagnosticCode::ErrJsonModeIncludeConflict,
+                    format!(
+                        "included template JSON escape mode conflicts with root: root `{}` uses effective mode `{}`, but included template `{}` declares `{}`; included templates must match the root mode",
+                        resolved_path.display(),
+                        json_mode_name(root_mode),
+                        path.display(),
+                        json_mode_name(included_mode),
+                    ),
+                )
+                .with_path(resolved_path.to_path_buf())
+                .with_include_chain(include_chain),
+            )
+        })
+        .collect()
+}
+
+const fn json_mode_name(mode: crate::JsonEscapeMode) -> &'static str {
+    match mode {
+        crate::JsonEscapeMode::Legacy => "legacy",
+        crate::JsonEscapeMode::Auto => "auto",
+    }
 }
 
 fn is_json_template_path(path: &Path) -> bool {

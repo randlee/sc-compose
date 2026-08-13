@@ -72,6 +72,9 @@ pub enum DiagnosticCode {
     WarnJsonQuotedPlaceholder,
     /// A JSON placeholder shape is incompatible with the effective mode.
     ErrJsonModeContract,
+    /// An included template explicitly declares a JSON mode that conflicts
+    /// with the root template's effective mode.
+    ErrJsonModeIncludeConflict,
     /// A template body was empty when content was required.
     ErrValEmpty,
     /// The root template omitted a frontmatter block.
@@ -220,6 +223,7 @@ impl DiagnosticCode {
             Self::WarnJsonLegacyEscapeMode => "WARN_JSON_LEGACY_ESCAPE_MODE",
             Self::WarnJsonQuotedPlaceholder => "WARN_JSON_QUOTED_PLACEHOLDER",
             Self::ErrJsonModeContract => "ERR_JSON_MODE_CONTRACT",
+            Self::ErrJsonModeIncludeConflict => "ERR_JSON_MODE_INCLUDE_CONFLICT",
             Self::ErrValEmpty => "ERR_VAL_EMPTY",
             Self::ErrValMissingFrontmatter => "ERR_VAL_MISSING_FRONTMATTER",
             Self::ErrValMissingRequired => "ERR_VAL_MISSING_REQUIRED",
@@ -347,6 +351,7 @@ mod tests {
             (WarnJsonLegacyEscapeMode, "WARN_JSON_LEGACY_ESCAPE_MODE"),
             (WarnJsonQuotedPlaceholder, "WARN_JSON_QUOTED_PLACEHOLDER"),
             (ErrJsonModeContract, "ERR_JSON_MODE_CONTRACT"),
+            (ErrJsonModeIncludeConflict, "ERR_JSON_MODE_INCLUDE_CONFLICT"),
             (ErrValEmpty, "ERR_VAL_EMPTY"),
             (ErrValMissingFrontmatter, "ERR_VAL_MISSING_FRONTMATTER"),
             (ErrValMissingRequired, "ERR_VAL_MISSING_REQUIRED"),
@@ -467,7 +472,7 @@ mod tests {
             (ErrExtractTomlAmbiguous, "ERR_EXTRACT_TOML_AMBIGUOUS"),
         ];
 
-        assert_eq!(codes.len(), 80);
+        assert_eq!(codes.len(), 81);
         for (code, spelling) in codes {
             assert_eq!(code.as_str(), spelling);
             assert_eq!(

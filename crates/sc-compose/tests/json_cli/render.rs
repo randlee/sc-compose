@@ -61,6 +61,49 @@ fn render_json_frontmatter_mode_is_used_when_cli_mode_is_absent() {
 }
 
 #[test]
+fn render_json_rejects_conflicting_included_mode_before_output() {
+    let root = temp_root("render-json-include-mode-conflict");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\njson_escape_mode: auto\n---\n{\n  \"value\": {{ value }},\n@<fragment.json.j2>\n}\n",
+    );
+    write_file(
+        &root.join("fragment.json.j2"),
+        "---\njson_escape_mode: legacy\n---\n\"fragment\": \"static\"\n",
+    );
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"], serde_json::json!({}));
+    assert!(
+        value["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|diagnostic| diagnostic["code"] == "ERR_JSON_MODE_INCLUDE_CONFLICT")
+    );
+    assert!(!value.to_string().contains("hello"));
+}
+
+#[test]
 fn render_json_cli_mode_overrides_frontmatter_mode() {
     let root = temp_root("render-json-cli-mode");
     write_file(

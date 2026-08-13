@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Added declaration-only include-chain validation for conflicting JSON escape
+  modes. `ERR_JSON_MODE_INCLUDE_CONFLICT` identifies the root and included
+  template paths and both modes; matching or undeclared include modes inherit
+  the root without a false positive.
 - Clarified ADR-0019's scope: checked output is enforced at the `sc-compose`
   CLI emitter, while direct `sc-composer` library consumers must follow the
   named Checked-Emission Caller Contract and run `check_rendered_output` on
@@ -22,8 +26,9 @@ All notable changes to this project will be documented in this file.
   gate. The campaign records actual consumer-root counts, rejects malformed
   JSON before emission, preserves the auto/legacy compatibility probe, and
   reports external migration owners without editing their repositories. The
-  current 1.4.1 recommendation is conditional pending the pinned atm-core
-  template migration across the seven pinned roots; see
+  current 1.4.1 recommendation is conditional pending migration or explicit
+  legacy disposition for 28 external templates across six downstream roots
+  (atm-core, cpo, raptor, sc-lint, synaptic-canvas, and roslyn-lint); see
   `docs/phase-O/evidence/o5-release-corpus.md`.
 - Closed the Phase O CI lint-gate gap: the CI-authoritative lint profile now
   scans production templates with an explicit structured pass assertion,
