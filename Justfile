@@ -22,6 +22,7 @@ lint-ci-consumer:
     {{sc-compose}} lint --root . --target sc-boundary --json
     {{sc-compose}} lint --root . --target sc-portability --json
     {{sc-compose}} lint --root . --target line-counts --json
+    @set -euo pipefail; report="$$(mktemp)"; trap 'rm -f "$$report"' EXIT; SC_COMPOSE_TEMPLATE_CONTRACTS_SCOPE=production {{sc-compose}} lint --root . --target template-contracts --json >"$$report"; jq -e '.payload.command_id == "template-contracts" and .payload.outcome == "pass" and .payload.raw_payload.data.scope == "production" and (.payload.raw_payload.data.templates_scanned > 0) and (.payload.findings_count == 0)' "$$report" >/dev/null
     @echo "sc-lint identity-literals skipped: v0.4.0 parser rejects Rust unicode escapes"
 
 view target="findings":
