@@ -62,7 +62,7 @@ their owners.
   because the `sc-lint`, `sc-lint-boundary`, `sc-lint-portability`, and
   `sc-lint-runtime` release binaries are absent; CI provisions them through
   `.github/actions/setup-sc-lint/action.yml`. The authoritative provisioned
-  gate is green: PR #430 `gh pr checks` 12/12 and PR #431 `gh pr checks` 12/12.
+  gate is green: PR #434 `gh pr checks` 12/12.
   This reduced CI profile is not a claim of local full-lint parity, and no
   suppression was added.
 
@@ -80,8 +80,8 @@ their owners.
 - [x] `just test`, workspace tests, formatting, clippy, fast lint, direct
   sc-boundary, report validation, and diff checks pass.
 - [x] The CI-authoritative `just lint-ci-consumer` profile is green, including
-  the production-scoped `template-contracts` assertion; PR #430 `gh pr checks`
-  12/12 and PR #431 `gh pr checks` 12/12 confirm the provisioned gate. Full
+  the production-scoped `template-contracts` assertion; PR #434 `gh pr checks`
+  12/12 confirms the provisioned gate. Full
   local `just lint` remains a separate, provisioned gate because the bare
   standalone worktree does not contain the four release lint binaries; CI
   supplies them through `.github/actions/setup-sc-lint/action.yml`. This

@@ -62,13 +62,13 @@ fn lint_source_with_mode(
     let mut diagnostics = Vec::new();
     let mut search_start = 0;
 
-    while let Some((open_offset, expression_start, close_offset)) =
+    while let Some(span) =
         sc_composer::template_scanner::next_jinja_variable_expression(source, search_start)
     {
-        let expression = &source[expression_start..close_offset];
+        let expression = &source[span.expression_start..span.close];
 
         if let Some(chain_offset) = redundant_chain_offset(expression) {
-            let source_offset = expression_start + chain_offset;
+            let source_offset = span.expression_start + chain_offset;
             let (line, column) = line_and_column(source, source_offset);
             diagnostics.push(
                 Diagnostic::new(
@@ -83,10 +83,10 @@ fn lint_source_with_mode(
         }
 
         if (json_context || is_json_template_path(path))
-            && is_literal_quoted_scalar(source, open_offset, close_offset)
+            && is_literal_quoted_scalar(source, span.open, span.close)
             && !matches!(expression.trim().chars().next(), Some('"' | '\''))
         {
-            let (line, column) = line_and_column(source, open_offset);
+            let (line, column) = line_and_column(source, span.open);
             let expression = expression.trim();
             let (severity, code, message) = if is_scalar_expression(expression) {
                 match mode {
@@ -120,7 +120,7 @@ fn lint_source_with_mode(
             );
         }
 
-        search_start = close_offset + 2;
+        search_start = span.close + 2;
     }
 
     diagnostics
