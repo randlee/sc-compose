@@ -347,16 +347,12 @@ fn lint_repository_template(
 
 fn discover_json_templates(root: &Path) -> std::io::Result<Vec<PathBuf>> {
     let mut templates = Vec::new();
-    visit_template_dir(root, root, &mut templates)?;
+    visit_template_dir(root, &mut templates)?;
     templates.sort();
     Ok(templates)
 }
 
-fn visit_template_dir(
-    root: &Path,
-    directory: &Path,
-    templates: &mut Vec<PathBuf>,
-) -> std::io::Result<()> {
+fn visit_template_dir(directory: &Path, templates: &mut Vec<PathBuf>) -> std::io::Result<()> {
     for entry in fs::read_dir(directory)? {
         let entry = entry?;
         let path = entry.path();
@@ -366,10 +362,9 @@ fn visit_template_dir(
             if matches!(name.as_ref(), ".git" | "target" | "reports" | ".sc") {
                 continue;
             }
-            visit_template_dir(root, &path, templates)?;
+            visit_template_dir(&path, templates)?;
         } else if path.is_file() && is_json_template_path(&path) {
-            let relative = path.strip_prefix(root).unwrap_or(&path);
-            templates.push(root.join(relative));
+            templates.push(path);
         }
     }
     Ok(())
