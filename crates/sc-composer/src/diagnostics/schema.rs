@@ -68,6 +68,10 @@ pub enum DiagnosticCode {
     WarnLintRedundantFilterChain,
     /// A JSON template uses the manually quoted legacy interpolation shape.
     WarnJsonLegacyEscapeMode,
+    /// A quoted JSON placeholder expression is too complex to classify safely.
+    WarnJsonQuotedPlaceholder,
+    /// A JSON placeholder shape is incompatible with the effective mode.
+    ErrJsonModeContract,
     /// A template body was empty when content was required.
     ErrValEmpty,
     /// The root template omitted a frontmatter block.
@@ -214,6 +218,8 @@ impl DiagnosticCode {
             Self::WarnConfigSinglePassAllFallback => "WARN_CONFIG_SINGLE_PASS_ALL_FALLBACK",
             Self::WarnLintRedundantFilterChain => "WARN_LINT_REDUNDANT_FILTER_CHAIN",
             Self::WarnJsonLegacyEscapeMode => "WARN_JSON_LEGACY_ESCAPE_MODE",
+            Self::WarnJsonQuotedPlaceholder => "WARN_JSON_QUOTED_PLACEHOLDER",
+            Self::ErrJsonModeContract => "ERR_JSON_MODE_CONTRACT",
             Self::ErrValEmpty => "ERR_VAL_EMPTY",
             Self::ErrValMissingFrontmatter => "ERR_VAL_MISSING_FRONTMATTER",
             Self::ErrValMissingRequired => "ERR_VAL_MISSING_REQUIRED",
@@ -339,6 +345,8 @@ mod tests {
                 "WARN_LINT_REDUNDANT_FILTER_CHAIN",
             ),
             (WarnJsonLegacyEscapeMode, "WARN_JSON_LEGACY_ESCAPE_MODE"),
+            (WarnJsonQuotedPlaceholder, "WARN_JSON_QUOTED_PLACEHOLDER"),
+            (ErrJsonModeContract, "ERR_JSON_MODE_CONTRACT"),
             (ErrValEmpty, "ERR_VAL_EMPTY"),
             (ErrValMissingFrontmatter, "ERR_VAL_MISSING_FRONTMATTER"),
             (ErrValMissingRequired, "ERR_VAL_MISSING_REQUIRED"),
@@ -459,7 +467,7 @@ mod tests {
             (ErrExtractTomlAmbiguous, "ERR_EXTRACT_TOML_AMBIGUOUS"),
         ];
 
-        assert_eq!(codes.len(), 78);
+        assert_eq!(codes.len(), 80);
         for (code, spelling) in codes {
             assert_eq!(code.as_str(), spelling);
             assert_eq!(

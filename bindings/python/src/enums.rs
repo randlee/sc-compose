@@ -229,7 +229,11 @@ impl PyDiagnosticCode {
     #[classattr]
     const ERR_JSON_LEGACY_NON_STRING: &'static str = "ERR_JSON_LEGACY_NON_STRING";
     #[classattr]
+    const ERR_JSON_MODE_CONTRACT: &'static str = "ERR_JSON_MODE_CONTRACT";
+    #[classattr]
     const WARN_JSON_LEGACY_ESCAPE_MODE: &'static str = "WARN_JSON_LEGACY_ESCAPE_MODE";
+    #[classattr]
+    const WARN_JSON_QUOTED_PLACEHOLDER: &'static str = "WARN_JSON_QUOTED_PLACEHOLDER";
     #[classattr]
     const WARN_EXTRACT_NOT_OBSERVED: &'static str = "WARN_EXTRACT_NOT_OBSERVED";
     #[classattr]

@@ -34,8 +34,7 @@ fn validate_lint_auto_mode_quoted_placeholder_is_nonzero_with_location() {
         .expect("diagnostics")
         .iter()
         .find(|diagnostic| {
-            diagnostic["code"] == "WARN_JSON_LEGACY_ESCAPE_MODE"
-                && diagnostic["severity"] == "error"
+            diagnostic["code"] == "ERR_JSON_MODE_CONTRACT" && diagnostic["severity"] == "error"
         })
         .expect("quoted placeholder diagnostic");
     assert_eq!(diagnostic["severity"], "error");

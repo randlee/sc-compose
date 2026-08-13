@@ -84,24 +84,36 @@ fn lint_source_with_mode(
 
         if (json_context || is_json_template_path(path))
             && is_literal_quoted_scalar(source, open_offset, close_offset)
-            && is_scalar_expression(expression)
+            && !matches!(expression.trim().chars().next(), Some('"' | '\''))
         {
             let (line, column) = line_and_column(source, open_offset);
-            let (severity, message) = match mode {
-                JsonEscapeMode::Legacy => (
-                    DiagnosticSeverity::Warning,
-                    sc_composer::JSON_LEGACY_WARNING.to_owned(),
-                ),
-                JsonEscapeMode::Auto => (
-                    DiagnosticSeverity::Error,
-                    format!(
-                        "quoted JSON placeholder `{}` is incompatible with auto escape mode; migrate to a bare placeholder. See docs/migration/json-escape-mode.md",
-                        expression.trim()
+            let expression = expression.trim();
+            let (severity, code, message) = if is_scalar_expression(expression) {
+                match mode {
+                    JsonEscapeMode::Legacy => (
+                        DiagnosticSeverity::Warning,
+                        DiagnosticCode::WarnJsonLegacyEscapeMode,
+                        sc_composer::JSON_LEGACY_WARNING.to_owned(),
                     ),
-                ),
+                    JsonEscapeMode::Auto => (
+                        DiagnosticSeverity::Error,
+                        DiagnosticCode::ErrJsonModeContract,
+                        format!(
+                            "quoted JSON placeholder `{expression}` is incompatible with auto escape mode; migrate to a bare placeholder. See docs/migration/json-escape-mode.md"
+                        ),
+                    ),
+                }
+            } else {
+                (
+                    DiagnosticSeverity::Warning,
+                    DiagnosticCode::WarnJsonQuotedPlaceholder,
+                    format!(
+                        "quoted JSON placeholder `{expression}` is too complex to classify safely; migrate to a bare placeholder or an explicit raw JSON field"
+                    ),
+                )
             };
             diagnostics.push(
-                Diagnostic::new(severity, DiagnosticCode::WarnJsonLegacyEscapeMode, message)
+                Diagnostic::new(severity, code, message)
                     .with_path(path)
                     .with_location(line, column)
                     .with_include_chain(include_chain.to_vec()),
@@ -255,11 +267,14 @@ fn lint_repository_template(
 ) -> Result<(Vec<Value>, Vec<Value>, usize), CommandError> {
     let expanded = expand_includes(template, confining_root, &ComposePolicy::default())
         .map_err(CommandError::compose)?;
+    let canonical_template = template
+        .canonicalize()
+        .unwrap_or_else(|_| template.to_path_buf());
     let mode = expanded
         .frontmatters
         .iter()
         .find_map(|(path, passes)| {
-            (path == template)
+            (path == template || path == &canonical_template)
                 .then(|| {
                     passes
                         .first()
@@ -475,10 +490,7 @@ mod tests {
             diagnostics[0].severity,
             sc_composer::DiagnosticSeverity::Error
         );
-        assert_eq!(
-            diagnostics[0].code,
-            DiagnosticCode::WarnJsonLegacyEscapeMode
-        );
+        assert_eq!(diagnostics[0].code, DiagnosticCode::ErrJsonModeContract);
         assert_eq!(diagnostics[0].line, Some(1));
         assert_eq!(diagnostics[0].column, Some(12));
     }
@@ -530,5 +542,26 @@ mod tests {
             sc_composer::DiagnosticSeverity::Error
         );
         assert!(diagnostics[0].message.contains("incompatible with auto"));
+    }
+
+    #[test]
+    fn ambiguous_json_placeholder_gets_a_warning_instead_of_being_skipped() {
+        let diagnostics = super::lint_source_with_mode(
+            std::path::Path::new("payload.json.j2"),
+            "{\"value\": \"{{ value.foo[\\\"key\\\"] }}\"}\n",
+            sc_composer::JsonEscapeMode::Auto,
+            true,
+            &[],
+        );
+
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].code,
+            DiagnosticCode::WarnJsonQuotedPlaceholder
+        );
+        assert_eq!(
+            diagnostics[0].severity,
+            sc_composer::DiagnosticSeverity::Warning
+        );
     }
 }

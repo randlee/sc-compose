@@ -37,11 +37,17 @@ fn template_contracts_uses_shared_scanner_and_materializes_report() {
     assert!(payload["findings"].as_array().is_some_and(|findings| {
         findings.iter().any(|finding| {
             finding["mode"] == "auto"
-                && finding["diagnostic_code"] == "WARN_JSON_LEGACY_ESCAPE_MODE"
+                && finding["diagnostic_code"] == "ERR_JSON_MODE_CONTRACT"
                 && finding["location"]["line"] == 1
                 && finding["migration_recommendation"]
                     .as_str()
                     .is_some_and(|message| message.contains("docs/migration/json-escape-mode.md"))
+        })
+    }));
+    assert!(payload["findings"].as_array().is_some_and(|findings| {
+        findings.iter().any(|finding| {
+            finding["mode"] == "legacy"
+                && finding["diagnostic_code"] == "WARN_JSON_LEGACY_ESCAPE_MODE"
         })
     }));
 
@@ -49,7 +55,7 @@ fn template_contracts_uses_shared_scanner_and_materializes_report() {
     assert!(report.is_file());
     let report_text = fs::read_to_string(report).expect("HTML report");
     assert!(report_text.contains("template-contracts"));
-    assert!(report_text.contains("WARN_JSON_LEGACY_ESCAPE_MODE"));
+    assert!(report_text.contains("ERR_JSON_MODE_CONTRACT"));
     assert!(
         fixture
             .path

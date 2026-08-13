@@ -176,8 +176,55 @@ fn validate_lint_json_reports_the_same_legacy_json_warning() {
             .unwrap()
             .iter()
             .any(|diagnostic| {
+                diagnostic["code"] == "ERR_JSON_MODE_CONTRACT" && diagnostic["severity"] == "error"
+            })
+    );
+    assert!(
+        value["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|diagnostic| {
                 diagnostic["code"] == "WARN_JSON_LEGACY_ESCAPE_MODE"
-                    && diagnostic["severity"] == "error"
+                    && diagnostic["severity"] == "warning"
+            })
+    );
+}
+
+#[test]
+fn validate_lint_json_reports_ambiguous_quoted_placeholder_conservatively() {
+    let root = temp_root("validate-lint-json-ambiguous-quoted-placeholder");
+    write_file(
+        &root.join("payload.json.j2"),
+        r#"{"value": "{{ value.foo["key"] }}"}"#,
+    );
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--lint",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert!(
+        value["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|diagnostic| {
+                diagnostic["code"] == "WARN_JSON_QUOTED_PLACEHOLDER"
+                    && diagnostic["severity"] == "warning"
             })
     );
 }
