@@ -34,6 +34,8 @@ pub mod renderer;
 pub mod resolver;
 /// Template filename extension helpers.
 pub mod template_ext;
+/// Shared lexical scanning for Jinja variable expressions.
+pub mod template_scanner;
 /// Foundational request, result, and value-model types.
 pub mod types;
 /// Public validation entrypoint.
