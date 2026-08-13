@@ -863,6 +863,22 @@ Phase O status accurately: implementation and fix-sprint work is complete,
 while the six-root O.5 migration disposition remains open under the release
 waiver.
 
+### Follow-on Fix Sprint: FIX-O15
+
+Status:
+
+- implementation complete on `fix/o15-composer-directive-inspection-api`;
+  awaiting PR and integration into `integrate/phase-o`
+
+Sprint entry:
+
+- [Sprint FIX-O15 — Public Classified Directive Inspection API](sprints/fix-o15-composer-directive-inspection-api.md)
+
+FIX-O15 adds the narrow, parser-validated `sc-composer` API required by
+atm-core to classify include, import, and from-import statements with exact
+UTF-8 byte spans. It deliberately leaves target resolution and CLI/binding
+surfaces to their owning consumers.
+
 ### Follow-on Fix Sprint: FIX-434
 
 Status:

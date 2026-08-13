@@ -9,6 +9,8 @@
 pub mod composer;
 /// Structured diagnostics and the stable `ERR_*` code registry.
 pub mod diagnostics;
+/// Parser-backed inspection of Jinja template-loading directives.
+pub mod directive_inspection;
 mod discovery;
 /// Canonical crate-owned error types.
 pub mod error;
@@ -53,6 +55,10 @@ pub use composer::{
 #[doc(inline)]
 pub use diagnostics::{
     DIAGNOSTIC_SCHEMA_VERSION, Diagnostic, DiagnosticCode, DiagnosticEnvelope, DiagnosticSeverity,
+};
+#[doc(inline)]
+pub use directive_inspection::{
+    SourceSpan, TemplateDirective, TemplateDirectiveKind, inspect_template_directives,
 };
 pub use discovery::{
     discover_all_pass_tokens, discover_tokens, discover_tokens_with_brace_count,
