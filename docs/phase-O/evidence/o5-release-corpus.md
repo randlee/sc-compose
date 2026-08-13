@@ -91,6 +91,11 @@ corpus members, not production release blockers.
 
 ### atm-core root — external, read-only
 
+Owner/handoff cells below name `auto` and `legacy` as the two available
+per-template configurations; they are not an either/or recommendation. See
+"Campaign-time release recommendation" for the actual owner recommendation
+in order (v1.4.1+ minimum, then migrate to `auto`).
+
 | Path | Mode/source shape | Finding | Owner / handoff |
 | --- | --- | --- | --- |
 | `.claude/assets/sc-rust/quality-mgr/templates/rust-best-practices-assignment.json.j2` | no mode, manually quoted placeholders | O5-ATM-001 | atm-core owner: migrate to `auto` bare values or pin explicit `legacy` |
@@ -112,6 +117,11 @@ were changed in atm-core.
 The following roots were added after the initial inventory request. They are
 included because their commits and paths were available locally, not because
 the campaign assumes an unverified high-traffic repository count.
+
+Owner/action cells below name `auto` and `legacy` as the two available
+per-template configurations; they are not an either/or recommendation. See
+"Campaign-time release recommendation" for the actual owner recommendation
+in order (v1.4.1+ minimum, then migrate to `auto`).
 
 | Repository | Path-level result | Owner / action |
 | --- | --- | --- |
@@ -181,9 +191,25 @@ green `just lint-ci-consumer` run is the authoritative provisioned lint gate.
 without an explicit waiver.** The sc-compose O.4 corpus and local parser gate
 were green, but the pinned external roots contained 28 unannotated quoted
 assignment templates across atm-core, cpo, raptor, sc-lint, synaptic-canvas,
-and roslyn-lint. Each owner must either migrate those templates to explicit
-`auto` with bare placeholders or explicitly pin `legacy`, then rerun this
-corpus against the merged consumer commit.
+and roslyn-lint.
+
+The recommendation to each owner, in order:
+
+1. Upgrade to sc-compose **v1.4.1 or later** — this is the minimum version
+   required to run these templates at all under the 1.4.0 escape-mode
+   change, and ships the diagnostics that surface the mode conflict.
+2. Fix the affected templates by migrating them to explicit `auto` mode
+   with bare placeholders, then rerun this corpus against the merged
+   consumer commit.
+
+Two `json_escape_mode` values are available at the template level —
+explicit `auto` (bare placeholders) and explicit `legacy` (pre-quoted
+placeholders, preserved only as a compatibility bridge for the deprecation
+window). Neither is "the recommended solution" in isolation: the
+recommendation above is the version upgrade plus the template fix, not a
+choice between the two modes. `legacy` remains a possible, temporary
+configuration for owners who cannot migrate immediately — it is not an
+equal, permanent alternative to migrating.
 
 Legacy mode may remain during the 1.4.1 deprecation window. Removal is allowed
 only after every pinned consumer root is clean, the external ownership list is

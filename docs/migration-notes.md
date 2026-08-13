@@ -243,9 +243,17 @@ raptor, 6 in sc-lint, 3 in synaptic-canvas, and 3 in roslyn-lint. The local six-
 production corpus passed hostile-value and complete-document JSON parsing.
 The external roots contain 28 unannotated, manually quoted production
 templates; these are owned actionable findings, so the 1.4.1 recommendation
-is conditional until each owner migrates templates to explicit `auto`/bare
-values or explicitly pins `legacy` and the campaign is rerun on merged
-consumer commits.
+is conditional until each owner closes them and the campaign is rerun on
+merged consumer commits.
+
+The recommendation to each owner, in order: (1) run sc-compose v1.4.1 or
+later — the minimum version required to run these templates under the 1.4.0
+escape-mode change, and (2) fix the templates by migrating them to explicit
+`auto` mode with bare placeholders. `auto` and `legacy` are the two
+available `json_escape_mode` values, listed here as possible template
+configurations, not as an either/or recommendation: `legacy` is a temporary
+compatibility bridge for owners who cannot migrate immediately, not a
+permanent, equally-valid alternative to migrating.
 
 Legacy mode remains a compatibility bridge, not a permanent release default.
 Its removal requires a clean pinned-consumer inventory and a parser-backed
