@@ -13,9 +13,10 @@ target: integrate/phase-o
 ## Goal
 
 Define and implement the two JSON interpolation modes without weakening the
-FIX-272 injection fix. Existing unannotated JSON templates must have a safe
-compatibility path; newly generated or migrated templates must be able to use
-secure auto escaping explicitly.
+FIX-272 injection fix. Existing unannotated JSON templates use secure `auto`
+escaping and receive migration guidance when they contain the old quoted-
+placeholder shape; an explicit `legacy` mode remains available as a safe
+compatibility path. Newly generated or migrated templates use `auto` explicitly.
 
 ## Dependencies and parallelism
 
@@ -37,14 +38,15 @@ sprint may implement a second mode resolver or escape algorithm.
 - `crates/sc-composer/src/renderer.rs` tests
 - `crates/sc-compose/tests/cli/templates.rs`
 - `docs/requirements.md`
+- `docs/migration/json-escape-mode.md` (new migration guidance)
 - `docs/adrs/0019-json-render-contract.md` (reserved; acceptance gate)
 
 ## Required work
 
 1. Add the typed `JsonEscapeMode` defined by the phase plan's authoritative
    checked-render contract, with `Legacy` and `Auto` values.
-2. Resolve mode using CLI override, root frontmatter, then 1.4.1 compatibility
-   default `legacy`.
+2. Resolve mode using CLI override, root frontmatter, then the 1.4.1 default
+   `auto`.
 3. Restrict mode semantics to effective JSON templates using the existing
    suffix convention; diagnose format/mode mismatches instead of silently
    applying JSON rules to another format.
@@ -55,7 +57,10 @@ sprint may implement a second mode resolver or escape algorithm.
 6. Make `template-init` generate JSON templates with
    `json_escape_mode: auto` and bare placeholders.
 7. Add stable diagnostic codes for compatibility/deprecation and invalid mode
-   usage; register them in the canonical schema.
+   usage; register them in the canonical schema. `validate` and
+   `validate --lint` emit exactly: `Template uses legacy JSON escape mode. Migrate
+   to bare placeholders (auto mode) to avoid double-quoting issues. See
+   docs/migration/json-escape-mode.md`
 8. Document the source contract and migration examples in requirements/help.
 
 ## Explicit contract
@@ -77,7 +82,7 @@ Legacy is not raw interpolation. A hostile value such as
 - legacy manually quoted string round-trip;
 - legacy hostile string cannot inject syntax;
 - legacy non-string in a quoted-string position has a stable diagnostic;
-- mode precedence: CLI > frontmatter > compatibility default;
+- mode precedence: CLI > frontmatter > 1.4.1 default `auto`;
 - warning is emitted once per legacy template;
 - invalid mode and non-JSON mode use are diagnosed;
 - template-init emits auto mode and bare JSON placeholders;
@@ -106,10 +111,14 @@ pub enum JsonEscapeMode {
 ## Acceptance criteria
 
 - [ ] Existing six-template source shape can be rendered safely in legacy mode.
+- [ ] Unannotated JSON templates resolve to `auto`, while legacy requires an
+      explicit frontmatter or CLI selection.
 - [ ] Auto mode remains safe for the FIX-272 injection value.
 - [ ] No raw/unescaped legacy path exists.
 - [ ] New template-init JSON output selects auto mode and renders valid JSON.
 - [ ] CLI/frontmatter/default precedence is tested.
+- [ ] `validate` and `validate --lint` emit the exact migration-directed
+      deprecation warning and link `docs/migration/json-escape-mode.md`.
 - [ ] No non-JSON renderer behavior changes.
 - [ ] All required tests and workspace quality checks pass.
 - [ ] ADR-0019 is accepted before implementation handoff; this sprint does

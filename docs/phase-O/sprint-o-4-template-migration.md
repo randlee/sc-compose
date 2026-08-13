@@ -40,6 +40,7 @@ cross-repository release readiness, and it starts after O.4 merges.
 - `crates/sc-compose/tests/cli/render.rs`
 - `crates/sc-compose/tests/json_cli/render.rs`
 - `docs/requirements.md`
+- `docs/migration/json-escape-mode.md`
 - `docs/migration-notes.md`
 - `CHANGELOG.md`
 

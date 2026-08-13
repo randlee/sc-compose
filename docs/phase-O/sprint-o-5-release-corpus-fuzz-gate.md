@@ -92,8 +92,8 @@ unavailable roots are explicit campaign errors and block the release gate.
 5. Re-run the full campaign against the merged O.4 behavior and the 1.4.1
    release candidate; do not use a report generated from an earlier parent.
 6. Record rollout readiness, unresolved external findings, compatibility
-   deprecation timing, and the decision criteria for a future default of
-   `auto`.
+   deprecation timing, and the decision criteria for future removal of explicit
+   `legacy` mode.
 
 ## Required tests and evidence
 

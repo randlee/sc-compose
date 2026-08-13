@@ -40,22 +40,21 @@ The near-term release behavior is:
 
 | Mode | Intended source shape | String behavior | Status |
 | --- | --- | --- | --- |
-| `legacy` | `"{{ value }}"` | escape JSON string contents without adding another pair of quotes | compatibility mode; deprecation warning |
-| `auto` | `{{ value }}` | emit a complete JSON value; strings receive quotes, structured values retain JSON structure | secure recommended mode |
+| `legacy` | `"{{ value }}"` | escape JSON string contents without adding another pair of quotes | explicit compatibility mode; deprecation warning |
+| `auto` | `{{ value }}` | emit a complete JSON value; strings receive quotes, structured values retain JSON structure | 1.4.1 default and secure recommended mode |
 
 The effective mode is selected by this precedence order:
 
 1. an explicit CLI override, when the caller supplies one;
 2. a `json_escape_mode` frontmatter declaration;
-3. the 1.4.1 compatibility default, `legacy`, for an otherwise unannotated
-   existing JSON template.
+3. the 1.4.1 default, `auto`, for an otherwise unannotated JSON template.
 
-The compatibility default is deliberately temporary and emits a warning. It
-prevents the first run after upgrade from silently corrupting existing
-repositories while giving maintainers a concrete migration path. New
-`template-init` JSON templates must declare `json_escape_mode: auto` and use
-bare placeholders. A later major release may change the absent-mode default to
-`auto` after the deprecation window.
+An explicit `legacy` declaration or CLI override is deliberately temporary and
+emits a warning. An unannotated template uses `auto`, so the first run after
+upgrade does not silently preserve the quoted-placeholder pattern that caused
+the 1.4 regression. New `template-init` JSON templates declare
+`json_escape_mode: auto` and use bare placeholders. A later major release may
+remove legacy mode after the deprecation window.
 
 The renderer must never implement `legacy` as raw, unescaped interpolation.
 `legacy` means “quoted-string content escaping”: quotes, backslashes, control
@@ -83,17 +82,15 @@ An existing template such as:
 }
 ```
 
-continues to produce valid JSON under the compatibility default. A warning
-identifies the template, the effective mode, the deprecation, and the exact
-migration:
+uses `auto` when no mode is declared. `validate` and `validate --lint` emit the
+following migration-directed warning for a legacy declaration or quoted
+placeholder detected in a JSON context; a render that would produce malformed
+JSON still fails closed:
 
 ```text
-WARN_JSON_LEGACY_ESCAPE_MODE: template `.../assignment.json.j2` uses the
-legacy JSON interpolation mode. String placeholders inside literal JSON quotes
-are supported for compatibility but will be removed as the default in a future
-release. Prefer `json_escape_mode: auto` and change
-`"{{ worktree_path }}"` to `{{ worktree_path }}`. Use
-`sc-compose validate --lint --check-render ...` to verify the migrated output.
+WARN_JSON_LEGACY_ESCAPE_MODE: Template uses legacy JSON escape mode. Migrate to
+bare placeholders (auto mode) to avoid double-quoting issues. See
+docs/migration/json-escape-mode.md
 ```
 
 The warning must include a stable diagnostic code, source path, and location
@@ -406,7 +403,7 @@ The exact precedence is:
 ```text
 CLI override
   > json_escape_mode in root template frontmatter
-  > compatibility default legacy in 1.4.1
+  > default auto in 1.4.1
 ```
 
 Included templates must not silently change the root template's mode. If an
@@ -416,9 +413,8 @@ has a different output format, it must retain its own format-specific escaping
 only where the include mechanism already defines that behavior; the plan must
 not introduce cross-document JSON concatenation semantics.
 
-The deprecation warning must state the planned default change only if the
-project has committed to a release target. The initial 1.4.1 wording should
-say “compatibility mode; migrate to `auto`” rather than promise a date.
+The deprecation warning must use the migration-directed text in section 3.1;
+it must not merely identify the mode or promise a future release date.
 
 ## 7. Render-check design
 
@@ -576,8 +572,8 @@ without making plain validation perform work the caller did not request.
 
 Extend `template_lint.rs` with format-aware rules, using stable codes such as:
 
-- `WARN_JSON_LEGACY_ESCAPE_MODE`: an unannotated or explicitly legacy JSON
-  template uses compatibility semantics;
+- `WARN_JSON_LEGACY_ESCAPE_MODE`: an explicitly legacy JSON template or a
+  quoted placeholder detected in a JSON context needs migration guidance;
 - `WARN_JSON_QUOTED_PLACEHOLDER`: a JSON string contains a manually quoted
   placeholder while the effective mode is `auto`;
 - `ERR_JSON_MODE_CONTRACT`: a placeholder shape is incompatible with the
@@ -619,7 +615,7 @@ context is available.
 | plain `validate` | compatibility warning if mode known | no render claim | static diagnostic when provable |
 | `validate --lint` | warning with migration fix | error-level lint finding | warning/error per contract |
 | `validate --check-render` | warning plus checked result | checked render fails with parser/error diagnostic | checked result is authoritative |
-| `render` checked/default JSON gate | warning if valid legacy output | fail closed before emission | fail closed |
+| `render` checked/default JSON gate | explicit legacy warning; auto malformed output fails closed | fail closed before emission | fail closed |
 | `sc-compose lint --target template-contracts` | finding in report | finding in report | finding in report |
 
 The implementation must define whether warning diagnostics affect exit status.
@@ -830,7 +826,7 @@ module for:
    another pair of quotes;
 7. legacy mode rejects a non-string value in a quoted-string position;
 8. legacy mode warns exactly once per template;
-9. an explicit mode beats the compatibility default;
+9. an explicit mode beats the `auto` default;
 10. CLI/request override beats frontmatter;
 11. conflicting include modes produce a stable diagnostic;
 12. non-JSON templates are unaffected by JSON mode;
@@ -981,11 +977,11 @@ Ship the mode, diagnostics, parser gate, and CLI integration together in
 mode that produced this incident.
 
 The six in-repository templates should migrate in the same release or in the
-release branch immediately before the binary is published. The legacy mode and
-warning are required in 1.4.1 because external repositories cannot all be
-edited atomically.
+release branch immediately before the binary is published. The explicit legacy
+mode and migration warning are required in 1.4.1 because external repositories
+cannot all be edited atomically; unannotated templates still default to `auto`.
 
-The default-mode removal is a later breaking change only after:
+The legacy-mode removal is a later breaking change only after:
 
 - downstream inventory confirms the high-traffic repositories have migrated;
 - the release-corpus lint target is green in those repositories;
@@ -1114,8 +1110,8 @@ questions:
 6. Can ATM-core consume a stable result without importing ATM runtime code?
 7. Are all six known templates covered by semantic JSON tests?
 8. Does the pinned `docs/phase-O/release-corpus-roots.txt` inventory identify
-   old quoted templates in every available consumer repository before the
-   compatibility default is removed?
+   old quoted templates in every available consumer repository before explicit
+   legacy mode is removed?
 9. Does the fuzz oracle test both source forms and parse successful output?
 10. Does the rollout ship the renderer, detector, diagnostics, and migration
     path together rather than repeating the 1.4.0 partial-fix failure?
@@ -1140,15 +1136,15 @@ The planning decisions are resolved as follows:
 
 - the only CLI spelling is `--check-render`;
 - ordinary unflagged JSON `render` is fail-closed in 1.4.1 before emission;
-- `legacy` is the compatibility default for every unannotated JSON template in
-  1.4.1, with a deprecation diagnostic; no pre-1.4 marker is required;
+- `auto` is the default for every unannotated JSON template in 1.4.1;
+  explicit legacy mode receives the migration deprecation diagnostic;
 - O.4 must migrate all six known templates or record a reviewed, fixture-backed
   legacy exception before O.5 release-corpus work begins;
 - ATM-core consumes the structured `RenderCheckReport` defined by the Phase O
   plan and supplies the exact context; consumer-side adapter implementation is
   not sc-compose production scope;
-- removal of the legacy default is a later breaking-release decision, gated by
-  migration and corpus evidence, and is not an open Phase O dependency.
+- removal of explicit legacy mode is a later breaking-release decision, gated
+  by migration and corpus evidence, and is not an open Phase O dependency.
 
 ## 19. Closeout evidence
 

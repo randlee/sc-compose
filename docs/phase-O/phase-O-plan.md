@@ -85,15 +85,14 @@ Use explicit JSON escape modes plus format-aware post-render validation:
 
 | Mode | Source contract | Behavior | Rollout |
 | --- | --- | --- | --- |
-| `legacy` | existing literal-quoted string placeholders | JSON-escape string contents without adding outer quotes | 1.4.1 compatibility mode with deprecation warning |
-| `auto` | bare placeholders | renderer emits complete JSON values, including string quotes | recommended for new/migrated templates |
+| `legacy` | existing literal-quoted string placeholders | JSON-escape string contents without adding outer quotes | explicit compatibility mode with deprecation warning |
+| `auto` | bare placeholders | renderer emits complete JSON values, including string quotes | 1.4.1 default and recommended mode |
 
 Effective mode precedence:
 
 1. `--json-escape-mode` CLI override;
 2. `json_escape_mode` in root template frontmatter;
-3. 1.4.1 compatibility default `legacy` for unannotated existing JSON
-   templates.
+3. 1.4.1 default `auto` for unannotated JSON templates.
 
 The CLI spelling is fixed as `--json-escape-mode <legacy|auto>` and the root
 frontmatter key is `json_escape_mode: legacy|auto`. No alternate flag spelling
@@ -101,8 +100,8 @@ or implicit mode alias is part of this phase.
 
 `legacy` must never mean raw interpolation. It must safely escape quotes,
 backslashes, control characters, and JSON string content. A future breaking
-release may change the absent-mode default to `auto` after the migration and
-deprecation window.
+release may remove the legacy mode after the migration and deprecation window;
+the absent-mode default is already `auto` in 1.4.1.
 
 JSON rendering is checked before emission. `validate` remains static-only by
 default, while `validate --check-render` performs an in-memory checked render
@@ -127,6 +126,7 @@ Python or shell logic.
 | O-R9 | Six known repository templates are migrated where safe, with compatibility fixtures green for every legacy exception. | O.4 |
 | O-R10 | Cross-repository release-corpus inventory and fuzz campaigns test both interpolation shapes and parse every successful JSON body. | O.5 |
 | O-R11 | No JSON escaping regression reopens the FIX-272 injection vulnerability. | O.1, O.2, O.4, O.5 |
+| O-R12 | `validate` and `validate --lint` emit the exact migration-directed deprecation warning for legacy JSON mode or quoted placeholders. | O.1, O.3 |
 
 ## Scope boundary
 
@@ -273,8 +273,25 @@ reported in the non-emitting states only.
 
 The 1.4.1 default is resolved now: ordinary unflagged JSON `render` fails
 closed before emitting malformed JSON. There is no opt-in transition period.
-Legacy compatibility is provided by the explicit mode, not by allowing an
-unchecked render.
+The effective mode for an unannotated template is `auto`; legacy compatibility
+is provided only by the explicit `legacy` mode, not by allowing an unchecked
+render.
+
+The required migration diagnostic is emitted by `validate` and
+`validate --lint` once per affected template:
+
+```text
+Template uses legacy JSON escape mode. Migrate to bare placeholders (auto mode) to avoid double-quoting issues. See docs/migration/json-escape-mode.md
+```
+
+The diagnostic includes the stable code, template path, and source location
+when available. An unannotated quoted placeholder is never silently treated as
+legacy: it uses `auto`, receives this migration guidance, and a render that
+would produce malformed JSON still fails closed before emission.
+
+O.1 owns creation of `docs/migration/json-escape-mode.md`; O.3 specifies the
+diagnostic emission and O.4 updates the guide with the six-template migration
+matrix.
 
 ## ATM-core contract
 
@@ -389,4 +406,4 @@ Before Phase O is marked complete, team-lead must have:
 - named downstream inventory source and scan evidence;
 - fuzz reports proving the parser oracle ran;
 - documented ATM-core consumer contract;
-- a decision on when the compatibility default may change to `auto`.
+- a decision on when explicit legacy mode may be removed.

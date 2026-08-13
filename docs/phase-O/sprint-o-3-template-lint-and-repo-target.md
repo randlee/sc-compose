@@ -45,6 +45,7 @@ any shared file's shape changes during O.2 QA, pause and rebase again.
 - `crates/sc-compose/tests/sc_lint_lint_full.rs`
 - `crates/sc-compose/tests/template_contracts/` (new fixture module)
 - `docs/requirements.md`
+- `docs/migration/json-escape-mode.md` (new migration guidance)
 - `docs/architecture.md`
 
 ## Required work
@@ -72,11 +73,22 @@ The shared parser/checker and mode resolver are O.1/O.2-owned. This sprint
 only consumes them; it must not add a second parser, escape implementation, or
 diagnostic vocabulary.
 
+The required legacy migration warning is:
+
+```text
+Template uses legacy JSON escape mode. Migrate to bare placeholders (auto mode) to avoid double-quoting issues. See docs/migration/json-escape-mode.md
+```
+
+`validate` and `validate --lint` emit it once per affected template for an
+explicit legacy mode or a quoted placeholder detected in a JSON context. The
+warning is migration guidance; an auto-mode render that would produce invalid
+JSON still fails closed through O.2's parser gate.
+
 ## Diagnostic policy
 
 | Situation | Interactive result | Strict/repository result |
 | --- | --- | --- |
-| unannotated/legacy template | deprecation warning | finding, optionally promotable |
+| explicit legacy mode or quoted placeholder in JSON context | deprecation warning | finding, optionally promotable |
 | quoted placeholder in auto | error-level contract finding | failure |
 | bare placeholder in auto | clean | clean |
 | raw/ambiguous expression | conservative finding or deferred note | never silently claimed safe |
@@ -116,6 +128,8 @@ diagnostic vocabulary.
 - [ ] `just lint` includes the target in the appropriate profile.
 - [ ] Missing tools/fixtures are explicit config/capability failures.
 - [ ] Existing sc-lint targets and report paths remain unchanged.
+- [ ] `validate` and `validate --lint` emit O-R12's exact migration-directed
+      warning for explicit legacy mode or detected quoted placeholders.
 - [ ] O.3 changes to all four shared files were additive after rebasing onto
       the merged O.2 commit.
 - [ ] ADR-0019 is accepted before implementation handoff.
