@@ -840,11 +840,13 @@ Sprint entries:
 
 Status:
 
-- planned: JSON escape-mode compatibility and fail-closed rendered-output
-  validation after the 1.4.0 double-quote regression
+- complete: JSON escape-mode compatibility and fail-closed rendered-output
+  validation, including the Phase O fix-sprint sequence through the 1.4.1
+  release metadata follow-up
 - O.1 is the infrastructure sprint; O.2 and O.3 may execute in parallel after
   O.1 merges; O.4 migrates the six in-repo templates; O.5 is the release-corpus
-  and fuzz closeout sprint
+  and fuzz closeout sprint. O.5 cross-repository migration disposition
+  remains open under the documented release waiver.
 - target: `integrate/phase-o`
 
 Sprint entries:
@@ -855,6 +857,21 @@ Sprint entries:
 - [Sprint O.3 — Template Lint and Repository Target](phase-O/sprint-o-3-template-lint-and-repo-target.md)
 - [Sprint O.4 — Six-Template Migration and Compatibility Fixtures](phase-O/sprint-o-4-template-migration.md)
 - [Sprint O.5 — Cross-Repository Release Corpus and Fuzz Gate](phase-O/sprint-o-5-release-corpus-fuzz-gate.md)
+
+### Follow-on Fix Sprint: FIX-O13
+
+Status:
+
+- in progress on `fix/o10-version-bump-1.4.1`
+
+Sprint entry:
+
+- [Sprint FIX-O13 — Version-Bump Metadata Sync](sprints/fix-o13-version-bump-metadata-sync.md)
+
+FIX-O13 synchronizes the 1.4.1 README and changelog metadata and records the
+Phase O status accurately: implementation and fix-sprint work is complete,
+while the six-root O.5 migration disposition remains open under the release
+waiver.
 
 ### Follow-on Fix Sprint: FIX-434
 
