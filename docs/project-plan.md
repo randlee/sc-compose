@@ -864,7 +864,7 @@ Status:
 
 Sprint entry:
 
-- [PR #434 — O.6 CI Template Contracts Gate](https://github.com/randlee/sc-compose/pull/434)
+- [FIX-434 — CI Template Contracts Gate](sprints/fix-434-ci-template-contracts-gate.md)
 
 FIX-434 added the O.6 CI template-contracts gate and its cross-platform
 validation coverage for the repository-level template lint target.
