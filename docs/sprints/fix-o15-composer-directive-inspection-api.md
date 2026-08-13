@@ -42,6 +42,30 @@ stable, purpose-built public type (e.g. `DirectiveSpan` /
 public surfaces (see how `template_scanner.rs`'s existing scan results
 are exposed, if applicable, for precedent).
 
+### Exact consumer shape (relayed by atm-core team-lead, 2026-08-13)
+
+atm-core's `atm-template-sc-compose` crate (`ScComposeTemplateComposer::from_fixture_references`,
+`TemplateComposer::inspect`) needs, given raw template file bytes
+(`Vec<u8>`, UTF-8), a `Vec<TemplateReference>` where:
+
+```rust
+struct TemplateReference {
+    directive: TemplateReferenceKind,   // Include | Import | FromImport
+    source_span: SourceSpan,            // byte_start, byte_end (UTF-8 byte offsets into the raw file)
+}
+
+enum TemplateReferenceKind { Include, Import, FromImport }
+```
+
+One entry per template-loading directive found in the file, each carrying
+the directive kind and the exact UTF-8 byte span of that directive
+statement in the source. Match this shape as closely as sc-composer's own
+naming conventions allow (rename types to fit our public-API conventions,
+but keep the field/variant semantics identical) so atm-core can drop their
+local fixture-registration stub outright. If the implemented shape must
+diverge from this, flag it to team-lead before finalizing -- don't
+silently diverge.
+
 ## Out of scope
 
 - Resolving/following the directive targets (path confinement, existence
