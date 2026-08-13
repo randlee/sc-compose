@@ -4,7 +4,7 @@ use std::str;
 
 use minijinja::Environment;
 
-use crate::{ComposeError, ConfigError, DiagnosticCode};
+use crate::{ComposeError, ConfigError, DiagnosticCode, RecoveryHint, RecoveryHintKind};
 
 /// The byte range occupied by one complete Jinja statement.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -39,8 +39,8 @@ pub struct TemplateDirective {
 ///
 /// The returned spans are in source order and include the Jinja statement
 /// delimiters. Nested statements are reported independently. Directive
-/// targets are intentionally not resolved; callers that need resolution must
-/// apply their own root and path policy.
+/// target expressions are never captured or returned; callers that need
+/// resolution must apply their own root and path policy.
 ///
 /// The template is first compiled by `MiniJinja` so malformed syntax fails with
 /// a stable configuration diagnostic. A narrow source scanner then projects
@@ -60,6 +60,9 @@ pub fn inspect_template_directives(
             "template source is not valid UTF-8",
         )
         .with_source(error)
+        .with_recovery_hint(RecoveryHint::new(RecoveryHintKind::InspectInput {
+            description: "provide template source encoded as UTF-8".to_owned(),
+        }))
     })?;
 
     Environment::new()
@@ -70,6 +73,9 @@ pub fn inspect_template_directives(
                 "failed to parse template directives",
             )
             .with_source(error)
+            .with_recovery_hint(RecoveryHint::new(RecoveryHintKind::InspectInput {
+                description: "inspect the template for valid MiniJinja syntax".to_owned(),
+            }))
         })?;
 
     Ok(scan_directives(source))
@@ -181,7 +187,7 @@ fn first_keyword(content: &str) -> Option<&str> {
 
 #[cfg(test)]
 mod tests {
-    use super::{SourceSpan, TemplateDirectiveKind, inspect_template_directives};
+    use super::{RecoveryHintKind, SourceSpan, TemplateDirectiveKind, inspect_template_directives};
 
     #[test]
     fn classifies_all_three_directive_kinds_with_exact_spans() {
@@ -256,6 +262,15 @@ mod tests {
         let error = inspect_template_directives(br#"{% include "unterminated %}"#).unwrap_err();
 
         assert_eq!(error.code(), Some(crate::DiagnosticCode::ErrConfigParse));
+        let crate::ComposeError::Config(config_error) = &error else {
+            panic!("directive parse errors must use ConfigError")
+        };
+        assert_eq!(
+            config_error.recovery_hints().first().map(|hint| &hint.kind),
+            Some(&RecoveryHintKind::InspectInput {
+                description: "inspect the template for valid MiniJinja syntax".to_owned(),
+            })
+        );
         assert!(
             error
                 .to_string()
@@ -268,5 +283,14 @@ mod tests {
         let error = inspect_template_directives(b"hello \xff").unwrap_err();
 
         assert_eq!(error.code(), Some(crate::DiagnosticCode::ErrConfigRead));
+        let crate::ComposeError::Config(config_error) = &error else {
+            panic!("invalid UTF-8 errors must use ConfigError")
+        };
+        assert_eq!(
+            config_error.recovery_hints().first().map(|hint| &hint.kind),
+            Some(&RecoveryHintKind::InspectInput {
+                description: "provide template source encoded as UTF-8".to_owned(),
+            })
+        );
     }
 }
