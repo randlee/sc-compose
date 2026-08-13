@@ -25,6 +25,11 @@ All notable changes to this project will be documented in this file.
   current 1.4.1 recommendation is conditional pending the pinned atm-core
   template migration across the seven pinned roots; see
   `docs/phase-O/evidence/o5-release-corpus.md`.
+- Closed the Phase O CI lint-gate gap: the CI-authoritative lint profile now
+  scans production templates with an explicit structured pass assertion,
+  excludes intentional negative and non-production test fixtures, and keeps
+  validation and repository lint aligned when scanning Jinja comments and raw
+  blocks.
 
 ## [1.4.0] - 2026-08-12
 

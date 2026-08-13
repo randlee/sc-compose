@@ -185,25 +185,40 @@ fn next_variable_expression(
         let remainder = &source[search_start..];
         let variable = remainder.find("{{");
         let comment = remainder.find("{#");
-        match (variable, comment) {
-            (None, None) => return None,
-            (Some(variable), Some(comment)) if comment < variable => {
-                let comment_start = search_start + comment;
-                let end = source[comment_start + 2..].find("#}")?;
-                search_start = comment_start + 2 + end + 2;
-            }
-            (Some(variable), _) => {
-                let open_offset = search_start + variable;
-                let expression_start = open_offset + 2;
-                let close_offset = expression_start + source[expression_start..].find("}}")?;
-                return Some((open_offset, expression_start, close_offset));
-            }
-            (None, Some(comment)) => {
-                let comment_start = search_start + comment;
-                let end = source[comment_start + 2..].find("#}")?;
-                search_start = comment_start + 2 + end + 2;
-            }
+        let statement = remainder.find("{% ").or_else(|| remainder.find("{%"));
+        if variable.is_none() && comment.is_none() && statement.is_none() {
+            return None;
         }
+
+        let variable_offset = variable.map(|offset| search_start + offset);
+        let comment_offset = comment.map(|offset| search_start + offset);
+        let statement_offset = statement.map(|offset| search_start + offset);
+        let next = [variable_offset, comment_offset, statement_offset]
+            .into_iter()
+            .flatten()
+            .min()?;
+
+        if Some(next) == comment_offset {
+            let end = source[next + 2..].find("#}")?;
+            search_start = next + 2 + end + 2;
+            continue;
+        }
+
+        if Some(next) == statement_offset {
+            let end = source[next + 2..].find("%}")?;
+            let statement_text = source[next + 2..next + 2 + end].trim();
+            if statement_text == "raw" {
+                let raw_end = source[next + 2 + end + 2..].find("{% endraw %}")?;
+                search_start = next + 2 + end + 2 + raw_end + "{% endraw %}".len();
+            } else {
+                search_start = next + 2 + end + 2;
+            }
+            continue;
+        }
+
+        let expression_start = next + 2;
+        let close_offset = expression_start + source[expression_start..].find("}}")?;
+        return Some((next, expression_start, close_offset));
     }
     None
 }
@@ -246,6 +261,7 @@ pub(crate) fn lint_repository_templates(
         "command": "template-contracts",
         "data": {
             "status": if error_count == 0 { "pass" } else { "fail" },
+            "scope": template_contracts_scope(),
             "templates_scanned": template_count,
             "context_backed_render": false,
             "findings": findings,
@@ -347,27 +363,50 @@ fn lint_repository_template(
 
 fn discover_json_templates(root: &Path) -> std::io::Result<Vec<PathBuf>> {
     let mut templates = Vec::new();
-    visit_template_dir(root, &mut templates)?;
+    visit_template_dir(
+        root,
+        &mut templates,
+        template_contracts_scope() == "production",
+    )?;
     templates.sort();
     Ok(templates)
 }
 
-fn visit_template_dir(directory: &Path, templates: &mut Vec<PathBuf>) -> std::io::Result<()> {
+fn visit_template_dir(
+    directory: &Path,
+    templates: &mut Vec<PathBuf>,
+    production_only: bool,
+) -> std::io::Result<()> {
     for entry in fs::read_dir(directory)? {
         let entry = entry?;
         let path = entry.path();
         let name = entry.file_name();
         let name = name.to_string_lossy();
         if path.is_dir() {
-            if matches!(name.as_ref(), ".git" | "target" | "reports" | ".sc") {
+            if matches!(name.as_ref(), ".git" | "target" | "reports" | ".sc")
+                || (production_only && is_non_production_fixture_directory(&path))
+            {
                 continue;
             }
-            visit_template_dir(&path, templates)?;
+            visit_template_dir(&path, templates, production_only)?;
         } else if path.is_file() && is_json_template_path(&path) {
             templates.push(path);
         }
     }
     Ok(())
+}
+
+fn template_contracts_scope() -> &'static str {
+    match std::env::var("SC_COMPOSE_TEMPLATE_CONTRACTS_SCOPE").as_deref() {
+        Ok("production") => "production",
+        _ => "all",
+    }
+}
+
+fn is_non_production_fixture_directory(path: &Path) -> bool {
+    path.ends_with(Path::new(
+        "tests/fixtures/sc-lint/template-contracts/findings",
+    )) || path.ends_with(Path::new("crates/sc-composer/tests/fixtures"))
 }
 
 fn redundant_chain_offset(expression: &str) -> Option<usize> {
@@ -441,8 +480,9 @@ fn line_and_column(source: &str, offset: usize) -> (usize, usize) {
 
 #[cfg(test)]
 mod tests {
-    use super::lint_source;
+    use super::{is_non_production_fixture_directory, lint_source, visit_template_dir};
     use sc_composer::DiagnosticCode;
+    use std::path::Path;
 
     #[test]
     fn finds_redundant_chain_with_source_location() {
@@ -471,6 +511,30 @@ mod tests {
     }
 
     #[test]
+    fn production_scan_excludes_intentional_negative_fixture_tree() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(Path::parent)
+            .expect("workspace root");
+        let mut templates = Vec::new();
+
+        visit_template_dir(root, &mut templates, true).expect("scan repository templates");
+
+        assert!(!templates.iter().any(|path| {
+            path.parent()
+                .is_some_and(is_non_production_fixture_directory)
+        }));
+        assert!(!templates.iter().any(|path| {
+            path.file_name()
+                .is_some_and(|name| name.to_string_lossy() == "auto.json.j2")
+        }));
+        assert!(templates.iter().any(|path| {
+            path.file_name()
+                .is_some_and(|name| name.to_string_lossy().ends_with(".json.j2"))
+        }));
+    }
+
+    #[test]
     fn finds_auto_mode_quoted_json_scalar_with_location() {
         let diagnostics = super::lint_source_with_mode(
             std::path::Path::new("payload.json.j2"),
@@ -494,7 +558,7 @@ mod tests {
     fn legacy_mode_warns_but_comments_and_jinja_literals_are_ignored() {
         let diagnostics = super::lint_source_with_mode(
             std::path::Path::new("payload.json.j2"),
-            "{# \"ignored\": \"{{ comment }}\" #}\n{\"value\": \"{{ value }}\"}\n{{ \"{{ literal }}\" }}\n",
+            "{# {\"ignored\": \"{{ comment }}\"} #}\n{% raw %}{\"ignored\": \"{{ raw }}\"}{% endraw %}\n{\"value\": \"{{ value }}\"}\n{{ \"{{ literal }}\" }}\n",
             sc_composer::JsonEscapeMode::Legacy,
             true,
             &[],
