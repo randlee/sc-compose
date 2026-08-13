@@ -45,11 +45,11 @@ impl OutputFormat {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct RenderCheckMeta {
     /// Template path used for the check.
-    pub template: PathBuf,
-    /// Detected output format.
-    pub output_format: OutputFormat,
+    template: PathBuf,
+    /// Effective output format for the check.
+    output_format: OutputFormat,
     /// Effective JSON interpolation mode, when applicable.
-    pub json_escape_mode: Option<JsonEscapeMode>,
+    json_escape_mode: Option<JsonEscapeMode>,
 }
 
 impl RenderCheckMeta {
@@ -63,6 +63,41 @@ impl RenderCheckMeta {
             output_format,
             json_escape_mode: None,
         }
+    }
+
+    /// Build metadata with an explicitly supplied output format.
+    ///
+    /// The format is part of the caller's render contract. It is deliberately
+    /// not inferred from `template`, because catalog-backed callers may retain
+    /// a format that intentionally differs from the current path extension.
+    #[must_use]
+    pub fn for_template_with_format(
+        template: impl Into<PathBuf>,
+        output_format: OutputFormat,
+    ) -> Self {
+        Self {
+            template: template.into(),
+            output_format,
+            json_escape_mode: None,
+        }
+    }
+
+    /// Return the template path associated with this check.
+    #[must_use]
+    pub fn template(&self) -> &Path {
+        &self.template
+    }
+
+    /// Return the effective output format used by the checker.
+    #[must_use]
+    pub const fn output_format(&self) -> OutputFormat {
+        self.output_format
+    }
+
+    /// Return the effective JSON interpolation mode, when one was supplied.
+    #[must_use]
+    pub const fn json_escape_mode(&self) -> Option<JsonEscapeMode> {
+        self.json_escape_mode
     }
 
     /// Set the effective JSON mode for this report.
@@ -149,7 +184,7 @@ impl RenderCheckReport {
 pub struct CheckedOutput {
     body: String,
     /// Template and mode metadata for this checked output.
-    pub meta: RenderCheckMeta,
+    meta: RenderCheckMeta,
 }
 
 impl CheckedOutput {
@@ -157,6 +192,12 @@ impl CheckedOutput {
     #[must_use]
     pub fn body(&self) -> &str {
         &self.body
+    }
+
+    /// Borrow the immutable metadata captured when this output was checked.
+    #[must_use]
+    pub const fn meta(&self) -> &RenderCheckMeta {
+        &self.meta
     }
 
     /// Emit the checked body to a writer.
@@ -240,8 +281,27 @@ pub fn check_rendered_output(
     template: &Path,
     rendered: &str,
 ) -> Result<CheckedOutput, OutputCheckError> {
-    let meta = RenderCheckMeta::for_template(template);
-    if format != OutputFormat::Json {
+    let meta = RenderCheckMeta::for_template_with_format(template, format);
+    check_rendered_output_with_meta(meta, rendered)
+}
+
+/// Check a complete rendered body with caller-owned metadata.
+///
+/// This is the metadata-preserving form for callers such as atm-core that
+/// resolve output format and interpolation mode at catalog admission. The
+/// metadata is moved into the returned [`CheckedOutput`], so it cannot be
+/// changed after validation.
+///
+/// # Errors
+///
+/// Returns [`OutputCheckError`] when a JSON body is not one complete valid JSON
+/// document. The error includes a stable diagnostic location and never echoes
+/// rendered values.
+pub fn check_rendered_output_with_meta(
+    meta: RenderCheckMeta,
+    rendered: &str,
+) -> Result<CheckedOutput, OutputCheckError> {
+    if meta.output_format != OutputFormat::Json {
         return Ok(CheckedOutput {
             body: rendered.to_owned(),
             meta,
@@ -254,6 +314,7 @@ pub fn check_rendered_output(
             meta,
         });
     };
+
     let line = error.line();
     let column = error.column();
     let byte_offset = byte_offset_at(rendered, line, column);
@@ -264,7 +325,7 @@ pub fn check_rendered_output(
             "rendered JSON is invalid at line {line}, column {column}, byte offset {byte_offset}"
         ),
     )
-    .with_path(template)
+    .with_path(&meta.template)
     .with_location(line, column);
     Err(OutputCheckError {
         reason: OutputCheckReason::InvalidJson {
@@ -291,7 +352,10 @@ fn byte_offset_at(text: &str, line: usize, column: usize) -> usize {
 mod tests {
     use std::path::Path;
 
-    use super::{OutputFormat, RenderCheckMeta, RenderCheckReport, check_rendered_output};
+    use super::{
+        OutputFormat, RenderCheckMeta, RenderCheckReport, check_rendered_output,
+        check_rendered_output_with_meta,
+    };
 
     #[test]
     fn parser_accepts_json_document_shapes_and_whitespace() {
@@ -336,6 +400,64 @@ mod tests {
         let checked = check_rendered_output(OutputFormat::Text, Path::new("notes.md.j2"), "body")
             .expect("text output is unchanged");
         assert_eq!(checked.body(), "body");
+    }
+
+    #[test]
+    fn caller_supplied_format_is_authoritative_over_template_path() {
+        let text = check_rendered_output(
+            OutputFormat::Text,
+            Path::new("payload.json.j2"),
+            "not JSON, but valid text",
+        )
+        .expect("explicit text contract must not be replaced by the path extension");
+        assert_eq!(text.meta().output_format(), OutputFormat::Text);
+
+        let json = check_rendered_output(
+            OutputFormat::Json,
+            Path::new("payload.md.j2"),
+            "{\"value\":true}",
+        )
+        .expect("explicit JSON contract must be checked even for a non-JSON path");
+        assert_eq!(json.meta().output_format(), OutputFormat::Json);
+    }
+
+    #[test]
+    fn checked_output_keeps_metadata_immutable_after_validation() {
+        let meta =
+            RenderCheckMeta::for_template_with_format("catalog-entry.md.j2", OutputFormat::Json)
+                .with_json_escape_mode(Some(crate::renderer::JsonEscapeMode::Auto));
+        let checked =
+            check_rendered_output_with_meta(meta.clone(), "{\"value\":1}").expect("valid JSON");
+
+        assert_eq!(checked.meta(), &meta);
+        assert_eq!(checked.meta().template(), Path::new("catalog-entry.md.j2"));
+        assert_eq!(
+            checked.meta().json_escape_mode(),
+            Some(crate::renderer::JsonEscapeMode::Auto)
+        );
+    }
+
+    #[test]
+    fn malformed_json_has_no_checked_output_to_emit() {
+        let result = check_rendered_output(OutputFormat::Json, Path::new("payload.md.j2"), "{");
+        assert!(result.is_err());
+        assert!(matches!(
+            result,
+            Err(super::OutputCheckError {
+                reason: super::OutputCheckReason::InvalidJson { .. },
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn text_bytes_are_preserved_exactly() {
+        let body = "line 1\r\nUnicode: café 🚀\r\n";
+        let checked = check_rendered_output(OutputFormat::Text, Path::new("notes.json.j2"), body)
+            .expect("text output is unchanged");
+        let mut emitted = Vec::new();
+        checked.emit(&mut emitted).unwrap();
+        assert_eq!(emitted, body.as_bytes());
     }
 
     #[test]

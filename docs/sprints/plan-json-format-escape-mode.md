@@ -424,15 +424,24 @@ it must not merely identify the mode or promise a future release date.
 ### 7.1 Library-owned result
 
 Use the Phase O plan's authoritative state-shaped result type. The following
-is the required public shape; implementation may add private metadata but may
-not restore independent booleans or a second report vocabulary:
+is the required public shape; metadata fields are intentionally private and
+read through accessors so callers cannot mutate the contract after checking.
+Implementations may not restore independent booleans or a second report
+vocabulary:
 
 ```rust
 #[derive(Clone, Debug, Serialize)]
 pub struct RenderCheckMeta {
-    pub template: PathBuf,
-    pub output_format: OutputFormat,
-    pub json_escape_mode: Option<JsonEscapeMode>,
+    template: PathBuf,
+    output_format: OutputFormat,
+    json_escape_mode: Option<JsonEscapeMode>,
+}
+
+impl RenderCheckMeta {
+    pub fn for_template_with_format(template: impl Into<PathBuf>, format: OutputFormat) -> Self;
+    pub fn template(&self) -> &Path;
+    pub fn output_format(&self) -> OutputFormat;
+    pub fn json_escape_mode(&self) -> Option<JsonEscapeMode>;
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -463,6 +472,11 @@ pub fn check_rendered_output(
     rendered: &str,
 ) -> Result<CheckedOutput, OutputCheckError>;
 
+pub fn check_rendered_output_with_meta(
+    meta: RenderCheckMeta,
+    rendered: &str,
+) -> Result<CheckedOutput, OutputCheckError>;
+
 #[derive(Debug)]
 #[non_exhaustive]
 pub struct OutputCheckError {
@@ -484,6 +498,10 @@ pub enum OutputCheckReason {
 prevents an unchecked body from reaching output. `RenderCheckReport` is the
 machine-readable state projection and must be serializable into the existing
 diagnostic envelope; it does not contain the full rendered body by default.
+The caller-supplied `OutputFormat` is authoritative and is never re-derived
+from the template path. Catalog-backed callers use
+`check_rendered_output_with_meta` to preserve admission metadata without
+post-validation mutation.
 
 The report should distinguish these cases:
 

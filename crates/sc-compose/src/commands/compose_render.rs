@@ -181,7 +181,7 @@ fn checked_render_output(
     CommandError,
 > {
     let meta = render_check_meta(request, resolved_path);
-    let should_check = args.check_render || meta.output_format == sc_composer::OutputFormat::Json;
+    let should_check = args.check_render || meta.output_format() == sc_composer::OutputFormat::Json;
     if !should_check {
         let checked = sc_composer::check_rendered_output(
             sc_composer::OutputFormat::Text,
@@ -193,12 +193,10 @@ fn checked_render_output(
         })?;
         return Ok((checked, None));
     }
-    let mut checked =
-        sc_composer::check_rendered_output(meta.output_format, &meta.template, rendered_text)
-            .map_err(|error| {
-                CommandError::render_check(error.with_failing_pass(failing_pass(request)))
-            })?;
-    checked.meta = meta.clone();
+    let checked = sc_composer::check_rendered_output_with_meta(meta.clone(), rendered_text)
+        .map_err(|error| {
+            CommandError::render_check(error.with_failing_pass(failing_pass(request)))
+        })?;
     let report = sc_composer::RenderCheckReport::RenderChecked {
         meta,
         checked_context: context_summary(request),
