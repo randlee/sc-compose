@@ -34,7 +34,7 @@ comp's Phase O production-readiness review (REVIEW-433) found:
   (`sc_lint_template_contracts.rs`, `extract_integration.rs`).
 - Add a scanner-parity regression test comparing the two scanners' output on
   a shared fixture (later fully deduplicated into one shared implementation
-  by FIX-439/PR #436).
+  by PR #436).
 - Check the O5-015 checklist item and mirrored bullet, citing the new CI gate
   as closing rationale.
 
@@ -51,7 +51,7 @@ comp's Phase O production-readiness review (REVIEW-433) found:
 ## Out of Scope
 
 - Full scanner deduplication into a shared module — deferred to a follow-up
-  (delivered by FIX-439/PR #436).
+  (delivered by PR #436).
 
 ## Acceptance Criteria
 
