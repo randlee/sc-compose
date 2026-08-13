@@ -134,15 +134,16 @@ wrapper:
 | `just lint target=fast` | PASS | all five fast-profile steps passed |
 | `just lint target=sc-boundary` | PASS | direct sc-compose target used `sc-lint-boundary` 0.4.0 and scanned 3 crates |
 | `just lint target=template-contracts` | EXPECTED FAIL | negative `auto.json.j2` is required to emit `ERR_JSON_MODE_CONTRACT`; legacy/reverse-extract fixtures are required warning cases |
-| `just lint` | BLOCKED | full wrapper invokes `.just/lint_sc_boundary.py`, which requests package `sc-lint-boundary` from this standalone workspace; the package is not in this workspace. This is `O5-SC-LINT-BOOTSTRAP-001`, owned by team-lead/sc-lint, and no suppression was added |
+| `just lint` | BLOCKED | the full wrapper calls the repository's `sc-compose lint` recipes directly, which shell out to `sc-lint` and the `sc-lint-boundary`, `sc-lint-portability`, and `sc-lint-runtime` sibling binaries. Those release binaries are absent from a bare local worktree and are provisioned by CI's `.github/actions/setup-sc-lint/action.yml`; CI's `just lint-ci-consumer` is green and is the authoritative gate. This is `O5-SC-LINT-BOOTSTRAP-001`, and no suppression was added |
 | report validation | PASS | `html-validate` passed the top-level report; `xmllint --noout` passed all four XHTML panels; `jq empty` passed the sidecar |
 | `git diff --check` | PASS | no whitespace errors |
 
 Therefore O.5 has complete parser/corpus evidence and a conditional release
-recommendation, but it does not claim that every repository-level lint gate is
-green. The missing `sc-lint-boundary` workspace integration must be resolved
-in a separate fix worktree/PR and the full `just lint` gate rerun on the
-merged parent.
+recommendation, but it does not claim that a bare local worktree can run every
+repository-level lint wrapper. The local BLOCKED result is a tooling-
+provisioning gap, not a missing `.just/` script or a repository regression:
+the pinned sc-lint release binaries are supplied by CI's setup action. CI's
+green `just lint-ci-consumer` run is the authoritative provisioned lint gate.
 
 ## Release recommendation
 
