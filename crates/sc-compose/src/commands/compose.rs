@@ -290,7 +290,7 @@ pub(crate) fn context_summary(
             }
             sc_composer::VariableSource::FrontmatterDefault => root_defaults.push(name.to_string()),
             sc_composer::VariableSource::IncludedDefault => {
-                included_defaults.push(name.to_string())
+                included_defaults.push(name.to_string());
             }
             sc_composer::VariableSource::Builtin => {}
         }
