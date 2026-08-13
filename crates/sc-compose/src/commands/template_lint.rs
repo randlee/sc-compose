@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use anyhow::anyhow;
 use sc_composer::{
     ComposePolicy, ComposeRequest, ConfiningRoot, Diagnostic, DiagnosticCode, DiagnosticSeverity,
-    JsonEscapeMode, expand_includes, resolve_json_escape_mode, strip_template_suffix,
+    JsonEscapeMode, expand_includes, is_json_template_path, resolve_json_escape_mode,
 };
 use serde_json::{Value, json};
 
@@ -124,16 +124,6 @@ fn lint_source_with_mode(
     }
 
     diagnostics
-}
-
-fn is_json_template_path(path: &Path) -> bool {
-    let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
-        return false;
-    };
-    Path::new(strip_template_suffix(name))
-        .extension()
-        .and_then(|extension| extension.to_str())
-        == Some("json")
 }
 
 fn is_literal_quoted_scalar(source: &str, open_offset: usize, close_offset: usize) -> bool {
@@ -503,6 +493,26 @@ mod tests {
         assert_eq!(diagnostics[0].code, DiagnosticCode::ErrJsonModeContract);
         assert_eq!(diagnostics[0].line, Some(1));
         assert_eq!(diagnostics[0].column, Some(12));
+    }
+
+    #[test]
+    fn fuzz_001_template_lint_uses_shared_json_path_detector() {
+        for path in ["payload.JSON.j2", "payload.json.J2", "payload.json.j2.j2"] {
+            let diagnostics = super::lint_source_with_mode(
+                Path::new(path),
+                "{\"value\": \"{{ value }}\"}\n",
+                sc_composer::JsonEscapeMode::Auto,
+                false,
+                &[],
+            );
+
+            assert!(
+                diagnostics
+                    .iter()
+                    .any(|diagnostic| diagnostic.code == DiagnosticCode::ErrJsonModeContract),
+                "template lint misclassified {path}: {diagnostics:?}"
+            );
+        }
     }
 
     #[test]

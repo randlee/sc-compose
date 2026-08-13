@@ -5,8 +5,8 @@ use crate::ExpandedTemplate;
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
 use crate::discovery::discover_tokens;
 use crate::frontmatter::parse_template_document;
+use crate::is_json_template_path;
 use crate::renderer::JSON_LEGACY_WARNING;
-use crate::strip_template_suffix;
 use crate::types::{ComposeRequest, UnknownVariablePolicy, VariableName, VariableSource};
 
 use super::ValidationState;
@@ -196,17 +196,6 @@ const fn json_mode_name(mode: crate::JsonEscapeMode) -> &'static str {
         crate::JsonEscapeMode::Legacy => "legacy",
         crate::JsonEscapeMode::Auto => "auto",
     }
-}
-
-fn is_json_template_path(path: &Path) -> bool {
-    let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
-        return false;
-    };
-    let stripped = strip_template_suffix(file_name);
-    Path::new(stripped)
-        .extension()
-        .and_then(|extension| extension.to_str())
-        == Some("json")
 }
 
 fn quoted_json_placeholder_expressions(body: &str) -> Vec<String> {
@@ -532,7 +521,7 @@ mod tests {
     use crate::types::{
         ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, UnknownVariablePolicy,
     };
-    use crate::{DiagnosticCode, DiagnosticSeverity, ExpandedTemplate, validate};
+    use crate::{DiagnosticCode, DiagnosticSeverity, ExpandedTemplate, OutputFormat, validate};
 
     use super::{missing_frontmatter_warnings_for_path, quoted_json_placeholder_expressions};
 
@@ -544,6 +533,32 @@ mod tests {
             )),
             vec!["value"]
         );
+    }
+
+    #[test]
+    fn fuzz_001_validation_matches_checked_format_detection_for_json_path_variants() {
+        let root = temp_root("diagnostics_json_path_variants");
+        for file in ["payload.JSON.j2", "payload.json.J2", "payload.json.j2.j2"] {
+            let path = root.join(file);
+            write_file(
+                &path,
+                "---\njson_escape_mode: auto\nrequired_variables: []\n---\n{\"value\": {{ value }}}\n",
+            );
+            assert_eq!(
+                OutputFormat::from_template_path(&path),
+                OutputFormat::Json,
+                "checked-render format for {file}"
+            );
+
+            let report = validate(&request_for_file(&root, file, ComposePolicy::default()))
+                .unwrap_or_else(|error| panic!("validation failed for {file}: {error}"));
+            assert!(
+                !report.errors.iter().any(|diagnostic| {
+                    diagnostic.code == DiagnosticCode::ErrJsonEscapeModeNonJson
+                }),
+                "JSON path misclassified by validation for {file}: {report:?}"
+            );
+        }
     }
 
     #[test]

@@ -116,7 +116,10 @@ pub use sc_sha::{
     calculate_composition_hash, calculate_hash,
 };
 #[doc(inline)]
-pub use template_ext::strip_template_suffix;
+pub use template_ext::{
+    is_json_template_path, strip_all_template_suffixes, strip_template_suffix,
+    template_content_extension,
+};
 #[doc(inline)]
 pub use types::{
     ComposeMode, ComposePolicy, ComposeRequest, ComposeResult, ConfiningRoot,
