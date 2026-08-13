@@ -117,6 +117,8 @@ impl PyDiagnosticCode {
     const WARN_VAL_CONFLICTING_DEFAULT_SECTIONS: &'static str =
         "WARN_VAL_CONFLICTING_DEFAULT_SECTIONS";
     #[classattr]
+    const WARN_LINT_REDUNDANT_FILTER_CHAIN: &'static str = "WARN_LINT_REDUNDANT_FILTER_CHAIN";
+    #[classattr]
     const ERR_VAL_EMPTY: &'static str = "ERR_VAL_EMPTY";
     #[classattr]
     const ERR_VAL_MISSING_FRONTMATTER: &'static str = "ERR_VAL_MISSING_FRONTMATTER";
@@ -230,6 +232,8 @@ impl PyDiagnosticCode {
     const ERR_JSON_LEGACY_NON_STRING: &'static str = "ERR_JSON_LEGACY_NON_STRING";
     #[classattr]
     const ERR_JSON_MODE_CONTRACT: &'static str = "ERR_JSON_MODE_CONTRACT";
+    #[classattr]
+    const ERR_JSON_MODE_INCLUDE_CONFLICT: &'static str = "ERR_JSON_MODE_INCLUDE_CONFLICT";
     #[classattr]
     const WARN_JSON_LEGACY_ESCAPE_MODE: &'static str = "WARN_JSON_LEGACY_ESCAPE_MODE";
     #[classattr]

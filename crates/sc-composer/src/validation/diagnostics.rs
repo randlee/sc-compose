@@ -212,23 +212,23 @@ fn is_json_template_path(path: &Path) -> bool {
 fn quoted_json_placeholder_expressions(body: &str) -> Vec<String> {
     let mut expressions = Vec::new();
     let mut search_from = 0;
-    while let Some((open, expression_start, close)) =
+    while let Some(span) =
         crate::template_scanner::next_jinja_variable_expression(body, search_from)
     {
-        let before = body[..open]
+        let before = body[..span.open]
             .chars()
             .rev()
             .find(|character| !character.is_whitespace());
-        let after = body[close + 2..]
+        let after = body[span.close + 2..]
             .chars()
             .find(|character| !character.is_whitespace());
         if before == Some('"') && after == Some('"') {
-            let expression = body[expression_start..close].trim();
+            let expression = body[span.expression_start..span.close].trim();
             if !expression.is_empty() {
                 expressions.push(expression.to_owned());
             }
         }
-        search_from = close + 2;
+        search_from = span.close + 2;
     }
     expressions
 }

@@ -1,11 +1,20 @@
 //! Shared lexical scanning for Jinja variable expressions.
 
+/// Byte offsets delimiting one Jinja variable expression.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct JinjaVariableExpressionSpan {
+    /// Byte offset of the opening `{{` delimiter.
+    pub open: usize,
+    /// Byte offset immediately after the opening delimiter.
+    pub expression_start: usize,
+    /// Byte offset immediately before the closing `}}` delimiter.
+    pub close: usize,
+}
+
 /// Find the next Jinja variable expression in `source`.
 ///
-/// The returned tuple contains the byte offsets of the opening delimiter, the
-/// expression body, and the closing delimiter, respectively. Jinja comments
-/// and raw blocks are skipped. This intentionally remains a conservative
-/// lexical scan; expression semantics belong to the renderer.
+/// Jinja comments and raw blocks are skipped. This intentionally remains a
+/// conservative lexical scan; expression semantics belong to the renderer.
 ///
 /// An unterminated comment, statement, raw block, or variable expression ends
 /// the scan without returning a partial match.
@@ -13,7 +22,7 @@
 pub fn next_jinja_variable_expression(
     source: &str,
     mut search_start: usize,
-) -> Option<(usize, usize, usize)> {
+) -> Option<JinjaVariableExpressionSpan> {
     while search_start < source.len() {
         let remainder = &source[search_start..];
         let variable = remainder.find("{{");
@@ -51,7 +60,11 @@ pub fn next_jinja_variable_expression(
 
         let expression_start = next + 2;
         let close = expression_start + source[expression_start..].find("}}")?;
-        return Some((next, expression_start, close));
+        return Some(JinjaVariableExpressionSpan {
+            open: next,
+            expression_start,
+            close,
+        });
     }
     None
 }

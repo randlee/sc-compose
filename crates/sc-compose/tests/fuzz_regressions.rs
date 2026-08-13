@@ -139,11 +139,10 @@ fn opening_delimiter_with_trailing_whitespace_does_not_silently_bypass_required_
     );
 }
 
-/// The default text path should expose only sc-compose's stable parse message,
-/// not `serde_yaml`'s raw source-chain text. The existing formatter backtrace
-/// remains outside this narrow parser-scope fix.
+/// The default text path should retain sc-compose's stable parse message while
+/// exposing the preserved `serde_yaml` source chain for diagnosis.
 #[test]
-fn malformed_frontmatter_text_output_hides_raw_serde_yaml_error_details() {
+fn malformed_frontmatter_text_output_preserves_serde_yaml_error_details() {
     let root = temp_root("fuzz-config-parse-raw-yaml");
     write_file(&root.join("t.j2"), "---\ndefaults: [\n---\nbody\n");
 
@@ -159,7 +158,11 @@ fn malformed_frontmatter_text_output_hides_raw_serde_yaml_error_details() {
         stderr.contains("failed to parse YAML frontmatter"),
         "stderr: {stderr}"
     );
-    assert!(!stderr.contains("caused by"), "stderr: {stderr}");
+    assert!(stderr.contains("caused by:"), "stderr: {stderr}");
+    assert!(
+        stderr.contains("invalid type: sequence, expected a map"),
+        "stderr: {stderr}"
+    );
 }
 
 #[test]
