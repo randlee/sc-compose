@@ -211,6 +211,12 @@ ATM integration is an adapter concern outside this repository.
 - `template_scanner`
   - exposes the shared lexical Jinja variable-expression scanner used by
     library JSON diagnostics and the `sc-compose` template-lint command.
+- `directive_inspection`
+  - validates raw UTF-8 template bytes with MiniJinja,
+  - exposes `inspect_template_directives` and the purpose-built
+    `TemplateDirective`/`SourceSpan`/`TemplateDirectiveKind` types,
+  - classifies include, import, and from-import statements without exposing
+    parser or AST types and without resolving their targets.
 - `validate`
   - produces validation reports and diagnostics without writing output.
 - `verify`

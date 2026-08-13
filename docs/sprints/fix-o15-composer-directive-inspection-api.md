@@ -1,7 +1,9 @@
 ---
 id: FIX-O15
 title: Public classified directive-inspection API for sc-composer
-status: assigned
+status: complete
+branch: fix/o15-composer-directive-inspection-api
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/o15-composer-directive-inspection-api
 phase: Phase O
 sprint_doc: docs/project-plan.md
 ---
@@ -33,9 +35,10 @@ spans for a parsed template's:
 - `import` directives
 - `from ... import ...` directives
 
-Each span should carry at minimum: directive kind, source byte/line range,
-and the resolved target path/module expression as parsed (not yet
-resolved against the filesystem). Do not leak internal parser types
+The initial design proposal included the directive kind, source byte/line
+range, and the target path/module expression as parsed (not yet resolved
+against the filesystem). The exact consumer contract below narrows this to
+the kind and byte span. Do not leak internal parser types
 (AST nodes, token structs) across the public boundary -- return a small,
 stable, purpose-built public type (e.g. `DirectiveSpan` /
 `ClassifiedDirective`) per `sc-composer`'s existing pattern of narrow
@@ -65,6 +68,12 @@ but keep the field/variant semantics identical) so atm-core can drop their
 local fixture-registration stub outright. If the implemented shape must
 diverge from this, flag it to team-lead before finalizing -- don't
 silently diverge.
+
+The exact atm-core contract supersedes the earlier generic example above:
+`TemplateDirective` carries the classified kind and `SourceSpan` only. Target
+expressions are intentionally not returned because this sprint's consumer
+needs byte-exact source identity and keeps target resolution in its own
+policy-bearing layer.
 
 ## Out of scope
 

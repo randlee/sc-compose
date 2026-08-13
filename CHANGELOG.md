@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added the public `sc-composer::inspect_template_directives` API, which
+  validates UTF-8 template bytes and returns classified include, import, and
+  from-import statement spans without exposing MiniJinja parser internals or
+  resolving filesystem targets.
 - Added fail-closed include-chain validation for JSON escape modes across
   `validate`, `validate --lint`, and `render`. An included template that
   explicitly declares a mode different from the root's effective mode now
