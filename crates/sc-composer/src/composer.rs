@@ -136,9 +136,18 @@ fn compose_expanded(
             &mut validation_state,
             &validation_report.resolve_result.resolved_path,
         );
-        render_all_with_observer(&parsed, &contexts, &template_name, observer)?
+        render_all_with_observer(
+            &parsed,
+            &contexts,
+            &template_name,
+            observer,
+            effective_json_escape_mode(request, parsed.frontmatter()),
+        )?
     } else {
-        let renderer = Renderer::new();
+        let renderer = Renderer::with_json_escape_mode(effective_json_escape_mode(
+            request,
+            parsed.frontmatter(),
+        ));
         renderer
             .render_named(
                 &template_name,
@@ -187,7 +196,24 @@ pub fn render_all(
     contexts: &[(u8, BTreeMap<VariableName, InputValue>)],
 ) -> Result<String, ComposeError> {
     let mut observer = NoopObserver;
-    render_all_with_observer(parsed, contexts, "inline", &mut observer)
+    render_all_with_observer(
+        parsed,
+        contexts,
+        "inline",
+        &mut observer,
+        crate::JsonEscapeMode::Auto,
+    )
+}
+
+fn effective_json_escape_mode(
+    request: &ComposeRequest,
+    root_frontmatter: Option<&Frontmatter>,
+) -> crate::JsonEscapeMode {
+    request
+        .policy
+        .json_escape_mode
+        .or_else(|| root_frontmatter.and_then(Frontmatter::json_escape_mode))
+        .unwrap_or_default()
 }
 
 /// Protect next-higher-brace expressions from lower-brace rendering passes.
@@ -333,6 +359,7 @@ fn render_all_with_observer(
     contexts: &[(u8, BTreeMap<VariableName, InputValue>)],
     template_name: &str,
     observer: &mut dyn CompositionObserver,
+    json_escape_mode: crate::JsonEscapeMode,
 ) -> Result<String, ComposeError> {
     if contexts.len() != parsed.passes().len() {
         return Err(ConfigError::new(
@@ -365,7 +392,8 @@ fn render_all_with_observer(
         let brace_count = usize::from(header_pass_number) + 1;
         let open = "{".repeat(brace_count);
         let close = "}".repeat(brace_count);
-        let renderer = Renderer::with_delimiters(&open, &close)?;
+        let renderer =
+            Renderer::with_delimiters_and_json_escape_mode(&open, &close, json_escape_mode)?;
         let protected_body = protect_higher_braces(&body, brace_count);
         let mut merged_variables = frontmatter.defaults().clone();
         for (name, value) in variables {

@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::Diagnostic;
 use crate::diagnostics::DiagnosticCode;
+use crate::renderer::JsonEscapeMode;
 
 /// Caller-provided render input value.
 pub type InputValue = serde_json::Value;
@@ -405,6 +406,10 @@ pub struct ComposePolicy {
     pub resolver_policy: ResolverPolicy,
     /// Per-pass policy extensions for multi-pass templates.
     pub passes: Vec<PassConfig>,
+    /// Optional CLI-level JSON mode override. A root frontmatter declaration
+    /// takes precedence when this is `None`, followed by `Auto`.
+    #[serde(default)]
+    pub json_escape_mode: Option<JsonEscapeMode>,
 }
 
 impl Default for ComposePolicy {
@@ -417,6 +422,7 @@ impl Default for ComposePolicy {
             allowed_roots: Vec::new(),
             resolver_policy: ResolverPolicy::default(),
             passes: Vec::new(),
+            json_escape_mode: None,
         }
     }
 }

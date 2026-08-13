@@ -6,12 +6,27 @@ use minijinja::value::ValueKind;
 use minijinja::{
     AutoEscape, Environment, Error, Output, State, Value as JinjaValue, escape_formatter,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{RenderError, strip_template_suffix};
 
 const XML_REPLACEMENT_NCR: &str = "&#xfffd;";
+
+/// Stable migration guidance emitted for legacy JSON interpolation.
+pub const JSON_LEGACY_WARNING: &str = "Template uses legacy JSON escape mode. Migrate to bare placeholders (auto mode) to avoid double-quoting issues. See docs/migration/json-escape-mode.md";
+
+/// JSON interpolation policy selected for a template render.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum JsonEscapeMode {
+    /// Escape a string's contents without adding quotes already present in the
+    /// manually quoted legacy source shape.
+    Legacy,
+    /// Render complete JSON values, including string delimiters.
+    #[default]
+    Auto,
+}
 
 /// Additional named templates that the main template may extend or include.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -51,12 +66,15 @@ pub struct Renderer {
     env: Environment<'static>,
 }
 
-fn legacy_auto_escape_callback(name: &str) -> AutoEscape {
+fn auto_escape_callback(name: &str, json_escape_mode: JsonEscapeMode) -> AutoEscape {
     let name = strip_template_suffix(name);
 
     match name.rsplit('.').next() {
         Some("html" | "htm" | "xml" | "xhtml") => AutoEscape::Custom("sc-compose-html"),
-        Some("json") => AutoEscape::Json,
+        Some("json") => match json_escape_mode {
+            JsonEscapeMode::Legacy => AutoEscape::Custom("sc-compose-json-legacy"),
+            JsonEscapeMode::Auto => AutoEscape::Json,
+        },
         _ => AutoEscape::None,
     }
 }
@@ -164,6 +182,18 @@ fn yaml_safe_filter(value: &str) -> String {
     format!("\"{escaped}\"")
 }
 
+fn json_string_contents(value: &JinjaValue) -> String {
+    let value = value
+        .as_str()
+        .map_or_else(|| value.to_string(), ToOwned::to_owned);
+    let encoded = serde_json::to_string(&value).unwrap_or_else(|_| "\"\"".to_owned());
+    encoded
+        .strip_prefix('"')
+        .and_then(|encoded| encoded.strip_suffix('"'))
+        .unwrap_or_default()
+        .to_owned()
+}
+
 fn format_sc_compose_markup(
     out: &mut Output<'_>,
     state: &State<'_, '_>,
@@ -175,6 +205,11 @@ fn format_sc_compose_markup(
         value
     };
     if state.auto_escape() != AutoEscape::Custom("sc-compose-html") {
+        if state.auto_escape() == AutoEscape::Custom("sc-compose-json-legacy") {
+            return out
+                .write_str(&json_string_contents(value))
+                .map_err(Error::from);
+        }
         return escape_formatter(out, state, value);
     }
     if value.is_safe() {
@@ -210,12 +245,12 @@ fn map_get_unknown_method_callback(
     }
 }
 
-fn configure_environment(env: &mut Environment<'static>) {
+fn configure_environment(env: &mut Environment<'static>, json_escape_mode: JsonEscapeMode) {
     env.set_trim_blocks(true);
     env.set_lstrip_blocks(true);
     // Keep sc-compose's historical extension policy when Minijinja's `json`
     // feature is enabled. JSON/YAML/JS templates are text outputs, not HTML.
-    env.set_auto_escape_callback(legacy_auto_escape_callback);
+    env.set_auto_escape_callback(move |name| auto_escape_callback(name, json_escape_mode));
     env.set_formatter(format_sc_compose_markup);
     env.add_filter("cdata_escape", cdata_escape_filter);
     env.add_filter("turtle_escape", turtle_escape_filter);
@@ -236,27 +271,32 @@ impl Renderer {
     /// Create a renderer with additional environment configuration.
     #[must_use]
     pub(crate) fn with_options(configure: impl FnOnce(&mut Environment<'static>)) -> Self {
-        Self::try_with_options(|env| {
+        Self::try_with_json_escape_mode(JsonEscapeMode::Auto, |env| {
             configure(env);
             Ok(())
         })
         .expect("default renderer options must stay valid")
     }
 
-    /// Create a renderer with additional environment configuration that may
-    /// fail while applying syntax changes.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`RenderError`] when `configure` installs invalid renderer
-    /// syntax for the underlying template engine.
-    pub(crate) fn try_with_options(
+    fn try_with_json_escape_mode(
+        json_escape_mode: JsonEscapeMode,
         configure: impl FnOnce(&mut Environment<'static>) -> Result<(), RenderError>,
     ) -> Result<Self, RenderError> {
         let mut env = Environment::new();
-        configure_environment(&mut env);
+        configure_environment(&mut env, json_escape_mode);
         configure(&mut env)?;
         Ok(Self { env })
+    }
+
+    /// Create a renderer using the requested JSON interpolation mode.
+    ///
+    /// # Panics
+    ///
+    /// Panics only if the renderer's built-in configuration becomes invalid.
+    #[must_use]
+    pub fn with_json_escape_mode(json_escape_mode: JsonEscapeMode) -> Self {
+        Self::try_with_json_escape_mode(json_escape_mode, |_| Ok(()))
+            .expect("default renderer options must stay valid")
     }
 
     /// Create a renderer with non-default variable delimiters.
@@ -266,9 +306,23 @@ impl Renderer {
     /// Returns [`RenderError`] if `open` or `close` are not valid delimiter
     /// tokens accepted by the underlying template engine.
     pub fn with_delimiters(open: &str, close: &str) -> Result<Self, RenderError> {
+        Self::with_delimiters_and_json_escape_mode(open, close, JsonEscapeMode::Auto)
+    }
+
+    /// Create a renderer with non-default variable delimiters and JSON mode.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError`] when `open` or `close` are not valid delimiter
+    /// tokens accepted by the underlying template engine.
+    pub fn with_delimiters_and_json_escape_mode(
+        open: &str,
+        close: &str,
+        json_escape_mode: JsonEscapeMode,
+    ) -> Result<Self, RenderError> {
         let open = open.to_owned();
         let close = close.to_owned();
-        Self::try_with_options(|env| {
+        Self::try_with_json_escape_mode(json_escape_mode, |env| {
             let syntax = minijinja::syntax::SyntaxConfig::builder()
                 .variable_delimiters(open, close)
                 .build()
@@ -339,8 +393,22 @@ pub fn render_template<T: serde::Serialize>(
 pub fn render_loaded_template(
     request: LoadedTemplateRequest,
 ) -> Result<RenderedArtifact, RenderError> {
+    render_loaded_template_with_json_escape_mode(request, JsonEscapeMode::Auto)
+}
+
+/// Render pre-loaded template content with an explicit JSON interpolation
+/// mode.
+///
+/// # Errors
+///
+/// Returns [`RenderError`] when a supporting template cannot be compiled or
+/// the requested template cannot be rendered.
+pub fn render_loaded_template_with_json_escape_mode(
+    request: LoadedTemplateRequest,
+    json_escape_mode: JsonEscapeMode,
+) -> Result<RenderedArtifact, RenderError> {
     let mut env = Environment::new();
-    configure_environment(&mut env);
+    configure_environment(&mut env, json_escape_mode);
     for asset in request.supporting_templates {
         env.add_template_owned(asset.template_name, asset.template_text)
             .map_err(RenderError::render)?;
@@ -368,7 +436,7 @@ mod tests {
     use serde_json::json;
 
     use super::{
-        LoadedTemplateRequest, NamedTemplateAsset, Renderer, XML_REPLACEMENT_NCR,
+        JsonEscapeMode, LoadedTemplateRequest, NamedTemplateAsset, Renderer, XML_REPLACEMENT_NCR,
         render_loaded_template, turtle_escape_filter,
     };
 
@@ -555,6 +623,53 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
         assert_eq!(parsed["sprint_id"], json!(injected));
         assert!(parsed.get("injected").is_none());
+    }
+
+    #[test]
+    fn renderer_json_legacy_mode_round_trips_manually_quoted_strings() {
+        let renderer = Renderer::with_json_escape_mode(JsonEscapeMode::Legacy);
+        let original = "quote \" slash \\\nline \u{0001} ☃";
+        let output = renderer
+            .render_named(
+                "payload.json.j2",
+                r#"{"value": "{{ value }}"}"#,
+                json!({"value": original}),
+            )
+            .unwrap();
+
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(parsed["value"], json!(original));
+    }
+
+    #[test]
+    fn renderer_json_legacy_mode_cannot_inject_a_second_key() {
+        let renderer = Renderer::with_json_escape_mode(JsonEscapeMode::Legacy);
+        let injected = r#"x", "injected": true, "y": "x"#;
+        let output = renderer
+            .render_named(
+                "payload.json.j2",
+                r#"{"value": "{{ value }}"}"#,
+                json!({"value": injected}),
+            )
+            .unwrap();
+
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(parsed["value"], json!(injected));
+        assert!(parsed.get("injected").is_none());
+    }
+
+    #[test]
+    fn renderer_json_mode_does_not_change_markup_templates() {
+        let renderer = Renderer::with_json_escape_mode(JsonEscapeMode::Legacy);
+        let output = renderer
+            .render_named(
+                "payload.xml.j2",
+                "<value>{{ value }}</value>",
+                json!({"value": "<x>"}),
+            )
+            .unwrap();
+
+        assert_eq!(output, "<value>&lt;x&gt;</value>");
     }
 
     // FUZZ-001 (adversarial fuzz campaign 20260811-3, shape-probe): JSON

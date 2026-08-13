@@ -23,6 +23,9 @@ Useful validation switches are:
   `--var`, and `--var-file` values can be supplied for each pass;
 - `--lint` reports redundant filter chains and other lint findings with source
   locations;
+- `--json-escape-mode auto|legacy` selects JSON interpolation mode. When the
+  flag is absent, root frontmatter selects the mode and otherwise validation
+  uses `auto`;
 - `--json` emits `{ "valid": ... }` and the diagnostics array in the JSON
   envelope.
 
@@ -46,3 +49,10 @@ profile resolution problems can produce `ERR_RESOLVE_NOT_FOUND` or
 
 In text mode, diagnostics are printed one per line. In JSON mode, inspect the
 diagnostic code and source location rather than parsing display text.
+
+For JSON templates, validation emits `WARN_JSON_LEGACY_ESCAPE_MODE` once when
+legacy mode is selected or a manually quoted placeholder is detected. The
+warning includes the migration guidance and points to
+`docs/migration/json-escape-mode.md`. `validate --lint` includes this same
+contract warning in addition to lint findings; it does not use a separate JSON
+renderer or mode resolver.

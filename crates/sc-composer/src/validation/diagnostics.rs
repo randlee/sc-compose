@@ -5,6 +5,8 @@ use crate::ExpandedTemplate;
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
 use crate::discovery::discover_tokens;
 use crate::frontmatter::parse_template_document;
+use crate::renderer::{JSON_LEGACY_WARNING, JsonEscapeMode};
+use crate::strip_template_suffix;
 use crate::types::{ComposeRequest, UnknownVariablePolicy, VariableName, VariableSource};
 
 use super::ValidationState;
@@ -34,6 +36,10 @@ pub(super) fn collect_policy_diagnostics(
         expanded,
     ));
     warnings.extend(frontmatter_diagnostics(expanded));
+    let (json_mode_warnings, json_mode_errors) =
+        json_mode_diagnostics(request, expanded, resolved_path, state);
+    warnings.extend(json_mode_warnings);
+    errors.extend(json_mode_errors);
     warnings.extend(default_usage_diagnostics(state));
     errors.extend(super::required_paths::required_path_diagnostics(state));
 
@@ -60,6 +66,125 @@ pub(super) fn collect_policy_diagnostics(
     push_unbound_variable_diagnostics(request, state, resolved_path, &mut warnings, &mut errors);
 
     (warnings, errors)
+}
+
+fn json_mode_diagnostics(
+    request: &ComposeRequest,
+    expanded: &ExpandedTemplate,
+    resolved_path: &Path,
+    state: &ValidationState,
+) -> (Vec<Diagnostic>, Vec<Diagnostic>) {
+    let mut warnings = Vec::new();
+    let mut errors = Vec::new();
+    let root_frontmatter = expanded
+        .frontmatters
+        .iter()
+        .find_map(|(path, passes)| (path == resolved_path).then(|| passes.first()))
+        .flatten();
+    let declared_mode =
+        root_frontmatter.and_then(crate::frontmatter::Frontmatter::json_escape_mode);
+    let mode_is_declared = request.policy.json_escape_mode.is_some() || declared_mode.is_some();
+
+    if !is_json_template_path(resolved_path) {
+        if mode_is_declared {
+            errors.push(
+                Diagnostic::new(
+                    DiagnosticSeverity::Error,
+                    DiagnosticCode::ErrJsonEscapeModeNonJson,
+                    "JSON escape mode is only valid for JSON templates",
+                )
+                .with_path(resolved_path.to_path_buf()),
+            );
+        }
+        return (warnings, errors);
+    }
+
+    let legacy_mode = matches!(
+        request
+            .policy
+            .json_escape_mode
+            .or(declared_mode)
+            .unwrap_or_default(),
+        JsonEscapeMode::Legacy
+    );
+    let quoted_names = quoted_json_placeholder_names(&expanded.text);
+    if legacy_mode || !quoted_names.is_empty() {
+        warnings.push(
+            Diagnostic::new(
+                DiagnosticSeverity::Warning,
+                DiagnosticCode::WarnJsonLegacyEscapeMode,
+                JSON_LEGACY_WARNING,
+            )
+            .with_path(resolved_path.to_path_buf()),
+        );
+    }
+
+    if legacy_mode {
+        for name in quoted_names {
+            let Ok(name) = VariableName::new(&name) else {
+                continue;
+            };
+            if state
+                .context
+                .get(&name)
+                .is_some_and(|value| !value.is_string())
+            {
+                errors.push(
+                    Diagnostic::new(
+                        DiagnosticSeverity::Error,
+                        DiagnosticCode::ErrJsonLegacyNonString,
+                        format!(
+                            "legacy JSON escape mode requires a string value for quoted placeholder `{name}`"
+                        ),
+                    )
+                    .with_path(resolved_path.to_path_buf()),
+                );
+            }
+        }
+    }
+
+    (warnings, errors)
+}
+
+fn is_json_template_path(path: &Path) -> bool {
+    let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    let stripped = strip_template_suffix(file_name);
+    Path::new(stripped)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        == Some("json")
+}
+
+fn quoted_json_placeholder_names(body: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut search_from = 0;
+    while let Some(relative_open) = body[search_from..].find("{{") {
+        let open = search_from + relative_open;
+        let Some(relative_close) = body[open + 2..].find("}}") else {
+            break;
+        };
+        let close = open + 2 + relative_close + 2;
+        let before = body[..open]
+            .chars()
+            .rev()
+            .find(|character| !character.is_whitespace());
+        let after = body[close..]
+            .chars()
+            .find(|character| !character.is_whitespace());
+        if before == Some('"') && after == Some('"') {
+            let expression = body[open + 2..close - 2].trim();
+            if expression
+                .chars()
+                .all(|character| character.is_ascii_alphanumeric() || character == '_')
+            {
+                names.push(expression.to_owned());
+            }
+        }
+        search_from = close;
+    }
+    names
 }
 
 fn push_unbound_variable_diagnostics(

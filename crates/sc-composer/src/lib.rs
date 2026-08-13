@@ -87,8 +87,9 @@ pub use observer::{
 pub use path_utils::to_forward_slash;
 #[doc(inline)]
 pub use renderer::{
-    LoadedTemplateRequest, NamedTemplateAsset, RenderedArtifact, Renderer, render_loaded_template,
-    render_template,
+    JSON_LEGACY_WARNING, JsonEscapeMode, LoadedTemplateRequest, NamedTemplateAsset,
+    RenderedArtifact, Renderer, render_loaded_template,
+    render_loaded_template_with_json_escape_mode, render_template,
 };
 #[doc(inline)]
 pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_template_path};

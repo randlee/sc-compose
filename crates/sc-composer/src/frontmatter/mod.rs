@@ -33,6 +33,19 @@ mod tests {
     }
 
     #[test]
+    fn parses_json_escape_mode_from_root_frontmatter() {
+        let parsed = parse_template_document(
+            "---\njson_escape_mode: legacy\n---\n{\"value\": \"{{ value }}\"}",
+        )
+        .unwrap();
+
+        assert_eq!(
+            parsed.frontmatter().unwrap().json_escape_mode(),
+            Some(crate::JsonEscapeMode::Legacy)
+        );
+    }
+
+    #[test]
     fn strips_utf8_bom_before_parsing_frontmatter() {
         let parsed = parse_template_document(
             "\u{feff}---\nrequired_variables:\n  - name\n---\nHello {{name}}\n",
@@ -185,6 +198,7 @@ mod tests {
             required_variables: Vec::new(),
             defaults: BTreeMap::new(),
             metadata: BTreeMap::new(),
+            json_escape_mode: None,
             diagnostics: Vec::new(),
         };
         let error = super::ParsedTemplate::from_parts_validated(

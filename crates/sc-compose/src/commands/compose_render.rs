@@ -96,30 +96,40 @@ pub(super) fn execute_custom_delimiter_render(
         .and_then(|name| name.to_str())
         .unwrap_or("inline")
         .to_owned();
-    let rendered_text = Renderer::with_delimiters(&open, &close)
-        .map_err(|error| {
-            CommandError::usage_with_code(
-                anyhow!(error),
-                sc_composer::DiagnosticCode::ErrConfigParse,
-            )
-        })?
-        .render_named(
-            &template_name,
-            parsed.body(),
-            build_custom_render_context(request, &resolve_result.resolved_path, &root_passes),
-        )
-        .inspect_err(|error| {
-            observer.on_render_outcome(&RenderOutcomeEvent {
-                rendered_bytes: None,
-                code: error.code(),
-            });
+    let json_escape_mode = request
+        .policy
+        .json_escape_mode
+        .or_else(|| {
+            root_passes
+                .first()
+                .and_then(sc_composer::Frontmatter::json_escape_mode)
         })
-        .map_err(|error| {
-            CommandError::usage_with_code(
-                anyhow!(error),
-                sc_composer::DiagnosticCode::ErrConfigParse,
+        .unwrap_or_default();
+    let rendered_text =
+        Renderer::with_delimiters_and_json_escape_mode(&open, &close, json_escape_mode)
+            .map_err(|error| {
+                CommandError::usage_with_code(
+                    anyhow!(error),
+                    sc_composer::DiagnosticCode::ErrConfigParse,
+                )
+            })?
+            .render_named(
+                &template_name,
+                parsed.body(),
+                build_custom_render_context(request, &resolve_result.resolved_path, &root_passes),
             )
-        })?;
+            .inspect_err(|error| {
+                observer.on_render_outcome(&RenderOutcomeEvent {
+                    rendered_bytes: None,
+                    code: error.code(),
+                });
+            })
+            .map_err(|error| {
+                CommandError::usage_with_code(
+                    anyhow!(error),
+                    sc_composer::DiagnosticCode::ErrConfigParse,
+                )
+            })?;
     observer.on_render_outcome(&RenderOutcomeEvent {
         rendered_bytes: Some(rendered_text.len()),
         code: None,
