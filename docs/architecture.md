@@ -1258,6 +1258,25 @@ Schema notes:
   using the `LOG-008` layout `<log_root>/logs/<service>.log.jsonl`.
 - The concrete path is platform-dependent; on Windows it may be drive-qualified.
 
+### 13.2 JSON Template Contract Lint
+
+`validate --lint` and the repository-level `template-contracts` target share
+the source scanner in `crates/sc-compose/src/commands/template_lint.rs`.
+The scanner expands includes through `sc-composer`, classifies JSON templates
+using the shared suffix helper, and reports source paths, include chains,
+line/column locations, effective mode, and canonical diagnostics. The
+repository target is an allowlisted local `sc-compose` target registered in
+`.sc/sc-lint/targets/template-contracts.toml`; it does not invoke a second
+Python or shell parser. Its normal sc-lint report materializes both the JSON
+raw artifact and the HTML index, and records whether a context-backed render
+was available. Static source findings never claim that an unrendered dynamic
+branch has been proven safe.
+
+`just lint` keeps the existing external sc-lint profile and runs
+`template-contracts` as the final full-profile step. A missing repository
+root, unreadable template, or include failure is reported as a configuration
+failure rather than a green pass.
+
 ## 14. Output Path Policy (FR-7)
 
 File-writing behavior should be centralized rather than duplicated per command.

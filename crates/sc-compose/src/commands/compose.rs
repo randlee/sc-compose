@@ -137,6 +137,9 @@ pub(crate) fn run_validate(
     } else {
         Vec::new()
     };
+    let lint_failed = lint_diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.severity == sc_composer::DiagnosticSeverity::Error);
     let mut diagnostics = report
         .warnings
         .iter()
@@ -169,7 +172,7 @@ pub(crate) fn run_validate(
             println!("{}", format_diagnostic(diagnostic));
         }
     }
-    Ok(if report.ok {
+    Ok(if report.ok && !lint_failed {
         crate::exit_codes::SUCCESS
     } else {
         crate::exit_codes::VALIDATION_OR_RENDER_FAIL
