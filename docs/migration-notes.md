@@ -191,3 +191,24 @@ After the first standalone release:
 - The `agent-team-mail` workspace no longer owns or publishes these crate names.
 - crates.io ownership records should reflect this repo as the canonical source.
 - See `docs/release-checklist.md` for the publish procedure.
+
+## Phase O.4 JSON Assignment Template Migration
+
+The six in-repository assignment templates migrated in Phase O.4 now declare
+`json_escape_mode: auto` and use bare placeholders wherever a value occupies a
+complete JSON slot. This prevents the 1.4 double-quoting regression while
+preserving strings, arrays, booleans, objects, and nulls according to their
+actual JSON types.
+
+The migration is intentionally not a mechanical quote removal. Each template
+has a source-shape classification in
+[`docs/migration/json-escape-mode.md`](migration/json-escape-mode.md). The
+`carry_forward_findings_json` field is the only reviewed raw JSON exception;
+callers must provide a validated JSON fragment. The O.4 integration fixture
+renders all six templates with hostile values and compares parsed semantic
+values, including an injection-resistance assertion. A separate legacy
+fixture proves that the old quoted shape remains valid during the deprecation
+window and emits one migration warning.
+
+O.4 provides repository-local evidence only. Cross-repository inventory,
+release-candidate fuzzing, and release-readiness decisions are owned by O.5.
