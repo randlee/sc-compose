@@ -5,7 +5,7 @@ use anyhow::anyhow;
 use sc_composer::types::default_pass_number;
 use sc_composer::{
     DiagnosticCode, FrontmatterInitResult, RecoveryHint, RecoveryHintKind, VariableName,
-    parse_template_document, strip_template_suffix,
+    is_json_template_path, parse_template_document,
 };
 
 use crate::cli::{FrontmatterInitArgs, TemplateInitArgs, parse_pass_inputs};
@@ -387,17 +387,6 @@ fn find_available_spans(
     spans
 }
 
-fn is_json_template_path(path: &Path) -> bool {
-    let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
-        return false;
-    };
-    let stripped = strip_template_suffix(file_name);
-    Path::new(stripped)
-        .extension()
-        .and_then(|extension| extension.to_str())
-        == Some("json")
-}
-
 fn build_stacked_frontmatter(
     passes: &[InitPass],
     is_json_template: bool,
@@ -551,6 +540,46 @@ mod tests {
             )
             .unwrap();
         assert_eq!(rendered, original);
+    }
+
+    #[test]
+    fn fuzz_001_template_init_uses_shared_json_path_detector() {
+        let root = temp_root("template_init_json_path_variants");
+        for (fixture, file_name) in [
+            ("uppercase-content", "payload.JSON.j2"),
+            ("uppercase-template", "payload.json.J2"),
+            ("stacked-suffix", "payload.json.j2.j2"),
+        ] {
+            let template = root.join(fixture).join(file_name);
+            write_file(&template, "{\"worktree_path\": \"/tmp/wt\"}\n");
+
+            let result = template_init_file(
+                &template,
+                &[InitPass {
+                    pass_number: 1,
+                    variables: vec![(
+                        VariableName::new("worktree_path").unwrap(),
+                        "/tmp/wt".to_owned(),
+                    )],
+                }],
+                false,
+                true,
+            )
+            .unwrap_or_else(|error| panic!("template-init failed for {file_name}: {error}"));
+
+            assert!(
+                result.template_text.contains("json_escape_mode: auto"),
+                "template-init misclassified {file_name}: {}",
+                result.template_text
+            );
+            assert!(
+                result
+                    .template_text
+                    .contains("\"worktree_path\": {{ worktree_path }}"),
+                "template-init retained legacy quoting for {file_name}: {}",
+                result.template_text
+            );
+        }
     }
 
     #[test]

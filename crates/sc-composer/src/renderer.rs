@@ -9,7 +9,7 @@ use minijinja::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{RenderError, strip_template_suffix};
+use crate::{RenderError, template_content_extension};
 
 const XML_REPLACEMENT_NCR: &str = "&#xfffd;";
 
@@ -82,11 +82,15 @@ pub struct Renderer {
 }
 
 fn auto_escape_callback(name: &str, json_escape_mode: JsonEscapeMode) -> AutoEscape {
-    let name = strip_template_suffix(name);
-
-    match name.rsplit('.').next() {
-        Some("html" | "htm" | "xml" | "xhtml") => AutoEscape::Custom("sc-compose-html"),
-        Some("json") => match json_escape_mode {
+    match template_content_extension(name) {
+        Some(extension)
+            if ["html", "htm", "xml", "xhtml"]
+                .iter()
+                .any(|format| extension.eq_ignore_ascii_case(format)) =>
+        {
+            AutoEscape::Custom("sc-compose-html")
+        }
+        Some(extension) if extension.eq_ignore_ascii_case("json") => match json_escape_mode {
             JsonEscapeMode::Legacy => AutoEscape::Custom("sc-compose-json-legacy"),
             JsonEscapeMode::Auto => AutoEscape::Json,
         },
@@ -445,11 +449,14 @@ pub fn render_loaded_template_with_json_escape_mode(
 #[cfg(test)]
 mod tests {
     use std::error::Error as _;
+    use std::path::Path;
     use std::str;
 
     use quick_xml::Reader;
     use quick_xml::events::Event;
     use serde_json::json;
+
+    use crate::OutputFormat;
 
     use super::{
         JsonEscapeMode, LoadedTemplateRequest, NamedTemplateAsset, Renderer, XML_REPLACEMENT_NCR,
@@ -622,6 +629,26 @@ mod tests {
 
         let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
         assert_eq!(parsed, json!(original));
+    }
+
+    #[test]
+    fn fuzz_001_renderer_json_escape_matches_checked_format_detection() {
+        let renderer = Renderer::new();
+        let original = "quote \" slash \\\nline";
+
+        for template_name in ["payload.JSON.j2", "payload.json.J2", "payload.json.j2.j2"] {
+            assert_eq!(
+                OutputFormat::from_template_path(Path::new(template_name)),
+                OutputFormat::Json,
+                "checked-render format for {template_name}"
+            );
+            let output = renderer
+                .render_named(template_name, "{{ value }}", json!({"value": original}))
+                .unwrap();
+            let parsed: serde_json::Value = serde_json::from_str(&output)
+                .unwrap_or_else(|error| panic!("expected JSON for {template_name}: {error}"));
+            assert_eq!(parsed, json!(original), "template={template_name}");
+        }
     }
 
     #[test]

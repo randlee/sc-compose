@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
+use crate::is_json_template_path;
 use crate::renderer::JsonEscapeMode;
 
 /// Output formats understood by the checked-render contract.
@@ -23,16 +24,7 @@ impl OutputFormat {
     /// Infer the output format from a template path.
     #[must_use]
     pub fn from_template_path(path: &Path) -> Self {
-        let file_name = path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or_default();
-        let normalized = strip_all_template_suffixes(file_name);
-        if Path::new(normalized)
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .is_some_and(|ext| ext.eq_ignore_ascii_case("json"))
-        {
+        if is_json_template_path(path) {
             Self::Json
         } else {
             Self::Text
@@ -317,7 +309,7 @@ pub fn check_rendered_output_with_meta(
 
     let line = error.line();
     let column = error.column();
-    let byte_offset = byte_offset_at(rendered, line, column);
+    let byte_offset = byte_offset_at(rendered, line, column, error.classify());
     let diagnostic = Diagnostic::new(
         DiagnosticSeverity::Error,
         DiagnosticCode::ErrRenderJsonMalformed,
@@ -337,41 +329,34 @@ pub fn check_rendered_output_with_meta(
     })
 }
 
-fn strip_all_template_suffixes(mut name: &str) -> &str {
-    while let Some(stripped) = strip_one_template_suffix_case_insensitive(name) {
-        name = stripped;
-    }
-    name
-}
-
-fn strip_one_template_suffix_case_insensitive(name: &str) -> Option<&str> {
-    [".j2", ".jinja2", ".jinja"].iter().find_map(|suffix| {
-        let start = name.len().checked_sub(suffix.len())?;
-        let candidate = name.get(start..)?;
-        candidate
-            .eq_ignore_ascii_case(suffix)
-            .then_some(&name[..start])
-    })
-}
-
-fn byte_offset_at(text: &str, line: usize, column: usize) -> usize {
+fn byte_offset_at(
+    text: &str,
+    line: usize,
+    column: usize,
+    category: serde_json::error::Category,
+) -> usize {
     let line_start = text
         .split_inclusive('\n')
         .take(line.saturating_sub(1))
         .map(str::len)
         .sum::<usize>();
-    let remaining = text.get(line_start..).unwrap_or_default();
-    let line_text = remaining
-        .split_once('\n')
-        .map_or(remaining, |(line, _)| line);
-    let character_offset = column.saturating_sub(1);
-    let byte_offset_in_line = line_text
-        .char_indices()
-        .nth(character_offset)
-        .map_or(line_text.len(), |(offset, _)| offset);
-    line_start
+    // serde_json derives its column from byte indices. For a syntax error it
+    // has already consumed the offending byte, making the public column
+    // one-based. EOF is reported at the byte position immediately after the
+    // final input byte, so it must not be decremented.
+    let byte_offset_in_line = match category {
+        serde_json::error::Category::Eof => column,
+        serde_json::error::Category::Io
+        | serde_json::error::Category::Syntax
+        | serde_json::error::Category::Data => column.saturating_sub(1),
+    };
+    let mut byte_offset = line_start
         .saturating_add(byte_offset_in_line)
-        .min(text.len())
+        .min(text.len());
+    while byte_offset < text.len() && !text.is_char_boundary(byte_offset) {
+        byte_offset += 1;
+    }
+    byte_offset
 }
 
 #[cfg(test)]
@@ -509,6 +494,56 @@ mod tests {
         assert!(byte_offset <= rendered.len());
         assert!(rendered.is_char_boundary(byte_offset));
         assert_eq!(byte_offset, rendered.len());
+    }
+
+    #[test]
+    fn fuzz_002_byte_offset_tracks_mid_line_utf8_syntax_errors() {
+        for rendered in [
+            "[1, \"ascii\", X]",
+            "[1, \"\u{00e9}\", X]",
+            "[1, \"\u{4e2d}\", X]",
+            "[1, \"\u{1f600}\", X]",
+        ] {
+            let error =
+                check_rendered_output(OutputFormat::Json, Path::new("payload.json.j2"), rendered)
+                    .expect_err("invalid token is malformed JSON");
+            let super::OutputCheckReason::InvalidJson { byte_offset, .. } = error.reason else {
+                panic!("expected InvalidJson reason, got {:?}", error.reason);
+            };
+            assert_eq!(byte_offset, rendered.find('X').expect("invalid token"));
+            assert!(rendered.is_char_boundary(byte_offset));
+        }
+    }
+
+    #[test]
+    fn fuzz_002_byte_offset_tracks_multiline_and_crlf_syntax_errors() {
+        for rendered in [
+            "{\n  \"\u{00e9}\": 1,\n  X\n}",
+            "{\r\n  \"\u{1f600}\": 1,\r\n  X\r\n}",
+        ] {
+            let error =
+                check_rendered_output(OutputFormat::Json, Path::new("payload.json.j2"), rendered)
+                    .expect_err("invalid token is malformed JSON");
+            let super::OutputCheckReason::InvalidJson { byte_offset, .. } = error.reason else {
+                panic!("expected InvalidJson reason, got {:?}", error.reason);
+            };
+            assert_eq!(byte_offset, rendered.find('X').expect("invalid token"));
+            assert!(rendered.is_char_boundary(byte_offset));
+        }
+    }
+
+    #[test]
+    fn fuzz_002_byte_offset_uses_eof_after_multibyte_prefix() {
+        for rendered in ["\"\u{00e9}", "\"\u{4e2d}", "\"\u{1f600}"] {
+            let error =
+                check_rendered_output(OutputFormat::Json, Path::new("payload.json.j2"), rendered)
+                    .expect_err("unterminated string is malformed JSON");
+            let super::OutputCheckReason::InvalidJson { byte_offset, .. } = error.reason else {
+                panic!("expected InvalidJson reason, got {:?}", error.reason);
+            };
+            assert_eq!(byte_offset, rendered.len());
+            assert!(rendered.is_char_boundary(byte_offset));
+        }
     }
 
     #[test]
