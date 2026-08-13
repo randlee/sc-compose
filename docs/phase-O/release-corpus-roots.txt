@@ -1,0 +1,20 @@
+# O.5 release corpus roots — source of truth
+#
+# Format: repository_name<TAB>absolute_root<TAB>pinned_commit<TAB>owner
+# Team-lead owns additions and must pin a commit before a scan is reported.
+
+sc-compose	/Users/randlee/Documents/github/sc-compose-worktrees/sprint/o-5-release-corpus-fuzz-gate	0b24aa7e72eaab911d66520a762449e8597a7eb5	team-lead@sc-compose
+atm-core	/Users/randlee/Documents/github/atm-core	aebfc5b18a7a1c086726fb2ecd2ec47a074891b5	team-lead@atm-core
+cpo	/Users/randlee/Documents/github/cpo	478de8f00151cc911160fb3ea13253af8bde6d03	team-lead@cpo
+raptor	/Users/randlee/Documents/github/raptor	39ccb49c91aeb090f1b67ad9b83906a55f7bb46b	team-lead@raptor
+sc-lint	/Users/randlee/Documents/github/sc-lint	455f164d29f29af7e8604387c88205aefe16ce75	team-lead@sc-lint
+synaptic-canvas	/Users/randlee/Documents/github/synaptic-canvas	862fa2bcf5718de58948cdfb2d78420e88c57d81	team-lead@synaptic-canvas
+
+# Exclusions
+# The historical 20–30 estimate is not counted as evidence. The five
+# additional roots above were supplied during the campaign exploration and
+# were pinned before being included.
+# The atm-core checkout is read-only in this sprint; fixes require an
+# atm-core-owned worktree and PR. Its root has no .sc/sc-lint/targets/
+# template-contracts.toml at the pinned commit, so that missing target is an
+# owned actionable finding, not a clean scan.

@@ -12,6 +12,12 @@ All notable changes to this project will be documented in this file.
   `docs/migration/json-escape-mode.md` for the source-shape matrix. This is
   repository-local migration evidence; cross-repository release readiness
   remains a Phase O.5 responsibility.
+- Added the Phase O.5 pinned release-corpus inventory and parser-backed fuzz
+  gate. The campaign records actual consumer-root counts, rejects malformed
+  JSON before emission, preserves the auto/legacy compatibility probe, and
+  reports external migration owners without editing their repositories. The
+  current 1.4.1 recommendation is conditional pending the pinned atm-core
+  template migration; see `docs/phase-O/evidence/o5-release-corpus.md`.
 
 ## [1.4.0] - 2026-08-12
 

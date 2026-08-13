@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>O.5 Release Corpus and Parser-Backed Fuzz Gate</title>
+  <style type="text/css">
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0b1220; color: #e5e7eb; }
+      .section { background: #111827; border-color: #1f2937; }
+      table { background: #0f172a; }
+      th, td { border-color: #1f2937 !important; }
+      .icon-button { background: #1f2937; color: #cbd5e1; border-color: #374151; }
+      code { background: #1f2937; color: #e5e7eb; }
+      a { color: #93c5fd; }
+    }
+    :root[data-theme="dark"] body { background: #0b1220; color: #e5e7eb; }
+    :root[data-theme="dark"] .section { background: #111827; border-color: #1f2937; }
+    :root[data-theme="light"] body { background: #ffffff; color: #1f2937; }
+    header { border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 20px; }
+    h1 { margin: 0 0 6px 0; font-size: 1.6rem; }
+    .subtitle { margin: 0 0 4px 0; color: #6b7280; }
+    .generated-at, .source-label { margin: 2px 0; font-size: 0.85rem; color: #6b7280; }
+    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 0.85em; border: 1px solid transparent; }
+    .status-pass { color: #065f46; background: #d1fae5; border-color: #6ee7b7; }
+    .status-drift { color: #92400e; background: #fef3c7; border-color: #f59e0b; }
+    .status-error { color: #991b1b; background: #fee2e2; border-color: #ef4444; }
+    .status-fail { color: #991b1b; background: #fee2e2; border-color: #ef4444; }
+    .status-info { color: #1e40af; background: #dbeafe; border-color: #3b82f6; }
+    .top-status { margin-top: 8px; }
+    nav.toc { margin: 16px 0; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 10px; }
+    nav.toc ul { margin: 8px 0 0 0; padding-left: 20px; }
+    .summary-block { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin: 16px 0; }
+    .section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
+    .section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .section-head h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 10px; }
+    .section-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
+    .icon-button:hover { filter: brightness(0.95); }
+    .section-summary { color: #374151; font-style: italic; }
+    .fragment-link { font-size: 0.9rem; }
+    .fragment-source { color: #6b7280; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; vertical-align: top; font-size: 0.9rem; }
+    thead th { background: #f3f4f6; }
+    :root[data-theme="dark"] thead th { background: #1f2937; }
+    @media (prefers-color-scheme: dark) { thead th { background: #1f2937; } }
+    code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 0.9em; white-space: pre-wrap; word-break: break-word; }
+    .finding { border-top: 1px dashed #e5e7eb; padding-top: 10px; margin-top: 10px; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; }
+    dt { font-weight: 600; }
+    dd { margin: 0; }
+    .scratchpad { background: #f9fafb; border-left: 4px solid #3b82f6; padding: 12px; margin-top: 12px; border-radius: 4px; }
+    :root[data-theme="dark"] .scratchpad { background: #0f172a; }
+    .recommendations ul { padding-left: 20px; }
+    .metadata-table th { width: 260px; }
+    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 0.85rem; color: #6b7280; }
+    table { display: block; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>O.5 Release Corpus and Parser-Backed Fuzz Gate</h1>
+    <p class="subtitle">1.4.1 release-candidate evidence on pinned consumer roots</p>
+    <p class="generated-at">Generated: 2026-08-13</p>
+    <div class="top-status"><span class="status status-drift">DRIFT</span></div>
+  </header>
+
+  <section class="summary-block">
+    <div class="section-head">
+      <h2>Summary</h2>
+    </div>
+    <p>Three local parser-backed workers passed 24 bounded cases. The six-root inventory counted 37 templates; 25 external production templates require owner migration or an explicit legacy pin, and the full <code>just lint</code> wrapper is blocked by the missing <code>sc-lint-boundary</code> package, so release readiness is conditional.</p>
+    <table class="session-summary">
+      <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">O.4 six-template parser oracle</th>
+          <td>6</td>
+          <td>6/6</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Mode compatibility and 1.4.0 regression</th>
+          <td>6</td>
+          <td>6/6</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Nested/conditional hostile boundary corpus</th>
+          <td>12</td>
+          <td>12/12</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Pinned six-root external corpus inventory</th>
+          <td>37</td>
+          <td>37/37</td>
+          <td><span class="status status-fail">FAIL</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>six-template-parser-oracle</h2>
+      <p class="agent-meta">Session o5-20260813-0001 · Worker six-template-parser-oracle</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;:&quot;six-template-parser-oracle&quot;,&quot;agent_id&quot;:&quot;six-template-parser-oracle&quot;,&quot;target&quot;:&quot;renderer-o4-corpus&quot;,&quot;status&quot;:&quot;success&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;fuzz_run_description&quot;:&quot;O.4 six-template hostile-value renders and complete JSON parser oracle&quot;,&quot;cases_run&quot;:6,&quot;iterations&quot;:6,&quot;passed&quot;:6,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;command&quot;:&quot;cargo test -p sc-compose --test json_cli o4_templates -- --nocapture&quot;,&quot;finding_ids&quot;:[],&quot;error&quot;:null,&quot;context_text&quot;:&quot;Rendered all six O.4 assignment templates with quoted, backslash, Unicode, newline, control-safe, array, object, null, empty, and hostile key-injection values. Every successful body was parsed as one complete JSON document.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;o4-best-practices&quot;,&quot;description&quot;:&quot;rust-best-practices assignment with scalar and array values&quot;,&quot;minimal_template&quot;:&quot;.claude/assets/sc-rust/quality-mgr/templates/rust-best-practices-assignment.json.j2&quot;,&quot;minimal_input&quot;:&quot;hostile scalar, arrays, and carry_forward_findings_json&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: parsed object; no injected key&quot;},{&quot;case_id&quot;:&quot;o4-rust-qa&quot;,&quot;description&quot;:&quot;rust-qa assignment with booleans and paths&quot;,&quot;minimal_template&quot;:&quot;.claude/assets/sc-rust/quality-mgr/templates/rust-qa-assignment.json.j2&quot;,&quot;minimal_input&quot;:&quot;hostile scalar, booleans, arrays&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: parsed object; types preserved&quot;},{&quot;case_id&quot;:&quot;o4-service&quot;,&quot;description&quot;:&quot;service-hardening assignment with topics&quot;,&quot;minimal_template&quot;:&quot;.claude/assets/sc-rust/quality-mgr/templates/rust-service-hardening-assignment.json.j2&quot;,&quot;minimal_input&quot;:&quot;hostile scalar and nested lists&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: parsed object; no injection&quot;},{&quot;case_id&quot;:&quot;o4-arch&quot;,&quot;description&quot;:&quot;arch-qa conditional null and references&quot;,&quot;minimal_template&quot;:&quot;.claude/skills/codex-orchestration/arch-qa-assignment.json.j2&quot;,&quot;minimal_input&quot;:&quot;hostile scalar, null branch, reference paths&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: parsed object; null branch preserved&quot;},{&quot;case_id&quot;:&quot;o4-flaky&quot;,&quot;description&quot;:&quot;flaky-test-qa optional scope values&quot;,&quot;minimal_template&quot;:&quot;.claude/skills/codex-orchestration/flaky-test-qa-assignment.json.j2&quot;,&quot;minimal_input&quot;:&quot;empty values and null scope&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: parsed object; optional fields stable&quot;},{&quot;case_id&quot;:&quot;o4-req&quot;,&quot;description&quot;:&quot;req-qa document and branch arrays&quot;,&quot;minimal_template&quot;:&quot;.claude/skills/codex-orchestration/req-qa-assignment.json.j2&quot;,&quot;minimal_input&quot;:&quot;Unicode paths and null worktree&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: parsed object; array boundaries preserved&quot;}],&quot;findings&quot;:[]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Rendered all six O.4 assignment templates with quoted, backslash, Unicode, newline, control-safe, array, object, null, empty, and hostile key-injection values. Every successful body was parsed as one complete JSON document.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">O.4 six-template hostile-value renders and complete JSON parser oracle</th>
+        <td>6</td>
+        <td>6/6</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">o4-best-practices</th><td><code>rust-best-practices assignment with scalar and array values</code></td><td>PASS: parsed object; no injected key</td></tr>
+        <tr><th scope="row">o4-rust-qa</th><td><code>rust-qa assignment with booleans and paths</code></td><td>PASS: parsed object; types preserved</td></tr>
+        <tr><th scope="row">o4-service</th><td><code>service-hardening assignment with topics</code></td><td>PASS: parsed object; no injection</td></tr>
+        <tr><th scope="row">o4-arch</th><td><code>arch-qa conditional null and references</code></td><td>PASS: parsed object; null branch preserved</td></tr>
+        <tr><th scope="row">o4-flaky</th><td><code>flaky-test-qa optional scope values</code></td><td>PASS: parsed object; optional fields stable</td></tr>
+        <tr><th scope="row">o4-req</th><td><code>req-qa document and branch arrays</code></td><td>PASS: parsed object; array boundaries preserved</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>mode-compatibility-regression</h2>
+      <p class="agent-meta">Session o5-20260813-0001 · Worker mode-compatibility-regression</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;:&quot;mode-compatibility-regression&quot;,&quot;agent_id&quot;:&quot;mode-compatibility-regression&quot;,&quot;target&quot;:&quot;json-mode-contract&quot;,&quot;status&quot;:&quot;success&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;fuzz_run_description&quot;:&quot;Auto/legacy mode contract, 1.4.0 regression, and fail-closed output probes&quot;,&quot;cases_run&quot;:6,&quot;iterations&quot;:6,&quot;passed&quot;:6,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;command&quot;:&quot;cargo test -p sc-compose --test json_cli render_json_auto_mode_rejects_quoted_placeholder_before_stdout_emission -- --nocapture; cargo test -p sc-compose --test json_cli render_json_legacy_mode_supports_existing_quoted_placeholders -- --nocapture&quot;,&quot;finding_ids&quot;:[],&quot;error&quot;:null,&quot;context_text&quot;:&quot;The original quoted {{ value }} shape is rejected in auto before body emission; explicit legacy renders one safely escaped string and warns once. Bare strings and structured values parse successfully.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;regression-auto-quoted&quot;,&quot;description&quot;:&quot;Original 1.4.0 shape {\&quot;value\&quot;: \&quot;{{ value }}\&quot;}&quot;,&quot;minimal_template&quot;:&quot;tests/fixtures/sc-lint/template-contracts/findings/auto.json.j2&quot;,&quot;minimal_input&quot;:&quot;value=quote \\\&quot; slash&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: ERR_JSON_MODE_CONTRACT before stdout/body emission&quot;},{&quot;case_id&quot;:&quot;compat-legacy-quoted&quot;,&quot;description&quot;:&quot;Explicit legacy quoted scalar&quot;,&quot;minimal_template&quot;:&quot;legacy.json.j2 with json_escape_mode: legacy&quot;,&quot;minimal_input&quot;:&quot;value=quote \\\&quot; slash newline&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: valid JSON string and one WARN_JSON_LEGACY_ESCAPE_MODE&quot;},{&quot;case_id&quot;:&quot;auto-bare-string&quot;,&quot;description&quot;:&quot;Bare string complete JSON slot&quot;,&quot;minimal_template&quot;:&quot;{\&quot;value\&quot;: {{ value }}}&quot;,&quot;minimal_input&quot;:&quot;value=Unicode snowman&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: serde_json parsed string&quot;},{&quot;case_id&quot;:&quot;auto-array-object&quot;,&quot;description&quot;:&quot;Bare array/object values&quot;,&quot;minimal_template&quot;:&quot;{\&quot;items\&quot;: {{ items }}}&quot;,&quot;minimal_input&quot;:&quot;items=[{\&quot;id\&quot;:1}]&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: serde_json preserved array/object&quot;},{&quot;case_id&quot;:&quot;checked-render&quot;,&quot;description&quot;:&quot;validate --check-render parser gate&quot;,&quot;minimal_template&quot;:&quot;O.4 auto template&quot;,&quot;minimal_input&quot;:&quot;hostile context&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: render_checked state and no emitted body&quot;},{&quot;case_id&quot;:&quot;malformed-output&quot;,&quot;description&quot;:&quot;Malformed rendered JSON&quot;,&quot;minimal_template&quot;:&quot;{\&quot;value\&quot;: {{ value }}}&quot;,&quot;minimal_input&quot;:&quot;value=malformed raw fragment&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: ERR_RENDER_JSON_MALFORMED and no output file&quot;}],&quot;findings&quot;:[]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="The original quoted {{ value }} shape is rejected in auto before body emission; explicit legacy renders one safely escaped string and warns once. Bare strings and structured values parse successfully.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Auto/legacy mode contract, 1.4.0 regression, and fail-closed output probes</th>
+        <td>6</td>
+        <td>6/6</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">regression-auto-quoted</th><td><code>Original 1.4.0 shape {&quot;value&quot;: &quot;{{ value }}&quot;}</code></td><td>PASS: ERR_JSON_MODE_CONTRACT before stdout/body emission</td></tr>
+        <tr><th scope="row">compat-legacy-quoted</th><td><code>Explicit legacy quoted scalar</code></td><td>PASS: valid JSON string and one WARN_JSON_LEGACY_ESCAPE_MODE</td></tr>
+        <tr><th scope="row">auto-bare-string</th><td><code>Bare string complete JSON slot</code></td><td>PASS: serde_json parsed string</td></tr>
+        <tr><th scope="row">auto-array-object</th><td><code>Bare array/object values</code></td><td>PASS: serde_json preserved array/object</td></tr>
+        <tr><th scope="row">checked-render</th><td><code>validate --check-render parser gate</code></td><td>PASS: render_checked state and no emitted body</td></tr>
+        <tr><th scope="row">malformed-output</th><td><code>Malformed rendered JSON</code></td><td>PASS: ERR_RENDER_JSON_MALFORMED and no output file</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-and-structure</h2>
+      <p class="agent-meta">Session o5-20260813-0001 · Worker boundary-and-structure</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;:&quot;boundary-and-structure&quot;,&quot;agent_id&quot;:&quot;boundary-and-structure&quot;,&quot;target&quot;:&quot;nested-conditional-hostile-boundaries&quot;,&quot;status&quot;:&quot;success&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;fuzz_run_description&quot;:&quot;Nested/conditional templates, hostile strings, lint diagnostics, and parser boundaries&quot;,&quot;cases_run&quot;:12,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;command&quot;:&quot;cargo test -p sc-compose --test json_cli validate_lint_json_reports_the_same_legacy_json_warning -- --nocapture; cargo test -p sc-compose --test json_cli render_json_parser_failure_preserves_diagnostic_envelope -- --nocapture&quot;,&quot;finding_ids&quot;:[],&quot;error&quot;:null,&quot;context_text&quot;:&quot;Existing O.2/O.3 diagnostics and O.4 semantic fixtures covered nested arrays/objects, conditionals, optional nulls, hostile strings, lint warnings, malformed output, and no-body failure behavior.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;nested-array&quot;,&quot;description&quot;:&quot;Nested array/object context&quot;,&quot;minimal_template&quot;:&quot;O.4 structured array slot&quot;,&quot;minimal_input&quot;:&quot;nested array with object members&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: complete JSON parse&quot;},{&quot;case_id&quot;:&quot;conditional-null&quot;,&quot;description&quot;:&quot;Conditional optional field&quot;,&quot;minimal_template&quot;:&quot;arch-qa scope conditional&quot;,&quot;minimal_input&quot;:&quot;phase=null, sprint=null&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: null values preserved&quot;},{&quot;case_id&quot;:&quot;unicode&quot;,&quot;description&quot;:&quot;Unicode and control-safe text&quot;,&quot;minimal_template&quot;:&quot;all six O.4 templates&quot;,&quot;minimal_input&quot;:&quot;snowman, newline, U+0001&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: parser and injection checks&quot;},{&quot;case_id&quot;:&quot;lint-warning&quot;,&quot;description&quot;:&quot;Legacy static lint warning&quot;,&quot;minimal_template&quot;:&quot;legacy.json.j2&quot;,&quot;minimal_input&quot;:&quot;quoted scalar&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: stable warning code&quot;},{&quot;case_id&quot;:&quot;lint-error&quot;,&quot;description&quot;:&quot;Auto quoted contract violation&quot;,&quot;minimal_template&quot;:&quot;auto.json.j2&quot;,&quot;minimal_input&quot;:&quot;quoted scalar&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: stable error code&quot;},{&quot;case_id&quot;:&quot;no-body&quot;,&quot;description&quot;:&quot;Parser failure output confinement&quot;,&quot;minimal_template&quot;:&quot;malformed JSON template&quot;,&quot;minimal_input&quot;:&quot;invalid emitted fragment&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: no stdout/file body&quot;}],&quot;findings&quot;:[]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Existing O.2/O.3 diagnostics and O.4 semantic fixtures covered nested arrays/objects, conditionals, optional nulls, hostile strings, lint warnings, malformed output, and no-body failure behavior.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Nested/conditional templates, hostile strings, lint diagnostics, and parser boundaries</th>
+        <td>12</td>
+        <td>12/12</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">nested-array</th><td><code>Nested array/object context</code></td><td>PASS: complete JSON parse</td></tr>
+        <tr><th scope="row">conditional-null</th><td><code>Conditional optional field</code></td><td>PASS: null values preserved</td></tr>
+        <tr><th scope="row">unicode</th><td><code>Unicode and control-safe text</code></td><td>PASS: parser and injection checks</td></tr>
+        <tr><th scope="row">lint-warning</th><td><code>Legacy static lint warning</code></td><td>PASS: stable warning code</td></tr>
+        <tr><th scope="row">lint-error</th><td><code>Auto quoted contract violation</code></td><td>PASS: stable error code</td></tr>
+        <tr><th scope="row">no-body</th><td><code>Parser failure output confinement</code></td><td>PASS: no stdout/file body</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>cross-repository-inventory</h2>
+      <p class="agent-meta">Session o5-20260813-0001 · Worker cross-repository-inventory</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;:&quot;cross-repository-inventory&quot;,&quot;agent_id&quot;:&quot;cross-repository-inventory&quot;,&quot;target&quot;:&quot;pinned-consumer-corpus&quot;,&quot;status&quot;:&quot;success&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;fuzz_run_description&quot;:&quot;Pinned six-root inventory and external legacy-template ownership scan&quot;,&quot;cases_run&quot;:37,&quot;iterations&quot;:37,&quot;passed&quot;:37,&quot;failed&quot;:0,&quot;result&quot;:&quot;FAIL&quot;,&quot;command&quot;:&quot;git -C ROOT rev-parse PINNED_COMMIT; rg --files --hidden -g &#x27;!.git&#x27; ROOT -g &#x27;*.json.j2&#x27; -g &#x27;*.json.jinja&#x27; -g &#x27;*.json.jinja2&#x27;&quot;,&quot;finding_ids&quot;:[&quot;O5-ATM-001&quot;,&quot;O5-CPO-001&quot;,&quot;O5-RAPTOR-001&quot;,&quot;O5-SCLINT-001&quot;,&quot;O5-SYNAPTIC-001&quot;],&quot;error&quot;:null,&quot;context_text&quot;:&quot;All six roots were available and pinned. The sc-compose O.4 root is locally clean apart from intentional fixtures. Twenty-five external production templates retain manually quoted placeholders without explicit mode; they are owned actionable release findings, not silently treated as clean.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;root-sc-compose&quot;,&quot;description&quot;:&quot;Pinned sc-compose O.4 root&quot;,&quot;minimal_template&quot;:&quot;release-corpus-roots.txt entry&quot;,&quot;minimal_input&quot;:&quot;commit 0b24aa7e72eaab911d66520a762449e8597a7eb5&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: 11 paths counted; expected fixtures classified&quot;},{&quot;case_id&quot;:&quot;root-atm-core&quot;,&quot;description&quot;:&quot;Pinned atm-core root&quot;,&quot;minimal_template&quot;:&quot;release-corpus-roots.txt entry&quot;,&quot;minimal_input&quot;:&quot;commit aebfc5b18a7a1c086726fb2ecd2ec47a074891b5&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: 7 paths counted; 6 owned findings&quot;},{&quot;case_id&quot;:&quot;root-cpo&quot;,&quot;description&quot;:&quot;Pinned cpo root&quot;,&quot;minimal_template&quot;:&quot;release-corpus-roots.txt entry&quot;,&quot;minimal_input&quot;:&quot;commit 478de8f00151cc911160fb3ea13253af8bde6d03&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: 7 paths counted; 7 owned findings&quot;},{&quot;case_id&quot;:&quot;root-raptor&quot;,&quot;description&quot;:&quot;Pinned raptor root&quot;,&quot;minimal_template&quot;:&quot;release-corpus-roots.txt entry&quot;,&quot;minimal_input&quot;:&quot;commit 39ccb49c91aeb090f1b67ad9b83906a55f7bb46b&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: 3 paths counted; 3 owned findings&quot;},{&quot;case_id&quot;:&quot;root-sc-lint&quot;,&quot;description&quot;:&quot;Pinned sc-lint root&quot;,&quot;minimal_template&quot;:&quot;release-corpus-roots.txt entry&quot;,&quot;minimal_input&quot;:&quot;commit 455f164d29f29af7e8604387c88205aefe16ce75&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: 6 paths counted; 6 owned findings&quot;},{&quot;case_id&quot;:&quot;root-synaptic&quot;,&quot;description&quot;:&quot;Pinned synaptic-canvas root&quot;,&quot;minimal_template&quot;:&quot;release-corpus-roots.txt entry&quot;,&quot;minimal_input&quot;:&quot;commit 862fa2bcf5718de58948cdfb2d78420e88c57d81&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: 3 paths counted; 3 owned findings&quot;}],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;O5-ATM-001&quot;,&quot;status&quot;:&quot;confirmed_bug&quot;,&quot;subsystem&quot;:&quot;consumer-template-corpus&quot;,&quot;minimal_template&quot;:&quot;atm-core: six .claude assignment JSON templates listed in docs/phase-O/evidence/o5-release-corpus.md&quot;,&quot;minimal_input&quot;:&quot;hostile string value in a manually quoted placeholder&quot;,&quot;observed_result&quot;:&quot;No explicit mode; 1.4.1 auto contract will reject quoted placeholders or risk double quoting&quot;,&quot;expected_oracle&quot;:&quot;Migrate to explicit auto/bare values or explicitly pin legacy&quot;,&quot;diagnostic&quot;:&quot;ERR_JSON_MODE_CONTRACT after migration / missing mode before migration&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-1b-json; ADR-0019&quot;,&quot;requirement_follow_up&quot;:&quot;atm-core owner creates migration PR and reruns O5&quot;,&quot;root_cause&quot;:&quot;Consumer templates predate the 1.4.1 mode contract&quot;,&quot;recommended_fix&quot;:&quot;Migrate six paths in atm-core; add parser-backed tests&quot;,&quot;reproduction_count&quot;:1},{&quot;finding_id&quot;:&quot;O5-CPO-001&quot;,&quot;status&quot;:&quot;confirmed_bug&quot;,&quot;subsystem&quot;:&quot;consumer-template-corpus&quot;,&quot;minimal_template&quot;:&quot;cpo: seven JSON assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md&quot;,&quot;minimal_input&quot;:&quot;hostile string value in a manually quoted placeholder&quot;,&quot;observed_result&quot;:&quot;No explicit mode and quoted placeholders across all seven paths&quot;,&quot;expected_oracle&quot;:&quot;Migrate to explicit auto/bare values or explicitly pin legacy&quot;,&quot;diagnostic&quot;:&quot;ERR_JSON_MODE_CONTRACT after migration / missing mode before migration&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-1b-json; ADR-0019&quot;,&quot;requirement_follow_up&quot;:&quot;cpo owner creates migration PR and reruns O5&quot;,&quot;root_cause&quot;:&quot;Consumer templates predate the 1.4.1 mode contract&quot;,&quot;recommended_fix&quot;:&quot;Migrate seven paths and add parser-backed tests&quot;,&quot;reproduction_count&quot;:1},{&quot;finding_id&quot;:&quot;O5-RAPTOR-001&quot;,&quot;status&quot;:&quot;confirmed_bug&quot;,&quot;subsystem&quot;:&quot;consumer-template-corpus&quot;,&quot;minimal_template&quot;:&quot;raptor: three .claude/assets/sc-rust assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md&quot;,&quot;minimal_input&quot;:&quot;hostile string value in a manually quoted placeholder&quot;,&quot;observed_result&quot;:&quot;No explicit mode and quoted placeholders across all three paths&quot;,&quot;expected_oracle&quot;:&quot;Migrate to explicit auto/bare values or explicitly pin legacy&quot;,&quot;diagnostic&quot;:&quot;ERR_JSON_MODE_CONTRACT after migration / missing mode before migration&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-1b-json; ADR-0019&quot;,&quot;requirement_follow_up&quot;:&quot;raptor owner creates migration PR and reruns O5&quot;,&quot;root_cause&quot;:&quot;Consumer templates predate the 1.4.1 mode contract&quot;,&quot;recommended_fix&quot;:&quot;Migrate three paths and add parser-backed tests&quot;,&quot;reproduction_count&quot;:1},{&quot;finding_id&quot;:&quot;O5-SCLINT-001&quot;,&quot;status&quot;:&quot;confirmed_bug&quot;,&quot;subsystem&quot;:&quot;consumer-template-corpus&quot;,&quot;minimal_template&quot;:&quot;sc-lint: six assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md&quot;,&quot;minimal_input&quot;:&quot;hostile string value in a manually quoted placeholder&quot;,&quot;observed_result&quot;:&quot;No explicit mode and quoted placeholders across all six paths&quot;,&quot;expected_oracle&quot;:&quot;Migrate to explicit auto/bare values or explicitly pin legacy&quot;,&quot;diagnostic&quot;:&quot;ERR_JSON_MODE_CONTRACT after migration / missing mode before migration&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-1b-json; ADR-0019&quot;,&quot;requirement_follow_up&quot;:&quot;sc-lint owner creates migration PR or coordinates canonical package update&quot;,&quot;root_cause&quot;:&quot;Shared templates predate the 1.4.1 mode contract&quot;,&quot;recommended_fix&quot;:&quot;Migrate six paths and add parser-backed tests&quot;,&quot;reproduction_count&quot;:1},{&quot;finding_id&quot;:&quot;O5-SYNAPTIC-001&quot;,&quot;status&quot;:&quot;confirmed_bug&quot;,&quot;subsystem&quot;:&quot;consumer-template-corpus&quot;,&quot;minimal_template&quot;:&quot;synaptic-canvas: three packages/sc-rust assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md&quot;,&quot;minimal_input&quot;:&quot;hostile string value in a manually quoted placeholder&quot;,&quot;observed_result&quot;:&quot;No explicit mode and quoted placeholders across all three paths&quot;,&quot;expected_oracle&quot;:&quot;Migrate to explicit auto/bare values or explicitly pin legacy&quot;,&quot;diagnostic&quot;:&quot;ERR_JSON_MODE_CONTRACT after migration / missing mode before migration&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-1b-json; ADR-0019&quot;,&quot;requirement_follow_up&quot;:&quot;synaptic-canvas owner creates migration PR or consumes canonical package&quot;,&quot;root_cause&quot;:&quot;Consumer templates predate the 1.4.1 mode contract&quot;,&quot;recommended_fix&quot;:&quot;Migrate three paths and add parser-backed tests&quot;,&quot;reproduction_count&quot;:1}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="All six roots were available and pinned. The sc-compose O.4 root is locally clean apart from intentional fixtures. Twenty-five external production templates retain manually quoted placeholders without explicit mode; they are owned actionable release findings, not silently treated as clean.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Pinned six-root inventory and external legacy-template ownership scan</th>
+        <td>37</td>
+        <td>37/37</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">root-sc-compose</th><td><code>Pinned sc-compose O.4 root</code></td><td>PASS: 11 paths counted; expected fixtures classified</td></tr>
+        <tr><th scope="row">root-atm-core</th><td><code>Pinned atm-core root</code></td><td>PASS: 7 paths counted; 6 owned findings</td></tr>
+        <tr><th scope="row">root-cpo</th><td><code>Pinned cpo root</code></td><td>PASS: 7 paths counted; 7 owned findings</td></tr>
+        <tr><th scope="row">root-raptor</th><td><code>Pinned raptor root</code></td><td>PASS: 3 paths counted; 3 owned findings</td></tr>
+        <tr><th scope="row">root-sc-lint</th><td><code>Pinned sc-lint root</code></td><td>PASS: 6 paths counted; 6 owned findings</td></tr>
+        <tr><th scope="row">root-synaptic</th><td><code>Pinned synaptic-canvas root</code></td><td>PASS: 3 paths counted; 3 owned findings</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>O5-ATM-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>atm-core: six .claude assignment JSON templates listed in docs/phase-O/evidence/o5-release-corpus.md</code></dd>
+        <dt>Input</dt><dd><code>hostile string value in a manually quoted placeholder</code></dd>
+        <dt>Expected</dt><dd>Migrate to explicit auto/bare values or explicitly pin legacy</dd>
+        <dt>Observed</dt><dd>No explicit mode; 1.4.1 auto contract will reject quoted placeholders or risk double quoting</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-1b-json; ADR-0019</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>atm-core owner creates migration PR and reruns O5</dd>
+        <dt>Root cause</dt><dd>Consumer templates predate the 1.4.1 mode contract</dd>
+        <dt>Recommended fix</dt><dd>Migrate six paths in atm-core; add parser-backed tests</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>O5-CPO-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>cpo: seven JSON assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md</code></dd>
+        <dt>Input</dt><dd><code>hostile string value in a manually quoted placeholder</code></dd>
+        <dt>Expected</dt><dd>Migrate to explicit auto/bare values or explicitly pin legacy</dd>
+        <dt>Observed</dt><dd>No explicit mode and quoted placeholders across all seven paths</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-1b-json; ADR-0019</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>cpo owner creates migration PR and reruns O5</dd>
+        <dt>Root cause</dt><dd>Consumer templates predate the 1.4.1 mode contract</dd>
+        <dt>Recommended fix</dt><dd>Migrate seven paths and add parser-backed tests</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>O5-RAPTOR-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>raptor: three .claude/assets/sc-rust assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md</code></dd>
+        <dt>Input</dt><dd><code>hostile string value in a manually quoted placeholder</code></dd>
+        <dt>Expected</dt><dd>Migrate to explicit auto/bare values or explicitly pin legacy</dd>
+        <dt>Observed</dt><dd>No explicit mode and quoted placeholders across all three paths</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-1b-json; ADR-0019</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>raptor owner creates migration PR and reruns O5</dd>
+        <dt>Root cause</dt><dd>Consumer templates predate the 1.4.1 mode contract</dd>
+        <dt>Recommended fix</dt><dd>Migrate three paths and add parser-backed tests</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>O5-SCLINT-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>sc-lint: six assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md</code></dd>
+        <dt>Input</dt><dd><code>hostile string value in a manually quoted placeholder</code></dd>
+        <dt>Expected</dt><dd>Migrate to explicit auto/bare values or explicitly pin legacy</dd>
+        <dt>Observed</dt><dd>No explicit mode and quoted placeholders across all six paths</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-1b-json; ADR-0019</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>sc-lint owner creates migration PR or coordinates canonical package update</dd>
+        <dt>Root cause</dt><dd>Shared templates predate the 1.4.1 mode contract</dd>
+        <dt>Recommended fix</dt><dd>Migrate six paths and add parser-backed tests</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>O5-SYNAPTIC-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>synaptic-canvas: three packages/sc-rust assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md</code></dd>
+        <dt>Input</dt><dd><code>hostile string value in a manually quoted placeholder</code></dd>
+        <dt>Expected</dt><dd>Migrate to explicit auto/bare values or explicitly pin legacy</dd>
+        <dt>Observed</dt><dd>No explicit mode and quoted placeholders across all three paths</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-1b-json; ADR-0019</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>synaptic-canvas owner creates migration PR or consumes canonical package</dd>
+        <dt>Root cause</dt><dd>Consumer templates predate the 1.4.1 mode contract</dd>
+        <dt>Recommended fix</dt><dd>Migrate three paths and add parser-backed tests</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+
+  <section class="section recommendations">
+    <h2>Recommendations</h2>
+    <ul><li>Team-lead owners must migrate the 25 external quoted templates to explicit auto/bare values or pin legacy, then rerun the corpus.</li><li>Resolve O5-SC-LINT-BOOTSTRAP-001 in a separate sc-lint fix worktree/PR; the full <code>just lint</code> gate must be rerun after merge. No suppression was added.</li><li>Keep legacy mode during the deprecation window only; remove it after all pinned roots are clean and a parser-backed release campaign is green.</li></ul>
+  </section>
+
+  <section class="section metadata">
+    <h2>Metadata</h2>
+    <table class="metadata-table"><tbody>
+      <tr><th scope="row">Pinned roots</th><td>6 (sc-compose, atm-core, cpo, raptor, sc-lint, synaptic-canvas)</td></tr>
+      <tr><th scope="row">Templates scanned</th><td>37 total; 25 external owned findings</td></tr>
+      <tr><th scope="row">Workspace gates</th><td>just test/cargo/fmt/clippy/fast/direct boundary PASS; full just lint BLOCKED</td></tr>
+      <tr><th scope="row">Release recommendation</th><td>CONDITIONAL</td></tr>
+    </tbody></table>
+  </section>
+
+  <footer>
+    <p>Campaign: o5-20260813-0001 · Seed 157 · Baseline 0b24aa7e · 4 workers · 42 bounded cases · Worktree: sprint/o-5-release-corpus-fuzz-gate. External roots were read-only.</p>
+  </footer>
+
+  <script>
+    document.addEventListener("click", async function (event) {
+      var button = event.target.closest("[data-copy-text]");
+      if (!button) return;
+      var text = button.getAttribute("data-copy-text") || "";
+      try {
+        await navigator.clipboard.writeText(text);
+        button.setAttribute("title", "Copied");
+      } catch (err) {
+        button.setAttribute("title", "Copy failed");
+      }
+    });
+  </script>
+</body>
+</html>
