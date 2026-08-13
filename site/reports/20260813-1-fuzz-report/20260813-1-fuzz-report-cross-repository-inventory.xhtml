@@ -1,0 +1,129 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>cross-repository-inventory</h2>
+      <p class="agent-meta">Session o5-20260813-0001 · Worker cross-repository-inventory</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;:&quot;cross-repository-inventory&quot;,&quot;agent_id&quot;:&quot;cross-repository-inventory&quot;,&quot;target&quot;:&quot;pinned-consumer-corpus&quot;,&quot;status&quot;:&quot;success&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;fuzz_run_description&quot;:&quot;Pinned seven-root inventory and external legacy-template ownership scan&quot;,&quot;cases_run&quot;:40,&quot;iterations&quot;:40,&quot;passed&quot;:40,&quot;failed&quot;:0,&quot;result&quot;:&quot;FAIL&quot;,&quot;command&quot;:&quot;git -C ROOT rev-parse PINNED_COMMIT; rg --files --hidden -g &#x27;!.git&#x27; ROOT -g &#x27;*.json.j2&#x27; -g &#x27;*.json.jinja&#x27; -g &#x27;*.json.jinja2&#x27;&quot;,&quot;finding_ids&quot;:[&quot;O5-ATM-001&quot;,&quot;O5-CPO-001&quot;,&quot;O5-RAPTOR-001&quot;,&quot;O5-SCLINT-001&quot;,&quot;O5-SYNAPTIC-001&quot;,&quot;O5-ROSLYN-001&quot;],&quot;error&quot;:null,&quot;context_text&quot;:&quot;All seven roots were available and pinned. The sc-compose O.4 root is locally clean apart from intentional fixtures. Twenty-eight external production templates retain manually quoted placeholders without explicit mode; they are owned actionable release findings, not silently treated as clean.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;root-sc-compose&quot;,&quot;description&quot;:&quot;Pinned sc-compose O.4 root&quot;,&quot;minimal_template&quot;:&quot;release-corpus-roots.txt entry&quot;,&quot;minimal_input&quot;:&quot;commit 0b24aa7e72eaab911d66520a762449e8597a7eb5&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: 11 paths counted; expected fixtures classified&quot;},{&quot;case_id&quot;:&quot;root-atm-core&quot;,&quot;description&quot;:&quot;Pinned atm-core root&quot;,&quot;minimal_template&quot;:&quot;release-corpus-roots.txt entry&quot;,&quot;minimal_input&quot;:&quot;commit aebfc5b18a7a1c086726fb2ecd2ec47a074891b5&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: 7 paths counted; 6 owned findings&quot;},{&quot;case_id&quot;:&quot;root-cpo&quot;,&quot;description&quot;:&quot;Pinned cpo root&quot;,&quot;minimal_template&quot;:&quot;release-corpus-roots.txt entry&quot;,&quot;minimal_input&quot;:&quot;commit 478de8f00151cc911160fb3ea13253af8bde6d03&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: 7 paths counted; 7 owned findings&quot;},{&quot;case_id&quot;:&quot;root-raptor&quot;,&quot;description&quot;:&quot;Pinned raptor root&quot;,&quot;minimal_template&quot;:&quot;release-corpus-roots.txt entry&quot;,&quot;minimal_input&quot;:&quot;commit 39ccb49c91aeb090f1b67ad9b83906a55f7bb46b&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: 3 paths counted; 3 owned findings&quot;},{&quot;case_id&quot;:&quot;root-sc-lint&quot;,&quot;description&quot;:&quot;Pinned sc-lint root&quot;,&quot;minimal_template&quot;:&quot;release-corpus-roots.txt entry&quot;,&quot;minimal_input&quot;:&quot;commit 455f164d29f29af7e8604387c88205aefe16ce75&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: 6 paths counted; 6 owned findings&quot;},{&quot;case_id&quot;:&quot;root-synaptic&quot;,&quot;description&quot;:&quot;Pinned synaptic-canvas root&quot;,&quot;minimal_template&quot;:&quot;release-corpus-roots.txt entry&quot;,&quot;minimal_input&quot;:&quot;commit 862fa2bcf5718de58948cdfb2d78420e88c57d81&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: 3 paths counted; 3 owned findings&quot;},{&quot;case_id&quot;:&quot;root-roslyn-lint&quot;,&quot;description&quot;:&quot;Pinned roslyn-lint root&quot;,&quot;minimal_template&quot;:&quot;release-corpus-roots.txt entry&quot;,&quot;minimal_input&quot;:&quot;commit 27b4114b31b1bf8a3b435980a2e530f030141ade&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: 3 paths counted; 3 owned findings&quot;}],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;O5-ATM-001&quot;,&quot;status&quot;:&quot;confirmed_bug&quot;,&quot;subsystem&quot;:&quot;consumer-template-corpus&quot;,&quot;minimal_template&quot;:&quot;atm-core: six .claude assignment JSON templates listed in docs/phase-O/evidence/o5-release-corpus.md&quot;,&quot;minimal_input&quot;:&quot;hostile string value in a manually quoted placeholder&quot;,&quot;observed_result&quot;:&quot;No explicit mode; 1.4.1 auto contract will reject quoted placeholders or risk double quoting&quot;,&quot;expected_oracle&quot;:&quot;Migrate to explicit auto/bare values or explicitly pin legacy&quot;,&quot;diagnostic&quot;:&quot;ERR_JSON_MODE_CONTRACT after migration / missing mode before migration&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-1b-json; ADR-0019&quot;,&quot;requirement_follow_up&quot;:&quot;atm-core owner creates migration PR and reruns O5&quot;,&quot;root_cause&quot;:&quot;Consumer templates predate the 1.4.1 mode contract&quot;,&quot;recommended_fix&quot;:&quot;Migrate six paths in atm-core; add parser-backed tests&quot;,&quot;reproduction_count&quot;:1},{&quot;finding_id&quot;:&quot;O5-CPO-001&quot;,&quot;status&quot;:&quot;confirmed_bug&quot;,&quot;subsystem&quot;:&quot;consumer-template-corpus&quot;,&quot;minimal_template&quot;:&quot;cpo: seven JSON assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md&quot;,&quot;minimal_input&quot;:&quot;hostile string value in a manually quoted placeholder&quot;,&quot;observed_result&quot;:&quot;No explicit mode and quoted placeholders across all seven paths&quot;,&quot;expected_oracle&quot;:&quot;Migrate to explicit auto/bare values or explicitly pin legacy&quot;,&quot;diagnostic&quot;:&quot;ERR_JSON_MODE_CONTRACT after migration / missing mode before migration&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-1b-json; ADR-0019&quot;,&quot;requirement_follow_up&quot;:&quot;cpo owner creates migration PR and reruns O5&quot;,&quot;root_cause&quot;:&quot;Consumer templates predate the 1.4.1 mode contract&quot;,&quot;recommended_fix&quot;:&quot;Migrate seven paths and add parser-backed tests&quot;,&quot;reproduction_count&quot;:1},{&quot;finding_id&quot;:&quot;O5-RAPTOR-001&quot;,&quot;status&quot;:&quot;confirmed_bug&quot;,&quot;subsystem&quot;:&quot;consumer-template-corpus&quot;,&quot;minimal_template&quot;:&quot;raptor: three .claude/assets/sc-rust assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md&quot;,&quot;minimal_input&quot;:&quot;hostile string value in a manually quoted placeholder&quot;,&quot;observed_result&quot;:&quot;No explicit mode and quoted placeholders across all three paths&quot;,&quot;expected_oracle&quot;:&quot;Migrate to explicit auto/bare values or explicitly pin legacy&quot;,&quot;diagnostic&quot;:&quot;ERR_JSON_MODE_CONTRACT after migration / missing mode before migration&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-1b-json; ADR-0019&quot;,&quot;requirement_follow_up&quot;:&quot;raptor owner creates migration PR and reruns O5&quot;,&quot;root_cause&quot;:&quot;Consumer templates predate the 1.4.1 mode contract&quot;,&quot;recommended_fix&quot;:&quot;Migrate three paths and add parser-backed tests&quot;,&quot;reproduction_count&quot;:1},{&quot;finding_id&quot;:&quot;O5-SCLINT-001&quot;,&quot;status&quot;:&quot;confirmed_bug&quot;,&quot;subsystem&quot;:&quot;consumer-template-corpus&quot;,&quot;minimal_template&quot;:&quot;sc-lint: six assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md&quot;,&quot;minimal_input&quot;:&quot;hostile string value in a manually quoted placeholder&quot;,&quot;observed_result&quot;:&quot;No explicit mode and quoted placeholders across all six paths&quot;,&quot;expected_oracle&quot;:&quot;Migrate to explicit auto/bare values or explicitly pin legacy&quot;,&quot;diagnostic&quot;:&quot;ERR_JSON_MODE_CONTRACT after migration / missing mode before migration&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-1b-json; ADR-0019&quot;,&quot;requirement_follow_up&quot;:&quot;sc-lint owner creates migration PR or coordinates canonical package update&quot;,&quot;root_cause&quot;:&quot;Shared templates predate the 1.4.1 mode contract&quot;,&quot;recommended_fix&quot;:&quot;Migrate six paths and add parser-backed tests&quot;,&quot;reproduction_count&quot;:1},{&quot;finding_id&quot;:&quot;O5-SYNAPTIC-001&quot;,&quot;status&quot;:&quot;confirmed_bug&quot;,&quot;subsystem&quot;:&quot;consumer-template-corpus&quot;,&quot;minimal_template&quot;:&quot;synaptic-canvas: three packages/sc-rust assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md&quot;,&quot;minimal_input&quot;:&quot;hostile string value in a manually quoted placeholder&quot;,&quot;observed_result&quot;:&quot;No explicit mode and quoted placeholders across all three paths&quot;,&quot;expected_oracle&quot;:&quot;Migrate to explicit auto/bare values or explicitly pin legacy&quot;,&quot;diagnostic&quot;:&quot;ERR_JSON_MODE_CONTRACT after migration / missing mode before migration&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-1b-json; ADR-0019&quot;,&quot;requirement_follow_up&quot;:&quot;synaptic-canvas owner creates migration PR or consumes canonical package&quot;,&quot;root_cause&quot;:&quot;Consumer templates predate the 1.4.1 mode contract&quot;,&quot;recommended_fix&quot;:&quot;Migrate three paths and add parser-backed tests&quot;,&quot;reproduction_count&quot;:1},{&quot;finding_id&quot;:&quot;O5-ROSLYN-001&quot;,&quot;status&quot;:&quot;confirmed_bug&quot;,&quot;subsystem&quot;:&quot;consumer-template-corpus&quot;,&quot;minimal_template&quot;:&quot;roslyn-lint: three .claude/skills/codex-orchestration assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md&quot;,&quot;minimal_input&quot;:&quot;hostile string value in a manually quoted placeholder&quot;,&quot;observed_result&quot;:&quot;No explicit mode and quoted placeholders across all three paths&quot;,&quot;expected_oracle&quot;:&quot;Migrate to explicit auto/bare values or explicitly pin legacy&quot;,&quot;diagnostic&quot;:&quot;ERR_JSON_MODE_CONTRACT after migration / missing mode before migration&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-1b-json; ADR-0019&quot;,&quot;requirement_follow_up&quot;:&quot;roslyn-lint owner creates migration PR and reruns O5&quot;,&quot;root_cause&quot;:&quot;Consumer templates predate the 1.4.1 mode contract&quot;,&quot;recommended_fix&quot;:&quot;Migrate three paths and add parser-backed tests&quot;,&quot;reproduction_count&quot;:3}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="All seven roots were available and pinned. The sc-compose O.4 root is locally clean apart from intentional fixtures. Twenty-eight external production templates retain manually quoted placeholders without explicit mode; they are owned actionable release findings, not silently treated as clean.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Pinned seven-root inventory and external legacy-template ownership scan</th>
+        <td>40</td>
+        <td>40/40</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">root-sc-compose</th><td><code>Pinned sc-compose O.4 root</code></td><td>PASS: 11 paths counted; expected fixtures classified</td></tr>
+        <tr><th scope="row">root-atm-core</th><td><code>Pinned atm-core root</code></td><td>PASS: 7 paths counted; 6 owned findings</td></tr>
+        <tr><th scope="row">root-cpo</th><td><code>Pinned cpo root</code></td><td>PASS: 7 paths counted; 7 owned findings</td></tr>
+        <tr><th scope="row">root-raptor</th><td><code>Pinned raptor root</code></td><td>PASS: 3 paths counted; 3 owned findings</td></tr>
+        <tr><th scope="row">root-sc-lint</th><td><code>Pinned sc-lint root</code></td><td>PASS: 6 paths counted; 6 owned findings</td></tr>
+        <tr><th scope="row">root-synaptic</th><td><code>Pinned synaptic-canvas root</code></td><td>PASS: 3 paths counted; 3 owned findings</td></tr>
+        <tr><th scope="row">root-roslyn-lint</th><td><code>Pinned roslyn-lint root</code></td><td>PASS: 3 paths counted; 3 owned findings</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>O5-ATM-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>atm-core: six .claude assignment JSON templates listed in docs/phase-O/evidence/o5-release-corpus.md</code></dd>
+        <dt>Input</dt><dd><code>hostile string value in a manually quoted placeholder</code></dd>
+        <dt>Expected</dt><dd>Migrate to explicit auto/bare values or explicitly pin legacy</dd>
+        <dt>Observed</dt><dd>No explicit mode; 1.4.1 auto contract will reject quoted placeholders or risk double quoting</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-1b-json; ADR-0019</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>atm-core owner creates migration PR and reruns O5</dd>
+        <dt>Root cause</dt><dd>Consumer templates predate the 1.4.1 mode contract</dd>
+        <dt>Recommended fix</dt><dd>Migrate six paths in atm-core; add parser-backed tests</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>O5-CPO-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>cpo: seven JSON assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md</code></dd>
+        <dt>Input</dt><dd><code>hostile string value in a manually quoted placeholder</code></dd>
+        <dt>Expected</dt><dd>Migrate to explicit auto/bare values or explicitly pin legacy</dd>
+        <dt>Observed</dt><dd>No explicit mode and quoted placeholders across all seven paths</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-1b-json; ADR-0019</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>cpo owner creates migration PR and reruns O5</dd>
+        <dt>Root cause</dt><dd>Consumer templates predate the 1.4.1 mode contract</dd>
+        <dt>Recommended fix</dt><dd>Migrate seven paths and add parser-backed tests</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>O5-RAPTOR-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>raptor: three .claude/assets/sc-rust assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md</code></dd>
+        <dt>Input</dt><dd><code>hostile string value in a manually quoted placeholder</code></dd>
+        <dt>Expected</dt><dd>Migrate to explicit auto/bare values or explicitly pin legacy</dd>
+        <dt>Observed</dt><dd>No explicit mode and quoted placeholders across all three paths</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-1b-json; ADR-0019</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>raptor owner creates migration PR and reruns O5</dd>
+        <dt>Root cause</dt><dd>Consumer templates predate the 1.4.1 mode contract</dd>
+        <dt>Recommended fix</dt><dd>Migrate three paths and add parser-backed tests</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>O5-SCLINT-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>sc-lint: six assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md</code></dd>
+        <dt>Input</dt><dd><code>hostile string value in a manually quoted placeholder</code></dd>
+        <dt>Expected</dt><dd>Migrate to explicit auto/bare values or explicitly pin legacy</dd>
+        <dt>Observed</dt><dd>No explicit mode and quoted placeholders across all six paths</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-1b-json; ADR-0019</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>sc-lint owner creates migration PR or coordinates canonical package update</dd>
+        <dt>Root cause</dt><dd>Shared templates predate the 1.4.1 mode contract</dd>
+        <dt>Recommended fix</dt><dd>Migrate six paths and add parser-backed tests</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>O5-SYNAPTIC-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>synaptic-canvas: three packages/sc-rust assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md</code></dd>
+        <dt>Input</dt><dd><code>hostile string value in a manually quoted placeholder</code></dd>
+        <dt>Expected</dt><dd>Migrate to explicit auto/bare values or explicitly pin legacy</dd>
+        <dt>Observed</dt><dd>No explicit mode and quoted placeholders across all three paths</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-1b-json; ADR-0019</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>synaptic-canvas owner creates migration PR or consumes canonical package</dd>
+        <dt>Root cause</dt><dd>Consumer templates predate the 1.4.1 mode contract</dd>
+        <dt>Recommended fix</dt><dd>Migrate three paths and add parser-backed tests</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>O5-ROSLYN-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>roslyn-lint: three .claude/skills/codex-orchestration assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md</code></dd>
+        <dt>Input</dt><dd><code>hostile string value in a manually quoted placeholder</code></dd>
+        <dt>Expected</dt><dd>Migrate to explicit auto/bare values or explicitly pin legacy</dd>
+        <dt>Observed</dt><dd>No explicit mode and quoted placeholders across all three paths</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-1b-json; ADR-0019</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>roslyn-lint owner creates migration PR and reruns O5</dd>
+        <dt>Root cause</dt><dd>Consumer templates predate the 1.4.1 mode contract</dd>
+        <dt>Recommended fix</dt><dd>Migrate three paths and add parser-backed tests</dd>
+      </dl>
+    </article>
+  </section>
+</section>

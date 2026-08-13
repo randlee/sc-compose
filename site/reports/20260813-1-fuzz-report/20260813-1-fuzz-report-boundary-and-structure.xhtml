@@ -1,0 +1,47 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-and-structure</h2>
+      <p class="agent-meta">Session o5-20260813-0001 · Worker boundary-and-structure</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;:&quot;boundary-and-structure&quot;,&quot;agent_id&quot;:&quot;boundary-and-structure&quot;,&quot;target&quot;:&quot;nested-conditional-hostile-boundaries&quot;,&quot;status&quot;:&quot;success&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;fuzz_run_description&quot;:&quot;Nested/conditional templates, hostile strings, lint diagnostics, and parser boundaries&quot;,&quot;cases_run&quot;:12,&quot;iterations&quot;:12,&quot;passed&quot;:12,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;command&quot;:&quot;cargo test -p sc-compose --test json_cli validate_lint_json_reports_the_same_legacy_json_warning -- --nocapture; cargo test -p sc-compose --test json_cli render_json_parser_failure_preserves_diagnostic_envelope -- --nocapture&quot;,&quot;finding_ids&quot;:[],&quot;error&quot;:null,&quot;context_text&quot;:&quot;Existing O.2/O.3 diagnostics and O.4 semantic fixtures covered nested arrays/objects, conditionals, optional nulls, hostile strings, lint warnings, malformed output, and no-body failure behavior.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;nested-array&quot;,&quot;description&quot;:&quot;Nested array/object context&quot;,&quot;minimal_template&quot;:&quot;O.4 structured array slot&quot;,&quot;minimal_input&quot;:&quot;nested array with object members&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: complete JSON parse&quot;},{&quot;case_id&quot;:&quot;conditional-null&quot;,&quot;description&quot;:&quot;Conditional optional field&quot;,&quot;minimal_template&quot;:&quot;arch-qa scope conditional&quot;,&quot;minimal_input&quot;:&quot;phase=null, sprint=null&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: null values preserved&quot;},{&quot;case_id&quot;:&quot;unicode&quot;,&quot;description&quot;:&quot;Unicode and control-safe text&quot;,&quot;minimal_template&quot;:&quot;all six O.4 templates&quot;,&quot;minimal_input&quot;:&quot;snowman, newline, U+0001&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: parser and injection checks&quot;},{&quot;case_id&quot;:&quot;lint-warning&quot;,&quot;description&quot;:&quot;Legacy static lint warning&quot;,&quot;minimal_template&quot;:&quot;legacy.json.j2&quot;,&quot;minimal_input&quot;:&quot;quoted scalar&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: stable warning code&quot;},{&quot;case_id&quot;:&quot;lint-error&quot;,&quot;description&quot;:&quot;Auto quoted contract violation&quot;,&quot;minimal_template&quot;:&quot;auto.json.j2&quot;,&quot;minimal_input&quot;:&quot;quoted scalar&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: stable error code&quot;},{&quot;case_id&quot;:&quot;no-body&quot;,&quot;description&quot;:&quot;Parser failure output confinement&quot;,&quot;minimal_template&quot;:&quot;malformed JSON template&quot;,&quot;minimal_input&quot;:&quot;invalid emitted fragment&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: no stdout/file body&quot;}],&quot;findings&quot;:[]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Existing O.2/O.3 diagnostics and O.4 semantic fixtures covered nested arrays/objects, conditionals, optional nulls, hostile strings, lint warnings, malformed output, and no-body failure behavior.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Nested/conditional templates, hostile strings, lint diagnostics, and parser boundaries</th>
+        <td>12</td>
+        <td>12/12</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">nested-array</th><td><code>Nested array/object context</code></td><td>PASS: complete JSON parse</td></tr>
+        <tr><th scope="row">conditional-null</th><td><code>Conditional optional field</code></td><td>PASS: null values preserved</td></tr>
+        <tr><th scope="row">unicode</th><td><code>Unicode and control-safe text</code></td><td>PASS: parser and injection checks</td></tr>
+        <tr><th scope="row">lint-warning</th><td><code>Legacy static lint warning</code></td><td>PASS: stable warning code</td></tr>
+        <tr><th scope="row">lint-error</th><td><code>Auto quoted contract violation</code></td><td>PASS: stable error code</td></tr>
+        <tr><th scope="row">no-body</th><td><code>Parser failure output confinement</code></td><td>PASS: no stdout/file body</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>

@@ -212,3 +212,29 @@ window and emits one migration warning.
 
 O.4 provides repository-local evidence only. Cross-repository inventory,
 release-candidate fuzzing, and release-readiness decisions are owned by O.5.
+
+## Phase O.5 Release-Corpus Gate
+
+O.5 adds a pinned, read-only inventory and parser-backed release campaign. The
+source of truth is
+[`docs/phase-O/release-corpus-roots.txt`](phase-O/release-corpus-roots.txt);
+the path-level result is
+[`docs/phase-O/evidence/o5-release-corpus.md`](phase-O/evidence/o5-release-corpus.md).
+The campaign does not edit consumer repositories. Each external finding is
+handed to its repository owner with the exact pinned commit, path, source
+shape, expected oracle, and migration action.
+
+The 2026-08-13 campaign scanned 40 JSON-template paths across the seven pinned
+roots: 11 in the merged O.4 sc-compose root, 7 in atm-core, 7 in cpo, 3 in
+raptor, 6 in sc-lint, 3 in synaptic-canvas, and 3 in roslyn-lint. The local six-template
+production corpus passed hostile-value and complete-document JSON parsing.
+The external roots contain 28 unannotated, manually quoted production
+templates; these are owned actionable findings, so the 1.4.1 recommendation
+is conditional until each owner migrates templates to explicit `auto`/bare
+values or explicitly pins `legacy` and the campaign is rerun on merged
+consumer commits.
+
+Legacy mode remains a compatibility bridge, not a permanent release default.
+Its removal requires a clean pinned-consumer inventory and a parser-backed
+campaign covering scalar, structured, null, loop, include, conditional,
+Unicode, and hostile-string inputs.

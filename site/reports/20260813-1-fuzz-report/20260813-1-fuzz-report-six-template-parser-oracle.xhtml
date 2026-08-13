@@ -1,0 +1,47 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>six-template-parser-oracle</h2>
+      <p class="agent-meta">Session o5-20260813-0001 · Worker six-template-parser-oracle</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;correlation_id&quot;:&quot;six-template-parser-oracle&quot;,&quot;agent_id&quot;:&quot;six-template-parser-oracle&quot;,&quot;target&quot;:&quot;renderer-o4-corpus&quot;,&quot;status&quot;:&quot;success&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;fuzz_run_description&quot;:&quot;O.4 six-template hostile-value renders and complete JSON parser oracle&quot;,&quot;cases_run&quot;:6,&quot;iterations&quot;:6,&quot;passed&quot;:6,&quot;failed&quot;:0,&quot;result&quot;:&quot;PASS&quot;,&quot;command&quot;:&quot;cargo test -p sc-compose --test json_cli o4_templates -- --nocapture&quot;,&quot;finding_ids&quot;:[],&quot;error&quot;:null,&quot;context_text&quot;:&quot;Rendered all six O.4 assignment templates with quoted, backslash, Unicode, newline, control-safe, array, object, null, empty, and hostile key-injection values. Every successful body was parsed as one complete JSON document.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;o4-best-practices&quot;,&quot;description&quot;:&quot;rust-best-practices assignment with scalar and array values&quot;,&quot;minimal_template&quot;:&quot;.claude/assets/sc-rust/quality-mgr/templates/rust-best-practices-assignment.json.j2&quot;,&quot;minimal_input&quot;:&quot;hostile scalar, arrays, and carry_forward_findings_json&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: parsed object; no injected key&quot;},{&quot;case_id&quot;:&quot;o4-rust-qa&quot;,&quot;description&quot;:&quot;rust-qa assignment with booleans and paths&quot;,&quot;minimal_template&quot;:&quot;.claude/assets/sc-rust/quality-mgr/templates/rust-qa-assignment.json.j2&quot;,&quot;minimal_input&quot;:&quot;hostile scalar, booleans, arrays&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: parsed object; types preserved&quot;},{&quot;case_id&quot;:&quot;o4-service&quot;,&quot;description&quot;:&quot;service-hardening assignment with topics&quot;,&quot;minimal_template&quot;:&quot;.claude/assets/sc-rust/quality-mgr/templates/rust-service-hardening-assignment.json.j2&quot;,&quot;minimal_input&quot;:&quot;hostile scalar and nested lists&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: parsed object; no injection&quot;},{&quot;case_id&quot;:&quot;o4-arch&quot;,&quot;description&quot;:&quot;arch-qa conditional null and references&quot;,&quot;minimal_template&quot;:&quot;.claude/skills/codex-orchestration/arch-qa-assignment.json.j2&quot;,&quot;minimal_input&quot;:&quot;hostile scalar, null branch, reference paths&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: parsed object; null branch preserved&quot;},{&quot;case_id&quot;:&quot;o4-flaky&quot;,&quot;description&quot;:&quot;flaky-test-qa optional scope values&quot;,&quot;minimal_template&quot;:&quot;.claude/skills/codex-orchestration/flaky-test-qa-assignment.json.j2&quot;,&quot;minimal_input&quot;:&quot;empty values and null scope&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: parsed object; optional fields stable&quot;},{&quot;case_id&quot;:&quot;o4-req&quot;,&quot;description&quot;:&quot;req-qa document and branch arrays&quot;,&quot;minimal_template&quot;:&quot;.claude/skills/codex-orchestration/req-qa-assignment.json.j2&quot;,&quot;minimal_input&quot;:&quot;Unicode paths and null worktree&quot;,&quot;passed&quot;:true,&quot;outcome&quot;:&quot;PASS: parsed object; array boundaries preserved&quot;}],&quot;findings&quot;:[]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Rendered all six O.4 assignment templates with quoted, backslash, Unicode, newline, control-safe, array, object, null, empty, and hostile key-injection values. Every successful body was parsed as one complete JSON document.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">O.4 six-template hostile-value renders and complete JSON parser oracle</th>
+        <td>6</td>
+        <td>6/6</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">o4-best-practices</th><td><code>rust-best-practices assignment with scalar and array values</code></td><td>PASS: parsed object; no injected key</td></tr>
+        <tr><th scope="row">o4-rust-qa</th><td><code>rust-qa assignment with booleans and paths</code></td><td>PASS: parsed object; types preserved</td></tr>
+        <tr><th scope="row">o4-service</th><td><code>service-hardening assignment with topics</code></td><td>PASS: parsed object; no injection</td></tr>
+        <tr><th scope="row">o4-arch</th><td><code>arch-qa conditional null and references</code></td><td>PASS: parsed object; null branch preserved</td></tr>
+        <tr><th scope="row">o4-flaky</th><td><code>flaky-test-qa optional scope values</code></td><td>PASS: parsed object; optional fields stable</td></tr>
+        <tr><th scope="row">o4-req</th><td><code>req-qa document and branch arrays</code></td><td>PASS: parsed object; array boundaries preserved</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>

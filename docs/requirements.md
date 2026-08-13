@@ -183,6 +183,21 @@ empty and optional values, arrays, objects, null branches, and injection-safe
 control characters. The migration matrix and legacy exception are maintained
 in `docs/migration/json-escape-mode.md`.
 
+The Phase O.5 release gate extends this contract across consumer repositories:
+
+- every release-candidate campaign reads a source-of-truth inventory of
+  repository roots and pinned commits, verifies each commit before scanning,
+  and reports the actual JSON-template count and every path;
+- an unavailable or unpinned root blocks an unconditional release claim;
+- a successful JSON render is a valid campaign PASS only after the complete
+  emitted body is parsed as one JSON document; parser failure, partial output,
+  timeout, or success-status/body mismatch is fail-closed evidence;
+- the original 1.4.0 quoted-placeholder shape remains a permanent negative
+  fixture: auto mode rejects it before emission, while explicit legacy mode
+  produces one safely escaped string and one deprecation diagnostic;
+- external findings are owned by the external repository and require a
+  separately merged migration/fix before the release gate can become green.
+
 - Variables used by template rendering must be one of:
   - string
   - number
