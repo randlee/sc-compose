@@ -191,3 +191,22 @@ for scalar, array, object, null, loop, include, conditional, Unicode, and
 hostile-string cases. The full campaign package is
 `site/reports/20260813-1-fuzz-report.html` with its JSON sidecar and four XHTML
 worker panels.
+
+## Release waiver (authorized by Rand Lee, 2026-08-13)
+
+1.4.1 ships now, ahead of full migration closure, under the legacy-mode
+compatibility path described above. 1.4.0 already shipped the breaking JSON
+escape-mode change; the 6 pinned external roots (atm-core, cpo, raptor,
+sc-lint, synaptic-canvas, roslyn-lint) cannot begin migrating their 28
+unannotated templates until a consumer commit exists for them to migrate
+against. 1.4.1 is that forcing function, not a release gated behind their
+migration. It also ships the diagnostics (`WARN_JSON_LEGACY_ESCAPE_MODE`,
+`ERR_JSON_MODE_INCLUDE_CONFLICT`) that give consumers explicit awareness of
+the mode-conflict issue at their own call sites, plus the `legacy` pin as an
+explicit fallback path, rather than leaving them to discover the 1.4.0 break
+silently. Legacy-mode preservation for unmigrated templates during the
+deprecation window (above) already covers this sequencing. Migration
+disposition tracking remains open per the acceptance checklist in
+`docs/phase-O/phase-O-plan.md` and is not closed by this waiver — only the
+"do not claim an unconditional 1.4.1 release yet" restriction is waived for
+this specific release.

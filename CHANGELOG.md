@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-08-13
+
 ### Added
 
 - Added fail-closed include-chain validation for JSON escape modes across
@@ -38,10 +40,13 @@ All notable changes to this project will be documented in this file.
   gate. The campaign records actual consumer-root counts, rejects malformed
   JSON before emission, preserves the auto/legacy compatibility probe, and
   reports external migration owners without editing their repositories. The
-  current 1.4.1 recommendation is conditional pending migration or explicit
-  legacy disposition for 28 external templates across six downstream roots
-  (atm-core, cpo, raptor, sc-lint, synaptic-canvas, and roslyn-lint); see
-  `docs/phase-O/evidence/o5-release-corpus.md`.
+  1.4.1 release ships under the documented waiver in
+  `docs/phase-O/evidence/o5-release-corpus.md`, with legacy-mode fallback and
+  diagnostics (`WARN_JSON_LEGACY_ESCAPE_MODE`,
+  `ERR_JSON_MODE_INCLUDE_CONFLICT`) covering downstream consumers until they
+  migrate. The 28 external templates across six downstream roots (atm-core,
+  cpo, raptor, sc-lint, synaptic-canvas, and roslyn-lint) remain migration
+  work for their owners.
 - Closed the Phase O CI lint-gate gap: the CI-authoritative lint profile now
   enforces the production `template-contracts` target through
   `just lint-ci-consumer` with an explicit structured pass assertion, excludes
