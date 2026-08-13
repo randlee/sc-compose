@@ -28,6 +28,7 @@ const TARGET_REGISTRY_DIR: &str = ".sc/sc-lint/targets";
 pub(crate) struct ScLintCommand {
     id: String,
     args: Vec<String>,
+    local_template_contracts: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -66,6 +67,13 @@ impl ScLintCommand {
                 DiagnosticCode::ErrConfigParse,
             ));
         }
+        if descriptor.command == "template-contracts" {
+            return Ok(Self {
+                id: descriptor.command,
+                args: Vec::new(),
+                local_template_contracts: true,
+            });
+        }
         let args = command_args(&descriptor.command).ok_or_else(|| {
             CommandError::usage_with_code(
                 anyhow!(
@@ -79,6 +87,7 @@ impl ScLintCommand {
         Ok(Self {
             id: descriptor.command,
             args,
+            local_template_contracts: false,
         })
     }
 }
@@ -114,30 +123,17 @@ pub(crate) fn run_sc_lint(
     root: &Path,
     command: ScLintCommand,
 ) -> Result<ScLintResult, CommandError> {
-    let ScLintCommand { id, args } = command;
-    let executable = find_sc_lint_executable().map_err(|error| {
-        CommandError::usage_with_code(
-            anyhow!("sc-lint capability unavailable for {id}: {error}"),
-            DiagnosticCode::ErrConfigMode,
-        )
-    })?;
-    let output = sc_lint_process(&executable)
-        .args(["--json", "--root"])
-        .arg(root)
-        .args(&args)
-        .current_dir(root)
-        .output()
-        .map_err(|error| {
-            CommandError::usage_with_code(
-                anyhow!("sc-lint capability unavailable for {id}: {error}"),
-                DiagnosticCode::ErrConfigMode,
-            )
-        })?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
-    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
-    let (raw_json, raw_payload) = parse_raw_payload(&stdout, &stderr, &id);
-    let outcome = classify_outcome(&raw_payload, output.status.code());
+    let ScLintCommand {
+        id,
+        args,
+        local_template_contracts,
+    } = command;
+    let (stdout, stderr, raw_json, raw_payload, exit_status) = if local_template_contracts {
+        run_local_template_contracts(root)
+    } else {
+        run_external_sc_lint(root, &id, &args)?
+    };
+    let outcome = classify_outcome(&raw_payload, exit_status);
     let findings = raw_payload
         .get("data")
         .and_then(|data| data.get("findings"))
@@ -171,7 +167,7 @@ pub(crate) fn run_sc_lint(
         command_id: id.clone(),
         target: id,
         outcome,
-        exit_status: output.status.code(),
+        exit_status,
         stdout,
         stderr,
         raw_payload,
@@ -196,6 +192,67 @@ pub(crate) fn run_sc_lint(
         )
     })?;
     Ok(result)
+}
+
+fn run_local_template_contracts(root: &Path) -> (String, String, String, Value, Option<i32>) {
+    match crate::commands::template_lint::lint_repository_templates(root) {
+        Ok(report) => (
+            report.raw_json.clone(),
+            String::new(),
+            report.raw_json,
+            report.payload,
+            Some(report.exit_status),
+        ),
+        Err(error) => {
+            let payload = json!({
+                "ok": false,
+                "command": "template-contracts",
+                "error": {
+                    "code": "CLI.CONFIG_ERROR",
+                    "kind": "configuration",
+                    "message": error.to_string(),
+                },
+                "data": {
+                    "status": "config_error",
+                    "findings": [],
+                    "context_backed_render": false,
+                },
+                "diagnostics": [],
+            });
+            let raw_json =
+                serde_json::to_string_pretty(&payload).unwrap_or_else(|_| String::from("{}"));
+            (raw_json.clone(), String::new(), raw_json, payload, Some(3))
+        }
+    }
+}
+
+fn run_external_sc_lint(
+    root: &Path,
+    id: &str,
+    args: &[String],
+) -> Result<(String, String, String, Value, Option<i32>), CommandError> {
+    let executable = find_sc_lint_executable().map_err(|error| {
+        CommandError::usage_with_code(
+            anyhow!("sc-lint capability unavailable for {id}: {error}"),
+            DiagnosticCode::ErrConfigMode,
+        )
+    })?;
+    let output = sc_lint_process(&executable)
+        .args(["--json", "--root"])
+        .arg(root)
+        .args(args)
+        .current_dir(root)
+        .output()
+        .map_err(|error| {
+            CommandError::usage_with_code(
+                anyhow!("sc-lint capability unavailable for {id}: {error}"),
+                DiagnosticCode::ErrConfigMode,
+            )
+        })?;
+    let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+    let (raw_json, raw_payload) = parse_raw_payload(&stdout, &stderr, id);
+    Ok((stdout, stderr, raw_json, raw_payload, output.status.code()))
 }
 
 fn find_sc_lint_executable() -> io::Result<PathBuf> {

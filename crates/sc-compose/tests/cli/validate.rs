@@ -118,6 +118,36 @@ fn validate_lint_reports_filter_chain_location_and_recommendation() {
 }
 
 #[test]
+fn validate_lint_auto_json_quote_is_a_mode_contract_error() {
+    let root = temp_root("validate-lint-auto-json-contract");
+    write_file(&root.join("payload.json.j2"), r#"{"value": "{{ value }}"}"#);
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--lint",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "stderr: {:?}", output.stderr);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("ERR_JSON_MODE_CONTRACT"), "{stdout}");
+    assert!(
+        stdout.contains("docs/migration/json-escape-mode.md"),
+        "{stdout}"
+    );
+}
+
+#[test]
 fn validate_help_documents_lint_flag() {
     let output = sc_compose().arg("validate").arg("--help").output().unwrap();
 

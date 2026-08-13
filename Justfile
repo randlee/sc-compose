@@ -6,7 +6,11 @@ reports-init:
     {{sc-compose}} reports init --root .
 
 lint target="full":
-    {{sc-compose}} lint --root . --target {{target}} --json
+    target="{{target}}"; target="${target#target=}"; {{sc-compose}} lint --root . --target "$target" --json
+    target="{{target}}"; target="${target#target=}"; if [ "$target" = "full" ]; then {{sc-compose}} lint --root . --target template-contracts --json; fi
+
+template-contracts:
+    {{sc-compose}} lint --root . --target template-contracts --json
 
 # Temporary consumer profile while sc-lint's released full/ci profile is broken
 # (sc-lint#84). Restore `lint full` after its profile fix; identity-literals is

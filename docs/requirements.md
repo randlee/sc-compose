@@ -164,6 +164,12 @@ Schema rules:
 - A malformed rendered JSON body must fail closed with the stable
   `ERR_RENDER_JSON_MALFORMED` diagnostic. The diagnostic includes template,
   line, column, and byte offset, but never echoes rendered values.
+- Source lint uses the canonical `ERR_JSON_MODE_CONTRACT` diagnostic for an
+  auto-mode quoted scalar placeholder. Ambiguous quoted expressions use
+  `WARN_JSON_QUOTED_PLACEHOLDER` as a conservative finding instead of being
+  silently treated as safe. The existing
+  `WARN_JSON_LEGACY_ESCAPE_MODE` migration warning remains emitted by static
+  validation for legacy mode or detected quoted placeholders.
 
 The render-context value model accepts any finite JSON/YAML-compatible tree
 that the existing `serde_json::Value` and Minijinja context can represent.
@@ -845,6 +851,20 @@ Schema rules:
   context-specific result.
 - `validate --lint --check-render` combines lint and render diagnostics in the
   same envelope.
+- `validate --lint` reports source locations and stable mode-lint codes. An
+  auto-mode contract error returns exit code `2`; warning-only legacy or
+  ambiguous-expression findings preserve exit code `0`.
+
+### FR-8b: Repository template-contract lint
+
+- `sc-compose lint --target template-contracts --json` uses the same
+  library-owned source scanner as `validate --lint` and reports the effective
+  mode, template path, source location, diagnostic code, migration
+  recommendation, and `context_backed_render` state for every finding.
+- The target is allowlisted through `.sc/sc-lint/targets/template-contracts.toml`
+  and remains a local sc-compose capability; it must not duplicate scanner
+  logic in Python or shell. Missing roots, unreadable templates, and include
+  failures are explicit configuration failures, never green passes.
 
 `init --json`
 
