@@ -13,6 +13,7 @@ use crate::observer::{
     RenderOutcomeEvent, ResolveAttemptEvent, ResolveOutcomeEvent, ValidationOutcomeEvent,
 };
 use crate::path_utils::to_forward_slash;
+use crate::render_check::{OutputFormat, check_rendered_output};
 use crate::renderer::Renderer;
 use crate::resolver::resolve_template_path;
 use crate::types::{ComposeRequest, ComposeResult, InputValue, PassConfig, VariableName};
@@ -129,14 +130,14 @@ fn compose_expanded(
         .unwrap_or_default();
     let parsed = ParsedTemplate::from_parts(root_passes, expanded.text.clone());
     let template_name = resolved_template_name(&validation_report.resolve_result.resolved_path);
-    let rendered_text = if parsed.passes().len() > 1 {
+    let (rendered_text, failing_pass) = if parsed.passes().len() > 1 {
         let contexts = build_pass_contexts(
             parsed.passes(),
             &request.policy.passes,
             &mut validation_state,
             &validation_report.resolve_result.resolved_path,
         );
-        render_all_with_observer(
+        let rendered = render_all_with_observer(
             &parsed,
             &contexts,
             &template_name,
@@ -145,27 +146,34 @@ fn compose_expanded(
                 request.policy.json_escape_mode,
                 parsed.frontmatter().and_then(Frontmatter::json_escape_mode),
             ),
-        )?
+            Some(OutputFormat::from_template_path(
+                &validation_report.resolve_result.resolved_path,
+            )),
+        )?;
+        (rendered.body, rendered.failing_pass)
     } else {
         let renderer = Renderer::with_json_escape_mode(crate::resolve_json_escape_mode(
             request.policy.json_escape_mode,
             parsed.frontmatter().and_then(Frontmatter::json_escape_mode),
         ));
-        renderer
-            .render_named(
-                &template_name,
-                &expanded.text,
-                build_render_context(
-                    &mut validation_state,
-                    &validation_report.resolve_result.resolved_path,
-                ),
-            )
-            .inspect_err(|error| {
-                observer.on_render_outcome(&RenderOutcomeEvent {
-                    rendered_bytes: None,
-                    code: error.code(),
-                });
-            })?
+        (
+            renderer
+                .render_named(
+                    &template_name,
+                    &expanded.text,
+                    build_render_context(
+                        &mut validation_state,
+                        &validation_report.resolve_result.resolved_path,
+                    ),
+                )
+                .inspect_err(|error| {
+                    observer.on_render_outcome(&RenderOutcomeEvent {
+                        rendered_bytes: None,
+                        code: error.code(),
+                    });
+                })?,
+            None,
+        )
     };
     observer.on_render_outcome(&RenderOutcomeEvent {
         rendered_bytes: Some(rendered_text.len()),
@@ -179,6 +187,7 @@ fn compose_expanded(
 
     Ok(ComposeResult {
         rendered_text,
+        failing_pass,
         resolved_files: expanded.resolved_files,
         resolve_result: validation_report.resolve_result,
         variable_sources: validation_state.variable_sources,
@@ -205,7 +214,9 @@ pub fn render_all(
         "inline",
         &mut observer,
         crate::JsonEscapeMode::Auto,
+        None,
     )
+    .map(|rendered| rendered.body)
 }
 
 /// Protect next-higher-brace expressions from lower-brace rendering passes.
@@ -352,7 +363,8 @@ fn render_all_with_observer(
     template_name: &str,
     observer: &mut dyn CompositionObserver,
     json_escape_mode: crate::JsonEscapeMode,
-) -> Result<String, ComposeError> {
+    output_format: Option<OutputFormat>,
+) -> Result<PassRenderResult, ComposeError> {
     if contexts.len() != parsed.passes().len() {
         return Err(ConfigError::new(
             DiagnosticCode::ErrConfigParse,
@@ -367,6 +379,7 @@ fn render_all_with_observer(
     }
 
     let mut body = parsed.body().to_owned();
+    let mut failing_pass = None;
     for (frontmatter, (context_pass_number, variables)) in
         parsed.passes().iter().zip(contexts.iter())
     {
@@ -405,10 +418,21 @@ fn render_all_with_observer(
                     code: error.code(),
                 });
             })?;
+        if failing_pass.is_none()
+            && output_format == Some(OutputFormat::Json)
+            && check_rendered_output(OutputFormat::Json, Path::new(template_name), &body).is_err()
+        {
+            failing_pass = Some(header_pass_number);
+        }
         observer.on_pass_end(&PassEndEvent::new(header_pass_number));
     }
 
-    Ok(body)
+    Ok(PassRenderResult { body, failing_pass })
+}
+
+struct PassRenderResult {
+    body: String,
+    failing_pass: Option<u8>,
 }
 
 /// Combine rendered content with optional guidance and user-prompt blocks.

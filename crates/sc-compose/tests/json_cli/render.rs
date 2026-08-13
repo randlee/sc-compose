@@ -228,8 +228,50 @@ fn render_json_multi_pass_failure_identifies_the_failing_pass() {
         value["diagnostics"][0]["message"]
             .as_str()
             .unwrap()
-            .contains("after render pass 1")
+            .contains("after render pass 2")
     );
+    assert!(!value.to_string().contains("hello"), "context leaked");
+}
+
+#[test]
+fn render_json_multi_pass_failure_identifies_an_early_pass_before_later_configured_passes() {
+    let root = temp_root("render-json-early-multi-pass-malformed");
+    write_file(
+        &root.join("payload.2.json.j2"),
+        "---\npass: 2\nrequired_variables:\n  - value\n---\n---\npass: 1\n---\n---\npass: 3\n---\n{\"value\": \"{{{ value }}}\"}",
+    );
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--all",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.2.json.j2",
+            "--pass",
+            "2",
+            "--var",
+            "value=hello",
+            "--pass",
+            "1",
+            "--pass",
+            "3",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"], serde_json::json!({}));
+    assert_eq!(value["diagnostics"][0]["code"], "ERR_RENDER_JSON_MALFORMED");
+    let message = value["diagnostics"][0]["message"].as_str().unwrap();
+    assert!(message.contains("after render pass 2"), "{message}");
+    assert!(!message.contains("after render pass 3"), "{message}");
     assert!(!value.to_string().contains("hello"), "context leaked");
 }
 

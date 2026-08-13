@@ -35,6 +35,7 @@ pub(super) fn execute_render_with_extra_warnings(
         &result.resolve_result.resolved_path,
         &result.rendered_text,
         args,
+        result.failing_pass,
     )?;
     emit_render_output(
         request,
@@ -69,6 +70,7 @@ pub(super) fn execute_render_with_expanded(
         &result.resolve_result.resolved_path,
         &result.rendered_text,
         args,
+        result.failing_pass,
     )?;
     emit_render_output(
         request,
@@ -156,6 +158,7 @@ pub(super) fn execute_custom_delimiter_render(
         &resolve_result.resolved_path,
         &rendered_text,
         &args.render,
+        None,
     )?;
     emit_render_output(
         request,
@@ -173,6 +176,7 @@ fn checked_render_output(
     resolved_path: &Path,
     rendered_text: &str,
     args: &RenderBehaviorArgs,
+    actual_failing_pass: Option<u8>,
 ) -> Result<
     (
         sc_composer::CheckedOutput,
@@ -189,13 +193,13 @@ fn checked_render_output(
             rendered_text,
         )
         .map_err(|error| {
-            CommandError::render_check(error.with_failing_pass(failing_pass(request)))
+            CommandError::render_check(error.with_failing_pass(actual_failing_pass))
         })?;
         return Ok((checked, None));
     }
     let checked = sc_composer::check_rendered_output_with_meta(meta.clone(), rendered_text)
         .map_err(|error| {
-            CommandError::render_check(error.with_failing_pass(failing_pass(request)))
+            CommandError::render_check(error.with_failing_pass(actual_failing_pass))
         })?;
     let report = sc_composer::RenderCheckReport::RenderChecked {
         meta,
@@ -203,12 +207,6 @@ fn checked_render_output(
         diagnostics: Vec::new(),
     };
     Ok((checked, Some(report)))
-}
-
-fn failing_pass(request: &sc_composer::ComposeRequest) -> Option<u8> {
-    (request.policy.passes.len() > 1)
-        .then(|| request.policy.passes.last().map(|pass| pass.pass_number))
-        .flatten()
 }
 
 fn custom_variable_delimiters(args: &RenderArgs) -> Result<(String, String), CommandError> {
