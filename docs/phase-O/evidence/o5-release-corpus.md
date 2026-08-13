@@ -27,6 +27,23 @@ The inventory used `rg --files --hidden -g '!.git'` and included
 probe was rejected during the closure review because it omitted `.claude`;
 the counts above are the corrected source-of-truth counts.
 
+## Report terminology and oracle scope
+
+The JSON sidecar's aggregate `all_successful`, `passed`, and `failed` fields
+describe worker execution completion. They do not mean that every enumerated
+template was rendered with a real context and accepted by the JSON parser.
+In particular, the cross-repository worker completed its 40 inventory
+iterations but returned `result: FAIL` with owned findings. Its `40/40`
+worker-completion count is therefore not a per-template parser PASS count.
+
+The parser-backed oracle actually verified 12 sc-compose-owned template
+cases, all of which passed. The 28 external templates carrying owned findings
+were source-shape inventoried only: they are `UNRENDERED/OWNED`, have no
+parser-backed PASS, and require a consumer-owned migration or explicit legacy
+disposition. One additional atm-core path was source-shape clean but was also
+not rendered. Release readiness is gated by this oracle disposition and the
+external ownership list, not by the sidecar's aggregate worker fields.
+
 ## Scope reconciliation
 
 The comp2 O5 cross-repository inventory named five downstream candidates:
@@ -38,6 +55,12 @@ sc-compose and atm-core roots remain required sprint roots in addition to
 those five downstream candidates.
 
 ## Path-level inventory
+
+The six O.4 production templates and the mode/regression cases listed under
+the sc-compose root are the 12 sc-compose-owned parser-verified cases. Every
+external path in the tables below is `UNRENDERED/OWNED`: the scan recorded its
+source shape and owner, but did not render it with a real context or claim a
+parser-verified PASS.
 
 ### sc-compose O.4 root
 
@@ -107,16 +130,18 @@ contracts; it did not introduce a second parser or scanner:
 | --- | ---: | ---: | --- | --- |
 | six-template parser oracle | 6 | 6/6 | PASS | `cargo test -p sc-compose --test json_cli o4_templates -- --nocapture` |
 | mode compatibility and 1.4 regression | 6 | 6/6 | PASS | auto quoted fixture fails closed; legacy fixture parses and warns once |
-| cross-repository inventory | 40 | 40/40 | PASS* | 11 + 7 + 7 + 3 + 6 + 3 + 3 paths pinned and counted; 28 external findings owned |
+| cross-repository inventory | 40 | 40/40 worker iterations complete | FAIL — inventory only | 40 source paths pinned and counted; 28 external finding paths are `UNRENDERED/OWNED`; no parser-backed template PASS was claimed |
 | hostile/nested/boundary corpus | 12 | 12/12 | PASS | O.2/O.3/O.4 JSON CLI and lint tests |
-| **Total** | **64** | **64/64** | **PASS*** | `*` means no unowned failure; release remains conditional on external owner handoff |
+| **Total** | **24 parser checks + 40 inventory iterations** | **parser checks passed; inventory completed with findings** | **CONDITIONAL** | 12 sc-compose-owned template cases have parser-backed PASS evidence; 28 external templates remain `UNRENDERED/OWNED` |
 
 The original regression is permanently represented by
 `tests/fixtures/sc-lint/template-contracts/findings/auto.json.j2`:
 `{"value": "{{ value }}"}` under auto mode is rejected before output. The
 explicit legacy fixture renders one safe JSON string and emits exactly one
 `WARN_JSON_LEGACY_ESCAPE_MODE`. A successful JSON body is never marked PASS
-without `serde_json` parsing it as a complete document.
+without `serde_json` parsing it as a complete document. That guarantee applies
+to the 12 sc-compose-owned parser cases; the external inventory is not a
+render campaign.
 
 ## Workspace gate results
 
