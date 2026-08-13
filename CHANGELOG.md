@@ -22,8 +22,9 @@ All notable changes to this project will be documented in this file.
   gate. The campaign records actual consumer-root counts, rejects malformed
   JSON before emission, preserves the auto/legacy compatibility probe, and
   reports external migration owners without editing their repositories. The
-  current 1.4.1 recommendation is conditional pending the pinned atm-core
-  template migration across the seven pinned roots; see
+  current 1.4.1 recommendation is conditional pending migration or explicit
+  legacy disposition for 28 external templates across six downstream roots
+  (atm-core, cpo, raptor, sc-lint, synaptic-canvas, and roslyn-lint); see
   `docs/phase-O/evidence/o5-release-corpus.md`.
 - Closed the Phase O CI lint-gate gap: the CI-authoritative lint profile now
   scans production templates with an explicit structured pass assertion,
