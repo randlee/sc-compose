@@ -142,15 +142,15 @@ fn is_scalar_expression(expression: &str) -> bool {
         || expression.starts_with('\'')
         || expression.contains("{%")
         || expression.contains("{{")
-        || expression.contains('|')
-        || expression.contains('[')
-        || expression.contains('{')
-        || expression.contains('(')
     {
         return false;
     }
-    expression
-        .split('.')
+    let base = expression
+        .split('|')
+        .next()
+        .and_then(|part| part.split_whitespace().next())
+        .unwrap_or_default();
+    base.split('.')
         .all(|part| !part.is_empty() && is_identifier(part))
 }
 
@@ -353,11 +353,8 @@ fn visit_template_dir(
             }
             visit_template_dir(root, &path, templates)?;
         } else if path.is_file() && is_json_template_path(&path) {
-            templates.push(path.strip_prefix(root).unwrap_or(&path).to_path_buf());
-            if templates.last().is_some_and(|path| path.is_relative()) {
-                let relative = templates.pop().expect("just pushed template");
-                templates.push(root.join(relative));
-            }
+            let relative = path.strip_prefix(root).unwrap_or(&path);
+            templates.push(root.join(relative));
         }
     }
     Ok(())
@@ -515,5 +512,23 @@ mod tests {
         );
 
         assert!(diagnostics.is_empty());
+    }
+
+    #[test]
+    fn filtered_json_placeholder_is_a_conservative_finding() {
+        let diagnostics = super::lint_source_with_mode(
+            std::path::Path::new("payload.json.j2"),
+            "{\"value\": \"{{ value | upper }}\"}\n",
+            sc_composer::JsonEscapeMode::Auto,
+            true,
+            &[],
+        );
+
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].severity,
+            sc_composer::DiagnosticSeverity::Error
+        );
+        assert!(diagnostics[0].message.contains("incompatible with auto"));
     }
 }

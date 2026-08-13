@@ -167,7 +167,7 @@ fn validate_lint_json_reports_the_same_legacy_json_warning() {
         .output()
         .unwrap();
 
-    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    assert_eq!(output.status.code(), Some(2), "stderr: {:?}", output.stderr);
     let value = parse_stdout(&output);
     assert_envelope(&value);
     assert!(
@@ -175,7 +175,10 @@ fn validate_lint_json_reports_the_same_legacy_json_warning() {
             .as_array()
             .unwrap()
             .iter()
-            .any(|diagnostic| { diagnostic["code"] == "WARN_JSON_LEGACY_ESCAPE_MODE" })
+            .any(|diagnostic| {
+                diagnostic["code"] == "WARN_JSON_LEGACY_ESCAPE_MODE"
+                    && diagnostic["severity"] == "error"
+            })
     );
 }
 
