@@ -1,11 +1,14 @@
 ---
 id: PLAN-JSON-FORMAT-ESCAPE-MODE
 title: "JSON escape-mode compatibility and fail-closed rendered-output validation"
-status: proposed
+status: accepted
 branch: plan/json-format-escape-mode
 base: develop
 issue: "FIX-JSON-FORMAT-DOUBLE-QUOTE"
 target_release: 1.4.1
+accepted_by: "team-lead, quality-mgr"
+accepted_date: "2026-08-13"
+accepted_evidence: "PR #420 (plan_gate PASS at commit d380ff3), PR #421 (ADR-0019 PASS)"
 ---
 
 # PLAN-JSON-FORMAT-ESCAPE-MODE

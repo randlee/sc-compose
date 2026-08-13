@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted (2026-08-13) — merged via PR #421, quality-mgr PASS
 
 ## Context
 

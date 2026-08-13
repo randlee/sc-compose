@@ -4,7 +4,8 @@ title: JSON Render Contract and Fail-Closed Output Validation
 status: planned
 target: integrate/phase-o
 planning_branch: plan/json-format-escape-mode
-design_acceptance: required before sprint dispatch
+design_acceptance: recorded 2026-08-13 (PR #420, quality-mgr PASS at d380ff3)
+adr_acceptance: recorded 2026-08-13 (ADR-0019, PR #421, quality-mgr PASS)
 ---
 
 # Phase O — JSON Render Contract and Fail-Closed Output Validation
@@ -27,20 +28,16 @@ The detailed design source remains the linked plan above; this Phase O folder
 is the authoritative execution index and sprint decomposition for team
 dispatch, dependency tracking, and QA handoff.
 
-The detailed design document is still marked `proposed` until team-lead and
-quality-mgr accept this review round. The sprint documents may be prepared and
-reviewed while `status: planned`, but no O sprint may be dispatched or receive
-an implementation worktree until that design-acceptance gate is recorded.
+The detailed design document (`docs/sprints/plan-json-format-escape-mode.md`)
+was accepted 2026-08-13 by team-lead and quality-mgr (PR #420, plan_gate PASS
+at commit d380ff3). The design-acceptance gate below is satisfied.
 
 ## ADR reservation and dispatch gate
 
-Reserve `ADR-0019 — JSON Render Contract and Fail-Closed Output Validation`.
-The ADR owner is team-lead/architecture, with quality-mgr review. O.1 must
-create or amend the accepted ADR before implementation handoff; the reserved
-path is listed in O.1/O.2/O.3 as a planning target, not as an instruction to
-edit an ADR in this plan-only worktree. No O implementation worktree may be
-dispatched while either the detailed design acceptance or ADR-0019 acceptance
-is missing.
+`ADR-0019 — JSON Render Contract and Fail-Closed Output Validation` was
+accepted 2026-08-13 (PR #421, quality-mgr PASS). Both the detailed design
+acceptance and ADR-0019 acceptance gates are now satisfied; O sprints may be
+dispatched.
 
 ## Incident and evidence
 
