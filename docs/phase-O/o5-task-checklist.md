@@ -52,10 +52,13 @@ their owners.
 - [x] O5-014 — Re-read the sprint plan and verify the campaign acceptance
   criteria; record the one remaining repository-level gate blocker rather
   than claiming a clean release.
-- [ ] O5-015 — Resolve `O5-SC-LINT-BOOTSTRAP-001`: the full `just lint`
-  wrapper cannot find `sc-lint-boundary` in this standalone workspace. This
-  is intentionally handed off for a separate fix worktree/PR; no suppression
-  is an acceptable closure.
+- [ ] O5-015 — Resolve `O5-SC-LINT-BOOTSTRAP-001`: the full local `just lint`
+  wrapper is blocked in a bare standalone worktree because the `sc-lint`,
+  `sc-lint-boundary`, `sc-lint-portability`, and `sc-lint-runtime` release
+  binaries are absent. CI provisions them through
+  `.github/actions/setup-sc-lint/action.yml`; its green
+  `just lint-ci-consumer` run is the authoritative gate. No suppression is
+  an acceptable closure.
 
 ## Final verification
 
@@ -70,7 +73,10 @@ their owners.
   report sidecar.
 - [x] `just test`, workspace tests, formatting, clippy, fast lint, direct
   sc-boundary, report validation, and diff checks pass.
-- [ ] Full `just lint` is green: blocked by the missing `sc-lint-boundary`
-  package in this standalone workspace (`O5-SC-LINT-BOOTSTRAP-001`). This
-  requires a separate team-lead/sc-lint fix worktree/PR and a rerun after
-  merge; no lint suppression was added.
+- [ ] Full local `just lint` is green: blocked in a bare standalone worktree
+  because the `sc-lint`, `sc-lint-boundary`, `sc-lint-portability`, and
+  `sc-lint-runtime` release binaries are absent
+  (`O5-SC-LINT-BOOTSTRAP-001`). CI provisions them through
+  `.github/actions/setup-sc-lint/action.yml`; the green
+  `just lint-ci-consumer` run is the authoritative gate, and no lint
+  suppression was added.
