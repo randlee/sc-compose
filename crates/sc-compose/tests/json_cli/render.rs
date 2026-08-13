@@ -1187,3 +1187,66 @@ fn resolve_mode_mismatch_json_reports_config_mode() {
     assert_envelope(&value);
     assert_first_code(&value, "ERR_CONFIG_MODE");
 }
+
+#[test]
+fn render_check_render_rejects_malformed_json_despite_doubled_template_suffix() {
+    let root = temp_root("render-check-render-doubled-suffix");
+    write_file(
+        &root.join("payload.json.j2.j2"),
+        "{\"value\": \"{{ value }}\"",
+    );
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--check-render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2.j2",
+            "--var",
+            "value=hello",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"], serde_json::json!({}));
+    assert_first_code(&value, "ERR_RENDER_JSON_MALFORMED");
+    assert!(!value.to_string().contains("hello"));
+}
+
+#[test]
+fn render_check_render_rejects_malformed_json_for_uppercase_json_extension() {
+    let root = temp_root("render-check-render-uppercase-extension");
+    write_file(&root.join("payload.JSON.j2"), "{\"value\": \"{{ value }}\"");
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--check-render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.JSON.j2",
+            "--var",
+            "value=hello",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"], serde_json::json!({}));
+    assert_first_code(&value, "ERR_RENDER_JSON_MALFORMED");
+    assert!(!value.to_string().contains("hello"));
+}
