@@ -1320,6 +1320,21 @@ FIX-277 corrects JSON stdout render metadata to include the trailing newline
 emitted by the equivalent plain-mode stdout path. File output and dry-run
 metadata remain unchanged.
 
+### Follow-on Fix Sprint: FIX-POSTMERGE-02
+
+Status:
+
+- complete on `fix/checked-render-format-normalization-parity`
+
+Sprint entry:
+
+- [Sprint FIX-POSTMERGE-02 — Template-Suffix Normalization](sprints/fix-postmerge-02-normalization-parity.md)
+
+FIX-POSTMERGE-02 unifies JSON template-path classification across rendering,
+checked output validation, diagnostics, template lint, and template-init. The
+shared helper removes all recognized template suffixes case-insensitively so
+stacked suffixes and case variants receive the same JSON contract.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:

@@ -545,8 +545,12 @@ mod tests {
     #[test]
     fn fuzz_001_template_init_uses_shared_json_path_detector() {
         let root = temp_root("template_init_json_path_variants");
-        for file_name in ["payload.JSON.j2", "payload.json.J2", "payload.json.j2.j2"] {
-            let template = root.join(file_name);
+        for (fixture, file_name) in [
+            ("uppercase-content", "payload.JSON.j2"),
+            ("uppercase-template", "payload.json.J2"),
+            ("stacked-suffix", "payload.json.j2.j2"),
+        ] {
+            let template = root.join(fixture).join(file_name);
             write_file(&template, "{\"worktree_path\": \"/tmp/wt\"}\n");
 
             let result = template_init_file(

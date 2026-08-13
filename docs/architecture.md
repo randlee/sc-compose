@@ -205,9 +205,10 @@ ATM integration is an adapter concern outside this repository.
   - keeps `render_template()` as a one-shot convenience wrapper,
   - renders template content under normal or strict undeclared-token policy.
 - `template_ext`
-  - exposes `strip_template_suffix`, the single shared
-    `.j2`/`.jinja2`/`.jinja` suffix-stripping helper used by the renderer's
-    auto-escape callback and by `sc-compose`'s template-init JSON detection.
+  - exposes shared, case-insensitive template-path classification that removes
+    stacked `.j2`/`.jinja2`/`.jinja` suffixes before determining the content
+    extension; it keeps renderer auto-escape, checked-render validation, and
+    CLI JSON detection in agreement.
 - `template_scanner`
   - exposes the shared lexical Jinja variable-expression scanner used by
     library JSON diagnostics and the `sc-compose` template-lint command.

@@ -248,7 +248,7 @@ pub fn check_rendered_output(
     };
     let line = error.line();
     let column = error.column();
-    let byte_offset = byte_offset_at(rendered, line, column);
+    let byte_offset = byte_offset_at(rendered, line, column, error.classify());
     let diagnostic = Diagnostic::new(
         DiagnosticSeverity::Error,
         DiagnosticCode::ErrRenderJsonMalformed,
@@ -268,24 +268,34 @@ pub fn check_rendered_output(
     })
 }
 
-fn byte_offset_at(text: &str, line: usize, column: usize) -> usize {
+fn byte_offset_at(
+    text: &str,
+    line: usize,
+    column: usize,
+    category: serde_json::error::Category,
+) -> usize {
     let line_start = text
         .split_inclusive('\n')
         .take(line.saturating_sub(1))
         .map(str::len)
         .sum::<usize>();
-    let remaining = text.get(line_start..).unwrap_or_default();
-    let line_text = remaining
-        .split_once('\n')
-        .map_or(remaining, |(line, _)| line);
-    let character_offset = column.saturating_sub(1);
-    let byte_offset_in_line = line_text
-        .char_indices()
-        .nth(character_offset)
-        .map_or(line_text.len(), |(offset, _)| offset);
-    line_start
+    // serde_json derives its column from byte indices. For a syntax error it
+    // has already consumed the offending byte, making the public column
+    // one-based. EOF is reported at the byte position immediately after the
+    // final input byte, so it must not be decremented.
+    let byte_offset_in_line = match category {
+        serde_json::error::Category::Eof => column,
+        serde_json::error::Category::Io
+        | serde_json::error::Category::Syntax
+        | serde_json::error::Category::Data => column.saturating_sub(1),
+    };
+    let mut byte_offset = line_start
         .saturating_add(byte_offset_in_line)
-        .min(text.len())
+        .min(text.len());
+    while byte_offset < text.len() && !text.is_char_boundary(byte_offset) {
+        byte_offset += 1;
+    }
+    byte_offset
 }
 
 #[cfg(test)]
@@ -351,17 +361,53 @@ mod tests {
     }
 
     #[test]
-    fn invalid_json_byte_offset_lands_on_a_char_boundary_with_multibyte_prefix() {
-        let rendered = "\"\u{00e9}";
-        let error =
-            check_rendered_output(OutputFormat::Json, Path::new("payload.json.j2"), rendered)
-                .expect_err("unterminated string is malformed JSON");
-        let super::OutputCheckReason::InvalidJson { byte_offset, .. } = error.reason else {
-            panic!("expected InvalidJson reason, got {:?}", error.reason);
-        };
-        assert!(byte_offset <= rendered.len());
-        assert!(rendered.is_char_boundary(byte_offset));
-        assert_eq!(byte_offset, rendered.len());
+    fn fuzz_002_byte_offset_tracks_mid_line_utf8_syntax_errors() {
+        for rendered in [
+            "[1, \"ascii\", X]",
+            "[1, \"\u{00e9}\", X]",
+            "[1, \"\u{4e2d}\", X]",
+            "[1, \"\u{1f600}\", X]",
+        ] {
+            let error =
+                check_rendered_output(OutputFormat::Json, Path::new("payload.json.j2"), rendered)
+                    .expect_err("invalid token is malformed JSON");
+            let super::OutputCheckReason::InvalidJson { byte_offset, .. } = error.reason else {
+                panic!("expected InvalidJson reason, got {:?}", error.reason);
+            };
+            assert_eq!(byte_offset, rendered.find('X').expect("invalid token"));
+            assert!(rendered.is_char_boundary(byte_offset));
+        }
+    }
+
+    #[test]
+    fn fuzz_002_byte_offset_tracks_multiline_and_crlf_syntax_errors() {
+        for rendered in [
+            "{\n  \"\u{00e9}\": 1,\n  X\n}",
+            "{\r\n  \"\u{1f600}\": 1,\r\n  X\r\n}",
+        ] {
+            let error =
+                check_rendered_output(OutputFormat::Json, Path::new("payload.json.j2"), rendered)
+                    .expect_err("invalid token is malformed JSON");
+            let super::OutputCheckReason::InvalidJson { byte_offset, .. } = error.reason else {
+                panic!("expected InvalidJson reason, got {:?}", error.reason);
+            };
+            assert_eq!(byte_offset, rendered.find('X').expect("invalid token"));
+            assert!(rendered.is_char_boundary(byte_offset));
+        }
+    }
+
+    #[test]
+    fn fuzz_002_byte_offset_uses_eof_after_multibyte_prefix() {
+        for rendered in ["\"\u{00e9}", "\"\u{4e2d}", "\"\u{1f600}"] {
+            let error =
+                check_rendered_output(OutputFormat::Json, Path::new("payload.json.j2"), rendered)
+                    .expect_err("unterminated string is malformed JSON");
+            let super::OutputCheckReason::InvalidJson { byte_offset, .. } = error.reason else {
+                panic!("expected InvalidJson reason, got {:?}", error.reason);
+            };
+            assert_eq!(byte_offset, rendered.len());
+            assert!(rendered.is_char_boundary(byte_offset));
+        }
     }
 
     #[test]

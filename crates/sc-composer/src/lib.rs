@@ -117,8 +117,7 @@ pub use sc_sha::{
 };
 #[doc(inline)]
 pub use template_ext::{
-    is_json_template_path, strip_all_template_suffixes, strip_template_suffix,
-    template_content_extension,
+    is_json_template_path, strip_all_template_suffixes, template_content_extension,
 };
 #[doc(inline)]
 pub use types::{

@@ -109,7 +109,7 @@ fn json_mode_diagnostics(
 
     let legacy_mode = matches!(effective_mode, crate::JsonEscapeMode::Legacy);
     let quoted_expressions = quoted_json_placeholder_expressions(&expanded.text);
-    if legacy_mode || !quoted_expressions.is_empty() {
+    if legacy_mode {
         warnings.push(
             Diagnostic::new(
                 DiagnosticSeverity::Warning,
@@ -538,8 +538,13 @@ mod tests {
     #[test]
     fn fuzz_001_validation_matches_checked_format_detection_for_json_path_variants() {
         let root = temp_root("diagnostics_json_path_variants");
-        for file in ["payload.JSON.j2", "payload.json.J2", "payload.json.j2.j2"] {
-            let path = root.join(file);
+        for (fixture, file) in [
+            ("uppercase-content", "payload.JSON.j2"),
+            ("uppercase-template", "payload.json.J2"),
+            ("stacked-suffix", "payload.json.j2.j2"),
+        ] {
+            let fixture_root = root.join(fixture);
+            let path = fixture_root.join(file);
             write_file(
                 &path,
                 "---\njson_escape_mode: auto\nrequired_variables: []\n---\n{\"value\": {{ value }}}\n",
@@ -550,8 +555,12 @@ mod tests {
                 "checked-render format for {file}"
             );
 
-            let report = validate(&request_for_file(&root, file, ComposePolicy::default()))
-                .unwrap_or_else(|error| panic!("validation failed for {file}: {error}"));
+            let report = validate(&request_for_file(
+                &fixture_root,
+                file,
+                ComposePolicy::default(),
+            ))
+            .unwrap_or_else(|error| panic!("validation failed for {file}: {error}"));
             assert!(
                 !report.errors.iter().any(|diagnostic| {
                     diagnostic.code == DiagnosticCode::ErrJsonEscapeModeNonJson
