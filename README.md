@@ -12,6 +12,8 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a>
 </p>
 
+<p align="center"><a href="https://randlee.github.io/sc-compose/">Project website</a></p>
+
 ---
 
 **sc-compose** is a standalone CLI and library for teams whose templates have
