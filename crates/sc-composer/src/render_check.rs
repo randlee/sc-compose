@@ -8,7 +8,6 @@ use serde::Serialize;
 
 use crate::diagnostics::{Diagnostic, DiagnosticCode, DiagnosticSeverity};
 use crate::renderer::JsonEscapeMode;
-use crate::template_ext::strip_template_suffix;
 
 /// Output formats understood by the checked-render contract.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -28,11 +27,11 @@ impl OutputFormat {
             .file_name()
             .and_then(|name| name.to_str())
             .unwrap_or_default();
-        let normalized = strip_template_suffix(file_name);
+        let normalized = strip_all_template_suffixes(file_name);
         if Path::new(normalized)
             .extension()
             .and_then(|ext| ext.to_str())
-            == Some("json")
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("json"))
         {
             Self::Json
         } else {
@@ -216,6 +215,7 @@ impl CheckedOutput {
 
 /// Typed failure returned by [`check_rendered_output`].
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct OutputCheckError {
     /// Machine-readable reason for the rejection.
     pub reason: OutputCheckReason,
@@ -337,14 +337,40 @@ pub fn check_rendered_output_with_meta(
     })
 }
 
+fn strip_all_template_suffixes(mut name: &str) -> &str {
+    while let Some(stripped) = strip_one_template_suffix_case_insensitive(name) {
+        name = stripped;
+    }
+    name
+}
+
+fn strip_one_template_suffix_case_insensitive(name: &str) -> Option<&str> {
+    [".j2", ".jinja2", ".jinja"].iter().find_map(|suffix| {
+        let start = name.len().checked_sub(suffix.len())?;
+        let candidate = name.get(start..)?;
+        candidate
+            .eq_ignore_ascii_case(suffix)
+            .then_some(&name[..start])
+    })
+}
+
 fn byte_offset_at(text: &str, line: usize, column: usize) -> usize {
     let line_start = text
         .split_inclusive('\n')
         .take(line.saturating_sub(1))
         .map(str::len)
         .sum::<usize>();
+    let remaining = text.get(line_start..).unwrap_or_default();
+    let line_text = remaining
+        .split_once('\n')
+        .map_or(remaining, |(line, _)| line);
+    let character_offset = column.saturating_sub(1);
+    let byte_offset_in_line = line_text
+        .char_indices()
+        .nth(character_offset)
+        .map_or(line_text.len(), |(offset, _)| offset);
     line_start
-        .saturating_add(column.saturating_sub(1))
+        .saturating_add(byte_offset_in_line)
         .min(text.len())
 }
 
@@ -364,6 +390,17 @@ mod tests {
                 check_rendered_output(OutputFormat::Json, Path::new("payload.json.j2"), body)
                     .expect("valid JSON");
             assert_eq!(checked.body(), body);
+        }
+    }
+
+    #[test]
+    fn output_format_detects_stacked_and_case_variant_json_suffixes() {
+        for path in ["payload.json.j2.j2", "payload.JSON.j2"] {
+            assert_eq!(
+                OutputFormat::from_template_path(Path::new(path)),
+                OutputFormat::Json,
+                "path={path}"
+            );
         }
     }
 
@@ -458,6 +495,20 @@ mod tests {
         let mut emitted = Vec::new();
         checked.emit(&mut emitted).unwrap();
         assert_eq!(emitted, body.as_bytes());
+    }
+
+    #[test]
+    fn invalid_json_byte_offset_lands_on_a_char_boundary_with_multibyte_prefix() {
+        let rendered = "\"\u{00e9}";
+        let error =
+            check_rendered_output(OutputFormat::Json, Path::new("payload.json.j2"), rendered)
+                .expect_err("unterminated string is malformed JSON");
+        let super::OutputCheckReason::InvalidJson { byte_offset, .. } = error.reason else {
+            panic!("expected InvalidJson reason, got {:?}", error.reason);
+        };
+        assert!(byte_offset <= rendered.len());
+        assert!(rendered.is_char_boundary(byte_offset));
+        assert_eq!(byte_offset, rendered.len());
     }
 
     #[test]
