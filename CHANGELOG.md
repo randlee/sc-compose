@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Added declaration-only include-chain validation for conflicting JSON escape
+  modes. `ERR_JSON_MODE_INCLUDE_CONFLICT` identifies the root and included
+  template paths and both modes; matching or undeclared include modes inherit
+  the root without a false positive.
 - Migrated the six in-repository JSON assignment templates to explicit
   `json_escape_mode: auto`, with semantic hostile-value fixtures and a
   documented legacy compatibility fixture. See

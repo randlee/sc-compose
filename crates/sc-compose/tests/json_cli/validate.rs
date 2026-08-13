@@ -46,6 +46,164 @@ fn validate_lint_json_includes_structured_location_and_recommendation() {
 }
 
 #[test]
+fn validate_lint_json_rejects_conflicting_included_mode() {
+    let root = temp_root("validate-json-include-mode-conflict");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\nrequired_variables:\n  - value\n---\n{\n  \"value\": {{ value }},\n@<fragment.json.j2>\n}\n",
+    );
+    write_file(
+        &root.join("fragment.json.j2"),
+        "---\njson_escape_mode: legacy\n---\n\"fragment\": \"static\"\n",
+    );
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--lint",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    let diagnostic = value["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|diagnostic| diagnostic["code"] == "ERR_JSON_MODE_INCLUDE_CONFLICT")
+        .expect("include mode conflict diagnostic");
+    let message = diagnostic["message"].as_str().unwrap();
+    assert!(message.contains("payload.json.j2"), "{message}");
+    assert!(message.contains("fragment.json.j2"), "{message}");
+    assert!(message.contains("auto"), "{message}");
+    assert!(message.contains("legacy"), "{message}");
+}
+
+#[test]
+fn validate_json_check_render_rejects_conflicting_included_mode_without_body() {
+    let root = temp_root("validate-json-check-render-include-mode-conflict");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\njson_escape_mode: auto\n---\n{\n  \"value\": {{ value }},\n@<fragment.json.j2>\n}\n",
+    );
+    write_file(
+        &root.join("fragment.json.j2"),
+        "---\njson_escape_mode: legacy\n---\n\"fragment\": \"static\"\n",
+    );
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--check-render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["state"], "contract_invalid");
+    assert!(
+        value["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|diagnostic| diagnostic["code"] == "ERR_JSON_MODE_INCLUDE_CONFLICT")
+    );
+    assert!(!value.to_string().contains("hello"));
+}
+
+#[test]
+fn validate_lint_json_allows_matching_or_undeclared_include_mode() {
+    let root = temp_root("validate-json-include-mode-compatible");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\njson_escape_mode: auto\n---\n{\n  \"value\": {{ value }},\n@<fragment.json.j2>\n}\n",
+    );
+    write_file(
+        &root.join("fragment.json.j2"),
+        "---\njson_escape_mode: auto\n---\n\"fragment\": \"static\"\n",
+    );
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--lint",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert!(
+        !value["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|diagnostic| diagnostic["code"] == "ERR_JSON_MODE_INCLUDE_CONFLICT")
+    );
+
+    write_file(&root.join("fragment.json.j2"), "\"fragment\": \"static\"\n");
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--lint",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert!(
+        !value["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|diagnostic| diagnostic["code"] == "ERR_JSON_MODE_INCLUDE_CONFLICT")
+    );
+}
+
+#[test]
 fn validate_json_reports_legacy_json_migration_warning() {
     let root = temp_root("validate-json-legacy-warning");
     write_file(&root.join("payload.json.j2"), r#"{"value": "{{ value }}"}"#);

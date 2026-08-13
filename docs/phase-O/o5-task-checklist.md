@@ -52,13 +52,13 @@ their owners.
 - [x] O5-014 — Re-read the sprint plan and verify the campaign acceptance
   criteria; record the one remaining repository-level gate blocker rather
   than claiming a clean release.
-- [ ] O5-015 — Resolve `O5-SC-LINT-BOOTSTRAP-001`: the full local `just lint`
-  wrapper is blocked in a bare standalone worktree because the `sc-lint`,
-  `sc-lint-boundary`, `sc-lint-portability`, and `sc-lint-runtime` release
-  binaries are absent. CI provisions them through
-  `.github/actions/setup-sc-lint/action.yml`; its green
-  `just lint-ci-consumer` run is the authoritative gate. No suppression is
-  an acceptable closure.
+- [x] O5-015 — Resolve `O5-SC-LINT-BOOTSTRAP-001`: the full local `just lint`
+  wrapper remains unavailable in a bare standalone worktree because the
+  `sc-lint`, `sc-lint-boundary`, `sc-lint-portability`, and `sc-lint-runtime`
+  release binaries are absent, but CI provisions them through
+  `.github/actions/setup-sc-lint/action.yml`. The authoritative provisioned
+  gate is green: PR #430 `gh pr checks` 12/12 and PR #431 `gh pr checks` 12/12.
+  No suppression was added.
 
 ## Final verification
 
@@ -73,10 +73,10 @@ their owners.
   report sidecar.
 - [x] `just test`, workspace tests, formatting, clippy, fast lint, direct
   sc-boundary, report validation, and diff checks pass.
-- [ ] Full local `just lint` is green: blocked in a bare standalone worktree
-  because the `sc-lint`, `sc-lint-boundary`, `sc-lint-portability`, and
-  `sc-lint-runtime` release binaries are absent
-  (`O5-SC-LINT-BOOTSTRAP-001`). CI provisions them through
-  `.github/actions/setup-sc-lint/action.yml`; the green
-  `just lint-ci-consumer` run is the authoritative gate, and no lint
-  suppression was added.
+- [x] Full local `just lint` is green in the authoritative provisioned CI
+  environment: a bare standalone worktree still lacks the `sc-lint`,
+  `sc-lint-boundary`, `sc-lint-portability`, and `sc-lint-runtime` release
+  binaries (`O5-SC-LINT-BOOTSTRAP-001`), while CI provisions them through
+  `.github/actions/setup-sc-lint/action.yml`. PR #430 `gh pr checks` 12/12 and
+  PR #431 `gh pr checks` 12/12 confirm the green `just lint-ci-consumer` gate;
+  no lint suppression was added.

@@ -59,6 +59,11 @@ The effective mode has deterministic precedence:
 Included templates do not silently override the root mode. Conflicting mode
 declarations are a validation finding that identifies both paths.
 
+Implementation status (1.4.1): declaration conflicts in an expanded include
+chain emit `ERR_JSON_MODE_INCLUDE_CONFLICT` with the root and included paths
+and both effective/declarative modes. Matching declarations and includes that
+omit a mode continue to inherit the root mode without a finding.
+
 The implementation must not make heuristic source detection the primary mode
 selection mechanism. A quoted placeholder found in JSON context is diagnosed
 and guided toward migration; correctness must not depend on guessing whether a
