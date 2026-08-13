@@ -7,10 +7,16 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
+
+// macOS can report the same wall-clock timestamp for parallel test threads.
+// Keep fixture paths unique within a test process so one fixture's Drop cannot
+// remove another test's current directory or subprocess executable.
+static TEMP_ROOT_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 pub fn temp_root(label: &str) -> PathBuf {
     temp_root_with_prefix(label, "sc-compose-test")
@@ -21,9 +27,12 @@ fn temp_root_with_prefix(label: &str, prefix: &str) -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let root =
-        std::env::temp_dir().join(format!("{prefix}-{label}-{}-{nanos}", std::process::id()));
-    fs::create_dir_all(&root).unwrap();
+    let sequence = TEMP_ROOT_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let root = std::env::temp_dir().join(format!(
+        "{prefix}-{label}-{}-{nanos}-{sequence}",
+        std::process::id()
+    ));
+    fs::create_dir(&root).unwrap();
     root
 }
 
