@@ -109,7 +109,7 @@ fn json_mode_diagnostics(
 
     let legacy_mode = matches!(effective_mode, crate::JsonEscapeMode::Legacy);
     let quoted_expressions = quoted_json_placeholder_expressions(&expanded.text);
-    if legacy_mode || !quoted_expressions.is_empty() {
+    if legacy_mode {
         warnings.push(
             Diagnostic::new(
                 DiagnosticSeverity::Warning,

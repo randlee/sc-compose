@@ -206,7 +206,10 @@ fn validate_lint_json_allows_matching_or_undeclared_include_mode() {
 #[test]
 fn validate_json_reports_legacy_json_migration_warning() {
     let root = temp_root("validate-json-legacy-warning");
-    write_file(&root.join("payload.json.j2"), r#"{"value": "{{ value }}"}"#);
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\njson_escape_mode: legacy\n---\n{\"value\": \"{{ value }}\"}",
+    );
 
     let output = sc_compose()
         .arg("validate")
@@ -242,7 +245,7 @@ fn validate_json_reports_one_legacy_warning_for_multiple_quoted_placeholders() {
     let root = temp_root("validate-json-legacy-warning-once");
     write_file(
         &root.join("payload.json.j2"),
-        r#"{"first": "{{ first }}", "second": "{{ second }}"}"#,
+        "---\njson_escape_mode: legacy\n---\n{\"first\": \"{{ first }}\", \"second\": \"{{ second }}\"}",
     );
 
     let output = sc_compose()
@@ -278,7 +281,7 @@ fn validate_json_reports_legacy_warning_for_dotted_and_filtered_placeholders() {
     let root = temp_root("validate-json-legacy-expression-warning");
     write_file(
         &root.join("payload.json.j2"),
-        r#"{"name": "{{ user.name | default('unknown') }}"}"#,
+        "---\njson_escape_mode: legacy\n---\n{\"name\": \"{{ user.name | default('unknown') }}\"}",
     );
 
     let output = sc_compose()
@@ -308,7 +311,10 @@ fn validate_json_reports_legacy_warning_for_dotted_and_filtered_placeholders() {
 #[test]
 fn validate_lint_json_reports_the_same_legacy_json_warning() {
     let root = temp_root("validate-lint-json-legacy-warning");
-    write_file(&root.join("payload.json.j2"), r#"{"value": "{{ value }}"}"#);
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\njson_escape_mode: legacy\n---\n{\"value\": \"{{ value }}\"}",
+    );
 
     let output = sc_compose()
         .arg("validate")
@@ -325,6 +331,48 @@ fn validate_lint_json_reports_the_same_legacy_json_warning() {
         .output()
         .unwrap();
 
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert!(
+        value["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|diagnostic| {
+                diagnostic["code"] == "WARN_JSON_LEGACY_ESCAPE_MODE"
+                    && diagnostic["severity"] == "warning"
+            })
+    );
+}
+
+#[test]
+fn validate_lint_json_cli_auto_override_supersedes_legacy_frontmatter() {
+    let root = temp_root("validate-lint-json-cli-auto-overrides-legacy");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\njson_escape_mode: legacy\n---\n{\"value\": \"{{ value }}\"}",
+    );
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--lint",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "value=hello",
+            "--json-escape-mode",
+            "auto",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
     assert_eq!(output.status.code(), Some(2), "stderr: {:?}", output.stderr);
     let value = parse_stdout(&output);
     assert_envelope(&value);
@@ -338,14 +386,11 @@ fn validate_lint_json_reports_the_same_legacy_json_warning() {
             })
     );
     assert!(
-        value["diagnostics"]
+        !value["diagnostics"]
             .as_array()
             .unwrap()
             .iter()
-            .any(|diagnostic| {
-                diagnostic["code"] == "WARN_JSON_LEGACY_ESCAPE_MODE"
-                    && diagnostic["severity"] == "warning"
-            })
+            .any(|diagnostic| diagnostic["code"] == "WARN_JSON_LEGACY_ESCAPE_MODE")
     );
 }
 
