@@ -39,7 +39,8 @@ sprint may implement a second mode resolver or escape algorithm.
 - `crates/sc-compose/tests/cli/templates.rs`
 - `docs/requirements.md`
 - `docs/migration/json-escape-mode.md` (new migration guidance)
-- `docs/adrs/0019-json-render-contract.md` (reserved; acceptance gate)
+- `docs/adrs/0019-json-render-contract-and-fail-closed-output-validation.md`
+  (acceptance gate)
 
 ## Required work
 
@@ -93,11 +94,15 @@ The canonical Rust signature is:
 
 ```rust
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum JsonEscapeMode {
     Legacy,
     Auto,
 }
 ```
+
+The lowercase serde representation is intentional: it is the stable
+`json_escape_mode: legacy|auto` frontmatter and JSON wire contract.
 
 ## Deliverables
 

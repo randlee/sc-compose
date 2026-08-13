@@ -43,8 +43,8 @@ pub mod verify;
 
 #[doc(inline)]
 pub use composer::{
-    compose, compose_with_observer, compose_with_observer_and_expanded, protect_higher_braces,
-    render_all,
+    assemble_output, compose, compose_with_observer, compose_with_observer_and_expanded,
+    protect_higher_braces, render_all,
 };
 #[doc(inline)]
 pub use diagnostics::{

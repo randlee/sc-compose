@@ -131,7 +131,7 @@ pub(super) fn execute_custom_delimiter_render(
         rendered_bytes: Some(rendered_text.len()),
         code: None,
     });
-    let rendered_text = assemble_output(
+    let rendered_text = sc_composer::assemble_output(
         &rendered_text,
         request.guidance_block.as_deref(),
         request.user_prompt.as_deref(),
@@ -243,21 +243,6 @@ fn current_username() -> String {
 
 fn environment_value(name: &str) -> Option<std::ffi::OsString> {
     std::env::vars_os().find_map(|(key, value)| (key == name).then_some(value))
-}
-
-fn assemble_output(
-    profile_body: &str,
-    guidance_block: Option<&str>,
-    user_prompt: Option<&str>,
-) -> String {
-    let mut blocks = vec![profile_body.trim_end().to_owned()];
-    if let Some(guidance) = guidance_block.filter(|value| !value.is_empty()) {
-        blocks.push(guidance.to_owned());
-    }
-    if let Some(prompt) = user_prompt.filter(|value| !value.is_empty()) {
-        blocks.push(prompt.to_owned());
-    }
-    blocks.join("\n\n")
 }
 
 fn validation_report_error(errors: Vec<sc_composer::Diagnostic>) -> CommandError {

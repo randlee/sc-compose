@@ -411,7 +411,9 @@ fn render_all_with_observer(
     Ok(body)
 }
 
-fn assemble_output(
+/// Combine rendered content with optional guidance and user-prompt blocks.
+#[must_use]
+pub fn assemble_output(
     profile_body: &str,
     guidance_block: Option<&str>,
     user_prompt: Option<&str>,

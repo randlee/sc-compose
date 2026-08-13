@@ -17,14 +17,13 @@ const XML_REPLACEMENT_NCR: &str = "&#xfffd;";
 pub const JSON_LEGACY_WARNING: &str = "Template uses legacy JSON escape mode. Migrate to bare placeholders (auto mode) to avoid double-quoting issues. See docs/migration/json-escape-mode.md";
 
 /// JSON interpolation policy selected for a template render.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum JsonEscapeMode {
     /// Escape a string's contents without adding quotes already present in the
     /// manually quoted legacy source shape.
     Legacy,
     /// Render complete JSON values, including string delimiters.
-    #[default]
     Auto,
 }
 
@@ -202,7 +201,8 @@ fn json_string_contents(value: &JinjaValue) -> String {
     let value = value
         .as_str()
         .map_or_else(|| value.to_string(), ToOwned::to_owned);
-    let encoded = serde_json::to_string(&value).unwrap_or_else(|_| "\"\"".to_owned());
+    let encoded =
+        serde_json::to_string(&value).expect("serializing a Rust string to JSON cannot fail");
     encoded
         .strip_prefix('"')
         .and_then(|encoded| encoded.strip_suffix('"'))

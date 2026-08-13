@@ -103,8 +103,8 @@ fn json_mode_diagnostics(
         crate::resolve_json_escape_mode(request.policy.json_escape_mode, declared_mode),
         crate::JsonEscapeMode::Legacy
     );
-    let quoted_names = quoted_json_placeholder_names(&expanded.text);
-    if legacy_mode || !quoted_names.is_empty() {
+    let quoted_expressions = quoted_json_placeholder_expressions(&expanded.text);
+    if legacy_mode || !quoted_expressions.is_empty() {
         warnings.push(
             Diagnostic::new(
                 DiagnosticSeverity::Warning,
@@ -116,7 +116,8 @@ fn json_mode_diagnostics(
     }
 
     if legacy_mode {
-        for name in quoted_names {
+        for expression in quoted_expressions {
+            let name = expression;
             let Ok(name) = VariableName::new(&name) else {
                 continue;
             };
@@ -153,8 +154,8 @@ fn is_json_template_path(path: &Path) -> bool {
         == Some("json")
 }
 
-fn quoted_json_placeholder_names(body: &str) -> Vec<String> {
-    let mut names = Vec::new();
+fn quoted_json_placeholder_expressions(body: &str) -> Vec<String> {
+    let mut expressions = Vec::new();
     let mut search_from = 0;
     while let Some(relative_open) = body[search_from..].find("{{") {
         let open = search_from + relative_open;
@@ -171,16 +172,13 @@ fn quoted_json_placeholder_names(body: &str) -> Vec<String> {
             .find(|character| !character.is_whitespace());
         if before == Some('"') && after == Some('"') {
             let expression = body[open + 2..close - 2].trim();
-            if expression
-                .chars()
-                .all(|character| character.is_ascii_alphanumeric() || character == '_')
-            {
-                names.push(expression.to_owned());
+            if !expression.is_empty() {
+                expressions.push(expression.to_owned());
             }
         }
         search_from = close;
     }
-    names
+    expressions
 }
 
 fn push_unbound_variable_diagnostics(

@@ -71,6 +71,46 @@ fn template_init_single_pass_omits_pass_one_marker() {
 }
 
 #[test]
+fn template_init_json_then_cli_render_is_a_semantic_round_trip() {
+    let root = temp_root("template-init-json-cli-round-trip");
+    let file = root.join("payload.json");
+    write_file(
+        &file,
+        "{\n  \"worktree_path\": \"/tmp/wt\",\n  \"enabled\": true\n}\n",
+    );
+
+    let init = sc_compose()
+        .arg("template-init")
+        .arg(&file)
+        .arg("--force")
+        .arg("--pass")
+        .arg("1")
+        .arg("--var")
+        .arg("worktree_path=/tmp/wt")
+        .output()
+        .unwrap();
+    assert!(init.status.success(), "{init:?}");
+
+    let render = sc_compose()
+        .arg("render")
+        .arg("--mode")
+        .arg("file")
+        .arg("--root")
+        .arg(&root)
+        .arg("--file")
+        .arg("payload.json")
+        .arg("--var")
+        .arg("worktree_path=/tmp/wt")
+        .output()
+        .unwrap();
+    assert!(render.status.success(), "{render:?}");
+    let rendered: Value =
+        serde_json::from_slice(&render.stdout).expect("template-init output must render as JSON");
+    assert_eq!(rendered["worktree_path"], "/tmp/wt");
+    assert_eq!(rendered["enabled"], true);
+}
+
+#[test]
 fn template_init_round_trip_verifies_clean() {
     let root = temp_root("template-init-round-trip");
     let file = root.join("agent.md");
