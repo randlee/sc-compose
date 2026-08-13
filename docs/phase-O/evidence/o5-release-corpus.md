@@ -56,8 +56,11 @@ those five downstream candidates.
 
 ## Path-level inventory
 
-The six O.4 production templates and the mode/regression cases listed under
-the sc-compose root are the 12 sc-compose-owned parser-verified cases. Every
+The six O.4 production templates and the six mode/regression cases owned by
+sc-compose are the 12 sc-compose-owned parser-verified cases.
+The generated compatibility fixture is cited with its creating test because
+it is materialized in a temporary root rather than committed under the
+sc-compose root. Every
 external path in the tables below is `UNRENDERED/OWNED`: the scan recorded its
 source shape and owner, but did not render it with a real context or claim a
 parser-verified PASS.
@@ -77,12 +80,14 @@ parser-verified PASS.
 | `tests/fixtures/sc-lint/template-contracts/findings/auto.json.j2` | explicit `auto`, quoted scalar | O5-SC-009 | intentional lint-negative fixture; must remain red |
 | `tests/fixtures/sc-lint/template-contracts/findings/legacy.json.j2` | explicit `legacy`, quoted scalar | O5-SC-010 | intentional lint-warning fixture |
 | `tests/fixtures/sc-lint/template-contracts/findings/valid-auto.json.j2` | explicit `auto`, bare scalar | O5-SC-011 | clean lint-positive fixture |
+| `crates/sc-compose/tests/json_cli/o4_templates.rs` (test-generated `legacy.json.j2`) | explicit `legacy`, quoted scalar | O5-SC-012 | parser-backed compatibility fixture; warning expected; `legacy_compatibility_fixture_is_valid_and_warns_once` |
 
 The six O.4 production templates were rendered with hostile quotes,
 backslashes, Unicode, newlines, control-safe characters, arrays, objects,
 nulls, and empty values. Each successful body was parsed as one complete JSON
 document and checked for injection. The two reverse-extract files and three
-lint fixtures are test corpus members, not production release blockers.
+lint fixtures, plus the generated legacy compatibility fixture, are test
+corpus members, not production release blockers.
 
 ### atm-core root — external, read-only
 
