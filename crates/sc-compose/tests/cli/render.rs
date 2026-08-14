@@ -59,6 +59,54 @@ fn exit_code_zero_for_valid_render() {
 }
 
 #[test]
+fn render_scoop_manifest_uses_json_auto_mode_complete_value_placeholders() {
+    let root = temp_root("scoop-manifest-json-auto-mode");
+    write_file(
+        &root.join("manifest.json.j2"),
+        include_str!("../../../../release/scoop/manifest.json.j2"),
+    );
+    let vars_file = root.join("vars.json");
+    write_file(
+        &vars_file,
+        r#"{
+  "version": "1.4.2",
+  "description": "A \"quoted\" description",
+  "homepage": "https://example.invalid/project",
+  "license": "MIT",
+  "windows_url": "https://example.invalid/project.zip",
+  "windows_sha256": "0123456789abcdef",
+  "extract_dir": "project_1.4.2_x86_64-pc-windows-msvc",
+  "binary": "bin/project.exe"
+}"#,
+    );
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().expect("UTF-8 temporary root"),
+            "--file",
+            "manifest.json.j2",
+            "--var-file",
+            vars_file.to_str().expect("UTF-8 variable file"),
+        ])
+        .output()
+        .expect("render Scoop manifest");
+
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let manifest: Value = serde_json::from_slice(&output.stdout).expect("valid rendered JSON");
+    assert_eq!(manifest["version"], "1.4.2");
+    assert_eq!(manifest["description"], "A \"quoted\" description");
+    assert_eq!(manifest["architecture"]["64bit"]["bin"], "bin/project.exe");
+}
+
+#[test]
 fn exit_code_two_for_validation_failure() {
     let root = temp_root("exit-validation");
     write_file(
