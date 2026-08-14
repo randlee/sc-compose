@@ -1,0 +1,66 @@
+name: Publish Winget
+
+# Standalone winget publication for an already-published GitHub Release.
+#
+# release.yml's publish-winget job depends on gate-and-tag and release, so once
+# a release has completed it cannot be retried: the release gate refuses an
+# already-published version, and publish-pypi cannot re-upload existing files.
+# That made winget the one channel with no recovery path after a partial
+# release failure.
+#
+# winget-releaser builds its manifests entirely from the published release
+# assets, so this workflow needs no release gate, no tag creation, and no
+# crates.io or PyPI involvement. It is safe to run against any published tag.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Published release tag to submit (e.g. v1.4.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish-winget:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate tag format
+        run: |
+          set -euo pipefail
+          tag='${{ inputs.tag }}'
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid tag: '$tag' (expected vX.Y.Z)" >&2
+            exit 1
+          fi
+
+      - name: Verify the release exists and has a Windows installer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag='${{ inputs.tag }}'
+          if ! gh release view "$tag" -R '${{ github.repository }}' >/dev/null 2>&1; then
+            echo "No published release found for tag ${tag}" >&2
+            exit 1
+          fi
+          assets="$(gh release view "$tag" -R '${{ github.repository }}' --json assets --jq '.assets[].name')"
+          if ! grep -qE 'sc-compose_.*_x86_64-pc-windows-msvc\.zip$' <<<"$assets"; then
+            echo "Release ${tag} has no x86_64-pc-windows-msvc installer to submit" >&2
+            echo "Assets found:" >&2
+            echo "$assets" >&2
+            exit 1
+          fi
+
+      - name: Publish to winget
+        uses: vedantmgoyal2009/winget-releaser@v2
+        with:
+          identifier: randlee.sc-compose
+          release-tag: ${{ inputs.tag }}
+          installers-regex: 'sc-compose_.*_x86_64-pc-windows-msvc\.zip$'
+          # Must be a classic PAT with public_repo scope on an account that has
+          # forked microsoft/winget-pkgs. The default GITHUB_TOKEN is scoped to
+          # this repository and cannot create a branch in that fork.
+          token: ${{ secrets.WINGET_GITHUB_TOKEN }}
