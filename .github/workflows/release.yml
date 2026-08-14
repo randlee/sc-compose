@@ -358,14 +358,14 @@ jobs:
         env:
           MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
           MATURIN_NON_INTERACTIVE: "1"
-        run: maturin upload --repository testpypi --non-interactive dist/*.whl dist/*.tar.gz
+        run: maturin upload --repository testpypi --non-interactive --skip-existing dist/*.whl dist/*.tar.gz
 
       - name: Publish wheels and sdist to PyPI
         if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
         env:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
           MATURIN_NON_INTERACTIVE: "1"
-        run: maturin upload --non-interactive dist/*.whl dist/*.tar.gz
+        run: maturin upload --non-interactive --skip-existing dist/*.whl dist/*.tar.gz
 
   release:
     if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
