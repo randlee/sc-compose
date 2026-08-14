@@ -25,6 +25,12 @@ branch, a source checkout, or an ambient `PATH` binary proves a consumer setup
 tool works. A release artifact must prove the same workflow against both real
 reference consumers before either repository adopts it.
 
+Phase F is the upstream sc-lint product plan: it owns the request/plan schema,
+bounded transformer, release artifact, fixtures, and documentation. Phase P is
+the sole authority for qualifying that artifact against real consumers and for
+consumer conversion PRs. A Phase F fixture pass or a sc-compose-only result
+cannot satisfy this phase or authorize a consumer change.
+
 ## Requirements, ADR, and NFR traceability
 
 | ID | Requirement or constraint | Evidence / authority | Closure |
@@ -190,7 +196,8 @@ accepted sc-lint 0.5.0 consumer contract + verified release artifact
 P.2 and P.3 are independent only after P.1 passes. They must use the exact
 same release version and recorded request schema. A product fix invalidates
 both consumer qualifications and requires P.1 to rerun before either consumer
-PR merges.
+PR merges. If P.1 identifies an unsupported shape, it returns a concrete
+product finding to Phase F; it does not authorize a consumer-side migration.
 
 ## Sprint records
 
