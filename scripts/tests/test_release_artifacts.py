@@ -221,7 +221,14 @@ def test_release_workflow_enforces_python_release_invariants() -> None:
     assert "expected exactly two sdists (sc-compose and sc-sha)" in text
     assert "TEST_PYPI_API_TOKEN" in text
     assert "--repository testpypi" in text
-    assert "maturin upload --non-interactive dist/*.whl dist/*.tar.gz" in text
+    # --skip-existing keeps publish-pypi re-runnable. Without it a re-run fails
+    # on already-uploaded files, and because release needs publish-pypi and
+    # publish-winget needs release, the winget job is skipped rather than run.
+    assert "maturin upload --non-interactive --skip-existing dist/*.whl dist/*.tar.gz" in text
+    assert (
+        "maturin upload --repository testpypi --non-interactive --skip-existing "
+        "dist/*.whl dist/*.tar.gz"
+    ) in text
     assert "if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}" in text
     assert "for pattern in *.tar.gz *.zip *.whl; do" in text
     assert "uses: ./.github/actions/setup-python-release-build" in text
