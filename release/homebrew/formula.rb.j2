@@ -1,8 +1,8 @@
-class ScCompose < Formula
-  desc "Standalone CLI for template composition"
-  homepage "https://github.com/randlee/sc-compose"
+class {{ formula_class }} < Formula
+  desc "{{ description }}"
+  homepage "{{ homepage }}"
   version "{{ version }}"
-  license "MIT"
+  license "{{ license }}"
 
   on_macos do
     on_arm do
@@ -22,11 +22,10 @@ class ScCompose < Formula
   end
 
   def install
-    bin.install "bin/sc-compose"
-    (pkgshare/"examples").install Dir["share/sc-compose/examples/*"]
+{{ install_block }}
   end
 
   test do
-    assert_match "Standalone template composition CLI", shell_output("#{bin}/sc-compose --help")
+    assert_match "{{ test_output }}", shell_output("#{bin}/{{ binary }} {{ test_command }}")
   end
 end

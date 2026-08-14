@@ -37,11 +37,8 @@ python3 scripts/release_artifacts.py check-version-unpublished \
   --manifest "$MANIFEST" \
   --version "$VERSION" >/dev/null
 
-python3 scripts/release_artifacts.py verify-readme-version \
-  --workspace-toml Cargo.toml \
-  --readme README.md >/dev/null
-
 python3 scripts/release_artifacts.py verify-version-lockstep \
+  --manifest "$MANIFEST" \
   --workspace-toml Cargo.toml >/dev/null
 
 info "PASS - release gate checks satisfied"

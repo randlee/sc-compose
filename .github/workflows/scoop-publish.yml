@@ -1,0 +1,145 @@
+name: Publish Scoop
+
+# This post-release channel reads its bucket, manifest path, installer asset,
+# and package metadata from release/publish-artifacts.toml. It may be safely
+# re-dispatched for the same published tag.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Published GitHub Release tag to publish (e.g. v1.4.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-scoop-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  verify-release:
+    runs-on: ubuntu-latest
+    outputs:
+      channel_config: ${{ steps.config.outputs.channel_config }}
+      asset_patterns: ${{ steps.config.outputs.asset_patterns }}
+      release_version: ${{ steps.meta.outputs.release_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - id: config
+        name: Read Scoop configuration from release manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          config="$(python3 scripts/release_artifacts.py channel-config --manifest release/publish-artifacts.toml --channel scoop)"
+          echo "channel_config=${config}" >> "$GITHUB_OUTPUT"
+          {
+            echo 'asset_patterns<<EOF'
+            jq -r '.asset_patterns[]' <<<"${config}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/verify-published-release
+        with:
+          release_tag: ${{ inputs.tag }}
+          asset_patterns: ${{ steps.config.outputs.asset_patterns }}
+      - id: meta
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: echo "release_version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+
+  update-bucket:
+    needs: verify-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require Scoop bucket credential
+        shell: bash
+        env:
+          SCOOP_BUCKET_TOKEN: ${{ secrets.SCOOP_BUCKET_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SCOOP_BUCKET_TOKEN}" ]]; then
+            echo 'SCOOP_BUCKET_TOKEN is required to update the configured Scoop bucket.' >&2
+            exit 1
+          fi
+      - name: Checkout immutable release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          path: release-source
+      - name: Checkout configured Scoop bucket
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.bucket_repository }}
+          token: ${{ secrets.SCOOP_BUCKET_TOKEN }}
+          path: scoop-bucket
+      - name: Render manifest from immutable release asset
+        shell: bash
+        env:
+          CHANNEL_CONFIG: ${{ needs.verify-release.outputs.channel_config }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_VERSION: ${{ needs.verify-release.outputs.release_version }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+
+          config = json.loads(os.environ["CHANNEL_CONFIG"])
+          project = config["project"]
+          channel = config["channel"]
+          target = config["release_targets"][channel["installer_target"]]
+          filename = f"{project['archive_prefix']}_{os.environ['RELEASE_VERSION']}_{target['target']}.{target['archive']}"
+          url = f"https://github.com/{os.environ['RELEASE_REPOSITORY']}/releases/download/{os.environ['RELEASE_TAG']}/{filename}"
+          archive = Path(os.environ["RUNNER_TEMP"]) / filename
+          subprocess.run(
+              ["curl", "-fsSL", "--retry", "5", "--retry-delay", "30", "--retry-all-errors", "-o", str(archive), url],
+              check=True,
+          )
+          template = Path("release-source") / channel["manifest_template"]
+          rendered = template.read_text(encoding="utf-8")
+          replacements = {
+              "{{ version }}": os.environ["RELEASE_VERSION"],
+              "{{ description }}": project["description"],
+              "{{ homepage }}": project["homepage"],
+              "{{ license }}": project["license"],
+              "{{ windows_url }}": url,
+              "{{ windows_sha256 }}": hashlib.file_digest(archive.open("rb"), "sha256").hexdigest(),
+              "{{ extract_dir }}": f"{project['archive_prefix']}_{os.environ['RELEASE_VERSION']}_{target['target']}",
+              "{{ binary }}": channel["binary"],
+          }
+          for placeholder, value in replacements.items():
+              rendered = rendered.replace(placeholder, value)
+          if "{{" in rendered:
+              raise SystemExit("unrendered placeholder in Scoop manifest template")
+          output = Path("scoop-bucket") / channel["manifest_path"]
+          output.parent.mkdir(parents=True, exist_ok=True)
+          output.write_text(rendered, encoding="utf-8")
+          PY
+      - name: Validate Scoop manifest JSON
+        env:
+          MANIFEST_PATH: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.manifest_path }}
+        run: python3 -m json.tool "scoop-bucket/${MANIFEST_PATH}" > /dev/null
+      - name: Commit and push Scoop manifest update
+        shell: bash
+        env:
+          MANIFEST_PATH: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.manifest_path }}
+          PROJECT_NAME: ${{ fromJSON(needs.verify-release.outputs.channel_config).project.name }}
+          RELEASE_VERSION: ${{ needs.verify-release.outputs.release_version }}
+        run: |
+          set -euo pipefail
+          cd scoop-bucket
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add "${MANIFEST_PATH}"
+          git diff --cached --quiet && echo 'Scoop manifest already matches the release assets' && exit 0
+          git commit -m "chore: bump ${PROJECT_NAME} to v${RELEASE_VERSION}"
+          git push

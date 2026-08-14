@@ -31,17 +31,30 @@ concurrency:
 jobs:
   verify-release:
     runs-on: ubuntu-latest
+    outputs:
+      pypi_config: ${{ steps.config.outputs.config }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
       - uses: ./.github/actions/verify-published-release
         with:
           release_tag: ${{ inputs.tag }}
+      - id: config
+        name: Read PyPI channel configuration from release manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "config=$(python3 scripts/release_artifacts.py channel-config --manifest release/publish-artifacts.toml --channel pypi)" >> "$GITHUB_OUTPUT"
 
   publish:
     needs: verify-release
     runs-on: ubuntu-latest
     environment: ${{ inputs.target == 'production' && 'pypi' || 'testpypi' }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
       - name: Download Python assets from the published GitHub Release
         shell: bash
         env:
@@ -57,68 +70,32 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from email import message_from_bytes
-          from pathlib import Path
-          import shutil
-          import tarfile
-          import zipfile
+          python3 scripts/release_artifacts.py verify-python-release-assets \
+            --manifest release/publish-artifacts.toml \
+            --asset-dir release-assets \
+            --copy-to dist
+      - name: Select configured Python repository
+        shell: bash
+        env:
+          CHANNEL_CONFIG: ${{ needs.verify-release.outputs.pypi_config }}
+          PUBLISH_TARGET: ${{ inputs.target }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import json
+          import os
 
-          assets = Path("release-assets")
-          dist = Path("dist")
-          expected = {
-              "sc-compose": {"wheel": 3, "sdist": 1},
-              "sc-sha": {"wheel": 3, "sdist": 1},
-          }
-          found = {name: {"wheel": 0, "sdist": 0} for name in expected}
-
-          def metadata_name(data: bytes, path: Path) -> str:
-              name = message_from_bytes(data).get("Name")
-              if name not in expected:
-                  raise SystemExit(f"{path}: unexpected Python distribution {name!r}")
-              return name
-
-          for asset in assets.iterdir():
-              if asset.suffix == ".whl":
-                  with zipfile.ZipFile(asset) as archive:
-                      metadata = [name for name in archive.namelist() if name.endswith(".dist-info/METADATA")]
-                      if len(metadata) != 1:
-                          raise SystemExit(f"{asset}: expected exactly one wheel METADATA file")
-                      name = metadata_name(archive.read(metadata[0]), asset)
-                  found[name]["wheel"] += 1
-                  shutil.copy2(asset, dist / asset.name)
-              elif asset.name.endswith(".tar.gz"):
-                  with tarfile.open(asset, "r:gz") as archive:
-                      metadata = [member for member in archive.getmembers() if member.name.endswith("/PKG-INFO")]
-                      if not metadata:
-                          continue
-                      if len(metadata) != 1:
-                          raise SystemExit(f"{asset}: expected exactly one sdist PKG-INFO file")
-                      extracted = archive.extractfile(metadata[0])
-                      if extracted is None:
-                          raise SystemExit(f"{asset}: unable to read sdist PKG-INFO")
-                      name = metadata_name(extracted.read(), asset)
-                  found[name]["sdist"] += 1
-                  shutil.copy2(asset, dist / asset.name)
-
-          if found != expected:
-              raise SystemExit(f"published GitHub Release Python assets mismatch: expected {expected}, found {found}")
-          print("verified six wheels and two sdists from the published GitHub Release")
+          config = json.loads(os.environ["CHANNEL_CONFIG"])["channel"]
+          key = "test_repository" if os.environ["PUBLISH_TARGET"] == "testpypi" else "production_repository"
+          print(f"PYPI_REPOSITORY={config[key]}")
           PY
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Install maturin
         run: python -m pip install maturin==1.9.4
-      - name: Publish wheels and sdists to TestPyPI
-        if: ${{ inputs.target == 'testpypi' }}
+      - name: Publish manifest-declared wheels and sdists
         env:
           MATURIN_NON_INTERACTIVE: '1'
-          MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        run: maturin upload --repository testpypi --non-interactive --skip-existing dist/*.whl dist/*.tar.gz
-      - name: Publish wheels and sdists to PyPI
-        if: ${{ inputs.target == 'production' }}
-        env:
-          MATURIN_NON_INTERACTIVE: '1'
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        run: maturin upload --non-interactive --skip-existing dist/*.whl dist/*.tar.gz
+          MATURIN_PYPI_TOKEN: ${{ inputs.target == 'testpypi' && secrets.TEST_PYPI_TOKEN || secrets.PYPI_TOKEN }}
+        run: maturin upload --repository "${PYPI_REPOSITORY}" --non-interactive --skip-existing dist/*.whl dist/*.tar.gz
