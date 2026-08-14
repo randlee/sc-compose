@@ -4,14 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Changed
-
-- Made `RenderCheckMeta` and `CheckedOutput` metadata private after validation,
-  with read-only accessors so callers cannot mutate the recorded render
-  contract or provenance after a body has been checked. This closes a public
-  API mutation path and is a breaking-surface change for callers that
-  constructed or modified these fields directly.
-
 ## [1.4.1] - 2026-08-13
 
 ### Added
@@ -36,6 +28,11 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Made `RenderCheckMeta` and `CheckedOutput` metadata private after validation,
+  with read-only accessors so callers cannot mutate the recorded render
+  contract or provenance after a body has been checked. This closes a public
+  API mutation path and is a breaking-surface change for callers that
+  constructed or modified these fields directly.
 - Clarified ADR-0019's scope: checked output is enforced at the `sc-compose`
   CLI emitter, while direct `sc-composer` library consumers must follow the
   named Checked-Emission Caller Contract and run `check_rendered_output` on
