@@ -71,8 +71,31 @@ on crates.io, or the dependency graph will be broken.
 3. **`sc-compose`** — publish third (`publish_order = 3`)
    - `cargo publish -p sc-compose`
 
-The `.github/workflows/release.yml` workflow enforces this order automatically when
-triggered by a release tag.
+The `.github/workflows/release.yml` workflow enforces this order automatically
+for a production `workflow_dispatch` release.
+
+## Post-GitHub-Release Channel Dispatch
+
+The root `Release` workflow creates the protected tag, publishes crates.io
+packages, builds the authoritative artifacts, and creates the GitHub Release.
+It deliberately does **not** publish production PyPI packages, update
+Homebrew, or submit `winget`. After verifying the GitHub Release, dispatch all
+three recovery-safe channel workflows with the same `v<version>` tag:
+
+- [ ] Run `.github/workflows/pypi-publish.yml` with `tag=v<version>` and
+      `target=production`.
+  - It uploads only the six wheels and two source distributions attached to the
+    published GitHub Release; it does not rebuild artifacts or create a tag.
+- [ ] Run `.github/workflows/homebrew-publish.yml` with `tag=v<version>`.
+  - It verifies all three Unix archives, renders the formula from the tagged
+    source, validates Ruby syntax, and updates `randlee/homebrew-tap`.
+- [ ] Run `.github/workflows/winget-publish.yml` with `tag=v<version>`.
+  - It verifies the published Windows ZIP before submitting the package update
+    with `WINGET_GITHUB_TOKEN`.
+
+Each workflow may be safely re-dispatched for that release if its channel
+fails. Do not rerun the root `Release` workflow to recover an external-channel
+failure.
 
 ## Post-Publish Verification
 
@@ -82,11 +105,14 @@ triggered by a release tag.
 - [ ] Run `cargo add sc-composer@<version>` in a scratch workspace to confirm the crate resolves
 - [ ] Run `cargo install sc-compose@<version>` to confirm the binary installs cleanly
 - [ ] Verify the GitHub Release archives include `share/sc-compose/examples/`
+- [ ] Verify the production `Publish PyPI` workflow uploaded `sc-compose` and
+      `sc-sha` from the GitHub Release assets
 - [ ] Verify the Homebrew formula update completed in `randlee/homebrew-tap`
 - [ ] Verify the `winget` submission/update was dispatched successfully
 - [ ] Update `release/RELEASE-NOTES-TEMPLATE.md` with the actual release summary
 - [ ] Confirm the release workflow's `gate-and-tag` job created `v<version>` — do not tag manually; the tag branch is protected.
-- [ ] Create a GitHub release pointing at the tag with the filled-in release notes
+- [ ] Verify the root release workflow created a GitHub Release pointing at the
+      protected tag with the release notes
 
 ## Release Authorization
 

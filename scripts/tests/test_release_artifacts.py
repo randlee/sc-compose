@@ -147,6 +147,24 @@ def release_workflow_text() -> str:
     return (repo_root() / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
 
 
+def pypi_publish_workflow_text() -> str:
+    return (repo_root() / ".github" / "workflows" / "pypi-publish.yml").read_text(encoding="utf-8")
+
+
+def homebrew_publish_workflow_text() -> str:
+    return (repo_root() / ".github" / "workflows" / "homebrew-publish.yml").read_text(encoding="utf-8")
+
+
+def winget_publish_workflow_text() -> str:
+    return (repo_root() / ".github" / "workflows" / "winget-publish.yml").read_text(encoding="utf-8")
+
+
+def published_release_guard_text() -> str:
+    return (
+        repo_root() / ".github" / "actions" / "verify-published-release" / "action.yml"
+    ).read_text(encoding="utf-8")
+
+
 def release_manifest() -> dict:
     return tomllib.loads(
         (repo_root() / "release" / "publish-artifacts.toml").read_text(encoding="utf-8")
@@ -205,37 +223,76 @@ def test_release_manifest_publishes_sc_sha_before_its_consumers() -> None:
 
 def test_release_workflow_enforces_python_release_invariants() -> None:
     text = release_workflow_text()
+    pypi_text = pypi_publish_workflow_text()
     action_text = (
         repo_root() / ".github" / "actions" / "setup-python-release-build" / "action.yml"
     ).read_text(encoding="utf-8")
 
     assert (
-        "needs: [gate-and-tag, build, publish, build-python-wheels, build-python-sdist, build-sc-sha-python-wheels, build-sc-sha-python-sdist, publish-pypi]"
+        "needs: [gate-and-tag, build, publish, build-python-wheels, build-python-sdist, build-sc-sha-python-wheels, build-sc-sha-python-sdist]"
         in text
     )
+    assert "publish-testpypi:" in text
+    assert "needs.gate-and-tag.outputs.release_target == 'testpypi'" in text
+    assert "publish-pypi:" not in text
     assert "name: python-sdist" in text
     assert "default: testpypi" in text
     assert "type: choice" in text
-    assert "release_target == 'production' && 'pypi' || 'testpypi'" in text
-    assert "pattern: '*python-wheels-*'" in text
     assert "expected exactly two sdists (sc-compose and sc-sha)" in text
     assert "TEST_PYPI_API_TOKEN" in text
     assert "--repository testpypi" in text
-    # --skip-existing keeps publish-pypi re-runnable. Without it a re-run fails
-    # on already-uploaded files, and because release needs publish-pypi and
-    # publish-winget needs release, the winget job is skipped rather than run.
-    assert "maturin upload --non-interactive --skip-existing dist/*.whl dist/*.tar.gz" in text
     assert (
         "maturin upload --repository testpypi --non-interactive --skip-existing "
         "dist/*.whl dist/*.tar.gz"
     ) in text
-    assert "if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}" in text
     assert "for pattern in *.tar.gz *.zip *.whl; do" in text
     assert "uses: ./.github/actions/setup-python-release-build" in text
+    assert "update-homebrew:" not in text
+    assert "publish-winget:" not in text
     assert "verify-python-version" in action_text
     assert "sync-python-version" in action_text
     assert "release_ref" in action_text
     assert "pyproject" in action_text
+
+    assert "name: Publish PyPI" in pypi_text
+    assert "release_tag: ${{ inputs.tag }}" in pypi_text
+    assert "gh release download" in pypi_text
+    assert "published GitHub Release Python assets mismatch" in pypi_text
+    assert "verified six wheels and two sdists from the published GitHub Release" in pypi_text
+    assert "maturin build" not in pypi_text
+    assert "maturin sdist" not in pypi_text
+    assert "MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}" in pypi_text
+    assert "maturin upload --non-interactive --skip-existing dist/*.whl dist/*.tar.gz" in pypi_text
+    assert (
+        "maturin upload --repository testpypi --non-interactive --skip-existing "
+        "dist/*.whl dist/*.tar.gz"
+    ) in pypi_text
+
+
+def test_channel_recovery_workflows_require_a_published_release() -> None:
+    guard_text = published_release_guard_text()
+    pypi_text = pypi_publish_workflow_text()
+    homebrew_text = homebrew_publish_workflow_text()
+    winget_text = winget_publish_workflow_text()
+
+    assert "No published GitHub Release found" in guard_text
+    assert "is still a draft" in guard_text
+    assert "^v[0-9]+\\.[0-9]+\\.[0-9]+$" in guard_text
+    assert "REQUIRED_ASSET_PATTERNS" in guard_text
+
+    for workflow_text in (pypi_text, homebrew_text, winget_text):
+        assert "workflow_dispatch:" in workflow_text
+        assert "uses: ./.github/actions/verify-published-release" in workflow_text
+        assert "release_tag: ${{ inputs.tag }}" in workflow_text
+        assert "gate-and-tag" not in workflow_text
+
+    assert "WINGET_GITHUB_TOKEN" in winget_text
+    assert "x86_64-pc-windows-msvc" in winget_text
+    assert "HOMEBREW_TAP_TOKEN" in homebrew_text
+    assert "ref: ${{ inputs.tag }}" in homebrew_text
+    assert "aarch64-apple-darwin" in homebrew_text
+    assert "x86_64-apple-darwin" in homebrew_text
+    assert "x86_64-unknown-linux-gnu" in homebrew_text
 
 
 def test_release_workflow_collects_wheels_without_redundant_zip_sweep() -> None:

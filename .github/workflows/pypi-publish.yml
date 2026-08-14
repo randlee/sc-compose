@@ -1,0 +1,124 @@
+name: Publish PyPI
+
+# Production publication is intentionally separate from release.yml. It uploads
+# only the already-attached artifacts from a published, immutable GitHub Release
+# so an upload failure can be retried without creating another tag, rerunning
+# crates.io publication, or rebuilding any artifact.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Published GitHub Release tag to publish (e.g. v1.4.1)'
+        required: true
+        type: string
+      target:
+        description: 'Python package repository'
+        required: true
+        default: testpypi
+        type: choice
+        options:
+          - testpypi
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-pypi-${{ inputs.target }}-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  verify-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/verify-published-release
+        with:
+          release_tag: ${{ inputs.tag }}
+
+  publish:
+    needs: verify-release
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target == 'production' && 'pypi' || 'testpypi' }}
+    steps:
+      - name: Download Python assets from the published GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets dist
+          gh release download "${RELEASE_TAG}" --repo "${RELEASE_REPOSITORY}" \
+            --pattern '*.whl' --pattern '*.tar.gz' --dir release-assets
+      - name: Select and verify Python distributions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from email import message_from_bytes
+          from pathlib import Path
+          import shutil
+          import tarfile
+          import zipfile
+
+          assets = Path("release-assets")
+          dist = Path("dist")
+          expected = {
+              "sc-compose": {"wheel": 3, "sdist": 1},
+              "sc-sha": {"wheel": 3, "sdist": 1},
+          }
+          found = {name: {"wheel": 0, "sdist": 0} for name in expected}
+
+          def metadata_name(data: bytes, path: Path) -> str:
+              name = message_from_bytes(data).get("Name")
+              if name not in expected:
+                  raise SystemExit(f"{path}: unexpected Python distribution {name!r}")
+              return name
+
+          for asset in assets.iterdir():
+              if asset.suffix == ".whl":
+                  with zipfile.ZipFile(asset) as archive:
+                      metadata = [name for name in archive.namelist() if name.endswith(".dist-info/METADATA")]
+                      if len(metadata) != 1:
+                          raise SystemExit(f"{asset}: expected exactly one wheel METADATA file")
+                      name = metadata_name(archive.read(metadata[0]), asset)
+                  found[name]["wheel"] += 1
+                  shutil.copy2(asset, dist / asset.name)
+              elif asset.name.endswith(".tar.gz"):
+                  with tarfile.open(asset, "r:gz") as archive:
+                      metadata = [member for member in archive.getmembers() if member.name.endswith("/PKG-INFO")]
+                      if not metadata:
+                          continue
+                      if len(metadata) != 1:
+                          raise SystemExit(f"{asset}: expected exactly one sdist PKG-INFO file")
+                      extracted = archive.extractfile(metadata[0])
+                      if extracted is None:
+                          raise SystemExit(f"{asset}: unable to read sdist PKG-INFO")
+                      name = metadata_name(extracted.read(), asset)
+                  found[name]["sdist"] += 1
+                  shutil.copy2(asset, dist / asset.name)
+
+          if found != expected:
+              raise SystemExit(f"published GitHub Release Python assets mismatch: expected {expected}, found {found}")
+          print("verified six wheels and two sdists from the published GitHub Release")
+          PY
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install maturin
+        run: python -m pip install maturin==1.9.4
+      - name: Publish wheels and sdists to TestPyPI
+        if: ${{ inputs.target == 'testpypi' }}
+        env:
+          MATURIN_NON_INTERACTIVE: '1'
+          MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        run: maturin upload --repository testpypi --non-interactive --skip-existing dist/*.whl dist/*.tar.gz
+      - name: Publish wheels and sdists to PyPI
+        if: ${{ inputs.target == 'production' }}
+        env:
+          MATURIN_NON_INTERACTIVE: '1'
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: maturin upload --non-interactive --skip-existing dist/*.whl dist/*.tar.gz
