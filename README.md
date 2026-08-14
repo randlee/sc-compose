@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="#install"><img src="https://img.shields.io/badge/install-brew%20%7C%20winget%20%7C%20cargo%20%7C%20pip-4c1" alt="Install: brew | winget | cargo | pip"></a>
+  <a href="#install"><img src="https://img.shields.io/badge/install-brew%20%7C%20scoop%20%7C%20winget%20%7C%20cargo%20%7C%20pip-4c1" alt="Install: brew | scoop | winget | cargo | pip"></a>
   <a href="https://crates.io/crates/sc-compose"><img src="https://img.shields.io/crates/v/sc-compose?label=crates.io" alt="crates.io"></a>
   <a href="https://pypi.org/project/sc-compose/"><img src="https://img.shields.io/pypi/v/sc-compose?label=PyPI" alt="PyPI"></a>
   <a href="https://github.com/randlee/sc-compose/actions"><img src="https://img.shields.io/github/actions/workflow/status/randlee/sc-compose/ci.yml?branch=develop&label=CI" alt="CI"></a>
@@ -39,6 +39,8 @@ and OpenCode through each runtime's native search chain, with a shared
 # Install
 brew install randlee/tap/sc-compose        # macOS
 winget install randlee.sc-compose           # Windows
+scoop bucket add randlee https://github.com/randlee/scoop-bucket
+scoop install sc-compose                    # Windows (Scoop)
 cargo install sc-compose                    # from source
 pip install sc-compose                      # Python
 
@@ -153,12 +155,13 @@ Pre-built wheels for macOS, Linux, Windows (Python 3.11+).
 |----------|--------|---------|
 | macOS | Homebrew | `brew install randlee/tap/sc-compose` |
 | Windows | Winget | `winget install randlee.sc-compose` |
+| Windows | Scoop | `scoop bucket add randlee https://github.com/randlee/scoop-bucket`<br>`scoop install sc-compose` |
 | Any (Rust) | crates.io | `cargo install sc-compose` |
 | Any (Python) | PyPI | `pip install sc-compose` |
 | Any (source) | cargo | `cargo build --release -p sc-compose` |
 | Rust lib | Cargo.toml | `sc-composer = "1.4.1"` |
 
-Bundled examples are guaranteed in Homebrew, Winget, and GitHub Release
+Bundled examples are guaranteed in Homebrew, Scoop, Winget, and GitHub Release
 installs. `cargo install` ships the binary only — set `SC_COMPOSE_DATA_DIR` for
 examples.
 

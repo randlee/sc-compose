@@ -5,7 +5,7 @@ Step-by-step release process for `sc-composer`, `sc-compose`, and
 
 ## Overview
 
-This repo publishes to five channels:
+This repo publishes to six channels:
 
 | Channel | Package | Method |
 |---------|---------|--------|
@@ -14,6 +14,7 @@ This repo publishes to five channels:
 | PyPI | `sc-compose` | `maturin publish` |
 | Homebrew | `sc-compose` | GitHub Actions → `randlee/homebrew-tap` |
 | Winget | `sc-compose` | GitHub Actions → `microsoft/winget-pkgs` |
+| Scoop | `sc-compose` | GitHub Actions → `randlee/scoop-bucket` |
 | GitHub Releases | `sc-compose` | CI workflow attachment |
 
 ## Versioning
@@ -55,15 +56,18 @@ This repo publishes to five channels:
 - [ ] `CARGO_REGISTRY_TOKEN` configured in GitHub Actions `crates-io` environment
 - [ ] Token has publish permission for both `sc-composer` and `sc-compose`
 
-### Homebrew and Winget
+### Homebrew, Winget, and Scoop
 
 - [ ] `HOMEBREW_TAP_TOKEN` configured in repo secrets
 - [ ] First `winget` release requires one-time manual submission to
   `microsoft/winget-pkgs`; later releases use the automated workflow job
+- [ ] `SCOOP_BUCKET_TOKEN` configured in repo secrets with write access to
+  `randlee/scoop-bucket`
 
 ### PyPI
 
-- [ ] `PYPI_API_TOKEN` configured in GitHub Actions `pypi` environment
+- [ ] `PYPI_TOKEN` and `TEST_PYPI_TOKEN` configured in GitHub Actions
+  environments
 - [ ] Run one staged TestPyPI or `workflow_dispatch` rehearsal before treating
   the Python release channel as production-closed:
   - [ ] Wheel build succeeds on all three platforms
@@ -91,6 +95,21 @@ Publish in this exact order. Deviating will break the dependency graph.
 The `.github/workflows/release.yml` workflow enforces this order automatically
 when triggered by a release tag.
 
+## Post-Release Channel Dispatch
+
+After the root `Release` workflow has created the immutable GitHub Release,
+dispatch the independent, retry-safe channel workflows with the same `v<version>`
+tag:
+
+- `.github/workflows/pypi-publish.yml` uploads the published Python artifacts.
+- `.github/workflows/homebrew-publish.yml` updates `randlee/homebrew-tap`.
+- `.github/workflows/winget-publish.yml` submits the Windows installer.
+- `.github/workflows/scoop-publish.yml` updates the Scoop bucket manifest in
+  `randlee/scoop-bucket`.
+
+If one channel fails, re-dispatch only that channel workflow. Do not recreate
+the tag or rerun the root release workflow.
+
 ## Post-Publish Verification
 
 - [ ] Verify `sc-composer` visible on crates.io at expected version
@@ -100,6 +119,8 @@ when triggered by a release tag.
 - [ ] Verify GitHub Release archives include `share/sc-compose/examples/`
 - [ ] Verify Homebrew formula update completed in `randlee/homebrew-tap`
 - [ ] Verify `winget` submission/update dispatched successfully
+- [ ] Verify Scoop manifest update completed in `randlee/scoop-bucket` and
+      `scoop install sc-compose` succeeds
 - [ ] Verify PyPI: `pip install sc-compose==<version>` on all three platforms
 - [ ] Tag the release commit: `git tag v<version> && git push origin v<version>`
 - [ ] Create a GitHub release pointing at the tag with filled-in release notes
@@ -127,6 +148,16 @@ when triggered by a release tag.
 
 - Formula auto-updated in `randlee/homebrew-tap` via release workflow
 - Bundled examples installed to `$(brew --prefix)/share/sc-compose/examples/`
+
+### Scoop
+
+- Add the bucket, then install the package:
+  ```powershell
+  scoop bucket add randlee https://github.com/randlee/scoop-bucket
+  scoop install sc-compose
+  ```
+- The retry-safe `.github/workflows/scoop-publish.yml` workflow updates the
+  manifest from the immutable GitHub Release asset.
 
 ### GitHub Releases
 
