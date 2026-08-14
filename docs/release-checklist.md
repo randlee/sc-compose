@@ -45,12 +45,10 @@ Use this checklist before every crates.io release of `sc-sha`, `sc-composer`, an
   - run `cargo owner --list sc-composer` and confirm expected owners
 - [ ] Verify crate owners for `sc-compose` on crates.io:
   - run `cargo owner --list sc-compose` and confirm expected owners
-- [ ] Confirm that the publish token (CARGO_REGISTRY_TOKEN) is configured in GitHub
-      Actions secrets for the `release` environment
-- [ ] Confirm the token has permission to publish `sc-sha`, `sc-composer`, and `sc-compose`
-- [ ] Verify PyPI ownership for `sc-sha` and `sc-compose` before publishing their wheels
-- [ ] Confirm `HOMEBREW_TAP_TOKEN` is configured in repo secrets before running the
-      release workflow
+- [ ] Use the standard pre-provisioned GitHub Actions secret contract:
+      `CARGO_REGISTRY_TOKEN`, `PYPI_TOKEN`, `TEST_PYPI_TOKEN`,
+      `HOMEBREW_TAP_TOKEN`, `WINGET_GITHUB_TOKEN`, and `SCOOP_BUCKET_TOKEN`.
+      The publisher does not inspect, request, or locally replace these secrets.
 
 ## Pre-Release: Release Preflight
 

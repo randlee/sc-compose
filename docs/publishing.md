@@ -94,21 +94,21 @@ Required secrets:
 
 - `CARGO_REGISTRY_TOKEN`
   - must be configured in the GitHub Actions `crates-io` environment
-  - must be able to publish `sc-sha`, `sc-composer`, and `sc-compose`
+  - must be able to publish every manifest-declared crate
 - `HOMEBREW_TAP_TOKEN`
   - must be configured in the repo secrets before Homebrew automation can
-    update `randlee/homebrew-tap`
-- `PYPI_API_TOKEN`
-  - required for the Phase C Python release channel
-  - must be configured in the protected GitHub Actions `pypi` environment
-    before PyPI publication is enabled
+    update the manifest-declared tap
+- `PYPI_TOKEN` and `TEST_PYPI_TOKEN`
+  - required for the production and rehearsal Python release channels
+
+All release secrets use the same GitHub Actions secret names in every repo that
+vendors this release kit. The publisher uses those references but never asks to
+inspect, re-enter, or locally substitute a token. If Actions reports a missing
+secret, report the failure to `team-lead`.
 
 Manual verification steps:
 
-- verify crate owners:
-  - `cargo owner --list sc-sha`
-  - `cargo owner --list sc-composer`
-  - `cargo owner --list sc-compose`
+- verify crate owners for every manifest-declared crate
 - verify the target version is unpublished before tagging:
   - `python3 scripts/release_artifacts.py check-version-unpublished --manifest release/publish-artifacts.toml --version <X.Y.Z>`
 
@@ -116,11 +116,10 @@ Manual verification steps:
 
 The standalone release path covers:
 
-- crates.io publication for `sc-sha`, `sc-composer`, and `sc-compose`
-- GitHub Release archives for Linux, macOS, and Windows
-- Homebrew formula updates in `randlee/homebrew-tap`
-- `winget` publication for package id `randlee.sc-compose`
-- PyPI publication for packages `sc-sha` and `sc-compose`
+- crates.io publication for manifest-declared crates
+- GitHub Release archives for manifest-declared targets
+- Homebrew, `winget`, and Scoop updates using manifest-declared destinations
+- PyPI publication for manifest-declared Python distributions
 
 Python release-train rule:
 
@@ -130,12 +129,13 @@ Python release-train rule:
 
 Release-operator verification for PyPI:
 
-- verify the protected `pypi` environment contains `PYPI_API_TOKEN`
+- use the pre-provisioned `PYPI_TOKEN` and `TEST_PYPI_TOKEN` secrets; the
+  publisher never reads or locally substitutes them
 - run one staged TestPyPI or `workflow_dispatch` rehearsal before treating the
   Python release channel as production-closed
-- confirm exactly one sdist is produced, all three wheel builds complete, the
-  PyPI upload path succeeds, and the GitHub Release attachment set includes
-  wheels plus the single sdist
+- confirm the manifest-declared sdists and wheel builds complete, the PyPI
+  upload path succeeds, and the GitHub Release attachment set matches the
+  manifest
 
 The first `winget` release requires a one-time manual submission to
 `microsoft/winget-pkgs`. Later releases use the automated workflow job.
