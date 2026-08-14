@@ -48,7 +48,7 @@ Current known release blockers:
 | RB-03c | Graceful logger shutdown is not yet called before `process::exit()`. | Closed | Sprint 2 | The CLI calls `logger.shutdown()` before process exit so pending events flush cleanly. |
 | RB-04 | Production logging safeguards are not yet proven. | Closed | Sprint 3 | Tests prove `--json` cleanliness, shutdown/flush behavior, sink degradation behavior, and event coverage. |
 | RB-05 | Any non-observability release blocker found during audit must be closed before release. | Closed | Sprint 3 | Every audit finding is either closed or explicitly moved to a later sprint in this plan before Sprint 1 exit. |
-| RB-06 | Final release validation, QA approval, and cutover readiness were incomplete before Sprint 4 closeout. | Closed | Sprint 4 | End-to-end smoke tests, QA review, design review, and release approval all pass; closure evidence includes `crates/sc-compose/tests/cli.rs::release_smoke_covers_render_pipeline_and_observability_health`. |
+| RB-06 | Final release validation, QA approval, and cutover readiness were incomplete before Sprint 4 closeout. | Closed | Sprint 4 | End-to-end smoke tests, QA review, design review, and release approval all pass; closure evidence includes `crates/sc-compose/tests/cli/observability.rs::release_smoke_covers_render_pipeline_and_observability_health`. |
 
 Inventory rules:
 
@@ -383,7 +383,8 @@ following are true:
 
 Status:
 
-- planned follow-on Python bindings work after the shipped `1.1.x` line
+- complete: C.1 through C.3 landed the Python adapter, API surface, and release
+  train; the current workspace publishes the adapter at `1.4.1`
 
 Sprint entries:
 
@@ -402,8 +403,8 @@ initial Python scope.
 
 Status:
 
-- complete on `integrate/phase-d`; all eight D-track sprints have passed QA
-  and merged, and PR #140 is open to promote the phase to `develop`
+- complete: all eight D-track sprints and the phase-ending fixes passed QA and
+  merged into the main development line
 
 Sprint entries:
 
@@ -427,7 +428,8 @@ was already closed by Phase C.2.
 
 Status:
 
-- planned follow-on cleanup after the integrated Phase B production-readiness review
+- complete: B11 through B15 cleanup sprints landed and their findings are
+  closed in [`docs/issues-inventory.md`](issues-inventory.md)
 
 Sprint entries:
 
@@ -448,8 +450,8 @@ The accepted cleanup findings and sprint ownership are tracked in
 
 Status:
 
-- draft follow-on work for recursive structured inputs and adversarial rendering
-  validation after the completed Phase D multi-pass delivery
+- complete: E.1 through E.3 delivered recursive structured inputs and the
+  adversarial rendering validation workflow
 
 Sprint entries:
 
@@ -641,7 +643,7 @@ Status:
   the phase-ending review and integrated validation passed at `2c2b875`;
 - closeout record: the four phase-status artifacts self-reference
   `final_commit: 2c2b875`, the actual tip of `integrate/phase-k`;
-- the Python package metadata is aligned with the workspace release at `1.3.1`;
+- the Python package metadata is aligned with the workspace release at `1.4.1`;
   future releases should keep `bindings/python/pyproject.toml` synchronized
   with `Cargo.toml` through a release or CI consistency check;
 - all eight are implementation sprints, not planning/design sprints, and each
@@ -726,24 +728,12 @@ Sprint entries:
 
 Status:
 
-- planned: plan-gate QA passed at `639d623` on `plan/sha-crate`
-  (`PLAN-GATE-SHA-CRATE-001-R5`) after five review rounds; subsequent
-  plan-hardening commits `c0efa37` and `29bd1c1` make the boundary and
-  public-source-type contracts explicit; extracts the `sc-compose`-owned SHA
-  hashing logic (`crates/sc-composer/src/template_hash.rs`, from PR #358)
-  into a standalone `sc-sha` crate plus a `bindings/sc-sha-python` adapter,
-  compatibility-verified against the real hash-calculation needs of the
-  sibling `synaptic-canvas-dolt` repo;
-- hard pre-implementation gate: no source under `crates/sc-sha/` or
-  `bindings/sc-sha-python/` may be authored until CLAUDE.md's Boundary Rules
-  are amended for these two crates and ADR-0018 is signed off, per explicit
-  team-lead ruling — not yet cleared;
-- M.1 and M.2 are both implementation sprints (non-doc Exact Targets,
-  `cargo test --workspace` required validation), contiguous, no gaps;
-- the pre-implementation gate, public constructor/accessor signatures for
-  `CanonicalTemplatePath`/`CanonicalSourceUrl`, and this status wording are
-  now recorded in the planning worktree; the proposed ADR remains unaccepted
-  until team-lead approves its number and scope.
+- complete: M.1 (merged at `de2ade8`) and M.2 (merged at `47572e9`) delivered
+  the standalone `sc-sha` crate, the `sc-sha-python` adapter, and the
+  `sc-composer` integration;
+- ADR-0018 and the corresponding boundary rules are accepted, and the
+  implementation is present under `crates/sc-sha/` and
+  `bindings/sc-sha-python/`; `sc-composer` delegates hashing to `sc-sha`.
 
 Sprint entries:
 
@@ -835,6 +825,72 @@ Sprint entries:
   ([PR #399](https://github.com/randlee/sc-compose/pull/399)); complete.
 - Follow-on plan gate — CLI Conceptual Help Manuals
   ([PR #396](https://github.com/randlee/sc-compose/pull/396)); complete.
+
+### Phase O Sprint Plans
+
+Status:
+
+- complete: JSON escape-mode compatibility and fail-closed rendered-output
+  validation, including the Phase O fix-sprint sequence through the 1.4.1
+  release metadata follow-up
+- O.1 is the infrastructure sprint; O.2 and O.3 may execute in parallel after
+  O.1 merges; O.4 migrates the six in-repo templates; O.5 is the release-corpus
+  and fuzz closeout sprint. O.5 cross-repository migration disposition
+  remains open under the documented release waiver.
+- target: `integrate/phase-o`
+
+Sprint entries:
+
+- [Phase O plan](phase-O/phase-O-plan.md)
+- [Sprint O.1 — JSON Mode Contract](phase-O/sprint-o-1-json-mode-contract.md)
+- [Sprint O.2 — Checked Render Contract](phase-O/sprint-o-2-checked-render-contract.md)
+- [Sprint O.3 — Template Lint and Repository Target](phase-O/sprint-o-3-template-lint-and-repo-target.md)
+- [Sprint O.4 — Six-Template Migration and Compatibility Fixtures](phase-O/sprint-o-4-template-migration.md)
+- [Sprint O.5 — Cross-Repository Release Corpus and Fuzz Gate](phase-O/sprint-o-5-release-corpus-fuzz-gate.md)
+
+### Follow-on Fix Sprint: FIX-O13
+
+Status:
+
+- complete on `integrate/phase-o` at `4d37280` via PR #438
+
+Sprint entry:
+
+- [Sprint FIX-O13 — Version-Bump Metadata Sync](sprints/fix-o13-version-bump-metadata-sync.md)
+
+FIX-O13 synchronizes the 1.4.1 README and changelog metadata and records the
+Phase O status accurately: implementation and fix-sprint work is complete,
+while the six-root O.5 migration disposition remains open under the release
+waiver.
+
+### Follow-on Fix Sprint: FIX-O15
+
+Status:
+
+- implementation complete on `fix/o15-composer-directive-inspection-api`;
+  awaiting PR and integration into `integrate/phase-o`
+
+Sprint entry:
+
+- [Sprint FIX-O15 — Public Classified Directive Inspection API](sprints/fix-o15-composer-directive-inspection-api.md)
+
+FIX-O15 adds the narrow, parser-validated `sc-composer` API required by
+atm-core to classify include, import, and from-import statements with exact
+UTF-8 byte spans. It deliberately leaves target resolution and CLI/binding
+surfaces to their owning consumers.
+
+### Follow-on Fix Sprint: FIX-434
+
+Status:
+
+- complete on `integrate/phase-o` at `fda36d5` via PR #434
+
+Sprint entry:
+
+- [FIX-434 — CI Template Contracts Gate](sprints/fix-434-ci-template-contracts-gate.md)
+
+FIX-434 added the O.6 CI template-contracts gate and its cross-platform
+validation coverage for the repository-level template lint target.
 
 ### Follow-on Fix Sprint: FIX-390
 
@@ -1264,6 +1320,21 @@ FIX-277 corrects JSON stdout render metadata to include the trailing newline
 emitted by the equivalent plain-mode stdout path. File output and dry-run
 metadata remain unchanged.
 
+### Follow-on Fix Sprint: FIX-POSTMERGE-02
+
+Status:
+
+- complete on `fix/checked-render-format-normalization-parity`
+
+Sprint entry:
+
+- [Sprint FIX-POSTMERGE-02 — Template-Suffix Normalization](sprints/fix-postmerge-02-normalization-parity.md)
+
+FIX-POSTMERGE-02 unifies JSON template-path classification across rendering,
+checked output validation, diagnostics, template lint, and template-init. The
+shared helper removes all recognized template suffixes case-insensitively so
+stacked suffixes and case variants receive the same JSON contract.
+
 ### Standalone Repowise Cleanup: Render Request Module Split
 
 Status:
@@ -1324,18 +1395,17 @@ for independent regression QA.
   bundled single-panel `sprint-report-html` example, and wrapper-owned HTML
   rendering integration.
 
-### Follow-on Issue: Nested Template Composition Fingerprints
+### Composition Fingerprints (Phase M)
 
-The current content-only SHA/fingerprint model is not sufficient as the
-identity of a composed template: it does not distinguish identical content at
-different canonical paths and does not change when a transitive nested include
-changes. GitHub issue [#360](https://github.com/randlee/sc-compose/issues/360)
-tracks the required versioned Merkle-style composition fingerprint. The issue
-requires a deterministic dependency manifest for auditability plus one root
-`composition_sha` derived from canonical paths, exact source bytes, ordered
-include edges, repeated occurrences, and relevant render context. This remains
-follow-on work and is not claimed by the completed extraction or maintainability
-phases.
+GitHub issue [#360](https://github.com/randlee/sc-compose/issues/360) identified
+the limits of the original content-only SHA model: identical content at
+different canonical paths and transitive include changes needed distinct
+identities. Phase M delivered the versioned composition fingerprint contract
+with a deterministic dependency manifest and root `composition_sha` derived
+from canonical paths, exact source bytes, ordered include edges, repeated
+occurrences, and relevant render context. The implementation is owned by
+`sc-sha` and consumed by `sc-composer`; no follow-on claim remains for the
+original issue scope.
 
 ### Sprint S9: User Data Directory Unification (`~/.sc-compose`)
 
@@ -1605,7 +1675,7 @@ Release blocker inventory:
 
 | ID | Blocker | Status | Sprint | Closure condition |
 | --- | --- | --- | --- | --- |
-| HRB-01 | The current input model cannot express structured records such as PR objects and nested field access. | Closed — PR #45, `2280bd1`. All 11 H1 acceptance tests pass including `frontmatter_defaults_accept_object_value` (`crates/sc-composer/src/lib.rs:107`), `render_accepts_object_values_in_json_var_file` (`crates/sc-compose/tests/cli.rs:818`), and `template_json_object_input_defaults_obey_precedence` (`crates/sc-compose/tests/cli.rs:581`). | H1 | Object/map input values render end-to-end with stable field-path diagnostics. |
+| HRB-01 | The current input model cannot express structured records such as PR objects and nested field access. | Closed — PR #45, `2280bd1`. All 11 H1 acceptance tests pass including `frontmatter_defaults_accept_object_value` (`crates/sc-composer/src/lib.rs:166`), `render_accepts_object_values_in_json_var_file` (`crates/sc-compose/tests/cli/render.rs:2165`), and `template_json_object_input_defaults_obey_precedence` (`crates/sc-compose/tests/cli/templates.rs:634`). | H1 | Object/map input values render end-to-end with stable field-path diagnostics. |
 | HRB-02 | The current input model cannot express repeated report sections as arrays of structured records. | Closed — H2 implements arrays-of-objects ingress and loop-body discovery; E.1 removes the historical nested-array restriction with recursive validation and regression coverage. | H2/E.1 | Recursive arrays and arrays of objects render, validate, and support loop-body discovery end-to-end. |
 | HRB-03 | There is no bundled HTML report example proving `sc-compose` can generate a useful clickable report artifact. | Closed — H3 adds `examples/sprint-report-html.html.j2`, realistic sample vars, and named-render coverage for `sprint-report-html.html.j2 -> sprint-report-html.html`. | H3 | `sprint-report-html` renders a self-contained HTML report from realistic structured input. |
 
@@ -1633,10 +1703,11 @@ Deliverables:
 - explicit top-level replacement semantics for structured defaults; no deep
   merge
 - explicit top-level extra-variable policy for structured inputs
-- invert or replace the three existing negative tests that reject objects:
-  - `crates/sc-compose/tests/cli.rs:render_rejects_nested_object_values_in_var_file` (cli.rs:518)
-  - `crates/sc-compose/tests/cli.rs:render_rejects_nested_sequence_values_in_var_file` (cli.rs:544)
-  - `crates/sc-composer/src/lib.rs:frontmatter_rejects_nested_defaults` (lib.rs:110-122)
+- the former negative-shape tests were replaced by recursive acceptance coverage:
+  - `crates/sc-composer/src/types.rs::validate_input_value_accepts_recursive_arrays_and_objects`
+  - `crates/sc-compose/tests/cli/render.rs::render_accepts_recursive_values_in_yaml_var_file`
+  - `crates/sc-compose/tests/cli/render.rs::render_accepts_recursive_values_in_frontmatter_defaults`
+  - `crates/sc-compose/tests/cli/templates.rs::templates_named_render_accepts_recursive_values_in_template_json_defaults`
 
 Acceptance Criteria:
 
@@ -1807,8 +1878,8 @@ Exit Gate:
 
 ## Follow-on Design Track (H5+)
 
-The current plan is the authoritative release plan for `1.0`. Additional
-post-`1.0` design exploration must not silently rewrite the shipped contract.
+The current plan is the authoritative release plan for `1.4.1`. Additional
+post-`1.4.1` design exploration must not silently rewrite the shipped contract.
 
 The current follow-on design track is:
 

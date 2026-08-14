@@ -34,8 +34,10 @@
   this parity checkpoint. H2-D5's independent-review requirement is now
   satisfied.
 
-The Phase-H amendments are still not merged to `origin/develop`: the diff from
-`origin/develop` to `origin/integrate/phase-h` includes the Phase-H plan,
-H.1-H.6 sprint documents, and ADR-0012. `origin/develop` does contain the
-earlier H.2 planning file, so this confirmation refers specifically to the
-post-rescope H.1/H.2 amendments rather than the existence of any Phase-H file.
+At the 2026-08-02 validation date, the Phase-H amendments were not yet merged
+to `origin/develop`: the diff from `origin/develop` to
+`origin/integrate/phase-h` included the Phase-H plan, H.1-H.6 sprint
+documents, and ADR-0012. They subsequently merged through PR #211; the
+current `origin/develop` therefore contains the completed Phase-H line. The
+original note refers specifically to the post-rescope H.1/H.2 amendments at
+validation time, rather than the existence of any Phase-H file.

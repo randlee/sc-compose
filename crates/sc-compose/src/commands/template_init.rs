@@ -5,7 +5,7 @@ use anyhow::anyhow;
 use sc_composer::types::default_pass_number;
 use sc_composer::{
     DiagnosticCode, FrontmatterInitResult, RecoveryHint, RecoveryHintKind, VariableName,
-    parse_template_document, strip_template_suffix,
+    is_json_template_path, parse_template_document,
 };
 
 use crate::cli::{FrontmatterInitArgs, TemplateInitArgs, parse_pass_inputs};
@@ -42,6 +42,8 @@ struct MultiPassHeader {
     pass: u8,
     required_variables: Vec<String>,
     defaults: BTreeMap<String, String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    json_escape_mode: Option<&'static str>,
 }
 
 pub(crate) fn run_frontmatter_init(args: &FrontmatterInitArgs) -> Result<i32, CommandError> {
@@ -220,7 +222,7 @@ fn template_init_file(
     let replacements = plan_replacements(passes);
     let rewritten_body =
         apply_replacements(&contents, &replacements, is_json_template_path(&canonical))?;
-    let frontmatter_text = build_stacked_frontmatter(passes)?;
+    let frontmatter_text = build_stacked_frontmatter(passes, is_json_template_path(&canonical))?;
     let template_text = format!(
         "{frontmatter_text}{}",
         rewritten_body.trim_start_matches(['\n', '\r'])
@@ -385,18 +387,10 @@ fn find_available_spans(
     spans
 }
 
-fn is_json_template_path(path: &Path) -> bool {
-    let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
-        return false;
-    };
-    let stripped = strip_template_suffix(file_name);
-    Path::new(stripped)
-        .extension()
-        .and_then(|extension| extension.to_str())
-        == Some("json")
-}
-
-fn build_stacked_frontmatter(passes: &[InitPass]) -> Result<String, CommandError> {
+fn build_stacked_frontmatter(
+    passes: &[InitPass],
+    is_json_template: bool,
+) -> Result<String, CommandError> {
     let single_pass_compat = passes.len() == 1 && passes[0].pass_number == default_pass_number();
     if single_pass_compat {
         let mut text = String::from("---\nrequired_variables:\n");
@@ -404,6 +398,9 @@ fn build_stacked_frontmatter(passes: &[InitPass]) -> Result<String, CommandError
             text.push_str("  - ");
             text.push_str(name.as_str());
             text.push('\n');
+        }
+        if is_json_template {
+            text.push_str("json_escape_mode: auto\n");
         }
         text.push_str("defaults: {}\nmetadata: {}\n---\n");
         return Ok(text);
@@ -423,6 +420,7 @@ fn build_stacked_frontmatter(passes: &[InitPass]) -> Result<String, CommandError
                 .iter()
                 .map(|(name, value)| (name.as_str().to_owned(), value.clone()))
                 .collect(),
+            json_escape_mode: is_json_template.then_some("auto"),
         };
         let yaml = serialize_header(&header)?;
         text.push_str("---\n");
@@ -526,6 +524,7 @@ mod tests {
         )
         .unwrap();
 
+        assert!(result.template_text.contains("json_escape_mode: auto"));
         let parsed = parse_template_document(&result.template_text).unwrap();
         assert!(
             parsed
@@ -541,6 +540,46 @@ mod tests {
             )
             .unwrap();
         assert_eq!(rendered, original);
+    }
+
+    #[test]
+    fn fuzz_001_template_init_uses_shared_json_path_detector() {
+        let root = temp_root("template_init_json_path_variants");
+        for (fixture, file_name) in [
+            ("uppercase-content", "payload.JSON.j2"),
+            ("uppercase-template", "payload.json.J2"),
+            ("stacked-suffix", "payload.json.j2.j2"),
+        ] {
+            let template = root.join(fixture).join(file_name);
+            write_file(&template, "{\"worktree_path\": \"/tmp/wt\"}\n");
+
+            let result = template_init_file(
+                &template,
+                &[InitPass {
+                    pass_number: 1,
+                    variables: vec![(
+                        VariableName::new("worktree_path").unwrap(),
+                        "/tmp/wt".to_owned(),
+                    )],
+                }],
+                false,
+                true,
+            )
+            .unwrap_or_else(|error| panic!("template-init failed for {file_name}: {error}"));
+
+            assert!(
+                result.template_text.contains("json_escape_mode: auto"),
+                "template-init misclassified {file_name}: {}",
+                result.template_text
+            );
+            assert!(
+                result
+                    .template_text
+                    .contains("\"worktree_path\": {{ worktree_path }}"),
+                "template-init retained legacy quoting for {file_name}: {}",
+                result.template_text
+            );
+        }
     }
 
     #[test]

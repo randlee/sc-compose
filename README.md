@@ -12,6 +12,8 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a>
 </p>
 
+<p align="center"><a href="https://randlee.github.io/sc-compose/">Project website</a></p>
+
 ---
 
 **sc-compose** is a standalone CLI and library for teams whose templates have
@@ -154,7 +156,7 @@ Pre-built wheels for macOS, Linux, Windows (Python 3.11+).
 | Any (Rust) | crates.io | `cargo install sc-compose` |
 | Any (Python) | PyPI | `pip install sc-compose` |
 | Any (source) | cargo | `cargo build --release -p sc-compose` |
-| Rust lib | Cargo.toml | `sc-composer = "1.4.0"` |
+| Rust lib | Cargo.toml | `sc-composer = "1.4.1"` |
 
 Bundled examples are guaranteed in Homebrew, Winget, and GitHub Release
 installs. `cargo install` ships the binary only — set `SC_COMPOSE_DATA_DIR` for
@@ -166,7 +168,7 @@ examples.
 
 | | |
 |---|---|
-| Version | 1.4.0 |
+| Version | 1.4.1 |
 | MSRV | Rust 1.94.1 |
 | Rust edition | 2024 |
 | Platforms | macOS, Linux, Windows |

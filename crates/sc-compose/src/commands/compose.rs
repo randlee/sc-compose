@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::path::Path;
 
 use crate::cli::{Mode, RenderArgs, ResolveArgs, ValidateArgs};
 use crate::commands::template_lint::lint_request;
@@ -136,6 +137,9 @@ pub(crate) fn run_validate(
     } else {
         Vec::new()
     };
+    let lint_failed = lint_diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.severity == sc_composer::DiagnosticSeverity::Error);
     let mut diagnostics = report
         .warnings
         .iter()
@@ -143,24 +147,184 @@ pub(crate) fn run_validate(
         .cloned()
         .collect::<Vec<_>>();
     diagnostics.extend(lint_diagnostics);
-    if args.json {
-        print_json(
-            serde_json::json!({
-                "valid": report.ok,
-            }),
+    if args.check_render {
+        return run_checked_validate(
+            &request,
+            &report.resolve_result.resolved_path,
+            args,
+            observer,
             diagnostics,
-        )
-        .map_err(CommandError::usage)?;
+        );
+    }
+    let render_report = sc_composer::RenderCheckReport::StaticOnly {
+        meta: render_check_meta(&request, &report.resolve_result.resolved_path),
+        diagnostics: diagnostics.clone(),
+    };
+    if args.json {
+        let mut payload = serde_json::to_value(render_report)
+            .map_err(|error| CommandError::usage(anyhow!(error)))?;
+        payload["valid"] = serde_json::Value::Bool(report.ok);
+        print_json(payload, diagnostics).map_err(CommandError::usage)?;
     } else if diagnostics.is_empty() {
-        println!("valid");
+        println!("valid (static_only)");
     } else {
         for diagnostic in &diagnostics {
             println!("{}", format_diagnostic(diagnostic));
         }
     }
-    Ok(if report.ok {
+    Ok(if report.ok && !lint_failed {
         crate::exit_codes::SUCCESS
     } else {
         crate::exit_codes::VALIDATION_OR_RENDER_FAIL
     })
+}
+
+fn run_checked_validate(
+    request: &sc_composer::ComposeRequest,
+    resolved_path: &Path,
+    args: &ValidateArgs,
+    observer: &mut dyn CompositionObserver,
+    mut diagnostics: Vec<sc_composer::Diagnostic>,
+) -> Result<i32, CommandError> {
+    let meta = render_check_meta(request, resolved_path);
+    let report = match sc_composer::compose_with_observer(request, observer) {
+        Ok(result) => {
+            let checked =
+                sc_composer::check_rendered_output_with_meta(meta.clone(), &result.rendered_text)
+                    .map_err(|error| {
+                        let annotated = error.clone().with_failing_pass(result.failing_pass);
+                        diagnostics.extend(annotated.diagnostics.clone());
+                        annotated
+                    });
+            match checked {
+                Ok(_) => sc_composer::RenderCheckReport::RenderChecked {
+                    meta,
+                    checked_context: context_summary(&result.variable_sources),
+                    diagnostics: diagnostics.clone(),
+                },
+                Err(_) => sc_composer::RenderCheckReport::RenderInvalid {
+                    meta,
+                    diagnostics: diagnostics.clone(),
+                },
+            }
+        }
+        Err(error) => {
+            let command_error = CommandError::compose(error);
+            diagnostics.extend(command_error.diagnostics.clone());
+            let context_required = command_error.diagnostics.iter().any(|diagnostic| {
+                matches!(
+                    diagnostic.code,
+                    sc_composer::DiagnosticCode::ErrValMissingRequired
+                        | sc_composer::DiagnosticCode::ErrValMissingNestedField
+                        | sc_composer::DiagnosticCode::ErrValShapeMismatch
+                        | sc_composer::DiagnosticCode::ErrValArrayShapeMismatch
+                        | sc_composer::DiagnosticCode::ErrValUnboundVariable
+                )
+            });
+            if context_required {
+                sc_composer::RenderCheckReport::ContextRequired {
+                    meta,
+                    diagnostics: diagnostics.clone(),
+                }
+            } else {
+                sc_composer::RenderCheckReport::ContractInvalid {
+                    meta,
+                    diagnostics: diagnostics.clone(),
+                }
+            }
+        }
+    };
+    let success = report.permits_emission();
+    if args.json {
+        let mut payload =
+            serde_json::to_value(&report).map_err(|error| CommandError::usage(anyhow!(error)))?;
+        payload["valid"] = serde_json::Value::Bool(success);
+        print_json(payload, diagnostics).map_err(CommandError::usage)?;
+    } else {
+        println!("state: {}", report_state(&report));
+        for diagnostic in report.diagnostics() {
+            println!("{}", format_diagnostic(diagnostic));
+        }
+    }
+    Ok(if success {
+        crate::exit_codes::SUCCESS
+    } else {
+        crate::exit_codes::VALIDATION_OR_RENDER_FAIL
+    })
+}
+
+pub(crate) fn render_check_meta(
+    request: &sc_composer::ComposeRequest,
+    template: &Path,
+) -> sc_composer::RenderCheckMeta {
+    let declared_mode = std::fs::read_to_string(template)
+        .ok()
+        .and_then(|source| declared_json_escape_mode(&source));
+    let output_format = sc_composer::OutputFormat::from_template_path(template);
+    let mode = (output_format == sc_composer::OutputFormat::Json).then(|| {
+        sc_composer::resolve_json_escape_mode(request.policy.json_escape_mode, declared_mode)
+    });
+    sc_composer::RenderCheckMeta::for_template(template).with_json_escape_mode(mode)
+}
+
+fn declared_json_escape_mode(source: &str) -> Option<sc_composer::JsonEscapeMode> {
+    let parsed = sc_composer::parse_template_document(source).ok()?;
+    parsed.frontmatter()?.json_escape_mode()
+}
+
+pub(crate) fn context_summary(
+    variable_sources: &BTreeMap<sc_composer::VariableName, sc_composer::VariableSource>,
+) -> String {
+    let mut explicit = Vec::new();
+    let mut environment = Vec::new();
+    let mut template_pack_defaults = Vec::new();
+    let mut root_defaults = Vec::new();
+    let mut included_defaults = Vec::new();
+
+    for (name, source) in variable_sources {
+        match source {
+            sc_composer::VariableSource::ExplicitInput => explicit.push(name.to_string()),
+            sc_composer::VariableSource::Environment => environment.push(name.to_string()),
+            sc_composer::VariableSource::TemplateInputDefault => {
+                template_pack_defaults.push(name.to_string());
+            }
+            sc_composer::VariableSource::FrontmatterDefault => root_defaults.push(name.to_string()),
+            sc_composer::VariableSource::IncludedDefault => {
+                included_defaults.push(name.to_string());
+            }
+            sc_composer::VariableSource::Builtin => {}
+        }
+    }
+
+    format!(
+        "{} explicit caller values{}; {} environment values{}; {} template-pack defaults{}; {} root frontmatter defaults{}; {} included frontmatter defaults{}",
+        explicit.len(),
+        format_context_names(&explicit),
+        environment.len(),
+        format_context_names(&environment),
+        template_pack_defaults.len(),
+        format_context_names(&template_pack_defaults),
+        root_defaults.len(),
+        format_context_names(&root_defaults),
+        included_defaults.len(),
+        format_context_names(&included_defaults),
+    )
+}
+
+fn format_context_names(names: &[String]) -> String {
+    if names.is_empty() {
+        String::new()
+    } else {
+        format!(" ({})", names.join(", "))
+    }
+}
+
+fn report_state(report: &sc_composer::RenderCheckReport) -> &'static str {
+    match report {
+        sc_composer::RenderCheckReport::StaticOnly { .. } => "static_only",
+        sc_composer::RenderCheckReport::ContractInvalid { .. } => "contract_invalid",
+        sc_composer::RenderCheckReport::ContextRequired { .. } => "context_required",
+        sc_composer::RenderCheckReport::RenderInvalid { .. } => "render_invalid",
+        sc_composer::RenderCheckReport::RenderChecked { .. } => "render_checked",
+    }
 }

@@ -44,6 +44,6 @@ sprints can execute in parallel after L.2.
 
 ## References
 
-- [Phase L plan](phase-L-plan.md)
+- [Phase L plan](../phase-L/phase-L-plan.md)
 - [sc-lint reporting contract](../phase-L/sc-lint-reporting-contract.md)
 - [sc-lint #83](https://github.com/randlee/sc-lint/issues/83)

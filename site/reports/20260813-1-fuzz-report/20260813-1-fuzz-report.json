@@ -1,0 +1,176 @@
+{
+  "schema_version": "adversarial-fuzzing/v1",
+  "campaign": {
+    "campaign_id": "o5-20260813-0001",
+    "worktree_path": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/o-5-release-corpus-fuzz-gate",
+    "target": "full",
+    "baseline_ref": "0b24aa7e72eaab911d66520a762449e8597a7eb5",
+    "seed": 157,
+    "max_workers": 4,
+    "cases_per_worker": 40,
+    "per_worker_timeout_s": 120,
+    "promote_regressions": false,
+    "execution_mode": "bounded local probes; external roots read-only",
+    "release_candidate": "1.4.1"
+  },
+  "corpus_roots": [
+    {"repository": "sc-compose", "root": "/Users/randlee/Documents/github/sc-compose-worktrees/sprint/o-5-release-corpus-fuzz-gate", "commit": "0b24aa7e72eaab911d66520a762449e8597a7eb5", "templates_scanned": 11},
+    {"repository": "atm-core", "root": "/Users/randlee/Documents/github/atm-core", "commit": "aebfc5b18a7a1c086726fb2ecd2ec47a074891b5", "templates_scanned": 7},
+    {"repository": "cpo", "root": "/Users/randlee/Documents/github/cpo", "commit": "478de8f00151cc911160fb3ea13253af8bde6d03", "templates_scanned": 7},
+    {"repository": "raptor", "root": "/Users/randlee/Documents/github/raptor", "commit": "39ccb49c91aeb090f1b67ad9b83906a55f7bb46b", "templates_scanned": 3},
+    {"repository": "sc-lint", "root": "/Users/randlee/Documents/github/sc-lint", "commit": "455f164d29f29af7e8604387c88205aefe16ce75", "templates_scanned": 6},
+    {"repository": "synaptic-canvas", "root": "/Users/randlee/Documents/github/synaptic-canvas", "commit": "862fa2bcf5718de58948cdfb2d78420e88c57d81", "templates_scanned": 3},
+    {"repository": "roslyn-lint", "root": "/Users/randlee/Documents/github/roslyn-lint", "commit": "27b4114b31b1bf8a3b435980a2e530f030141ade", "templates_scanned": 3}
+  ],
+  "workers": [
+    {
+      "correlation_id": "six-template-parser-oracle",
+      "agent_id": "six-template-parser-oracle",
+      "target": "renderer-o4-corpus",
+      "status": "success",
+      "classification": "pass",
+      "fuzz_run_description": "O.4 six-template hostile-value renders and complete JSON parser oracle",
+      "cases_run": 6,
+      "iterations": 6,
+      "passed": 6,
+      "failed": 0,
+      "result": "PASS",
+      "command": "cargo test -p sc-compose --test json_cli o4_templates -- --nocapture",
+      "finding_ids": [],
+      "error": null,
+      "context_text": "Rendered all six O.4 assignment templates with quoted, backslash, Unicode, newline, control-safe, array, object, null, empty, and hostile key-injection values. Every successful body was parsed as one complete JSON document.",
+      "test_inputs": [
+        {"case_id": "o4-best-practices", "description": "rust-best-practices assignment with scalar and array values", "minimal_template": ".claude/assets/sc-rust/quality-mgr/templates/rust-best-practices-assignment.json.j2", "minimal_input": "hostile scalar, arrays, and carry_forward_findings_json", "passed": true, "outcome": "PASS: parsed object; no injected key"},
+        {"case_id": "o4-rust-qa", "description": "rust-qa assignment with booleans and paths", "minimal_template": ".claude/assets/sc-rust/quality-mgr/templates/rust-qa-assignment.json.j2", "minimal_input": "hostile scalar, booleans, arrays", "passed": true, "outcome": "PASS: parsed object; types preserved"},
+        {"case_id": "o4-service", "description": "service-hardening assignment with topics", "minimal_template": ".claude/assets/sc-rust/quality-mgr/templates/rust-service-hardening-assignment.json.j2", "minimal_input": "hostile scalar and nested lists", "passed": true, "outcome": "PASS: parsed object; no injection"},
+        {"case_id": "o4-arch", "description": "arch-qa conditional null and references", "minimal_template": ".claude/skills/codex-orchestration/arch-qa-assignment.json.j2", "minimal_input": "hostile scalar, null branch, reference paths", "passed": true, "outcome": "PASS: parsed object; null branch preserved"},
+        {"case_id": "o4-flaky", "description": "flaky-test-qa optional scope values", "minimal_template": ".claude/skills/codex-orchestration/flaky-test-qa-assignment.json.j2", "minimal_input": "empty values and null scope", "passed": true, "outcome": "PASS: parsed object; optional fields stable"},
+        {"case_id": "o4-req", "description": "req-qa document and branch arrays", "minimal_template": ".claude/skills/codex-orchestration/req-qa-assignment.json.j2", "minimal_input": "Unicode paths and null worktree", "passed": true, "outcome": "PASS: parsed object; array boundaries preserved"}
+      ],
+      "findings": []
+    },
+    {
+      "correlation_id": "mode-compatibility-regression",
+      "agent_id": "mode-compatibility-regression",
+      "target": "json-mode-contract",
+      "status": "success",
+      "classification": "pass",
+      "fuzz_run_description": "Auto/legacy mode contract, 1.4.0 regression, and fail-closed output probes",
+      "cases_run": 6,
+      "iterations": 6,
+      "passed": 6,
+      "failed": 0,
+      "result": "PASS",
+      "command": "cargo test -p sc-compose --test json_cli render_json_auto_mode_rejects_quoted_placeholder_before_stdout_emission -- --nocapture; cargo test -p sc-compose --test json_cli render_json_legacy_mode_supports_existing_quoted_placeholders -- --nocapture",
+      "finding_ids": [],
+      "error": null,
+      "context_text": "The original quoted {{ value }} shape is rejected in auto before body emission; explicit legacy renders one safely escaped string and warns once. Bare strings and structured values parse successfully.",
+      "test_inputs": [
+        {"case_id": "regression-auto-quoted", "description": "Original 1.4.0 shape {\"value\": \"{{ value }}\"}", "minimal_template": "tests/fixtures/sc-lint/template-contracts/findings/auto.json.j2", "minimal_input": "value=quote \\\" slash", "passed": true, "outcome": "PASS: ERR_JSON_MODE_CONTRACT before stdout/body emission"},
+        {"case_id": "compat-legacy-quoted", "description": "Explicit legacy quoted scalar", "minimal_template": "legacy.json.j2 with json_escape_mode: legacy", "minimal_input": "value=quote \\\" slash newline", "passed": true, "outcome": "PASS: valid JSON string and one WARN_JSON_LEGACY_ESCAPE_MODE"},
+        {"case_id": "auto-bare-string", "description": "Bare string complete JSON slot", "minimal_template": "{\"value\": {{ value }}}", "minimal_input": "value=Unicode snowman", "passed": true, "outcome": "PASS: serde_json parsed string"},
+        {"case_id": "auto-array-object", "description": "Bare array/object values", "minimal_template": "{\"items\": {{ items }}}", "minimal_input": "items=[{\"id\":1}]", "passed": true, "outcome": "PASS: serde_json preserved array/object"},
+        {"case_id": "checked-render", "description": "validate --check-render parser gate", "minimal_template": "O.4 auto template", "minimal_input": "hostile context", "passed": true, "outcome": "PASS: render_checked state and no emitted body"},
+        {"case_id": "malformed-output", "description": "Malformed rendered JSON", "minimal_template": "{\"value\": {{ value }}}", "minimal_input": "value=malformed raw fragment", "passed": true, "outcome": "PASS: ERR_RENDER_JSON_MALFORMED and no output file"}
+      ],
+      "findings": []
+    },
+    {
+      "correlation_id": "boundary-and-structure",
+      "agent_id": "boundary-and-structure",
+      "target": "nested-conditional-hostile-boundaries",
+      "status": "success",
+      "classification": "pass",
+      "fuzz_run_description": "Nested/conditional templates, hostile strings, lint diagnostics, and parser boundaries",
+      "cases_run": 12,
+      "iterations": 12,
+      "passed": 12,
+      "failed": 0,
+      "result": "PASS",
+      "command": "cargo test -p sc-compose --test json_cli validate_lint_json_reports_the_same_legacy_json_warning -- --nocapture; cargo test -p sc-compose --test json_cli render_json_parser_failure_preserves_diagnostic_envelope -- --nocapture",
+      "finding_ids": [],
+      "error": null,
+      "context_text": "Existing O.2/O.3 diagnostics and O.4 semantic fixtures covered nested arrays/objects, conditionals, optional nulls, hostile strings, lint warnings, malformed output, and no-body failure behavior.",
+      "test_inputs": [
+        {"case_id": "nested-array", "description": "Nested array/object context", "minimal_template": "O.4 structured array slot", "minimal_input": "nested array with object members", "passed": true, "outcome": "PASS: complete JSON parse"},
+        {"case_id": "conditional-null", "description": "Conditional optional field", "minimal_template": "arch-qa scope conditional", "minimal_input": "phase=null, sprint=null", "passed": true, "outcome": "PASS: null values preserved"},
+        {"case_id": "unicode", "description": "Unicode and control-safe text", "minimal_template": "all six O.4 templates", "minimal_input": "snowman, newline, U+0001", "passed": true, "outcome": "PASS: parser and injection checks"},
+        {"case_id": "lint-warning", "description": "Legacy static lint warning", "minimal_template": "legacy.json.j2", "minimal_input": "quoted scalar", "passed": true, "outcome": "PASS: stable warning code"},
+        {"case_id": "lint-error", "description": "Auto quoted contract violation", "minimal_template": "auto.json.j2", "minimal_input": "quoted scalar", "passed": true, "outcome": "PASS: stable error code"},
+        {"case_id": "no-body", "description": "Parser failure output confinement", "minimal_template": "malformed JSON template", "minimal_input": "invalid emitted fragment", "passed": true, "outcome": "PASS: no stdout/file body"}
+      ],
+      "findings": []
+    },
+    {
+      "correlation_id": "cross-repository-inventory",
+      "agent_id": "cross-repository-inventory",
+      "target": "pinned-consumer-corpus",
+      "status": "success",
+      "classification": "confirmed_bug",
+      "fuzz_run_description": "Pinned seven-root inventory and external legacy-template ownership scan",
+      "cases_run": 40,
+      "iterations": 40,
+      "passed": 40,
+      "failed": 0,
+      "result": "FAIL",
+      "command": "git -C ROOT rev-parse PINNED_COMMIT; rg --files --hidden -g '!.git' ROOT -g '*.json.j2' -g '*.json.jinja' -g '*.json.jinja2'",
+      "finding_ids": ["O5-ATM-001", "O5-CPO-001", "O5-RAPTOR-001", "O5-SCLINT-001", "O5-SYNAPTIC-001", "O5-ROSLYN-001"],
+      "error": null,
+      "context_text": "All seven roots were available and pinned. The sc-compose O.4 root is locally clean apart from intentional fixtures. Twenty-eight external production templates retain manually quoted placeholders without explicit mode; they are owned actionable release findings, not silently treated as clean.",
+      "test_inputs": [
+        {"case_id": "root-sc-compose", "description": "Pinned sc-compose O.4 root", "minimal_template": "release-corpus-roots.txt entry", "minimal_input": "commit 0b24aa7e72eaab911d66520a762449e8597a7eb5", "passed": true, "outcome": "PASS: 11 paths counted; expected fixtures classified"},
+        {"case_id": "root-atm-core", "description": "Pinned atm-core root", "minimal_template": "release-corpus-roots.txt entry", "minimal_input": "commit aebfc5b18a7a1c086726fb2ecd2ec47a074891b5", "passed": true, "outcome": "PASS: 7 paths counted; 6 owned findings"},
+        {"case_id": "root-cpo", "description": "Pinned cpo root", "minimal_template": "release-corpus-roots.txt entry", "minimal_input": "commit 478de8f00151cc911160fb3ea13253af8bde6d03", "passed": true, "outcome": "PASS: 7 paths counted; 7 owned findings"},
+        {"case_id": "root-raptor", "description": "Pinned raptor root", "minimal_template": "release-corpus-roots.txt entry", "minimal_input": "commit 39ccb49c91aeb090f1b67ad9b83906a55f7bb46b", "passed": true, "outcome": "PASS: 3 paths counted; 3 owned findings"},
+        {"case_id": "root-sc-lint", "description": "Pinned sc-lint root", "minimal_template": "release-corpus-roots.txt entry", "minimal_input": "commit 455f164d29f29af7e8604387c88205aefe16ce75", "passed": true, "outcome": "PASS: 6 paths counted; 6 owned findings"},
+        {"case_id": "root-synaptic", "description": "Pinned synaptic-canvas root", "minimal_template": "release-corpus-roots.txt entry", "minimal_input": "commit 862fa2bcf5718de58948cdfb2d78420e88c57d81", "passed": true, "outcome": "PASS: 3 paths counted; 3 owned findings"},
+        {"case_id": "root-roslyn-lint", "description": "Pinned roslyn-lint root", "minimal_template": "release-corpus-roots.txt entry", "minimal_input": "commit 27b4114b31b1bf8a3b435980a2e530f030141ade", "passed": true, "outcome": "PASS: 3 paths counted; 3 owned findings"}
+      ],
+      "findings": [
+        {"finding_id": "O5-ATM-001", "status": "confirmed_bug", "subsystem": "consumer-template-corpus", "minimal_template": "atm-core: six .claude assignment JSON templates listed in docs/phase-O/evidence/o5-release-corpus.md", "minimal_input": "hostile string value in a manually quoted placeholder", "observed_result": "No explicit mode; 1.4.1 auto contract will reject quoted placeholders or risk double quoting", "expected_oracle": "Migrate to explicit auto/bare values or explicitly pin legacy", "diagnostic": "ERR_JSON_MODE_CONTRACT after migration / missing mode before migration", "requirement_trace": "docs/requirements.md FR-1b-json; ADR-0019", "requirement_follow_up": "atm-core owner creates migration PR and reruns O5", "root_cause": "Consumer templates predate the 1.4.1 mode contract", "recommended_fix": "Migrate six paths in atm-core; add parser-backed tests", "reproduction_count": 1},
+        {"finding_id": "O5-CPO-001", "status": "confirmed_bug", "subsystem": "consumer-template-corpus", "minimal_template": "cpo: seven JSON assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md", "minimal_input": "hostile string value in a manually quoted placeholder", "observed_result": "No explicit mode and quoted placeholders across all seven paths", "expected_oracle": "Migrate to explicit auto/bare values or explicitly pin legacy", "diagnostic": "ERR_JSON_MODE_CONTRACT after migration / missing mode before migration", "requirement_trace": "docs/requirements.md FR-1b-json; ADR-0019", "requirement_follow_up": "cpo owner creates migration PR and reruns O5", "root_cause": "Consumer templates predate the 1.4.1 mode contract", "recommended_fix": "Migrate seven paths and add parser-backed tests", "reproduction_count": 1},
+        {"finding_id": "O5-RAPTOR-001", "status": "confirmed_bug", "subsystem": "consumer-template-corpus", "minimal_template": "raptor: three .claude/assets/sc-rust assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md", "minimal_input": "hostile string value in a manually quoted placeholder", "observed_result": "No explicit mode and quoted placeholders across all three paths", "expected_oracle": "Migrate to explicit auto/bare values or explicitly pin legacy", "diagnostic": "ERR_JSON_MODE_CONTRACT after migration / missing mode before migration", "requirement_trace": "docs/requirements.md FR-1b-json; ADR-0019", "requirement_follow_up": "raptor owner creates migration PR and reruns O5", "root_cause": "Consumer templates predate the 1.4.1 mode contract", "recommended_fix": "Migrate three paths and add parser-backed tests", "reproduction_count": 1},
+        {"finding_id": "O5-SCLINT-001", "status": "confirmed_bug", "subsystem": "consumer-template-corpus", "minimal_template": "sc-lint: six assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md", "minimal_input": "hostile string value in a manually quoted placeholder", "observed_result": "No explicit mode and quoted placeholders across all six paths", "expected_oracle": "Migrate to explicit auto/bare values or explicitly pin legacy", "diagnostic": "ERR_JSON_MODE_CONTRACT after migration / missing mode before migration", "requirement_trace": "docs/requirements.md FR-1b-json; ADR-0019", "requirement_follow_up": "sc-lint owner creates migration PR or coordinates canonical package update", "root_cause": "Shared templates predate the 1.4.1 mode contract", "recommended_fix": "Migrate six paths and add parser-backed tests", "reproduction_count": 1},
+        {"finding_id": "O5-SYNAPTIC-001", "status": "confirmed_bug", "subsystem": "consumer-template-corpus", "minimal_template": "synaptic-canvas: three packages/sc-rust assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md", "minimal_input": "hostile string value in a manually quoted placeholder", "observed_result": "No explicit mode and quoted placeholders across all three paths", "expected_oracle": "Migrate to explicit auto/bare values or explicitly pin legacy", "diagnostic": "ERR_JSON_MODE_CONTRACT after migration / missing mode before migration", "requirement_trace": "docs/requirements.md FR-1b-json; ADR-0019", "requirement_follow_up": "synaptic-canvas owner creates migration PR or consumes canonical package", "root_cause": "Consumer templates predate the 1.4.1 mode contract", "recommended_fix": "Migrate three paths and add parser-backed tests", "reproduction_count": 1},
+        {"finding_id": "O5-ROSLYN-001", "status": "confirmed_bug", "subsystem": "consumer-template-corpus", "minimal_template": "roslyn-lint: three .claude/skills/codex-orchestration assignment paths listed in docs/phase-O/evidence/o5-release-corpus.md", "minimal_input": "hostile string value in a manually quoted placeholder", "observed_result": "No explicit mode and quoted placeholders across all three paths", "expected_oracle": "Migrate to explicit auto/bare values or explicitly pin legacy", "diagnostic": "ERR_JSON_MODE_CONTRACT after migration / missing mode before migration", "requirement_trace": "docs/requirements.md FR-1b-json; ADR-0019", "requirement_follow_up": "roslyn-lint owner creates migration PR and reruns O5", "root_cause": "Consumer templates predate the 1.4.1 mode contract", "recommended_fix": "Migrate three paths and add parser-backed tests", "reproduction_count": 3}
+      ]
+    }
+  ],
+  "promoted_tests": [],
+  "unresolved_candidates": [
+    {"finding_id": "O5-ATM-001", "next_owner": "team-lead@atm-core"},
+    {"finding_id": "O5-CPO-001", "next_owner": "team-lead@cpo"},
+    {"finding_id": "O5-RAPTOR-001", "next_owner": "team-lead@raptor"},
+    {"finding_id": "O5-SCLINT-001", "next_owner": "team-lead@sc-lint"},
+    {"finding_id": "O5-SYNAPTIC-001", "next_owner": "team-lead@synaptic-canvas"},
+    {"finding_id": "O5-ROSLYN-001", "next_owner": "team-lead@roslyn-lint"}
+  ],
+  "summary": {
+    "all_successful": true,
+    "confirmed_bugs": 6,
+    "intentional_boundaries": 3,
+    "inconclusive": 0,
+    "failed_workers": 0,
+    "templates_scanned": 40,
+    "release_recommendation": "CONDITIONAL",
+    "blocking_reason": "28 external production templates require owner migration or explicit legacy pin before unconditional 1.4.1 release; full just lint is blocked because the standalone workspace lacks the sc-lint-boundary package"
+  },
+  "gate_results": {
+    "just_test": "PASS",
+    "cargo_test_workspace": "PASS",
+    "cargo_fmt_check": "PASS",
+    "cargo_clippy": "PASS",
+    "just_lint_fast": "PASS",
+    "just_lint_sc_boundary_direct": "PASS",
+    "just_lint_template_contracts": "EXPECTED_FAIL_NEGATIVE_FIXTURES",
+    "just_lint_full": {
+      "status": "BLOCKED",
+      "finding_id": "O5-SC-LINT-BOOTSTRAP-001",
+      "owner": "team-lead/sc-lint",
+      "message": "The full wrapper invokes .just/lint_sc_boundary.py, which requests package sc-lint-boundary from the standalone sc-compose workspace; that package is not present.",
+      "suppression_added": false
+    },
+    "report_validation": "PASS",
+    "git_diff_check": "PASS"
+  }
+}

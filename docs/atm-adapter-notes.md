@@ -31,3 +31,42 @@ integration code.
   repo.
 - The standalone release checklist lives in `docs/release-checklist.md`; ATM
   cutover follows that published release.
+
+## Checked-Emission Caller Contract
+
+An ATM adapter that uses the `sc-compose` CLI and will send or cache a rendered
+template must supply the exact context it intends to use and run
+`validate --check-render --json`. It must inspect the structured `payload.state`,
+not infer success from human-readable output:
+
+- `render_checked` permits sending or caching the exact checked result.
+- `static_only`, `context_required`, `contract_invalid`, and `render_invalid`
+  deny sending or caching.
+
+An ATM adapter that calls the `sc-composer` library directly has the same
+**Checked-Emission Caller Contract**, but the library cannot enforce it through
+the type of `ComposeResult`: `compose()` returns a public raw
+`ComposeResult::rendered_text` string. The adapter must therefore:
+
+1. compose with the exact context intended for emission;
+2. call `check_rendered_output` on the complete final `rendered_text`, using
+   the persisted `OutputFormat` and the resolved template path. If the adapter
+   also persists JSON mode or other render metadata, pass it through
+   `check_rendered_output_with_meta` rather than replacing metadata after the
+   check;
+3. emit or cache only the resulting `CheckedOutput` via `CheckedOutput::emit`,
+   and deny emission on `OutputCheckError`.
+
+This caller contract is required even when the adapter is not using the CLI.
+`ComposeResult::rendered_text` must never be treated as implicitly checked.
+The library has no bundled `compose_checked()` convenience API yet; the
+future **Checked Library Composition API** sprint owns evaluation of a
+non-invasive helper that would bundle final text and its check report.
+
+Plain `validate` is intentionally static-only and emits no rendered body.
+Validation and checked-render responses contain diagnostics and a redacted
+context summary; adapters must not require the complete prompt body merely to
+decide whether a render is safe. A JSON parser failure uses the stable
+`ERR_RENDER_JSON_MALFORMED` diagnostic and includes source location without
+echoing variable values. Multi-pass failures identify the final render pass
+that produced the rejected body.

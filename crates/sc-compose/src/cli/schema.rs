@@ -150,6 +150,29 @@ pub(crate) struct CommonArgs {
     pub(crate) root: PathBuf,
     #[arg(long, help = "Template path in file mode")]
     pub(crate) file: Option<PathBuf>,
+    #[arg(
+        long,
+        value_enum,
+        help = "Select JSON interpolation mode; default is auto unless frontmatter declares one"
+    )]
+    pub(crate) json_escape_mode: Option<JsonEscapeModeArg>,
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+pub(crate) enum JsonEscapeModeArg {
+    /// Render complete JSON values, including string quotes.
+    Auto,
+    /// Preserve manually quoted JSON string placeholders safely.
+    Legacy,
+}
+
+impl From<JsonEscapeModeArg> for sc_composer::JsonEscapeMode {
+    fn from(value: JsonEscapeModeArg) -> Self {
+        match value {
+            JsonEscapeModeArg::Auto => Self::Auto,
+            JsonEscapeModeArg::Legacy => Self::Legacy,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Args, Default)]
@@ -174,6 +197,11 @@ pub(crate) struct RenderBehaviorArgs {
     pub(crate) json: bool,
     #[arg(long, help = "Report the derived output target without writing files")]
     pub(crate) dry_run: bool,
+    #[arg(
+        long,
+        help = "Check rendered output before emitting stdout or writing a file"
+    )]
+    pub(crate) check_render: bool,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -185,6 +213,10 @@ pub(crate) struct ResolveArgs {
 }
 
 #[derive(Debug, Clone, Args)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "CLI flags are independent user-facing switches"
+)]
 pub(crate) struct ValidateArgs {
     #[command(flatten)]
     pub(crate) common: CommonArgs,
@@ -195,6 +227,11 @@ pub(crate) struct ValidateArgs {
         help = "Report redundant filter chains and other lint findings with source locations"
     )]
     pub(crate) lint: bool,
+    #[arg(
+        long,
+        help = "Render in memory and check the exact output without emitting a body or file"
+    )]
+    pub(crate) check_render: bool,
     #[arg(long)]
     pub(crate) json: bool,
 }

@@ -6,6 +6,11 @@ codebase intelligence tool. The analysis uses a repo-specific config
 (`.sc/repowise.yaml`) to avoid false positives in prototype code, FFI
 bindings, and utility scripts.
 
+The committed health, badge, and module reports are generated snapshots, not
+live measurements of the current checkout. `health.md` records the analyzed
+commit and date; regenerate the pipeline below after significant source
+changes before treating the metrics as current.
+
 ## Analysis Pipeline
 
 The full pipeline runs in three phases:

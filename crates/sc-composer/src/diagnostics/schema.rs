@@ -66,6 +66,15 @@ pub enum DiagnosticCode {
     WarnConfigSinglePassAllFallback,
     /// A template uses a redundant frontmatter/YAML safety filter chain.
     WarnLintRedundantFilterChain,
+    /// A JSON template uses the manually quoted legacy interpolation shape.
+    WarnJsonLegacyEscapeMode,
+    /// A quoted JSON placeholder expression is too complex to classify safely.
+    WarnJsonQuotedPlaceholder,
+    /// A JSON placeholder shape is incompatible with the effective mode.
+    ErrJsonModeContract,
+    /// An included template explicitly declares a JSON mode that conflicts
+    /// with the root template's effective mode.
+    ErrJsonModeIncludeConflict,
     /// A template body was empty when content was required.
     ErrValEmpty,
     /// The root template omitted a frontmatter block.
@@ -94,6 +103,12 @@ pub enum DiagnosticCode {
     ErrConfigReadonly,
     /// A command or helper was invoked in an incompatible mode.
     ErrConfigMode,
+    /// JSON escape mode was declared for a non-JSON template.
+    ErrJsonEscapeModeNonJson,
+    /// Legacy JSON interpolation received a non-string value in a quoted slot.
+    ErrJsonLegacyNonString,
+    /// Rendered JSON failed the complete-body parser gate.
+    ErrRenderJsonMalformed,
     /// A configuration or text file could not be read as valid text.
     ErrConfigRead,
     /// Configuration or YAML parsing failed.
@@ -205,6 +220,10 @@ impl DiagnosticCode {
             Self::WarnValConflictingDefaultSections => "WARN_VAL_CONFLICTING_DEFAULT_SECTIONS",
             Self::WarnConfigSinglePassAllFallback => "WARN_CONFIG_SINGLE_PASS_ALL_FALLBACK",
             Self::WarnLintRedundantFilterChain => "WARN_LINT_REDUNDANT_FILTER_CHAIN",
+            Self::WarnJsonLegacyEscapeMode => "WARN_JSON_LEGACY_ESCAPE_MODE",
+            Self::WarnJsonQuotedPlaceholder => "WARN_JSON_QUOTED_PLACEHOLDER",
+            Self::ErrJsonModeContract => "ERR_JSON_MODE_CONTRACT",
+            Self::ErrJsonModeIncludeConflict => "ERR_JSON_MODE_INCLUDE_CONFLICT",
             Self::ErrValEmpty => "ERR_VAL_EMPTY",
             Self::ErrValMissingFrontmatter => "ERR_VAL_MISSING_FRONTMATTER",
             Self::ErrValMissingRequired => "ERR_VAL_MISSING_REQUIRED",
@@ -219,6 +238,9 @@ impl DiagnosticCode {
             Self::ErrRenderWrite => "ERR_RENDER_WRITE",
             Self::ErrConfigReadonly => "ERR_CONFIG_READONLY",
             Self::ErrConfigMode => "ERR_CONFIG_MODE",
+            Self::ErrJsonEscapeModeNonJson => "ERR_JSON_ESCAPE_MODE_NON_JSON",
+            Self::ErrJsonLegacyNonString => "ERR_JSON_LEGACY_NON_STRING",
+            Self::ErrRenderJsonMalformed => "ERR_RENDER_JSON_MALFORMED",
             Self::ErrConfigRead => "ERR_CONFIG_READ",
             Self::ErrConfigParse => "ERR_CONFIG_PARSE",
             Self::ErrConfigVarfile => "ERR_CONFIG_VARFILE",
@@ -326,6 +348,10 @@ mod tests {
                 WarnLintRedundantFilterChain,
                 "WARN_LINT_REDUNDANT_FILTER_CHAIN",
             ),
+            (WarnJsonLegacyEscapeMode, "WARN_JSON_LEGACY_ESCAPE_MODE"),
+            (WarnJsonQuotedPlaceholder, "WARN_JSON_QUOTED_PLACEHOLDER"),
+            (ErrJsonModeContract, "ERR_JSON_MODE_CONTRACT"),
+            (ErrJsonModeIncludeConflict, "ERR_JSON_MODE_INCLUDE_CONFLICT"),
             (ErrValEmpty, "ERR_VAL_EMPTY"),
             (ErrValMissingFrontmatter, "ERR_VAL_MISSING_FRONTMATTER"),
             (ErrValMissingRequired, "ERR_VAL_MISSING_REQUIRED"),
@@ -340,6 +366,9 @@ mod tests {
             (ErrRenderWrite, "ERR_RENDER_WRITE"),
             (ErrConfigReadonly, "ERR_CONFIG_READONLY"),
             (ErrConfigMode, "ERR_CONFIG_MODE"),
+            (ErrJsonEscapeModeNonJson, "ERR_JSON_ESCAPE_MODE_NON_JSON"),
+            (ErrJsonLegacyNonString, "ERR_JSON_LEGACY_NON_STRING"),
+            (ErrRenderJsonMalformed, "ERR_RENDER_JSON_MALFORMED"),
             (ErrConfigRead, "ERR_CONFIG_READ"),
             (ErrConfigParse, "ERR_CONFIG_PARSE"),
             (ErrConfigVarfile, "ERR_CONFIG_VARFILE"),
@@ -443,7 +472,7 @@ mod tests {
             (ErrExtractTomlAmbiguous, "ERR_EXTRACT_TOML_AMBIGUOUS"),
         ];
 
-        assert_eq!(codes.len(), 74);
+        assert_eq!(codes.len(), 81);
         for (code, spelling) in codes {
             assert_eq!(code.as_str(), spelling);
             assert_eq!(

@@ -22,11 +22,12 @@ pub fn parse_template_document(input: &str) -> Result<ParsedTemplate, ComposeErr
 
     let mut passes = Vec::with_capacity(frontmatter_texts.len());
     for frontmatter_text in frontmatter_texts {
-        let raw = serde_yaml::from_str::<RawFrontmatter>(frontmatter_text).map_err(|_error| {
+        let raw = serde_yaml::from_str::<RawFrontmatter>(frontmatter_text).map_err(|error| {
             ConfigError::new(
                 DiagnosticCode::ErrConfigParse,
                 "failed to parse YAML frontmatter",
             )
+            .with_source(error)
             .with_recovery_hint(RecoveryHint::new(
                 RecoveryHintKind::ReviewConfiguration {
                     key: "frontmatter".to_owned(),
@@ -126,6 +127,7 @@ fn is_recognized_frontmatter(content: &str) -> bool {
                 | "defaults"
                 | "input_defaults"
                 | "metadata"
+                | "json_escape_mode"
         )
     })
 }
@@ -159,6 +161,8 @@ fn next_line_end(input: &str, cursor: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use std::error::Error as _;
+
     use super::{opening_delimiter_len, parse_template_document};
 
     #[test]
@@ -193,5 +197,13 @@ mod tests {
         let error = parse_template_document("---\nmetadata: {}\n--- \nbody").unwrap_err();
 
         assert!(error.to_string().contains("no closing delimiter was found"));
+    }
+
+    #[test]
+    fn malformed_frontmatter_preserves_yaml_error_source() {
+        let error = parse_template_document("---\ndefaults: [\n---\nbody").unwrap_err();
+
+        let source = error.source().expect("serde_yaml source error");
+        assert!(source.downcast_ref::<serde_yaml::Error>().is_some());
     }
 }

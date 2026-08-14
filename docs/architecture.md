@@ -1,17 +1,17 @@
 # SC-Compose Architecture
 
 > Status: Active Release Baseline
-> Product: `sc-composer` (library), `sc-compose` (CLI), and `bindings/python` (Python adapter)
+> Product: `sc-composer` (library), `sc-compose` (CLI), `sc-sha` (hash library), and the `bindings/python` and `bindings/sc-sha-python` adapters
 > Document role: Normative release architecture for all in-repo packages
 
 This document supersedes the prior high-level placeholder. It is the normative
-release architecture baseline for `sc-compose` v1.0.
+release architecture baseline for `sc-compose` v1.4.1.
 
 ## 1. Architectural Intent
 
 This document defines the required architecture of `sc-composer`,
-`sc-compose`, and `bindings/python` for release work. It is not a description
-of the current
+`sc-compose`, `sc-sha`, and the two Python adapters for release work. It is not
+a description of the current
 implementation.
 
 The goals are:
@@ -118,13 +118,22 @@ It must remain an adapter layer only. It does not own:
 - ATM-specific integration,
 - any semantic reimplementation of composition or validation behavior.
 
-### 3.4 Dependency Direction
+### 3.4 `sc-sha`
+
+`sc-sha` is the standalone pure-computation crate for content and composition
+identity. It owns the two published hash operations and their input
+validation/encoding contracts; it has no filesystem, template, CLI, or ATM
+behavior.
+
+### 3.5 Dependency Direction
 
 Required dependency direction:
 
 - `sc-compose` -> `sc-composer`
 - `sc-compose` -> `sc-observability`
+- `sc-composer` -> `sc-sha`
 - `bindings/python` -> `sc-composer`
+- `bindings/sc-sha-python` -> `sc-sha`
 - `sc-observability` -> `sc-observability-types`
 
 Required observability split:
@@ -144,7 +153,7 @@ Forbidden dependency direction:
 - `sc-composer` -> mailbox helpers, daemon helpers, team-state helpers, or
   runtime-specific home-resolution helpers
 
-### 3.4 ATM Integration Model
+### 3.6 ATM Integration Model
 
 ATM integration is an adapter concern outside this repository.
 
@@ -196,9 +205,19 @@ ATM integration is an adapter concern outside this repository.
   - keeps `render_template()` as a one-shot convenience wrapper,
   - renders template content under normal or strict undeclared-token policy.
 - `template_ext`
-  - exposes `strip_template_suffix`, the single shared
-    `.j2`/`.jinja2`/`.jinja` suffix-stripping helper used by the renderer's
-    auto-escape callback and by `sc-compose`'s template-init JSON detection.
+  - exposes shared, case-insensitive template-path classification that removes
+    stacked `.j2`/`.jinja2`/`.jinja` suffixes before determining the content
+    extension; it keeps renderer auto-escape, checked-render validation, and
+    CLI JSON detection in agreement.
+- `template_scanner`
+  - exposes the shared lexical Jinja variable-expression scanner used by
+    library JSON diagnostics and the `sc-compose` template-lint command.
+- `directive_inspection`
+  - validates raw UTF-8 template bytes with MiniJinja,
+  - exposes `inspect_template_directives` and the purpose-built
+    `TemplateDirective`/`SourceSpan`/`TemplateDirectiveKind` types,
+  - classifies include, import, and from-import statements without exposing
+    parser or AST types and without resolving their targets.
 - `validate`
   - produces validation reports and diagnostics without writing output.
 - `verify`
@@ -1257,6 +1276,25 @@ Schema notes:
 - `active_log_path` is derived from the configured log root and service name
   using the `LOG-008` layout `<log_root>/logs/<service>.log.jsonl`.
 - The concrete path is platform-dependent; on Windows it may be drive-qualified.
+
+### 13.2 JSON Template Contract Lint
+
+`validate --lint` and the repository-level `template-contracts` target share
+the source scanner in `crates/sc-composer/src/template_scanner.rs`.
+The scanner expands includes through `sc-composer`, classifies JSON templates
+using the shared suffix helper, and reports source paths, include chains,
+line/column locations, effective mode, and canonical diagnostics. The
+repository target is an allowlisted local `sc-compose` target registered in
+`.sc/sc-lint/targets/template-contracts.toml`; it does not invoke a second
+Python or shell parser. Its normal sc-lint report materializes both the JSON
+raw artifact and the HTML index, and records whether a context-backed render
+was available. Static source findings never claim that an unrendered dynamic
+branch has been proven safe.
+
+`just lint` keeps the existing external sc-lint profile and runs
+`template-contracts` as the final full-profile step. A missing repository
+root, unreadable template, or include failure is reported as a configuration
+failure rather than a green pass.
 
 ## 14. Output Path Policy (FR-7)
 

@@ -4,6 +4,74 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Made `RenderCheckMeta` and `CheckedOutput` metadata private after validation,
+  with read-only accessors so callers cannot mutate the recorded render
+  contract or provenance after a body has been checked. This closes a public
+  API mutation path and is a breaking-surface change for callers that
+  constructed or modified these fields directly.
+
+## [1.4.1] - 2026-08-13
+
+### Added
+
+- Added the public `sc-composer::inspect_template_directives` API, which
+  validates UTF-8 template bytes and returns classified include, import, and
+  from-import statement spans without exposing MiniJinja parser internals or
+  resolving filesystem targets.
+- Added fail-closed include-chain validation for JSON escape modes across
+  `validate`, `validate --lint`, and `render`. An included template that
+  explicitly declares a mode different from the root's effective mode now
+  receives the stable `ERR_JSON_MODE_INCLUDE_CONFLICT` diagnostic with the
+  participating template paths and modes; matching or undeclared includes
+  continue to inherit the root mode.
+- Added one shared Jinja variable-expression scanner in `sc-composer` for
+  template lint and validation. It returns named
+  `JinjaVariableExpressionSpan` offsets, keeping comment, raw-block, and
+  expression boundary handling consistent across both callers.
+- Added Python diagnostic-code bindings for
+  `ERR_JSON_MODE_INCLUDE_CONFLICT` and `WARN_LINT_REDUNDANT_FILTER_CHAIN` so
+  the native and Python surfaces expose the same stable codes.
+
+### Changed
+
+- Clarified ADR-0019's scope: checked output is enforced at the `sc-compose`
+  CLI emitter, while direct `sc-composer` library consumers must follow the
+  named Checked-Emission Caller Contract and run `check_rendered_output` on
+  `ComposeResult::rendered_text` before emission or caching. A bundled
+  `compose_checked()` helper is deferred to a future Checked Library
+  Composition API sprint.
+- Migrated the six in-repository JSON assignment templates to explicit
+  `json_escape_mode: auto`, with semantic hostile-value fixtures and a
+  documented legacy compatibility fixture. See
+  `docs/migration/json-escape-mode.md` for the source-shape matrix. This is
+  repository-local migration evidence; cross-repository release readiness
+  remains a Phase O.5 responsibility.
+- Added the Phase O.5 pinned release-corpus inventory and parser-backed fuzz
+  gate. The campaign records actual consumer-root counts, rejects malformed
+  JSON before emission, preserves the auto/legacy compatibility probe, and
+  reports external migration owners without editing their repositories. The
+  1.4.1 release ships under the documented waiver in
+  `docs/phase-O/evidence/o5-release-corpus.md`, with legacy-mode fallback and
+  diagnostics (`WARN_JSON_LEGACY_ESCAPE_MODE`,
+  `ERR_JSON_MODE_INCLUDE_CONFLICT`) covering downstream consumers until they
+  migrate. The 28 external templates across six downstream roots (atm-core,
+  cpo, raptor, sc-lint, synaptic-canvas, and roslyn-lint) remain migration
+  work for their owners.
+- Closed the Phase O CI lint-gate gap: the CI-authoritative lint profile now
+  enforces the production `template-contracts` target through
+  `just lint-ci-consumer` with an explicit structured pass assertion, excludes
+  intentional negative and non-production test fixtures, and keeps validation
+  and repository lint aligned when scanning Jinja comments and raw blocks.
+
+### Fixed
+
+- Preserved the underlying `serde_yaml` parse error as the source cause for
+  malformed YAML frontmatter, so callers can inspect the original parser
+  failure through the `ConfigError` chain instead of receiving only the
+  normalized configuration diagnostic.
+
 ## [1.4.0] - 2026-08-12
 
 ### Added

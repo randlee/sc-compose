@@ -5,7 +5,7 @@
 > Document role: Normative release requirements for both crates
 
 This document supersedes the prior high-level placeholder. It is the normative
-release requirements baseline for `sc-compose` v1.0.
+release requirements baseline for `sc-compose` v1.4.1.
 
 ## 1. Intent
 
@@ -103,6 +103,7 @@ input_defaults:
   variable_name: fallback
 metadata:
   key: value
+json_escape_mode: auto
 ```
 
 Schema rules:
@@ -116,9 +117,12 @@ Schema rules:
   `variables` map with `{ required: true }` declarations is accepted as an
   equivalent spelling of `required_variables`.
 - `metadata` is optional.
+- `json_escape_mode` is optional for JSON templates and accepts only `auto` or
+  `legacy`. `auto` is the default; `legacy` is an explicit compatibility mode
+  for manually quoted string placeholders and emits a migration warning.
 - The recognized top-level frontmatter keys are `pass`,
-  `required_variables`, `variables`, `defaults`, `input_defaults`, and
-  `metadata`. When scanning stacked frontmatter, a later block containing an
+  `required_variables`, `variables`, `defaults`, `input_defaults`,
+  `metadata`, and `json_escape_mode`. When scanning stacked frontmatter, a later block containing an
   unrecognized top-level key is treated as template body content.
 - If a frontmatter block exists and a field is omitted, it defaults to:
   - `required_variables: []`
@@ -137,8 +141,62 @@ Schema rules:
 
 ### FR-1b: Value Types
 
+### FR-1b-json: JSON interpolation contract
+
+- JSON templates use complete-value `auto` interpolation by default. Bare
+  placeholders own their JSON quoting and preserve scalar, object, array, and
+  null types.
+- An explicit `legacy` mode safely escapes string contents without adding
+  surrounding quotes already present in manually quoted source.
+- CLI mode selection takes precedence over root frontmatter, followed by the
+  default `auto` mode.
+- `validate` and `validate --lint` emit the migration-directed warning for
+  legacy mode or quoted placeholders detected in JSON context:
+  `Template uses legacy JSON escape mode. Migrate to bare placeholders (auto
+  mode) to avoid double-quoting issues. See docs/migration/json-escape-mode.md`
+- A JSON render must not emit output until the complete body parses
+  successfully.
+- The parser gate applies to ordinary `render` as well as `render --check-render`
+  and runs before stdout, file, dry-run preview, or JSON-envelope emission.
+- `validate` remains static-only and must report that state explicitly. The
+  `validate --check-render` variant renders in memory with the supplied exact
+  context, reports the checked-render state, and emits no body or file.
+- A malformed rendered JSON body must fail closed with the stable
+  `ERR_RENDER_JSON_MALFORMED` diagnostic. The diagnostic includes template,
+  line, column, and byte offset, but never echoes rendered values.
+- Source lint uses the canonical `ERR_JSON_MODE_CONTRACT` diagnostic for an
+  auto-mode quoted scalar placeholder. Ambiguous quoted expressions use
+  `WARN_JSON_QUOTED_PLACEHOLDER` as a conservative finding instead of being
+  silently treated as safe. The existing
+  `WARN_JSON_LEGACY_ESCAPE_MODE` migration warning remains emitted by static
+  validation for legacy mode or detected quoted placeholders.
+
 The render-context value model accepts any finite JSON/YAML-compatible tree
 that the existing `serde_json::Value` and Minijinja context can represent.
+
+The six Phase O.4 repository assignment templates are explicit `auto`-mode
+consumers of this contract. Their scalar interpolation slots and scalar loop
+elements are bare; `carry_forward_findings_json` is the only reviewed raw-JSON
+fragment and must contain a validated JSON array. The O.4 semantic fixture
+corpus is the acceptance evidence for quotes, backslashes, Unicode, newlines,
+empty and optional values, arrays, objects, null branches, and injection-safe
+control characters. The migration matrix and legacy exception are maintained
+in `docs/migration/json-escape-mode.md`.
+
+The Phase O.5 release gate extends this contract across consumer repositories:
+
+- every release-candidate campaign reads a source-of-truth inventory of
+  repository roots and pinned commits, verifies each commit before scanning,
+  and reports the actual JSON-template count and every path;
+- an unavailable or unpinned root blocks an unconditional release claim;
+- a successful JSON render is a valid campaign PASS only after the complete
+  emitted body is parsed as one JSON document; parser failure, partial output,
+  timeout, or success-status/body mismatch is fail-closed evidence;
+- the original 1.4.0 quoted-placeholder shape remains a permanent negative
+  fixture: auto mode rejects it before emission, while explicit legacy mode
+  produces one safely escaped string and one deprecation diagnostic;
+- external findings are owned by the external repository and require a
+  separately merged migration/fix before the release gate can become green.
 
 - Variables used by template rendering must be one of:
   - string
@@ -658,6 +716,13 @@ Authors may opt out for a specific block with the standard Jinja `+` modifier.
   - severity.
 - JSON diagnostics must use a stable, versioned schema suitable for machine
   consumers.
+- Checked rendering must expose a state-shaped result with the states
+  `static_only`, `contract_invalid`, `context_required`, `render_invalid`, and
+  `render_checked`. Only `render_checked` authorizes a caller to send or cache
+  the exact checked output.
+- `render --json` must place checked-render parser failures in the standard
+  `DiagnosticEnvelope`; it must not print a malformed body as a successful
+  payload.
 
 ### FR-8a: Command JSON and Dry-Run Schemas
 
@@ -699,6 +764,24 @@ Schema rules:
 - `body` is present only for non-dry-run stdout renders and contains the full
   rendered document. It is omitted when `--output <file>` is supplied because
   the file is the source of truth.
+- For JSON templates, ordinary render performs the complete-body parser gate
+  before producing this payload. On parser failure the payload is `{}` and
+  `diagnostics` contains `ERR_RENDER_JSON_MALFORMED`; no body or file is
+  emitted. A successful checked JSON render includes:
+
+  ```json
+  "render_check": {
+    "state": "render_checked",
+    "template": "path/to/assignment.json.j2",
+    "output_format": "json",
+    "json_escape_mode": "auto",
+    "checked_context": "caller-defined exact context summary",
+    "diagnostics": []
+  }
+  ```
+
+- `render --check-render` adds the same `render_check` object for text output
+  while preserving the existing body/output behavior after a successful gate.
 
 `render --dry-run --json`
 
@@ -781,6 +864,31 @@ Schema rules:
   ]
 }
 ```
+
+Schema rules:
+
+- Plain `validate` is static-only and includes
+  `"state": "static_only"` alongside `valid`; it does not render.
+- `validate --check-render` renders in memory and returns one of the
+  checked-render states. It never includes a rendered body or output-file
+  field. Only `render_checked` has permission to send or cache the exact
+  context-specific result.
+- `validate --lint --check-render` combines lint and render diagnostics in the
+  same envelope.
+- `validate --lint` reports source locations and stable mode-lint codes. An
+  auto-mode contract error returns exit code `2`; warning-only legacy or
+  ambiguous-expression findings preserve exit code `0`.
+
+### FR-8b: Repository template-contract lint
+
+- `sc-compose lint --target template-contracts --json` uses the same
+  library-owned source scanner as `validate --lint` and reports the effective
+  mode, template path, source location, diagnostic code, migration
+  recommendation, and `context_backed_render` state for every finding.
+- The target is allowlisted through `.sc/sc-lint/targets/template-contracts.toml`
+  and remains a local sc-compose capability; it must not duplicate scanner
+  logic in Python or shell. Missing roots, unreadable templates, and include
+  failures are explicit configuration failures, never green passes.
 
 `init --json`
 
