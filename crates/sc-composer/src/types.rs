@@ -484,6 +484,10 @@ pub struct ResolveResult {
 pub struct ComposeResult {
     /// Final rendered text output.
     pub rendered_text: String,
+    /// Pass whose intermediate output first failed the checked-render format,
+    /// when composition used a multi-pass template with a checkable format.
+    #[serde(skip)]
+    pub failing_pass: Option<u8>,
     /// Files resolved during composition.
     pub resolved_files: Vec<PathBuf>,
     /// Detailed resolve trace.

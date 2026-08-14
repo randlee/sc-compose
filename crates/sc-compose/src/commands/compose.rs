@@ -192,7 +192,7 @@ fn run_checked_validate(
             let checked =
                 sc_composer::check_rendered_output_with_meta(meta.clone(), &result.rendered_text)
                     .map_err(|error| {
-                        let annotated = error.clone().with_failing_pass(failing_pass(request));
+                        let annotated = error.clone().with_failing_pass(result.failing_pass);
                         diagnostics.extend(annotated.diagnostics.clone());
                         annotated
                     });
@@ -251,12 +251,6 @@ fn run_checked_validate(
     } else {
         crate::exit_codes::VALIDATION_OR_RENDER_FAIL
     })
-}
-
-fn failing_pass(request: &sc_composer::ComposeRequest) -> Option<u8> {
-    (request.policy.passes.len() > 1)
-        .then(|| request.policy.passes.last().map(|pass| pass.pass_number))
-        .flatten()
 }
 
 pub(crate) fn render_check_meta(
