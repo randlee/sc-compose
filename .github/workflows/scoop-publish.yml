@@ -1,0 +1,111 @@
+name: Publish Scoop
+
+# Scoop is an external-channel recovery workflow. It renders a manifest from
+# immutable GitHub Release assets and never creates or modifies a release tag.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Published GitHub Release tag to publish (e.g. v1.4.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-scoop-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  verify-release:
+    runs-on: ubuntu-latest
+    outputs:
+      release_version: ${{ steps.meta.outputs.release_version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/verify-published-release
+        with:
+          release_tag: ${{ inputs.tag }}
+          asset_patterns: '^sc-compose_.*_x86_64-pc-windows-msvc\.zip$'
+      - id: meta
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: echo "release_version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+
+  update-bucket:
+    needs: verify-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require Scoop bucket credential
+        shell: bash
+        env:
+          SCOOP_BUCKET_TOKEN: ${{ secrets.SCOOP_BUCKET_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SCOOP_BUCKET_TOKEN}" ]]; then
+            echo 'SCOOP_BUCKET_TOKEN is required to update randlee/scoop-bucket' >&2
+            exit 1
+          fi
+      - name: Checkout immutable release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          path: sc-compose
+      - name: Checkout Scoop bucket
+        uses: actions/checkout@v4
+        with:
+          repository: randlee/scoop-bucket
+          token: ${{ secrets.SCOOP_BUCKET_TOKEN }}
+          path: scoop-bucket
+      - name: Compute Windows ZIP SHA256
+        id: sha
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_VERSION: ${{ needs.verify-release.outputs.release_version }}
+        run: |
+          set -euo pipefail
+          zip_path="${RUNNER_TEMP:?RUNNER_TEMP is required}/sc-compose-windows.zip"
+          zip_url="https://github.com/randlee/sc-compose/releases/download/${RELEASE_TAG}/sc-compose_${RELEASE_VERSION}_x86_64-pc-windows-msvc.zip"
+          curl -fsSL --retry 5 --retry-delay 30 --retry-all-errors -o "${zip_path}" "${zip_url}"
+          echo "windows_url=${zip_url}" >> "$GITHUB_OUTPUT"
+          echo "windows_sha256=$(sha256sum "${zip_path}" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+      - name: Render and validate Scoop manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+
+          template = Path("sc-compose/release/scoop/sc-compose.json.j2").read_text()
+          rendered = (
+              template
+              .replace("{{ version }}", os.environ["VERSION"])
+              .replace("{{ windows_url }}", os.environ["WINDOWS_URL"])
+              .replace("{{ windows_sha256 }}", os.environ["WINDOWS_SHA256"])
+          )
+          Path(os.environ["MANIFEST"]).write_text(rendered)
+          PY
+          python3 -m json.tool scoop-bucket/sc-compose.json >/dev/null
+        env:
+          MANIFEST: scoop-bucket/sc-compose.json
+          VERSION: ${{ needs.verify-release.outputs.release_version }}
+          WINDOWS_SHA256: ${{ steps.sha.outputs.windows_sha256 }}
+          WINDOWS_URL: ${{ steps.sha.outputs.windows_url }}
+      - name: Commit and push Scoop manifest update
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.verify-release.outputs.release_version }}
+        run: |
+          set -euo pipefail
+          cd scoop-bucket
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add sc-compose.json
+          git diff --cached --quiet && echo 'Scoop manifest already matches the release asset' && exit 0
+          git commit -m "chore: bump sc-compose to v${RELEASE_VERSION}"
+          git push

@@ -102,6 +102,11 @@ Required secrets:
   - required for the Phase C Python release channel
   - must be configured in the protected GitHub Actions `pypi` environment
     before PyPI publication is enabled
+- `SCOOP_BUCKET_TOKEN`
+  - required by `.github/workflows/scoop-publish.yml` to update the self-owned
+    `randlee/scoop-bucket` repository
+  - the bucket must be created and the token configured with contents-write
+    access before the Scoop channel can be dispatched
 
 Manual verification steps:
 
@@ -120,6 +125,7 @@ The standalone release path covers:
 - GitHub Release archives for Linux, macOS, and Windows
 - Homebrew formula updates in `randlee/homebrew-tap`
 - `winget` publication for package id `randlee.sc-compose`
+- Scoop publication through the self-owned `randlee/scoop-bucket` manifest
 - PyPI publication for packages `sc-sha` and `sc-compose`
 
 Python release-train rule:
@@ -133,12 +139,15 @@ Release-operator verification for PyPI:
 - verify the protected `pypi` environment contains `PYPI_API_TOKEN`
 - run one staged TestPyPI or `workflow_dispatch` rehearsal before treating the
   Python release channel as production-closed
-- confirm exactly one sdist is produced, all three wheel builds complete, the
-  PyPI upload path succeeds, and the GitHub Release attachment set includes
-  wheels plus the single sdist
+- confirm two sdists are produced, all six wheel builds complete, the PyPI
+  upload path succeeds, and the GitHub Release attachment set includes the
+  wheels and both sdists
 
 The first `winget` release requires a one-time manual submission to
-`microsoft/winget-pkgs`. Later releases use the automated workflow job.
+`microsoft/winget-pkgs`. Later releases use the standalone `Publish Winget`
+workflow. Scoop uses the standalone `Publish Scoop` workflow after the GitHub
+Release exists; it verifies the Windows ZIP, renders the JSON manifest, and
+updates the self-owned bucket.
 
 ## Report Publication Handoff
 

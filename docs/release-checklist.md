@@ -51,6 +51,8 @@ Use this checklist before every crates.io release of `sc-sha`, `sc-composer`, an
 - [ ] Verify PyPI ownership for `sc-sha` and `sc-compose` before publishing their wheels
 - [ ] Confirm `HOMEBREW_TAP_TOKEN` is configured in repo secrets before running the
       release workflow
+- [ ] Confirm `randlee/scoop-bucket` exists and `SCOOP_BUCKET_TOKEN` is configured
+      with contents-write access before dispatching Scoop publication
 
 ## Pre-Release: Release Preflight
 
@@ -79,8 +81,9 @@ for a production `workflow_dispatch` release.
 The root `Release` workflow creates the protected tag, publishes crates.io
 packages, builds the authoritative artifacts, and creates the GitHub Release.
 It deliberately does **not** publish production PyPI packages, update
-Homebrew, or submit `winget`. After verifying the GitHub Release, dispatch all
-three recovery-safe channel workflows with the same `v<version>` tag:
+Homebrew, submit `winget`, or update Scoop. After verifying the GitHub Release,
+dispatch all four recovery-safe channel workflows with the same `v<version>`
+tag:
 
 - [ ] Run `.github/workflows/pypi-publish.yml` with `tag=v<version>` and
       `target=production`.
@@ -92,6 +95,10 @@ three recovery-safe channel workflows with the same `v<version>` tag:
 - [ ] Run `.github/workflows/winget-publish.yml` with `tag=v<version>`.
   - It verifies the published Windows ZIP before submitting the package update
     with `WINGET_GITHUB_TOKEN`.
+- [ ] Run `.github/workflows/scoop-publish.yml` with `tag=v<version>`.
+  - It verifies the published Windows ZIP, renders `sc-compose.json` from the
+    tagged manifest template, validates JSON, and updates `randlee/scoop-bucket`
+    with `SCOOP_BUCKET_TOKEN`.
 
 Each workflow may be safely re-dispatched for that release if its channel
 fails. Do not rerun the root `Release` workflow to recover an external-channel
@@ -109,6 +116,8 @@ failure.
       `sc-sha` from the GitHub Release assets
 - [ ] Verify the Homebrew formula update completed in `randlee/homebrew-tap`
 - [ ] Verify the `winget` submission/update was dispatched successfully
+- [ ] Verify `randlee/scoop-bucket` contains the rendered `sc-compose.json`
+      manifest for the release version
 - [ ] Update `release/RELEASE-NOTES-TEMPLATE.md` with the actual release summary
 - [ ] Confirm the release workflow's `gate-and-tag` job created `v<version>` — do not tag manually; the tag branch is protected.
 - [ ] Verify the root release workflow created a GitHub Release pointing at the

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import tomllib
@@ -159,6 +160,14 @@ def winget_publish_workflow_text() -> str:
     return (repo_root() / ".github" / "workflows" / "winget-publish.yml").read_text(encoding="utf-8")
 
 
+def scoop_publish_workflow_text() -> str:
+    return (repo_root() / ".github" / "workflows" / "scoop-publish.yml").read_text(encoding="utf-8")
+
+
+def scoop_manifest_template_text() -> str:
+    return (repo_root() / "release" / "scoop" / "sc-compose.json.j2").read_text(encoding="utf-8")
+
+
 def published_release_guard_text() -> str:
     return (
         repo_root() / ".github" / "actions" / "verify-published-release" / "action.yml"
@@ -274,13 +283,14 @@ def test_channel_recovery_workflows_require_a_published_release() -> None:
     pypi_text = pypi_publish_workflow_text()
     homebrew_text = homebrew_publish_workflow_text()
     winget_text = winget_publish_workflow_text()
+    scoop_text = scoop_publish_workflow_text()
 
     assert "No published GitHub Release found" in guard_text
     assert "is still a draft" in guard_text
     assert "^v[0-9]+\\.[0-9]+\\.[0-9]+$" in guard_text
     assert "REQUIRED_ASSET_PATTERNS" in guard_text
 
-    for workflow_text in (pypi_text, homebrew_text, winget_text):
+    for workflow_text in (pypi_text, homebrew_text, winget_text, scoop_text):
         assert "workflow_dispatch:" in workflow_text
         assert "uses: ./.github/actions/verify-published-release" in workflow_text
         assert "release_tag: ${{ inputs.tag }}" in workflow_text
@@ -293,6 +303,42 @@ def test_channel_recovery_workflows_require_a_published_release() -> None:
     assert "aarch64-apple-darwin" in homebrew_text
     assert "x86_64-apple-darwin" in homebrew_text
     assert "x86_64-unknown-linux-gnu" in homebrew_text
+    assert "SCOOP_BUCKET_TOKEN" in scoop_text
+    assert "randlee/scoop-bucket" in scoop_text
+    assert "x86_64-pc-windows-msvc" in scoop_text
+    assert "json.tool scoop-bucket/sc-compose.json" in scoop_text
+    assert "sc-compose/release/scoop/sc-compose.json.j2" in scoop_text
+
+
+def test_release_root_keeps_crates_io_in_the_authoritative_chain() -> None:
+    text = release_workflow_text()
+
+    assert "  publish:\n    if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}" in text
+    assert "needs: gate-and-tag" in text
+    assert "  release:\n    if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}" in text
+    assert "needs: [gate-and-tag, build, publish," in text
+
+
+def test_scoop_manifest_template_renders_a_valid_windows_zip_manifest() -> None:
+    rendered = (
+        scoop_manifest_template_text()
+        .replace("{{ version }}", "1.4.1")
+        .replace(
+            "{{ windows_url }}",
+            "https://github.com/randlee/sc-compose/releases/download/v1.4.1/"
+            "sc-compose_1.4.1_x86_64-pc-windows-msvc.zip",
+        )
+        .replace("{{ windows_sha256 }}", "a" * 64)
+    )
+
+    manifest = json.loads(rendered)
+
+    assert manifest["version"] == "1.4.1"
+    assert manifest["architecture"]["64bit"]["extract_dir"] == (
+        "sc-compose_1.4.1_x86_64-pc-windows-msvc"
+    )
+    assert manifest["architecture"]["64bit"]["bin"] == "bin/sc-compose.exe"
+    assert manifest["architecture"]["64bit"]["hash"] == "a" * 64
 
 
 def test_release_workflow_collects_wheels_without_redundant_zip_sweep() -> None:

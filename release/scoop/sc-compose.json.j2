@@ -1,0 +1,14 @@
+{
+  "version": "{{ version }}",
+  "description": "Template composition toolchain",
+  "homepage": "https://github.com/randlee/sc-compose",
+  "license": "MIT",
+  "architecture": {
+    "64bit": {
+      "url": "{{ windows_url }}",
+      "hash": "{{ windows_sha256 }}",
+      "extract_dir": "sc-compose_{{ version }}_x86_64-pc-windows-msvc",
+      "bin": "bin/sc-compose.exe"
+    }
+  }
+}
