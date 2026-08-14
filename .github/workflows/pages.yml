@@ -2,7 +2,7 @@ name: Deploy GitHub Pages
 
 on:
   push:
-    branches: [main, "integrate/phase-d"]
+    branches: [main, develop]
     paths:
       - "site/**"
       - ".github/workflows/pages.yml"

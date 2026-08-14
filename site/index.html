@@ -3,232 +3,413 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>sc-compose</title>
-  <meta name="description" content="Compose once. Render deterministically. Ship everywhere.">
-  <link rel="stylesheet" href="/sc-compose/assets/css/main.css">
+  <title>sc-compose — One template. Every runtime. Zero drift.</title>
+  <meta name="description" content="sc-compose renders Jinja2 templates with declared variables and shared fragments — one engine across Claude Code, Codex, Gemini, and OpenCode. Install via brew, winget, cargo, or pip.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #020617;
+      --surface: #0f172a;
+      --border: #1e293b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #22d3ee;
+      --secondary: #34d399;
+      --code-bg: #0b1220;
+      --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    code, pre { font-family: var(--mono); }
+
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+    /* ---------- Header ---------- */
+    .site-header {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(2, 6, 23, 0.82);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .site-header .container {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .site-title { font-family: var(--mono); font-weight: 700; font-size: 18px; color: var(--accent); }
+    .site-nav { display: flex; gap: 24px; align-items: center; }
+    .site-nav a { color: var(--muted); font-size: 14px; transition: color .15s; }
+    .site-nav a:hover { color: var(--text); }
+    .site-nav a.primary { color: var(--text); font-weight: 500; }
+
+    /* ---------- Hero ---------- */
+    .hero { padding: 96px 0 80px; text-align: center; }
+    .hero h1 {
+      font-family: var(--mono); font-weight: 700;
+      font-size: clamp(30px, 5.5vw, 46px); line-height: 1.12;
+      letter-spacing: -0.01em;
+    }
+    .hero h1 .accent { color: var(--accent); }
+    .hero .subtitle {
+      max-width: 640px; margin: 24px auto 0;
+      color: var(--muted); font-size: 17px; line-height: 1.65;
+    }
+    .hero .install {
+      display: inline-flex; align-items: center; gap: 12px;
+      margin-top: 40px;
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 15px 22px;
+      font-family: var(--mono); font-size: 15px; color: var(--text);
+    }
+    .hero .install .prompt { color: var(--secondary); user-select: none; }
+    .hero .cta { margin-top: 30px; }
+    .btn {
+      display: inline-block; padding: 11px 24px; border-radius: 6px;
+      font-size: 14px; font-weight: 500; border: 1px solid var(--accent);
+      color: var(--accent); transition: background .15s;
+    }
+    .btn:hover { background: rgba(34, 211, 238, 0.1); }
+
+    /* ---------- Sections ---------- */
+    .section { padding: 72px 0; }
+    .section-head { margin-bottom: 8px; }
+    .section-label {
+      font-family: var(--mono); font-size: 13px; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--accent);
+    }
+    .section h2 { font-family: var(--mono); font-size: 28px; font-weight: 700; margin: 8px 0 10px; }
+    .section .lede { color: var(--muted); max-width: 640px; }
+
+    /* ---------- Stories ---------- */
+    .stories { margin-top: 24px; }
+    .story {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center;
+      padding: 44px 0; border-top: 1px solid var(--border);
+    }
+    .story:first-child { border-top: none; padding-top: 16px; }
+    .story-copy h3 { font-family: var(--mono); font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+    .story-copy h3::before { content: ""; }
+    .story-copy p { color: var(--muted); }
+    .story-code pre {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 20px; overflow-x: auto;
+      font-size: 13.5px; line-height: 1.65; color: var(--text);
+    }
+    .story-code pre .c { color: var(--muted); }
+    .story-powers {
+      grid-column: 1 / -1; display: flex; align-items: baseline; gap: 12px;
+      font-family: var(--mono); font-size: 13px; color: var(--muted);
+    }
+    .story-powers .powers-label { color: var(--accent); white-space: nowrap; }
+    .story.reverse .story-copy { order: 2; }
+    .story.reverse .story-code { order: 1; }
+
+    /* ---------- How it works ---------- */
+    .steps {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      margin-top: 36px; border: 1px solid var(--border);
+      border-radius: 8px; overflow: hidden; background: var(--surface);
+    }
+    .step { padding: 28px; }
+    .step + .step { border-left: 1px solid var(--border); }
+    .step h3 { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--accent); margin-bottom: 14px; }
+    .step ul { list-style: none; font-family: var(--mono); font-size: 13px; color: var(--muted); line-height: 2; }
+
+    /* ---------- Install tabs ---------- */
+    .tabs { margin-top: 36px; }
+    .tabs input { position: absolute; opacity: 0; pointer-events: none; }
+    .tab-labels { display: flex; gap: 4px; border-bottom: 1px solid var(--border); }
+    .tab-labels label {
+      padding: 11px 18px; font-family: var(--mono); font-size: 14px;
+      color: var(--muted); cursor: pointer;
+      border-bottom: 2px solid transparent; transition: color .15s, border-color .15s;
+    }
+    .tab-labels label:hover { color: var(--text); }
+    #tab-macos:checked ~ .tab-labels label[for="tab-macos"],
+    #tab-windows:checked ~ .tab-labels label[for="tab-windows"],
+    #tab-cargo:checked ~ .tab-labels label[for="tab-cargo"],
+    #tab-pip:checked ~ .tab-labels label[for="tab-pip"] {
+      color: var(--accent); border-bottom-color: var(--accent);
+    }
+    .tab-panel { display: none; padding: 28px 0 4px; }
+    #tab-macos:checked ~ .tab-panels .panel-macos,
+    #tab-windows:checked ~ .tab-panels .panel-windows,
+    #tab-cargo:checked ~ .tab-panels .panel-cargo,
+    #tab-pip:checked ~ .tab-panels .panel-pip { display: block; }
+    .tab-panel pre {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 18px 20px; font-size: 14px; overflow-x: auto;
+    }
+    .tab-panel p { color: var(--muted); margin-top: 12px; font-size: 14px; }
+
+    /* ---------- Footer ---------- */
+    .site-footer { border-top: 1px solid var(--border); padding: 40px 0; margin-top: 48px; }
+    .site-footer .container {
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: var(--mono); font-size: 13px; color: var(--muted);
+      flex-wrap: wrap; gap: 12px;
+    }
+    .site-footer a { color: var(--muted); }
+    .site-footer a:hover { color: var(--text); }
+    .site-footer .links { display: flex; gap: 18px; }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 768px) {
+      .story { grid-template-columns: 1fr; gap: 20px; }
+      .story.reverse .story-copy { order: 1; }
+      .story.reverse .story-code { order: 2; }
+      .story-powers { grid-column: 1; flex-wrap: wrap; }
+      .steps { grid-template-columns: 1fr; }
+      .step + .step { border-left: none; border-top: 1px solid var(--border); }
+      .site-footer .container { flex-direction: column; text-align: center; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      * { transition: none !important; }
+    }
+  </style>
 </head>
 <body>
   <header class="site-header">
     <div class="container">
-      <a href="/sc-compose/" class="site-title">sc-compose</a>
+      <a href="#top" class="site-title">sc-compose</a>
       <nav class="site-nav">
-        <a href="/sc-compose/install">Install</a>
-        <a href="/sc-compose/examples">Examples</a>
-        <a href="https://github.com/randlee/sc-compose">GitHub</a>
+        <a href="#use-cases">Use cases</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/randlee/sc-compose" class="primary">GitHub ↗</a>
       </nav>
     </div>
   </header>
 
-  <main class="container">
-
-<section class="hero">
-  <h1>sc-compose</h1>
-  <p class="tagline">Compose once. Render deterministically. Ship everywhere.</p>
-  <p class="subtitle">
-    A standalone CLI and composable library for teams whose templates have
-    outgrown copy-paste. Compose agent profiles, config files, test fixtures,
-    and reports from shared fragments — with declared inputs that fail loudly
-    when missing.
-  </p>
-  <div class="cta">
-    <a href="/sc-compose/install" class="btn btn-primary">Get Started</a>
-    <a href="https://github.com/randlee/sc-compose" class="btn btn-secondary">GitHub</a>
-  </div>
-</section>
-
-<section id="features">
-  <h2>Why sc-compose?</h2>
-
-  <div class="feature-grid">
-    <div class="feature">
-      <h3>🔗 Compose from Shared Fragments</h3>
-      <p>
-        Place your house style, review checklist, and error conventions in one
-        includable file. Reference it from every template with <code>@&lt;_includes/house-style.md&gt;</code>.
-        Edit once — every downstream template picks up the change.
+  <main id="top">
+    <section class="hero">
+      <h1>One template.<br><span class="accent">Every runtime.</span> Zero drift.</h1>
+      <p class="subtitle">
+        sc-compose renders Jinja2 templates with declared variables, shared
+        fragments, and runtime-aware profile resolution — one engine across
+        Claude Code, Codex, Gemini, and OpenCode.
       </p>
-    </div>
+      <div class="install"><span class="prompt">$</span> brew install randlee/tap/sc-compose</div>
+      <div class="cta">
+        <a href="#use-cases" class="btn">See what you can build ↓</a>
+      </div>
+    </section>
 
-    <div class="feature">
-      <h3>✅ Declared Inputs, Loud Failures</h3>
-      <p>
-        Declare required variables in YAML frontmatter. Missing a
-        <code>task_id</code>? sc-compose fails with an actionable diagnostic
-        that names the variable, the file that declared it, and the include
-        chain. No silent guessing.
-      </p>
-    </div>
+    <section id="use-cases" class="section">
+      <div class="section-head">
+        <span class="section-label">Use cases</span>
+        <h2>What people build with it</h2>
+        <p class="lede">Five jobs. One engine. Each is a real workflow running in production today.</p>
+      </div>
 
-    <div class="feature">
-      <h3>🔀 One Profile, Four Runtimes</h3>
-      <p>
-        Author an agent profile once under <code>.agents/agents/</code>. It
-        resolves correctly for Claude Code, Codex, Gemini, and OpenCode through
-        each runtime's native search chain. Override only the runtimes that
-        genuinely need specialization.
-      </p>
-    </div>
+      <div class="stories">
+        <article class="story">
+          <div class="story-copy">
+            <h3>“I ship agent workflows across every runtime”</h3>
+            <p>
+              Author one profile, resolve it anywhere. Claude Code, Codex, Gemini,
+              and OpenCode each find your profile through their native search chain.
+              Shared <code>@-include</code> fragments keep house style and review
+              checklists consistent — override only the runtimes that genuinely need it.
+            </p>
+          </div>
+          <div class="story-code">
+            <pre><code>$ sc-compose render \
+    --mode profile --kind agent \
+    --agent rust-dev --runtime claude</code></pre>
+          </div>
+          <div class="story-powers">
+            <span class="powers-label">── powers ──</span>
+            <span>codex-orchestration in atm-core · 9 templates · 4 runtimes</span>
+          </div>
+        </article>
 
-    <div class="feature">
-      <h3>🔄 Multi-Pass Nested Templates</h3>
-      <p>
-        Define deploy-time, install-time, and invocation-time variables in one
-        file. Stacked YAML headers with progressive brace counts. Render all
-        passes in one command. Verify deployed output hasn't drifted from the
-        template source.
-      </p>
-    </div>
+        <article class="story reverse">
+          <div class="story-copy">
+            <h3>“I turn sprint data into reports”</h3>
+            <p>
+              Feed a JSON file into a Jinja2 template and get a deterministic HTML
+              report. Loops, conditionals, and filters are declared up front, so
+              missing data fails loudly instead of rendering half-finished.
+            </p>
+          </div>
+          <div class="story-code">
+            <pre><code>$ sc-compose render report.md.j2 \
+    --var-file sprint-data.json \
+    --output sprint-report.html</code></pre>
+          </div>
+          <div class="story-powers">
+            <span class="powers-label">── powers ──</span>
+            <span>sprint-report in atm-core · detailed + summary template families</span>
+          </div>
+        </article>
 
-    <div class="feature">
-      <h3>🐍 Python Bindings</h3>
-      <p>
-        <code>pip install sc-compose</code>. Native extension module built with
-        PyO3 and maturin. Pre-built wheels for macOS, Linux, and Windows
-        (Python 3.11+). Full multi-pass rendering from Python.
-      </p>
-    </div>
+        <article class="story">
+          <div class="story-copy">
+            <h3>“I keep architecture docs from drifting”</h3>
+            <p>
+              ADRs, boundary docs, and crate diagrams live as versioned
+              <code>.j2</code> fragments. <code>@-include</code> shared sections, and
+              let <code>frontmatter-init</code> discover the variables an existing
+              document already uses.
+            </p>
+          </div>
+          <div class="story-code">
+            <pre><code>$ sc-compose frontmatter-init adr-0019.md.j2
 
-    <div class="feature">
-      <h3>📊 Built-in Reporting</h3>
-      <p>
-        Produce compliance evidence from declarative semantic specs. Scaffold a
-        report catalog, render HTML reports, materialize metadata, and generate
-        CI handoff manifests — all from the CLI.
-      </p>
-    </div>
-  </div>
-</section>
+@&lt;_includes/boundary-record.md&gt;
+Decision: {{ decision }}</code></pre>
+          </div>
+          <div class="story-powers">
+            <span class="powers-label">── powers ──</span>
+            <span>docs/templates in atm-core · ADR, boundary, sprint-plan</span>
+          </div>
+        </article>
 
-<section id="quickstart">
-  <h2>Quickstart</h2>
+        <article class="story reverse">
+          <div class="story-copy">
+            <h3>“My CI pipeline composes deterministically”</h3>
+            <p>
+              Every command speaks <code>--json</code>. <code>validate</code> before
+              you render, <code>verify</code> to catch drift between a deployed file
+              and its template, and <code>publish-manifest</code> to hand report
+              artifacts to CI.
+            </p>
+          </div>
+          <div class="story-code">
+            <pre><code>$ sc-compose render --json \
+    --file task.xml.j2 \
+    --var-file sprint.json
+# → {"command_id":"render","outcome":"pass",…}</code></pre>
+          </div>
+          <div class="story-powers">
+            <span class="powers-label">── powers ──</span>
+            <span>CI/CD integration in atm-core release workflows</span>
+          </div>
+        </article>
 
-  <div class="install-options">
-    <div class="install-card">
-      <h4>macOS</h4>
-      <code>brew install randlee/tap/sc-compose</code>
-    </div>
-    <div class="install-card">
-      <h4>Windows</h4>
-      <code>winget install randlee.sc-compose</code>
-    </div>
-    <div class="install-card">
-      <h4>Rust</h4>
-      <code>cargo install sc-compose</code>
-    </div>
-    <div class="install-card">
-      <h4>Python</h4>
-      <code>pip install sc-compose</code>
-    </div>
-  </div>
+        <article class="story">
+          <div class="story-copy">
+            <h3>“I build Python tooling on top of it”</h3>
+            <p>
+              <code>pip install sc-compose</code> — a native extension, no shelling
+              out. <code>render_template()</code> for one-offs, <code>Renderer</code>
+              for repeated renders, and <code>render_all()</code> with
+              <code>verify()</code> for full multi-pass from Python.
+            </p>
+          </div>
+          <div class="story-code">
+            <pre><code>from sc_compose import render_template
 
-  <div class="code-example">
-<pre><code class="language-bash"># Render your first template
-echo 'Hello {{ name }}!' &gt; hello.txt.j2
-sc-compose render --file hello.txt.j2 --var name=World
-# → Hello World!
+render_template("Hello {{ name }}",
+                {"name": "world"})
+# → "Hello world"</code></pre>
+          </div>
+          <div class="story-powers">
+            <span class="powers-label">── powers ──</span>
+            <span>PyPI · pre-built wheels for macOS, Linux, Windows</span>
+          </div>
+        </article>
+      </div>
+    </section>
 
-# Compose a profile for Claude Code
-sc-compose render --mode profile --kind agent \
-  --agent rust-developer --runtime claude
+    <section id="how-it-works" class="section">
+      <div class="section-head">
+        <span class="section-label">How it works</span>
+        <h2>Three steps, no magic</h2>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <h3>1 · Author</h3>
+          <ul>
+            <li>Jinja2 + YAML frontmatter</li>
+            <li><code>@-include</code> shared fragments</li>
+            <li><code>{{ variables }}</code></li>
+          </ul>
+        </div>
+        <div class="step">
+          <h3>2 · Declare</h3>
+          <ul>
+            <li><code>--var key=val</code></li>
+            <li><code>--var-file data.json</code></li>
+            <li><code>--env-prefix TASK_</code></li>
+          </ul>
+        </div>
+        <div class="step">
+          <h3>3 · Render</h3>
+          <ul>
+            <li>stdout or <code>--output</code></li>
+            <li>deterministic</li>
+            <li>byte-identical every run</li>
+          </ul>
+        </div>
+      </div>
+    </section>
 
-# Generate pytest stubs from a bundled example
-sc-compose examples pytest-fixture \
-  --var-file tests.json --output tests/test_auth.py
-</code></pre>
-  </div>
-</section>
+    <section id="install" class="section">
+      <div class="section-head">
+        <span class="section-label">Install</span>
+        <h2>Get it in one command</h2>
+      </div>
 
-<section id="install-matrix">
-  <h2>Install Everywhere</h2>
-
-  <table>
-    <thead>
-      <tr><th>Platform</th><th>Method</th><th>Command</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>macOS</td><td>Homebrew</td><td><code>brew install randlee/tap/sc-compose</code></td></tr>
-      <tr><td>Windows</td><td>Winget</td><td><code>winget install randlee.sc-compose</code></td></tr>
-      <tr><td>Any (Rust)</td><td>crates.io</td><td><code>cargo install sc-compose</code></td></tr>
-      <tr><td>Any (Python)</td><td>PyPI</td><td><code>pip install sc-compose</code></td></tr>
-      <tr><td>Any (source)</td><td>cargo</td><td><code>cargo build --release -p sc-compose</code></td></tr>
-      <tr><td>Rust lib</td><td>Cargo.toml</td><td><code>sc-composer = "1.4.1"</code></td></tr>
-    </tbody>
-  </table>
-
-  <p class="note">
-    Bundled examples are guaranteed in Homebrew, Winget, and GitHub Release
-    installs. <code>cargo install</code> ships the binary only — set
-    <code>SC_COMPOSE_DATA_DIR</code> for examples.
-  </p>
-</section>
-
-<section id="use-cases">
-  <h2>What People Use It For</h2>
-
-  <div class="use-case-grid">
-    <div class="use-case">
-      <h4>AI Agent Profiles</h4>
-      <p>Author once, resolve across Claude, Codex, Gemini, and OpenCode.</p>
-    </div>
-    <div class="use-case">
-      <h4>Task Templates</h4>
-      <p>Generate structured XML/JSON task assignments with declared inputs.</p>
-    </div>
-    <div class="use-case">
-      <h4>pytest Fixtures</h4>
-      <p>Generate test stubs from a list of test names with bundled examples.</p>
-    </div>
-    <div class="use-case">
-      <h4>Service Configs</h4>
-      <p>Compose YAML configs from shared fragments with env-var inputs.</p>
-    </div>
-    <div class="use-case">
-      <h4>Sprint Reports</h4>
-      <p>Generate HTML compliance reports from declarative semantic specs.</p>
-    </div>
-    <div class="use-case">
-      <h4>.NET Benchmarks</h4>
-      <p>Compose benchmark harnesses from shared setup and teardown fragments.</p>
-    </div>
-  </div>
-</section>
-
-<section id="docs">
-  <h2>Documentation</h2>
-
-  <ul>
-    <li><a href="https://github.com/randlee/sc-compose/blob/develop/docs/requirements.md">Requirements</a> — normative behavior, JSON schemas, exit codes</li>
-    <li><a href="https://github.com/randlee/sc-compose/blob/develop/docs/architecture.md">Architecture</a> — library module layout and crate boundaries</li>
-    <li><a href="https://github.com/randlee/sc-compose/blob/develop/docs/error-code-registry.md">Error Codes</a> — stable <code>ERR_*</code> diagnostic codes</li>
-    <li><a href="https://github.com/randlee/sc-compose/blob/develop/RELEASING.md">Releasing</a> — step-by-step release checklist</li>
-    <li><a href="https://github.com/randlee/sc-compose/blob/develop/docs/publishing.md">Publishing</a> — distribution channels and secrets</li>
-    <li><a href="/sc-compose/examples">Examples</a> — bundled starter templates</li>
-  </ul>
-</section>
-
-<section id="status">
-  <h2>Status</h2>
-
-  <table>
-    <tr><td>Version</td><td><strong>1.4.1</strong></td></tr>
-    <tr><td>MSRV</td><td>Rust 1.94.1</td></tr>
-    <tr><td>Edition</td><td>2024</td></tr>
-    <tr><td>Platforms</td><td>macOS, Linux, Windows</td></tr>
-    <tr><td>Stability</td><td>stable 1.x release line</td></tr>
-  </table>
-</section>
-
+      <div class="tabs">
+        <input type="radio" name="install" id="tab-macos" checked>
+        <input type="radio" name="install" id="tab-windows">
+        <input type="radio" name="install" id="tab-cargo">
+        <input type="radio" name="install" id="tab-pip">
+        <div class="tab-labels">
+          <label for="tab-macos">macOS</label>
+          <label for="tab-windows">Windows</label>
+          <label for="tab-cargo">Rust</label>
+          <label for="tab-pip">Python</label>
+        </div>
+        <div class="tab-panels">
+          <div class="tab-panel panel-macos">
+            <pre><code>brew install randlee/tap/sc-compose</code></pre>
+            <p>Bundled examples included — <code>sc-compose examples list</code> works out of the box.</p>
+          </div>
+          <div class="tab-panel panel-windows">
+            <pre><code>winget install randlee.sc-compose</code></pre>
+            <p>Bundled examples included in the package.</p>
+          </div>
+          <div class="tab-panel panel-cargo">
+            <pre><code>cargo install sc-compose</code></pre>
+            <p>Binary only. Set <code>SC_COMPOSE_DATA_DIR</code> to use the bundled examples.</p>
+          </div>
+          <div class="tab-panel panel-pip">
+            <pre><code>pip install sc-compose</code></pre>
+            <p>Native extension. Pre-built wheels for macOS, Linux, Windows (Python 3.11+).</p>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer class="site-footer">
     <div class="container">
-      <p>
-        <a href="https://github.com/randlee/sc-compose">sc-compose</a> —
-        MIT licensed. Built with Rust, shipped everywhere.
-        <a href="https://crates.io/crates/sc-compose">crates.io</a> ·
-        <a href="https://pypi.org/project/sc-compose/">PyPI</a> ·
+      <span>sc-compose · MIT licensed · randlee</span>
+      <span class="links">
+        <a href="https://crates.io/crates/sc-compose">crates.io</a>
+        <a href="https://pypi.org/project/sc-compose/">PyPI</a>
+        <a href="https://github.com/randlee/sc-compose">GitHub</a>
         <a href="https://github.com/randlee/sc-compose/blob/develop/CHANGELOG.md">Changelog</a>
-      </p>
+      </span>
     </div>
   </footer>
 </body>
