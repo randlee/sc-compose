@@ -565,6 +565,59 @@ fn validate_json_check_render_reports_exact_context_and_no_body() {
 }
 
 #[test]
+fn validate_json_check_render_attributes_template_defaults_and_caller_overrides() {
+    let root = temp_root("validate-json-check-render-context-sources");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\ndefaults:\n  fallback: from-template\n  overridden: from-template\n---\n{\"fallback\": {{ fallback }}, \"overridden\": {{ overridden }}}\n",
+    );
+
+    let output = sc_compose()
+        .args([
+            "validate",
+            "--check-render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "overridden=from-caller",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(value["payload"]["state"], "render_checked");
+    let checked_context = value["payload"]["checked_context"].as_str().unwrap();
+    assert!(checked_context.contains("1 explicit caller values (overridden)"));
+    assert!(checked_context.contains("1 root frontmatter defaults (fallback)"));
+    assert!(checked_context.contains("0 template-pack defaults"));
+    assert!(!checked_context.contains("overridden, fallback"));
+
+    let diagnostics = value["diagnostics"].as_array().unwrap();
+    let fallback_default = diagnostics
+        .iter()
+        .find(|diagnostic| diagnostic["code"] == "INFO_VAL_DEFAULT_USED")
+        .expect("template default diagnostic");
+    assert!(
+        fallback_default["message"]
+            .as_str()
+            .is_some_and(|message| message.contains("fallback"))
+    );
+    assert!(!diagnostics.iter().any(|diagnostic| {
+        diagnostic["code"] == "INFO_VAL_DEFAULT_USED"
+            && diagnostic["message"]
+                .as_str()
+                .is_some_and(|message| message.contains("overridden"))
+    }));
+}
+
+#[test]
 fn validate_json_lint_check_render_combines_diagnostics() {
     let root = temp_root("validate-json-lint-check-render");
     write_file(

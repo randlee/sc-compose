@@ -199,7 +199,7 @@ fn run_checked_validate(
             match checked {
                 Ok(_) => sc_composer::RenderCheckReport::RenderChecked {
                     meta,
-                    checked_context: context_summary(request),
+                    checked_context: context_summary(&result.variable_sources),
                     diagnostics: diagnostics.clone(),
                 },
                 Err(_) => sc_composer::RenderCheckReport::RenderInvalid {
@@ -272,13 +272,51 @@ fn declared_json_escape_mode(source: &str) -> Option<sc_composer::JsonEscapeMode
     parsed.frontmatter()?.json_escape_mode()
 }
 
-pub(crate) fn context_summary(request: &sc_composer::ComposeRequest) -> String {
+pub(crate) fn context_summary(
+    variable_sources: &BTreeMap<sc_composer::VariableName, sc_composer::VariableSource>,
+) -> String {
+    let mut explicit = Vec::new();
+    let mut environment = Vec::new();
+    let mut template_pack_defaults = Vec::new();
+    let mut root_defaults = Vec::new();
+    let mut included_defaults = Vec::new();
+
+    for (name, source) in variable_sources {
+        match source {
+            sc_composer::VariableSource::ExplicitInput => explicit.push(name.to_string()),
+            sc_composer::VariableSource::Environment => environment.push(name.to_string()),
+            sc_composer::VariableSource::TemplateInputDefault => {
+                template_pack_defaults.push(name.to_string());
+            }
+            sc_composer::VariableSource::FrontmatterDefault => root_defaults.push(name.to_string()),
+            sc_composer::VariableSource::IncludedDefault => {
+                included_defaults.push(name.to_string());
+            }
+            sc_composer::VariableSource::Builtin => {}
+        }
+    }
+
     format!(
-        "{} explicit, {} environment, and {} default variables",
-        request.vars_input.len(),
-        request.vars_env.len(),
-        request.vars_defaults.len()
+        "{} explicit caller values{}; {} environment values{}; {} template-pack defaults{}; {} root frontmatter defaults{}; {} included frontmatter defaults{}",
+        explicit.len(),
+        format_context_names(&explicit),
+        environment.len(),
+        format_context_names(&environment),
+        template_pack_defaults.len(),
+        format_context_names(&template_pack_defaults),
+        root_defaults.len(),
+        format_context_names(&root_defaults),
+        included_defaults.len(),
+        format_context_names(&included_defaults),
     )
+}
+
+fn format_context_names(names: &[String]) -> String {
+    if names.is_empty() {
+        String::new()
+    } else {
+        format!(" ({})", names.join(", "))
+    }
 }
 
 fn report_state(report: &sc_composer::RenderCheckReport) -> &'static str {

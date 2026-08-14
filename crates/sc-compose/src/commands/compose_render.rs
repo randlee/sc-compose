@@ -36,6 +36,7 @@ pub(super) fn execute_render_with_extra_warnings(
         &result.rendered_text,
         args,
         result.failing_pass,
+        &result.variable_sources,
     )?;
     emit_render_output(
         request,
@@ -71,6 +72,7 @@ pub(super) fn execute_render_with_expanded(
         &result.rendered_text,
         args,
         result.failing_pass,
+        &result.variable_sources,
     )?;
     emit_render_output(
         request,
@@ -159,6 +161,7 @@ pub(super) fn execute_custom_delimiter_render(
         &rendered_text,
         &args.render,
         None,
+        &custom_variable_sources(request, &expanded, &resolve_result.resolved_path),
     )?;
     emit_render_output(
         request,
@@ -177,6 +180,7 @@ fn checked_render_output(
     rendered_text: &str,
     args: &RenderBehaviorArgs,
     actual_failing_pass: Option<u8>,
+    variable_sources: &BTreeMap<sc_composer::VariableName, sc_composer::VariableSource>,
 ) -> Result<
     (
         sc_composer::CheckedOutput,
@@ -203,10 +207,43 @@ fn checked_render_output(
         })?;
     let report = sc_composer::RenderCheckReport::RenderChecked {
         meta,
-        checked_context: context_summary(request),
+        checked_context: context_summary(variable_sources),
         diagnostics: Vec::new(),
     };
     Ok((checked, Some(report)))
+}
+
+fn custom_variable_sources(
+    request: &ComposeRequest,
+    expanded: &ExpandedTemplate,
+    resolved_path: &Path,
+) -> BTreeMap<sc_composer::VariableName, sc_composer::VariableSource> {
+    let mut sources = BTreeMap::new();
+    for (path, frontmatters) in &expanded.frontmatters {
+        let source = if path == resolved_path {
+            sc_composer::VariableSource::FrontmatterDefault
+        } else {
+            sc_composer::VariableSource::IncludedDefault
+        };
+        for frontmatter in frontmatters {
+            for name in frontmatter.defaults().keys() {
+                sources.entry(name.clone()).or_insert(source.clone());
+            }
+        }
+    }
+    for name in request.vars_defaults.keys() {
+        sources.insert(
+            name.clone(),
+            sc_composer::VariableSource::TemplateInputDefault,
+        );
+    }
+    for name in request.vars_env.keys() {
+        sources.insert(name.clone(), sc_composer::VariableSource::Environment);
+    }
+    for name in request.vars_input.keys() {
+        sources.insert(name.clone(), sc_composer::VariableSource::ExplicitInput);
+    }
+    sources
 }
 
 fn custom_variable_delimiters(args: &RenderArgs) -> Result<(String, String), CommandError> {

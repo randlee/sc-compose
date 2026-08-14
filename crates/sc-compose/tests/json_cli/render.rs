@@ -405,6 +405,89 @@ fn render_json_check_render_reports_checked_contract() {
 }
 
 #[test]
+fn render_json_report_attributes_pack_root_include_and_caller_sources() {
+    let root = temp_root("render-json-context-sources");
+    let templates_root = root.join("templates");
+    let pack_root = templates_root.join("report");
+    write_file(
+        &pack_root.join("template.json"),
+        r#"{ "description": "Report template", "version": "1.0.0", "input_defaults": { "pack_default": "from-pack" } }"#,
+    );
+    write_file(
+        &pack_root.join("report.json.j2"),
+        "---\ndefaults:\n  root_default: from-root\n---\n{\"pack\": {{ pack_default }}, \"override\": {{ override }}}\n@<includes/fragment.j2>\n",
+    );
+    write_file(
+        &pack_root.join("includes/fragment.j2"),
+        "---\ndefaults:\n  included_default: from-include\n---\n",
+    );
+
+    let output = sc_compose()
+        .args([
+            "templates",
+            "report",
+            "--var",
+            "override=from-caller",
+            "--json",
+        ])
+        .env("SC_COMPOSE_TEMPLATE_DIR", &templates_root)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    let checked_context = value["payload"]["render_check"]["checked_context"]
+        .as_str()
+        .unwrap();
+    assert!(checked_context.contains("1 explicit caller values (override)"));
+    assert!(checked_context.contains("1 template-pack defaults (pack_default)"));
+    assert!(checked_context.contains("1 root frontmatter defaults (root_default)"));
+    assert!(checked_context.contains("1 included frontmatter defaults (included_default)"));
+}
+
+#[test]
+fn render_json_custom_delimiter_report_attributes_included_defaults() {
+    let root = temp_root("render-json-custom-context-sources");
+    write_file(
+        &root.join("payload.json.j2"),
+        "---\ndefaults:\n  root_default: from-root\n---\n{\"root\": {{{ root_default }}}, \"override\": {{{ override }}}}\n@<fragment.j2>\n",
+    );
+    write_file(
+        &root.join("fragment.j2"),
+        "---\ndefaults:\n  included_default: from-include\n---\n",
+    );
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--brace-count",
+            "3",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().unwrap(),
+            "--file",
+            "payload.json.j2",
+            "--var",
+            "override=from-caller",
+            "--json",
+        ])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    let checked_context = value["payload"]["render_check"]["checked_context"]
+        .as_str()
+        .unwrap();
+    assert!(checked_context.contains("1 explicit caller values (override)"));
+    assert!(checked_context.contains("1 root frontmatter defaults (root_default)"));
+    assert!(checked_context.contains("1 included frontmatter defaults (included_default)"));
+}
+
+#[test]
 fn render_json_uses_diagnostic_envelope() {
     let root = temp_root("render-json");
     write_file(
