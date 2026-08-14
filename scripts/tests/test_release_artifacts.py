@@ -388,6 +388,9 @@ def test_channel_recovery_workflows_require_a_published_release() -> None:
     assert "channel-config" in homebrew_text
     assert "SCOOP_BUCKET_TOKEN" in scoop_text
     assert "channel-config" in scoop_text
+    assert "Render Scoop manifest with sc-compose" in scoop_text
+    assert "--file release/scoop/manifest.json.j2" in scoop_text
+    assert ".replace(placeholder, value)" not in scoop_text
 
 
 def test_release_workflow_collects_wheels_without_redundant_zip_sweep() -> None:

@@ -77,7 +77,11 @@ jobs:
           repository: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.bucket_repository }}
           token: ${{ secrets.SCOOP_BUCKET_TOKEN }}
           path: scoop-bucket
-      - name: Render manifest from immutable release asset
+      - name: Install Rust toolchain for the checked renderer
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+      - name: Prepare checked-render variables from immutable release asset
         shell: bash
         env:
           CHANNEL_CONFIG: ${{ needs.verify-release.outputs.channel_config }}
@@ -104,26 +108,31 @@ jobs:
               ["curl", "-fsSL", "--retry", "5", "--retry-delay", "30", "--retry-all-errors", "-o", str(archive), url],
               check=True,
           )
-          template = Path("release-source") / channel["manifest_template"]
-          rendered = template.read_text(encoding="utf-8")
-          replacements = {
-              "{{ version }}": os.environ["RELEASE_VERSION"],
-              "{{ description }}": project["description"],
-              "{{ homepage }}": project["homepage"],
-              "{{ license }}": project["license"],
-              "{{ windows_url }}": url,
-              "{{ windows_sha256 }}": hashlib.file_digest(archive.open("rb"), "sha256").hexdigest(),
-              "{{ extract_dir }}": f"{project['archive_prefix']}_{os.environ['RELEASE_VERSION']}_{target['target']}",
-              "{{ binary }}": channel["binary"],
+          variables = {
+              "version": os.environ["RELEASE_VERSION"],
+              "description": project["description"],
+              "homepage": project["homepage"],
+              "license": project["license"],
+              "windows_url": url,
+              "windows_sha256": hashlib.file_digest(archive.open("rb"), "sha256").hexdigest(),
+              "extract_dir": f"{project['archive_prefix']}_{os.environ['RELEASE_VERSION']}_{target['target']}",
+              "binary": channel["binary"],
           }
-          for placeholder, value in replacements.items():
-              rendered = rendered.replace(placeholder, value)
-          if "{{" in rendered:
-              raise SystemExit("unrendered placeholder in Scoop manifest template")
-          output = Path("scoop-bucket") / channel["manifest_path"]
-          output.parent.mkdir(parents=True, exist_ok=True)
-          output.write_text(rendered, encoding="utf-8")
+          Path("scoop-vars.json").write_text(json.dumps(variables), encoding="utf-8")
           PY
+      - name: Render Scoop manifest with sc-compose
+        shell: bash
+        env:
+          MANIFEST_PATH: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.manifest_path }}
+        run: |
+          set -euo pipefail
+          workspace_root="$(pwd)"
+          mkdir -p "$(dirname "scoop-bucket/${MANIFEST_PATH}")"
+          cargo run --quiet --manifest-path release-source/Cargo.toml --bin sc-compose -- \
+            render --mode file --root release-source \
+            --file release/scoop/manifest.json.j2 \
+            --var-file "${workspace_root}/scoop-vars.json" \
+            --output "${workspace_root}/scoop-bucket/${MANIFEST_PATH}"
       - name: Validate Scoop manifest JSON
         env:
           MANIFEST_PATH: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.manifest_path }}
