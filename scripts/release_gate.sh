@@ -29,8 +29,8 @@ main_sha="$(git rev-parse "$MAIN_REF")"
 develop_sha="$(git rev-parse "$DEVELOP_REF")"
 info "main=$main_sha develop=$develop_sha version=$VERSION"
 
-if ! git merge-base --is-ancestor "$DEVELOP_REF" "$MAIN_REF"; then
-  fail "$DEVELOP_REF has commits not in $MAIN_REF (merge develop->main before release)"
+if ! git diff --quiet "$MAIN_REF" "$DEVELOP_REF"; then
+  fail "$DEVELOP_REF differs in content from $MAIN_REF (merge develop->main before release)"
 fi
 
 python3 scripts/release_artifacts.py check-version-unpublished \
