@@ -15,8 +15,10 @@ This document explains the `winget` path for `sc-compose` published from the
   `microsoft/winget-pkgs`.
 - After that bootstrap submission, later releases are automated by the release
   workflow via `vedantmgoyal2009/winget-releaser@v2`.
-- No `winget`-specific repository secret is required; the default
-  `GITHUB_TOKEN` is sufficient for the workflow step.
+- A `WINGET_GITHUB_TOKEN` repository secret is required: a classic PAT with
+  `public_repo` scope from an account that has forked `microsoft/winget-pkgs`.
+  The default `GITHUB_TOKEN` is scoped only to this repo and cannot push a
+  branch to a `winget-pkgs` fork.
 
 ## Installer Source
 

@@ -85,7 +85,7 @@ triggered by a release tag.
 - [ ] Verify the Homebrew formula update completed in `randlee/homebrew-tap`
 - [ ] Verify the `winget` submission/update was dispatched successfully
 - [ ] Update `release/RELEASE-NOTES-TEMPLATE.md` with the actual release summary
-- [ ] Tag the release commit: `git tag v<version> && git push origin v<version>`
+- [ ] Confirm the release workflow's `gate-and-tag` job created `v<version>` — do not tag manually; the tag branch is protected.
 - [ ] Create a GitHub release pointing at the tag with the filled-in release notes
 
 ## Release Authorization
