@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fuzz Run 20260811-2: sc-compose include resolver</title>
+  <style type="text/css">
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0b1220; color: #e5e7eb; }
+      .section { background: #111827; border-color: #1f2937; }
+      table { background: #0f172a; }
+      th, td { border-color: #1f2937 !important; }
+      .icon-button { background: #1f2937; color: #cbd5e1; border-color: #374151; }
+      code { background: #1f2937; color: #e5e7eb; }
+      a { color: #93c5fd; }
+    }
+    :root[data-theme="dark"] body { background: #0b1220; color: #e5e7eb; }
+    :root[data-theme="dark"] .section { background: #111827; border-color: #1f2937; }
+    :root[data-theme="light"] body { background: #ffffff; color: #1f2937; }
+    header { border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 20px; }
+    h1 { margin: 0 0 6px 0; font-size: 1.6rem; }
+    .subtitle { margin: 0 0 4px 0; color: #6b7280; }
+    .generated-at, .source-label { margin: 2px 0; font-size: 0.85rem; color: #6b7280; }
+    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 0.85em; border: 1px solid transparent; }
+    .status-pass { color: #065f46; background: #d1fae5; border-color: #6ee7b7; }
+    .status-drift { color: #92400e; background: #fef3c7; border-color: #f59e0b; }
+    .status-error { color: #991b1b; background: #fee2e2; border-color: #ef4444; }
+    .status-info { color: #1e40af; background: #dbeafe; border-color: #3b82f6; }
+    .top-status { margin-top: 8px; }
+    nav.toc { margin: 16px 0; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 10px; }
+    nav.toc ul { margin: 8px 0 0 0; padding-left: 20px; }
+    .summary-block { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin: 16px 0; }
+    .section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
+    .section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .section-head h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 10px; }
+    .section-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
+    .icon-button:hover { filter: brightness(0.95); }
+    .section-summary { color: #374151; font-style: italic; }
+    .fragment-link { font-size: 0.9rem; }
+    .fragment-source { color: #6b7280; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; vertical-align: top; font-size: 0.9rem; }
+    thead th { background: #f3f4f6; }
+    :root[data-theme="dark"] thead th { background: #1f2937; }
+    @media (prefers-color-scheme: dark) { thead th { background: #1f2937; } }
+    code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 0.9em; white-space: pre-wrap; word-break: break-word; }
+    .finding { border-top: 1px dashed #e5e7eb; padding-top: 10px; margin-top: 10px; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; }
+    dt { font-weight: 600; }
+    dd { margin: 0; }
+    .scratchpad { background: #f9fafb; border-left: 4px solid #3b82f6; padding: 12px; margin-top: 12px; border-radius: 4px; }
+    :root[data-theme="dark"] .scratchpad { background: #0f172a; }
+    .recommendations ul { padding-left: 20px; }
+    .metadata-table th { width: 260px; }
+    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 0.85rem; color: #6b7280; }
+    table { display: block; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Fuzz Run 20260811-2: sc-compose include resolver</h1>
+    <p class="subtitle">Adversarial fuzz campaign against expansion.rs / directive.rs / path.rs / fingerprint.rs</p>
+    <p class="generated-at">Generated: 2026-08-11T00:00:00Z</p>
+    <p class="source-label">Source: sc-adversarial-fuzz-coordinator, integrate/phase-M @ 47572e9</p>
+    <div class="top-status"><span class="status status-fail">FAIL</span></div>
+  </header>
+
+  <section class="summary-block">
+    <div class="section-head">
+      <h2>Summary</h2>
+    </div>
+    <p>Bounded adversarial fuzzing against the production <code>@&lt;path&gt;</code> include-graph resolver (<code>crates/sc-composer/src/include/expansion.rs</code>, <code>directive.rs</code>, <code>path.rs</code>) and the fingerprint/hash path (<code>fingerprint.rs</code>, <code>crates/sc-sha</code>), run against the Sprint M.2 merge at <code>integrate/phase-M</code> commit <code>47572e9</code>. Three focused workers ran 95 total bounded cases (34 + 38 + 23); two workers confirmed a total of 4 distinct bugs, all independently reproduced 3/3 times by the coordinator. No panics, hangs, or crashes were observed; all findings are silent-incorrectness or misleading-diagnostic defects. None duplicate an existing tracked GitHub issue.</p>
+    <table class="session-summary">
+      <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">Conditional-candidate enumeration and diamond-dependency dedup edge cases in the @&lt;path&gt; include resolver</th>
+          <td>34</td>
+          <td>32/34</td>
+          <td><span class="status status-fail">FAIL</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Negative-contract and confinement-boundary probes against resolve_include_path&#x27;s relative/root-relative fallback</th>
+          <td>38</td>
+          <td>36/38</td>
+          <td><span class="status status-fail">FAIL</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Manifest/composition-hash determinism and metamorphic relations for the include-graph fingerprint</th>
+          <td>23</td>
+          <td>23/23</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <nav class="toc">
+    <strong>Worker Sections</strong>
+    <ul>
+      <li><a href="#shape-probe">shape-probe</a> <span class="status status-fail">FAIL</span></li>
+      <li><a href="#boundary-probe">boundary-probe</a> <span class="status status-fail">FAIL</span></li>
+      <li><a href="#differential-probe">differential-probe</a> <span class="status status-pass">PASS</span></li>
+    </ul>
+  </nav>
+
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>shape-probe</h2>
+      <p class="agent-meta">Session m2-include-fuzz-20260811-1 · Worker shape-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;context_text&quot;:&quot;Probed chained/nested ternary conditionals, diamond-shared-file frontmatter duplication, quote-literal edge cases, and large diamond fan-out in the @&lt;path&gt; resolver. Found two confirmed bugs: a 3-way chained ternary silently mis-resolves to a garbage candidate path instead of erroring cleanly (FUZZ-001), and diamond-shared files re-emit their missing-frontmatter diagnostic once per occurrence instead of once per file (FUZZ-002). Same-file dedup with a Jinja-filter-bearing condition, and mismatched-quote literal fallback to Static, both behaved correctly and are not filed as findings.&quot;,&quot;failed&quot;:2,&quot;findings&quot;:[{&quot;expected_oracle&quot;:&quot;A 3-way chained Jinja ternary inside @&lt;{{ ... }}&gt; is either resolved correctly to one of the three candidates, or rejected cleanly as IncludeDirective::Dynamic (ERR_INCLUDE_DYNAMIC_UNRESOLVED), matching how the single-level \&quot;a\&quot; if x else \&quot;b\&quot; form is already handled.&quot;,&quot;finding_id&quot;:&quot;FUZZ-001&quot;,&quot;minimal_input&quot;:&quot;a.md=\&quot;A\\n\&quot;, b.md=\&quot;B\\n\&quot;, c.md=\&quot;C\\n\&quot; (any values for x/y; --var x=true --var y=false)&quot;,&quot;minimal_template&quot;:&quot;@&lt;{{ \&quot;a.md\&quot; if x else \&quot;b.md\&quot; if y else \&quot;c.md\&quot; }}&gt;&quot;,&quot;observed_result&quot;:&quot;parse_conditional_expression() (directive.rs) splits only once on \&quot; if \&quot; and once on \&quot; else \&quot;. For the else-branch text &#x27;\&quot;b.md\&quot; if y else \&quot;c.md\&quot;&#x27;, quoted_literal() sees a string that starts and ends with a double-quote byte and accepts the ENTIRE span -- including the embedded &#x27; if y else &#x27; -- as one opaque literal. The parser therefore builds a Conditional{condition:\&quot;x\&quot;, candidates:[\&quot;a.md\&quot;, \&quot;b.md\\\&quot; if y else \\\&quot;c.md\&quot;]} instead of failing, and expansion tries to open the literal garbage path &#x27;b.md\&quot; if y else \&quot;c.md&#x27;, producing ERR_INCLUDE_NOT_FOUND with a confusing, internals-leaking path instead of a clean dynamic-unresolved diagnostic. Reproduced deterministically 3/3 runs via `cargo run -p sc-compose -- render --mode file`.&quot;,&quot;recommended_fix&quot;:&quot;Add a guard in quoted_literal() (or its caller in parse_conditional_expression) rejecting any candidate literal whose content contains \&quot; if \&quot; or \&quot; else \&quot; after unquoting, forcing multi-way ternary chains to resolve to IncludeDirective::Dynamic and surface ERR_INCLUDE_DYNAMIC_UNRESOLVED. Add a regression test in crates/sc-composer/src/include.rs asserting parse_include_directive() on a 3-way chained ternary returns Dynamic, not a Conditional with a garbled candidate.&quot;,&quot;requirement_follow_up&quot;:&quot;No new requirement or ADR is needed -- this is a narrow parser-correctness gap inside an already-specified feature (conditional-candidate enumeration), not a request for a new chained-ternary feature. Recommend hardening quoted_literal()/parse_conditional_expression() to reject (fall back to Dynamic) any literal whose de-quoted content still contains \&quot; if \&quot; or \&quot; else \&quot;, so unsupported chaining fails with ERR_INCLUDE_DYNAMIC_UNRESOLVED per FR-3&#x27;s actionable-diagnostics clause instead of resolving to a garbage path.&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-3 (Include Expansion) requires deterministic expansion order and that \&quot;Include failures must produce actionable diagnostics with include-chain context.\&quot; No requirement or ADR currently covers N-way (3+) ternary chaining inside @&lt;{{ ... }}&gt;; the only documented/tested conditional shape is the single-level \&quot;a\&quot; if cond else \&quot;b\&quot; form (crates/sc-composer/src/include.rs::conditional_path_candidates_are_exhaustive_and_renderable).&quot;,&quot;root_cause&quot;:&quot;crates/sc-composer/src/include/directive.rs: quoted_literal() accepts any first/last-quote-matched span as a literal without checking for embedded Jinja control keywords once dequoted; parse_conditional_expression() only performs a single split_once(\&quot; if \&quot;)/split_once(\&quot; else \&quot;) pass, so 3+-way ternary chains fall through to this over-permissive literal check instead of being rejected as Dynamic.&quot;},{&quot;expected_oracle&quot;:&quot;A file reached twice via a diamond (a.md and b.md both include shared.md) should contribute its frontmatter-derived diagnostics exactly once, mirroring the existing per-file dedup already applied to resolved_files/source_texts/resolved_seen for the identical reason.&quot;,&quot;finding_id&quot;:&quot;FUZZ-002&quot;,&quot;minimal_input&quot;:&quot;--var my_var=x (validate --json)&quot;,&quot;minimal_template&quot;:&quot;root.md.j2: \&quot;@&lt;a.md&gt;\\n@&lt;b.md&gt;\\n\&quot;; a.md: \&quot;@&lt;shared.md&gt;\\n\&quot;; b.md: \&quot;@&lt;shared.md&gt;\\n\&quot;; shared.md: \&quot;{{ my_var }}\\n\&quot; (no frontmatter)&quot;,&quot;observed_result&quot;:&quot;ExpandedTemplate.frontmatters accumulates one entry PER VISIT, not per file: expand_file() in expansion.rs pushes to state.frontmatters unconditionally on every call, unlike the sibling resolved_files/source_texts pushes which are correctly gated behind the `is_new` check. For the 2-way diamond fixture, `sc-compose validate --json` emits the ERR_VAL_MISSING_FRONTMATTER warning for shared.md TWICE (byte-identical diagnostics, same path/message) instead of once. Verified scaling with a fan-out probe: N-way diamond fan-out produces N duplicate diagnostics. Reproduced deterministically 3/3 `validate --json` runs.&quot;,&quot;recommended_fix&quot;:&quot;Gate `state.frontmatters.push(...)` in expand_file() behind the existing `is_new` boolean, matching resolved_files/source_texts. Add a regression test (crates/sc-composer/src/include.rs or a CLI integration test in crates/sc-compose/tests) building a 2-way diamond with a frontmatter-less shared leaf and asserting `sc-compose validate --json` emits exactly one ERR_VAL_MISSING_FRONTMATTER for the shared path, not one per occurrence.&quot;,&quot;requirement_follow_up&quot;:&quot;No new requirement or ADR is needed; this is a straightforward implementation gap against the existing per-file accounting intent already honored by the sibling collections in the same function. Recommend gating the frontmatters push behind the same `is_new` check used for resolved_files/source_texts.&quot;,&quot;requirement_trace&quot;:&quot;No formal requirement or ADR states an exact per-file diagnostic-count invariant, but crates/sc-composer/src/include.rs documents ExpandedTemplate.frontmatters as \&quot;Parsed frontmatter values keyed by the file they came from\&quot; (implying one logical entry per file), and FR-3a (Frontmatter Across Includes) treats included-file frontmatter as participating once in composition validation, consistent with the existing resolved_files/source_texts/resolved_seen dedup-by-canonical-path pattern used for the same diamond scenario.&quot;,&quot;root_cause&quot;:&quot;crates/sc-composer/src/include/expansion.rs expand_file(): `state.frontmatters.push((path.to_path_buf(), parsed.passes().to_vec()))` runs unconditionally on every visit to a path, including cached (is_new == false) diamond re-visits, while the sibling `resolved_files.push` and `source_texts.insert` calls two lines above/below are correctly gated behind `if is_new`. Downstream, missing_frontmatter_warnings_for_path and frontmatter_diagnostics in validation/diagnostics.rs iterate expanded.frontmatters without deduplicating by path, so each diamond occurrence re-emits the same diagnostic.&quot;}],&quot;fuzz_run_description&quot;:&quot;Conditional-candidate enumeration and diamond-dependency dedup edge cases in the @&lt;path&gt; include resolver&quot;,&quot;iterations&quot;:34,&quot;passed&quot;:32,&quot;result&quot;:&quot;FAIL&quot;,&quot;session_id&quot;:&quot;m2-include-fuzz-20260811-1&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-001&quot;,&quot;description&quot;:&quot;3-way chained ternary @&lt;{{ \&quot;a\&quot; if x else \&quot;b\&quot; if y else \&quot;c\&quot; }}&gt;&quot;,&quot;minimal_input&quot;:&quot;x=true, y=false&quot;,&quot;minimal_template&quot;:&quot;@&lt;{{ \&quot;a.md\&quot; if x else \&quot;b.md\&quot; if y else \&quot;c.md\&quot; }}&gt;&quot;,&quot;outcome&quot;:&quot;FAIL: mis-resolves to garbage candidate path, ERR_INCLUDE_NOT_FOUND with leaked parser internals&quot;,&quot;passed&quot;:false},{&quot;case_id&quot;:&quot;FUZZ-002&quot;,&quot;description&quot;:&quot;2-way diamond sharing a frontmatter-less leaf (a.md, b.md both @&lt;shared.md&gt;)&quot;,&quot;minimal_input&quot;:&quot;my_var=x&quot;,&quot;minimal_template&quot;:&quot;root-&gt;[a.md,b.md]-&gt;shared.md&quot;,&quot;outcome&quot;:&quot;FAIL: ERR_VAL_MISSING_FRONTMATTER emitted twice for shared.md instead of once&quot;,&quot;passed&quot;:false},{&quot;case_id&quot;:&quot;same-file-conditional-with-filter&quot;,&quot;description&quot;:&quot;Both ternary candidates resolve to the same file; condition contains a Jinja filter&quot;,&quot;minimal_input&quot;:&quot;no vars required&quot;,&quot;minimal_template&quot;:&quot;@&lt;{{ \&quot;shared.md\&quot; if (x|default(false)) else \&quot;shared.md\&quot; }}&gt;&quot;,&quot;outcome&quot;:&quot;PASS: renders correctly, {% if %}/{% else %}/{% endif %} wrapper stays valid Jinja&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;mismatched-quote-literal&quot;,&quot;description&quot;:&quot;Conditional literal with mismatched outer quote style (\&quot;a.md&#x27; if x else &#x27;b.md\&quot;)&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;@&lt;{{ \&quot;a.md&#x27; if x else &#x27;b.md\&quot; }}&gt;&quot;,&quot;outcome&quot;:&quot;PASS: whole span is itself one valid quoted literal per quoted_literal&#x27;s own rules; falls back to Static as designed&quot;,&quot;passed&quot;:true}],&quot;worker_correlation_id&quot;:&quot;shape-probe&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Probed chained/nested ternary conditionals, diamond-shared-file frontmatter duplication, quote-literal edge cases, and large diamond fan-out in the @&lt;path&gt; resolver. Found two confirmed bugs: a 3-way chained ternary silently mis-resolves to a garbage candidate path instead of erroring cleanly (FUZZ-001), and diamond-shared files re-emit their missing-frontmatter diagnostic once per occurrence instead of once per file (FUZZ-002). Same-file dedup with a Jinja-filter-bearing condition, and mismatched-quote literal fallback to Static, both behaved correctly and are not filed as findings.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Conditional-candidate enumeration and diamond-dependency dedup edge cases in the @&lt;path&gt; include resolver</th>
+        <td>34</td>
+        <td>32/34</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-001</th><td><code>3-way chained ternary @&lt;{{ &quot;a&quot; if x else &quot;b&quot; if y else &quot;c&quot; }}&gt;</code></td><td>FAIL: mis-resolves to garbage candidate path, ERR_INCLUDE_NOT_FOUND with leaked parser internals</td></tr>
+        <tr><th scope="row">FUZZ-002</th><td><code>2-way diamond sharing a frontmatter-less leaf (a.md, b.md both @&lt;shared.md&gt;)</code></td><td>FAIL: ERR_VAL_MISSING_FRONTMATTER emitted twice for shared.md instead of once</td></tr>
+        <tr><th scope="row">same-file-conditional-with-filter</th><td><code>Both ternary candidates resolve to the same file; condition contains a Jinja filter</code></td><td>PASS: renders correctly, {% if %}/{% else %}/{% endif %} wrapper stays valid Jinja</td></tr>
+        <tr><th scope="row">mismatched-quote-literal</th><td><code>Conditional literal with mismatched outer quote style (&quot;a.md&#x27; if x else &#x27;b.md&quot;)</code></td><td>PASS: whole span is itself one valid quoted literal per quoted_literal&#x27;s own rules; falls back to Static as designed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>@&lt;{{ &quot;a.md&quot; if x else &quot;b.md&quot; if y else &quot;c.md&quot; }}&gt;</code></dd>
+        <dt>Input</dt><dd><code>a.md=&quot;A\n&quot;, b.md=&quot;B\n&quot;, c.md=&quot;C\n&quot; (any values for x/y; --var x=true --var y=false)</code></dd>
+        <dt>Expected</dt><dd>A 3-way chained Jinja ternary inside @&lt;{{ ... }}&gt; is either resolved correctly to one of the three candidates, or rejected cleanly as IncludeDirective::Dynamic (ERR_INCLUDE_DYNAMIC_UNRESOLVED), matching how the single-level &quot;a&quot; if x else &quot;b&quot; form is already handled.</dd>
+        <dt>Observed</dt><dd>parse_conditional_expression() (directive.rs) splits only once on &quot; if &quot; and once on &quot; else &quot;. For the else-branch text &#x27;&quot;b.md&quot; if y else &quot;c.md&quot;&#x27;, quoted_literal() sees a string that starts and ends with a double-quote byte and accepts the ENTIRE span -- including the embedded &#x27; if y else &#x27; -- as one opaque literal. The parser therefore builds a Conditional{condition:&quot;x&quot;, candidates:[&quot;a.md&quot;, &quot;b.md\&quot; if y else \&quot;c.md&quot;]} instead of failing, and expansion tries to open the literal garbage path &#x27;b.md&quot; if y else &quot;c.md&#x27;, producing ERR_INCLUDE_NOT_FOUND with a confusing, internals-leaking path instead of a clean dynamic-unresolved diagnostic. Reproduced deterministically 3/3 runs via `cargo run -p sc-compose -- render --mode file`.</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-3 (Include Expansion) requires deterministic expansion order and that &quot;Include failures must produce actionable diagnostics with include-chain context.&quot; No requirement or ADR currently covers N-way (3+) ternary chaining inside @&lt;{{ ... }}&gt;; the only documented/tested conditional shape is the single-level &quot;a&quot; if cond else &quot;b&quot; form (crates/sc-composer/src/include.rs::conditional_path_candidates_are_exhaustive_and_renderable).</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new requirement or ADR is needed -- this is a narrow parser-correctness gap inside an already-specified feature (conditional-candidate enumeration), not a request for a new chained-ternary feature. Recommend hardening quoted_literal()/parse_conditional_expression() to reject (fall back to Dynamic) any literal whose de-quoted content still contains &quot; if &quot; or &quot; else &quot;, so unsupported chaining fails with ERR_INCLUDE_DYNAMIC_UNRESOLVED per FR-3&#x27;s actionable-diagnostics clause instead of resolving to a garbage path.</dd>
+        <dt>Root cause</dt><dd>crates/sc-composer/src/include/directive.rs: quoted_literal() accepts any first/last-quote-matched span as a literal without checking for embedded Jinja control keywords once dequoted; parse_conditional_expression() only performs a single split_once(&quot; if &quot;)/split_once(&quot; else &quot;) pass, so 3+-way ternary chains fall through to this over-permissive literal check instead of being rejected as Dynamic.</dd>
+        <dt>Recommended fix</dt><dd>Add a guard in quoted_literal() (or its caller in parse_conditional_expression) rejecting any candidate literal whose content contains &quot; if &quot; or &quot; else &quot; after unquoting, forcing multi-way ternary chains to resolve to IncludeDirective::Dynamic and surface ERR_INCLUDE_DYNAMIC_UNRESOLVED. Add a regression test in crates/sc-composer/src/include.rs asserting parse_include_directive() on a 3-way chained ternary returns Dynamic, not a Conditional with a garbled candidate.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-002</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>root.md.j2: &quot;@&lt;a.md&gt;\n@&lt;b.md&gt;\n&quot;; a.md: &quot;@&lt;shared.md&gt;\n&quot;; b.md: &quot;@&lt;shared.md&gt;\n&quot;; shared.md: &quot;{{ my_var }}\n&quot; (no frontmatter)</code></dd>
+        <dt>Input</dt><dd><code>--var my_var=x (validate --json)</code></dd>
+        <dt>Expected</dt><dd>A file reached twice via a diamond (a.md and b.md both include shared.md) should contribute its frontmatter-derived diagnostics exactly once, mirroring the existing per-file dedup already applied to resolved_files/source_texts/resolved_seen for the identical reason.</dd>
+        <dt>Observed</dt><dd>ExpandedTemplate.frontmatters accumulates one entry PER VISIT, not per file: expand_file() in expansion.rs pushes to state.frontmatters unconditionally on every call, unlike the sibling resolved_files/source_texts pushes which are correctly gated behind the `is_new` check. For the 2-way diamond fixture, `sc-compose validate --json` emits the ERR_VAL_MISSING_FRONTMATTER warning for shared.md TWICE (byte-identical diagnostics, same path/message) instead of once. Verified scaling with a fan-out probe: N-way diamond fan-out produces N duplicate diagnostics. Reproduced deterministically 3/3 `validate --json` runs.</dd>
+        <dt>Requirement / ADR</dt><dd>No formal requirement or ADR states an exact per-file diagnostic-count invariant, but crates/sc-composer/src/include.rs documents ExpandedTemplate.frontmatters as &quot;Parsed frontmatter values keyed by the file they came from&quot; (implying one logical entry per file), and FR-3a (Frontmatter Across Includes) treats included-file frontmatter as participating once in composition validation, consistent with the existing resolved_files/source_texts/resolved_seen dedup-by-canonical-path pattern used for the same diamond scenario.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new requirement or ADR is needed; this is a straightforward implementation gap against the existing per-file accounting intent already honored by the sibling collections in the same function. Recommend gating the frontmatters push behind the same `is_new` check used for resolved_files/source_texts.</dd>
+        <dt>Root cause</dt><dd>crates/sc-composer/src/include/expansion.rs expand_file(): `state.frontmatters.push((path.to_path_buf(), parsed.passes().to_vec()))` runs unconditionally on every visit to a path, including cached (is_new == false) diamond re-visits, while the sibling `resolved_files.push` and `source_texts.insert` calls two lines above/below are correctly gated behind `if is_new`. Downstream, missing_frontmatter_warnings_for_path and frontmatter_diagnostics in validation/diagnostics.rs iterate expanded.frontmatters without deduplicating by path, so each diamond occurrence re-emits the same diagnostic.</dd>
+        <dt>Recommended fix</dt><dd>Gate `state.frontmatters.push(...)` in expand_file() behind the existing `is_new` boolean, matching resolved_files/source_texts. Add a regression test (crates/sc-composer/src/include.rs or a CLI integration test in crates/sc-compose/tests) building a 2-way diamond with a frontmatter-less shared leaf and asserting `sc-compose validate --json` emits exactly one ERR_VAL_MISSING_FRONTMATTER for the shared path, not one per occurrence.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session m2-include-fuzz-20260811-1 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;context_text&quot;:&quot;Probed resolve_include_path&#x27;s silent relative-to-root-relative fallback, malformed/empty/NUL/very-long include targets, self-inclusion normalization order, and the existing-target confinement-escape oracle (issue #249 regression). Found two confirmed bugs sharing one root cause: the fallback discards ANY classified error from the first (relative) resolution attempt, not just not-found, which can silently substitute an unrelated same-named decoy file (FUZZ-003) or surface a misleading not-found diagnostic that masks the real permission-denied cause (FUZZ-004). All other probes (malformed-directive rejection, cycle-detection normalization order, existence-oracle non-leak, pathological target length) held correctly.&quot;,&quot;failed&quot;:2,&quot;findings&quot;:[{&quot;expected_oracle&quot;:&quot;Per FR-3, include resolution tries (1) the path relative to the containing file, then (2) the path relative to the configured root, in that documented order. When the nested containing-file-relative candidate exists but is rendered inaccessible (EACCES on a parent directory), the resolver must either surface an actionable permission diagnostic naming the intended nested target, or, at minimum, never silently substitute the content of an unrelated same-named root-relative file with zero error and zero identity signal.&quot;,&quot;finding_id&quot;:&quot;FUZZ-003&quot;,&quot;minimal_input&quot;:&quot;sc-compose render --mode file --root &lt;fixture&gt; --file root.md.j2 (no vars needed)&quot;,&quot;minimal_template&quot;:&quot;root.md.j2: \&quot;@&lt;a/child.md.j2&gt;\\n\&quot;; a/child.md.j2: \&quot;@&lt;priv/restricted.md&gt;\\n\&quot;; a/priv/restricted.md: \&quot;REAL nested secret\&quot;; priv/restricted.md: \&quot;DECOY root-level file\&quot; (a/priv chmod 000)&quot;,&quot;observed_result&quot;:&quot;Render succeeds (exit 0) and emits \&quot;DECOY root-level file\&quot; instead of erroring or resolving the real nested target. resolve_include_path() (path.rs) tries the relative candidate first; on ANY Err from canonicalize_include -- not just NotFound -- it discards that error and silently retries the root-relative candidate. Because a decoy file of the same relative name also exists at the root-relative resolution point, the caller receives wrong file content with no diagnostic distinguishing this from an ordinary successful nested include. Reproduced deterministically 3/3 runs; classified confirmed_bug (severity: high -- silent wrong-content substitution, not merely a diagnostics-quality gap).&quot;,&quot;recommended_fix&quot;:&quot;In resolve_include_path(), match on the classified error from the first canonicalize_include attempt: only retry the root-relative candidate when the error is ErrIncludeNotFound; propagate ErrIncludePermissionDenied/ErrIncludeFilesystemLoop/ErrIncludeIsADirectory/ErrIncludeEscape immediately instead of retrying. Add a regression test in crates/sc-composer/src/include.rs (adjacent to permission_denied_include_reports_permission_denied) with a same-named decoy at the root-relative location, asserting the render fails with ErrIncludePermissionDenied and the decoy&#x27;s content is never returned.&quot;,&quot;requirement_follow_up&quot;:&quot;No new requirement or ADR is needed -- FR-3&#x27;s two-step resolution order is already correct and intentional; the fallback-swallowing behavior for non-NotFound classified errors is the implementation bug. Recommend fixing resolve_include_path() to only fall through to the root-relative candidate when the relative attempt&#x27;s error is specifically ErrIncludeNotFound; any other classified error (permission-denied, filesystem-loop, is-a-directory, or confinement-escape) should be surfaced immediately, since a decoy at the root-relative location must never silently stand in for an inaccessible intended nested target.&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-3 documents the two-step relative-then-root resolution order explicitly, and separately requires \&quot;Include failures must produce actionable diagnostics with include-chain context.\&quot; The two-step order itself is intentional per FR-3; the defect is that classified filesystem errors (permission-denied, filesystem-loop, is-a-directory) from step 1 are discarded identically to a plain not-found, allowing step 2 to silently substitute an unrelated file with no error surfaced at all.&quot;,&quot;root_cause&quot;:&quot;crates/sc-composer/src/include/path.rs resolve_include_path(): `if let Ok(path) = canonicalize_include(&amp;relative_candidate, ...) { return Ok(path); }` unconditionally falls through to the root-relative attempt on ANY Err variant from the first canonicalize_include call, without inspecting the returned DiagnosticCode/error kind. This conflates \&quot;relative candidate does not exist, try root-relative next\&quot; (the FR-3-documented intentional case) with \&quot;relative candidate exists but is inaccessible/escapes/loops\&quot; (which should be a terminal, actionable failure).&quot;},{&quot;expected_oracle&quot;:&quot;The surfaced diagnostic for an include failure should reflect the most specific/actionable classified error for the include exactly as the template author wrote it (relative to its containing file) -- i.e. ERR_INCLUDE_PERMISSION_DENIED naming a/priv/restricted.md -- per FR-3&#x27;s \&quot;actionable diagnostics with include-chain context\&quot; requirement.&quot;,&quot;finding_id&quot;:&quot;FUZZ-004&quot;,&quot;minimal_input&quot;:&quot;sc-compose render --mode file --root &lt;fixture&gt; --file root.md.j2 (no vars needed)&quot;,&quot;minimal_template&quot;:&quot;root.md.j2: \&quot;@&lt;a/child.md.j2&gt;\\n\&quot;; a/child.md.j2: \&quot;@&lt;priv/restricted.md&gt;\\n\&quot;; a/priv/restricted.md: \&quot;nested secret\&quot; (a/priv chmod 000); no file at root-relative priv/restricted.md&quot;,&quot;observed_result&quot;:&quot;The CLI instead reports ERR_INCLUDE_NOT_FOUND naming a root-relative path (\&quot;&lt;root&gt;/priv/restricted.md\&quot;) that was never written in any template and does not correspond to the actual permission-denied cause. The real, already-correctly-classified PermissionDenied error from the relative-candidate attempt is discarded in favor of the generic NotFound from the root-relative fallback attempt. Reproduced deterministically 3/3 runs; same root cause as FUZZ-003, distinct symptom (misleading diagnostic identity/path rather than silent wrong content).&quot;,&quot;recommended_fix&quot;:&quot;Fix jointly with FUZZ-003: preserve and surface the relative candidate&#x27;s classified error (permission-denied, filesystem-loop, is-a-directory, escape) instead of the root-relative fallback&#x27;s generic not-found, whenever the relative attempt&#x27;s failure was not itself a plain not-found. Add a regression test asserting the diagnostic path/code reflects the containing-file-relative target, not the root-relative fallback target, when the two attempts disagree.&quot;,&quot;requirement_follow_up&quot;:&quot;No new requirement or ADR is needed; covered by the same FR-3 fix recommended for FUZZ-003.&quot;,&quot;requirement_trace&quot;:&quot;Same requirement grounding as FUZZ-003: FR-3&#x27;s two-step resolution order is intentional, but its \&quot;actionable diagnostics\&quot; clause is violated when the more specific first-attempt error is discarded for a less actionable fallback error.&quot;,&quot;root_cause&quot;:&quot;Same root cause as FUZZ-003 in crates/sc-composer/src/include/path.rs resolve_include_path(): the first classified error is unconditionally discarded before the root-relative retry, regardless of its diagnostic code.&quot;}],&quot;fuzz_run_description&quot;:&quot;Negative-contract and confinement-boundary probes against resolve_include_path&#x27;s relative/root-relative fallback&quot;,&quot;iterations&quot;:38,&quot;passed&quot;:36,&quot;result&quot;:&quot;FAIL&quot;,&quot;session_id&quot;:&quot;m2-include-fuzz-20260811-1&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-003&quot;,&quot;description&quot;:&quot;Permission-denied nested candidate with a same-named root-relative decoy present&quot;,&quot;minimal_input&quot;:&quot;decoy at root-relative priv/restricted.md&quot;,&quot;minimal_template&quot;:&quot;root.md.j2 -&gt; a/child.md.j2 -&gt; priv/restricted.md (a/priv chmod 000)&quot;,&quot;outcome&quot;:&quot;FAIL: silently renders decoy content, exit 0, zero diagnostic&quot;,&quot;passed&quot;:false},{&quot;case_id&quot;:&quot;FUZZ-004&quot;,&quot;description&quot;:&quot;Permission-denied nested candidate with no root-relative fallback file present&quot;,&quot;minimal_input&quot;:&quot;no decoy file present&quot;,&quot;minimal_template&quot;:&quot;root.md.j2 -&gt; a/child.md.j2 -&gt; priv/restricted.md (a/priv chmod 000)&quot;,&quot;outcome&quot;:&quot;FAIL: reports ERR_INCLUDE_NOT_FOUND on a fabricated root-relative path, masking the real ERR_INCLUDE_PERMISSION_DENIED&quot;,&quot;passed&quot;:false},{&quot;case_id&quot;:&quot;empty-and-unterminated-directive&quot;,&quot;description&quot;:&quot;@&lt;&gt; (len==3) and unterminated @&lt;no_closing_bracket&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;@&lt;&gt;  /  @&lt;no_closing&quot;,&quot;outcome&quot;:&quot;PASS: both correctly raise ERR_INCLUDE_DYNAMIC_UNRESOLVED, never silently swallowed as literal text&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;self-include-normalization&quot;,&quot;description&quot;:&quot;@&lt;./root.md.j2&gt; and @&lt;sub/../root.md.j2&gt; self-inclusion&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;@&lt;./root.md.j2&gt;  /  @&lt;sub/../root.md.j2&gt;&quot;,&quot;outcome&quot;:&quot;PASS: both correctly classified ERR_INCLUDE_CYCLE; canonicalization happens before the cycle check&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;existence-oracle-directory-variant&quot;,&quot;description&quot;:&quot;Escape to an existing directory outside root (issue #249 regression variation)&quot;,&quot;minimal_input&quot;:&quot;../oracle-target exists as a directory&quot;,&quot;minimal_template&quot;:&quot;@&lt;../oracle-target&gt;&quot;,&quot;outcome&quot;:&quot;PASS: ERR_INCLUDE_ESCAPE, identical shape to the missing-target case; no existence-oracle leak&quot;,&quot;passed&quot;:true}],&quot;worker_correlation_id&quot;:&quot;boundary-probe&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Probed resolve_include_path&#x27;s silent relative-to-root-relative fallback, malformed/empty/NUL/very-long include targets, self-inclusion normalization order, and the existing-target confinement-escape oracle (issue #249 regression). Found two confirmed bugs sharing one root cause: the fallback discards ANY classified error from the first (relative) resolution attempt, not just not-found, which can silently substitute an unrelated same-named decoy file (FUZZ-003) or surface a misleading not-found diagnostic that masks the real permission-denied cause (FUZZ-004). All other probes (malformed-directive rejection, cycle-detection normalization order, existence-oracle non-leak, pathological target length) held correctly.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Negative-contract and confinement-boundary probes against resolve_include_path&#x27;s relative/root-relative fallback</th>
+        <td>38</td>
+        <td>36/38</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-003</th><td><code>Permission-denied nested candidate with a same-named root-relative decoy present</code></td><td>FAIL: silently renders decoy content, exit 0, zero diagnostic</td></tr>
+        <tr><th scope="row">FUZZ-004</th><td><code>Permission-denied nested candidate with no root-relative fallback file present</code></td><td>FAIL: reports ERR_INCLUDE_NOT_FOUND on a fabricated root-relative path, masking the real ERR_INCLUDE_PERMISSION_DENIED</td></tr>
+        <tr><th scope="row">empty-and-unterminated-directive</th><td><code>@&lt;&gt; (len==3) and unterminated @&lt;no_closing_bracket</code></td><td>PASS: both correctly raise ERR_INCLUDE_DYNAMIC_UNRESOLVED, never silently swallowed as literal text</td></tr>
+        <tr><th scope="row">self-include-normalization</th><td><code>@&lt;./root.md.j2&gt; and @&lt;sub/../root.md.j2&gt; self-inclusion</code></td><td>PASS: both correctly classified ERR_INCLUDE_CYCLE; canonicalization happens before the cycle check</td></tr>
+        <tr><th scope="row">existence-oracle-directory-variant</th><td><code>Escape to an existing directory outside root (issue #249 regression variation)</code></td><td>PASS: ERR_INCLUDE_ESCAPE, identical shape to the missing-target case; no existence-oracle leak</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-003</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>root.md.j2: &quot;@&lt;a/child.md.j2&gt;\n&quot;; a/child.md.j2: &quot;@&lt;priv/restricted.md&gt;\n&quot;; a/priv/restricted.md: &quot;REAL nested secret&quot;; priv/restricted.md: &quot;DECOY root-level file&quot; (a/priv chmod 000)</code></dd>
+        <dt>Input</dt><dd><code>sc-compose render --mode file --root &lt;fixture&gt; --file root.md.j2 (no vars needed)</code></dd>
+        <dt>Expected</dt><dd>Per FR-3, include resolution tries (1) the path relative to the containing file, then (2) the path relative to the configured root, in that documented order. When the nested containing-file-relative candidate exists but is rendered inaccessible (EACCES on a parent directory), the resolver must either surface an actionable permission diagnostic naming the intended nested target, or, at minimum, never silently substitute the content of an unrelated same-named root-relative file with zero error and zero identity signal.</dd>
+        <dt>Observed</dt><dd>Render succeeds (exit 0) and emits &quot;DECOY root-level file&quot; instead of erroring or resolving the real nested target. resolve_include_path() (path.rs) tries the relative candidate first; on ANY Err from canonicalize_include -- not just NotFound -- it discards that error and silently retries the root-relative candidate. Because a decoy file of the same relative name also exists at the root-relative resolution point, the caller receives wrong file content with no diagnostic distinguishing this from an ordinary successful nested include. Reproduced deterministically 3/3 runs; classified confirmed_bug (severity: high -- silent wrong-content substitution, not merely a diagnostics-quality gap).</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-3 documents the two-step relative-then-root resolution order explicitly, and separately requires &quot;Include failures must produce actionable diagnostics with include-chain context.&quot; The two-step order itself is intentional per FR-3; the defect is that classified filesystem errors (permission-denied, filesystem-loop, is-a-directory) from step 1 are discarded identically to a plain not-found, allowing step 2 to silently substitute an unrelated file with no error surfaced at all.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new requirement or ADR is needed -- FR-3&#x27;s two-step resolution order is already correct and intentional; the fallback-swallowing behavior for non-NotFound classified errors is the implementation bug. Recommend fixing resolve_include_path() to only fall through to the root-relative candidate when the relative attempt&#x27;s error is specifically ErrIncludeNotFound; any other classified error (permission-denied, filesystem-loop, is-a-directory, or confinement-escape) should be surfaced immediately, since a decoy at the root-relative location must never silently stand in for an inaccessible intended nested target.</dd>
+        <dt>Root cause</dt><dd>crates/sc-composer/src/include/path.rs resolve_include_path(): `if let Ok(path) = canonicalize_include(&amp;relative_candidate, ...) { return Ok(path); }` unconditionally falls through to the root-relative attempt on ANY Err variant from the first canonicalize_include call, without inspecting the returned DiagnosticCode/error kind. This conflates &quot;relative candidate does not exist, try root-relative next&quot; (the FR-3-documented intentional case) with &quot;relative candidate exists but is inaccessible/escapes/loops&quot; (which should be a terminal, actionable failure).</dd>
+        <dt>Recommended fix</dt><dd>In resolve_include_path(), match on the classified error from the first canonicalize_include attempt: only retry the root-relative candidate when the error is ErrIncludeNotFound; propagate ErrIncludePermissionDenied/ErrIncludeFilesystemLoop/ErrIncludeIsADirectory/ErrIncludeEscape immediately instead of retrying. Add a regression test in crates/sc-composer/src/include.rs (adjacent to permission_denied_include_reports_permission_denied) with a same-named decoy at the root-relative location, asserting the render fails with ErrIncludePermissionDenied and the decoy&#x27;s content is never returned.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-004</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>root.md.j2: &quot;@&lt;a/child.md.j2&gt;\n&quot;; a/child.md.j2: &quot;@&lt;priv/restricted.md&gt;\n&quot;; a/priv/restricted.md: &quot;nested secret&quot; (a/priv chmod 000); no file at root-relative priv/restricted.md</code></dd>
+        <dt>Input</dt><dd><code>sc-compose render --mode file --root &lt;fixture&gt; --file root.md.j2 (no vars needed)</code></dd>
+        <dt>Expected</dt><dd>The surfaced diagnostic for an include failure should reflect the most specific/actionable classified error for the include exactly as the template author wrote it (relative to its containing file) -- i.e. ERR_INCLUDE_PERMISSION_DENIED naming a/priv/restricted.md -- per FR-3&#x27;s &quot;actionable diagnostics with include-chain context&quot; requirement.</dd>
+        <dt>Observed</dt><dd>The CLI instead reports ERR_INCLUDE_NOT_FOUND naming a root-relative path (&quot;&lt;root&gt;/priv/restricted.md&quot;) that was never written in any template and does not correspond to the actual permission-denied cause. The real, already-correctly-classified PermissionDenied error from the relative-candidate attempt is discarded in favor of the generic NotFound from the root-relative fallback attempt. Reproduced deterministically 3/3 runs; same root cause as FUZZ-003, distinct symptom (misleading diagnostic identity/path rather than silent wrong content).</dd>
+        <dt>Requirement / ADR</dt><dd>Same requirement grounding as FUZZ-003: FR-3&#x27;s two-step resolution order is intentional, but its &quot;actionable diagnostics&quot; clause is violated when the more specific first-attempt error is discarded for a less actionable fallback error.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new requirement or ADR is needed; covered by the same FR-3 fix recommended for FUZZ-003.</dd>
+        <dt>Root cause</dt><dd>Same root cause as FUZZ-003 in crates/sc-composer/src/include/path.rs resolve_include_path(): the first classified error is unconditionally discarded before the root-relative retry, regardless of its diagnostic code.</dd>
+        <dt>Recommended fix</dt><dd>Fix jointly with FUZZ-003: preserve and surface the relative candidate&#x27;s classified error (permission-denied, filesystem-loop, is-a-directory, escape) instead of the root-relative fallback&#x27;s generic not-found, whenever the relative attempt&#x27;s failure was not itself a plain not-found. Add a regression test asserting the diagnostic path/code reflects the containing-file-relative target, not the root-relative fallback target, when the two attempts disagree.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>differential-probe</h2>
+      <p class="agent-meta">Session m2-include-fuzz-20260811-1 · Worker differential-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;context_text&quot;:&quot;Ran identical fixture trees through 6+3 independently spawned fresh OS processes (not merely repeated in-process calls) confirming byte-identical source_sha and manifest node/edge ordering, with node/edge order following @&lt;path&gt; discovery order rather than filesystem/OS directory-listing order. Confirmed the rename-vs-content-hash separation (renaming an included file changes source_sha via CanonicalSource while leaving unchanged-content&#x27;s content_hash stable) and that calculate_composition_hash validates edge/node referential integrity (rejects unknown edge endpoints) while still hashing a structurally empty 0-node/0-edge manifest successfully with no panic.&quot;,&quot;failed&quot;:0,&quot;findings&quot;:[],&quot;fuzz_run_description&quot;:&quot;Manifest/composition-hash determinism and metamorphic relations for the include-graph fingerprint&quot;,&quot;iterations&quot;:23,&quot;passed&quot;:23,&quot;result&quot;:&quot;PASS&quot;,&quot;session_id&quot;:&quot;m2-include-fuzz-20260811-1&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;cross-process-determinism&quot;,&quot;description&quot;:&quot;Same fixture tree rendered in 6 fresh processes (linear+diamond nesting) plus 3 fresh processes at 60-way fan-out&quot;,&quot;minimal_input&quot;:&quot;no caller variables&quot;,&quot;minimal_template&quot;:&quot;root.md.j2 -&gt; partials/one.md -&gt; partials/two.md; 60-leaf fan-out variant&quot;,&quot;outcome&quot;:&quot;PASS: byte-identical source_sha and manifest ordering across all 9 fresh-process runs; 60-node fan-out completed in 8-10ms&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;rename-changes-identity-content-hash-stable&quot;,&quot;description&quot;:&quot;Renamed include target with identical content_hash for the unchanged leaf&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;tree3a: @&lt;child.md&gt;  vs  tree3b: @&lt;renamed-child.md&gt; (identical bytes)&quot;,&quot;outcome&quot;:&quot;PASS: source_sha differs (path-based identity), shared leaf content_hash identical, stable across 3 runs each&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;empty-and-dangling-manifest-validation&quot;,&quot;description&quot;:&quot;Direct ResolvedTemplateManifest construction: 0-node/0-edge manifest, and an edge referencing endpoints absent from an empty node list&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;N/A - direct manifest construction&quot;,&quot;outcome&quot;:&quot;PASS: empty manifest hashes deterministically with no panic; dangling edge is rejected deterministically as CompositionError::UnknownEdgeEndpoint in all 3 runs&quot;,&quot;passed&quot;:true}],&quot;worker_correlation_id&quot;:&quot;differential-probe&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Ran identical fixture trees through 6+3 independently spawned fresh OS processes (not merely repeated in-process calls) confirming byte-identical source_sha and manifest node/edge ordering, with node/edge order following @&lt;path&gt; discovery order rather than filesystem/OS directory-listing order. Confirmed the rename-vs-content-hash separation (renaming an included file changes source_sha via CanonicalSource while leaving unchanged-content&#x27;s content_hash stable) and that calculate_composition_hash validates edge/node referential integrity (rejects unknown edge endpoints) while still hashing a structurally empty 0-node/0-edge manifest successfully with no panic.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Manifest/composition-hash determinism and metamorphic relations for the include-graph fingerprint</th>
+        <td>23</td>
+        <td>23/23</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">cross-process-determinism</th><td><code>Same fixture tree rendered in 6 fresh processes (linear+diamond nesting) plus 3 fresh processes at 60-way fan-out</code></td><td>PASS: byte-identical source_sha and manifest ordering across all 9 fresh-process runs; 60-node fan-out completed in 8-10ms</td></tr>
+        <tr><th scope="row">rename-changes-identity-content-hash-stable</th><td><code>Renamed include target with identical content_hash for the unchanged leaf</code></td><td>PASS: source_sha differs (path-based identity), shared leaf content_hash identical, stable across 3 runs each</td></tr>
+        <tr><th scope="row">empty-and-dangling-manifest-validation</th><td><code>Direct ResolvedTemplateManifest construction: 0-node/0-edge manifest, and an edge referencing endpoints absent from an empty node list</code></td><td>PASS: empty manifest hashes deterministically with no panic; dangling edge is rejected deterministically as CompositionError::UnknownEdgeEndpoint in all 3 runs</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+
+  <section class="section recommendations">
+    <h2>Recommendations</h2>
+    <ul><li><strong>FUZZ-001</strong> (directive.rs): harden <code>quoted_literal()</code>/<code>parse_conditional_expression()</code> to reject de-quoted literals containing embedded <code>" if "</code>/<code>" else "</code> keywords, forcing N-way chained ternaries to resolve to <code>IncludeDirective::Dynamic</code> (<code>ERR_INCLUDE_DYNAMIC_UNRESOLVED</code>) instead of a garbled literal path.</li><li><strong>FUZZ-002</strong> (expansion.rs): gate <code>state.frontmatters.push(...)</code> in <code>expand_file()</code> behind the same <code>is_new</code> check already used for <code>resolved_files</code>/<code>source_texts</code>, so diamond-shared files contribute frontmatter diagnostics once per file, not once per occurrence.</li><li><strong>FUZZ-003 / FUZZ-004</strong> (path.rs): in <code>resolve_include_path()</code>, only fall through to the root-relative candidate when the relative attempt's classified error is <code>ErrIncludeNotFound</code>; propagate permission-denied/filesystem-loop/is-a-directory/escape errors immediately instead of silently retrying (which can substitute an unrelated decoy file's content or surface a fabricated, misleading path in the diagnostic).</li><li>Per this task's constraints, no regression tests were promoted into tracked test files this run; a follow-up sprint task should add the four regression tests named in each worker panel's <em>Recommended fix</em> field.</li></ul>
+  </section>
+
+  <section class="section metadata">
+    <h2>Metadata</h2>
+    <table class="metadata-table"><tbody>
+      <tr><th scope="row">Campaign ID</th><td>m2-include-fuzz-20260811-1</td></tr>
+      <tr><th scope="row">Sprint</th><td>M.2 (sc-compose sc-sha integration)</td></tr>
+      <tr><th scope="row">Worktree</th><td>/Users/randlee/Documents/github/sc-compose-worktrees/integrate/phase-M</td></tr>
+      <tr><th scope="row">Baseline ref</th><td>47572e9 (integrate/phase-M)</td></tr>
+      <tr><th scope="row">Fuzz plan</th><td>docs/phase-M/fuzz-plan-m-2-sc-compose-integration.md (PR #369)</td></tr>
+      <tr><th scope="row">Target</th><td>crates/sc-composer/src/include/{expansion.rs,directive.rs,fingerprint.rs,path.rs}, crates/sc-sha</td></tr>
+      <tr><th scope="row">Workers</th><td>shape-probe, boundary-probe, differential-probe (3 of 4 standard roles; template-probe omitted, scope already covered by existing include.rs tests per coordinator triage)</td></tr>
+      <tr><th scope="row">Seed</th><td>157</td></tr>
+      <tr><th scope="row">Cases per worker (bounded)</th><td>shape-probe=34, boundary-probe=38, differential-probe=23</td></tr>
+      <tr><th scope="row">Per-worker timeout</th><td>120s</td></tr>
+      <tr><th scope="row">Promotion</th><td>Disabled for this run - no tracked test files modified; regression tests intentionally NOT promoted per task constraints</td></tr>
+      <tr><th scope="row">GitHub issue cross-check</th><td>gh issue list --repo randlee/sc-compose --search &quot;fuzz&quot; (and targeted searches on #247/#249/#251/#298) - no duplicate found for FUZZ-001..004</td></tr>
+    </tbody></table>
+  </section>
+
+  <footer>
+  </footer>
+
+  <script>
+    document.addEventListener("click", async function (event) {
+      var button = event.target.closest("[data-copy-text]");
+      if (!button) return;
+      var text = button.getAttribute("data-copy-text") || "";
+      try {
+        await navigator.clipboard.writeText(text);
+        button.setAttribute("title", "Copied");
+      } catch (err) {
+        button.setAttribute("title", "Copy failed");
+      }
+    });
+  </script>
+</body>
+</html>
