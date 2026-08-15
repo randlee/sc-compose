@@ -1,7 +1,7 @@
 # Releasing sc-compose
 
-Step-by-step release process for `sc-sha`, `sc-composer`, `sc-compose`, and
-`bindings/python` from this repo.
+Step-by-step release process for `sc-sha`, `sc-composer`, `sc-compose`,
+`bindings/sc-sha-python`, and `bindings/python` from this repo.
 
 ## Overview
 
@@ -12,7 +12,7 @@ This repo publishes to six channels:
 | crates.io | `sc-sha` | `cargo publish` |
 | crates.io | `sc-composer` | `cargo publish` |
 | crates.io | `sc-compose` | `cargo publish` |
-| PyPI | `sc-compose` | `maturin publish` |
+| PyPI | `sc-sha`, `sc-compose` | `maturin publish` |
 | Homebrew | `sc-compose` | GitHub Actions → `randlee/homebrew-tap` |
 | Winget | `sc-compose` | GitHub Actions → `microsoft/winget-pkgs` |
 | Scoop | `sc-compose` | GitHub Actions → `randlee/scoop-bucket` |
@@ -35,6 +35,7 @@ This repo publishes to six channels:
 - [ ] `crates/sc-composer/Cargo.toml` matches or inherits workspace version
 - [ ] `crates/sc-compose/Cargo.toml` matches or inherits workspace version
 - [ ] `release/publish-artifacts.toml` lists all publishable crates with correct paths
+- [ ] `bindings/sc-sha-python/pyproject.toml` version matches workspace version
 - [ ] `bindings/python/pyproject.toml` version matches workspace version
 
 ### Quality Gates
@@ -74,10 +75,10 @@ This repo publishes to six channels:
   environments
 - [ ] Run one staged TestPyPI or `workflow_dispatch` rehearsal before treating
   the Python release channel as production-closed:
-  - [ ] Wheel build succeeds on all three platforms
-  - [ ] Exactly one sdist produced
-  - [ ] PyPI upload path succeeds
-  - [ ] GitHub Release attachment set includes wheels + sdist
+  - [ ] Both packages build wheels on all three platforms
+  - [ ] Exactly one sdist is produced for each package
+  - [ ] PyPI upload paths succeed for both packages
+  - [ ] GitHub Release attachment set includes both packages' wheels + sdists
 
 ### Release Preflight
 
@@ -130,7 +131,8 @@ the tag or rerun the root release workflow.
 - [ ] Verify `winget` submission/update dispatched successfully
 - [ ] Verify Scoop manifest update completed in `randlee/scoop-bucket` and
       `scoop install sc-compose` succeeds
-- [ ] Verify PyPI: `pip install sc-compose==<version>` on all three platforms
+- [ ] Verify PyPI: `pip install sc-sha==<version> sc-compose==<version>` on all
+      three platforms
 - [ ] Tag the release commit: `git tag v<version> && git push origin v<version>`
 - [ ] Create a GitHub release pointing at the tag with filled-in release notes
   from `release/RELEASE-NOTES-TEMPLATE.md`
@@ -148,10 +150,12 @@ the tag or rerun the root release workflow.
 
 - Pre-release rehearsals go to TestPyPI:
   ```bash
-  pip install -i https://test.pypi.org/simple/ sc-compose
+  pip install -i https://test.pypi.org/simple/ sc-sha sc-compose
   ```
-- Production releases go to PyPI via the `pypi` protected environment
-- `verify-python-version` gate enforces version sync before wheel builds
+- Production releases for `sc-sha` and `sc-compose` go to PyPI via the `pypi`
+  protected environment
+- `verify-python-version` gate enforces version sync for both Python packages
+  before wheel builds
 
 ### Homebrew
 
