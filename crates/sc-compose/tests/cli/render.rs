@@ -163,7 +163,7 @@ fn render_homebrew_formula_escapes_manifest_values_as_ruby_strings() {
     assert!(formula.contains("desc \"A \\\"quoted\\\" description\""));
     assert!(formula.contains("assert_match \"A \\\"quoted\\\" result\""));
     assert!(formula.contains("bin.install \"bin/sc-compose\""));
-    assert!(formula.contains("(\"share\"/\"quoted\\\"component\"/\"examples\").install Dir[\"share/quoted\\\"component/examples/*\"]"));
+    assert!(formula.contains("(share/\"quoted\\\"component\"/\"examples\").install Dir[\"share/quoted\\\"component/examples/*\"]"));
     assert!(!formula.contains("{{"));
 }
 
