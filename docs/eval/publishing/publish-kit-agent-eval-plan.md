@@ -37,6 +37,28 @@ checklist.
   tmux pane using the standard team environment. Its working directory must be
   the evaluated checkout, and its mailbox/identity must be initialized before
   the eval begins; do not simulate the publisher with an inline prompt.
+- Set the ATM pane environment before launching the agent:
+
+  ```bash
+  export ATM_TEAM=sc-compose
+  export ATM_IDENTITY=publisher
+  ```
+
+  Then launch the real Claude teammate in that pane (select either the Haiku
+  or Luna model for the evaluation):
+
+  ```bash
+  /Applications/cmux.app/Contents/Resources/bin/claude \
+    --model <haiku-or-luna> \
+    --dangerously-skip-permissions \
+    --teammate-mode tmux \
+    --agent-id publisher@sc-compose \
+    --agent-name publisher \
+    --team-name sc-compose
+  ```
+
+  The resulting process must be verifiable through ATM before it receives an
+  eval scenario.
 - Launch a fresh `publisher` agent from `.claude/agents/publisher.md` on either
   the Haiku or Luna model. Record the selected model and agent-prompt revision
   in the sanitized eval evidence. A document-only walkthrough is insufficient.
