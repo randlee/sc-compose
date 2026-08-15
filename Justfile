@@ -2,10 +2,13 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
 sc-compose := "cargo run --quiet --bin sc-compose --"
 
+ensure-lint-runtime:
+    python3 scripts/materialize_sc_lint_runtime.py --root .
+
 reports-init:
     {{sc-compose}} reports init --root .
 
-lint target="full":
+lint target="full": ensure-lint-runtime
     target="{{target}}"; target="${target#target=}"; {{sc-compose}} lint --root . --target "$target" --json
     target="{{target}}"; target="${target#target=}"; if [ "$target" = "full" ]; then {{sc-compose}} lint --root . --target template-contracts --json; fi
 
@@ -15,7 +18,7 @@ template-contracts:
 # Temporary consumer profile while sc-lint's released full/ci profile is broken
 # (sc-lint#84). Restore `lint full` after its profile fix; identity-literals is
 # also skipped because v0.4.0 crashes on valid Rust unicode escapes.
-lint-ci-consumer:
+lint-ci-consumer: ensure-lint-runtime
     {{sc-compose}} lint --root . --target fast --json
     cargo deny check --config deny.toml advisories bans licenses sources
     cargo shear

@@ -4,6 +4,9 @@ use std::process::Command;
 
 use serde_json::Value;
 
+mod support;
+use support::{TempFixture, copy_directory};
+
 fn repo_root() -> PathBuf {
     let canonical = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("..")
@@ -57,10 +60,13 @@ fn sc_lint_version_is_pinned_to_the_bootstrap_contract() {
 
 #[test]
 fn sc_lint_discovers_repository_and_fixture_roots_without_config_error() {
-    for root in [
-        repo_root(),
-        repo_root().join("tests/fixtures/sc-lint/bootstrap"),
-    ] {
+    let checked_in_fixture = repo_root().join("tests/fixtures/sc-lint/bootstrap");
+    let fixture = TempFixture::new("sc-lint-bootstrap");
+    copy_directory(&checked_in_fixture, &fixture.path);
+    let original_lock = fs::read_to_string(checked_in_fixture.join("Cargo.lock"))
+        .expect("read checked-in fixture lockfile");
+
+    for root in [repo_root(), fixture.path.clone()] {
         let value = sc_lint_json(&root, &["lint", "sc-boundary"]);
         assert_eq!(value["ok"], true, "unexpected top-level failure: {value}");
         assert_ne!(
@@ -70,6 +76,13 @@ fn sc_lint_discovers_repository_and_fixture_roots_without_config_error() {
         assert_eq!(value["data"]["version"], "0.4.0");
         assert!(value["data"]["scanned_crates"].as_u64().is_some());
     }
+
+    assert_eq!(
+        fs::read_to_string(checked_in_fixture.join("Cargo.lock"))
+            .expect("re-read checked-in fixture lockfile"),
+        original_lock,
+        "sc-lint bootstrap validation must not mutate checked-in fixtures"
+    );
 }
 
 fn walk_files(root: &Path, files: &mut Vec<PathBuf>) {

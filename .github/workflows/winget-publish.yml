@@ -1,16 +1,7 @@
 name: Publish Winget
 
-# Standalone winget publication for an already-published GitHub Release.
-#
-# release.yml's publish-winget job depends on gate-and-tag and release, so once
-# a release has completed it cannot be retried: the release gate refuses an
-# already-published version, and publish-pypi cannot re-upload existing files.
-# That made winget the one channel with no recovery path after a partial
-# release failure.
-#
-# winget-releaser builds its manifests entirely from the published release
-# assets, so this workflow needs no release gate, no tag creation, and no
-# crates.io or PyPI involvement. It is safe to run against any published tag.
+# This post-release channel reads its package identity and installer pattern
+# from release/publish-artifacts.toml and may be re-dispatched for the same tag.
 
 on:
   workflow_dispatch:
@@ -23,43 +14,47 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: publish-winget-${{ inputs.tag }}
+  cancel-in-progress: false
+
 jobs:
-  publish-winget:
+  verify-release:
     runs-on: ubuntu-latest
+    outputs:
+      channel_config: ${{ steps.config.outputs.channel_config }}
+      asset_patterns: ${{ steps.config.outputs.asset_patterns }}
     steps:
-      # The tag is passed through the environment rather than interpolated
-      # directly into the script body, so its contents cannot be executed.
-      - name: Validate tag and verify release assets
-        env:
-          RELEASE_TAG: ${{ inputs.tag }}
-          REPO: ${{ github.repository }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - id: config
+        name: Read Winget configuration from release manifest
+        shell: bash
         run: |
           set -euo pipefail
-          if [[ ! "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid tag: '${RELEASE_TAG}' (expected vX.Y.Z)" >&2
-            exit 1
-          fi
-          if ! gh release view "${RELEASE_TAG}" -R "${REPO}" >/dev/null 2>&1; then
-            echo "No published release found for tag ${RELEASE_TAG}" >&2
-            exit 1
-          fi
-          assets="$(gh release view "${RELEASE_TAG}" -R "${REPO}" --json assets --jq '.assets[].name')"
-          if ! grep -qE 'sc-compose_.*_x86_64-pc-windows-msvc\.zip$' <<<"${assets}"; then
-            echo "Release ${RELEASE_TAG} has no x86_64-pc-windows-msvc installer to submit" >&2
-            echo "Assets found:" >&2
-            echo "${assets}" >&2
-            exit 1
-          fi
-          echo "Release ${RELEASE_TAG} carries a Windows installer; submitting to winget"
+          config="$(python3 scripts/release_artifacts.py channel-config --manifest release/publish-artifacts.toml --channel winget)"
+          echo "channel_config=${config}" >> "$GITHUB_OUTPUT"
+          {
+            echo 'asset_patterns<<EOF'
+            jq -r '.asset_patterns[]' <<<"${config}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/verify-published-release
+        with:
+          release_tag: ${{ inputs.tag }}
+          asset_patterns: ${{ steps.config.outputs.asset_patterns }}
 
-      - name: Publish to winget
+  publish-winget:
+    needs: verify-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish to Winget
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
-          identifier: randlee.sc-compose
+          identifier: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.identifier }}
           release-tag: ${{ inputs.tag }}
-          installers-regex: 'sc-compose_.*_x86_64-pc-windows-msvc\.zip$'
-          # Must be a classic PAT with public_repo scope on an account that has
-          # forked microsoft/winget-pkgs. The default GITHUB_TOKEN is scoped to
-          # this repository and cannot create a branch in that fork.
+          installers-regex: ${{ fromJSON(needs.verify-release.outputs.channel_config).asset_patterns[0] }}
+          # Must authorize a fork of microsoft/winget-pkgs; the repository
+          # GITHUB_TOKEN is intentionally not used for this external channel.
           token: ${{ secrets.WINGET_GITHUB_TOKEN }}

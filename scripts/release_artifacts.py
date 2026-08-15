@@ -2,9 +2,14 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
+import shutil
 import subprocess
+import tarfile
 import tomllib
+import zipfile
+from email import message_from_bytes
 from pathlib import Path
 
 
@@ -18,10 +23,13 @@ def load_manifest(path: Path) -> dict:
     python_distributions = data.get("python_distributions", [])
     crates = sorted(crates, key=lambda item: (item["publish_order"], item["artifact"]))
     return {
+        "project": data.get("project", {}),
         "crates": crates,
         "release_binaries": release_binaries,
+        "release_targets": data.get("release_targets", []),
         "python_packages": python_packages,
         "python_distributions": python_distributions,
+        "channels": data.get("channels", {}),
     }
 
 
@@ -61,25 +69,6 @@ def _assert_workspace_inherited_version(workspace_toml: Path, relative_path: str
         )
 
 
-def _assert_dependency_version(
-    workspace_toml: Path,
-    relative_path: str,
-    dependency: str,
-    expected_version: str,
-) -> None:
-    path = _resolve_workspace_path(workspace_toml, relative_path)
-    data = tomllib.loads(path.read_text(encoding="utf-8"))
-    dependency_spec = data.get("dependencies", {}).get(dependency)
-    if not isinstance(dependency_spec, dict):
-        raise SystemExit(f"{relative_path}: [dependencies].{dependency} must be an inline table")
-    actual_version = dependency_spec.get("version")
-    if actual_version != expected_version:
-        raise SystemExit(
-            f"{relative_path}: [dependencies].{dependency}.version mismatch: "
-            f"expected {expected_version}, got {actual_version!r}"
-        )
-
-
 def _assert_python_package_version(
     workspace_toml: Path,
     relative_path: str,
@@ -112,29 +101,160 @@ def _python_project_name(pyproject_toml: Path) -> str:
     return name
 
 
-def _workflow_python_wheel_oses(release_workflow: Path) -> list[str]:
-    text = release_workflow.read_text(encoding="utf-8")
-    if "\n  build-python-wheels:\n" not in text or "\n  build-python-sdist:\n" not in text:
-        raise SystemExit(f"{release_workflow}: could not locate build-python-wheels job boundaries")
-    section = text.split("\n  build-python-wheels:\n", maxsplit=1)[1]
-    section = section.split("\n  build-python-sdist:\n", maxsplit=1)[0]
-    match = re.search(r"^\s*os:\s*\[([^\]]+)\]\s*$", section, re.MULTILINE)
-    if match is None:
-        raise SystemExit(f"{release_workflow}: could not locate build-python-wheels matrix.os")
-    values = []
-    for entry in match.group(1).split(","):
-        cleaned = entry.strip().strip("\"'")
-        if cleaned:
-            values.append(cleaned)
-    if not values:
-        raise SystemExit(f"{release_workflow}: build-python-wheels matrix.os is empty")
-    return values
+def _python_distribution_entries(manifest: dict) -> list[dict]:
+    """Return normalized Python distribution entries from the release manifest.
+
+    The manifest is deliberately the package inventory for both build and
+    post-release upload workflows.  Optional paths accommodate repositories
+    whose Maturin or module layout differs from the repository's convention.
+    """
+    packages = {entry["package"]: entry for entry in manifest["python_packages"]}
+    entries: list[dict] = []
+    for distribution in manifest["python_distributions"]:
+        package = packages[distribution["name"]]
+        source = distribution["source"]
+        entries.append(
+            {
+                "artifact": package["artifact"],
+                "name": distribution["name"],
+                "source": source,
+                "pyproject": package["manifest"],
+                "cargo_manifest": distribution.get("cargo_manifest", f"{source}/Cargo.toml"),
+                "module_path": distribution.get(
+                    "module_path", f"{source}/python/{package['module']}"
+                ),
+                "sdist": distribution["sdist"],
+                "wheels": distribution["wheels"],
+            }
+        )
+    return entries
+
+
+def _python_distribution_expectations(manifest: dict) -> dict[str, dict[str, int]]:
+    return {
+        entry["name"]: {
+            "wheel": len(entry["wheels"]),
+            "sdist": int(entry["sdist"]),
+        }
+        for entry in _python_distribution_entries(manifest)
+    }
+
+
+def _require_project(manifest: dict) -> dict:
+    project = manifest["project"]
+    _require_keys(
+        project,
+        ("name", "archive_prefix", "description", "homepage", "license"),
+        "[project]",
+    )
+    return project
+
+
+def _release_targets_by_name(manifest: dict) -> dict[str, dict]:
+    targets: dict[str, dict] = {}
+    for index, target in enumerate(manifest["release_targets"], start=1):
+        _require_keys(target, ("target", "os", "archive"), f"[[release_targets]] #{index}")
+        name = target["target"]
+        if name in targets:
+            raise SystemExit(f"duplicate release target: {name}")
+        targets[name] = target
+    if not targets:
+        raise SystemExit("manifest must define [[release_targets]]")
+    return targets
+
+
+def _channel_config(manifest: dict, channel_name: str) -> dict:
+    try:
+        channel = manifest["channels"][channel_name]
+    except KeyError as error:
+        raise SystemExit(f"manifest must define [channels.{channel_name}]") from error
+    if not isinstance(channel, dict):
+        raise SystemExit(f"[channels.{channel_name}] must be a table")
+    return channel
+
+
+def _channel_renderer_target(manifest: dict, channel_name: str) -> dict | None:
+    """Return the published Linux renderer asset required by a channel workflow."""
+    if channel_name not in ("homebrew", "scoop"):
+        return None
+
+    channel = _channel_config(manifest, channel_name)
+    _require_keys(channel, ("renderer_target",), f"[channels.{channel_name}]")
+    target_name = channel["renderer_target"]
+    targets = _release_targets_by_name(manifest)
+    try:
+        target = targets[target_name]
+    except KeyError as error:
+        raise SystemExit(
+            f"[channels.{channel_name}].renderer_target references unknown release target: {target_name}"
+        ) from error
+    if target["os"] != "ubuntu-latest" or target["archive"] != "tar.gz":
+        raise SystemExit(
+            f"[channels.{channel_name}].renderer_target must name an ubuntu-latest tar.gz release target"
+        )
+    return target
+
+
+def _release_asset_pattern(project: dict, target: dict) -> str:
+    return (
+        rf"^{re.escape(project['archive_prefix'])}_.*_"
+        rf"{re.escape(target['target'])}\.{re.escape(target['archive'])}$"
+    )
+
+
+def _release_binaries(manifest: dict) -> list[dict]:
+    binaries = manifest["release_binaries"]
+    if not binaries:
+        raise SystemExit("manifest must define [[release_binaries]]")
+    for index, binary in enumerate(binaries, start=1):
+        _require_keys(binary, ("name",), f"[[release_binaries]] #{index}")
+        for bundle in binary.get("bundled_paths", []):
+            _require_keys(bundle, ("source", "destination"), "bundled_paths entry")
+    return binaries
+
+
+def _channel_asset_patterns(manifest: dict, channel_name: str) -> list[str]:
+    project = _require_project(manifest)
+    targets = _release_targets_by_name(manifest)
+    channel = _channel_config(manifest, channel_name)
+    if channel_name == "homebrew":
+        assets = channel.get("assets", [])
+        if not assets:
+            raise SystemExit("[channels.homebrew] must define [[channels.homebrew.assets]]")
+        target_names = []
+        for asset in assets:
+            _require_keys(asset, ("key", "target"), "[[channels.homebrew.assets]]")
+            target_names.append(asset["target"])
+    elif channel_name in ("winget", "scoop"):
+        _require_keys(channel, ("installer_target",), f"[channels.{channel_name}]")
+        target_names = [channel["installer_target"]]
+    else:
+        return []
+
+    renderer_target = _channel_renderer_target(manifest, channel_name)
+    if renderer_target is not None:
+        target_names.append(renderer_target["target"])
+
+    missing = [name for name in target_names if name not in targets]
+    if missing:
+        raise SystemExit(
+            f"[channels.{channel_name}] references unknown release target(s): {', '.join(missing)}"
+        )
+    return [
+        _release_asset_pattern(project, targets[name])
+        for name in dict.fromkeys(target_names)
+    ]
 
 
 def cmd_validate_manifest(args: argparse.Namespace) -> int:
     manifest = load_manifest(Path(args.manifest))
+    _require_project(manifest)
+    _release_targets_by_name(manifest)
+    _release_binaries(manifest)
+    for channel_name in ("pypi", "homebrew", "winget", "scoop"):
+        _channel_config(manifest, channel_name)
+        _channel_asset_patterns(manifest, channel_name)
     members = workspace_members(Path(args.workspace_toml))
-    workflow_wheels = _workflow_python_wheel_oses(Path(args.release_workflow))
     missing = []
     for crate in manifest["crates"]:
         if crate["cargo_toml"].removesuffix("/Cargo.toml") not in members:
@@ -184,12 +304,13 @@ def cmd_validate_manifest(args: argparse.Namespace) -> int:
         wheels = distribution["wheels"]
         if not isinstance(wheels, list) or not all(isinstance(entry, str) for entry in wheels):
             raise SystemExit(f"[[python_distributions]] #{index}: wheels must be a list of strings")
-        if wheels != workflow_wheels:
+        cargo_manifest = Path(distribution.get("cargo_manifest", source / "Cargo.toml"))
+        if not cargo_manifest.is_file():
             raise SystemExit(
-                f"[[python_distributions]] #{index}: wheels mismatch: manifest={wheels} workflow={workflow_wheels}"
+                f"[[python_distributions]] #{index}: missing Maturin Cargo manifest: {cargo_manifest}"
             )
         package = python_packages_by_name[distribution["name"]]
-        module_root = source / "python" / package["module"]
+        module_root = Path(distribution.get("module_path", source / "python" / package["module"]))
         if not module_root.is_dir():
             raise SystemExit(
                 f"[[python_distributions]] #{index}: Python module path does not exist: {module_root}"
@@ -202,6 +323,142 @@ def cmd_list_publish_plan(args: argparse.Namespace) -> int:
     manifest = load_manifest(Path(args.manifest))
     for crate in manifest["crates"]:
         print(f"{crate['package']}|{crate['wait_after_publish_seconds']}")
+    return 0
+
+
+def cmd_python_wheel_matrix(args: argparse.Namespace) -> int:
+    manifest = load_manifest(Path(args.manifest))
+    include = [
+        {
+            "artifact": distribution["artifact"],
+            "name": distribution["name"],
+            "os": os_name,
+            "pyproject": distribution["pyproject"],
+            "cargo_manifest": distribution["cargo_manifest"],
+        }
+        for distribution in _python_distribution_entries(manifest)
+        for os_name in distribution["wheels"]
+    ]
+    if not include:
+        raise SystemExit("manifest must define at least one Python wheel build")
+    print(json.dumps({"include": include}, separators=(",", ":")))
+    return 0
+
+
+def cmd_python_sdist_matrix(args: argparse.Namespace) -> int:
+    manifest = load_manifest(Path(args.manifest))
+    include = [
+        {
+            "artifact": distribution["artifact"],
+            "name": distribution["name"],
+            "pyproject": distribution["pyproject"],
+            "cargo_manifest": distribution["cargo_manifest"],
+        }
+        for distribution in _python_distribution_entries(manifest)
+        if distribution["sdist"]
+    ]
+    print(json.dumps({"include": include}, separators=(",", ":")))
+    return 0
+
+
+def cmd_release_target_matrix(args: argparse.Namespace) -> int:
+    manifest = load_manifest(Path(args.manifest))
+    print(json.dumps({"include": list(_release_targets_by_name(manifest).values())}, separators=(",", ":")))
+    return 0
+
+
+def cmd_release_package_config(args: argparse.Namespace) -> int:
+    manifest = load_manifest(Path(args.manifest))
+    targets = _release_targets_by_name(manifest)
+    try:
+        target = targets[args.target]
+    except KeyError as error:
+        raise SystemExit(f"unknown release target: {args.target}") from error
+    binaries = _release_binaries(manifest)
+    print(
+        json.dumps(
+            {"project": _require_project(manifest), "target": target, "binaries": binaries},
+            separators=(",", ":"),
+        )
+    )
+    return 0
+
+
+def cmd_channel_config(args: argparse.Namespace) -> int:
+    manifest = load_manifest(Path(args.manifest))
+    project = _require_project(manifest)
+    channel = _channel_config(manifest, args.channel)
+    result = {
+        "project": project,
+        "channel": channel,
+        "asset_patterns": _channel_asset_patterns(manifest, args.channel),
+        "release_binaries": manifest["release_binaries"],
+        "release_targets": _release_targets_by_name(manifest),
+    }
+    print(json.dumps(result, separators=(",", ":")))
+    return 0
+
+
+def _python_distribution_name_from_wheel(path: Path, expected: set[str]) -> str:
+    with zipfile.ZipFile(path) as archive:
+        metadata = [name for name in archive.namelist() if name.endswith(".dist-info/METADATA")]
+        if len(metadata) != 1:
+            raise SystemExit(f"{path}: expected exactly one wheel METADATA file")
+        name = message_from_bytes(archive.read(metadata[0])).get("Name")
+    if name not in expected:
+        raise SystemExit(f"{path}: unexpected Python distribution {name!r}")
+    return name
+
+
+def _python_distribution_name_from_sdist(path: Path, expected: set[str]) -> str | None:
+    with tarfile.open(path, "r:gz") as archive:
+        metadata = [member for member in archive.getmembers() if member.name.endswith("/PKG-INFO")]
+        if not metadata:
+            return None
+        if len(metadata) != 1:
+            raise SystemExit(f"{path}: expected exactly one sdist PKG-INFO file")
+        extracted = archive.extractfile(metadata[0])
+        if extracted is None:
+            raise SystemExit(f"{path}: unable to read sdist PKG-INFO")
+        name = message_from_bytes(extracted.read()).get("Name")
+    if name not in expected:
+        raise SystemExit(f"{path}: unexpected Python distribution {name!r}")
+    return name
+
+
+def cmd_verify_python_release_assets(args: argparse.Namespace) -> int:
+    manifest = load_manifest(Path(args.manifest))
+    asset_dir = Path(args.asset_dir)
+    if not asset_dir.is_dir():
+        raise SystemExit(f"Python asset directory does not exist: {asset_dir}")
+    expected = _python_distribution_expectations(manifest)
+    found = {name: {"wheel": 0, "sdist": 0} for name in expected}
+    destination = Path(args.copy_to) if args.copy_to else None
+    if destination:
+        destination.mkdir(parents=True, exist_ok=True)
+
+    for asset in sorted(asset_dir.iterdir()):
+        if not asset.is_file():
+            continue
+        if asset.suffix == ".whl":
+            name = _python_distribution_name_from_wheel(asset, set(expected))
+            found[name]["wheel"] += 1
+        elif asset.name.endswith(".tar.gz"):
+            name = _python_distribution_name_from_sdist(asset, set(expected))
+            if name is None:
+                continue
+            found[name]["sdist"] += 1
+        else:
+            continue
+        if destination:
+            shutil.copy2(asset, destination / asset.name)
+
+    if found != expected:
+        raise SystemExit(
+            "published GitHub Release Python assets mismatch: "
+            f"expected {expected}, found {found}"
+        )
+    print(f"verified Python release assets: {expected}")
     return 0
 
 
@@ -228,25 +485,19 @@ def cmd_verify_version(args: argparse.Namespace) -> int:
 def cmd_verify_version_lockstep(args: argparse.Namespace) -> int:
     workspace_toml = Path(args.workspace_toml)
     version = workspace_version(workspace_toml)
-    for relative_path in (
-        "crates/sc-sha/Cargo.toml",
-        "crates/sc-composer/Cargo.toml",
-        "crates/sc-compose/Cargo.toml",
-        "bindings/python/Cargo.toml",
-        "bindings/sc-sha-python/Cargo.toml",
-    ):
-        _assert_workspace_inherited_version(workspace_toml, relative_path)
-    for relative_path, dependency in (
-        ("crates/sc-compose/Cargo.toml", "sc-composer"),
-        ("bindings/python/Cargo.toml", "sc-composer"),
-        ("bindings/sc-sha-python/Cargo.toml", "sc-sha"),
-    ):
-        _assert_dependency_version(workspace_toml, relative_path, dependency, version)
-    for relative_path in (
-        "bindings/python/pyproject.toml",
-        "bindings/sc-sha-python/pyproject.toml",
-    ):
-        _assert_python_package_version(workspace_toml, relative_path, version)
+    manifest = load_manifest(Path(args.manifest))
+    checked_cargo_manifests: set[str] = set()
+    for crate in manifest["crates"]:
+        cargo_toml = crate["cargo_toml"]
+        _assert_workspace_inherited_version(workspace_toml, cargo_toml)
+        checked_cargo_manifests.add(cargo_toml)
+    for distribution in _python_distribution_entries(manifest):
+        cargo_toml = distribution["cargo_manifest"]
+        if cargo_toml not in checked_cargo_manifests:
+            _assert_workspace_inherited_version(workspace_toml, cargo_toml)
+            checked_cargo_manifests.add(cargo_toml)
+    for package in manifest["python_packages"]:
+        _assert_python_package_version(workspace_toml, package["manifest"], version)
     print("version lockstep verification passed")
     return 0
 
@@ -288,10 +539,28 @@ def cmd_sync_python_version(args: argparse.Namespace) -> int:
     return 0
 
 
-def _readme_version_checks(version: str) -> tuple[tuple[str, str, str], ...]:
+def _readme_dependency_crate(manifest: dict) -> str:
+    project = manifest["project"]
+    dependency_crate = project.get("readme_dependency_crate")
+    if not isinstance(dependency_crate, str) or not dependency_crate:
+        raise SystemExit("[project].readme_dependency_crate must be a non-empty string")
+    if dependency_crate not in {crate["package"] for crate in manifest["crates"]}:
+        raise SystemExit(
+            "[project].readme_dependency_crate must name a package declared in [[crates]]"
+        )
+    return dependency_crate
+
+
+def _readme_version_checks(
+    version: str, dependency_crate: str
+) -> tuple[tuple[str, str, str], ...]:
     minor_version = version.rsplit(".", 1)[0]
     return (
-        ("sc-composer dependency example", rf'(sc-composer\s*=\s*")[^"]+(")', version),
+        (
+            f"{dependency_crate} dependency example",
+            rf'({re.escape(dependency_crate)}\s*=\s*")[^"]+(")',
+            version,
+        ),
         ("Status table Version row", rf'(\|\s*Version\s*\|\s*)[^\s|]+(\s*\|)', version),
         ("Status table Stability row", rf'(\|\s*Stability\s*\|\s*stable\s+)\S+(\s+release line\s*\|)', minor_version),
     )
@@ -299,11 +568,12 @@ def _readme_version_checks(version: str) -> tuple[tuple[str, str, str], ...]:
 
 def cmd_verify_readme_version(args: argparse.Namespace) -> int:
     version = workspace_version(Path(args.workspace_toml))
+    dependency_crate = _readme_dependency_crate(load_manifest(Path(args.manifest)))
     readme = Path(args.readme)
     text = readme.read_text(encoding="utf-8")
 
     mismatches = []
-    for label, pattern, expected in _readme_version_checks(version):
+    for label, pattern, expected in _readme_version_checks(version, dependency_crate):
         match = re.search(pattern, text)
         if match is None:
             raise SystemExit(f"{readme}: could not locate {label}")
@@ -322,11 +592,12 @@ def cmd_verify_readme_version(args: argparse.Namespace) -> int:
 
 def cmd_sync_readme_version(args: argparse.Namespace) -> int:
     version = workspace_version(Path(args.workspace_toml))
+    dependency_crate = _readme_dependency_crate(load_manifest(Path(args.manifest)))
     readme = Path(args.readme)
     text = readme.read_text(encoding="utf-8")
 
     updated = 0
-    for label, pattern, expected in _readme_version_checks(version):
+    for label, pattern, expected in _readme_version_checks(version, dependency_crate):
         new_text, count = re.subn(pattern, rf'\g<1>{expected}\g<2>', text, count=1)
         if count == 0:
             raise SystemExit(f"{readme}: could not locate {label}")
@@ -374,12 +645,39 @@ def main() -> int:
     p = sub.add_parser("validate-manifest")
     p.add_argument("--manifest", required=True)
     p.add_argument("--workspace-toml", required=True)
-    p.add_argument("--release-workflow", default=".github/workflows/release.yml")
     p.set_defaults(func=cmd_validate_manifest)
 
     p = sub.add_parser("list-publish-plan")
     p.add_argument("--manifest", required=True)
     p.set_defaults(func=cmd_list_publish_plan)
+
+    p = sub.add_parser("python-wheel-matrix")
+    p.add_argument("--manifest", required=True)
+    p.set_defaults(func=cmd_python_wheel_matrix)
+
+    p = sub.add_parser("python-sdist-matrix")
+    p.add_argument("--manifest", required=True)
+    p.set_defaults(func=cmd_python_sdist_matrix)
+
+    p = sub.add_parser("release-target-matrix")
+    p.add_argument("--manifest", required=True)
+    p.set_defaults(func=cmd_release_target_matrix)
+
+    p = sub.add_parser("release-package-config")
+    p.add_argument("--manifest", required=True)
+    p.add_argument("--target", required=True)
+    p.set_defaults(func=cmd_release_package_config)
+
+    p = sub.add_parser("channel-config")
+    p.add_argument("--manifest", required=True)
+    p.add_argument("--channel", choices=("pypi", "homebrew", "winget", "scoop"), required=True)
+    p.set_defaults(func=cmd_channel_config)
+
+    p = sub.add_parser("verify-python-release-assets")
+    p.add_argument("--manifest", required=True)
+    p.add_argument("--asset-dir", required=True)
+    p.add_argument("--copy-to")
+    p.set_defaults(func=cmd_verify_python_release_assets)
 
     p = sub.add_parser("verify-version")
     p.add_argument("--manifest", required=True)
@@ -394,6 +692,7 @@ def main() -> int:
     p.set_defaults(func=cmd_verify_python_version)
 
     p = sub.add_parser("verify-version-lockstep")
+    p.add_argument("--manifest", required=True)
     p.add_argument("--workspace-toml", required=True)
     p.set_defaults(func=cmd_verify_version_lockstep)
 
@@ -403,11 +702,13 @@ def main() -> int:
     p.set_defaults(func=cmd_sync_python_version)
 
     p = sub.add_parser("verify-readme-version")
+    p.add_argument("--manifest", required=True)
     p.add_argument("--workspace-toml", required=True)
     p.add_argument("--readme", required=True)
     p.set_defaults(func=cmd_verify_readme_version)
 
     p = sub.add_parser("sync-readme-version")
+    p.add_argument("--manifest", required=True)
     p.add_argument("--workspace-toml", required=True)
     p.add_argument("--readme", required=True)
     p.set_defaults(func=cmd_sync_readme_version)
