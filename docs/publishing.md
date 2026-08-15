@@ -27,9 +27,10 @@ releases of these crate names now come from this repo instead.
 ## Replacement/Cutover Rule
 
 Before the ATM workspace switches to crates.io dependencies from this repo:
-1. This repo must publish the target version of `sc-composer`.
-2. This repo must publish the target version of `sc-compose`.
-3. ATM must then replace its in-workspace path dependencies with version pins.
+1. This repo must publish the target version of `sc-sha`.
+2. This repo must publish the target version of `sc-composer`.
+3. This repo must publish the target version of `sc-compose`.
+4. ATM must then replace its in-workspace path dependencies with version pins.
 
 ## Source of Truth
 
@@ -98,10 +99,15 @@ Required secrets:
 - `HOMEBREW_TAP_TOKEN`
   - must be configured in the repo secrets before Homebrew automation can
     update `randlee/homebrew-tap`
-- `PYPI_API_TOKEN`
-  - required for the Phase C Python release channel
+- `PYPI_TOKEN` and `TEST_PYPI_TOKEN`
+  - required for production and rehearsal Python uploads, respectively
   - must be configured in the protected GitHub Actions `pypi` environment
     before PyPI publication is enabled
+- `WINGET_GITHUB_TOKEN`
+  - must be configured in repo secrets before automated winget submission
+- `SCOOP_BUCKET_TOKEN`
+  - must be configured in repo secrets before Scoop bucket manifests can be
+    updated
 
 Manual verification steps:
 
@@ -130,7 +136,8 @@ Python release-train rule:
 
 Release-operator verification for PyPI:
 
-- verify the protected `pypi` environment contains `PYPI_API_TOKEN`
+- verify the protected `pypi` environment contains `PYPI_TOKEN` and
+  `TEST_PYPI_TOKEN`
 - run one staged TestPyPI or `workflow_dispatch` rehearsal before treating the
   Python release channel as production-closed
 - confirm exactly one sdist is produced, all three wheel builds complete, the
