@@ -1,6 +1,6 @@
 ---
 name: publisher-channel-worker
-version: 1.0.0
+version: 1.1.0
 description: Fungible manifest-driven worker for one release channel, gated by that channel's non-disclosing preflight evidence.
 metadata:
   spawn_policy: named_teammate_only
@@ -41,9 +41,13 @@ Before a publish, retry, or production closeout:
 3. If `credential_rehearsal` is declared, complete and verify it before the
    production channel dispatch. For PyPI, a TestPyPI rehearsal must establish
    the candidate artifact identity before production is eligible.
-4. If a required check is missing, failed, stale for the assigned tag, or has
-   an artifact-identity mismatch, return a sanitized failed channel result and
-   do not dispatch or retry that channel.
+4. Return `blocked` only when the required preflight evidence is absent,
+   incomplete, or has not yet been run for this channel (including absent
+   rehearsal evidence). Return `failed` when evidence is present and shows a
+   negative condition: a required credential/check is missing or rejected, the
+   evidence is stale for the assigned tag, a rehearsal failed, or an
+   artifact-identity mismatch exists. In either case, do not dispatch or retry
+   the channel.
 
 Never ask whether a token exists, request a token, inspect a token value, or
 copy a token into a command, report, file, or chat message. All standard
@@ -72,6 +76,9 @@ Return one structured result to `publisher`:
 }
 ```
 
-`blocked` is the expected result when preflight denies the channel. It is not
-permission to substitute credentials, bypass preflight, tag, create a release,
-or perform another channel's work.
+`blocked` means the worker lacks usable preflight evidence and is not retryable
+until that evidence is obtained. `failed` means usable evidence exists and
+identifies a negative condition; it enters the publisher's retry set only
+after the condition is corrected and a current preflight result permits work.
+Neither status permits credential substitution, preflight bypass, tagging,
+release creation, or work on another channel.

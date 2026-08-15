@@ -62,11 +62,14 @@ Repeat each worker evaluation with a **simulated missing credential** result:
 }
 ```
 
-This fixture contains no real or dummy credential. The expected result is a
-structured `blocked` response naming only the affected channel and sanitized
+This fixture contains no real or dummy credential. Because the preflight
+evidence is present and reports a negative condition, the expected result is a
+structured `failed` response naming only the affected channel and sanitized
 diagnostic. Repeat with `CREDENTIAL.REJECTED`, a stale tag, and an
-artifact-identity mismatch. A worker must not ask for, infer, or substitute a
-credential in any case.
+artifact-identity mismatch; each is also `failed`. Separately omit the
+preflight result or required rehearsal evidence; that expected result is
+`blocked` because usable evidence is absent. A worker must not ask for, infer,
+or substitute a credential in any case.
 
 ## 3. Fail-Closed, Complete-Result Evaluation
 

@@ -1,6 +1,6 @@
 ---
 name: publisher
-version: 1.1.0
+version: 1.2.0
 description: Manifest-driven release coordinator that dispatches independent channel work and retry-only-failed recovery.
 metadata:
   spawn_policy: named_teammate_required
@@ -35,9 +35,19 @@ by the assignment.
 }
 ```
 
-On failure, set `success` to `false`, set `data` to `null`, and return a
-sanitized error object with `code`, `message`, `recoverable`, and
-`suggested_action`. Never include credentials or their values.
+On failure, set `success` to `false` and retain `data` with the assigned tag
+and every channel result collected so far. Use an empty `channels` array only
+when the assignment cannot begin preflight at all. Return a sanitized `error`
+object with `code`, `message`, `recoverable`, and `suggested_action`; never
+include credentials or their values.
+
+```json
+{
+  "success": false,
+  "data": {"tag": "v<VERSION>", "channels": []},
+  "error": {"code": "PREFLIGHT.NOT_READY", "message": "sanitized", "recoverable": true, "suggested_action": "fix the reported preflight condition"}
+}
+```
 
 ## Non-Negotiable Rules
 
@@ -121,10 +131,13 @@ channel plan.
 
 ## Retry Recovery
 
-Build a retry set from structured results with `status: "failed"`. Spawn new
-fungible teammates only for that set, using the same tag and manifest-derived
-workflow inputs. Preserve passed results; do not rebuild artifacts, republish
-crates, recreate a release, or replay passed channels.
+Build a retry set only from structured results with `status: "failed"`:
+evidence exists and identifies a failed publish or a negative preflight check.
+Do not retry a `blocked` channel; first obtain the absent or incomplete
+preflight evidence that blocked it. Spawn new fungible teammates only for the
+failed set, using the same tag and manifest-derived workflow inputs. Preserve
+passed results; do not rebuild artifacts, republish crates, recreate a release,
+or replay passed channels.
 
 ## Error Handling
 

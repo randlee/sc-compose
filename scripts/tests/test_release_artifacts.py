@@ -895,9 +895,9 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     worker_text = (repo_root() / ".claude" / "agents" / "publisher-channel-worker.md").read_text(
         encoding="utf-8"
     )
-    eval_plan_text = (repo_root() / "docs" / "publish-kit-agent-eval-plan.md").read_text(
-        encoding="utf-8"
-    )
+    eval_plan_text = (
+        repo_root() / "docs" / "testing" / "publish-kit-agent-eval-plan.md"
+    ).read_text(encoding="utf-8")
 
     for text in (publisher_text, guide_text, checklist_text):
         assert "channel-dispatch-plan" in text
@@ -907,11 +907,14 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
 
     assert "one fungible `teammate` per listed channel" in publisher_text
     assert '"status": "passed|failed"' in publisher_text
+    assert '"success": false' in publisher_text
+    assert "retain `data`" in publisher_text
+    assert "Do not retry a `blocked` channel" in publisher_text
     assert "Retry only the channel" in publisher_text
     assert "Never ask whether a token exists" in publisher_text
     assert "preflight-secret-plan" in publisher_text
     assert "protected-environment secret metadata" in guide_text
-    assert "version: 1.1.0" in publisher_text
+    assert "version: 1.2.0" in publisher_text
     assert "## Inputs" in publisher_text
     assert "## Output Format" in publisher_text
     assert "## Error Handling" in publisher_text
@@ -919,11 +922,13 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     registry_text = (repo_root() / ".claude" / "agents" / "registry.yaml").read_text(
         encoding="utf-8"
     )
-    assert 'publisher:\n    version: 1.1.0' in registry_text
-    assert 'publisher-channel-worker:\n    version: 1.0.0' in registry_text
+    assert 'publisher:\n    version: 1.2.0' in registry_text
+    assert 'publisher-channel-worker:\n    version: 1.1.0' in registry_text
     assert "preflight_contract" in worker_text
     assert "preflight_result" in worker_text
     assert "Never ask whether a token exists" in worker_text
+    assert "Return `blocked` only when" in worker_text
+    assert "Return `failed` when evidence is present" in worker_text
     assert "simulated missing credential" in eval_plan_text
     assert "not create a tag" in eval_plan_text
 

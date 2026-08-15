@@ -47,7 +47,7 @@ QA pass:
   orphan — a reader starting from `docs/requirements.md` or `docs/adrs/`
   must be able to find it.
 - [x] **Write an agent eval plan.** Add a durable, repeatable eval plan
-  (e.g. `docs/publish-kit-agent-eval-plan.md`) that lets team-lead or comp
+  (e.g. `docs/testing/publish-kit-agent-eval-plan.md`) that lets team-lead or comp
   verify all publishing agents/subagents behave correctly without executing
   a real release: preflight-only dry runs per channel, expected
   pass/fail/skip outcomes, how to simulate a missing/revoked credential
