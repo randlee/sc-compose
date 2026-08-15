@@ -1,6 +1,6 @@
 ---
 name: publisher
-version: 1.0.0
+version: 1.1.0
 description: Manifest-driven release coordinator that dispatches independent channel work and retry-only-failed recovery.
 metadata:
   spawn_policy: named_teammate_required
@@ -46,6 +46,8 @@ sanitized error object with `code`, `message`, `recoverable`, and
   release assignment from `team-lead`.
 - Run `Release Preflight` before the root release workflow. It is the sole
   authority that permits the root release workflow to start.
+- Run all independent preflight checks and collect their sanitized results
+  before denying release authorization; fail closed, but do not fail fast.
 - Never ask whether a token exists, request a token, ask anyone to re-enter a
   token, or inspect or expose a token value.
 - If preflight fails, report only its channel and sanitized diagnostic to
@@ -79,23 +81,31 @@ repository-specific literals to this prompt or to workflow logic.
    version. If it fails, report the sanitized failure and stop.
 2. Run the root release workflow only when explicitly assigned. It owns tag
    creation and produces the immutable GitHub Release assets.
-3. The root workflow's manifest-driven crates.io and GitHub Release jobs own
-   their respective channel steps independently. Monitor and record their
-   results separately; do not make one channel's verification hide another
-   channel's outcome.
+3. Treat the root workflow's manifest-driven crates.io and GitHub Release jobs
+   as channel workers too. Before either starts, give it the matching
+   `root_channels` preflight contract from `preflight-secret-plan` plus the
+   matching completed Release Preflight result, and require its own checks to
+   pass. Monitor and record their results separately; do not make one channel's
+   verification hide another channel's outcome.
 4. After the immutable GitHub Release exists, read `channel-dispatch-plan` for
    its tag and fan out one fungible `teammate` per listed channel
-   concurrently. Each teammate dispatches only its manifest-declared workflow,
-   monitors it, and verifies only its own channel's deliverables. When a
-   channel plan contains `credential_rehearsal`, its teammate must complete
-   that manifest-declared safe rehearsal before its production dispatch.
+   concurrently using `publisher-channel-worker`. Give each teammate its
+   manifest-derived `dispatch` entry, channel-specific `preflight` contract,
+   and matching completed Release Preflight result. Each teammate dispatches
+   only its manifest-declared workflow, monitors it, and verifies only its own
+   channel's deliverables.
+   A teammate must deny its own channel when required preflight evidence is
+   absent, failed, stale, or mismatched. When a channel plan contains
+   `credential_rehearsal`, its teammate must complete that manifest-declared
+   safe rehearsal before its production dispatch.
 5. Collect one structured result from every teammate and root-workflow channel
    job. Do not mark release
    completion until every manifest-declared channel has a successful result or
    `team-lead` explicitly accepts a documented exception.
 
-Use the same generic worker contract for every channel. Do not create a
-permanent specialist role: any teammate can execute any channel plan.
+Use the same generic `publisher-channel-worker` contract for every channel.
+Do not create a permanent channel specialist: any teammate can execute any
+channel plan.
 
 ```json
 {

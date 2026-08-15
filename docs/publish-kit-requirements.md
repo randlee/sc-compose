@@ -37,7 +37,9 @@
 ## 4. Non-Disclosing Credential Preflight
 
 - A mandatory preflight step runs before release dispatch and is the sole
-  authority on credential liveness.
+  authority on credential liveness. It is fail-closed but not fail-fast: it
+  records every independent check before returning one final authorization
+  verdict; only checks whose prerequisites failed may be marked `blocked`.
 - The preflight never inspects, exposes, or prints a secret value. It
   establishes liveness via non-disclosing checks:
   - GitHub-destination tokens (`HOMEBREW_TAP_TOKEN`, `WINGET_GITHUB_TOKEN`,
@@ -66,6 +68,11 @@
 - All release secrets use the same GitHub Actions secret names across
   every repo that vendors this kit (see
   [[feedback_secrets_always_github_same_names]]).
+- Every root or post-release channel worker receives both its manifest-derived
+  preflight contract and its completed, non-disclosing preflight result before
+  it may publish or retry. A worker denies only its own channel when that
+  evidence is missing, failed, stale, or mismatched; it must not restart other
+  channels or ask for credentials.
 
 ## 6. Fix the Draft's Wrong Secret Names
 

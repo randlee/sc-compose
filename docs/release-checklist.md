@@ -14,6 +14,9 @@ Use this checklist with the repository's manifest-driven publish kit.
 - [ ] Run `Release Preflight`; do not inspect, request, or locally substitute a
   credential.
 - [ ] Confirm preflight passed before any release dispatch.
+- [ ] Preserve the complete per-channel sanitized preflight result. A denied
+  overall result is fail-closed, but it must include every independent check
+  rather than stopping at the first failure.
 
 ## Root Release
 
@@ -29,6 +32,9 @@ Use this checklist with the repository's manifest-driven publish kit.
     --manifest release/publish-artifacts.toml --tag v<VERSION>
   ```
 - [ ] Fan out one fungible teammate per returned channel concurrently.
+- [ ] Give every worker its matching preflight contract and completed
+  non-disclosing preflight result; deny that channel if either is missing,
+  failed, stale, or mismatched.
 - [ ] For every channel with `credential_rehearsal` in the plan, complete its
   manifest-declared safe rehearsal before that channel's production dispatch.
 - [ ] Collect one structured result for each channel.

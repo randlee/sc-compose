@@ -27,7 +27,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Enforce publisher ownership input
+      - id: ownership
+        name: Enforce publisher ownership input
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -37,17 +39,21 @@ jobs:
             exit 1
           fi
 
-      - id: secret-plan
+      - id: secret_plan
         name: Read non-disclosing credential plan from release manifest
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
           echo "plan=$(python3 scripts/release_artifacts.py preflight-secret-plan --manifest "${RELEASE_ARTIFACT_MANIFEST}")" >> "$GITHUB_OUTPUT"
 
-      - name: Verify required release secrets are available
+      - id: repository_secrets
+        name: Verify required release secrets are available
+        if: ${{ always() && steps.secret_plan.outcome == 'success' }}
+        continue-on-error: true
         shell: bash
         env:
-          SECRET_PLAN: ${{ steps.secret-plan.outputs.plan }}
+          SECRET_PLAN: ${{ steps.secret_plan.outputs.plan }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           SCOOP_BUCKET_TOKEN: ${{ secrets.SCOOP_BUCKET_TOKEN }}
@@ -66,36 +72,45 @@ jobs:
           fi
           echo "All manifest-required repository secrets are available."
 
-      - name: Verify protected Python environment secret metadata
+      - id: environment_secrets
+        name: Verify protected Python environment secret metadata
+        if: ${{ always() && steps.secret_plan.outcome == 'success' }}
+        continue-on-error: true
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
-          SECRET_PLAN: ${{ steps.secret-plan.outputs.plan }}
+          SECRET_PLAN: ${{ steps.secret_plan.outputs.plan }}
         run: |
           set -euo pipefail
+          failures=()
           while IFS=$'\t' read -r environment_name secret_name; do
             if ! names="$(gh api "repos/${REPOSITORY}/environments/${environment_name}/secrets" --jq '.secrets[].name')"; then
-              echo "Could not inspect secret metadata for protected environment ${environment_name}." >&2
-              exit 1
-            fi
-            if ! grep -Fxq -- "${secret_name}" <<<"${names}"; then
-              echo "GitHub Actions environment ${environment_name} is missing required secret ${secret_name}." >&2
-              exit 1
+              failures+=("Could not inspect secret metadata for protected environment ${environment_name}.")
+            elif ! grep -Fxq -- "${secret_name}" <<<"${names}"; then
+              failures+=("GitHub Actions environment ${environment_name} is missing required secret ${secret_name}.")
             fi
           done < <(jq -r '.environment_secrets[] | [.environment, .name] | @tsv' <<<"${SECRET_PLAN}")
+          if [[ "${#failures[@]}" -gt 0 ]]; then
+            printf '%s\n' "${failures[@]}" >&2
+            exit 1
+          fi
           echo "All manifest-required protected-environment secret names are present."
 
-      - name: Verify repository credential liveness
+      - id: credential_liveness
+        name: Verify repository credential liveness
+        if: ${{ always() && steps.secret_plan.outcome == 'success' }}
+        continue-on-error: true
         shell: bash
         env:
-          SECRET_PLAN: ${{ steps.secret-plan.outputs.plan }}
+          SECRET_PLAN: ${{ steps.secret_plan.outputs.plan }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           SCOOP_BUCKET_TOKEN: ${{ secrets.SCOOP_BUCKET_TOKEN }}
           WINGET_GITHUB_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          failures=()
           while IFS=$'\t' read -r secret_name check_kind; do
             token="${!secret_name:-}"
             case "${check_kind}" in
@@ -106,15 +121,18 @@ jobs:
                 command=(curl --fail --silent --show-error --header "Authorization: Bearer ${token}" --header "Accept: application/vnd.github+json" https://api.github.com/user)
                 ;;
               *)
-                echo "Unsupported credential liveness check kind: ${check_kind}" >&2
-                exit 1
+                failures+=("Unsupported credential liveness check kind: ${check_kind}")
+                continue
                 ;;
             esac
             if ! "${command[@]}" >/dev/null; then
-              echo "GitHub Actions secret ${secret_name} is present but rejected by its publish service; rotate or replace it." >&2
-              exit 1
+              failures+=("GitHub Actions secret ${secret_name} is present but rejected by its publish service; rotate or replace it.")
             fi
           done < <(jq -r '.liveness_checks[] | [.name, .kind] | @tsv' <<<"${SECRET_PLAN}")
+          if [[ "${#failures[@]}" -gt 0 ]]; then
+            printf '%s\n' "${failures[@]}" >&2
+            exit 1
+          fi
           echo "All manifest-required repository credentials are accepted by their publish services."
 
       - name: Set up Python
@@ -133,6 +151,7 @@ jobs:
 
       - name: Normalize version input
         id: meta
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -146,52 +165,128 @@ jobs:
           echo "release_tag=$tag" >> "$GITHUB_OUTPUT"
           echo "release_version=${tag#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Check formatting
+      - id: formatting
+        name: Check formatting
+        continue-on-error: true
         run: cargo fmt --all --check
 
-      - name: Run clippy
+      - id: clippy
+        name: Run clippy
+        continue-on-error: true
         run: cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Run workspace tests
+      - id: workspace_tests
+        name: Run workspace tests
+        continue-on-error: true
         run: cargo test --workspace
 
-      - name: Validate manifest completeness
+      - id: manifest
+        name: Validate manifest completeness
+        continue-on-error: true
         run: |
           python3 scripts/release_artifacts.py validate-manifest \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --workspace-toml Cargo.toml
 
-      - name: Validate publish_order dependency graph
+      - id: publish_order
+        name: Validate publish_order dependency graph
+        continue-on-error: true
         run: bash scripts/ci/validate_publish_order.sh
 
-      - name: Verify release helper files exist
+      - id: helpers
+        name: Verify release helper files exist
+        continue-on-error: true
         run: |
           test -f scripts/release_gate.sh
           test -f docs/publishing-agent.md
 
-      - name: Verify requested version matches workspace
+      - id: version
+        name: Verify requested version matches workspace
+        if: ${{ always() && steps.meta.outcome == 'success' }}
+        continue-on-error: true
         run: |
           python3 scripts/release_artifacts.py verify-version \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --workspace-toml Cargo.toml \
             --version '${{ steps.meta.outputs.release_version }}'
 
-      - name: Verify release version lockstep
+      - id: version_lockstep
+        name: Verify release version lockstep
+        continue-on-error: true
         run: |
           python3 scripts/release_artifacts.py verify-version-lockstep \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --workspace-toml Cargo.toml
 
-      - name: Verify release version is unpublished on crates.io
+      - id: unpublished
+        name: Verify release version is unpublished on crates.io
+        if: ${{ always() && steps.meta.outcome == 'success' }}
+        continue-on-error: true
         run: |
           python3 scripts/release_artifacts.py check-version-unpublished \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --version '${{ steps.meta.outputs.release_version }}'
 
-      - name: Run dependency-aware package checks
+      - id: package_checks
+        name: Run dependency-aware package checks
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
           while IFS='|' read -r package _; do
             cargo package -p "$package" --locked --allow-dirty
           done < <(python3 scripts/release_artifacts.py list-publish-plan --manifest "${RELEASE_ARTIFACT_MANIFEST}")
+
+      - name: Deny release after complete preflight summary
+        if: ${{ always() }}
+        shell: bash
+        env:
+          OWNERSHIP: ${{ steps.ownership.outcome }}
+          SECRET_PLAN: ${{ steps.secret_plan.outcome }}
+          REPOSITORY_SECRETS: ${{ steps.repository_secrets.outcome }}
+          ENVIRONMENT_SECRETS: ${{ steps.environment_secrets.outcome }}
+          CREDENTIAL_LIVENESS: ${{ steps.credential_liveness.outcome }}
+          META: ${{ steps.meta.outcome }}
+          FORMATTING: ${{ steps.formatting.outcome }}
+          CLIPPY: ${{ steps.clippy.outcome }}
+          WORKSPACE_TESTS: ${{ steps.workspace_tests.outcome }}
+          MANIFEST: ${{ steps.manifest.outcome }}
+          PUBLISH_ORDER: ${{ steps.publish_order.outcome }}
+          HELPERS: ${{ steps.helpers.outcome }}
+          VERSION: ${{ steps.version.outcome }}
+          VERSION_LOCKSTEP: ${{ steps.version_lockstep.outcome }}
+          UNPUBLISHED: ${{ steps.unpublished.outcome }}
+          PACKAGE_CHECKS: ${{ steps.package_checks.outcome }}
+        run: |
+          set -euo pipefail
+          failed=()
+          blocked=()
+          record() {
+            local name="$1" outcome="$2"
+            case "${outcome}" in
+              success) ;;
+              skipped) blocked+=("${name}") ;;
+              *) failed+=("${name}") ;;
+            esac
+          }
+          record ownership "${OWNERSHIP}"
+          record secret-plan "${SECRET_PLAN}"
+          record repository-secrets "${REPOSITORY_SECRETS}"
+          record environment-secrets "${ENVIRONMENT_SECRETS}"
+          record credential-liveness "${CREDENTIAL_LIVENESS}"
+          record version-input "${META}"
+          record formatting "${FORMATTING}"
+          record clippy "${CLIPPY}"
+          record workspace-tests "${WORKSPACE_TESTS}"
+          record manifest "${MANIFEST}"
+          record publish-order "${PUBLISH_ORDER}"
+          record helpers "${HELPERS}"
+          record version "${VERSION}"
+          record version-lockstep "${VERSION_LOCKSTEP}"
+          record unpublished-version "${UNPUBLISHED}"
+          record package-checks "${PACKAGE_CHECKS}"
+          printf 'Preflight complete: failed=[%s] blocked=[%s]\n' \
+            "$(IFS=,; echo "${failed[*]}")" "$(IFS=,; echo "${blocked[*]}")"
+          if [[ "${#failed[@]}" -gt 0 || "${#blocked[@]}" -gt 0 ]]; then
+            exit 1
+          fi

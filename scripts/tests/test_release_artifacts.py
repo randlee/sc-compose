@@ -420,36 +420,51 @@ def test_manifest_drives_parallel_post_release_dispatch_plan() -> None:
     )
 
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout) == {
-        "channels": [
-            {
-                "name": "pypi",
+    channels = json.loads(result.stdout)["channels"]
+    assert [channel["name"] for channel in channels] == [
+        "pypi",
+        "homebrew",
+        "winget",
+        "scoop",
+    ]
+    assert channels[0] == {
+        "name": "pypi",
+        "workflow": "pypi-publish.yml",
+        "inputs": {"tag": "v1.4.2", "target": "production"},
+        "credential_rehearsal": {
+            "workflow": "pypi-publish.yml",
+            "inputs": {"tag": "v1.4.2", "target": "testpypi"},
+        },
+        "preflight": {
+            "repository_secrets": [],
+            "environment_secrets": [
+                {"environment": "pypi", "name": "PYPI_API_TOKEN"},
+                {"environment": "testpypi", "name": "TEST_PYPI_API_TOKEN"},
+            ],
+            "liveness_checks": [],
+            "credential_rehearsal": {
                 "workflow": "pypi-publish.yml",
-                "inputs": {"tag": "v1.4.2", "target": "production"},
-                "credential_rehearsal": {
-                    "workflow": "pypi-publish.yml",
-                    "inputs": {"tag": "v1.4.2", "target": "testpypi"},
-                },
+                "inputs": {"target": "testpypi"},
             },
-            {
-                "name": "homebrew",
-                "workflow": "homebrew-publish.yml",
-                "inputs": {"tag": "v1.4.2"},
-                "credential_rehearsal": None,
-            },
-            {
-                "name": "winget",
-                "workflow": "winget-publish.yml",
-                "inputs": {"tag": "v1.4.2"},
-                "credential_rehearsal": None,
-            },
-            {
-                "name": "scoop",
-                "workflow": "scoop-publish.yml",
-                "inputs": {"tag": "v1.4.2"},
-                "credential_rehearsal": None,
-            },
-        ]
+        },
+    }
+    assert channels[1]["preflight"] == {
+        "repository_secrets": ["HOMEBREW_TAP_TOKEN"],
+        "environment_secrets": [],
+        "liveness_checks": [{"name": "HOMEBREW_TAP_TOKEN", "kind": "github"}],
+        "credential_rehearsal": None,
+    }
+    assert channels[2]["preflight"] == {
+        "repository_secrets": ["WINGET_GITHUB_TOKEN"],
+        "environment_secrets": [],
+        "liveness_checks": [{"name": "WINGET_GITHUB_TOKEN", "kind": "github"}],
+        "credential_rehearsal": None,
+    }
+    assert channels[3]["preflight"] == {
+        "repository_secrets": ["SCOOP_BUCKET_TOKEN"],
+        "environment_secrets": [],
+        "liveness_checks": [{"name": "SCOOP_BUCKET_TOKEN", "kind": "github"}],
+        "credential_rehearsal": None,
     }
 
 
@@ -477,6 +492,67 @@ def test_manifest_drives_non_disclosing_preflight_secret_plan() -> None:
             {"name": "HOMEBREW_TAP_TOKEN", "kind": "github"},
             {"name": "WINGET_GITHUB_TOKEN", "kind": "github"},
             {"name": "SCOOP_BUCKET_TOKEN", "kind": "github"},
+        ],
+        "root_channels": [
+            {
+                "name": "crates_io",
+                "repository_secrets": ["CARGO_REGISTRY_TOKEN"],
+                "environment_secrets": [],
+                "liveness_checks": [
+                    {"name": "CARGO_REGISTRY_TOKEN", "kind": "crates_io"}
+                ],
+                "credential_rehearsal": None,
+            },
+            {
+                "name": "github_release",
+                "repository_secrets": [],
+                "environment_secrets": [],
+                "liveness_checks": [],
+                "github_actions_permissions": ["contents:write"],
+                "credential_rehearsal": None,
+            },
+        ],
+        "post_release_channels": [
+            {
+                "name": "pypi",
+                "repository_secrets": [],
+                "environment_secrets": [
+                    {"environment": "pypi", "name": "PYPI_API_TOKEN"},
+                    {"environment": "testpypi", "name": "TEST_PYPI_API_TOKEN"},
+                ],
+                "liveness_checks": [],
+                "credential_rehearsal": {
+                    "workflow": "pypi-publish.yml",
+                    "inputs": {"target": "testpypi"},
+                },
+            },
+            {
+                "name": "homebrew",
+                "repository_secrets": ["HOMEBREW_TAP_TOKEN"],
+                "environment_secrets": [],
+                "liveness_checks": [
+                    {"name": "HOMEBREW_TAP_TOKEN", "kind": "github"}
+                ],
+                "credential_rehearsal": None,
+            },
+            {
+                "name": "winget",
+                "repository_secrets": ["WINGET_GITHUB_TOKEN"],
+                "environment_secrets": [],
+                "liveness_checks": [
+                    {"name": "WINGET_GITHUB_TOKEN", "kind": "github"}
+                ],
+                "credential_rehearsal": None,
+            },
+            {
+                "name": "scoop",
+                "repository_secrets": ["SCOOP_BUCKET_TOKEN"],
+                "environment_secrets": [],
+                "liveness_checks": [
+                    {"name": "SCOOP_BUCKET_TOKEN", "kind": "github"}
+                ],
+                "credential_rehearsal": None,
+            },
         ],
     }
 
@@ -700,6 +776,12 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     checklist_text = (repo_root() / "docs" / "release-checklist.md").read_text(
         encoding="utf-8"
     )
+    worker_text = (repo_root() / ".claude" / "agents" / "publisher-channel-worker.md").read_text(
+        encoding="utf-8"
+    )
+    eval_plan_text = (repo_root() / "docs" / "publish-kit-agent-eval-plan.md").read_text(
+        encoding="utf-8"
+    )
 
     for text in (publisher_text, guide_text, checklist_text):
         assert "channel-dispatch-plan" in text
@@ -713,14 +795,33 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "Never ask whether a token exists" in publisher_text
     assert "preflight-secret-plan" in publisher_text
     assert "protected-environment secret metadata" in guide_text
-    assert "version: 1.0.0" in publisher_text
+    assert "version: 1.1.0" in publisher_text
     assert "## Inputs" in publisher_text
     assert "## Output Format" in publisher_text
     assert "## Error Handling" in publisher_text
     assert "## Constraints" in publisher_text
-    assert 'publisher:\n    version: 1.0.0' in (
-        repo_root() / ".claude" / "agents" / "registry.yaml"
-    ).read_text(encoding="utf-8")
+    registry_text = (repo_root() / ".claude" / "agents" / "registry.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert 'publisher:\n    version: 1.1.0' in registry_text
+    assert 'publisher-channel-worker:\n    version: 1.0.0' in registry_text
+    assert "preflight_contract" in worker_text
+    assert "preflight_result" in worker_text
+    assert "Never ask whether a token exists" in worker_text
+    assert "simulated missing credential" in eval_plan_text
+    assert "not create a tag" in eval_plan_text
+
+
+def test_release_preflight_collects_independent_failures_before_denial() -> None:
+    preflight_text = (repo_root() / ".github" / "workflows" / "release-preflight.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "Deny release after complete preflight summary" in preflight_text
+    assert "Preflight complete: failed=[%s] blocked=[%s]" in preflight_text
+    assert preflight_text.count("continue-on-error: true") >= 12
+    assert "failures=()" in preflight_text
+    assert "steps.secret_plan.outcome == 'success'" in preflight_text
 
 
 def test_release_workflow_collects_wheels_without_redundant_zip_sweep() -> None:

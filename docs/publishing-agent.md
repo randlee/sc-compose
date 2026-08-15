@@ -26,14 +26,18 @@ repository or environment secrets. Agents never ask whether they exist,
 request/re-enter them, inspect them, or log them.
 
 `Release Preflight` is the mandatory authority that permits the root release
-workflow to start. It reads the
-manifest-derived credential plan and:
+workflow to start. It reads the manifest-derived credential plan and:
 
 - checks required repository-secret presence without printing values;
 - authenticates required crates.io and GitHub-destination credentials without
   printing values; and
 - checks PyPI/TestPyPI protected-environment secret metadata without binding
   preflight to an approval-gated environment.
+
+It is fail-closed, not fail-fast: it completes every independent check and
+returns a sanitized result for every root and post-release channel. Checks that
+depend on an earlier failed prerequisite are marked `blocked` with that
+dependency. A denied overall verdict never authorizes publication.
 
 If preflight reports a missing or rejected credential, report its channel and
 sanitized diagnostic to `team-lead`; do not attempt a local workaround. The
@@ -54,11 +58,13 @@ python3 scripts/release_artifacts.py channel-dispatch-plan \
   --manifest release/publish-artifacts.toml --tag v<VERSION>
 ```
 
-Publisher dispatches one fungible teammate per returned channel in parallel.
-Each teammate owns only its channel's manifest-declared workflow, inputs,
-verification, optional credential rehearsal, and structured result. A completed
-channel is not rerun: retry only the channel results that failed, using the same
-release tag.
+Publisher dispatches one fungible `publisher-channel-worker` teammate per
+returned channel in parallel. Each teammate receives its manifest-derived
+preflight contract and completed sanitized preflight result before it owns only
+its channel's workflow, inputs, verification, optional credential rehearsal,
+and structured result. A completed channel is not rerun: retry only the channel
+results that failed, using the same release tag. The root crates.io and GitHub
+Release jobs follow the same per-channel gate before they start.
 
 Every channel worker returns:
 
@@ -76,3 +82,10 @@ Every channel worker returns:
 
 Do not rerun the root release workflow, recreate a tag, rebuild artifacts, or
 replay a passed channel to recover a different channel.
+
+For PyPI, metadata presence is not enough to prove publication readiness. The
+production worker requires the manifest-declared TestPyPI rehearsal result for
+the same candidate artifacts; a matching download/install and artifact digest
+is the required server-side evidence. An existing TestPyPI version whose
+artifact identity cannot be confirmed is a blocked channel, not a reason to
+skip the rehearsal.

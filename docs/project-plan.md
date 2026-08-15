@@ -34,6 +34,18 @@ required to ship.
 - `sc-composer` must not depend on `bindings/python`.
 - No ATM-specific runtime assumptions may enter code or manifests.
 
+### Publish-Kit Agent Evaluation Hardening
+
+Status: Complete
+
+- [Publish-Kit Agent Evaluation Hardening](sprints/publish-kit-agent-eval-hardening.md)
+  — `feature/publish-kit-preflight-hardening` -> `develop`
+
+This follow-up makes each root and post-release channel worker consume its own
+non-disclosing preflight contract and completed result, links the normative
+publish-kit requirements from the top-level requirements baseline, and records
+a no-release evaluation procedure. It does not alter product runtime behavior.
+
 ## Release Blocker Inventory
 
 Current known release blockers:

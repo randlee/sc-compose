@@ -1,7 +1,10 @@
 agents:
   publisher:
-    version: 1.0.0
+    version: 1.1.0
     path: .claude/agents/publisher.md
+  publisher-channel-worker:
+    version: 1.0.0
+    path: .claude/agents/publisher-channel-worker.md
   scrum-master:
     version: 0.1.0
     path: .claude/agents/scrum-master.md

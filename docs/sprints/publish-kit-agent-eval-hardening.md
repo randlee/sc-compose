@@ -1,6 +1,6 @@
 ---
 id: PUBLISH-KIT-AGENT-EVAL-HARDENING
-status: in_progress
+status: complete
 branch: feature/publish-kit-preflight-hardening
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feature/publish-kit-preflight-hardening
 target: develop
@@ -26,7 +26,7 @@ QA pass:
 
 ## Closure Checklist
 
-- [ ] **Extend preflight through all publishing agents/subagents.** Update
+- [x] **Extend preflight through all publishing agents/subagents.** Update
   `.claude/agents/publisher.md` and every per-channel publishing
   agent/subagent prompt (crates.io, GitHub Release, Homebrew, Scoop,
   `winget`, PyPI) so that each channel worker itself checks/consumes the
@@ -37,7 +37,7 @@ QA pass:
   is ambiguous, make the smallest reasonable extension consistent with
   `docs/publish-kit-requirements.md` requirement 4-5 and flag the assumption
   in the completion report).
-- [ ] **Link requirements/ADR into top-level documents.** Add
+- [x] **Link requirements/ADR into top-level documents.** Add
   `docs/publish-kit-requirements.md` into the repo's normal req/ADR
   structure: either promote it into (or cross-link it from)
   `docs/requirements.md`, and/or add a proper ADR under `docs/adrs/`
@@ -46,7 +46,7 @@ QA pass:
   and format in `docs/adrs/`. The standalone file must no longer be an
   orphan — a reader starting from `docs/requirements.md` or `docs/adrs/`
   must be able to find it.
-- [ ] **Write an agent eval plan.** Add a durable, repeatable eval plan
+- [x] **Write an agent eval plan.** Add a durable, repeatable eval plan
   (e.g. `docs/publish-kit-agent-eval-plan.md`) that lets team-lead or comp
   verify all publishing agents/subagents behave correctly without executing
   a real release: preflight-only dry runs per channel, expected
@@ -54,9 +54,9 @@ QA pass:
   without using a real secret, and how to confirm no channel ever discloses
   a token value. Base this on the manual "preflight mode" verification Rand
   already ran directly against the agents.
-- [ ] Add or update tests covering the extended per-subagent preflight
+- [x] Add or update tests covering the extended per-subagent preflight
   behavior where testable in code (not just agent-prompt text).
-- [ ] Re-read the checklist and changed files; run `cargo fmt --all --check`,
+- [x] Re-read the checklist and changed files; run `cargo fmt --all --check`,
   `cargo test --workspace`, and any workflow YAML validation already used by
   this branch.
 

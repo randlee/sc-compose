@@ -42,6 +42,8 @@ Before the ATM workspace switches to crates.io dependencies from this repo:
 - Release notes template: `release/RELEASE-NOTES-TEMPLATE.md`
 - `winget` setup note: `docs/WINGET_SETUP.md`
 - Operator guide: `docs/publishing-agent.md`
+- Publish-kit requirements: `docs/publish-kit-requirements.md`
+- Agent evaluation procedure: `docs/publish-kit-agent-eval-plan.md`
 
 ## Installed Data Layout
 

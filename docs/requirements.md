@@ -37,6 +37,14 @@ The product has two deliverables:
 - Library crate: `sc-composer`
 - CLI binary crate: `sc-compose`
 
+### 3.0 Release Publish-Kit Requirements
+
+The vendorable release workflow, publisher-agent behavior, credential
+non-disclosure, per-channel preflight, retry, and evaluation contract are
+normatively defined in [Publish Kit Requirements](publish-kit-requirements.md).
+Those requirements govern release tooling only and do not add a runtime
+dependency or network behavior to `sc-composer` or `sc-compose`.
+
 The library is the semantic source of truth. The CLI is a thin interface over
 the library.
 

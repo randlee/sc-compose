@@ -238,6 +238,71 @@ def _channel_credential_rehearsal(
     return workflow, rehearsal_inputs
 
 
+def _post_release_channel_preflight(manifest: dict, channel_name: str) -> dict[str, object]:
+    """Return the non-secret readiness contract a channel worker must consume."""
+    repository_secrets: list[str] = []
+    environment_secrets: list[dict[str, str]] = []
+    liveness_checks: list[dict[str, str]] = []
+
+    if channel_name == "homebrew":
+        repository_secrets.append("HOMEBREW_TAP_TOKEN")
+        liveness_checks.append({"name": "HOMEBREW_TAP_TOKEN", "kind": "github"})
+    elif channel_name == "winget":
+        repository_secrets.append("WINGET_GITHUB_TOKEN")
+        liveness_checks.append({"name": "WINGET_GITHUB_TOKEN", "kind": "github"})
+    elif channel_name == "scoop":
+        repository_secrets.append("SCOOP_BUCKET_TOKEN")
+        liveness_checks.append({"name": "SCOOP_BUCKET_TOKEN", "kind": "github"})
+    elif channel_name == "pypi":
+        environment_secrets.extend(
+            (
+                {"environment": "pypi", "name": "PYPI_API_TOKEN"},
+                {"environment": "testpypi", "name": "TEST_PYPI_API_TOKEN"},
+            )
+        )
+
+    rehearsal = _channel_credential_rehearsal(manifest, channel_name)
+    rehearsal_plan = None
+    if rehearsal is not None:
+        workflow, inputs = rehearsal
+        rehearsal_plan = {"workflow": workflow, "inputs": inputs}
+
+    return {
+        "repository_secrets": repository_secrets,
+        "environment_secrets": environment_secrets,
+        "liveness_checks": liveness_checks,
+        "credential_rehearsal": rehearsal_plan,
+    }
+
+
+def _root_channel_preflight(manifest: dict) -> list[dict[str, object]]:
+    """Return non-secret requirements for root-workflow publish channels."""
+    channels: list[dict[str, object]] = []
+    if manifest["crates"]:
+        channels.append(
+            {
+                "name": "crates_io",
+                "repository_secrets": ["CARGO_REGISTRY_TOKEN"],
+                "environment_secrets": [],
+                "liveness_checks": [
+                    {"name": "CARGO_REGISTRY_TOKEN", "kind": "crates_io"}
+                ],
+                "credential_rehearsal": None,
+            }
+        )
+    channels.append(
+        {
+            "name": "github_release",
+            "repository_secrets": [],
+            "environment_secrets": [],
+            "liveness_checks": [],
+            "github_actions_permissions": ["contents:write"],
+            "credential_rehearsal": None,
+        }
+    )
+    return channels
+
+
 def _channel_renderer_target(manifest: dict, channel_name: str) -> dict | None:
     """Return the published Linux renderer asset required by a channel workflow."""
     if channel_name not in ("homebrew", "scoop"):
@@ -494,13 +559,13 @@ def cmd_channel_dispatch_plan(args: argparse.Namespace) -> int:
     channels = []
     for channel_name in _channel_names(manifest):
         workflow, dispatch_inputs = _channel_dispatch_config(manifest, channel_name)
-        rehearsal = _channel_credential_rehearsal(manifest, channel_name)
+        preflight = _post_release_channel_preflight(manifest, channel_name)
+        rehearsal = preflight["credential_rehearsal"]
         rehearsal_plan = None
         if rehearsal is not None:
-            rehearsal_workflow, rehearsal_inputs = rehearsal
             rehearsal_plan = {
-                "workflow": rehearsal_workflow,
-                "inputs": {"tag": args.tag, **rehearsal_inputs},
+                "workflow": rehearsal["workflow"],
+                "inputs": {"tag": args.tag, **rehearsal["inputs"]},
             }
         channels.append(
             {
@@ -508,6 +573,7 @@ def cmd_channel_dispatch_plan(args: argparse.Namespace) -> int:
                 "workflow": workflow,
                 "inputs": {"tag": args.tag, **dispatch_inputs},
                 "credential_rehearsal": rehearsal_plan,
+                "preflight": preflight,
             }
         )
     print(json.dumps({"channels": channels}, separators=(",", ":")))
@@ -524,22 +590,13 @@ def cmd_preflight_secret_plan(args: argparse.Namespace) -> int:
     if manifest["crates"]:
         repository_secrets.append("CARGO_REGISTRY_TOKEN")
         liveness_checks.append({"name": "CARGO_REGISTRY_TOKEN", "kind": "crates_io"})
-    if "homebrew" in channel_names:
-        repository_secrets.append("HOMEBREW_TAP_TOKEN")
-        liveness_checks.append({"name": "HOMEBREW_TAP_TOKEN", "kind": "github"})
-    if "winget" in channel_names:
-        repository_secrets.append("WINGET_GITHUB_TOKEN")
-        liveness_checks.append({"name": "WINGET_GITHUB_TOKEN", "kind": "github"})
-    if "scoop" in channel_names:
-        repository_secrets.append("SCOOP_BUCKET_TOKEN")
-        liveness_checks.append({"name": "SCOOP_BUCKET_TOKEN", "kind": "github"})
-    if "pypi" in channel_names:
-        environment_secrets.extend(
-            (
-                {"environment": "pypi", "name": "PYPI_API_TOKEN"},
-                {"environment": "testpypi", "name": "TEST_PYPI_API_TOKEN"},
-            )
-        )
+    post_release_channels = []
+    for channel_name in channel_names:
+        channel_preflight = _post_release_channel_preflight(manifest, channel_name)
+        repository_secrets.extend(channel_preflight["repository_secrets"])
+        environment_secrets.extend(channel_preflight["environment_secrets"])
+        liveness_checks.extend(channel_preflight["liveness_checks"])
+        post_release_channels.append({"name": channel_name, **channel_preflight})
 
     print(
         json.dumps(
@@ -547,6 +604,8 @@ def cmd_preflight_secret_plan(args: argparse.Namespace) -> int:
                 "repository_secrets": repository_secrets,
                 "environment_secrets": environment_secrets,
                 "liveness_checks": liveness_checks,
+                "root_channels": _root_channel_preflight(manifest),
+                "post_release_channels": post_release_channels,
             },
             separators=(",", ":"),
         )
