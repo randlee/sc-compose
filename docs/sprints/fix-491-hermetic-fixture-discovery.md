@@ -72,4 +72,4 @@ return `None`; callers retain their existing actionable setup error.
 ## Current Implementation Evidence
 
 - implementation commit: `22b8593`
-- PR and QA: pending
+- PR #492; QA-492-recheck passed (all four reviewers, CI 12/12 green)
