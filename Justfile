@@ -20,7 +20,7 @@ template-contracts:
 # also skipped because v0.4.0 crashes on valid Rust unicode escapes.
 lint-ci-consumer: ensure-lint-runtime
     {{sc-compose}} lint --root . --target fast --json
-    cargo deny --config deny.toml check advisories bans licenses sources
+    cargo deny check --config deny.toml advisories bans licenses sources
     cargo shear
     {{sc-compose}} lint --root . --target sc-boundary --json
     {{sc-compose}} lint --root . --target sc-portability --json
