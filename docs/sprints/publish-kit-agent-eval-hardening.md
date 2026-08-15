@@ -71,5 +71,14 @@ a release.
 Baseline validation was independently confirmed on commit
 `fca2733ae741dc49776a22f55a043796768683fc`: `cargo fmt --all --check`,
 `cargo clippy --all-targets --all-features -- -D warnings`, and
-`cargo test --workspace` all passed. The fix follow-up re-runs those commands
-before closeout and preserves the no-release scope guard.
+`cargo test --workspace` all passed.
+
+The QA-RECHECK fix commit `9f866768b0441e60c91563b5a235fddf69897df5` was
+independently re-validated by comp (`cargo fmt --all --check`,
+`cargo clippy --all-targets --all-features -- -D warnings`,
+`cargo test --workspace`, `scripts/tests/test_release_artifacts.py` all
+passed, worktree clean) and confirmed clean again by quality-mgr's
+`rust-qa-agent` during the QA-RECHECK pass (see
+`/Users/randlee/.atm/.config/atm/share/sc-compose/pk-eval-qa-recheck-atm.txt`).
+The no-release scope guard held throughout: no tag, dispatch, or publish
+action was taken.
