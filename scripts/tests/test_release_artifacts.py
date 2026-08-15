@@ -940,10 +940,11 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "background agent" in eval_plan_text
     assert "full `sc-compose` ATM team member" in eval_plan_text
     assert "dedicated\n  tmux pane" in eval_plan_text
-    assert "export ATM_TEAM=sc-compose" in eval_plan_text
-    assert "export ATM_IDENTITY=publisher" in eval_plan_text
-    assert "--teammate-mode tmux" in eval_plan_text
-    assert "--agent-id publisher@sc-compose" in eval_plan_text
+    assert "rmux claude publisher --team sc-compose --model haiku" in eval_plan_text
+    assert "rmux codex publisher --team sc-compose --model luna" in eval_plan_text
+    assert "ATM_IDENTITY=publisher" in eval_plan_text
+    assert "ATM_TEAM=sc-compose" in eval_plan_text
+    assert "configured\n  hooks" in eval_plan_text
     assert "post-run ATM questioning" in eval_plan_text
     assert "Every evaluation document must state:" in eval_convention_text
 
