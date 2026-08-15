@@ -1,86 +1,78 @@
-# Publishing Agent Guide
+# Manifest-Driven Publishing Guide
 
-This is the vendorable operator playbook for this repository's release kit.
-The repository-specific release surface is declared only in
+This is the vendorable operator guide for the checked-out repository. Its
+repository-specific release surface is declared only in
 `release/publish-artifacts.toml`.
 
-## Scope
+## Vendor Contract
 
-The manifest declares all release inventory:
+Copy the release workflows, composite actions, helper scripts/templates,
+publisher prompt, this guide, and `release/publish-artifacts.toml`. A consuming
+repository changes its manifest only: crates, binaries, targets, Python
+distributions, destination repositories, artifact paths, and channel dispatch
+inputs must not require workflow or prompt edits.
 
-- crates.io crates and dependency-aware publish order;
-- GitHub Release targets, archives, binaries, and bundled paths;
-- Python wheels and source distributions;
-- PyPI/TestPyPI repository names; and
-- Homebrew, winget, and Scoop destination configuration.
+Validate the result with:
 
-To vendor the kit into another repository, copy the workflow files, composite
-actions, helper scripts/templates, this guide, and the manifest; change only
-the manifest's repository-specific values. In particular, retain
-`.github/actions/extract-published-sc-compose/` with the Homebrew and Scoop
-workflows. Do not fork workflow logic to add package names, target triples,
-tap/bucket locations, or distribution inventories.
+```bash
+python3 scripts/release_artifacts.py validate-manifest \
+  --manifest release/publish-artifacts.toml --workspace-toml Cargo.toml
+```
 
-## Hard Rules
+## Credential Preflight
 
-- Release tags are created only by the release workflow.
-- Never manually push `v*` tags from a local machine.
-- `develop` must already be merged into `main` before release starts.
-- Always run the `Release Preflight` workflow before the `Release` workflow.
-- If any gate or prerequisite fails, stop and report the exact failure to
-  `team-lead`.
+All publish credentials are already provisioned as standardized GitHub Actions
+repository or environment secrets. Agents never ask whether they exist,
+request/re-enter them, inspect them, or log them.
 
-## Required Secrets
+`Release Preflight` is the mandatory authority that permits the root release
+workflow to start. It reads the
+manifest-derived credential plan and:
 
-Release secrets are standardized GitHub Actions repository or environment
-secrets across every repository that vendors this kit. They are already
-provisioned by the release owner. The `publisher` agent must use the documented
-secret references, but must not ask whether a token exists, request a token, or
-attempt to inspect a token value.
+- checks required repository-secret presence without printing values;
+- authenticates required crates.io and GitHub-destination credentials without
+  printing values; and
+- checks PyPI/TestPyPI protected-environment secret metadata without binding
+  preflight to an approval-gated environment.
 
-- `CARGO_REGISTRY_TOKEN` — crates.io publication
-- `PYPI_TOKEN` and `TEST_PYPI_TOKEN` — production and rehearsal Python uploads
-- `HOMEBREW_TAP_TOKEN` — Homebrew tap update
-- `WINGET_GITHUB_TOKEN` — winget submission
-- `SCOOP_BUCKET_TOKEN` — Scoop bucket manifest update
+If preflight reports a missing or rejected credential, report its channel and
+sanitized diagnostic to `team-lead`; do not attempt a local workaround. The
+environment metadata check confirms name/existence only. A channel whose
+credential cannot be proven live by metadata declares
+`credential_rehearsal_inputs` in the manifest; its worker completes that safe
+channel rehearsal before production closeout without exposing the credential.
 
-Release Preflight fails before a release if a required secret is absent. It
-also makes non-mutating GitHub API checks for the Homebrew, Scoop, and winget
-tokens, which detects expired or revoked GitHub tokens without exposing them.
-If Actions reports a missing or rejected secret, report the exact workflow
-failure to `team-lead`; do not replace it with a locally supplied credential
-or change the secret contract.
+## Parallel Channel Dispatch
 
-## Standard Release Flow
+The root workflow keeps crates.io and GitHub Release work in separate jobs, so
+their results are independently monitored and recorded. After it has produced
+the immutable GitHub Release, obtain the external post-release work set from
+the manifest:
 
-1. Confirm the target version already exists in the workspace metadata.
-2. Confirm `develop` is merged into `main`.
-3. Run `Release Preflight` with:
-   - `version=<X.Y.Z or vX.Y.Z>`
-   - `run_by_agent=publisher`
-4. Wait for preflight to pass.
-5. Run the `Release` workflow with the same version input.
-6. Monitor the workflow until completion.
-7. Verify every channel and artifact declared in the manifest.
-8. If a downstream channel fails after the GitHub Release is published, run
-   only that channel's dispatch workflow again with the same tag. Do not rerun
-   the root `Release` workflow, recreate the tag, republish crates, or rebuild
-   artifacts.
+```bash
+python3 scripts/release_artifacts.py channel-dispatch-plan \
+  --manifest release/publish-artifacts.toml --tag v<VERSION>
+```
 
-## Manual Checks
+Publisher dispatches one fungible teammate per returned channel in parallel.
+Each teammate owns only its channel's manifest-declared workflow, inputs,
+verification, optional credential rehearsal, and structured result. A completed
+channel is not rerun: retry only the channel results that failed, using the same
+release tag.
 
-- Verify crate owners for every crate in the manifest.
-- Verify the target version is unpublished before the workflow runs:
-  - `python3 scripts/release_artifacts.py check-version-unpublished --manifest release/publish-artifacts.toml --version <X.Y.Z>`
-- Verify each configured install path includes its manifest-declared binaries
-  and bundled paths.
-- Run a TestPyPI rehearsal when the manifest includes Python distributions;
-  confirm the declared wheel/sdist set uploads successfully.
+Every channel worker returns:
 
-## Notes
+```json
+{
+  "channel": "<manifest channel>",
+  "workflow": "<manifest workflow>",
+  "inputs": {"tag": "v<VERSION>"},
+  "dispatch_run_id": "<GitHub run id>",
+  "status": "passed|failed",
+  "verification": ["<channel-specific fact>"],
+  "sanitized_diagnostic": "<empty or non-secret failure text>"
+}
+```
 
-- Treat the GitHub Release as the immutable source of truth for external
-  channel workflows. They download and verify its declared assets rather than
-  rebuilding them.
-- The workflows are retry-safe: an already-updated Homebrew/Scoop manifest or
-  an already-uploaded PyPI distribution is a successful no-op.
+Do not rerun the root release workflow, recreate a tag, rebuild artifacts, or
+replay a passed channel to recover a different channel.

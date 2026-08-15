@@ -1,4 +1,7 @@
 agents:
+  publisher:
+    version: 1.0.0
+    path: .claude/agents/publisher.md
   scrum-master:
     version: 0.1.0
     path: .claude/agents/scrum-master.md

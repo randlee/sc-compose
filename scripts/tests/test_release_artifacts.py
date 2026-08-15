@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import json
 import subprocess
 import sys
 import tarfile
@@ -74,6 +75,7 @@ def write_repo_fixture(tmp_path: Path, *, manifest_wheels: list[str]) -> tuple[P
                 'homepage = "https://example.invalid/fixture"',
                 'license = "MIT"',
                 'readme_dependency_crate = "sc-composer"',
+                'renderer_archive_path = "bin/fixture"',
                 "",
                 "[[release_targets]]",
                 'target = "x86_64-unknown-linux-gnu"',
@@ -111,10 +113,14 @@ def write_repo_fixture(tmp_path: Path, *, manifest_wheels: list[str]) -> tuple[P
                 f"wheels = [{wheels}]",
                 "",
                 "[channels.pypi]",
+                'workflow = "pypi-publish.yml"',
+                'dispatch_inputs = { target = "production" }',
                 'test_repository = "testpypi"',
                 'production_repository = "pypi"',
                 "",
                 "[channels.homebrew]",
+                'workflow = "homebrew-publish.yml"',
+                'dispatch_inputs = {}',
                 'tap_repository = "example/homebrew-tap"',
                 'formula_path = "Formula/fixture.rb"',
                 'formula_template = "release/homebrew/formula.rb.j2"',
@@ -129,10 +135,14 @@ def write_repo_fixture(tmp_path: Path, *, manifest_wheels: list[str]) -> tuple[P
                 'target = "x86_64-unknown-linux-gnu"',
                 "",
                 "[channels.winget]",
+                'workflow = "winget-publish.yml"',
+                'dispatch_inputs = {}',
                 'identifier = "example.fixture"',
                 'installer_target = "x86_64-unknown-linux-gnu"',
                 "",
                 "[channels.scoop]",
+                'workflow = "scoop-publish.yml"',
+                'dispatch_inputs = {}',
                 'bucket_repository = "example/scoop-bucket"',
                 'manifest_path = "fixture.json"',
                 'manifest_template = "release/scoop/manifest.json.j2"',
@@ -340,6 +350,103 @@ def test_release_manifest_publishes_sc_sha_before_its_consumers() -> None:
     }
     assert manifest["channels"]["homebrew"]["renderer_target"] == "x86_64-unknown-linux-gnu"
     assert manifest["channels"]["scoop"]["renderer_target"] == "x86_64-unknown-linux-gnu"
+    assert manifest["project"]["renderer_archive_path"] == "bin/sc-compose"
+    assert manifest["channels"]["pypi"]["credential_rehearsal_inputs"] == {
+        "target": "testpypi"
+    }
+    assert {
+        name: channel["workflow"] for name, channel in manifest["channels"].items()
+    } == {
+        "pypi": "pypi-publish.yml",
+        "homebrew": "homebrew-publish.yml",
+        "winget": "winget-publish.yml",
+        "scoop": "scoop-publish.yml",
+    }
+
+
+def run_manifest_command(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            str(repo_root() / "scripts" / "release_artifacts.py"),
+            *args,
+        ],
+        cwd=repo_root(),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+def test_manifest_drives_parallel_post_release_dispatch_plan() -> None:
+    result = run_manifest_command(
+        "channel-dispatch-plan",
+        "--manifest",
+        "release/publish-artifacts.toml",
+        "--tag",
+        "v1.4.2",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {
+        "channels": [
+            {
+                "name": "pypi",
+                "workflow": "pypi-publish.yml",
+                "inputs": {"tag": "v1.4.2", "target": "production"},
+                "credential_rehearsal": {
+                    "workflow": "pypi-publish.yml",
+                    "inputs": {"tag": "v1.4.2", "target": "testpypi"},
+                },
+            },
+            {
+                "name": "homebrew",
+                "workflow": "homebrew-publish.yml",
+                "inputs": {"tag": "v1.4.2"},
+                "credential_rehearsal": None,
+            },
+            {
+                "name": "winget",
+                "workflow": "winget-publish.yml",
+                "inputs": {"tag": "v1.4.2"},
+                "credential_rehearsal": None,
+            },
+            {
+                "name": "scoop",
+                "workflow": "scoop-publish.yml",
+                "inputs": {"tag": "v1.4.2"},
+                "credential_rehearsal": None,
+            },
+        ]
+    }
+
+
+def test_manifest_drives_non_disclosing_preflight_secret_plan() -> None:
+    result = run_manifest_command(
+        "preflight-secret-plan",
+        "--manifest",
+        "release/publish-artifacts.toml",
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {
+        "repository_secrets": [
+            "CARGO_REGISTRY_TOKEN",
+            "HOMEBREW_TAP_TOKEN",
+            "WINGET_GITHUB_TOKEN",
+            "SCOOP_BUCKET_TOKEN",
+        ],
+        "environment_secrets": [
+            {"environment": "pypi", "name": "PYPI_API_TOKEN"},
+            {"environment": "testpypi", "name": "TEST_PYPI_API_TOKEN"},
+        ],
+        "liveness_checks": [
+            {"name": "CARGO_REGISTRY_TOKEN", "kind": "crates_io"},
+            {"name": "HOMEBREW_TAP_TOKEN", "kind": "github"},
+            {"name": "WINGET_GITHUB_TOKEN", "kind": "github"},
+            {"name": "SCOOP_BUCKET_TOKEN", "kind": "github"},
+        ],
+    }
 
 
 def test_release_workflow_enforces_python_release_invariants() -> None:
@@ -358,7 +465,8 @@ def test_release_workflow_enforces_python_release_invariants() -> None:
     assert "needs.gate-and-tag.outputs.release_target == 'testpypi'" in text
     assert "publish-pypi:" not in text
     assert "name: python-sdist-${{ matrix.artifact }}" in text
-    assert "TEST_PYPI_TOKEN" in text
+    assert "TEST_PYPI_API_TOKEN" in text
+    assert "secrets.TEST_PYPI_TOKEN" not in text
     assert "--repository testpypi" in text
     assert "for pattern in *.tar.gz *.zip *.whl; do" in text
     assert "uses: ./.github/actions/setup-python-release-build" in text
@@ -375,7 +483,14 @@ def test_release_workflow_enforces_python_release_invariants() -> None:
     assert "verify-python-release-assets" in pypi_text
     assert "maturin build" not in pypi_text
     assert "maturin sdist" not in pypi_text
-    assert "MATURIN_PYPI_TOKEN: ${{ inputs.target == 'testpypi' && secrets.TEST_PYPI_TOKEN || secrets.PYPI_TOKEN }}" in pypi_text
+    assert "name: Publish manifest-declared wheels and sdists to TestPyPI" in pypi_text
+    assert "if: ${{ inputs.target == 'testpypi' }}" in pypi_text
+    assert "MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}" in pypi_text
+    assert "name: Publish manifest-declared wheels and sdists to PyPI" in pypi_text
+    assert "if: ${{ inputs.target == 'production' }}" in pypi_text
+    assert "MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}" in pypi_text
+    assert "secrets.TEST_PYPI_TOKEN" not in pypi_text
+    assert "secrets.PYPI_TOKEN" not in pypi_text
     assert "maturin upload --repository \"${PYPI_REPOSITORY}\" --non-interactive --skip-existing dist/*.whl dist/*.tar.gz" in pypi_text
 
 
@@ -386,16 +501,22 @@ def test_release_preflight_requires_each_standardized_secret() -> None:
     for secret_name in (
         "CARGO_REGISTRY_TOKEN",
         "HOMEBREW_TAP_TOKEN",
-        "PYPI_TOKEN",
         "SCOOP_BUCKET_TOKEN",
-        "TEST_PYPI_TOKEN",
         "WINGET_GITHUB_TOKEN",
     ):
         assert secret_name in text
-    assert "All standardized release secrets are available." in text
-    assert "Verify GitHub channel token liveness" in text
+    assert "All manifest-required repository secrets are available." in text
+    assert "preflight-secret-plan" in text
+    assert "Verify protected Python environment secret metadata" in text
+    assert ".environment_secrets[]" in text
+    assert "environments/${environment_name}/secrets" in text
+    assert "environment:" not in text
+    assert "Verify repository credential liveness" in text
+    assert "https://crates.io/api/v1/me" in text
     assert "https://api.github.com/user" in text
     assert "rotate or replace it" in text
+    assert 'echo "${token}"' not in text
+    assert 'echo "${!secret_name}"' not in text
 
 
 def test_channel_recovery_workflows_require_a_published_release() -> None:
@@ -423,20 +544,20 @@ def test_channel_recovery_workflows_require_a_published_release() -> None:
     assert "channel-config" in homebrew_text
     assert "SCOOP_BUCKET_TOKEN" in scoop_text
     assert "channel-config" in scoop_text
-    assert "Render Scoop manifest with sc-compose" in scoop_text
+    assert "Render Scoop manifest with published renderer" in scoop_text
     assert 'MANIFEST_TEMPLATE: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.manifest_template }}' in scoop_text
     assert ".replace(placeholder, value)" not in scoop_text
     assert "cargo run --quiet --manifest-path release-source/Cargo.toml" not in scoop_text
-    assert "SC_COMPOSE_RENDERER" in scoop_text
+    assert "PUBLISHED_RENDERER" in scoop_text
     assert "Checkout workflow support" in scoop_text
-    assert "uses: ./.github/actions/extract-published-sc-compose" in scoop_text
+    assert "uses: ./.github/actions/extract-published-renderer" in scoop_text
 
     assert "Render formula from the manifest-declared template" in homebrew_text
     assert 'FORMULA_TEMPLATE: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.formula_template }}' in homebrew_text
     assert ".replace(placeholder, value)" not in homebrew_text
-    assert "SC_COMPOSE_RENDERER" in homebrew_text
+    assert "PUBLISHED_RENDERER" in homebrew_text
     assert "Checkout workflow support" in homebrew_text
-    assert "uses: ./.github/actions/extract-published-sc-compose" in homebrew_text
+    assert "uses: ./.github/actions/extract-published-renderer" in homebrew_text
     assert "install_block" not in homebrew_text
     assert "bundled_paths" in homebrew_text
 
@@ -444,11 +565,43 @@ def test_channel_recovery_workflows_require_a_published_release() -> None:
         repo_root()
         / ".github"
         / "actions"
-        / "extract-published-sc-compose"
+        / "extract-published-renderer"
         / "action.yml"
     ).read_text(encoding="utf-8")
-    assert "Published renderer archive is missing bin/sc-compose" in renderer_action
+    assert "binary-path" in renderer_action
+    assert "Published renderer archive is missing ${RENDERER_BINARY_PATH}" in renderer_action
     assert "renderer-path=${renderer}" in renderer_action
+
+
+def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> None:
+    publisher_text = (repo_root() / ".claude" / "agents" / "publisher.md").read_text(
+        encoding="utf-8"
+    )
+    guide_text = (repo_root() / "docs" / "publishing-agent.md").read_text(encoding="utf-8")
+    checklist_text = (repo_root() / "docs" / "release-checklist.md").read_text(
+        encoding="utf-8"
+    )
+
+    for text in (publisher_text, guide_text, checklist_text):
+        assert "channel-dispatch-plan" in text
+        assert "PYPI_TOKEN" not in text
+        assert "TEST_PYPI_TOKEN" not in text
+        assert "sc-compose" not in text
+
+    assert "one fungible `teammate` per listed channel" in publisher_text
+    assert '"status": "passed|failed"' in publisher_text
+    assert "Retry only the channel" in publisher_text
+    assert "Never ask whether a token exists" in publisher_text
+    assert "preflight-secret-plan" in publisher_text
+    assert "protected-environment secret metadata" in guide_text
+    assert "version: 1.0.0" in publisher_text
+    assert "## Inputs" in publisher_text
+    assert "## Output Format" in publisher_text
+    assert "## Error Handling" in publisher_text
+    assert "## Constraints" in publisher_text
+    assert 'publisher:\n    version: 1.0.0' in (
+        repo_root() / ".claude" / "agents" / "registry.yaml"
+    ).read_text(encoding="utf-8")
 
 
 def test_release_workflow_collects_wheels_without_redundant_zip_sweep() -> None:

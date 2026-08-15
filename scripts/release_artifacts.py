@@ -13,6 +13,9 @@ from email import message_from_bytes
 from pathlib import Path
 
 
+POST_RELEASE_CHANNELS = frozenset({"pypi", "homebrew", "winget", "scoop"})
+
+
 def load_manifest(path: Path) -> dict:
     data = tomllib.loads(path.read_text(encoding="utf-8"))
     crates = data.get("crates", [])
@@ -150,6 +153,13 @@ def _require_project(manifest: dict) -> dict:
     return project
 
 
+def _renderer_archive_path(manifest: dict) -> str:
+    value = _require_project(manifest).get("renderer_archive_path")
+    if not isinstance(value, str) or not value:
+        raise SystemExit("[project].renderer_archive_path must be a non-empty string")
+    return value
+
+
 def _release_targets_by_name(manifest: dict) -> dict[str, dict]:
     targets: dict[str, dict] = {}
     for index, target in enumerate(manifest["release_targets"], start=1):
@@ -171,6 +181,61 @@ def _channel_config(manifest: dict, channel_name: str) -> dict:
     if not isinstance(channel, dict):
         raise SystemExit(f"[channels.{channel_name}] must be a table")
     return channel
+
+
+def _channel_names(manifest: dict) -> tuple[str, ...]:
+    channels = manifest["channels"]
+    if not isinstance(channels, dict):
+        raise SystemExit("[channels] must be a table")
+    unknown = sorted(set(channels) - POST_RELEASE_CHANNELS)
+    if unknown:
+        raise SystemExit("unsupported release channel(s): " + ", ".join(unknown))
+    if not channels:
+        raise SystemExit("manifest must define at least one [channels.<name>] table")
+    return tuple(channels)
+
+
+def _channel_dispatch_config(manifest: dict, channel_name: str) -> tuple[str, dict[str, str]]:
+    channel = _channel_config(manifest, channel_name)
+    _require_keys(channel, ("workflow", "dispatch_inputs"), f"[channels.{channel_name}]")
+    workflow = channel["workflow"]
+    dispatch_inputs = channel["dispatch_inputs"]
+    if not isinstance(workflow, str) or not workflow:
+        raise SystemExit(f"[channels.{channel_name}].workflow must be a non-empty string")
+    if not isinstance(dispatch_inputs, dict) or not all(
+        isinstance(key, str) and isinstance(value, str)
+        for key, value in dispatch_inputs.items()
+    ):
+        raise SystemExit(
+            f"[channels.{channel_name}].dispatch_inputs must be a string-to-string table"
+        )
+    if "tag" in dispatch_inputs:
+        raise SystemExit(f"[channels.{channel_name}].dispatch_inputs must not override tag")
+    return workflow, dispatch_inputs
+
+
+def _channel_credential_rehearsal(
+    manifest: dict, channel_name: str
+) -> tuple[str, dict[str, str]] | None:
+    """Return a safe channel rehearsal for credentials not safely probed in preflight."""
+    channel = _channel_config(manifest, channel_name)
+    rehearsal_inputs = channel.get("credential_rehearsal_inputs")
+    if rehearsal_inputs is None:
+        return None
+    if not isinstance(rehearsal_inputs, dict) or not all(
+        isinstance(key, str) and isinstance(value, str)
+        for key, value in rehearsal_inputs.items()
+    ):
+        raise SystemExit(
+            f"[channels.{channel_name}].credential_rehearsal_inputs "
+            "must be a string-to-string table"
+        )
+    if "tag" in rehearsal_inputs:
+        raise SystemExit(
+            f"[channels.{channel_name}].credential_rehearsal_inputs must not override tag"
+        )
+    workflow, _ = _channel_dispatch_config(manifest, channel_name)
+    return workflow, rehearsal_inputs
 
 
 def _channel_renderer_target(manifest: dict, channel_name: str) -> dict | None:
@@ -251,9 +316,12 @@ def cmd_validate_manifest(args: argparse.Namespace) -> int:
     _require_project(manifest)
     _release_targets_by_name(manifest)
     _release_binaries(manifest)
-    for channel_name in ("pypi", "homebrew", "winget", "scoop"):
-        _channel_config(manifest, channel_name)
+    for channel_name in _channel_names(manifest):
+        _channel_dispatch_config(manifest, channel_name)
+        _channel_credential_rehearsal(manifest, channel_name)
         _channel_asset_patterns(manifest, channel_name)
+        if channel_name in ("homebrew", "scoop"):
+            _renderer_archive_path(manifest)
     members = workspace_members(Path(args.workspace_toml))
     missing = []
     for crate in manifest["crates"]:
@@ -396,6 +464,71 @@ def cmd_channel_config(args: argparse.Namespace) -> int:
         "release_targets": _release_targets_by_name(manifest),
     }
     print(json.dumps(result, separators=(",", ":")))
+    return 0
+
+
+def cmd_channel_dispatch_plan(args: argparse.Namespace) -> int:
+    manifest = load_manifest(Path(args.manifest))
+    channels = []
+    for channel_name in _channel_names(manifest):
+        workflow, dispatch_inputs = _channel_dispatch_config(manifest, channel_name)
+        rehearsal = _channel_credential_rehearsal(manifest, channel_name)
+        rehearsal_plan = None
+        if rehearsal is not None:
+            rehearsal_workflow, rehearsal_inputs = rehearsal
+            rehearsal_plan = {
+                "workflow": rehearsal_workflow,
+                "inputs": {"tag": args.tag, **rehearsal_inputs},
+            }
+        channels.append(
+            {
+                "name": channel_name,
+                "workflow": workflow,
+                "inputs": {"tag": args.tag, **dispatch_inputs},
+                "credential_rehearsal": rehearsal_plan,
+            }
+        )
+    print(json.dumps({"channels": channels}, separators=(",", ":")))
+    return 0
+
+
+def cmd_preflight_secret_plan(args: argparse.Namespace) -> int:
+    manifest = load_manifest(Path(args.manifest))
+    channel_names = _channel_names(manifest)
+    repository_secrets: list[str] = []
+    liveness_checks: list[dict[str, str]] = []
+    environment_secrets: list[dict[str, str]] = []
+
+    if manifest["crates"]:
+        repository_secrets.append("CARGO_REGISTRY_TOKEN")
+        liveness_checks.append({"name": "CARGO_REGISTRY_TOKEN", "kind": "crates_io"})
+    if "homebrew" in channel_names:
+        repository_secrets.append("HOMEBREW_TAP_TOKEN")
+        liveness_checks.append({"name": "HOMEBREW_TAP_TOKEN", "kind": "github"})
+    if "winget" in channel_names:
+        repository_secrets.append("WINGET_GITHUB_TOKEN")
+        liveness_checks.append({"name": "WINGET_GITHUB_TOKEN", "kind": "github"})
+    if "scoop" in channel_names:
+        repository_secrets.append("SCOOP_BUCKET_TOKEN")
+        liveness_checks.append({"name": "SCOOP_BUCKET_TOKEN", "kind": "github"})
+    if "pypi" in channel_names:
+        environment_secrets.extend(
+            (
+                {"environment": "pypi", "name": "PYPI_API_TOKEN"},
+                {"environment": "testpypi", "name": "TEST_PYPI_API_TOKEN"},
+            )
+        )
+
+    print(
+        json.dumps(
+            {
+                "repository_secrets": repository_secrets,
+                "environment_secrets": environment_secrets,
+                "liveness_checks": liveness_checks,
+            },
+            separators=(",", ":"),
+        )
+    )
     return 0
 
 
@@ -670,8 +803,17 @@ def main() -> int:
 
     p = sub.add_parser("channel-config")
     p.add_argument("--manifest", required=True)
-    p.add_argument("--channel", choices=("pypi", "homebrew", "winget", "scoop"), required=True)
+    p.add_argument("--channel", required=True)
     p.set_defaults(func=cmd_channel_config)
+
+    p = sub.add_parser("channel-dispatch-plan")
+    p.add_argument("--manifest", required=True)
+    p.add_argument("--tag", required=True)
+    p.set_defaults(func=cmd_channel_dispatch_plan)
+
+    p = sub.add_parser("preflight-secret-plan")
+    p.add_argument("--manifest", required=True)
+    p.set_defaults(func=cmd_preflight_secret_plan)
 
     p = sub.add_parser("verify-python-release-assets")
     p.add_argument("--manifest", required=True)

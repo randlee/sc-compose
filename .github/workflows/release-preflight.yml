@@ -14,6 +14,7 @@ on:
         type: string
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -22,6 +23,10 @@ jobs:
     env:
       RELEASE_ARTIFACT_MANIFEST: release/publish-artifacts.toml
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Enforce publisher ownership input
         shell: bash
         run: |
@@ -32,57 +37,85 @@ jobs:
             exit 1
           fi
 
-      - name: Verify standardized release secrets are available
+      - id: secret-plan
+        name: Read non-disclosing credential plan from release manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "plan=$(python3 scripts/release_artifacts.py preflight-secret-plan --manifest \"${RELEASE_ARTIFACT_MANIFEST}\")" >> "$GITHUB_OUTPUT"
+
+      - name: Verify required release secrets are available
         shell: bash
         env:
+          SECRET_PLAN: ${{ steps.secret-plan.outputs.plan }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
           SCOOP_BUCKET_TOKEN: ${{ secrets.SCOOP_BUCKET_TOKEN }}
-          TEST_PYPI_TOKEN: ${{ secrets.TEST_PYPI_TOKEN }}
           WINGET_GITHUB_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           missing=()
-          for secret_name in \
-            CARGO_REGISTRY_TOKEN \
-            HOMEBREW_TAP_TOKEN \
-            PYPI_TOKEN \
-            SCOOP_BUCKET_TOKEN \
-            TEST_PYPI_TOKEN \
-            WINGET_GITHUB_TOKEN; do
+          while IFS= read -r secret_name; do
             if [[ -z "${!secret_name:-}" ]]; then
               missing+=("${secret_name}")
             fi
-          done
+          done < <(jq -r '.repository_secrets[]' <<<"${SECRET_PLAN}")
           if [[ "${#missing[@]}" -gt 0 ]]; then
             echo "Missing required GitHub Actions release secret(s): ${missing[*]}" >&2
             exit 1
           fi
-          echo "All standardized release secrets are available."
+          echo "All manifest-required repository secrets are available."
 
-      - name: Verify GitHub channel token liveness
+      - name: Verify protected Python environment secret metadata
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SECRET_PLAN: ${{ steps.secret-plan.outputs.plan }}
+        run: |
+          set -euo pipefail
+          while IFS=$'\t' read -r environment_name secret_name; do
+            if ! names="$(gh api "repos/${REPOSITORY}/environments/${environment_name}/secrets" --jq '.secrets[].name')"; then
+              echo "Could not inspect secret metadata for protected environment ${environment_name}." >&2
+              exit 1
+            fi
+            if ! grep -Fxq -- "${secret_name}" <<<"${names}"; then
+              echo "GitHub Actions environment ${environment_name} is missing required secret ${secret_name}." >&2
+              exit 1
+            fi
+          done < <(jq -r '.environment_secrets[] | [.environment, .name] | @tsv' <<<"${SECRET_PLAN}")
+          echo "All manifest-required protected-environment secret names are present."
+
+      - name: Verify repository credential liveness
+        shell: bash
+        env:
+          SECRET_PLAN: ${{ steps.secret-plan.outputs.plan }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           SCOOP_BUCKET_TOKEN: ${{ secrets.SCOOP_BUCKET_TOKEN }}
           WINGET_GITHUB_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          for secret_name in HOMEBREW_TAP_TOKEN SCOOP_BUCKET_TOKEN WINGET_GITHUB_TOKEN; do
-            if ! curl --fail --silent --show-error \
-              --header "Authorization: Bearer ${!secret_name}" \
-              --header "Accept: application/vnd.github+json" \
-              https://api.github.com/user >/dev/null; then
-              echo "GitHub Actions secret ${secret_name} is present but rejected by GitHub; rotate or replace it." >&2
+          while IFS=$'\t' read -r secret_name check_kind; do
+            token="${!secret_name:-}"
+            case "${check_kind}" in
+              crates_io)
+                command=(curl --fail --silent --show-error --header "Authorization: ${token}" https://crates.io/api/v1/me)
+                ;;
+              github)
+                command=(curl --fail --silent --show-error --header "Authorization: Bearer ${token}" --header "Accept: application/vnd.github+json" https://api.github.com/user)
+                ;;
+              *)
+                echo "Unsupported credential liveness check kind: ${check_kind}" >&2
+                exit 1
+                ;;
+            esac
+            if ! "${command[@]}" >/dev/null; then
+              echo "GitHub Actions secret ${secret_name} is present but rejected by its publish service; rotate or replace it." >&2
               exit 1
             fi
-          done
-          echo "GitHub channel tokens are accepted by GitHub."
-
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+          done < <(jq -r '.liveness_checks[] | [.name, .kind] | @tsv' <<<"${SECRET_PLAN}")
+          echo "All manifest-required repository credentials are accepted by their publish services."
 
       - name: Set up Python
         uses: actions/setup-python@v5

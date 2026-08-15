@@ -113,17 +113,18 @@ jobs:
               _url, renderer_archive = download(renderer_target)
           Path("homebrew-release-assets.json").write_text(json.dumps(assets), encoding="utf-8")
           with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as env_file:
-              env_file.write(f"SC_COMPOSE_RENDERER_ARCHIVE={renderer_archive}\n")
+              env_file.write(f"PUBLISHED_RENDERER_ARCHIVE={renderer_archive}\n")
               env_file.write(
-                  "SC_COMPOSE_RENDERER_EXTRACT_DIR="
+                  "PUBLISHED_RENDERER_EXTRACT_DIR="
                   f"{project['archive_prefix']}_{os.environ['RELEASE_VERSION']}_{renderer_target['target']}\n"
               )
           PY
-      - name: Extract published sc-compose renderer
-        uses: ./.github/actions/extract-published-sc-compose
+      - name: Extract manifest-declared published renderer
+        uses: ./.github/actions/extract-published-renderer
         with:
-          archive: ${{ env.SC_COMPOSE_RENDERER_ARCHIVE }}
-          extract-dir: ${{ env.SC_COMPOSE_RENDERER_EXTRACT_DIR }}
+          archive: ${{ env.PUBLISHED_RENDERER_ARCHIVE }}
+          extract-dir: ${{ env.PUBLISHED_RENDERER_EXTRACT_DIR }}
+          binary-path: ${{ fromJSON(needs.verify-release.outputs.channel_config).project.renderer_archive_path }}
       - name: Render formula from the manifest-declared template
         shell: bash
         env:
@@ -177,7 +178,7 @@ jobs:
           PY
           workspace_root="$(pwd)"
           mkdir -p "$(dirname "homebrew-tap/${FORMULA_PATH}")"
-          "${SC_COMPOSE_RENDERER}" render --mode file --root release-source \
+          "${PUBLISHED_RENDERER}" render --mode file --root release-source \
             --file "${FORMULA_TEMPLATE}" \
             --var-file "${workspace_root}/homebrew-vars.json" \
             --output "${workspace_root}/homebrew-tap/${FORMULA_PATH}"
