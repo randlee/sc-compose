@@ -59,8 +59,9 @@ This repo publishes to six channels:
 ### Homebrew, Winget, and Scoop
 
 - [ ] `HOMEBREW_TAP_TOKEN` configured in repo secrets
-- [ ] First `winget` release requires one-time manual submission to
-  `microsoft/winget-pkgs`; later releases use the automated workflow job
+- [ ] `WINGET_GITHUB_TOKEN` configured in repo secrets with permission to open
+  Winget submissions in `microsoft/winget-pkgs`; every release dispatches the
+  automated `winget-publish.yml` workflow
 - [ ] `SCOOP_BUCKET_TOKEN` configured in repo secrets with write access to
   `randlee/scoop-bucket`
 
