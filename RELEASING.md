@@ -21,8 +21,9 @@ This repo publishes to six channels:
 ## Versioning
 
 - Single workspace version for all crates in this repo.
-- `bindings/python/pyproject.toml` must sync from the workspace version before
-  wheel builds. The release workflow enforces this via `verify-python-version`.
+- `bindings/sc-sha-python/pyproject.toml` and `bindings/python/pyproject.toml`
+  must sync from the workspace version before wheel builds. The release
+  workflow enforces this via `verify-python-version`.
 - Target version must be strictly higher than the last published version on
   crates.io for these crate names.
 
