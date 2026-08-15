@@ -1,6 +1,6 @@
 ---
 id: PUBLISH-KIT-PREFLIGHT-HARDENING
-status: in_progress
+status: complete
 branch: feature/publish-kit-preflight-hardening
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/feature/publish-kit-preflight-hardening
 target: develop

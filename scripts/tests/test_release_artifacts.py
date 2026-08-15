@@ -557,6 +557,122 @@ def test_manifest_drives_non_disclosing_preflight_secret_plan() -> None:
     }
 
 
+def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
+    passing_outcomes = json.dumps(
+        {
+            "ownership": "success",
+            "release_metadata": "success",
+            "repository_secrets": "success",
+            "environment_secrets": "success",
+            "credential_liveness": "success",
+            "github_release_permissions": "success",
+        }
+    )
+    result = run_manifest_command(
+        "channel-preflight-results",
+        "--manifest",
+        "release/publish-artifacts.toml",
+        "--outcomes",
+        passing_outcomes,
+        "--tag",
+        "v1.4.2",
+    )
+
+    assert result.returncode == 0, result.stderr
+    channels = {entry["name"]: entry for entry in json.loads(result.stdout)["channels"]}
+    assert json.loads(result.stdout)["tag"] == "v1.4.2"
+    assert list(channels) == [
+        "crates_io",
+        "github_release",
+        "pypi",
+        "homebrew",
+        "winget",
+        "scoop",
+    ]
+    assert all(channel["status"] == "passed" for channel in channels.values())
+    assert all(channel["tag"] == "v1.4.2" for channel in channels.values())
+    assert channels["pypi"]["checks"][-1] == {
+        "kind": "credential_rehearsal",
+        "requirement": {
+            "workflow": "pypi-publish.yml",
+            "inputs": {"target": "testpypi"},
+        },
+        "status": "required",
+    }
+
+    failed_outcomes = json.dumps(
+        {
+            "ownership": "success",
+            "release_metadata": "success",
+            "repository_secrets": "failure",
+            "environment_secrets": "success",
+            "credential_liveness": "success",
+            "github_release_permissions": "success",
+        }
+    )
+    failed_result = run_manifest_command(
+        "channel-preflight-results",
+        "--manifest",
+        "release/publish-artifacts.toml",
+        "--outcomes",
+        failed_outcomes,
+        "--tag",
+        "v1.4.2",
+    )
+
+    assert failed_result.returncode == 0, failed_result.stderr
+    failed_channels = {
+        entry["name"]
+        for entry in json.loads(failed_result.stdout)["channels"]
+        if entry["status"] == "failed"
+    }
+    assert failed_channels == {"crates_io", "homebrew", "winget", "scoop"}
+
+    unauthorized_outcomes = json.dumps(
+        {
+            "ownership": "failure",
+            "release_metadata": "success",
+            "repository_secrets": "success",
+            "environment_secrets": "success",
+            "credential_liveness": "success",
+            "github_release_permissions": "success",
+        }
+    )
+    unauthorized_result = run_manifest_command(
+        "channel-preflight-results",
+        "--manifest",
+        "release/publish-artifacts.toml",
+        "--outcomes",
+        unauthorized_outcomes,
+        "--tag",
+        "v1.4.2",
+    )
+
+    assert unauthorized_result.returncode == 0, unauthorized_result.stderr
+    assert all(
+        entry["status"] == "failed"
+        for entry in json.loads(unauthorized_result.stdout)["channels"]
+    )
+
+    blocked_result = run_manifest_command(
+        "channel-preflight-results",
+        "--manifest",
+        "release/publish-artifacts.toml",
+        "--outcomes",
+        "{}",
+        "--tag",
+        "",
+    )
+
+    assert blocked_result.returncode == 0, blocked_result.stderr
+    assert {
+        entry["name"]
+        for entry in json.loads(blocked_result.stdout)["channels"]
+        if entry["status"] == "blocked"
+    } == set(channels)
+    assert json.loads(blocked_result.stdout)["tag"] is None
+
+
 def test_release_workflow_enforces_python_release_invariants() -> None:
     text = release_workflow_text()
     pypi_text = pypi_publish_workflow_text()
@@ -818,6 +934,9 @@ def test_release_preflight_collects_independent_failures_before_denial() -> None
     )
 
     assert "Deny release after complete preflight summary" in preflight_text
+    assert "channel_preflight_results" in preflight_text
+    assert "channel-preflight-results" in preflight_text
+    assert "Emit manifest-derived per-channel preflight results" in preflight_text
     assert "Preflight complete: failed=[%s] blocked=[%s]" in preflight_text
     assert preflight_text.count("continue-on-error: true") >= 12
     assert "failures=()" in preflight_text

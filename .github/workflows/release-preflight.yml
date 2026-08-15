@@ -20,6 +20,8 @@ permissions:
 jobs:
   preflight:
     runs-on: ubuntu-latest
+    outputs:
+      channel_preflight_results: ${{ steps.channel_results.outputs.channel_preflight_results }}
     env:
       RELEASE_ARTIFACT_MANIFEST: release/publish-artifacts.toml
     steps:
@@ -237,6 +239,54 @@ jobs:
             cargo package -p "$package" --locked --allow-dirty
           done < <(python3 scripts/release_artifacts.py list-publish-plan --manifest "${RELEASE_ARTIFACT_MANIFEST}")
 
+      - id: github_release_permissions
+        name: Verify GitHub Release workflow permissions
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          workflow = Path(".github/workflows/release.yml").read_text(encoding="utf-8")
+          if "contents: write" not in workflow:
+              raise SystemExit("GitHub Release workflow must declare contents: write")
+          PY
+
+      - id: channel_results
+        name: Emit manifest-derived per-channel preflight results
+        if: ${{ always() }}
+        continue-on-error: true
+        shell: bash
+        env:
+          OWNERSHIP: ${{ steps.ownership.outcome }}
+          RELEASE_METADATA: ${{ steps.meta.outcome }}
+          RELEASE_TAG: ${{ steps.meta.outputs.release_tag }}
+          REPOSITORY_SECRETS: ${{ steps.repository_secrets.outcome }}
+          ENVIRONMENT_SECRETS: ${{ steps.environment_secrets.outcome }}
+          CREDENTIAL_LIVENESS: ${{ steps.credential_liveness.outcome }}
+          GITHUB_RELEASE_PERMISSIONS: ${{ steps.github_release_permissions.outcome }}
+        run: |
+          set -euo pipefail
+          outcomes="$(jq -nc \
+            --arg ownership "${OWNERSHIP}" \
+            --arg release_metadata "${RELEASE_METADATA}" \
+            --arg repository_secrets "${REPOSITORY_SECRETS}" \
+            --arg environment_secrets "${ENVIRONMENT_SECRETS}" \
+            --arg credential_liveness "${CREDENTIAL_LIVENESS}" \
+            --arg github_release_permissions "${GITHUB_RELEASE_PERMISSIONS}" \
+            '{ownership: $ownership, release_metadata: $release_metadata, repository_secrets: $repository_secrets, environment_secrets: $environment_secrets, credential_liveness: $credential_liveness, github_release_permissions: $github_release_permissions}')"
+          results="$(python3 scripts/release_artifacts.py channel-preflight-results \
+            --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
+            --outcomes "${outcomes}" \
+            --tag "${RELEASE_TAG}")"
+          {
+            echo 'channel_preflight_results<<EOF'
+            echo "${results}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+          printf '%s\n' "${results}" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Deny release after complete preflight summary
         if: ${{ always() }}
         shell: bash
@@ -257,6 +307,8 @@ jobs:
           VERSION_LOCKSTEP: ${{ steps.version_lockstep.outcome }}
           UNPUBLISHED: ${{ steps.unpublished.outcome }}
           PACKAGE_CHECKS: ${{ steps.package_checks.outcome }}
+          GITHUB_RELEASE_PERMISSIONS: ${{ steps.github_release_permissions.outcome }}
+          CHANNEL_RESULTS: ${{ steps.channel_results.outcome }}
         run: |
           set -euo pipefail
           failed=()
@@ -285,6 +337,8 @@ jobs:
           record version-lockstep "${VERSION_LOCKSTEP}"
           record unpublished-version "${UNPUBLISHED}"
           record package-checks "${PACKAGE_CHECKS}"
+          record github-release-permissions "${GITHUB_RELEASE_PERMISSIONS}"
+          record channel-results "${CHANNEL_RESULTS}"
           printf 'Preflight complete: failed=[%s] blocked=[%s]\n' \
             "$(IFS=,; echo "${failed[*]}")" "$(IFS=,; echo "${blocked[*]}")"
           if [[ "${#failed[@]}" -gt 0 || "${#blocked[@]}" -gt 0 ]]; then

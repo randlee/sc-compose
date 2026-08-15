@@ -65,3 +65,11 @@ QA pass:
 This work makes agent prompts, documentation linkage, and eval procedure
 review-ready only. It must not dispatch, tag, publish, or otherwise execute
 a release.
+
+## Validation Evidence
+
+Baseline validation was independently confirmed on commit
+`fca2733ae741dc49776a22f55a043796768683fc`: `cargo fmt --all --check`,
+`cargo clippy --all-targets --all-features -- -D warnings`, and
+`cargo test --workspace` all passed. The fix follow-up re-runs those commands
+before closeout and preserves the no-release scope guard.

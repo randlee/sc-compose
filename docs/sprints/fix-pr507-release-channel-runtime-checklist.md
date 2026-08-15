@@ -1,6 +1,6 @@
 ---
 id: FIX-PR507-RELEASE-CHANNEL-RUNTIME
-status: in_progress
+status: complete
 branch: feature/publish-kit-preflight-hardening
 ---
 

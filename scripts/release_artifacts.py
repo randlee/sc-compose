@@ -303,6 +303,107 @@ def _root_channel_preflight(manifest: dict) -> list[dict[str, object]]:
     return channels
 
 
+def _preflight_outcome_status(outcome: str | None) -> str:
+    """Map a GitHub Actions step outcome to a non-disclosing check status."""
+    if outcome == "success":
+        return "passed"
+    if outcome in ("failure", "cancelled"):
+        return "failed"
+    return "blocked"
+
+
+def _channel_preflight_result(
+    channel: dict[str, object], outcomes: dict[str, str], tag: str | None
+) -> dict[str, object]:
+    """Materialize one worker-consumable result from its contract and check outcomes."""
+    checks: list[dict[str, object]] = []
+
+    for requirement, outcome_key in (
+        ("publisher ownership", "ownership"),
+        ("normalized release tag", "release_metadata"),
+    ):
+        checks.append(
+            {
+                "kind": "release_authorization",
+                "requirements": [requirement],
+                "status": _preflight_outcome_status(outcomes.get(outcome_key)),
+            }
+        )
+
+    for key, outcome_key in (
+        ("repository_secrets", "repository_secrets"),
+        ("environment_secrets", "environment_secrets"),
+        ("liveness_checks", "credential_liveness"),
+        ("github_actions_permissions", "github_release_permissions"),
+    ):
+        requirements = channel.get(key, [])
+        if requirements:
+            checks.append(
+                {
+                    "kind": key,
+                    "requirements": requirements,
+                    "status": _preflight_outcome_status(outcomes.get(outcome_key)),
+                }
+            )
+
+    rehearsal = channel.get("credential_rehearsal")
+    if rehearsal is not None:
+        checks.append(
+            {
+                "kind": "credential_rehearsal",
+                "requirement": rehearsal,
+                "status": "required",
+            }
+        )
+
+    statuses = [check["status"] for check in checks if check["status"] != "required"]
+    if "failed" in statuses:
+        status = "failed"
+        diagnostic = "PREFLIGHT.CHECK_FAILED"
+    elif "blocked" in statuses:
+        status = "blocked"
+        diagnostic = "PREFLIGHT.CHECK_BLOCKED"
+    else:
+        status = "passed"
+        diagnostic = ""
+
+    return {
+        "name": channel["name"],
+        "tag": tag,
+        "status": status,
+        "checks": checks,
+        "sanitized_diagnostic": diagnostic,
+    }
+
+
+def cmd_channel_preflight_results(args: argparse.Namespace) -> int:
+    """Emit one non-secret result for every root and post-release channel."""
+    try:
+        outcomes = json.loads(args.outcomes)
+    except json.JSONDecodeError as error:
+        raise SystemExit(f"invalid preflight outcomes JSON: {error.msg}") from error
+    if not isinstance(outcomes, dict) or not all(
+        isinstance(name, str) and isinstance(outcome, str)
+        for name, outcome in outcomes.items()
+    ):
+        raise SystemExit("preflight outcomes must be a string-to-string object")
+
+    manifest = load_manifest(Path(args.manifest))
+    contracts = [
+        *_root_channel_preflight(manifest),
+        *[
+            {"name": channel_name, **_post_release_channel_preflight(manifest, channel_name)}
+            for channel_name in _channel_names(manifest)
+        ],
+    ]
+    tag = args.tag or None
+    results = [
+        _channel_preflight_result(channel, outcomes, tag) for channel in contracts
+    ]
+    print(json.dumps({"tag": tag, "channels": results}, separators=(",", ":")))
+    return 0
+
+
 def _channel_renderer_target(manifest: dict, channel_name: str) -> dict | None:
     """Return the published Linux renderer asset required by a channel workflow."""
     if channel_name not in ("homebrew", "scoop"):
@@ -895,6 +996,12 @@ def main() -> int:
     p = sub.add_parser("preflight-secret-plan")
     p.add_argument("--manifest", required=True)
     p.set_defaults(func=cmd_preflight_secret_plan)
+
+    p = sub.add_parser("channel-preflight-results")
+    p.add_argument("--manifest", required=True)
+    p.add_argument("--outcomes", required=True)
+    p.add_argument("--tag", required=True)
+    p.set_defaults(func=cmd_channel_preflight_results)
 
     p = sub.add_parser("verify-python-release-assets")
     p.add_argument("--manifest", required=True)

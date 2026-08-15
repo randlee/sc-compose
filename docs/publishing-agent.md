@@ -38,6 +38,12 @@ It is fail-closed, not fail-fast: it completes every independent check and
 returns a sanitized result for every root and post-release channel. Checks that
 depend on an earlier failed prerequisite are marked `blocked` with that
 dependency. A denied overall verdict never authorizes publication.
+The workflow publishes those results through its
+`channel_preflight_results` job output; `publisher` passes each matching entry
+to the root job or `publisher-channel-worker` that owns that channel. Each
+result is bound to the normalized release tag and includes global release
+authorization alongside its channel-specific credential checks, so a worker
+can reject stale or mismatched evidence.
 
 If preflight reports a missing or rejected credential, report its channel and
 sanitized diagnostic to `team-lead`; do not attempt a local workaround. The
