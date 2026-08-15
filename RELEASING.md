@@ -30,9 +30,10 @@ This repo publishes to six channels:
 ### Version Alignment
 
 - [ ] Workspace `Cargo.toml` `[workspace.package] version` reflects the target version
+- [ ] `crates/sc-sha/Cargo.toml` matches or inherits workspace version
 - [ ] `crates/sc-composer/Cargo.toml` matches or inherits workspace version
 - [ ] `crates/sc-compose/Cargo.toml` matches or inherits workspace version
-- [ ] `release/publish-artifacts.toml` lists both crates with correct paths
+- [ ] `release/publish-artifacts.toml` lists all publishable crates with correct paths
 - [ ] `bindings/python/pyproject.toml` version matches workspace version
 
 ### Quality Gates
@@ -51,10 +52,11 @@ This repo publishes to six channels:
 
 ### crates.io Ownership
 
+- [ ] `cargo owner --list sc-sha` — confirm expected owners
 - [ ] `cargo owner --list sc-composer` — confirm expected owners
 - [ ] `cargo owner --list sc-compose` — confirm expected owners
 - [ ] `CARGO_REGISTRY_TOKEN` configured in GitHub Actions `crates-io` environment
-- [ ] Token has publish permission for both `sc-composer` and `sc-compose`
+- [ ] Token has publish permission for `sc-sha`, `sc-composer`, and `sc-compose`
 
 ### Homebrew, Winget, and Scoop
 
@@ -87,10 +89,13 @@ This repo publishes to six channels:
 
 Publish in this exact order. Deviating will break the dependency graph.
 
-1. **`sc-composer`** — publish first
+1. **`sc-sha`** — publish first
+   - `cargo publish -p sc-sha`
+   - Wait ≥30 seconds for crates.io index propagation
+2. **`sc-composer`** — publish after `sc-sha`
    - `cargo publish -p sc-composer`
    - Wait ≥30 seconds for crates.io index propagation
-2. **`sc-compose`** — publish second
+3. **`sc-compose`** — publish after its library dependencies
    - `cargo publish -p sc-compose`
 
 The `.github/workflows/release.yml` workflow enforces this order automatically
