@@ -896,7 +896,7 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
         encoding="utf-8"
     )
     eval_plan_text = (
-        repo_root() / "docs" / "testing" / "publish-kit-agent-eval-plan.md"
+        repo_root() / "docs" / "eval" / "publishing" / "publish-kit-agent-eval-plan.md"
     ).read_text(encoding="utf-8")
 
     for text in (publisher_text, guide_text, checklist_text):
