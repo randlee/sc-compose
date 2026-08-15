@@ -50,7 +50,7 @@ wait_after_publish_seconds = 0
 
 [[release_binaries]]
 name = "sc-compose"
-bundled_paths = [{ source = "examples", destination = "share/sc-compose/examples" }]
+bundled_paths = [{ source = "examples", destination = "share/sc-compose/examples", homebrew_destination_components = ["pkgshare", "examples"] }]
 
 [[python_packages]]
 artifact = "sc-sha-python"
@@ -123,7 +123,7 @@ installer_target = "x86_64-pc-windows-msvc"
 workflow = "scoop-publish.yml"
 dispatch_inputs = {}
 bucket_repository = "randlee/scoop-bucket"
-manifest_path = "sc-compose.json"
+manifest_path = "bucket/sc-compose.json"
 manifest_template = "release/scoop/manifest.json.j2"
 installer_target = "x86_64-pc-windows-msvc"
 binary = "bin/sc-compose.exe"

@@ -152,7 +152,7 @@ jobs:
                   destination = bundle["destination"]
                   bundled_paths.append(
                       {
-                          "destination_components": destination.split("/"),
+                          "destination_components": bundle["homebrew_destination_components"],
                           "source_glob": f"{destination}/*",
                       }
                   )

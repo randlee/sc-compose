@@ -297,6 +297,35 @@ def test_validate_manifest_rejects_unknown_renderer_target(tmp_path: Path) -> No
     assert "renderer_target references unknown release target" in result.stderr
 
 
+def test_validate_manifest_requires_explicit_homebrew_bundle_destination(tmp_path: Path) -> None:
+    workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            "[[release_binaries]]\nname = \"fixture\"",
+            "[[release_binaries]]\nname = \"fixture\"\nbundled_paths = [{ source = \"examples\", destination = \"share/fixture/examples\" }]",
+        ),
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(repo_root() / "scripts" / "release_artifacts.py"),
+            "validate-manifest",
+            "--manifest",
+            str(manifest),
+            "--workspace-toml",
+            str(workspace),
+        ],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "homebrew_destination_components" in result.stderr
+
+
 def test_verify_python_release_assets_accepts_manifest_declared_wheels_and_sdist(tmp_path: Path) -> None:
     _, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest", "windows-latest"])
     assets = tmp_path / "assets"
@@ -354,6 +383,9 @@ def test_release_manifest_publishes_sc_sha_before_its_consumers() -> None:
     assert manifest["channels"]["pypi"]["credential_rehearsal_inputs"] == {
         "target": "testpypi"
     }
+    assert manifest["channels"]["scoop"]["manifest_path"] == "bucket/sc-compose.json"
+    bundle = manifest["release_binaries"][0]["bundled_paths"][0]
+    assert bundle["homebrew_destination_components"] == ["pkgshare", "examples"]
     assert {
         name: channel["workflow"] for name, channel in manifest["channels"].items()
     } == {
@@ -507,6 +539,8 @@ def test_release_preflight_requires_each_standardized_secret() -> None:
         assert secret_name in text
     assert "All manifest-required repository secrets are available." in text
     assert "preflight-secret-plan" in text
+    assert '--manifest "${RELEASE_ARTIFACT_MANIFEST}"' in text
+    assert '\\"${RELEASE_ARTIFACT_MANIFEST}\\"' not in text
     assert "Verify protected Python environment secret metadata" in text
     assert ".environment_secrets[]" in text
     assert "environments/${environment_name}/secrets" in text
@@ -571,6 +605,91 @@ def test_channel_recovery_workflows_require_a_published_release() -> None:
     assert "binary-path" in renderer_action
     assert "Published renderer archive is missing ${RENDERER_BINARY_PATH}" in renderer_action
     assert "renderer-path=${renderer}" in renderer_action
+
+
+def render_release_template(
+    tmp_path: Path, template: str, variables: dict[str, object]
+) -> str:
+    variables_path = tmp_path / "vars.json"
+    variables_path.write_text(json.dumps(variables), encoding="utf-8")
+    result = subprocess.run(
+        [
+            "cargo",
+            "run",
+            "--quiet",
+            "--bin",
+            "sc-compose",
+            "--",
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            str(repo_root()),
+            "--file",
+            template,
+            "--var-file",
+            str(variables_path),
+        ],
+        cwd=repo_root(),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return result.stdout
+
+
+def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path) -> None:
+    formula = render_release_template(
+        tmp_path,
+        "release/homebrew/formula.rb.j2",
+        {
+            "formula_class": "ScCompose",
+            "description": "Standalone template composition CLI",
+            "homepage": "https://github.com/randlee/sc-compose",
+            "license": "MIT",
+            "version": "1.4.2",
+            "macos_arm_url": "https://example.invalid/arm.tar.gz",
+            "macos_arm_sha256": "a" * 64,
+            "macos_intel_url": "https://example.invalid/intel.tar.gz",
+            "macos_intel_sha256": "b" * 64,
+            "linux_url": "https://example.invalid/linux.tar.gz",
+            "linux_sha256": "c" * 64,
+            "binary": "sc-compose",
+            "test_command": "--help",
+            "test_output": "Standalone template composition CLI",
+            "binary_path": "bin/sc-compose",
+            "bundled_paths": [
+                {
+                    "destination_components": ["pkgshare", "examples"],
+                    "source_glob": "share/sc-compose/examples/*",
+                }
+            ],
+        },
+    )
+    ruby = subprocess.run(
+        ["ruby", "-c"], input=formula, text=True, capture_output=True, check=False
+    )
+    assert ruby.returncode == 0, ruby.stderr
+    assert '(pkgshare/"examples").install Dir["share/sc-compose/examples/*"]' in formula
+
+    scoop = render_release_template(
+        tmp_path,
+        "release/scoop/manifest.json.j2",
+        {
+            "version": "1.4.2",
+            "description": 'Quoted "description"',
+            "homepage": "https://github.com/randlee/sc-compose",
+            "license": "MIT",
+            "windows_url": "https://example.invalid/windows.zip",
+            "windows_sha256": "d" * 64,
+            "extract_dir": "sc-compose_1.4.2_x86_64-pc-windows-msvc",
+            "binary": "bin/sc-compose.exe",
+        },
+    )
+    manifest = json.loads(scoop)
+    assert manifest["description"] == 'Quoted "description"'
+    assert manifest["architecture"]["64bit"]["bin"] == "bin/sc-compose.exe"
 
 
 def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> None:

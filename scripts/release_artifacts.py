@@ -278,6 +278,25 @@ def _release_binaries(manifest: dict) -> list[dict]:
     return binaries
 
 
+def _validate_homebrew_bundle_destinations(binaries: list[dict]) -> None:
+    """Require explicit, safe Homebrew Pathname components for bundled assets."""
+    for binary in binaries:
+        for bundle in binary.get("bundled_paths", []):
+            components = bundle.get("homebrew_destination_components")
+            if not isinstance(components, list) or not components or not all(
+                isinstance(component, str) and component for component in components
+            ):
+                raise SystemExit(
+                    "bundled_paths entry must define non-empty "
+                    "homebrew_destination_components when Homebrew is configured"
+                )
+            if re.fullmatch(r"[a-z_][a-z0-9_]*", components[0]) is None:
+                raise SystemExit(
+                    "bundled_paths homebrew_destination_components[0] must be a "
+                    "lowercase Homebrew Pathname helper"
+                )
+
+
 def _channel_asset_patterns(manifest: dict, channel_name: str) -> list[str]:
     project = _require_project(manifest)
     targets = _release_targets_by_name(manifest)
@@ -315,13 +334,16 @@ def cmd_validate_manifest(args: argparse.Namespace) -> int:
     manifest = load_manifest(Path(args.manifest))
     _require_project(manifest)
     _release_targets_by_name(manifest)
-    _release_binaries(manifest)
-    for channel_name in _channel_names(manifest):
+    binaries = _release_binaries(manifest)
+    channel_names = _channel_names(manifest)
+    for channel_name in channel_names:
         _channel_dispatch_config(manifest, channel_name)
         _channel_credential_rehearsal(manifest, channel_name)
         _channel_asset_patterns(manifest, channel_name)
         if channel_name in ("homebrew", "scoop"):
             _renderer_archive_path(manifest)
+    if "homebrew" in channel_names:
+        _validate_homebrew_bundle_destinations(binaries)
     members = workspace_members(Path(args.workspace_toml))
     missing = []
     for crate in manifest["crates"]:

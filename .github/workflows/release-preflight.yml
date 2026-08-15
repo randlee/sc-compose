@@ -42,7 +42,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "plan=$(python3 scripts/release_artifacts.py preflight-secret-plan --manifest \"${RELEASE_ARTIFACT_MANIFEST}\")" >> "$GITHUB_OUTPUT"
+          echo "plan=$(python3 scripts/release_artifacts.py preflight-secret-plan --manifest "${RELEASE_ARTIFACT_MANIFEST}")" >> "$GITHUB_OUTPUT"
 
       - name: Verify required release secrets are available
         shell: bash
