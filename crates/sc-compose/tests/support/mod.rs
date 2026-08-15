@@ -174,20 +174,27 @@ pub fn sc_lint_just_root(required_files: &[&str]) -> PathBuf {
 }
 
 pub fn try_sc_lint_just_root(required_files: &[&str]) -> Option<PathBuf> {
-    let mut candidates = Vec::new();
-    if let Some(source_root) = std::env::var_os("SC_LINT_SOURCE_ROOT") {
-        candidates.push(PathBuf::from(source_root).join(".just"));
-    }
-    candidates.push(repo_root().join(".just"));
-    for ancestor in repo_root().ancestors() {
-        candidates.push(ancestor.join("sc-lint").join(".just"));
-    }
+    let source_root = std::env::var_os("SC_LINT_SOURCE_ROOT").map(PathBuf::from);
+    let checkout_root = repo_root();
+    try_sc_lint_just_root_in(&checkout_root, source_root.as_deref(), required_files)
+}
 
-    candidates.into_iter().find(|candidate| {
-        required_files
-            .iter()
-            .all(|file| candidate.join(file).is_file())
-    })
+/// Finds pinned sc-lint Python utilities only from explicit or checkout-local
+/// sources, never from ancestor directories on the developer machine.
+pub fn try_sc_lint_just_root_in(
+    checkout_root: &Path,
+    source_root: Option<&Path>,
+    required_files: &[&str],
+) -> Option<PathBuf> {
+    source_root
+        .map(|root| root.join(".just"))
+        .into_iter()
+        .chain(std::iter::once(checkout_root.join(".just")))
+        .find(|candidate| {
+            required_files
+                .iter()
+                .all(|file| candidate.join(file).is_file())
+        })
 }
 
 pub fn materialize_sc_lint_runtime(root: &Path, required_files: &[&str]) {
