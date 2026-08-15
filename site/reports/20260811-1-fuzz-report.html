@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fuzz Run 20260811-1: sc-sha-python maturin adapter boundary</title>
+  <style type="text/css">
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0b1220; color: #e5e7eb; }
+      .section { background: #111827; border-color: #1f2937; }
+      table { background: #0f172a; }
+      th, td { border-color: #1f2937 !important; }
+      .icon-button { background: #1f2937; color: #cbd5e1; border-color: #374151; }
+      code { background: #1f2937; color: #e5e7eb; }
+      a { color: #93c5fd; }
+    }
+    :root[data-theme="dark"] body { background: #0b1220; color: #e5e7eb; }
+    :root[data-theme="dark"] .section { background: #111827; border-color: #1f2937; }
+    :root[data-theme="light"] body { background: #ffffff; color: #1f2937; }
+    header { border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 20px; }
+    h1 { margin: 0 0 6px 0; font-size: 1.6rem; }
+    .subtitle { margin: 0 0 4px 0; color: #6b7280; }
+    .generated-at, .source-label { margin: 2px 0; font-size: 0.85rem; color: #6b7280; }
+    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 0.85em; border: 1px solid transparent; }
+    .status-pass { color: #065f46; background: #d1fae5; border-color: #6ee7b7; }
+    .status-drift { color: #92400e; background: #fef3c7; border-color: #f59e0b; }
+    .status-error { color: #991b1b; background: #fee2e2; border-color: #ef4444; }
+    .status-info { color: #1e40af; background: #dbeafe; border-color: #3b82f6; }
+    .top-status { margin-top: 8px; }
+    nav.toc { margin: 16px 0; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 10px; }
+    nav.toc ul { margin: 8px 0 0 0; padding-left: 20px; }
+    .summary-block { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin: 16px 0; }
+    .section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
+    .section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .section-head h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 10px; }
+    .section-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
+    .icon-button:hover { filter: brightness(0.95); }
+    .section-summary { color: #374151; font-style: italic; }
+    .fragment-link { font-size: 0.9rem; }
+    .fragment-source { color: #6b7280; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; vertical-align: top; font-size: 0.9rem; }
+    thead th { background: #f3f4f6; }
+    :root[data-theme="dark"] thead th { background: #1f2937; }
+    @media (prefers-color-scheme: dark) { thead th { background: #1f2937; } }
+    code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 0.9em; white-space: pre-wrap; word-break: break-word; }
+    .finding { border-top: 1px dashed #e5e7eb; padding-top: 10px; margin-top: 10px; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; }
+    dt { font-weight: 600; }
+    dd { margin: 0; }
+    .scratchpad { background: #f9fafb; border-left: 4px solid #3b82f6; padding: 12px; margin-top: 12px; border-radius: 4px; }
+    :root[data-theme="dark"] .scratchpad { background: #0f172a; }
+    .recommendations ul { padding-left: 20px; }
+    .metadata-table th { width: 260px; }
+    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 0.85rem; color: #6b7280; }
+    table { display: block; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Fuzz Run 20260811-1: sc-sha-python maturin adapter boundary</h1>
+    <p class="subtitle">Sprint M.2 sc-compose/sc-sha integration -- bounded adversarial fuzz of bindings/sc-sha-python (FFI boundary) and boundaries/sc-sha-python/python-adapter.toml (SCB-DEPENDENCY-001 bypass spot-check)</p>
+    <p class="generated-at">Generated: 2026-08-11T17:30:00Z</p>
+    <p class="source-label">Source: worktree /Users/randlee/Documents/github/sc-compose-worktrees/integrate/phase-M @ 47572e9 (integrate/phase-M, Sprint M.2 merged)</p>
+    <div class="top-status"><span class="status status-drift">drift</span></div>
+  </header>
+
+  <section class="summary-block">
+    <div class="section-head">
+      <h2>Summary</h2>
+      <div class="section-actions" role="group" aria-label="Copy summary data">
+        <button class="icon-button" type="button" title="Copy JSON" data-copy-text="{&quot;run_id&quot;: &quot;20260811-1&quot;, &quot;target&quot;: &quot;bindings/sc-sha-python (FFI boundary) + boundaries/sc-sha-python/python-adapter.toml&quot;, &quot;workers&quot;: [&quot;ffi-shape-probe&quot;, &quot;boundary-differential-probe&quot;], &quot;confirmed_bugs&quot;: 2, &quot;new_bypasses_found&quot;: 0}">{}</button>
+        <button class="icon-button" type="button" title="Copy Context" data-copy-text="Bounded adversarial fuzz session against the sc-sha-python maturin adapter&#x27;s Rust&lt;-&gt;Python FFI boundary (calculate_hash/calculate_composition_hash, ScShaError result/error mapping) plus a differential spot-check of the SCB-DEPENDENCY-001 sc-boundary lint for new bypasses beyond QM-014&#x27;s fixture. Wheel built via `maturin develop --release` from a disposable venv (Python 3.11) against the merged Sprint M.2 worktree. No crashes, panics, or unhandled/non-ScShaError exceptions were found; two reproducible error-shape/UX findings were confirmed. No new SCB-DEPENDENCY-001 bypass was found across three genuinely new vectors (dependency-key renaming, dev-dependencies, target-cfg dependencies).">⎘</button>
+      </div>
+    </div>
+    <p>Two bounded probes ran against the merged Sprint M.2 (<code>47572e9</code>) <code>bindings/sc-sha-python</code> maturin adapter. <strong>ffi-shape-probe</strong> fuzzed the two exposed FFI operations with malformed/adversarial Python inputs and found 2 confirmed, reproducible bugs in error-shape stability (no crashes or panics). <strong>boundary-differential-probe</strong> spot-checked the <code>boundaries/sc-sha-python/python-adapter.toml</code> dependency boundary (QM-014 from M.2's QA) for a genuinely new bypass across three vectors not covered by the existing fixture, and found none -- the boundary held.</p>
+    <table class="session-summary">
+      <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">ffi-shape-probe: sc-sha-python FFI malformed-input / error-mapping fuzz</th>
+          <td>52</td>
+          <td>50/52</td>
+          <td><span class="status status-drift">drift</span></td>
+        </tr>
+        <tr>
+          <th scope="row">boundary-differential-probe: SCB-DEPENDENCY-001 bypass spot-check (3 new vectors)</th>
+          <td>3</td>
+          <td>3/3</td>
+          <td><span class="status status-pass">pass</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <nav class="toc">
+    <strong>Worker Sections</strong>
+    <ul>
+      <li><a href="#ffi-shape-probe">ffi-shape-probe</a> <span class="status status-error">error</span></li>
+      <li><a href="#boundary-differential-probe">boundary-differential-probe</a> <span class="status status-pass">pass</span></li>
+    </ul>
+  </nav>
+
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-fail">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>ffi-shape-probe</h2>
+      <p class="agent-meta">Session 20260811-1 · Worker ffi-shape-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;ffi-shape-probe&quot;,&quot;findings&quot;:[&quot;FUZZ-SCSHA-001&quot;,&quot;FUZZ-SCSHA-002&quot;]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Worker ffi-shape-probe ran 52 bounded cases (seed 157) against bindings/sc-sha-python/src/lib.rs&#x27;s calculate_hash/calculate_composition_hash Python entry points, built via `maturin develop --release` from a disposable venv against worktree /Users/randlee/Documents/github/sc-compose-worktrees/integrate/phase-M at commit 47572e9. No crashes, panics, or unhandled Python exception types were found across type-confusion, malformed-manifest, malformed-digest, control-character, oversized-input, or self-referential-structure cases -- the pyo3 boundary is defensively typed end to end. Two confirmed, reproducible drift/UX findings were found in error-shape stability.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">sc-sha-python FFI boundary: malformed/adversarial inputs across calculate_hash/calculate_composition_hash, result/error mapping vs sc-sha error codes</th>
+        <td>52</td>
+        <td>50/52</td>
+        <td>
+          <span class="status status-error">2 confirmed bugs (1 important, 1 minor)</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">hash_invalid_utf8</th><td><code>calculate_hash({utf8_file_bytes: b&#x27;\xff\xfe&#x27;})</code></td><td>ScShaError SC_SHA_INVALID_UTF8 (correct)</td></tr>
+        <tr><th scope="row">hash_str_value</th><td><code>calculate_hash({utf8_file_bytes: &#x27;hello&#x27;})</code></td><td>ScShaError SC_SHA_INVALID_INPUT (correct)</td></tr>
+        <tr><th scope="row">manifest_digest_non_hex</th><td><code>calculate_composition_hash(node.sha256=&#x27;z&#x27;*64)</code></td><td>ScShaError code=SC_SHA_INVALID_MANIFEST, expected SC_SHA_INVALID_DIGEST per docs/error-code-registry.md -- FUZZ-SCSHA-001</td></tr>
+        <tr><th scope="row">manifest_self_referential</th><td><code>manifest dict with edges key aliased back to the manifest dict itself</code></td><td>ScShaError SC_SHA_INVALID_MANIFEST, no panic (correct)</td></tr>
+        <tr><th scope="row">manifest_large_nodes</th><td><code>2000-node manifest, no recursion/DoS</code></td><td>ok, bounded time (correct)</td></tr>
+        <tr><th scope="row">hash_error_str_repr</th><td><code>str(ScShaError) after calculate_hash({utf8_file_bytes: &#x27;nope&#x27;})</code></td><td>str(e) == &quot;(&#x27;SC_SHA_INVALID_INPUT&#x27;, &#x27;utf8_file_bytes must be bytes; encode text as UTF-8 explicitly&#x27;)&quot; (tuple repr, not the message) -- FUZZ-SCSHA-002</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-SCSHA-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>n/a (Python FFI call, no template)</code></dd>
+        <dt>Input</dt><dd><code>sc_sha.calculate_composition_hash({&#x27;schema&#x27;: &#x27;sc-sha/manifest/v1&#x27;, &#x27;nodes&#x27;: [{&#x27;source&#x27;: {&#x27;kind&#x27;: &#x27;local_path&#x27;, &#x27;value&#x27;: &#x27;a&#x27;}, &#x27;sha256&#x27;: &#x27;not-hex&#x27;}], &#x27;edges&#x27;: []})</code></dd>
+        <dt>Expected</dt><dd>docs/error-code-registry.md lines 55-57 documents SC_SHA_INVALID_DIGEST as the stable machine-readable code for &#x27;a manifest digest is not exactly 64 hexadecimal characters&#x27;, sourced from TemplateSha256::from_hex(). bindings/sc-sha-python/src/lib.rs&#x27;s own parse_digest() (added in QA round R1/QM-004) delegates directly to that same TemplateSha256::from_hex(), so its ShaError::InvalidDigestHex.code() == &quot;SC_SHA_INVALID_DIGEST&quot; is the correct, already-defined stable code for this condition.</dd>
+        <dt>Observed</dt><dd>Raised sc_sha.ScShaError with .code == &quot;SC_SHA_INVALID_MANIFEST&quot; and .message == &quot;sha256 must contain exactly 64 hexadecimal characters&quot;. Any Python caller branching on error.code per the documented registry contract (e.g. to retry, log a metric, or surface a specific UI message for a corrupt digest) receives the generic manifest-shape code instead, indistinguishable from a missing/wrong-typed field.</dd>
+        <dt>Requirement / ADR</dt><dd>docs/error-code-registry.md rows for SC_SHA_INVALID_DIGEST (line 56) and ADR-0018 (sc-sha hash ownership) SHA-R-series stable-error-code requirements; also directly regresses the intent of QM-004&#x27;s fix (delegate parse_digest to sc_sha::TemplateSha256::from_hex so the adapter stops duplicating hex-decode logic) by discarding the resulting error code at the call site.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR/requirement needed -- this is a contract the repo already documents and already fixed the duplication for; the mapping in bindings/sc-sha-python/src/lib.rs simply needs to stop overwriting it.</dd>
+        <dt>Root cause</dt><dd>bindings/sc-sha-python/src/lib.rs::parse_digest (lines 99-106) maps sc_sha::ShaError to a bare &amp;&#x27;static str message and drops error.code() entirely. Its sole caller, parse_nodes (line 133-134), then wraps that message with a hardcoded &quot;SC_SHA_INVALID_MANIFEST&quot; code: `parse_digest(&amp;string_field(py, node, &quot;sha256&quot;)?).map_err(|message| error(py, &quot;SC_SHA_INVALID_MANIFEST&quot;, message))?;`. This is inconsistent with calculate_hash_py/calculate_composition_hash_py, which both correctly forward `e.code()` from ShaError/CompositionError to the Python exception.</dd>
+        <dt>Recommended fix</dt><dd>Change parse_digest to return Result&lt;TemplateSha256, sc_sha::ShaError&gt; (preserving the typed error), and have parse_nodes call `error(py, e.code(), e.to_string())` the same way calculate_hash_py does, instead of hardcoding SC_SHA_INVALID_MANIFEST. Add a regression test in bindings/sc-sha-python/tests/test_compatibility.py asserting error.code == &quot;SC_SHA_INVALID_DIGEST&quot; for an invalid-hex sha256 field inside a manifest node.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-SCSHA-002</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>n/a (Python FFI call, no template)</code></dd>
+        <dt>Input</dt><dd><code>try: sc_sha.calculate_hash({&#x27;utf8_file_bytes&#x27;: &#x27;nope&#x27;})\nexcept sc_sha.ScShaError as e: str(e)</code></dd>
+        <dt>Expected</dt><dd>No explicit requirement pins str(ScShaError)&#x27;s exact format; the reasonable expectation for a public exception type exposing a stable .message attribute is that str(e) is at least as readable as .message, matching ordinary Python exception ergonomics (e.g. requests.HTTPError, json.JSONDecodeError) where str(e) is the human-readable message, not a raw args tuple.</dd>
+        <dt>Observed</dt><dd>str(e) == &quot;(&#x27;SC_SHA_INVALID_INPUT&#x27;, &#x27;utf8_file_bytes must be bytes; encode text as UTF-8 explicitly&#x27;)&quot; -- Python&#x27;s default BaseException.__str__ renders the 2-tuple args as its repr, since ScShaError.__new__ passes (code, message) straight through to PyException&#x27;s args. Code that does `except ScShaError as e: log.error(str(e))` or relies on unittest/pytest&#x27;s default failure formatting gets this tuple-repr instead of a clean sentence.</dd>
+        <dt>Requirement / ADR</dt><dd>No ADR/requirement explicitly covers ScShaError&#x27;s __str__ contract; bindings/sc-sha-python/python/sc_sha/__init__.pyi only declares .code and .message as typed attributes and is silent on __str__.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Recommend adding one sentence to bindings/sc-sha-python&#x27;s README/.pyi docstring documenting str(ScShaError) as the tuple-repr and directing callers to .message for a plain-text string, or fixing __str__ directly (see recommended fix) and then documenting the resulting format -- either is acceptable, but the current silent gap should close one way or the other.</dd>
+        <dt>Root cause</dt><dd>ScShaError (bindings/sc-sha-python/src/lib.rs lines 12-27) is a #[pyclass(extends = PyException)] whose #[new] takes (code, message) and stores both as PyO3-managed extra fields, but never overrides __str__/__repr__ at the Python level, so PyException&#x27;s default __str__ (str(self.args) when len(args) != 1) takes over.</dd>
+        <dt>Recommended fix</dt><dd>Add a #[pymethods] fn __str__(&amp;self) -&gt; String { self.message.clone() } (and optionally __repr__ mirroring code+message) to ScShaError in bindings/sc-sha-python/src/lib.rs, and add a Python-side regression test asserting str(err) == err.message for at least one raised ScShaError.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-differential-probe</h2>
+      <p class="agent-meta">Session 20260811-1 · Worker boundary-differential-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;boundary-differential-probe&quot;,&quot;result&quot;:&quot;no new bypass found&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Following up on M.2 QA finding QM-014 (the sc-sha-python-dependency-violation fixture only exercised 2 of 4 required rejection classes, since fixed by comp), this probe did not re-run the existing fixture. Instead it copied tests/fixtures/sc-lint/sc-boundary/sc-sha-python-dependency-violation into three scratch variants and ran the real installed sc-lint 0.4.0 binary (not a mock) directly against each, testing three genuinely new bypass vectors not covered by any existing fixture: Cargo dependency-key renaming via `package = &quot;...&quot;`, moving forbidden edges into [dev-dependencies], and moving them into target-cfg-gated dependency tables. All three were still caught by SCB-DEPENDENCY-001 with the expected owner_ids/package names, indicating the checker resolves dependencies by real package identity across dependency kinds and target cfgs, not by literal Cargo.toml key text or [dependencies]-table membership alone. One residual, non-blocking scope note: the boundary&#x27;s forbidden_edges are defined and enforced as direct sc-sha-python -&gt; {sc-compose, sc-composer} edges; a transitive path through an intermediate allowed crate was not tested here and is a design-scope question (does the boundary intend to catch transitive reachability too?) rather than a lint defect -- recommend a follow-up decision, not a fix.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">boundaries/sc-sha-python/python-adapter.toml SCB-DEPENDENCY-001 boundary lint: novel dependency-edge bypass attempts (dependency renaming, dev-dependencies, target-cfg dependencies) beyond QM-014&#x27;s 4-class fixture</th>
+        <td>3</td>
+        <td>3/3</td>
+        <td>
+          <span class="status status-pass">no bypass found (boundary holds)</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">bypass-alias</th><td><code>sc-sha-python depends on sc-compose/sc-composer via renamed keys (composer_util = {path=..,package=&quot;sc-composer&quot;}, compose_util = {path=..,package=&quot;sc-compose&quot;})</code></td><td>sc-lint lint sc-boundary still emits SCB-DEPENDENCY-001 for both sc-compose and sc-composer (resolves by real package name, not the Cargo.toml key)</td></tr>
+        <tr><th scope="row">bypass-devdep</th><td><code>sc-compose/sc-composer/atmcore/unrelated-runtime moved from [dependencies] to [dev-dependencies] only</code></td><td>sc-lint lint sc-boundary still emits all 4 SCB-DEPENDENCY-001 findings</td></tr>
+        <tr><th scope="row">bypass-target</th><td><code>forbidden deps split across [target.&#x27;cfg(unix)&#x27;.dependencies] and [target.&#x27;cfg(windows)&#x27;.dependencies]</code></td><td>sc-lint lint sc-boundary still emits all 4 SCB-DEPENDENCY-001 findings</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
+
+  <section class="section recommendations">
+    <h2>Recommendations</h2>
+    <ul><li>FUZZ-SCSHA-001 (Important): fix <code>parse_digest</code>/<code>parse_nodes</code> in <code>bindings/sc-sha-python/src/lib.rs</code> to preserve <code>SC_SHA_INVALID_DIGEST</code> instead of overwriting it with <code>SC_SHA_INVALID_MANIFEST</code>; add a regression test.</li><li>FUZZ-SCSHA-002 (Minor): add a <code>__str__</code> pymethod to <code>ScShaError</code> so <code>str(err)</code> returns the message, not the args-tuple repr.</li><li>No action required for the SCB-DEPENDENCY-001 boundary; re-confirmed robust to 3 additional bypass vectors this round. Optional: clarify in <code>boundaries/sc-sha-python/python-adapter.toml</code>'s spec or a follow-up decision whether forbidden_edges is intended to cover transitive dependency paths, not just direct ones (not tested this round, not a defect).</li></ul>
+  </section>
+
+  <section class="section metadata">
+    <h2>Metadata</h2>
+    <table class="metadata-table"><tbody>
+      <tr><th scope="row">Run ID</th><td>20260811-1</td></tr>
+      <tr><th scope="row">Sprint</th><td>M.2 (sc-compose / sc-sha integration)</td></tr>
+      <tr><th scope="row">Worktree</th><td>/Users/randlee/Documents/github/sc-compose-worktrees/integrate/phase-M @ 47572e9</td></tr>
+      <tr><th scope="row">Fuzz plan</th><td>docs/phase-M/fuzz-plan-m-2-sc-compose-integration.md (PR #369)</td></tr>
+      <tr><th scope="row">Seed</th><td>157</td></tr>
+      <tr><th scope="row">Workers</th><td>ffi-shape-probe, boundary-differential-probe</td></tr>
+      <tr><th scope="row">Confirmed bugs (new)</th><td>2 (FUZZ-SCSHA-001 Important, FUZZ-SCSHA-002 Minor)</td></tr>
+      <tr><th scope="row">Already-tracked findings</th><td>0 (searched gh issue list --search &quot;fuzz&quot;/&quot;sc-sha&quot;/&quot;ScShaError&quot;/&quot;SC_SHA&quot; -- no match)</td></tr>
+      <tr><th scope="row">New bypasses found</th><td>0 (3 novel SCB-DEPENDENCY-001 vectors tested, all caught)</td></tr>
+    </tbody></table>
+  </section>
+
+  <footer>
+    <p>Generated by sc-adversarial-fuzz-coordinator. Production code not modified; no PR opened.</p>
+  </footer>
+
+  <script>
+    document.addEventListener("click", async function (event) {
+      var button = event.target.closest("[data-copy-text]");
+      if (!button) return;
+      var text = button.getAttribute("data-copy-text") || "";
+      try {
+        await navigator.clipboard.writeText(text);
+        button.setAttribute("title", "Copied");
+      } catch (err) {
+        button.setAttribute("title", "Copy failed");
+      }
+    });
+  </script>
+</body>
+</html>

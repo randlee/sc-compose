@@ -1,0 +1,44 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>differential-probe</h2>
+      <p class="agent-meta">Session m2-include-fuzz-20260811-1 · Worker differential-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;classification&quot;:&quot;pass&quot;,&quot;context_text&quot;:&quot;Ran identical fixture trees through 6+3 independently spawned fresh OS processes (not merely repeated in-process calls) confirming byte-identical source_sha and manifest node/edge ordering, with node/edge order following @&lt;path&gt; discovery order rather than filesystem/OS directory-listing order. Confirmed the rename-vs-content-hash separation (renaming an included file changes source_sha via CanonicalSource while leaving unchanged-content&#x27;s content_hash stable) and that calculate_composition_hash validates edge/node referential integrity (rejects unknown edge endpoints) while still hashing a structurally empty 0-node/0-edge manifest successfully with no panic.&quot;,&quot;failed&quot;:0,&quot;findings&quot;:[],&quot;fuzz_run_description&quot;:&quot;Manifest/composition-hash determinism and metamorphic relations for the include-graph fingerprint&quot;,&quot;iterations&quot;:23,&quot;passed&quot;:23,&quot;result&quot;:&quot;PASS&quot;,&quot;session_id&quot;:&quot;m2-include-fuzz-20260811-1&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;cross-process-determinism&quot;,&quot;description&quot;:&quot;Same fixture tree rendered in 6 fresh processes (linear+diamond nesting) plus 3 fresh processes at 60-way fan-out&quot;,&quot;minimal_input&quot;:&quot;no caller variables&quot;,&quot;minimal_template&quot;:&quot;root.md.j2 -&gt; partials/one.md -&gt; partials/two.md; 60-leaf fan-out variant&quot;,&quot;outcome&quot;:&quot;PASS: byte-identical source_sha and manifest ordering across all 9 fresh-process runs; 60-node fan-out completed in 8-10ms&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;rename-changes-identity-content-hash-stable&quot;,&quot;description&quot;:&quot;Renamed include target with identical content_hash for the unchanged leaf&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;tree3a: @&lt;child.md&gt;  vs  tree3b: @&lt;renamed-child.md&gt; (identical bytes)&quot;,&quot;outcome&quot;:&quot;PASS: source_sha differs (path-based identity), shared leaf content_hash identical, stable across 3 runs each&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;empty-and-dangling-manifest-validation&quot;,&quot;description&quot;:&quot;Direct ResolvedTemplateManifest construction: 0-node/0-edge manifest, and an edge referencing endpoints absent from an empty node list&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;N/A - direct manifest construction&quot;,&quot;outcome&quot;:&quot;PASS: empty manifest hashes deterministically with no panic; dangling edge is rejected deterministically as CompositionError::UnknownEdgeEndpoint in all 3 runs&quot;,&quot;passed&quot;:true}],&quot;worker_correlation_id&quot;:&quot;differential-probe&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Ran identical fixture trees through 6+3 independently spawned fresh OS processes (not merely repeated in-process calls) confirming byte-identical source_sha and manifest node/edge ordering, with node/edge order following @&lt;path&gt; discovery order rather than filesystem/OS directory-listing order. Confirmed the rename-vs-content-hash separation (renaming an included file changes source_sha via CanonicalSource while leaving unchanged-content&#x27;s content_hash stable) and that calculate_composition_hash validates edge/node referential integrity (rejects unknown edge endpoints) while still hashing a structurally empty 0-node/0-edge manifest successfully with no panic.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Manifest/composition-hash determinism and metamorphic relations for the include-graph fingerprint</th>
+        <td>23</td>
+        <td>23/23</td>
+        <td>
+          <span class="status status-pass">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">cross-process-determinism</th><td><code>Same fixture tree rendered in 6 fresh processes (linear+diamond nesting) plus 3 fresh processes at 60-way fan-out</code></td><td>PASS: byte-identical source_sha and manifest ordering across all 9 fresh-process runs; 60-node fan-out completed in 8-10ms</td></tr>
+        <tr><th scope="row">rename-changes-identity-content-hash-stable</th><td><code>Renamed include target with identical content_hash for the unchanged leaf</code></td><td>PASS: source_sha differs (path-based identity), shared leaf content_hash identical, stable across 3 runs each</td></tr>
+        <tr><th scope="row">empty-and-dangling-manifest-validation</th><td><code>Direct ResolvedTemplateManifest construction: 0-node/0-edge manifest, and an edge referencing endpoints absent from an empty node list</code></td><td>PASS: empty manifest hashes deterministically with no panic; dangling edge is rejected deterministically as CompositionError::UnknownEdgeEndpoint in all 3 runs</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
