@@ -428,11 +428,27 @@ def test_channel_recovery_workflows_require_a_published_release() -> None:
     assert ".replace(placeholder, value)" not in scoop_text
     assert "cargo run --quiet --manifest-path release-source/Cargo.toml" not in scoop_text
     assert "SC_COMPOSE_RENDERER" in scoop_text
+    assert "Checkout workflow support" in scoop_text
+    assert "uses: ./.github/actions/extract-published-sc-compose" in scoop_text
 
     assert "Render formula from the manifest-declared template" in homebrew_text
     assert 'FORMULA_TEMPLATE: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.formula_template }}' in homebrew_text
     assert ".replace(placeholder, value)" not in homebrew_text
     assert "SC_COMPOSE_RENDERER" in homebrew_text
+    assert "Checkout workflow support" in homebrew_text
+    assert "uses: ./.github/actions/extract-published-sc-compose" in homebrew_text
+    assert "install_block" not in homebrew_text
+    assert "bundled_paths" in homebrew_text
+
+    renderer_action = (
+        repo_root()
+        / ".github"
+        / "actions"
+        / "extract-published-sc-compose"
+        / "action.yml"
+    ).read_text(encoding="utf-8")
+    assert "Published renderer archive is missing bin/sc-compose" in renderer_action
+    assert "renderer-path=${renderer}" in renderer_action
 
 
 def test_release_workflow_collects_wheels_without_redundant_zip_sweep() -> None:

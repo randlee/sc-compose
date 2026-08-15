@@ -52,3 +52,4 @@ docs/phase-D/.review-findings.json
 .repowise/.augment-session.json
 .repowise/.augment-warned
 /.just/
+/artifacts/

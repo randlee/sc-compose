@@ -22,7 +22,10 @@ class {{ formula_class }} < Formula
   end
 
   def install
-{{ install_block }}
+    bin.install {{ binary_path | tojson }}
+{% for bundle in bundled_paths %}
+    ({% for component in bundle.destination_components %}{{ component | tojson }}{% if not loop.last %}/{% endif %}{% endfor %}).install Dir[{{ bundle.source_glob | tojson }}]
+{% endfor %}
   end
 
   test do

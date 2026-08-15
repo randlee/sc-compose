@@ -4,6 +4,11 @@
 CI obtains the same helper bundle through ``setup-sc-lint``. Keeping the
 helpers generated avoids a second, drifting copy of sc-lint's Python checks in
 each consumer repository while making the local ``just lint`` contract usable.
+
+This is a temporary, fail-closed dependency on the pinned sc-lint source
+archive: a network or upstream-tag failure prevents local lint from running.
+``SC_LINT_SOURCE_ROOT`` supports an offline checked-out source tree. Long-term
+packaging is tracked by sc-lint issue 86; this consumer must not vendor helpers.
 """
 
 from __future__ import annotations

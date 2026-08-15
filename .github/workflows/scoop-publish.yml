@@ -66,6 +66,8 @@ jobs:
             echo 'SCOOP_BUCKET_TOKEN is required to update the configured Scoop bucket.' >&2
             exit 1
           fi
+      - name: Checkout workflow support
+        uses: actions/checkout@v4
       - name: Checkout immutable release source
         uses: actions/checkout@v4
         with:
@@ -129,18 +131,10 @@ jobs:
               )
           PY
       - name: Extract published sc-compose renderer
-        shell: bash
-        run: |
-          set -euo pipefail
-          renderer_root="${RUNNER_TEMP}/sc-compose-renderer"
-          mkdir -p "${renderer_root}"
-          tar -xzf "${SC_COMPOSE_RENDERER_ARCHIVE}" -C "${renderer_root}"
-          renderer="${renderer_root}/${SC_COMPOSE_RENDERER_EXTRACT_DIR}/bin/sc-compose"
-          test -x "${renderer}" || {
-            echo "Published renderer archive is missing bin/sc-compose" >&2
-            exit 1
-          }
-          echo "SC_COMPOSE_RENDERER=${renderer}" >> "$GITHUB_ENV"
+        uses: ./.github/actions/extract-published-sc-compose
+        with:
+          archive: ${{ env.SC_COMPOSE_RENDERER_ARCHIVE }}
+          extract-dir: ${{ env.SC_COMPOSE_RENDERER_EXTRACT_DIR }}
       - name: Render Scoop manifest with sc-compose
         shell: bash
         env:

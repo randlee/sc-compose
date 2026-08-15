@@ -55,6 +55,8 @@ jobs:
     needs: verify-release
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout workflow support
+        uses: actions/checkout@v4
       - name: Checkout immutable release source
         uses: actions/checkout@v4
         with:
@@ -118,18 +120,10 @@ jobs:
               )
           PY
       - name: Extract published sc-compose renderer
-        shell: bash
-        run: |
-          set -euo pipefail
-          renderer_root="${RUNNER_TEMP}/sc-compose-renderer"
-          mkdir -p "${renderer_root}"
-          tar -xzf "${SC_COMPOSE_RENDERER_ARCHIVE}" -C "${renderer_root}"
-          renderer="${renderer_root}/${SC_COMPOSE_RENDERER_EXTRACT_DIR}/bin/sc-compose"
-          test -x "${renderer}" || {
-            echo "Published renderer archive is missing bin/sc-compose" >&2
-            exit 1
-          }
-          echo "SC_COMPOSE_RENDERER=${renderer}" >> "$GITHUB_ENV"
+        uses: ./.github/actions/extract-published-sc-compose
+        with:
+          archive: ${{ env.SC_COMPOSE_RENDERER_ARCHIVE }}
+          extract-dir: ${{ env.SC_COMPOSE_RENDERER_EXTRACT_DIR }}
       - name: Render formula from the manifest-declared template
         shell: bash
         env:
@@ -149,16 +143,17 @@ jobs:
           channel = config["channel"]
           assets = {asset["key"]: asset for asset in json.loads(Path("homebrew-release-assets.json").read_text())}
           binary = channel["binary"]
-          install_lines = [f'    bin.install "bin/{binary}"']
+          bundled_paths = []
           for entry in config.get("release_binaries", []):
               if entry["name"] != binary:
                   continue
               for bundle in entry.get("bundled_paths", []):
                   destination = bundle["destination"]
-                  components = destination.split("/")
-                  ruby_path = "/".join(f'"{component}"' for component in components)
-                  install_lines.append(
-                      f'    ({ruby_path}).install Dir["{destination}/*"]'
+                  bundled_paths.append(
+                      {
+                          "destination_components": destination.split("/"),
+                          "source_glob": f"{destination}/*",
+                      }
                   )
           variables = {
               "formula_class": channel["formula_class"],
@@ -175,7 +170,8 @@ jobs:
               "binary": binary,
               "test_command": channel["test_command"],
               "test_output": channel["test_output"],
-              "install_block": "\n".join(install_lines),
+              "binary_path": f"bin/{binary}",
+              "bundled_paths": bundled_paths,
           }
           Path("homebrew-vars.json").write_text(json.dumps(variables), encoding="utf-8")
           PY

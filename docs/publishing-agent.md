@@ -14,10 +14,12 @@ The manifest declares all release inventory:
 - PyPI/TestPyPI repository names; and
 - Homebrew, winget, and Scoop destination configuration.
 
-To vendor the kit into another repository, copy the workflow files, helper
-scripts/templates, this guide, and the manifest; change only the manifest's
-repository-specific values. Do not fork workflow logic to add package names,
-target triples, tap/bucket locations, or distribution inventories.
+To vendor the kit into another repository, copy the workflow files, composite
+actions, helper scripts/templates, this guide, and the manifest; change only
+the manifest's repository-specific values. In particular, retain
+`.github/actions/extract-published-sc-compose/` with the Homebrew and Scoop
+workflows. Do not fork workflow logic to add package names, target triples,
+tap/bucket locations, or distribution inventories.
 
 ## Hard Rules
 

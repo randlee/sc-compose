@@ -5,7 +5,7 @@ use std::process::Output;
 
 use support::{
     CheckedInFixture, TempFixture, materialize_sc_lint_runtime_with_config, parse_stdout,
-    sc_compose,
+    sc_compose, write_fake_cargo_deny,
 };
 
 #[test]
@@ -144,6 +144,8 @@ fn run_target(fixture: &str) -> (TempFixture, Output) {
             "lint_common.py",
         ],
     );
+    write_fake_cargo_deny(&root.path);
+    let path = root.path_with_fake_tools();
 
     let output = sc_compose()
         .args([
@@ -154,6 +156,7 @@ fn run_target(fixture: &str) -> (TempFixture, Output) {
             "lint-ci",
             "--json",
         ])
+        .env("PATH", path)
         .env("SC_LOG_ROOT", root.path.join("logs"))
         .output()
         .expect("run sc-compose lint ci");
