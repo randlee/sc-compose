@@ -1,0 +1,86 @@
+# Publish Kit Requirements
+
+> Status: Active
+> Scope: `feature/publish-kit-preflight-hardening`
+> Document role: Normative requirements for the manifest-driven, vendorable
+> release/publish kit. This is workflow/tooling scope, not a record of any
+> specific release execution.
+
+## 1. Manifest-Driven Publish Kit
+
+- Every repo-specific release deliverable (crates, binaries, targets,
+  Python distributions, channel destinations) is declared in the manifest
+  (`release/publish-artifacts.toml`), not hardcoded in workflow YAML or
+  agent prompts.
+- Consuming another repo (e.g. `atm-core`) is a manifest edit only — no
+  workflow or code changes required.
+
+## 2. Parallel Per-Channel Orchestration
+
+- The publisher fans out one agent/job per publish channel (crates.io,
+  GitHub Release, Homebrew, `winget`, Scoop, PyPI) running in parallel,
+  not sequentially.
+- Each channel agent consolidates and owns exactly what its specific
+  target needs (its own manifest-declared inputs, its own publish steps,
+  its own verification), rather than one monolithic publish step handling
+  every channel.
+- Structured per-channel results are collected centrally.
+
+## 3. Independent Per-Channel Retry
+
+- All publish channels can be independently retried.
+- A failure in one channel (e.g. Scoop) does not require re-running
+  channels that already succeeded (e.g. crates.io, Homebrew).
+- Retry is scoped to the failed channel(s) only, using the structured
+  per-channel results from requirement 2.
+
+## 4. Non-Disclosing Credential Preflight
+
+- A mandatory preflight step runs before release dispatch and is the sole
+  authority on credential liveness.
+- The preflight never inspects, exposes, or prints a secret value. It
+  establishes liveness via non-disclosing checks:
+  - GitHub-destination tokens (`HOMEBREW_TAP_TOKEN`, `WINGET_GITHUB_TOKEN`,
+    `SCOOP_BUCKET_TOKEN`, `CARGO_REGISTRY_TOKEN`): authenticate against the
+    GitHub/target API to detect revoked or expired tokens.
+  - PyPI/TestPyPI tokens (`PYPI_API_TOKEN`, `TEST_PYPI_API_TOKEN`,
+    environment-scoped): inspect environment-secret *metadata* (e.g.
+    existence, secret name) without binding the preflight job to the
+    approval-gated `pypi`/`testpypi` environments.
+  - Where token liveness cannot be established by metadata alone, define a
+    safe, channel-specific rehearsal/health check instead of skipping the
+    check.
+- Tests must cover missing/rejected-token diagnostics without ever
+  asserting on or logging a secret value.
+
+## 5. Agent Behavior Around Credentials
+
+- The publisher (and any channel subagent) MUST NOT ask whether a token
+  exists, request a token, ask to re-enter a token, or inspect/expose a
+  token value, under normal operation.
+- The **only** exception: if the non-disclosing credential preflight
+  (requirement 4) actually fails for a given channel, the agent reports
+  that specific failure (channel + non-disclosing diagnostic) to
+  `team-lead`. It still does not ask the user or comp for the secret
+  value itself — reporting the failure is the extent of the escalation.
+- All release secrets use the same GitHub Actions secret names across
+  every repo that vendors this kit (see
+  [[feedback_secrets_always_github_same_names]]).
+
+## 6. Fix the Draft's Wrong Secret Names
+
+- `docs/publish-workflow-skill-hardening` (unmerged worktree, tip
+  `520d17c`) is a reference draft only, not a template to copy verbatim.
+- It and the current `develop` copies of `docs/publishing.md` /
+  `docs/publishing-agent.md` name the PyPI secrets incorrectly as
+  `PYPI_TOKEN` / `TEST_PYPI_TOKEN`.
+- The actual GitHub Actions secret names are `PYPI_API_TOKEN` (environment
+  `pypi`) and `TEST_PYPI_API_TOKEN` (environment `testpypi`). Every doc and
+  workflow touched by this kit must use the correct names.
+
+## 7. Scope Boundary
+
+- This workstream builds and lands the workflow/tooling only.
+- It does not dispatch, tag, or publish any actual release (1.4.2 or
+  otherwise) as part of landing this work. That decision is separate and
+  requires explicit sign-off from Rand.
