@@ -158,8 +158,8 @@ change beyond the corrected parsing.
 - Add a `CHANGELOG.md` entry for `1.3.1` describing the frontmatter parser
   fix (issue #238).
 - Run `python3 scripts/release_artifacts.py verify-readme-version
-  --workspace-toml Cargo.toml --readme README.md` (or `scripts/release_gate.sh`)
-  to confirm README/version sync passes before pushing.
+  --manifest release/publish-artifacts.toml --workspace-toml Cargo.toml
+  --readme README.md` to confirm README/version sync passes before pushing.
 - Commit and push to `fix/frontmatter-parser-adjacent-delimiter`; this lands
   in the same PR #239, no new branch/worktree needed.
 

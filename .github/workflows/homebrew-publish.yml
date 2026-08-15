@@ -1,7 +1,7 @@
 name: Publish Homebrew
 
-# Rebuild the formula from immutable GitHub Release assets. This recovery path
-# never creates or changes release tags and can be re-run after a tap failure.
+# This post-release channel reads every repository-specific value from
+# release/publish-artifacts.toml and may be re-dispatched for the same tag.
 
 on:
   workflow_dispatch:
@@ -22,16 +22,29 @@ jobs:
   verify-release:
     runs-on: ubuntu-latest
     outputs:
+      channel_config: ${{ steps.config.outputs.channel_config }}
+      asset_patterns: ${{ steps.config.outputs.asset_patterns }}
       release_version: ${{ steps.meta.outputs.release_version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - id: config
+        name: Read Homebrew configuration from release manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          config="$(python3 scripts/release_artifacts.py channel-config --manifest release/publish-artifacts.toml --channel homebrew)"
+          echo "channel_config=${config}" >> "$GITHUB_OUTPUT"
+          {
+            echo 'asset_patterns<<EOF'
+            jq -r '.asset_patterns[]' <<<"${config}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
       - uses: ./.github/actions/verify-published-release
         with:
           release_tag: ${{ inputs.tag }}
-          asset_patterns: |
-            ^sc-compose_.*_aarch64-apple-darwin\.tar\.gz$
-            ^sc-compose_.*_x86_64-apple-darwin\.tar\.gz$
-            ^sc-compose_.*_x86_64-unknown-linux-gnu\.tar\.gz$
+          asset_patterns: ${{ steps.config.outputs.asset_patterns }}
       - id: meta
         shell: bash
         env:
@@ -42,82 +55,148 @@ jobs:
     needs: verify-release
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout workflow support
+        uses: actions/checkout@v4
       - name: Checkout immutable release source
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag }}
-          path: sc-compose
-      - name: Checkout homebrew tap
+          path: release-source
+      - name: Checkout Homebrew tap
         uses: actions/checkout@v4
         with:
-          repository: randlee/homebrew-tap
+          repository: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.tap_repository }}
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           path: homebrew-tap
-      - name: Compute release tarball SHA256
-        id: sha
+      - name: Download configured release assets and compute SHA256
         shell: bash
         env:
+          CHANNEL_CONFIG: ${{ needs.verify-release.outputs.channel_config }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
           RELEASE_TAG: ${{ inputs.tag }}
           RELEASE_VERSION: ${{ needs.verify-release.outputs.release_version }}
         run: |
           set -euo pipefail
-          declare -A targets=(
-            [macos_arm]='aarch64-apple-darwin'
-            [macos_intel]='x86_64-apple-darwin'
-            [linux]='x86_64-unknown-linux-gnu'
-          )
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
 
-          for key in "${!targets[@]}"; do
-            target="${targets[$key]}"
-            tarball_path="${RUNNER_TEMP:?RUNNER_TEMP is required}/${target}.tar.gz"
-            tarball_url="https://github.com/randlee/sc-compose/releases/download/${RELEASE_TAG}/sc-compose_${RELEASE_VERSION}_${target}.tar.gz"
-            echo "${key}_url=${tarball_url}" >> "$GITHUB_OUTPUT"
-            curl -fsSL --retry 5 --retry-delay 30 --retry-all-errors -o "${tarball_path}" "${tarball_url}"
-            sha256="$(sha256sum "${tarball_path}" | awk '{print $1}')"
-            echo "${key}_sha256=${sha256}" >> "$GITHUB_OUTPUT"
-          done
-      - name: Write formula from immutable release template
+          config = json.loads(os.environ["CHANNEL_CONFIG"])
+          project = config["project"]
+          channel = config["channel"]
+          assets = []
+          archives_by_target = {}
+
+          def download(target):
+              filename = f"{project['archive_prefix']}_{os.environ['RELEASE_VERSION']}_{target['target']}.{target['archive']}"
+              url = f"https://github.com/{os.environ['RELEASE_REPOSITORY']}/releases/download/{os.environ['RELEASE_TAG']}/{filename}"
+              path = Path(os.environ["RUNNER_TEMP"]) / filename
+              subprocess.run(
+                  ["curl", "-fsSL", "--retry", "5", "--retry-delay", "30", "--retry-all-errors", "-o", str(path), url],
+                  check=True,
+              )
+              archives_by_target[target["target"]] = path
+              return url, path
+
+          for asset in config["channel"]["assets"]:
+              target = config["release_targets"][asset["target"]]
+              url, path = download(target)
+              assets.append(
+                  {"key": asset["key"], "url": url, "sha256": hashlib.file_digest(path.open("rb"), "sha256").hexdigest()}
+              )
+          renderer_target = config["release_targets"][channel["renderer_target"]]
+          renderer_archive = archives_by_target.get(renderer_target["target"])
+          if renderer_archive is None:
+              _url, renderer_archive = download(renderer_target)
+          Path("homebrew-release-assets.json").write_text(json.dumps(assets), encoding="utf-8")
+          with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as env_file:
+              env_file.write(f"SC_COMPOSE_RENDERER_ARCHIVE={renderer_archive}\n")
+              env_file.write(
+                  "SC_COMPOSE_RENDERER_EXTRACT_DIR="
+                  f"{project['archive_prefix']}_{os.environ['RELEASE_VERSION']}_{renderer_target['target']}\n"
+              )
+          PY
+      - name: Extract published sc-compose renderer
+        uses: ./.github/actions/extract-published-sc-compose
+        with:
+          archive: ${{ env.SC_COMPOSE_RENDERER_ARCHIVE }}
+          extract-dir: ${{ env.SC_COMPOSE_RENDERER_EXTRACT_DIR }}
+      - name: Render formula from the manifest-declared template
         shell: bash
+        env:
+          CHANNEL_CONFIG: ${{ needs.verify-release.outputs.channel_config }}
+          FORMULA_PATH: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.formula_path }}
+          FORMULA_TEMPLATE: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.formula_template }}
+          RELEASE_VERSION: ${{ needs.verify-release.outputs.release_version }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          from pathlib import Path
+          import json
           import os
+          from pathlib import Path
 
-          template = Path("sc-compose/release/homebrew/sc-compose.rb.j2").read_text()
-          rendered = (
-              template
-              .replace("{{ macos_arm_url }}", os.environ["MACOS_ARM_URL"])
-              .replace("{{ macos_arm_sha256 }}", os.environ["MACOS_ARM_SHA256"])
-              .replace("{{ macos_intel_url }}", os.environ["MACOS_INTEL_URL"])
-              .replace("{{ macos_intel_sha256 }}", os.environ["MACOS_INTEL_SHA256"])
-              .replace("{{ linux_url }}", os.environ["LINUX_URL"])
-              .replace("{{ linux_sha256 }}", os.environ["LINUX_SHA256"])
-              .replace("{{ version }}", os.environ["VERSION"])
-          )
-          Path(os.environ["FORMULA"]).write_text(rendered)
+          config = json.loads(os.environ["CHANNEL_CONFIG"])
+          project = config["project"]
+          channel = config["channel"]
+          assets = {asset["key"]: asset for asset in json.loads(Path("homebrew-release-assets.json").read_text())}
+          binary = channel["binary"]
+          bundled_paths = []
+          for entry in config.get("release_binaries", []):
+              if entry["name"] != binary:
+                  continue
+              for bundle in entry.get("bundled_paths", []):
+                  destination = bundle["destination"]
+                  bundled_paths.append(
+                      {
+                          "destination_components": destination.split("/"),
+                          "source_glob": f"{destination}/*",
+                      }
+                  )
+          variables = {
+              "formula_class": channel["formula_class"],
+              "description": project["description"],
+              "homepage": project["homepage"],
+              "license": project["license"],
+              "version": os.environ["RELEASE_VERSION"],
+              "macos_arm_url": assets["macos_arm"]["url"],
+              "macos_arm_sha256": assets["macos_arm"]["sha256"],
+              "macos_intel_url": assets["macos_intel"]["url"],
+              "macos_intel_sha256": assets["macos_intel"]["sha256"],
+              "linux_url": assets["linux"]["url"],
+              "linux_sha256": assets["linux"]["sha256"],
+              "binary": binary,
+              "test_command": channel["test_command"],
+              "test_output": channel["test_output"],
+              "binary_path": f"bin/{binary}",
+              "bundled_paths": bundled_paths,
+          }
+          Path("homebrew-vars.json").write_text(json.dumps(variables), encoding="utf-8")
           PY
-        env:
-          FORMULA: homebrew-tap/Formula/sc-compose.rb
-          LINUX_SHA256: ${{ steps.sha.outputs.linux_sha256 }}
-          LINUX_URL: ${{ steps.sha.outputs.linux_url }}
-          MACOS_ARM_SHA256: ${{ steps.sha.outputs.macos_arm_sha256 }}
-          MACOS_ARM_URL: ${{ steps.sha.outputs.macos_arm_url }}
-          MACOS_INTEL_SHA256: ${{ steps.sha.outputs.macos_intel_sha256 }}
-          MACOS_INTEL_URL: ${{ steps.sha.outputs.macos_intel_url }}
-          VERSION: ${{ needs.verify-release.outputs.release_version }}
+          workspace_root="$(pwd)"
+          mkdir -p "$(dirname "homebrew-tap/${FORMULA_PATH}")"
+          "${SC_COMPOSE_RENDERER}" render --mode file --root release-source \
+            --file "${FORMULA_TEMPLATE}" \
+            --var-file "${workspace_root}/homebrew-vars.json" \
+            --output "${workspace_root}/homebrew-tap/${FORMULA_PATH}"
       - name: Verify formula syntax
-        run: ruby -c homebrew-tap/Formula/sc-compose.rb
+        env:
+          FORMULA_PATH: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.formula_path }}
+        run: ruby -c "homebrew-tap/${FORMULA_PATH}"
       - name: Commit and push formula update
         shell: bash
         env:
+          FORMULA_PATH: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.formula_path }}
+          PROJECT_NAME: ${{ fromJSON(needs.verify-release.outputs.channel_config).project.name }}
           RELEASE_VERSION: ${{ needs.verify-release.outputs.release_version }}
         run: |
           set -euo pipefail
           cd homebrew-tap
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add Formula/sc-compose.rb
+          git add "${FORMULA_PATH}"
           git diff --cached --quiet && echo 'Formula already matches the release assets' && exit 0
-          git commit -m "chore: bump sc-compose to v${RELEASE_VERSION}"
+          git commit -m "chore: bump ${PROJECT_NAME} to v${RELEASE_VERSION}"
           git push

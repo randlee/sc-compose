@@ -304,6 +304,29 @@ pub fn write_fake_cargo(root: &Path, options: FakeCargoOptions) {
     }
 }
 
+pub fn write_fake_cargo_deny(root: &Path) {
+    let bin = root.join("fake-bin");
+    fs::create_dir_all(&bin).expect("fake tools directory");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        let cargo_deny = bin.join("cargo-deny");
+        fs::write(&cargo_deny, "#!/bin/sh\nexit 0\n").expect("fake cargo-deny");
+        let mut permissions = fs::metadata(&cargo_deny)
+            .expect("fake cargo-deny metadata")
+            .permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(cargo_deny, permissions).expect("fake cargo-deny permissions");
+    }
+
+    #[cfg(windows)]
+    {
+        fs::write(bin.join("cargo-deny.cmd"), "@echo off\r\nexit /b 0\r\n")
+            .expect("fake cargo-deny");
+    }
+}
+
 pub fn parse_stdout(output: &std::process::Output) -> Value {
     serde_json::from_slice(&output.stdout).unwrap_or_else(|error| {
         panic!(
