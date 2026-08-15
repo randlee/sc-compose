@@ -1,6 +1,6 @@
 # Releasing sc-compose
 
-Step-by-step release process for `sc-composer`, `sc-compose`, and
+Step-by-step release process for `sc-sha`, `sc-composer`, `sc-compose`, and
 `bindings/python` from this repo.
 
 ## Overview
@@ -9,6 +9,7 @@ This repo publishes to six channels:
 
 | Channel | Package | Method |
 |---------|---------|--------|
+| crates.io | `sc-sha` | `cargo publish` |
 | crates.io | `sc-composer` | `cargo publish` |
 | crates.io | `sc-compose` | `cargo publish` |
 | PyPI | `sc-compose` | `maturin publish` |
@@ -118,8 +119,10 @@ the tag or rerun the root release workflow.
 
 ## Post-Publish Verification
 
+- [ ] Verify `sc-sha` visible on crates.io at expected version
 - [ ] Verify `sc-composer` visible on crates.io at expected version
 - [ ] Verify `sc-compose` visible on crates.io at expected version
+- [ ] `cargo add sc-sha@<version>` in a scratch workspace — resolves cleanly
 - [ ] `cargo add sc-composer@<version>` in a scratch workspace — resolves cleanly
 - [ ] `cargo install sc-compose@<version>` — binary installs cleanly
 - [ ] Verify GitHub Release archives include `share/sc-compose/examples/`
@@ -189,9 +192,10 @@ before creating the GitHub release. The template covers:
 When the ATM workspace needs to switch from in-workspace path dependencies to
 crates.io dependencies from this repo:
 
-1. This repo must publish the target version of `sc-composer`
-2. This repo must publish the target version of `sc-compose`
-3. ATM must replace its in-workspace path dependencies with version pins
+1. This repo must publish the target version of `sc-sha`
+2. This repo must publish the target version of `sc-composer`
+3. This repo must publish the target version of `sc-compose`
+4. ATM must replace its in-workspace path dependencies with version pins
 
 ## Reference Documents
 
