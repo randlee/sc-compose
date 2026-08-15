@@ -27,9 +27,16 @@ checklist.
   that channel rather than a retry or credential workaround.
 - A deliberately denied overall preflight retains every independent sanitized
   channel outcome; only genuinely dependent checks may be `blocked`.
+- The publisher and its channel-worker panes remain available after the run so
+  `comp` or `team-lead` can ask scenario-specific ATM follow-up questions and
+  confirm the answers agree with the retained sanitized evidence.
 
 ## Preconditions
 
+- Provision `publisher` as a full `sc-compose` ATM team member in a dedicated
+  tmux pane using the standard team environment. Its working directory must be
+  the evaluated checkout, and its mailbox/identity must be initialized before
+  the eval begins; do not simulate the publisher with an inline prompt.
 - Launch a fresh `publisher` agent from `.claude/agents/publisher.md` on either
   the Haiku or Luna model. Record the selected model and agent-prompt revision
   in the sanitized eval evidence. A document-only walkthrough is insufficient.
@@ -66,9 +73,13 @@ contain a secret value.
 Give the live Haiku-or-Luna `publisher` agent synthetic ATM assignment
 envelopes. For every channel scenario, it must launch one fungible
 `publisher-channel-worker` background agent, collect that worker's structured
-result, and preserve the parent/worker association in sanitized evidence. Do
-not dispatch any GitHub workflow. The eval is incomplete if the real publisher
-prompt or its background-worker orchestration was not exercised.
+result, and preserve the parent/worker association and pane identifiers in
+sanitized evidence. Leave the publisher pane available after each scenario so
+`comp` or `team-lead` can send a targeted ATM question about its decision;
+retain the sanitized answer with the scenario evidence. Do not dispatch any
+GitHub workflow. The eval is incomplete if the real publisher prompt, its
+background-worker orchestration, or its post-run ATM questioning was not
+exercised.
 
 For each of `crates_io`, `github_release`, `pypi`, `homebrew`, `winget`, and
 `scoop`, provide:
@@ -151,6 +162,6 @@ Retain the manifest command JSON, test output, sanitized worker results, and
 the TestPyPI artifact URL/digest when the optional rehearsal is authorized.
 Do not retain credentials, raw environment dumps, or secret-bearing logs.
 For every normal dry-run, retain the selected model, publisher prompt revision,
-scenario identifier, spawned worker identifier, and parent/worker sanitized
-structured results so the eval can be rerun against a later prompt or model
-revision.
+scenario identifier, spawned worker identifier, pane identifier, and
+parent/worker sanitized structured results so the eval can be rerun against a
+later prompt or model revision.
