@@ -892,6 +892,22 @@ Sprint entry:
 FIX-434 added the O.6 CI template-contracts gate and its cross-platform
 validation coverage for the repository-level template lint target.
 
+### Follow-on Fix Sprint: FIX-491
+
+Status:
+
+- in progress on `fix/491-hermetic-fixture-discovery` at `22b8593`, targeting
+  `develop`
+
+Sprint entry:
+
+- [FIX-491 — Hermetic sc-lint Fixture Utility Discovery](sprints/fix-491-hermetic-fixture-discovery.md)
+
+FIX-491 confines shared sc-lint integration-test utility discovery to an
+explicit `SC_LINT_SOURCE_ROOT` or the repository-local pinned runtime. It
+eliminates machine-dependent ancestor-checkout discovery while preserving the
+CI provisioning contract.
+
 ### Follow-on Fix Sprint: FIX-390
 
 Status:

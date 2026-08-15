@@ -58,9 +58,16 @@ diagnostic details.
 
 sc-lint 0.4.0 has Python-backed adapters for line counts, identity literals,
 view findings, and related workflow helpers. The adapter currently resolves
-consumer-relative `.just/` paths. The CI setup action therefore downloads the
-pinned sc-lint source archive and materializes those utilities into the
-runner workspace; no utility is copied into or maintained in sc-compose.
+consumer-relative `.just/` paths. The CI setup action and local
+`scripts/materialize_sc_lint_runtime.py` helper therefore download the pinned
+sc-lint source archive and materialize those utilities into the consumer
+workspace; no utility is copied into or maintained in sc-compose.
+
+This is an explicit temporary external dependency and single point of failure:
+if the pinned archive or network is unavailable, bootstrap fails closed instead
+of substituting an unpinned helper bundle. Local/offline callers can set
+`SC_LINT_SOURCE_ROOT` to a checked-out matching source tree. The source-archive
+workaround remains only until the packaged interface below is available.
 
 This packaging gap is tracked by [sc-lint issue #83](https://github.com/randlee/sc-lint/issues/83), which requests a pip-installable/maturin-backed
 distribution or equivalent embedded-resource/module entrypoint. L.17 will
