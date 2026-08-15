@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>sc-compose Adversarial Fuzz Campaign -- 20260811-3</title>
+  <style type="text/css">
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0b1220; color: #e5e7eb; }
+      .section { background: #111827; border-color: #1f2937; }
+      table { background: #0f172a; }
+      th, td { border-color: #1f2937 !important; }
+      .icon-button { background: #1f2937; color: #cbd5e1; border-color: #374151; }
+      code { background: #1f2937; color: #e5e7eb; }
+      a { color: #93c5fd; }
+    }
+    :root[data-theme="dark"] body { background: #0b1220; color: #e5e7eb; }
+    :root[data-theme="dark"] .section { background: #111827; border-color: #1f2937; }
+    :root[data-theme="light"] body { background: #ffffff; color: #1f2937; }
+    header { border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 20px; }
+    h1 { margin: 0 0 6px 0; font-size: 1.6rem; }
+    .subtitle { margin: 0 0 4px 0; color: #6b7280; }
+    .generated-at, .source-label { margin: 2px 0; font-size: 0.85rem; color: #6b7280; }
+    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 0.85em; border: 1px solid transparent; }
+    .status-pass { color: #065f46; background: #d1fae5; border-color: #6ee7b7; }
+    .status-drift { color: #92400e; background: #fef3c7; border-color: #f59e0b; }
+    .status-error { color: #991b1b; background: #fee2e2; border-color: #ef4444; }
+    .status-info { color: #1e40af; background: #dbeafe; border-color: #3b82f6; }
+    .top-status { margin-top: 8px; }
+    nav.toc { margin: 16px 0; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 10px; }
+    nav.toc ul { margin: 8px 0 0 0; padding-left: 20px; }
+    .summary-block { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin: 16px 0; }
+    .section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
+    .section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .section-head h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 10px; }
+    .section-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
+    .icon-button:hover { filter: brightness(0.95); }
+    .section-summary { color: #374151; font-style: italic; }
+    .fragment-link { font-size: 0.9rem; }
+    .fragment-source { color: #6b7280; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; vertical-align: top; font-size: 0.9rem; }
+    thead th { background: #f3f4f6; }
+    :root[data-theme="dark"] thead th { background: #1f2937; }
+    @media (prefers-color-scheme: dark) { thead th { background: #1f2937; } }
+    code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 0.9em; white-space: pre-wrap; word-break: break-word; }
+    .finding { border-top: 1px dashed #e5e7eb; padding-top: 10px; margin-top: 10px; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; }
+    dt { font-weight: 600; }
+    dd { margin: 0; }
+    .scratchpad { background: #f9fafb; border-left: 4px solid #3b82f6; padding: 12px; margin-top: 12px; border-radius: 4px; }
+    :root[data-theme="dark"] .scratchpad { background: #0f172a; }
+    .recommendations ul { padding-left: 20px; }
+    .metadata-table th { width: 260px; }
+    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 0.85rem; color: #6b7280; }
+    table { display: block; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>sc-compose Adversarial Fuzz Campaign -- 20260811-3</h1>
+    <p class="subtitle">Session sc-compose-fuzz-20260811-3 -- 4 workers, 260 bounded iterations against a 105-file real-world corpus</p>
+    <p class="generated-at">Generated: 2026-08-11</p>
+    <p class="source-label">Source: sc-adversarial-fuzz-probe (4 background workers)</p>
+    <div class="top-status"><span class="status status-fail">FAIL</span></div>
+  </header>
+
+  <section class="summary-block">
+    <div class="section-head">
+      <h2>Summary</h2>
+    </div>
+    <p>Adversarial fuzz campaign <code>sc-compose-fuzz-20260811-3</code> ran 4 background workers (shape-probe, template-probe, boundary-probe, differential-probe) against a 105-file real-world corpus (atm-core:47, data-sourcegenerators:31, p3-documentation:5, HitlCore:22), partitioned deterministically via SHA-256(seed 157 + filepath) mod 4, for a total of 260 bounded iterations. 3 confirmed bugs (FUZZ-001, FUZZ-002, FUZZ-003) were found and promoted as RED (intentionally failing) regression tests, following this repo's test-first/fix-later pattern; no production code was modified or committed, and no PR was opened. Two additional candidates (template-probe-001, differential-probe-001) were traced to documented, intentional behavior and are not filed as bugs.</p>
+    <table class="session-summary">
+      <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">Recursive JSON/YAML values, mixed arrays, and ingress parity against the corpus partition</th>
+          <td>46</td>
+          <td>45/46</td>
+          <td><span class="status status-fail">FAIL</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Nested loops, control flow, includes, delimiters, and output against the corpus partition</th>
+          <td>100</td>
+          <td>98/100</td>
+          <td><span class="status status-fail">FAIL</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Malformed inputs, stable diagnostics, and path boundaries against the corpus partition</th>
+          <td>85</td>
+          <td>84/85</td>
+          <td><span class="status status-fail">FAIL</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Baseline comparison, metamorphic relations, and determinism against the corpus partition</th>
+          <td>29</td>
+          <td>29/29</td>
+          <td><span class="status status-pass">PASS</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p>All 3 confirmed bugs remain <strong>unresolved pending a production fix</strong>: FUZZ-001 (template-init/render JSON round-trip in <code>crates/sc-compose/src/commands/template_init.rs</code> and <code>crates/sc-composer/src/renderer.rs</code>), and FUZZ-002/FUZZ-003 (clap error paths bypassing the <code>--json</code> DiagnosticEnvelope contract per FR-8a, shared fix target in <code>crates/sc-compose/src/main.rs</code> / <code>crates/sc-compose/src/cli/mod.rs</code>). A duplicate check against GitHub issues (#166-170, #240-254, #268-273, #293, #370-375) found no existing coverage; all three are new findings.</p>
+  </section>
+
+
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>shape-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260811-3 · Worker shape-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;context_text&quot;:&quot;Ran template-init followed by render round-trips and direct render/validate passes over the shape-probe corpus partition (19 real-world .j2 files plus generated variants) with --root pointed at each file&#x27;s own source repo. Missing-required-variable and undeclared-token diagnostics were treated as expected baseline noise, not findings. Found one confirmed bug: sc-compose&#x27;s own template-init command generates JSON templates that render.rs&#x27;s JSON auto-escape then double-quotes on render, silently producing invalid JSON with exit 0 (FUZZ-001).&quot;,&quot;failed&quot;:1,&quot;findings&quot;:[{&quot;expected_oracle&quot;:&quot;Running template-init on a concrete JSON file and then rendering the generated template with the same variable value should reproduce the original document byte-for-byte (a round-trip guarantee), or fail loudly with a diagnostic if that guarantee cannot hold for the substituted value&#x27;s type.&quot;,&quot;finding_id&quot;:&quot;FUZZ-001&quot;,&quot;minimal_input&quot;:&quot;--pass 1 --var worktree_path=/tmp/wt (render); template-init used --pass 1 --var worktree_path=/tmp/wt against a concrete file containing \&quot;worktree_path\&quot;: \&quot;/tmp/wt\&quot;&quot;,&quot;minimal_template&quot;:&quot;payload.json.j2: {\&quot;worktree_path\&quot;: \&quot;{{ worktree_path }}\&quot;}&quot;,&quot;observed_result&quot;:&quot;template-init substitutes value text for a {{ var }} token while preserving surrounding literal quote characters verbatim, producing \&quot;worktree_path\&quot;: \&quot;{{ worktree_path }}\&quot;. crates/sc-composer/src/renderer.rs&#x27;s legacy_auto_escape_callback applies AutoEscape::Json to any template whose name (after stripping .j2/.jinja2/.jinja) ends in .json, which unconditionally wraps every substituted string value in its own quotes. Re-rendering therefore produces {\&quot;worktree_path\&quot;: \&quot;\\\&quot;/tmp/wt\\\&quot;\&quot;} -- invalid round-trip JSON -- with exit 0 and zero diagnostics. Reproduced deterministically 3/3 runs via the release binary.&quot;,&quot;recommended_fix&quot;:&quot;In template_init.rs, when the target file&#x27;s stripped extension is json, detect and consume the surrounding quote characters as part of the replacement span (so the generated token is bare, e.g. \&quot;worktree_path\&quot;: {{ worktree_path }}), matching the auto-escape contract already exercised by renderer.rs&#x27;s existing unit tests. Add a regression test asserting template-init followed by render round-trips a JSON value byte-for-byte.&quot;,&quot;reproduction_count&quot;:3,&quot;requirement_follow_up&quot;:&quot;No requirement or ADR currently covers this behavior. This is a genuine contract gap between two first-class CLI commands (template-init and render) rather than an intentional boundary: template-init has no awareness of the JSON auto-escape rule it is about to violate, and a user following the documented template-init workflow on any JSON file with a string value will silently corrupt output. Recommend either teaching template-init to strip the surrounding literal quotes when the target file is *.json (so the substituted token is bare, matching the auto-escape contract), or documenting the round-trip hazard explicitly in template-init --help and README.md. Owner: sc-compose CLI maintainer (template_init.rs), since the fix is command-specific, not renderer-wide.&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-8a documents the `render --json` payload schema but does not state a round-trip invariant between template-init output and a subsequent render. No requirement or ADR currently covers a template-init-then-render round-trip guarantee for *.json templates; the only documented contract for JSON auto-escaping is internal (renderer.rs unit tests asserting bare/unquoted placeholders are the supported input shape for *.json templates).&quot;,&quot;root_cause&quot;:&quot;crates/sc-compose/src/commands/template_init.rs performs literal substring replacement, preserving the value&#x27;s original surrounding quote characters verbatim. crates/sc-composer/src/renderer.rs legacy_auto_escape_callback applies AutoEscape::Json to any *.json-named template, which re-quotes every substituted string value. The two commands&#x27; contracts are inconsistent for the *.json case: template-init assumes pre-quoted placeholders, render&#x27;s JSON auto-escape assumes bare placeholders.&quot;}],&quot;fuzz_run_description&quot;:&quot;Recursive JSON/YAML values, mixed arrays, and ingress parity against the corpus partition&quot;,&quot;iterations&quot;:46,&quot;passed&quot;:45,&quot;result&quot;:&quot;FAIL&quot;,&quot;session_id&quot;:&quot;sc-compose-fuzz-20260811-3&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-001&quot;,&quot;description&quot;:&quot;template-init on a real JSON file with a quoted string value, then render the generated template&quot;,&quot;minimal_input&quot;:&quot;worktree_path=/tmp/wt&quot;,&quot;minimal_template&quot;:&quot;payload.json.j2: {\&quot;worktree_path\&quot;: \&quot;{{ worktree_path }}\&quot;}&quot;,&quot;outcome&quot;:&quot;FAIL: render output is {\&quot;worktree_path\&quot;: \&quot;\\\&quot;/tmp/wt\\\&quot;\&quot;}, not valid round-trip JSON, exit 0, no diagnostic&quot;,&quot;passed&quot;:false},{&quot;case_id&quot;:&quot;shape-baseline-recursive-yaml&quot;,&quot;description&quot;:&quot;Deeply nested YAML frontmatter with mixed arrays/maps from atm-core corpus files&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;n/a (real corpus file, --root set to atm-core)&quot;,&quot;outcome&quot;:&quot;PASS: recursive structures parse and round-trip through validate --json without panics; only expected missing-required-variable diagnostics observed&quot;,&quot;passed&quot;:true}],&quot;worker_correlation_id&quot;:&quot;shape-probe&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Ran template-init followed by render round-trips and direct render/validate passes over the shape-probe corpus partition (19 real-world .j2 files plus generated variants) with --root pointed at each file&#x27;s own source repo. Missing-required-variable and undeclared-token diagnostics were treated as expected baseline noise, not findings. Found one confirmed bug: sc-compose&#x27;s own template-init command generates JSON templates that render.rs&#x27;s JSON auto-escape then double-quotes on render, silently producing invalid JSON with exit 0 (FUZZ-001).">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Recursive JSON/YAML values, mixed arrays, and ingress parity against the corpus partition</th>
+        <td>46</td>
+        <td>45/46</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-001</th><td><code>template-init on a real JSON file with a quoted string value, then render the generated template</code></td><td>FAIL: render output is {&quot;worktree_path&quot;: &quot;\&quot;/tmp/wt\&quot;&quot;}, not valid round-trip JSON, exit 0, no diagnostic</td></tr>
+        <tr><th scope="row">shape-baseline-recursive-yaml</th><td><code>Deeply nested YAML frontmatter with mixed arrays/maps from atm-core corpus files</code></td><td>PASS: recursive structures parse and round-trip through validate --json without panics; only expected missing-required-variable diagnostics observed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>payload.json.j2: {&quot;worktree_path&quot;: &quot;{{ worktree_path }}&quot;}</code></dd>
+        <dt>Input</dt><dd><code>--pass 1 --var worktree_path=/tmp/wt (render); template-init used --pass 1 --var worktree_path=/tmp/wt against a concrete file containing &quot;worktree_path&quot;: &quot;/tmp/wt&quot;</code></dd>
+        <dt>Expected</dt><dd>Running template-init on a concrete JSON file and then rendering the generated template with the same variable value should reproduce the original document byte-for-byte (a round-trip guarantee), or fail loudly with a diagnostic if that guarantee cannot hold for the substituted value&#x27;s type.</dd>
+        <dt>Observed</dt><dd>template-init substitutes value text for a {{ var }} token while preserving surrounding literal quote characters verbatim, producing &quot;worktree_path&quot;: &quot;{{ worktree_path }}&quot;. crates/sc-composer/src/renderer.rs&#x27;s legacy_auto_escape_callback applies AutoEscape::Json to any template whose name (after stripping .j2/.jinja2/.jinja) ends in .json, which unconditionally wraps every substituted string value in its own quotes. Re-rendering therefore produces {&quot;worktree_path&quot;: &quot;\&quot;/tmp/wt\&quot;&quot;} -- invalid round-trip JSON -- with exit 0 and zero diagnostics. Reproduced deterministically 3/3 runs via the release binary.</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-8a documents the `render --json` payload schema but does not state a round-trip invariant between template-init output and a subsequent render. No requirement or ADR currently covers a template-init-then-render round-trip guarantee for *.json templates; the only documented contract for JSON auto-escaping is internal (renderer.rs unit tests asserting bare/unquoted placeholders are the supported input shape for *.json templates).</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No requirement or ADR currently covers this behavior. This is a genuine contract gap between two first-class CLI commands (template-init and render) rather than an intentional boundary: template-init has no awareness of the JSON auto-escape rule it is about to violate, and a user following the documented template-init workflow on any JSON file with a string value will silently corrupt output. Recommend either teaching template-init to strip the surrounding literal quotes when the target file is *.json (so the substituted token is bare, matching the auto-escape contract), or documenting the round-trip hazard explicitly in template-init --help and README.md. Owner: sc-compose CLI maintainer (template_init.rs), since the fix is command-specific, not renderer-wide.</dd>
+        <dt>Root cause</dt><dd>crates/sc-compose/src/commands/template_init.rs performs literal substring replacement, preserving the value&#x27;s original surrounding quote characters verbatim. crates/sc-composer/src/renderer.rs legacy_auto_escape_callback applies AutoEscape::Json to any *.json-named template, which re-quotes every substituted string value. The two commands&#x27; contracts are inconsistent for the *.json case: template-init assumes pre-quoted placeholders, render&#x27;s JSON auto-escape assumes bare placeholders.</dd>
+        <dt>Recommended fix</dt><dd>In template_init.rs, when the target file&#x27;s stripped extension is json, detect and consume the surrounding quote characters as part of the replacement span (so the generated token is bare, e.g. &quot;worktree_path&quot;: {{ worktree_path }}), matching the auto-escape contract already exercised by renderer.rs&#x27;s existing unit tests. Add a regression test asserting template-init followed by render round-trips a JSON value byte-for-byte.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260811-3 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;context_text&quot;:&quot;Ran render/validate --json across the template-probe corpus partition (32 real-world .j2 files spanning nested {% for %}/{% if %}, includes, and custom delimiters) plus targeted CLI argument-shape probes. Missing-required-variable/undeclared-token diagnostics on real corpus files were treated as expected baseline noise. Found one confirmed bug shared with boundary-probe&#x27;s finding (clap&#x27;s conflicts_with_all argument-group enforcement bypasses the --json output contract, filed as FUZZ-003) and reclassified one initial candidate (--pass scoped inputs invisible in --help) as an intentional boundary once traced to README.md&#x27;s documented --pass N --var table row.&quot;,&quot;failed&quot;:2,&quot;findings&quot;:[{&quot;expected_oracle&quot;:&quot;Per FR-8a, all CLI --json output, including CLI-usage/argument errors, must be delivered as the versioned DiagnosticEnvelope on stdout.&quot;,&quot;finding_id&quot;:&quot;FUZZ-003&quot;,&quot;minimal_input&quot;:&quot;sc-compose render --json --all --brace-count 3 --file t.j2 --root &lt;fixture&gt;&quot;,&quot;minimal_template&quot;:&quot;t.j2: \&quot;Hello {{ name }}\\n\&quot;&quot;,&quot;observed_result&quot;:&quot;--all is declared conflicts_with_all against --brace-count and --variable-delimiters in crates/sc-compose/src/cli/schema.rs. clap enforces that conflict before sc-compose&#x27;s application layer runs, printing plain-text usage text to stderr and leaving stdout completely empty, even though --json was explicitly requested. Reproduced deterministically 3/3 runs.&quot;,&quot;recommended_fix&quot;:&quot;Detect --json early (from raw argv, before/alongside the existing --pass pre-scan) and, on any clap::Error, wrap the rendered clap usage text inside a DiagnosticEnvelope with an appropriate ErrConfigParse-family diagnostic code instead of letting clap print and exit directly. Shared fix target with FUZZ-002 (same root-cause family: clap error path bypasses --json).&quot;,&quot;reproduction_count&quot;:3,&quot;requirement_follow_up&quot;:&quot;No new requirement or ADR is needed; FR-8a already covers this case as written. The gap is a missing test/implementation guard, not a documentation gap.&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-8a: \&quot;CLI --json output must use the versioned DiagnosticEnvelope as the canonical transport format\&quot; -- stated without a carve-out for CLI-usage/argument-parsing errors.&quot;,&quot;root_cause&quot;:&quot;clap&#x27;s own error-printing path (triggered by a conflicts_with_all argument-group violation, declared in crates/sc-compose/src/cli/schema.rs on RenderArgs.brace_count/variable_delimiters) runs and exits before sc-compose&#x27;s application-layer --json rendering logic in main.rs ever executes, so the error never passes through the DiagnosticEnvelope wrapper.&quot;}],&quot;fuzz_run_description&quot;:&quot;Nested loops, control flow, includes, delimiters, and output against the corpus partition&quot;,&quot;iterations&quot;:100,&quot;passed&quot;:98,&quot;result&quot;:&quot;FAIL&quot;,&quot;session_id&quot;:&quot;sc-compose-fuzz-20260811-3&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-003&quot;,&quot;description&quot;:&quot;render --json --all --brace-count 3 --file t.j2 --root &lt;root&gt;&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;t.j2: Hello {{ name }}&quot;,&quot;outcome&quot;:&quot;FAIL: --all conflicts_with_all --brace-count triggers clap&#x27;s own error path; empty stdout, plain-text stderr, --json ignored&quot;,&quot;passed&quot;:false},{&quot;case_id&quot;:&quot;template-probe-001&quot;,&quot;description&quot;:&quot;--pass N --var/--var-file scoped inputs do not appear in `sc-compose render --help`&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;n/a&quot;,&quot;outcome&quot;:&quot;INTENTIONAL BOUNDARY: --pass is parsed from raw argv via parse_pass_inputs and stripped before clap ever sees it (filtered_args_for_clap), by design; documented in README.md&#x27;s --pass N --var table row, just help-text-omitted -- not filed as a bug&quot;,&quot;passed&quot;:true}],&quot;worker_correlation_id&quot;:&quot;template-probe&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Ran render/validate --json across the template-probe corpus partition (32 real-world .j2 files spanning nested {% for %}/{% if %}, includes, and custom delimiters) plus targeted CLI argument-shape probes. Missing-required-variable/undeclared-token diagnostics on real corpus files were treated as expected baseline noise. Found one confirmed bug shared with boundary-probe&#x27;s finding (clap&#x27;s conflicts_with_all argument-group enforcement bypasses the --json output contract, filed as FUZZ-003) and reclassified one initial candidate (--pass scoped inputs invisible in --help) as an intentional boundary once traced to README.md&#x27;s documented --pass N --var table row.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Nested loops, control flow, includes, delimiters, and output against the corpus partition</th>
+        <td>100</td>
+        <td>98/100</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-003</th><td><code>render --json --all --brace-count 3 --file t.j2 --root &lt;root&gt;</code></td><td>FAIL: --all conflicts_with_all --brace-count triggers clap&#x27;s own error path; empty stdout, plain-text stderr, --json ignored</td></tr>
+        <tr><th scope="row">template-probe-001</th><td><code>--pass N --var/--var-file scoped inputs do not appear in `sc-compose render --help`</code></td><td>INTENTIONAL BOUNDARY: --pass is parsed from raw argv via parse_pass_inputs and stripped before clap ever sees it (filtered_args_for_clap), by design; documented in README.md&#x27;s --pass N --var table row, just help-text-omitted -- not filed as a bug</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-003</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>t.j2: &quot;Hello {{ name }}\n&quot;</code></dd>
+        <dt>Input</dt><dd><code>sc-compose render --json --all --brace-count 3 --file t.j2 --root &lt;fixture&gt;</code></dd>
+        <dt>Expected</dt><dd>Per FR-8a, all CLI --json output, including CLI-usage/argument errors, must be delivered as the versioned DiagnosticEnvelope on stdout.</dd>
+        <dt>Observed</dt><dd>--all is declared conflicts_with_all against --brace-count and --variable-delimiters in crates/sc-compose/src/cli/schema.rs. clap enforces that conflict before sc-compose&#x27;s application layer runs, printing plain-text usage text to stderr and leaving stdout completely empty, even though --json was explicitly requested. Reproduced deterministically 3/3 runs.</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-8a: &quot;CLI --json output must use the versioned DiagnosticEnvelope as the canonical transport format&quot; -- stated without a carve-out for CLI-usage/argument-parsing errors.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new requirement or ADR is needed; FR-8a already covers this case as written. The gap is a missing test/implementation guard, not a documentation gap.</dd>
+        <dt>Root cause</dt><dd>clap&#x27;s own error-printing path (triggered by a conflicts_with_all argument-group violation, declared in crates/sc-compose/src/cli/schema.rs on RenderArgs.brace_count/variable_delimiters) runs and exits before sc-compose&#x27;s application-layer --json rendering logic in main.rs ever executes, so the error never passes through the DiagnosticEnvelope wrapper.</dd>
+        <dt>Recommended fix</dt><dd>Detect --json early (from raw argv, before/alongside the existing --pass pre-scan) and, on any clap::Error, wrap the rendered clap usage text inside a DiagnosticEnvelope with an appropriate ErrConfigParse-family diagnostic code instead of letting clap print and exit directly. Shared fix target with FUZZ-002 (same root-cause family: clap error path bypasses --json).</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260811-3 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;context_text&quot;:&quot;Probed malformed --var/--var-file inputs, path-confinement boundaries (symlink escapes, ../ escapes), and stable-diagnostic-code invariants across the boundary-probe corpus partition (25 real-world .j2 files) plus direct CLI-argument-shape fuzzing. Path-confinement checks all held correctly (symlink and ../ escape attempts were rejected with the expected ERR_INCLUDE_ESCAPE-family diagnostics). Found one confirmed bug sharing its root cause with template-probe&#x27;s FUZZ-003: a malformed --var value triggers clap&#x27;s own value-parser error path, which also bypasses the --json output contract.&quot;,&quot;failed&quot;:1,&quot;findings&quot;:[{&quot;expected_oracle&quot;:&quot;Per FR-8a, all CLI --json output, including CLI-usage/argument errors, must be delivered as the versioned DiagnosticEnvelope on stdout.&quot;,&quot;finding_id&quot;:&quot;FUZZ-002&quot;,&quot;minimal_input&quot;:&quot;sc-compose validate --json --var novalue&quot;,&quot;minimal_template&quot;:&quot;n/a (no template needed; CLI argument parsing only)&quot;,&quot;observed_result&quot;:&quot;crates/sc-compose/src/cli/pass_input.rs&#x27;s parse_var (registered as CommonArgs.vars&#x27;s clap value_parser) rejects novalue with a plain \&quot;expected key=value\&quot; error. This is clap&#x27;s own custom-value_parser error-printing path, which runs and exits before the application&#x27;s --json layer, so stdout is completely empty and stderr carries plain clap usage text. Reproduced deterministically 3/3 runs.&quot;,&quot;recommended_fix&quot;:&quot;Detect --json early from raw argv and, on any clap::Error (covering both custom value_parser failures and argument-group conflicts), wrap the rendered clap usage text inside a DiagnosticEnvelope with an appropriate ErrConfigParse-family diagnostic code instead of letting clap print and exit directly. Shared fix target with FUZZ-003.&quot;,&quot;reproduction_count&quot;:3,&quot;requirement_follow_up&quot;:&quot;No new requirement or ADR is needed; FR-8a already covers this case as written. The gap is a missing test/implementation guard, not a documentation gap.&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-8a: \&quot;CLI --json output must use the versioned DiagnosticEnvelope as the canonical transport format\&quot; -- stated without a carve-out for CLI-usage/argument-parsing errors.&quot;,&quot;root_cause&quot;:&quot;clap&#x27;s own value_parser error path (crates/sc-compose/src/cli/pass_input.rs::parse_var, invoked directly by clap during argument parsing for --var) runs and exits before sc-compose&#x27;s application-layer --json rendering logic ever executes, so the error never passes through the DiagnosticEnvelope wrapper. Same root-cause family as FUZZ-003 (clap error path bypasses --json), triggered via a different clap mechanism (custom value_parser vs. conflicts_with_all).&quot;}],&quot;fuzz_run_description&quot;:&quot;Malformed inputs, stable diagnostics, and path boundaries against the corpus partition&quot;,&quot;iterations&quot;:85,&quot;passed&quot;:84,&quot;result&quot;:&quot;FAIL&quot;,&quot;session_id&quot;:&quot;sc-compose-fuzz-20260811-3&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-002&quot;,&quot;description&quot;:&quot;validate --json --var novalue (missing key=value separator)&quot;,&quot;minimal_input&quot;:&quot;novalue&quot;,&quot;minimal_template&quot;:&quot;n/a&quot;,&quot;outcome&quot;:&quot;FAIL: clap&#x27;s custom value_parser (parse_var) error path bypasses --json; empty stdout, plain-text stderr&quot;,&quot;passed&quot;:false},{&quot;case_id&quot;:&quot;boundary-baseline-path-confinement&quot;,&quot;description&quot;:&quot;Symlink and ../ escape attempts against corpus roots&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;n/a (real corpus roots)&quot;,&quot;outcome&quot;:&quot;PASS: all escape attempts rejected with ERR_INCLUDE_ESCAPE-family diagnostics, no existence-oracle leak&quot;,&quot;passed&quot;:true}],&quot;worker_correlation_id&quot;:&quot;boundary-probe&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Probed malformed --var/--var-file inputs, path-confinement boundaries (symlink escapes, ../ escapes), and stable-diagnostic-code invariants across the boundary-probe corpus partition (25 real-world .j2 files) plus direct CLI-argument-shape fuzzing. Path-confinement checks all held correctly (symlink and ../ escape attempts were rejected with the expected ERR_INCLUDE_ESCAPE-family diagnostics). Found one confirmed bug sharing its root cause with template-probe&#x27;s FUZZ-003: a malformed --var value triggers clap&#x27;s own value-parser error path, which also bypasses the --json output contract.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Malformed inputs, stable diagnostics, and path boundaries against the corpus partition</th>
+        <td>85</td>
+        <td>84/85</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-002</th><td><code>validate --json --var novalue (missing key=value separator)</code></td><td>FAIL: clap&#x27;s custom value_parser (parse_var) error path bypasses --json; empty stdout, plain-text stderr</td></tr>
+        <tr><th scope="row">boundary-baseline-path-confinement</th><td><code>Symlink and ../ escape attempts against corpus roots</code></td><td>PASS: all escape attempts rejected with ERR_INCLUDE_ESCAPE-family diagnostics, no existence-oracle leak</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-002</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>n/a (no template needed; CLI argument parsing only)</code></dd>
+        <dt>Input</dt><dd><code>sc-compose validate --json --var novalue</code></dd>
+        <dt>Expected</dt><dd>Per FR-8a, all CLI --json output, including CLI-usage/argument errors, must be delivered as the versioned DiagnosticEnvelope on stdout.</dd>
+        <dt>Observed</dt><dd>crates/sc-compose/src/cli/pass_input.rs&#x27;s parse_var (registered as CommonArgs.vars&#x27;s clap value_parser) rejects novalue with a plain &quot;expected key=value&quot; error. This is clap&#x27;s own custom-value_parser error-printing path, which runs and exits before the application&#x27;s --json layer, so stdout is completely empty and stderr carries plain clap usage text. Reproduced deterministically 3/3 runs.</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-8a: &quot;CLI --json output must use the versioned DiagnosticEnvelope as the canonical transport format&quot; -- stated without a carve-out for CLI-usage/argument-parsing errors.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new requirement or ADR is needed; FR-8a already covers this case as written. The gap is a missing test/implementation guard, not a documentation gap.</dd>
+        <dt>Root cause</dt><dd>clap&#x27;s own value_parser error path (crates/sc-compose/src/cli/pass_input.rs::parse_var, invoked directly by clap during argument parsing for --var) runs and exits before sc-compose&#x27;s application-layer --json rendering logic ever executes, so the error never passes through the DiagnosticEnvelope wrapper. Same root-cause family as FUZZ-003 (clap error path bypasses --json), triggered via a different clap mechanism (custom value_parser vs. conflicts_with_all).</dd>
+        <dt>Recommended fix</dt><dd>Detect --json early from raw argv and, on any clap::Error (covering both custom value_parser failures and argument-group conflicts), wrap the rendered clap usage text inside a DiagnosticEnvelope with an appropriate ErrConfigParse-family diagnostic code instead of letting clap print and exit directly. Shared fix target with FUZZ-003.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-intentional_boundary">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>differential-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260811-3 · Worker differential-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;classification&quot;:&quot;intentional_boundary&quot;,&quot;context_text&quot;:&quot;Compared render --json and validate --json across the differential-probe corpus partition (29 real-world .j2 files) against origin/develop baseline for determinism and metamorphic consistency (repeat-run stability, whitespace-insensitive equivalence where applicable). No confirmed bugs found; one initial candidate (validate accepting inputs render treats differently) was reclassified as an intentional boundary once traced to the CLI&#x27;s own --help text (\&quot;Validate templates without rendering output\&quot;) describing validate and render as deliberately distinct commands with different scopes, not a parity guarantee.&quot;,&quot;failed&quot;:0,&quot;findings&quot;:[],&quot;fuzz_run_description&quot;:&quot;Baseline comparison, metamorphic relations, and determinism against the corpus partition&quot;,&quot;iterations&quot;:29,&quot;passed&quot;:29,&quot;result&quot;:&quot;PASS&quot;,&quot;session_id&quot;:&quot;sc-compose-fuzz-20260811-3&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;differential-probe-001&quot;,&quot;description&quot;:&quot;validate --json vs render --json divergence on the same real corpus file/vars&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;n/a (real corpus file)&quot;,&quot;outcome&quot;:&quot;INTENTIONAL BOUNDARY: validate and render are documented as distinct commands with different scopes (validate --help: \&quot;Validate templates without rendering output\&quot;); no metamorphic/parity requirement is stated or implied between them&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;differential-baseline-determinism&quot;,&quot;description&quot;:&quot;Repeat render --json runs of identical corpus fixture across fresh processes&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;n/a (real corpus files)&quot;,&quot;outcome&quot;:&quot;PASS: byte-identical output and diagnostics across repeated fresh-process runs&quot;,&quot;passed&quot;:true}],&quot;worker_correlation_id&quot;:&quot;differential-probe&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Compared render --json and validate --json across the differential-probe corpus partition (29 real-world .j2 files) against origin/develop baseline for determinism and metamorphic consistency (repeat-run stability, whitespace-insensitive equivalence where applicable). No confirmed bugs found; one initial candidate (validate accepting inputs render treats differently) was reclassified as an intentional boundary once traced to the CLI&#x27;s own --help text (&quot;Validate templates without rendering output&quot;) describing validate and render as deliberately distinct commands with different scopes, not a parity guarantee.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Baseline comparison, metamorphic relations, and determinism against the corpus partition</th>
+        <td>29</td>
+        <td>29/29</td>
+        <td>
+          <span class="status status-error">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">differential-probe-001</th><td><code>validate --json vs render --json divergence on the same real corpus file/vars</code></td><td>INTENTIONAL BOUNDARY: validate and render are documented as distinct commands with different scopes (validate --help: &quot;Validate templates without rendering output&quot;); no metamorphic/parity requirement is stated or implied between them</td></tr>
+        <tr><th scope="row">differential-baseline-determinism</th><td><code>Repeat render --json runs of identical corpus fixture across fresh processes</code></td><td>PASS: byte-identical output and diagnostics across repeated fresh-process runs</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+  </section>
+</section>
+
+  <section class="section recommendations">
+    <h2>Recommendations</h2>
+    <ul><li>FUZZ-001: teach <code>template-init</code> to strip surrounding literal quote characters when the target file is <code>*.json</code>, so the substituted token is bare and matches the renderer's JSON auto-escape contract; add a template-init-then-render round-trip regression test.</li><li>FUZZ-002 / FUZZ-003 (shared root cause): detect <code>--json</code> from raw argv before clap constructs its parser, and wrap any resulting <code>clap::Error</code> (custom value_parser failures and argument-group conflicts alike) in a DiagnosticEnvelope instead of letting clap print and exit directly. Fix both together in one change.</li><li>Promoted RED regression tests are in place (<code>crates/sc-composer/src/renderer.rs::renderer_json_auto_escape_does_not_double_quote_a_pre_quoted_string_placeholder</code>, <code>crates/sc-compose/tests/fuzz_regressions.rs::malformed_var_argument_does_not_bypass_the_json_output_contract</code>, <code>crates/sc-compose/tests/fuzz_regressions.rs::all_and_brace_count_conflict_does_not_bypass_the_json_output_contract</code>) and should stay RED until each fix lands.</li></ul>
+  </section>
+
+  <section class="section metadata">
+    <h2>Metadata</h2>
+    <table class="metadata-table"><tbody>
+      <tr><th scope="row">Session ID</th><td>sc-compose-fuzz-20260811-3</td></tr>
+      <tr><th scope="row">Worktree</th><td>/Users/randlee/Documents/github/sc-compose</td></tr>
+      <tr><th scope="row">Target</th><td>full (var-file, frontmatter, resolver, renderer, includes, cli)</td></tr>
+      <tr><th scope="row">Baseline ref</th><td>origin/develop</td></tr>
+      <tr><th scope="row">Seed</th><td>157</td></tr>
+      <tr><th scope="row">Max workers</th><td>4</td></tr>
+      <tr><th scope="row">Cases per worker (requested)</th><td>100</td></tr>
+      <tr><th scope="row">Per-worker timeout (s)</th><td>120</td></tr>
+      <tr><th scope="row">Execution mode</th><td>4 background sc-adversarial-fuzz-probe workers (shape-probe, template-probe, boundary-probe, differential-probe) spawned via Agent tool run_in_background:true, aggregated by correlation ID</td></tr>
+      <tr><th scope="row">Corpus</th><td>105 real-world .j2 templates from four external read-only repos (atm-core:47, data-sourcegenerators:31, p3-documentation:5, HitlCore:22), partitioned deterministically across the 4 workers via SHA-256(seed 157 + filepath) mod 4</td></tr>
+      <tr><th scope="row">Total iterations</th><td>260</td></tr>
+      <tr><th scope="row">Confirmed bugs</th><td>3</td></tr>
+      <tr><th scope="row">Intentional boundaries</th><td>2</td></tr>
+      <tr><th scope="row">Inconclusive</th><td>0</td></tr>
+      <tr><th scope="row">Promoted regression tests</th><td>3</td></tr>
+      <tr><th scope="row">Promote regressions requested</th><td>True</td></tr>
+      <tr><th scope="row">No PR / no push</th><td>True</td></tr>
+      <tr><th scope="row">Regression promotion note</th><td>promote_regressions requested as enabled. Three confirmed bugs (FUZZ-001, FUZZ-002, FUZZ-003) were promoted as RED (intentionally failing) regression tests, following this repo&#x27;s established test-first/fix-later pattern for fuzz-discovered bugs. No production code was modified or committed.</td></tr>
+      <tr><th scope="row">Duplicate-check method</th><td>gh issue list --repo randlee/sc-compose --search &quot;fuzz OR json envelope OR template-init round-trip&quot; --state all --limit 30</td></tr>
+      <tr><th scope="row">Duplicate-check result</th><td>No existing open or closed GitHub issue matches FUZZ-001 (template-init/render JSON round-trip), FUZZ-002 (--var value-parser bypasses --json), or FUZZ-003 (--all/--brace-count conflict bypasses --json). Prior fuzz-derived issues (#166-170, #240-254, #268-273, #293, #370-375) cover distinct subsystems (include resolver, var-file ingress, format-aware escaping, frontmatter). All three are new findings.</td></tr>
+    </tbody></table>
+  </section>
+
+  <footer>
+    <p>Durable evidence JSON: <a href="20260811-3-fuzz-report/20260811-3-fuzz-report.json">20260811-3-fuzz-report.json</a> (schema_version adversarial-fuzzing/v1). No PR opened, no production code changed.</p>
+  </footer>
+
+  <script>
+    document.addEventListener("click", async function (event) {
+      var button = event.target.closest("[data-copy-text]");
+      if (!button) return;
+      var text = button.getAttribute("data-copy-text") || "";
+      try {
+        await navigator.clipboard.writeText(text);
+        button.setAttribute("title", "Copied");
+      } catch (err) {
+        button.setAttribute("title", "Copy failed");
+      }
+    });
+  </script>
+</body>
+</html>

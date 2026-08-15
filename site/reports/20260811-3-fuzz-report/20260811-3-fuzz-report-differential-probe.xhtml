@@ -1,0 +1,46 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-intentional_boundary">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>differential-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260811-3 · Worker differential-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;differential-probe&quot;,&quot;classification&quot;:&quot;intentional_boundary&quot;,&quot;context_text&quot;:&quot;Compared render --json and validate --json across the differential-probe corpus partition (29 real-world .j2 files) against origin/develop baseline for determinism and metamorphic consistency (repeat-run stability, whitespace-insensitive equivalence where applicable). No confirmed bugs found; one initial candidate (validate accepting inputs render treats differently) was reclassified as an intentional boundary once traced to the CLI&#x27;s own --help text (\&quot;Validate templates without rendering output\&quot;) describing validate and render as deliberately distinct commands with different scopes, not a parity guarantee.&quot;,&quot;failed&quot;:0,&quot;findings&quot;:[],&quot;fuzz_run_description&quot;:&quot;Baseline comparison, metamorphic relations, and determinism against the corpus partition&quot;,&quot;iterations&quot;:29,&quot;passed&quot;:29,&quot;result&quot;:&quot;PASS&quot;,&quot;session_id&quot;:&quot;sc-compose-fuzz-20260811-3&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;differential-probe-001&quot;,&quot;description&quot;:&quot;validate --json vs render --json divergence on the same real corpus file/vars&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;n/a (real corpus file)&quot;,&quot;outcome&quot;:&quot;INTENTIONAL BOUNDARY: validate and render are documented as distinct commands with different scopes (validate --help: \&quot;Validate templates without rendering output\&quot;); no metamorphic/parity requirement is stated or implied between them&quot;,&quot;passed&quot;:true},{&quot;case_id&quot;:&quot;differential-baseline-determinism&quot;,&quot;description&quot;:&quot;Repeat render --json runs of identical corpus fixture across fresh processes&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;n/a (real corpus files)&quot;,&quot;outcome&quot;:&quot;PASS: byte-identical output and diagnostics across repeated fresh-process runs&quot;,&quot;passed&quot;:true}],&quot;worker_correlation_id&quot;:&quot;differential-probe&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Compared render --json and validate --json across the differential-probe corpus partition (29 real-world .j2 files) against origin/develop baseline for determinism and metamorphic consistency (repeat-run stability, whitespace-insensitive equivalence where applicable). No confirmed bugs found; one initial candidate (validate accepting inputs render treats differently) was reclassified as an intentional boundary once traced to the CLI&#x27;s own --help text (&quot;Validate templates without rendering output&quot;) describing validate and render as deliberately distinct commands with different scopes, not a parity guarantee.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Baseline comparison, metamorphic relations, and determinism against the corpus partition</th>
+        <td>29</td>
+        <td>29/29</td>
+        <td>
+          <span class="status status-error">PASS</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">differential-probe-001</th><td><code>validate --json vs render --json divergence on the same real corpus file/vars</code></td><td>INTENTIONAL BOUNDARY: validate and render are documented as distinct commands with different scopes (validate --help: &quot;Validate templates without rendering output&quot;); no metamorphic/parity requirement is stated or implied between them</td></tr>
+        <tr><th scope="row">differential-baseline-determinism</th><td><code>Repeat render --json runs of identical corpus fixture across fresh processes</code></td><td>PASS: byte-identical output and diagnostics across repeated fresh-process runs</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+  </section>
+</section>

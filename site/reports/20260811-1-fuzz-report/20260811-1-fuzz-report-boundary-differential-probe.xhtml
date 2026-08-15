@@ -1,0 +1,44 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-pass">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-differential-probe</h2>
+      <p class="agent-meta">Session 20260811-1 · Worker boundary-differential-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;boundary-differential-probe&quot;,&quot;result&quot;:&quot;no new bypass found&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Following up on M.2 QA finding QM-014 (the sc-sha-python-dependency-violation fixture only exercised 2 of 4 required rejection classes, since fixed by comp), this probe did not re-run the existing fixture. Instead it copied tests/fixtures/sc-lint/sc-boundary/sc-sha-python-dependency-violation into three scratch variants and ran the real installed sc-lint 0.4.0 binary (not a mock) directly against each, testing three genuinely new bypass vectors not covered by any existing fixture: Cargo dependency-key renaming via `package = &quot;...&quot;`, moving forbidden edges into [dev-dependencies], and moving them into target-cfg-gated dependency tables. All three were still caught by SCB-DEPENDENCY-001 with the expected owner_ids/package names, indicating the checker resolves dependencies by real package identity across dependency kinds and target cfgs, not by literal Cargo.toml key text or [dependencies]-table membership alone. One residual, non-blocking scope note: the boundary&#x27;s forbidden_edges are defined and enforced as direct sc-sha-python -&gt; {sc-compose, sc-composer} edges; a transitive path through an intermediate allowed crate was not tested here and is a design-scope question (does the boundary intend to catch transitive reachability too?) rather than a lint defect -- recommend a follow-up decision, not a fix.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-pass">PASS</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">boundaries/sc-sha-python/python-adapter.toml SCB-DEPENDENCY-001 boundary lint: novel dependency-edge bypass attempts (dependency renaming, dev-dependencies, target-cfg dependencies) beyond QM-014&#x27;s 4-class fixture</th>
+        <td>3</td>
+        <td>3/3</td>
+        <td>
+          <span class="status status-pass">no bypass found (boundary holds)</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">bypass-alias</th><td><code>sc-sha-python depends on sc-compose/sc-composer via renamed keys (composer_util = {path=..,package=&quot;sc-composer&quot;}, compose_util = {path=..,package=&quot;sc-compose&quot;})</code></td><td>sc-lint lint sc-boundary still emits SCB-DEPENDENCY-001 for both sc-compose and sc-composer (resolves by real package name, not the Cargo.toml key)</td></tr>
+        <tr><th scope="row">bypass-devdep</th><td><code>sc-compose/sc-composer/atmcore/unrelated-runtime moved from [dependencies] to [dev-dependencies] only</code></td><td>sc-lint lint sc-boundary still emits all 4 SCB-DEPENDENCY-001 findings</td></tr>
+        <tr><th scope="row">bypass-target</th><td><code>forbidden deps split across [target.&#x27;cfg(unix)&#x27;.dependencies] and [target.&#x27;cfg(windows)&#x27;.dependencies]</code></td><td>sc-lint lint sc-boundary still emits all 4 SCB-DEPENDENCY-001 findings</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</section>
