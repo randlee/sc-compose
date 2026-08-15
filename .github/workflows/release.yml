@@ -356,7 +356,7 @@ jobs:
             --asset-dir dist
       - name: Publish wheels and sdist to TestPyPI
         env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_TOKEN }}
+          MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
           MATURIN_NON_INTERACTIVE: "1"
         run: maturin upload --repository testpypi --non-interactive --skip-existing dist/*.whl dist/*.tar.gz
 

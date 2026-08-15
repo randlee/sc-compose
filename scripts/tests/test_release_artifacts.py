@@ -358,7 +358,9 @@ def test_release_workflow_enforces_python_release_invariants() -> None:
     assert "needs.gate-and-tag.outputs.release_target == 'testpypi'" in text
     assert "publish-pypi:" not in text
     assert "name: python-sdist-${{ matrix.artifact }}" in text
-    assert "TEST_PYPI_TOKEN" in text
+    assert "TEST_PYPI_API_TOKEN" in text
+    assert "MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}" in text
+    assert "secrets.TEST_PYPI_TOKEN" not in text
     assert "--repository testpypi" in text
     assert "for pattern in *.tar.gz *.zip *.whl; do" in text
     assert "uses: ./.github/actions/setup-python-release-build" in text
@@ -371,11 +373,20 @@ def test_release_workflow_enforces_python_release_invariants() -> None:
 
     assert "name: Publish PyPI" in pypi_text
     assert "release_tag: ${{ inputs.tag }}" in pypi_text
+    assert "environment: ${{ inputs.target == 'production' && 'pypi' || 'testpypi' }}" in pypi_text
     assert "gh release download" in pypi_text
     assert "verify-python-release-assets" in pypi_text
     assert "maturin build" not in pypi_text
     assert "maturin sdist" not in pypi_text
-    assert "MATURIN_PYPI_TOKEN: ${{ inputs.target == 'testpypi' && secrets.TEST_PYPI_TOKEN || secrets.PYPI_TOKEN }}" in pypi_text
+    assert "name: Publish manifest-declared wheels and sdists to TestPyPI" in pypi_text
+    assert "if: ${{ inputs.target == 'testpypi' }}" in pypi_text
+    assert "MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}" in pypi_text
+    assert "name: Publish manifest-declared wheels and sdists to PyPI" in pypi_text
+    assert "if: ${{ inputs.target == 'production' }}" in pypi_text
+    assert "MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}" in pypi_text
+    assert "inputs.target == 'testpypi' && secrets." not in pypi_text
+    assert "secrets.TEST_PYPI_TOKEN" not in pypi_text
+    assert "secrets.PYPI_TOKEN" not in pypi_text
     assert "maturin upload --repository \"${PYPI_REPOSITORY}\" --non-interactive --skip-existing dist/*.whl dist/*.tar.gz" in pypi_text
 
 
@@ -386,16 +397,34 @@ def test_release_preflight_requires_each_standardized_secret() -> None:
     for secret_name in (
         "CARGO_REGISTRY_TOKEN",
         "HOMEBREW_TAP_TOKEN",
-        "PYPI_TOKEN",
+        "PYPI_API_TOKEN",
         "SCOOP_BUCKET_TOKEN",
-        "TEST_PYPI_TOKEN",
+        "TEST_PYPI_API_TOKEN",
         "WINGET_GITHUB_TOKEN",
     ):
         assert secret_name in text
     assert "All standardized release secrets are available." in text
+    assert "actions: read" in text
+    assert "environment:" not in text
+    assert "Verify Python environment secret metadata" in text
+    assert "environments/${environment_name}/secrets" in text
+    assert "Required Python environment secrets are present." in text
     assert "Verify GitHub channel token liveness" in text
     assert "https://api.github.com/user" in text
     assert "rotate or replace it" in text
+
+
+def test_active_release_docs_use_the_standard_python_secret_names() -> None:
+    for relative_path in (
+        "RELEASING.md",
+        "docs/publishing.md",
+        "docs/publishing-agent.md",
+    ):
+        text = (repo_root() / relative_path).read_text(encoding="utf-8")
+        assert "PYPI_API_TOKEN" in text
+        assert "TEST_PYPI_API_TOKEN" in text
+        assert "PYPI_TOKEN" not in text
+        assert "TEST_PYPI_TOKEN" not in text
 
 
 def test_channel_recovery_workflows_require_a_published_release() -> None:

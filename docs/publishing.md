@@ -95,15 +95,15 @@ the examples root when they want `examples list` and `examples <name>`.
 Required secrets:
 
 - `CARGO_REGISTRY_TOKEN`
-  - must be configured in the GitHub Actions `crates-io` environment
+  - must be configured as a GitHub Actions repository secret
   - must be able to publish `sc-sha`, `sc-composer`, and `sc-compose`
 - `HOMEBREW_TAP_TOKEN`
   - must be configured in the repo secrets before Homebrew automation can
     update `randlee/homebrew-tap`
-- `PYPI_TOKEN` and `TEST_PYPI_TOKEN`
+- `PYPI_API_TOKEN` and `TEST_PYPI_API_TOKEN`
   - required for production and rehearsal Python uploads, respectively
-  - must be configured in the protected GitHub Actions `pypi` environment
-    before PyPI publication is enabled
+  - must be configured in the protected GitHub Actions `pypi` and `testpypi`
+    environments, respectively, before PyPI publication is enabled
 - `WINGET_GITHUB_TOKEN`
   - must be configured in repo secrets before automated winget submission
 - `SCOOP_BUCKET_TOKEN`
@@ -137,8 +137,8 @@ Python release-train rule:
 
 Release-operator verification for PyPI:
 
-- verify the protected `pypi` environment contains `PYPI_TOKEN` and
-  `TEST_PYPI_TOKEN`
+- verify the protected `pypi` and `testpypi` environments contain
+  `PYPI_API_TOKEN` and `TEST_PYPI_API_TOKEN`, respectively
 - run one staged TestPyPI or `workflow_dispatch` rehearsal before treating the
   Python release channel as production-closed
 - confirm exactly one sdist is produced, all three wheel builds complete, the

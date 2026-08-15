@@ -39,7 +39,7 @@ secret references, but must not ask whether a token exists, request a token, or
 attempt to inspect a token value.
 
 - `CARGO_REGISTRY_TOKEN` — crates.io publication
-- `PYPI_TOKEN` and `TEST_PYPI_TOKEN` — production and rehearsal Python uploads
+- `PYPI_API_TOKEN` and `TEST_PYPI_API_TOKEN` — production and rehearsal Python uploads
 - `HOMEBREW_TAP_TOKEN` — Homebrew tap update
 - `WINGET_GITHUB_TOKEN` — winget submission
 - `SCOOP_BUCKET_TOKEN` — Scoop bucket manifest update

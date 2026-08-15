@@ -908,6 +908,20 @@ explicit `SC_LINT_SOURCE_ROOT` or the repository-local pinned runtime. It
 eliminates machine-dependent ancestor-checkout discovery while preserving the
 CI provisioning contract.
 
+### Follow-on Fix Sprint: FIX-RELEASE-1.4.2-PREFLIGHT
+
+Status:
+
+- in progress on `release/1.4.2-prep`, targeting `main`
+
+Sprint entry:
+
+- [FIX-RELEASE-1.4.2-PREFLIGHT — Correct 1.4.2 Publish Credentials and Release Records](sprints/fix-release-1.4.2-preflight.md)
+
+FIX-RELEASE-1.4.2-PREFLIGHT corrects the actual PyPI credential references,
+uses metadata-only protected-environment secret checks in release preflight,
+and records the 1.4.2 channel and fix content before publication.
+
 ### Follow-on Fix Sprint: FIX-390
 
 Status:

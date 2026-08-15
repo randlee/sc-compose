@@ -16,8 +16,10 @@
 
 | Package | Version | Channel |
 |---------|---------|---------|
+| `sc-sha` | <VERSION> | crates.io |
 | `sc-composer` | <VERSION> | crates.io |
-| `sc-compose` | <VERSION> | crates.io · Homebrew · Winget · GitHub Releases |
+| `sc-compose` | <VERSION> | crates.io · Homebrew · Winget · Scoop · GitHub Releases |
+| `sc-sha` (Python) | <VERSION> | PyPI |
 | `sc-compose` (Python) | <VERSION> | PyPI |
 
 ## What's New

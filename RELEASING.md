@@ -58,7 +58,7 @@ This repo publishes to six channels:
 - [ ] `cargo owner --list sc-sha` — confirm expected owners
 - [ ] `cargo owner --list sc-composer` — confirm expected owners
 - [ ] `cargo owner --list sc-compose` — confirm expected owners
-- [ ] `CARGO_REGISTRY_TOKEN` configured in GitHub Actions `crates-io` environment
+- [ ] `CARGO_REGISTRY_TOKEN` configured as a GitHub Actions repository secret
 - [ ] Token has publish permission for `sc-sha`, `sc-composer`, and `sc-compose`
 
 ### Homebrew, Winget, and Scoop
@@ -72,8 +72,8 @@ This repo publishes to six channels:
 
 ### PyPI
 
-- [ ] `PYPI_TOKEN` and `TEST_PYPI_TOKEN` configured in GitHub Actions
-  environments
+- [ ] `PYPI_API_TOKEN` and `TEST_PYPI_API_TOKEN` configured in the protected
+  GitHub Actions `pypi` and `testpypi` environments, respectively
 - [ ] Run one staged TestPyPI or `workflow_dispatch` rehearsal before treating
   the Python release channel as production-closed:
   - [ ] Both packages build wheels on all three platforms

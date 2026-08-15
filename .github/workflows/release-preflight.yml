@@ -14,6 +14,7 @@ on:
         type: string
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -37,9 +38,7 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
           SCOOP_BUCKET_TOKEN: ${{ secrets.SCOOP_BUCKET_TOKEN }}
-          TEST_PYPI_TOKEN: ${{ secrets.TEST_PYPI_TOKEN }}
           WINGET_GITHUB_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
         run: |
           set -euo pipefail
@@ -47,9 +46,7 @@ jobs:
           for secret_name in \
             CARGO_REGISTRY_TOKEN \
             HOMEBREW_TAP_TOKEN \
-            PYPI_TOKEN \
             SCOOP_BUCKET_TOKEN \
-            TEST_PYPI_TOKEN \
             WINGET_GITHUB_TOKEN; do
             if [[ -z "${!secret_name:-}" ]]; then
               missing+=("${secret_name}")
@@ -60,6 +57,30 @@ jobs:
             exit 1
           fi
           echo "All standardized release secrets are available."
+
+      - name: Verify Python environment secret metadata
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          check_environment_secret() {
+            local environment_name="$1"
+            local expected_secret="$2"
+            local names
+            if ! names="$(gh api "repos/${REPOSITORY}/environments/${environment_name}/secrets" --jq '.secrets[].name')"; then
+              echo "Could not inspect secret metadata for environment ${environment_name}." >&2
+              exit 1
+            fi
+            if ! grep -Fxq -- "$expected_secret" <<<"$names"; then
+              echo "GitHub Actions environment ${environment_name} is missing required secret ${expected_secret}." >&2
+              exit 1
+            fi
+          }
+          check_environment_secret pypi PYPI_API_TOKEN
+          check_environment_secret testpypi TEST_PYPI_API_TOKEN
+          echo "Required Python environment secrets are present."
 
       - name: Verify GitHub channel token liveness
         shell: bash

@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-08-15
+
+### Added
+
+- Added the Scoop release channel for `sc-compose`, including the
+  retry-safe bucket-manifest publication workflow for `randlee/scoop-bucket`.
+
+### Fixed
+
+- Made sc-lint fixture utility discovery hermetic: integration tests now use
+  only an explicit `SC_LINT_SOURCE_ROOT` or the checkout-local pinned runtime,
+  never an unrelated ancestor checkout (#491).
+- Corrected the production and TestPyPI workflow secret references to
+  `PYPI_API_TOKEN` and `TEST_PYPI_API_TOKEN`. Release preflight now checks only
+  the names of the protected-environment secrets through the GitHub API, so it
+  does not request an environment approval or expose token values.
+
 ## [1.4.1] - 2026-08-13
 
 ### Added
