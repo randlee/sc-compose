@@ -936,6 +936,8 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "not create a tag" in eval_plan_text
     assert "## Goals" in eval_plan_text
     assert "## Expected Outcomes" in eval_plan_text
+    assert "Haiku or Luna" in eval_plan_text
+    assert "background agent" in eval_plan_text
     assert "Every evaluation document must state:" in eval_convention_text
 
 
