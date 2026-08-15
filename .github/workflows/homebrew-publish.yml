@@ -84,9 +84,11 @@ jobs:
 
           config = json.loads(os.environ["CHANNEL_CONFIG"])
           project = config["project"]
+          channel = config["channel"]
           assets = []
-          for asset in config["channel"]["assets"]:
-              target = config["release_targets"][asset["target"]]
+          archives_by_target = {}
+
+          def download(target):
               filename = f"{project['archive_prefix']}_{os.environ['RELEASE_VERSION']}_{target['target']}.{target['archive']}"
               url = f"https://github.com/{os.environ['RELEASE_REPOSITORY']}/releases/download/{os.environ['RELEASE_TAG']}/{filename}"
               path = Path(os.environ["RUNNER_TEMP"]) / filename
@@ -94,16 +96,46 @@ jobs:
                   ["curl", "-fsSL", "--retry", "5", "--retry-delay", "30", "--retry-all-errors", "-o", str(path), url],
                   check=True,
               )
+              archives_by_target[target["target"]] = path
+              return url, path
+
+          for asset in config["channel"]["assets"]:
+              target = config["release_targets"][asset["target"]]
+              url, path = download(target)
               assets.append(
                   {"key": asset["key"], "url": url, "sha256": hashlib.file_digest(path.open("rb"), "sha256").hexdigest()}
               )
+          renderer_target = config["release_targets"][channel["renderer_target"]]
+          renderer_archive = archives_by_target.get(renderer_target["target"])
+          if renderer_archive is None:
+              _url, renderer_archive = download(renderer_target)
           Path("homebrew-release-assets.json").write_text(json.dumps(assets), encoding="utf-8")
+          with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as env_file:
+              env_file.write(f"SC_COMPOSE_RENDERER_ARCHIVE={renderer_archive}\n")
+              env_file.write(
+                  "SC_COMPOSE_RENDERER_EXTRACT_DIR="
+                  f"{project['archive_prefix']}_{os.environ['RELEASE_VERSION']}_{renderer_target['target']}\n"
+              )
           PY
+      - name: Extract published sc-compose renderer
+        shell: bash
+        run: |
+          set -euo pipefail
+          renderer_root="${RUNNER_TEMP}/sc-compose-renderer"
+          mkdir -p "${renderer_root}"
+          tar -xzf "${SC_COMPOSE_RENDERER_ARCHIVE}" -C "${renderer_root}"
+          renderer="${renderer_root}/${SC_COMPOSE_RENDERER_EXTRACT_DIR}/bin/sc-compose"
+          test -x "${renderer}" || {
+            echo "Published renderer archive is missing bin/sc-compose" >&2
+            exit 1
+          }
+          echo "SC_COMPOSE_RENDERER=${renderer}" >> "$GITHUB_ENV"
       - name: Render formula from the manifest-declared template
         shell: bash
         env:
           CHANNEL_CONFIG: ${{ needs.verify-release.outputs.channel_config }}
           FORMULA_PATH: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.formula_path }}
+          FORMULA_TEMPLATE: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.formula_template }}
           RELEASE_VERSION: ${{ needs.verify-release.outputs.release_version }}
         run: |
           set -euo pipefail
@@ -128,33 +160,31 @@ jobs:
                   install_lines.append(
                       f'    ({ruby_path}).install Dir["{destination}/*"]'
                   )
-          template = Path("release-source") / channel["formula_template"]
-          rendered = template.read_text(encoding="utf-8")
-          replacements = {
-              "{{ formula_class }}": channel["formula_class"],
-              "{{ description }}": project["description"],
-              "{{ homepage }}": project["homepage"],
-              "{{ license }}": project["license"],
-              "{{ version }}": os.environ["RELEASE_VERSION"],
-              "{{ macos_arm_url }}": assets["macos_arm"]["url"],
-              "{{ macos_arm_sha256 }}": assets["macos_arm"]["sha256"],
-              "{{ macos_intel_url }}": assets["macos_intel"]["url"],
-              "{{ macos_intel_sha256 }}": assets["macos_intel"]["sha256"],
-              "{{ linux_url }}": assets["linux"]["url"],
-              "{{ linux_sha256 }}": assets["linux"]["sha256"],
-              "{{ binary }}": binary,
-              "{{ test_command }}": channel["test_command"],
-              "{{ test_output }}": channel["test_output"],
-              "{{ install_block }}": "\n".join(install_lines),
+          variables = {
+              "formula_class": channel["formula_class"],
+              "description": project["description"],
+              "homepage": project["homepage"],
+              "license": project["license"],
+              "version": os.environ["RELEASE_VERSION"],
+              "macos_arm_url": assets["macos_arm"]["url"],
+              "macos_arm_sha256": assets["macos_arm"]["sha256"],
+              "macos_intel_url": assets["macos_intel"]["url"],
+              "macos_intel_sha256": assets["macos_intel"]["sha256"],
+              "linux_url": assets["linux"]["url"],
+              "linux_sha256": assets["linux"]["sha256"],
+              "binary": binary,
+              "test_command": channel["test_command"],
+              "test_output": channel["test_output"],
+              "install_block": "\n".join(install_lines),
           }
-          for placeholder, value in replacements.items():
-              rendered = rendered.replace(placeholder, value)
-          if "{{" in rendered:
-              raise SystemExit("unrendered placeholder in Homebrew formula template")
-          output = Path("homebrew-tap") / os.environ["FORMULA_PATH"]
-          output.parent.mkdir(parents=True, exist_ok=True)
-          output.write_text(rendered, encoding="utf-8")
+          Path("homebrew-vars.json").write_text(json.dumps(variables), encoding="utf-8")
           PY
+          workspace_root="$(pwd)"
+          mkdir -p "$(dirname "homebrew-tap/${FORMULA_PATH}")"
+          "${SC_COMPOSE_RENDERER}" render --mode file --root release-source \
+            --file "${FORMULA_TEMPLATE}" \
+            --var-file "${workspace_root}/homebrew-vars.json" \
+            --output "${workspace_root}/homebrew-tap/${FORMULA_PATH}"
       - name: Verify formula syntax
         env:
           FORMULA_PATH: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.formula_path }}

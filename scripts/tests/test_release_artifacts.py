@@ -73,6 +73,7 @@ def write_repo_fixture(tmp_path: Path, *, manifest_wheels: list[str]) -> tuple[P
                 'description = "Fixture release"',
                 'homepage = "https://example.invalid/fixture"',
                 'license = "MIT"',
+                'readme_dependency_crate = "sc-composer"',
                 "",
                 "[[release_targets]]",
                 'target = "x86_64-unknown-linux-gnu"',
@@ -121,6 +122,7 @@ def write_repo_fixture(tmp_path: Path, *, manifest_wheels: list[str]) -> tuple[P
                 'binary = "fixture"',
                 'test_command = "--help"',
                 'test_output = "fixture"',
+                'renderer_target = "x86_64-unknown-linux-gnu"',
                 "",
                 "[[channels.homebrew.assets]]",
                 'key = "linux"',
@@ -136,6 +138,7 @@ def write_repo_fixture(tmp_path: Path, *, manifest_wheels: list[str]) -> tuple[P
                 'manifest_template = "release/scoop/manifest.json.j2"',
                 'installer_target = "x86_64-unknown-linux-gnu"',
                 'binary = "bin/fixture"',
+                'renderer_target = "x86_64-unknown-linux-gnu"',
                 "",
             ]
         ),
@@ -254,6 +257,36 @@ def test_validate_manifest_rejects_unknown_channel_target(tmp_path: Path) -> Non
     assert "references unknown release target" in result.stderr
 
 
+def test_validate_manifest_rejects_unknown_renderer_target(tmp_path: Path) -> None:
+    workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            'renderer_target = "x86_64-unknown-linux-gnu"',
+            'renderer_target = "unknown-renderer"',
+            1,
+        ),
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(repo_root() / "scripts" / "release_artifacts.py"),
+            "validate-manifest",
+            "--manifest",
+            str(manifest),
+            "--workspace-toml",
+            str(workspace),
+        ],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "renderer_target references unknown release target" in result.stderr
+
+
 def test_verify_python_release_assets_accepts_manifest_declared_wheels_and_sdist(tmp_path: Path) -> None:
     _, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest", "windows-latest"])
     assets = tmp_path / "assets"
@@ -305,6 +338,8 @@ def test_release_manifest_publishes_sc_sha_before_its_consumers() -> None:
         "sc-sha": "bindings/sc-sha-python",
         "sc-compose": "bindings/python",
     }
+    assert manifest["channels"]["homebrew"]["renderer_target"] == "x86_64-unknown-linux-gnu"
+    assert manifest["channels"]["scoop"]["renderer_target"] == "x86_64-unknown-linux-gnu"
 
 
 def test_release_workflow_enforces_python_release_invariants() -> None:
@@ -389,8 +424,15 @@ def test_channel_recovery_workflows_require_a_published_release() -> None:
     assert "SCOOP_BUCKET_TOKEN" in scoop_text
     assert "channel-config" in scoop_text
     assert "Render Scoop manifest with sc-compose" in scoop_text
-    assert "--file release/scoop/manifest.json.j2" in scoop_text
+    assert 'MANIFEST_TEMPLATE: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.manifest_template }}' in scoop_text
     assert ".replace(placeholder, value)" not in scoop_text
+    assert "cargo run --quiet --manifest-path release-source/Cargo.toml" not in scoop_text
+    assert "SC_COMPOSE_RENDERER" in scoop_text
+
+    assert "Render formula from the manifest-declared template" in homebrew_text
+    assert 'FORMULA_TEMPLATE: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.formula_template }}' in homebrew_text
+    assert ".replace(placeholder, value)" not in homebrew_text
+    assert "SC_COMPOSE_RENDERER" in homebrew_text
 
 
 def test_release_workflow_collects_wheels_without_redundant_zip_sweep() -> None:
@@ -454,7 +496,14 @@ def test_python_package_metadata_uses_local_readme_for_sdist() -> None:
     assert "../../README.md" not in cargo_toml_text
 
 
-def write_readme_fixture(tmp_path: Path, *, dependency_version: str, status_version: str, stability_minor: str) -> tuple[Path, Path]:
+def write_readme_fixture(
+    tmp_path: Path,
+    *,
+    dependency_version: str,
+    status_version: str,
+    stability_minor: str,
+    dependency_crate: str = "sc-composer",
+) -> tuple[Path, Path, Path]:
     workspace = tmp_path / "Cargo.toml"
     workspace.write_text(
         "\n".join(["[workspace.package]", 'version = "1.2.0"', ""]),
@@ -468,7 +517,7 @@ def write_readme_fixture(tmp_path: Path, *, dependency_version: str, status_vers
                 "",
                 "```toml",
                 "[dependencies]",
-                f'sc-composer = "{dependency_version}"',
+                f'{dependency_crate} = "{dependency_version}"',
                 "```",
                 "",
                 "## Status",
@@ -483,15 +532,38 @@ def write_readme_fixture(tmp_path: Path, *, dependency_version: str, status_vers
         ),
         encoding="utf-8",
     )
-    return workspace, readme
+    manifest = tmp_path / "release" / "publish-artifacts.toml"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text(
+        "\n".join(
+            [
+                "[project]",
+                f'readme_dependency_crate = "{dependency_crate}"',
+                "",
+                "[[crates]]",
+                'artifact = "readme-dependency"',
+                f'package = "{dependency_crate}"',
+                'cargo_toml = "crates/readme-dependency/Cargo.toml"',
+                "publish_order = 1",
+                "wait_after_publish_seconds = 0",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return workspace, readme, manifest
 
 
-def run_sync_readme_version(workspace: Path, readme: Path) -> subprocess.CompletedProcess[str]:
+def run_sync_readme_version(
+    workspace: Path, readme: Path, manifest: Path
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
             sys.executable,
             "scripts/release_artifacts.py",
             "sync-readme-version",
+            "--manifest",
+            str(manifest),
             "--workspace-toml",
             str(workspace),
             "--readme",
@@ -504,12 +576,16 @@ def run_sync_readme_version(workspace: Path, readme: Path) -> subprocess.Complet
     )
 
 
-def run_verify_readme_version(workspace: Path, readme: Path) -> subprocess.CompletedProcess[str]:
+def run_verify_readme_version(
+    workspace: Path, readme: Path, manifest: Path
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
             sys.executable,
             "scripts/release_artifacts.py",
             "verify-readme-version",
+            "--manifest",
+            str(manifest),
             "--workspace-toml",
             str(workspace),
             "--readme",
@@ -622,33 +698,33 @@ def run_verify_version_lockstep(workspace: Path, manifest: Path) -> subprocess.C
 
 
 def test_verify_readme_version_passes_when_readme_matches_workspace(tmp_path: Path) -> None:
-    workspace, readme = write_readme_fixture(
+    workspace, readme, manifest = write_readme_fixture(
         tmp_path, dependency_version="1.2.0", status_version="1.2.0", stability_minor="1.2"
     )
 
-    result = run_verify_readme_version(workspace, readme)
+    result = run_verify_readme_version(workspace, readme, manifest)
 
     assert result.returncode == 0, result.stderr
     assert "readme version verification passed" in result.stdout
 
 
 def test_verify_readme_version_rejects_stale_dependency_example(tmp_path: Path) -> None:
-    workspace, readme = write_readme_fixture(
+    workspace, readme, manifest = write_readme_fixture(
         tmp_path, dependency_version="1.1.0", status_version="1.2.0", stability_minor="1.2"
     )
 
-    result = run_verify_readme_version(workspace, readme)
+    result = run_verify_readme_version(workspace, readme, manifest)
 
     assert result.returncode != 0
     assert "sc-composer dependency example" in result.stderr
 
 
 def test_verify_readme_version_rejects_stale_status_table(tmp_path: Path) -> None:
-    workspace, readme = write_readme_fixture(
+    workspace, readme, manifest = write_readme_fixture(
         tmp_path, dependency_version="1.2.0", status_version="1.1.0", stability_minor="1.1"
     )
 
-    result = run_verify_readme_version(workspace, readme)
+    result = run_verify_readme_version(workspace, readme, manifest)
 
     assert result.returncode != 0
     assert "Status table Version row" in result.stderr
@@ -656,16 +732,35 @@ def test_verify_readme_version_rejects_stale_status_table(tmp_path: Path) -> Non
 
 
 def test_sync_readme_version_rewrites_stale_references(tmp_path: Path) -> None:
-    workspace, readme = write_readme_fixture(
+    workspace, readme, manifest = write_readme_fixture(
         tmp_path, dependency_version="1.1.0", status_version="1.1.0", stability_minor="1.1"
     )
 
-    sync_result = run_sync_readme_version(workspace, readme)
+    sync_result = run_sync_readme_version(workspace, readme, manifest)
 
     assert sync_result.returncode == 0, sync_result.stderr
     assert "synced 3 readme version reference(s) to 1.2.0" in sync_result.stdout
 
-    verify_result = run_verify_readme_version(workspace, readme)
+    verify_result = run_verify_readme_version(workspace, readme, manifest)
+    assert verify_result.returncode == 0, verify_result.stderr
+
+
+def test_readme_version_commands_use_the_manifest_declared_dependency_crate(
+    tmp_path: Path,
+) -> None:
+    workspace, readme, manifest = write_readme_fixture(
+        tmp_path,
+        dependency_crate="fixture-composer",
+        dependency_version="1.1.0",
+        status_version="1.2.0",
+        stability_minor="1.2",
+    )
+
+    sync_result = run_sync_readme_version(workspace, readme, manifest)
+
+    assert sync_result.returncode == 0, sync_result.stderr
+    assert 'fixture-composer = "1.2.0"' in readme.read_text(encoding="utf-8")
+    verify_result = run_verify_readme_version(workspace, readme, manifest)
     assert verify_result.returncode == 0, verify_result.stderr
 
 

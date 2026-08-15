@@ -107,6 +107,61 @@ fn render_scoop_manifest_uses_json_auto_mode_complete_value_placeholders() {
 }
 
 #[test]
+fn render_homebrew_formula_escapes_manifest_values_as_ruby_strings() {
+    let root = temp_root("homebrew-formula-escaped-values");
+    write_file(
+        &root.join("formula.rb.j2"),
+        include_str!("../../../../release/homebrew/formula.rb.j2"),
+    );
+    let vars_file = root.join("vars.json");
+    write_file(
+        &vars_file,
+        r#"{
+  "formula_class": "ScCompose",
+  "description": "A \"quoted\" description",
+  "homepage": "https://example.invalid/project",
+  "version": "1.4.2",
+  "license": "MIT",
+  "macos_arm_url": "https://example.invalid/arm.tar.gz",
+  "macos_arm_sha256": "arm-hash",
+  "macos_intel_url": "https://example.invalid/intel.tar.gz",
+  "macos_intel_sha256": "intel-hash",
+  "linux_url": "https://example.invalid/linux.tar.gz",
+  "linux_sha256": "linux-hash",
+  "install_block": "    bin.install \"bin/sc-compose\"",
+  "binary": "sc-compose",
+  "test_command": "--help",
+  "test_output": "A \"quoted\" result"
+}"#,
+    );
+
+    let output = sc_compose()
+        .args([
+            "render",
+            "--mode",
+            "file",
+            "--root",
+            root.to_str().expect("UTF-8 temporary root"),
+            "--file",
+            "formula.rb.j2",
+            "--var-file",
+            vars_file.to_str().expect("UTF-8 variable file"),
+        ])
+        .output()
+        .expect("render Homebrew formula");
+
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let formula = String::from_utf8(output.stdout).expect("UTF-8 Ruby formula");
+    assert!(formula.contains("desc \"A \\\"quoted\\\" description\""));
+    assert!(formula.contains("assert_match \"A \\\"quoted\\\" result\""));
+    assert!(!formula.contains("{{"));
+}
+
+#[test]
 fn exit_code_two_for_validation_failure() {
     let root = temp_root("exit-validation");
     write_file(

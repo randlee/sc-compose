@@ -77,10 +77,6 @@ jobs:
           repository: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.bucket_repository }}
           token: ${{ secrets.SCOOP_BUCKET_TOKEN }}
           path: scoop-bucket
-      - name: Install Rust toolchain for the checked renderer
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.94.1
       - name: Prepare checked-render variables from immutable release asset
         shell: bash
         env:
@@ -100,14 +96,20 @@ jobs:
           config = json.loads(os.environ["CHANNEL_CONFIG"])
           project = config["project"]
           channel = config["channel"]
+          def download(target):
+              filename = f"{project['archive_prefix']}_{os.environ['RELEASE_VERSION']}_{target['target']}.{target['archive']}"
+              url = f"https://github.com/{os.environ['RELEASE_REPOSITORY']}/releases/download/{os.environ['RELEASE_TAG']}/{filename}"
+              archive = Path(os.environ["RUNNER_TEMP"]) / filename
+              subprocess.run(
+                  ["curl", "-fsSL", "--retry", "5", "--retry-delay", "30", "--retry-all-errors", "-o", str(archive), url],
+                  check=True,
+              )
+              return url, archive
+
           target = config["release_targets"][channel["installer_target"]]
-          filename = f"{project['archive_prefix']}_{os.environ['RELEASE_VERSION']}_{target['target']}.{target['archive']}"
-          url = f"https://github.com/{os.environ['RELEASE_REPOSITORY']}/releases/download/{os.environ['RELEASE_TAG']}/{filename}"
-          archive = Path(os.environ["RUNNER_TEMP"]) / filename
-          subprocess.run(
-              ["curl", "-fsSL", "--retry", "5", "--retry-delay", "30", "--retry-all-errors", "-o", str(archive), url],
-              check=True,
-          )
+          url, archive = download(target)
+          renderer_target = config["release_targets"][channel["renderer_target"]]
+          _renderer_url, renderer_archive = download(renderer_target)
           variables = {
               "version": os.environ["RELEASE_VERSION"],
               "description": project["description"],
@@ -119,18 +121,37 @@ jobs:
               "binary": channel["binary"],
           }
           Path("scoop-vars.json").write_text(json.dumps(variables), encoding="utf-8")
+          with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as env_file:
+              env_file.write(f"SC_COMPOSE_RENDERER_ARCHIVE={renderer_archive}\n")
+              env_file.write(
+                  "SC_COMPOSE_RENDERER_EXTRACT_DIR="
+                  f"{project['archive_prefix']}_{os.environ['RELEASE_VERSION']}_{renderer_target['target']}\n"
+              )
           PY
+      - name: Extract published sc-compose renderer
+        shell: bash
+        run: |
+          set -euo pipefail
+          renderer_root="${RUNNER_TEMP}/sc-compose-renderer"
+          mkdir -p "${renderer_root}"
+          tar -xzf "${SC_COMPOSE_RENDERER_ARCHIVE}" -C "${renderer_root}"
+          renderer="${renderer_root}/${SC_COMPOSE_RENDERER_EXTRACT_DIR}/bin/sc-compose"
+          test -x "${renderer}" || {
+            echo "Published renderer archive is missing bin/sc-compose" >&2
+            exit 1
+          }
+          echo "SC_COMPOSE_RENDERER=${renderer}" >> "$GITHUB_ENV"
       - name: Render Scoop manifest with sc-compose
         shell: bash
         env:
           MANIFEST_PATH: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.manifest_path }}
+          MANIFEST_TEMPLATE: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.manifest_template }}
         run: |
           set -euo pipefail
           workspace_root="$(pwd)"
           mkdir -p "$(dirname "scoop-bucket/${MANIFEST_PATH}")"
-          cargo run --quiet --manifest-path release-source/Cargo.toml --bin sc-compose -- \
-            render --mode file --root release-source \
-            --file release/scoop/manifest.json.j2 \
+          "${SC_COMPOSE_RENDERER}" render --mode file --root release-source \
+            --file "${MANIFEST_TEMPLATE}" \
             --var-file "${workspace_root}/scoop-vars.json" \
             --output "${workspace_root}/scoop-bucket/${MANIFEST_PATH}"
       - name: Validate Scoop manifest JSON

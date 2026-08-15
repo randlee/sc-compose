@@ -1,24 +1,24 @@
 class {{ formula_class }} < Formula
-  desc "{{ description }}"
-  homepage "{{ homepage }}"
-  version "{{ version }}"
-  license "{{ license }}"
+  desc {{ description | tojson }}
+  homepage {{ homepage | tojson }}
+  version {{ version | tojson }}
+  license {{ license | tojson }}
 
   on_macos do
     on_arm do
-      url "{{ macos_arm_url }}"
-      sha256 "{{ macos_arm_sha256 }}"
+      url {{ macos_arm_url | tojson }}
+      sha256 {{ macos_arm_sha256 | tojson }}
     end
 
     on_intel do
-      url "{{ macos_intel_url }}"
-      sha256 "{{ macos_intel_sha256 }}"
+      url {{ macos_intel_url | tojson }}
+      sha256 {{ macos_intel_sha256 | tojson }}
     end
   end
 
   on_linux do
-    url "{{ linux_url }}"
-    sha256 "{{ linux_sha256 }}"
+    url {{ linux_url | tojson }}
+    sha256 {{ linux_sha256 | tojson }}
   end
 
   def install
@@ -26,6 +26,6 @@ class {{ formula_class }} < Formula
   end
 
   test do
-    assert_match "{{ test_output }}", shell_output("#{bin}/{{ binary }} {{ test_command }}")
+    assert_match {{ test_output | tojson }}, shell_output("#{bin}/" + {{ binary | tojson }} + " " + {{ test_command | tojson }})
   end
 end

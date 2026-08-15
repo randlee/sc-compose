@@ -173,6 +173,28 @@ def _channel_config(manifest: dict, channel_name: str) -> dict:
     return channel
 
 
+def _channel_renderer_target(manifest: dict, channel_name: str) -> dict | None:
+    """Return the published Linux renderer asset required by a channel workflow."""
+    if channel_name not in ("homebrew", "scoop"):
+        return None
+
+    channel = _channel_config(manifest, channel_name)
+    _require_keys(channel, ("renderer_target",), f"[channels.{channel_name}]")
+    target_name = channel["renderer_target"]
+    targets = _release_targets_by_name(manifest)
+    try:
+        target = targets[target_name]
+    except KeyError as error:
+        raise SystemExit(
+            f"[channels.{channel_name}].renderer_target references unknown release target: {target_name}"
+        ) from error
+    if target["os"] != "ubuntu-latest" or target["archive"] != "tar.gz":
+        raise SystemExit(
+            f"[channels.{channel_name}].renderer_target must name an ubuntu-latest tar.gz release target"
+        )
+    return target
+
+
 def _release_asset_pattern(project: dict, target: dict) -> str:
     return (
         rf"^{re.escape(project['archive_prefix'])}_.*_"
@@ -209,12 +231,19 @@ def _channel_asset_patterns(manifest: dict, channel_name: str) -> list[str]:
     else:
         return []
 
+    renderer_target = _channel_renderer_target(manifest, channel_name)
+    if renderer_target is not None:
+        target_names.append(renderer_target["target"])
+
     missing = [name for name in target_names if name not in targets]
     if missing:
         raise SystemExit(
             f"[channels.{channel_name}] references unknown release target(s): {', '.join(missing)}"
         )
-    return [_release_asset_pattern(project, targets[name]) for name in target_names]
+    return [
+        _release_asset_pattern(project, targets[name])
+        for name in dict.fromkeys(target_names)
+    ]
 
 
 def cmd_validate_manifest(args: argparse.Namespace) -> int:
@@ -510,10 +539,28 @@ def cmd_sync_python_version(args: argparse.Namespace) -> int:
     return 0
 
 
-def _readme_version_checks(version: str) -> tuple[tuple[str, str, str], ...]:
+def _readme_dependency_crate(manifest: dict) -> str:
+    project = manifest["project"]
+    dependency_crate = project.get("readme_dependency_crate")
+    if not isinstance(dependency_crate, str) or not dependency_crate:
+        raise SystemExit("[project].readme_dependency_crate must be a non-empty string")
+    if dependency_crate not in {crate["package"] for crate in manifest["crates"]}:
+        raise SystemExit(
+            "[project].readme_dependency_crate must name a package declared in [[crates]]"
+        )
+    return dependency_crate
+
+
+def _readme_version_checks(
+    version: str, dependency_crate: str
+) -> tuple[tuple[str, str, str], ...]:
     minor_version = version.rsplit(".", 1)[0]
     return (
-        ("sc-composer dependency example", rf'(sc-composer\s*=\s*")[^"]+(")', version),
+        (
+            f"{dependency_crate} dependency example",
+            rf'({re.escape(dependency_crate)}\s*=\s*")[^"]+(")',
+            version,
+        ),
         ("Status table Version row", rf'(\|\s*Version\s*\|\s*)[^\s|]+(\s*\|)', version),
         ("Status table Stability row", rf'(\|\s*Stability\s*\|\s*stable\s+)\S+(\s+release line\s*\|)', minor_version),
     )
@@ -521,11 +568,12 @@ def _readme_version_checks(version: str) -> tuple[tuple[str, str, str], ...]:
 
 def cmd_verify_readme_version(args: argparse.Namespace) -> int:
     version = workspace_version(Path(args.workspace_toml))
+    dependency_crate = _readme_dependency_crate(load_manifest(Path(args.manifest)))
     readme = Path(args.readme)
     text = readme.read_text(encoding="utf-8")
 
     mismatches = []
-    for label, pattern, expected in _readme_version_checks(version):
+    for label, pattern, expected in _readme_version_checks(version, dependency_crate):
         match = re.search(pattern, text)
         if match is None:
             raise SystemExit(f"{readme}: could not locate {label}")
@@ -544,11 +592,12 @@ def cmd_verify_readme_version(args: argparse.Namespace) -> int:
 
 def cmd_sync_readme_version(args: argparse.Namespace) -> int:
     version = workspace_version(Path(args.workspace_toml))
+    dependency_crate = _readme_dependency_crate(load_manifest(Path(args.manifest)))
     readme = Path(args.readme)
     text = readme.read_text(encoding="utf-8")
 
     updated = 0
-    for label, pattern, expected in _readme_version_checks(version):
+    for label, pattern, expected in _readme_version_checks(version, dependency_crate):
         new_text, count = re.subn(pattern, rf'\g<1>{expected}\g<2>', text, count=1)
         if count == 0:
             raise SystemExit(f"{readme}: could not locate {label}")
@@ -653,11 +702,13 @@ def main() -> int:
     p.set_defaults(func=cmd_sync_python_version)
 
     p = sub.add_parser("verify-readme-version")
+    p.add_argument("--manifest", required=True)
     p.add_argument("--workspace-toml", required=True)
     p.add_argument("--readme", required=True)
     p.set_defaults(func=cmd_verify_readme_version)
 
     p = sub.add_parser("sync-readme-version")
+    p.add_argument("--manifest", required=True)
     p.add_argument("--workspace-toml", required=True)
     p.add_argument("--readme", required=True)
     p.set_defaults(func=cmd_sync_readme_version)

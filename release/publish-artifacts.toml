@@ -4,6 +4,7 @@ archive_prefix = "sc-compose"
 description = "Standalone CLI for template composition"
 homepage = "https://github.com/randlee/sc-compose"
 license = "MIT"
+readme_dependency_crate = "sc-composer"
 
 [[release_targets]]
 target = "x86_64-unknown-linux-gnu"
@@ -92,6 +93,7 @@ formula_class = "ScCompose"
 binary = "sc-compose"
 test_command = "--help"
 test_output = "Standalone template composition CLI"
+renderer_target = "x86_64-unknown-linux-gnu"
 
 [[channels.homebrew.assets]]
 key = "macos_arm"
@@ -115,3 +117,4 @@ manifest_path = "sc-compose.json"
 manifest_template = "release/scoop/manifest.json.j2"
 installer_target = "x86_64-pc-windows-msvc"
 binary = "bin/sc-compose.exe"
+renderer_target = "x86_64-unknown-linux-gnu"
