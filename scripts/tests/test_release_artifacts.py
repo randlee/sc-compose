@@ -898,6 +898,9 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     eval_plan_text = (
         repo_root() / "docs" / "eval" / "publishing" / "publish-kit-agent-eval-plan.md"
     ).read_text(encoding="utf-8")
+    eval_convention_text = (repo_root() / "docs" / "eval" / "README.md").read_text(
+        encoding="utf-8"
+    )
 
     for text in (publisher_text, guide_text, checklist_text):
         assert "channel-dispatch-plan" in text
@@ -931,6 +934,9 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "Return `failed` when evidence is present" in worker_text
     assert "simulated missing credential" in eval_plan_text
     assert "not create a tag" in eval_plan_text
+    assert "## Goals" in eval_plan_text
+    assert "## Expected Outcomes" in eval_plan_text
+    assert "Every evaluation document must state:" in eval_convention_text
 
 
 def test_release_preflight_collects_independent_failures_before_denial() -> None:
