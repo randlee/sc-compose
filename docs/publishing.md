@@ -20,6 +20,7 @@ releases of these crate names now come from this repo instead.
   - workspace version
   - each crate package version
 - The Phase C Python release channel must also sync
+  `bindings/sc-sha-python/pyproject.toml` and
   `bindings/python/pyproject.toml` from the workspace version immediately
   before wheel or sdist builds and then fail release if
   `verify-python-version` detects drift.

@@ -101,8 +101,9 @@ Publish in this exact order. Deviating will break the dependency graph.
 3. **`sc-compose`** — publish after its library dependencies
    - `cargo publish -p sc-compose`
 
-The `.github/workflows/release.yml` workflow enforces this order automatically
-when triggered by a release tag.
+The manually dispatched `.github/workflows/release.yml` workflow creates the
+production tag in its `gate-and-tag` job, then enforces this order
+automatically.
 
 ## Post-Release Channel Dispatch
 
@@ -134,9 +135,10 @@ the tag or rerun the root release workflow.
       `scoop install sc-compose` succeeds
 - [ ] Verify PyPI: `pip install sc-sha==<version> sc-compose==<version>` on all
       three platforms
-- [ ] Tag the release commit: `git tag v<version> && git push origin v<version>`
-- [ ] Create a GitHub release pointing at the tag with filled-in release notes
-  from `release/RELEASE-NOTES-TEMPLATE.md`
+- [ ] Confirm the production `gate-and-tag` job created `v<version>` at
+  `origin/main`
+- [ ] Confirm the release workflow created the GitHub Release for that tag
+  with its generated release notes
 
 ## Distribution Channel Details
 
