@@ -13,10 +13,14 @@ This document explains the `winget` path for `sc-compose` published from the
 
 - The first `winget` release requires a one-time manual manifest submission to
   `microsoft/winget-pkgs`.
-- After that bootstrap submission, later releases are automated by the release
-  workflow via `vedantmgoyal2009/winget-releaser@v2`.
-- No `winget`-specific repository secret is required; the default
-  `GITHUB_TOKEN` is sufficient for the workflow step.
+- After that bootstrap submission, dispatch the standalone
+  `.github/workflows/winget-publish.yml` workflow for each published GitHub
+  Release. It verifies the release and Windows ZIP asset before invoking
+  `vedantmgoyal2009/winget-releaser@v2`.
+- A `WINGET_GITHUB_TOKEN` repository secret is required: a classic PAT with
+  `public_repo` scope from an account that has forked `microsoft/winget-pkgs`.
+  The default `GITHUB_TOKEN` is scoped only to this repo and cannot push a
+  branch to a `winget-pkgs` fork.
 
 ## Installer Source
 
@@ -46,5 +50,5 @@ For the initial submission:
    - installer manifest
    - locale/default-locale manifest
 4. Submit that initial manifest set to `microsoft/winget-pkgs`.
-5. After that first package exists, keep using the automated workflow step for
-   later releases.
+5. After that first package exists, use the standalone `Publish Winget`
+   workflow for later releases.
