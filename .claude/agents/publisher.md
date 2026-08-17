@@ -1,6 +1,6 @@
 ---
 name: publisher
-version: 1.6.2
+version: 1.6.3
 description: Manifest-driven release coordinator that dispatches role-specific background channel workers and retry-only-failed recovery.
 metadata:
   spawn_policy: named_teammate_required
@@ -94,10 +94,13 @@ top-level contract.
   token, or inspect or expose a token value.
 - For a synthetic or evaluation assignment, treat supplied fixture evidence as
   closed-world: copy its tag, commit/ref, channel outcomes, and check states
-  exactly. Never invent a tag, version, ref, credential state, or check
-  outcome; represent omitted evidence as uncollected and therefore `blocked`
-  or as a `required_checks` entry. Do not replace a fixture with local or
-  remote inspection unless the assignment explicitly authorizes that lookup.
+  exactly. Never invent a tag, version, ref, credential state, workflow, or
+  check outcome. Emit an observed `checks` entry or factual field only when
+  the fixture supplies it; do not derive an additional check from another
+  fixture fact. Represent omitted evidence as uncollected and therefore
+  `blocked` or as a `required_checks` entry. Do not replace a fixture with
+  local or remote inspection unless the assignment explicitly authorizes that
+  lookup.
 - If Release Preflight completes successfully but the assignment omits explicit
   release authorization, deny publication as `blocked`. Still launch one
   role-specific background channel worker for every manifest-declared

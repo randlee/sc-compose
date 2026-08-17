@@ -1,6 +1,6 @@
 agents:
   publisher:
-    version: 1.6.2
+    version: 1.6.3
     path: .claude/agents/publisher.md
   crates-io-publisher:
     version: 1.0.0
