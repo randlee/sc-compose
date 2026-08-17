@@ -17,10 +17,11 @@
 
 ## 2. Parallel Per-Channel Orchestration
 
-- The publisher fans out one named agent/job per publish channel (crates.io,
-  GitHub Release, Homebrew, `winget`, Scoop, PyPI) running in parallel,
+- The named `publisher` fans out one role-specific background worker/job per
+  publish channel (crates.io, GitHub Release, Homebrew, `winget`, Scoop, PyPI)
+  running in parallel inside its session,
   not sequentially.
-- Each named channel agent consolidates and owns exactly what its specific
+- Each background channel worker consolidates and owns exactly what its specific
   target needs (its own manifest-declared inputs, its own publish steps,
   its own verification), rather than one monolithic publish step handling
   every channel.
@@ -79,7 +80,7 @@
 - `release/publish-channel-contracts.toml` is vendored unchanged with the
   publish kit and is the sole machine-readable source for channel identity,
   standardized secret names, GitHub environments, public registry endpoints,
-  liveness checks, and named channel agents.
+  liveness checks, and role-specific background-worker contracts.
 - The artifact manifest contains only repository-specific artifacts and
   destinations. It must not repeat credential or account protocol.
 - Release Preflight checks public registry state for every declared crate and

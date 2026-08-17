@@ -197,6 +197,7 @@ def _channel_preflight_result(
 
     return {
         "name": channel["name"],
+        "agent": channel["agent"],
         "tag": tag,
         "status": status,
         "checks": checks,

@@ -680,6 +680,75 @@ def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
     assert json.loads(blocked_result.stdout)["tag"] is None
 
 
+def test_background_workers_consume_and_gate_their_own_preflight_contracts() -> None:
+    plan_result = run_manifest_command(
+        "preflight-secret-plan",
+        "--manifest",
+        "release/publish-artifacts.toml",
+    )
+    assert plan_result.returncode == 0, plan_result.stderr
+    plan = json.loads(plan_result.stdout)
+    worker_contracts = {
+        entry["name"]: entry
+        for entry in [*plan["root_channels"], *plan["post_release_channels"]]
+    }
+    assert set(worker_contracts) == {
+        "crates_io",
+        "github_release",
+        "pypi",
+        "homebrew",
+        "winget",
+        "scoop",
+    }
+
+    def results_for(outcomes: dict[str, str]) -> dict[str, dict]:
+        result = run_manifest_command(
+            "channel-preflight-results",
+            "--manifest",
+            "release/publish-artifacts.toml",
+            "--outcomes",
+            json.dumps(outcomes),
+            "--tag",
+            "v1.4.2",
+        )
+        assert result.returncode == 0, result.stderr
+        return {entry["name"]: entry for entry in json.loads(result.stdout)["channels"]}
+
+    passed_outcomes = {
+        "ownership": "success",
+        "release_metadata": "success",
+        "repository_secrets": "success",
+        "environment_secrets": "success",
+        "credential_liveness": "success",
+        "registry_state": "success",
+        "github_release_permissions": "success",
+    }
+    passed = results_for(passed_outcomes)
+    for channel_name, contract in worker_contracts.items():
+        assert passed[channel_name]["agent"] == contract["agent"]
+        assert passed[channel_name]["status"] == "passed"
+
+    pypi_credential_failed = results_for(
+        {**passed_outcomes, "environment_secrets": "failure"}
+    )
+    assert pypi_credential_failed["pypi"]["status"] == "failed"
+    assert all(
+        result["status"] == "passed"
+        for channel_name, result in pypi_credential_failed.items()
+        if channel_name != "pypi"
+    )
+
+    github_permission_failed = results_for(
+        {**passed_outcomes, "github_release_permissions": "failure"}
+    )
+    assert github_permission_failed["github_release"]["status"] == "failed"
+    assert all(
+        result["status"] == "passed"
+        for channel_name, result in github_permission_failed.items()
+        if channel_name != "github_release"
+    )
+
+
 def test_public_registry_check_plan_assigns_named_agents_and_normalizes_python_names() -> None:
     result = run_manifest_command(
         "public-registry-check-plan",
