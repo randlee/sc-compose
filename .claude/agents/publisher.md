@@ -1,6 +1,6 @@
 ---
 name: publisher
-version: 1.6.0
+version: 1.6.1
 description: Manifest-driven release coordinator that dispatches named channel publishers and retry-only-failed recovery.
 metadata:
   spawn_policy: named_teammate_required
@@ -89,6 +89,15 @@ top-level contract.
   workflow; record those unevaluated checks as `required`, not `blocked`.
 - Never ask whether a token exists, request a token, ask anyone to re-enter a
   token, or inspect or expose a token value.
+- If Release Preflight completes successfully but the assignment omits explicit
+  release authorization, deny publication as `blocked`. Still launch one
+  read-only named channel publisher in its own pane for every manifest-declared
+  channel, give it the completed preflight evidence plus the absent
+  `release_authorization` condition, and retain its structured `blocked`
+  result, ATM identity, and pane identifier. This is required live fanout, not
+  a synthetic parent-only classification. The channel publishers must not
+  inspect credentials, rehearse, dispatch a workflow, tag, publish, or mutate
+  a destination.
 - If preflight fails, report only its channel and sanitized diagnostic to
   `team-lead`. Do not attempt a local credential workaround.
 - A successful channel is final for that release. Retry only the channel(s)
@@ -128,8 +137,11 @@ manifest remains repository-specific.
    `release_authorization` check for every affected channel. Launch the
    named channel publishers in read-only classification mode so their complete
    results are retained, then report the sanitized failure and stop. If
-   Release Preflight itself cannot collect required evidence, report those
-   channels as `blocked` and stop.
+   Release Preflight itself cannot collect required evidence, launch the same
+   read-only named channel publishers, pass the absent or incomplete evidence,
+   retain each `blocked` result with its ATM identity and pane identifier, and
+   stop. A completed passed preflight without explicit release authorization
+   follows that same read-only fanout path; it is `blocked`, not `failed`.
 2. Run the root release workflow only when explicitly assigned and only after
    the shared release-state policy's final `main` preflight passes. It owns tag
    creation and produces the immutable GitHub Release assets.
@@ -211,6 +223,9 @@ tagging, GitHub Release creation, or a successful post-release channel.
   concurrent dispatches at four unless `team-lead` explicitly raises that
   limit. They are replaceable implementations of fixed channel contracts, not
   version-specific production identities.
+- For every read-only denial fanout, create real named teammates/panes and
+  retain their ATM identities and pane identifiers in sanitized evidence; do
+  not replace them with inferred or synthetic channel results.
 - Use the release manifest and the helper commands as the sole source of
   repository-specific data.
 - Do not write persistent state containing credentials or raw tool output.

@@ -1012,7 +1012,7 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "Never ask whether a token exists" in publisher_text
     assert "preflight-secret-plan" in publisher_text
     assert "protected-environment secret metadata" in guide_text
-    assert "version: 1.6.0" in publisher_text
+    assert "version: 1.6.1" in publisher_text
     assert "## Inputs" in publisher_text
     assert "## Output Format" in publisher_text
     assert "## Error Handling" in publisher_text
@@ -1025,7 +1025,7 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
             encoding="utf-8"
         )
     )["channels"]
-    assert 'publisher:\n    version: 1.6.0' in registry_text
+    assert 'publisher:\n    version: 1.6.1' in registry_text
     for channel_agent in (
         "crates-io-publisher",
         "pypi-publisher",
@@ -1063,6 +1063,8 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "candidate-tag validation failure" in publisher_text
     assert "Use `PREFLIGHT.NOT_READY` as the top-level error code" in publisher_text
     assert "still launch one read-only" in publisher_text
+    assert "This is required live fanout, not\n  a synthetic parent-only classification" in publisher_text
+    assert "retain each `blocked` result with its ATM identity and pane identifier" in publisher_text
     assert "simulated missing credential" in eval_plan_text
     assert "not create a tag" in eval_plan_text
     assert "## Goals" in eval_plan_text
