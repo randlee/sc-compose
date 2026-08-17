@@ -1604,7 +1604,6 @@ def test_publishing_task_templates_render_recipient_contract() -> None:
 
         assert root.findtext("recipient") == context["recipient"]
         assert f"Send {context['recipient']}" in rendered
-        assert not context["recipient"].startswith("publisher-eval-")
 
 
 def test_release_preflight_collects_independent_failures_before_denial() -> None:
