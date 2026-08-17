@@ -218,3 +218,73 @@ def _channel_names(manifest: dict) -> tuple[str, ...]:
     if not channels:
         raise SystemExit("manifest must define at least one [channels.<name>] table")
     return tuple(channels)
+
+
+def _preflight_outcome_status(outcome: str | None) -> str:
+    """Map a GitHub Actions step outcome to a non-disclosing check status."""
+    if outcome == "success":
+        return "passed"
+    if outcome in ("failure", "cancelled"):
+        return "failed"
+    return "blocked"
+
+
+def _channel_outcome(
+    outcomes: dict[str, object], key: str, channel_name: str
+) -> str | None:
+    """Read a channel-specific outcome, retaining scalar compatibility."""
+    outcome = outcomes.get(key)
+    if isinstance(outcome, dict):
+        channel_outcome = outcome.get(channel_name)
+        return channel_outcome if isinstance(channel_outcome, str) else None
+    return outcome if isinstance(outcome, str) else None
+
+
+def _channel_preflight_result(
+    channel: dict[str, object], outcomes: dict[str, object], tag: str | None
+) -> dict[str, object]:
+    """Materialize one worker result from its contract and check outcomes."""
+    checks: list[dict[str, object]] = []
+    channel_name = str(channel["name"])
+    for requirement, outcome_key in (
+        ("publisher ownership", "ownership"),
+        ("normalized release tag", "release_metadata"),
+    ):
+        checks.append({
+            "kind": "release_authorization",
+            "requirements": [requirement],
+            "status": _preflight_outcome_status(outcomes.get(outcome_key)),
+        })
+    for key, outcome_key in (
+        ("repository_secrets", "repository_secrets"),
+        ("environment_secrets", "environment_secrets"),
+        ("liveness_checks", "credential_liveness"),
+        ("github_actions_permissions", "github_release_permissions"),
+        ("public_registry_checks", "registry_state"),
+    ):
+        requirements = channel.get(key, [])
+        if requirements:
+            checks.append({
+                "kind": key,
+                "requirements": requirements,
+                "status": _preflight_outcome_status(
+                    _channel_outcome(outcomes, outcome_key, channel_name)
+                ),
+            })
+    rehearsal = channel.get("credential_rehearsal")
+    statuses = [check["status"] for check in checks]
+    if "failed" in statuses:
+        status, diagnostic = "failed", "PREFLIGHT.CHECK_FAILED"
+    elif "blocked" in statuses:
+        status, diagnostic = "blocked", "PREFLIGHT.CHECK_BLOCKED"
+    else:
+        status, diagnostic = "passed", ""
+    return {
+        "name": channel["name"],
+        "agent": channel["agent"],
+        "tag": tag,
+        "status": status,
+        "checks": checks,
+        "credential_rehearsal": rehearsal,
+        "sanitized_diagnostic": diagnostic,
+    }

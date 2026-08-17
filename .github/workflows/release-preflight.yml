@@ -63,11 +63,20 @@ jobs:
         run: |
           set -euo pipefail
           missing=()
-          while IFS= read -r secret_name; do
-            if [[ -z "${!secret_name:-}" ]]; then
-              missing+=("${secret_name}")
-            fi
-          done < <(jq -r '.repository_secrets[]' <<<"${SECRET_PLAN}")
+          channel_outcomes='{}'
+          while IFS=$'\t' read -r channel secret_names; do
+            channel_status=success
+            while IFS= read -r secret_name; do
+              if [[ -z "${!secret_name:-}" ]]; then
+                missing+=("${channel}:${secret_name}")
+                channel_status=failure
+              fi
+            done < <(tr ',' '\n' <<<"${secret_names}")
+            channel_outcomes="$(jq -c --arg channel "${channel}" --arg status "${channel_status}" '.[$channel]=$status' <<<"${channel_outcomes}")"
+          done < <(jq -r '.repository_secret_channels[] | [.name, (.secrets | join(","))] | @tsv' <<<"${SECRET_PLAN}")
+          {
+            echo "channel_outcomes=${channel_outcomes}"
+          } >> "${GITHUB_OUTPUT}"
           if [[ "${#missing[@]}" -gt 0 ]]; then
             echo "Missing required GitHub Actions release secret(s): ${missing[*]}" >&2
             exit 1
@@ -113,8 +122,10 @@ jobs:
         run: |
           set -euo pipefail
           failures=()
-          while IFS=$'\t' read -r secret_name check_kind; do
+          channel_outcomes='{}'
+          while IFS=$'\t' read -r channel secret_name check_kind; do
             token="${!secret_name:-}"
+            channel_status=success
             case "${check_kind}" in
               crates_io)
                 command=(curl --fail --silent --show-error --header "Authorization: ${token}" https://crates.io/api/v1/me)
@@ -124,13 +135,17 @@ jobs:
                 ;;
               *)
                 failures+=("Unsupported credential liveness check kind: ${check_kind}")
+                channel_status=failure
                 continue
                 ;;
             esac
             if ! "${command[@]}" >/dev/null; then
               failures+=("GitHub Actions secret ${secret_name} is present but rejected by its publish service; rotate or replace it.")
+              channel_status=failure
             fi
-          done < <(jq -r '.liveness_checks[] | [.name, .kind] | @tsv' <<<"${SECRET_PLAN}")
+            channel_outcomes="$(jq -c --arg channel "${channel}" --arg status "${channel_status}" '.[$channel]=$status' <<<"${channel_outcomes}")"
+          done < <(jq -r '.liveness_channel_checks[] | [.channel, .name, .kind] | @tsv' <<<"${SECRET_PLAN}")
+          echo "channel_outcomes=${channel_outcomes}" >> "${GITHUB_OUTPUT}"
           if [[ "${#failures[@]}" -gt 0 ]]; then
             printf '%s\n' "${failures[@]}" >&2
             exit 1
@@ -314,8 +329,10 @@ jobs:
           RELEASE_METADATA: ${{ steps.meta.outcome }}
           RELEASE_TAG: ${{ steps.meta.outputs.release_tag }}
           REPOSITORY_SECRETS: ${{ steps.repository_secrets.outcome }}
+          REPOSITORY_SECRET_CHANNELS: ${{ steps.repository_secrets.outputs.channel_outcomes }}
           ENVIRONMENT_SECRETS: ${{ steps.environment_secrets.outcome }}
           CREDENTIAL_LIVENESS: ${{ steps.credential_liveness.outcome }}
+          CREDENTIAL_LIVENESS_CHANNELS: ${{ steps.credential_liveness.outputs.channel_outcomes }}
           REGISTRY_STATE: ${{ steps.registry_state.outcome }}
           GITHUB_RELEASE_PERMISSIONS: ${{ steps.github_release_permissions.outcome }}
         run: |
@@ -324,11 +341,13 @@ jobs:
             --arg ownership "${OWNERSHIP}" \
             --arg release_metadata "${RELEASE_METADATA}" \
             --arg repository_secrets "${REPOSITORY_SECRETS}" \
+            --argjson repository_secret_channels "${REPOSITORY_SECRET_CHANNELS:-{}}" \
             --arg environment_secrets "${ENVIRONMENT_SECRETS}" \
             --arg credential_liveness "${CREDENTIAL_LIVENESS}" \
+            --argjson credential_liveness_channels "${CREDENTIAL_LIVENESS_CHANNELS:-{}}" \
             --arg registry_state "${REGISTRY_STATE}" \
             --arg github_release_permissions "${GITHUB_RELEASE_PERMISSIONS}" \
-            '{ownership: $ownership, release_metadata: $release_metadata, repository_secrets: $repository_secrets, environment_secrets: $environment_secrets, credential_liveness: $credential_liveness, registry_state: $registry_state, github_release_permissions: $github_release_permissions}')"
+            '{ownership: $ownership, release_metadata: $release_metadata, repository_secrets: $repository_secrets, repository_secret_channels: $repository_secret_channels, environment_secrets: $environment_secrets, credential_liveness: $credential_liveness, credential_liveness_channels: $credential_liveness_channels, registry_state: $registry_state, github_release_permissions: $github_release_permissions}')"
           results="$(python3 scripts/release_artifacts.py channel-preflight-results \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --outcomes "${outcomes}" \

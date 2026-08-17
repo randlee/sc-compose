@@ -191,6 +191,7 @@ manifest remains repository-specific.
   "dispatch_run_id": "<GitHub run id>",
   "status": "passed|failed|blocked",
   "checks": [{"kind": "<check kind>", "status": "passed|failed|blocked"}],
+  "credential_rehearsal": "<manifest-derived rehearsal plan or null>",
   "verification": ["<channel-specific fact>"],
   "sanitized_diagnostic": "<empty on success; never a secret value>"
 }

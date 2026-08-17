@@ -74,6 +74,10 @@
   it may publish or retry. A worker denies only its own channel when that
   evidence is missing, failed, stale, or mismatched; it must not restart other
   channels or ask for credentials.
+- Repository-secret and credential-liveness outcomes are keyed by channel in
+  the preflight result. The workflow may retain an aggregate failure to deny
+  the overall release, but it must not copy that aggregate failure into
+  unrelated channel results.
 
 ## 5.1 Shared Channel Contract
 

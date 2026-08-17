@@ -17,6 +17,7 @@ from release_manifest import (
     _channel_config,
     _channel_contract,
     _channel_names,
+    _channel_preflight_result,
     _python_distribution_entries,
     _python_distribution_expectations,
     _python_project_name,
@@ -130,81 +131,6 @@ def _root_channel_preflight(manifest: dict) -> list[dict[str, object]]:
     return channels
 
 
-def _preflight_outcome_status(outcome: str | None) -> str:
-    """Map a GitHub Actions step outcome to a non-disclosing check status."""
-    if outcome == "success":
-        return "passed"
-    if outcome in ("failure", "cancelled"):
-        return "failed"
-    return "blocked"
-
-
-def _channel_preflight_result(
-    channel: dict[str, object], outcomes: dict[str, str], tag: str | None
-) -> dict[str, object]:
-    """Materialize one worker-consumable result from its contract and check outcomes."""
-    checks: list[dict[str, object]] = []
-
-    for requirement, outcome_key in (
-        ("publisher ownership", "ownership"),
-        ("normalized release tag", "release_metadata"),
-    ):
-        checks.append(
-            {
-                "kind": "release_authorization",
-                "requirements": [requirement],
-                "status": _preflight_outcome_status(outcomes.get(outcome_key)),
-            }
-        )
-
-    for key, outcome_key in (
-        ("repository_secrets", "repository_secrets"),
-        ("environment_secrets", "environment_secrets"),
-        ("liveness_checks", "credential_liveness"),
-        ("github_actions_permissions", "github_release_permissions"),
-        ("public_registry_checks", "registry_state"),
-    ):
-        requirements = channel.get(key, [])
-        if requirements:
-            checks.append(
-                {
-                    "kind": key,
-                    "requirements": requirements,
-                    "status": _preflight_outcome_status(outcomes.get(outcome_key)),
-                }
-            )
-
-    rehearsal = channel.get("credential_rehearsal")
-    if rehearsal is not None:
-        checks.append(
-            {
-                "kind": "credential_rehearsal",
-                "requirement": rehearsal,
-                "status": "required",
-            }
-        )
-
-    statuses = [check["status"] for check in checks if check["status"] != "required"]
-    if "failed" in statuses:
-        status = "failed"
-        diagnostic = "PREFLIGHT.CHECK_FAILED"
-    elif "blocked" in statuses:
-        status = "blocked"
-        diagnostic = "PREFLIGHT.CHECK_BLOCKED"
-    else:
-        status = "passed"
-        diagnostic = ""
-
-    return {
-        "name": channel["name"],
-        "agent": channel["agent"],
-        "tag": tag,
-        "status": status,
-        "checks": checks,
-        "sanitized_diagnostic": diagnostic,
-    }
-
-
 def cmd_channel_preflight_results(args: argparse.Namespace) -> int:
     """Emit one non-secret result for every root and post-release channel."""
     try:
@@ -212,10 +138,22 @@ def cmd_channel_preflight_results(args: argparse.Namespace) -> int:
     except json.JSONDecodeError as error:
         raise SystemExit(f"invalid preflight outcomes JSON: {error.msg}") from error
     if not isinstance(outcomes, dict) or not all(
-        isinstance(name, str) and isinstance(outcome, str)
+        isinstance(name, str)
+        and (
+            isinstance(outcome, str)
+            or (
+                isinstance(outcome, dict)
+                and all(
+                    isinstance(channel, str) and isinstance(status, str)
+                    for channel, status in outcome.items()
+                )
+            )
+        )
         for name, outcome in outcomes.items()
     ):
-        raise SystemExit("preflight outcomes must be a string-to-string object")
+        raise SystemExit(
+            "preflight outcomes must map each check to a string or channel-status object"
+        )
 
     manifest = load_manifest(Path(args.manifest), with_channel_contracts=True)
     contracts = [
@@ -602,28 +540,48 @@ def cmd_preflight_secret_plan(args: argparse.Namespace) -> int:
     manifest = load_manifest(Path(args.manifest), with_channel_contracts=True)
     channel_names = _channel_names(manifest)
     repository_secrets: list[str] = []
+    repository_secret_channels: list[dict[str, object]] = []
     liveness_checks: list[dict[str, str]] = []
+    liveness_channel_checks: list[dict[str, str]] = []
     environment_secrets: list[dict[str, str]] = []
     root_channels = _root_channel_preflight(manifest)
 
     for channel in root_channels:
         repository_secrets.extend(channel["repository_secrets"])
+        if channel["repository_secrets"]:
+            repository_secret_channels.append(
+                {"name": channel["name"], "secrets": channel["repository_secrets"]}
+            )
         environment_secrets.extend(channel["environment_secrets"])
         liveness_checks.extend(channel["liveness_checks"])
+        liveness_channel_checks.extend(
+            {"channel": channel["name"], **check}
+            for check in channel["liveness_checks"]
+        )
     post_release_channels = []
     for channel_name in channel_names:
         channel_preflight = _post_release_channel_preflight(manifest, channel_name)
         repository_secrets.extend(channel_preflight["repository_secrets"])
+        if channel_preflight["repository_secrets"]:
+            repository_secret_channels.append(
+                {"name": channel_name, "secrets": channel_preflight["repository_secrets"]}
+            )
         environment_secrets.extend(channel_preflight["environment_secrets"])
         liveness_checks.extend(channel_preflight["liveness_checks"])
+        liveness_channel_checks.extend(
+            {"channel": channel_name, **check}
+            for check in channel_preflight["liveness_checks"]
+        )
         post_release_channels.append({"name": channel_name, **channel_preflight})
 
     print(
         json.dumps(
             {
                 "repository_secrets": repository_secrets,
+                "repository_secret_channels": repository_secret_channels,
                 "environment_secrets": environment_secrets,
                 "liveness_checks": liveness_checks,
+                "liveness_channel_checks": liveness_channel_checks,
                 "root_channels": root_channels,
                 "post_release_channels": post_release_channels,
             },

@@ -506,9 +506,21 @@ def test_manifest_drives_non_disclosing_preflight_secret_plan() -> None:
         "WINGET_GITHUB_TOKEN",
         "SCOOP_BUCKET_TOKEN",
     ]
+    assert plan["repository_secret_channels"] == [
+        {"name": "crates_io", "secrets": ["CARGO_REGISTRY_TOKEN"]},
+        {"name": "homebrew", "secrets": ["HOMEBREW_TAP_TOKEN"]},
+        {"name": "winget", "secrets": ["WINGET_GITHUB_TOKEN"]},
+        {"name": "scoop", "secrets": ["SCOOP_BUCKET_TOKEN"]},
+    ]
     assert plan["environment_secrets"] == [
         {"environment": "pypi", "name": "PYPI_API_TOKEN"},
         {"environment": "testpypi", "name": "TEST_PYPI_API_TOKEN"},
+    ]
+    assert plan["liveness_channel_checks"] == [
+        {"channel": "crates_io", "name": "CARGO_REGISTRY_TOKEN", "kind": "crates_io"},
+        {"channel": "homebrew", "name": "HOMEBREW_TAP_TOKEN", "kind": "github"},
+        {"channel": "winget", "name": "WINGET_GITHUB_TOKEN", "kind": "github"},
+        {"channel": "scoop", "name": "SCOOP_BUCKET_TOKEN", "kind": "github"},
     ]
     contracts = {
         entry["name"]: entry
@@ -566,13 +578,9 @@ def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
     ]
     assert all(channel["status"] == "passed" for channel in channels.values())
     assert all(channel["tag"] == "v1.4.2" for channel in channels.values())
-    assert channels["pypi"]["checks"][-1] == {
-        "kind": "credential_rehearsal",
-        "requirement": {
-            "workflow": "pypi-publish.yml",
-            "inputs": {"target": "testpypi"},
-        },
-        "status": "required",
+    assert channels["pypi"]["credential_rehearsal"] == {
+        "workflow": "pypi-publish.yml",
+        "inputs": {"target": "testpypi"},
     }
 
     failed_outcomes = json.dumps(
@@ -701,7 +709,7 @@ def test_background_workers_consume_and_gate_their_own_preflight_contracts() -> 
         "scoop",
     }
 
-    def results_for(outcomes: dict[str, str]) -> dict[str, dict]:
+    def results_for(outcomes: dict[str, object]) -> dict[str, dict]:
         result = run_manifest_command(
             "channel-preflight-results",
             "--manifest",
@@ -736,6 +744,54 @@ def test_background_workers_consume_and_gate_their_own_preflight_contracts() -> 
         result["status"] == "passed"
         for channel_name, result in pypi_credential_failed.items()
         if channel_name != "pypi"
+    )
+
+    crates_secret_failed = results_for(
+        {
+            **passed_outcomes,
+            "repository_secrets": {
+                "crates_io": "failure",
+                "homebrew": "success",
+                "winget": "success",
+                "scoop": "success",
+            },
+            "credential_liveness": {
+                "crates_io": "failure",
+                "homebrew": "success",
+                "winget": "success",
+                "scoop": "success",
+            },
+        }
+    )
+    assert crates_secret_failed["crates_io"]["status"] == "failed"
+    assert all(
+        result["status"] == "passed"
+        for channel_name, result in crates_secret_failed.items()
+        if channel_name != "crates_io"
+    )
+
+    scoop_liveness_failed = results_for(
+        {
+            **passed_outcomes,
+            "repository_secrets": {
+                "crates_io": "success",
+                "homebrew": "success",
+                "winget": "success",
+                "scoop": "success",
+            },
+            "credential_liveness": {
+                "crates_io": "success",
+                "homebrew": "success",
+                "winget": "success",
+                "scoop": "failure",
+            },
+        }
+    )
+    assert scoop_liveness_failed["scoop"]["status"] == "failed"
+    assert all(
+        result["status"] == "passed"
+        for channel_name, result in scoop_liveness_failed.items()
+        if channel_name != "scoop"
     )
 
     github_permission_failed = results_for(
@@ -1073,6 +1129,9 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
         assert "sc-compose" not in text
 
     assert "role-specific background workers" in publisher_text
+    assert "outcomes are keyed by channel" in (
+        repo_root() / "docs" / "publish-kit-requirements.md"
+    ).read_text(encoding="utf-8")
     assert '"status": "passed|failed|blocked"' in publisher_text
     assert '"passed|failed|blocked|required"' not in publisher_text
     assert "`required` describes a contract requirement" in publisher_text

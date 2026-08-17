@@ -23,6 +23,9 @@ QA pass:
    end-to-end (Rand verified agent behavior manually via ad hoc "preflight
    mode" runs; that verification procedure needs to be a durable, repeatable
    document, not tribal knowledge).
+4. The first implementation aggregated repository-secret and credential-
+   liveness outcomes, so one channel's revoked token could deny unrelated
+   channels.
 
 ## Closure Checklist
 
@@ -59,6 +62,9 @@ QA pass:
 - [x] Re-read the checklist and changed files; run `cargo fmt --all --check`,
   `cargo test --workspace`, and any workflow YAML validation already used by
   this branch.
+- [x] Emit and consume repository-secret and credential-liveness outcomes per
+  channel, with regression coverage proving an isolated failure does not deny
+  unrelated channels.
 
 ## Scope Guard
 
@@ -82,12 +88,16 @@ Baseline validation was independently confirmed on commit
 `cargo clippy --all-targets --all-features -- -D warnings`, and
 `cargo test --workspace` all passed.
 
-The QA-RECHECK fix commit `9f866768b0441e60c91563b5a235fddf69897df5` was
-independently re-validated by comp (`cargo fmt --all --check`,
+The initial QA-RECHECK fix commit `9f866768b0441e60c91563b5a235fddf69897df5`
+was independently re-validated by comp (`cargo fmt --all --check`,
 `cargo clippy --all-targets --all-features -- -D warnings`,
 `cargo test --workspace`, `scripts/tests/test_release_artifacts.py` all
-passed, worktree clean) and confirmed clean again by quality-mgr's
-`rust-qa-agent` during the QA-RECHECK pass (see
+passed, worktree clean). The background-worker follow-up was fixed at
+`b097d45`, amended to `d26f6f2`, and hardened at `0cae528`. QA identified
+the aggregate repository-secret gate as a real blocker; the per-channel
+isolation correction is now at the current branch head and must be rechecked.
+The earlier changes were confirmed by quality-mgr's `rust-qa-agent` during the
+QA-RECHECK pass (see
 `/Users/randlee/.atm/.config/atm/share/sc-compose/pk-eval-qa-recheck-atm.txt`).
 The no-release scope guard held throughout: no tag, dispatch, or publish
 action was taken.
