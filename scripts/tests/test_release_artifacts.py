@@ -6,8 +6,11 @@ import subprocess
 import sys
 import tarfile
 import tomllib
+import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
+
+from jinja2 import Environment, StrictUndefined
 
 
 def write_repo_fixture(tmp_path: Path, *, manifest_wheels: list[str]) -> tuple[Path, Path]:
@@ -1548,6 +1551,52 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
         recovery_eval_text,
     ):
         assert "sc-compose" not in text
+
+
+def test_publishing_task_templates_render_recipient_contract() -> None:
+    template_root = repo_root() / ".claude" / "skills" / "publishing"
+    cases = (
+        (
+            "preflight.xml.j2",
+            {
+                "task_id": "EVAL-PREFLIGHT",
+                "recipient": "publisher-eval-preflight",
+                "release_version": "1.4.2",
+                "candidate_ref": "develop",
+                "candidate_commit": "deadbeef",
+                "starting_state": "develop",
+                "preflight_stage": "readiness",
+                "worktree_path": "/tmp/eval",
+                "branch": "develop",
+                "manifest_path": "release/publish-artifacts.toml",
+            },
+        ),
+        (
+            "publish.xml.j2",
+            {
+                "task_id": "EVAL-RECOVERY",
+                "recipient": "publisher-eval-recovery",
+                "release_version": "1.4.2",
+                "release_ref": "refs/tags/v1.4.2",
+                "release_commit": "deadbeef",
+                "operation": "retry-failed-channels",
+                "failed_channels": "crates_io",
+                "worktree_path": "/tmp/eval",
+                "manifest_path": "release/publish-artifacts.toml",
+            },
+        ),
+    )
+    environment = Environment(undefined=StrictUndefined)
+
+    for template_name, context in cases:
+        rendered = environment.from_string(
+            (template_root / template_name).read_text(encoding="utf-8")
+        ).render(**context)
+        xml = rendered.split("---", 2)[2].strip()
+        root = ET.fromstring(xml)
+
+        assert root.findtext("recipient") == context["recipient"]
+        assert f"Send {context['recipient']}" in rendered
 
 
 def test_release_preflight_collects_independent_failures_before_denial() -> None:
