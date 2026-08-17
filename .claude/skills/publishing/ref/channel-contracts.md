@@ -76,9 +76,11 @@ create or move tags manually.
 Use the contract-declared GitHub token liveness check before dispatching the
 manifest-declared tap workflow. Destination repository, formulas, assets, and
 verification commands come from the manifest. Each `[[channels.homebrew.formulas]]`
-entry declares its path, template, class, binary, test fields, and
+entry declares its path, template, class, `binaries`, test fields, and
 `release_track`; stable tags select every `stable` entry, while prerelease tags
-select only `prerelease` entries.
+select only `prerelease` entries. `test_binary` defaults to the first binary.
+For vendor compatibility, a legacy single `binary` normalizes to a one-entry
+`binaries` list; new manifests must use `binaries`.
 
 ## winget — `winget-publisher`
 

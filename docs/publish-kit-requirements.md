@@ -27,6 +27,20 @@
   every channel.
 - Structured per-channel results are collected centrally.
 
+### 2.1 Homebrew Formula Tracks and Executables
+
+- Each `[[channels.homebrew.formulas]]` entry declares its destination path,
+  renderer template, Ruby class, `binaries`, test fields, and
+  `release_track = "stable" | "prerelease"` in
+  `release/publish-artifacts.toml`.
+- A stable tag renders, validates, and commits every `stable` formula entry;
+  a prerelease tag does the same only for `prerelease` entries. Formula names,
+  paths, templates, and classes never appear as workflow literals.
+- `binaries` is the canonical non-empty list of archive binaries installed by
+  the formula. `test_binary` defaults to its first entry and must name an
+  entry in that list. Legacy `binary` manifests normalize to a one-entry list
+  for vendor compatibility; newly authored manifests use `binaries`.
+
 ## 3. Independent Per-Channel Retry
 
 - All publish channels can be independently retried.

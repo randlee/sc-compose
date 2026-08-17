@@ -379,7 +379,10 @@ def cmd_validate_manifest(args: argparse.Namespace) -> int:
             _renderer_archive_path(manifest)
     if "homebrew" in channel_names:
         _validate_homebrew_bundle_destinations(binaries)
-        _validate_homebrew_formulas(_channel_config(manifest, "homebrew"))
+        _validate_homebrew_formulas(
+            _channel_config(manifest, "homebrew"),
+            {binary["name"] for binary in binaries},
+        )
     if "scoop" in channel_names:
         _validate_scoop_channel(manifest)
     members = workspace_members(Path(args.workspace_toml))
@@ -517,7 +520,11 @@ def cmd_channel_config(args: argparse.Namespace) -> int:
     project = _require_project(manifest)
     channel = dict(_channel_config(manifest, args.channel))
     if args.channel == "homebrew" and args.tag is not None:
-        channel["formulas"] = _homebrew_formulas_for_tag(channel, args.tag)
+        channel["formulas"] = _homebrew_formulas_for_tag(
+            channel,
+            args.tag,
+            {binary["name"] for binary in _release_binaries(manifest)},
+        )
     result = {
         "project": project,
         "channel": channel,

@@ -162,7 +162,13 @@ the tag or rerun the root release workflow.
 
 ### Homebrew
 
-- Formula auto-updated in `randlee/homebrew-tap` via release workflow
+- Formulas are selected from `[[channels.homebrew.formulas]]` in
+  `release/publish-artifacts.toml` by `release_track`: stable tags update every
+  `stable` entry; prerelease tags update only `prerelease` entries.
+- Each formula installs every declared `binaries` archive entry; `test_binary`
+  defaults to the first entry when not declared.
+- Formula updates are committed to the manifest-declared Homebrew tap via the
+  retry-safe release workflow.
 - Bundled examples installed to `$(brew --prefix)/share/sc-compose/examples/`
 
 ### Scoop

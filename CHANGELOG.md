@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Extended the vendorable Homebrew publish-kit contract so manifests may
+  declare multiple formula aliases and installed `binaries` per formula.
+  Stable and prerelease `release_track` values select their own
+  manifest-declared formula sets without repository-specific workflow literals.
+
 ## [1.4.1] - 2026-08-13
 
 ### Added

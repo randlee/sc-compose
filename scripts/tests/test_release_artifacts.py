@@ -91,6 +91,9 @@ def write_repo_fixture(tmp_path: Path, *, manifest_wheels: list[str]) -> tuple[P
                 "[[release_binaries]]",
                 'name = "fixture"',
                 "",
+                "[[release_binaries]]",
+                'name = "fixture-daemon"',
+                "",
                 "[[crates]]",
                 'artifact = "sc-composer"',
                 'package = "sc-composer"',
@@ -134,7 +137,7 @@ def write_repo_fixture(tmp_path: Path, *, manifest_wheels: list[str]) -> tuple[P
                 'path = "Formula/fixture.rb"',
                 'template = "release/homebrew/formula.rb.j2"',
                 'class = "Fixture"',
-                'binary = "fixture"',
+                'binaries = ["fixture"]',
                 'test_command = "--help"',
                 'test_output = "fixture"',
                 'release_track = "stable"',
@@ -262,7 +265,8 @@ def test_homebrew_workflow_selects_manifest_formula_tracks(tmp_path: Path) -> No
 path = "Formula/fixture-alt.rb"
 template = "release/homebrew/alternate.rb.j2"
 class = "FixtureAlt"
-binary = "fixture"
+binaries = ["fixture", "fixture-daemon"]
+test_binary = "fixture-daemon"
 test_command = "--version"
 test_output = "fixture-alt"
 release_track = "stable"
@@ -271,7 +275,7 @@ release_track = "stable"
 path = "Formula/fixture-preview.rb"
 template = "release/homebrew/preview.rb.j2"
 class = "FixturePreview"
-binary = "fixture"
+binaries = ["fixture"]
 test_command = "--version"
 test_output = "fixture-preview"
 release_track = "prerelease"
@@ -314,6 +318,8 @@ release_track = "prerelease"
     assert [formula["path"] for formula in prerelease["channel"]["formulas"]] == [
         "Formula/fixture-preview.rb"
     ]
+    assert stable["channel"]["formulas"][1]["binaries"] == ["fixture", "fixture-daemon"]
+    assert stable["channel"]["formulas"][1]["test_binary"] == "fixture-daemon"
 
     workflow = homebrew_publish_workflow_text()
     assert '--tag "${{ inputs.tag }}"' in workflow
@@ -324,6 +330,66 @@ release_track = "prerelease"
     assert "FixturePreview" not in workflow
     assert "sc-compose" not in workflow
     assert "randlee" not in workflow
+
+
+def test_homebrew_legacy_binary_normalizes_to_a_single_binary_list(tmp_path: Path) -> None:
+    _, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            'binaries = ["fixture"]', 'binary = "fixture"', 1
+        ),
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(repo_root() / "scripts" / "release_artifacts.py"),
+            "channel-config",
+            "--manifest",
+            str(manifest),
+            "--channel",
+            "homebrew",
+            "--tag",
+            "v1.2.3",
+        ],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    formula = json.loads(result.stdout)["channel"]["formulas"][0]
+    assert formula["binaries"] == ["fixture"]
+    assert formula["test_binary"] == "fixture"
+
+
+def test_validate_manifest_rejects_unknown_homebrew_formula_binary(tmp_path: Path) -> None:
+    workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            'binaries = ["fixture"]', 'binaries = ["not-a-release-binary"]', 1
+        ),
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(repo_root() / "scripts" / "release_artifacts.py"),
+            "validate-manifest",
+            "--manifest",
+            str(manifest),
+            "--workspace-toml",
+            str(workspace),
+        ],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "references undeclared release binary(s)" in result.stderr
 
 
 def test_validate_manifest_rejects_unknown_channel_target(tmp_path: Path) -> None:
@@ -499,7 +565,7 @@ def test_release_manifest_publishes_sc_sha_before_its_consumers() -> None:
             "path": "Formula/sc-compose.rb",
             "template": "release/homebrew/formula.rb.j2",
             "class": "ScCompose",
-            "binary": "sc-compose",
+            "binaries": ["sc-compose"],
             "test_command": "--help",
             "test_output": "Standalone template composition CLI",
             "release_track": "stable",
@@ -1235,10 +1301,10 @@ def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path)
             "macos_intel_sha256": "b" * 64,
             "linux_url": "https://example.invalid/linux.tar.gz",
             "linux_sha256": "c" * 64,
-            "binary": "sc-compose",
+            "test_binary": "sc-compose-daemon",
             "test_command": "--help",
             "test_output": "Standalone template composition CLI",
-            "binary_path": "bin/sc-compose",
+            "binary_paths": ["bin/sc-compose", "bin/sc-compose-daemon"],
             "bundled_paths": [
                 {
                     "destination_components": ["pkgshare", "examples"],
@@ -1251,6 +1317,9 @@ def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path)
         ["ruby", "-c"], input=formula, text=True, capture_output=True, check=False
     )
     assert ruby.returncode == 0, ruby.stderr
+    assert 'bin.install "bin/sc-compose"' in formula
+    assert 'bin.install "bin/sc-compose-daemon"' in formula
+    assert 'shell_output("#{bin}/" + "sc-compose-daemon"' in formula
     assert '(pkgshare/"examples").install Dir["share/sc-compose/examples/*"]' in formula
 
     scoop = render_release_template(
@@ -1270,6 +1339,22 @@ def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path)
     manifest = json.loads(scoop)
     assert manifest["description"] == 'Quoted "description"'
     assert manifest["architecture"]["64bit"]["bin"] == "bin/sc-compose.exe"
+
+
+def test_homebrew_formula_tracks_and_binaries_are_documented() -> None:
+    requirements = (repo_root() / "docs" / "publish-kit-requirements.md").read_text(
+        encoding="utf-8"
+    )
+    sprint = (
+        repo_root() / "docs" / "sprints" / "fix-pr507-release-channel-runtime-checklist.md"
+    ).read_text(encoding="utf-8")
+    releasing = (repo_root() / "RELEASING.md").read_text(encoding="utf-8")
+    changelog = (repo_root() / "CHANGELOG.md").read_text(encoding="utf-8")
+
+    for text in (requirements, sprint, releasing, changelog):
+        assert "release_track" in text
+        assert "prerelease" in text
+        assert "binaries" in text
 
 
 def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> None:

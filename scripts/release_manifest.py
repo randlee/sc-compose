@@ -201,7 +201,9 @@ def _is_prerelease_tag(tag: str) -> bool:
     return "-" in tag.removeprefix("v").split("+", maxsplit=1)[0]
 
 
-def _validate_homebrew_formulas(channel: dict) -> list[dict]:
+def _validate_homebrew_formulas(
+    channel: dict, available_binaries: set[str] | None = None
+) -> list[dict]:
     """Validate manifest-declared Homebrew formula entries."""
     formulas = channel.get("formulas")
     if not isinstance(formulas, list) or not formulas:
@@ -214,12 +216,35 @@ def _validate_homebrew_formulas(channel: dict) -> list[dict]:
             raise SystemExit(f"{label} must be a table")
         _require_keys(
             formula,
-            ("path", "template", "class", "binary", "test_command", "test_output", "release_track"),
+            ("path", "template", "class", "test_command", "test_output", "release_track"),
             label,
         )
-        for key in ("path", "template", "class", "binary", "test_command", "test_output"):
+        for key in ("path", "template", "class", "test_command", "test_output"):
             if not isinstance(formula[key], str) or not formula[key]:
                 raise SystemExit(f"{label}.{key} must be a non-empty string")
+        binaries = formula.get("binaries")
+        if binaries is None:
+            legacy_binary = formula.get("binary")
+            if not isinstance(legacy_binary, str) or not legacy_binary:
+                raise SystemExit(f"{label} must define non-empty binaries or legacy binary")
+            binaries = [legacy_binary]
+            formula["binaries"] = binaries
+        if not isinstance(binaries, list) or not binaries or not all(
+            isinstance(binary, str) and binary for binary in binaries
+        ):
+            raise SystemExit(f"{label}.binaries must be a non-empty list of strings")
+        if len(set(binaries)) != len(binaries):
+            raise SystemExit(f"{label}.binaries must not contain duplicates")
+        if available_binaries is not None:
+            missing_binaries = sorted(set(binaries) - available_binaries)
+            if missing_binaries:
+                raise SystemExit(
+                    f"{label}.binaries references undeclared release binary(s): "
+                    + ", ".join(missing_binaries)
+                )
+        test_binary = formula.setdefault("test_binary", binaries[0])
+        if not isinstance(test_binary, str) or test_binary not in binaries:
+            raise SystemExit(f"{label}.test_binary must name one of its binaries")
         for key in ("path", "template"):
             path = PurePosixPath(formula[key])
             if path.is_absolute() or ".." in path.parts or str(path) in ("", "."):
@@ -233,9 +258,11 @@ def _validate_homebrew_formulas(channel: dict) -> list[dict]:
     return formulas
 
 
-def _homebrew_formulas_for_tag(channel: dict, tag: str) -> list[dict]:
+def _homebrew_formulas_for_tag(
+    channel: dict, tag: str, available_binaries: set[str] | None = None
+) -> list[dict]:
     """Select manifest-declared Homebrew formulas for one release tag."""
-    formulas = _validate_homebrew_formulas(channel)
+    formulas = _validate_homebrew_formulas(channel, available_binaries)
     selected_track = "prerelease" if _is_prerelease_tag(tag) else "stable"
     selected = [
         formula for formula in formulas if formula["release_track"] == selected_track

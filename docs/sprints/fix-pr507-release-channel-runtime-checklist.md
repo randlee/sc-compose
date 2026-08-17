@@ -8,8 +8,10 @@ branch: feature/publish-kit-preflight-hardening
 
 - [x] Remove the literal quotes from the preflight manifest argument so the
   helper receives the repository-relative path.
-- [x] Render the Homebrew formula with the Homebrew Pathname destination from
-  the manifest and verify Ruby syntax.
+- [x] Select every manifest-declared Homebrew formula for the requested
+  `release_track`, render every declared `binaries` archive entry, verify Ruby
+  syntax, and commit every selected formula path. Stable tags select `stable`
+  entries; prerelease tags select only `prerelease` entries.
 - [x] Render a Scoop manifest at the bucket's documented `bucket/` path and
   verify JSON parsing with strings that require escaping.
 - [x] Run focused regression tests, manifest validation, workflow YAML parsing,
