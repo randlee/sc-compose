@@ -16,9 +16,9 @@ using that contract. Copy both files unchanged when vendoring the publish kit.
   - `TEST_PYPI_API_TOKEN` — Actions `testpypi` environment; preflight:
     `.github/workflows/release-preflight.yml`; publish:
     `.github/workflows/pypi-publish.yml`.
-  - `CARGO_REGISTRY_TOKEN` — Actions `crates-io` environment; preflight:
-    `.github/workflows/release-preflight.yml`; publish:
-    `.github/workflows/release.yml`.
+  - `CARGO_REGISTRY_TOKEN` — repository secret for preflight:
+    `.github/workflows/release-preflight.yml`; the publish job runs in the
+    Actions `crates-io` environment in `.github/workflows/release.yml`.
   - `HOMEBREW_TAP_TOKEN` — repository secret; preflight:
     `.github/workflows/release-preflight.yml`; publish:
     `.github/workflows/homebrew-publish.yml`.
@@ -28,9 +28,10 @@ using that contract. Copy both files unchanged when vendoring the publish kit.
   - `SCOOP_BUCKET_TOKEN` — repository secret; preflight:
     `.github/workflows/release-preflight.yml`; publish:
     `.github/workflows/scoop-publish.yml`.
-  - `GITHUB_TOKEN` — GitHub-provided Actions token with `contents:write`;
-    preflight: `.github/workflows/release-preflight.yml`; publish:
-    `.github/workflows/release.yml`.
+  - `GITHUB_TOKEN` — GitHub-provided Actions token; preflight runs with
+    `contents:read` and verifies the release declaration in
+    `.github/workflows/release-preflight.yml`; publish uses `contents:write`
+    in `.github/workflows/release.yml`.
 - These credentials are already configured. Do not ask whether they exist or
   ask anyone to provide them; run the named preflight workflow and report its
   sanitized result.
