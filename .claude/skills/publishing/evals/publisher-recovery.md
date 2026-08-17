@@ -17,7 +17,8 @@ record the case as not applicable rather than fabricating a crate result.
 2. Use a disposable local worktree and fresh full ATM teammate with an
    evaluation-only identity such as `publisher-eval-recovery`.
 3. Give it a rendered `../publish.xml.j2` assignment with the derived
-   `manifest_path`, the evaluation teammate identity as `recipient`,
+   `manifest_path`, the separate named evaluator/coordinator identity as
+   `recipient`, not the evaluated publisher teammate,
    `operation=retry-failed-channels`, an authorized existing release ref and
    tag, and a synthetic structured result set: one failed crate artifact, one
    `already-live` crate artifact, and one passed post-release channel from the

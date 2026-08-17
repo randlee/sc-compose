@@ -1438,6 +1438,13 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
         assert "- recipient" in template_text
         assert "<recipient>{{ recipient }}</recipient>" in template_text
         assert "Send {{ recipient }}" in template_text
+    assert publisher_text.count(
+        '"data": {"tag": "v<VERSION>", "commit": "<COMMIT>", "channels": []}'
+    ) == 2
+    for eval_text in (preflight_eval_text, recovery_eval_text):
+        normalized_eval_text = " ".join(eval_text.split())
+        assert "evaluator/coordinator identity" in normalized_eval_text
+        assert "not the evaluated publisher teammate" in normalized_eval_text
     assert "## Inputs" in publisher_text
     assert "## Output Format" in publisher_text
     assert "## Error Handling" in publisher_text
@@ -1560,7 +1567,7 @@ def test_publishing_task_templates_render_recipient_contract() -> None:
             "preflight.xml.j2",
             {
                 "task_id": "EVAL-PREFLIGHT",
-                "recipient": "publisher-eval-preflight",
+                "recipient": "evaluator-preflight",
                 "release_version": "1.4.2",
                 "candidate_ref": "develop",
                 "candidate_commit": "deadbeef",
@@ -1575,7 +1582,7 @@ def test_publishing_task_templates_render_recipient_contract() -> None:
             "publish.xml.j2",
             {
                 "task_id": "EVAL-RECOVERY",
-                "recipient": "publisher-eval-recovery",
+                "recipient": "evaluator-recovery",
                 "release_version": "1.4.2",
                 "release_ref": "refs/tags/v1.4.2",
                 "release_commit": "deadbeef",
@@ -1597,6 +1604,7 @@ def test_publishing_task_templates_render_recipient_contract() -> None:
 
         assert root.findtext("recipient") == context["recipient"]
         assert f"Send {context['recipient']}" in rendered
+        assert not context["recipient"].startswith("publisher-eval-")
 
 
 def test_release_preflight_collects_independent_failures_before_denial() -> None:

@@ -45,7 +45,7 @@ root or post-release channel handled by the assignment.
 ```json
 {
   "success": true,
-  "data": {"tag": "v<VERSION>", "channels": []},
+  "data": {"tag": "v<VERSION>", "commit": "<COMMIT>", "channels": []},
   "error": null
 }
 ```
@@ -65,7 +65,7 @@ top-level contract.
 ```json
 {
   "success": false,
-  "data": {"tag": "v<VERSION>", "channels": []},
+  "data": {"tag": "v<VERSION>", "commit": "<COMMIT>", "channels": []},
   "error": {"code": "PREFLIGHT.NOT_READY", "message": "sanitized", "recoverable": true, "suggested_action": "fix the reported preflight condition"}
 }
 ```

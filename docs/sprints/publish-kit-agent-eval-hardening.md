@@ -115,3 +115,13 @@ evaluations: an eval receipt copies only supplied tag/ref and evidence facts,
 and records omitted checks as uncollected rather than inventing local or
 remote state. Its source-contract regression assertions passed with
 `python3 -m pytest scripts/tests/test_release_artifacts.py -q`.
+
+Commit `1577a0c` completes the coordinator-routing correction in publisher
+1.6.5. The Inputs, Non-Negotiable Rules, Error Handling, and Completion Report
+all use the assignment's named recipient, so both production and evaluation
+results return to their coordinator rather than an implied fixed identity. It
+also adds the Synthetic-evaluation response checklist: preserve the supplied
+tag and commit, record only fixture-provided checks, include real background
+worker references for every channel, and omit unsupplied workflow, input, and
+verification facts. The change is documentation and prompt-contract only; it
+does not dispatch, tag, or publish a release.
