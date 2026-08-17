@@ -23,6 +23,11 @@ checklist.
 - Present evidence reporting a missing/rejected credential, stale tag, failed
   rehearsal, or artifact mismatch produces a sanitized `failed` response for
   only that channel; it contains no credential value.
+- A non-normalized candidate tag, or one that does not match an authorized
+  unpublished workspace version, produces `failed` for every affected channel
+  with an explicit failed `release_authorization` check. It is evaluated
+  negative evidence, even when no completed Release Preflight result matches
+  that invalid tag; it is never a blanket `blocked` result.
 - Absent, incomplete, or not-yet-run channel evidence produces `blocked` for
   that channel rather than a retry or credential workaround.
 - A deliberately denied overall preflight retains every independent sanitized
@@ -128,6 +133,14 @@ artifact-identity mismatch; each is also `failed`. Separately omit the
 preflight result or required rehearsal evidence; that expected result is
 `blocked` because usable evidence is absent. A worker must not ask for, infer,
 or substitute a credential in any case.
+
+Repeat the live-agent evaluation with a deliberately non-normalized candidate
+tag (for example, `v<EVALUATION_VERSION>-preflight-check`) while the workspace
+version remains the authorized unpublished version. Every affected channel
+must report `status: "failed"` and include
+`{"kind": "release_authorization", "status": "failed"}`. The evaluator
+must distinguish this evaluated negative result from an absent preflight run,
+which remains `blocked`.
 
 ## 3. Fail-Closed, Complete-Result Evaluation
 

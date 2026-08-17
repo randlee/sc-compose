@@ -654,6 +654,35 @@ def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
         for entry in json.loads(unauthorized_result.stdout)["channels"]
     )
 
+    invalid_tag_outcomes = json.dumps(
+        {
+            "ownership": "success",
+            "release_metadata": "failure",
+            "repository_secrets": "success",
+            "environment_secrets": "success",
+            "credential_liveness": "success",
+            "github_release_permissions": "success",
+        }
+    )
+    invalid_tag_result = run_manifest_command(
+        "channel-preflight-results",
+        "--manifest",
+        "release/publish-artifacts.toml",
+        "--outcomes",
+        invalid_tag_outcomes,
+        "--tag",
+        "v1.4.2-preflight-check",
+    )
+
+    assert invalid_tag_result.returncode == 0, invalid_tag_result.stderr
+    for channel in json.loads(invalid_tag_result.stdout)["channels"]:
+        assert channel["status"] == "failed"
+        assert {
+            "kind": "release_authorization",
+            "requirements": ["normalized release tag"],
+            "status": "failed",
+        } in channel["checks"]
+
     blocked_result = run_manifest_command(
         "channel-preflight-results",
         "--manifest",
@@ -909,7 +938,7 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
         assert "sc-compose" not in text
 
     assert "one fungible `teammate` per listed channel" in publisher_text
-    assert '"status": "passed|failed"' in publisher_text
+    assert '"status": "passed|failed|blocked"' in publisher_text
     assert '"success": false' in publisher_text
     assert "retain `data`" in publisher_text
     assert "Do not retry a `blocked` channel" in publisher_text
@@ -917,7 +946,7 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "Never ask whether a token exists" in publisher_text
     assert "preflight-secret-plan" in publisher_text
     assert "protected-environment secret metadata" in guide_text
-    assert "version: 1.2.0" in publisher_text
+    assert "version: 1.3.0" in publisher_text
     assert "## Inputs" in publisher_text
     assert "## Output Format" in publisher_text
     assert "## Error Handling" in publisher_text
@@ -925,13 +954,16 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     registry_text = (repo_root() / ".claude" / "agents" / "registry.yaml").read_text(
         encoding="utf-8"
     )
-    assert 'publisher:\n    version: 1.2.0' in registry_text
-    assert 'publisher-channel-worker:\n    version: 1.1.0' in registry_text
+    assert 'publisher:\n    version: 1.3.0' in registry_text
+    assert 'publisher-channel-worker:\n    version: 1.2.0' in registry_text
     assert "preflight_contract" in worker_text
     assert "preflight_result" in worker_text
     assert "Never ask whether a token exists" in worker_text
     assert "Return `blocked` only when" in worker_text
-    assert "Return `failed` when evidence is present" in worker_text
+    assert "Return `failed` when collected evidence is negative" in worker_text
+    assert "Classify an evaluated candidate-tag validation failure as `failed`" in worker_text
+    assert "release_authorization" in worker_text
+    assert "candidate-tag validation failure" in publisher_text
     assert "simulated missing credential" in eval_plan_text
     assert "not create a tag" in eval_plan_text
     assert "## Goals" in eval_plan_text

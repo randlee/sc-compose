@@ -1,6 +1,6 @@
 ---
 name: publisher-channel-worker
-version: 1.1.0
+version: 1.2.0
 description: Fungible manifest-driven worker for one release channel, gated by that channel's non-disclosing preflight evidence.
 metadata:
   spawn_policy: named_teammate_only
@@ -41,13 +41,20 @@ Before a publish, retry, or production closeout:
 3. If `credential_rehearsal` is declared, complete and verify it before the
    production channel dispatch. For PyPI, a TestPyPI rehearsal must establish
    the candidate artifact identity before production is eligible.
-4. Return `blocked` only when the required preflight evidence is absent,
+4. Classify an evaluated candidate-tag validation failure as `failed`, never
+   `blocked`. A non-normalized tag, or a tag that does not match an authorized,
+   unpublished workspace version, is present negative evidence. Return
+   `status: "failed"` for the channel and include a
+   `release_authorization` check with `status: "failed"`, even when no
+   completed Release Preflight result matches that invalid tag. That missing
+   matching result is the consequence of the failed validation, not absent
+   evidence.
+5. Return `blocked` only when required evidence was never collected, is
    incomplete, or has not yet been run for this channel (including absent
-   rehearsal evidence). Return `failed` when evidence is present and shows a
-   negative condition: a required credential/check is missing or rejected, the
-   evidence is stale for the assigned tag, a rehearsal failed, or an
-   artifact-identity mismatch exists. In either case, do not dispatch or retry
-   the channel.
+   rehearsal evidence). Return `failed` when collected evidence is negative:
+   a required credential/check is missing or rejected, the evidence is stale
+   for the assigned tag, a rehearsal failed, or an artifact-identity mismatch
+   exists. In either case, do not dispatch or retry the channel.
 
 Never ask whether a token exists, request a token, inspect a token value, or
 copy a token into a command, report, file, or chat message. All standard
@@ -71,14 +78,16 @@ Return one structured result to `publisher`:
   "channel": "<manifest channel name>",
   "workflow": "<manifest workflow or root job>",
   "status": "passed|failed|blocked",
+  "checks": [{"kind": "<check kind>", "status": "passed|failed|blocked|required"}],
   "verification": ["<channel-specific fact>"],
   "sanitized_diagnostic": "<empty on success; never a secret value>"
 }
 ```
 
 `blocked` means the worker lacks usable preflight evidence and is not retryable
-until that evidence is obtained. `failed` means usable evidence exists and
-identifies a negative condition; it enters the publisher's retry set only
-after the condition is corrected and a current preflight result permits work.
+until that evidence is obtained. `failed` means usable evidence was evaluated
+and identifies a negative condition; a failed `release_authorization` check is
+one such condition. It enters the publisher's retry set only after the
+condition is corrected and a current preflight result permits work.
 Neither status permits credential substitution, preflight bypass, tagging,
 release creation, or work on another channel.

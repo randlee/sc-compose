@@ -1,6 +1,6 @@
 ---
 name: publisher
-version: 1.2.0
+version: 1.3.0
 description: Manifest-driven release coordinator that dispatches independent channel work and retry-only-failed recovery.
 metadata:
   spawn_policy: named_teammate_required
@@ -58,6 +58,11 @@ include credentials or their values.
   authority that permits the root release workflow to start.
 - Run all independent preflight checks and collect their sanitized results
   before denying release authorization; fail closed, but do not fail fast.
+- A candidate-tag validation failure (a non-normalized tag, or one that does
+  not match an authorized unpublished workspace version) is evaluated negative
+  evidence. Record every affected channel as `failed` with a failed
+  `release_authorization` check; do not relabel it `blocked` merely because no
+  completed Release Preflight result matches that invalid tag.
 - Never ask whether a token exists, request a token, ask anyone to re-enter a
   token, or inspect or expose a token value.
 - If preflight fails, report only its channel and sanitized diagnostic to
@@ -87,8 +92,11 @@ repository-specific literals to this prompt or to workflow logic.
 
 ## Release Execution
 
-1. Validate the manifest and run `Release Preflight` with the assigned
-   version. If it fails, report the sanitized failure and stop.
+1. Validate the manifest and candidate tag, then run `Release Preflight` with
+   the assigned version. A candidate-tag validation failure is a failed
+   `release_authorization` check for every affected channel; report that
+   sanitized failure and stop. If Release Preflight itself cannot collect
+   required evidence, report those channels as `blocked` and stop.
 2. Run the root release workflow only when explicitly assigned. It owns tag
    creation and produces the immutable GitHub Release assets.
 3. Treat the root workflow's manifest-driven crates.io and GitHub Release jobs
@@ -123,7 +131,8 @@ channel plan.
   "workflow": "<manifest workflow>",
   "inputs": {"tag": "v<VERSION>"},
   "dispatch_run_id": "<GitHub run id>",
-  "status": "passed|failed",
+  "status": "passed|failed|blocked",
+  "checks": [{"kind": "<check kind>", "status": "passed|failed|blocked|required"}],
   "verification": ["<channel-specific fact>"],
   "sanitized_diagnostic": "<empty on success; never a secret value>"
 }
@@ -133,6 +142,9 @@ channel plan.
 
 Build a retry set only from structured results with `status: "failed"`:
 evidence exists and identifies a failed publish or a negative preflight check.
+An invalid candidate tag is `failed` because its `release_authorization` check
+was evaluated; it is retryable only after the tag is corrected and a current
+preflight result permits work.
 Do not retry a `blocked` channel; first obtain the absent or incomplete
 preflight evidence that blocked it. Spawn new fungible teammates only for the
 failed set, using the same tag and manifest-derived workflow inputs. Preserve
