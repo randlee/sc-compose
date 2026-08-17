@@ -22,7 +22,7 @@ target: develop
   Scoop workflows to use it.
 - [x] Make the publisher agent, operator guide, and release checklist
   repository-neutral: no project/package/destination literals outside the
-  manifest; require parallel, fungible channel teammates with structured
+  manifest; require parallel, named channel publishers with structured
   results and retry-only-failed behavior.
 - [x] Add regression tests for manifest plans, workflow contract, sanitized
   diagnostics, generic renderer extraction, and documentation/publisher

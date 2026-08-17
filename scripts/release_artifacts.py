@@ -13,10 +13,31 @@ from email import message_from_bytes
 from pathlib import Path
 
 
-POST_RELEASE_CHANNELS = frozenset({"pypi", "homebrew", "winget", "scoop"})
+CHANNEL_CONTRACTS_FILE = "publish-channel-contracts.toml"
+ROOT_CHANNELS = frozenset({"crates_io", "github_release"})
 
 
-def load_manifest(path: Path) -> dict:
+def load_channel_contracts(path: Path) -> dict[str, dict]:
+    """Load the vendorable, non-secret protocol for every supported channel."""
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    channels = data.get("channels")
+    if not isinstance(channels, dict):
+        raise SystemExit(f"{path}: [channels] must be a table")
+    for name, contract in channels.items():
+        if not isinstance(contract, dict):
+            raise SystemExit(f"{path}: [channels.{name}] must be a table")
+        _require_keys(contract, ("stage", "agent"), f"{path}: [channels.{name}]")
+        if contract["stage"] not in {"root", "post_release"}:
+            raise SystemExit(f"{path}: [channels.{name}].stage must be root or post_release")
+        if not isinstance(contract["agent"], str) or not contract["agent"]:
+            raise SystemExit(f"{path}: [channels.{name}].agent must be a non-empty string")
+    missing_roots = ROOT_CHANNELS - set(channels)
+    if missing_roots:
+        raise SystemExit(f"{path}: missing required root channel(s): {', '.join(sorted(missing_roots))}")
+    return channels
+
+
+def load_manifest(path: Path, *, with_channel_contracts: bool = False) -> dict:
     data = tomllib.loads(path.read_text(encoding="utf-8"))
     crates = data.get("crates", [])
     if not crates:
@@ -25,7 +46,7 @@ def load_manifest(path: Path) -> dict:
     python_packages = data.get("python_packages", [])
     python_distributions = data.get("python_distributions", [])
     crates = sorted(crates, key=lambda item: (item["publish_order"], item["artifact"]))
-    return {
+    manifest = {
         "project": data.get("project", {}),
         "crates": crates,
         "release_binaries": release_binaries,
@@ -34,6 +55,11 @@ def load_manifest(path: Path) -> dict:
         "python_distributions": python_distributions,
         "channels": data.get("channels", {}),
     }
+    if with_channel_contracts:
+        manifest["channel_contracts"] = load_channel_contracts(
+            path.parent / CHANNEL_CONTRACTS_FILE
+        )
+    return manifest
 
 
 def _require_keys(entry: dict, required: tuple[str, ...], label: str) -> None:
@@ -183,11 +209,23 @@ def _channel_config(manifest: dict, channel_name: str) -> dict:
     return channel
 
 
+def _channel_contract(manifest: dict, channel_name: str) -> dict:
+    try:
+        contract = manifest["channel_contracts"][channel_name]
+    except KeyError as error:
+        raise SystemExit(f"channel contract missing for {channel_name}") from error
+    return contract
+
+
 def _channel_names(manifest: dict) -> tuple[str, ...]:
     channels = manifest["channels"]
     if not isinstance(channels, dict):
         raise SystemExit("[channels] must be a table")
-    unknown = sorted(set(channels) - POST_RELEASE_CHANNELS)
+    contracts = manifest["channel_contracts"]
+    post_release_channels = {
+        name for name, contract in contracts.items() if contract["stage"] == "post_release"
+    }
+    unknown = sorted(set(channels) - post_release_channels)
     if unknown:
         raise SystemExit("unsupported release channel(s): " + ", ".join(unknown))
     if not channels:
@@ -240,26 +278,9 @@ def _channel_credential_rehearsal(
 
 def _post_release_channel_preflight(manifest: dict, channel_name: str) -> dict[str, object]:
     """Return the non-secret readiness contract a channel worker must consume."""
-    repository_secrets: list[str] = []
-    environment_secrets: list[dict[str, str]] = []
-    liveness_checks: list[dict[str, str]] = []
-
-    if channel_name == "homebrew":
-        repository_secrets.append("HOMEBREW_TAP_TOKEN")
-        liveness_checks.append({"name": "HOMEBREW_TAP_TOKEN", "kind": "github"})
-    elif channel_name == "winget":
-        repository_secrets.append("WINGET_GITHUB_TOKEN")
-        liveness_checks.append({"name": "WINGET_GITHUB_TOKEN", "kind": "github"})
-    elif channel_name == "scoop":
-        repository_secrets.append("SCOOP_BUCKET_TOKEN")
-        liveness_checks.append({"name": "SCOOP_BUCKET_TOKEN", "kind": "github"})
-    elif channel_name == "pypi":
-        environment_secrets.extend(
-            (
-                {"environment": "pypi", "name": "PYPI_API_TOKEN"},
-                {"environment": "testpypi", "name": "TEST_PYPI_API_TOKEN"},
-            )
-        )
+    contract = _channel_contract(manifest, channel_name)
+    if contract["stage"] != "post_release":
+        raise SystemExit(f"channel contract {channel_name} is not a post-release channel")
 
     rehearsal = _channel_credential_rehearsal(manifest, channel_name)
     rehearsal_plan = None
@@ -268,9 +289,11 @@ def _post_release_channel_preflight(manifest: dict, channel_name: str) -> dict[s
         rehearsal_plan = {"workflow": workflow, "inputs": inputs}
 
     return {
-        "repository_secrets": repository_secrets,
-        "environment_secrets": environment_secrets,
-        "liveness_checks": liveness_checks,
+        "agent": contract["agent"],
+        "repository_secrets": contract.get("repository_secrets", []),
+        "environment_secrets": contract.get("environment_secrets", []),
+        "liveness_checks": contract.get("liveness_checks", []),
+        "public_registry_checks": contract.get("public_registry_checks", False),
         "credential_rehearsal": rehearsal_plan,
     }
 
@@ -279,24 +302,28 @@ def _root_channel_preflight(manifest: dict) -> list[dict[str, object]]:
     """Return non-secret requirements for root-workflow publish channels."""
     channels: list[dict[str, object]] = []
     if manifest["crates"]:
+        contract = _channel_contract(manifest, "crates_io")
         channels.append(
             {
                 "name": "crates_io",
-                "repository_secrets": ["CARGO_REGISTRY_TOKEN"],
-                "environment_secrets": [],
-                "liveness_checks": [
-                    {"name": "CARGO_REGISTRY_TOKEN", "kind": "crates_io"}
-                ],
+                "agent": contract["agent"],
+                "repository_secrets": contract.get("repository_secrets", []),
+                "environment_secrets": contract.get("environment_secrets", []),
+                "liveness_checks": contract.get("liveness_checks", []),
+                "public_registry_checks": contract.get("public_registry_checks", False),
                 "credential_rehearsal": None,
             }
         )
+    contract = _channel_contract(manifest, "github_release")
     channels.append(
         {
             "name": "github_release",
-            "repository_secrets": [],
-            "environment_secrets": [],
-            "liveness_checks": [],
-            "github_actions_permissions": ["contents:write"],
+            "agent": contract["agent"],
+            "repository_secrets": contract.get("repository_secrets", []),
+            "environment_secrets": contract.get("environment_secrets", []),
+            "liveness_checks": contract.get("liveness_checks", []),
+            "github_actions_permissions": contract.get("github_actions_permissions", []),
+            "public_registry_checks": contract.get("public_registry_checks", False),
             "credential_rehearsal": None,
         }
     )
@@ -335,6 +362,7 @@ def _channel_preflight_result(
         ("environment_secrets", "environment_secrets"),
         ("liveness_checks", "credential_liveness"),
         ("github_actions_permissions", "github_release_permissions"),
+        ("public_registry_checks", "registry_state"),
     ):
         requirements = channel.get(key, [])
         if requirements:
@@ -388,7 +416,7 @@ def cmd_channel_preflight_results(args: argparse.Namespace) -> int:
     ):
         raise SystemExit("preflight outcomes must be a string-to-string object")
 
-    manifest = load_manifest(Path(args.manifest))
+    manifest = load_manifest(Path(args.manifest), with_channel_contracts=True)
     contracts = [
         *_root_channel_preflight(manifest),
         *[
@@ -401,6 +429,93 @@ def cmd_channel_preflight_results(args: argparse.Namespace) -> int:
         _channel_preflight_result(channel, outcomes, tag) for channel in contracts
     ]
     print(json.dumps({"tag": tag, "channels": results}, separators=(",", ":")))
+    return 0
+
+
+def _normalize_pypi_name(name: str) -> str:
+    """Return the PEP 503 canonical project name used for public lookups."""
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def _url_from_contract(template: str, name: str, version: str) -> str:
+    return template.format(name=name, version=version)
+
+
+def _public_registry_checks(
+    contracts: dict[str, dict], channel_name: str, name: str, version: str | None
+) -> list[dict[str, str | None]]:
+    """Build contract-derived public registry checks for one candidate artifact."""
+    try:
+        contract = contracts[channel_name]
+    except KeyError as error:
+        raise SystemExit(f"channel contract missing for {channel_name}") from error
+    if not contract.get("public_registry_checks", False):
+        raise SystemExit(f"{channel_name} does not support a public registry inquiry")
+
+    normalized_name = _normalize_pypi_name(name) if channel_name == "pypi" else name
+    registry_contracts: list[dict[str, str]]
+    if channel_name == "crates_io":
+        registry_contracts = [
+            {
+                "name": "crates.io",
+                "project_lookup_url": contract["project_lookup_url"],
+                "version_lookup_url": contract["version_lookup_url"],
+                "version_policy": "must_be_absent",
+            }
+        ]
+    else:
+        registry_contracts = contract.get("registries", [])
+
+    checks: list[dict[str, str]] = []
+    for registry in registry_contracts:
+        check: dict[str, str | None] = {
+            "channel": channel_name,
+            "agent": contract["agent"],
+            "registry": registry["name"],
+            "name": name,
+            "normalized_name": normalized_name,
+            "expected_version": version,
+            "project_lookup_url": _url_from_contract(
+                registry["project_lookup_url"], normalized_name, version or ""
+            ),
+            "version_lookup_url": (
+                _url_from_contract(registry["version_lookup_url"], normalized_name, version)
+                if version
+                else None
+            ),
+            "version_policy": registry["version_policy"],
+        }
+        checks.append(check)
+    return checks
+
+
+def cmd_public_registry_check_plan(args: argparse.Namespace) -> int:
+    """Emit non-secret public name/version checks for Release Preflight."""
+    manifest = load_manifest(Path(args.manifest), with_channel_contracts=True)
+    checks: list[dict[str, str | None]] = []
+
+    for crate in manifest["crates"]:
+        checks.extend(
+            _public_registry_checks(
+                manifest["channel_contracts"], "crates_io", crate["package"], args.version
+            )
+        )
+
+    for distribution in _python_distribution_entries(manifest):
+        checks.extend(
+            _public_registry_checks(
+                manifest["channel_contracts"], "pypi", distribution["name"], args.version
+            )
+        )
+    print(json.dumps({"checks": checks}, separators=(",", ":")))
+    return 0
+
+
+def cmd_public_registry_inquiry_plan(args: argparse.Namespace) -> int:
+    """Emit a direct, read-only candidate name/version lookup plan from contracts."""
+    contracts = load_channel_contracts(Path(args.contracts))
+    checks = _public_registry_checks(contracts, args.channel, args.name, args.version)
+    print(json.dumps({"checks": checks}, separators=(",", ":")))
     return 0
 
 
@@ -497,7 +612,7 @@ def _channel_asset_patterns(manifest: dict, channel_name: str) -> list[str]:
 
 
 def cmd_validate_manifest(args: argparse.Namespace) -> int:
-    manifest = load_manifest(Path(args.manifest))
+    manifest = load_manifest(Path(args.manifest), with_channel_contracts=True)
     _require_project(manifest)
     _release_targets_by_name(manifest)
     binaries = _release_binaries(manifest)
@@ -656,7 +771,7 @@ def cmd_channel_config(args: argparse.Namespace) -> int:
 
 
 def cmd_channel_dispatch_plan(args: argparse.Namespace) -> int:
-    manifest = load_manifest(Path(args.manifest))
+    manifest = load_manifest(Path(args.manifest), with_channel_contracts=True)
     channels = []
     for channel_name in _channel_names(manifest):
         workflow, dispatch_inputs = _channel_dispatch_config(manifest, channel_name)
@@ -671,6 +786,7 @@ def cmd_channel_dispatch_plan(args: argparse.Namespace) -> int:
         channels.append(
             {
                 "name": channel_name,
+                "agent": preflight["agent"],
                 "workflow": workflow,
                 "inputs": {"tag": args.tag, **dispatch_inputs},
                 "credential_rehearsal": rehearsal_plan,
@@ -682,15 +798,17 @@ def cmd_channel_dispatch_plan(args: argparse.Namespace) -> int:
 
 
 def cmd_preflight_secret_plan(args: argparse.Namespace) -> int:
-    manifest = load_manifest(Path(args.manifest))
+    manifest = load_manifest(Path(args.manifest), with_channel_contracts=True)
     channel_names = _channel_names(manifest)
     repository_secrets: list[str] = []
     liveness_checks: list[dict[str, str]] = []
     environment_secrets: list[dict[str, str]] = []
+    root_channels = _root_channel_preflight(manifest)
 
-    if manifest["crates"]:
-        repository_secrets.append("CARGO_REGISTRY_TOKEN")
-        liveness_checks.append({"name": "CARGO_REGISTRY_TOKEN", "kind": "crates_io"})
+    for channel in root_channels:
+        repository_secrets.extend(channel["repository_secrets"])
+        environment_secrets.extend(channel["environment_secrets"])
+        liveness_checks.extend(channel["liveness_checks"])
     post_release_channels = []
     for channel_name in channel_names:
         channel_preflight = _post_release_channel_preflight(manifest, channel_name)
@@ -705,7 +823,7 @@ def cmd_preflight_secret_plan(args: argparse.Namespace) -> int:
                 "repository_secrets": repository_secrets,
                 "environment_secrets": environment_secrets,
                 "liveness_checks": liveness_checks,
-                "root_channels": _root_channel_preflight(manifest),
+                "root_channels": root_channels,
                 "post_release_channels": post_release_channels,
             },
             separators=(",", ":"),
@@ -1002,6 +1120,18 @@ def main() -> int:
     p.add_argument("--outcomes", required=True)
     p.add_argument("--tag", required=True)
     p.set_defaults(func=cmd_channel_preflight_results)
+
+    p = sub.add_parser("public-registry-check-plan")
+    p.add_argument("--manifest", required=True)
+    p.add_argument("--version", required=True)
+    p.set_defaults(func=cmd_public_registry_check_plan)
+
+    p = sub.add_parser("public-registry-inquiry-plan")
+    p.add_argument("--contracts", required=True)
+    p.add_argument("--channel", choices=("crates_io", "pypi"), required=True)
+    p.add_argument("--name", required=True)
+    p.add_argument("--version")
+    p.set_defaults(func=cmd_public_registry_inquiry_plan)
 
     p = sub.add_parser("verify-python-release-assets")
     p.add_argument("--manifest", required=True)

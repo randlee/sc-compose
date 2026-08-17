@@ -1,10 +1,25 @@
 agents:
   publisher:
-    version: 1.5.0
+    version: 1.6.0
     path: .claude/agents/publisher.md
-  publisher-channel-worker:
-    version: 1.2.0
-    path: .claude/agents/publisher-channel-worker.md
+  crates-io-publisher:
+    version: 1.0.0
+    path: .claude/agents/crates-io-publisher.md
+  pypi-publisher:
+    version: 1.0.0
+    path: .claude/agents/pypi-publisher.md
+  github-release-publisher:
+    version: 1.0.0
+    path: .claude/agents/github-release-publisher.md
+  homebrew-publisher:
+    version: 1.0.0
+    path: .claude/agents/homebrew-publisher.md
+  winget-publisher:
+    version: 1.0.0
+    path: .claude/agents/winget-publisher.md
+  scoop-publisher:
+    version: 1.0.0
+    path: .claude/agents/scoop-publisher.md
   scrum-master:
     version: 0.1.0
     path: .claude/agents/scrum-master.md
@@ -70,7 +85,7 @@ agents:
     path: .claude/agents/html-report-generator.md
 skills:
   publishing:
-    version: 1.0.0
+    version: 1.1.0
     path: .claude/skills/publishing/SKILL.md
     depends_on:
       publisher: 1.x

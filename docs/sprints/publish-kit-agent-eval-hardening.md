@@ -68,6 +68,15 @@ a release.
 
 ## Validation Evidence
 
+### Assumption Flagged
+
+Commit `70d1ee1` retained the single generic `publisher-channel-worker`
+contract as a short-lived compatibility assumption while the per-channel
+publisher rework was in progress. The assumption is superseded by this
+follow-up: six named channel contracts replace that generic worker, and the
+shared vendorable contract is the authority for their channel-specific
+preflight requirements. No release is dispatched by either change.
+
 Baseline validation was independently confirmed on commit
 `fca2733ae741dc49776a22f55a043796768683fc`: `cargo fmt --all --check`,
 `cargo clippy --all-targets --all-features -- -D warnings`, and

@@ -17,10 +17,10 @@
 
 ## 2. Parallel Per-Channel Orchestration
 
-- The publisher fans out one agent/job per publish channel (crates.io,
+- The publisher fans out one named agent/job per publish channel (crates.io,
   GitHub Release, Homebrew, `winget`, Scoop, PyPI) running in parallel,
   not sequentially.
-- Each channel agent consolidates and owns exactly what its specific
+- Each named channel agent consolidates and owns exactly what its specific
   target needs (its own manifest-declared inputs, its own publish steps,
   its own verification), rather than one monolithic publish step handling
   every channel.
@@ -73,6 +73,19 @@
   it may publish or retry. A worker denies only its own channel when that
   evidence is missing, failed, stale, or mismatched; it must not restart other
   channels or ask for credentials.
+
+## 5.1 Shared Channel Contract
+
+- `release/publish-channel-contracts.toml` is vendored unchanged with the
+  publish kit and is the sole machine-readable source for channel identity,
+  standardized secret names, GitHub environments, public registry endpoints,
+  liveness checks, and named channel agents.
+- The artifact manifest contains only repository-specific artifacts and
+  destinations. It must not repeat credential or account protocol.
+- Release Preflight checks public registry state for every declared crate and
+  Python distribution. An absent project is reported as an available new name;
+  a public lookup is never a name reservation. Existing production versions
+  fail closed; TestPyPI state is rehearsal information.
 
 ## 6. Fix the Draft's Wrong Secret Names
 

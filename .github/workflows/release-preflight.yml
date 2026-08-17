@@ -229,6 +229,57 @@ jobs:
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --version '${{ steps.meta.outputs.release_version }}'
 
+      - id: registry_state
+        name: Verify registry versions and new names
+        if: ${{ always() && steps.meta.outcome == 'success' }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          failures=()
+          status_code() {
+            local status
+            status="$(curl --location --max-time 20 --silent --show-error --output /dev/null \
+              --write-out '%{http_code}' "$1" || true)"
+            case "${status}" in
+              200|404) printf '%s' "${status}" ;;
+              *) printf '000' ;;
+            esac
+          }
+
+          while IFS=$'\t' read -r channel agent registry name normalized_name expected_version project_url version_url version_policy; do
+            project_status="$(status_code "${project_url}")"
+            version_status="$(status_code "${version_url}")"
+            case "${project_status}:${version_status}:${version_policy}" in
+              404:404:*)
+                printf '%s: %s name %s is apparently available (not a reservation).\n' \
+                  "${agent}" "${registry}" "${normalized_name}"
+                ;;
+              200:404:*)
+                printf '%s: %s project %s exists; version %s is not published.\n' \
+                  "${agent}" "${registry}" "${normalized_name}" "${expected_version}"
+                ;;
+              200:200:must_be_absent)
+                failures+=("${channel}/${registry}: ${normalized_name}@${expected_version} is already published.")
+                ;;
+              200:200:informational)
+                printf '%s: %s rehearsal version %s@%s already exists (informational).\n' \
+                  "${agent}" "${registry}" "${normalized_name}" "${expected_version}"
+                ;;
+              *)
+                failures+=("${channel}/${registry}: registry state for ${normalized_name}@${expected_version} is indeterminate (project=${project_status}, version=${version_status}).")
+                ;;
+            esac
+          done < <(python3 scripts/release_artifacts.py public-registry-check-plan \
+            --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
+            --version '${{ steps.meta.outputs.release_version }}' \
+            | jq -r '.checks[] | [.channel, .agent, .registry, .name, .normalized_name, .expected_version, .project_lookup_url, .version_lookup_url, .version_policy] | @tsv')
+
+          if [[ "${#failures[@]}" -gt 0 ]]; then
+            printf '%s\n' "${failures[@]}" >&2
+            exit 1
+          fi
+
       - id: package_checks
         name: Run dependency-aware package checks
         continue-on-error: true
@@ -265,6 +316,7 @@ jobs:
           REPOSITORY_SECRETS: ${{ steps.repository_secrets.outcome }}
           ENVIRONMENT_SECRETS: ${{ steps.environment_secrets.outcome }}
           CREDENTIAL_LIVENESS: ${{ steps.credential_liveness.outcome }}
+          REGISTRY_STATE: ${{ steps.registry_state.outcome }}
           GITHUB_RELEASE_PERMISSIONS: ${{ steps.github_release_permissions.outcome }}
         run: |
           set -euo pipefail
@@ -274,8 +326,9 @@ jobs:
             --arg repository_secrets "${REPOSITORY_SECRETS}" \
             --arg environment_secrets "${ENVIRONMENT_SECRETS}" \
             --arg credential_liveness "${CREDENTIAL_LIVENESS}" \
+            --arg registry_state "${REGISTRY_STATE}" \
             --arg github_release_permissions "${GITHUB_RELEASE_PERMISSIONS}" \
-            '{ownership: $ownership, release_metadata: $release_metadata, repository_secrets: $repository_secrets, environment_secrets: $environment_secrets, credential_liveness: $credential_liveness, github_release_permissions: $github_release_permissions}')"
+            '{ownership: $ownership, release_metadata: $release_metadata, repository_secrets: $repository_secrets, environment_secrets: $environment_secrets, credential_liveness: $credential_liveness, registry_state: $registry_state, github_release_permissions: $github_release_permissions}')"
           results="$(python3 scripts/release_artifacts.py channel-preflight-results \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --outcomes "${outcomes}" \
@@ -296,6 +349,7 @@ jobs:
           REPOSITORY_SECRETS: ${{ steps.repository_secrets.outcome }}
           ENVIRONMENT_SECRETS: ${{ steps.environment_secrets.outcome }}
           CREDENTIAL_LIVENESS: ${{ steps.credential_liveness.outcome }}
+          REGISTRY_STATE: ${{ steps.registry_state.outcome }}
           META: ${{ steps.meta.outcome }}
           FORMATTING: ${{ steps.formatting.outcome }}
           CLIPPY: ${{ steps.clippy.outcome }}
@@ -326,6 +380,7 @@ jobs:
           record repository-secrets "${REPOSITORY_SECRETS}"
           record environment-secrets "${ENVIRONMENT_SECRETS}"
           record credential-liveness "${CREDENTIAL_LIVENESS}"
+          record registry-state "${REGISTRY_STATE}"
           record version-input "${META}"
           record formatting "${FORMATTING}"
           record clippy "${CLIPPY}"

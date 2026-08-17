@@ -62,6 +62,12 @@ def write_repo_fixture(tmp_path: Path, *, manifest_wheels: list[str]) -> tuple[P
 
     manifest = tmp_path / "release" / "publish-artifacts.toml"
     manifest.parent.mkdir(parents=True)
+    (manifest.parent / "publish-channel-contracts.toml").write_text(
+        (repo_root() / "release" / "publish-channel-contracts.toml").read_text(
+            encoding="utf-8"
+        ),
+        encoding="utf-8",
+    )
     wheels = ", ".join(f'"{entry}"' for entry in manifest_wheels)
     manifest.write_text(
         "\n".join(
@@ -429,6 +435,7 @@ def test_manifest_drives_parallel_post_release_dispatch_plan() -> None:
     ]
     assert channels[0] == {
         "name": "pypi",
+        "agent": "pypi-publisher",
         "workflow": "pypi-publish.yml",
         "inputs": {"tag": "v1.4.2", "target": "production"},
         "credential_rehearsal": {
@@ -436,12 +443,14 @@ def test_manifest_drives_parallel_post_release_dispatch_plan() -> None:
             "inputs": {"tag": "v1.4.2", "target": "testpypi"},
         },
         "preflight": {
+            "agent": "pypi-publisher",
             "repository_secrets": [],
             "environment_secrets": [
                 {"environment": "pypi", "name": "PYPI_API_TOKEN"},
                 {"environment": "testpypi", "name": "TEST_PYPI_API_TOKEN"},
             ],
             "liveness_checks": [],
+            "public_registry_checks": True,
             "credential_rehearsal": {
                 "workflow": "pypi-publish.yml",
                 "inputs": {"target": "testpypi"},
@@ -449,21 +458,27 @@ def test_manifest_drives_parallel_post_release_dispatch_plan() -> None:
         },
     }
     assert channels[1]["preflight"] == {
+        "agent": "homebrew-publisher",
         "repository_secrets": ["HOMEBREW_TAP_TOKEN"],
         "environment_secrets": [],
         "liveness_checks": [{"name": "HOMEBREW_TAP_TOKEN", "kind": "github"}],
+        "public_registry_checks": False,
         "credential_rehearsal": None,
     }
     assert channels[2]["preflight"] == {
+        "agent": "winget-publisher",
         "repository_secrets": ["WINGET_GITHUB_TOKEN"],
         "environment_secrets": [],
         "liveness_checks": [{"name": "WINGET_GITHUB_TOKEN", "kind": "github"}],
+        "public_registry_checks": False,
         "credential_rehearsal": None,
     }
     assert channels[3]["preflight"] == {
+        "agent": "scoop-publisher",
         "repository_secrets": ["SCOOP_BUCKET_TOKEN"],
         "environment_secrets": [],
         "liveness_checks": [{"name": "SCOOP_BUCKET_TOKEN", "kind": "github"}],
+        "public_registry_checks": False,
         "credential_rehearsal": None,
     }
 
@@ -476,84 +491,35 @@ def test_manifest_drives_non_disclosing_preflight_secret_plan() -> None:
     )
 
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout) == {
-        "repository_secrets": [
-            "CARGO_REGISTRY_TOKEN",
-            "HOMEBREW_TAP_TOKEN",
-            "WINGET_GITHUB_TOKEN",
-            "SCOOP_BUCKET_TOKEN",
-        ],
-        "environment_secrets": [
-            {"environment": "pypi", "name": "PYPI_API_TOKEN"},
-            {"environment": "testpypi", "name": "TEST_PYPI_API_TOKEN"},
-        ],
-        "liveness_checks": [
-            {"name": "CARGO_REGISTRY_TOKEN", "kind": "crates_io"},
-            {"name": "HOMEBREW_TAP_TOKEN", "kind": "github"},
-            {"name": "WINGET_GITHUB_TOKEN", "kind": "github"},
-            {"name": "SCOOP_BUCKET_TOKEN", "kind": "github"},
-        ],
-        "root_channels": [
-            {
-                "name": "crates_io",
-                "repository_secrets": ["CARGO_REGISTRY_TOKEN"],
-                "environment_secrets": [],
-                "liveness_checks": [
-                    {"name": "CARGO_REGISTRY_TOKEN", "kind": "crates_io"}
-                ],
-                "credential_rehearsal": None,
-            },
-            {
-                "name": "github_release",
-                "repository_secrets": [],
-                "environment_secrets": [],
-                "liveness_checks": [],
-                "github_actions_permissions": ["contents:write"],
-                "credential_rehearsal": None,
-            },
-        ],
-        "post_release_channels": [
-            {
-                "name": "pypi",
-                "repository_secrets": [],
-                "environment_secrets": [
-                    {"environment": "pypi", "name": "PYPI_API_TOKEN"},
-                    {"environment": "testpypi", "name": "TEST_PYPI_API_TOKEN"},
-                ],
-                "liveness_checks": [],
-                "credential_rehearsal": {
-                    "workflow": "pypi-publish.yml",
-                    "inputs": {"target": "testpypi"},
-                },
-            },
-            {
-                "name": "homebrew",
-                "repository_secrets": ["HOMEBREW_TAP_TOKEN"],
-                "environment_secrets": [],
-                "liveness_checks": [
-                    {"name": "HOMEBREW_TAP_TOKEN", "kind": "github"}
-                ],
-                "credential_rehearsal": None,
-            },
-            {
-                "name": "winget",
-                "repository_secrets": ["WINGET_GITHUB_TOKEN"],
-                "environment_secrets": [],
-                "liveness_checks": [
-                    {"name": "WINGET_GITHUB_TOKEN", "kind": "github"}
-                ],
-                "credential_rehearsal": None,
-            },
-            {
-                "name": "scoop",
-                "repository_secrets": ["SCOOP_BUCKET_TOKEN"],
-                "environment_secrets": [],
-                "liveness_checks": [
-                    {"name": "SCOOP_BUCKET_TOKEN", "kind": "github"}
-                ],
-                "credential_rehearsal": None,
-            },
-        ],
+    plan = json.loads(result.stdout)
+    assert plan["repository_secrets"] == [
+        "CARGO_REGISTRY_TOKEN",
+        "HOMEBREW_TAP_TOKEN",
+        "WINGET_GITHUB_TOKEN",
+        "SCOOP_BUCKET_TOKEN",
+    ]
+    assert plan["environment_secrets"] == [
+        {"environment": "pypi", "name": "PYPI_API_TOKEN"},
+        {"environment": "testpypi", "name": "TEST_PYPI_API_TOKEN"},
+    ]
+    contracts = {
+        entry["name"]: entry
+        for entry in [*plan["root_channels"], *plan["post_release_channels"]]
+    }
+    assert {name: entry["agent"] for name, entry in contracts.items()} == {
+        "crates_io": "crates-io-publisher",
+        "github_release": "github-release-publisher",
+        "pypi": "pypi-publisher",
+        "homebrew": "homebrew-publisher",
+        "winget": "winget-publisher",
+        "scoop": "scoop-publisher",
+    }
+    assert contracts["crates_io"]["public_registry_checks"] is True
+    assert contracts["pypi"]["public_registry_checks"] is True
+    assert contracts["github_release"]["github_actions_permissions"] == ["contents:write"]
+    assert contracts["pypi"]["credential_rehearsal"] == {
+        "workflow": "pypi-publish.yml",
+        "inputs": {"target": "testpypi"},
     }
 
 
@@ -565,6 +531,7 @@ def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
             "repository_secrets": "success",
             "environment_secrets": "success",
             "credential_liveness": "success",
+            "registry_state": "success",
             "github_release_permissions": "success",
         }
     )
@@ -607,6 +574,7 @@ def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
             "repository_secrets": "failure",
             "environment_secrets": "success",
             "credential_liveness": "success",
+            "registry_state": "success",
             "github_release_permissions": "success",
         }
     )
@@ -635,6 +603,7 @@ def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
             "repository_secrets": "success",
             "environment_secrets": "success",
             "credential_liveness": "success",
+            "registry_state": "success",
             "github_release_permissions": "success",
         }
     )
@@ -661,6 +630,7 @@ def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
             "repository_secrets": "success",
             "environment_secrets": "success",
             "credential_liveness": "success",
+            "registry_state": "success",
             "github_release_permissions": "success",
         }
     )
@@ -700,6 +670,73 @@ def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
         if entry["status"] == "blocked"
     } == set(channels)
     assert json.loads(blocked_result.stdout)["tag"] is None
+
+
+def test_public_registry_check_plan_assigns_named_agents_and_normalizes_python_names() -> None:
+    result = run_manifest_command(
+        "public-registry-check-plan",
+        "--manifest",
+        "release/publish-artifacts.toml",
+        "--version",
+        "1.4.2",
+    )
+
+    assert result.returncode == 0, result.stderr
+    checks = json.loads(result.stdout)["checks"]
+    crates = [entry for entry in checks if entry["channel"] == "crates_io"]
+    pypi = [entry for entry in checks if entry["channel"] == "pypi"]
+    assert [entry["name"] for entry in crates] == ["sc-sha", "sc-composer", "sc-compose"]
+    assert all(entry["agent"] == "crates-io-publisher" for entry in crates)
+    assert all(entry["version_policy"] == "must_be_absent" for entry in crates)
+    assert all("/api/v1/crates/" in entry["project_lookup_url"] for entry in crates)
+    assert {entry["registry"] for entry in pypi} == {"pypi", "testpypi"}
+    assert all(entry["agent"] == "pypi-publisher" for entry in pypi)
+    assert all("_" not in entry["normalized_name"] for entry in pypi)
+    assert any(entry["version_policy"] == "informational" for entry in pypi)
+
+
+def test_public_registry_inquiry_plan_is_contract_derived_and_read_only() -> None:
+    crates = run_manifest_command(
+        "public-registry-inquiry-plan",
+        "--contracts",
+        "release/publish-channel-contracts.toml",
+        "--channel",
+        "crates_io",
+        "--name",
+        "atm-serde",
+        "--version",
+        "0.1.0",
+    )
+    pypi = run_manifest_command(
+        "public-registry-inquiry-plan",
+        "--contracts",
+        "release/publish-channel-contracts.toml",
+        "--channel",
+        "pypi",
+        "--name",
+        "ATM_Serde",
+    )
+
+    assert crates.returncode == 0, crates.stderr
+    assert pypi.returncode == 0, pypi.stderr
+    crate_check = json.loads(crates.stdout)["checks"]
+    pypi_checks = json.loads(pypi.stdout)["checks"]
+    assert crate_check == [
+        {
+            "channel": "crates_io",
+            "agent": "crates-io-publisher",
+            "registry": "crates.io",
+            "name": "atm-serde",
+            "normalized_name": "atm-serde",
+            "expected_version": "0.1.0",
+            "project_lookup_url": "https://crates.io/api/v1/crates/atm-serde",
+            "version_lookup_url": "https://crates.io/api/v1/crates/atm-serde/0.1.0",
+            "version_policy": "must_be_absent",
+        }
+    ]
+    assert {entry["registry"] for entry in pypi_checks} == {"pypi", "testpypi"}
+    assert all(entry["normalized_name"] == "atm-serde" for entry in pypi_checks)
+    assert all(entry["version_lookup_url"] is None for entry in pypi_checks)
 
 
 def test_release_workflow_enforces_python_release_invariants() -> None:
@@ -921,9 +958,9 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     checklist_text = (repo_root() / "docs" / "release-checklist.md").read_text(
         encoding="utf-8"
     )
-    worker_text = (repo_root() / ".claude" / "agents" / "publisher-channel-worker.md").read_text(
-        encoding="utf-8"
-    )
+    channel_contract_text = (
+        repo_root() / ".claude" / "skills" / "publishing" / "ref" / "channel-contracts.md"
+    ).read_text(encoding="utf-8")
     eval_plan_text = (
         repo_root() / "docs" / "eval" / "publishing" / "publish-kit-agent-eval-plan.md"
     ).read_text(encoding="utf-8")
@@ -948,6 +985,9 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     recovery_eval_text = (
         repo_root() / ".claude" / "skills" / "publishing" / "evals" / "publisher-recovery.md"
     ).read_text(encoding="utf-8")
+    inquiry_eval_text = (
+        repo_root() / ".claude" / "skills" / "publishing" / "evals" / "channel-name-inquiry.md"
+    ).read_text(encoding="utf-8")
 
     for text in (publisher_text, guide_text, checklist_text):
         assert "channel-dispatch-plan" in text
@@ -955,7 +995,7 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
         assert "TEST_PYPI_TOKEN" not in text
         assert "sc-compose" not in text
 
-    assert "one fungible `teammate` per listed channel" in publisher_text
+    assert "named `agent` specified by each listed channel" in publisher_text
     assert '"status": "passed|failed|blocked"' in publisher_text
     assert '"success": false' in publisher_text
     assert "retain `data`" in publisher_text
@@ -964,7 +1004,7 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "Never ask whether a token exists" in publisher_text
     assert "preflight-secret-plan" in publisher_text
     assert "protected-environment secret metadata" in guide_text
-    assert "version: 1.5.0" in publisher_text
+    assert "version: 1.6.0" in publisher_text
     assert "## Inputs" in publisher_text
     assert "## Output Format" in publisher_text
     assert "## Error Handling" in publisher_text
@@ -972,16 +1012,46 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     registry_text = (repo_root() / ".claude" / "agents" / "registry.yaml").read_text(
         encoding="utf-8"
     )
-    assert 'publisher:\n    version: 1.5.0' in registry_text
-    assert 'publisher-channel-worker:\n    version: 1.2.0' in registry_text
-    assert 'publishing:\n    version: 1.0.0' in registry_text
-    assert "preflight_contract" in worker_text
-    assert "preflight_result" in worker_text
-    assert "Never ask whether a token exists" in worker_text
-    assert "Return `blocked` only when" in worker_text
-    assert "Return `failed` when collected evidence is negative" in worker_text
-    assert "Classify an evaluated candidate-tag validation failure as `failed`" in worker_text
-    assert "release_authorization" in worker_text
+    contracts = tomllib.loads(
+        (repo_root() / "release" / "publish-channel-contracts.toml").read_text(
+            encoding="utf-8"
+        )
+    )["channels"]
+    assert 'publisher:\n    version: 1.6.0' in registry_text
+    for channel_agent in (
+        "crates-io-publisher",
+        "pypi-publisher",
+        "github-release-publisher",
+        "homebrew-publisher",
+        "winget-publisher",
+        "scoop-publisher",
+    ):
+        assert f"{channel_agent}:" in registry_text
+        agent_path = repo_root() / ".claude" / "agents" / f"{channel_agent}.md"
+        assert agent_path.is_file()
+        agent_text = agent_path.read_text(encoding="utf-8")
+        assert "publisher-channel-protocol.md" in agent_text
+        assert ".claude/skills/publishing/ref/channel-contracts.md" in agent_text
+    assert not (repo_root() / ".claude" / "agents" / "publisher-channel-worker.md").exists()
+    assert {
+        contract["agent"] for contract in contracts.values()
+    } == {
+        "crates-io-publisher",
+        "pypi-publisher",
+        "github-release-publisher",
+        "homebrew-publisher",
+        "winget-publisher",
+        "scoop-publisher",
+    }
+    assert contracts["pypi"]["environment_secrets"] == [
+        {"environment": "pypi", "name": "PYPI_API_TOKEN"},
+        {"environment": "testpypi", "name": "TEST_PYPI_API_TOKEN"},
+    ]
+    assert 'publishing:\n    version: 1.1.0' in registry_text
+    assert "sole channel-contract source" in channel_contract_text
+    assert "public-registry-inquiry-plan" in channel_contract_text
+    assert "apparently_available" in channel_contract_text
+    assert "not a reservation" in channel_contract_text
     assert "candidate-tag validation failure" in publisher_text
     assert "Use `PREFLIGHT.NOT_READY` as the top-level error code" in publisher_text
     assert "still launch one read-only" in publisher_text
@@ -991,8 +1061,8 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "## Expected Outcomes" in eval_plan_text
     assert "Haiku or Luna" in eval_plan_text
     assert "top-level\n  error remains `PREFLIGHT.NOT_READY`" in eval_plan_text
-    assert "launches one read-only worker per" in eval_plan_text
-    assert "background agent" in eval_plan_text
+    assert "it must launch the channel contract's\nnamed publisher" in eval_plan_text
+    assert "named channel-publisher panes" in eval_plan_text
     assert "full `sc-compose` ATM team member" in eval_plan_text
     assert "dedicated\n  tmux pane" in eval_plan_text
     assert "rmux claude publisher --team sc-compose --model haiku" in eval_plan_text
@@ -1010,6 +1080,9 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "identity is exactly `publisher`" in publishing_skill_text
     assert "evals/publisher-preflight.md" in publishing_skill_text
     assert "evals/publisher-recovery.md" in publishing_skill_text
+    assert "evals/channel-name-inquiry.md" in publishing_skill_text
+    assert "@crates-io-publisher" in publishing_skill_text
+    assert "publish-channel-contracts.toml" in publishing_skill_text
     assert "Code only on `feature/*` or `fix/*`" in release_state_text
     assert "Code on `develop`" in release_state_text
     assert "Code on `main`" in release_state_text
@@ -1022,12 +1095,13 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
         assert 'assignee="publisher"' in template_text
         assert "release-state-strategy.md" in template_text
         assert "manifest_path" in template_text
-    for eval_text in (preflight_eval_text, recovery_eval_text):
+    for eval_text in (preflight_eval_text, recovery_eval_text, inquiry_eval_text):
         assert "## Goal" in eval_text
         assert "## Expected outcomes" in eval_text
         assert "fresh" in eval_text
         assert "fenced JSON" in eval_text
         assert "must not" in eval_text
+    for eval_text in (preflight_eval_text, recovery_eval_text):
         assert "manifest path" in eval_text
         assert "Do not hardcode a package" in eval_text
     for text in (
@@ -1053,6 +1127,9 @@ def test_release_preflight_collects_independent_failures_before_denial() -> None
     assert preflight_text.count("continue-on-error: true") >= 12
     assert "failures=()" in preflight_text
     assert "steps.secret_plan.outcome == 'success'" in preflight_text
+    assert "Verify registry versions and new names" in preflight_text
+    assert "public-registry-check-plan" in preflight_text
+    assert "REGISTRY_STATE" in preflight_text
 
 
 def test_release_workflow_collects_wheels_without_redundant_zip_sweep() -> None:
