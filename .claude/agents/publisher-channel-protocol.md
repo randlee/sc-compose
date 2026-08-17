@@ -1,6 +1,6 @@
 # Publisher Channel Protocol
 
-All named channel publishers must read this file, then
+All role-specific background channel workers must read this file, then
 `release/publish-channel-contracts.toml` and
 `.claude/skills/publishing/ref/channel-contracts.md`, before acting.
 
@@ -8,8 +8,9 @@ All named channel publishers must read this file, then
 
 For publishing work, require an envelope from `publisher` with the exact
 channel, manifest-derived dispatch plan, matching preflight contract, and
-matching preflight result. A direct availability inquiry is read-only and may
-contain only a channel plus candidate name/version.
+matching preflight result. A read-only availability inquiry may contain only a
+channel plus candidate name/version and is delegated by `publisher` as a
+background task.
 
 ## Gate and retry
 
@@ -22,7 +23,7 @@ contain only a channel plus candidate name/version.
 
 ## Result
 
-Return a fenced JSON object to `publisher` or the requesting teammate:
+Return a fenced JSON object to the parent `publisher` task:
 
 ```json
 {

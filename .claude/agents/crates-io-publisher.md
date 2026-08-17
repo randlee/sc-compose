@@ -1,9 +1,9 @@
 ---
 name: crates-io-publisher
 version: 1.0.0
-description: Named crates.io release-channel teammate for public name/version inquiry, gated publication, and partial-crate retry.
+description: Background crates.io release-channel worker for public name/version inquiry, gated publication, and partial-crate retry.
 metadata:
-  spawn_policy: named_teammate_required
+  spawn_policy: background_agent_required
 ---
 
 # crates.io Publisher

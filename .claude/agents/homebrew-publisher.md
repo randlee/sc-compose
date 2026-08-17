@@ -1,9 +1,9 @@
 ---
 name: homebrew-publisher
 version: 1.0.0
-description: Named Homebrew release-channel teammate for the manifest-declared tap publication.
+description: Background Homebrew release-channel worker for the manifest-declared tap publication.
 metadata:
-  spawn_policy: named_teammate_required
+  spawn_policy: background_agent_required
 ---
 
 # Homebrew Publisher

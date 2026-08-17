@@ -7,7 +7,7 @@ repository-specific release surface is declared only in
 ## Vendor Contract
 
 Copy the release workflows, composite actions, helper scripts/templates,
-publisher and named channel prompts, this guide,
+publisher and role-specific background channel-worker prompts, this guide,
 `release/publish-channel-contracts.toml`, and
 `release/publish-artifacts.toml`. A consuming repository changes only its
 artifact manifest: crates, binaries, targets, Python distributions, destination
@@ -42,7 +42,7 @@ depend on an earlier failed prerequisite are marked `blocked` with that
 dependency. A denied overall verdict never authorizes publication.
 The workflow publishes those results through its
 `channel_preflight_results` job output; `publisher` passes each matching entry
-to the named channel publisher that owns that channel. Each
+to the role-specific background channel worker that owns that channel. Each
 result is bound to the normalized release tag and includes global release
 authorization alongside its channel-specific credential checks, so a worker
 can reject stale or mismatched evidence.
@@ -66,8 +66,8 @@ python3 scripts/release_artifacts.py channel-dispatch-plan \
   --manifest release/publish-artifacts.toml --tag v<VERSION>
 ```
 
-Publisher dispatches the named channel publisher specified by each returned
-channel in parallel. Each teammate receives its manifest-derived
+Publisher dispatches the role-specific background channel worker specified by
+each returned channel in parallel inside its own session. Each worker receives its manifest-derived
 preflight contract and completed sanitized preflight result before it owns only
 its channel's workflow, inputs, verification, optional credential rehearsal,
 and structured result. A completed channel is not rerun: retry only the channel

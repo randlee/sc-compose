@@ -7,7 +7,8 @@ checklist.
 
 ## Goals
 
-- Prove the named publisher launches the matching named channel publishers and
+- Prove the named publisher launches the matching role-specific background
+  channel workers inside its own session and
   that each consumes only manifest-derived release data and its matching,
   non-disclosing preflight evidence.
 - Prove unresolved evidence, negative evidence, and missing release authority
@@ -18,7 +19,7 @@ checklist.
 ## Expected Outcomes
 
 - A complete passed preflight without explicit release authorization produces
-  a `blocked` dry-run response from the publisher and each launched channel publisher,
+  a `blocked` dry-run response from the publisher and each launched background worker,
   with no tag, workflow dispatch, publication, or destination mutation.
 - Present evidence reporting a missing/rejected credential, stale tag, failed
   rehearsal, or artifact mismatch produces a sanitized `failed` response for
@@ -29,16 +30,17 @@ checklist.
   negative evidence, even when no completed Release Preflight result matches
   that invalid tag; it is never a blanket `blocked` result. The top-level
   error remains `PREFLIGHT.NOT_READY`; `PREFLIGHT.INVALID_CANDIDATE_TAG` is a
-  channel diagnostic. The publisher still launches one read-only channel publisher per
-  channel to preserve the complete result set; channel publishers do not inspect
+  channel diagnostic. The publisher still launches one read-only background worker per
+  channel to preserve the complete result set; workers do not inspect
   credentials or run liveness/rehearsal checks after this failed gate.
 - Absent, incomplete, or not-yet-run channel evidence produces `blocked` for
   that channel rather than a retry or credential workaround.
 - A deliberately denied overall preflight retains every independent sanitized
   channel outcome; only genuinely dependent checks may be `blocked`.
-- The publisher and its named channel-publisher panes remain available after the run so
-  `comp` or `team-lead` can ask scenario-specific ATM follow-up questions and
-  confirm the answers agree with the retained sanitized evidence.
+- The publisher remains available after the run so `comp` or `team-lead` can
+  ask scenario-specific ATM follow-up questions and confirm the answers agree
+  with the retained sanitized evidence. Channel workers are short-lived
+  background tasks, not teammates or panes.
 
 ## Preconditions
 
@@ -98,17 +100,24 @@ contain a secret value.
 
 Give the live Haiku-or-Luna `publisher` agent synthetic ATM assignment
 envelopes. For every channel scenario, it must launch the channel contract's
-named publisher, collect that publisher's structured
-result, and preserve the parent/channel association and pane identifiers in
+role-specific background worker, collect that worker's structured
+result, and preserve the parent/channel association plus child-task and result
+references in
 sanitized evidence. Leave the publisher pane available after each scenario so
 `comp` or `team-lead` can send a targeted ATM question about its decision;
 retain the sanitized answer with the scenario evidence. Do not dispatch any
 GitHub workflow. The eval is incomplete if the real publisher prompt, its
-named channel-publisher orchestration, or its post-run ATM questioning was not
+role-specific background-worker orchestration, or its post-run ATM questioning was not
 exercised.
 
-For each of `crates_io`, `github_release`, `pypi`, `homebrew`, `winget`, and
-`scoop`, provide:
+Derive the complete worker set from the union of `root_channels` and
+`post_release_channels` in `preflight-secret-plan`; do not use
+`channel-dispatch-plan` as the worker inventory because it covers only
+post-release channels. Evidence for every result must include the background
+worker role, child-task identifier, and result reference.
+
+For each entry in that union (currently `crates_io`, `github_release`, `pypi`,
+`homebrew`, `winget`, and `scoop`), provide:
 
 - the matching manifest-derived dispatch or root-channel contract;
 - a `preflight_result` whose required checks all have `passed`; and
@@ -135,7 +144,7 @@ structured `failed` response naming only the affected channel and sanitized
 diagnostic. Repeat with `CREDENTIAL.REJECTED`, a stale tag, and an
 artifact-identity mismatch; each is also `failed`. Separately omit the
 preflight result or required rehearsal evidence; that expected result is
-`blocked` because usable evidence is absent. A channel publisher must not ask for, infer,
+`blocked` because usable evidence is absent. A channel worker must not ask for, infer,
 or substitute a credential in any case.
 
 Repeat the live-agent evaluation with a deliberately non-normalized candidate
@@ -146,7 +155,7 @@ must report `status: "failed"` and include
 must distinguish this evaluated negative result from an absent preflight run,
 which remains `blocked`. It must also retain `PREFLIGHT.NOT_READY` as the
 top-level error, use `PREFLIGHT.INVALID_CANDIDATE_TAG` only as a channel
-diagnostic, and launch one read-only named channel publisher per channel. Those publishers must
+diagnostic, and launch one read-only background worker per channel. Those workers must
 not inspect credentials, run liveness/rehearsal checks, dispatch a workflow,
 or classify the channel as `blocked`.
 
@@ -200,6 +209,6 @@ Retain the manifest command JSON, test output, sanitized channel-publisher resul
 the TestPyPI artifact URL/digest when the optional rehearsal is authorized.
 Do not retain credentials, raw environment dumps, or secret-bearing logs.
 For every normal dry-run, retain the selected model, publisher prompt revision,
-scenario identifier, spawned channel-publisher identifier, pane identifier, and
-parent/channel sanitized structured results so the eval can be rerun against a
+scenario identifier, spawned worker role, child-task identifier, result reference,
+and parent/channel sanitized structured results so the eval can be rerun against a
 later prompt or model revision.

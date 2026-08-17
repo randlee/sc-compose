@@ -1,9 +1,9 @@
 ---
 name: winget-publisher
 version: 1.0.0
-description: Named winget release-channel teammate for the manifest-declared package publication.
+description: Background winget release-channel worker for the manifest-declared package publication.
 metadata:
-  spawn_policy: named_teammate_required
+  spawn_policy: background_agent_required
 ---
 
 # winget Publisher

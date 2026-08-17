@@ -39,11 +39,12 @@ before selecting a branch, preflight location, or publish action.
 
 ## Channel publishers
 
-The named `publisher` teammate coordinates named, independently callable
-channel publishers. `release/publish-channel-contracts.toml` defines their
-standard identity and contract; [`ref/channel-contracts.md`](ref/channel-contracts.md)
-defines its operating procedure. Do not duplicate secret names, registry APIs,
-or account conventions in a repository manifest.
+The named `publisher` teammate coordinates role-specific background channel
+workers inside its own session. `release/publish-channel-contracts.toml`
+defines their standard role and contract; [`ref/channel-contracts.md`](ref/channel-contracts.md)
+defines its operating procedure. Do not launch them as ATM teammates or tmux
+panes, and do not duplicate secret names, registry APIs, or account conventions
+in a repository manifest.
 
 - `crates-io-publisher` — crate name/version inquiry and partial crate retry
 - `pypi-publisher` — normalized PyPI/TestPyPI inquiry and rehearsal
@@ -51,18 +52,10 @@ or account conventions in a repository manifest.
 - `homebrew-publisher`, `winget-publisher`, `scoop-publisher` — their matching
   manifest-declared destination only
 
-An inquiry such as `@crates-io-publisher is <name> available?` is read-only and
-does not need a release assignment. The response must distinguish
+Ask `publisher` whether `<name>` is available on a registry; it delegates a
+role-specific background worker for the read-only inquiry. The response must distinguish
 `apparently_available`, `taken`, and `indeterminate`; a lookup never reserves a
 name. Publishing remains gated by `publisher` and Release Preflight.
-
-Start a named channel publisher through `rmux` when a direct inquiry needs a
-live teammate; use the same team environment as `publisher`:
-
-```bash
-rmux claude crates-io-publisher --team <team-name> --model <claude-model>
-rmux codex pypi-publisher --team <team-name> --model <codex-model>
-```
 
 ## Durable evaluations
 
@@ -72,7 +65,7 @@ are [`evals/publisher-preflight.md`](evals/publisher-preflight.md) and
 [`evals/publisher-recovery.md`](evals/publisher-recovery.md). They use
 evaluation-only identities and must never create a production tag or publish.
 Also run [`evals/channel-name-inquiry.md`](evals/channel-name-inquiry.md) after
-changing a named channel-agent contract or registry inquiry helper.
+changing a background channel-worker contract or registry inquiry helper.
 
 ## Operating rules
 
@@ -93,4 +86,5 @@ changing a named channel-agent contract or registry inquiry helper.
   run, preserve the same tag and release ref; the idempotent manifest job skips
   live crates and retries only the missing crate set.
 - Keep `publisher` accountable for the release and let it fan out only
-  manifest-declared channel work to the matching named channel publisher.
+  manifest-declared channel work to the matching role-specific background
+  worker in its own session.

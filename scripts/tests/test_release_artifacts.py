@@ -1003,7 +1003,7 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
         assert "TEST_PYPI_TOKEN" not in text
         assert "sc-compose" not in text
 
-    assert "named `agent` specified by each listed channel" in publisher_text
+    assert "role-specific background workers" in publisher_text
     assert '"status": "passed|failed|blocked"' in publisher_text
     assert '"success": false' in publisher_text
     assert "retain `data`" in publisher_text
@@ -1040,6 +1040,7 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
         agent_text = agent_path.read_text(encoding="utf-8")
         assert "publisher-channel-protocol.md" in agent_text
         assert ".claude/skills/publishing/ref/channel-contracts.md" in agent_text
+        assert "spawn_policy: background_agent_required" in agent_text
     assert not (repo_root() / ".claude" / "agents" / "publisher-channel-worker.md").exists()
     assert {
         contract["agent"] for contract in contracts.values()
@@ -1063,16 +1064,18 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "candidate-tag validation failure" in publisher_text
     assert "Use `PREFLIGHT.NOT_READY` as the top-level error code" in publisher_text
     assert "still launch one read-only" in publisher_text
-    assert "This is required live fanout, not\n  a synthetic parent-only classification" in publisher_text
-    assert "retain each `blocked` result with its ATM identity and pane identifier" in publisher_text
+    assert "result and child-task/result references. This is required live fanout" in publisher_text
+    assert "union of\n`root_channels` and `post_release_channels` in `preflight-secret-plan`" in publisher_text
+    assert "channel-dispatch-plan` alone contains only post-release work" in publisher_text
+    assert '"child_task_id": "<background task>"' in publisher_text
     assert "simulated missing credential" in eval_plan_text
     assert "not create a tag" in eval_plan_text
     assert "## Goals" in eval_plan_text
     assert "## Expected Outcomes" in eval_plan_text
     assert "Haiku or Luna" in eval_plan_text
     assert "top-level\n  error remains `PREFLIGHT.NOT_READY`" in eval_plan_text
-    assert "it must launch the channel contract's\nnamed publisher" in eval_plan_text
-    assert "named channel-publisher panes" in eval_plan_text
+    assert "role-specific background worker" in eval_plan_text
+    assert "background tasks, not teammates or panes" in eval_plan_text
     assert "full `sc-compose` ATM team member" in eval_plan_text
     assert "dedicated\n  tmux pane" in eval_plan_text
     assert "rmux claude publisher --team sc-compose --model haiku" in eval_plan_text
@@ -1081,6 +1084,7 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "ATM_TEAM=sc-compose" in eval_plan_text
     assert "configured\n  hooks" in eval_plan_text
     assert "post-run ATM questioning" in eval_plan_text
+    assert "do not use\n`channel-dispatch-plan` as the worker inventory" in eval_plan_text
     assert "Every evaluation document must state:" in eval_convention_text
     assert ".claude/skills/publishing/ref/release-state-strategy.md" in publisher_text
     assert "ref/release-state-strategy.md" in publishing_skill_text
@@ -1091,7 +1095,7 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "evals/publisher-preflight.md" in publishing_skill_text
     assert "evals/publisher-recovery.md" in publishing_skill_text
     assert "evals/channel-name-inquiry.md" in publishing_skill_text
-    assert "@crates-io-publisher" in publishing_skill_text
+    assert "role-specific background worker for the read-only inquiry" in publishing_skill_text
     assert "publish-channel-contracts.toml" in publishing_skill_text
     assert "Code only on `feature/*` or `fix/*`" in release_state_text
     assert "Code on `develop`" in release_state_text

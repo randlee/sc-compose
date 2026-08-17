@@ -11,13 +11,13 @@ using that contract. Copy both files unchanged when vendoring the publish kit.
   request, inspect, print, or replace one locally.
 - A public lookup is evidence of registry state, not a reservation. Treat a
   timeout, rate limit, unexpected response, or 5xx as `indeterminate`.
-- A named channel agent may answer a read-only inquiry without a release
-  assignment. Publishing, workflow dispatch, or retry still requires the
-  `publisher` assignment and successful preflight evidence.
+- `publisher` may delegate a read-only inquiry to a role-specific background
+  worker without a release assignment. Publishing, workflow dispatch, or retry
+  still requires the `publisher` assignment and successful preflight evidence.
 
 ## crates.io and PyPI inquiry — `crates-io-publisher`, `pypi-publisher`
 
-For a direct, read-only candidate-name or candidate-version inquiry, generate
+For a publisher-delegated, read-only candidate-name or candidate-version inquiry, generate
 the contract-derived public URLs before calling `curl`:
 
 ```bash

@@ -31,7 +31,7 @@ Use this checklist with the repository's manifest-driven publish kit.
   python3 scripts/release_artifacts.py channel-dispatch-plan \
     --manifest release/publish-artifacts.toml --tag v<VERSION>
   ```
-- [ ] Fan out the named channel publisher from each returned dispatch plan concurrently.
+- [ ] Have `publisher` fan out the matching role-specific background worker from each returned dispatch plan concurrently.
 - [ ] Give every worker its matching preflight contract and completed
   non-disclosing preflight result; deny that channel if either is missing,
   failed, stale, or mismatched.

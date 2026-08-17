@@ -1,9 +1,9 @@
 ---
 name: scoop-publisher
 version: 1.0.0
-description: Named Scoop release-channel teammate for the manifest-declared bucket publication.
+description: Background Scoop release-channel worker for the manifest-declared bucket publication.
 metadata:
-  spawn_policy: named_teammate_required
+  spawn_policy: background_agent_required
 ---
 
 # Scoop Publisher

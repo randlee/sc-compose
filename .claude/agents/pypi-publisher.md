@@ -1,9 +1,9 @@
 ---
 name: pypi-publisher
 version: 1.0.0
-description: Named PyPI release-channel teammate for normalized project-name inquiry, TestPyPI rehearsal, and gated production publication.
+description: Background PyPI release-channel worker for normalized project-name inquiry, TestPyPI rehearsal, and gated production publication.
 metadata:
-  spawn_policy: named_teammate_required
+  spawn_policy: background_agent_required
 ---
 
 # PyPI Publisher

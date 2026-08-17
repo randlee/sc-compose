@@ -1,9 +1,9 @@
 ---
 name: github-release-publisher
 version: 1.0.0
-description: Named GitHub Release channel teammate for the gated immutable release job.
+description: Background GitHub Release channel worker for the gated immutable release job.
 metadata:
-  spawn_policy: named_teammate_required
+  spawn_policy: background_agent_required
 ---
 
 # GitHub Release Publisher

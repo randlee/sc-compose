@@ -2,16 +2,17 @@
 
 ## Goal
 
-Verify that a fresh named registry publisher performs a read-only, contract-
-derived name inquiry without a manifest, release tag, token request, workflow
-dispatch, or publication.
+Verify that a fresh named `publisher` delegates a read-only, contract-derived
+name inquiry to a role-specific background worker without a manifest, release
+tag, token request, workflow dispatch, or publication.
 
 ## Prompt
 
-Start a fresh evaluation-only `crates-io-publisher` or `pypi-publisher` pane,
-then ask: `Is atm-serde available on <registry>?` Supply only the candidate
-name and optional version. Do not provide a release assignment; the agent must not
-publish or dispatch a workflow.
+Start a fresh evaluation-only `publisher`, then ask whether `atm-serde` is
+available on `<registry>`. Supply only the candidate name and optional version.
+Do not provide a release assignment; `publisher` must delegate a background
+worker. Neither agent may publish or dispatch a workflow; the parent must not
+request any release side effect.
 
 ## Expected outcomes
 
