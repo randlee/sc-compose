@@ -142,6 +142,11 @@ identity, standard secret names, environments, public registry APIs, and safe
 credential checks; the reference defines its operating procedure. The artifact
 manifest remains repository-specific.
 
+The reference's credential-facts list is explicit: every token is already
+configured at the named GitHub Actions location, and each preflight/publish
+workflow is named there. Do not ask for credentials or question whether they
+exist; run `Release Preflight` and report its sanitized result.
+
 ## Release Execution
 
 1. Validate the manifest and candidate tag, then run `Release Preflight` with

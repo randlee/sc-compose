@@ -9,6 +9,31 @@ using that contract. Copy both files unchanged when vendoring the publish kit.
 
 - Tokens are GitHub Actions secrets with the names declared in the TOML. Never
   request, inspect, print, or replace one locally.
+- Credential facts:
+  - `PYPI_API_TOKEN` — Actions `pypi` environment; preflight:
+    `.github/workflows/release-preflight.yml`; publish:
+    `.github/workflows/pypi-publish.yml`.
+  - `TEST_PYPI_API_TOKEN` — Actions `testpypi` environment; preflight:
+    `.github/workflows/release-preflight.yml`; publish:
+    `.github/workflows/pypi-publish.yml`.
+  - `CARGO_REGISTRY_TOKEN` — Actions `crates-io` environment; preflight:
+    `.github/workflows/release-preflight.yml`; publish:
+    `.github/workflows/release.yml`.
+  - `HOMEBREW_TAP_TOKEN` — repository secret; preflight:
+    `.github/workflows/release-preflight.yml`; publish:
+    `.github/workflows/homebrew-publish.yml`.
+  - `WINGET_GITHUB_TOKEN` — repository secret; preflight:
+    `.github/workflows/release-preflight.yml`; publish:
+    `.github/workflows/winget-publish.yml`.
+  - `SCOOP_BUCKET_TOKEN` — repository secret; preflight:
+    `.github/workflows/release-preflight.yml`; publish:
+    `.github/workflows/scoop-publish.yml`.
+  - `GITHUB_TOKEN` — GitHub-provided Actions token with `contents:write`;
+    preflight: `.github/workflows/release-preflight.yml`; publish:
+    `.github/workflows/release.yml`.
+- These credentials are already configured. Do not ask whether they exist or
+  ask anyone to provide them; run the named preflight workflow and report its
+  sanitized result.
 - A public lookup is evidence of registry state, not a reservation. Treat a
   timeout, rate limit, unexpected response, or 5xx as `indeterminate`.
 - `publisher` may delegate a read-only inquiry to a role-specific background
