@@ -190,11 +190,18 @@ manifest remains repository-specific.
   "inputs": {"tag": "v<VERSION>"},
   "dispatch_run_id": "<GitHub run id>",
   "status": "passed|failed|blocked",
-  "checks": [{"kind": "<check kind>", "status": "passed|failed|blocked|required"}],
+  "checks": [{"kind": "<check kind>", "status": "passed|failed|blocked"}],
   "verification": ["<channel-specific fact>"],
   "sanitized_diagnostic": "<empty on success; never a secret value>"
 }
 ```
+
+`required` describes a contract requirement, not an observed check result, and
+is never a result status. A worker may call its preflight complete only when
+every required check in the supplied result is `passed`. If evidence for a
+required check is absent, return `blocked`; if it is negative, return
+`failed`. Do not report a channel as technically ready while an entry remains
+uncollected.
 
 ## Retry Recovery
 

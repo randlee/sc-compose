@@ -1074,6 +1074,11 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
 
     assert "role-specific background workers" in publisher_text
     assert '"status": "passed|failed|blocked"' in publisher_text
+    assert '"passed|failed|blocked|required"' not in publisher_text
+    assert "`required` describes a contract requirement" in publisher_text
+    assert "never a check-result status" in (
+        repo_root() / ".claude" / "agents" / "publisher-channel-protocol.md"
+    ).read_text(encoding="utf-8")
     assert '"success": false' in publisher_text
     assert "retain `data`" in publisher_text
     assert "Do not retry a `blocked` channel" in publisher_text
