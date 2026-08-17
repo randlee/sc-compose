@@ -190,6 +190,14 @@ def repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+def test_release_artifact_cli_stays_below_the_script_line_ceiling() -> None:
+    cli_lines = (repo_root() / "scripts" / "release_artifacts.py").read_text(
+        encoding="utf-8"
+    ).splitlines()
+    assert len(cli_lines) <= 1000
+    assert (repo_root() / "scripts" / "release_manifest.py").is_file()
+
+
 def release_workflow_text() -> str:
     return (repo_root() / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
 
