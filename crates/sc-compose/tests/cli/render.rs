@@ -128,12 +128,12 @@ fn render_homebrew_formula_escapes_manifest_values_as_ruby_strings() {
   "macos_intel_sha256": "intel-hash",
   "linux_url": "https://example.invalid/linux.tar.gz",
   "linux_sha256": "linux-hash",
-  "binary_path": "bin/sc-compose",
+  "binary_paths": ["bin/sc-compose"],
   "bundled_paths": [{
     "destination_components": ["share", "quoted\"component", "examples"],
     "source_glob": "share/quoted\"component/examples/*"
   }],
-  "binary": "sc-compose",
+  "test_binary": "sc-compose",
   "test_command": "--help",
   "test_output": "A \"quoted\" result"
 }"#,
