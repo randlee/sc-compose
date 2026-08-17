@@ -55,19 +55,12 @@ Every change should follow:
 
 ## Release Rule
 
-- Release tags must come from `main`, not from `develop` or a feature branch.
-- Publishing must follow the order in `release/publish-artifacts.toml`.
-- Release automation must validate publish order and version alignment before
-  any tag or publish step runs.
-- Release-track PRs (e.g. a release-blocking fix discovered after `develop`
-  has already merged to `main`) go straight to `main`: cut a `release/*`
-  branch from `main`, PR into `main`, publish from `main`. Do not route
-  through `develop` first — that costs a second CI cycle and a bidirectional
-  sync before the release gate (which checks commit ancestry, not content)
-  will pass.
-- After publish, backpropagate the `release/*` branch's commits to `develop`
-  as routine post-release housekeeping (a normal `main` -> `develop` sync
-  PR). This is not a pre-publish gate.
+Follow the single release-state policy in
+[`.claude/skills/publishing/ref/release-state-strategy.md`](../.claude/skills/publishing/ref/release-state-strategy.md).
+It defines the mandatory `develop` landing rule, the narrow `release/*` fix
+exception, readiness and final-preflight timing, and the rule that publication
+and tags originate only from `main`. Publishing remains manifest-driven and
+must preserve the order in `release/publish-artifacts.toml`.
 
 ## Worktree Rule
 

@@ -930,6 +930,24 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     eval_convention_text = (repo_root() / "docs" / "eval" / "README.md").read_text(
         encoding="utf-8"
     )
+    publishing_skill_text = (repo_root() / ".claude" / "skills" / "publishing" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    release_state_text = (
+        repo_root() / ".claude" / "skills" / "publishing" / "ref" / "release-state-strategy.md"
+    ).read_text(encoding="utf-8")
+    preflight_template_text = (
+        repo_root() / ".claude" / "skills" / "publishing" / "preflight.xml.j2"
+    ).read_text(encoding="utf-8")
+    publish_template_text = (
+        repo_root() / ".claude" / "skills" / "publishing" / "publish.xml.j2"
+    ).read_text(encoding="utf-8")
+    preflight_eval_text = (
+        repo_root() / ".claude" / "skills" / "publishing" / "evals" / "publisher-preflight.md"
+    ).read_text(encoding="utf-8")
+    recovery_eval_text = (
+        repo_root() / ".claude" / "skills" / "publishing" / "evals" / "publisher-recovery.md"
+    ).read_text(encoding="utf-8")
 
     for text in (publisher_text, guide_text, checklist_text):
         assert "channel-dispatch-plan" in text
@@ -946,7 +964,7 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "Never ask whether a token exists" in publisher_text
     assert "preflight-secret-plan" in publisher_text
     assert "protected-environment secret metadata" in guide_text
-    assert "version: 1.4.0" in publisher_text
+    assert "version: 1.5.0" in publisher_text
     assert "## Inputs" in publisher_text
     assert "## Output Format" in publisher_text
     assert "## Error Handling" in publisher_text
@@ -954,8 +972,9 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     registry_text = (repo_root() / ".claude" / "agents" / "registry.yaml").read_text(
         encoding="utf-8"
     )
-    assert 'publisher:\n    version: 1.4.0' in registry_text
+    assert 'publisher:\n    version: 1.5.0' in registry_text
     assert 'publisher-channel-worker:\n    version: 1.2.0' in registry_text
+    assert 'publishing:\n    version: 1.0.0' in registry_text
     assert "preflight_contract" in worker_text
     assert "preflight_result" in worker_text
     assert "Never ask whether a token exists" in worker_text
@@ -983,6 +1002,42 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "configured\n  hooks" in eval_plan_text
     assert "post-run ATM questioning" in eval_plan_text
     assert "Every evaluation document must state:" in eval_convention_text
+    assert ".claude/skills/publishing/ref/release-state-strategy.md" in publisher_text
+    assert "ref/release-state-strategy.md" in publishing_skill_text
+    assert "rmux claude publisher" in publishing_skill_text
+    assert "rmux codex publisher" in publishing_skill_text
+    assert "--team <team-name>" in publishing_skill_text
+    assert "identity is exactly `publisher`" in publishing_skill_text
+    assert "evals/publisher-preflight.md" in publishing_skill_text
+    assert "evals/publisher-recovery.md" in publishing_skill_text
+    assert "Code only on `feature/*` or `fix/*`" in release_state_text
+    assert "Code on `develop`" in release_state_text
+    assert "Code on `main`" in release_state_text
+    assert "Code on `release/*`" in release_state_text
+    assert "final preflight on the exact `main` commit" in release_state_text
+    assert "same authorized release ref and" in publisher_text
+    assert "tag. It must read the full ordered manifest" in publisher_text
+    assert "already-live" in publisher_text
+    for template_text in (preflight_template_text, publish_template_text):
+        assert 'assignee="publisher"' in template_text
+        assert "release-state-strategy.md" in template_text
+        assert "manifest_path" in template_text
+    for eval_text in (preflight_eval_text, recovery_eval_text):
+        assert "## Goal" in eval_text
+        assert "## Expected outcomes" in eval_text
+        assert "fresh" in eval_text
+        assert "fenced JSON" in eval_text
+        assert "must not" in eval_text
+        assert "manifest path" in eval_text
+        assert "Do not hardcode a package" in eval_text
+    for text in (
+        publishing_skill_text,
+        preflight_template_text,
+        publish_template_text,
+        preflight_eval_text,
+        recovery_eval_text,
+    ):
+        assert "sc-compose" not in text
 
 
 def test_release_preflight_collects_independent_failures_before_denial() -> None:

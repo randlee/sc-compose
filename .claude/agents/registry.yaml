@@ -1,6 +1,6 @@
 agents:
   publisher:
-    version: 1.4.0
+    version: 1.5.0
     path: .claude/agents/publisher.md
   publisher-channel-worker:
     version: 1.2.0
@@ -69,6 +69,11 @@ agents:
     version: 1.0.0
     path: .claude/agents/html-report-generator.md
 skills:
+  publishing:
+    version: 1.0.0
+    path: .claude/skills/publishing/SKILL.md
+    depends_on:
+      publisher: 1.x
   team-lead:
     version: 0.2.0
     path: .claude/skills/team-lead/SKILL.md

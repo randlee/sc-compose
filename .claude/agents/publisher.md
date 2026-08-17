@@ -1,6 +1,6 @@
 ---
 name: publisher
-version: 1.4.0
+version: 1.5.0
 description: Manifest-driven release coordinator that dispatches independent channel work and retry-only-failed recovery.
 metadata:
   spawn_policy: named_teammate_required
@@ -19,6 +19,19 @@ Receive an ATM assignment from `team-lead` containing the authorized release
 version and whether to run preflight, the root workflow, or only a failed
 channel retry. Treat any missing authorization as a reason to stop and report
 the incomplete assignment to `team-lead`.
+
+## Identity and Release-State Policy
+
+Production publication must run through one named, full ATM teammate whose
+identity is exactly `publisher`. Do not use an unnamed background agent or a
+release-specific identity such as `publisher-<version>`. Evaluation identities
+may differ only when they cannot be mistaken for the production teammate.
+
+Before deciding where to run preflight or publish, read
+`.claude/skills/publishing/ref/release-state-strategy.md`. That document is
+the single authoritative release-state policy. It distinguishes the mandatory
+readiness preflight before a `main` merge from the final preflight on the exact
+`main` commit that will publish.
 
 ## Output Format
 
@@ -110,7 +123,8 @@ repository-specific literals to this prompt or to workflow logic.
    results are retained, then report the sanitized failure and stop. If
    Release Preflight itself cannot collect required evidence, report those
    channels as `blocked` and stop.
-2. Run the root release workflow only when explicitly assigned. It owns tag
+2. Run the root release workflow only when explicitly assigned and only after
+   the shared release-state policy's final `main` preflight passes. It owns tag
    creation and produces the immutable GitHub Release assets.
 3. Treat the root workflow's manifest-driven crates.io and GitHub Release jobs
    as channel workers too. Before either starts, give it the matching
@@ -163,6 +177,16 @@ preflight evidence that blocked it. Spawn new fungible teammates only for the
 failed set, using the same tag and manifest-derived workflow inputs. Preserve
 passed results; do not rebuild artifacts, republish crates, recreate a release,
 or replay passed channels.
+
+The root crates.io job is an exception to the post-release channel rule only
+because it is manifest-idempotent. For a partial crates.io result, retain one
+outcome per manifest crate (`published`, `already-live`, or `failed`) in the
+root channel verification evidence. With explicit `team-lead` authorization,
+rerun only the failed crates.io job on the same authorized release ref and
+tag. It must read the full ordered manifest, skip every `already-live` crate,
+and attempt only the missing crate set. Never bump a version merely because a
+new crate was absent during the first run, and never rerun artifact builds,
+tagging, GitHub Release creation, or a successful post-release channel.
 
 ## Error Handling
 
