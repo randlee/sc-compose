@@ -946,7 +946,7 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "Never ask whether a token exists" in publisher_text
     assert "preflight-secret-plan" in publisher_text
     assert "protected-environment secret metadata" in guide_text
-    assert "version: 1.3.0" in publisher_text
+    assert "version: 1.4.0" in publisher_text
     assert "## Inputs" in publisher_text
     assert "## Output Format" in publisher_text
     assert "## Error Handling" in publisher_text
@@ -954,7 +954,7 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     registry_text = (repo_root() / ".claude" / "agents" / "registry.yaml").read_text(
         encoding="utf-8"
     )
-    assert 'publisher:\n    version: 1.3.0' in registry_text
+    assert 'publisher:\n    version: 1.4.0' in registry_text
     assert 'publisher-channel-worker:\n    version: 1.2.0' in registry_text
     assert "preflight_contract" in worker_text
     assert "preflight_result" in worker_text
@@ -964,11 +964,15 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "Classify an evaluated candidate-tag validation failure as `failed`" in worker_text
     assert "release_authorization" in worker_text
     assert "candidate-tag validation failure" in publisher_text
+    assert "Use `PREFLIGHT.NOT_READY` as the top-level error code" in publisher_text
+    assert "still launch one read-only" in publisher_text
     assert "simulated missing credential" in eval_plan_text
     assert "not create a tag" in eval_plan_text
     assert "## Goals" in eval_plan_text
     assert "## Expected Outcomes" in eval_plan_text
     assert "Haiku or Luna" in eval_plan_text
+    assert "top-level\n  error remains `PREFLIGHT.NOT_READY`" in eval_plan_text
+    assert "launches one read-only worker per" in eval_plan_text
     assert "background agent" in eval_plan_text
     assert "full `sc-compose` ATM team member" in eval_plan_text
     assert "dedicated\n  tmux pane" in eval_plan_text

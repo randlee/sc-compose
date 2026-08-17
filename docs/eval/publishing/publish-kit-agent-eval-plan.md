@@ -27,7 +27,11 @@ checklist.
   unpublished workspace version, produces `failed` for every affected channel
   with an explicit failed `release_authorization` check. It is evaluated
   negative evidence, even when no completed Release Preflight result matches
-  that invalid tag; it is never a blanket `blocked` result.
+  that invalid tag; it is never a blanket `blocked` result. The top-level
+  error remains `PREFLIGHT.NOT_READY`; `PREFLIGHT.INVALID_CANDIDATE_TAG` is a
+  channel diagnostic. The publisher still launches one read-only worker per
+  channel to preserve the complete result set; workers do not inspect
+  credentials or run liveness/rehearsal checks after this failed gate.
 - Absent, incomplete, or not-yet-run channel evidence produces `blocked` for
   that channel rather than a retry or credential workaround.
 - A deliberately denied overall preflight retains every independent sanitized
@@ -140,7 +144,11 @@ version remains the authorized unpublished version. Every affected channel
 must report `status: "failed"` and include
 `{"kind": "release_authorization", "status": "failed"}`. The evaluator
 must distinguish this evaluated negative result from an absent preflight run,
-which remains `blocked`.
+which remains `blocked`. It must also retain `PREFLIGHT.NOT_READY` as the
+top-level error, use `PREFLIGHT.INVALID_CANDIDATE_TAG` only as a channel
+diagnostic, and launch one read-only worker per channel. Those workers must
+not inspect credentials, run liveness/rehearsal checks, dispatch a workflow,
+or classify the channel as `blocked`.
 
 ## 3. Fail-Closed, Complete-Result Evaluation
 

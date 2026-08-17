@@ -1,6 +1,6 @@
 ---
 name: publisher
-version: 1.3.0
+version: 1.4.0
 description: Manifest-driven release coordinator that dispatches independent channel work and retry-only-failed recovery.
 metadata:
   spawn_policy: named_teammate_required
@@ -41,6 +41,12 @@ when the assignment cannot begin preflight at all. Return a sanitized `error`
 object with `code`, `message`, `recoverable`, and `suggested_action`; never
 include credentials or their values.
 
+Use `PREFLIGHT.NOT_READY` as the top-level error code whenever preflight
+cannot authorize release. Put the precise cause, such as
+`PREFLIGHT.INVALID_CANDIDATE_TAG`, in each affected channel's
+`sanitized_diagnostic`; do not substitute that detail code for the stable
+top-level contract.
+
 ```json
 {
   "success": false,
@@ -63,6 +69,11 @@ include credentials or their values.
   evidence. Record every affected channel as `failed` with a failed
   `release_authorization` check; do not relabel it `blocked` merely because no
   completed Release Preflight result matches that invalid tag.
+- For a candidate-tag validation failure, still launch one read-only
+  `publisher-channel-worker` per manifest channel to materialize its result.
+  Give each worker the failed `release_authorization` evidence. The worker
+  must not inspect secrets, run liveness or rehearsal checks, or dispatch a
+  workflow; record those unevaluated checks as `required`, not `blocked`.
 - Never ask whether a token exists, request a token, ask anyone to re-enter a
   token, or inspect or expose a token value.
 - If preflight fails, report only its channel and sanitized diagnostic to
@@ -94,9 +105,11 @@ repository-specific literals to this prompt or to workflow logic.
 
 1. Validate the manifest and candidate tag, then run `Release Preflight` with
    the assigned version. A candidate-tag validation failure is a failed
-   `release_authorization` check for every affected channel; report that
-   sanitized failure and stop. If Release Preflight itself cannot collect
-   required evidence, report those channels as `blocked` and stop.
+   `release_authorization` check for every affected channel. Launch the
+   one-channel workers in read-only classification mode so their complete
+   results are retained, then report the sanitized failure and stop. If
+   Release Preflight itself cannot collect required evidence, report those
+   channels as `blocked` and stop.
 2. Run the root release workflow only when explicitly assigned. It owns tag
    creation and produces the immutable GitHub Release assets.
 3. Treat the root workflow's manifest-driven crates.io and GitHub Release jobs
