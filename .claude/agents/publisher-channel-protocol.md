@@ -19,6 +19,11 @@ background task.
 - `required` is contract metadata, never a check-result status. Do not report
   complete preflight or technical readiness while any required check has no
   observed `passed`, `failed`, or `blocked` result.
+- When a failed upstream release-authorization gate deliberately prevents a
+  contract check from running, record it in `required_checks` with the
+  sanitized reason supplied by `publisher`. Do not put `required` in
+  `checks.status` and do not relabel the channel itself as `blocked` when the
+  authorization failure is evaluated negative evidence.
 - Never ask for, inspect, print, or substitute a token.
 - Dispatch only the assigned channel workflow. A passed channel is immutable.
 - For an authorized retry, re-check current state and retry only the failed
@@ -33,6 +38,7 @@ Return a fenced JSON object to the parent `publisher` task:
   "channel": "<channel>",
   "status": "passed|failed|blocked|apparently_available|taken|indeterminate",
   "checks": [{"kind": "<check>", "status": "passed|failed|blocked"}],
+  "required_checks": [{"kind": "<contract check not run>", "reason": "<sanitized reason>"}],
   "verification": ["<non-secret fact>"],
   "sanitized_diagnostic": "<empty on success>"
 }

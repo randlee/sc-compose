@@ -1408,10 +1408,13 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     ).read_text(encoding="utf-8")
     assert '"status": "passed|failed|blocked"' in publisher_text
     assert '"passed|failed|blocked|required"' not in publisher_text
-    assert "`required` describes a contract requirement" in publisher_text
-    assert "never a check-result status" in (
+    assert '"required_checks": [{"kind": "<contract check not run>"' in publisher_text
+    assert "`required_checks` lists contract checks deliberately not run" in publisher_text
+    channel_protocol_text = (
         repo_root() / ".claude" / "agents" / "publisher-channel-protocol.md"
     ).read_text(encoding="utf-8")
+    assert "never a check-result status" in channel_protocol_text
+    assert '"required_checks": [{"kind": "<contract check not run>"' in channel_protocol_text
     assert '"success": false' in publisher_text
     assert "retain `data`" in publisher_text
     assert "Do not retry a `blocked` channel" in publisher_text

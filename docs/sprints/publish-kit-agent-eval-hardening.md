@@ -101,3 +101,11 @@ QA-RECHECK pass (see
 `/Users/randlee/.atm/.config/atm/share/sc-compose/pk-eval-qa-recheck-atm.txt`).
 The no-release scope guard held throughout: no tag, dispatch, or publish
 action was taken.
+
+Commit `f26cc8a67ac9e940082ef38e4ba34e5edd79dcda` clarifies the durable
+invalid-candidate-tag eval output: `checks` records observed evidence only,
+while `required_checks` records contract checks deliberately skipped after
+failed release authorization. The publisher and every role-specific channel
+worker now share that schema. Validation for the follow-up includes
+`python3 -m pytest scripts/tests/test_release_artifacts.py -q`, `just test`,
+and `git diff --check`; it remains read-only with no release side effect.
