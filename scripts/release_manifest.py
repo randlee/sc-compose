@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import tomllib
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 
 CHANNEL_CONTRACTS_FILE = "publish-channel-contracts.toml"
@@ -194,6 +194,56 @@ def _channel_config(manifest: dict, channel_name: str) -> dict:
     if not isinstance(channel, dict):
         raise SystemExit(f"[channels.{channel_name}] must be a table")
     return channel
+
+
+def _is_prerelease_tag(tag: str) -> bool:
+    """Return whether a SemVer-style tag names a prerelease."""
+    return "-" in tag.removeprefix("v").split("+", maxsplit=1)[0]
+
+
+def _validate_homebrew_formulas(channel: dict) -> list[dict]:
+    """Validate manifest-declared Homebrew formula entries."""
+    formulas = channel.get("formulas")
+    if not isinstance(formulas, list) or not formulas:
+        raise SystemExit("[channels.homebrew] must define [[channels.homebrew.formulas]]")
+
+    paths: set[str] = set()
+    for index, formula in enumerate(formulas, start=1):
+        label = f"[[channels.homebrew.formulas]] #{index}"
+        if not isinstance(formula, dict):
+            raise SystemExit(f"{label} must be a table")
+        _require_keys(
+            formula,
+            ("path", "template", "class", "binary", "test_command", "test_output", "release_track"),
+            label,
+        )
+        for key in ("path", "template", "class", "binary", "test_command", "test_output"):
+            if not isinstance(formula[key], str) or not formula[key]:
+                raise SystemExit(f"{label}.{key} must be a non-empty string")
+        for key in ("path", "template"):
+            path = PurePosixPath(formula[key])
+            if path.is_absolute() or ".." in path.parts or str(path) in ("", "."):
+                raise SystemExit(f"{label}.{key} must be a safe relative path")
+        if formula["release_track"] not in {"stable", "prerelease"}:
+            raise SystemExit(f"{label}.release_track must be stable or prerelease")
+        if formula["path"] in paths:
+            raise SystemExit(f"duplicate Homebrew formula path: {formula['path']}")
+        paths.add(formula["path"])
+
+    return formulas
+
+
+def _homebrew_formulas_for_tag(channel: dict, tag: str) -> list[dict]:
+    """Select manifest-declared Homebrew formulas for one release tag."""
+    formulas = _validate_homebrew_formulas(channel)
+    selected_track = "prerelease" if _is_prerelease_tag(tag) else "stable"
+    selected = [
+        formula for formula in formulas if formula["release_track"] == selected_track
+    ]
+
+    if not selected:
+        raise SystemExit(f"no Homebrew {selected_track} formulas declared for tag {tag}")
+    return selected
 
 
 def _channel_contract(manifest: dict, channel_name: str) -> dict:

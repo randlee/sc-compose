@@ -74,8 +74,11 @@ create or move tags manually.
 ## Homebrew — `homebrew-publisher`
 
 Use the contract-declared GitHub token liveness check before dispatching the
-manifest-declared tap workflow. Destination repository, formula, assets, and
-verification command come from the manifest.
+manifest-declared tap workflow. Destination repository, formulas, assets, and
+verification commands come from the manifest. Each `[[channels.homebrew.formulas]]`
+entry declares its path, template, class, binary, test fields, and
+`release_track`; stable tags select every `stable` entry, while prerelease tags
+select only `prerelease` entries.
 
 ## winget — `winget-publisher`
 

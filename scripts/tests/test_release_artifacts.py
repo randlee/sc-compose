@@ -128,13 +128,16 @@ def write_repo_fixture(tmp_path: Path, *, manifest_wheels: list[str]) -> tuple[P
                 'workflow = "homebrew-publish.yml"',
                 'dispatch_inputs = {}',
                 'tap_repository = "example/homebrew-tap"',
-                'formula_path = "Formula/fixture.rb"',
-                'formula_template = "release/homebrew/formula.rb.j2"',
-                'formula_class = "Fixture"',
+                'renderer_target = "x86_64-unknown-linux-gnu"',
+                "",
+                "[[channels.homebrew.formulas]]",
+                'path = "Formula/fixture.rb"',
+                'template = "release/homebrew/formula.rb.j2"',
+                'class = "Fixture"',
                 'binary = "fixture"',
                 'test_command = "--help"',
                 'test_output = "fixture"',
-                'renderer_target = "x86_64-unknown-linux-gnu"',
+                'release_track = "stable"',
                 "",
                 "[[channels.homebrew.assets]]",
                 'key = "linux"',
@@ -252,6 +255,77 @@ def test_validate_manifest_accepts_matching_python_release_shape(tmp_path: Path)
     assert "manifest validation passed" in result.stdout
 
 
+def test_homebrew_workflow_selects_manifest_formula_tracks(tmp_path: Path) -> None:
+    _, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    formulas = """
+[[channels.homebrew.formulas]]
+path = "Formula/fixture-alt.rb"
+template = "release/homebrew/alternate.rb.j2"
+class = "FixtureAlt"
+binary = "fixture"
+test_command = "--version"
+test_output = "fixture-alt"
+release_track = "stable"
+
+[[channels.homebrew.formulas]]
+path = "Formula/fixture-preview.rb"
+template = "release/homebrew/preview.rb.j2"
+class = "FixturePreview"
+binary = "fixture"
+test_command = "--version"
+test_output = "fixture-preview"
+release_track = "prerelease"
+
+"""
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            "[[channels.homebrew.assets]]", formulas + "[[channels.homebrew.assets]]", 1
+        ),
+        encoding="utf-8",
+    )
+
+    def channel_config(tag: str) -> dict:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(repo_root() / "scripts" / "release_artifacts.py"),
+                "channel-config",
+                "--manifest",
+                str(manifest),
+                "--channel",
+                "homebrew",
+                "--tag",
+                tag,
+            ],
+            cwd=tmp_path,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr
+        return json.loads(result.stdout)
+
+    stable = channel_config("v1.2.3")
+    prerelease = channel_config("v1.2.4-rc.1")
+    assert [formula["path"] for formula in stable["channel"]["formulas"]] == [
+        "Formula/fixture.rb",
+        "Formula/fixture-alt.rb",
+    ]
+    assert [formula["path"] for formula in prerelease["channel"]["formulas"]] == [
+        "Formula/fixture-preview.rb"
+    ]
+
+    workflow = homebrew_publish_workflow_text()
+    assert '--tag "${{ inputs.tag }}"' in workflow
+    assert 'channel["formulas"]' in workflow
+    assert 'formula["path"]' in workflow
+    assert 'formula["template"]' in workflow
+    assert "Formula/fixture" not in workflow
+    assert "FixturePreview" not in workflow
+    assert "sc-compose" not in workflow
+    assert "randlee" not in workflow
+
+
 def test_validate_manifest_rejects_unknown_channel_target(tmp_path: Path) -> None:
     workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
     manifest.write_text(
@@ -279,6 +353,34 @@ def test_validate_manifest_rejects_unknown_channel_target(tmp_path: Path) -> Non
     )
     assert result.returncode != 0
     assert "references unknown release target" in result.stderr
+
+
+def test_validate_manifest_requires_manifest_driven_scoop_channel_inputs(tmp_path: Path) -> None:
+    workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            'manifest_template = "release/scoop/manifest.json.j2"\n', "", 1
+        ),
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(repo_root() / "scripts" / "release_artifacts.py"),
+            "validate-manifest",
+            "--manifest",
+            str(manifest),
+            "--workspace-toml",
+            str(workspace),
+        ],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "[channels.scoop] missing required keys: manifest_template" in result.stderr
 
 
 def test_validate_manifest_rejects_unknown_renderer_target(tmp_path: Path) -> None:
@@ -392,6 +494,17 @@ def test_release_manifest_publishes_sc_sha_before_its_consumers() -> None:
         "sc-compose": "bindings/python",
     }
     assert manifest["channels"]["homebrew"]["renderer_target"] == "x86_64-unknown-linux-gnu"
+    assert manifest["channels"]["homebrew"]["formulas"] == [
+        {
+            "path": "Formula/sc-compose.rb",
+            "template": "release/homebrew/formula.rb.j2",
+            "class": "ScCompose",
+            "binary": "sc-compose",
+            "test_command": "--help",
+            "test_output": "Standalone template composition CLI",
+            "release_track": "stable",
+        }
+    ]
     assert manifest["channels"]["scoop"]["renderer_target"] == "x86_64-unknown-linux-gnu"
     assert manifest["project"]["renderer_archive_path"] == "bin/sc-compose"
     assert manifest["channels"]["pypi"]["credential_rehearsal_inputs"] == {
@@ -1026,7 +1139,7 @@ def test_channel_recovery_workflows_require_a_published_release() -> None:
 
     assert "No published GitHub Release found" in guard_text
     assert "is still a draft" in guard_text
-    assert "^v[0-9]+\\.[0-9]+\\.[0-9]+$" in guard_text
+    assert "optional SemVer prerelease/build metadata" in guard_text
     assert "REQUIRED_ASSET_PATTERNS" in guard_text
 
     for workflow_text in (pypi_text, homebrew_text, winget_text, scoop_text):
@@ -1050,8 +1163,11 @@ def test_channel_recovery_workflows_require_a_published_release() -> None:
     assert "Checkout workflow support" in scoop_text
     assert "uses: ./.github/actions/extract-published-renderer" in scoop_text
 
-    assert "Render formula from the manifest-declared template" in homebrew_text
-    assert 'FORMULA_TEMPLATE: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.formula_template }}' in homebrew_text
+    assert "Render manifest-selected formulas with the published renderer" in homebrew_text
+    assert '--tag "${{ inputs.tag }}"' in homebrew_text
+    assert 'channel["formulas"]' in homebrew_text
+    assert 'formula["path"]' in homebrew_text
+    assert 'formula["template"]' in homebrew_text
     assert ".replace(placeholder, value)" not in homebrew_text
     assert "PUBLISHED_RENDERER" in homebrew_text
     assert "Checkout workflow support" in homebrew_text

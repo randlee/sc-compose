@@ -93,13 +93,16 @@ production_repository = "pypi"
 workflow = "homebrew-publish.yml"
 dispatch_inputs = {}
 tap_repository = "randlee/homebrew-tap"
-formula_path = "Formula/sc-compose.rb"
-formula_template = "release/homebrew/formula.rb.j2"
-formula_class = "ScCompose"
+renderer_target = "x86_64-unknown-linux-gnu"
+
+[[channels.homebrew.formulas]]
+path = "Formula/sc-compose.rb"
+template = "release/homebrew/formula.rb.j2"
+class = "ScCompose"
 binary = "sc-compose"
 test_command = "--help"
 test_output = "Standalone template composition CLI"
-renderer_target = "x86_64-unknown-linux-gnu"
+release_track = "stable"
 
 [[channels.homebrew.assets]]
 key = "macos_arm"

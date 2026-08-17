@@ -18,6 +18,8 @@ from release_manifest import (
     _channel_contract,
     _channel_names,
     _channel_preflight_result,
+    _homebrew_formulas_for_tag,
+    _validate_homebrew_formulas,
     _python_distribution_entries,
     _python_distribution_expectations,
     _python_project_name,
@@ -317,6 +319,19 @@ def _validate_homebrew_bundle_destinations(binaries: list[dict]) -> None:
                 )
 
 
+def _validate_scoop_channel(manifest: dict) -> None:
+    """Require the generic Scoop workflow inputs to be manifest-declared."""
+    channel = _channel_config(manifest, "scoop")
+    _require_keys(
+        channel,
+        ("bucket_repository", "manifest_path", "manifest_template", "binary"),
+        "[channels.scoop]",
+    )
+    for key in ("bucket_repository", "manifest_path", "manifest_template", "binary"):
+        if not isinstance(channel[key], str) or not channel[key]:
+            raise SystemExit(f"[channels.scoop].{key} must be a non-empty string")
+
+
 def _channel_asset_patterns(manifest: dict, channel_name: str) -> list[str]:
     project = _require_project(manifest)
     targets = _release_targets_by_name(manifest)
@@ -364,6 +379,9 @@ def cmd_validate_manifest(args: argparse.Namespace) -> int:
             _renderer_archive_path(manifest)
     if "homebrew" in channel_names:
         _validate_homebrew_bundle_destinations(binaries)
+        _validate_homebrew_formulas(_channel_config(manifest, "homebrew"))
+    if "scoop" in channel_names:
+        _validate_scoop_channel(manifest)
     members = workspace_members(Path(args.workspace_toml))
     missing = []
     for crate in manifest["crates"]:
@@ -497,7 +515,9 @@ def cmd_release_package_config(args: argparse.Namespace) -> int:
 def cmd_channel_config(args: argparse.Namespace) -> int:
     manifest = load_manifest(Path(args.manifest))
     project = _require_project(manifest)
-    channel = _channel_config(manifest, args.channel)
+    channel = dict(_channel_config(manifest, args.channel))
+    if args.channel == "homebrew" and args.tag is not None:
+        channel["formulas"] = _homebrew_formulas_for_tag(channel, args.tag)
     result = {
         "project": project,
         "channel": channel,
@@ -863,6 +883,7 @@ def main() -> int:
     p = sub.add_parser("channel-config")
     p.add_argument("--manifest", required=True)
     p.add_argument("--channel", required=True)
+    p.add_argument("--tag")
     p.set_defaults(func=cmd_channel_config)
 
     p = sub.add_parser("channel-dispatch-plan")
