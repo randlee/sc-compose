@@ -87,7 +87,8 @@ top-level contract.
   its result.
   Give each worker the failed `release_authorization` evidence. The worker
   must not inspect secrets, run liveness or rehearsal checks, or dispatch a
-  workflow; record those unevaluated checks as `required`, not `blocked`.
+  workflow; list each unevaluated contract check in `required_checks` with
+  `reason: "not_run_after_invalid_release_authorization"`, not as `blocked`.
 - Never ask whether a token exists, request a token, ask anyone to re-enter a
   token, or inspect or expose a token value.
 - If Release Preflight completes successfully but the assignment omits explicit
@@ -196,18 +197,23 @@ exist; run `Release Preflight` and report its sanitized result.
   "dispatch_run_id": "<GitHub run id>",
   "status": "passed|failed|blocked",
   "checks": [{"kind": "<check kind>", "status": "passed|failed|blocked"}],
+  "required_checks": [{"kind": "<contract check not run>", "reason": "<sanitized reason>"}],
   "credential_rehearsal": "<manifest-derived rehearsal plan or null>",
   "verification": ["<channel-specific fact>"],
   "sanitized_diagnostic": "<empty on success; never a secret value>"
 }
 ```
 
-`required` describes a contract requirement, not an observed check result, and
-is never a result status. A worker may call its preflight complete only when
-every required check in the supplied result is `passed`. If evidence for a
-required check is absent, return `blocked`; if it is negative, return
-`failed`. Do not report a channel as technically ready while an entry remains
-uncollected.
+`required_checks` lists contract checks deliberately not run. It is separate
+from `checks`: `checks` records observed evidence only, and `required` is
+never a `checks.status` value. For an invalid candidate tag, every channel
+must include the matching contract checks it skipped in `required_checks`,
+with `reason: "not_run_after_invalid_release_authorization"`; an empty list
+is allowed only when that channel has no remaining contract check. A worker
+may call its preflight complete only when every required check in the supplied
+result is `passed`. If evidence for a required check is absent, return
+`blocked`; if it is negative, return `failed`. Do not report a channel as
+technically ready while an entry remains uncollected.
 
 ## Retry Recovery
 

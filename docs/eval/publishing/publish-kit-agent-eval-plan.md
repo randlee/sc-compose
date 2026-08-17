@@ -32,7 +32,10 @@ checklist.
   error remains `PREFLIGHT.NOT_READY`; `PREFLIGHT.INVALID_CANDIDATE_TAG` is a
   channel diagnostic. The publisher still launches one read-only background worker per
   channel to preserve the complete result set; workers do not inspect
-  credentials or run liveness/rehearsal checks after this failed gate.
+  credentials or run liveness/rehearsal checks after this failed gate. Each
+  channel records every skipped contract check in `required_checks` with
+  `reason: "not_run_after_invalid_release_authorization"`; `checks` contains
+  observed evidence only and never uses `required` as a status.
 - Absent, incomplete, or not-yet-run channel evidence produces `blocked` for
   that channel rather than a retry or credential workaround.
 - A deliberately denied overall preflight retains every independent sanitized
@@ -158,6 +161,9 @@ top-level error, use `PREFLIGHT.INVALID_CANDIDATE_TAG` only as a channel
 diagnostic, and launch one read-only background worker per channel. Those workers must
 not inspect credentials, run liveness/rehearsal checks, dispatch a workflow,
 or classify the channel as `blocked`.
+Every channel must list its skipped contract checks in `required_checks` with
+`reason: "not_run_after_invalid_release_authorization"`; this is the durable
+evidence that the checks were intentionally not run rather than lost.
 
 ## 3. Fail-Closed, Complete-Result Evaluation
 
