@@ -230,14 +230,19 @@ def _preflight_outcome_status(outcome: str | None) -> str:
 
 
 def _channel_outcome(
-    outcomes: dict[str, object], key: str, channel_name: str
+    outcomes: dict[str, object], key: str, channel_name: str, fallback_key: str | None = None
 ) -> str | None:
-    """Read a channel-specific outcome, retaining scalar compatibility."""
+    """Read a channel-specific outcome, retaining legacy scalar compatibility."""
     outcome = outcomes.get(key)
     if isinstance(outcome, dict):
         channel_outcome = outcome.get(channel_name)
         return channel_outcome if isinstance(channel_outcome, str) else None
-    return outcome if isinstance(outcome, str) else None
+    if isinstance(outcome, str):
+        return outcome
+    if fallback_key is not None:
+        fallback = outcomes.get(fallback_key)
+        return fallback if isinstance(fallback, str) else None
+    return None
 
 
 def _channel_preflight_result(
@@ -255,21 +260,22 @@ def _channel_preflight_result(
             "requirements": [requirement],
             "status": _preflight_outcome_status(outcomes.get(outcome_key)),
         })
-    for key, outcome_key in (
-        ("repository_secrets", "repository_secrets"),
-        ("environment_secrets", "environment_secrets"),
-        ("liveness_checks", "credential_liveness"),
-        ("github_actions_permissions", "github_release_permissions"),
-        ("public_registry_checks", "registry_state"),
+    for key, outcome_key, fallback_key in (
+        ("repository_secrets", "repository_secret_channels", "repository_secrets"),
+        ("environment_secrets", "environment_secrets", None),
+        ("liveness_checks", "credential_liveness_channels", "credential_liveness"),
+        ("github_actions_permissions", "github_release_permissions", None),
+        ("public_registry_checks", "registry_state", None),
     ):
         requirements = channel.get(key, [])
         if requirements:
+            outcome = _channel_outcome(
+                outcomes, outcome_key, channel_name, fallback_key
+            )
             checks.append({
                 "kind": key,
                 "requirements": requirements,
-                "status": _preflight_outcome_status(
-                    _channel_outcome(outcomes, outcome_key, channel_name)
-                ),
+                "status": _preflight_outcome_status(outcome),
             })
     rehearsal = channel.get("credential_rehearsal")
     statuses = [check["status"] for check in checks]

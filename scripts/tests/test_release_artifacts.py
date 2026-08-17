@@ -549,8 +549,20 @@ def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
             "ownership": "success",
             "release_metadata": "success",
             "repository_secrets": "success",
+            "repository_secret_channels": {
+                "crates_io": "success",
+                "homebrew": "success",
+                "winget": "success",
+                "scoop": "success",
+            },
             "environment_secrets": "success",
             "credential_liveness": "success",
+            "credential_liveness_channels": {
+                "crates_io": "success",
+                "homebrew": "success",
+                "winget": "success",
+                "scoop": "success",
+            },
             "registry_state": "success",
             "github_release_permissions": "success",
         }
@@ -588,8 +600,20 @@ def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
             "ownership": "success",
             "release_metadata": "success",
             "repository_secrets": "failure",
+            "repository_secret_channels": {
+                "crates_io": "success",
+                "homebrew": "success",
+                "winget": "success",
+                "scoop": "failure",
+            },
             "environment_secrets": "success",
             "credential_liveness": "success",
+            "credential_liveness_channels": {
+                "crates_io": "success",
+                "homebrew": "success",
+                "winget": "success",
+                "scoop": "success",
+            },
             "registry_state": "success",
             "github_release_permissions": "success",
         }
@@ -610,7 +634,32 @@ def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
         for entry in json.loads(failed_result.stdout)["channels"]
         if entry["status"] == "failed"
     }
-    assert failed_channels == {"crates_io", "homebrew", "winget", "scoop"}
+    assert failed_channels == {"scoop"}
+
+    legacy_scalar_result = run_manifest_command(
+        "channel-preflight-results",
+        "--manifest",
+        "release/publish-artifacts.toml",
+        "--outcomes",
+        json.dumps(
+            {
+                "ownership": "success",
+                "release_metadata": "success",
+                "repository_secrets": "success",
+                "environment_secrets": "success",
+                "credential_liveness": "success",
+                "registry_state": "success",
+                "github_release_permissions": "success",
+            }
+        ),
+        "--tag",
+        "v1.4.2",
+    )
+    assert legacy_scalar_result.returncode == 0, legacy_scalar_result.stderr
+    assert all(
+        entry["status"] == "passed"
+        for entry in json.loads(legacy_scalar_result.stdout)["channels"]
+    )
 
     unauthorized_outcomes = json.dumps(
         {
@@ -644,8 +693,20 @@ def test_channel_preflight_results_execute_contract_outcome_mapping() -> None:
             "ownership": "success",
             "release_metadata": "failure",
             "repository_secrets": "success",
+            "repository_secret_channels": {
+                "crates_io": "success",
+                "homebrew": "success",
+                "winget": "success",
+                "scoop": "success",
+            },
             "environment_secrets": "success",
             "credential_liveness": "success",
+            "credential_liveness_channels": {
+                "crates_io": "success",
+                "homebrew": "success",
+                "winget": "success",
+                "scoop": "success",
+            },
             "registry_state": "success",
             "github_release_permissions": "success",
         }
@@ -726,8 +787,20 @@ def test_background_workers_consume_and_gate_their_own_preflight_contracts() -> 
         "ownership": "success",
         "release_metadata": "success",
         "repository_secrets": "success",
+        "repository_secret_channels": {
+            "crates_io": "success",
+            "homebrew": "success",
+            "winget": "success",
+            "scoop": "success",
+        },
         "environment_secrets": "success",
         "credential_liveness": "success",
+        "credential_liveness_channels": {
+            "crates_io": "success",
+            "homebrew": "success",
+            "winget": "success",
+            "scoop": "success",
+        },
         "registry_state": "success",
         "github_release_permissions": "success",
     }
@@ -749,13 +822,13 @@ def test_background_workers_consume_and_gate_their_own_preflight_contracts() -> 
     crates_secret_failed = results_for(
         {
             **passed_outcomes,
-            "repository_secrets": {
+            "repository_secret_channels": {
                 "crates_io": "failure",
                 "homebrew": "success",
                 "winget": "success",
                 "scoop": "success",
             },
-            "credential_liveness": {
+            "credential_liveness_channels": {
                 "crates_io": "failure",
                 "homebrew": "success",
                 "winget": "success",
@@ -773,13 +846,13 @@ def test_background_workers_consume_and_gate_their_own_preflight_contracts() -> 
     scoop_liveness_failed = results_for(
         {
             **passed_outcomes,
-            "repository_secrets": {
+            "repository_secret_channels": {
                 "crates_io": "success",
                 "homebrew": "success",
                 "winget": "success",
                 "scoop": "success",
             },
-            "credential_liveness": {
+            "credential_liveness_channels": {
                 "crates_io": "success",
                 "homebrew": "success",
                 "winget": "success",
