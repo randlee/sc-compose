@@ -5,6 +5,7 @@ description: Assign a named publisher teammate to perform a non-disclosing relea
 format: xml
 required_variables:
   - task_id
+  - recipient
   - release_version
   - candidate_ref
   - candidate_commit
@@ -15,6 +16,7 @@ required_variables:
   - manifest_path
 ---
 <atm-task id="{{ task_id }}" assignee="publisher">
+  <recipient>{{ recipient }}</recipient>
   <description>Run {{ preflight_stage }} release preflight for v{{ release_version }} without publishing.</description>
   <worktree>{{ worktree_path }}</worktree>
   <branch>{{ branch }}</branch>
@@ -37,6 +39,6 @@ required_variables:
   <workflow>
     <step id="a">ACK immediately, then verify that the assigned state and preflight stage comply with the referenced policy.</step>
     <step id="b">Validate the manifest and candidate tag, run Release Preflight, and retain the complete sanitized per-channel result.</step>
-    <step id="c">Send team-lead a fenced JSON completion envelope with candidate commit, authorization result, and every channel result.</step>
+    <step id="c">Send {{ recipient }} a fenced JSON completion envelope with candidate commit, authorization result, and every channel result.</step>
   </workflow>
 </atm-task>

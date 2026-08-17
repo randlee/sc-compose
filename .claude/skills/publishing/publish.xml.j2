@@ -5,6 +5,7 @@ description: Assign the named publisher teammate to run an authorized main relea
 format: xml
 required_variables:
   - task_id
+  - recipient
   - release_version
   - release_ref
   - release_commit
@@ -14,6 +15,7 @@ required_variables:
   - manifest_path
 ---
 <atm-task id="{{ task_id }}" assignee="publisher">
+  <recipient>{{ recipient }}</recipient>
   <description>Execute authorized {{ operation }} for v{{ release_version }} from {{ release_ref }}.</description>
   <worktree>{{ worktree_path }}</worktree>
   <release>
@@ -36,6 +38,6 @@ required_variables:
   <workflow>
     <step id="a">ACK immediately, verify the assignment against the shared policy, and stop with a sanitized error if it is not authorized.</step>
     <step id="b">Execute only the assigned root release or failed-channel recovery. Preserve passed channels and collect every channel result.</step>
-    <step id="c">Send team-lead a fenced JSON completion envelope with release tag, exact commit, and complete per-channel results.</step>
+    <step id="c">Send {{ recipient }} a fenced JSON completion envelope with release tag, exact commit, and complete per-channel results.</step>
   </workflow>
 </atm-task>

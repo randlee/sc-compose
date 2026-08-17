@@ -109,3 +109,9 @@ failed release authorization. The publisher and every role-specific channel
 worker now share that schema. Validation for the follow-up includes
 `python3 -m pytest scripts/tests/test_release_artifacts.py -q`, `just test`,
 and `git diff --check`; it remains read-only with no release side effect.
+
+Commit `747d513` adds the closed-world synthetic-fixture rule for publisher
+evaluations: an eval receipt copies only supplied tag/ref and evidence facts,
+and records omitted checks as uncollected rather than inventing local or
+remote state. Its source-contract regression assertions passed with
+`python3 -m pytest scripts/tests/test_release_artifacts.py -q`.
