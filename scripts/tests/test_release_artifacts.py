@@ -1422,7 +1422,10 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
     assert "Never ask whether a token exists" in publisher_text
     assert "preflight-secret-plan" in publisher_text
     assert "protected-environment secret metadata" in guide_text
-    assert "version: 1.6.1" in publisher_text
+    assert "version: 1.6.2" in publisher_text
+    assert "treat supplied fixture evidence as\n  closed-world" in publisher_text
+    assert "Never invent a tag, version, ref, credential state, or check\n  outcome" in publisher_text
+    assert "Send the assignment's named recipient" in publisher_text
     assert "## Inputs" in publisher_text
     assert "## Output Format" in publisher_text
     assert "## Error Handling" in publisher_text
@@ -1435,7 +1438,7 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
             encoding="utf-8"
         )
     )["channels"]
-    assert 'publisher:\n    version: 1.6.1' in registry_text
+    assert 'publisher:\n    version: 1.6.2' in registry_text
     for channel_agent in (
         "crates-io-publisher",
         "pypi-publisher",

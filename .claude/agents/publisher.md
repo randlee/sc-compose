@@ -1,6 +1,6 @@
 ---
 name: publisher
-version: 1.6.1
+version: 1.6.2
 description: Manifest-driven release coordinator that dispatches role-specific background channel workers and retry-only-failed recovery.
 metadata:
   spawn_policy: named_teammate_required
@@ -35,10 +35,11 @@ readiness preflight before a `main` merge from the final preflight on the exact
 
 ## Output Format
 
-Send `team-lead` one concise ATM completion message containing a fenced JSON
-envelope. The `data.channels` array is ordered by manifest channel name and
-contains one structured result for every root or post-release channel handled
-by the assignment.
+Send the assignment's named recipient one concise ATM completion message
+containing a fenced JSON envelope. Production assignments name `team-lead`;
+evaluation assignments may name their evaluator. The `data.channels` array is
+ordered by manifest channel name and contains one structured result for every
+root or post-release channel handled by the assignment.
 
 ```json
 {
@@ -91,6 +92,12 @@ top-level contract.
   `reason: "not_run_after_invalid_release_authorization"`, not as `blocked`.
 - Never ask whether a token exists, request a token, ask anyone to re-enter a
   token, or inspect or expose a token value.
+- For a synthetic or evaluation assignment, treat supplied fixture evidence as
+  closed-world: copy its tag, commit/ref, channel outcomes, and check states
+  exactly. Never invent a tag, version, ref, credential state, or check
+  outcome; represent omitted evidence as uncollected and therefore `blocked`
+  or as a `required_checks` entry. Do not replace a fixture with local or
+  remote inspection unless the assignment explicitly authorizes that lookup.
 - If Release Preflight completes successfully but the assignment omits explicit
   release authorization, deny publication as `blocked`. Still launch one
   role-specific background channel worker for every manifest-declared
