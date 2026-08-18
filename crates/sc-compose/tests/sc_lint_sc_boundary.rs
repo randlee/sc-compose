@@ -176,3 +176,40 @@ fn sc_sha_boundary_rejects_renderer_dependency() {
         );
     }
 }
+
+#[test]
+fn sc_sha_go_boundary_rejects_non_adapter_dependencies() {
+    let fixture = TempFixture::from_checked_in_fixture(CheckedInFixture {
+        group: "sc-boundary",
+        name: "sc-sha-go-forbidden-edge",
+        target: "sc-boundary",
+    });
+    let output = run_sc_boundary(&fixture);
+    let envelope = parse_stdout(&output);
+    let payload = &envelope["payload"];
+    assert_eq!(payload["command_id"], "lint.sc-boundary");
+    assert_eq!(payload["outcome"], "findings");
+    let dependency_findings = payload["findings"]
+        .as_array()
+        .expect("finding array")
+        .iter()
+        .filter(|finding| finding["rule_id"] == "SCB-DEPENDENCY-001")
+        .collect::<Vec<_>>();
+    assert_eq!(dependency_findings.len(), 5);
+    let messages = dependency_findings
+        .into_iter()
+        .map(|finding| finding["message"].as_str().expect("finding message"))
+        .collect::<Vec<_>>();
+    for package in [
+        "sc-compose",
+        "sc-composer",
+        "atmcore",
+        "filesystem-support",
+        "sc-sha-python",
+    ] {
+        assert!(
+            messages.iter().any(|message| message.contains(package)),
+            "missing forbidden dependency finding for {package}: {messages:?}"
+        );
+    }
+}

@@ -1,0 +1,113 @@
+{
+  "schema": "sc-sha/go-conformance/v1",
+  "hash_cases": [
+    {
+      "name": "empty",
+      "utf8_file_bytes_hex": "",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "unicode-lf",
+      "utf8_file_bytes_hex": "636166c3a920e2809420e4bda0e5a5bd20f09f8c8d0a",
+      "sha256": "a7cebdd8e9f02d462c15803864648c5b880f7a66b00c5c88c65c51bfd497befb"
+    },
+    {
+      "name": "crlf-normalized",
+      "utf8_file_bytes_hex": "68656c6c6f0d0a",
+      "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"
+    },
+    {
+      "name": "bare-cr-normalized",
+      "utf8_file_bytes_hex": "68656c6c6f0d",
+      "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"
+    },
+    {
+      "name": "bom-preserved",
+      "utf8_file_bytes_hex": "efbbbf68656c6c6f",
+      "sha256": "7489ebbcc2a00056ddaaaac190bce473e5c03696ea1bd8ed83cf59a174283862"
+    },
+    {
+      "name": "no-final-newline",
+      "utf8_file_bytes_hex": "68656c6c6f",
+      "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+    },
+    {
+      "name": "invalid-utf8",
+      "utf8_file_bytes_hex": "ff",
+      "error_code": "SC_SHA_INVALID_UTF8"
+    }
+  ],
+  "composition_cases": [
+    {
+      "name": "ordered-two-node-manifest",
+      "manifest": {
+        "schema": "sc-sha/manifest/v1",
+        "nodes": [
+          { "source": { "kind": "local_path", "value": "root.md" }, "sha256": "53175bcc0524f37b47062fafdda28e3f8eb91d519ca0a184ca71bbebe72f969a" },
+          { "source": { "kind": "local_path", "value": "child.md" }, "sha256": "2fa14f53e6b15cac9ac77846c7be87862c2a7e9ec0c6cea319db939317f126ed" }
+        ],
+        "edges": [
+          { "parent": { "kind": "local_path", "value": "root.md" }, "child": { "kind": "local_path", "value": "child.md" }, "occurrence": 0 }
+        ]
+      },
+      "sha256": "80c55ea43eaa4c0453fe189c5aa0bbc1f523b8c66cc23ab990ec0356acd737ac"
+    },
+    {
+      "name": "invalid-digest",
+      "manifest": {
+        "schema": "v1",
+        "nodes": [
+          { "source": { "kind": "local_path", "value": "root.md" }, "sha256": "not-a-digest" }
+        ],
+        "edges": []
+      },
+      "error_code": "SC_SHA_INVALID_DIGEST"
+    },
+    {
+      "name": "invalid-source",
+      "manifest": {
+        "schema": "v1",
+        "nodes": [
+          { "source": { "kind": "local_path", "value": "nested\\template.md" }, "sha256": "53175bcc0524f37b47062fafdda28e3f8eb91d519ca0a184ca71bbebe72f969a" }
+        ],
+        "edges": []
+      },
+      "error_code": "SC_SHA_INVALID_CANONICAL_SOURCE"
+    },
+    {
+      "name": "empty-schema",
+      "manifest": { "schema": "", "nodes": [], "edges": [] },
+      "error_code": "SC_SHA_INVALID_MANIFEST"
+    },
+    {
+      "name": "unsupported-schema",
+      "manifest": { "schema": "sc-sha/manifest/v2", "nodes": [], "edges": [] },
+      "error_code": "SC_SHA_UNSUPPORTED_MANIFEST_SCHEMA"
+    },
+    {
+      "name": "duplicate-source",
+      "manifest": {
+        "schema": "v1",
+        "nodes": [
+          { "source": { "kind": "url", "value": "https://example.test/root" }, "sha256": "53175bcc0524f37b47062fafdda28e3f8eb91d519ca0a184ca71bbebe72f969a" },
+          { "source": { "kind": "url", "value": "https://example.test/root" }, "sha256": "2fa14f53e6b15cac9ac77846c7be87862c2a7e9ec0c6cea319db939317f126ed" }
+        ],
+        "edges": []
+      },
+      "error_code": "SC_SHA_DUPLICATE_SOURCE"
+    },
+    {
+      "name": "unknown-edge-endpoint",
+      "manifest": {
+        "schema": "v1",
+        "nodes": [
+          { "source": { "kind": "local_path", "value": "root.md" }, "sha256": "53175bcc0524f37b47062fafdda28e3f8eb91d519ca0a184ca71bbebe72f969a" }
+        ],
+        "edges": [
+          { "parent": { "kind": "local_path", "value": "root.md" }, "child": { "kind": "local_path", "value": "missing.md" }, "occurrence": 0 }
+        ]
+      },
+      "error_code": "SC_SHA_UNKNOWN_EDGE_ENDPOINT"
+    }
+  ]
+}

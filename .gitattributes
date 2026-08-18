@@ -2,3 +2,7 @@
 
 *.j2 text eol=lf
 examples/** text eol=lf
+
+# UniFFI v0.31.0 emits indentation-only lines in its committed C header.
+# Keep generator output byte-for-byte reproducible; do not hand-normalize it.
+bindings/sc-sha-go/go/sc_sha_go/sc_sha_go.h -whitespace

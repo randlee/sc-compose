@@ -1,0 +1,36 @@
+boundary_id = "BOUNDARY-ScShaGo"
+owner_package = "sc-sha-go"
+owner_crate_path = "sc_sha_go"
+name = "ScShaGoAdapter"
+
+[public]
+facade = "calculate_hash,calculate_composition_hash"
+
+[implementation]
+type = "generated_go_adapter"
+module = "sc_sha_go"
+visibility = "public"
+constructor = "none"
+
+[composition]
+roots = ["calculate_hash", "calculate_composition_hash"]
+
+[dependencies]
+allowed_dependents = []
+allowed_dependencies = ["sc-sha", "uniffi", "thiserror"]
+forbidden_edges = []
+
+[references]
+scope = "outside_owner_crate"
+forbidden = []
+
+[testing]
+allowed_test_double_paths = []
+forbidden_test_bypasses = []
+
+[enforcement]
+lint_rules = []
+review_gates = []
+
+[status]
+state = "concrete_landed"

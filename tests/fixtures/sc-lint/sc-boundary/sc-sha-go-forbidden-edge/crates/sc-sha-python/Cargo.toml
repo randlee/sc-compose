@@ -1,0 +1,5 @@
+[package]
+name = "sc-sha-python"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true

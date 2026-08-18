@@ -1,0 +1,70 @@
+[package]
+name = "sc-sha-go"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Generated UniFFI adapter for the sc-sha Go package."
+readme = "README.md"
+keywords = ["go", "sha256", "template", "bindings"]
+categories = ["api-bindings", "development-tools"]
+
+[lib]
+name = "sc_sha_go"
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+sc-sha = { path = "../../crates/sc-sha", version = "1.4.1" }
+thiserror.workspace = true
+uniffi.workspace = true
+
+[build-dependencies]
+uniffi_build.workspace = true
+
+[dev-dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+# UniFFI scaffolding emits ABI exports annotated with `unsafe(no_mangle)`.
+# This narrow adapter is the only crate that permits those generated symbols;
+# `sc-sha` continues to forbid unsafe code through the workspace policy.
+[lints.rust]
+ambiguous_negative_literals = "warn"
+missing_debug_implementations = "warn"
+redundant_imports = "warn"
+redundant_lifetimes = "warn"
+trivial_numeric_casts = "warn"
+unsafe_code = "allow"
+unsafe_op_in_unsafe_fn = "warn"
+unused_lifetimes = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+allow_attributes_without_reason = "warn"
+as_pointer_underscore = "warn"
+assertions_on_result_states = "warn"
+clone_on_ref_ptr = "warn"
+deref_by_slicing = "warn"
+disallowed_script_idents = "warn"
+empty_drop = "warn"
+empty_enum_variants_with_brackets = "warn"
+empty_structs_with_brackets = "warn"
+fn_to_numeric_cast_any = "warn"
+if_then_some_else_none = "warn"
+literal_string_with_formatting_args = "allow"
+map_err_ignore = "warn"
+redundant_type_annotations = "warn"
+renamed_function_params = "warn"
+semicolon_outside_block = "warn"
+implicit_clone = "warn"
+unnecessary_safety_comment = "warn"
+unnecessary_safety_doc = "warn"
+unneeded_field_pattern = "warn"
+undocumented_unsafe_blocks = "warn"
+unused_result_ok = "warn"

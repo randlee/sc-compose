@@ -319,7 +319,11 @@ pub fn write_fake_cargo_deny(root: &Path) {
         use std::os::unix::fs::PermissionsExt;
 
         let cargo_deny = bin.join("cargo-deny");
-        fs::write(&cargo_deny, "#!/bin/sh\nexit 0\n").expect("fake cargo-deny");
+        fs::write(
+            &cargo_deny,
+            "#!/bin/sh\nif [ \"${1:-}\" = \"--version\" ]; then\n  echo 'cargo-deny 0.20.1'\nfi\nexit 0\n",
+        )
+        .expect("fake cargo-deny");
         let mut permissions = fs::metadata(&cargo_deny)
             .expect("fake cargo-deny metadata")
             .permissions();

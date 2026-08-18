@@ -32,6 +32,8 @@ named boundary inventories.
 
 - `Cargo.toml`
 - `Cargo.lock`
+- `.gitignore`
+- `deny.toml`
 - `bindings/sc-sha-go/Cargo.toml`
 - `bindings/sc-sha-go/src/lib.rs`
 - `bindings/sc-sha-go/src/sc_sha_go.udl`
@@ -41,11 +43,15 @@ named boundary inventories.
 - `bindings/sc-sha-go/tests/` (Go and Rust adapter fixtures)
 - `bindings/sc-sha-go/testdata/conformance-v1.json`
 - `bindings/sc-sha-go/README.md`
+- `bindings/sc-sha-python/src/lib.rs`
+- `bindings/sc-sha-python/tests/test_compatibility.py`
 - `Justfile`
 - `.github/workflows/ci.yml`
 - `boundaries/sc-sha/shared-library.toml`
 - `boundaries/sc-sha-go/go-adapter.toml` (new)
 - `tests/fixtures/sc-lint/sc-boundary/sc-sha-go-forbidden-edge/Cargo.toml`
+- `crates/sc-compose/tests/sc_lint_sc_boundary.rs`
+- `crates/sc-compose/tests/support/mod.rs`
 - `CLAUDE.md`
 - `docs/adrs/0018-sc-sha-hash-ownership.md`
 - `docs/adrs/0020-generated-go-binding-strategy.md`
@@ -152,11 +158,16 @@ hash calculation.
 cargo fmt --all --check
 cargo test --workspace
 cargo clippy --all-targets --all-features -- -D warnings
-just lint
-just generate-sc-sha-go --check
+just lint-ci-consumer
+just generate-sc-sha-go check
 (cd bindings/sc-sha-go && go test ./...)
 git diff --check
 ```
+
+`just lint-ci-consumer` is the provisioned, CI-authoritative sc-lint profile.
+Bare `just lint` remains blocked by the tracked sc-lint external-binary
+bootstrap defect (`O5-SC-LINT-BOOTSTRAP-001`); no suppression is permitted in
+this sprint.
 
 ## QA handoff
 
