@@ -19,3 +19,4 @@
 - [ADR-0017: sc-lint Runner Allowlist and Reporting](0017-sc-lint-runner-allowlist-and-reporting.md)
 - [ADR-0018: sc-sha Hash Ownership and Boundary](0018-sc-sha-hash-ownership.md)
 - [ADR-0019: JSON Render Contract and Fail-Closed Output Validation](0019-json-render-contract-and-fail-closed-output-validation.md)
+- [ADR-0020: Generated Go Binding Strategy](0020-generated-go-binding-strategy.md)
