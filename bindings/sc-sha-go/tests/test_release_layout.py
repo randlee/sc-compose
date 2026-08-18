@@ -66,7 +66,7 @@ class ReleaseLayoutTests(unittest.TestCase):
         windows = [target for target in go_native_targets() if target["goos"] == "windows"]
         self.assertEqual(len(windows), 1)
         self.assertEqual(windows[0]["rust_target"], "x86_64-pc-windows-gnu")
-        self.assertEqual(windows[0]["library"], "sc_sha_go.a")
+        self.assertEqual(windows[0]["library"], "libsc_sha_go.a")
         loader = (BINDING_ROOT / "go" / "sc_sha_go" / "native_loader.go").read_text(
             encoding="utf-8"
         )
@@ -100,7 +100,7 @@ class ReleaseLayoutTests(unittest.TestCase):
         windows = next(target for target in targets if target["goos"] == "windows")
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            mismatched_library = root / windows["library"]
+            mismatched_library = root / "sc_sha_go.a"
             mismatched_library.write_bytes(b"wrong target")
             result = self.stage(linux, mismatched_library, root / "output")
             self.assertNotEqual(result.returncode, 0)

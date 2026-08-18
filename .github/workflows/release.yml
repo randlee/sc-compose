@@ -232,7 +232,7 @@ jobs:
       - name: Verify generated Go output
         run: just generate-sc-sha-go check
       - name: Run repository lint
-        run: just lint
+        run: just lint-ci-consumer
       - name: Build target-native static library
         run: cargo build --release -p sc-sha-go --target ${{ matrix.target }}
       - name: Stage self-contained Go module bundle
@@ -240,7 +240,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ '${{ matrix.target }}' == *windows-gnu ]]; then
-            library="target/${{ matrix.target }}/release/sc_sha_go.a"
+            library="target/${{ matrix.target }}/release/libsc_sha_go.a"
           else
             library="target/${{ matrix.target }}/release/libsc_sha_go.a"
           fi
@@ -251,6 +251,8 @@ jobs:
             --native-library "$library" \
             --output "$RUNNER_TEMP/sc-sha-go-${{ matrix.target }}" \
             --version "$version"
+      - name: Run release layout regression tests
+        run: python3 bindings/sc-sha-go/tests/test_release_layout.py
       - name: Run bundled Go conformance tests
         working-directory: ${{ runner.temp }}/sc-sha-go-${{ matrix.target }}
         run: go test ./...
