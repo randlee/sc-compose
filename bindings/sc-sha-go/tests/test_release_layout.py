@@ -62,6 +62,17 @@ class ReleaseLayoutTests(unittest.TestCase):
             )
         self.assertIn("unsupported native target", loader)
 
+    def test_windows_uses_gnu_archive_and_required_system_libraries(self) -> None:
+        windows = [target for target in go_native_targets() if target["goos"] == "windows"]
+        self.assertEqual(len(windows), 1)
+        self.assertEqual(windows[0]["rust_target"], "x86_64-pc-windows-gnu")
+        self.assertEqual(windows[0]["library"], "sc_sha_go.a")
+        loader = (BINDING_ROOT / "go" / "sc_sha_go" / "native_loader.go").read_text(
+            encoding="utf-8"
+        )
+        for library in ("-lws2_32", "-lntdll", "-lbcrypt", "-luserenv"):
+            self.assertIn(library, loader)
+
     def test_every_advertised_target_stages_exactly_one_matching_library(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

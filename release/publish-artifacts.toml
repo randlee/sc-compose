@@ -26,6 +26,11 @@ target = "x86_64-pc-windows-msvc"
 os = "windows-latest"
 archive = "zip"
 
+[[release_targets]]
+target = "x86_64-pc-windows-gnu"
+os = "windows-latest"
+archive = "zip"
+
 [[crates]]
 artifact = "sc-sha"
 package = "sc-sha"
@@ -78,7 +83,7 @@ goarch = "arm64"
 library = "libsc_sha_go.a"
 
 [[go_native.targets]]
-rust_target = "x86_64-pc-windows-msvc"
+rust_target = "x86_64-pc-windows-gnu"
 goos = "windows"
 goarch = "amd64"
 library = "sc_sha_go.a"

@@ -219,14 +219,27 @@ jobs:
         with:
           toolchain: 1.94.1
           targets: ${{ matrix.target }}
+      - name: Set up sc-lint toolchain
+        uses: ./.github/actions/setup-lint-toolchain
+      - name: Install pinned UniFFI Go generator
+        shell: bash
+        run: |
+          cargo install uniffi-bindgen-go \
+            --git https://github.com/NordSecurity/uniffi-bindgen-go \
+            --tag v0.7.1+v0.31.0 --locked
+      - name: Install just
+        uses: taiki-e/install-action@just
+      - name: Verify generated Go output
+        run: just generate-sc-sha-go check
+      - name: Run repository lint
+        run: just lint
       - name: Build target-native static library
         run: cargo build --release -p sc-sha-go --target ${{ matrix.target }}
       - name: Stage self-contained Go module bundle
         shell: bash
         run: |
           set -euo pipefail
-          if [[ '${{ matrix.target }}' == *windows-msvc ]]; then
-            cp "target/${{ matrix.target }}/release/sc_sha_go.lib" "target/${{ matrix.target }}/release/sc_sha_go.a"
+          if [[ '${{ matrix.target }}' == *windows-gnu ]]; then
             library="target/${{ matrix.target }}/release/sc_sha_go.a"
           else
             library="target/${{ matrix.target }}/release/libsc_sha_go.a"
