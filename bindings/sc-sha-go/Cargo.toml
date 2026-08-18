@@ -14,7 +14,7 @@ categories = ["api-bindings", "development-tools"]
 
 [lib]
 name = "sc_sha_go"
-crate-type = ["cdylib", "rlib"]
+crate-type = ["staticlib", "cdylib", "rlib"]
 doctest = false
 
 [dependencies]

@@ -164,3 +164,12 @@ That manifest lists:
 
 `sc-compose` does not upload, copy, or host those artifacts. CI and wrapper
 tooling consume the manifest and perform publication separately.
+
+## Generated `sc-sha-go` module
+
+The Go adapter is released as the versioned module
+`github.com/randlee/sc-compose/bindings/sc-sha-go` using tags of
+the form `bindings/sc-sha-go/v<version>`. Release CI stages one matching
+static native library per advertised OS/architecture and runs an independent
+temporary Go consumer module. Consumers must use the released bundle; they do
+not use a Cargo checkout or a system Rust library.

@@ -27,6 +27,7 @@ def load_manifest(path: Path) -> dict:
         "crates": crates,
         "release_binaries": release_binaries,
         "release_targets": data.get("release_targets", []),
+        "go_native": data.get("go_native"),
         "python_packages": python_packages,
         "python_distributions": python_distributions,
         "channels": data.get("channels", {}),
@@ -213,6 +214,83 @@ def _release_binaries(manifest: dict) -> list[dict]:
     return binaries
 
 
+def _go_native_config(manifest: dict) -> dict | None:
+    """Return the optional generated-Go native-module release configuration."""
+    config = manifest["go_native"]
+    if config is None:
+        return None
+    if not isinstance(config, dict):
+        raise SystemExit("[go_native] must be a table")
+    _require_keys(
+        config,
+        ("module", "source", "package", "cargo_package", "artifact_prefix", "tag_prefix", "targets"),
+        "[go_native]",
+    )
+    if not all(isinstance(config[key], str) and config[key] for key in config if key != "targets"):
+        raise SystemExit("[go_native] string fields must be non-empty")
+    if not isinstance(config["targets"], list) or not config["targets"]:
+        raise SystemExit("[go_native].targets must be a non-empty array")
+
+    source = Path(config["source"])
+    package = source / config["package"]
+    go_mod = source / "go.mod"
+    if not go_mod.is_file():
+        raise SystemExit(f"[go_native].source is missing go.mod: {source}")
+    if not package.is_dir():
+        raise SystemExit(f"[go_native].package does not exist: {package}")
+    native_targets = source / "native" / "targets.toml"
+    if not native_targets.is_file():
+        raise SystemExit(f"[go_native].source is missing native target contract: {native_targets}")
+    go_module_line = f"module {config['module']}"
+    if go_module_line not in go_mod.read_text(encoding="utf-8").splitlines():
+        raise SystemExit(f"{go_mod}: must declare {go_module_line}")
+
+    release_targets = _release_targets_by_name(manifest)
+    seen_go_targets: set[tuple[str, str]] = set()
+    seen_rust_targets: set[str] = set()
+    for index, target in enumerate(config["targets"], start=1):
+        if not isinstance(target, dict):
+            raise SystemExit(f"[go_native].targets #{index} must be a table")
+        _require_keys(
+            target,
+            ("rust_target", "goos", "goarch", "library"),
+            f"[go_native].targets #{index}",
+        )
+        rust_target = target["rust_target"]
+        go_target = (target["goos"], target["goarch"])
+        library = target["library"]
+        if not all(isinstance(value, str) and value for value in (rust_target, *go_target, library)):
+            raise SystemExit(f"[go_native].targets #{index} fields must be non-empty strings")
+        if Path(library).name != library:
+            raise SystemExit(f"[go_native].targets #{index}.library must be a filename")
+        if rust_target not in release_targets:
+            raise SystemExit(
+                f"[go_native].targets #{index}.rust_target references unknown release target: {rust_target}"
+            )
+        if rust_target in seen_rust_targets or go_target in seen_go_targets:
+            raise SystemExit(f"duplicate [go_native] target: {rust_target} / {target['goos']}/{target['goarch']}")
+        seen_rust_targets.add(rust_target)
+        seen_go_targets.add(go_target)
+
+    contract = tomllib.loads(native_targets.read_text(encoding="utf-8"))
+    contract_targets = contract.get("targets", [])
+    contract_index = {
+        entry.get("rust_target"): entry
+        for entry in contract_targets
+        if isinstance(entry, dict) and isinstance(entry.get("rust_target"), str)
+    }
+    if set(contract_index) != seen_rust_targets:
+        raise SystemExit("native target contract and [go_native].targets must name the same Rust targets")
+    for target in config["targets"]:
+        contract_target = contract_index[target["rust_target"]]
+        if any(contract_target.get(key) != target[key] for key in ("goos", "goarch", "library")):
+            raise SystemExit(
+                "native target contract disagrees with [go_native].targets for "
+                f"{target['rust_target']}"
+            )
+    return config
+
+
 def _channel_asset_patterns(manifest: dict, channel_name: str) -> list[str]:
     project = _require_project(manifest)
     targets = _release_targets_by_name(manifest)
@@ -251,6 +329,7 @@ def cmd_validate_manifest(args: argparse.Namespace) -> int:
     _require_project(manifest)
     _release_targets_by_name(manifest)
     _release_binaries(manifest)
+    _go_native_config(manifest)
     for channel_name in ("pypi", "homebrew", "winget", "scoop"):
         _channel_config(manifest, channel_name)
         _channel_asset_patterns(manifest, channel_name)
@@ -364,6 +443,90 @@ def cmd_python_sdist_matrix(args: argparse.Namespace) -> int:
 def cmd_release_target_matrix(args: argparse.Namespace) -> int:
     manifest = load_manifest(Path(args.manifest))
     print(json.dumps({"include": list(_release_targets_by_name(manifest).values())}, separators=(",", ":")))
+    return 0
+
+
+def cmd_go_native_target_matrix(args: argparse.Namespace) -> int:
+    manifest = load_manifest(Path(args.manifest))
+    config = _go_native_config(manifest)
+    if config is None:
+        raise SystemExit("manifest does not define [go_native]")
+    release_targets = _release_targets_by_name(manifest)
+    include = [
+        {
+            **release_targets[target["rust_target"]],
+            "goos": target["goos"],
+            "goarch": target["goarch"],
+            "library": target["library"],
+        }
+        for target in config["targets"]
+    ]
+    print(json.dumps({"include": include}, separators=(",", ":")))
+    return 0
+
+
+def _go_native_target(config: dict, rust_target: str) -> dict:
+    for target in config["targets"]:
+        if target["rust_target"] == rust_target:
+            return target
+    raise SystemExit(f"unknown Go native target: {rust_target}")
+
+
+def cmd_stage_go_native_module(args: argparse.Namespace) -> int:
+    """Create a self-contained, target-specific static-link Go module bundle."""
+    manifest = load_manifest(Path(args.manifest))
+    config = _go_native_config(manifest)
+    if config is None:
+        raise SystemExit("manifest does not define [go_native]")
+    target = _go_native_target(config, args.target)
+    source = Path(config["source"])
+    library = Path(args.native_library)
+    if not library.is_file():
+        raise SystemExit(f"native library does not exist: {library}")
+    if library.name != target["library"]:
+        raise SystemExit(
+            f"native library name mismatch for {args.target}: "
+            f"expected {target['library']}, got {library.name}"
+        )
+
+    output = Path(args.output)
+    if output.exists():
+        raise SystemExit(f"Go native module output already exists: {output}")
+    output.mkdir(parents=True)
+    shutil.copy2(source / "go.mod", output / "go.mod")
+    shutil.copy2(source / "README.md", output / "README.md")
+    shutil.copytree(source / "go", output / "go")
+    shutil.copytree(source / "testdata", output / "testdata")
+    native_output = output / "native"
+    native_output.mkdir()
+    shutil.copy2(source / "native" / "targets.toml", native_output / "targets.toml")
+    target_output = native_output / args.target
+    target_output.mkdir()
+    shutil.copy2(library, target_output / library.name)
+    (output / "VERSION").write_text(f"{args.version}\n", encoding="utf-8")
+    print(output)
+    return 0
+
+
+def cmd_install_go_native_library(args: argparse.Namespace) -> int:
+    """Install a locally built static library for source-tree Go tests only."""
+    manifest = load_manifest(Path(args.manifest))
+    config = _go_native_config(manifest)
+    if config is None:
+        raise SystemExit("manifest does not define [go_native]")
+    target = _go_native_target(config, args.target)
+    library = Path(args.native_library)
+    if not library.is_file():
+        raise SystemExit(f"native library does not exist: {library}")
+    if library.name != target["library"]:
+        raise SystemExit(
+            f"native library name mismatch for {args.target}: "
+            f"expected {target['library']}, got {library.name}"
+        )
+    destination = Path(config["source"]) / "native" / args.target / library.name
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(library, destination)
+    print(destination)
     return 0
 
 
@@ -493,6 +656,12 @@ def cmd_verify_version_lockstep(args: argparse.Namespace) -> int:
         checked_cargo_manifests.add(cargo_toml)
     for distribution in _python_distribution_entries(manifest):
         cargo_toml = distribution["cargo_manifest"]
+        if cargo_toml not in checked_cargo_manifests:
+            _assert_workspace_inherited_version(workspace_toml, cargo_toml)
+            checked_cargo_manifests.add(cargo_toml)
+    go_native = _go_native_config(manifest)
+    if go_native is not None:
+        cargo_toml = f"{go_native['source']}/Cargo.toml"
         if cargo_toml not in checked_cargo_manifests:
             _assert_workspace_inherited_version(workspace_toml, cargo_toml)
             checked_cargo_manifests.add(cargo_toml)
@@ -662,6 +831,24 @@ def main() -> int:
     p = sub.add_parser("release-target-matrix")
     p.add_argument("--manifest", required=True)
     p.set_defaults(func=cmd_release_target_matrix)
+
+    p = sub.add_parser("go-native-target-matrix")
+    p.add_argument("--manifest", required=True)
+    p.set_defaults(func=cmd_go_native_target_matrix)
+
+    p = sub.add_parser("stage-go-native-module")
+    p.add_argument("--manifest", required=True)
+    p.add_argument("--target", required=True)
+    p.add_argument("--native-library", required=True)
+    p.add_argument("--output", required=True)
+    p.add_argument("--version", required=True)
+    p.set_defaults(func=cmd_stage_go_native_module)
+
+    p = sub.add_parser("install-go-native-library")
+    p.add_argument("--manifest", required=True)
+    p.add_argument("--target", required=True)
+    p.add_argument("--native-library", required=True)
+    p.set_defaults(func=cmd_install_go_native_library)
 
     p = sub.add_parser("release-package-config")
     p.add_argument("--manifest", required=True)

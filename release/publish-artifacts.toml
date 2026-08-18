@@ -12,17 +12,17 @@ os = "ubuntu-latest"
 archive = "tar.gz"
 
 [[release_targets]]
-target = "x86_64-apple-darwin"
-os = "macos-latest"
-archive = "tar.gz"
-
-[[release_targets]]
 target = "aarch64-apple-darwin"
-os = "macos-latest"
+os = "macos-14"
 archive = "tar.gz"
 
 [[release_targets]]
 target = "x86_64-pc-windows-msvc"
+os = "windows-latest"
+archive = "zip"
+
+[[release_targets]]
+target = "x86_64-pc-windows-gnu"
 os = "windows-latest"
 archive = "zip"
 
@@ -50,6 +50,32 @@ wait_after_publish_seconds = 0
 [[release_binaries]]
 name = "sc-compose"
 bundled_paths = [{ source = "examples", destination = "share/sc-compose/examples" }]
+
+[go_native]
+module = "github.com/randlee/sc-compose/bindings/sc-sha-go"
+source = "bindings/sc-sha-go"
+package = "go/sc_sha_go"
+cargo_package = "sc-sha-go"
+artifact_prefix = "sc-sha-go"
+tag_prefix = "bindings/sc-sha-go/v"
+
+[[go_native.targets]]
+rust_target = "x86_64-unknown-linux-gnu"
+goos = "linux"
+goarch = "amd64"
+library = "libsc_sha_go.a"
+
+[[go_native.targets]]
+rust_target = "aarch64-apple-darwin"
+goos = "darwin"
+goarch = "arm64"
+library = "libsc_sha_go.a"
+
+[[go_native.targets]]
+rust_target = "x86_64-pc-windows-gnu"
+goos = "windows"
+goarch = "amd64"
+library = "libsc_sha_go.a"
 
 [[python_packages]]
 artifact = "sc-sha-python"
@@ -98,10 +124,6 @@ renderer_target = "x86_64-unknown-linux-gnu"
 [[channels.homebrew.assets]]
 key = "macos_arm"
 target = "aarch64-apple-darwin"
-
-[[channels.homebrew.assets]]
-key = "macos_intel"
-target = "x86_64-apple-darwin"
 
 [[channels.homebrew.assets]]
 key = "linux"
