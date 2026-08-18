@@ -67,8 +67,8 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Install Python test dependencies
-        run: python3 -m pip install pytest jinja2
+      - name: Install pytest
+        run: python3 -m pip install pytest
 
       - name: Validate manifest completeness
         run: |

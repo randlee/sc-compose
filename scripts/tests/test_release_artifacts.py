@@ -10,8 +10,6 @@ import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 
-from jinja2 import Environment, StrictUndefined
-
 
 def write_repo_fixture(tmp_path: Path, *, manifest_wheels: list[str]) -> tuple[Path, Path]:
     workspace = tmp_path / "Cargo.toml"
@@ -1560,11 +1558,10 @@ def test_publish_kit_guidance_is_manifest_driven_and_token_non_disclosing() -> N
         assert "sc-compose" not in text
 
 
-def test_publishing_task_templates_render_recipient_contract() -> None:
-    template_root = repo_root() / ".claude" / "skills" / "publishing"
+def test_publishing_task_templates_render_recipient_contract(tmp_path: Path) -> None:
     cases = (
         (
-            "preflight.xml.j2",
+            ".claude/skills/publishing/preflight.xml.j2",
             {
                 "task_id": "EVAL-PREFLIGHT",
                 "recipient": "evaluator-preflight",
@@ -1579,7 +1576,7 @@ def test_publishing_task_templates_render_recipient_contract() -> None:
             },
         ),
         (
-            "publish.xml.j2",
+            ".claude/skills/publishing/publish.xml.j2",
             {
                 "task_id": "EVAL-RECOVERY",
                 "recipient": "evaluator-recovery",
@@ -1593,14 +1590,10 @@ def test_publishing_task_templates_render_recipient_contract() -> None:
             },
         ),
     )
-    environment = Environment(undefined=StrictUndefined)
 
-    for template_name, context in cases:
-        rendered = environment.from_string(
-            (template_root / template_name).read_text(encoding="utf-8")
-        ).render(**context)
-        xml = rendered.split("---", 2)[2].strip()
-        root = ET.fromstring(xml)
+    for template_path, context in cases:
+        rendered = render_release_template(tmp_path, template_path, context)
+        root = ET.fromstring(rendered)
 
         assert root.findtext("recipient") == context["recipient"]
         assert f"Send {context['recipient']}" in rendered
