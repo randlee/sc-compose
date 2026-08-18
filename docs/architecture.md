@@ -1,7 +1,7 @@
 # SC-Compose Architecture
 
 > Status: Active Release Baseline
-> Product: `sc-composer` (library), `sc-compose` (CLI), `sc-sha` (hash library), and the `bindings/python` and `bindings/sc-sha-python` adapters
+> Product: `sc-composer` (library), `sc-compose` (CLI), `sc-sha` (hash library), and the `bindings/python`, `bindings/sc-sha-python`, and `bindings/sc-sha-go` adapters
 > Document role: Normative release architecture for all in-repo packages
 
 This document supersedes the prior high-level placeholder. It is the normative
@@ -10,7 +10,7 @@ release architecture baseline for `sc-compose` v1.4.1.
 ## 1. Architectural Intent
 
 This document defines the required architecture of `sc-composer`,
-`sc-compose`, `sc-sha`, and the two Python adapters for release work. It is not
+`sc-compose`, `sc-sha`, and the Python and Go adapters for release work. It is not
 a description of the current
 implementation.
 

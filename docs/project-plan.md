@@ -852,7 +852,7 @@ Sprint entries:
 
 Status:
 
-- planned: generated Go bindings for the standalone `sc-sha` crate under
+- closing: generated Go bindings for the standalone `sc-sha` crate under
   [issue #510](https://github.com/randlee/sc-compose/issues/510);
 - P.1 establishes the pinned UniFFI / `uniffi-bindgen-go` adapter, typed
   two-operation contract, generator-drift CI, and boundary amendments;
