@@ -12,11 +12,6 @@ os = "ubuntu-latest"
 archive = "tar.gz"
 
 [[release_targets]]
-target = "x86_64-apple-darwin"
-os = "macos-13"
-archive = "tar.gz"
-
-[[release_targets]]
 target = "aarch64-apple-darwin"
 os = "macos-14"
 archive = "tar.gz"
@@ -67,12 +62,6 @@ tag_prefix = "bindings/sc-sha-go/v"
 [[go_native.targets]]
 rust_target = "x86_64-unknown-linux-gnu"
 goos = "linux"
-goarch = "amd64"
-library = "libsc_sha_go.a"
-
-[[go_native.targets]]
-rust_target = "x86_64-apple-darwin"
-goos = "darwin"
 goarch = "amd64"
 library = "libsc_sha_go.a"
 
@@ -135,10 +124,6 @@ renderer_target = "x86_64-unknown-linux-gnu"
 [[channels.homebrew.assets]]
 key = "macos_arm"
 target = "aarch64-apple-darwin"
-
-[[channels.homebrew.assets]]
-key = "macos_intel"
-target = "x86_64-apple-darwin"
 
 [[channels.homebrew.assets]]
 key = "linux"

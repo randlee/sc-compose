@@ -2,14 +2,13 @@ package sc_sha_go
 
 /*
 #cgo linux,amd64 LDFLAGS: ${SRCDIR}/../../native/x86_64-unknown-linux-gnu/libsc_sha_go.a -ldl -lm
-#cgo darwin,amd64 LDFLAGS: ${SRCDIR}/../../native/x86_64-apple-darwin/libsc_sha_go.a
 #cgo darwin,arm64 LDFLAGS: ${SRCDIR}/../../native/aarch64-apple-darwin/libsc_sha_go.a
 #cgo windows,amd64 LDFLAGS: ${SRCDIR}/../../native/x86_64-pc-windows-gnu/libsc_sha_go.a -lws2_32 -lntdll -lbcrypt -luserenv
 
 #if !((defined(__linux__) && defined(__x86_64__)) || \
       (defined(__APPLE__) && (defined(__x86_64__) || defined(__aarch64__))) || \
       (defined(_WIN32) && defined(_M_X64)))
-#error "sc-sha-go: unsupported native target; install a release bundle for linux/amd64, darwin/amd64, darwin/arm64, or windows/amd64"
+#error "sc-sha-go: unsupported native target; install a release bundle for linux/amd64, darwin/arm64, or windows/amd64"
 #endif
 */
 import "C"

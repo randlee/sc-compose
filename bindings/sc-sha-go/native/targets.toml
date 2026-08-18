@@ -13,12 +13,6 @@ goarch = "amd64"
 library = "libsc_sha_go.a"
 
 [[targets]]
-rust_target = "x86_64-apple-darwin"
-goos = "darwin"
-goarch = "amd64"
-library = "libsc_sha_go.a"
-
-[[targets]]
 rust_target = "aarch64-apple-darwin"
 goos = "darwin"
 goarch = "arm64"

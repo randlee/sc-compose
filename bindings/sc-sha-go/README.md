@@ -33,7 +33,7 @@ No command, workflow, or documentation disables Go pointer checks.
 The released module path is
 `github.com/randlee/sc-compose/bindings/sc-sha-go`; tags use
 `bindings/sc-sha-go/v<version>`. Release CI packages one matching static
-library for Linux/amd64, macOS/amd64, macOS/arm64, and Windows/amd64. The
+library for Linux/amd64, macOS/arm64, and Windows/amd64. The
 consumer bundle selects the matching library from `native/<rust-target>/` and
 fails deterministically for unsupported or mismatched targets. A released
 consumer does not need a Cargo checkout, `go generate`, `LD_LIBRARY_PATH`, or

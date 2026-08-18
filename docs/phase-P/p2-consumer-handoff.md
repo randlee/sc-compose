@@ -9,7 +9,7 @@ Release tag convention: `bindings/sc-sha-go/v<version>`
 
 - API: generated `CalculateHash` and `CalculateCompositionHash`.
 - Compatibility oracle: `bindings/sc-sha-go/testdata/conformance-v1.json`.
-- Native targets: Linux/amd64, macOS/amd64, macOS/arm64, Windows/amd64.
+- Native targets: Linux/amd64, macOS/arm64, Windows/amd64.
 - Linkage: target-specific packaged static library; no Cargo checkout or
   `LD_LIBRARY_PATH` fallback.
 - Errors: preserve the generated typed error mapping and stable error codes.

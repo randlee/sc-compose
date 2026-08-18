@@ -24,7 +24,6 @@ conformance fixtures, and one static Rust library selected for the target:
 | OS | Go architecture | Rust target | Library |
 | --- | --- | --- | --- |
 | Linux | amd64 | `x86_64-unknown-linux-gnu` | `libsc_sha_go.a` |
-| macOS | amd64 | `x86_64-apple-darwin` | `libsc_sha_go.a` |
 | macOS | arm64 | `aarch64-apple-darwin` | `libsc_sha_go.a` |
 | Windows | amd64 | `x86_64-pc-windows-gnu` | `libsc_sha_go.a` |
 
