@@ -72,6 +72,9 @@ class ReleaseLayoutTests(unittest.TestCase):
         )
         for library in ("-lws2_32", "-lntdll", "-lbcrypt", "-luserenv"):
             self.assertIn(library, loader)
+        self.assertNotIn("defined(__APPLE__) && (defined(__x86_64__)", loader)
+        self.assertIn("darwin/arm64", loader)
+        self.assertNotIn("darwin/amd64", loader)
 
     def test_every_advertised_target_stages_exactly_one_matching_library(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

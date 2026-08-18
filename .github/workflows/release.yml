@@ -224,9 +224,27 @@ jobs:
       - name: Install pinned UniFFI Go generator
         shell: bash
         run: |
-          cargo install uniffi-bindgen-go \
-            --git https://github.com/NordSecurity/uniffi-bindgen-go \
-            --tag v0.7.1+v0.31.0 --locked
+          python3 - <<'PY'
+          import subprocess
+          import time
+
+          command = [
+              "cargo", "install", "uniffi-bindgen-go",
+              "--git", "https://github.com/NordSecurity/uniffi-bindgen-go",
+              "--tag", "v0.7.1+v0.31.0", "--locked",
+          ]
+          for attempt in range(1, 4):
+              try:
+                  subprocess.run(command, check=True, timeout=900)
+                  break
+              except subprocess.TimeoutExpired:
+                  print(f"generator install timed out after 900s (attempt {attempt}/3)")
+              except subprocess.CalledProcessError as error:
+                  print(f"generator install failed with {error.returncode} (attempt {attempt}/3)")
+              if attempt == 3:
+                  raise SystemExit("unable to install pinned uniffi-bindgen-go after 3 bounded attempts")
+              time.sleep(10)
+          PY
       - name: Install just
         uses: taiki-e/install-action@just
       - name: Verify generated Go output
@@ -239,11 +257,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ '${{ matrix.target }}' == *windows-gnu ]]; then
-            library="target/${{ matrix.target }}/release/libsc_sha_go.a"
-          else
-            library="target/${{ matrix.target }}/release/libsc_sha_go.a"
-          fi
+          library="target/${{ matrix.target }}/release/libsc_sha_go.a"
           version='${{ needs.gate-and-tag.outputs.release_version }}'
           python3 scripts/release_artifacts.py stage-go-native-module \
             --manifest "$RELEASE_ARTIFACT_MANIFEST" \
