@@ -21,15 +21,23 @@ Then regenerate and test with normal CGo safety checks:
 
 ```sh
 just generate-sc-sha-go
-cargo build -p sc-sha-go
+just prepare-sc-sha-go-native
 cd bindings/sc-sha-go
-CGO_ENABLED=1 \
-  CGO_LDFLAGS="-L$PWD/../../target/debug -lsc_sha_go" \
-  DYLD_LIBRARY_PATH="$PWD/../../target/debug" \
-  go test ./go/sc_sha_go
+CGO_ENABLED=1 go test ./go/sc_sha_go
 ```
 
 No command, workflow, or documentation disables Go pointer checks.
+
+## Released module and native targets
+
+The released module path is
+`github.com/randlee/sc-compose/bindings/sc-sha-go`; tags use
+`bindings/sc-sha-go/v<version>`. Release CI packages one matching static
+library for Linux/amd64, macOS/amd64, macOS/arm64, and Windows/amd64. The
+consumer bundle selects the matching library from `native/<rust-target>/` and
+fails deterministically for unsupported or mismatched targets. A released
+consumer does not need a Cargo checkout, `go generate`, `LD_LIBRARY_PATH`, or
+a system-wide Rust installation.
 
 Use `just generate-sc-sha-go check` to verify that the pinned generator does
 not change committed output.

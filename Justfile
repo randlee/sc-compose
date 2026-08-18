@@ -9,6 +9,19 @@ generate-sc-sha-go mode="write":
     uniffi-bindgen-go --out-dir bindings/sc-sha-go/go --config bindings/sc-sha-go/uniffi.toml bindings/sc-sha-go/src/sc_sha_go.udl
     if [ "{{mode}}" = "check" ]; then git diff --exit-code -- bindings/sc-sha-go/go; fi
 
+# Prepare the ignored, host-native static library required only to run the
+# source-tree Go tests. Released consumers use a self-contained bundle instead.
+prepare-sc-sha-go-native:
+    host="$(rustc -vV | awk '/^host:/ { print $2 }')"; \
+    case "$host" in \
+      x86_64-pc-windows-msvc) library="target/debug/sc_sha_go.lib" ;; \
+      x86_64-unknown-linux-gnu|x86_64-apple-darwin|aarch64-apple-darwin) library="target/debug/libsc_sha_go.a" ;; \
+      *) echo "unsupported sc-sha-go host target: $host" >&2; exit 2 ;; \
+    esac; \
+    cargo build -p sc-sha-go; \
+    python3 scripts/release_artifacts.py install-go-native-library \
+      --manifest release/publish-artifacts.toml --target "$host" --native-library "$library"
+
 ensure-lint-runtime:
     python3 scripts/materialize_sc_lint_runtime.py --root .
 

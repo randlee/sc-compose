@@ -205,6 +205,44 @@ jobs:
           name: ${{ matrix.target }}
           path: ${{ env.ARCHIVE }}
 
+  build-go-native:
+    needs: [gate-and-tag, release-plan]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.release-plan.outputs.go_native_matrix) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate-and-tag.outputs.release_ref }}
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+          targets: ${{ matrix.target }}
+      - name: Build target-native static library
+        run: cargo build --release -p sc-sha-go --target ${{ matrix.target }}
+      - name: Stage self-contained Go module bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ '${{ matrix.target }}' == *windows-msvc ]]; then
+            library="target/${{ matrix.target }}/release/sc_sha_go.lib"
+          else
+            library="target/${{ matrix.target }}/release/libsc_sha_go.a"
+          fi
+          version='${{ needs.gate-and-tag.outputs.release_version }}'
+          python3 scripts/release_artifacts.py stage-go-native-module \
+            --manifest "$RELEASE_ARTIFACT_MANIFEST" \
+            --target '${{ matrix.target }}' \
+            --native-library "$library" \
+            --output "$RUNNER_TEMP/sc-sha-go-${{ matrix.target }}" \
+            --version "$version"
+      - name: Upload Go module bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: sc-sha-go-${{ matrix.target }}
+          path: ${{ runner.temp }}/sc-sha-go-${{ matrix.target }}
+
   publish:
     if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
     needs: gate-and-tag
@@ -261,6 +299,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_target_matrix: ${{ steps.manifest.outputs.release_target_matrix }}
+      go_native_matrix: ${{ steps.manifest.outputs.go_native_matrix }}
       python_wheel_matrix: ${{ steps.manifest.outputs.python_wheel_matrix }}
       python_sdist_matrix: ${{ steps.manifest.outputs.python_sdist_matrix }}
     steps:
@@ -273,6 +312,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "release_target_matrix=$(python3 scripts/release_artifacts.py release-target-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
+          echo "go_native_matrix=$(python3 scripts/release_artifacts.py go-native-target-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
           echo "python_wheel_matrix=$(python3 scripts/release_artifacts.py python-wheel-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
           echo "python_sdist_matrix=$(python3 scripts/release_artifacts.py python-sdist-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
 

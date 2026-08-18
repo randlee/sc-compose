@@ -238,10 +238,29 @@ jobs:
         working-directory: bindings/sc-sha-python
         run: python -m pytest -q tests
 
-  sc-sha-go:
-    name: sc-sha Go generated binding
+  sc-sha-go-plan:
+    name: sc-sha Go native target plan
     needs: [test]
     runs-on: ubuntu-latest
+    outputs:
+      target_matrix: ${{ steps.matrix.outputs.target_matrix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: matrix
+        name: Read Go native target matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "target_matrix=$(python3 scripts/release_artifacts.py go-native-target-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
+
+  sc-sha-go:
+    name: sc-sha Go bundle (${{ matrix.goos }}/${{ matrix.goarch }})
+    needs: [sc-sha-go-plan]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.sc-sha-go-plan.outputs.target_matrix) }}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -254,6 +273,7 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.94.1
+          targets: ${{ matrix.target }}
 
       - name: Install pinned UniFFI Go generator
         run: |
@@ -267,13 +287,46 @@ jobs:
       - name: Verify generated Go output
         run: just generate-sc-sha-go check
 
-      - name: Build the native sc-sha Go adapter
-        run: cargo build -p sc-sha-go
+      - name: Build the target-native static adapter
+        run: cargo build --release -p sc-sha-go --target ${{ matrix.target }}
 
-      - name: Run Go conformance tests with normal CGo safety checks
-        working-directory: bindings/sc-sha-go
+      - name: Stage the self-contained Go module bundle
+        id: bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(python3 -c "from pathlib import Path; import tomllib; print(tomllib.loads(Path('Cargo.toml').read_text(encoding='utf-8'))['workspace']['package']['version'])")"
+          case '${{ matrix.target }}' in
+            x86_64-pc-windows-msvc) library="target/${{ matrix.target }}/release/sc_sha_go.lib" ;;
+            *) library="target/${{ matrix.target }}/release/libsc_sha_go.a" ;;
+          esac
+          bundle="$RUNNER_TEMP/sc-sha-go-${{ matrix.target }}"
+          python3 scripts/release_artifacts.py stage-go-native-module \
+            --manifest release/publish-artifacts.toml \
+            --target '${{ matrix.target }}' \
+            --native-library "$library" \
+            --output "$bundle" \
+            --version "$version"
+          echo "path=$bundle" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Run bundled Go conformance tests
+        working-directory: ${{ steps.bundle.outputs.path }}
         env:
           CGO_ENABLED: "1"
-          CGO_LDFLAGS: -L${{ github.workspace }}/target/debug -lsc_sha_go
-          LD_LIBRARY_PATH: ${{ github.workspace }}/target/debug
-        run: go test ./go/sc_sha_go
+        run: go test ./...
+
+      - name: Run an independent Go consumer module
+        shell: bash
+        run: |
+          set -euo pipefail
+          consumer="$RUNNER_TEMP/sc-sha-go-consumer"
+          cp -R bindings/sc-sha-go/tests/consumer-module "$consumer"
+          cd "$consumer"
+          module='github.com/randlee/sc-compose/bindings/sc-sha-go'
+          go mod edit -replace "$module=${{ steps.bundle.outputs.path }}"
+          go get "$module/go/sc_sha_go@v${{ steps.bundle.outputs.version }}"
+          CGO_ENABLED=1 go run .
+
+      - name: Verify release-layout contract
+        run: python3 bindings/sc-sha-go/tests/test_release_layout.py
