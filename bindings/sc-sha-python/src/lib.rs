@@ -197,7 +197,15 @@ fn parse_edges(py: Python<'_>, value: &Bound<'_, PyAny>) -> PyResult<Vec<Resolve
 }
 
 fn parse_manifest(py: Python<'_>, dict: &Bound<'_, PyDict>) -> PyResult<ResolvedTemplateManifest> {
-    let schema = match string_field(py, dict, "schema")?.as_str() {
+    let schema_name = string_field(py, dict, "schema")?;
+    if schema_name.is_empty() {
+        return Err(error(
+            py,
+            "SC_SHA_INVALID_MANIFEST",
+            "manifest schema must not be empty",
+        ));
+    }
+    let schema = match schema_name.as_str() {
         "sc-sha/manifest/v1" | "v1" => ManifestSchemaVersion::V1,
         _ => {
             return Err(error(

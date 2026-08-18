@@ -1,6 +1,18 @@
+import json
+from pathlib import Path
+
 import pytest
 
 import sc_sha
+
+
+CONFORMANCE_VECTORS = (
+    Path(__file__).resolve().parents[1]
+    / ".."
+    / "sc-sha-go"
+    / "testdata"
+    / "conformance-v1.json"
+)
 
 
 def test_file_vector_and_result_shape() -> None:
@@ -182,3 +194,27 @@ def test_sc_sha_error_str_is_human_readable_and_preserves_code() -> None:
 
     assert error.value.code == "SC_SHA_INVALID_INPUT"
     assert str(error.value) == "utf8_file_bytes must be bytes; encode text as UTF-8 explicitly"
+
+
+def test_shared_cross_language_conformance_vectors() -> None:
+    vectors = json.loads(CONFORMANCE_VECTORS.read_text(encoding="utf-8"))
+
+    for case in vectors["hash_cases"]:
+        input_value = {"utf8_file_bytes": bytes.fromhex(case["utf8_file_bytes_hex"])}
+        if "error_code" in case:
+            with pytest.raises(sc_sha.ScShaError) as error:
+                sc_sha.calculate_hash(input_value)
+            assert error.value.code == case["error_code"], case["name"]
+        else:
+            assert sc_sha.calculate_hash(input_value)["sha256"] == case["sha256"], case["name"]
+
+    for case in vectors["composition_cases"]:
+        if "error_code" in case:
+            with pytest.raises(sc_sha.ScShaError) as error:
+                sc_sha.calculate_composition_hash(case["manifest"])
+            assert error.value.code == case["error_code"], case["name"]
+        else:
+            assert (
+                sc_sha.calculate_composition_hash(case["manifest"])["sha256"]
+                == case["sha256"]
+            ), case["name"]

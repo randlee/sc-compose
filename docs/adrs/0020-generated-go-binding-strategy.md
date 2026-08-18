@@ -2,8 +2,11 @@
 
 ## Status
 
-Proposed — requires team-lead and architecture review before a Go adapter is
-implemented or a `CLAUDE.md` boundary amendment is committed.
+Accepted (2026-08-18) — team-lead approved the Phase P plan and this strategy
+for P.1 dispatch. The P.1 `CLAUDE.md` / ADR-0018 / sc-boundary amendment and
+all adapter source remain subject to the sprint's separate pre-source
+quality-manager and architecture gate; acceptance of this ADR is not approval
+to bypass that gate.
 
 ## Context
 

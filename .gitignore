@@ -53,3 +53,6 @@ docs/phase-D/.review-findings.json
 .repowise/.augment-warned
 /.just/
 /artifacts/
+
+# Per-worktree execution checklist; implementation evidence belongs in the sprint/PR.
+.p1-local-task-checklist.md

@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/sc-composer", "crates/sc-compose", "crates/sc-sha", "bindings/python", "bindings/sc-sha-python"]
+members = ["crates/sc-composer", "crates/sc-compose", "crates/sc-sha", "bindings/python", "bindings/sc-sha-python", "bindings/sc-sha-go"]
 resolver = "2"
 
 [workspace.package]
@@ -31,6 +31,8 @@ time = { version = "0.3", features = ["formatting", "macros"] }
 thiserror = "2"
 toml = "0.8"
 ulid = "1"
+uniffi = "=0.31.0"
+uniffi_build = "=0.31.0"
 
 [workspace.lints.rust]
 ambiguous_negative_literals = "warn"

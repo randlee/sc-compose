@@ -16,7 +16,7 @@ constructor = "none"
 roots = ["calculate_hash", "calculate_composition_hash"]
 
 [dependencies]
-allowed_dependents = ["sc-composer", "sc-sha-python"]
+allowed_dependents = ["sc-composer", "sc-sha-python", "sc-sha-go"]
 allowed_dependencies = ["sha2"]
 forbidden_edges = []
 

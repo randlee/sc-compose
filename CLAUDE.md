@@ -40,11 +40,17 @@ This repo is intentionally independent from ATM. Do not introduce
 7. Any ATM integration belongs in ATM adapters, not in this repo.
 8. `sc-sha` is a pure computation crate. It may depend only on approved
    hashing/encoding dependencies, and may be depended on only by
-   `sc-composer` and `bindings/sc-sha-python`. See
+   `sc-composer`, `bindings/sc-sha-python`, and `bindings/sc-sha-go`. See
    [ADR-0018](./docs/adrs/0018-sc-sha-hash-ownership.md).
 9. `bindings/sc-sha-python` is a Python-facing adapter for `sc-sha` only. It
    may depend on published `sc-sha` plus PyO3/maturin packaging dependencies
    only. See [ADR-0018](./docs/adrs/0018-sc-sha-hash-ownership.md).
+10. `bindings/sc-sha-go` is a generated UniFFI adapter for `sc-sha` only. It
+    may depend on `sc-sha` plus its approved pinned UniFFI generation/runtime
+    dependencies; it must not depend on `sc-compose`, `sc-composer`, ATM code,
+    filesystem/resolver policy, or another adapter. `sc-sha` must not depend
+    on it. See [ADR-0018](./docs/adrs/0018-sc-sha-hash-ownership.md) and
+    [ADR-0020](./docs/adrs/0020-generated-go-binding-strategy.md).
 
 ## Team Communication
 

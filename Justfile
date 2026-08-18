@@ -2,6 +2,13 @@ set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
 sc-compose := "cargo run --quiet --bin sc-compose --"
 
+# Regenerate committed UniFFI Go output. Use `just generate-sc-sha-go check`
+# in CI to fail when the pinned generator would change it.
+generate-sc-sha-go mode="write":
+    case "{{mode}}" in write|check) ;; *) echo "mode must be write or check" >&2; exit 2 ;; esac
+    uniffi-bindgen-go --out-dir bindings/sc-sha-go/go --config bindings/sc-sha-go/uniffi.toml bindings/sc-sha-go/src/sc_sha_go.udl
+    if [ "{{mode}}" = "check" ]; then git diff --exit-code -- bindings/sc-sha-go/go; fi
+
 ensure-lint-runtime:
     python3 scripts/materialize_sc_lint_runtime.py --root .
 
@@ -20,7 +27,7 @@ template-contracts:
 # also skipped because v0.4.0 crashes on valid Rust unicode escapes.
 lint-ci-consumer: ensure-lint-runtime
     {{sc-compose}} lint --root . --target fast --json
-    cargo deny check --config deny.toml advisories bans licenses sources
+    python3 .just/lint_cargo_deny.py --root .
     cargo shear
     {{sc-compose}} lint --root . --target sc-boundary --json
     {{sc-compose}} lint --root . --target sc-portability --json
