@@ -115,7 +115,7 @@ cargo fmt --all --check
 cargo test --workspace
 cargo clippy --all-targets --all-features -- -D warnings
 just lint
-just generate-sc-sha-go --check
+just generate-sc-sha-go check
 just prepare-sc-sha-go-native
 (cd bindings/sc-sha-go && go test ./...)
 python3 bindings/sc-sha-go/tests/test_release_layout.py

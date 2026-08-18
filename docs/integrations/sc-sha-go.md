@@ -1,6 +1,12 @@
 # Consuming `sc-sha-go`
 
-The released Go module is:
+The released Go module path is:
+
+```text
+github.com/randlee/sc-compose/bindings/sc-sha-go
+```
+
+The generated package import path is:
 
 ```text
 github.com/randlee/sc-compose/bindings/sc-sha-go/go/sc_sha_go

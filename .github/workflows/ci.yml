@@ -276,6 +276,7 @@ jobs:
           targets: ${{ matrix.target }}
 
       - name: Install pinned UniFFI Go generator
+        shell: bash
         run: |
           cargo install uniffi-bindgen-go \
             --git https://github.com/NordSecurity/uniffi-bindgen-go \
