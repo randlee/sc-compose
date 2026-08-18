@@ -26,7 +26,7 @@ conformance fixtures, and one static Rust library selected for the target:
 | Linux | amd64 | `x86_64-unknown-linux-gnu` | `libsc_sha_go.a` |
 | macOS | amd64 | `x86_64-apple-darwin` | `libsc_sha_go.a` |
 | macOS | arm64 | `aarch64-apple-darwin` | `libsc_sha_go.a` |
-| Windows | amd64 | `x86_64-pc-windows-msvc` | `sc_sha_go.lib` |
+| Windows | amd64 | `x86_64-pc-windows-msvc` | `sc_sha_go.a` |
 
 Consumers use the released bundle directly. They do not need a Cargo
 checkout, `go generate`, `LD_LIBRARY_PATH`, or a manually installed Rust

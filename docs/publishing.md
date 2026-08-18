@@ -167,8 +167,8 @@ tooling consume the manifest and perform publication separately.
 
 ## Generated `sc-sha-go` module
 
-The Go adapter is released as the versioned submodule
-`github.com/randlee/sc-compose/bindings/sc-sha-go/go/sc_sha_go` using tags of
+The Go adapter is released as the versioned module
+`github.com/randlee/sc-compose/bindings/sc-sha-go` using tags of
 the form `bindings/sc-sha-go/v<version>`. Release CI stages one matching
 static native library per advertised OS/architecture and runs an independent
 temporary Go consumer module. Consumers must use the released bundle; they do

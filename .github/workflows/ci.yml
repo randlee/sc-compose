@@ -298,7 +298,9 @@ jobs:
           set -euo pipefail
           version="$(python3 -c "from pathlib import Path; import tomllib; print(tomllib.loads(Path('Cargo.toml').read_text(encoding='utf-8'))['workspace']['package']['version'])")"
           case '${{ matrix.target }}' in
-            x86_64-pc-windows-msvc) library="target/${{ matrix.target }}/release/sc_sha_go.lib" ;;
+            x86_64-pc-windows-msvc)
+              cp "target/${{ matrix.target }}/release/sc_sha_go.lib" "target/${{ matrix.target }}/release/sc_sha_go.a"
+              library="target/${{ matrix.target }}/release/sc_sha_go.a" ;;
             *) library="target/${{ matrix.target }}/release/libsc_sha_go.a" ;;
           esac
           bundle="$RUNNER_TEMP/sc-sha-go-${{ matrix.target }}"

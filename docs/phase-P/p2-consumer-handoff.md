@@ -1,7 +1,8 @@
 # P.2 consumer handoff record
 
 Date: 2026-08-18  
-Module: `github.com/randlee/sc-compose/bindings/sc-sha-go/go/sc_sha_go`  
+Module: `github.com/randlee/sc-compose/bindings/sc-sha-go`
+Package import: `github.com/randlee/sc-compose/bindings/sc-sha-go/go/sc_sha_go`
 Release tag convention: `bindings/sc-sha-go/v<version>`
 
 ## Contract sent to consumers

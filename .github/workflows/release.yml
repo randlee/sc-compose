@@ -226,7 +226,8 @@ jobs:
         run: |
           set -euo pipefail
           if [[ '${{ matrix.target }}' == *windows-msvc ]]; then
-            library="target/${{ matrix.target }}/release/sc_sha_go.lib"
+            cp "target/${{ matrix.target }}/release/sc_sha_go.lib" "target/${{ matrix.target }}/release/sc_sha_go.a"
+            library="target/${{ matrix.target }}/release/sc_sha_go.a"
           else
             library="target/${{ matrix.target }}/release/libsc_sha_go.a"
           fi

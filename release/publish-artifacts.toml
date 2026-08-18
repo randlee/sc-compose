@@ -81,7 +81,7 @@ library = "libsc_sha_go.a"
 rust_target = "x86_64-pc-windows-msvc"
 goos = "windows"
 goarch = "amd64"
-library = "sc_sha_go.lib"
+library = "sc_sha_go.a"
 
 [[python_packages]]
 artifact = "sc-sha-python"

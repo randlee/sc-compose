@@ -22,6 +22,7 @@ __pycache__/
 bindings/python/python/sc_compose/_native*.so
 bindings/sc-sha-go/native/*/libsc_sha_go.a
 bindings/sc-sha-go/native/*/sc_sha_go.lib
+bindings/sc-sha-go/native/*/sc_sha_go.a
 
 # Generated report evidence
 reports/latest/
