@@ -36,7 +36,7 @@ Install a released target bundle from the repository tag in a consumer module:
 
 ```sh
 go mod init example.invalid/my-consumer
-go get github.com/randlee/sc-compose/bindings/sc-sha-go@bindings/sc-sha-go/v1.4.1
+go get github.com/randlee/sc-compose/bindings/sc-sha-go@bindings/sc-sha-go/v1.5.0
 ```
 
 The generated package exposes concrete manifest types. This complete example

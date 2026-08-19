@@ -40,7 +40,7 @@ class ReleaseLayoutTests(unittest.TestCase):
                 "--output",
                 str(output),
                 "--version",
-                "1.4.1",
+                "1.5.0",
             ],
             text=True,
             capture_output=True,

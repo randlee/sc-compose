@@ -1,7 +1,9 @@
 ---
 phase: P
 title: Generated Go Bindings for sc-sha
-status: planned
+status: complete
+branch: sprint/p-3-release-prep-v1.5.0
+worktree: ../sc-compose-worktrees/sprint/p-3-release-prep-v1.5.0
 target: integrate/phase-p
 planning_branch: plan/sha-go
 planning_worktree: ../sc-compose-worktrees/plan/sha-go
@@ -198,7 +200,18 @@ team-lead opens the PR and sends it to quality-mgr. The originating sprint is
 not closed until required fix PRs are QA-approved, merged, and its merged
 parent is revalidated.
 
+## Phase P Release Preparation
+
+Status: complete on `sprint/p-3-release-prep-v1.5.0`.
+
+P.3 publishes the Phase P release documentation and metadata: the generated
+`sc-sha-go` consumer section and integration guide use the `1.5.0` module tag,
+the Rust and Python package versions are synchronized, and the Phase P
+boundary and planning gates are closed. External adoption by `sc-dolt` and
+atm-core remains consumer-owned work as documented in the integration guide.
+
 ## Sprint index
 
 - [Sprint P.1 — Generated sc-sha Go Adapter Contract](sprint-p-1-generated-sc-sha-go-adapter.md)
 - [Sprint P.2 — Go Module Distribution and Consumer Handoff](sprint-p-2-go-module-distribution-and-handoff.md)
+- [Phase P Release Preparation](#phase-p-release-preparation)
