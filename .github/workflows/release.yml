@@ -205,8 +205,41 @@ jobs:
           name: ${{ matrix.target }}
           path: ${{ env.ARCHIVE }}
 
-  build-go-native:
+  generate-go-bindings:
     needs: [gate-and-tag, release-plan]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate-and-tag.outputs.release_ref }}
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+      - name: Cache generated Go bindings
+        id: generated-cache
+        uses: actions/cache@v4
+        with:
+          path: bindings/sc-sha-go/go
+          key: uniffi-bindgen-go-generated-v0.7.1-v0.31.0-${{ hashFiles('bindings/sc-sha-go/src/sc_sha_go.udl', 'bindings/sc-sha-go/uniffi.toml') }}
+      - name: Generate bindings on Ubuntu when cache misses
+        if: steps.generated-cache.outputs.cache-hit != 'true'
+        run: |
+          cargo install uniffi-bindgen-go \
+            --git https://github.com/NordSecurity/uniffi-bindgen-go \
+            --tag v0.7.1+v0.31.0 --locked
+          uniffi-bindgen-go --out-dir bindings/sc-sha-go/go \
+            --config bindings/sc-sha-go/uniffi.toml \
+            bindings/sc-sha-go/src/sc_sha_go.udl
+      - name: Verify generated bindings
+        run: git diff --exit-code -- bindings/sc-sha-go/go
+      - name: Upload generated Go bindings
+        uses: actions/upload-artifact@v4
+        with:
+          name: sc-sha-go-generated
+          path: bindings/sc-sha-go/go
+
+  build-go-native:
+    needs: [gate-and-tag, release-plan, generate-go-bindings]
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.release-plan.outputs.go_native_matrix) }}
@@ -215,22 +248,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.gate-and-tag.outputs.release_ref }}
+      - name: Download generated Go bindings
+        uses: actions/download-artifact@v4
+        with:
+          name: sc-sha-go-generated
+          path: bindings/sc-sha-go/go
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.94.1
           targets: ${{ matrix.target }}
       - name: Set up sc-lint toolchain
         uses: ./.github/actions/setup-lint-toolchain
-      - name: Install pinned UniFFI Go generator
-        shell: bash
-        run: |
-          cargo install uniffi-bindgen-go \
-            --git https://github.com/NordSecurity/uniffi-bindgen-go \
-            --tag v0.7.1+v0.31.0 --locked
-      - name: Install just
-        uses: taiki-e/install-action@just
-      - name: Verify generated Go output
-        run: just generate-sc-sha-go check
       - name: Run repository lint
         run: just lint-ci-consumer
       - name: Build target-native static library
