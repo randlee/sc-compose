@@ -291,6 +291,10 @@ jobs:
         shell: bash
         run: python3 .github/scripts/install_uniffi_bindgen_go.py
 
+      - name: Test pinned UniFFI Go generator installer
+        shell: bash
+        run: cd .github/scripts && python3 -m unittest test_install_uniffi_bindgen_go -v
+
       - name: Install just
         uses: taiki-e/install-action@just
 
