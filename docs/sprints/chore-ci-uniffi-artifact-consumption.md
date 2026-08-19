@@ -127,3 +127,18 @@ rigid contract, the four numbered requirements above are)
 - Report the measured wall-clock change for `darwin/arm64` and
   `windows/amd64` `sc-sha-go` jobs before/after (this is the 30+ minute
   cost the user is trying to eliminate).
+
+## Verification evidence
+
+- Cache miss and generation: [CI run 32221174807, generation job 95972903359](https://github.com/randlee/sc-compose/actions/runs/32221174807/job/95972903359).
+  The generated-source cache was absent, the pinned installer built the
+  generator once on Ubuntu, and the cache was saved. The generation job ran
+  from 06:00:10Z to 06:07:20Z (7m10s).
+- Cache hit and generation skip: [CI run 32223576326, generation job 95979491029](https://github.com/randlee/sc-compose/actions/runs/32223576326/job/95979491029).
+  With the same UDL/config and generator version, the keyed cache was reused;
+  the generation job completed from 06:32:47Z to 06:33:04Z (17s), with no
+  installer or generator build.
+- Wall-clock comparison: before this change, [run 32211066138](https://github.com/randlee/sc-compose/actions/runs/32211066138)
+  took approximately 34m06s for darwin/arm64 and 19m48s for windows/amd64.
+  After artifact generation was centralized, [run 32221174807](https://github.com/randlee/sc-compose/actions/runs/32221174807)
+  took approximately 1m37s for darwin/arm64 and 2m35s for windows/amd64.
