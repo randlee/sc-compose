@@ -872,6 +872,10 @@ Sprint entries:
 - [Sprint P.2 — Go Module Distribution and Consumer Handoff](phase-P/sprint-p-2-go-module-distribution-and-handoff.md)
 - [Sprint P.3 — Phase P Release Preparation](phase-P/phase-P-plan.md#phase-p-release-preparation)
 
+### Follow-on Chore: CI UniFFI Artifact Consumption
+
+- [CHORE.CI-UNIFFI-CONSUME — CI UniFFI Artifact Consumption](sprints/chore-ci-uniffi-artifact-consumption.md)
+
 ### Follow-on Fix Sprint: FIX-O13
 
 Status:
