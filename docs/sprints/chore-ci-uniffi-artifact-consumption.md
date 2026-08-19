@@ -1,7 +1,7 @@
 ---
 sprint: CHORE.CI-UNIFFI-CONSUME
 phase: Phase P follow-up (post-release CI cost reduction)
-status: assigned
+status: complete
 branch: chore/ci-uniffi-artifact-consumption
 worktree: ../sc-compose-worktrees/chore/ci-uniffi-artifact-consumption
 target: integrate/phase-p
