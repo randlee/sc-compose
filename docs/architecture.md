@@ -131,6 +131,10 @@ behavior.
 `sc-sha` operations. It owns Go-facing generated types, CGo/native artifact
 selection, and Go consumer packaging. It depends only on `sc-sha`; it does not
 depend on `sc-composer`, `sc-compose`, the Python adapter, or ATM/runtime code.
+The adapter follows [ADR-0020: Generated Go Binding Strategy](adrs/0020-generated-go-binding-strategy.md),
+which is **Accepted**. Consumers download and extract the target-specific
+release bundle before building; `go get` alone does not provide the native
+library.
 
 ### 3.6 Dependency Direction
 

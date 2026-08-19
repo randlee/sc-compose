@@ -2,7 +2,7 @@
 id: P.1
 title: Generated sc-sha Go Adapter Contract
 phase: P
-status: planned
+status: complete
 branch: sprint/p-1-generated-sc-sha-go-adapter
 worktree: ../sc-compose-worktrees/sprint/p-1-generated-sc-sha-go-adapter
 target: integrate/phase-p

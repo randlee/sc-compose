@@ -27,17 +27,36 @@ conformance fixtures, and one static Rust library selected for the target:
 | macOS | arm64 | `aarch64-apple-darwin` | `libsc_sha_go.a` |
 | Windows | amd64 | `x86_64-pc-windows-gnu` | `libsc_sha_go.a` |
 
-Consumers use the released bundle directly. They do not need a Cargo
-checkout, `go generate`, `LD_LIBRARY_PATH`, or a manually installed Rust
-library. Unsupported targets and missing or mismatched libraries fail during
-build with a diagnostic naming the target and the supported remediation.
+Consumers use a target-specific release bundle directly. They do not need a
+Cargo checkout, `go generate`, `LD_LIBRARY_PATH`, or a manually installed Rust
+library. The Go module source is hosted in the repository, but native static
+libraries are release assets and are intentionally not committed to the Git
+tag. Therefore `go get` alone is not a complete installation.
 
-Install a released target bundle from the repository tag in a consumer module:
+Unsupported targets and missing or mismatched libraries fail during build with
+a diagnostic naming the target and the supported remediation.
+
+Install a released target bundle in a consumer module. Replace `v1.5.0` with
+the desired release and choose the asset matching the consumer host:
 
 ```sh
 go mod init example.invalid/my-consumer
-go get github.com/randlee/sc-compose/bindings/sc-sha-go@bindings/sc-sha-go/v1.5.0
+module='github.com/randlee/sc-compose/bindings/sc-sha-go'
+version='v1.5.0'
+asset='sc-sha-go-x86_64-unknown-linux-gnu.zip'
+bundle="$PWD/.sc-sha-go"
+mkdir -p "$bundle"
+curl --fail --location --output "$bundle/bundle.zip" \
+  "https://github.com/randlee/sc-compose/releases/download/$version/$asset"
+unzip -q "$bundle/bundle.zip" -d "$bundle/module"
+go mod edit -replace "$module=$bundle/module"
+go get "$module/go/sc_sha_go@$version"
 ```
+
+The release asset contains `go.mod`, generated Go source, conformance
+fixtures, the matching C header, and exactly one target-native static library.
+The `replace` points at the extracted release bundle; it is not a Cargo
+checkout or a second implementation.
 
 The generated package exposes concrete manifest types. This complete example
 uses the ordered two-node vector from `testdata/conformance-v1.json`:

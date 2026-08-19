@@ -10,8 +10,10 @@ Release tag convention: `bindings/sc-sha-go/v<version>`
 - API: generated `CalculateHash` and `CalculateCompositionHash`.
 - Compatibility oracle: `bindings/sc-sha-go/testdata/conformance-v1.json`.
 - Native targets: Linux/amd64, macOS/arm64, Windows/amd64.
-- Linkage: target-specific packaged static library; no Cargo checkout or
-  `LD_LIBRARY_PATH` fallback.
+- Linkage: target-specific packaged static library downloaded from the
+  matching GitHub release bundle; no Cargo checkout or `LD_LIBRARY_PATH`
+  fallback. `go get` alone is not sufficient because native libraries are
+  release assets rather than files in the Git tag.
 - Errors: preserve the generated typed error mapping and stable error codes.
 - Updates: consume a released module tag, run the committed vectors, and
   independently verify the target-native bundle before adoption.

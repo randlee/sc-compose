@@ -2,7 +2,7 @@
 id: P.2
 title: Go Module Distribution and Consumer Handoff
 phase: P
-status: planned
+status: complete
 branch: sprint/p-2-go-module-distribution-and-handoff
 worktree: ../sc-compose-worktrees/sprint/p-2-go-module-distribution-and-handoff
 target: integrate/phase-p

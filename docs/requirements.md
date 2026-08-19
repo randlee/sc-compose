@@ -42,6 +42,12 @@ the library.
 
 ### 3.1a Phase P Go module distribution
 
+The Phase P generated-Go strategy is governed by
+[ADR-0020: Generated Go Binding Strategy](adrs/0020-generated-go-binding-strategy.md),
+which is **Accepted**. The native libraries are distributed as the
+target-specific release bundles documented by the Go integration guide; a Go
+module download alone does not include those native libraries.
+
 The repository MUST publish a generated Go module for the canonical `sc-sha`
 hash operations so external consumers can use the shared hash contract without
 copying its implementation. The module MUST use the documented submodule path

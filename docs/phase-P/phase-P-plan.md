@@ -27,9 +27,8 @@ bindings for `sc-composer`, introduce ATM code, change the two-operation
 ## Decision and design gate
 
 [ADR-0020](../adrs/0020-generated-go-binding-strategy.md) is the governing
-binding strategy. It is proposed at planning time. Before P.1 source work
-starts, team-lead, quality-mgr, and architecture review must accept it and the
-P.1 amendment to ADR-0018 / `CLAUDE.md` / sc-boundary inventories.
+binding strategy and is **Accepted**. P.1 records the required amendment to
+ADR-0018 / `CLAUDE.md` / sc-boundary inventories and its review evidence.
 
 The P.1 gate pins a compatible UniFFI plus `uniffi-bindgen-go` pair and proves
 the pair can generate and build the actual Go package. The Go generator is a
@@ -158,21 +157,21 @@ rules and add a dedicated sc-boundary contract before code begins.
 
 ## Phase acceptance criteria
 
-- [ ] ADR-0020 and the P.1 ADR-0018/boundary amendments are accepted before
-      adapter source is authored.
-- [ ] A generated Go package exposes exactly the two existing `sc-sha`
+- [x] ADR-0020 and the P.1 ADR-0018/boundary amendments are accepted before
+      adapter source is authored ([PR #513](https://github.com/randlee/sc-compose/pull/513)).
+- [x] A generated Go package exposes exactly the two existing `sc-sha`
       operations and typed manifest/error values.
-- [ ] Go, Rust, and Python agree on all committed success and failure vectors.
-- [ ] CI regenerates the Go source using the pinned toolchain and detects
-      committed-artifact drift.
-- [ ] The released module has a documented native artifact/linking contract
-      and passes an independent consumer-module smoke test.
-- [ ] Neither `sc-sha` nor `sc-composer` acquires a binding/runtime reverse
-      dependency, and sc-boundary negative tests prove it.
-- [ ] `sc-dolt` and atm-core receive the released package/version, vectors,
+- [x] Go, Rust, and Python agree on all committed success and failure vectors.
+- [x] CI regenerates the Go source using the pinned toolchain and detects
+      committed-artifact drift ([PR #513](https://github.com/randlee/sc-compose/pull/513)).
+- [x] The released module has a documented target-bundle download/linking
+      contract and passes an independent consumer-module smoke test ([PR #515](https://github.com/randlee/sc-compose/pull/515)).
+- [x] Neither `sc-sha` nor `sc-composer` acquires a binding/runtime reverse
+      dependency, and sc-boundary negative tests prove it ([PR #513](https://github.com/randlee/sc-compose/pull/513)).
+- [x] `sc-dolt` and atm-core receive the released package/version, vectors,
       and handoff instructions; their adoption remains separately owned work.
-- [ ] All sprint and required `fix/` worktrees are QA-approved, merged, and
-      revalidated on the merged parent.
+- [x] All sprint and required `fix/` worktrees are QA-approved, merged, and
+      revalidated on the merged parent ([PR #514](https://github.com/randlee/sc-compose/pull/514)).
 
 ## Phase validation
 
