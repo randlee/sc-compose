@@ -275,12 +275,20 @@ jobs:
           toolchain: 1.94.1
           targets: ${{ matrix.target }}
 
+      - name: Cache pinned UniFFI Go generator
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/uniffi-bindgen-go
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-${{ runner.arch }}-uniffi-bindgen-go-v0.7.1-v0.31.0-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-uniffi-bindgen-go-v0.7.1-v0.31.0-
+
       - name: Install pinned UniFFI Go generator
         shell: bash
-        run: |
-          cargo install uniffi-bindgen-go \
-            --git https://github.com/NordSecurity/uniffi-bindgen-go \
-            --tag v0.7.1+v0.31.0 --locked
+        run: python3 .github/scripts/install_uniffi_bindgen_go.py
 
       - name: Install just
         uses: taiki-e/install-action@just
@@ -297,10 +305,7 @@ jobs:
         run: |
           set -euo pipefail
           version="$(python3 -c "from pathlib import Path; import tomllib; print(tomllib.loads(Path('Cargo.toml').read_text(encoding='utf-8'))['workspace']['package']['version'])")"
-          case '${{ matrix.target }}' in
-            x86_64-pc-windows-gnu) library="target/${{ matrix.target }}/release/libsc_sha_go.a" ;;
-            *) library="target/${{ matrix.target }}/release/libsc_sha_go.a" ;;
-          esac
+          library="target/${{ matrix.target }}/release/libsc_sha_go.a"
           bundle="$RUNNER_TEMP/sc-sha-go-${{ matrix.target }}"
           python3 scripts/release_artifacts.py stage-go-native-module \
             --manifest release/publish-artifacts.toml \

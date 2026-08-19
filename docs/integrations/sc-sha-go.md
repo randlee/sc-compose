@@ -32,6 +32,50 @@ checkout, `go generate`, `LD_LIBRARY_PATH`, or a manually installed Rust
 library. Unsupported targets and missing or mismatched libraries fail during
 build with a diagnostic naming the target and the supported remediation.
 
+Install a released target bundle from the repository tag in a consumer module:
+
+```sh
+go mod init example.invalid/my-consumer
+go get github.com/randlee/sc-compose/bindings/sc-sha-go@bindings/sc-sha-go/v1.5.0
+```
+
+The generated package exposes concrete manifest types. This complete example
+uses the ordered two-node vector from `testdata/conformance-v1.json`:
+
+```go
+package main
+
+import (
+    "fmt"
+    scsha "github.com/randlee/sc-compose/bindings/sc-sha-go/go/sc_sha_go"
+)
+
+func main() {
+    fileHash, err := scsha.CalculateHash([]byte("hello\r\n"))
+    if err != nil { panic(err) }
+    fmt.Println(fileHash.Sha256)
+
+    manifest := scsha.ResolvedTemplateManifest{
+        Schema: "sc-sha/manifest/v1",
+        Nodes: []scsha.ResolvedTemplateNode{
+            {Source: scsha.CanonicalSourceLocalPath{Value: "root.md"}, Sha256: "53175bcc0524f37b47062fafdda28e3f8eb91d519ca0a184ca71bbebe72f969a"},
+            {Source: scsha.CanonicalSourceLocalPath{Value: "child.md"}, Sha256: "2fa14f53e6b15cac9ac77846c7be87862c2a7e9ec0c6cea319db939317f126ed"},
+        },
+        Edges: []scsha.ResolvedIncludeEdge{{
+            Parent: scsha.CanonicalSourceLocalPath{Value: "root.md"},
+            Child: scsha.CanonicalSourceLocalPath{Value: "child.md"},
+            Occurrence: 0,
+        }},
+    }
+    compositionHash, err := scsha.CalculateCompositionHash(manifest)
+    if err != nil { panic(err) }
+    fmt.Println(compositionHash.Sha256)
+}
+```
+
+The expected composition digest for this fixture is
+`80c55ea43eaa4c0453fe189c5aa0bbc1f523b8c66cc23ab990ec0356acd737ac`.
+
 The public API is generated from the pinned UniFFI definition. The two typed
 operations are:
 

@@ -14,8 +14,7 @@ generate-sc-sha-go mode="write":
 prepare-sc-sha-go-native:
     host="$(rustc -vV | awk '/^host:/ { print $2 }')"; \
     case "$host" in \
-      x86_64-pc-windows-gnu) library="target/debug/libsc_sha_go.a" ;; \
-      x86_64-unknown-linux-gnu|aarch64-apple-darwin) library="target/debug/libsc_sha_go.a" ;; \
+      x86_64-unknown-linux-gnu|aarch64-apple-darwin|x86_64-pc-windows-gnu) library="target/debug/libsc_sha_go.a" ;; \
       *) echo "unsupported sc-sha-go host target: $host" >&2; exit 2 ;; \
     esac; \
     cargo build -p sc-sha-go; \

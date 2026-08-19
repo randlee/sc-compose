@@ -6,7 +6,7 @@ package sc_sha_go
 #cgo windows,amd64 LDFLAGS: ${SRCDIR}/../../native/x86_64-pc-windows-gnu/libsc_sha_go.a -lws2_32 -lntdll -lbcrypt -luserenv
 
 #if !((defined(__linux__) && defined(__x86_64__)) || \
-      (defined(__APPLE__) && (defined(__x86_64__) || defined(__aarch64__))) || \
+      (defined(__APPLE__) && defined(__aarch64__)) || \
       (defined(_WIN32) && defined(_M_X64)))
 #error "sc-sha-go: unsupported native target; install a release bundle for linux/amd64, darwin/arm64, or windows/amd64"
 #endif

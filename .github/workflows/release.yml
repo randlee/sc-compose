@@ -219,14 +219,21 @@ jobs:
         with:
           toolchain: 1.94.1
           targets: ${{ matrix.target }}
+      - name: Cache pinned UniFFI Go generator
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/uniffi-bindgen-go
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-${{ runner.arch }}-uniffi-bindgen-go-v0.7.1-v0.31.0-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-uniffi-bindgen-go-v0.7.1-v0.31.0-
       - name: Set up sc-lint toolchain
         uses: ./.github/actions/setup-lint-toolchain
       - name: Install pinned UniFFI Go generator
         shell: bash
-        run: |
-          cargo install uniffi-bindgen-go \
-            --git https://github.com/NordSecurity/uniffi-bindgen-go \
-            --tag v0.7.1+v0.31.0 --locked
+        run: python3 .github/scripts/install_uniffi_bindgen_go.py
       - name: Install just
         uses: taiki-e/install-action@just
       - name: Verify generated Go output
@@ -239,11 +246,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ '${{ matrix.target }}' == *windows-gnu ]]; then
-            library="target/${{ matrix.target }}/release/libsc_sha_go.a"
-          else
-            library="target/${{ matrix.target }}/release/libsc_sha_go.a"
-          fi
+          library="target/${{ matrix.target }}/release/libsc_sha_go.a"
           version='${{ needs.gate-and-tag.outputs.release_version }}'
           python3 scripts/release_artifacts.py stage-go-native-module \
             --manifest "$RELEASE_ARTIFACT_MANIFEST" \

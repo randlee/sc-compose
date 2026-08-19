@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-18
+
+### Added
+
+- Added the generated `sc-sha-go` Go module, exposing typed UniFFI bindings
+  for the canonical file and composition hash operations.
+- Added a reproducible native-library release layout, target matrix, and
+  conformance-vector handoff for Go consumers. See
+  `docs/integrations/sc-sha-go.md` for the module path, release tags, and
+  supported targets.
+
+### Changed
+
+- Bumped the Rust workspace and Python distributions to `1.5.0` for the
+  Phase P Go-binding release.
+
 ## [1.4.1] - 2026-08-13
 
 ### Added

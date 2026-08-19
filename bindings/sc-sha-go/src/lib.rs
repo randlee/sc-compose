@@ -5,7 +5,7 @@
 
 use sc_sha::{
     CanonicalSource as CoreCanonicalSource, CanonicalSourceError, CanonicalSourceUrl,
-    CanonicalTemplatePath, CompositionError, HashInput, ManifestSchemaVersion,
+    CanonicalTemplatePath, CompositionError, HashInput, ManifestSchemaError, ManifestSchemaVersion,
     ResolvedIncludeEdge as CoreResolvedIncludeEdge,
     ResolvedTemplateManifest as CoreResolvedTemplateManifest,
     ResolvedTemplateNode as CoreResolvedTemplateNode, ShaError, TemplateSha256,
@@ -117,17 +117,16 @@ fn canonical_source_error(error: CanonicalSourceError) -> ScShaError {
 }
 
 fn parse_schema(schema: &str) -> Result<ManifestSchemaVersion, ScShaError> {
-    match schema {
-        "sc-sha/manifest/v1" | "v1" => Ok(ManifestSchemaVersion::V1),
-        "" => Err(ScShaError::InvalidManifest {
+    ManifestSchemaVersion::try_from(schema).map_err(|error| match error {
+        ManifestSchemaError::Empty => ScShaError::InvalidManifest {
             code: "SC_SHA_INVALID_MANIFEST".to_owned(),
             message: "manifest schema must not be empty".to_owned(),
-        }),
-        _ => Err(ScShaError::UnsupportedManifestSchema {
+        },
+        ManifestSchemaError::Unsupported => ScShaError::UnsupportedManifestSchema {
             code: "SC_SHA_UNSUPPORTED_MANIFEST_SCHEMA".to_owned(),
             message: "unsupported manifest schema; use sc-sha/manifest/v1".to_owned(),
-        }),
-    }
+        },
+    })
 }
 
 fn core_node(node: ResolvedTemplateNode) -> Result<CoreResolvedTemplateNode, ScShaError> {

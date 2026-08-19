@@ -1,7 +1,7 @@
 # SC-Compose Architecture
 
 > Status: Active Release Baseline
-> Product: `sc-composer` (library), `sc-compose` (CLI), `sc-sha` (hash library), and the `bindings/python` and `bindings/sc-sha-python` adapters
+> Product: `sc-composer` (library), `sc-compose` (CLI), `sc-sha` (hash library), and the `bindings/python`, `bindings/sc-sha-python`, and `bindings/sc-sha-go` adapters
 > Document role: Normative release architecture for all in-repo packages
 
 This document supersedes the prior high-level placeholder. It is the normative
@@ -10,7 +10,7 @@ release architecture baseline for `sc-compose` v1.4.1.
 ## 1. Architectural Intent
 
 This document defines the required architecture of `sc-composer`,
-`sc-compose`, `sc-sha`, and the two Python adapters for release work. It is not
+`sc-compose`, `sc-sha`, and the Python and Go adapters for release work. It is not
 a description of the current
 implementation.
 
@@ -125,7 +125,14 @@ identity. It owns the two published hash operations and their input
 validation/encoding contracts; it has no filesystem, template, CLI, or ATM
 behavior.
 
-### 3.5 Dependency Direction
+### 3.5 `bindings/sc-sha-go`
+
+`bindings/sc-sha-go` is the generated UniFFI Go adapter for the two public
+`sc-sha` operations. It owns Go-facing generated types, CGo/native artifact
+selection, and Go consumer packaging. It depends only on `sc-sha`; it does not
+depend on `sc-composer`, `sc-compose`, the Python adapter, or ATM/runtime code.
+
+### 3.6 Dependency Direction
 
 Required dependency direction:
 
@@ -134,6 +141,7 @@ Required dependency direction:
 - `sc-composer` -> `sc-sha`
 - `bindings/python` -> `sc-composer`
 - `bindings/sc-sha-python` -> `sc-sha`
+- `bindings/sc-sha-go` -> `sc-sha`
 - `sc-observability` -> `sc-observability-types`
 
 Required observability split:

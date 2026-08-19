@@ -683,7 +683,7 @@ checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
 
 [[package]]
 name = "sc-compose"
-version = "1.4.1"
+version = "1.5.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -702,7 +702,7 @@ dependencies = [
 
 [[package]]
 name = "sc-compose-py"
-version = "1.4.1"
+version = "1.5.0"
 dependencies = [
  "pyo3",
  "sc-composer",
@@ -712,7 +712,7 @@ dependencies = [
 
 [[package]]
 name = "sc-composer"
-version = "1.4.1"
+version = "1.5.0"
 dependencies = [
  "minijinja",
  "quick-xml",
@@ -753,14 +753,14 @@ dependencies = [
 
 [[package]]
 name = "sc-sha"
-version = "1.4.1"
+version = "1.5.0"
 dependencies = [
  "sha2",
 ]
 
 [[package]]
 name = "sc-sha-go"
-version = "1.4.1"
+version = "1.5.0"
 dependencies = [
  "sc-sha",
  "serde",
@@ -772,7 +772,7 @@ dependencies = [
 
 [[package]]
 name = "sc-sha-python"
-version = "1.4.1"
+version = "1.5.0"
 dependencies = [
  "pyo3",
  "sc-sha",

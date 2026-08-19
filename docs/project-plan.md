@@ -852,12 +852,16 @@ Sprint entries:
 
 Status:
 
-- planned: generated Go bindings for the standalone `sc-sha` crate under
-  [issue #510](https://github.com/randlee/sc-compose/issues/510);
+- complete: generated Go bindings for the standalone `sc-sha` crate under
+  [issue #510](https://github.com/randlee/sc-compose/issues/510), including
+  the P.3 release-preparation metadata and consumer documentation;
 - P.1 establishes the pinned UniFFI / `uniffi-bindgen-go` adapter, typed
   two-operation contract, generator-drift CI, and boundary amendments;
 - P.2 follows P.1 to publish the Go submodule/native artifact contract and
   hand off integration evidence to `sc-dolt` and atm-core;
+- P.3 closes the Phase P release preparation by documenting the Go consumer
+  surface, bumping the workspace to `1.5.0`, and closing the release metadata
+  and boundary-rule gates;
 - Go bindings for `sc-composer` and all rust2go work are explicitly estimated
   follow-ons, not Phase P delivery.
 
@@ -866,6 +870,7 @@ Sprint entries:
 - [Phase P plan](phase-P/phase-P-plan.md)
 - [Sprint P.1 — Generated sc-sha Go Adapter Contract](phase-P/sprint-p-1-generated-sc-sha-go-adapter.md)
 - [Sprint P.2 — Go Module Distribution and Consumer Handoff](phase-P/sprint-p-2-go-module-distribution-and-handoff.md)
+- [Sprint P.3 — Phase P Release Preparation](phase-P/phase-P-plan.md#phase-p-release-preparation)
 
 ### Follow-on Fix Sprint: FIX-O13
 

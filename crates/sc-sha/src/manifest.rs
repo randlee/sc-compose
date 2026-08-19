@@ -99,9 +99,53 @@ pub enum ManifestSchemaVersion {
     Unsupported(u16),
 }
 
+/// Failure returned when parsing a manifest schema identifier.
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum ManifestSchemaError {
+    /// The schema identifier was empty.
+    Empty,
+    /// The schema identifier is not supported by this crate version.
+    Unsupported,
+}
+
+impl TryFrom<&str> for ManifestSchemaVersion {
+    type Error = ManifestSchemaError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "sc-sha/manifest/v1" | "v1" => Ok(Self::V1),
+            "" => Err(ManifestSchemaError::Empty),
+            _ => Err(ManifestSchemaError::Unsupported),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{CanonicalSourceError, CanonicalSourceUrl, CanonicalTemplatePath};
+    use super::{
+        CanonicalSourceError, CanonicalSourceUrl, CanonicalTemplatePath, ManifestSchemaError,
+        ManifestSchemaVersion,
+    };
+
+    #[test]
+    fn schema_parser_accepts_v1_aliases_and_rejects_unknown_values() {
+        assert_eq!(
+            ManifestSchemaVersion::try_from("v1"),
+            Ok(ManifestSchemaVersion::V1)
+        );
+        assert_eq!(
+            ManifestSchemaVersion::try_from("sc-sha/manifest/v1"),
+            Ok(ManifestSchemaVersion::V1)
+        );
+        assert_eq!(
+            ManifestSchemaVersion::try_from(""),
+            Err(ManifestSchemaError::Empty)
+        );
+        assert_eq!(
+            ManifestSchemaVersion::try_from("sc-sha/manifest/v2"),
+            Err(ManifestSchemaError::Unsupported)
+        );
+    }
 
     #[test]
     fn constructors_reject_noncanonical_representations() {

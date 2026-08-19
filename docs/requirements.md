@@ -40,6 +40,18 @@ The product has two deliverables:
 The library is the semantic source of truth. The CLI is a thin interface over
 the library.
 
+### 3.1a Phase P Go module distribution
+
+The repository MUST publish a generated Go module for the canonical `sc-sha`
+hash operations so external consumers can use the shared hash contract without
+copying its implementation. The module MUST use the documented submodule path
+`github.com/randlee/sc-compose/bindings/sc-sha-go`, generated UniFFI source, and
+the matching packaged native artifact for each supported target (Linux/amd64,
+macOS/arm64, and Windows/amd64). Release validation MUST cover generated
+source drift, native artifact selection, conformance vectors, and an
+independent Go consumer. The adapter MUST depend only on `sc-sha` and MUST NOT
+add ATM, resolver, filesystem, or duplicate hash logic.
+
 ### 3.1 ATM Independence
 
 This repository is intentionally independent from ATM and any other orchestration
