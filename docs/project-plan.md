@@ -874,7 +874,7 @@ Sprint entries:
 
 ### Follow-on Chore: CI UniFFI Artifact Consumption
 
-- [SCPUB.2 — CI UniFFI Artifact Consumption](sprints/chore-ci-uniffi-artifact-consumption.md)
+- [CHORE.CI-UNIFFI-CONSUME — CI UniFFI Artifact Consumption](sprints/chore-ci-uniffi-artifact-consumption.md)
 
 ### Follow-on Fix Sprint: FIX-O13
 
