@@ -254,15 +254,49 @@ jobs:
           set -euo pipefail
           echo "target_matrix=$(python3 scripts/release_artifacts.py go-native-target-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
 
+  sc-sha-go-generated:
+    name: Generate shared sc-sha Go bindings
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+      - name: Cache generated Go bindings
+        id: generated-cache
+        uses: actions/cache@v4
+        with:
+          path: bindings/sc-sha-go/go
+          key: uniffi-bindgen-go-generated-v0.7.1-v0.31.0-${{ hashFiles('bindings/sc-sha-go/src/sc_sha_go.udl', 'bindings/sc-sha-go/uniffi.toml') }}
+      - name: Generate bindings on Ubuntu when cache misses
+        if: steps.generated-cache.outputs.cache-hit != 'true'
+        run: |
+          cargo install uniffi-bindgen-go --git https://github.com/NordSecurity/uniffi-bindgen-go --tag v0.7.1+v0.31.0 --locked
+          uniffi-bindgen-go --out-dir bindings/sc-sha-go/go --config bindings/sc-sha-go/uniffi.toml bindings/sc-sha-go/src/sc_sha_go.udl
+      - name: Verify generated bindings
+        run: git diff --exit-code -- bindings/sc-sha-go/go
+      - name: Upload generated Go bindings
+        uses: actions/upload-artifact@v4
+        with:
+          name: sc-sha-go-generated
+          path: bindings/sc-sha-go/go
+
   sc-sha-go:
     name: sc-sha Go bundle (${{ matrix.goos }}/${{ matrix.goarch }})
-    needs: [sc-sha-go-plan]
+    needs: [sc-sha-go-plan, sc-sha-go-generated]
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.sc-sha-go-plan.outputs.target_matrix) }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download generated Go bindings
+        uses: actions/download-artifact@v4
+        with:
+          name: sc-sha-go-generated
+          path: bindings/sc-sha-go/go
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -274,32 +308,6 @@ jobs:
         with:
           toolchain: 1.94.1
           targets: ${{ matrix.target }}
-
-      - name: Cache pinned UniFFI Go generator
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/uniffi-bindgen-go
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.cargo/target/uniffi-bindgen-go
-          key: ${{ runner.os }}-${{ runner.arch }}-uniffi-bindgen-go-v0.7.1-v0.31.0-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-uniffi-bindgen-go-v0.7.1-v0.31.0-
-
-      - name: Install pinned UniFFI Go generator
-        shell: bash
-        run: python3 .github/scripts/install_uniffi_bindgen_go.py
-
-      - name: Test pinned UniFFI Go generator installer
-        shell: bash
-        run: cd .github/scripts && python3 -m unittest test_install_uniffi_bindgen_go -v
-
-      - name: Install just
-        uses: taiki-e/install-action@just
-
-      - name: Verify generated Go output
-        run: just generate-sc-sha-go check
 
       - name: Build the target-native static adapter
         run: cargo build --release -p sc-sha-go --target ${{ matrix.target }}
