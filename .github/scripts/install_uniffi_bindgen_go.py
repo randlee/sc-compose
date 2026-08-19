@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import subprocess
+import shutil
 import time
 
 
@@ -17,11 +18,14 @@ COMMAND = [
     "v0.7.1+v0.31.0",
     "--locked",
 ]
-ATTEMPTS = 3
-TIMEOUT_SECONDS = 900
+ATTEMPTS = 2
+TIMEOUT_SECONDS = 1800
 
 
 def main() -> int:
+    if shutil.which("uniffi-bindgen-go"):
+        print("using cached uniffi-bindgen-go")
+        return 0
     for attempt in range(1, ATTEMPTS + 1):
         try:
             subprocess.run(COMMAND, check=True, timeout=TIMEOUT_SECONDS)
