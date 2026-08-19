@@ -6,6 +6,9 @@ from __future__ import annotations
 import subprocess
 import shutil
 import time
+import os
+import platform
+from pathlib import Path
 
 
 COMMAND = [
@@ -20,19 +23,29 @@ COMMAND = [
 ]
 ATTEMPTS = 2
 TIMEOUT_SECONDS = 1800
+DARWIN_TIMEOUT_SECONDS = 2700
+TARGET_DIR = Path.home() / ".cargo" / "target" / "uniffi-bindgen-go"
+
+
+def timeout_seconds() -> int:
+    """Use the longer budget only for the slow macOS generator build."""
+    return DARWIN_TIMEOUT_SECONDS if platform.system().lower() == "darwin" else TIMEOUT_SECONDS
 
 
 def main() -> int:
     if shutil.which("uniffi-bindgen-go"):
         print("using cached uniffi-bindgen-go")
         return 0
+    environment = os.environ.copy()
+    environment.setdefault("CARGO_TARGET_DIR", str(TARGET_DIR))
+    timeout = timeout_seconds()
     for attempt in range(1, ATTEMPTS + 1):
         try:
-            subprocess.run(COMMAND, check=True, timeout=TIMEOUT_SECONDS)
+            subprocess.run(COMMAND, check=True, timeout=timeout, env=environment)
             return 0
         except subprocess.TimeoutExpired:
             print(
-                f"generator install timed out after {TIMEOUT_SECONDS}s "
+                f"generator install timed out after {timeout}s "
                 f"(attempt {attempt}/{ATTEMPTS})"
             )
         except subprocess.CalledProcessError as error:

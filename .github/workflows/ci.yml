@@ -282,6 +282,7 @@ jobs:
             ~/.cargo/bin/uniffi-bindgen-go
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cargo/target/uniffi-bindgen-go
           key: ${{ runner.os }}-${{ runner.arch }}-uniffi-bindgen-go-v0.7.1-v0.31.0-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-uniffi-bindgen-go-v0.7.1-v0.31.0-
@@ -289,6 +290,10 @@ jobs:
       - name: Install pinned UniFFI Go generator
         shell: bash
         run: python3 .github/scripts/install_uniffi_bindgen_go.py
+
+      - name: Test pinned UniFFI Go generator installer
+        shell: bash
+        run: cd .github/scripts && python3 -m unittest test_install_uniffi_bindgen_go -v
 
       - name: Install just
         uses: taiki-e/install-action@just
