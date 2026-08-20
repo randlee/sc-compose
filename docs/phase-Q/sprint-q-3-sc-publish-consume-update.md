@@ -5,7 +5,7 @@ status: in_progress
 branch: sprint/q-3-sc-publish-consume-update
 worktree: ../sc-compose-worktrees/sprint/q-3-sc-publish-consume-update
 target: sc-compose develop
-depends_on: Q.2 merged (sc-compose develop 5ab6da0); sc-publish PR #38 merged (sc-publish develop ce85b4d)
+depends_on: Q.2 merged (sc-compose develop 5ab6da0); sc-publish PR #45 merged (sc-publish develop 0fa5b05)
 parallel_with: unrelated work outside release assets and publishing workflows
 ---
 
@@ -14,22 +14,20 @@ parallel_with: unrelated work outside release assets and publishing workflows
 ## Scope
 
 sc-compose is a **consumer** of the `sc-publish` package, not its owner. This
-sprint re-installs the current `sc-publish` develop commit (`ce85b4d`) into
+sprint re-installs the current `sc-publish` develop commit (`0fa5b05`) into
 sc-compose, replacing the Q.2-era vendored copy, and verifies sc-compose's own
 install/test/CI surface still passes against the update.
 
 This sprint does **not** modify `sc-publish`'s internal workflow, probe, or
-install logic. The three known residual defects in that logic — pypi
-`build_system` branching, GH Release probe fail-open on transient errors,
-winget probe fail-open on transient errors — are `sc-publish`'s own bugs,
-already filed there as sc-publish#39, sc-publish#40, sc-publish#41. They are
-explicitly out of scope for this sprint; do not attempt to fix them here.
+install logic. sc-publish PR #45 resolves the prior pypi `build_system`, GitHub
+Release transient-probe, and winget transient-probe defects (sc-publish#39,
+#40, and #41); this consumer sprint only re-vendors that upstream result.
 The empty optional channel-output handling defect is likewise tracked upstream
 as [sc-publish#43](https://github.com/randlee/sc-publish/issues/43).
 
 ## Exact targets
 
-- `plugins/sc-publish/` (full re-vendor from sc-publish develop `ce85b4d`)
+- `plugins/sc-publish/` (full re-vendor from sc-publish develop `0fa5b05`)
 - `release/sc-publish-install.json` (update only if the new package version
   requires new/changed manifest fields; do not otherwise touch)
 - generated `release/publish-artifacts.toml`
@@ -40,7 +38,7 @@ as [sc-publish#43](https://github.com/randlee/sc-publish/issues/43).
 ## Deliverables
 
 1. Re-run the installer against the current `sc-publish` develop commit
-   (`ce85b4d`) using the existing `release/sc-publish-install.json`, updating
+   (`0fa5b05`) using the existing `release/sc-publish-install.json`, updating
    only what the new package version requires.
 2. Confirm the resulting `plugins/sc-publish/` tree matches upstream
    `sc-publish` develop byte-for-byte (diff against the sc-publish repo
@@ -56,13 +54,16 @@ as [sc-publish#43](https://github.com/randlee/sc-publish/issues/43).
 
 ## Acceptance criteria
 
-- [x] `plugins/sc-publish/` matches sc-publish develop `ce85b4d` exactly
+- [x] `plugins/sc-publish/` matches sc-publish develop `0fa5b05` exactly
       (no drift, no local patches).
 - [x] A second installer dry run is clean with exit code zero.
 - [x] `validate-manifest`, publish-order, version-lockstep, package checks,
       and workflow-local-file checks pass.
-- [ ] Release Preflight rehearsal run is clean (or records an explicit,
-      expected external-service stop) on the updated install.
+- [ ] Release Preflight rehearsal run records either a clean result or an
+      explicit, expected fail-closed external-service stop on the updated
+      install. A rejected liveness probe is expected external-service evidence,
+      not a consumer defect or a reason to investigate, rotate, request, or
+      inspect a credential.
 - [x] sc-compose's own test run is confirmed to use the pinned bootstrap venv.
 - [x] No sc-publish internal logic (probes, workflows, install.py) is
       modified by this sprint's diff.
@@ -90,19 +91,16 @@ close the sprint.
 
 ## Validation evidence
 
-- The package was re-vendored from `sc-publish` develop `ce85b4d`; tracked-file
-  parity is exact (the upstream checkout has only an untracked `.github/templates`
-  directory beyond the committed package tree).
+- The package was re-vendored from `sc-publish` develop `0fa5b05`; every
+  upstream tracked package file has the same Git blob in
+  `plugins/sc-publish/`, with no consumer-only non-cache package files.
 - Installer dry-run, install, and second dry-run all completed cleanly; the
   second dry-run returned zero.
 - Manifest, publish-order, and version-lockstep validation passed. Package
   script tests passed (`63 passed, 7 skipped, 3 subtests`).
-- The pinned bootstrap environment was `/private/tmp/sc-compose-q3-venv-1.4.1/bin/python`
-  with `sc-compose==1.4.1`. The full suite reached 125 passed tests but has
-  four collection/test failures because the upstream `ce85b4d` template does
-  not render the caller-declared `go_native` table into
-  `release/publish-artifacts.toml`. This is an upstream sc-publish defect and
-  is not patched in this consumer sprint.
+- The pinned bootstrap environment is
+  `/private/tmp/sc-compose-q3-venv-1.4.1/bin/python` with
+  `sc-compose==1.4.1`; the renewed validation result is recorded below.
 - Release Preflight run `32340747396`
   ([workflow run](https://github.com/randlee/sc-compose/actions/runs/32340747396))
   completed with the expected external credential failures plus the
@@ -123,26 +121,12 @@ close the sprint.
   the vendored workflow. The underlying empty-channel JSON defect is now
   tracked by sc-publish#43 and must be fixed and re-vendored upstream before
   this sprint can satisfy the fresh-clean-preflight criterion.
-- Fresh post-fix Release Preflight run `32351284694`
-  ([workflow run](https://github.com/randlee/sc-compose/actions/runs/32351284694))
-  ran from `b6ca192`. Formatting, clippy, workspace tests, manifest/order,
-  version-lockstep, registry-name checks, package checks, GitHub Release
-  permissions, and channel-result emission all passed. The final deny step
-  correctly stopped the rehearsal for external release readiness: GitHub
-  Actions lacks permission to inspect protected PyPI/TestPyPI secret metadata
-  (HTTP 403), and `CARGO_REGISTRY_TOKEN` is present but rejected by crates.io
-  (HTTP 403). No production publication occurred. This is recorded as a
-  failed external-credential rehearsal, not as the clean expected stop needed
-  to check the Release Preflight acceptance criterion.
-- Round-3 root-cause audit verified the PyPI/TestPyPI secret names exist, but
-  GitHub Actions `github.token` cannot list environment secret metadata: the
-  endpoint returns `Resource not accessible by integration` even with
-  `actions: read`. This is a package workflow design issue, tracked by
-  [sc-publish#44](https://github.com/randlee/sc-publish/issues/44); it needs
-  an environment-scoped, least-privilege availability check rather than a
-  metadata-listing API call. The present `CARGO_REGISTRY_TOKEN` is independently
-  rejected by crates.io and must be rotated as an external repository-secret
-  operation. Neither condition has a safe consumer-only code workaround.
+- The renewed Release Preflight rehearsal result is recorded below after the
+  `0fa5b05` re-vendor. A rejected `CARGO_REGISTRY_TOKEN`, Homebrew, Winget, or
+  Scoop liveness probe is the explicit, expected external-service stop for
+  AC4: it proves the non-disclosing, fail-closed guard operated. The consumer
+  must report the sanitized result only; it must not investigate the token,
+  request a token, or request rotation.
 
 ## Q3 follow-up blocker resolutions
 
@@ -156,17 +140,15 @@ close the sprint.
   `binaries` key. The upstream template was not modified.
 - **Q3-BLOCK-03 (empty channel JSON)** — confirmed as an upstream package
   workflow defect and filed as [sc-publish#43](https://github.com/randlee/sc-publish/issues/43).
-  The local consumer patch was reverted so installer dry-run remains clean;
-  Q3 awaits an upstream fix and re-vendor before its fresh-preflight
-  acceptance criterion can close.
+  The local consumer patch was reverted so installer dry-run remains clean.
 
 The Release Preflight acceptance criterion's "explicit, expected
-external-service stop" means: the workflow run halts at a specific,
-independently verifiable step — the Test-PyPI/production gate that requires
-human-authorized publication — with that step's logs showing an expected
-stop reason (e.g. "no publisher authorization present"), not a silent
-timeout, an unrelated credential error, or a step that simply never ran. Any
-other non-clean outcome is a failure of this criterion, not a pass.
+external-service stop" means: the workflow records a specific, independently
+verifiable non-disclosing result — including a rejected CARGO_REGISTRY_TOKEN,
+Homebrew, Winget, or Scoop liveness probe — rather than silently continuing.
+This is a valid AC4 stop when the workflow reports the sanitized failure and
+does not publish. No consumer investigation or credential remediation follows
+from that result.
 
 ## Handoff and fix routing
 

@@ -22,6 +22,12 @@ inputs:
   rust_toolchain:
     description: Rust toolchain used for maturin builds (from the manifest build plan).
     required: true
+  workspace_toml:
+    description: >-
+      Manifest-declared release version source (from the build plan): a Cargo
+      workspace manifest, or a pyproject.toml for pure-Python consumers.
+    required: false
+    default: "Cargo.toml"
 
 runs:
   using: composite
@@ -44,12 +50,12 @@ runs:
       shell: bash
       run: |
         python3 .github/scripts/release_artifacts.py sync-python-version \
-          --workspace-toml Cargo.toml \
+          --workspace-toml '${{ inputs.workspace_toml }}' \
           --pyproject '${{ inputs.pyproject }}'
     - name: Verify Python package version
       shell: bash
       run: |
         python3 .github/scripts/release_artifacts.py verify-python-version \
-          --workspace-toml Cargo.toml \
+          --workspace-toml '${{ inputs.workspace_toml }}' \
           --pyproject '${{ inputs.pyproject }}' \
           --version '${{ inputs.release_version }}'

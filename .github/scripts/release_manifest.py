@@ -77,6 +77,22 @@ def manifest_workspace_toml(manifest: dict) -> str:
     return value
 
 
+def manifest_python_upload_tool(manifest: dict) -> str:
+    """Return the PyPI uploader implied by the declared build systems.
+
+    maturin's uploader handles wheels and sdists from any build system, so a
+    manifest with at least one maturin distribution keeps maturin. A purely
+    setuptools consumer has no Rust toolchain and uploads with twine. Empty
+    when the manifest declares no Python distributions.
+    """
+    entries = _python_distribution_entries(manifest)
+    if not entries:
+        return ""
+    if any(entry["build_system"] == "maturin" for entry in entries):
+        return "maturin"
+    return "twine"
+
+
 def manifest_rust_toolchain(manifest: dict) -> str:
     """Return the manifest-declared release Rust toolchain."""
     value = manifest["project"].get("rust_toolchain", DEFAULT_RUST_TOOLCHAIN)
@@ -165,8 +181,24 @@ def validate_publish_order(args: object) -> int:
 
 
 def workspace_version(workspace_toml: Path) -> str:
+    """Resolve the release version from the manifest-declared version source.
+
+    [project].workspace_toml names the single version source for a consumer:
+    a Cargo workspace manifest ([workspace.package].version) for Rust
+    consumers, or a PEP 621 pyproject.toml ([project].version) for
+    pure-Python consumers with no Cargo workspace.
+    """
     data = tomllib.loads(workspace_toml.read_text(encoding="utf-8"))
-    return data["workspace"]["package"]["version"]
+    cargo_version = data.get("workspace", {}).get("package", {}).get("version")
+    if isinstance(cargo_version, str) and cargo_version:
+        return cargo_version
+    project_version = data.get("project", {}).get("version")
+    if isinstance(project_version, str) and project_version:
+        return project_version
+    raise SystemExit(
+        f"{workspace_toml}: version source must declare [workspace.package].version "
+        "(Cargo workspace) or [project].version (pyproject)"
+    )
 
 
 def _resolve_workspace_path(workspace_toml: Path, relative_path: str) -> Path:

@@ -31,6 +31,7 @@ from release_manifest import (
     _require_project,
     load_channel_contracts,
     load_manifest,
+    manifest_python_upload_tool,
     manifest_rust_toolchain,
     manifest_workspace_toml,
     registry_version_state,
@@ -464,6 +465,7 @@ def cmd_build_plan(args: argparse.Namespace) -> int:
         "has_crates": bool(manifest["crates"]),
         "has_python_wheels": any(entry["wheels"] for entry in entries),
         "has_python_sdists": any(entry["sdist"] for entry in entries),
+        "python_upload_tool": manifest_python_upload_tool(manifest),
         "workspace_toml": manifest_workspace_toml(manifest),
         "rust_toolchain": manifest_rust_toolchain(manifest),
     }

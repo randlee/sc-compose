@@ -461,12 +461,21 @@ def test_github_release_leg_is_detect_and_skip(tmp_path: Path) -> None:
     assert "release-asset-patterns" in text
     assert "id: published_release_probe" in text
     assert "uses: ./.github/actions/verify-published-release" in text
+    # The probe fails closed: no continue-on-error swallowing transient API
+    # failures, and every build/upload leg keys off the confirmed state.
+    assert "continue-on-error" not in text
+    assert "probe: 'true'" in text
     assert (
         text.count(
-            "if: ${{ steps.published_release_probe.outcome != 'success' || inputs.replace_release_assets == true }}"
+            "if: ${{ steps.published_release_probe.outputs.release_state != 'complete' || inputs.replace_release_assets == true }}"
         )
         == 4
     )
+    assert (
+        "if: ${{ steps.published_release_probe.outputs.release_state == 'complete' && inputs.replace_release_assets != true }}"
+        in text
+    )
+    assert "steps.published_release_probe.outcome" not in text
     assert "already exists with every expected asset; skipping upload" in text
     assert "deliberately replacing assets" in text
     assert "'^checksums\\.txt$'" in text
@@ -647,6 +656,11 @@ def test_winget_leg_probes_before_submitting_and_pins_the_releaser() -> None:
     assert "type:pr in:title" in text
     assert "already_published" in text
     assert "if: ${{ steps.winget_probe.outputs.already_published != 'true' }}" in text
+    # Fail closed: only a confirmed 404 may fall through to the PR search,
+    # and incomplete search results must not be read as "no duplicate".
+    assert "grep -Eqi 'HTTP 404|Not Found'" in text
+    assert "is indeterminate (not a confirmed 404); failing closed" in text
+    assert "incomplete_results" in text
     # The third-party releaser must be pinned to an immutable commit SHA.
     assert (
         "uses: vedantmgoyal2009/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2"
@@ -1576,10 +1590,16 @@ def test_release_workflow_enforces_python_release_invariants() -> None:
     assert "maturin build" not in pypi_text
     assert "maturin sdist" not in pypi_text
     assert "name: Publish manifest-declared wheels and sdists to TestPyPI" in pypi_text
-    assert "if: ${{ inputs.target == 'testpypi' }}" in pypi_text
+    assert (
+        "if: ${{ inputs.target == 'testpypi' && needs.verify-release.outputs.python_upload_tool == 'maturin' }}"
+        in pypi_text
+    )
     assert "MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}" in pypi_text
     assert "name: Publish manifest-declared wheels and sdists to PyPI" in pypi_text
-    assert "if: ${{ inputs.target == 'production' }}" in pypi_text
+    assert (
+        "if: ${{ inputs.target == 'production' && needs.verify-release.outputs.python_upload_tool == 'maturin' }}"
+        in pypi_text
+    )
     assert "MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}" in pypi_text
     assert "secrets.TEST_PYPI_TOKEN" not in pypi_text
     assert "secrets.PYPI_TOKEN" not in pypi_text
@@ -2391,3 +2411,147 @@ def test_verify_version_lockstep_rejects_python_package_drift(tmp_path: Path) ->
     assert result.returncode != 0
     assert "bindings/python/pyproject.toml" in result.stderr
     assert "[project].version mismatch" in result.stderr
+
+
+def test_build_plan_selects_the_manifest_declared_python_upload_tool(tmp_path: Path) -> None:
+    maturin_dir = tmp_path / "maturin"
+    maturin_dir.mkdir()
+    write_repo_fixture(maturin_dir, manifest_wheels=["ubuntu-latest"])
+    plan = run_fixture_command(
+        maturin_dir, "build-plan", manifest=maturin_dir / "release" / "publish-artifacts.toml"
+    )
+    assert plan.returncode == 0, plan.stderr
+    assert json.loads(plan.stdout)["python_upload_tool"] == "maturin"
+
+    setuptools_dir = tmp_path / "setuptools"
+    setuptools_dir.mkdir()
+    write_repo_fixture(
+        setuptools_dir, manifest_wheels=["ubuntu-latest"], python_build_system="setuptools"
+    )
+    plan = run_fixture_command(
+        setuptools_dir,
+        "build-plan",
+        manifest=setuptools_dir / "release" / "publish-artifacts.toml",
+    )
+    assert plan.returncode == 0, plan.stderr
+    assert json.loads(plan.stdout)["python_upload_tool"] == "twine"
+
+    rust_only_dir = tmp_path / "rust-only"
+    rust_only_dir.mkdir()
+    write_repo_fixture(rust_only_dir, manifest_wheels=["ubuntu-latest"], include_python=False)
+    plan = run_fixture_command(
+        rust_only_dir,
+        "build-plan",
+        manifest=rust_only_dir / "release" / "publish-artifacts.toml",
+    )
+    assert plan.returncode == 0, plan.stderr
+    assert json.loads(plan.stdout)["python_upload_tool"] == ""
+
+
+def test_pypi_workflows_branch_uploads_on_the_declared_build_system() -> None:
+    pypi_text = pypi_publish_workflow_text()
+
+    # The uploader is manifest-derived (build-plan), not hardcoded to maturin.
+    assert "build-plan" in pypi_text
+    assert "python_upload_tool: ${{ steps.config.outputs.python_upload_tool }}" in pypi_text
+    assert "if: ${{ needs.verify-release.outputs.python_upload_tool == 'maturin' }}" in pypi_text
+    assert "if: ${{ needs.verify-release.outputs.python_upload_tool == 'twine' }}" in pypi_text
+    assert "python -m pip install twine==6.1.0" in pypi_text
+    assert "name: Publish manifest-declared wheels and sdists to TestPyPI with twine" in pypi_text
+    assert "name: Publish manifest-declared wheels and sdists to PyPI with twine" in pypi_text
+    assert (
+        'python -m twine upload --repository "${PYPI_REPOSITORY}" --skip-existing dist/*.whl dist/*.tar.gz'
+        in pypi_text
+    )
+    assert "TWINE_USERNAME: __token__" in pypi_text
+    assert "TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}" in pypi_text
+    assert "TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}" in pypi_text
+    # No unconditional maturin install remains.
+    assert "\n      - name: Install maturin\n        run:" not in pypi_text
+
+    # The TestPyPI rehearsal leg in release.yml takes the same manifest branch.
+    release_text = release_workflow_text()
+    assert "python_upload_tool: ${{ steps.manifest.outputs.python_upload_tool }}" in release_text
+    assert "if: ${{ needs.release-plan.outputs.python_upload_tool == 'maturin' }}" in release_text
+    assert "if: ${{ needs.release-plan.outputs.python_upload_tool == 'twine' }}" in release_text
+    assert "name: Publish wheels and sdist to TestPyPI with twine" in release_text
+    assert (
+        "python -m twine upload --repository testpypi --skip-existing dist/*.whl dist/*.tar.gz"
+        in release_text
+    )
+
+
+def test_python_version_steps_use_the_manifest_declared_workspace_toml() -> None:
+    action_text = (
+        repo_root() / ".github" / "actions" / "setup-python-release-build" / "action.yml"
+    ).read_text(encoding="utf-8")
+    release_text = release_workflow_text()
+
+    assert "--workspace-toml '${{ inputs.workspace_toml }}'" in action_text
+    assert "--workspace-toml Cargo.toml" not in action_text
+    assert 'default: "Cargo.toml"' in action_text
+    assert "workspace_toml: ${{ steps.manifest.outputs.workspace_toml }}" in release_text
+    assert release_text.count(
+        "workspace_toml: ${{ needs.release-plan.outputs.workspace_toml }}"
+    ) == 2
+
+
+def test_version_resolution_honors_a_pyproject_workspace_toml(tmp_path: Path) -> None:
+    """A pure-Python consumer resolves its version without any Cargo.toml."""
+    _, manifest = write_repo_fixture(
+        tmp_path,
+        manifest_wheels=["ubuntu-latest"],
+        include_crates=False,
+        python_build_system="setuptools",
+    )
+    version_source = tmp_path / "pyproject.toml"
+    version_source.write_text(
+        '[project]\nname = "fixture-root"\nversion = "1.1.0"\n', encoding="utf-8"
+    )
+
+    verify = run_fixture_command(
+        tmp_path,
+        "verify-version",
+        "--workspace-toml",
+        str(version_source),
+        "--version",
+        "1.1.0",
+        manifest=manifest,
+    )
+    assert verify.returncode == 0, verify.stderr
+    assert "version verification passed" in verify.stdout
+
+    lockstep = run_fixture_command(
+        tmp_path,
+        "verify-version-lockstep",
+        "--workspace-toml",
+        str(version_source),
+        manifest=manifest,
+    )
+    assert lockstep.returncode == 0, lockstep.stderr
+
+    mismatch = run_fixture_command(
+        tmp_path,
+        "verify-version",
+        "--workspace-toml",
+        str(version_source),
+        "--version",
+        "1.2.0",
+        manifest=manifest,
+    )
+    assert mismatch.returncode != 0
+    assert "workspace version mismatch" in mismatch.stderr
+
+    empty_source = tmp_path / "empty.toml"
+    empty_source.write_text("", encoding="utf-8")
+    unresolved = run_fixture_command(
+        tmp_path,
+        "verify-version",
+        "--workspace-toml",
+        str(empty_source),
+        "--version",
+        "1.1.0",
+        manifest=manifest,
+    )
+    assert unresolved.returncode != 0
+    assert "version source must declare" in unresolved.stderr
