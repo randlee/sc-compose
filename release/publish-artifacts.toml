@@ -34,37 +34,27 @@ archive = "zip"
 artifact = "sc-sha"
 package = "sc-sha"
 cargo_toml = "crates/sc-sha/Cargo.toml"
-required = true
 publish = true
 publish_order = 1
-preflight_check = "locked"
 wait_after_publish_seconds = 30
-verify_install = false
 [[crates]]
 artifact = "sc-composer"
 package = "sc-composer"
 cargo_toml = "crates/sc-composer/Cargo.toml"
-required = true
 publish = true
 publish_order = 2
-preflight_check = "locked"
 wait_after_publish_seconds = 30
-verify_install = false
 [[crates]]
 artifact = "sc-compose"
 package = "sc-compose"
 cargo_toml = "crates/sc-compose/Cargo.toml"
-required = true
 publish = true
 publish_order = 3
-preflight_check = "locked"
 wait_after_publish_seconds = 0
-verify_install = true
 
 [[release_binaries]]
 name = "sc-compose"
 bundled_paths = [{ source = "examples", destination = "share/sc-compose/examples", homebrew_destination_components = ["pkgshare"] }]
-
 
 [[python_packages]]
 artifact = "sc-sha-python"

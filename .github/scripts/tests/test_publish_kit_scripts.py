@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 
 
-PACKAGE_ROOT = next(path for path in Path(__file__).resolve().parents if (path / "plugins" / "sc-publish" / "install.py").is_file()) / "plugins" / "sc-publish"
+PACKAGE_ROOT = next(path for path in Path(__file__).resolve().parents if (path / "install.py").is_file())
 SCRIPTS = PACKAGE_ROOT / ".github" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 import release_manifest  # noqa: E402
@@ -57,6 +57,45 @@ name = "example"
             loaded = release_manifest.load_manifest(manifest)
         self.assertEqual([crate["artifact"] for crate in loaded["crates"]], ["first", "late"])
         self.assertEqual(loaded["release_binaries"], [{"name": "example"}])
+
+
+class RegistryVersionStateTests(unittest.TestCase):
+    def test_lookup_statuses_map_to_published_absent_or_fail_closed(self) -> None:
+        import urllib.error
+        from unittest.mock import patch
+
+        class FakeResponse:
+            def __init__(self, status: int) -> None:
+                self.status = status
+
+            def __enter__(self) -> "FakeResponse":
+                return self
+
+            def __exit__(self, *args: object) -> bool:
+                return False
+
+        def http_error(code: int) -> urllib.error.HTTPError:
+            return urllib.error.HTTPError("https://registry.invalid", code, "", {}, None)
+
+        with patch("urllib.request.urlopen", return_value=FakeResponse(200)):
+            self.assertEqual(
+                release_manifest.registry_version_state("https://registry.invalid"),
+                "published",
+            )
+        with patch("urllib.request.urlopen", side_effect=http_error(404)):
+            self.assertEqual(
+                release_manifest.registry_version_state("https://registry.invalid"),
+                "absent",
+            )
+        with patch("urllib.request.urlopen", side_effect=http_error(503)):
+            with self.assertRaisesRegex(SystemExit, "indeterminate"):
+                release_manifest.registry_version_state("https://registry.invalid")
+        with patch(
+            "urllib.request.urlopen",
+            side_effect=urllib.error.URLError("network unreachable"),
+        ):
+            with self.assertRaisesRegex(SystemExit, "registry lookup failed"):
+                release_manifest.registry_version_state("https://registry.invalid")
 
 
 class ReleaseScriptTests(unittest.TestCase):

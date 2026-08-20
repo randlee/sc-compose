@@ -1,7 +1,7 @@
 ---
 id: Q.2
 title: sc-compose install and publish cutover
-status: in_progress
+status: complete
 branch: sprint/q-2-sc-compose-publish-cutover
 worktree: ../sc-compose-worktrees/sprint/q-2-sc-compose-publish-cutover
 target: sc-compose develop

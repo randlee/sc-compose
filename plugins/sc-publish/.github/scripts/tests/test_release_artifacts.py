@@ -13,7 +13,14 @@ from pathlib import Path
 import pytest
 
 
-def write_repo_fixture(tmp_path: Path, *, manifest_wheels: list[str]) -> tuple[Path, Path]:
+def write_repo_fixture(
+    tmp_path: Path,
+    *,
+    manifest_wheels: list[str],
+    include_crates: bool = True,
+    include_python: bool = True,
+    python_build_system: str = "maturin",
+) -> tuple[Path, Path]:
     workspace = tmp_path / "Cargo.toml"
     workspace.write_text(
         "\n".join(
@@ -72,6 +79,44 @@ def write_repo_fixture(tmp_path: Path, *, manifest_wheels: list[str]) -> tuple[P
         encoding="utf-8",
     )
     wheels = ", ".join(f'"{entry}"' for entry in manifest_wheels)
+    crates_section = [
+        "[[crates]]",
+        'artifact = "sc-composer"',
+        'package = "sc-composer"',
+        'cargo_toml = "crates/sc-composer/Cargo.toml"',
+        "publish_order = 1",
+        "wait_after_publish_seconds = 0",
+        "",
+        "[[crates]]",
+        'artifact = "sc-compose"',
+        'package = "sc-compose"',
+        'cargo_toml = "crates/sc-compose/Cargo.toml"',
+        "publish_order = 2",
+        "wait_after_publish_seconds = 0",
+        "",
+    ]
+    build_system_lines = {
+        "maturin": ['cargo_manifest = "bindings/python/Cargo.toml"'],
+        "setuptools": ['build_system = "setuptools"'],
+        "unsupported": ['build_system = "flit"'],
+        "missing": [],
+    }[python_build_system]
+    python_section = [
+        "[[python_packages]]",
+        'artifact = "sc-compose-python"',
+        'package = "sc-compose"',
+        'manifest = "bindings/python/pyproject.toml"',
+        'module = "sc_compose"',
+        'publish = "pypi"',
+        "",
+        "[[python_distributions]]",
+        'name = "sc-compose"',
+        'source = "bindings/python"',
+        *build_system_lines,
+        "sdist = true",
+        f"wheels = [{wheels}]",
+        "",
+    ]
     manifest.write_text(
         "\n".join(
             [
@@ -97,33 +142,8 @@ def write_repo_fixture(tmp_path: Path, *, manifest_wheels: list[str]) -> tuple[P
                 "[[release_binaries]]",
                 'name = "fixture-daemon"',
                 "",
-                "[[crates]]",
-                'artifact = "sc-composer"',
-                'package = "sc-composer"',
-                'cargo_toml = "crates/sc-composer/Cargo.toml"',
-                "publish_order = 1",
-                "wait_after_publish_seconds = 0",
-                "",
-                "[[crates]]",
-                'artifact = "sc-compose"',
-                'package = "sc-compose"',
-                'cargo_toml = "crates/sc-compose/Cargo.toml"',
-                "publish_order = 2",
-                "wait_after_publish_seconds = 0",
-                "",
-                "[[python_packages]]",
-                'artifact = "sc-compose-python"',
-                'package = "sc-compose"',
-                'manifest = "bindings/python/pyproject.toml"',
-                'module = "sc_compose"',
-                'publish = "pypi"',
-                "",
-                "[[python_distributions]]",
-                'name = "sc-compose"',
-                'source = "bindings/python"',
-                "sdist = true",
-                f"wheels = [{wheels}]",
-                "",
+                *(crates_section if include_crates else []),
+                *(python_section if include_python else []),
                 "[channels.pypi]",
                 'workflow = "pypi-publish.yml"',
                 'dispatch_inputs = { target = "production" }',
@@ -173,10 +193,13 @@ def write_repo_fixture(tmp_path: Path, *, manifest_wheels: list[str]) -> tuple[P
     return workspace, manifest
 
 
-def run_validate_manifest(tmp_path: Path, *, manifest_wheels: list[str]) -> subprocess.CompletedProcess[str]:
+def run_validate_manifest(
+    tmp_path: Path, *, manifest_wheels: list[str], **fixture_kwargs: object
+) -> subprocess.CompletedProcess[str]:
     workspace, manifest = write_repo_fixture(
         tmp_path,
         manifest_wheels=manifest_wheels,
+        **fixture_kwargs,
     )
     return subprocess.run(
         [
@@ -199,11 +222,7 @@ def repo_root() -> Path:
     # Tests are installed at <consumer>/.github/scripts/tests.  Keep this
     # relative to the consumer root so the untouched vendored suite works in
     # every repository that installs the publish kit.
-    return next(
-        path
-        for path in Path(__file__).resolve().parents
-        if (path / "plugins" / "sc-publish" / "install.py").is_file()
-    )
+    return next(path for path in Path(__file__).resolve().parents if (path / "install.py").is_file())
 
 
 def scripts_root() -> Path:
@@ -236,6 +255,10 @@ def winget_publish_workflow_text() -> str:
 
 def scoop_publish_workflow_text() -> str:
     return (repo_root() / ".github" / "workflows" / "scoop-publish.yml").read_text(encoding="utf-8")
+
+
+def crates_publish_workflow_text() -> str:
+    return (repo_root() / ".github" / "workflows" / "crates-publish.yml").read_text(encoding="utf-8")
 
 
 def release_preflight_workflow_text() -> str:
@@ -298,6 +321,393 @@ def test_validate_manifest_accepts_matching_python_release_shape(tmp_path: Path)
 
     assert result.returncode == 0, result.stderr
     assert "manifest validation passed" in result.stdout
+
+
+def run_fixture_command(
+    tmp_path: Path, *args: str, manifest: Path
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            str(scripts_root() / "release_artifacts.py"),
+            *args,
+            "--manifest",
+            str(manifest),
+        ],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+def test_pure_python_manifest_without_crates_loads_and_gates_cargo_legs(tmp_path: Path) -> None:
+    result = run_validate_manifest(
+        tmp_path, manifest_wheels=["ubuntu-latest"], include_crates=False
+    )
+    assert result.returncode == 0, result.stderr
+    assert "manifest validation passed" in result.stdout
+
+    manifest = tmp_path / "release" / "publish-artifacts.toml"
+    plan_result = run_fixture_command(tmp_path, "build-plan", manifest=manifest)
+    assert plan_result.returncode == 0, plan_result.stderr
+    plan = json.loads(plan_result.stdout)
+    assert plan["has_crates"] is False
+    assert plan["has_python_wheels"] is True
+    assert plan["workspace_toml"] == "Cargo.toml"
+
+    publish_plan = run_fixture_command(tmp_path, "list-publish-plan", manifest=manifest)
+    assert publish_plan.returncode == 0, publish_plan.stderr
+    assert publish_plan.stdout.strip() == ""
+
+
+def test_rust_only_manifest_emits_empty_python_matrices(tmp_path: Path) -> None:
+    result = run_validate_manifest(
+        tmp_path, manifest_wheels=["ubuntu-latest"], include_python=False
+    )
+    assert result.returncode == 0, result.stderr
+
+    manifest = tmp_path / "release" / "publish-artifacts.toml"
+    wheel_result = run_fixture_command(tmp_path, "python-wheel-matrix", manifest=manifest)
+    sdist_result = run_fixture_command(tmp_path, "python-sdist-matrix", manifest=manifest)
+    plan_result = run_fixture_command(tmp_path, "build-plan", manifest=manifest)
+
+    assert wheel_result.returncode == 0, wheel_result.stderr
+    assert json.loads(wheel_result.stdout) == {"include": []}
+    assert sdist_result.returncode == 0, sdist_result.stderr
+    assert json.loads(sdist_result.stdout) == {"include": []}
+    assert plan_result.returncode == 0, plan_result.stderr
+    plan = json.loads(plan_result.stdout)
+    assert plan["has_crates"] is True
+    assert plan["has_python_wheels"] is False
+    assert plan["has_python_sdists"] is False
+
+
+def test_python_matrices_select_the_declared_build_system(tmp_path: Path) -> None:
+    maturin_result = run_validate_manifest(tmp_path, manifest_wheels=["ubuntu-latest"])
+    assert maturin_result.returncode == 0, maturin_result.stderr
+    manifest = tmp_path / "release" / "publish-artifacts.toml"
+    wheel_result = run_fixture_command(tmp_path, "python-wheel-matrix", manifest=manifest)
+    assert wheel_result.returncode == 0, wheel_result.stderr
+    entry = json.loads(wheel_result.stdout)["include"][0]
+    assert entry["build_system"] == "maturin"
+    assert entry["cargo_manifest"] == "bindings/python/Cargo.toml"
+
+    setuptools_dir = tmp_path / "setuptools"
+    setuptools_dir.mkdir()
+    setuptools_result = run_validate_manifest(
+        setuptools_dir, manifest_wheels=["ubuntu-latest"], python_build_system="setuptools"
+    )
+    assert setuptools_result.returncode == 0, setuptools_result.stderr
+    setuptools_manifest = setuptools_dir / "release" / "publish-artifacts.toml"
+    setuptools_wheels = run_fixture_command(
+        setuptools_dir, "python-wheel-matrix", manifest=setuptools_manifest
+    )
+    setuptools_sdists = run_fixture_command(
+        setuptools_dir, "python-sdist-matrix", manifest=setuptools_manifest
+    )
+    assert setuptools_wheels.returncode == 0, setuptools_wheels.stderr
+    entry = json.loads(setuptools_wheels.stdout)["include"][0]
+    assert entry["build_system"] == "setuptools"
+    assert entry["cargo_manifest"] == ""
+    assert entry["source"] == "bindings/python"
+    assert setuptools_sdists.returncode == 0, setuptools_sdists.stderr
+    assert json.loads(setuptools_sdists.stdout)["include"][0]["build_system"] == "setuptools"
+
+
+def test_validate_manifest_rejects_missing_or_unsupported_build_system(tmp_path: Path) -> None:
+    unsupported_dir = tmp_path / "unsupported"
+    unsupported_dir.mkdir()
+    unsupported = run_validate_manifest(
+        unsupported_dir, manifest_wheels=["ubuntu-latest"], python_build_system="unsupported"
+    )
+    assert unsupported.returncode != 0
+    assert "unsupported build_system" in unsupported.stderr
+
+    missing_dir = tmp_path / "missing"
+    missing_dir.mkdir()
+    missing = run_validate_manifest(
+        missing_dir, manifest_wheels=["ubuntu-latest"], python_build_system="missing"
+    )
+    assert missing.returncode != 0
+    assert "unsupported build_system" in missing.stderr
+
+
+def test_crates_leg_is_separate_and_independently_retryable() -> None:
+    release_text = release_workflow_text()
+    crates_text = crates_publish_workflow_text()
+
+    # The GitHub Release leg must not depend on crates.io publication.
+    assert "needs: [gate-and-tag, build, build-python-wheels, build-python-sdists]" in release_text
+    assert "needs: [gate-and-tag, build, publish," not in release_text
+
+    assert "workflow_dispatch:" in crates_text
+    assert "uses: ./.github/actions/verify-published-release" in crates_text
+    assert "release_tag: ${{ inputs.tag }}" in crates_text
+    assert "group: publish-crates-${{ inputs.tag }}" in crates_text
+    assert "cancel-in-progress: false" in crates_text
+    assert "environment: crates-io" in crates_text
+    assert "publish_if_missing" in crates_text
+    assert "already published; skipping" in crates_text
+    assert "list-publish-plan" in crates_text
+    assert "gate-and-tag" not in crates_text
+    assert "CARGO_REGISTRY_TOKEN" in crates_text
+
+
+def test_github_release_leg_is_detect_and_skip(tmp_path: Path) -> None:
+    text = release_workflow_text()
+
+    assert "replace_release_assets:" in text
+    assert "release-asset-patterns" in text
+    assert "id: published_release_probe" in text
+    assert "uses: ./.github/actions/verify-published-release" in text
+    # The probe fails closed: no continue-on-error swallowing transient API
+    # failures, and every build/upload leg keys off the confirmed state.
+    assert "continue-on-error" not in text
+    assert "probe: 'true'" in text
+    assert (
+        text.count(
+            "if: ${{ steps.published_release_probe.outputs.release_state != 'complete' || inputs.replace_release_assets == true }}"
+        )
+        == 4
+    )
+    assert (
+        "if: ${{ steps.published_release_probe.outputs.release_state == 'complete' && inputs.replace_release_assets != true }}"
+        in text
+    )
+    assert "steps.published_release_probe.outcome" not in text
+    assert "already exists with every expected asset; skipping upload" in text
+    assert "deliberately replacing assets" in text
+    assert "'^checksums\\.txt$'" in text
+
+    _, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    result = run_fixture_command(tmp_path, "release-asset-patterns", manifest=manifest)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == [
+        r"^fixture_.*_x86_64\-unknown\-linux\-gnu\.tar\.gz$"
+    ]
+
+
+def test_no_single_repo_concerns_leak_into_kit_workflows_actions_or_scripts() -> None:
+    """Extend the anti-leakage guard to every vendored workflow, action, and script."""
+    forbidden = ("sc-compose", "sc_compose", "randlee")
+    allowlist = {
+        # Deliberate shared ecosystem pin: setup-sc-lint's default repository.
+        "actions/setup-sc-lint/action.yml": {"randlee"},
+        # The pinned renderer wheel is the sc-compose PyPI package by design.
+        "scripts/bootstrap_sc_compose.py": {"sc-compose", "sc_compose"},
+    }
+    kit_workflows = (
+        "release.yml",
+        "release-preflight.yml",
+        "crates-publish.yml",
+        "pypi-publish.yml",
+        "homebrew-publish.yml",
+        "scoop-publish.yml",
+        "winget-publish.yml",
+    )
+    kit_actions = (
+        "extract-published-renderer",
+        "setup-lint-toolchain",
+        "setup-python-release-build",
+        "setup-sc-lint",
+        "verify-published-release",
+    )
+    kit_scripts = (
+        "bootstrap_sc_compose.py",
+        "release_artifacts.py",
+        "release_manifest.py",
+        "release_gate.sh",
+    )
+    github_root = repo_root() / ".github"
+    files = [
+        *(github_root / "workflows" / name for name in kit_workflows),
+        *(github_root / "actions" / name / "action.yml" for name in kit_actions),
+        *(github_root / "scripts" / name for name in kit_scripts),
+    ]
+    if (repo_root() / ".sc-publish-source-root").is_file():
+        # In the kit source the inventory above must be complete, so new files
+        # cannot dodge the guard. Consumers may add their own workflows.
+        assert sorted(path.name for path in (github_root / "workflows").glob("*.yml")) == sorted(kit_workflows)
+        assert sorted(path.parent.name for path in (github_root / "actions").rglob("action.yml")) == sorted(kit_actions)
+        assert sorted(
+            path.name
+            for path in (github_root / "scripts").iterdir()
+            if path.suffix in (".py", ".sh")
+        ) == sorted(kit_scripts)
+    for path in files:
+        relative = path.relative_to(github_root).as_posix()
+        if path.name == "action.yml":
+            relative = f"actions/{path.parent.name}/action.yml"
+        text = path.read_text(encoding="utf-8")
+        for needle in forbidden:
+            if needle in allowlist.get(relative, set()):
+                continue
+            assert needle not in text, f"{relative} leaks single-repo concern {needle!r}"
+
+
+def test_hygiene_single_sources_pins_paths_and_publish_time_validations(tmp_path: Path) -> None:
+    release_text = release_workflow_text()
+    preflight_text = release_preflight_workflow_text()
+    crates_text = crates_publish_workflow_text()
+    homebrew_text = homebrew_publish_workflow_text()
+    scoop_text = scoop_publish_workflow_text()
+    python_action_text = (
+        repo_root() / ".github" / "actions" / "setup-python-release-build" / "action.yml"
+    ).read_text(encoding="utf-8")
+    sc_lint_action_text = (
+        repo_root() / ".github" / "actions" / "setup-sc-lint" / "action.yml"
+    ).read_text(encoding="utf-8")
+
+    # Item 1: the Rust toolchain pin is single-sourced through build-plan.
+    for text in (release_text, preflight_text, crates_text, python_action_text):
+        assert "1.94.1" not in text
+        assert "rust_toolchain" in text
+
+    # Item 2: the sc-lint repository slug is an input with a documented pin.
+    assert "SC_LINT_REPOSITORY" in sc_lint_action_text
+    assert 'default: "randlee/sc-lint"' in sc_lint_action_text
+    assert "https://github.com/randlee" not in sc_lint_action_text
+
+    # Item 5: release.yml reads the manifest path from its env everywhere.
+    assert release_text.count("release/publish-artifacts.toml") == 1
+
+    # Item 7: tap/bucket pushes fetch-rebase-retry instead of racing.
+    for text in (homebrew_text, scoop_text):
+        assert "git pull --rebase origin" in text
+        assert "for attempt in 1 2 3 4 5; do" in text
+        assert "push rejected (attempt" in text
+
+    # Item 8: the pyproject input is required, not layout-inferred.
+    assert "bindings/python/pyproject.toml" not in python_action_text
+
+    # Item 6: contract-declared GitHub environments are verified by preflight.
+    assert "Verify contract-declared GitHub environments exist" in preflight_text
+    assert ".github_environments[]?" in preflight_text
+    _, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    plan_result = run_fixture_command(tmp_path, "preflight-secret-plan", manifest=manifest)
+    assert plan_result.returncode == 0, plan_result.stderr
+    assert json.loads(plan_result.stdout)["github_environments"] == [
+        "crates-io",
+        "pypi",
+        "testpypi",
+    ]
+
+
+def test_validate_manifest_requires_publish_time_channel_fields(tmp_path: Path) -> None:
+    pypi_dir = tmp_path / "pypi"
+    pypi_dir.mkdir()
+    workspace, manifest = write_repo_fixture(pypi_dir, manifest_wheels=["ubuntu-latest"])
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            'test_repository = "testpypi"', 'test_repository = ""', 1
+        ),
+        encoding="utf-8",
+    )
+    result = run_fixture_command(
+        pypi_dir,
+        "validate-manifest",
+        "--workspace-toml",
+        str(workspace),
+        manifest=manifest,
+    )
+    assert result.returncode != 0
+    assert "[channels.pypi].test_repository must be a non-empty string" in result.stderr
+
+    winget_dir = tmp_path / "winget"
+    winget_dir.mkdir()
+    workspace, manifest = write_repo_fixture(winget_dir, manifest_wheels=["ubuntu-latest"])
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            'identifier = "example.fixture"', 'identifier = ""', 1
+        ),
+        encoding="utf-8",
+    )
+    result = run_fixture_command(
+        winget_dir,
+        "validate-manifest",
+        "--workspace-toml",
+        str(workspace),
+        manifest=manifest,
+    )
+    assert result.returncode != 0
+    assert "[channels.winget].identifier must be a non-empty string" in result.stderr
+
+
+def test_load_manifest_rejects_unsupported_schema_version(tmp_path: Path) -> None:
+    _, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            "schema_version = 1", "schema_version = 2", 1
+        ),
+        encoding="utf-8",
+    )
+    result = run_fixture_command(tmp_path, "build-plan", manifest=manifest)
+    assert result.returncode != 0
+    assert "unsupported manifest schema_version" in result.stderr
+
+
+def test_winget_leg_probes_before_submitting_and_pins_the_releaser() -> None:
+    text = winget_publish_workflow_text()
+
+    assert "id: winget_probe" in text
+    assert "repos/microsoft/winget-pkgs/contents/${manifest_path}" in text
+    assert "search/issues" in text
+    assert "type:pr in:title" in text
+    assert "already_published" in text
+    assert "if: ${{ steps.winget_probe.outputs.already_published != 'true' }}" in text
+    # Fail closed: only a confirmed 404 may fall through to the PR search,
+    # and incomplete search results must not be read as "no duplicate".
+    assert "grep -Eqi 'HTTP 404|Not Found'" in text
+    assert "is indeterminate (not a confirmed 404); failing closed" in text
+    assert "incomplete_results" in text
+    # The third-party releaser must be pinned to an immutable commit SHA.
+    assert (
+        "uses: vedantmgoyal2009/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2"
+        in text
+    )
+    assert "winget-releaser@v2\n" not in text
+
+
+def test_crates_already_published_detection_uses_exact_version_lookup() -> None:
+    release_text = release_workflow_text()
+    crates_text = crates_publish_workflow_text()
+    script_text = (scripts_root() / "release_artifacts.py").read_text(encoding="utf-8")
+    manifest_module_text = (scripts_root() / "release_manifest.py").read_text(encoding="utf-8")
+
+    for text in (release_text, crates_text):
+        assert "cargo search" not in text
+        assert "public-registry-inquiry-plan" in text
+        assert "version_lookup_url" in text
+        assert "publish-channel-contracts.toml" in text
+        assert "indeterminate" in text
+
+    assert "cargo search" not in script_text
+    assert "registry_version_state" in script_text
+    assert "must_be_absent" not in release_text  # policy lives in the contract
+    assert "registry lookup failed" in manifest_module_text
+
+
+def test_release_workflows_gate_cargo_and_python_legs_on_the_manifest() -> None:
+    release_text = release_workflow_text()
+    preflight_text = release_preflight_workflow_text()
+
+    assert "build-plan" in release_text
+    assert "needs.release-plan.outputs.has_crates == 'true'" in release_text
+    assert "needs.release-plan.outputs.has_python_wheels == 'true'" in release_text
+    assert "needs.release-plan.outputs.has_python_sdists == 'true'" in release_text
+    assert "Build wheels (maturin)" in release_text
+    assert "Build wheels (setuptools)" in release_text
+    assert "matrix.build_system == 'setuptools'" in release_text
+    assert "python -m build --wheel" in release_text
+    assert "python -m build --sdist" in release_text
+    assert "steps.build_plan.outputs.workspace_toml" in release_text
+
+    assert "build-plan" in preflight_text
+    assert preflight_text.count("steps.build_plan.outputs.has_crates == 'true'") >= 5
+    assert "steps.build_plan.outputs.workspace_toml" in preflight_text
+    assert '--workspace-toml Cargo.toml' not in preflight_text
+    assert 'if [[ "${HAS_CRATES}" == "true" ]]; then' in preflight_text
 
 
 def test_homebrew_workflow_selects_manifest_formula_tracks(tmp_path: Path) -> None:
@@ -1180,10 +1590,16 @@ def test_release_workflow_enforces_python_release_invariants() -> None:
     assert "maturin build" not in pypi_text
     assert "maturin sdist" not in pypi_text
     assert "name: Publish manifest-declared wheels and sdists to TestPyPI" in pypi_text
-    assert "if: ${{ inputs.target == 'testpypi' }}" in pypi_text
+    assert (
+        "if: ${{ inputs.target == 'testpypi' && needs.verify-release.outputs.python_upload_tool == 'maturin' }}"
+        in pypi_text
+    )
     assert "MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}" in pypi_text
     assert "name: Publish manifest-declared wheels and sdists to PyPI" in pypi_text
-    assert "if: ${{ inputs.target == 'production' }}" in pypi_text
+    assert (
+        "if: ${{ inputs.target == 'production' && needs.verify-release.outputs.python_upload_tool == 'maturin' }}"
+        in pypi_text
+    )
     assert "MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}" in pypi_text
     assert "secrets.TEST_PYPI_TOKEN" not in pypi_text
     assert "secrets.PYPI_TOKEN" not in pypi_text
@@ -1307,7 +1723,7 @@ def test_release_channel_templates_render_to_valid_ruby_and_json(tmp_path: Path)
             "test_binary": "sc-compose-daemon",
             "test_command": "--help",
             "test_output": "Standalone template composition CLI",
-            "binaries": ["sc-compose", "sc-compose-daemon"],
+            "binary_paths": ["bin/sc-compose", "bin/sc-compose-daemon"],
             "bundled_paths": [
                 {
                     "destination_components": ["pkgshare", "examples"],
@@ -1653,13 +2069,14 @@ def test_release_workflow_rehearsal_mode_avoids_production_side_effects() -> Non
 
     assert 'echo "Rehearsal mode: validating release tag ${tag} locally only; not pushing any tag to origin"' in text
     assert "echo \"release_ref=$main_sha\" >> \"$GITHUB_OUTPUT\"" in text
-    assert "if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}" in text
+    assert "needs.gate-and-tag.outputs.release_target == 'production'" in text
 
 
 def test_release_workflow_checks_out_repo_before_local_python_setup_action() -> None:
     text = release_workflow_text()
 
     wheels_job = """  build-python-wheels:
+    if: ${{ needs.release-plan.outputs.has_python_wheels == 'true' }}
     needs: [gate-and-tag, release-plan]
     strategy:
       fail-fast: false
@@ -1671,6 +2088,7 @@ def test_release_workflow_checks_out_repo_before_local_python_setup_action() -> 
           ref: ${{ needs.gate-and-tag.outputs.release_ref }}
       - uses: ./.github/actions/setup-python-release-build"""
     sdist_job = """  build-python-sdists:
+    if: ${{ needs.release-plan.outputs.has_python_sdists == 'true' }}
     needs: [gate-and-tag, release-plan]
     strategy:
       fail-fast: false
@@ -1993,3 +2411,147 @@ def test_verify_version_lockstep_rejects_python_package_drift(tmp_path: Path) ->
     assert result.returncode != 0
     assert "bindings/python/pyproject.toml" in result.stderr
     assert "[project].version mismatch" in result.stderr
+
+
+def test_build_plan_selects_the_manifest_declared_python_upload_tool(tmp_path: Path) -> None:
+    maturin_dir = tmp_path / "maturin"
+    maturin_dir.mkdir()
+    write_repo_fixture(maturin_dir, manifest_wheels=["ubuntu-latest"])
+    plan = run_fixture_command(
+        maturin_dir, "build-plan", manifest=maturin_dir / "release" / "publish-artifacts.toml"
+    )
+    assert plan.returncode == 0, plan.stderr
+    assert json.loads(plan.stdout)["python_upload_tool"] == "maturin"
+
+    setuptools_dir = tmp_path / "setuptools"
+    setuptools_dir.mkdir()
+    write_repo_fixture(
+        setuptools_dir, manifest_wheels=["ubuntu-latest"], python_build_system="setuptools"
+    )
+    plan = run_fixture_command(
+        setuptools_dir,
+        "build-plan",
+        manifest=setuptools_dir / "release" / "publish-artifacts.toml",
+    )
+    assert plan.returncode == 0, plan.stderr
+    assert json.loads(plan.stdout)["python_upload_tool"] == "twine"
+
+    rust_only_dir = tmp_path / "rust-only"
+    rust_only_dir.mkdir()
+    write_repo_fixture(rust_only_dir, manifest_wheels=["ubuntu-latest"], include_python=False)
+    plan = run_fixture_command(
+        rust_only_dir,
+        "build-plan",
+        manifest=rust_only_dir / "release" / "publish-artifacts.toml",
+    )
+    assert plan.returncode == 0, plan.stderr
+    assert json.loads(plan.stdout)["python_upload_tool"] == ""
+
+
+def test_pypi_workflows_branch_uploads_on_the_declared_build_system() -> None:
+    pypi_text = pypi_publish_workflow_text()
+
+    # The uploader is manifest-derived (build-plan), not hardcoded to maturin.
+    assert "build-plan" in pypi_text
+    assert "python_upload_tool: ${{ steps.config.outputs.python_upload_tool }}" in pypi_text
+    assert "if: ${{ needs.verify-release.outputs.python_upload_tool == 'maturin' }}" in pypi_text
+    assert "if: ${{ needs.verify-release.outputs.python_upload_tool == 'twine' }}" in pypi_text
+    assert "python -m pip install twine==6.1.0" in pypi_text
+    assert "name: Publish manifest-declared wheels and sdists to TestPyPI with twine" in pypi_text
+    assert "name: Publish manifest-declared wheels and sdists to PyPI with twine" in pypi_text
+    assert (
+        'python -m twine upload --repository "${PYPI_REPOSITORY}" --skip-existing dist/*.whl dist/*.tar.gz'
+        in pypi_text
+    )
+    assert "TWINE_USERNAME: __token__" in pypi_text
+    assert "TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}" in pypi_text
+    assert "TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}" in pypi_text
+    # No unconditional maturin install remains.
+    assert "\n      - name: Install maturin\n        run:" not in pypi_text
+
+    # The TestPyPI rehearsal leg in release.yml takes the same manifest branch.
+    release_text = release_workflow_text()
+    assert "python_upload_tool: ${{ steps.manifest.outputs.python_upload_tool }}" in release_text
+    assert "if: ${{ needs.release-plan.outputs.python_upload_tool == 'maturin' }}" in release_text
+    assert "if: ${{ needs.release-plan.outputs.python_upload_tool == 'twine' }}" in release_text
+    assert "name: Publish wheels and sdist to TestPyPI with twine" in release_text
+    assert (
+        "python -m twine upload --repository testpypi --skip-existing dist/*.whl dist/*.tar.gz"
+        in release_text
+    )
+
+
+def test_python_version_steps_use_the_manifest_declared_workspace_toml() -> None:
+    action_text = (
+        repo_root() / ".github" / "actions" / "setup-python-release-build" / "action.yml"
+    ).read_text(encoding="utf-8")
+    release_text = release_workflow_text()
+
+    assert "--workspace-toml '${{ inputs.workspace_toml }}'" in action_text
+    assert "--workspace-toml Cargo.toml" not in action_text
+    assert 'default: "Cargo.toml"' in action_text
+    assert "workspace_toml: ${{ steps.manifest.outputs.workspace_toml }}" in release_text
+    assert release_text.count(
+        "workspace_toml: ${{ needs.release-plan.outputs.workspace_toml }}"
+    ) == 2
+
+
+def test_version_resolution_honors_a_pyproject_workspace_toml(tmp_path: Path) -> None:
+    """A pure-Python consumer resolves its version without any Cargo.toml."""
+    _, manifest = write_repo_fixture(
+        tmp_path,
+        manifest_wheels=["ubuntu-latest"],
+        include_crates=False,
+        python_build_system="setuptools",
+    )
+    version_source = tmp_path / "pyproject.toml"
+    version_source.write_text(
+        '[project]\nname = "fixture-root"\nversion = "1.1.0"\n', encoding="utf-8"
+    )
+
+    verify = run_fixture_command(
+        tmp_path,
+        "verify-version",
+        "--workspace-toml",
+        str(version_source),
+        "--version",
+        "1.1.0",
+        manifest=manifest,
+    )
+    assert verify.returncode == 0, verify.stderr
+    assert "version verification passed" in verify.stdout
+
+    lockstep = run_fixture_command(
+        tmp_path,
+        "verify-version-lockstep",
+        "--workspace-toml",
+        str(version_source),
+        manifest=manifest,
+    )
+    assert lockstep.returncode == 0, lockstep.stderr
+
+    mismatch = run_fixture_command(
+        tmp_path,
+        "verify-version",
+        "--workspace-toml",
+        str(version_source),
+        "--version",
+        "1.2.0",
+        manifest=manifest,
+    )
+    assert mismatch.returncode != 0
+    assert "workspace version mismatch" in mismatch.stderr
+
+    empty_source = tmp_path / "empty.toml"
+    empty_source.write_text("", encoding="utf-8")
+    unresolved = run_fixture_command(
+        tmp_path,
+        "verify-version",
+        "--workspace-toml",
+        str(empty_source),
+        "--version",
+        "1.1.0",
+        manifest=manifest,
+    )
+    assert unresolved.returncode != 0
+    assert "version source must declare" in unresolved.stderr

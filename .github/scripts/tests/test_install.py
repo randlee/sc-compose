@@ -8,12 +8,13 @@ import re
 import subprocess
 import sys
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 
-INSTALLER = next(path / "plugins" / "sc-publish" / "install.py" for path in Path(__file__).resolve().parents if (path / "plugins" / "sc-publish" / "install.py").is_file())
+INSTALLER = next(path / "install.py" for path in Path(__file__).resolve().parents if (path / "install.py").is_file())
 SPEC = importlib.util.spec_from_file_location("sc_publish_install", INSTALLER)
 assert SPEC is not None and SPEC.loader is not None
 INSTALL = importlib.util.module_from_spec(SPEC)
@@ -42,23 +43,17 @@ class InstallValuesTests(unittest.TestCase):
                     "artifact": "example-core",
                     "package": "example-core",
                     "cargo_toml": "crates/example-core/Cargo.toml",
-                    "required": True,
                     "publish": True,
                     "publish_order": 1,
-                    "preflight_check": "locked",
                     "wait_after_publish_seconds": 0,
-                    "verify_install": False,
                 },
                 {
                     "artifact": "example-python",
                     "package": "example-python",
                     "cargo_toml": "crates/example-python/Cargo.toml",
-                    "required": True,
                     "publish": False,
                     "publish_order": 0,
-                    "preflight_check": "locked",
                     "wait_after_publish_seconds": 0,
-                    "verify_install": True,
                 },
             ],
             "release_binaries": [
@@ -73,11 +68,6 @@ class InstallValuesTests(unittest.TestCase):
                     ],
                 }
             ],
-            "installed_docs": {
-                "source_root": "docs",
-                "install_root": "share/doc/example",
-                "entrypoint": "share/doc/example/README.md",
-            },
             "python_packages": [
                 {
                     "artifact": "example-wheel",
@@ -209,6 +199,57 @@ class InstallValuesTests(unittest.TestCase):
             with self.assertRaisesRegex(Exception, "project.license"):
                 INSTALL.load_install_values(path)
 
+    def test_load_install_values_accepts_a_channel_subset(self) -> None:
+        values = self.valid_values()
+        for name in ("homebrew", "winget", "scoop"):
+            del values["channels"][name]
+        # renderer_archive_path is only required for homebrew/scoop consumers.
+        del values["project"]["renderer_archive_path"]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "input.json"
+            path.write_text(json.dumps(values), encoding="utf-8")
+            loaded = INSTALL.load_install_values(path)
+        self.assertEqual(set(loaded["channels"]), {"pypi"})
+        template = INSTALL.template_values(loaded)
+        self.assertTrue(template["has_channel_pypi"])
+        for name in ("homebrew", "winget", "scoop"):
+            self.assertFalse(template[f"has_channel_{name}"])
+            self.assertIn(name, template["channels"])
+
+    def test_load_install_values_rejects_unknown_channel_names(self) -> None:
+        values = self.valid_values()
+        values["channels"]["npm"] = {"workflow": "npm.yml", "dispatch_inputs": {}}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "input.json"
+            path.write_text(json.dumps(values), encoding="utf-8")
+            with self.assertRaisesRegex(Exception, "unsupported name"):
+                INSTALL.load_install_values(path)
+
+    def test_render_omits_undeclared_channel_tables(self) -> None:
+        try:
+            import sc_compose  # noqa: F401
+        except ModuleNotFoundError:
+            self.skipTest("sc-compose bindings are not provisioned in this environment")
+        values = self.valid_values()
+        for name in ("homebrew", "winget", "scoop"):
+            del values["channels"][name]
+        del values["project"]["renderer_archive_path"]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "input.json"
+            path.write_text(json.dumps(values), encoding="utf-8")
+            loaded = INSTALL.load_install_values(path)
+            output = Path(directory) / "publish-artifacts.toml"
+            INSTALL.render_template(
+                Path("release/publish-artifacts.toml.j2"), loaded, output
+            )
+            manifest = tomllib.loads(output.read_text(encoding="utf-8"))
+        self.assertEqual(set(manifest["channels"]), {"pypi"})
+        self.assertEqual(manifest["channels"]["pypi"]["production_repository"], "pypi")
+        self.assertEqual(
+            manifest["python_distributions"][1]["build_system"], "setuptools"
+        )
+        self.assertNotIn("renderer_archive_path", manifest["project"])
+
     def test_load_install_values_rejects_ambiguous_python_distribution(self) -> None:
         values = self.valid_values()
         values["python_distributions"][0]["build_system"] = "setuptools"
@@ -249,6 +290,22 @@ class InstallValuesTests(unittest.TestCase):
             gate = consumer / ".github" / "scripts" / "release_gate.sh"
             self.assertTrue(artifacts.is_file())
             self.assertTrue(gate.is_file())
+
+            # The kit README installs under a kit-owned name and never
+            # overwrites the consumer repository's own README.md.
+            kit_readme = consumer / "README.sc-publish.md"
+            self.assertTrue(kit_readme.is_file())
+            self.assertFalse((consumer / "README.md").exists())
+            self.assertEqual(
+                kit_readme.read_bytes(), (INSTALLER.parent / "README.md").read_bytes()
+            )
+            readme_text = kit_readme.read_text(encoding="utf-8")
+            self.assertIn("byte-for-byte", readme_text)
+            self.assertIn("bootstrap_sc_compose.py --venv", readme_text)
+            self.assertIn("--dry-run --input", readme_text)
+            self.assertIn(".claude/agents/publisher.md", readme_text)
+            self.assertIn(".cursor/", readme_text)
+            self.assertIn("idempotent", readme_text)
 
             workflows = (
                 "release.yml",

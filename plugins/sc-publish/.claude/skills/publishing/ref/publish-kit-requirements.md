@@ -1,7 +1,5 @@
 # Publish Kit Requirements
 
-> Status: Active
-> Scope: `feature/publish-kit-preflight-hardening`
 > Document role: Normative requirements for the manifest-driven, vendorable
 > release/publish kit. This is workflow/tooling scope, not a record of any
 > specific release execution.
@@ -12,7 +10,7 @@
   Python distributions, channel destinations) is declared in the manifest
   (`release/publish-artifacts.toml`), not hardcoded in workflow YAML or
   agent prompts.
-- Consuming another repo (e.g. `atm-core`) is a manifest edit only — no
+- Adopting the kit in a consumer repo is a manifest edit only — no
   workflow or code changes required.
 
 ## 2. Parallel Per-Channel Orchestration
@@ -81,8 +79,8 @@
   `team-lead`. It still does not ask the user or comp for the secret
   value itself — reporting the failure is the extent of the escalation.
 - All release secrets use the same GitHub Actions secret names across
-  every repo that vendors this kit (see
-  [[feedback_secrets_always_github_same_names]]).
+  every repo that vendors this kit; secret names are fixed by the shared
+  channel contract, never per-repository.
 - Every root or post-release channel worker receives both its manifest-derived
   preflight contract and its completed, non-disclosing preflight result before
   it may publish or retry. A worker denies only its own channel when that
@@ -106,20 +104,9 @@
   a public lookup is never a name reservation. Existing production versions
   fail closed; TestPyPI state is rehearsal information.
 
-## 6. Fix the Draft's Wrong Secret Names
+## 6. Scope Boundary
 
-- `docs/publish-workflow-skill-hardening` (unmerged worktree, tip
-  `520d17c`) is a reference draft only, not a template to copy verbatim.
-- It and the current `develop` copies of `docs/publishing.md` /
-  `docs/publishing-agent.md` name the PyPI secrets incorrectly as
-  `PYPI_TOKEN` / `TEST_PYPI_TOKEN`.
-- The actual GitHub Actions secret names are `PYPI_API_TOKEN` (environment
-  `pypi`) and `TEST_PYPI_API_TOKEN` (environment `testpypi`). Every doc and
-  workflow touched by this kit must use the correct names.
-
-## 7. Scope Boundary
-
-- This workstream builds and lands the workflow/tooling only.
-- It does not dispatch, tag, or publish any actual release (1.4.2 or
-  otherwise) as part of landing this work. That decision is separate and
-  requires explicit sign-off from Rand.
+- This kit provides the workflow/tooling only.
+- Installing or upgrading the kit does not dispatch, tag, or publish any
+  actual release. Publishing a real release is a separate decision and
+  requires explicit sign-off from the consuming repository's release owner.

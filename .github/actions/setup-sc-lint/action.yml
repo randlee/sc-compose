@@ -1,10 +1,19 @@
 name: Setup sc-lint
-description: Install and verify the pinned sc-lint release and sibling analyzers
+description: >-
+  Install and verify the pinned sc-lint release and sibling analyzers. The
+  default repository and version are the deliberate shared ecosystem pin for
+  every kit consumer; the source archive's .just/*.py utilities are copied
+  into the workspace's .just/ directory (the layout sc-lint's Python helpers
+  require).
 inputs:
   version:
-    description: Released sc-lint version to install
+    description: Released sc-lint version to install (deliberate ecosystem pin)
     required: false
     default: "0.4.0"
+  repository:
+    description: GitHub repository slug hosting sc-lint releases
+    required: false
+    default: "randlee/sc-lint"
 runs:
   using: composite
   steps:
@@ -13,6 +22,7 @@ runs:
       shell: bash
       env:
         SC_LINT_VERSION: ${{ inputs.version }}
+        SC_LINT_REPOSITORY: ${{ inputs.repository }}
       run: |
         set -euo pipefail
         case "${RUNNER_OS}:${RUNNER_ARCH}" in
@@ -25,7 +35,7 @@ runs:
             ;;
         esac
         archive="sc-lint_${SC_LINT_VERSION}_${target}.tar.gz"
-        url="https://github.com/randlee/sc-lint/releases/download/v${SC_LINT_VERSION}/${archive}"
+        url="https://github.com/${SC_LINT_REPOSITORY}/releases/download/v${SC_LINT_VERSION}/${archive}"
         install_dir="${RUNNER_TEMP}/sc-lint-${SC_LINT_VERSION}/${target}"
         mkdir -p "${install_dir}"
         curl --fail --location --retry 4 --retry-all-errors --silent --show-error \
@@ -50,6 +60,7 @@ runs:
       shell: pwsh
       env:
         SC_LINT_VERSION: ${{ inputs.version }}
+        SC_LINT_REPOSITORY: ${{ inputs.repository }}
       run: |
         $ErrorActionPreference = 'Stop'
         if ($env:RUNNER_ARCH -ne 'X64') {
@@ -57,7 +68,7 @@ runs:
         }
         $target = 'x86_64-pc-windows-msvc'
         $archive = "sc-lint_$env:SC_LINT_VERSION`_$target.zip"
-        $url = "https://github.com/randlee/sc-lint/releases/download/v$env:SC_LINT_VERSION/$archive"
+        $url = "https://github.com/$env:SC_LINT_REPOSITORY/releases/download/v$env:SC_LINT_VERSION/$archive"
         $installDir = Join-Path $env:RUNNER_TEMP "sc-lint-$env:SC_LINT_VERSION\$target"
         New-Item -ItemType Directory -Force -Path $installDir | Out-Null
         $archivePath = Join-Path $env:RUNNER_TEMP $archive
@@ -78,6 +89,7 @@ runs:
       shell: bash
       env:
         SC_LINT_VERSION: ${{ inputs.version }}
+        SC_LINT_REPOSITORY: ${{ inputs.repository }}
       run: |
         set -euo pipefail
         version_json="$(sc-lint version --json)"
@@ -92,6 +104,7 @@ runs:
       shell: pwsh
       env:
         SC_LINT_VERSION: ${{ inputs.version }}
+        SC_LINT_REPOSITORY: ${{ inputs.repository }}
       run: |
         $value = sc-lint version --json | ConvertFrom-Json
         if (-not $value.ok -or $value.data.crate_version -ne $env:SC_LINT_VERSION) {
@@ -102,6 +115,7 @@ runs:
       shell: bash
       env:
         SC_LINT_VERSION: ${{ inputs.version }}
+        SC_LINT_REPOSITORY: ${{ inputs.repository }}
       run: |
         set -euo pipefail
         archive="${RUNNER_TEMP}/sc-lint-source-${SC_LINT_VERSION}.tar.gz"
@@ -109,7 +123,7 @@ runs:
         mkdir -p "${source_root}"
         curl --fail --location --retry 4 --retry-all-errors --silent --show-error \
           --output "${archive}" \
-          "https://github.com/randlee/sc-lint/archive/refs/tags/v${SC_LINT_VERSION}.tar.gz"
+          "https://github.com/${SC_LINT_REPOSITORY}/archive/refs/tags/v${SC_LINT_VERSION}.tar.gz"
         tar -xzf "${archive}" -C "${source_root}" --strip-components=1
         mkdir -p "${GITHUB_WORKSPACE}/.just"
         cp "${source_root}/.just/"*.py "${GITHUB_WORKSPACE}/.just/"
@@ -120,11 +134,12 @@ runs:
       shell: pwsh
       env:
         SC_LINT_VERSION: ${{ inputs.version }}
+        SC_LINT_REPOSITORY: ${{ inputs.repository }}
       run: |
         $ErrorActionPreference = 'Stop'
         $archive = Join-Path $env:RUNNER_TEMP "sc-lint-source-$env:SC_LINT_VERSION.zip"
         $sourceRoot = Join-Path $env:RUNNER_TEMP "sc-lint-source-$env:SC_LINT_VERSION"
-        Invoke-WebRequest -Uri "https://github.com/randlee/sc-lint/archive/refs/tags/v$env:SC_LINT_VERSION.zip" -OutFile $archive
+        Invoke-WebRequest -Uri "https://github.com/$env:SC_LINT_REPOSITORY/archive/refs/tags/v$env:SC_LINT_VERSION.zip" -OutFile $archive
         Expand-Archive -Path $archive -DestinationPath $sourceRoot -Force
         $extracted = Get-ChildItem -Directory $sourceRoot | Select-Object -First 1
         $justRoot = Join-Path $env:GITHUB_WORKSPACE '.just'

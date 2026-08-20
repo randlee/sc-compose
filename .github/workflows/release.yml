@@ -15,6 +15,11 @@ on:
         options:
           - testpypi
           - production
+      replace_release_assets:
+        description: "Replace assets on an already-published GitHub Release (changes their SHA256s; never the default)"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -61,21 +66,32 @@ jobs:
           echo "release_version=${tag#v}" >> "$GITHUB_OUTPUT"
           echo "release_target=$target" >> "$GITHUB_OUTPUT"
 
+      - name: Read build plan from release manifest
+        id: build_plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          plan="$(python3 .github/scripts/release_artifacts.py build-plan --manifest "${RELEASE_ARTIFACT_MANIFEST}")"
+          {
+            echo "workspace_toml=$(jq -r '.workspace_toml' <<<"${plan}")"
+            echo "has_crates=$(jq -r '.has_crates' <<<"${plan}")"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Verify requested version matches workspace
         run: |
           python3 .github/scripts/release_artifacts.py verify-version \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
-            --workspace-toml Cargo.toml \
+            --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}' \
             --version '${{ steps.meta.outputs.release_version }}'
 
       - name: Verify release version lockstep
         run: |
           python3 .github/scripts/release_artifacts.py verify-version-lockstep \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
-            --workspace-toml Cargo.toml
+            --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}'
 
       - name: Run release gate
-        run: .github/scripts/release_gate.sh origin/main origin/develop '${{ steps.meta.outputs.release_version }}' "${RELEASE_ARTIFACT_MANIFEST}"
+        run: .github/scripts/release_gate.sh origin/main origin/develop '${{ steps.meta.outputs.release_version }}' "${RELEASE_ARTIFACT_MANIFEST}" '${{ steps.build_plan.outputs.workspace_toml }}'
 
       - name: Ensure tag is correct or create it
         id: release-ref
@@ -119,7 +135,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.94.1
+          toolchain: ${{ needs.release-plan.outputs.rust_toolchain }}
           targets: ${{ matrix.target }}
 
       - name: Ensure cross-compilation target
@@ -205,89 +221,9 @@ jobs:
           name: ${{ matrix.target }}
           path: ${{ env.ARCHIVE }}
 
-  generate-go-bindings:
-    needs: [gate-and-tag, release-plan]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.gate-and-tag.outputs.release_ref }}
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.94.1
-      - name: Cache generated Go bindings
-        id: generated-cache
-        uses: actions/cache@v4
-        with:
-          path: bindings/sc-sha-go/go
-          key: uniffi-bindgen-go-generated-v0.7.1-v0.31.0-${{ hashFiles('bindings/sc-sha-go/src/sc_sha_go.udl', 'bindings/sc-sha-go/uniffi.toml') }}
-      - name: Generate bindings on Ubuntu when cache misses
-        if: steps.generated-cache.outputs.cache-hit != 'true'
-        run: |
-          python3 .github/scripts/install_uniffi_bindgen_go.py
-          uniffi-bindgen-go --out-dir bindings/sc-sha-go/go --config bindings/sc-sha-go/uniffi.toml bindings/sc-sha-go/src/sc_sha_go.udl
-      - name: Test pinned UniFFI Go generator installer
-        shell: bash
-        run: cd .github/scripts && python3 -m unittest test_install_uniffi_bindgen_go -v
-      - name: Verify generated bindings
-        run: git diff --exit-code -- bindings/sc-sha-go/go
-      - name: Upload generated Go bindings
-        uses: actions/upload-artifact@v4
-        with:
-          name: sc-sha-go-generated
-          path: bindings/sc-sha-go/go
-
-  build-go-native:
-    needs: [gate-and-tag, release-plan, generate-go-bindings]
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.release-plan.outputs.go_native_matrix) }}
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.gate-and-tag.outputs.release_ref }}
-      - name: Download generated Go bindings
-        uses: actions/download-artifact@v4
-        with:
-          name: sc-sha-go-generated
-          path: bindings/sc-sha-go/go
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.94.1
-          targets: ${{ matrix.target }}
-      - name: Set up sc-lint toolchain
-        uses: ./.github/actions/setup-lint-toolchain
-      - name: Run repository lint
-        run: just lint-ci-consumer
-      - name: Build target-native static library
-        run: cargo build --release -p sc-sha-go --target ${{ matrix.target }}
-      - name: Stage self-contained Go module bundle
-        shell: bash
-        run: |
-          set -euo pipefail
-          library="target/${{ matrix.target }}/release/libsc_sha_go.a"
-          version='${{ needs.gate-and-tag.outputs.release_version }}'
-          python3 .github/scripts/release_artifacts.py stage-go-native-module \
-            --manifest "$RELEASE_ARTIFACT_MANIFEST" \
-            --target '${{ matrix.target }}' \
-            --native-library "$library" \
-            --output "$RUNNER_TEMP/sc-sha-go-${{ matrix.target }}" \
-            --version "$version"
-      - name: Run release layout regression tests
-        run: python3 bindings/sc-sha-go/tests/test_release_layout.py
-      - name: Run bundled Go conformance tests
-        working-directory: ${{ runner.temp }}/sc-sha-go-${{ matrix.target }}
-        run: go test ./...
-      - name: Upload Go module bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: sc-sha-go-${{ matrix.target }}
-          path: ${{ runner.temp }}/sc-sha-go-${{ matrix.target }}
-
   publish:
-    if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
-    needs: gate-and-tag
+    if: ${{ needs.gate-and-tag.outputs.release_target == 'production' && needs.release-plan.outputs.has_crates == 'true' }}
+    needs: [gate-and-tag, release-plan]
     runs-on: ubuntu-latest
     environment: crates-io
     steps:
@@ -298,7 +234,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.94.1
+          toolchain: ${{ needs.release-plan.outputs.rust_toolchain }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -312,11 +248,27 @@ jobs:
         run: |
           set -euo pipefail
           version='${{ needs.gate-and-tag.outputs.release_version }}'
+          contracts="$(dirname "${RELEASE_ARTIFACT_MANIFEST}")/publish-channel-contracts.toml"
 
+          # Exact, contract-derived already-published lookup (200/404 state
+          # machine); fuzzy registry text search is index-lagged and ranked.
           crate_exists() {
             local crate="$1"
             local version="$2"
-            cargo search "$crate" --limit 1 | grep -F "${crate} = \"${version}\"" >/dev/null
+            local url status
+            url="$(python3 .github/scripts/release_artifacts.py public-registry-inquiry-plan \
+              --contracts "${contracts}" --channel crates_io --name "${crate}" --version "${version}" \
+              | jq -r '.checks[0].version_lookup_url')"
+            status="$(curl --location --max-time 20 --silent --show-error --output /dev/null \
+              --write-out '%{http_code}' --user-agent 'sc-publish-kit' "${url}" || true)"
+            case "${status}" in
+              200) return 0 ;;
+              404) return 1 ;;
+              *)
+                echo "crates.io state for ${crate}@${version} is indeterminate (status ${status})" >&2
+                exit 1
+                ;;
+            esac
           }
 
           publish_if_missing() {
@@ -343,7 +295,12 @@ jobs:
       release_target_matrix: ${{ steps.manifest.outputs.release_target_matrix }}
       python_wheel_matrix: ${{ steps.manifest.outputs.python_wheel_matrix }}
       python_sdist_matrix: ${{ steps.manifest.outputs.python_sdist_matrix }}
-      go_native_matrix: ${{ steps.manifest.outputs.go_native_matrix }}
+      has_crates: ${{ steps.manifest.outputs.has_crates }}
+      has_python_wheels: ${{ steps.manifest.outputs.has_python_wheels }}
+      has_python_sdists: ${{ steps.manifest.outputs.has_python_sdists }}
+      python_upload_tool: ${{ steps.manifest.outputs.python_upload_tool }}
+      rust_toolchain: ${{ steps.manifest.outputs.rust_toolchain }}
+      workspace_toml: ${{ steps.manifest.outputs.workspace_toml }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -353,12 +310,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "release_target_matrix=$(python3 .github/scripts/release_artifacts.py release-target-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
-          echo "python_wheel_matrix=$(python3 .github/scripts/release_artifacts.py python-wheel-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
-          echo "python_sdist_matrix=$(python3 .github/scripts/release_artifacts.py python-sdist-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
-          echo "go_native_matrix=$(python3 .github/scripts/release_artifacts.py go-native-target-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
+          echo "release_target_matrix=$(python3 .github/scripts/release_artifacts.py release-target-matrix --manifest "${RELEASE_ARTIFACT_MANIFEST}")" >> "$GITHUB_OUTPUT"
+          echo "python_wheel_matrix=$(python3 .github/scripts/release_artifacts.py python-wheel-matrix --manifest "${RELEASE_ARTIFACT_MANIFEST}")" >> "$GITHUB_OUTPUT"
+          echo "python_sdist_matrix=$(python3 .github/scripts/release_artifacts.py python-sdist-matrix --manifest "${RELEASE_ARTIFACT_MANIFEST}")" >> "$GITHUB_OUTPUT"
+          plan="$(python3 .github/scripts/release_artifacts.py build-plan --manifest "${RELEASE_ARTIFACT_MANIFEST}")"
+          {
+            echo "has_crates=$(jq -r '.has_crates' <<<"${plan}")"
+            echo "has_python_wheels=$(jq -r '.has_python_wheels' <<<"${plan}")"
+            echo "has_python_sdists=$(jq -r '.has_python_sdists' <<<"${plan}")"
+            echo "python_upload_tool=$(jq -r '.python_upload_tool' <<<"${plan}")"
+            echo "rust_toolchain=$(jq -r '.rust_toolchain' <<<"${plan}")"
+            echo "workspace_toml=$(jq -r '.workspace_toml' <<<"${plan}")"
+          } >> "$GITHUB_OUTPUT"
 
   build-python-wheels:
+    if: ${{ needs.release-plan.outputs.has_python_wheels == 'true' }}
     needs: [gate-and-tag, release-plan]
     strategy:
       fail-fast: false
@@ -373,14 +339,24 @@ jobs:
           release_ref: ${{ needs.gate-and-tag.outputs.release_ref }}
           release_version: ${{ needs.gate-and-tag.outputs.release_version }}
           pyproject: ${{ matrix.pyproject }}
-      - name: Build wheels
+          build_system: ${{ matrix.build_system }}
+          rust_toolchain: ${{ needs.release-plan.outputs.rust_toolchain }}
+          workspace_toml: ${{ needs.release-plan.outputs.workspace_toml }}
+      - name: Build wheels (maturin)
+        if: ${{ matrix.build_system == 'maturin' }}
         run: maturin build --release --manifest-path ${{ matrix.cargo_manifest }} --out dist
+      - name: Build wheels (setuptools)
+        if: ${{ matrix.build_system == 'setuptools' }}
+        run: |
+          python -m pip install build==1.3.0
+          python -m build --wheel --outdir dist '${{ matrix.source }}'
       - uses: actions/upload-artifact@v4
         with:
           name: python-wheel-${{ matrix.artifact }}-${{ matrix.os }}
           path: dist/*.whl
 
   build-python-sdists:
+    if: ${{ needs.release-plan.outputs.has_python_sdists == 'true' }}
     needs: [gate-and-tag, release-plan]
     strategy:
       fail-fast: false
@@ -395,8 +371,17 @@ jobs:
           release_ref: ${{ needs.gate-and-tag.outputs.release_ref }}
           release_version: ${{ needs.gate-and-tag.outputs.release_version }}
           pyproject: ${{ matrix.pyproject }}
-      - name: Build sdist
+          build_system: ${{ matrix.build_system }}
+          rust_toolchain: ${{ needs.release-plan.outputs.rust_toolchain }}
+          workspace_toml: ${{ needs.release-plan.outputs.workspace_toml }}
+      - name: Build sdist (maturin)
+        if: ${{ matrix.build_system == 'maturin' }}
         run: maturin sdist --manifest-path ${{ matrix.cargo_manifest }} --out dist
+      - name: Build sdist (setuptools)
+        if: ${{ matrix.build_system == 'setuptools' }}
+        run: |
+          python -m pip install build==1.3.0
+          python -m build --sdist --outdir dist '${{ matrix.source }}'
       - uses: actions/upload-artifact@v4
         with:
           name: python-sdist-${{ matrix.artifact }}
@@ -405,9 +390,13 @@ jobs:
   publish-testpypi:
     # TestPyPI remains part of the non-production rehearsal. Production PyPI
     # publication is deliberately handled by pypi-publish.yml after the
-    # immutable GitHub Release exists.
-    if: ${{ needs.gate-and-tag.outputs.release_target == 'testpypi' }}
-    needs: [gate-and-tag, build-python-wheels, build-python-sdists]
+    # immutable GitHub Release exists. Wheel/sdist jobs may be skipped when
+    # the manifest declares no matching Python distributions.
+    if: >-
+      ${{ !failure() && !cancelled() &&
+          needs.gate-and-tag.outputs.release_target == 'testpypi' &&
+          (needs.build-python-wheels.result == 'success' || needs.build-python-sdists.result == 'success') }}
+    needs: [gate-and-tag, release-plan, build-python-wheels, build-python-sdists]
     runs-on: ubuntu-latest
     environment: testpypi
     steps:
@@ -428,35 +417,92 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install maturin
+        if: ${{ needs.release-plan.outputs.python_upload_tool == 'maturin' }}
         run: python -m pip install maturin==1.9.4
+      - name: Install twine
+        if: ${{ needs.release-plan.outputs.python_upload_tool == 'twine' }}
+        run: python -m pip install twine==6.1.0
       - name: Verify manifest-declared Python release assets
         shell: bash
         run: |
           set -euo pipefail
           python3 .github/scripts/release_artifacts.py verify-python-release-assets \
-            --manifest release/publish-artifacts.toml \
+            --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --asset-dir dist
       - name: Publish wheels and sdist to TestPyPI
+        if: ${{ needs.release-plan.outputs.python_upload_tool == 'maturin' }}
         env:
           MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
           MATURIN_NON_INTERACTIVE: "1"
         run: maturin upload --repository testpypi --non-interactive --skip-existing dist/*.whl dist/*.tar.gz
+      - name: Publish wheels and sdist to TestPyPI with twine
+        if: ${{ needs.release-plan.outputs.python_upload_tool == 'twine' }}
+        env:
+          TWINE_NON_INTERACTIVE: "1"
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        run: python -m twine upload --repository testpypi --skip-existing dist/*.whl dist/*.tar.gz
 
   release:
-    if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
-    needs: [gate-and-tag, build, publish, build-python-wheels, build-python-sdists, build-go-native]
+    # Runs whenever every needed job succeeded or was legitimately skipped
+    # (crates or Python legs may be absent for this consumer). The GitHub
+    # Release leg deliberately does not depend on crates.io publication: a
+    # failed crates leg is retried in isolation via crates-publish.yml while
+    # the release and its dependent post-release channels proceed.
+    if: >-
+      ${{ !failure() && !cancelled() &&
+          needs.gate-and-tag.outputs.release_target == 'production' &&
+          needs.build.result == 'success' }}
+    needs: [gate-and-tag, build, build-python-wheels, build-python-sdists]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.gate-and-tag.outputs.release_tag }}
 
+      - id: expected_assets
+        name: Read expected release asset patterns from manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo 'patterns<<EOF'
+            python3 .github/scripts/release_artifacts.py release-asset-patterns --manifest "${RELEASE_ARTIFACT_MANIFEST}"
+            echo '^checksums\.txt$'
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      # Detect-and-skip: rebuilt archives are not reproducible, so re-uploading
+      # over an existing complete release would silently change asset SHA256s
+      # that Homebrew/Scoop may already pin. Replacing assets requires the
+      # explicit replace_release_assets opt-in. The probe fails closed: only a
+      # confirmed-absent (or confirmed-incomplete) release proceeds to
+      # build/upload; an indeterminate probe result fails this job instead of
+      # silently rebuilding over already-digested assets.
+      - id: published_release_probe
+        name: Probe for an already-complete published release (fail closed)
+        uses: ./.github/actions/verify-published-release
+        with:
+          release_tag: ${{ needs.gate-and-tag.outputs.release_tag }}
+          asset_patterns: ${{ steps.expected_assets.outputs.patterns }}
+          probe: 'true'
+
+      - name: Skip upload for the already-complete release
+        if: ${{ steps.published_release_probe.outputs.release_state == 'complete' && inputs.replace_release_assets != true }}
+        run: echo "GitHub Release ${{ needs.gate-and-tag.outputs.release_tag }} already exists with every expected asset; skipping upload. Dispatch with replace_release_assets=true to deliberately replace assets."
+
+      - name: Log explicit asset replacement opt-in
+        if: ${{ steps.published_release_probe.outputs.release_state == 'complete' && inputs.replace_release_assets == true }}
+        run: echo "replace_release_assets=true; deliberately replacing assets on published release ${{ needs.gate-and-tag.outputs.release_tag }} (their SHA256s will change)."
+
       - name: Download all artifacts
+        if: ${{ steps.published_release_probe.outputs.release_state != 'complete' || inputs.replace_release_assets == true }}
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
       - name: Collect archives
+        if: ${{ steps.published_release_probe.outputs.release_state != 'complete' || inputs.replace_release_assets == true }}
         run: |
           mkdir -p release
           find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} release/ \;
@@ -464,6 +510,7 @@ jobs:
           ls -la release/
 
       - name: Generate checksums
+        if: ${{ steps.published_release_probe.outputs.release_state != 'complete' || inputs.replace_release_assets == true }}
         working-directory: release
         run: |
           files=()
@@ -476,6 +523,7 @@ jobs:
           sha256sum "${files[@]}" > checksums.txt
 
       - name: Create GitHub Release
+        if: ${{ steps.published_release_probe.outputs.release_state != 'complete' || inputs.replace_release_assets == true }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.gate-and-tag.outputs.release_tag }}

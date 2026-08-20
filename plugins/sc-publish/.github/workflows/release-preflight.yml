@@ -49,6 +49,19 @@ jobs:
           set -euo pipefail
           echo "plan=$(python3 .github/scripts/release_artifacts.py preflight-secret-plan --manifest "${RELEASE_ARTIFACT_MANIFEST}")" >> "$GITHUB_OUTPUT"
 
+      - id: build_plan
+        name: Read build plan from release manifest
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          plan="$(python3 .github/scripts/release_artifacts.py build-plan --manifest "${RELEASE_ARTIFACT_MANIFEST}")"
+          {
+            echo "has_crates=$(jq -r '.has_crates' <<<"${plan}")"
+            echo "workspace_toml=$(jq -r '.workspace_toml' <<<"${plan}")"
+            echo "rust_toolchain=$(jq -r '.rust_toolchain' <<<"${plan}")"
+          } >> "$GITHUB_OUTPUT"
+
       - id: repository_secrets
         name: Verify required release secrets are available
         if: ${{ always() && steps.secret_plan.outcome == 'success' }}
@@ -108,6 +121,30 @@ jobs:
           fi
           echo "All manifest-required protected-environment secret names are present."
 
+      - id: github_environments
+        name: Verify contract-declared GitHub environments exist
+        if: ${{ always() && steps.secret_plan.outcome == 'success' }}
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SECRET_PLAN: ${{ steps.secret_plan.outputs.plan }}
+        run: |
+          set -euo pipefail
+          failures=()
+          while IFS= read -r environment_name; do
+            [[ -z "${environment_name}" ]] && continue
+            if ! gh api "repos/${REPOSITORY}/environments/${environment_name}" >/dev/null 2>&1; then
+              failures+=("GitHub Actions environment ${environment_name} is declared by the channel contracts but does not exist.")
+            fi
+          done < <(jq -r '.github_environments[]?' <<<"${SECRET_PLAN}")
+          if [[ "${#failures[@]}" -gt 0 ]]; then
+            printf '%s\n' "${failures[@]}" >&2
+            exit 1
+          fi
+          echo "All contract-declared GitHub environments exist."
+
       - id: credential_liveness
         name: Verify repository credential liveness
         if: ${{ always() && steps.secret_plan.outcome == 'success' }}
@@ -158,12 +195,14 @@ jobs:
           python-version: "3.x"
 
       - name: Set up lint toolchain
+        if: ${{ always() && steps.build_plan.outputs.has_crates == 'true' }}
         uses: ./.github/actions/setup-lint-toolchain
 
       - name: Install Rust toolchain
+        if: ${{ always() && steps.build_plan.outputs.has_crates == 'true' }}
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.94.1
+          toolchain: ${{ steps.build_plan.outputs.rust_toolchain }}
           components: rustfmt, clippy
 
       - name: Normalize version input
@@ -184,16 +223,19 @@ jobs:
 
       - id: formatting
         name: Check formatting
+        if: ${{ always() && steps.build_plan.outputs.has_crates == 'true' }}
         continue-on-error: true
         run: cargo fmt --all --check
 
       - id: clippy
         name: Run clippy
+        if: ${{ always() && steps.build_plan.outputs.has_crates == 'true' }}
         continue-on-error: true
         run: cargo clippy --all-targets --all-features -- -D warnings
 
       - id: workspace_tests
         name: Run workspace tests
+        if: ${{ always() && steps.build_plan.outputs.has_crates == 'true' }}
         continue-on-error: true
         run: cargo test --workspace
 
@@ -203,7 +245,7 @@ jobs:
         run: |
           python3 .github/scripts/release_artifacts.py validate-manifest \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
-            --workspace-toml Cargo.toml
+            --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}'
 
       - id: publish_order
         name: Validate publish_order dependency graph
@@ -211,7 +253,7 @@ jobs:
         run: |
           python3 .github/scripts/release_artifacts.py validate-publish-order \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
-            --workspace-toml Cargo.toml
+            --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}'
 
       - id: helpers
         name: Verify release helper files exist
@@ -226,7 +268,7 @@ jobs:
         run: |
           python3 .github/scripts/release_artifacts.py verify-version \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
-            --workspace-toml Cargo.toml \
+            --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}' \
             --version '${{ steps.meta.outputs.release_version }}'
 
       - id: version_lockstep
@@ -235,7 +277,7 @@ jobs:
         run: |
           python3 .github/scripts/release_artifacts.py verify-version-lockstep \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
-            --workspace-toml Cargo.toml
+            --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}'
 
       - id: unpublished
         name: Verify release version is unpublished on crates.io
@@ -299,6 +341,7 @@ jobs:
 
       - id: package_checks
         name: Run dependency-aware package checks
+        if: ${{ always() && steps.build_plan.outputs.has_crates == 'true' }}
         continue-on-error: true
         shell: bash
         run: |
@@ -339,20 +382,14 @@ jobs:
           GITHUB_RELEASE_PERMISSIONS: ${{ steps.github_release_permissions.outcome }}
         run: |
           set -euo pipefail
-          repository_secret_channels="${REPOSITORY_SECRET_CHANNELS:-}"
-          credential_liveness_channels="${CREDENTIAL_LIVENESS_CHANNELS:-}"
-          [[ -n "$repository_secret_channels" ]] || repository_secret_channels='{}'
-          [[ -n "$credential_liveness_channels" ]] || credential_liveness_channels='{}'
-          jq -e . >/dev/null <<<"$repository_secret_channels"
-          jq -e . >/dev/null <<<"$credential_liveness_channels"
           outcomes="$(jq -nc \
             --arg ownership "${OWNERSHIP}" \
             --arg release_metadata "${RELEASE_METADATA}" \
             --arg repository_secrets "${REPOSITORY_SECRETS}" \
-            --argjson repository_secret_channels "$repository_secret_channels" \
+            --argjson repository_secret_channels "${REPOSITORY_SECRET_CHANNELS:-{}}" \
             --arg environment_secrets "${ENVIRONMENT_SECRETS}" \
             --arg credential_liveness "${CREDENTIAL_LIVENESS}" \
-            --argjson credential_liveness_channels "$credential_liveness_channels" \
+            --argjson credential_liveness_channels "${CREDENTIAL_LIVENESS_CHANNELS:-{}}" \
             --arg registry_state "${REGISTRY_STATE}" \
             --arg github_release_permissions "${GITHUB_RELEASE_PERMISSIONS}" \
             '{ownership: $ownership, release_metadata: $release_metadata, repository_secrets: $repository_secrets, repository_secret_channels: $repository_secret_channels, environment_secrets: $environment_secrets, credential_liveness: $credential_liveness, credential_liveness_channels: $credential_liveness_channels, registry_state: $registry_state, github_release_permissions: $github_release_permissions}')"
@@ -373,8 +410,11 @@ jobs:
         env:
           OWNERSHIP: ${{ steps.ownership.outcome }}
           SECRET_PLAN: ${{ steps.secret_plan.outcome }}
+          BUILD_PLAN: ${{ steps.build_plan.outcome }}
+          HAS_CRATES: ${{ steps.build_plan.outputs.has_crates }}
           REPOSITORY_SECRETS: ${{ steps.repository_secrets.outcome }}
           ENVIRONMENT_SECRETS: ${{ steps.environment_secrets.outcome }}
+          GITHUB_ENVIRONMENTS: ${{ steps.github_environments.outcome }}
           CREDENTIAL_LIVENESS: ${{ steps.credential_liveness.outcome }}
           REGISTRY_STATE: ${{ steps.registry_state.outcome }}
           META: ${{ steps.meta.outcome }}
@@ -404,21 +444,26 @@ jobs:
           }
           record ownership "${OWNERSHIP}"
           record secret-plan "${SECRET_PLAN}"
+          record build-plan "${BUILD_PLAN}"
           record repository-secrets "${REPOSITORY_SECRETS}"
           record environment-secrets "${ENVIRONMENT_SECRETS}"
+          record github-environments "${GITHUB_ENVIRONMENTS}"
           record credential-liveness "${CREDENTIAL_LIVENESS}"
           record registry-state "${REGISTRY_STATE}"
           record version-input "${META}"
-          record formatting "${FORMATTING}"
-          record clippy "${CLIPPY}"
-          record workspace-tests "${WORKSPACE_TESTS}"
+          # Cargo checks only apply when the manifest declares [[crates]].
+          if [[ "${HAS_CRATES}" == "true" ]]; then
+            record formatting "${FORMATTING}"
+            record clippy "${CLIPPY}"
+            record workspace-tests "${WORKSPACE_TESTS}"
+            record package-checks "${PACKAGE_CHECKS}"
+          fi
           record manifest "${MANIFEST}"
           record publish-order "${PUBLISH_ORDER}"
           record helpers "${HELPERS}"
           record version "${VERSION}"
           record version-lockstep "${VERSION_LOCKSTEP}"
           record unpublished-version "${UNPUBLISHED}"
-          record package-checks "${PACKAGE_CHECKS}"
           record github-release-permissions "${GITHUB_RELEASE_PERMISSIONS}"
           record channel-results "${CHANNEL_RESULTS}"
           printf 'Preflight complete: failed=[%s] blocked=[%s]\n' \
