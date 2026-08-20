@@ -202,6 +202,9 @@ from sc_composer import (
 
 Suggested behavior:
 
+- `RuntimeKind`
+  - mirrors core runtime layouts, including Hermes, without binding the adapter
+    to any runtime implementation
 - `render_template(template: str, context: dict) -> str`
   - thin wrapper over the existing one-shot renderer
 - `render_loaded_template(template_name: str, template_text: str, context: dict, supporting_templates: list[dict] | None = None) -> RenderedArtifact`

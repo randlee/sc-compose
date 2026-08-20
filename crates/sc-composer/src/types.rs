@@ -244,6 +244,8 @@ impl ConfiningRoot {
 pub enum RuntimeKind {
     /// Claude runtime layout.
     Claude,
+    /// Hermes runtime layout.
+    Hermes,
     /// Codex runtime layout.
     Codex,
     /// Gemini runtime layout.
@@ -634,9 +636,17 @@ mod tests {
     use crate::DiagnosticCode;
 
     use super::{
-        PassConfig, ProfileName, VariableName, default_pass_number, input_value_from_yaml,
-        validate_input_value,
+        PassConfig, ProfileName, RuntimeKind, VariableName, default_pass_number,
+        input_value_from_yaml, validate_input_value,
     };
+
+    #[test]
+    fn runtime_kind_hermes_serializes_in_lowercase() {
+        assert_eq!(
+            serde_json::to_string(&RuntimeKind::Hermes).unwrap(),
+            "\"hermes\""
+        );
+    }
 
     #[test]
     fn variable_name_round_trips_for_valid_identifier() {

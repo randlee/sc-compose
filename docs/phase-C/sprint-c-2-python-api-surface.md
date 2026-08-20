@@ -251,7 +251,7 @@ lowercase/snake_case Rust `serde` wire form):
 
 | Python type | Members |
 | --- | --- |
-| `RuntimeKind` | `CLAUDE`, `CODEX`, `GEMINI`, `OPENCODE` |
+| `RuntimeKind` | `CLAUDE`, `HERMES`, `CODEX`, `GEMINI`, `OPENCODE` |
 | `ProfileKind` | `AGENT`, `COMMAND`, `SKILL` |
 | `UnknownVariablePolicy` | `ERROR`, `WARN`, `IGNORE` (default `IGNORE`) |
 | `VariableSource` | `EXPLICIT_INPUT`, `ENVIRONMENT`, `BUILTIN`, `TEMPLATE_INPUT_DEFAULT`, `FRONTMATTER_DEFAULT`, `INCLUDED_DEFAULT` |

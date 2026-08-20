@@ -14,8 +14,9 @@ use crate::types::{
     ResolverPolicy, RuntimeKind,
 };
 
-const DEFAULT_RUNTIME_ORDER: [RuntimeKind; 4] = [
+const DEFAULT_RUNTIME_ORDER: [RuntimeKind; 5] = [
     RuntimeKind::Claude,
+    RuntimeKind::Hermes,
     RuntimeKind::Codex,
     RuntimeKind::Gemini,
     RuntimeKind::Opencode,
@@ -310,6 +311,9 @@ fn filename_probes(
 fn runtime_chain(runtime: RuntimeKind, kind: ProfileKind) -> &'static [&'static str] {
     match (runtime, kind) {
         (RuntimeKind::Claude, ProfileKind::Agent) => &[".claude/agents", ".agents/agents"],
+        (RuntimeKind::Hermes, ProfileKind::Agent) => {
+            &[".hermes/agents", ".agents/agents", ".claude/agents"]
+        }
         (RuntimeKind::Codex, ProfileKind::Agent) => {
             &[".codex/agents", ".agents/agents", ".claude/agents"]
         }
@@ -320,6 +324,9 @@ fn runtime_chain(runtime: RuntimeKind, kind: ProfileKind) -> &'static [&'static 
             &[".opencode/agents", ".agents/agents", ".claude/agents"]
         }
         (RuntimeKind::Claude, ProfileKind::Command) => &[".claude/commands", ".agents/commands"],
+        (RuntimeKind::Hermes, ProfileKind::Command) => {
+            &[".hermes/commands", ".agents/commands", ".claude/commands"]
+        }
         (RuntimeKind::Codex, ProfileKind::Command) => {
             &[".codex/commands", ".agents/commands", ".claude/commands"]
         }
@@ -330,6 +337,9 @@ fn runtime_chain(runtime: RuntimeKind, kind: ProfileKind) -> &'static [&'static 
             &[".opencode/commands", ".agents/commands", ".claude/commands"]
         }
         (RuntimeKind::Claude, ProfileKind::Skill) => &[".claude/skills", ".agents/skills"],
+        (RuntimeKind::Hermes, ProfileKind::Skill) => {
+            &[".hermes/skills", ".agents/skills", ".claude/skills"]
+        }
         (RuntimeKind::Codex, ProfileKind::Skill) => {
             &[".codex/skills", ".agents/skills", ".claude/skills"]
         }
@@ -349,7 +359,7 @@ mod tests {
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use super::resolve_profile_impl;
+    use super::{resolve_profile_impl, runtime_chain};
     use crate::observer::{CompositionObserver, ResolveAttemptEvent, ResolveOutcomeEvent};
     use crate::types::{
         ComposeMode, ComposePolicy, ComposeRequest, ConfiningRoot, ProfileKind, ProfileName,
@@ -408,6 +418,70 @@ mod tests {
         assert!(command.resolved_path.ends_with("command.md"));
         assert!(skill.resolved_path.ends_with("SKILL.md.j2"));
         assert!(!agent.attempted_paths.is_empty());
+    }
+
+    #[test]
+    fn hermes_runtime_resolves_its_namespace_then_shared_and_claude_fallbacks() {
+        use crate::types::RuntimeKind;
+
+        assert_eq!(
+            runtime_chain(RuntimeKind::Hermes, ProfileKind::Agent),
+            &[".hermes/agents", ".agents/agents", ".claude/agents"]
+        );
+        assert_eq!(
+            runtime_chain(RuntimeKind::Hermes, ProfileKind::Command),
+            &[".hermes/commands", ".agents/commands", ".claude/commands"]
+        );
+        assert_eq!(
+            runtime_chain(RuntimeKind::Hermes, ProfileKind::Skill),
+            &[".hermes/skills", ".agents/skills", ".claude/skills"]
+        );
+
+        let root = temp_root("resolver_hermes_runtime");
+        write_file(&root.join(".hermes/agents/hermes.md"), "hermes agent");
+        write_file(&root.join(".agents/commands/shared.md"), "shared command");
+        write_file(
+            &root.join(".claude/skills/fallback/SKILL.md"),
+            "fallback skill",
+        );
+
+        let policy = crate::types::ResolverPolicy::default();
+        let agent = resolve_profile_impl(
+            &root,
+            ProfileKind::Agent,
+            &ProfileName::new("hermes").unwrap(),
+            Some(RuntimeKind::Hermes),
+            &policy,
+        )
+        .unwrap();
+        let command = resolve_profile_impl(
+            &root,
+            ProfileKind::Command,
+            &ProfileName::new("shared").unwrap(),
+            Some(RuntimeKind::Hermes),
+            &policy,
+        )
+        .unwrap();
+        let skill = resolve_profile_impl(
+            &root,
+            ProfileKind::Skill,
+            &ProfileName::new("fallback").unwrap(),
+            Some(RuntimeKind::Hermes),
+            &policy,
+        )
+        .unwrap();
+
+        assert!(agent.resolved_path.ends_with(".hermes/agents/hermes.md"));
+        assert!(
+            command
+                .resolved_path
+                .ends_with(".agents/commands/shared.md")
+        );
+        assert!(
+            skill
+                .resolved_path
+                .ends_with(".claude/skills/fallback/SKILL.md")
+        );
     }
 
     #[test]

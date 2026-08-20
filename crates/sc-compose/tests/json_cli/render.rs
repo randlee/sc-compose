@@ -836,6 +836,30 @@ fn resolve_json_uses_diagnostic_envelope() {
 }
 
 #[test]
+fn resolve_accepts_hermes_runtime() {
+    let root = temp_root("resolve-hermes");
+    write_file(&root.join(".hermes/agents/example.md"), "hermes agent");
+
+    let output = sc_compose()
+        .arg("resolve")
+        .arg("--mode")
+        .arg("profile")
+        .arg("--root")
+        .arg(&root)
+        .arg("--kind")
+        .arg("agent")
+        .arg("--agent")
+        .arg("example")
+        .arg("--runtime")
+        .arg("hermes")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "stderr: {:?}", output.stderr);
+    assert!(String::from_utf8_lossy(&output.stdout).contains("example.md"));
+}
+
+#[test]
 fn validate_json_uses_diagnostic_envelope() {
     let root = temp_root("validate-json");
     write_file(
