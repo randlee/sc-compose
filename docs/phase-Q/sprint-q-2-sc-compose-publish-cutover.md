@@ -85,8 +85,12 @@ handoff. Local success is not sufficient to close the sprint.
 - `py_compile` and `git diff --check` passed.
 - Production publication was not attempted. Credential-bearing GitHub
   Actions preflight and Test-PyPI rehearsal require the pushed branch and
-  repository secrets; they remain explicit follow-up workflow runs before a
-  real release.
+  repository secrets; rehearsal runs were dispatched after the follow-up
+  fixes: preflight run `32328215606` and Test-PyPI run `32328284778`.
+- Follow-up validation fixed Homebrew template compatibility for both legacy
+  `binary_path`/`binary_paths` inputs and the canonical manifest `binaries`
+  list, and made empty per-channel JSON outcomes fail closed to `{}` before
+  `jq --argjson` processing.
 
 ## Handoff and fix routing
 
