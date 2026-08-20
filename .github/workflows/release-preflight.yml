@@ -12,11 +12,6 @@ on:
         required: true
         default: "publisher"
         type: string
-      channel_state_rehearsal:
-        description: "Optional non-publishing rehearsal fixture: mixed-channel-states"
-        required: false
-        default: "none"
-        type: string
 
 permissions:
   actions: read
@@ -342,7 +337,6 @@ jobs:
           CREDENTIAL_LIVENESS_CHANNELS: ${{ steps.credential_liveness.outputs.channel_outcomes }}
           REGISTRY_STATE: ${{ steps.registry_state.outcome }}
           GITHUB_RELEASE_PERMISSIONS: ${{ steps.github_release_permissions.outcome }}
-          CHANNEL_STATE_REHEARSAL: ${{ github.event.inputs.channel_state_rehearsal }}
         run: |
           set -euo pipefail
           repository_secret_channels="${REPOSITORY_SECRET_CHANNELS:-}"
@@ -362,16 +356,6 @@ jobs:
             --arg registry_state "${REGISTRY_STATE}" \
             --arg github_release_permissions "${GITHUB_RELEASE_PERMISSIONS}" \
             '{ownership: $ownership, release_metadata: $release_metadata, repository_secrets: $repository_secrets, repository_secret_channels: $repository_secret_channels, environment_secrets: $environment_secrets, credential_liveness: $credential_liveness, credential_liveness_channels: $credential_liveness_channels, registry_state: $registry_state, github_release_permissions: $github_release_permissions}')"
-          if [[ "${CHANNEL_STATE_REHEARSAL}" == "mixed-channel-states" ]]; then
-            # Deliberately exercise the result contract without publishing: one
-            # channel fails, one is blocked on missing evidence, and the rest pass.
-            outcomes="$(jq -c \
-              '.repository_secret_channels = {crates_io: "success", homebrew: "success", winget: "success", scoop: "success"}
-               | .environment_secrets = "skipped"
-               | .credential_liveness_channels = {crates_io: "failure", homebrew: "success", winget: "success", scoop: "success"}
-               | .credential_liveness = "failure"
-               | .registry_state = "success"' <<<"${outcomes}")"
-          fi
           results="$(python3 .github/scripts/release_artifacts.py channel-preflight-results \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --outcomes "${outcomes}" \

@@ -1580,7 +1580,7 @@ Acceptance Criteria:
 - workspace and crate manifests are updated to `1.0.0`
 - release workflow archives ship `bin/sc-compose` and
   `share/sc-compose/examples/...`
-- `scripts/release_gate.sh` exists and enforces release ancestry plus
+- `.github/scripts/release_artifacts.py` enforces release ancestry plus
   unpublished-version checks
 - release preflight verifies unpublished crate versions before release
 - release workflow publish steps are idempotent when crates are already live

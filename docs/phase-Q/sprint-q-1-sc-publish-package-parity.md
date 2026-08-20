@@ -1,7 +1,7 @@
 ---
 id: Q.1
 title: sc-publish package parity
-status: planned
+status: complete
 branch: sprint/q-1-sc-publish-package-parity
 worktree: ../sc-compose-worktrees/sprint/q-1-sc-publish-package-parity
 target: sc-publish develop
