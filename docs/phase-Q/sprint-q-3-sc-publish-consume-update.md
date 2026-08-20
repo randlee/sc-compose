@@ -123,6 +123,17 @@ close the sprint.
   the vendored workflow. The underlying empty-channel JSON defect is now
   tracked by sc-publish#43 and must be fixed and re-vendored upstream before
   this sprint can satisfy the fresh-clean-preflight criterion.
+- Fresh post-fix Release Preflight run `32351284694`
+  ([workflow run](https://github.com/randlee/sc-compose/actions/runs/32351284694))
+  ran from `b6ca192`. Formatting, clippy, workspace tests, manifest/order,
+  version-lockstep, registry-name checks, package checks, GitHub Release
+  permissions, and channel-result emission all passed. The final deny step
+  correctly stopped the rehearsal for external release readiness: GitHub
+  Actions lacks permission to inspect protected PyPI/TestPyPI secret metadata
+  (HTTP 403), and `CARGO_REGISTRY_TOKEN` is present but rejected by crates.io
+  (HTTP 403). No production publication occurred. This is recorded as a
+  failed external-credential rehearsal, not as the clean expected stop needed
+  to check the Release Preflight acceptance criterion.
 
 ## Q3 follow-up blocker resolutions
 
