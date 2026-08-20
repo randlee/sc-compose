@@ -1,7 +1,7 @@
 ---
 id: Q.3
 title: consume sc-publish develop update
-status: in_progress
+status: complete
 branch: sprint/q-3-sc-publish-consume-update
 worktree: ../sc-compose-worktrees/sprint/q-3-sc-publish-consume-update
 target: sc-compose develop

@@ -210,4 +210,4 @@ crates.io dependencies from this repo:
 - [docs/publishing.md](docs/publishing.md) — publishing and version ownership
 - [docs/release-checklist.md](docs/release-checklist.md) — previous checklist format
 - [docs/release-tag-protection.md](docs/release-tag-protection.md) — tag protection rules
-- [docs/publishing-agent.md](docs/publishing-agent.md) — operator guide
+- [README.sc-publish.md](README.sc-publish.md) — canonical operator guide

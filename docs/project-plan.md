@@ -876,15 +876,14 @@ Sprint entries:
 
 Status:
 
-- complete: Q.1 (sc-publish package parity, merged) and Q.2 (installed the
-  canonical publishing agents, workflows, scripts, actions, and channel
-  templates from `sc-publish`); production publication remains gated on the
-  credential-bearing rehearsal workflow;
-- in progress: Q.3 consumes a further sc-publish develop update (re-vendors
-  `plugins/sc-publish/` and revalidates sc-compose's own install/test/CI
-  surface); sc-compose remains a consumer of `sc-publish`, not its owner, and
-  Q.3 does not modify sc-publish's internal probe, workflow, or install
-  logic — residual sc-publish defects are filed as sc-publish issues instead;
+- complete: Q.1 (sc-publish package parity), Q.2 (installed the canonical
+  publishing agents, workflows, scripts, actions, and channel templates),
+  Q.3 (consumed a further sc-publish develop update), and Q.4 (consumed the
+  release-candidate provenance update); sc-compose remains a consumer of
+  `sc-publish`, not its owner, and consumer updates do not modify internal
+  sc-publish probe, workflow, or install logic;
+- in progress: Phase Q closeout resolves its final duplicate-logic QA
+  findings before `integrate/phase-q` merges to `develop`;
 - production publication remains blocked until the installed package renders a
   complete manifest with the released sc-compose renderer and passes final
   preflight.
@@ -895,6 +894,7 @@ Sprint entries:
 - [Sprint Q.1 — sc-publish Package Parity](phase-Q/sprint-q-1-sc-publish-package-parity.md)
 - [Sprint Q.2 — sc-compose Install and Publish Cutover](phase-Q/sprint-q-2-sc-compose-publish-cutover.md)
 - [Sprint Q.3 — Consume sc-publish Develop Update](phase-Q/sprint-q-3-sc-publish-consume-update.md)
+- [Sprint Q.4 — Consume sc-publish Release-Candidate Provenance Update](phase-Q/sprint-q-4-sc-publish-rc-provenance-consume.md)
 
 ### Follow-on Chore: CI UniFFI Artifact Consumption
 
