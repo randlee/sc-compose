@@ -62,6 +62,30 @@ agents:
   html-report-generator:
     version: 1.0.0
     path: .claude/agents/html-report-generator.md
+  publisher:
+    version: 1.6.5
+    path: .claude/agents/publisher.md
+  crates-io-publisher:
+    version: 1.0.0
+    path: .claude/agents/crates-io-publisher.md
+  github-release-publisher:
+    version: 1.0.0
+    path: .claude/agents/github-release-publisher.md
+  homebrew-publisher:
+    version: 1.0.0
+    path: .claude/agents/homebrew-publisher.md
+  pypi-publisher:
+    version: 1.0.0
+    path: .claude/agents/pypi-publisher.md
+  scoop-publisher:
+    version: 1.0.0
+    path: .claude/agents/scoop-publisher.md
+  winget-publisher:
+    version: 1.0.0
+    path: .claude/agents/winget-publisher.md
+  publisher-channel-protocol:
+    version: 1.0.0
+    path: .claude/agents/publisher-channel-protocol.md
 skills:
   team-lead:
     version: 0.2.0
@@ -128,6 +152,18 @@ skills:
     depends_on:
       sc-adversarial-fuzz-coordinator: 1.x
       sc-adversarial-fuzz-probe: 1.x
+  publishing:
+    version: 1.0.0
+    path: .claude/skills/publishing/SKILL.md
+    depends_on:
+      publisher: 1.x
+      crates-io-publisher: 1.x
+      github-release-publisher: 1.x
+      homebrew-publisher: 1.x
+      pypi-publisher: 1.x
+      scoop-publisher: 1.x
+      winget-publisher: 1.x
+      publisher-channel-protocol: 1.x
 qa_routes:
   adversarial-fuzzing:
     version: 1.0.0

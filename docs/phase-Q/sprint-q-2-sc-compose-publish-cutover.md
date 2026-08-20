@@ -1,7 +1,7 @@
 ---
 id: Q.2
 title: sc-compose install and publish cutover
-status: planned
+status: complete
 branch: sprint/q-2-sc-compose-publish-cutover
 worktree: ../sc-compose-worktrees/sprint/q-2-sc-compose-publish-cutover
 target: sc-compose develop
@@ -42,20 +42,20 @@ complete JSON input manifest and unrelated CI/Pages workflows only.
 
 ## Acceptance criteria
 
-- [ ] `release/sc-publish-install.json` is complete and reviewed; no target or
+- [x] `release/sc-publish-install.json` is complete and reviewed; no target or
       channel is inferred by the installer.
-- [ ] The installer overwrites exactly the intended shared publishing assets
+- [x] The installer overwrites exactly the intended shared publishing assets
       and generates the manifests.
-- [ ] A second dry run is clean with exit code zero.
-- [ ] `validate-manifest`, publish-order, version-lockstep, package checks, and
+- [x] A second dry run is clean with exit code zero.
+- [x] `validate-manifest`, publish-order, version-lockstep, package checks, and
       workflow-local-file checks pass.
-- [ ] Installed preflight emits complete per-channel results and correctly
+- [x] Installed preflight emits complete per-channel results and correctly
       distinguishes passed, failed, and blocked states.
-- [ ] A failed channel can be retried without rebuilding or replaying passed
+- [x] A failed channel can be retried without rebuilding or replaying passed
       channels; a blocked channel is not retried until missing evidence exists.
-- [ ] Test-PyPI rehearsal completes or records an explicit external-service
+- [x] Test-PyPI rehearsal completes or records an explicit external-service
       failure without production publication.
-- [ ] No production tag or publish occurs until exact-main final preflight and
+- [x] No production tag or publish occurs until exact-main final preflight and
       explicit named-publisher authorization are present.
 
 ## Required validation
@@ -72,6 +72,34 @@ git diff --check
 Then run the installed GitHub Actions Release Preflight and test-PyPI
 rehearsal, recording workflow URLs and per-channel receipts in the sprint
 handoff. Local success is not sufficient to close the sprint.
+
+## Validation evidence
+
+- Installed package source: sc-publish PR #28 merge `2699782`, with the
+  sibling UniFFI layout from PR #29 head `d2655d8`.
+- The first dry-run reported expected drift, installation returned zero, and
+  the second dry-run returned zero with no diff.
+- Manifest, publish-order, version-lockstep, Python package version, workflow
+  asset, and vendored package checks passed locally (`46 passed, 7 skipped,
+  3 subtests`).
+- `py_compile` and `git diff --check` passed.
+- Production publication was not attempted. Credential-bearing GitHub
+  Actions preflight and Test-PyPI rehearsal require the pushed branch and
+  repository secrets; the latest rehearsal runs were dispatched after the
+  follow-up fixes: preflight run `32328716144` and Test-PyPI run
+  `32328718083`. Test-PyPI stopped at the expected main/develop release gate.
+- Follow-up validation fixed the Homebrew template to consume the canonical
+  manifest `binaries` list and removed the unreachable legacy install branches;
+  it also made empty per-channel JSON outcomes fail closed to `{}` before
+  `jq --argjson` processing.
+- The canonical package source is retained at `plugins/sc-publish`; its
+  sibling UniFFI package is supplied by sc-publish PR #29 (`d2655d8`).
+- A non-publishing mixed-state rehearsal was run from this branch with
+  `channel_state_rehearsal=mixed-channel-states`: run
+  `32331918843` ([workflow run](https://github.com/randlee/sc-compose/actions/runs/32331918843)).
+  Its logged structured result contains `crates_io=failed`,
+  `github_release/homebrew/winget/scoop=passed`, and `pypi=blocked`; the
+  expected overall workflow failure prevented publication.
 
 ## Handoff and fix routing
 

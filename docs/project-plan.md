@@ -876,11 +876,15 @@ Sprint entries:
 
 Status:
 
-- planned: migrate publishing agents, workflows, scripts, actions, and channel
-  templates to the canonical `sc-publish` package after mandatory Homebrew and
-  Scoop package parity is accepted;
-- Q.1 is the package-parity gate; Q.2 is the sc-compose install and publish
-  cutover and cannot start until Q.1 is merged;
+- complete: Q.1 (sc-publish package parity, merged) and Q.2 (installed the
+  canonical publishing agents, workflows, scripts, actions, and channel
+  templates from `sc-publish`); production publication remains gated on the
+  credential-bearing rehearsal workflow;
+- in progress: Q.3 consumes a further sc-publish develop update (re-vendors
+  `plugins/sc-publish/` and revalidates sc-compose's own install/test/CI
+  surface); sc-compose remains a consumer of `sc-publish`, not its owner, and
+  Q.3 does not modify sc-publish's internal probe, workflow, or install
+  logic — residual sc-publish defects are filed as sc-publish issues instead;
 - production publication remains blocked until the installed package renders a
   complete manifest with the released sc-compose renderer and passes final
   preflight.
@@ -890,6 +894,7 @@ Sprint entries:
 - [Phase Q plan](phase-Q/phase-Q-plan.md)
 - [Sprint Q.1 — sc-publish Package Parity](phase-Q/sprint-q-1-sc-publish-package-parity.md)
 - [Sprint Q.2 — sc-compose Install and Publish Cutover](phase-Q/sprint-q-2-sc-compose-publish-cutover.md)
+- [Sprint Q.3 — Consume sc-publish Develop Update](phase-Q/sprint-q-3-sc-publish-consume-update.md)
 
 ### Follow-on Chore: CI UniFFI Artifact Consumption
 
@@ -1580,7 +1585,7 @@ Acceptance Criteria:
 - workspace and crate manifests are updated to `1.0.0`
 - release workflow archives ship `bin/sc-compose` and
   `share/sc-compose/examples/...`
-- `scripts/release_gate.sh` exists and enforces release ancestry plus
+- `.github/scripts/release_artifacts.py` enforces release ancestry plus
   unpublished-version checks
 - release preflight verifies unpublished crate versions before release
 - release workflow publish steps are idempotent when crates are already live

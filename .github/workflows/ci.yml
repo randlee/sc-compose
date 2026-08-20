@@ -68,22 +68,32 @@ jobs:
           python-version: "3.x"
 
       - name: Install pytest
-        run: python3 -m pip install pytest
+        run: python3 -m pip install maturin==1.9.4 pytest
+
+      - name: Install Rust toolchain for renderer bindings
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+
+      - name: Build and install sc-compose renderer bindings
+        run: |
+          maturin build --manifest-path bindings/python/Cargo.toml --out "$RUNNER_TEMP/sc-compose-wheel"
+          python3 -m pip install "$RUNNER_TEMP"/sc-compose-wheel/*.whl
 
       - name: Validate manifest completeness
         run: |
-          python3 scripts/release_artifacts.py validate-manifest \
+          python3 .github/scripts/release_artifacts.py validate-manifest \
             --manifest release/publish-artifacts.toml \
             --workspace-toml Cargo.toml
 
       - name: Verify release version lockstep
         run: |
-          python3 scripts/release_artifacts.py verify-version-lockstep \
+          python3 .github/scripts/release_artifacts.py verify-version-lockstep \
             --manifest release/publish-artifacts.toml \
             --workspace-toml Cargo.toml
 
       - name: Run manifest validation regression tests
-        run: python3 -m pytest scripts/tests/test_release_artifacts.py
+        run: python3 -m pytest .github/scripts/tests/test_release_artifacts.py
 
       - name: Validate publish_order dependency graph
         run: bash scripts/ci/validate_publish_order.sh
@@ -170,14 +180,14 @@ jobs:
 
       - name: Sync Python package version
         run: |
-          python scripts/release_artifacts.py sync-python-version \
+          python .github/scripts/release_artifacts.py sync-python-version \
             --workspace-toml Cargo.toml \
             --pyproject bindings/python/pyproject.toml
         shell: bash
 
       - name: Verify Python package version
         run: |
-          python scripts/release_artifacts.py verify-python-version \
+          python .github/scripts/release_artifacts.py verify-python-version \
             --workspace-toml Cargo.toml \
             --pyproject bindings/python/pyproject.toml \
             --version "$(python -c "from pathlib import Path; import tomllib; print(tomllib.loads(Path('Cargo.toml').read_text(encoding='utf-8'))['workspace']['package']['version'])")"
@@ -221,7 +231,7 @@ jobs:
 
       - name: Verify sc-sha Python package version
         run: |
-          python scripts/release_artifacts.py verify-python-version \
+          python .github/scripts/release_artifacts.py verify-python-version \
             --workspace-toml Cargo.toml \
             --pyproject bindings/sc-sha-python/pyproject.toml \
             --version "$(python -c "from pathlib import Path; import tomllib; print(tomllib.loads(Path('Cargo.toml').read_text(encoding='utf-8'))['workspace']['package']['version'])")"
@@ -252,7 +262,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "target_matrix=$(python3 scripts/release_artifacts.py go-native-target-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
+          echo "target_matrix=$(python3 .github/scripts/release_artifacts.py go-native-target-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
 
   sc-sha-go-generated:
     name: Generate shared sc-sha Go bindings
@@ -323,7 +333,7 @@ jobs:
           version="$(python3 -c "from pathlib import Path; import tomllib; print(tomllib.loads(Path('Cargo.toml').read_text(encoding='utf-8'))['workspace']['package']['version'])")"
           library="target/${{ matrix.target }}/release/libsc_sha_go.a"
           bundle="$RUNNER_TEMP/sc-sha-go-${{ matrix.target }}"
-          python3 scripts/release_artifacts.py stage-go-native-module \
+          python3 .github/scripts/release_artifacts.py stage-go-native-module \
             --manifest release/publish-artifacts.toml \
             --target '${{ matrix.target }}' \
             --native-library "$library" \

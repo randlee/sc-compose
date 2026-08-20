@@ -38,7 +38,8 @@ Before the ATM workspace switches to crates.io dependencies from this repo:
 - Manifest: `release/publish-artifacts.toml`
 - Preflight workflow: `.github/workflows/release-preflight.yml`
 - Release workflow: `.github/workflows/release.yml`
-- Release gate script: `scripts/release_gate.sh`
+- Release gate helper: `.github/scripts/release_artifacts.py` (installed from
+  `plugins/sc-publish`)
 - Release notes template: `release/RELEASE-NOTES-TEMPLATE.md`
 - `winget` setup note: `docs/WINGET_SETUP.md`
 - Operator guide: `docs/publishing-agent.md`
@@ -117,7 +118,7 @@ Manual verification steps:
   - `cargo owner --list sc-composer`
   - `cargo owner --list sc-compose`
 - verify the target version is unpublished before tagging:
-  - `python3 scripts/release_artifacts.py check-version-unpublished --manifest release/publish-artifacts.toml --version <X.Y.Z>`
+  - `python3 .github/scripts/release_artifacts.py check-version-unpublished --manifest release/publish-artifacts.toml --version <X.Y.Z>`
 
 ## Distribution Channels
 

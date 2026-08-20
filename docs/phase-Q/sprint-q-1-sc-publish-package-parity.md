@@ -1,7 +1,7 @@
 ---
 id: Q.1
 title: sc-publish package parity
-status: planned
+status: complete
 branch: sprint/q-1-sc-publish-package-parity
 worktree: ../sc-compose-worktrees/sprint/q-1-sc-publish-package-parity
 target: sc-publish develop
@@ -61,18 +61,6 @@ python3 .integration/manifest_examples.py
 python3 -m py_compile plugins/sc-publish/install.py
 git diff --check
 ```
-
-## Addendum: uniffi-bindgen-go plugin independence (in-scope)
-
-`sc-publish/plugins/uniffi-bindgen-go` is a sibling plugin to
-`sc-publish/plugins/sc-publish`, not a package nested under
-`sc-publish/plugins/sc-publish/packages/`. Nesting it there would cause it to
-be vendored into every `sc-publish` consumer install even though it has no
-publish-channel functionality. This relocation (sc-publish PR #29) is in
-scope for Q.1: it is part of making the package layout installable without
-leaking unrelated plugins into consumers, per this sprint's own framing in
-"Scope" above. Q.2 must install `uniffi-bindgen-go` from its sibling path,
-not the old nested path.
 
 ## Handoff and fix routing
 

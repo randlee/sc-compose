@@ -1,3 +1,5 @@
+schema_version = 1
+
 [project]
 name = "sc-compose"
 archive_prefix = "sc-compose"
@@ -5,22 +7,24 @@ description = "Standalone CLI for template composition"
 homepage = "https://github.com/randlee/sc-compose"
 license = "MIT"
 readme_dependency_crate = "sc-composer"
+renderer_archive_path = "bin/sc-compose"
 
 [[release_targets]]
 target = "x86_64-unknown-linux-gnu"
 os = "ubuntu-latest"
 archive = "tar.gz"
-
 [[release_targets]]
 target = "aarch64-apple-darwin"
 os = "macos-14"
 archive = "tar.gz"
-
+[[release_targets]]
+target = "x86_64-apple-darwin"
+os = "macos-14"
+archive = "tar.gz"
 [[release_targets]]
 target = "x86_64-pc-windows-msvc"
 os = "windows-latest"
 archive = "zip"
-
 [[release_targets]]
 target = "x86_64-pc-windows-gnu"
 os = "windows-latest"
@@ -30,52 +34,27 @@ archive = "zip"
 artifact = "sc-sha"
 package = "sc-sha"
 cargo_toml = "crates/sc-sha/Cargo.toml"
+publish = true
 publish_order = 1
 wait_after_publish_seconds = 30
-
 [[crates]]
 artifact = "sc-composer"
 package = "sc-composer"
 cargo_toml = "crates/sc-composer/Cargo.toml"
+publish = true
 publish_order = 2
 wait_after_publish_seconds = 30
-
 [[crates]]
 artifact = "sc-compose"
 package = "sc-compose"
 cargo_toml = "crates/sc-compose/Cargo.toml"
+publish = true
 publish_order = 3
 wait_after_publish_seconds = 0
 
 [[release_binaries]]
 name = "sc-compose"
-bundled_paths = [{ source = "examples", destination = "share/sc-compose/examples" }]
-
-[go_native]
-module = "github.com/randlee/sc-compose/bindings/sc-sha-go"
-source = "bindings/sc-sha-go"
-package = "go/sc_sha_go"
-cargo_package = "sc-sha-go"
-artifact_prefix = "sc-sha-go"
-tag_prefix = "bindings/sc-sha-go/v"
-
-[[go_native.targets]]
-rust_target = "x86_64-unknown-linux-gnu"
-goos = "linux"
-goarch = "amd64"
-library = "libsc_sha_go.a"
-
-[[go_native.targets]]
-rust_target = "aarch64-apple-darwin"
-goos = "darwin"
-goarch = "arm64"
-library = "libsc_sha_go.a"
-
-[[go_native.targets]]
-rust_target = "x86_64-pc-windows-gnu"
-goos = "windows"
-goarch = "amd64"
-library = "libsc_sha_go.a"
+bundled_paths = [{ source = "examples", destination = "share/sc-compose/examples", homebrew_destination_components = ["pkgshare"] }]
 
 [[python_packages]]
 artifact = "sc-sha-python"
@@ -83,7 +62,6 @@ package = "sc-sha"
 manifest = "bindings/sc-sha-python/pyproject.toml"
 module = "sc_sha"
 publish = "pypi"
-
 [[python_packages]]
 artifact = "sc-compose-python"
 package = "sc-compose"
@@ -98,7 +76,6 @@ cargo_manifest = "bindings/sc-sha-python/Cargo.toml"
 module_path = "bindings/sc-sha-python/python/sc_sha"
 sdist = true
 wheels = ["ubuntu-latest", "macos-latest", "windows-latest"]
-
 [[python_distributions]]
 name = "sc-compose"
 source = "bindings/python"
@@ -108,32 +85,47 @@ sdist = true
 wheels = ["ubuntu-latest", "macos-latest", "windows-latest"]
 
 [channels.pypi]
+workflow = "pypi-publish.yml"
+dispatch_inputs = { target = "production" }
+credential_rehearsal_inputs = { target = "testpypi" }
 test_repository = "testpypi"
 production_repository = "pypi"
 
 [channels.homebrew]
+workflow = "homebrew-publish.yml"
+dispatch_inputs = {  }
 tap_repository = "randlee/homebrew-tap"
-formula_path = "Formula/sc-compose.rb"
-formula_template = "release/homebrew/formula.rb.j2"
-formula_class = "ScCompose"
-binary = "sc-compose"
+renderer_target = "x86_64-unknown-linux-gnu"
+
+[[channels.homebrew.formulas]]
+path = "Formula/sc-compose.rb"
+template = "release/homebrew/formula.rb.j2"
+class = "ScCompose"
+binaries = ["sc-compose"]
+test_binary = "sc-compose"
 test_command = "--help"
 test_output = "Standalone template composition CLI"
-renderer_target = "x86_64-unknown-linux-gnu"
+release_track = "stable"
 
 [[channels.homebrew.assets]]
 key = "macos_arm"
 target = "aarch64-apple-darwin"
-
+[[channels.homebrew.assets]]
+key = "macos_intel"
+target = "x86_64-apple-darwin"
 [[channels.homebrew.assets]]
 key = "linux"
 target = "x86_64-unknown-linux-gnu"
 
 [channels.winget]
+workflow = "winget-publish.yml"
+dispatch_inputs = {  }
 identifier = "randlee.sc-compose"
 installer_target = "x86_64-pc-windows-msvc"
 
 [channels.scoop]
+workflow = "scoop-publish.yml"
+dispatch_inputs = {  }
 bucket_repository = "randlee/scoop-bucket"
 manifest_path = "sc-compose.json"
 manifest_template = "release/scoop/manifest.json.j2"
