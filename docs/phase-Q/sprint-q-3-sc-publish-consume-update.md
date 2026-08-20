@@ -59,7 +59,7 @@ as [sc-publish#43](https://github.com/randlee/sc-publish/issues/43).
 - [x] A second installer dry run is clean with exit code zero.
 - [x] `validate-manifest`, publish-order, version-lockstep, package checks,
       and workflow-local-file checks pass.
-- [ ] Release Preflight rehearsal run records either a clean result or an
+- [x] Release Preflight rehearsal run records either a clean result or an
       explicit, expected fail-closed external-service stop on the updated
       install. A rejected liveness probe is expected external-service evidence,
       not a consumer defect or a reason to investigate, rotate, request, or
@@ -100,7 +100,16 @@ close the sprint.
   script tests passed (`63 passed, 7 skipped, 3 subtests`).
 - The pinned bootstrap environment is
   `/private/tmp/sc-compose-q3-venv-1.4.1/bin/python` with
-  `sc-compose==1.4.1`; the renewed validation result is recorded below.
+  `sc-compose==1.4.1`. Its `sc-sha` native extension was rebuilt with
+  `maturin develop` before test collection. The full suite recorded `125
+  passed, 4 failed`; each remaining failure is the existing `go_native`
+  manifest omission tracked by sc-publish#42, which PR #45 does not claim to
+  address.
+- On the `0fa5b05` snapshot, `validate-manifest`, `validate-publish-order`,
+  and `verify-version-lockstep` passed. The manifest-derived `cargo package`
+  checks passed for `sc-sha`, `sc-composer`, and `sc-compose`; with
+  `SC_LINT_SOURCE_ROOT=/Users/randlee/Documents/github/sc-lint`,
+  `cargo test --workspace` passed.
 - Release Preflight run `32340747396`
   ([workflow run](https://github.com/randlee/sc-compose/actions/runs/32340747396))
   completed with the expected external credential failures plus the
@@ -127,6 +136,16 @@ close the sprint.
   AC4: it proves the non-disclosing, fail-closed guard operated. The consumer
   must report the sanitized result only; it must not investigate the token,
   request a token, or request rotation.
+- Release Preflight run `32388936922`
+  ([workflow run](https://github.com/randlee/sc-compose/actions/runs/32388936922))
+  ran from `76b521b` on this sprint branch. It completed every local readiness
+  check (formatting, clippy, workspace tests, manifest/order, version,
+  package, and GitHub Release permissions) and stopped only at the final
+  fail-closed denial. Its sanitized summary was
+  `failed=[environment-secrets,credential-liveness,registry-state,channel-results]`
+  and `blocked=[]`; no publication was dispatched. This is the explicit
+  external-service stop accepted by AC4, recorded without credential
+  investigation or remediation.
 
 ## Q3 follow-up blocker resolutions
 
