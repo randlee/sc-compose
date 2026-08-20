@@ -354,6 +354,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          bundle="${{ steps.bundle.outputs.path }}"
           archive="$RUNNER_TEMP/sc-sha-go-${{ matrix.target }}.zip"
           downloaded="$RUNNER_TEMP/sc-sha-go-downloaded-${{ matrix.target }}"
           python3 - "$bundle" "$archive" "$downloaded/module" <<'PY'

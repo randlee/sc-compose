@@ -160,8 +160,9 @@ rules and add a dedicated sc-boundary contract before code begins.
 - [x] ADR-0020 and the P.1 ADR-0018/boundary amendments are accepted before
       adapter source is authored ([PR #513](https://github.com/randlee/sc-compose/pull/513)).
 - [x] A generated Go package exposes exactly the two existing `sc-sha`
-      operations and typed manifest/error values.
-- [x] Go, Rust, and Python agree on all committed success and failure vectors.
+      operations and typed manifest/error values ([PR #513](https://github.com/randlee/sc-compose/pull/513)).
+- [x] Go, Rust, and Python agree on all committed success and failure vectors
+      ([PR #513](https://github.com/randlee/sc-compose/pull/513)).
 - [x] CI regenerates the Go source using the pinned toolchain and detects
       committed-artifact drift ([PR #513](https://github.com/randlee/sc-compose/pull/513)).
 - [x] The released module has a documented target-bundle download/linking
@@ -169,7 +170,8 @@ rules and add a dedicated sc-boundary contract before code begins.
 - [x] Neither `sc-sha` nor `sc-composer` acquires a binding/runtime reverse
       dependency, and sc-boundary negative tests prove it ([PR #513](https://github.com/randlee/sc-compose/pull/513)).
 - [x] `sc-dolt` and atm-core receive the released package/version, vectors,
-      and handoff instructions; their adoption remains separately owned work.
+      and handoff instructions; their adoption remains separately owned work
+      ([PR #515](https://github.com/randlee/sc-compose/pull/515)).
 - [x] All sprint and required `fix/` worktrees are QA-approved, merged, and
       revalidated on the merged parent ([PR #514](https://github.com/randlee/sc-compose/pull/514)).
 
