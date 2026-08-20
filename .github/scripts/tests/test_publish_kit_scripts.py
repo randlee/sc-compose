@@ -15,6 +15,13 @@ SCRIPTS = PACKAGE_ROOT / ".github" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 import release_manifest  # noqa: E402
 
+BOOTSTRAP_SPEC = importlib.util.spec_from_file_location(
+    "bootstrap_sc_compose", SCRIPTS / "bootstrap_sc_compose.py"
+)
+assert BOOTSTRAP_SPEC is not None and BOOTSTRAP_SPEC.loader is not None
+BOOTSTRAP = importlib.util.module_from_spec(BOOTSTRAP_SPEC)
+BOOTSTRAP_SPEC.loader.exec_module(BOOTSTRAP)
+
 
 class ReleaseManifestTests(unittest.TestCase):
     def test_channel_contracts_describe_all_six_workers(self) -> None:
@@ -244,13 +251,30 @@ class ReleaseScriptTests(unittest.TestCase):
         self.assertIn("public-registry-inquiry-plan", result.stdout)
         self.assertIn("preflight-secret-plan", result.stdout)
 
-    def test_bootstrap_pins_the_python_wheel_version(self) -> None:
+    def test_bootstrap_enforces_the_documented_renderer_version_floor(self) -> None:
         script = SCRIPTS / "bootstrap_sc_compose.py"
         text = script.read_text(encoding="utf-8")
+        probe = text[text.index("def installed_version"):text.index("def version_components")]
         self.assertIn('SC_COMPOSE_VERSION = "1.4.1"', text)
+        self.assertIn("historical compatibility floor", text)
         self.assertIn('"venv"', text)
         self.assertIn('f"sc-compose=={SC_COMPOSE_VERSION}"', text)
+        self.assertIn("from importlib.metadata import version", probe)
+        self.assertNotIn("import sc_compose", probe)
+        self.assertNotIn("existing != SC_COMPOSE_VERSION", text)
+        self.assertIn("require_version_floor(existing)", text)
         self.assertIn("managed environment has incompatible sc-compose wheel", text)
+
+    def test_bootstrap_rejects_a_too_old_wheel(self) -> None:
+        with self.assertRaisesRegex(
+            SystemExit,
+            r"stale version '1\.4\.0'; required >= 1\.4\.1",
+        ):
+            BOOTSTRAP.require_version_floor("1.4.0")
+
+    def test_bootstrap_accepts_the_floor_and_newer_wheels(self) -> None:
+        BOOTSTRAP.require_version_floor("1.4.1")
+        BOOTSTRAP.require_version_floor("1.5.0")
 
 
 if __name__ == "__main__":
