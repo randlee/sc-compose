@@ -72,7 +72,7 @@ This repo publishes to six channels:
 
 ### PyPI
 
-- [ ] `PYPI_TOKEN` and `TEST_PYPI_TOKEN` configured in GitHub Actions
+- [ ] `PYPI_API_TOKEN` and `TEST_PYPI_API_TOKEN` configured in GitHub Actions
   environments
 - [ ] Run one staged TestPyPI or `workflow_dispatch` rehearsal before treating
   the Python release channel as production-closed:

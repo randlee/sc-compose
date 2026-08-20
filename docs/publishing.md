@@ -3,13 +3,8 @@
 ## Purpose
 
 This repo is the publishing source of truth for the `sc-sha`, `sc-composer`,
-and `sc-compose` release family:
-- `sc-sha`
-- `sc-composer`
-- `sc-compose`
-
-That family also includes the `sc-sha` and `sc-compose` Python distributions
-and the `sc-sha-go` module.
+and `sc-compose` release family, including the `sc-sha` and `sc-compose`
+Python distributions and the `sc-sha-go` module.
 
 ## Versioning
 
