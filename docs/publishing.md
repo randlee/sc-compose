@@ -7,15 +7,10 @@ This repo is the publishing source of truth for:
 - `sc-composer`
 - `sc-compose`
 
-These crates previously existed inside the `agent-team-mail` workspace. New
-releases of these crate names now come from this repo instead.
-
 ## Versioning
 
 - The repo uses a single workspace version.
 - All published crates in this repo must share that version.
-- The initial standalone release must be strictly higher than the last version
-  published from the ATM workspace for these crate names.
 - Release workflows verify that the requested release version matches:
   - workspace version
   - each crate package version
@@ -24,14 +19,6 @@ releases of these crate names now come from this repo instead.
   `bindings/python/pyproject.toml` from the workspace version immediately
   before wheel or sdist builds and then fail release if
   `verify-python-version` detects drift.
-
-## Replacement/Cutover Rule
-
-Before the ATM workspace switches to crates.io dependencies from this repo:
-1. This repo must publish the target version of `sc-sha`.
-2. This repo must publish the target version of `sc-composer`.
-3. This repo must publish the target version of `sc-compose`.
-4. ATM must then replace its in-workspace path dependencies with version pins.
 
 ## Source of Truth
 
@@ -93,23 +80,31 @@ the examples root when they want `examples list` and `examples <name>`.
 
 ## Release Secrets And Ownership Checks
 
-Required secrets:
+### Configured credential fact
 
-- `CARGO_REGISTRY_TOKEN`
-  - must be configured in the GitHub Actions `crates-io` environment
-  - must be able to publish `sc-sha`, `sc-composer`, and `sc-compose`
-- `HOMEBREW_TAP_TOKEN`
-  - must be configured in the repo secrets before Homebrew automation can
-    update `randlee/homebrew-tap`
-- `PYPI_TOKEN` and `TEST_PYPI_TOKEN`
-  - required for production and rehearsal Python uploads, respectively
-  - must be configured in the protected GitHub Actions `pypi` environment
-    before PyPI publication is enabled
-- `WINGET_GITHUB_TOKEN`
-  - must be configured in repo secrets before automated winget submission
-- `SCOOP_BUCKET_TOKEN`
-  - must be configured in repo secrets before Scoop bucket manifests can be
-    updated
+The following credentials already exist and are configured in this
+repository's GitHub Actions secret locations. They are not local inputs and
+agents and reviewers must not ask whether they exist, request their values, or
+try to prove their presence from a local checkout.
+
+- `CARGO_REGISTRY_TOKEN` — repository secret used for crates.io publication;
+  the publish job runs in the `crates-io` environment.
+- `HOMEBREW_TAP_TOKEN` — repository secret for `randlee/homebrew-tap` updates.
+- `PYPI_API_TOKEN` — protected `pypi` environment secret for production Python
+  uploads.
+- `TEST_PYPI_API_TOKEN` — protected `testpypi` environment secret for Python
+  rehearsal uploads.
+- `WINGET_GITHUB_TOKEN` — repository secret for automated winget submission.
+- `SCOOP_BUCKET_TOKEN` — repository secret for Scoop bucket-manifest updates.
+
+`.github/workflows/release-preflight.yml` is the authoritative release-time
+verification mechanism. It checks the manifest-declared repository-secret
+bindings, protected-environment secret metadata, required environments, and
+applicable credential liveness without exposing credential values. A local or
+code-review environment cannot inspect GitHub Actions secrets; that boundary
+is not evidence that a configured credential is absent. For a real release,
+record the workflow's sanitized result instead of creating a manual
+secret-existence blocker.
 
 Manual verification steps:
 
@@ -138,8 +133,6 @@ Python release-train rule:
 
 Release-operator verification for PyPI:
 
-- verify the protected `pypi` environment contains `PYPI_TOKEN` and
-  `TEST_PYPI_TOKEN`
 - run one staged TestPyPI or `workflow_dispatch` rehearsal before treating the
   Python release channel as production-closed
 - confirm exactly one sdist is produced, all three wheel builds complete, the
