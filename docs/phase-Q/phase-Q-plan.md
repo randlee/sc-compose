@@ -1,7 +1,7 @@
 ---
 phase: Q
 title: Adopt the canonical sc-publish workflow
-status: planned
+status: in_qa
 branch: integrate/phase-q
 target: develop
 related_package: ../sc-publish/plugins/sc-publish

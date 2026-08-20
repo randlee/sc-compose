@@ -147,7 +147,8 @@ the tag or rerun the root release workflow.
 - Manifest: `release/publish-artifacts.toml`
 - Preflight: `.github/workflows/release-preflight.yml`
 - Release: `.github/workflows/release.yml`
-- Gate script: `scripts/release_gate.sh`
+- Gate helper: `.github/scripts/release_artifacts.py` (invoked by the
+  vendored `plugins/sc-publish` release workflows)
 
 ### PyPI
 
