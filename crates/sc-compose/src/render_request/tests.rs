@@ -296,6 +296,17 @@ fn build_request_maps_runtime_mode_and_policy() {
 }
 
 #[test]
+fn build_request_maps_hermes_runtime() {
+    let root = temp_root("build-request-hermes");
+    let mut args = common_args(&root);
+    args.runtime = Some(Ai::Hermes);
+
+    let request = build_request(&args, (None, None), BTreeMap::new()).unwrap();
+
+    assert_eq!(request.runtime, Some(RuntimeKind::Hermes));
+}
+
+#[test]
 fn build_multi_pass_request_normalizes_pass_zero_and_builds_union() {
     let root = temp_root("build-multi-pass-request");
     let vars_path = root.join("pass.yaml");

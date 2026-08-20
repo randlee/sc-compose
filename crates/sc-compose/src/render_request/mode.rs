@@ -75,6 +75,7 @@ pub(super) const fn profile_kind(kind: Kind) -> ProfileKind {
 pub(super) fn runtime_kind(runtime: Ai) -> RuntimeKind {
     match runtime {
         Ai::Claude => RuntimeKind::Claude,
+        Ai::Hermes => RuntimeKind::Hermes,
         Ai::Codex => RuntimeKind::Codex,
         Ai::Gemini => RuntimeKind::Gemini,
         Ai::Opencode => RuntimeKind::Opencode,

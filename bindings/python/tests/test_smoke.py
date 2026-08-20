@@ -101,6 +101,8 @@ def test_import_surface_exposes_c2_api() -> None:
 
     for name in required:
         assert getattr(sc_compose, name) is not None
+    for runtime in ["CLAUDE", "HERMES", "CODEX", "GEMINI", "OPENCODE"]:
+        assert getattr(sc_compose.RuntimeKind, runtime) == runtime.lower()
     for code in [
         "ERR_EXTRACT_FORMAT_UNSUPPORTED",
         "ERR_EXTRACT_TEMPLATE_UNSUPPORTED",
@@ -135,6 +137,20 @@ def test_import_surface_exposes_c2_api() -> None:
         "WARN_EXTRACT_DIRTY_PREFIX_STRIPPED",
     ]:
         assert getattr(sc_compose.DiagnosticCode, code) == code
+
+
+def test_resolve_profile_supports_hermes_layout(tmp_path: Path) -> None:
+    write(tmp_path / ".hermes" / "agents" / "skillrx.md", "Hermes profile\n")
+
+    request = sc_compose.ComposeRequest(
+        root=tmp_path,
+        mode=sc_compose.ComposeMode.profile(sc_compose.ProfileKind.AGENT, "skillrx"),
+        runtime=sc_compose.RuntimeKind.HERMES,
+    )
+
+    result = sc_compose.resolve_profile(request)
+
+    assert result.resolved_path.endswith(".hermes/agents/skillrx.md")
 
 
 def test_extraction_report_preserves_values_provenance_and_filters() -> None:

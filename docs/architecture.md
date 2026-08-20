@@ -271,6 +271,9 @@ The policy model must express:
 - `.claude/agents/`
 - `.claude/commands/`
 - `.claude/skills/`
+- `.hermes/agents/`
+- `.hermes/commands/`
+- `.hermes/skills/`
 - `.codex/agents/`
 - `.codex/commands/`
 - `.codex/skills/`

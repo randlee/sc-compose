@@ -14,6 +14,8 @@ impl PyRuntimeKind {
     #[classattr]
     const CLAUDE: &'static str = "claude";
     #[classattr]
+    const HERMES: &'static str = "hermes";
+    #[classattr]
     const CODEX: &'static str = "codex";
     #[classattr]
     const GEMINI: &'static str = "gemini";
@@ -260,6 +262,7 @@ pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
 pub(crate) fn parse_runtime_kind(value: &Bound<'_, PyAny>) -> PyResult<RuntimeKind> {
     match value.extract::<String>()?.as_str() {
         "claude" => Ok(RuntimeKind::Claude),
+        "hermes" => Ok(RuntimeKind::Hermes),
         "codex" => Ok(RuntimeKind::Codex),
         "gemini" => Ok(RuntimeKind::Gemini),
         "opencode" => Ok(RuntimeKind::Opencode),
@@ -325,6 +328,7 @@ pub(crate) fn parse_extract_format(value: &str) -> PyResult<ExtractFormat> {
 pub(crate) const fn runtime_kind_str(value: RuntimeKind) -> &'static str {
     match value {
         RuntimeKind::Claude => "claude",
+        RuntimeKind::Hermes => "hermes",
         RuntimeKind::Codex => "codex",
         RuntimeKind::Gemini => "gemini",
         RuntimeKind::Opencode => "opencode",
@@ -375,6 +379,7 @@ mod tests {
         Python::initialize();
         Python::attach(|py| {
             let runtime = "claude".into_pyobject(py).unwrap();
+            let hermes = "hermes".into_pyobject(py).unwrap();
             let profile = "agent".into_pyobject(py).unwrap();
 
             assert_eq!(
@@ -382,12 +387,16 @@ mod tests {
                 RuntimeKind::Claude
             );
             assert_eq!(
+                parse_runtime_kind(hermes.as_any()).unwrap(),
+                RuntimeKind::Hermes
+            );
+            assert_eq!(
                 parse_profile_kind(profile.as_any()).unwrap(),
                 ProfileKind::Agent
             );
         });
 
-        assert_eq!(runtime_kind_str(RuntimeKind::Codex), "codex");
+        assert_eq!(runtime_kind_str(RuntimeKind::Hermes), "hermes");
         assert_eq!(profile_kind_str(ProfileKind::Skill), "skill");
         assert_eq!(
             unknown_variable_policy_str(UnknownVariablePolicy::Warn),

@@ -463,6 +463,7 @@ pub(crate) enum Kind {
 #[derive(Debug, Clone, Copy, ValueEnum)]
 pub(crate) enum Ai {
     Claude,
+    Hermes,
     Codex,
     Gemini,
     Opencode,
