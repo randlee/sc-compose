@@ -92,11 +92,16 @@ jobs:
             --manifest release/publish-artifacts.toml \
             --workspace-toml Cargo.toml
 
-      - name: Run manifest validation regression tests
-        run: python3 -m pytest .github/scripts/tests/test_release_artifacts.py
+      - name: Run publish-kit regression tests
+        run: |
+          python3 -m pytest .github/scripts/tests
+          python3 -m pytest plugins/sc-publish/.github/scripts/tests
 
-      - name: Validate publish_order dependency graph
-        run: bash scripts/ci/validate_publish_order.sh
+      - name: Validate publish-order dependency graph
+        run: |
+          python3 .github/scripts/release_artifacts.py validate-publish-order \
+            --manifest release/publish-artifacts.toml \
+            --workspace-toml Cargo.toml
 
   test:
     needs: [clippy, manifest-validation]

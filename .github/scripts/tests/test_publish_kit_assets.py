@@ -28,9 +28,26 @@ class PublishingAssetTests(unittest.TestCase):
 
     def test_publisher_is_the_only_named_orchestrator(self) -> None:
         text = (AGENTS / "publisher.md").read_text(encoding="utf-8")
+        self.assertIn("version: 1.6.6", text)
         self.assertIn("spawn_policy: named_teammate_required", text)
         self.assertIn("role-specific background workers", text)
         self.assertIn("Never ask whether a token exists", text)
+
+    def test_release_candidate_workflow_and_shared_policy_require_provenance(self) -> None:
+        workflow = (PACKAGE_ROOT / ".github" / "workflows" / "release-candidate.yml").read_text(
+            encoding="utf-8"
+        )
+        gate = (PACKAGE_ROOT / ".github" / "scripts" / "release_gate.sh").read_text(
+            encoding="utf-8"
+        )
+        policy = (PUBLISHING / "ref" / "release-state-strategy.md").read_text(encoding="utf-8")
+        self.assertIn("git tag -a \"${candidate_tag}\" origin/develop", workflow)
+        self.assertIn("git merge-base --is-ancestor \"${candidate_tag}\" origin/develop", workflow)
+        self.assertIn("release-candidate-v", gate)
+        self.assertIn("git merge-base --is-ancestor \"$RELEASE_CANDIDATE_TAG\" \"$RELEASE_REF\"", gate)
+        self.assertNotIn("git diff --quiet \"$MAIN_REF\" \"$DEVELOP_REF\"", gate)
+        self.assertIn("Candidate Cut and Post-Cut Drift", policy)
+        self.assertIn("do not delay the\nrelease", policy)
 
     def test_task_templates_require_a_recipient(self) -> None:
         for name in ("preflight.xml.j2", "publish.xml.j2"):

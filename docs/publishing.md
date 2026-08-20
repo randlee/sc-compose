@@ -29,7 +29,8 @@ Python distributions and the `sc-sha-go` module.
   `plugins/sc-publish`)
 - Release notes template: `release/RELEASE-NOTES-TEMPLATE.md`
 - `winget` setup note: `docs/WINGET_SETUP.md`
-- Operator guide: `docs/publishing-agent.md`
+- Canonical release guidance: `README.sc-publish.md` and
+  `.claude/skills/publishing/SKILL.md`
 
 ## Package Contents
 

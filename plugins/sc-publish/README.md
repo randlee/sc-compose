@@ -51,9 +51,10 @@ scripts, and workflows:
   command, and skill). It performs the channel steps in-session rather than
   through ATM teammates.
 
-Both profiles spawn the same role-specific background channel workers
+The Claude/Codex publisher spawns the role-specific background channel workers
 (`crates-io-publisher`, `github-release-publisher`, `pypi-publisher`,
-`homebrew-publisher`, `scoop-publisher`, `winget-publisher`) and consume the
+`homebrew-publisher`, `scoop-publisher`, `winget-publisher`). Cursor executes
+the same channel playbooks inline and sequentially. Both profiles consume the
 same non-disclosing credential preflight before any publication.
 
 ## The channel model
@@ -80,4 +81,5 @@ Each publish channel — `github_release`, `crates_io`, `pypi`, `homebrew`,
 - `.claude/skills/publishing/ref/channel-contracts.md` — per-channel worker
   contracts and inquiry protocol.
 - `.claude/skills/publishing/ref/release-state-strategy.md` — release state
-  machine (develop → release → main) and the develop-parity release gate.
+  machine (develop → release candidate → release → main), provenance gate,
+  and post-cut drift handling.
