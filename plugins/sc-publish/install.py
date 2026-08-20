@@ -375,6 +375,7 @@ def package_files() -> list[Path]:
         path
         for path in PACKAGE_ROOT.rglob("*")
         if path.is_file()
+        and path.name != "install.py"
         and path.name != SOURCE_ROOT_MARKER
         and path not in generated_outputs
         and "__pycache__" not in path.parts

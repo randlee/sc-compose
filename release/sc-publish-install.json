@@ -44,7 +44,7 @@
     "pypi": {"workflow": "pypi-publish.yml", "dispatch_inputs": {"target": "production"}, "credential_rehearsal_inputs": {"target": "testpypi"}, "test_repository": "testpypi", "production_repository": "pypi"},
     "homebrew": {
       "workflow": "homebrew-publish.yml", "dispatch_inputs": {}, "tap_repository": "randlee/homebrew-tap", "renderer_target": "x86_64-unknown-linux-gnu",
-      "formulas": [{"path": "Formula/sc-compose.rb", "template": "release/homebrew/formula.rb.j2", "class": "ScCompose", "binaries": ["sc-compose"], "test_binary": "sc-compose", "test_command": "--help", "test_output": "Standalone CLI", "release_track": "stable"}],
+      "formulas": [{"path": "Formula/sc-compose.rb", "template": "release/homebrew/formula.rb.j2", "class": "ScCompose", "binaries": ["sc-compose"], "test_binary": "sc-compose", "test_command": "--help", "test_output": "Standalone template composition CLI", "release_track": "stable"}],
       "assets": [{"key": "macos_arm", "target": "aarch64-apple-darwin"}, {"key": "macos_intel", "target": "x86_64-apple-darwin"}, {"key": "linux", "target": "x86_64-unknown-linux-gnu"}]
     },
     "scoop": {"workflow": "scoop-publish.yml", "dispatch_inputs": {}, "bucket_repository": "randlee/scoop-bucket", "manifest_path": "sc-compose.json", "manifest_template": "release/scoop/manifest.json.j2", "installer_target": "x86_64-pc-windows-msvc", "binary": "bin/sc-compose.exe", "renderer_target": "x86_64-unknown-linux-gnu"},

@@ -114,7 +114,7 @@ class = "ScCompose"
 binaries = ["sc-compose"]
 test_binary = "sc-compose"
 test_command = "--help"
-test_output = "Standalone CLI"
+test_output = "Standalone template composition CLI"
 release_track = "stable"
 
 [[channels.homebrew.assets]]
