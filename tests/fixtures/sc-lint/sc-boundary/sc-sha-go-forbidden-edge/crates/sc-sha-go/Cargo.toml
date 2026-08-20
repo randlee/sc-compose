@@ -1,0 +1,15 @@
+[package]
+name = "sc-sha-go"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+sc-sha = { path = "../sc-sha" }
+uniffi = { path = "../uniffi" }
+thiserror = { path = "../thiserror" }
+sc-compose = { path = "../sc-compose" }
+sc-composer = { path = "../sc-composer" }
+atmcore = { path = "../atmcore" }
+filesystem-support = { path = "../filesystem-support" }
+sc-sha-python = { path = "../sc-sha-python" }

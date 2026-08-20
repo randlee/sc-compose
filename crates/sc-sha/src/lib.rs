@@ -14,5 +14,6 @@ pub use composition::{CompositionError, CompositionSha256, calculate_composition
 pub use file::{HashInput, HashResult, ShaError, TemplateSha256, calculate_hash};
 pub use manifest::{
     CanonicalSource, CanonicalSourceError, CanonicalSourceUrl, CanonicalTemplatePath,
-    ManifestSchemaVersion, ResolvedIncludeEdge, ResolvedTemplateManifest, ResolvedTemplateNode,
+    ManifestSchemaError, ManifestSchemaVersion, ResolvedIncludeEdge, ResolvedTemplateManifest,
+    ResolvedTemplateNode,
 };

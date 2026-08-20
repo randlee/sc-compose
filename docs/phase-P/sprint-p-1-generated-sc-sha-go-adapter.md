@@ -2,7 +2,7 @@
 id: P.1
 title: Generated sc-sha Go Adapter Contract
 phase: P
-status: planned
+status: complete
 branch: sprint/p-1-generated-sc-sha-go-adapter
 worktree: ../sc-compose-worktrees/sprint/p-1-generated-sc-sha-go-adapter
 target: integrate/phase-p
@@ -32,6 +32,8 @@ named boundary inventories.
 
 - `Cargo.toml`
 - `Cargo.lock`
+- `.gitignore`
+- `deny.toml`
 - `bindings/sc-sha-go/Cargo.toml`
 - `bindings/sc-sha-go/src/lib.rs`
 - `bindings/sc-sha-go/src/sc_sha_go.udl`
@@ -41,11 +43,15 @@ named boundary inventories.
 - `bindings/sc-sha-go/tests/` (Go and Rust adapter fixtures)
 - `bindings/sc-sha-go/testdata/conformance-v1.json`
 - `bindings/sc-sha-go/README.md`
+- `bindings/sc-sha-python/src/lib.rs`
+- `bindings/sc-sha-python/tests/test_compatibility.py`
 - `Justfile`
 - `.github/workflows/ci.yml`
 - `boundaries/sc-sha/shared-library.toml`
 - `boundaries/sc-sha-go/go-adapter.toml` (new)
 - `tests/fixtures/sc-lint/sc-boundary/sc-sha-go-forbidden-edge/Cargo.toml`
+- `crates/sc-compose/tests/sc_lint_sc_boundary.rs`
+- `crates/sc-compose/tests/support/mod.rs`
 - `CLAUDE.md`
 - `docs/adrs/0018-sc-sha-hash-ownership.md`
 - `docs/adrs/0020-generated-go-binding-strategy.md`
@@ -130,21 +136,22 @@ hash calculation.
 
 ## Acceptance criteria
 
-- [ ] Exactly `CalculateHash` and `CalculateCompositionHash` are public
+- [x] Exactly `CalculateHash` and `CalculateCompositionHash` are public
       domain operations; both delegate to `sc-sha` and no duplicate hashing
-      code exists in the adapter or generated package.
-- [ ] The generated Go package represents source/node/edge/manifest values and
-      stable errors as types, not untyped JSON or maps.
-- [ ] Pinned generation reproduces the committed Go output byte-for-byte and
-      CI fails on drift.
-- [ ] The Go package passes all vectors and agrees with Rust/Python on every
-      successful digest and stable error code.
-- [ ] CGo tests execute under normal pointer checking; no committed command,
+      code exists in the adapter or generated package ([PR #513](https://github.com/randlee/sc-compose/pull/513)).
+- [x] The generated Go package represents source/node/edge/manifest values and
+      stable errors as types, not untyped JSON or maps ([PR #513](https://github.com/randlee/sc-compose/pull/513)).
+- [x] Pinned generation reproduces the committed Go output byte-for-byte and
+      CI fails on drift ([PR #513](https://github.com/randlee/sc-compose/pull/513)).
+- [x] The Go package passes all vectors and agrees with Rust/Python on every
+      successful digest and stable error code ([PR #513](https://github.com/randlee/sc-compose/pull/513)).
+- [x] CGo tests execute under normal pointer checking; no committed command,
       workflow, or documentation weakens Go FFI safety checks.
-- [ ] `sc-sha` retains no adapter/runtime dependency, while the new boundary
-      inventory and negative fixture reject forbidden edges.
-- [ ] ADR-0020 and the ADR-0018 / `CLAUDE.md` amendments are accepted before
-      the adapter source is merged.
+      ([PR #513](https://github.com/randlee/sc-compose/pull/513))
+- [x] `sc-sha` retains no adapter/runtime dependency, while the new boundary
+      inventory and negative fixture reject forbidden edges ([PR #513](https://github.com/randlee/sc-compose/pull/513)).
+- [x] ADR-0020 and the ADR-0018 / `CLAUDE.md` amendments are accepted before
+      the adapter source is merged ([PR #513](https://github.com/randlee/sc-compose/pull/513)).
 
 ## Required validation
 
@@ -152,11 +159,16 @@ hash calculation.
 cargo fmt --all --check
 cargo test --workspace
 cargo clippy --all-targets --all-features -- -D warnings
-just lint
-just generate-sc-sha-go --check
+just lint-ci-consumer
+just generate-sc-sha-go check
 (cd bindings/sc-sha-go && go test ./...)
 git diff --check
 ```
+
+`just lint-ci-consumer` is the provisioned, CI-authoritative sc-lint profile.
+Bare `just lint` remains blocked by the tracked sc-lint external-binary
+bootstrap defect (`O5-SC-LINT-BOOTSTRAP-001`); no suppression is permitted in
+this sprint.
 
 ## QA handoff
 

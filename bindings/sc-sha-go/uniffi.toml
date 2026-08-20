@@ -1,0 +1,5 @@
+[bindings.go]
+package_name = "sc_sha_go"
+go_mod = "github.com/randlee/sc-compose/bindings/sc-sha-go"
+cdylib_name = "sc_sha_go"
+c_module_filename = "sc_sha_go"

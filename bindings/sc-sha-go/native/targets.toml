@@ -1,0 +1,25 @@
+schema_version = 1
+
+[contract]
+linkage = "static"
+generated_header = "go/sc_sha_go/sc_sha_go.h"
+generated_package = "go/sc_sha_go"
+native_library = "sc_sha_go"
+
+[[targets]]
+rust_target = "x86_64-unknown-linux-gnu"
+goos = "linux"
+goarch = "amd64"
+library = "libsc_sha_go.a"
+
+[[targets]]
+rust_target = "aarch64-apple-darwin"
+goos = "darwin"
+goarch = "arm64"
+library = "libsc_sha_go.a"
+
+[[targets]]
+rust_target = "x86_64-pc-windows-gnu"
+goos = "windows"
+goarch = "amd64"
+library = "libsc_sha_go.a"

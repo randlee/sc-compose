@@ -205,6 +205,97 @@ jobs:
           name: ${{ matrix.target }}
           path: ${{ env.ARCHIVE }}
 
+  generate-go-bindings:
+    needs: [gate-and-tag, release-plan]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate-and-tag.outputs.release_ref }}
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+      - name: Cache generated Go bindings
+        id: generated-cache
+        uses: actions/cache@v4
+        with:
+          path: bindings/sc-sha-go/go
+          key: uniffi-bindgen-go-generated-v0.7.1-v0.31.0-${{ hashFiles('bindings/sc-sha-go/src/sc_sha_go.udl', 'bindings/sc-sha-go/uniffi.toml') }}
+      - name: Generate bindings on Ubuntu when cache misses
+        if: steps.generated-cache.outputs.cache-hit != 'true'
+        run: |
+          python3 .github/scripts/install_uniffi_bindgen_go.py
+          uniffi-bindgen-go --out-dir bindings/sc-sha-go/go --config bindings/sc-sha-go/uniffi.toml bindings/sc-sha-go/src/sc_sha_go.udl
+      - name: Test pinned UniFFI Go generator installer
+        shell: bash
+        run: cd .github/scripts && python3 -m unittest test_install_uniffi_bindgen_go -v
+      - name: Verify generated bindings
+        run: git diff --exit-code -- bindings/sc-sha-go/go
+      - name: Upload generated Go bindings
+        uses: actions/upload-artifact@v4
+        with:
+          name: sc-sha-go-generated
+          path: bindings/sc-sha-go/go
+
+  build-go-native:
+    needs: [gate-and-tag, release-plan, generate-go-bindings]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.release-plan.outputs.go_native_matrix) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate-and-tag.outputs.release_ref }}
+      - name: Download generated Go bindings
+        uses: actions/download-artifact@v4
+        with:
+          name: sc-sha-go-generated
+          path: bindings/sc-sha-go/go
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+          targets: ${{ matrix.target }}
+      - name: Set up sc-lint toolchain
+        uses: ./.github/actions/setup-lint-toolchain
+      - name: Run repository lint
+        run: just lint-ci-consumer
+      - name: Build target-native static library
+        run: cargo build --release -p sc-sha-go --target ${{ matrix.target }}
+      - name: Stage self-contained Go module bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          library="target/${{ matrix.target }}/release/libsc_sha_go.a"
+          version='${{ needs.gate-and-tag.outputs.release_version }}'
+          python3 scripts/release_artifacts.py stage-go-native-module \
+            --manifest "$RELEASE_ARTIFACT_MANIFEST" \
+            --target '${{ matrix.target }}' \
+            --native-library "$library" \
+            --output "$RUNNER_TEMP/sc-sha-go-${{ matrix.target }}" \
+            --version "$version"
+      - name: Run release layout regression tests
+        run: python3 bindings/sc-sha-go/tests/test_release_layout.py
+      - name: Run bundled Go conformance tests
+        working-directory: ${{ runner.temp }}/sc-sha-go-${{ matrix.target }}
+        run: go test ./...
+      - name: Run independent Go consumer module
+        shell: bash
+        run: |
+          set -euo pipefail
+          consumer="$RUNNER_TEMP/sc-sha-go-consumer-${{ matrix.target }}"
+          cp -R bindings/sc-sha-go/tests/consumer-module "$consumer"
+          cd "$consumer"
+          module='github.com/randlee/sc-compose/bindings/sc-sha-go'
+          go mod edit -replace "$module=$RUNNER_TEMP/sc-sha-go-${{ matrix.target }}"
+          go get "$module/go/sc_sha_go@v${{ needs.gate-and-tag.outputs.release_version }}"
+          CGO_ENABLED=1 go run .
+      - name: Upload Go module bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: sc-sha-go-${{ matrix.target }}
+          path: ${{ runner.temp }}/sc-sha-go-${{ matrix.target }}
+
   publish:
     if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
     needs: gate-and-tag
@@ -261,6 +352,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_target_matrix: ${{ steps.manifest.outputs.release_target_matrix }}
+      go_native_matrix: ${{ steps.manifest.outputs.go_native_matrix }}
       python_wheel_matrix: ${{ steps.manifest.outputs.python_wheel_matrix }}
       python_sdist_matrix: ${{ steps.manifest.outputs.python_sdist_matrix }}
     steps:
@@ -273,6 +365,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "release_target_matrix=$(python3 scripts/release_artifacts.py release-target-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
+          echo "go_native_matrix=$(python3 scripts/release_artifacts.py go-native-target-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
           echo "python_wheel_matrix=$(python3 scripts/release_artifacts.py python-wheel-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
           echo "python_sdist_matrix=$(python3 scripts/release_artifacts.py python-sdist-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
 
@@ -362,7 +455,7 @@ jobs:
 
   release:
     if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
-    needs: [gate-and-tag, build, publish, build-python-wheels, build-python-sdists]
+    needs: [gate-and-tag, build, build-go-native, publish, build-python-wheels, build-python-sdists]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -375,11 +468,44 @@ jobs:
           path: artifacts
 
       - name: Collect archives
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p release
           find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} release/ \;
           find artifacts -type f -name '*.whl' -exec mv {} release/ \;
+          while IFS= read -r -d '' module_file; do
+            bundle_dir="$(dirname "$module_file")"
+            target_name="$(basename "$bundle_dir" | sed 's/^sc-sha-go-//')"
+            archive="release/sc-sha-go-${target_name}.zip"
+            (cd "$bundle_dir" && zip -qr "$OLDPWD/$archive" .)
+          done < <(find artifacts -type f -name go.mod -print0)
           ls -la release/
+
+      - name: Set up Go for downloaded bundle verification
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+
+      - name: Verify documented downloaded Go bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="release/sc-sha-go-x86_64-unknown-linux-gnu.zip"
+          test -f "$archive"
+          downloaded="$RUNNER_TEMP/sc-sha-go-downloaded"
+          mkdir -p "$downloaded"
+          unzip -q "$archive" -d "$downloaded/module"
+          test -f "$downloaded/module/go.mod"
+          test -f "$downloaded/module/native/x86_64-unknown-linux-gnu/libsc_sha_go.a"
+          (cd "$downloaded/module" && CGO_ENABLED=1 go test ./...)
+          consumer="$RUNNER_TEMP/sc-sha-go-downloaded-consumer"
+          cp -R bindings/sc-sha-go/tests/consumer-module "$consumer"
+          cd "$consumer"
+          module='github.com/randlee/sc-compose/bindings/sc-sha-go'
+          go mod edit -replace "$module=$downloaded/module"
+          go get "$module/go/sc_sha_go@v${{ needs.gate-and-tag.outputs.release_version }}"
+          CGO_ENABLED=1 go run .
 
       - name: Generate checksums
         working-directory: release

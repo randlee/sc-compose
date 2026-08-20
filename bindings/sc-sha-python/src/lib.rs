@@ -5,8 +5,8 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBytes, PyDict, PyList};
 use sc_sha::{
     CanonicalSource, CanonicalSourceUrl, CanonicalTemplatePath, CompositionError, HashInput,
-    ManifestSchemaVersion, ResolvedIncludeEdge, ResolvedTemplateManifest, ResolvedTemplateNode,
-    TemplateSha256, calculate_composition_hash, calculate_hash,
+    ManifestSchemaError, ManifestSchemaVersion, ResolvedIncludeEdge, ResolvedTemplateManifest,
+    ResolvedTemplateNode, TemplateSha256, calculate_composition_hash, calculate_hash,
 };
 
 #[pyclass(extends = PyException, name = "ScShaError")]
@@ -197,16 +197,22 @@ fn parse_edges(py: Python<'_>, value: &Bound<'_, PyAny>) -> PyResult<Vec<Resolve
 }
 
 fn parse_manifest(py: Python<'_>, dict: &Bound<'_, PyDict>) -> PyResult<ResolvedTemplateManifest> {
-    let schema = match string_field(py, dict, "schema")?.as_str() {
-        "sc-sha/manifest/v1" | "v1" => ManifestSchemaVersion::V1,
-        _ => {
-            return Err(error(
-                py,
-                "SC_SHA_UNSUPPORTED_MANIFEST_SCHEMA",
-                "unsupported manifest schema; use sc-sha/manifest/v1",
-            ));
-        }
-    };
+    let schema_name = string_field(py, dict, "schema")?;
+    let schema =
+        ManifestSchemaVersion::try_from(schema_name.as_str()).map_err(
+            |error_kind| match error_kind {
+                ManifestSchemaError::Empty => error(
+                    py,
+                    "SC_SHA_INVALID_MANIFEST",
+                    "manifest schema must not be empty",
+                ),
+                ManifestSchemaError::Unsupported => error(
+                    py,
+                    "SC_SHA_UNSUPPORTED_MANIFEST_SCHEMA",
+                    "unsupported manifest schema; use sc-sha/manifest/v1",
+                ),
+            },
+        )?;
     let nodes_value = dict.get_item("nodes")?.ok_or_else(|| {
         error(
             py,
