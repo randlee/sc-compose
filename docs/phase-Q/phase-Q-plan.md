@@ -36,13 +36,14 @@ consumer repository supplies a complete JSON manifest that is rendered into
 | Q.1 | Complete canonical package parity and installer contract | Phase P complete; sc-publish develop baseline | May run in parallel with unrelated sc-compose work; blocks Q.2 |
 | Q.2 | Install and cut over sc-compose, then prove publish readiness | Q.1 merged in sc-publish | May run in parallel with unrelated work that does not modify release assets or publishing workflows |
 | Q.3 | Consume the current sc-publish develop update (re-vendor, verify, no internal sc-publish fixes) | Q.2 merged in sc-compose; sc-publish develop update merged | May run in parallel with unrelated work that does not modify release assets or publishing workflows |
+| Q.4 | Consume the sc-publish release-candidate provenance update (re-vendor, verify, no internal sc-publish fixes) | Q.3 merged in sc-compose; sc-publish PR #48 merged | May run in parallel with unrelated work that does not modify release assets or publishing workflows |
 
 Q.1 is primarily a cross-repository package sprint. Q.2 is the sc-compose
-consumer migration sprint. Q.3 is a consumer-side update sprint: it re-vendors
-an upstream sc-publish update and revalidates sc-compose's own surface: it
-does not implement or fix sc-publish's internal probe, workflow, or install
-logic — those defects are filed as sc-publish issues instead. Neither sprint
-may silently maintain a second publishing implementation.
+consumer migration sprint. Q.3 and Q.4 are consumer-side update sprints: each
+re-vendors an upstream sc-publish update and revalidates sc-compose's own
+surface: neither implements or fixes sc-publish's internal probe, workflow,
+or install logic — those defects are filed as sc-publish issues instead. No
+sprint may silently maintain a second publishing implementation.
 
 ## Shared contracts
 
@@ -147,3 +148,4 @@ are QA-approved, merged, and the merged parent is revalidated.
 - [Sprint Q.1 — sc-publish package parity](sprint-q-1-sc-publish-package-parity.md)
 - [Sprint Q.2 — sc-compose install and publish cutover](sprint-q-2-sc-compose-publish-cutover.md)
 - [Sprint Q.3 — consume sc-publish develop update](sprint-q-3-sc-publish-consume-update.md)
+- [Sprint Q.4 — consume sc-publish release-candidate provenance update](sprint-q-4-sc-publish-rc-provenance-consume.md)
