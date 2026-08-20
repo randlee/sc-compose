@@ -2,40 +2,27 @@
 
 ## Purpose
 
-This repo is the publishing source of truth for:
-- `sc-sha`
-- `sc-composer`
-- `sc-compose`
-
-These crates previously existed inside the `agent-team-mail` workspace. New
-releases of these crate names now come from this repo instead.
+This repo is the publishing source of truth for the `sc-sha`, `sc-composer`,
+and `sc-compose` release family, including the `sc-sha` and `sc-compose`
+Python distributions and the `sc-sha-go` module.
 
 ## Versioning
 
 - The repo uses a single workspace version.
 - All published crates in this repo must share that version.
-- The initial standalone release must be strictly higher than the last version
-  published from the ATM workspace for these crate names.
 - Release workflows verify that the requested release version matches:
   - workspace version
   - each crate package version
-- The Phase C Python release channel must also sync
-  `bindings/sc-sha-python/pyproject.toml` and
-  `bindings/python/pyproject.toml` from the workspace version immediately
-  before wheel or sdist builds and then fail release if
-  `verify-python-version` detects drift.
+- Python release builds synchronize `bindings/sc-sha-python/pyproject.toml`
+  and `bindings/python/pyproject.toml` from the workspace version before wheel
+  or sdist builds, then fail on version drift.
 
-## Replacement/Cutover Rule
+## Release Source Of Truth
 
-Before the ATM workspace switches to crates.io dependencies from this repo:
-1. This repo must publish the target version of `sc-sha`.
-2. This repo must publish the target version of `sc-composer`.
-3. This repo must publish the target version of `sc-compose`.
-4. ATM must then replace its in-workspace path dependencies with version pins.
-
-## Source of Truth
-
-- Manifest: `release/publish-artifacts.toml`
+- Consumer-owned release input: `release/sc-publish-install.json`
+- Generated release plans: `release/publish-artifacts.toml` and
+  `release/publish-channel-contracts.toml` (do not hand-edit)
+- Canonical shared publishing package: `plugins/sc-publish`
 - Preflight workflow: `.github/workflows/release-preflight.yml`
 - Release workflow: `.github/workflows/release.yml`
 - Release gate helper: `.github/scripts/release_artifacts.py` (installed from
@@ -44,72 +31,46 @@ Before the ATM workspace switches to crates.io dependencies from this repo:
 - `winget` setup note: `docs/WINGET_SETUP.md`
 - Operator guide: `docs/publishing-agent.md`
 
-## Installed Data Layout
+## Package Contents
 
-Bundled example templates are installed under the shared data root:
+GitHub Release archives and package-manager installs ship
+`bin/sc-compose` plus `share/sc-compose/examples/...`. At runtime, bundled
+examples resolve from `SC_COMPOSE_DATA_DIR/examples/` when set, otherwise from
+the install-relative shared-data directory. User template packs instead use
+`SC_COMPOSE_TEMPLATE_DIR` or the platform user-data directory; package wrappers
+must not set that variable or place user templates in the shared examples root.
 
-- Homebrew (macOS): `$(brew --prefix)/share/sc-compose/examples/`
-- FHS-style Linux packages: `<prefix>/share/sc-compose/examples/`
-- Other system installs: `<install-root>/share/sc-compose/examples/`
-
-At runtime, `sc-compose` resolves bundled examples from:
-
-1. `SC_COMPOSE_DATA_DIR/examples/` when `SC_COMPOSE_DATA_DIR` is set
-2. install-relative `../share/sc-compose/examples/` next to the binary
-
-Package builds must preserve that share layout so `sc-compose examples list`
-and `sc-compose examples <name>` work without extra configuration.
-
-GitHub Release archives and package-manager installs must ship both:
-
-- `bin/sc-compose`
-- `share/sc-compose/examples/...`
-
-## User Template Root
-
-User-managed template packs resolve from:
-
-1. `SC_COMPOSE_TEMPLATE_DIR` when set
-2. the platform user-data directory joined with `sc-compose/templates/`
-
-Packaging guidance:
-
-- Do not package user templates into the shared examples root.
-- Do not set `SC_COMPOSE_TEMPLATE_DIR` in package wrappers by default.
-- Document `SC_COMPOSE_DATA_DIR` as the override for CI, custom installs, and
-  nonstandard packaging layouts.
-
-## Cargo Install Limitation
-
-`cargo install` publishes and installs the binary only. It does not install the
-bundled examples directory. Bundled examples are guaranteed in:
-
-- Homebrew installs
-- `winget` installs
-- GitHub Release archives
-
-Users who install with Cargo can point `SC_COMPOSE_DATA_DIR` at a manual copy of
-the examples root when they want `examples list` and `examples <name>`.
+`cargo install` installs only the binary. Users who need bundled examples with
+that installation method must point `SC_COMPOSE_DATA_DIR` at a copied examples
+root.
 
 ## Release Secrets And Ownership Checks
 
-Required secrets:
+### Configured credential fact
 
-- `CARGO_REGISTRY_TOKEN`
-  - must be configured in the GitHub Actions `crates-io` environment
-  - must be able to publish `sc-sha`, `sc-composer`, and `sc-compose`
-- `HOMEBREW_TAP_TOKEN`
-  - must be configured in the repo secrets before Homebrew automation can
-    update `randlee/homebrew-tap`
-- `PYPI_TOKEN` and `TEST_PYPI_TOKEN`
-  - required for production and rehearsal Python uploads, respectively
-  - must be configured in the protected GitHub Actions `pypi` environment
-    before PyPI publication is enabled
-- `WINGET_GITHUB_TOKEN`
-  - must be configured in repo secrets before automated winget submission
-- `SCOOP_BUCKET_TOKEN`
-  - must be configured in repo secrets before Scoop bucket manifests can be
-    updated
+The following credentials already exist and are configured in this
+repository's GitHub Actions secret locations. They are not local inputs and
+agents and reviewers must not ask whether they exist, request their values, or
+try to prove their presence from a local checkout.
+
+- `CARGO_REGISTRY_TOKEN` — repository secret used for crates.io publication;
+  the publish job runs in the `crates-io` environment.
+- `HOMEBREW_TAP_TOKEN` — repository secret for `randlee/homebrew-tap` updates.
+- `PYPI_API_TOKEN` — protected `pypi` environment secret for production Python
+  uploads.
+- `TEST_PYPI_API_TOKEN` — protected `testpypi` environment secret for Python
+  rehearsal uploads.
+- `WINGET_GITHUB_TOKEN` — repository secret for automated winget submission.
+- `SCOOP_BUCKET_TOKEN` — repository secret for Scoop bucket-manifest updates.
+
+`.github/workflows/release-preflight.yml` is the authoritative release-time
+verification mechanism. It checks the manifest-declared repository-secret
+bindings, protected-environment secret metadata, required environments, and
+applicable credential liveness without exposing credential values. A local or
+code-review environment cannot inspect GitHub Actions secrets; that boundary
+is not evidence that a configured credential is absent. For a real release,
+record the workflow's sanitized result instead of creating a manual
+secret-existence blocker.
 
 Manual verification steps:
 
@@ -120,57 +81,23 @@ Manual verification steps:
 - verify the target version is unpublished before tagging:
   - `python3 .github/scripts/release_artifacts.py check-version-unpublished --manifest release/publish-artifacts.toml --version <X.Y.Z>`
 
-## Distribution Channels
+## Next-Release Outputs And Channels
 
-The standalone release path covers:
+| Output | Destination | Current release content |
+| --- | --- | --- |
+| Rust crates | crates.io | `sc-sha`, `sc-composer`, and `sc-compose`, in dependency order. |
+| Python distributions | TestPyPI rehearsal, then PyPI | `sc-sha` and `sc-compose`; each ships one sdist and wheels for Linux, macOS, and Windows. |
+| CLI archives | GitHub Release | `sc-compose` archives for Linux x86_64, macOS arm64 and x86_64, and Windows x86_64 (MSVC and GNU); each includes bundled examples. |
+| Go module | `github.com/randlee/sc-compose/bindings/sc-sha-go` | Tags use `bindings/sc-sha-go/v<version>` and bundle a matching static CGo library for Linux/amd64, macOS/arm64, and Windows/amd64. |
+| macOS/Linux package manager | `randlee/homebrew-tap` | Homebrew formula `sc-compose`. |
+| Windows package manager | `randlee/scoop-bucket` | Scoop manifest `sc-compose.json`. |
+| Windows package manager | `microsoft/winget-pkgs` | Winget package `randlee.sc-compose`. |
 
-- crates.io publication for `sc-sha`, `sc-composer`, and `sc-compose`
-- GitHub Release archives for Linux, macOS, and Windows
-- Homebrew formula updates in `randlee/homebrew-tap`
-- `winget` publication for package id `randlee.sc-compose`
-- PyPI publication for packages `sc-sha` and `sc-compose`
+Run a staged TestPyPI or `workflow_dispatch` rehearsal before treating the
+Python path as production-ready. It must prove wheel and single-sdist builds,
+the upload, and GitHub Release attachment behavior. The first Winget release
+requires a one-time manual submission; later releases use the workflow.
 
-Python release-train rule:
-
-- do not treat the Python release path as production-closed until a staged
-  TestPyPI or `workflow_dispatch` rehearsal proves wheel build, single-sdist
-  build, publish, and GitHub Release attachment behavior end-to-end
-
-Release-operator verification for PyPI:
-
-- verify the protected `pypi` environment contains `PYPI_TOKEN` and
-  `TEST_PYPI_TOKEN`
-- run one staged TestPyPI or `workflow_dispatch` rehearsal before treating the
-  Python release channel as production-closed
-- confirm exactly one sdist is produced, all three wheel builds complete, the
-  PyPI upload path succeeds, and the GitHub Release attachment set includes
-  wheels plus the single sdist
-
-The first `winget` release requires a one-time manual submission to
-`microsoft/winget-pkgs`. Later releases use the automated workflow job.
-
-## Report Publication Handoff
-
-Generated report evidence uses one machine-readable handoff file:
-
-- `sc-compose reports publish-manifest --root .`
-- writes `reports/latest/publish-manifest.json`
-
-That manifest lists:
-
-- each publishable report present in the current latest artifact set
-- each report artifact path
-- the intended publish destination for each artifact
-- the latest archive snapshot path for the report when one exists
-
-`sc-compose` does not upload, copy, or host those artifacts. CI and wrapper
-tooling consume the manifest and perform publication separately.
-
-## Generated `sc-sha-go` module
-
-The Go adapter is released as the versioned module
-`github.com/randlee/sc-compose/bindings/sc-sha-go` using tags of
-the form `bindings/sc-sha-go/v<version>`. Release CI stages one matching
-static native library per advertised OS/architecture and runs an independent
-temporary Go consumer module. Consumers must use the released bundle; they do
-not use a Cargo checkout or a system Rust library.
+The released Go consumer bundle selects its matching library from
+`native/<rust-target>/`; it does not require a Cargo checkout, `go generate`,
+`LD_LIBRARY_PATH`, or a system Rust installation.
