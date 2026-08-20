@@ -279,6 +279,15 @@ jobs:
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}'
 
+      - id: release_candidate_provenance
+        name: Verify release-candidate provenance
+        if: ${{ always() && steps.meta.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          .github/scripts/release_gate.sh readiness HEAD "release-candidate-${{ steps.meta.outputs.release_tag }}" \
+            '${{ steps.meta.outputs.release_version }}' "${RELEASE_ARTIFACT_MANIFEST}" \
+            '${{ steps.build_plan.outputs.workspace_toml }}'
+
       - id: unpublished
         name: Verify release version is unpublished on crates.io
         if: ${{ always() && steps.meta.outcome == 'success' }}
@@ -426,6 +435,7 @@ jobs:
           HELPERS: ${{ steps.helpers.outcome }}
           VERSION: ${{ steps.version.outcome }}
           VERSION_LOCKSTEP: ${{ steps.version_lockstep.outcome }}
+          RELEASE_CANDIDATE_PROVENANCE: ${{ steps.release_candidate_provenance.outcome }}
           UNPUBLISHED: ${{ steps.unpublished.outcome }}
           PACKAGE_CHECKS: ${{ steps.package_checks.outcome }}
           GITHUB_RELEASE_PERMISSIONS: ${{ steps.github_release_permissions.outcome }}
@@ -463,6 +473,7 @@ jobs:
           record helpers "${HELPERS}"
           record version "${VERSION}"
           record version-lockstep "${VERSION_LOCKSTEP}"
+          record release-candidate-provenance "${RELEASE_CANDIDATE_PROVENANCE}"
           record unpublished-version "${UNPUBLISHED}"
           record github-release-permissions "${GITHUB_RELEASE_PERMISSIONS}"
           record channel-results "${CHANNEL_RESULTS}"

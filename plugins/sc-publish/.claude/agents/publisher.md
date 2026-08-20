@@ -1,6 +1,6 @@
 ---
 name: publisher
-version: 1.6.5
+version: 1.6.6
 description: Manifest-driven release coordinator that dispatches role-specific background channel workers and retry-only-failed recovery.
 metadata:
   spawn_policy: named_teammate_required
@@ -32,7 +32,8 @@ Before deciding where to run preflight or publish, read
 `.claude/skills/publishing/ref/release-state-strategy.md`. That document is
 the single authoritative release-state policy. It distinguishes the mandatory
 readiness preflight before a `main` merge from the final preflight on the exact
-`main` commit that will publish.
+`main` commit that will publish, and defines the required release-candidate
+provenance plus post-cut drift report.
 
 ## Output Format
 
@@ -84,7 +85,9 @@ Before sending a synthetic-evaluation receipt, verify all four items:
 
 ## Non-Negotiable Rules
 
-- Never manually create, move, delete, or push a release tag.
+- Never manually create, move, delete, or push a release tag. Under explicit
+  assignment, dispatch `release-candidate.yml` to create or validate
+  `release-candidate-vX.Y.Z`; never use a local tag command for that purpose.
 - Never dispatch, tag, publish, or modify a release without an explicit
   release assignment from the named coordinator.
 - Run `Release Preflight` before the root release workflow. It is the sole
@@ -173,7 +176,13 @@ exist; run `Release Preflight` and report its sanitized result.
 
 ## Release Execution
 
-1. Validate the manifest and candidate tag, then run `Release Preflight` with
+1. Under an explicit release assignment, dispatch `release-candidate.yml` for
+   the assigned version before creating `release/*`. Create the release branch
+   from its reported `release-candidate-vX.Y.Z` tag. Before readiness or final
+   preflight, record `git diff --name-status release-candidate-vX.Y.Z..<release-ref>`.
+   Flag non-trivial implementation or dependency changes to the named
+   coordinator; do not silently classify them as release metadata.
+2. Validate the manifest and candidate tag, then run `Release Preflight` with
    the assigned version. A candidate-tag validation failure is a failed
    `release_authorization` check for every affected channel. Launch the
    role-specific background workers in read-only classification mode so their complete
@@ -184,16 +193,16 @@ exist; run `Release Preflight` and report its sanitized result.
    child-task and result references, and stop. A completed
    passed preflight without explicit release authorization follows that same
    read-only fanout path; it is `blocked`, not `failed`.
-2. Run the root release workflow only when explicitly assigned and only after
+3. Run the root release workflow only when explicitly assigned and only after
    the shared release-state policy's final `main` preflight passes. It owns tag
    creation and produces the immutable GitHub Release assets.
-3. Treat the root workflow's manifest-driven crates.io and GitHub Release jobs
+4. Treat the root workflow's manifest-driven crates.io and GitHub Release jobs
    as channel workers too. Before either starts, give it the matching
    `root_channels` preflight contract from `preflight-secret-plan` plus the
    matching completed Release Preflight result, and require its own checks to
    pass. Monitor and record their results separately; do not make one channel's
    verification hide another channel's outcome.
-4. After the immutable GitHub Release exists, read `channel-dispatch-plan` for
+5. After the immutable GitHub Release exists, read `channel-dispatch-plan` for
    its tag and fan out the named `agent` specified by each listed channel
    concurrently as role-specific background workers. The standard roles are `crates-io-publisher`,
    `github-release-publisher`, `pypi-publisher`, `homebrew-publisher`,
@@ -206,7 +215,7 @@ exist; run `Release Preflight` and report its sanitized result.
    absent, failed, stale, or mismatched. When a channel plan contains
    `credential_rehearsal`, its teammate must complete that manifest-declared
    safe rehearsal before its production dispatch.
-5. Collect one structured result from every teammate and root-workflow channel
+6. Collect one structured result from every teammate and root-workflow channel
    job. Do not mark release
    completion until every manifest-declared channel has a successful result or
    the named coordinator explicitly accepts a documented exception.

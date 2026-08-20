@@ -84,6 +84,14 @@ changing a background channel-worker contract or registry inquiry helper.
   publication.
 - Complete readiness preflight before a `main` merge and final preflight on
   the exact `main` commit before publishing, as the shared policy requires.
+- Under explicit publisher assignment, dispatch `release-candidate.yml` to
+  establish `release-candidate-vX.Y.Z` from `develop` before creating the
+  release branch. Do not create that tag locally. The final gate requires the
+  candidate tag to be an ancestor of `main`, not that `main` and `develop`
+  still have identical tips.
+- Before each preflight, record the candidate-to-release diff and escalate
+  non-trivial implementation or dependency changes to the named coordinator.
+  Commits added to `develop` after the candidate cut do not delay the release.
 - Treat all publish tokens as already-provisioned GitHub Actions secrets. Do
   not ask whether they exist, request them, inspect them, or substitute local
   credentials.

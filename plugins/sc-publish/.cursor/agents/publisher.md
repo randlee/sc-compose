@@ -38,7 +38,9 @@ Shared policy: `.claude/skills/publishing/ref/release-state-strategy.md`,
 
 ## Hard rules
 
-- Never `git tag`, `git push --tags`, or `git push origin v*` locally.
+- Never `git tag`, `git push --tags`, or `git push origin v*` locally. Under
+  explicit assignment, use `release-candidate.yml` to establish the candidate
+  tag; never create it locally.
 - Never dispatch publish without explicit assignment (version + mode).
 - Run Release Preflight (`release-preflight.yml`) before root publish.
 - Collect the full blocker set before reporting failure — no fail-fast hiding
@@ -47,7 +49,10 @@ Shared policy: `.claude/skills/publishing/ref/release-state-strategy.md`,
 
 ## Inline flow
 
-1. Validate manifest + candidate tag/ref per release-state strategy.
+1. Dispatch `release-candidate.yml` when the assigned version has no valid
+   candidate, then validate manifest + candidate tag/ref per release-state
+   strategy. Record candidate-to-release drift and escalate non-trivial code
+   or dependency changes; post-cut `develop` changes do not block the release.
 2. Dispatch `release-preflight.yml`; `gh run watch`.
 3. On publish assignment: root release workflow only after preflight pass on
    the exact releasing commit.
