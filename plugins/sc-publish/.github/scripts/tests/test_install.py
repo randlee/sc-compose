@@ -19,15 +19,6 @@ SPEC = importlib.util.spec_from_file_location("sc_publish_install", INSTALLER)
 assert SPEC is not None and SPEC.loader is not None
 INSTALL = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(INSTALL)
-BOOTSTRAP = next(
-    path / "bootstrap_sc_compose.py"
-    for path in Path(__file__).resolve().parents
-    if (path / "bootstrap_sc_compose.py").is_file()
-)
-BOOTSTRAP_SPEC = importlib.util.spec_from_file_location("bootstrap_sc_compose", BOOTSTRAP)
-assert BOOTSTRAP_SPEC is not None and BOOTSTRAP_SPEC.loader is not None
-BOOTSTRAP_MODULE = importlib.util.module_from_spec(BOOTSTRAP_SPEC)
-BOOTSTRAP_SPEC.loader.exec_module(BOOTSTRAP_MODULE)
 
 
 class InstallValuesTests(unittest.TestCase):
@@ -165,32 +156,6 @@ class InstallValuesTests(unittest.TestCase):
         self.assertIn("--input INSTALL.json", result.stdout)
         self.assertIn("workflow:", result.stdout)
         self.assertIn("caller-owned complete JSON input", result.stdout)
-
-    def test_renderer_version_floor_matches_the_bootstrap_pin(self) -> None:
-        self.assertEqual(INSTALL.MINIMUM_SC_COMPOSE_VERSION, BOOTSTRAP_MODULE.SC_COMPOSE_VERSION)
-
-    def test_renderer_version_floor_rejects_an_older_ambient_wheel(self) -> None:
-        with self.assertRaisesRegex(
-            RuntimeError,
-            r"installed sc-compose Python binding version 1\.4\.0 is too old; required >= 1\.4\.1",
-        ):
-            INSTALL.require_supported_sc_compose_version("1.4.0")
-
-    def test_renderer_version_floor_accepts_the_floor_and_newer_wheels(self) -> None:
-        INSTALL.require_supported_sc_compose_version("1.4.1")
-        INSTALL.require_supported_sc_compose_version("1.5.0")
-
-    def test_render_template_checks_the_floor_before_importing_the_binding(self) -> None:
-        with (
-            patch.object(INSTALL, "installed_sc_compose_version", return_value="1.4.0"),
-            tempfile.TemporaryDirectory() as directory,
-        ):
-            with self.assertRaisesRegex(RuntimeError, r"installed sc-compose Python binding version 1\.4\.0"):
-                INSTALL.render_template(
-                    Path("release/publish-artifacts.toml.j2"),
-                    self.valid_values(),
-                    Path(directory) / "publish-artifacts.toml",
-                )
 
     def test_load_install_values_accepts_the_complete_manifest_contract(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -5,9 +5,7 @@ from __future__ import annotations
 
 import argparse
 import difflib
-from importlib.metadata import PackageNotFoundError, version as distribution_version
 import json
-import re
 import shutil
 import sys
 import tempfile
@@ -29,12 +27,6 @@ TEMPLATES = {
 }
 
 CHANNEL_NAMES = ("pypi", "homebrew", "scoop", "winget")
-
-# This floor must match SC_COMPOSE_VERSION in
-# .github/scripts/bootstrap_sc_compose.py. test_install.py keeps the two
-# values synchronized so an ambient wheel cannot silently lose renderer
-# features that the package templates require.
-MINIMUM_SC_COMPOSE_VERSION = "1.4.1"
 
 # Copied byte-for-byte, but installed under a different consumer path so the
 # kit never overwrites a consumer-owned file of the same name.
@@ -448,41 +440,8 @@ def print_diff(destination: Path, source: Path, relative: Path) -> None:
     )
 
 
-def _version_components(value: str) -> tuple[int, ...]:
-    """Return numeric release components for a stable sc-compose wheel version."""
-    if not re.fullmatch(r"\d+(?:\.\d+)*", value):
-        raise RuntimeError(
-            "cannot verify sc-compose Python binding version "
-            f"{value!r}; expected a numeric release version at least "
-            f"{MINIMUM_SC_COMPOSE_VERSION}"
-        )
-    return tuple(int(component) for component in value.split("."))
-
-
-def require_supported_sc_compose_version(installed_version: str) -> None:
-    """Reject an installed sc-compose wheel below the renderer feature floor."""
-    if _version_components(installed_version) < _version_components(MINIMUM_SC_COMPOSE_VERSION):
-        raise RuntimeError(
-            "installed sc-compose Python binding version "
-            f"{installed_version} is too old; required >= {MINIMUM_SC_COMPOSE_VERSION}. "
-            "Run .github/scripts/bootstrap_sc_compose.py first."
-        )
-
-
-def installed_sc_compose_version() -> str:
-    """Return the installed sc-compose distribution version with an actionable missing-wheel error."""
-    try:
-        return distribution_version("sc-compose")
-    except PackageNotFoundError as error:
-        raise RuntimeError(
-            "sc-compose Python bindings are required to install; run "
-            ".github/scripts/bootstrap_sc_compose.py first"
-        ) from error
-
-
 def render_template(template: Path, values: dict[str, object], output: Path) -> None:
     """Render a package template through the pinned Python binding contract."""
-    require_supported_sc_compose_version(installed_sc_compose_version())
     try:
         import sc_compose
     except ModuleNotFoundError as error:
