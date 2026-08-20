@@ -101,6 +101,13 @@ close the sprint.
   not render the caller-declared `go_native` table into
   `release/publish-artifacts.toml`. This is an upstream sc-publish defect and
   is not patched in this consumer sprint.
+- Release Preflight run `32340747396`
+  ([workflow run](https://github.com/randlee/sc-compose/actions/runs/32340747396))
+  completed with the expected external credential failures plus two
+  upstream-consumption defects: `channel-results` fails closed on invalid
+  empty `jq --argjson` input, and the workspace test gate catches the
+  upstream Homebrew template's `binary_paths`/manifest `binaries` mismatch.
+  No production publication occurred.
 
 The Release Preflight acceptance criterion's "explicit, expected
 external-service stop" means: the workflow run halts at a specific,
