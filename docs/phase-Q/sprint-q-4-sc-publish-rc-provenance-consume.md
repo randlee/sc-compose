@@ -1,7 +1,7 @@
 ---
 id: Q.4
 title: consume sc-publish release-candidate provenance update
-status: in_qa
+status: complete
 branch: sprint/q-4-sc-publish-rc-provenance-consume
 worktree: ../sc-compose-worktrees/sprint/q-4-sc-publish-rc-provenance-consume
 target: integrate/phase-q
@@ -81,7 +81,7 @@ re-vendors that upstream result.
 - [x] `python3 .github/scripts/tests/test_install.py`,
       `test_publish_kit_assets.py`, `test_publish_kit_scripts.py`, and
       `test_release_artifacts.py` pass against the updated install.
-- [ ] Sprint PR targets `integrate/phase-q`, not `develop`.
+- [x] Sprint PR targets `integrate/phase-q`, not `develop`.
 
 ## Required validation
 
@@ -96,8 +96,26 @@ git diff --check
 
 ## Validation evidence
 
-_Recorded by `comp` in the completion report for commit `4f1cecd`; team-lead
-has not independently re-run the validation sweep for this doc revision._
+- Byte-diff check: sc-publish checked out at `2c91d7b` in a worktree, `diff
+  -rq` against `plugins/sc-publish/` in this sprint's tree returns no
+  differences other than gitignored `__pycache__` dirs — content is
+  byte-for-byte identical.
+- `python3 -m pytest .github/scripts/tests -q`, run through the Q.3-pinned
+  bootstrap venv (`/private/tmp/sc-compose-q3-venv-1.4.1`,
+  `sc-compose==1.4.1`): 80 passed, 7 skipped, 3 subtests passed, 0 failed.
+  (A stale ambient global `sc-compose==1.2.0` wheel on the local machine
+  otherwise produces one unrelated `tojson`-filter failure
+  (`test_release_channel_templates_render_to_valid_ruby_and_json`); this is a
+  pre-existing local-environment gap, not a regression from this diff, and is
+  tracked separately.)
+- Second installer dry run through the same pinned venv: "Publish-kit assets
+  are in sync.", exit 0.
+- `git diff origin/integrate/phase-q...HEAD --diff-filter=D --name-status`
+  returns zero files: nothing was deleted outside installer ownership.
+- Independently re-verified by `quality-mgr` during Sprint Q.4 QA
+  (`Q4-SC-PUBLISH-RC-PROVENANCE-QA1`), which reproduced all of the above and
+  refuted `req-qa`'s evidence-gap findings (SCQ-QA-001/002/003/005). QA
+  verdict: PASS, 6/6 deliverables, CI 14/14 green.
 
 ## Handoff and fix routing
 
