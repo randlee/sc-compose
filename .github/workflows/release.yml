@@ -91,7 +91,7 @@ jobs:
             --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}'
 
       - name: Run release gate
-        run: .github/scripts/release_gate.sh origin/main origin/develop '${{ steps.meta.outputs.release_version }}' "${RELEASE_ARTIFACT_MANIFEST}" '${{ steps.build_plan.outputs.workspace_toml }}'
+        run: .github/scripts/release_gate.sh final origin/main "release-candidate-${{ steps.meta.outputs.release_tag }}" '${{ steps.meta.outputs.release_version }}' "${RELEASE_ARTIFACT_MANIFEST}" '${{ steps.build_plan.outputs.workspace_toml }}'
 
       - name: Ensure tag is correct or create it
         id: release-ref

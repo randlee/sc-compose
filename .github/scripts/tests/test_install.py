@@ -320,11 +320,15 @@ class InstallValuesTests(unittest.TestCase):
                 self.assertIn(".github/scripts/release_artifacts.py", text, name)
                 self.assertNotIn("python3 scripts/release_artifacts.py", text, name)
             release = (consumer / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+            release_candidate = (
+                consumer / ".github" / "workflows" / "release-candidate.yml"
+            ).read_text(encoding="utf-8")
             preflight = (consumer / ".github" / "workflows" / "release-preflight.yml").read_text(
                 encoding="utf-8"
             )
             self.assertIn(".github/scripts/release_gate.sh", release)
             self.assertNotIn("run: scripts/release_gate.sh", release)
+            self.assertIn('git tag -a "${candidate_tag}" origin/develop', release_candidate)
             self.assertIn(".github/scripts/release_artifacts.py validate-publish-order", preflight)
             self.assertNotIn("scripts/ci/validate_publish_order.sh", preflight)
             self.assertNotIn("docs/publishing-agent.md", preflight)

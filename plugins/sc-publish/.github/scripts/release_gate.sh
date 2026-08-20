@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MAIN_REF="${1:-origin/main}"
-DEVELOP_REF="${2:-origin/develop}"
-VERSION="${3:-${RELEASE_VERSION:-}}"
-MANIFEST="${4:-release/publish-artifacts.toml}"
-WORKSPACE_TOML="${5:-Cargo.toml}"
+MODE="${1:-final}"
+RELEASE_REF="${2:-origin/main}"
+RELEASE_CANDIDATE_TAG="${3:-}"
+VERSION="${4:-${RELEASE_VERSION:-}}"
+MANIFEST="${5:-release/publish-artifacts.toml}"
+WORKSPACE_TOML="${6:-Cargo.toml}"
 
 fail() {
   echo "release-gate: FAIL - $*" >&2
@@ -16,22 +17,35 @@ info() {
   echo "release-gate: $*"
 }
 
-[[ -n "$VERSION" ]] || fail "release version is required (arg 3 or RELEASE_VERSION)"
+case "$MODE" in
+  readiness|final) ;;
+  *) fail "mode must be readiness or final (got: $MODE)" ;;
+esac
+
+[[ -n "$RELEASE_CANDIDATE_TAG" ]] || fail "release-candidate tag is required (arg 3)"
+[[ "$RELEASE_CANDIDATE_TAG" =~ ^release-candidate-v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+  || fail "invalid release-candidate tag: $RELEASE_CANDIDATE_TAG"
+[[ -n "$VERSION" ]] || fail "release version is required (arg 4 or RELEASE_VERSION)"
+[[ "$RELEASE_CANDIDATE_TAG" == "release-candidate-v${VERSION}" ]] \
+  || fail "release-candidate tag $RELEASE_CANDIDATE_TAG does not match version $VERSION"
 
 info "fetching refs and tags"
 git fetch origin --prune --tags >/dev/null 2>&1 || fail "git fetch failed"
-# actions/checkout only fetches the checked-out branch; explicitly fetch develop
-git fetch origin "${DEVELOP_REF#*/}" >/dev/null 2>&1 || fail "git fetch ${DEVELOP_REF#*/} failed"
 
-git rev-parse --verify "$MAIN_REF" >/dev/null 2>&1 || fail "missing ref: $MAIN_REF"
-git rev-parse --verify "$DEVELOP_REF" >/dev/null 2>&1 || fail "missing ref: $DEVELOP_REF"
+git rev-parse --verify "$RELEASE_REF" >/dev/null 2>&1 || fail "missing release ref: $RELEASE_REF"
+git rev-parse --verify "refs/tags/$RELEASE_CANDIDATE_TAG" >/dev/null 2>&1 \
+  || fail "missing release-candidate tag: $RELEASE_CANDIDATE_TAG"
 
-main_sha="$(git rev-parse "$MAIN_REF")"
-develop_sha="$(git rev-parse "$DEVELOP_REF")"
-info "main=$main_sha develop=$develop_sha version=$VERSION"
+release_sha="$(git rev-parse "$RELEASE_REF")"
+candidate_sha="$(git rev-parse "${RELEASE_CANDIDATE_TAG}^{commit}")"
+info "mode=$MODE release_ref=$RELEASE_REF release=$release_sha candidate_tag=$RELEASE_CANDIDATE_TAG candidate=$candidate_sha version=$VERSION"
 
-if ! git diff --quiet "$MAIN_REF" "$DEVELOP_REF"; then
-  fail "$DEVELOP_REF differs in content from $MAIN_REF (merge develop->main before release)"
+if ! git merge-base --is-ancestor "$RELEASE_CANDIDATE_TAG" "$RELEASE_REF"; then
+  fail "$RELEASE_CANDIDATE_TAG ($candidate_sha) is not an ancestor of $RELEASE_REF ($release_sha)"
+fi
+
+if [[ "$MODE" == "final" && "$RELEASE_REF" != "origin/main" ]]; then
+  fail "final mode must validate origin/main (got: $RELEASE_REF)"
 fi
 
 python3 .github/scripts/release_artifacts.py check-version-unpublished \
