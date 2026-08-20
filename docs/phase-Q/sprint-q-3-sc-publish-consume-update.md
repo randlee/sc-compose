@@ -109,6 +109,22 @@ close the sprint.
   upstream Homebrew template's `binary_paths`/manifest `binaries` mismatch.
   No production publication occurred.
 
+## Q3 follow-up blocker resolutions
+
+- **Q3-BLOCK-01 (`go_native`)** — confirmed as an upstream `sc-publish`
+  rendering defect: the install manifest declares `go_native`, but the
+  upstream `publish-artifacts.toml.j2` does not render that table. This is
+  tracked by [sc-publish#42](https://github.com/randlee/sc-publish/issues/42);
+  no consumer workaround was added, and the vendored package remains exact.
+- **Q3-BLOCK-02 (Homebrew fixture)** — fixed the sc-compose test fixture to
+  use the current upstream `binary_paths` contract rather than the obsolete
+  `binaries` key. The upstream template was not modified.
+- **Q3-BLOCK-03 (empty channel JSON)** — fixed the consumer-owned
+  `.github/workflows/release-preflight.yml` channel-results step to normalize
+  missing channel output to `{}` and validate JSON before `jq --argjson`.
+  This is intentionally outside `plugins/sc-publish/`; it prevents an empty
+  optional GitHub Actions output from masking the actual preflight result.
+
 The Release Preflight acceptance criterion's "explicit, expected
 external-service stop" means: the workflow run halts at a specific,
 independently verifiable step — the Test-PyPI/production gate that requires
