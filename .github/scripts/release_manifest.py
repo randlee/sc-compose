@@ -1,12 +1,17 @@
 """Manifest and channel-contract parsing for the vendorable publish kit."""
 from __future__ import annotations
 
+import re
 import tomllib
 from pathlib import Path, PurePosixPath
 
 
 CHANNEL_CONTRACTS_FILE = "publish-channel-contracts.toml"
 ROOT_CHANNELS = frozenset({"crates_io", "github_release"})
+SUPPORTED_SCHEMA_VERSION = 1
+# Single source for the release Rust toolchain when the manifest does not
+# declare [project].rust_toolchain; workflows read it via `build-plan`.
+DEFAULT_RUST_TOOLCHAIN = "1.94.1"
 
 
 def _require_keys(entry: dict, required: tuple[str, ...], label: str) -> None:
@@ -38,9 +43,12 @@ def load_channel_contracts(path: Path) -> dict[str, dict]:
 
 def load_manifest(path: Path, *, with_channel_contracts: bool = False) -> dict:
     data = tomllib.loads(path.read_text(encoding="utf-8"))
+    schema_version = data.get("schema_version", SUPPORTED_SCHEMA_VERSION)
+    if schema_version != SUPPORTED_SCHEMA_VERSION:
+        raise SystemExit(f"unsupported manifest schema_version: {schema_version!r}")
+    # An empty crates list is valid: pure-Python consumers publish no Rust
+    # crates, and every Cargo step gates on the manifest's crates.
     crates = data.get("crates", [])
-    if not crates:
-        raise SystemExit("manifest must define [[crates]]")
     release_binaries = data.get("release_binaries", [])
     python_packages = data.get("python_packages", [])
     python_distributions = data.get("python_distributions", [])
@@ -59,6 +67,22 @@ def load_manifest(path: Path, *, with_channel_contracts: bool = False) -> dict:
             path.parent / CHANNEL_CONTRACTS_FILE
         )
     return manifest
+
+
+def manifest_workspace_toml(manifest: dict) -> str:
+    """Return the manifest-declared Cargo workspace manifest path."""
+    value = manifest["project"].get("workspace_toml", "Cargo.toml")
+    if not isinstance(value, str) or not value:
+        raise SystemExit("[project].workspace_toml must be a non-empty string")
+    return value
+
+
+def manifest_rust_toolchain(manifest: dict) -> str:
+    """Return the manifest-declared release Rust toolchain."""
+    value = manifest["project"].get("rust_toolchain", DEFAULT_RUST_TOOLCHAIN)
+    if not isinstance(value, str) or not value:
+        raise SystemExit("[project].rust_toolchain must be a non-empty string")
+    return value
 
 
 def workspace_members(workspace_toml: Path) -> set[str]:
@@ -209,6 +233,28 @@ def _python_project_name(pyproject_toml: Path) -> str:
     return name
 
 
+SUPPORTED_PYTHON_BUILD_SYSTEMS = frozenset({"maturin", "setuptools"})
+
+
+def _python_distribution_build_system(distribution: dict) -> str:
+    """Resolve one distribution's build system; unsupported shapes fail closed."""
+    name = distribution.get("name", "?")
+    cargo_manifest = distribution.get("cargo_manifest")
+    build_system = distribution.get("build_system")
+    if cargo_manifest and build_system:
+        raise SystemExit(
+            f"[[python_distributions]] {name}: must not set both cargo_manifest and build_system"
+        )
+    if cargo_manifest:
+        return "maturin"
+    if build_system not in SUPPORTED_PYTHON_BUILD_SYSTEMS:
+        raise SystemExit(
+            f"[[python_distributions]] {name}: unsupported build_system {build_system!r}; "
+            "declare cargo_manifest (maturin) or build_system = \"setuptools\""
+        )
+    return build_system
+
+
 def _python_distribution_entries(manifest: dict) -> list[dict]:
     """Return normalized Python distribution entries from the release manifest."""
     packages = {entry["package"]: entry for entry in manifest["python_packages"]}
@@ -223,6 +269,7 @@ def _python_distribution_entries(manifest: dict) -> list[dict]:
                 "source": source,
                 "pyproject": package["manifest"],
                 "cargo_manifest": distribution.get("cargo_manifest"),
+                "build_system": _python_distribution_build_system(distribution),
                 "module_path": distribution.get(
                     "module_path", f"{source}/python/{package['module']}"
                 ),
@@ -360,6 +407,83 @@ def _homebrew_formulas_for_tag(
     return selected
 
 
+def _normalize_pypi_name(name: str) -> str:
+    """Return the PEP 503 canonical project name used for public lookups."""
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def _url_from_contract(template: str, name: str, version: str) -> str:
+    return template.format(name=name, version=version)
+
+
+def _public_registry_checks(
+    contracts: dict[str, dict], channel_name: str, name: str, version: str | None
+) -> list[dict[str, str | None]]:
+    """Build contract-derived public registry checks for one candidate artifact."""
+    try:
+        contract = contracts[channel_name]
+    except KeyError as error:
+        raise SystemExit(f"channel contract missing for {channel_name}") from error
+    if not contract.get("public_registry_checks", False):
+        raise SystemExit(f"{channel_name} does not support a public registry inquiry")
+
+    normalized_name = _normalize_pypi_name(name) if channel_name == "pypi" else name
+    registry_contracts: list[dict[str, str]]
+    if channel_name == "crates_io":
+        registry_contracts = [
+            {
+                "name": "crates.io",
+                "project_lookup_url": contract["project_lookup_url"],
+                "version_lookup_url": contract["version_lookup_url"],
+                "version_policy": "must_be_absent",
+            }
+        ]
+    else:
+        registry_contracts = contract.get("registries", [])
+
+    checks: list[dict[str, str]] = []
+    for registry in registry_contracts:
+        check: dict[str, str | None] = {
+            "channel": channel_name,
+            "agent": contract["agent"],
+            "registry": registry["name"],
+            "name": name,
+            "normalized_name": normalized_name,
+            "expected_version": version,
+            "project_lookup_url": _url_from_contract(
+                registry["project_lookup_url"], normalized_name, version or ""
+            ),
+            "version_lookup_url": (
+                _url_from_contract(registry["version_lookup_url"], normalized_name, version)
+                if version
+                else None
+            ),
+            "version_policy": registry["version_policy"],
+        }
+        checks.append(check)
+    return checks
+
+
+def registry_version_state(url: str, timeout: int = 20) -> str:
+    """Resolve an exact version_lookup_url to published/absent; fail closed otherwise."""
+    import urllib.error
+    import urllib.request
+
+    request = urllib.request.Request(url, headers={"User-Agent": "sc-publish-kit"})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            status = response.status
+    except urllib.error.HTTPError as error:
+        status = error.code
+    except (urllib.error.URLError, TimeoutError) as error:
+        raise SystemExit(f"registry lookup failed for {url}: {error}") from error
+    if status == 200:
+        return "published"
+    if status == 404:
+        return "absent"
+    raise SystemExit(f"registry state for {url} is indeterminate (status {status})")
+
+
 def _channel_contract(manifest: dict, channel_name: str) -> dict:
     try:
         contract = manifest["channel_contracts"][channel_name]
@@ -379,8 +503,8 @@ def _channel_names(manifest: dict) -> tuple[str, ...]:
     unknown = sorted(set(channels) - post_release_channels)
     if unknown:
         raise SystemExit("unsupported release channel(s): " + ", ".join(unknown))
-    if not channels:
-        raise SystemExit("manifest must define at least one [channels.<name>] table")
+    # An empty table set is valid: post-release channels are opt-in per
+    # consumer; the root channels are contract-required instead.
     return tuple(channels)
 
 

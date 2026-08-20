@@ -253,4 +253,15 @@ jobs:
           done < ../homebrew-formula-paths.txt
           git diff --cached --quiet && echo 'Formula already matches the release assets' && exit 0
           git commit -m "chore: bump ${PROJECT_NAME} to v${RELEASE_VERSION}"
-          git push
+          # Concurrency groups are per-tag, so two different tags can race the
+          # tap push; fetch-rebase-retry instead of failing on the first reject.
+          tap_branch="$(git rev-parse --abbrev-ref HEAD)"
+          for attempt in 1 2 3 4 5; do
+            if git push origin "${tap_branch}"; then
+              exit 0
+            fi
+            echo "push rejected (attempt ${attempt}); rebasing onto origin/${tap_branch}"
+            git pull --rebase origin "${tap_branch}"
+          done
+          echo "failed to push Homebrew formula update after 5 attempts" >&2
+          exit 1

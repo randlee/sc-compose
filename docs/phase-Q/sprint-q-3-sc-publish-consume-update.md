@@ -1,7 +1,7 @@
 ---
 id: Q.3
 title: consume sc-publish develop update
-status: planned
+status: in_progress
 branch: sprint/q-3-sc-publish-consume-update
 worktree: ../sc-compose-worktrees/sprint/q-3-sc-publish-consume-update
 target: sc-compose develop
@@ -85,6 +85,22 @@ record which venv path was used in the sprint handoff.
 Then run the installed GitHub Actions Release Preflight, recording the
 workflow run URL in the sprint handoff. Local success is not sufficient to
 close the sprint.
+
+## Validation evidence
+
+- The package was re-vendored from `sc-publish` develop `ce85b4d`; tracked-file
+  parity is exact (the upstream checkout has only an untracked `.github/templates`
+  directory beyond the committed package tree).
+- Installer dry-run, install, and second dry-run all completed cleanly; the
+  second dry-run returned zero.
+- Manifest, publish-order, and version-lockstep validation passed. Package
+  script tests passed (`63 passed, 7 skipped, 3 subtests`).
+- The pinned bootstrap environment was `/private/tmp/sc-compose-q3-venv-1.4.1/bin/python`
+  with `sc-compose==1.4.1`. The full suite reached 125 passed tests but has
+  four collection/test failures because the upstream `ce85b4d` template does
+  not render the caller-declared `go_native` table into
+  `release/publish-artifacts.toml`. This is an upstream sc-publish defect and
+  is not patched in this consumer sprint.
 
 The Release Preflight acceptance criterion's "explicit, expected
 external-service stop" means: the workflow run halts at a specific,

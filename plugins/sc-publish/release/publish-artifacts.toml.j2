@@ -12,12 +12,11 @@ required_variables:
   - project.license
   - project.readme_dependency_crate
   - project.renderer_archive_path
+  - project.workspace_toml
+  - project.rust_toolchain
   - release_targets
   - crates
   - release_binaries
-  - installed_docs.source_root
-  - installed_docs.install_root
-  - installed_docs.entrypoint
   - python_packages
   - python_distributions
   - channels.pypi.workflow
@@ -45,7 +44,12 @@ required_variables:
   - channels.winget.installer_target
   - has_readme_dependency_crate
   - has_renderer_archive_path
-  - has_installed_docs
+  - has_workspace_toml
+  - has_rust_toolchain
+  - has_channel_pypi
+  - has_channel_homebrew
+  - has_channel_winget
+  - has_channel_scoop
 ---
 schema_version = {{ schema_version }}
 
@@ -61,6 +65,12 @@ readme_dependency_crate = {{ project.readme_dependency_crate }}
 {% if has_renderer_archive_path %}
 renderer_archive_path = {{ project.renderer_archive_path }}
 {% endif %}
+{% if has_workspace_toml %}
+workspace_toml = {{ project.workspace_toml }}
+{% endif %}
+{% if has_rust_toolchain %}
+rust_toolchain = {{ project.rust_toolchain }}
+{% endif %}
 
 {% for target in release_targets %}
 [[release_targets]]
@@ -74,12 +84,9 @@ archive = {{ target.archive }}
 artifact = {{ crate.artifact }}
 package = {{ crate.package }}
 cargo_toml = {{ crate.cargo_toml }}
-required = {{ crate.required }}
 publish = {{ crate.publish }}
 publish_order = {{ crate.publish_order }}
-preflight_check = {{ crate.preflight_check }}
 wait_after_publish_seconds = {{ crate.wait_after_publish_seconds }}
-verify_install = {{ crate.verify_install }}
 {% endfor %}
 
 {% for binary in release_binaries %}
@@ -89,13 +96,6 @@ name = {{ binary.name }}
 bundled_paths = {{ binary.bundled_paths }}
 {% endif %}
 {% endfor %}
-
-{% if has_installed_docs %}
-[installed_docs]
-source_root = {{ installed_docs.source_root }}
-install_root = {{ installed_docs.install_root }}
-entrypoint = {{ installed_docs.entrypoint }}
-{% endif %}
 
 {% for package in python_packages %}
 [[python_packages]]
@@ -121,13 +121,16 @@ sdist = {{ distribution.sdist }}
 wheels = {{ distribution.wheels }}
 {% endfor %}
 
+{% if has_channel_pypi %}
 [channels.pypi]
 workflow = {{ channels.pypi.workflow }}
 dispatch_inputs = {{ channels.pypi.dispatch_inputs }}
 credential_rehearsal_inputs = {{ channels.pypi.credential_rehearsal_inputs }}
 test_repository = {{ channels.pypi.test_repository }}
 production_repository = {{ channels.pypi.production_repository }}
+{% endif %}
 
+{% if has_channel_homebrew %}
 [channels.homebrew]
 workflow = {{ channels.homebrew.workflow }}
 dispatch_inputs = {{ channels.homebrew.dispatch_inputs }}
@@ -151,13 +154,17 @@ release_track = {{ formula.release_track }}
 key = {{ asset.key }}
 target = {{ asset.target }}
 {% endfor %}
+{% endif %}
 
+{% if has_channel_winget %}
 [channels.winget]
 workflow = {{ channels.winget.workflow }}
 dispatch_inputs = {{ channels.winget.dispatch_inputs }}
 identifier = {{ channels.winget.identifier }}
 installer_target = {{ channels.winget.installer_target }}
+{% endif %}
 
+{% if has_channel_scoop %}
 [channels.scoop]
 workflow = {{ channels.scoop.workflow }}
 dispatch_inputs = {{ channels.scoop.dispatch_inputs }}
@@ -167,3 +174,4 @@ manifest_template = {{ channels.scoop.manifest_template }}
 installer_target = {{ channels.scoop.installer_target }}
 binary = {{ channels.scoop.binary }}
 renderer_target = {{ channels.scoop.renderer_target }}
+{% endif %}

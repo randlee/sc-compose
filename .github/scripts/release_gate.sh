@@ -5,6 +5,7 @@ MAIN_REF="${1:-origin/main}"
 DEVELOP_REF="${2:-origin/develop}"
 VERSION="${3:-${RELEASE_VERSION:-}}"
 MANIFEST="${4:-release/publish-artifacts.toml}"
+WORKSPACE_TOML="${5:-Cargo.toml}"
 
 fail() {
   echo "release-gate: FAIL - $*" >&2
@@ -39,6 +40,6 @@ python3 .github/scripts/release_artifacts.py check-version-unpublished \
 
 python3 .github/scripts/release_artifacts.py verify-version-lockstep \
   --manifest "$MANIFEST" \
-  --workspace-toml Cargo.toml >/dev/null
+  --workspace-toml "$WORKSPACE_TOML" >/dev/null
 
 info "PASS - release gate checks satisfied"

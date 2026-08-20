@@ -167,4 +167,15 @@ jobs:
           git add "${MANIFEST_PATH}"
           git diff --cached --quiet && echo 'Scoop manifest already matches the release assets' && exit 0
           git commit -m "chore: bump ${PROJECT_NAME} to v${RELEASE_VERSION}"
-          git push
+          # Concurrency groups are per-tag, so two different tags can race the
+          # bucket push; fetch-rebase-retry instead of failing on the first reject.
+          bucket_branch="$(git rev-parse --abbrev-ref HEAD)"
+          for attempt in 1 2 3 4 5; do
+            if git push origin "${bucket_branch}"; then
+              exit 0
+            fi
+            echo "push rejected (attempt ${attempt}); rebasing onto origin/${bucket_branch}"
+            git pull --rebase origin "${bucket_branch}"
+          done
+          echo "failed to push Scoop manifest update after 5 attempts" >&2
+          exit 1

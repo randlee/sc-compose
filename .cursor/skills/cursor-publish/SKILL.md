@@ -78,7 +78,7 @@ python3 .github/scripts/release_artifacts.py channel-dispatch-plan \
 <cursor-publish-assignment runtime="cursor">
   <mode>preflight|publish|retry</mode>
   <version>X.Y.Z</version>
-  <recipient>team-lead</recipient>
+  <recipient>{{ recipient }}</recipient>
   <constraints>Inline channel steps only; no Task spawns.</constraints>
 </cursor-publish-assignment>
 ```

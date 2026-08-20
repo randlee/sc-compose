@@ -8,7 +8,7 @@ tag, token request, workflow dispatch, or publication.
 
 ## Prompt
 
-Start a fresh evaluation-only `publisher`, then ask whether `atm-serde` is
+Start a fresh evaluation-only `publisher`, then ask whether `example-crate` is
 available on `<registry>`. Supply only the candidate name and optional version.
 Do not provide a release assignment; `publisher` must delegate a background
 worker. Neither agent may publish or dispatch a workflow; the parent must not

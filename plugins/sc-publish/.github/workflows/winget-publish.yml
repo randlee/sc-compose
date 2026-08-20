@@ -49,8 +49,41 @@ jobs:
     needs: verify-release
     runs-on: ubuntu-latest
     steps:
+      # Detect-and-skip: a retried leg must not open a duplicate winget-pkgs
+      # pull request for an identifier+version that is already merged or
+      # already awaiting review. A probe failure fails the leg (fail closed).
+      - id: winget_probe
+        name: Probe winget-pkgs for an existing manifest or submission
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IDENTIFIER: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.identifier }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          version="${RELEASE_TAG#v}"
+          first_letter="$(tr '[:upper:]' '[:lower:]' <<<"${IDENTIFIER:0:1}")"
+          manifest_path="manifests/${first_letter}/${IDENTIFIER//.//}/${version}"
+          already_published=false
+          if gh api "repos/microsoft/winget-pkgs/contents/${manifest_path}" >/dev/null 2>&1; then
+            echo "winget-pkgs already publishes ${IDENTIFIER} ${version} (${manifest_path}); skipping submission."
+            already_published=true
+          else
+            pr_count="$(gh api -X GET search/issues \
+              -f q="repo:microsoft/winget-pkgs type:pr in:title ${IDENTIFIER} ${version}" \
+              --jq '.total_count')"
+            if [[ "${pr_count}" != "0" ]]; then
+              echo "A winget-pkgs pull request (open or merged) already exists for ${IDENTIFIER} ${version}; skipping submission."
+              already_published=true
+            fi
+          fi
+          echo "already_published=${already_published}" >> "$GITHUB_OUTPUT"
+
       - name: Publish to Winget
-        uses: vedantmgoyal2009/winget-releaser@v2
+        if: ${{ steps.winget_probe.outputs.already_published != 'true' }}
+        # Pinned to the v2 release commit so this leg's behavior cannot change
+        # without a kit change (mutable tags are not a retry-safety contract).
+        uses: vedantmgoyal2009/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2
         with:
           identifier: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.identifier }}
           release-tag: ${{ inputs.tag }}

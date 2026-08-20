@@ -880,7 +880,7 @@ Status:
   canonical publishing agents, workflows, scripts, actions, and channel
   templates from `sc-publish`); production publication remains gated on the
   credential-bearing rehearsal workflow;
-- planned: Q.3 consumes a further sc-publish develop update (re-vendors
+- in progress: Q.3 consumes a further sc-publish develop update (re-vendors
   `plugins/sc-publish/` and revalidates sc-compose's own install/test/CI
   surface); sc-compose remains a consumer of `sc-publish`, not its owner, and
   Q.3 does not modify sc-publish's internal probe, workflow, or install
