@@ -1048,6 +1048,87 @@ fn toml_fixture_extracts_tables_and_array_of_table_paths() {
 }
 
 #[test]
+fn toml_repeated_table_fixture_matches_each_element_and_preserves_paths() {
+    let report = extract(&toml_request(
+        include_str!("fixtures/reverse-extract/toml-repeated-tables.toml.j2"),
+        include_str!("fixtures/reverse-extract/toml-repeated-tables.toml"),
+    ))
+    .unwrap();
+
+    assert_eq!(
+        report.values[&variable("first_target")],
+        "aarch64-apple-darwin"
+    );
+    assert_eq!(
+        report.values[&variable("second_target")],
+        "x86_64-pc-windows-msvc"
+    );
+    assert_eq!(report.values[&variable("first_os")], "macos-14");
+    assert_eq!(report.values[&variable("second_os")], "windows-latest");
+
+    let first_target = report
+        .occurrences
+        .iter()
+        .find(|occurrence| occurrence.variable == variable("first_target"))
+        .unwrap();
+    assert_eq!(
+        first_target.path,
+        vec![
+            ExtractionPathSegment::Toml(TomlPathSegment::TableKey {
+                key: "release_targets".to_owned(),
+            }),
+            ExtractionPathSegment::Toml(TomlPathSegment::ArrayIndex { index: 0 }),
+            ExtractionPathSegment::Toml(TomlPathSegment::TableKey {
+                key: "target".to_owned(),
+            }),
+        ]
+    );
+
+    let second_target = report
+        .occurrences
+        .iter()
+        .find(|occurrence| occurrence.variable == variable("second_target"))
+        .unwrap();
+    assert_eq!(
+        second_target.path,
+        vec![
+            ExtractionPathSegment::Toml(TomlPathSegment::TableKey {
+                key: "release_targets".to_owned(),
+            }),
+            ExtractionPathSegment::Toml(TomlPathSegment::ArrayIndex { index: 1 }),
+            ExtractionPathSegment::Toml(TomlPathSegment::TableKey {
+                key: "target".to_owned(),
+            }),
+        ]
+    );
+}
+
+#[test]
+fn toml_repeated_table_shape_mismatch_fails_closed() {
+    let rendered = include_str!("fixtures/reverse-extract/toml-repeated-tables.toml")
+        .split_once("\n\n[[release_targets]]")
+        .map_or_else(
+            || panic!("repeated-table fixture must contain two table blocks"),
+            |(first, _)| first.to_owned(),
+        );
+    let error = extract(&toml_request(
+        include_str!("fixtures/reverse-extract/toml-repeated-tables.toml.j2"),
+        &rendered,
+    ))
+    .unwrap_err();
+
+    assert_eq!(
+        error.code(),
+        sc_composer::DiagnosticCode::ErrExtractTomlShapeMismatch
+    );
+    assert!(
+        error
+            .to_string()
+            .contains("TOML array-of-tables length does not match")
+    );
+}
+
+#[test]
 fn toml_fixture_rejects_malformed_duplicate_and_shape_boundaries() {
     let malformed = extract(&toml_request(
         include_str!("fixtures/reverse-extract/toml-malformed.toml.j2"),
