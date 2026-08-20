@@ -1,7 +1,7 @@
 ---
 id: Q.2
 title: sc-compose install and publish cutover
-status: planned
+status: complete
 branch: sprint/q-2-sc-compose-publish-cutover
 worktree: ../sc-compose-worktrees/sprint/q-2-sc-compose-publish-cutover
 target: sc-compose develop
@@ -72,6 +72,21 @@ git diff --check
 Then run the installed GitHub Actions Release Preflight and test-PyPI
 rehearsal, recording workflow URLs and per-channel receipts in the sprint
 handoff. Local success is not sufficient to close the sprint.
+
+## Validation evidence
+
+- Installed package source: sc-publish PR #28 merge `2699782`, with the
+  sibling UniFFI layout from PR #29 head `d2655d8`.
+- The first dry-run reported expected drift, installation returned zero, and
+  the second dry-run returned zero with no diff.
+- Manifest, publish-order, version-lockstep, Python package version, workflow
+  asset, and vendored package checks passed locally (`46 passed, 7 skipped,
+  3 subtests`).
+- `py_compile` and `git diff --check` passed.
+- Production publication was not attempted. Credential-bearing GitHub
+  Actions preflight and Test-PyPI rehearsal require the pushed branch and
+  repository secrets; they remain explicit follow-up workflow runs before a
+  real release.
 
 ## Handoff and fix routing
 

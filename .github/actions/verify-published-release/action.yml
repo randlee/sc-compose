@@ -3,7 +3,7 @@ description: Validate a release tag, its published GitHub Release, and required 
 
 inputs:
   release_tag:
-    description: Published release tag to verify (vX.Y.Z).
+    description: Published release tag to verify (vX.Y.Z, optionally with SemVer prerelease/build metadata).
     required: true
   asset_patterns:
     description: Optional newline-separated regular expressions that must each match a release asset.
@@ -23,8 +23,8 @@ runs:
       run: |
         set -euo pipefail
 
-        if [[ ! "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          echo "Invalid tag: '${RELEASE_TAG}' (expected vX.Y.Z)" >&2
+        if [[ ! "${RELEASE_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then
+          echo "Invalid tag: '${RELEASE_TAG}' (expected vX.Y.Z with optional SemVer prerelease/build metadata)" >&2
           exit 1
         fi
 

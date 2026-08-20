@@ -63,19 +63,19 @@ jobs:
 
       - name: Verify requested version matches workspace
         run: |
-          python3 scripts/release_artifacts.py verify-version \
+          python3 .github/scripts/release_artifacts.py verify-version \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --workspace-toml Cargo.toml \
             --version '${{ steps.meta.outputs.release_version }}'
 
       - name: Verify release version lockstep
         run: |
-          python3 scripts/release_artifacts.py verify-version-lockstep \
+          python3 .github/scripts/release_artifacts.py verify-version-lockstep \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
             --workspace-toml Cargo.toml
 
       - name: Run release gate
-        run: scripts/release_gate.sh origin/main origin/develop '${{ steps.meta.outputs.release_version }}' "${RELEASE_ARTIFACT_MANIFEST}"
+        run: .github/scripts/release_gate.sh origin/main origin/develop '${{ steps.meta.outputs.release_version }}' "${RELEASE_ARTIFACT_MANIFEST}"
 
       - name: Ensure tag is correct or create it
         id: release-ref
@@ -138,7 +138,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bin_args="$(python3 scripts/release_artifacts.py cargo-build-bin-args --manifest "${RELEASE_ARTIFACT_MANIFEST}")"
+          bin_args="$(python3 .github/scripts/release_artifacts.py cargo-build-bin-args --manifest "${RELEASE_ARTIFACT_MANIFEST}")"
           cargo build --release --target ${{ matrix.target }} ${bin_args}
 
       - name: Package manifest-declared release archive
@@ -160,7 +160,7 @@ jobs:
               subprocess.check_output(
                   [
                       "python3",
-                      "scripts/release_artifacts.py",
+                      ".github/scripts/release_artifacts.py",
                       "release-package-config",
                       "--manifest",
                       os.environ["RELEASE_ARTIFACT_MANIFEST"],
@@ -268,7 +268,7 @@ jobs:
           set -euo pipefail
           library="target/${{ matrix.target }}/release/libsc_sha_go.a"
           version='${{ needs.gate-and-tag.outputs.release_version }}'
-          python3 scripts/release_artifacts.py stage-go-native-module \
+          python3 .github/scripts/release_artifacts.py stage-go-native-module \
             --manifest "$RELEASE_ARTIFACT_MANIFEST" \
             --target '${{ matrix.target }}' \
             --native-library "$library" \
@@ -279,17 +279,6 @@ jobs:
       - name: Run bundled Go conformance tests
         working-directory: ${{ runner.temp }}/sc-sha-go-${{ matrix.target }}
         run: go test ./...
-      - name: Run independent Go consumer module
-        shell: bash
-        run: |
-          set -euo pipefail
-          consumer="$RUNNER_TEMP/sc-sha-go-consumer-${{ matrix.target }}"
-          cp -R bindings/sc-sha-go/tests/consumer-module "$consumer"
-          cd "$consumer"
-          module='github.com/randlee/sc-compose/bindings/sc-sha-go'
-          go mod edit -replace "$module=$RUNNER_TEMP/sc-sha-go-${{ matrix.target }}"
-          go get "$module/go/sc_sha_go@v${{ needs.gate-and-tag.outputs.release_version }}"
-          CGO_ENABLED=1 go run .
       - name: Upload Go module bundle
         uses: actions/upload-artifact@v4
         with:
@@ -345,16 +334,16 @@ jobs:
 
           while IFS='|' read -r package wait_secs; do
             publish_if_missing "$package" "${wait_secs:-0}"
-          done < <(python3 scripts/release_artifacts.py list-publish-plan --manifest "${RELEASE_ARTIFACT_MANIFEST}")
+          done < <(python3 .github/scripts/release_artifacts.py list-publish-plan --manifest "${RELEASE_ARTIFACT_MANIFEST}")
 
   release-plan:
     needs: gate-and-tag
     runs-on: ubuntu-latest
     outputs:
       release_target_matrix: ${{ steps.manifest.outputs.release_target_matrix }}
-      go_native_matrix: ${{ steps.manifest.outputs.go_native_matrix }}
       python_wheel_matrix: ${{ steps.manifest.outputs.python_wheel_matrix }}
       python_sdist_matrix: ${{ steps.manifest.outputs.python_sdist_matrix }}
+      go_native_matrix: ${{ steps.manifest.outputs.go_native_matrix }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -364,10 +353,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "release_target_matrix=$(python3 scripts/release_artifacts.py release-target-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
-          echo "go_native_matrix=$(python3 scripts/release_artifacts.py go-native-target-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
-          echo "python_wheel_matrix=$(python3 scripts/release_artifacts.py python-wheel-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
-          echo "python_sdist_matrix=$(python3 scripts/release_artifacts.py python-sdist-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
+          echo "release_target_matrix=$(python3 .github/scripts/release_artifacts.py release-target-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
+          echo "python_wheel_matrix=$(python3 .github/scripts/release_artifacts.py python-wheel-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
+          echo "python_sdist_matrix=$(python3 .github/scripts/release_artifacts.py python-sdist-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
+          echo "go_native_matrix=$(python3 .github/scripts/release_artifacts.py go-native-target-matrix --manifest release/publish-artifacts.toml)" >> "$GITHUB_OUTPUT"
 
   build-python-wheels:
     needs: [gate-and-tag, release-plan]
@@ -444,18 +433,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 scripts/release_artifacts.py verify-python-release-assets \
+          python3 .github/scripts/release_artifacts.py verify-python-release-assets \
             --manifest release/publish-artifacts.toml \
             --asset-dir dist
       - name: Publish wheels and sdist to TestPyPI
         env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_TOKEN }}
+          MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
           MATURIN_NON_INTERACTIVE: "1"
         run: maturin upload --repository testpypi --non-interactive --skip-existing dist/*.whl dist/*.tar.gz
 
   release:
     if: ${{ needs.gate-and-tag.outputs.release_target == 'production' }}
-    needs: [gate-and-tag, build, build-go-native, publish, build-python-wheels, build-python-sdists]
+    needs: [gate-and-tag, build, publish, build-python-wheels, build-python-sdists, build-go-native]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -468,44 +457,11 @@ jobs:
           path: artifacts
 
       - name: Collect archives
-        shell: bash
         run: |
-          set -euo pipefail
           mkdir -p release
           find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -exec mv {} release/ \;
           find artifacts -type f -name '*.whl' -exec mv {} release/ \;
-          while IFS= read -r -d '' module_file; do
-            bundle_dir="$(dirname "$module_file")"
-            target_name="$(basename "$bundle_dir" | sed 's/^sc-sha-go-//')"
-            archive="release/sc-sha-go-${target_name}.zip"
-            (cd "$bundle_dir" && zip -qr "$OLDPWD/$archive" .)
-          done < <(find artifacts -type f -name go.mod -print0)
           ls -la release/
-
-      - name: Set up Go for downloaded bundle verification
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.26.x"
-
-      - name: Verify documented downloaded Go bundle
-        shell: bash
-        run: |
-          set -euo pipefail
-          archive="release/sc-sha-go-x86_64-unknown-linux-gnu.zip"
-          test -f "$archive"
-          downloaded="$RUNNER_TEMP/sc-sha-go-downloaded"
-          mkdir -p "$downloaded"
-          unzip -q "$archive" -d "$downloaded/module"
-          test -f "$downloaded/module/go.mod"
-          test -f "$downloaded/module/native/x86_64-unknown-linux-gnu/libsc_sha_go.a"
-          (cd "$downloaded/module" && CGO_ENABLED=1 go test ./...)
-          consumer="$RUNNER_TEMP/sc-sha-go-downloaded-consumer"
-          cp -R bindings/sc-sha-go/tests/consumer-module "$consumer"
-          cd "$consumer"
-          module='github.com/randlee/sc-compose/bindings/sc-sha-go'
-          go mod edit -replace "$module=$downloaded/module"
-          go get "$module/go/sc_sha_go@v${{ needs.gate-and-tag.outputs.release_version }}"
-          CGO_ENABLED=1 go run .
 
       - name: Generate checksums
         working-directory: release

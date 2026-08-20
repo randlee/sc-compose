@@ -35,13 +35,13 @@ runs:
     - name: Sync Python package version
       shell: bash
       run: |
-        python3 scripts/release_artifacts.py sync-python-version \
+        python3 .github/scripts/release_artifacts.py sync-python-version \
           --workspace-toml Cargo.toml \
           --pyproject '${{ inputs.pyproject }}'
     - name: Verify Python package version
       shell: bash
       run: |
-        python3 scripts/release_artifacts.py verify-python-version \
+        python3 .github/scripts/release_artifacts.py verify-python-version \
           --workspace-toml Cargo.toml \
           --pyproject '${{ inputs.pyproject }}' \
           --version '${{ inputs.release_version }}'

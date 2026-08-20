@@ -35,7 +35,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          config="$(python3 scripts/release_artifacts.py channel-config --manifest release/publish-artifacts.toml --channel scoop)"
+          config="$(python3 .github/scripts/release_artifacts.py channel-config --manifest release/publish-artifacts.toml --channel scoop)"
           echo "channel_config=${config}" >> "$GITHUB_OUTPUT"
           {
             echo 'asset_patterns<<EOF'
@@ -124,18 +124,19 @@ jobs:
           }
           Path("scoop-vars.json").write_text(json.dumps(variables), encoding="utf-8")
           with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as env_file:
-              env_file.write(f"SC_COMPOSE_RENDERER_ARCHIVE={renderer_archive}\n")
+              env_file.write(f"PUBLISHED_RENDERER_ARCHIVE={renderer_archive}\n")
               env_file.write(
-                  "SC_COMPOSE_RENDERER_EXTRACT_DIR="
+                  "PUBLISHED_RENDERER_EXTRACT_DIR="
                   f"{project['archive_prefix']}_{os.environ['RELEASE_VERSION']}_{renderer_target['target']}\n"
               )
           PY
-      - name: Extract published sc-compose renderer
-        uses: ./.github/actions/extract-published-sc-compose
+      - name: Extract manifest-declared published renderer
+        uses: ./.github/actions/extract-published-renderer
         with:
-          archive: ${{ env.SC_COMPOSE_RENDERER_ARCHIVE }}
-          extract-dir: ${{ env.SC_COMPOSE_RENDERER_EXTRACT_DIR }}
-      - name: Render Scoop manifest with sc-compose
+          archive: ${{ env.PUBLISHED_RENDERER_ARCHIVE }}
+          extract-dir: ${{ env.PUBLISHED_RENDERER_EXTRACT_DIR }}
+          binary-path: ${{ fromJSON(needs.verify-release.outputs.channel_config).project.renderer_archive_path }}
+      - name: Render Scoop manifest with published renderer
         shell: bash
         env:
           MANIFEST_PATH: ${{ fromJSON(needs.verify-release.outputs.channel_config).channel.manifest_path }}
@@ -144,7 +145,7 @@ jobs:
           set -euo pipefail
           workspace_root="$(pwd)"
           mkdir -p "$(dirname "scoop-bucket/${MANIFEST_PATH}")"
-          "${SC_COMPOSE_RENDERER}" render --mode file --root release-source \
+          "${PUBLISHED_RENDERER}" render --mode file --root release-source \
             --file "${MANIFEST_TEMPLATE}" \
             --var-file "${workspace_root}/scoop-vars.json" \
             --output "${workspace_root}/scoop-bucket/${MANIFEST_PATH}"

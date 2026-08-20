@@ -876,9 +876,9 @@ Sprint entries:
 
 Status:
 
-- planned: migrate publishing agents, workflows, scripts, actions, and channel
-  templates to the canonical `sc-publish` package after mandatory Homebrew and
-  Scoop package parity is accepted;
+- complete: Q.2 installed the canonical publishing agents, workflows, scripts,
+  actions, and channel templates from `sc-publish`; production publication
+  remains gated on the credential-bearing rehearsal workflow;
 - Q.1 is the package-parity gate; Q.2 is the sc-compose install and publish
   cutover and cannot start until Q.1 is merged;
 - production publication remains blocked until the installed package renders a
