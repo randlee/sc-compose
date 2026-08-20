@@ -381,6 +381,7 @@ jobs:
             echo "${results}"
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
+          echo "Channel preflight results: ${results}"
           printf '%s\n' "${results}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Deny release after complete preflight summary
