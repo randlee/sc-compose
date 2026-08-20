@@ -134,6 +134,15 @@ close the sprint.
   (HTTP 403). No production publication occurred. This is recorded as a
   failed external-credential rehearsal, not as the clean expected stop needed
   to check the Release Preflight acceptance criterion.
+- Round-3 root-cause audit verified the PyPI/TestPyPI secret names exist, but
+  GitHub Actions `github.token` cannot list environment secret metadata: the
+  endpoint returns `Resource not accessible by integration` even with
+  `actions: read`. This is a package workflow design issue, tracked by
+  [sc-publish#44](https://github.com/randlee/sc-publish/issues/44); it needs
+  an environment-scoped, least-privilege availability check rather than a
+  metadata-listing API call. The present `CARGO_REGISTRY_TOKEN` is independently
+  rejected by crates.io and must be rotated as an external repository-secret
+  operation. Neither condition has a safe consumer-only code workaround.
 
 ## Q3 follow-up blocker resolutions
 
