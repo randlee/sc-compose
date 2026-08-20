@@ -132,22 +132,7 @@ fn match_toml(
             }
         }
         (toml::Value::Array(template), toml::Value::Array(rendered)) => {
-            if template.len() != rendered.len() {
-                return Err(shape_error(
-                    path,
-                    "TOML array length does not match the known template",
-                ));
-            }
-            for (index, (template_value, rendered_value)) in
-                template.iter().zip(rendered).enumerate()
-            {
-                let child_path = path
-                    .iter()
-                    .cloned()
-                    .chain([TomlPathSegment::ArrayIndex { index }])
-                    .collect::<Vec<_>>();
-                match_toml(template_value, rendered_value, &child_path, captures)?;
-            }
+            match_toml_array(template, rendered, path, captures)?;
         }
         (toml::Value::String(template), toml::Value::String(rendered)) => {
             let segments = raw_text::parse_raw_text_segments(template)
@@ -186,6 +171,43 @@ fn match_toml(
                 "TOML value does not match the known template",
             ));
         }
+    }
+    Ok(())
+}
+
+/// Match a fixed-shape TOML array, including an array-of-tables produced by
+/// repeated `[[table]]` declarations.
+///
+/// TOML array cardinality is part of the known-template contract: the
+/// rendered document must contain exactly as many elements as the template.
+/// Each element is then matched recursively so table keys, scalar values, and
+/// nested arrays retain the same structural checks and occurrence paths.
+fn match_toml_array(
+    template: &[toml::Value],
+    rendered: &[toml::Value],
+    path: &[TomlPathSegment],
+    captures: &mut Vec<Capture>,
+) -> Result<(), ExtractError> {
+    if template.len() != rendered.len() {
+        let is_array_of_tables = template
+            .iter()
+            .chain(rendered)
+            .all(|value| matches!(value, toml::Value::Table(_)));
+        let message = if is_array_of_tables {
+            "TOML array-of-tables length does not match the known template"
+        } else {
+            "TOML array length does not match the known template"
+        };
+        return Err(shape_error(path, message));
+    }
+
+    for (index, (template_value, rendered_value)) in template.iter().zip(rendered).enumerate() {
+        let child_path = path
+            .iter()
+            .cloned()
+            .chain([TomlPathSegment::ArrayIndex { index }])
+            .collect::<Vec<_>>();
+        match_toml(template_value, rendered_value, &child_path, captures)?;
     }
     Ok(())
 }

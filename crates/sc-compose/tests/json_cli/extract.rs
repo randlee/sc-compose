@@ -409,6 +409,41 @@ fn extract_json_toml_format_emits_paths_sources_and_clean_envelope() {
 }
 
 #[test]
+fn extract_json_toml_repeated_tables_preserves_each_array_index() {
+    let (template, rendered) = toml_fixture("toml-repeated-tables");
+    let output = sc_compose()
+        .arg("extract")
+        .arg(&template)
+        .arg(&rendered)
+        .arg("--format")
+        .arg("toml")
+        .arg("--json")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "{output:?}");
+    assert!(output.stderr.is_empty());
+    let value = parse_stdout(&output);
+    assert_envelope(&value);
+    assert_eq!(
+        value["payload"]["values"]["first_target"],
+        "aarch64-apple-darwin"
+    );
+    assert_eq!(
+        value["payload"]["values"]["second_target"],
+        "x86_64-pc-windows-msvc"
+    );
+    let occurrences = value["payload"]["occurrences"].as_array().unwrap();
+    let second_target = occurrences
+        .iter()
+        .find(|occurrence| occurrence["variable"] == "second_target")
+        .unwrap();
+    assert_eq!(second_target["path"][0]["key"], "release_targets");
+    assert_eq!(second_target["path"][1]["kind"], "array_index");
+    assert_eq!(second_target["path"][1]["index"], 1);
+}
+
+#[test]
 fn extract_json_raw_format_emits_text_spans_and_clean_envelope() {
     let (template, rendered) = raw_fixture("markdown");
     let output = sc_compose()
