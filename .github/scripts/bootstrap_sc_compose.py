@@ -4,15 +4,11 @@
 from __future__ import annotations
 
 import argparse
-import re
 import subprocess
 import sys
 from pathlib import Path
 
 
-# This is an intentional historical compatibility floor, not the workspace's
-# current release version in bindings/python/pyproject.toml. It is the first
-# published wheel with the renderer features required by publish-kit scripts.
 SC_COMPOSE_VERSION = "1.4.1"
 
 
@@ -24,37 +20,18 @@ def python_path(venv: Path) -> Path:
 
 
 def installed_version(python: Path) -> str | None:
-    """Return the installed distribution version without importing its binding module."""
+    """Return the wheel version already installed in the managed environment."""
     result = subprocess.run(
         [
             str(python),
             "-c",
-            "from importlib.metadata import version; print(version('sc-compose'))",
+            "import sc_compose; from importlib.metadata import version; print(version('sc-compose'))",
         ],
         check=False,
         capture_output=True,
         text=True,
     )
     return result.stdout.strip() if result.returncode == 0 else None
-
-
-def version_components(value: str) -> tuple[int, ...]:
-    """Return numeric release components for a stable sc-compose wheel version."""
-    if not re.fullmatch(r"\d+(?:\.\d+)*", value):
-        raise SystemExit(
-            "cannot verify managed sc-compose wheel version "
-            f"{value!r}; required >= {SC_COMPOSE_VERSION}"
-        )
-    return tuple(int(component) for component in value.split("."))
-
-
-def require_version_floor(installed: str) -> None:
-    """Fail before pytest can import a wheel below the publish-kit feature floor."""
-    if version_components(installed) < version_components(SC_COMPOSE_VERSION):
-        raise SystemExit(
-            "managed environment has incompatible sc-compose wheel: stale version "
-            f"{installed!r}; required >= {SC_COMPOSE_VERSION}. Use a new --venv path."
-        )
 
 
 def main() -> int:
@@ -81,12 +58,11 @@ def main() -> int:
             stdout=sys.stderr,
         )
         existing = installed_version(python)
-    if existing is None:
+    if existing != SC_COMPOSE_VERSION:
         raise SystemExit(
-            "managed environment has incompatible sc-compose wheel: "
-            "installation completed but its version could not be determined"
+            "managed environment has incompatible sc-compose wheel "
+            f"{existing!r}; expected {SC_COMPOSE_VERSION!r}. Use a new --venv path."
         )
-    require_version_floor(existing)
     print(python)
     return 0
 

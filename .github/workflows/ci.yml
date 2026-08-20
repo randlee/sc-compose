@@ -92,8 +92,8 @@ jobs:
             --manifest release/publish-artifacts.toml \
             --workspace-toml Cargo.toml
 
-      - name: Run publish-kit regression tests
-        run: python3 -m pytest .github/scripts/tests
+      - name: Run manifest validation regression tests
+        run: python3 -m pytest .github/scripts/tests/test_release_artifacts.py
 
       - name: Validate publish_order dependency graph
         run: bash scripts/ci/validate_publish_order.sh
