@@ -115,6 +115,13 @@ Rules:
 - Use file paths and line references whenever possible.
 - Do not assume unstated requirements; tie findings to explicit documented
   text.
+- Any Blocking finding asserting that an acceptance criterion is unmet must
+  quote the literal AC text (file:line) it is applying, not a paraphrase or
+  restatement — this applies with extra force when the criterion itself
+  already defines an accepted stop/failure condition (e.g. an expected
+  external-service or credential-probe stop) in the sprint doc, since a
+  paraphrase is how an unstated standard gets smuggled in as if it were
+  documented.
 
 ## Deliverable Verification Method
 

@@ -275,6 +275,22 @@ Reviewer ownership note:
   concrete repository evidence
 - a branch is not merge-ready if deliverable completion is below `100%`
 
+Independent AC-text verification (required before relaying a Blocking
+acceptance-criteria finding):
+- Before relaying any req-qa finding that asserts an acceptance criterion is
+  unmet as a merge-gating FAIL, quality-mgr must itself open the authoritative
+  sprint doc and read the cited AC lines — do not accept req-qa's restated
+  summary of the standard as sufficient on its own.
+- Confirm the standard the finding claims to be violating actually appears at
+  the cited location, in the cited words. If the sprint doc's own text already
+  defines the observed condition (e.g. a specific fail-closed probe result) as
+  an accepted, sufficient stop, the finding must be rejected or returned to
+  req-qa for correction rather than relayed as-is.
+- This step exists because a Blocking finding can cite a standard that does
+  not exist anywhere in the sprint doc or any agent definition; quote-only
+  verification against the live doc text is the check that catches it before
+  it blocks a merge cycle.
+
 ## Output Format
 
 All ATM messages must follow the required sequence:
