@@ -1,0 +1,82 @@
+---
+id: Q.2
+title: sc-compose install and publish cutover
+status: planned
+branch: sprint/q-2-sc-compose-publish-cutover
+worktree: ../sc-compose-worktrees/sprint/q-2-sc-compose-publish-cutover
+target: sc-compose develop
+depends_on: Q.1 merged sc-publish commit
+parallel_with: unrelated work outside release assets and publishing workflows
+---
+
+# Sprint Q.2 — sc-compose Install and Publish Cutover
+
+## Scope
+
+Install the reviewed sc-publish package into sc-compose and remove the
+independently maintained publishing implementation. The consumer retains a
+complete JSON input manifest and unrelated CI/Pages workflows only.
+
+## Exact targets
+
+- `release/sc-publish-install.json`
+- generated `release/publish-artifacts.toml`
+- generated `release/publish-channel-contracts.toml`
+- installed `.claude/`, `.cursor/`, `.github/actions/`, `.github/scripts/`,
+  `.github/workflows/`, and package-owned `release/` assets
+- consumer-owned `.github/workflows/ci.yml` and `.github/workflows/pages.yml`
+
+## Deliverables
+
+1. Create the complete sc-compose JSON input from the reviewed release surface:
+   all crates/order, release targets, binaries, Python distributions, Go
+   native metadata, and all four channel declarations.
+2. Install the exact Q.1 sc-publish commit into a clean sc-compose worktree.
+3. Overwrite package-owned publishing agents, skills, scripts, actions,
+   workflows, and templates; preserve unrelated CI, Pages, release notes, and
+   runtime files.
+4. Prove generated manifests validate against Cargo/package metadata and that
+   the installed workflows reference existing local assets.
+5. Run Release Preflight on a rehearsal version, then run the test-PyPI
+   rehearsal. Do not publish production artifacts in this sprint.
+
+## Acceptance criteria
+
+- [ ] `release/sc-publish-install.json` is complete and reviewed; no target or
+      channel is inferred by the installer.
+- [ ] The installer overwrites exactly the intended shared publishing assets
+      and generates the manifests.
+- [ ] A second dry run is clean with exit code zero.
+- [ ] `validate-manifest`, publish-order, version-lockstep, package checks, and
+      workflow-local-file checks pass.
+- [ ] Installed preflight emits complete per-channel results and correctly
+      distinguishes passed, failed, and blocked states.
+- [ ] A failed channel can be retried without rebuilding or replaying passed
+      channels; a blocked channel is not retried until missing evidence exists.
+- [ ] Test-PyPI rehearsal completes or records an explicit external-service
+      failure without production publication.
+- [ ] No production tag or publish occurs until exact-main final preflight and
+      explicit named-publisher authorization are present.
+
+## Required validation
+
+```text
+python3 plugins/sc-publish/install.py --input release/sc-publish-install.json --dry-run .
+python3 plugins/sc-publish/install.py --input release/sc-publish-install.json .
+python3 plugins/sc-publish/install.py --input release/sc-publish-install.json --dry-run .
+python3 .github/scripts/release_artifacts.py validate-manifest \
+  --manifest release/publish-artifacts.toml --workspace-toml Cargo.toml
+git diff --check
+```
+
+Then run the installed GitHub Actions Release Preflight and test-PyPI
+rehearsal, recording workflow URLs and per-channel receipts in the sprint
+handoff. Local success is not sufficient to close the sprint.
+
+## Handoff and fix routing
+
+Send team-lead the parent commit, exact package commit, manifest path, dry-run
+proof, workflow run URLs, and channel receipts. Team-lead opens the PR to
+develop and routes it to quality-mgr. Any remaining sc-lint or migration
+finding gets an independent fix worktree from this sprint commit, grouped by
+issue class, then follows the normal QA-approved merge and revalidation path.
