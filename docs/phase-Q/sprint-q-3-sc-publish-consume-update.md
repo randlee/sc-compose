@@ -24,6 +24,8 @@ install logic. The three known residual defects in that logic — pypi
 winget probe fail-open on transient errors — are `sc-publish`'s own bugs,
 already filed there as sc-publish#39, sc-publish#40, sc-publish#41. They are
 explicitly out of scope for this sprint; do not attempt to fix them here.
+The empty optional channel-output handling defect is likewise tracked upstream
+as [sc-publish#43](https://github.com/randlee/sc-publish/issues/43).
 
 ## Exact targets
 
@@ -54,15 +56,15 @@ explicitly out of scope for this sprint; do not attempt to fix them here.
 
 ## Acceptance criteria
 
-- [ ] `plugins/sc-publish/` matches sc-publish develop `ce85b4d` exactly
+- [x] `plugins/sc-publish/` matches sc-publish develop `ce85b4d` exactly
       (no drift, no local patches).
-- [ ] A second installer dry run is clean with exit code zero.
-- [ ] `validate-manifest`, publish-order, version-lockstep, package checks,
+- [x] A second installer dry run is clean with exit code zero.
+- [x] `validate-manifest`, publish-order, version-lockstep, package checks,
       and workflow-local-file checks pass.
 - [ ] Release Preflight rehearsal run is clean (or records an explicit,
       expected external-service stop) on the updated install.
-- [ ] sc-compose's own test run is confirmed to use the pinned bootstrap venv.
-- [ ] No sc-publish internal logic (probes, workflows, install.py) is
+- [x] sc-compose's own test run is confirmed to use the pinned bootstrap venv.
+- [x] No sc-publish internal logic (probes, workflows, install.py) is
       modified by this sprint's diff.
 
 ## Required validation
@@ -103,11 +105,24 @@ close the sprint.
   is not patched in this consumer sprint.
 - Release Preflight run `32340747396`
   ([workflow run](https://github.com/randlee/sc-compose/actions/runs/32340747396))
-  completed with the expected external credential failures plus two
-  upstream-consumption defects: `channel-results` fails closed on invalid
-  empty `jq --argjson` input, and the workspace test gate catches the
-  upstream Homebrew template's `binary_paths`/manifest `binaries` mismatch.
+  completed with the expected external credential failures plus the
+  `channel-results` defect: it fails closed on invalid empty `jq --argjson`
+  input. The earlier Homebrew `binary_paths`/`binaries` test-fixture mismatch
+  has been fixed in this consumer repository.
   No production publication occurred.
+- Post-fix `SC_LINT_SOURCE_ROOT=/Users/randlee/Documents/github/sc-lint cargo
+  test --workspace` passed. Without that explicit local source root, the two
+  `sc_lint_identity_literals` tests reproduce the known bootstrap/environment
+  failure on `develop`; this is pre-existing and not a Q3 regression.
+- The post-fix pinned-venv command was
+  `/private/tmp/sc-compose-q3-venv-1.4.1/bin/python -m pytest -q`. It recorded
+  `125 passed, 4 failed`; the four failures are only the `go_native` manifest
+  omission tracked by sc-publish#42.
+- After reverting the local consumer workflow patch, the installer dry run is
+  clean and `.github/workflows/release-preflight.yml` again exactly matches
+  the vendored workflow. The underlying empty-channel JSON defect is now
+  tracked by sc-publish#43 and must be fixed and re-vendored upstream before
+  this sprint can satisfy the fresh-clean-preflight criterion.
 
 ## Q3 follow-up blocker resolutions
 
@@ -119,11 +134,11 @@ close the sprint.
 - **Q3-BLOCK-02 (Homebrew fixture)** — fixed the sc-compose test fixture to
   use the current upstream `binary_paths` contract rather than the obsolete
   `binaries` key. The upstream template was not modified.
-- **Q3-BLOCK-03 (empty channel JSON)** — fixed the consumer-owned
-  `.github/workflows/release-preflight.yml` channel-results step to normalize
-  missing channel output to `{}` and validate JSON before `jq --argjson`.
-  This is intentionally outside `plugins/sc-publish/`; it prevents an empty
-  optional GitHub Actions output from masking the actual preflight result.
+- **Q3-BLOCK-03 (empty channel JSON)** — confirmed as an upstream package
+  workflow defect and filed as [sc-publish#43](https://github.com/randlee/sc-publish/issues/43).
+  The local consumer patch was reverted so installer dry-run remains clean;
+  Q3 awaits an upstream fix and re-vendor before its fresh-preflight
+  acceptance criterion can close.
 
 The Release Preflight acceptance criterion's "explicit, expected
 external-service stop" means: the workflow run halts at a specific,
