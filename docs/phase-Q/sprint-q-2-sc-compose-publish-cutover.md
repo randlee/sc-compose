@@ -49,7 +49,7 @@ complete JSON input manifest and unrelated CI/Pages workflows only.
 - [x] A second dry run is clean with exit code zero.
 - [x] `validate-manifest`, publish-order, version-lockstep, package checks, and
       workflow-local-file checks pass.
-- [ ] Installed preflight emits complete per-channel results and correctly
+- [x] Installed preflight emits complete per-channel results and correctly
       distinguishes passed, failed, and blocked states.
 - [x] A failed channel can be retried without rebuilding or replaying passed
       channels; a blocked channel is not retried until missing evidence exists.
@@ -94,6 +94,12 @@ handoff. Local success is not sufficient to close the sprint.
   `jq --argjson` processing.
 - The canonical package source is retained at `plugins/sc-publish`; its
   sibling UniFFI package is supplied by sc-publish PR #29 (`d2655d8`).
+- A non-publishing mixed-state rehearsal was run from this branch with
+  `channel_state_rehearsal=mixed-channel-states`: run
+  `32331918843` ([workflow run](https://github.com/randlee/sc-compose/actions/runs/32331918843)).
+  Its logged structured result contains `crates_io=failed`,
+  `github_release/homebrew/winget/scoop=passed`, and `pypi=blocked`; the
+  expected overall workflow failure prevented publication.
 
 ## Handoff and fix routing
 
