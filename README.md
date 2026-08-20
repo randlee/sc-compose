@@ -287,6 +287,7 @@ Run `sc-compose <command> --help` for the full flag surface.
 | Runtime | Agents | Commands | Skills |
 |---------|--------|----------|--------|
 | Claude | `.claude/agents`, `.agents/agents` | `.claude/commands`, `.agents/commands` | `.claude/skills`, `.agents/skills` |
+| Hermes | `.hermes/agents`, `.agents/agents`, `.claude/agents` | `.hermes/commands`, `.agents/commands`, `.claude/commands` | `.hermes/skills`, `.agents/skills`, `.claude/skills` |
 | Codex | `.codex/agents`, `.agents/agents`, `.claude/agents` | `.codex/commands`, `.agents/commands`, `.claude/commands` | `.codex/skills`, `.agents/skills`, `.claude/skills` |
 | Gemini | `.gemini/agents`, `.agents/agents`, `.claude/agents` | `.gemini/commands`, `.agents/commands`, `.claude/commands` | `.gemini/skills`, `.agents/skills`, `.claude/skills` |
 | OpenCode | `.opencode/agents`, `.agents/agents`, `.claude/agents` | same pattern | same pattern |

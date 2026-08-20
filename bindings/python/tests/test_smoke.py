@@ -150,7 +150,7 @@ def test_resolve_profile_supports_hermes_layout(tmp_path: Path) -> None:
 
     result = sc_compose.resolve_profile(request)
 
-    assert result.resolved_path.endswith(".hermes/agents/skillrx.md")
+    assert Path(result.resolved_path).parts[-3:] == (".hermes", "agents", "skillrx.md")
 
 
 def test_extraction_report_preserves_values_provenance_and_filters() -> None:

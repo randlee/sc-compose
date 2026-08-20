@@ -453,6 +453,9 @@ Runtime-specific directories:
 - `.claude/agents/`
 - `.claude/commands/`
 - `.claude/skills/`
+- `.hermes/agents/`
+- `.hermes/commands/`
+- `.hermes/skills/`
 - `.codex/agents/`
 - `.codex/commands/`
 - `.codex/skills/`
@@ -472,6 +475,7 @@ Shared directories:
 Default runtime search order for agents:
 
 - `claude`: `.claude/agents/<name>` -> `.agents/agents/<name>`
+- `hermes`: `.hermes/agents/<name>` -> `.agents/agents/<name>` -> `.claude/agents/<name>`
 - `codex`: `.codex/agents/<name>` -> `.agents/agents/<name>` -> `.claude/agents/<name>`
 - `gemini`: `.gemini/agents/<name>` -> `.agents/agents/<name>` -> `.claude/agents/<name>`
 - `opencode`: `.opencode/agents/<name>` -> `.agents/agents/<name>` -> `.claude/agents/<name>`
@@ -479,6 +483,7 @@ Default runtime search order for agents:
 Default runtime search order for commands:
 
 - `claude`: `.claude/commands/<name>` -> `.agents/commands/<name>`
+- `hermes`: `.hermes/commands/<name>` -> `.agents/commands/<name>` -> `.claude/commands/<name>`
 - `codex`: `.codex/commands/<name>` -> `.agents/commands/<name>` -> `.claude/commands/<name>`
 - `gemini`: `.gemini/commands/<name>` -> `.agents/commands/<name>` -> `.claude/commands/<name>`
 - `opencode`: `.opencode/commands/<name>` -> `.agents/commands/<name>` -> `.claude/commands/<name>`
@@ -486,6 +491,7 @@ Default runtime search order for commands:
 Default runtime search order for skills:
 
 - `claude`: `.claude/skills/<name>/` -> `.agents/skills/<name>/`
+- `hermes`: `.hermes/skills/<name>/` -> `.agents/skills/<name>/` -> `.claude/skills/<name>/`
 - `codex`: `.codex/skills/<name>/` -> `.agents/skills/<name>/` -> `.claude/skills/<name>/`
 - `gemini`: `.gemini/skills/<name>/` -> `.agents/skills/<name>/` -> `.claude/skills/<name>/`
 - `opencode`: `.opencode/skills/<name>/` -> `.agents/skills/<name>/` -> `.claude/skills/<name>/`
@@ -540,8 +546,8 @@ The CLI must support:
 - `--kind <agent|command|skill>`
 - `--agent <name>`
 - `--agent-type <name>` as an alias for `--agent`
-- `--runtime <claude|codex|gemini|opencode>` as an optional runtime selector
-- `--ai <claude|codex|gemini|opencode>` as an alias for `--runtime`
+- `--runtime <claude|hermes|codex|gemini|opencode>` as an optional runtime selector
+- `--ai <claude|hermes|codex|gemini|opencode>` as an alias for `--runtime`
 - `--var key=value` repeatably
 - `--var-file <path|->`
 - `--env-prefix <PREFIX_>`
