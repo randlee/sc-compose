@@ -71,7 +71,7 @@ or change the secret contract.
 
 - Verify crate owners for every crate in the manifest.
 - Verify the target version is unpublished before the workflow runs:
-  - `python3 scripts/release_artifacts.py check-version-unpublished --manifest release/publish-artifacts.toml --version <X.Y.Z>`
+  - `python3 .github/scripts/release_artifacts.py check-version-unpublished --manifest release/publish-artifacts.toml --version <X.Y.Z>`
 - Verify each configured install path includes its manifest-declared binaries
   and bundled paths.
 - Run a TestPyPI rehearsal when the manifest includes Python distributions;

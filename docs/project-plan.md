@@ -872,6 +872,25 @@ Sprint entries:
 - [Sprint P.2 — Go Module Distribution and Consumer Handoff](phase-P/sprint-p-2-go-module-distribution-and-handoff.md)
 - [Sprint P.3 — Phase P Release Preparation](phase-P/phase-P-plan.md#phase-p-release-preparation)
 
+### Phase Q Sprint Plans
+
+Status:
+
+- complete: Q.2 installed the canonical publishing agents, workflows, scripts,
+  actions, and channel templates from `sc-publish`; production publication
+  remains gated on the credential-bearing rehearsal workflow;
+- Q.1 is the package-parity gate; Q.2 is the sc-compose install and publish
+  cutover and cannot start until Q.1 is merged;
+- production publication remains blocked until the installed package renders a
+  complete manifest with the released sc-compose renderer and passes final
+  preflight.
+
+Sprint entries:
+
+- [Phase Q plan](phase-Q/phase-Q-plan.md)
+- [Sprint Q.1 — sc-publish Package Parity](phase-Q/sprint-q-1-sc-publish-package-parity.md)
+- [Sprint Q.2 — sc-compose Install and Publish Cutover](phase-Q/sprint-q-2-sc-compose-publish-cutover.md)
+
 ### Follow-on Chore: CI UniFFI Artifact Consumption
 
 - [CHORE.CI-UNIFFI-CONSUME — CI UniFFI Artifact Consumption](sprints/chore-ci-uniffi-artifact-consumption.md)
@@ -1561,7 +1580,7 @@ Acceptance Criteria:
 - workspace and crate manifests are updated to `1.0.0`
 - release workflow archives ship `bin/sc-compose` and
   `share/sc-compose/examples/...`
-- `scripts/release_gate.sh` exists and enforces release ancestry plus
+- `.github/scripts/release_artifacts.py` enforces release ancestry plus
   unpublished-version checks
 - release preflight verifies unpublished crate versions before release
 - release workflow publish steps are idempotent when crates are already live
