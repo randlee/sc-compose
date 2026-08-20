@@ -68,7 +68,17 @@ jobs:
           python-version: "3.x"
 
       - name: Install pytest
-        run: python3 -m pip install pytest
+        run: python3 -m pip install maturin==1.9.4 pytest
+
+      - name: Install Rust toolchain for renderer bindings
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+
+      - name: Build and install sc-compose renderer bindings
+        run: |
+          maturin build --manifest-path bindings/python/Cargo.toml --out "$RUNNER_TEMP/sc-compose-wheel"
+          python3 -m pip install "$RUNNER_TEMP"/sc-compose-wheel/*.whl
 
       - name: Validate manifest completeness
         run: |
