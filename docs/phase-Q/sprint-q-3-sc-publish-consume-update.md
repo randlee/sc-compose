@@ -75,11 +75,24 @@ python3 .github/scripts/release_artifacts.py validate-manifest \
   --manifest release/publish-artifacts.toml --workspace-toml Cargo.toml
 diff -rq plugins/sc-publish/ <sc-publish-repo-checkout>/plugins/sc-publish/
 git diff --check
+python3 -m pytest -q
 ```
+
+`python3 -m pytest -q` must be run through the pinned bootstrap venv used by
+Sprint Q.2 (`sc-compose==1.4.1`), not a stale ambient `sc-compose` install —
+record which venv path was used in the sprint handoff.
 
 Then run the installed GitHub Actions Release Preflight, recording the
 workflow run URL in the sprint handoff. Local success is not sufficient to
 close the sprint.
+
+The Release Preflight acceptance criterion's "explicit, expected
+external-service stop" means: the workflow run halts at a specific,
+independently verifiable step — the Test-PyPI/production gate that requires
+human-authorized publication — with that step's logs showing an expected
+stop reason (e.g. "no publisher authorization present"), not a silent
+timeout, an unrelated credential error, or a step that simply never ran. Any
+other non-clean outcome is a failure of this criterion, not a pass.
 
 ## Handoff and fix routing
 
