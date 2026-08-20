@@ -139,3 +139,4 @@ are QA-approved, merged, and the merged parent is revalidated.
 
 - [Sprint Q.1 — sc-publish package parity](sprint-q-1-sc-publish-package-parity.md)
 - [Sprint Q.2 — sc-compose install and publish cutover](sprint-q-2-sc-compose-publish-cutover.md)
+- [Sprint Q.3 — consume sc-publish develop update](sprint-q-3-sc-publish-consume-update.md)

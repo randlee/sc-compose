@@ -1,0 +1,90 @@
+---
+id: Q.3
+title: consume sc-publish develop update
+status: planned
+branch: sprint/q-3-sc-publish-consume-update
+worktree: ../sc-compose-worktrees/sprint/q-3-sc-publish-consume-update
+target: sc-compose develop
+depends_on: Q.2 merged (sc-compose develop 5ab6da0); sc-publish PR #38 merged (sc-publish develop ce85b4d)
+parallel_with: unrelated work outside release assets and publishing workflows
+---
+
+# Sprint Q.3 — Consume `sc-publish` develop Update
+
+## Scope
+
+sc-compose is a **consumer** of the `sc-publish` package, not its owner. This
+sprint re-installs the current `sc-publish` develop commit (`ce85b4d`) into
+sc-compose, replacing the Q.2-era vendored copy, and verifies sc-compose's own
+install/test/CI surface still passes against the update.
+
+This sprint does **not** modify `sc-publish`'s internal workflow, probe, or
+install logic. The three known residual defects in that logic — pypi
+`build_system` branching, GH Release probe fail-open on transient errors,
+winget probe fail-open on transient errors — are `sc-publish`'s own bugs,
+already filed there as sc-publish#39, sc-publish#40, sc-publish#41. They are
+explicitly out of scope for this sprint; do not attempt to fix them here.
+
+## Exact targets
+
+- `plugins/sc-publish/` (full re-vendor from sc-publish develop `ce85b4d`)
+- `release/sc-publish-install.json` (update only if the new package version
+  requires new/changed manifest fields; do not otherwise touch)
+- generated `release/publish-artifacts.toml`
+- generated `release/publish-channel-contracts.toml`
+- installed `.claude/`, `.cursor/`, `.github/actions/`, `.github/scripts/`,
+  `.github/workflows/`, and package-owned `release/` assets
+
+## Deliverables
+
+1. Re-run the installer against the current `sc-publish` develop commit
+   (`ce85b4d`) using the existing `release/sc-publish-install.json`, updating
+   only what the new package version requires.
+2. Confirm the resulting `plugins/sc-publish/` tree matches upstream
+   `sc-publish` develop byte-for-byte (diff against the sc-publish repo
+   checkout, not just "installer exited zero").
+3. Prove generated manifests still validate against Cargo/package metadata
+   and that installed workflows reference existing local assets.
+4. Run sc-compose's full test suite and Release Preflight rehearsal against
+   the updated install; confirm no regression from the Q.2 baseline.
+5. Confirm sc-compose's own test run uses the pinned bootstrap venv
+   (`sc_compose` bootstrap script), not a stale ambient `sc-compose` install
+   — this was flagged as a reproducibility risk in the PR #38 independent
+   review.
+
+## Acceptance criteria
+
+- [ ] `plugins/sc-publish/` matches sc-publish develop `ce85b4d` exactly
+      (no drift, no local patches).
+- [ ] A second installer dry run is clean with exit code zero.
+- [ ] `validate-manifest`, publish-order, version-lockstep, package checks,
+      and workflow-local-file checks pass.
+- [ ] Release Preflight rehearsal run is clean (or records an explicit,
+      expected external-service stop) on the updated install.
+- [ ] sc-compose's own test run is confirmed to use the pinned bootstrap venv.
+- [ ] No sc-publish internal logic (probes, workflows, install.py) is
+      modified by this sprint's diff.
+
+## Required validation
+
+```text
+python3 plugins/sc-publish/install.py --input release/sc-publish-install.json --dry-run .
+python3 plugins/sc-publish/install.py --input release/sc-publish-install.json .
+python3 plugins/sc-publish/install.py --input release/sc-publish-install.json --dry-run .
+python3 .github/scripts/release_artifacts.py validate-manifest \
+  --manifest release/publish-artifacts.toml --workspace-toml Cargo.toml
+diff -rq plugins/sc-publish/ <sc-publish-repo-checkout>/plugins/sc-publish/
+git diff --check
+```
+
+Then run the installed GitHub Actions Release Preflight, recording the
+workflow run URL in the sprint handoff. Local success is not sufficient to
+close the sprint.
+
+## Handoff and fix routing
+
+Send team-lead the sc-publish source commit, dry-run proof, upstream-diff
+proof, manifest validation output, and Release Preflight run URL. Team-lead
+opens the PR to develop and routes it to quality-mgr. Any finding that is
+actually an sc-publish defect (not an install/consumption problem) gets filed
+as an sc-publish issue, not fixed in this sprint's worktree.
