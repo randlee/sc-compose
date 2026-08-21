@@ -39,7 +39,6 @@ jobs:
       release_tag: ${{ steps.meta.outputs.release_tag }}
       release_version: ${{ steps.meta.outputs.release_version }}
       release_target: ${{ steps.meta.outputs.release_target }}
-      release_ref: ${{ steps.release-ref.outputs.release_ref }}
       build_ref: ${{ steps.release-ref.outputs.build_ref }}
     steps:
       - uses: actions/checkout@v4
@@ -123,18 +122,15 @@ jobs:
                 exit 1
               fi
               echo "Tag ${tag} already exists at verified ancestor ${remote_tag_sha}; reusing immutable tag while building from origin/main (${main_sha})"
-              echo "release_ref=$tag" >> "$GITHUB_OUTPUT"
               echo "build_ref=origin/main" >> "$GITHUB_OUTPUT"
               exit 0
             fi
             git tag "$tag" origin/main
             git push origin "$tag"
-            echo "release_ref=$tag" >> "$GITHUB_OUTPUT"
             echo "build_ref=origin/main" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           echo "Rehearsal mode: validating release tag ${tag} locally only; not pushing any tag to origin"
-          echo "release_ref=$main_sha" >> "$GITHUB_OUTPUT"
           echo "build_ref=origin/main" >> "$GITHUB_OUTPUT"
 
   build:
@@ -474,7 +470,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.gate-and-tag.outputs.release_tag }}
+          ref: ${{ needs.gate-and-tag.outputs.build_ref }}
 
       - id: expected_assets
         name: Read expected release asset patterns from manifest
