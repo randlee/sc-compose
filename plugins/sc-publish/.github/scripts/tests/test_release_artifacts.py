@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import subprocess
 import sys
 import tarfile
@@ -241,6 +242,58 @@ def release_workflow_text() -> str:
     return (repo_root() / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
 
 
+def release_archive_packager_python() -> str:
+    """Extract the Python executed by the release archive-packaging workflow step."""
+    workflow = release_workflow_text()
+    step = workflow.split("      - name: Package manifest-declared release archive\n", 1)[
+        1
+    ].split("      - name: Upload artifact\n", 1)[0]
+    script = step.split("          python3 - <<'PY'\n", 1)[1].split("          PY\n", 1)[0]
+    lines = script.splitlines()
+    assert all(not line or line.startswith("          ") for line in lines)
+    return "\n".join(line[10:] if line else "" for line in lines)
+
+
+def run_release_archive_packager(
+    tmp_path: Path, *, target_name: str, expected_filename: str
+) -> subprocess.CompletedProcess[str]:
+    scripts_dir = tmp_path / ".github" / "scripts"
+    scripts_dir.mkdir(parents=True)
+    (scripts_dir / "release_artifacts.py").write_text(
+        "import json\n"
+        "print(json.dumps({\n"
+        "    'project': {'archive_prefix': 'fixture'},\n"
+        "    'target': {'archive': 'zip'},\n"
+        "    'binaries': [{'name': 'fixture'}],\n"
+        "}))\n",
+        encoding="utf-8",
+    )
+    release_dir = tmp_path / "target" / target_name / "release"
+    release_dir.mkdir(parents=True)
+    (release_dir / expected_filename).write_text("fixture", encoding="utf-8")
+    output = tmp_path / "github-env"
+    script = release_archive_packager_python().replace(
+        'target_name = "${{ matrix.target }}"', f"target_name = {target_name!r}"
+    ).replace(
+        'version = "${{ needs.gate-and-tag.outputs.release_version }}"',
+        'version = "1.5.0"',
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=tmp_path,
+        env={
+            **os.environ,
+            "RELEASE_ARTIFACT_MANIFEST": str(tmp_path / "release" / "manifest.toml"),
+            "GITHUB_ENV": str(output),
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert output.read_text(encoding="utf-8").startswith("ARCHIVE=fixture_1.5.0_")
+    return result
+
+
 def pypi_publish_workflow_text() -> str:
     return (repo_root() / ".github" / "workflows" / "pypi-publish.yml").read_text(encoding="utf-8")
 
@@ -263,6 +316,125 @@ def crates_publish_workflow_text() -> str:
 
 def release_preflight_workflow_text() -> str:
     return (repo_root() / ".github" / "workflows" / "release-preflight.yml").read_text(encoding="utf-8")
+
+
+def release_preflight_step_shell(step_id: str, next_step_id: str) -> str:
+    """Extract one executed shell body from the release-preflight workflow."""
+    workflow = release_preflight_workflow_text()
+    step = workflow.split(f"      - id: {step_id}\n", 1)[1].split(
+        f"      - id: {next_step_id}\n", 1
+    )[0]
+    body = step.split("        run: |\n", 1)[1]
+    lines = body.splitlines()
+    assert all(not line or line.startswith("          ") for line in lines)
+    return "\n".join(line[10:] if line else "" for line in lines)
+
+
+def run_release_preflight_registry_step(
+    tmp_path: Path,
+    shell: str,
+    *,
+    published: bool,
+    already_published_channels: str,
+) -> subprocess.CompletedProcess[str]:
+    """Execute a workflow registry step with deterministic registry stand-ins."""
+    scripts_dir = tmp_path / ".github" / "scripts"
+    scripts_dir.mkdir(parents=True, exist_ok=True)
+    (scripts_dir / "release_artifacts.py").write_text(
+        "import json\n"
+        "import os\n"
+        "import sys\n"
+        "command = sys.argv[1]\n"
+        "if command == 'check-version-unpublished':\n"
+        "    if os.environ['SIMULATE_PUBLISHED'] == 'true':\n"
+        "        raise SystemExit('release version already published for: fixture')\n"
+        "    print('ok: no publishable artifacts found at version 1.5.0')\n"
+        "elif command == 'public-registry-check-plan':\n"
+        "    print(json.dumps({'checks': [{\n"
+        "        'channel': 'crates_io',\n"
+        "        'agent': 'crates-io-publisher',\n"
+        "        'registry': 'crates.io',\n"
+        "        'name': 'fixture',\n"
+        "        'normalized_name': 'fixture',\n"
+        "        'expected_version': '1.5.0',\n"
+        "        'project_lookup_url': 'https://registry.invalid/project',\n"
+        "        'version_lookup_url': 'https://registry.invalid/version',\n"
+        "        'version_policy': 'must_be_absent',\n"
+        "    }]}))\n"
+        "else:\n"
+        "    raise SystemExit(f'unexpected command: {command}')\n",
+        encoding="utf-8",
+    )
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    curl = bin_dir / "curl"
+    curl.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [[ \"${SIMULATE_PUBLISHED}\" == true ]]; then\n"
+        "  printf 200\n"
+        "elif [[ \"$*\" == *version ]]; then\n"
+        "  printf 404\n"
+        "else\n"
+        "  printf 200\n"
+        "fi\n",
+        encoding="utf-8",
+    )
+    curl.chmod(0o755)
+    return subprocess.run(
+        ["bash", "-c", shell.replace("'${{ steps.meta.outputs.release_version }}'", "'1.5.0'")],
+        cwd=tmp_path,
+        env={
+            **os.environ,
+            "ALREADY_PUBLISHED_CHANNELS": already_published_channels,
+            "RELEASE_ARTIFACT_MANIFEST": str(tmp_path / "release" / "manifest.toml"),
+            "SIMULATE_PUBLISHED": str(published).lower(),
+            "PATH": f"{bin_dir}:{os.environ['PATH']}",
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+def release_preflight_channel_results_shell() -> str:
+    """Extract the executed shell body for the preflight channel-results step."""
+    workflow = release_preflight_workflow_text()
+    step = workflow.split("      - id: channel_results\n", 1)[1].split(
+        "      - name: Deny release after complete preflight summary\n", 1
+    )[0]
+    body = step.split("        run: |\n", 1)[1]
+    lines = body.splitlines()
+    assert all(not line or line.startswith("          ") for line in lines)
+    return "\n".join(line[10:] if line else "" for line in lines)
+
+
+def run_release_preflight_channel_results_shell(
+    shell: str, *, manifest: Path, output: Path
+) -> subprocess.CompletedProcess[str]:
+    environment = {
+        **os.environ,
+        "OWNERSHIP": "success",
+        "RELEASE_METADATA": "success",
+        "RELEASE_TAG": "v1.5.0",
+        "REPOSITORY_SECRETS": "success",
+        "REPOSITORY_SECRET_CHANNELS": '{"crates_io":"success","homebrew":"success","winget":"success","scoop":"success"}',
+        "ENVIRONMENT_SECRETS": "success",
+        "CREDENTIAL_LIVENESS": "success",
+        "CREDENTIAL_LIVENESS_CHANNELS": '{"homebrew":"success","winget":"success","scoop":"success"}',
+        "REGISTRY_STATE": "success",
+        "GITHUB_RELEASE_PERMISSIONS": "success",
+        "RELEASE_ARTIFACT_MANIFEST": str(manifest),
+        "GITHUB_OUTPUT": str(output),
+        "GITHUB_STEP_SUMMARY": str(output.with_name("summary.md")),
+    }
+    return subprocess.run(
+        ["bash", "-c", shell],
+        cwd=repo_root(),
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
 
 
 def published_release_guard_text() -> str:
@@ -452,6 +624,30 @@ def test_crates_leg_is_separate_and_independently_retryable() -> None:
     assert "list-publish-plan" in crates_text
     assert "gate-and-tag" not in crates_text
     assert "CARGO_REGISTRY_TOKEN" in crates_text
+
+
+@pytest.mark.parametrize(
+    ("target_name", "expected_filename"),
+    (
+        ("x86_64-pc-windows-gnu", "fixture.exe"),
+        ("x86_64-pc-windows-msvc", "fixture.exe"),
+        ("x86_64-unknown-linux-gnu", "fixture"),
+    ),
+)
+def test_release_archive_packager_executes_windows_suffix_logic(
+    tmp_path: Path, target_name: str, expected_filename: str
+) -> None:
+    """Execute the exact workflow Python against Windows GNU, MSVC, and Linux."""
+    result = run_release_archive_packager(
+        tmp_path, target_name=target_name, expected_filename=expected_filename
+    )
+
+    assert result.returncode == 0, result.stderr
+    archive = tmp_path / f"fixture_1.5.0_{target_name}.zip"
+    with zipfile.ZipFile(archive) as packaged:
+        assert packaged.namelist() == [
+            f"fixture_1.5.0_{target_name}/bin/{expected_filename}"
+        ]
 
 
 def test_github_release_leg_is_detect_and_skip(tmp_path: Path) -> None:
@@ -1122,7 +1318,6 @@ def test_manifest_drives_non_disclosing_preflight_secret_plan() -> None:
         {"environment": "testpypi", "name": "TEST_PYPI_API_TOKEN"},
     ]
     assert plan["liveness_channel_checks"] == [
-        {"channel": "crates_io", "name": "CARGO_REGISTRY_TOKEN", "kind": "crates_io"},
         {"channel": "homebrew", "name": "HOMEBREW_TAP_TOKEN", "kind": "github"},
         {"channel": "winget", "name": "WINGET_GITHUB_TOKEN", "kind": "github"},
         {"channel": "scoop", "name": "SCOOP_BUCKET_TOKEN", "kind": "github"},
@@ -1140,6 +1335,7 @@ def test_manifest_drives_non_disclosing_preflight_secret_plan() -> None:
         "scoop": "scoop-publisher",
     }
     assert contracts["crates_io"]["public_registry_checks"] is True
+    assert contracts["crates_io"]["liveness_checks"] == []
     assert contracts["pypi"]["public_registry_checks"] is True
     assert contracts["github_release"]["github_actions_permissions"] == ["contents:write"]
     assert contracts["pypi"]["credential_rehearsal"] == {
@@ -1622,16 +1818,107 @@ def test_release_preflight_requires_each_standardized_secret() -> None:
     assert "preflight-secret-plan" in text
     assert '--manifest "${RELEASE_ARTIFACT_MANIFEST}"' in text
     assert '\\"${RELEASE_ARTIFACT_MANIFEST}\\"' not in text
-    assert "Verify protected Python environment secret metadata" in text
+    assert "Inspect protected Python environment secret metadata (informational)" in text
     assert ".environment_secrets[]" in text
     assert "environments/${environment_name}/secrets" in text
+    assert "permissions: read-all" in text
     assert "environment:" not in text
+    assert "Environment-secret metadata is unavailable to GITHUB_TOKEN" in text
     assert "Verify repository credential liveness" in text
-    assert "https://crates.io/api/v1/me" in text
+    assert "https://crates.io/api/v1/me" not in text
+    assert 'User-Agent: sc-publish-release-preflight' in text
     assert "https://api.github.com/user" in text
-    assert "rotate or replace it" in text
+    assert "rotate or replace it" not in text
     assert 'echo "${token}"' not in text
     assert 'echo "${!secret_name}"' not in text
+    assert '${REPOSITORY_SECRET_CHANNELS:-{}}' not in text
+    assert '${CREDENTIAL_LIVENESS_CHANNELS:-{}}' not in text
+    assert 'repository_secret_channels_json="${REPOSITORY_SECRET_CHANNELS:-}"' in text
+    assert 'credential_liveness_channels_json="${CREDENTIAL_LIVENESS_CHANNELS:-}"' in text
+    assert "REPOSITORY_SECRET_CHANNELS must be a JSON object." in text
+    assert "CREDENTIAL_LIVENESS_CHANNELS must be a JSON object." in text
+    assert "already_published_channels" in text
+    assert "crates_io is preserved from a prior release run" in text
+
+
+@pytest.mark.parametrize(
+    ("published", "already_published_channels", "expected_success"),
+    (
+        (True, "crates_io", True),
+        (True, "", False),
+        (False, "crates_io", True),
+    ),
+)
+def test_release_preflight_registry_checks_execute_preserved_channel_exception(
+    tmp_path: Path,
+    published: bool,
+    already_published_channels: str,
+    expected_success: bool,
+) -> None:
+    """Run the actual unpublished and registry-state shells for retry outcomes."""
+    unpublished = run_release_preflight_registry_step(
+        tmp_path,
+        release_preflight_step_shell("unpublished", "registry_state"),
+        published=published,
+        already_published_channels=already_published_channels,
+    )
+    registry_state = run_release_preflight_registry_step(
+        tmp_path,
+        release_preflight_step_shell("registry_state", "package_checks"),
+        published=published,
+        already_published_channels=already_published_channels,
+    )
+
+    assert (unpublished.returncode == 0) is expected_success, unpublished.stderr
+    assert (registry_state.returncode == 0) is expected_success, registry_state.stderr
+    if published and expected_success:
+        assert "preserved from a prior release run" in unpublished.stdout
+        assert "preserved from a prior release run" in registry_state.stdout
+    elif published:
+        assert "already published" in unpublished.stderr
+        assert "already published" in registry_state.stderr
+
+
+def test_release_preflight_channel_results_executes_nonempty_json_without_legacy_brace_corruption(
+    tmp_path: Path,
+) -> None:
+    """Run the workflow shell and prove the historical default syntax is rejected."""
+    _, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    shell = release_preflight_channel_results_shell()
+
+    fixed_output = tmp_path / "fixed-output.txt"
+    fixed = run_release_preflight_channel_results_shell(
+        shell, manifest=manifest, output=fixed_output
+    )
+    assert fixed.returncode == 0, fixed.stderr
+    payload = fixed_output.read_text(encoding="utf-8").split(
+        "channel_preflight_results<<EOF\n", 1
+    )[1].rsplit("\nEOF", 1)[0]
+    assert all(
+        channel["status"] == "passed"
+        for channel in json.loads(payload)["channels"]
+    )
+
+    fixed_preamble = """repository_secret_channels_json=\"${REPOSITORY_SECRET_CHANNELS:-}\"
+credential_liveness_channels_json=\"${CREDENTIAL_LIVENESS_CHANNELS:-}\"
+[[ -n \"${repository_secret_channels_json}\" ]] || repository_secret_channels_json='{}'
+[[ -n \"${credential_liveness_channels_json}\" ]] || credential_liveness_channels_json='{}'
+jq -e 'type == \"object\"' <<<\"${repository_secret_channels_json}\" >/dev/null \\
+  || { echo 'REPOSITORY_SECRET_CHANNELS must be a JSON object.' >&2; exit 1; }
+jq -e 'type == \"object\"' <<<\"${credential_liveness_channels_json}\" >/dev/null \\
+  || { echo 'CREDENTIAL_LIVENESS_CHANNELS must be a JSON object.' >&2; exit 1; }
+"""
+    assert fixed_preamble in shell
+    legacy_shell = shell.replace(fixed_preamble, "").replace(
+        '"${repository_secret_channels_json}"', '"${REPOSITORY_SECRET_CHANNELS:-{}}"'
+    ).replace(
+        '"${credential_liveness_channels_json}"', '"${CREDENTIAL_LIVENESS_CHANNELS:-{}}"'
+    )
+    legacy = run_release_preflight_channel_results_shell(
+        legacy_shell, manifest=manifest, output=tmp_path / "legacy-output.txt"
+    )
+    assert legacy.returncode != 0
+    assert "invalid JSON" in legacy.stderr
 
 
 def test_channel_recovery_workflows_require_a_published_release() -> None:

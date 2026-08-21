@@ -193,7 +193,7 @@ jobs:
               shutil.rmtree(stage)
           (stage / "bin").mkdir(parents=True)
           for binary in config["binaries"]:
-              filename = binary["name"] + (".exe" if target_name.endswith("windows-msvc") else "")
+              filename = binary["name"] + (".exe" if "windows" in target_name else "")
               shutil.copy2(Path("target") / target_name / "release" / filename, stage / "bin" / filename)
               for bundled_path in binary.get("bundled_paths", []):
                   source = Path(bundled_path["source"])
