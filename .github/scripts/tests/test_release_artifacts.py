@@ -1231,6 +1231,15 @@ release_track = "prerelease"
     assert "randlee" not in workflow
 
 
+def test_homebrew_asset_writer_and_formula_renderer_share_keyed_object_shape() -> None:
+    """The formula renderer must consume the JSON object emitted by the asset writer."""
+    workflow = homebrew_publish_workflow_text()
+
+    assert 'Path("homebrew-release-assets.json").write_text(json.dumps(assets)' in workflow
+    assert 'assets = json.loads(Path("homebrew-release-assets.json").read_text())' in workflow
+    assert 'assets = {asset["key"]: asset for asset in json.loads(' not in workflow
+
+
 def test_homebrew_legacy_binary_normalizes_to_a_single_binary_list(tmp_path: Path) -> None:
     _, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
     manifest.write_text(

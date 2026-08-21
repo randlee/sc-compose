@@ -159,7 +159,7 @@ jobs:
           config = json.loads(os.environ["CHANNEL_CONFIG"])
           project = config["project"]
           channel = config["channel"]
-          assets = {asset["key"]: asset for asset in json.loads(Path("homebrew-release-assets.json").read_text())}
+          assets = json.loads(Path("homebrew-release-assets.json").read_text())
           renderer = os.environ["PUBLISHED_RENDERER"]
           for index, formula in enumerate(channel["formulas"]):
               binaries = formula["binaries"]
