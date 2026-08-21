@@ -20,6 +20,9 @@ target
 __pycache__/
 *.pyc
 bindings/python/python/sc_compose/_native*.so
+bindings/sc-sha-go/native/*/libsc_sha_go.a
+bindings/sc-sha-go/native/*/sc_sha_go.lib
+bindings/sc-sha-go/native/*/sc_sha_go.a
 
 # Generated report evidence
 reports/latest/
@@ -53,3 +56,7 @@ docs/phase-D/.review-findings.json
 .repowise/.augment-warned
 /.just/
 /artifacts/
+
+# Per-worktree execution checklist; implementation evidence belongs in the sprint/PR.
+.p1-local-task-checklist.md
+.p2-local-task-checklist.md

@@ -848,6 +848,58 @@ Sprint entries:
 - [Sprint O.4 — Six-Template Migration and Compatibility Fixtures](phase-O/sprint-o-4-template-migration.md)
 - [Sprint O.5 — Cross-Repository Release Corpus and Fuzz Gate](phase-O/sprint-o-5-release-corpus-fuzz-gate.md)
 
+### Phase P Sprint Plans
+
+Status:
+
+- complete: generated Go bindings for the standalone `sc-sha` crate under
+  [issue #510](https://github.com/randlee/sc-compose/issues/510), including
+  the P.3 release-preparation metadata and consumer documentation;
+- P.1 establishes the pinned UniFFI / `uniffi-bindgen-go` adapter, typed
+  two-operation contract, generator-drift CI, and boundary amendments;
+- P.2 follows P.1 to publish the Go submodule/native artifact contract and
+  hand off integration evidence to `sc-dolt` and atm-core;
+- P.3 closes the Phase P release preparation by documenting the Go consumer
+  surface, bumping the workspace to `1.5.0`, and closing the release metadata
+  and boundary-rule gates;
+- Go bindings for `sc-composer` and all rust2go work are explicitly estimated
+  follow-ons, not Phase P delivery.
+
+Sprint entries:
+
+- [Phase P plan](phase-P/phase-P-plan.md)
+- [Sprint P.1 — Generated sc-sha Go Adapter Contract](phase-P/sprint-p-1-generated-sc-sha-go-adapter.md)
+- [Sprint P.2 — Go Module Distribution and Consumer Handoff](phase-P/sprint-p-2-go-module-distribution-and-handoff.md)
+- [Sprint P.3 — Phase P Release Preparation](phase-P/phase-P-plan.md#phase-p-release-preparation)
+
+### Phase Q Sprint Plans
+
+Status:
+
+- complete: Q.1 (sc-publish package parity), Q.2 (installed the canonical
+  publishing agents, workflows, scripts, actions, and channel templates),
+  Q.3 (consumed a further sc-publish develop update), and Q.4 (consumed the
+  release-candidate provenance update); sc-compose remains a consumer of
+  `sc-publish`, not its owner, and consumer updates do not modify internal
+  sc-publish probe, workflow, or install logic;
+- in progress: Phase Q closeout resolves its final duplicate-logic QA
+  findings before `integrate/phase-q` merges to `develop`;
+- production publication remains blocked until the installed package renders a
+  complete manifest with the released sc-compose renderer and passes final
+  preflight.
+
+Sprint entries:
+
+- [Phase Q plan](phase-Q/phase-Q-plan.md)
+- [Sprint Q.1 — sc-publish Package Parity](phase-Q/sprint-q-1-sc-publish-package-parity.md)
+- [Sprint Q.2 — sc-compose Install and Publish Cutover](phase-Q/sprint-q-2-sc-compose-publish-cutover.md)
+- [Sprint Q.3 — Consume sc-publish Develop Update](phase-Q/sprint-q-3-sc-publish-consume-update.md)
+- [Sprint Q.4 — Consume sc-publish Release-Candidate Provenance Update](phase-Q/sprint-q-4-sc-publish-rc-provenance-consume.md)
+
+### Follow-on Chore: CI UniFFI Artifact Consumption
+
+- [CHORE.CI-UNIFFI-CONSUME — CI UniFFI Artifact Consumption](sprints/chore-ci-uniffi-artifact-consumption.md)
+
 ### Follow-on Fix Sprint: FIX-O13
 
 Status:
@@ -1533,7 +1585,7 @@ Acceptance Criteria:
 - workspace and crate manifests are updated to `1.0.0`
 - release workflow archives ship `bin/sc-compose` and
   `share/sc-compose/examples/...`
-- `scripts/release_gate.sh` exists and enforces release ancestry plus
+- `.github/scripts/release_artifacts.py` enforces release ancestry plus
   unpublished-version checks
 - release preflight verifies unpublished crate versions before release
 - release workflow publish steps are idempotent when crates are already live

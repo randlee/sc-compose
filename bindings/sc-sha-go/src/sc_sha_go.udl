@@ -1,0 +1,49 @@
+namespace sc_sha_go {
+  [Throws=ScShaError]
+  TemplateHash calculate_hash(bytes utf8_file_bytes);
+
+  [Throws=ScShaError]
+  CompositionHash calculate_composition_hash(ResolvedTemplateManifest manifest);
+};
+
+dictionary TemplateHash {
+  string sha256;
+};
+
+dictionary CompositionHash {
+  string sha256;
+};
+
+[Enum]
+interface CanonicalSource {
+  LocalPath(string value);
+  Url(string value);
+};
+
+dictionary ResolvedTemplateNode {
+  CanonicalSource source;
+  string sha256;
+};
+
+dictionary ResolvedIncludeEdge {
+  CanonicalSource parent;
+  CanonicalSource child;
+  u32 occurrence;
+};
+
+dictionary ResolvedTemplateManifest {
+  string schema;
+  sequence<ResolvedTemplateNode> nodes;
+  sequence<ResolvedIncludeEdge> edges;
+};
+
+[Error]
+interface ScShaError {
+  InvalidUtf8(string code, string message);
+  InvalidDigest(string code, string message);
+  InvalidCanonicalSource(string code, string message);
+  InvalidManifest(string code, string message);
+  UnsupportedManifestSchema(string code, string message);
+  DuplicateSource(string code, string message);
+  UnknownEdgeEndpoint(string code, string message);
+};

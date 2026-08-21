@@ -48,10 +48,16 @@ unrelated hashing consumers outside this repo's own CLI/bindings.
 - A separate `bindings/sc-sha-python` adapter (maturin/PyO3) exposes the same
   two operations to Python callers without re-implementing the algorithm and
   without acquiring a `sc-compose`/`sc-composer`/ATM dependency.
-- `CLAUDE.md`'s Boundary Rules gain two new rules (proposed text below) making
-  both new crates' dependency and dependent constraints explicit, machine-
-  checked via `boundaries/sc-sha/shared-library.toml` and
-  `boundaries/sc-sha-python/python-adapter.toml` (`sc-boundary` allowlists) in
+- A separate `bindings/sc-sha-go` adapter exposes the same two operations to
+  Go callers. Per ADR-0020, it is a generated UniFFI adapter; it is not a
+  handwritten CGo implementation and it does not introduce an async/shared-
+  memory API. The adapter may depend on `sc-sha` and its approved pinned
+  generator/runtime dependencies only.
+- `CLAUDE.md`'s Boundary Rules make all three adapters' dependency and
+  dependent constraints explicit, machine-checked via
+  `boundaries/sc-sha/shared-library.toml`,
+  `boundaries/sc-sha-python/python-adapter.toml`, and the forthcoming
+  `boundaries/sc-sha-go/go-adapter.toml` (`sc-boundary` allowlists), in
   addition to this ADR's prose rationale.
 - Phase M.1 and M.2 implemented this accepted extraction under
   `crates/sc-sha/` and `bindings/sc-sha-python/`; the public API signatures,
@@ -62,9 +68,10 @@ unrelated hashing consumers outside this repo's own CLI/bindings.
 
 ### `CLAUDE.md` amendment
 
-This ADR adds two new Boundary Rules (8 and 9) to `CLAUDE.md`, stated there
-in short form with a pointer back to this ADR for rationale. See
-`CLAUDE.md`'s Boundary Rules section for the accepted text.
+This ADR adds Boundary Rules 8–10 to `CLAUDE.md`, stated there in short form
+with a pointer back to this ADR for rationale. Rule 10 records the generated
+Go adapter direction adopted by ADR-0020. See `CLAUDE.md`'s Boundary Rules
+section for the accepted text.
 
 ## Consequences
 
@@ -72,11 +79,13 @@ in short form with a pointer back to this ADR for rationale. See
   longer owns the only implementation of the hash contract, so
   `synaptic-canvas-dolt` and any future non-Rust consumer can depend on
   `sc-sha` directly without pulling in MiniJinja or the resolver.
-- Two additional crates must be kept in sync via the workspace and via
+- The three workspace packages (`sc-sha` plus its Python and Go adapters) must
+  be kept in sync via the workspace and via
   `boundaries/sc-sha/shared-library.toml` /
-  `boundaries/sc-sha-python/python-adapter.toml` (`sc-boundary`-enforced
-  allowlists) rather than review discipline alone — an unlisted dependency
-  edge fails CI instead of silently landing.
+  `boundaries/sc-sha-python/python-adapter.toml` /
+  `boundaries/sc-sha-go/go-adapter.toml` (`sc-boundary`-enforced allowlists)
+  rather than review discipline alone — an unlisted dependency edge fails CI
+  instead of silently landing.
 - PR #358's hash work was migrated during M.1/M.2; `sc-composer` now calls
   `sc-sha` rather than carrying a duplicate `template_hash.rs` implementation.
 - `sc-sha`'s API surface is deliberately minimal (two functions); any future
@@ -92,3 +101,4 @@ in short form with a pointer back to this ADR for rationale. See
 - PR #358 (original `crates/sc-composer/src/template_hash.rs` implementation)
 - [ADR-0016: sc-lint Integration Boundary](0016-sc-lint-integration-boundary.md)
 - [ADR-0017: sc-lint Runner Allowlist and Reporting](0017-sc-lint-runner-allowlist-and-reporting.md)
+- [ADR-0020: Generated Go Binding Strategy](0020-generated-go-binding-strategy.md)

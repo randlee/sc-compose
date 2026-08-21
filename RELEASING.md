@@ -72,7 +72,7 @@ This repo publishes to six channels:
 
 ### PyPI
 
-- [ ] `PYPI_TOKEN` and `TEST_PYPI_TOKEN` configured in GitHub Actions
+- [ ] `PYPI_API_TOKEN` and `TEST_PYPI_API_TOKEN` configured in GitHub Actions
   environments
 - [ ] Run one staged TestPyPI or `workflow_dispatch` rehearsal before treating
   the Python release channel as production-closed:
@@ -147,7 +147,8 @@ the tag or rerun the root release workflow.
 - Manifest: `release/publish-artifacts.toml`
 - Preflight: `.github/workflows/release-preflight.yml`
 - Release: `.github/workflows/release.yml`
-- Gate script: `scripts/release_gate.sh`
+- Gate helper: `.github/scripts/release_artifacts.py` (invoked by the
+  vendored `plugins/sc-publish` release workflows)
 
 ### PyPI
 
@@ -209,4 +210,4 @@ crates.io dependencies from this repo:
 - [docs/publishing.md](docs/publishing.md) — publishing and version ownership
 - [docs/release-checklist.md](docs/release-checklist.md) — previous checklist format
 - [docs/release-tag-protection.md](docs/release-tag-protection.md) — tag protection rules
-- [docs/publishing-agent.md](docs/publishing-agent.md) — operator guide
+- [README.sc-publish.md](README.sc-publish.md) — canonical operator guide

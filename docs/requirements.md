@@ -40,6 +40,24 @@ The product has two deliverables:
 The library is the semantic source of truth. The CLI is a thin interface over
 the library.
 
+### 3.1a Phase P Go module distribution
+
+The Phase P generated-Go strategy is governed by
+[ADR-0020: Generated Go Binding Strategy](adrs/0020-generated-go-binding-strategy.md),
+which is **Accepted**. The native libraries are distributed as the
+target-specific release bundles documented by the Go integration guide; a Go
+module download alone does not include those native libraries.
+
+The repository MUST publish a generated Go module for the canonical `sc-sha`
+hash operations so external consumers can use the shared hash contract without
+copying its implementation. The module MUST use the documented submodule path
+`github.com/randlee/sc-compose/bindings/sc-sha-go`, generated UniFFI source, and
+the matching packaged native artifact for each supported target (Linux/amd64,
+macOS/arm64, and Windows/amd64). Release validation MUST cover generated
+source drift, native artifact selection, conformance vectors, and an
+independent Go consumer. The adapter MUST depend only on `sc-sha` and MUST NOT
+add ATM, resolver, filesystem, or duplicate hash logic.
+
 ### 3.1 ATM Independence
 
 This repository is intentionally independent from ATM and any other orchestration
@@ -435,6 +453,9 @@ Runtime-specific directories:
 - `.claude/agents/`
 - `.claude/commands/`
 - `.claude/skills/`
+- `.hermes/agents/`
+- `.hermes/commands/`
+- `.hermes/skills/`
 - `.codex/agents/`
 - `.codex/commands/`
 - `.codex/skills/`
@@ -454,6 +475,7 @@ Shared directories:
 Default runtime search order for agents:
 
 - `claude`: `.claude/agents/<name>` -> `.agents/agents/<name>`
+- `hermes`: `.hermes/agents/<name>` -> `.agents/agents/<name>` -> `.claude/agents/<name>`
 - `codex`: `.codex/agents/<name>` -> `.agents/agents/<name>` -> `.claude/agents/<name>`
 - `gemini`: `.gemini/agents/<name>` -> `.agents/agents/<name>` -> `.claude/agents/<name>`
 - `opencode`: `.opencode/agents/<name>` -> `.agents/agents/<name>` -> `.claude/agents/<name>`
@@ -461,6 +483,7 @@ Default runtime search order for agents:
 Default runtime search order for commands:
 
 - `claude`: `.claude/commands/<name>` -> `.agents/commands/<name>`
+- `hermes`: `.hermes/commands/<name>` -> `.agents/commands/<name>` -> `.claude/commands/<name>`
 - `codex`: `.codex/commands/<name>` -> `.agents/commands/<name>` -> `.claude/commands/<name>`
 - `gemini`: `.gemini/commands/<name>` -> `.agents/commands/<name>` -> `.claude/commands/<name>`
 - `opencode`: `.opencode/commands/<name>` -> `.agents/commands/<name>` -> `.claude/commands/<name>`
@@ -468,6 +491,7 @@ Default runtime search order for commands:
 Default runtime search order for skills:
 
 - `claude`: `.claude/skills/<name>/` -> `.agents/skills/<name>/`
+- `hermes`: `.hermes/skills/<name>/` -> `.agents/skills/<name>/` -> `.claude/skills/<name>/`
 - `codex`: `.codex/skills/<name>/` -> `.agents/skills/<name>/` -> `.claude/skills/<name>/`
 - `gemini`: `.gemini/skills/<name>/` -> `.agents/skills/<name>/` -> `.claude/skills/<name>/`
 - `opencode`: `.opencode/skills/<name>/` -> `.agents/skills/<name>/` -> `.claude/skills/<name>/`
@@ -522,8 +546,8 @@ The CLI must support:
 - `--kind <agent|command|skill>`
 - `--agent <name>`
 - `--agent-type <name>` as an alias for `--agent`
-- `--runtime <claude|codex|gemini|opencode>` as an optional runtime selector
-- `--ai <claude|codex|gemini|opencode>` as an alias for `--runtime`
+- `--runtime <claude|hermes|codex|gemini|opencode>` as an optional runtime selector
+- `--ai <claude|hermes|codex|gemini|opencode>` as an alias for `--runtime`
 - `--var key=value` repeatably
 - `--var-file <path|->`
 - `--env-prefix <PREFIX_>`

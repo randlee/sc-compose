@@ -47,11 +47,34 @@
 ## Pull Request Rule
 
 Every change should follow:
-1. Create a feature branch from `develop`.
+1. Create a feature branch from `develop`, or, for phase sprint work, from
+   that phase's `integrate/phase-x` branch (see Phase Integration Rule
+   below).
 2. Run local validation.
 3. Push the branch.
-4. Open a PR to `develop`.
+4. Open a PR to `develop`, or, for phase sprint work, to `integrate/phase-x`.
 5. Wait for CI and review before merge.
+
+## Phase Integration Rule
+
+Every phase always uses its `integrate/phase-x` branch (see Naming
+Convention above) — sprint work never merges straight into `develop`:
+
+1. Create `integrate/phase-x` from `develop` before the phase's first sprint
+   starts, if it does not already exist.
+2. Every sprint branch in the phase branches from `integrate/phase-x`, and
+   its PR targets `integrate/phase-x`, not `develop`.
+3. Sprint PRs merge into `integrate/phase-x` once that sprint's own review
+   passes and CI is green.
+4. `integrate/phase-x` should periodically merge `develop` forward in-phase
+   to avoid large end-of-phase conflicts.
+5. Only after every sprint in the phase has merged into `integrate/phase-x`
+   does the phase-ending review run.
+6. Only after the phase-ending review passes does `integrate/phase-x` merge
+   into `develop`. This is the only PR in the phase that targets `develop`
+   directly.
+7. A phase plan doc's `branch:` frontmatter value must match this phase's
+   `integrate/phase-x` name.
 
 ## Release Rule
 

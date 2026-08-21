@@ -28,6 +28,7 @@ class ScConfigError(ScComposeError): ...
 
 class RuntimeKind:
     CLAUDE: str
+    HERMES: str
     CODEX: str
     GEMINI: str
     OPENCODE: str

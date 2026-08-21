@@ -147,6 +147,21 @@ result = render_template("Hello {{ name }}", {"name": "world"})
 
 Pre-built wheels for macOS, Linux, Windows (Python 3.11+).
 
+### Go Bindings
+
+The generated `sc-sha-go` module exposes typed Go bindings for the canonical
+`sc-sha` file and composition hash operations:
+
+```bash
+go get github.com/randlee/sc-compose/bindings/sc-sha-go@bindings/sc-sha-go/v1.5.0
+```
+
+Import the generated package from
+`github.com/randlee/sc-compose/bindings/sc-sha-go/go/sc_sha_go`. See
+[`docs/integrations/sc-sha-go.md`](docs/integrations/sc-sha-go.md) for the
+native target matrix, release layout, conformance vectors, and consumer
+handoff requirements.
+
 ---
 
 ## Install Matrix
@@ -159,7 +174,7 @@ Pre-built wheels for macOS, Linux, Windows (Python 3.11+).
 | Any (Rust) | crates.io | `cargo install sc-compose` |
 | Any (Python) | PyPI | `pip install sc-compose` |
 | Any (source) | cargo | `cargo build --release -p sc-compose` |
-| Rust lib | Cargo.toml | `sc-composer = "1.4.1"` |
+| Rust lib | Cargo.toml | `sc-composer = "1.5.0"` |
 
 Bundled examples are guaranteed in Homebrew, Scoop, Winget, and GitHub Release
 installs. `cargo install` ships the binary only — set `SC_COMPOSE_DATA_DIR` for
@@ -171,11 +186,11 @@ examples.
 
 | | |
 |---|---|
-| Version | 1.4.1 |
+| Version | 1.5.0 |
 | MSRV | Rust 1.94.1 |
 | Rust edition | 2024 |
 | Platforms | macOS, Linux, Windows |
-| Stability | stable 1.4 release line |
+| Stability | stable 1.5 release line |
 
 ---
 
@@ -272,6 +287,7 @@ Run `sc-compose <command> --help` for the full flag surface.
 | Runtime | Agents | Commands | Skills |
 |---------|--------|----------|--------|
 | Claude | `.claude/agents`, `.agents/agents` | `.claude/commands`, `.agents/commands` | `.claude/skills`, `.agents/skills` |
+| Hermes | `.hermes/agents`, `.agents/agents`, `.claude/agents` | `.hermes/commands`, `.agents/commands`, `.claude/commands` | `.hermes/skills`, `.agents/skills`, `.claude/skills` |
 | Codex | `.codex/agents`, `.agents/agents`, `.claude/agents` | `.codex/commands`, `.agents/commands`, `.claude/commands` | `.codex/skills`, `.agents/skills`, `.claude/skills` |
 | Gemini | `.gemini/agents`, `.agents/agents`, `.claude/agents` | `.gemini/commands`, `.agents/commands`, `.claude/commands` | `.gemini/skills`, `.agents/skills`, `.claude/skills` |
 | OpenCode | `.opencode/agents`, `.agents/agents`, `.claude/agents` | same pattern | same pattern |
