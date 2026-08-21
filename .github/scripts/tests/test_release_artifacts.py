@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import subprocess
 import sys
 import tarfile
@@ -263,6 +264,47 @@ def crates_publish_workflow_text() -> str:
 
 def release_preflight_workflow_text() -> str:
     return (repo_root() / ".github" / "workflows" / "release-preflight.yml").read_text(encoding="utf-8")
+
+
+def release_preflight_channel_results_shell() -> str:
+    """Extract the executed shell body for the preflight channel-results step."""
+    workflow = release_preflight_workflow_text()
+    step = workflow.split("      - id: channel_results\n", 1)[1].split(
+        "      - name: Deny release after complete preflight summary\n", 1
+    )[0]
+    body = step.split("        run: |\n", 1)[1]
+    lines = body.splitlines()
+    assert all(not line or line.startswith("          ") for line in lines)
+    return "\n".join(line[10:] if line else "" for line in lines)
+
+
+def run_release_preflight_channel_results_shell(
+    shell: str, *, manifest: Path, output: Path
+) -> subprocess.CompletedProcess[str]:
+    environment = {
+        **os.environ,
+        "OWNERSHIP": "success",
+        "RELEASE_METADATA": "success",
+        "RELEASE_TAG": "v1.5.0",
+        "REPOSITORY_SECRETS": "success",
+        "REPOSITORY_SECRET_CHANNELS": '{"crates_io":"success","homebrew":"success","winget":"success","scoop":"success"}',
+        "ENVIRONMENT_SECRETS": "success",
+        "CREDENTIAL_LIVENESS": "success",
+        "CREDENTIAL_LIVENESS_CHANNELS": '{"homebrew":"success","winget":"success","scoop":"success"}',
+        "REGISTRY_STATE": "success",
+        "GITHUB_RELEASE_PERMISSIONS": "success",
+        "RELEASE_ARTIFACT_MANIFEST": str(manifest),
+        "GITHUB_OUTPUT": str(output),
+        "GITHUB_STEP_SUMMARY": str(output.with_name("summary.md")),
+    }
+    return subprocess.run(
+        ["bash", "-c", shell],
+        cwd=repo_root(),
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
 
 
 def published_release_guard_text() -> str:
@@ -1641,6 +1683,48 @@ def test_release_preflight_requires_each_standardized_secret() -> None:
     assert 'credential_liveness_channels_json="${CREDENTIAL_LIVENESS_CHANNELS:-}"' in text
     assert "REPOSITORY_SECRET_CHANNELS must be a JSON object." in text
     assert "CREDENTIAL_LIVENESS_CHANNELS must be a JSON object." in text
+
+
+def test_release_preflight_channel_results_executes_nonempty_json_without_legacy_brace_corruption(
+    tmp_path: Path,
+) -> None:
+    """Run the workflow shell and prove the historical default syntax is rejected."""
+    _, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    shell = release_preflight_channel_results_shell()
+
+    fixed_output = tmp_path / "fixed-output.txt"
+    fixed = run_release_preflight_channel_results_shell(
+        shell, manifest=manifest, output=fixed_output
+    )
+    assert fixed.returncode == 0, fixed.stderr
+    payload = fixed_output.read_text(encoding="utf-8").split(
+        "channel_preflight_results<<EOF\n", 1
+    )[1].rsplit("\nEOF", 1)[0]
+    assert all(
+        channel["status"] == "passed"
+        for channel in json.loads(payload)["channels"]
+    )
+
+    fixed_preamble = """repository_secret_channels_json=\"${REPOSITORY_SECRET_CHANNELS:-}\"
+credential_liveness_channels_json=\"${CREDENTIAL_LIVENESS_CHANNELS:-}\"
+[[ -n \"${repository_secret_channels_json}\" ]] || repository_secret_channels_json='{}'
+[[ -n \"${credential_liveness_channels_json}\" ]] || credential_liveness_channels_json='{}'
+jq -e 'type == \"object\"' <<<\"${repository_secret_channels_json}\" >/dev/null \\
+  || { echo 'REPOSITORY_SECRET_CHANNELS must be a JSON object.' >&2; exit 1; }
+jq -e 'type == \"object\"' <<<\"${credential_liveness_channels_json}\" >/dev/null \\
+  || { echo 'CREDENTIAL_LIVENESS_CHANNELS must be a JSON object.' >&2; exit 1; }
+"""
+    assert fixed_preamble in shell
+    legacy_shell = shell.replace(fixed_preamble, "").replace(
+        '"${repository_secret_channels_json}"', '"${REPOSITORY_SECRET_CHANNELS:-{}}"'
+    ).replace(
+        '"${credential_liveness_channels_json}"', '"${CREDENTIAL_LIVENESS_CHANNELS:-{}}"'
+    )
+    legacy = run_release_preflight_channel_results_shell(
+        legacy_shell, manifest=manifest, output=tmp_path / "legacy-output.txt"
+    )
+    assert legacy.returncode != 0
+    assert "invalid JSON" in legacy.stderr
 
 
 def test_channel_recovery_workflows_require_a_published_release() -> None:
