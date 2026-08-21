@@ -1625,7 +1625,7 @@ def test_release_preflight_requires_each_standardized_secret() -> None:
     assert "Verify protected Python environment secret metadata" in text
     assert ".environment_secrets[]" in text
     assert "environments/${environment_name}/secrets" in text
-    assert "environments: read" in text
+    assert "permissions: read-all" in text
     assert "environment:" not in text
     assert "Verify repository credential liveness" in text
     assert "https://crates.io/api/v1/me" in text

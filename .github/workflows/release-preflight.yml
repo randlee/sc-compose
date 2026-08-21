@@ -13,10 +13,10 @@ on:
         default: "publisher"
         type: string
 
-permissions:
-  actions: read
-  contents: read
-  environments: read
+# `environments` is not an individual workflow-permission key.  `read-all` is
+# the valid read-only form that includes GitHub's environment-secret metadata
+# permission for the installation token.
+permissions: read-all
 
 jobs:
   preflight:
