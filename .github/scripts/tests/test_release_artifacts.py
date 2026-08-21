@@ -1972,7 +1972,7 @@ def test_release_preflight_registry_checks_execute_preserved_channel_exception(
 def test_check_version_unpublished_allows_only_listed_published_channels(
     tmp_path: Path, published_registry_url: str
 ) -> None:
-    """A retry may preserve only the manifest channel proved passed earlier."""
+    """Cover channel-scoped outcomes across calls; every crate resolves to crates_io."""
     _, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
     configure_fixture_crates_registry(manifest, published_registry_url)
 
@@ -2004,7 +2004,7 @@ def test_check_version_unpublished_allows_only_listed_published_channels(
 def test_release_gate_readiness_threads_preserved_channel_provenance(
     tmp_path: Path, published_registry_url: str
 ) -> None:
-    """Readiness forwards the retry exception to the native version checker."""
+    """Readiness forwards channel-scoped retry provenance to the native checker."""
     workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
     configure_fixture_crates_registry(manifest, published_registry_url)
     for crate_name in ("sc-composer", "sc-compose"):
