@@ -441,8 +441,10 @@ def run_release_gate_readiness(
     manifest: Path,
     workspace: Path,
     already_published_channels: str,
+    mode: str = "readiness",
+    release_ref: str = "HEAD",
 ) -> subprocess.CompletedProcess[str]:
-    """Exercise readiness with real shared scripts and deterministic Git metadata."""
+    """Exercise a release-gate mode with real scripts and deterministic Git metadata."""
     scripts_dir = tmp_path / ".github" / "scripts"
     scripts_dir.mkdir(parents=True, exist_ok=True)
     for script_name in ("release_artifacts.py", "release_manifest.py", "release_gate.sh"):
@@ -468,8 +470,8 @@ def run_release_gate_readiness(
         [
             "bash",
             str(scripts_dir / "release_gate.sh"),
-            "readiness",
-            "HEAD",
+            mode,
+            release_ref,
             "release-candidate-v1.1.0",
             "1.1.0",
             str(manifest),
@@ -478,6 +480,149 @@ def run_release_gate_readiness(
         ],
         cwd=tmp_path,
         env={**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}"},
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+def release_tag_step_shell() -> str:
+    """Extract the executed shell body that creates or safely reuses a release tag."""
+    workflow = release_workflow_text()
+    step = workflow.split("      - name: Ensure tag is correct or create it\n", 1)[1].split(
+        "\n  build:\n", 1
+    )[0]
+    body = step.split("        run: |\n", 1)[1]
+    lines = body.splitlines()
+    assert all(not line or line.startswith("          ") for line in lines)
+    return "\n".join(line[10:] if line else "" for line in lines)
+
+
+def run_release_tag_step(
+    tmp_path: Path, *, tag_is_main_ancestor: bool, candidate_is_tag_ancestor: bool
+) -> subprocess.CompletedProcess[str]:
+    """Run tag reuse against deterministic ancestry responses from Git."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(parents=True)
+    git = bin_dir / "git"
+    git.write_text(
+        "#!/usr/bin/env bash\n"
+        "set -euo pipefail\n"
+        "case \"$1\" in\n"
+        "  fetch) exit 0 ;;\n"
+        "  ls-remote) exit 0 ;;\n"
+        "  rev-parse)\n"
+        "    case \"$2\" in\n"
+        "      origin/main) printf '%s\\n' main-sha ;;\n"
+        "      refs/tags/v1.5.0\u005e{commit}) printf '%s\\n' release-sha ;;\n"
+        "      *) exit 1 ;;\n"
+        "    esac\n"
+        "    ;;\n"
+        "  merge-base)\n"
+        "    if [[ \"$2\" == \"--is-ancestor\" && \"$3\" == \"release-sha\" && \"$4\" == \"origin/main\" ]]; then\n"
+        f"      exit {0 if tag_is_main_ancestor else 1}\n"
+        "    fi\n"
+        "    if [[ \"$2\" == \"--is-ancestor\" && \"$3\" == \"release-candidate-v1.5.0\" && \"$4\" == \"release-sha\" ]]; then\n"
+        f"      exit {0 if candidate_is_tag_ancestor else 1}\n"
+        "    fi\n"
+        "    exit 1\n"
+        "    ;;\n"
+        "  *) exit 1 ;;\n"
+        "esac\n",
+        encoding="utf-8",
+    )
+    git.chmod(0o755)
+    output = tmp_path / "github-output"
+    shell = (
+        release_tag_step_shell()
+        .replace("'${{ steps.meta.outputs.release_tag }}'", "'v1.5.0'")
+        .replace("'${{ steps.meta.outputs.release_target }}'", "'production'")
+    )
+    return subprocess.run(
+        ["bash", "-c", shell],
+        cwd=tmp_path,
+        env={
+            **os.environ,
+            "GITHUB_OUTPUT": str(output),
+            "PATH": f"{bin_dir}:{os.environ['PATH']}",
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+def git_fixture_command(repository: Path, *arguments: str) -> str:
+    """Run Git in a real fixture repository and return its stdout."""
+    result = subprocess.run(
+        ["git", *arguments],
+        cwd=repository,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return result.stdout.strip()
+
+
+def commit_git_fixture(repository: Path, message: str) -> str:
+    """Create one durable commit in a real Git fixture repository."""
+    state = repository / "state.txt"
+    previous = state.read_text(encoding="utf-8") if state.exists() else ""
+    state.write_text(f"{previous}{message}\n", encoding="utf-8")
+    git_fixture_command(repository, "add", "state.txt")
+    git_fixture_command(repository, "commit", "-m", message)
+    return git_fixture_command(repository, "rev-parse", "HEAD")
+
+
+def write_real_release_tag_fixture(tmp_path: Path, scenario: str) -> Path:
+    """Create remote-backed release ancestry for tag reuse acceptance tests."""
+    tmp_path.mkdir()
+    remote = tmp_path / "origin.git"
+    repository = tmp_path / "repository"
+    subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True)
+    subprocess.run(["git", "init", str(repository)], check=True, capture_output=True)
+    git_fixture_command(repository, "config", "user.name", "Release Test")
+    git_fixture_command(repository, "config", "user.email", "release-test@example.invalid")
+    git_fixture_command(repository, "checkout", "-b", "main")
+
+    initial = commit_git_fixture(repository, "initial")
+    git_fixture_command(repository, "remote", "add", "origin", str(remote))
+    git_fixture_command(repository, "push", "--set-upstream", "origin", "main")
+
+    commit_git_fixture(repository, "candidate")
+    git_fixture_command(repository, "tag", "release-candidate-v1.5.0")
+    if scenario == "accepted":
+        commit_git_fixture(repository, "release")
+        git_fixture_command(repository, "tag", "v1.5.0")
+        commit_git_fixture(repository, "recovery")
+    elif scenario == "diverged":
+        git_fixture_command(repository, "checkout", "-b", "diverged", initial)
+        commit_git_fixture(repository, "diverged-release")
+        git_fixture_command(repository, "tag", "v1.5.0")
+        git_fixture_command(repository, "checkout", "main")
+        commit_git_fixture(repository, "main-after-candidate")
+    elif scenario == "wrong-candidate":
+        git_fixture_command(repository, "tag", "v1.5.0", initial)
+        commit_git_fixture(repository, "main-after-candidate")
+    else:
+        raise AssertionError(f"unknown real Git fixture scenario: {scenario}")
+
+    git_fixture_command(repository, "push", "origin", "main", "--tags")
+    return repository
+
+
+def run_release_tag_step_in_git_fixture(repository: Path) -> subprocess.CompletedProcess[str]:
+    """Run the exact tag-reuse workflow shell against a real remote-backed repository."""
+    shell = (
+        release_tag_step_shell()
+        .replace("'${{ steps.meta.outputs.release_tag }}'", "'v1.5.0'")
+        .replace("'${{ steps.meta.outputs.release_target }}'", "'production'")
+    )
+    return subprocess.run(
+        ["bash", "-c", shell],
+        cwd=repository,
+        env={**os.environ, "GITHUB_OUTPUT": str(repository / "github-output")},
         text=True,
         capture_output=True,
         check=False,
@@ -2035,6 +2180,97 @@ def test_release_gate_readiness_threads_preserved_channel_provenance(
     assert "release version already published for: sc-compose, sc-composer" in unlisted.stderr
 
 
+def test_release_gate_final_threads_preserved_channel_provenance(
+    tmp_path: Path, published_registry_url: str
+) -> None:
+    """The root Release workflow's final gate honors prior channel success."""
+    workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    configure_fixture_crates_registry(manifest, published_registry_url)
+    for crate_name in ("sc-composer", "sc-compose"):
+        crate_manifest = tmp_path / "crates" / crate_name / "Cargo.toml"
+        crate_manifest.write_text(
+            crate_manifest.read_text(encoding="utf-8").replace(
+                'version = "1.1.0"', "version.workspace = true"
+            ),
+            encoding="utf-8",
+        )
+
+    preserved = run_release_gate_readiness(
+        tmp_path,
+        manifest=manifest,
+        workspace=workspace,
+        mode="final",
+        release_ref="origin/main",
+        already_published_channels="crates_io",
+    )
+
+    assert preserved.returncode == 0, preserved.stderr
+    assert "mode=final release_ref=origin/main" in preserved.stdout
+    assert "PASS - release gate checks satisfied" in preserved.stdout
+
+
+def test_release_tag_reuse_requires_verified_ancestor_and_candidate_lineage(
+    tmp_path: Path,
+) -> None:
+    """A recovery keeps an immutable tag only when both ancestry checks hold."""
+    accepted = run_release_tag_step(
+        tmp_path / "accepted", tag_is_main_ancestor=True, candidate_is_tag_ancestor=True
+    )
+    diverged = run_release_tag_step(
+        tmp_path / "diverged", tag_is_main_ancestor=False, candidate_is_tag_ancestor=True
+    )
+    wrong_candidate = run_release_tag_step(
+        tmp_path / "wrong-candidate", tag_is_main_ancestor=True, candidate_is_tag_ancestor=False
+    )
+
+    assert accepted.returncode == 0, accepted.stderr
+    assert "reusing immutable tag while building from origin/main" in accepted.stdout
+    assert (tmp_path / "accepted" / "github-output").read_text(encoding="utf-8") == (
+        "build_ref=origin/main\n"
+    )
+    assert diverged.returncode != 0
+    assert "is not an ancestor of origin/main" in diverged.stderr
+    assert wrong_candidate.returncode != 0
+    assert "does not descend from release-candidate-v1.5.0" in wrong_candidate.stderr
+
+
+def test_release_tag_reuse_verifies_real_git_ancestry(tmp_path: Path) -> None:
+    """Tag reuse works only for real remote tag/candidate/main ancestry."""
+    accepted_repo = write_real_release_tag_fixture(tmp_path / "accepted", "accepted")
+    diverged_repo = write_real_release_tag_fixture(tmp_path / "diverged", "diverged")
+    wrong_candidate_repo = write_real_release_tag_fixture(
+        tmp_path / "wrong-candidate", "wrong-candidate"
+    )
+
+    accepted = run_release_tag_step_in_git_fixture(accepted_repo)
+    diverged = run_release_tag_step_in_git_fixture(diverged_repo)
+    wrong_candidate = run_release_tag_step_in_git_fixture(wrong_candidate_repo)
+
+    assert accepted.returncode == 0, accepted.stderr
+    assert "reusing immutable tag while building from origin/main" in accepted.stdout
+    assert (accepted_repo / "github-output").read_text(encoding="utf-8") == (
+        "build_ref=origin/main\n"
+    )
+    assert diverged.returncode != 0
+    assert "is not an ancestor of origin/main" in diverged.stderr
+    assert wrong_candidate.returncode != 0
+    assert "does not descend from release-candidate-v1.5.0" in wrong_candidate.stderr
+
+
+def test_root_release_workflow_threads_retry_provenance_and_builds_from_main() -> None:
+    """The workflow supplies retry provenance and separates immutable tag from build ref."""
+    workflow = release_workflow_text()
+
+    assert "already_published_channels:" in workflow
+    assert "ALREADY_PUBLISHED_CHANNELS: ${{ inputs.already_published_channels }}" in workflow
+    assert '"${ALREADY_PUBLISHED_CHANNELS}"' in workflow
+    assert "build_ref: ${{ steps.release-ref.outputs.build_ref }}" in workflow
+    assert workflow.count("needs.gate-and-tag.outputs.build_ref") == 9
+    assert "gate-and-tag.outputs.release_ref" not in workflow
+    assert "ref: ${{ needs.gate-and-tag.outputs.release_tag }}" not in workflow
+    assert "ref: ${{ needs.gate-and-tag.outputs.release_ref }}" not in workflow
+
+
 def test_release_preflight_channel_results_executes_nonempty_json_without_legacy_brace_corruption(
     tmp_path: Path,
 ) -> None:
@@ -2515,7 +2751,7 @@ def test_release_workflow_rehearsal_mode_avoids_production_side_effects() -> Non
     text = release_workflow_text()
 
     assert 'echo "Rehearsal mode: validating release tag ${tag} locally only; not pushing any tag to origin"' in text
-    assert "echo \"release_ref=$main_sha\" >> \"$GITHUB_OUTPUT\"" in text
+    assert "echo \"build_ref=origin/main\" >> \"$GITHUB_OUTPUT\"" in text
     assert "needs.gate-and-tag.outputs.release_target == 'production'" in text
 
 
@@ -2532,7 +2768,7 @@ def test_release_workflow_checks_out_repo_before_local_python_setup_action() -> 
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.gate-and-tag.outputs.release_ref }}
+          ref: ${{ needs.gate-and-tag.outputs.build_ref }}
       - uses: ./.github/actions/setup-python-release-build"""
     sdist_job = """  build-python-sdists:
     if: ${{ needs.release-plan.outputs.has_python_sdists == 'true' }}
@@ -2544,7 +2780,7 @@ def test_release_workflow_checks_out_repo_before_local_python_setup_action() -> 
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.gate-and-tag.outputs.release_ref }}
+          ref: ${{ needs.gate-and-tag.outputs.build_ref }}
       - uses: ./.github/actions/setup-python-release-build"""
 
     assert wheels_job in text
