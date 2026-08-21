@@ -318,6 +318,84 @@ def release_preflight_workflow_text() -> str:
     return (repo_root() / ".github" / "workflows" / "release-preflight.yml").read_text(encoding="utf-8")
 
 
+def release_preflight_step_shell(step_id: str, next_step_id: str) -> str:
+    """Extract one executed shell body from the release-preflight workflow."""
+    workflow = release_preflight_workflow_text()
+    step = workflow.split(f"      - id: {step_id}\n", 1)[1].split(
+        f"      - id: {next_step_id}\n", 1
+    )[0]
+    body = step.split("        run: |\n", 1)[1]
+    lines = body.splitlines()
+    assert all(not line or line.startswith("          ") for line in lines)
+    return "\n".join(line[10:] if line else "" for line in lines)
+
+
+def run_release_preflight_registry_step(
+    tmp_path: Path,
+    shell: str,
+    *,
+    published: bool,
+    already_published_channels: str,
+) -> subprocess.CompletedProcess[str]:
+    """Execute a workflow registry step with deterministic registry stand-ins."""
+    scripts_dir = tmp_path / ".github" / "scripts"
+    scripts_dir.mkdir(parents=True, exist_ok=True)
+    (scripts_dir / "release_artifacts.py").write_text(
+        "import json\n"
+        "import os\n"
+        "import sys\n"
+        "command = sys.argv[1]\n"
+        "if command == 'check-version-unpublished':\n"
+        "    if os.environ['SIMULATE_PUBLISHED'] == 'true':\n"
+        "        raise SystemExit('release version already published for: fixture')\n"
+        "    print('ok: no publishable artifacts found at version 1.5.0')\n"
+        "elif command == 'public-registry-check-plan':\n"
+        "    print(json.dumps({'checks': [{\n"
+        "        'channel': 'crates_io',\n"
+        "        'agent': 'crates-io-publisher',\n"
+        "        'registry': 'crates.io',\n"
+        "        'name': 'fixture',\n"
+        "        'normalized_name': 'fixture',\n"
+        "        'expected_version': '1.5.0',\n"
+        "        'project_lookup_url': 'https://registry.invalid/project',\n"
+        "        'version_lookup_url': 'https://registry.invalid/version',\n"
+        "        'version_policy': 'must_be_absent',\n"
+        "    }]}))\n"
+        "else:\n"
+        "    raise SystemExit(f'unexpected command: {command}')\n",
+        encoding="utf-8",
+    )
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    curl = bin_dir / "curl"
+    curl.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [[ \"${SIMULATE_PUBLISHED}\" == true ]]; then\n"
+        "  printf 200\n"
+        "elif [[ \"$*\" == *version ]]; then\n"
+        "  printf 404\n"
+        "else\n"
+        "  printf 200\n"
+        "fi\n",
+        encoding="utf-8",
+    )
+    curl.chmod(0o755)
+    return subprocess.run(
+        ["bash", "-c", shell.replace("'${{ steps.meta.outputs.release_version }}'", "'1.5.0'")],
+        cwd=tmp_path,
+        env={
+            **os.environ,
+            "ALREADY_PUBLISHED_CHANNELS": already_published_channels,
+            "RELEASE_ARTIFACT_MANIFEST": str(tmp_path / "release" / "manifest.toml"),
+            "SIMULATE_PUBLISHED": str(published).lower(),
+            "PATH": f"{bin_dir}:{os.environ['PATH']}",
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
 def release_preflight_channel_results_shell() -> str:
     """Extract the executed shell body for the preflight channel-results step."""
     workflow = release_preflight_workflow_text()
@@ -1759,6 +1837,46 @@ def test_release_preflight_requires_each_standardized_secret() -> None:
     assert 'credential_liveness_channels_json="${CREDENTIAL_LIVENESS_CHANNELS:-}"' in text
     assert "REPOSITORY_SECRET_CHANNELS must be a JSON object." in text
     assert "CREDENTIAL_LIVENESS_CHANNELS must be a JSON object." in text
+    assert "already_published_channels" in text
+    assert "crates_io is preserved from a prior release run" in text
+
+
+@pytest.mark.parametrize(
+    ("published", "already_published_channels", "expected_success"),
+    (
+        (True, "crates_io", True),
+        (True, "", False),
+        (False, "crates_io", True),
+    ),
+)
+def test_release_preflight_registry_checks_execute_preserved_channel_exception(
+    tmp_path: Path,
+    published: bool,
+    already_published_channels: str,
+    expected_success: bool,
+) -> None:
+    """Run the actual unpublished and registry-state shells for retry outcomes."""
+    unpublished = run_release_preflight_registry_step(
+        tmp_path,
+        release_preflight_step_shell("unpublished", "registry_state"),
+        published=published,
+        already_published_channels=already_published_channels,
+    )
+    registry_state = run_release_preflight_registry_step(
+        tmp_path,
+        release_preflight_step_shell("registry_state", "package_checks"),
+        published=published,
+        already_published_channels=already_published_channels,
+    )
+
+    assert (unpublished.returncode == 0) is expected_success, unpublished.stderr
+    assert (registry_state.returncode == 0) is expected_success, registry_state.stderr
+    if published and expected_success:
+        assert "preserved from a prior release run" in unpublished.stdout
+        assert "preserved from a prior release run" in registry_state.stdout
+    elif published:
+        assert "already published" in unpublished.stderr
+        assert "already published" in registry_state.stderr
 
 
 def test_release_preflight_channel_results_executes_nonempty_json_without_legacy_brace_corruption(
