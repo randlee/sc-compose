@@ -18,6 +18,7 @@ from release_manifest import (
     _channel_contract,
     _channel_names,
     _channel_preflight_result,
+    check_version_publication,
     _homebrew_formulas_for_tag,
     _public_registry_checks,
     _validate_homebrew_formulas,
@@ -34,7 +35,6 @@ from release_manifest import (
     manifest_python_upload_tool,
     manifest_rust_toolchain,
     manifest_workspace_toml,
-    registry_version_state,
     package_name,
     workspace_members,
     workspace_version,
@@ -852,16 +852,15 @@ def cmd_cargo_build_bin_args(args: argparse.Namespace) -> int:
 
 def cmd_check_version_unpublished(args: argparse.Namespace) -> int:
     """Detect already-published crates via the contract's exact version_lookup_url."""
-    manifest = load_manifest(Path(args.manifest), with_channel_contracts=True)
-    published = []
-    for crate in manifest["crates"]:
-        check = _public_registry_checks(
-            manifest["channel_contracts"], "crates_io", crate["package"], args.version
-        )[0]
-        if registry_version_state(check["version_lookup_url"]) == "published":
-            published.append(crate["artifact"])
-    if published:
-        raise SystemExit("release version already published for: " + ", ".join(sorted(published)))
+    unexpected, preserved = check_version_publication(Path(args.manifest), args.version, args.already_published_channels)
+    if unexpected:
+        raise SystemExit("release version already published for: " + ", ".join(sorted(unexpected)))
+    if preserved:
+        print(
+            "ok: crates_io is preserved from a prior release run; version already published for: "
+            + ", ".join(sorted(preserved))
+        )
+        return 0
     print(f"ok: no publishable artifacts found at version {args.version}")
     return 0
 
@@ -989,6 +988,7 @@ def main() -> int:
     p = sub.add_parser("check-version-unpublished")
     p.add_argument("--manifest", required=True)
     p.add_argument("--version", required=True)
+    p.add_argument("--already-published-channels", default="")
     p.set_defaults(func=cmd_check_version_unpublished)
 
     args = parser.parse_args()
