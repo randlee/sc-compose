@@ -2751,7 +2751,7 @@ def test_release_workflow_rehearsal_mode_avoids_production_side_effects() -> Non
     text = release_workflow_text()
 
     assert 'echo "Rehearsal mode: validating release tag ${tag} locally only; not pushing any tag to origin"' in text
-    assert "echo \"release_ref=$main_sha\" >> \"$GITHUB_OUTPUT\"" in text
+    assert "echo \"build_ref=origin/main\" >> \"$GITHUB_OUTPUT\"" in text
     assert "needs.gate-and-tag.outputs.release_target == 'production'" in text
 
 
