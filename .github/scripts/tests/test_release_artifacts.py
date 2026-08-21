@@ -2296,6 +2296,7 @@ def test_root_release_workflow_threads_retry_provenance_and_builds_from_main() -
     assert "ALREADY_PUBLISHED_CHANNELS: ${{ inputs.already_published_channels }}" in workflow
     assert '"${ALREADY_PUBLISHED_CHANNELS}"' in workflow
     assert "build_ref: ${{ steps.release-ref.outputs.build_ref }}" in workflow
+    assert workflow.count('echo "build_ref=$main_sha" >> "$GITHUB_OUTPUT"') == 1
     assert workflow.count("needs.gate-and-tag.outputs.build_ref") == 9
     assert "gate-and-tag.outputs.release_ref" not in workflow
     assert "ref: ${{ needs.gate-and-tag.outputs.release_tag }}" not in workflow
@@ -2782,7 +2783,7 @@ def test_release_workflow_rehearsal_mode_avoids_production_side_effects() -> Non
     text = release_workflow_text()
 
     assert 'echo "Rehearsal mode: validating release tag ${tag} locally only; not pushing any tag to origin"' in text
-    assert "echo \"build_ref=$main_sha\" >> \"$GITHUB_OUTPUT\"" in text
+    assert text.count("echo \"build_ref=$main_sha\" >> \"$GITHUB_OUTPUT\"") == 1
     assert "needs.gate-and-tag.outputs.release_target == 'production'" in text
 
 

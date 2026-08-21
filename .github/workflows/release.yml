@@ -122,15 +122,13 @@ jobs:
                 exit 1
               fi
               echo "Tag ${tag} already exists at verified ancestor ${remote_tag_sha}; reusing immutable tag while building from origin/main (${main_sha})"
-              echo "build_ref=$main_sha" >> "$GITHUB_OUTPUT"
-              exit 0
+            else
+              git tag "$tag" origin/main
+              git push origin "$tag"
             fi
-            git tag "$tag" origin/main
-            git push origin "$tag"
-            echo "build_ref=$main_sha" >> "$GITHUB_OUTPUT"
-            exit 0
+          else
+            echo "Rehearsal mode: validating release tag ${tag} locally only; not pushing any tag to origin"
           fi
-          echo "Rehearsal mode: validating release tag ${tag} locally only; not pushing any tag to origin"
           echo "build_ref=$main_sha" >> "$GITHUB_OUTPUT"
 
   build:
