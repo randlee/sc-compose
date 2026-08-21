@@ -7,6 +7,7 @@ RELEASE_CANDIDATE_TAG="${3:-}"
 VERSION="${4:-${RELEASE_VERSION:-}}"
 MANIFEST="${5:-release/publish-artifacts.toml}"
 WORKSPACE_TOML="${6:-Cargo.toml}"
+ALREADY_PUBLISHED_CHANNELS="${7:-}"
 
 fail() {
   echo "release-gate: FAIL - $*" >&2
@@ -50,7 +51,8 @@ fi
 
 python3 .github/scripts/release_artifacts.py check-version-unpublished \
   --manifest "$MANIFEST" \
-  --version "$VERSION" >/dev/null
+  --version "$VERSION" \
+  --already-published-channels "$ALREADY_PUBLISHED_CHANNELS" >/dev/null
 
 python3 .github/scripts/release_artifacts.py verify-version-lockstep \
   --manifest "$MANIFEST" \

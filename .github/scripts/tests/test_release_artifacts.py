@@ -9,7 +9,9 @@ import tarfile
 import tomllib
 import xml.etree.ElementTree as ET
 import zipfile
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from threading import Thread
 
 import pytest
 
@@ -346,9 +348,13 @@ def run_release_preflight_registry_step(
         "import sys\n"
         "command = sys.argv[1]\n"
         "if command == 'check-version-unpublished':\n"
+        "    preserved = set(filter(None, sys.argv[sys.argv.index('--already-published-channels') + 1].split(',')))\n"
         "    if os.environ['SIMULATE_PUBLISHED'] == 'true':\n"
-        "        raise SystemExit('release version already published for: fixture')\n"
-        "    print('ok: no publishable artifacts found at version 1.5.0')\n"
+        "        if 'crates_io' not in preserved:\n"
+        "            raise SystemExit('release version already published for: fixture')\n"
+        "        print('ok: crates_io is preserved from a prior release run; version already published for: fixture')\n"
+        "    else:\n"
+        "        print('ok: no publishable artifacts found at version 1.5.0')\n"
         "elif command == 'public-registry-check-plan':\n"
         "    print(json.dumps({'checks': [{\n"
         "        'channel': 'crates_io',\n"
@@ -390,6 +396,88 @@ def run_release_preflight_registry_step(
             "SIMULATE_PUBLISHED": str(published).lower(),
             "PATH": f"{bin_dir}:{os.environ['PATH']}",
         },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+@pytest.fixture
+def published_registry_url() -> str:
+    """Serve deterministic published-version responses for native CLI checks."""
+
+    class PublishedVersionHandler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:  # noqa: N802 - stdlib handler API
+            self.send_response(200)
+            self.end_headers()
+
+        def log_message(self, format: str, *args: object) -> None:
+            del format, args
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), PublishedVersionHandler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        host, port = server.server_address
+        yield f"http://{host}:{port}"
+    finally:
+        server.shutdown()
+        thread.join()
+        server.server_close()
+
+
+def configure_fixture_crates_registry(manifest: Path, registry_url: str) -> None:
+    """Point a fixture's crates.io contract at the deterministic local server."""
+    contracts = manifest.with_name("publish-channel-contracts.toml")
+    contracts.write_text(
+        contracts.read_text(encoding="utf-8").replace("https://crates.io", registry_url),
+        encoding="utf-8",
+    )
+
+
+def run_release_gate_readiness(
+    tmp_path: Path,
+    *,
+    manifest: Path,
+    workspace: Path,
+    already_published_channels: str,
+) -> subprocess.CompletedProcess[str]:
+    """Exercise readiness with real shared scripts and deterministic Git metadata."""
+    scripts_dir = tmp_path / ".github" / "scripts"
+    scripts_dir.mkdir(parents=True, exist_ok=True)
+    for script_name in ("release_artifacts.py", "release_manifest.py", "release_gate.sh"):
+        (scripts_dir / script_name).write_text(
+            (scripts_root() / script_name).read_text(encoding="utf-8"), encoding="utf-8"
+        )
+
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    git = bin_dir / "git"
+    git.write_text(
+        "#!/usr/bin/env bash\n"
+        "case \"$1\" in\n"
+        "  fetch|merge-base) exit 0 ;;\n"
+        "  rev-parse) printf '%s\\n' deadbeef ;;\n"
+        "  *) exit 1 ;;\n"
+        "esac\n",
+        encoding="utf-8",
+    )
+    git.chmod(0o755)
+
+    return subprocess.run(
+        [
+            "bash",
+            str(scripts_dir / "release_gate.sh"),
+            "readiness",
+            "HEAD",
+            "release-candidate-v1.1.0",
+            "1.1.0",
+            str(manifest),
+            str(workspace),
+            already_published_channels,
+        ],
+        cwd=tmp_path,
+        env={**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}"},
         text=True,
         capture_output=True,
         check=False,
@@ -880,7 +968,8 @@ def test_crates_already_published_detection_uses_exact_version_lookup() -> None:
         assert "indeterminate" in text
 
     assert "cargo search" not in script_text
-    assert "registry_version_state" in script_text
+    assert "check_version_publication" in script_text
+    assert "registry_version_state" in manifest_module_text
     assert "must_be_absent" not in release_text  # policy lives in the contract
     assert "registry lookup failed" in manifest_module_text
 
@@ -1838,7 +1927,8 @@ def test_release_preflight_requires_each_standardized_secret() -> None:
     assert "REPOSITORY_SECRET_CHANNELS must be a JSON object." in text
     assert "CREDENTIAL_LIVENESS_CHANNELS must be a JSON object." in text
     assert "already_published_channels" in text
-    assert "crates_io is preserved from a prior release run" in text
+    assert "--already-published-channels \"${ALREADY_PUBLISHED_CHANNELS}\"" in text
+    assert "if result=" not in release_preflight_step_shell("unpublished", "registry_state")
 
 
 @pytest.mark.parametrize(
@@ -1877,6 +1967,72 @@ def test_release_preflight_registry_checks_execute_preserved_channel_exception(
     elif published:
         assert "already published" in unpublished.stderr
         assert "already published" in registry_state.stderr
+
+
+def test_check_version_unpublished_allows_only_listed_published_channels(
+    tmp_path: Path, published_registry_url: str
+) -> None:
+    """Cover channel-scoped outcomes across calls; every crate resolves to crates_io."""
+    _, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    configure_fixture_crates_registry(manifest, published_registry_url)
+
+    preserved = run_fixture_command(
+        tmp_path,
+        "check-version-unpublished",
+        "--version",
+        "1.1.0",
+        "--already-published-channels",
+        "crates_io",
+        manifest=manifest,
+    )
+    unlisted = run_fixture_command(
+        tmp_path,
+        "check-version-unpublished",
+        "--version",
+        "1.1.0",
+        "--already-published-channels",
+        "pypi",
+        manifest=manifest,
+    )
+
+    assert preserved.returncode == 0, preserved.stderr
+    assert "crates_io is preserved from a prior release run" in preserved.stdout
+    assert unlisted.returncode != 0
+    assert "release version already published for: sc-compose, sc-composer" in unlisted.stderr
+
+
+def test_release_gate_readiness_threads_preserved_channel_provenance(
+    tmp_path: Path, published_registry_url: str
+) -> None:
+    """Readiness forwards channel-scoped retry provenance to the native checker."""
+    workspace, manifest = write_repo_fixture(tmp_path, manifest_wheels=["ubuntu-latest"])
+    configure_fixture_crates_registry(manifest, published_registry_url)
+    for crate_name in ("sc-composer", "sc-compose"):
+        crate_manifest = tmp_path / "crates" / crate_name / "Cargo.toml"
+        crate_manifest.write_text(
+            crate_manifest.read_text(encoding="utf-8").replace(
+                'version = "1.1.0"', "version.workspace = true"
+            ),
+            encoding="utf-8",
+        )
+
+    preserved = run_release_gate_readiness(
+        tmp_path,
+        manifest=manifest,
+        workspace=workspace,
+        already_published_channels="crates_io",
+    )
+    unlisted = run_release_gate_readiness(
+        tmp_path,
+        manifest=manifest,
+        workspace=workspace,
+        already_published_channels="pypi",
+    )
+
+    assert preserved.returncode == 0, preserved.stderr
+    assert "PASS - release gate checks satisfied" in preserved.stdout
+    assert unlisted.returncode != 0
+    assert "release version already published for: sc-compose, sc-composer" in unlisted.stderr
 
 
 def test_release_preflight_channel_results_executes_nonempty_json_without_legacy_brace_corruption(
@@ -2297,6 +2453,7 @@ def test_publishing_task_templates_render_recipient_contract(tmp_path: Path) -> 
                 "worktree_path": "/tmp/eval",
                 "branch": "develop",
                 "manifest_path": "release/publish-artifacts.toml",
+                "already_published_channels": "crates_io",
             },
         ),
         (
@@ -2321,6 +2478,8 @@ def test_publishing_task_templates_render_recipient_contract(tmp_path: Path) -> 
 
         assert root.findtext("recipient") == context["recipient"]
         assert f"Send {context['recipient']}" in rendered
+        if template_path.endswith("preflight.xml.j2"):
+            assert root.findtext("release/already-published-channels") == "crates_io"
 
 
 def test_release_preflight_collects_independent_failures_before_denial() -> None:

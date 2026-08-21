@@ -290,10 +290,12 @@ jobs:
         name: Verify release-candidate provenance
         if: ${{ always() && steps.meta.outcome == 'success' }}
         continue-on-error: true
+        env:
+          ALREADY_PUBLISHED_CHANNELS: ${{ inputs.already_published_channels }}
         run: |
           .github/scripts/release_gate.sh readiness HEAD "release-candidate-${{ steps.meta.outputs.release_tag }}" \
             '${{ steps.meta.outputs.release_version }}' "${RELEASE_ARTIFACT_MANIFEST}" \
-            '${{ steps.build_plan.outputs.workspace_toml }}'
+            '${{ steps.build_plan.outputs.workspace_toml }}' "${ALREADY_PUBLISHED_CHANNELS}"
 
       - id: unpublished
         name: Verify release version is unpublished on crates.io
@@ -303,27 +305,10 @@ jobs:
         env:
           ALREADY_PUBLISHED_CHANNELS: ${{ inputs.already_published_channels }}
         run: |
-          set -euo pipefail
-          channel_is_preserved() {
-            local expected="$1" channel
-            IFS=',' read -r -a channels <<<"${ALREADY_PUBLISHED_CHANNELS:-}"
-            for channel in "${channels[@]}"; do
-              channel="$(tr -d '[:space:]' <<<"${channel}")"
-              [[ "${channel}" == "${expected}" ]] && return 0
-            done
-            return 1
-          }
-          if result="$(python3 .github/scripts/release_artifacts.py check-version-unpublished \
+          python3 .github/scripts/release_artifacts.py check-version-unpublished \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
-            --version '${{ steps.meta.outputs.release_version }}' 2>&1)"; then
-            printf '%s\n' "${result}"
-          elif channel_is_preserved crates_io \
-            && [[ "${result}" == release\ version\ already\ published\ for:* ]]; then
-            printf 'crates_io is preserved from a prior release run; already-published version is expected for this retry.\n'
-          else
-            printf '%s\n' "${result}" >&2
-            exit 1
-          fi
+            --version '${{ steps.meta.outputs.release_version }}' \
+            --already-published-channels "${ALREADY_PUBLISHED_CHANNELS}"
 
       - id: registry_state
         name: Verify registry versions and new names
