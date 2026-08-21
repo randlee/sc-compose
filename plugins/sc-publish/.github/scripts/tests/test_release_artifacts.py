@@ -499,7 +499,12 @@ def release_tag_step_shell() -> str:
 
 
 def run_release_tag_step(
-    tmp_path: Path, *, tag_is_main_ancestor: bool, candidate_is_tag_ancestor: bool
+    tmp_path: Path,
+    *,
+    tag_is_main_ancestor: bool,
+    candidate_is_tag_ancestor: bool,
+    tag_exists: bool = True,
+    target: str = "production",
 ) -> subprocess.CompletedProcess[str]:
     """Run tag reuse against deterministic ancestry responses from Git."""
     bin_dir = tmp_path / "bin"
@@ -510,7 +515,7 @@ def run_release_tag_step(
         "set -euo pipefail\n"
         "case \"$1\" in\n"
         "  fetch) exit 0 ;;\n"
-        "  ls-remote) exit 0 ;;\n"
+        f"  ls-remote) exit {0 if tag_exists else 1} ;;\n"
         "  rev-parse)\n"
         "    case \"$2\" in\n"
         "      origin/main) printf '%s\\n' main-sha ;;\n"
@@ -527,6 +532,7 @@ def run_release_tag_step(
         "    fi\n"
         "    exit 1\n"
         "    ;;\n"
+        "  tag|push) exit 0 ;;\n"
         "  *) exit 1 ;;\n"
         "esac\n",
         encoding="utf-8",
@@ -536,7 +542,7 @@ def run_release_tag_step(
     shell = (
         release_tag_step_shell()
         .replace("'${{ steps.meta.outputs.release_tag }}'", "'v1.5.0'")
-        .replace("'${{ steps.meta.outputs.release_target }}'", "'production'")
+        .replace("'${{ steps.meta.outputs.release_target }}'", repr(target))
     )
     return subprocess.run(
         ["bash", "-c", shell],
@@ -2225,13 +2231,38 @@ def test_release_tag_reuse_requires_verified_ancestor_and_candidate_lineage(
 
     assert accepted.returncode == 0, accepted.stderr
     assert "reusing immutable tag while building from origin/main" in accepted.stdout
-    assert (tmp_path / "accepted" / "github-output").read_text(encoding="utf-8") == (
-        "build_ref=origin/main\n"
-    )
+    assert (tmp_path / "accepted" / "github-output").read_text(encoding="utf-8") == "build_ref=main-sha\n"
     assert diverged.returncode != 0
     assert "is not an ancestor of origin/main" in diverged.stderr
     assert wrong_candidate.returncode != 0
     assert "does not descend from release-candidate-v1.5.0" in wrong_candidate.stderr
+
+
+def test_release_tag_step_emits_resolved_main_sha_for_every_output_path(
+    tmp_path: Path,
+) -> None:
+    """Reuse, creation, and rehearsal pin downstream checkouts to the verified SHA."""
+    reused = run_release_tag_step(
+        tmp_path / "reused", tag_is_main_ancestor=True, candidate_is_tag_ancestor=True
+    )
+    created = run_release_tag_step(
+        tmp_path / "created",
+        tag_is_main_ancestor=True,
+        candidate_is_tag_ancestor=True,
+        tag_exists=False,
+    )
+    rehearsal = run_release_tag_step(
+        tmp_path / "rehearsal",
+        tag_is_main_ancestor=True,
+        candidate_is_tag_ancestor=True,
+        target="testpypi",
+    )
+
+    for name, result in (("reused", reused), ("created", created), ("rehearsal", rehearsal)):
+        assert result.returncode == 0, result.stderr
+        assert (tmp_path / name / "github-output").read_text(encoding="utf-8") == (
+            "build_ref=main-sha\n"
+        )
 
 
 def test_release_tag_reuse_verifies_real_git_ancestry(tmp_path: Path) -> None:
@@ -2249,7 +2280,7 @@ def test_release_tag_reuse_verifies_real_git_ancestry(tmp_path: Path) -> None:
     assert accepted.returncode == 0, accepted.stderr
     assert "reusing immutable tag while building from origin/main" in accepted.stdout
     assert (accepted_repo / "github-output").read_text(encoding="utf-8") == (
-        "build_ref=origin/main\n"
+        f"build_ref={git_fixture_command(accepted_repo, 'rev-parse', 'origin/main')}\n"
     )
     assert diverged.returncode != 0
     assert "is not an ancestor of origin/main" in diverged.stderr
@@ -2751,7 +2782,7 @@ def test_release_workflow_rehearsal_mode_avoids_production_side_effects() -> Non
     text = release_workflow_text()
 
     assert 'echo "Rehearsal mode: validating release tag ${tag} locally only; not pushing any tag to origin"' in text
-    assert "echo \"build_ref=origin/main\" >> \"$GITHUB_OUTPUT\"" in text
+    assert "echo \"build_ref=$main_sha\" >> \"$GITHUB_OUTPUT\"" in text
     assert "needs.gate-and-tag.outputs.release_target == 'production'" in text
 
 
