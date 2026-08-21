@@ -42,6 +42,8 @@ class PublishingAssetTests(unittest.TestCase):
         )
         policy = (PUBLISHING / "ref" / "release-state-strategy.md").read_text(encoding="utf-8")
         self.assertIn("git tag -a \"${candidate_tag}\" origin/develop", workflow)
+        self.assertIn("git config user.name 'github-actions[bot]'", workflow)
+        self.assertIn("git config user.email 'github-actions[bot]@users.noreply.github.com'", workflow)
         self.assertIn("git merge-base --is-ancestor \"${candidate_tag}\" origin/develop", workflow)
         self.assertIn("release-candidate-v", gate)
         self.assertIn("git merge-base --is-ancestor \"$RELEASE_CANDIDATE_TAG\" \"$RELEASE_REF\"", gate)

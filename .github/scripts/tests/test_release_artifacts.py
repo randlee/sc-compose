@@ -1625,13 +1625,21 @@ def test_release_preflight_requires_each_standardized_secret() -> None:
     assert "Verify protected Python environment secret metadata" in text
     assert ".environment_secrets[]" in text
     assert "environments/${environment_name}/secrets" in text
+    assert "environments: read" in text
     assert "environment:" not in text
     assert "Verify repository credential liveness" in text
     assert "https://crates.io/api/v1/me" in text
+    assert 'User-Agent: sc-publish-release-preflight' in text
     assert "https://api.github.com/user" in text
     assert "rotate or replace it" in text
     assert 'echo "${token}"' not in text
     assert 'echo "${!secret_name}"' not in text
+    assert '${REPOSITORY_SECRET_CHANNELS:-{}}' not in text
+    assert '${CREDENTIAL_LIVENESS_CHANNELS:-{}}' not in text
+    assert 'repository_secret_channels_json="${REPOSITORY_SECRET_CHANNELS:-}"' in text
+    assert 'credential_liveness_channels_json="${CREDENTIAL_LIVENESS_CHANNELS:-}"' in text
+    assert "REPOSITORY_SECRET_CHANNELS must be a JSON object." in text
+    assert "CREDENTIAL_LIVENESS_CHANNELS must be a JSON object." in text
 
 
 def test_channel_recovery_workflows_require_a_published_release() -> None:
