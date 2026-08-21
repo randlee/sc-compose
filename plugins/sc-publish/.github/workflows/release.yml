@@ -96,6 +96,7 @@ jobs:
             --workspace-toml '${{ steps.build_plan.outputs.workspace_toml }}'
 
       - name: Run release gate
+        id: release_gate
         env:
           ALREADY_PUBLISHED_CHANNELS: ${{ inputs.already_published_channels }}
         run: .github/scripts/release_gate.sh final origin/main "release-candidate-${{ steps.meta.outputs.release_tag }}" '${{ steps.meta.outputs.release_version }}' "${RELEASE_ARTIFACT_MANIFEST}" '${{ steps.build_plan.outputs.workspace_toml }}' "${ALREADY_PUBLISHED_CHANNELS}"
@@ -108,7 +109,8 @@ jobs:
           git fetch origin --prune --tags
           tag='${{ steps.meta.outputs.release_tag }}'
           target='${{ steps.meta.outputs.release_target }}'
-          main_sha="$(git rev-parse origin/main)"
+          main_sha='${{ steps.release_gate.outputs.release_sha }}'
+          git rev-parse --verify "${main_sha}^{commit}" >/dev/null
           candidate_tag="release-candidate-${tag}"
           if [[ "$target" == "production" ]]; then
             if git ls-remote --exit-code --refs origin "refs/tags/${tag}" >/dev/null; then
@@ -122,16 +124,14 @@ jobs:
                 exit 1
               fi
               echo "Tag ${tag} already exists at verified ancestor ${remote_tag_sha}; reusing immutable tag while building from origin/main (${main_sha})"
-              echo "build_ref=origin/main" >> "$GITHUB_OUTPUT"
-              exit 0
+            else
+              git tag "$tag" "$main_sha"
+              git push origin "$tag"
             fi
-            git tag "$tag" origin/main
-            git push origin "$tag"
-            echo "build_ref=origin/main" >> "$GITHUB_OUTPUT"
-            exit 0
+          else
+            echo "Rehearsal mode: validating release tag ${tag} locally only; not pushing any tag to origin"
           fi
-          echo "Rehearsal mode: validating release tag ${tag} locally only; not pushing any tag to origin"
-          echo "build_ref=origin/main" >> "$GITHUB_OUTPUT"
+          echo "build_ref=$main_sha" >> "$GITHUB_OUTPUT"
 
   build:
     needs: [gate-and-tag, release-plan]
@@ -271,13 +271,12 @@ jobs:
             url="$(python3 .github/scripts/release_artifacts.py public-registry-inquiry-plan \
               --contracts "${contracts}" --channel crates_io --name "${crate}" --version "${version}" \
               | jq -r '.checks[0].version_lookup_url')"
-            status="$(curl --location --max-time 20 --silent --show-error --output /dev/null \
-              --write-out '%{http_code}' --user-agent 'sc-publish-kit' "${url}" || true)"
-            case "${status}" in
-              200) return 0 ;;
-              404) return 1 ;;
+            state="$(python3 .github/scripts/release_artifacts.py registry-status --url "${url}")"
+            case "${state}" in
+              published) return 0 ;;
+              absent) return 1 ;;
               *)
-                echo "crates.io state for ${crate}@${version} is indeterminate (status ${status})" >&2
+                echo "crates.io state for ${crate}@${version} is indeterminate (state ${state})" >&2
                 exit 1
                 ;;
             esac

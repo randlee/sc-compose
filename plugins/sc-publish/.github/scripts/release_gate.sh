@@ -58,4 +58,8 @@ python3 .github/scripts/release_artifacts.py verify-version-lockstep \
   --manifest "$MANIFEST" \
   --workspace-toml "$WORKSPACE_TOML" >/dev/null
 
+if [[ "$MODE" == "final" && -n "${GITHUB_OUTPUT:-}" ]]; then
+  printf 'release_sha=%s\n' "$release_sha" >> "$GITHUB_OUTPUT"
+fi
+
 info "PASS - release gate checks satisfied"
