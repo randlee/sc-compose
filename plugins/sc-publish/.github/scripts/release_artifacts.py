@@ -18,7 +18,6 @@ from release_manifest import (
     _channel_contract,
     _channel_names,
     _channel_preflight_result,
-    check_version_publication,
     _homebrew_formulas_for_tag,
     _public_registry_checks,
     _validate_homebrew_formulas,
@@ -40,6 +39,7 @@ from release_manifest import (
     workspace_version,
     validate_publish_order,
 )
+from release_registry import cmd_check_version_unpublished, cmd_registry_status
 
 
 def _channel_dispatch_config(manifest: dict, channel_name: str) -> tuple[str, dict[str, str]]:
@@ -850,21 +850,6 @@ def cmd_cargo_build_bin_args(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_check_version_unpublished(args: argparse.Namespace) -> int:
-    """Detect already-published crates via the contract's exact version_lookup_url."""
-    unexpected, preserved = check_version_publication(Path(args.manifest), args.version, args.already_published_channels)
-    if unexpected:
-        raise SystemExit("release version already published for: " + ", ".join(sorted(unexpected)))
-    if preserved:
-        print(
-            "ok: crates_io is preserved from a prior release run; version already published for: "
-            + ", ".join(sorted(preserved))
-        )
-        return 0
-    print(f"ok: no publishable artifacts found at version {args.version}")
-    return 0
-
-
 def main() -> int:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -940,6 +925,11 @@ def main() -> int:
     p.add_argument("--name", required=True)
     p.add_argument("--version")
     p.set_defaults(func=cmd_public_registry_inquiry_plan)
+
+    p = sub.add_parser("registry-status")
+    p.add_argument("--url", required=True)
+    p.add_argument("--timeout", type=int, default=20)
+    p.set_defaults(func=cmd_registry_status)
 
     p = sub.add_parser("verify-python-release-assets")
     p.add_argument("--manifest", required=True)

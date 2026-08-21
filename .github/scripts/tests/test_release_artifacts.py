@@ -238,6 +238,7 @@ def test_release_artifact_cli_stays_below_the_script_line_ceiling() -> None:
     ).splitlines()
     assert len(cli_lines) <= 1000
     assert (scripts_root() / "release_manifest.py").is_file()
+    assert (scripts_root() / "release_registry.py").is_file()
 
 
 def release_workflow_text() -> str:
@@ -367,25 +368,16 @@ def run_release_preflight_registry_step(
         "        'version_lookup_url': 'https://registry.invalid/version',\n"
         "        'version_policy': 'must_be_absent',\n"
         "    }]}))\n"
+        "elif command == 'registry-status':\n"
+        "    url = sys.argv[sys.argv.index('--url') + 1]\n"
+        "    if os.environ['SIMULATE_PUBLISHED'] == 'true' or not url.endswith('/version'):\n"
+        "        print('published')\n"
+        "    else:\n"
+        "        print('absent')\n"
         "else:\n"
         "    raise SystemExit(f'unexpected command: {command}')\n",
         encoding="utf-8",
     )
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir(exist_ok=True)
-    curl = bin_dir / "curl"
-    curl.write_text(
-        "#!/usr/bin/env bash\n"
-        "if [[ \"${SIMULATE_PUBLISHED}\" == true ]]; then\n"
-        "  printf 200\n"
-        "elif [[ \"$*\" == *version ]]; then\n"
-        "  printf 404\n"
-        "else\n"
-        "  printf 200\n"
-        "fi\n",
-        encoding="utf-8",
-    )
-    curl.chmod(0o755)
     return subprocess.run(
         ["bash", "-c", shell.replace("'${{ steps.meta.outputs.release_version }}'", "'1.5.0'")],
         cwd=tmp_path,
@@ -394,7 +386,6 @@ def run_release_preflight_registry_step(
             "ALREADY_PUBLISHED_CHANNELS": already_published_channels,
             "RELEASE_ARTIFACT_MANIFEST": str(tmp_path / "release" / "manifest.toml"),
             "SIMULATE_PUBLISHED": str(published).lower(),
-            "PATH": f"{bin_dir}:{os.environ['PATH']}",
         },
         text=True,
         capture_output=True,
@@ -447,7 +438,12 @@ def run_release_gate_readiness(
     """Exercise a release-gate mode with real scripts and deterministic Git metadata."""
     scripts_dir = tmp_path / ".github" / "scripts"
     scripts_dir.mkdir(parents=True, exist_ok=True)
-    for script_name in ("release_artifacts.py", "release_manifest.py", "release_gate.sh"):
+    for script_name in (
+        "release_artifacts.py",
+        "release_manifest.py",
+        "release_registry.py",
+        "release_gate.sh",
+    ):
         (scripts_dir / script_name).write_text(
             (scripts_root() / script_name).read_text(encoding="utf-8"), encoding="utf-8"
         )
@@ -517,6 +513,10 @@ def run_release_tag_step(
         "  fetch) exit 0 ;;\n"
         f"  ls-remote) exit {0 if tag_exists else 1} ;;\n"
         "  rev-parse)\n"
+        "    if [[ \"${2:-}\" == \"--verify\" && \"${3:-}\" == \"main-sha^{commit}\" ]]; then\n"
+        "      printf '%s\\n' main-sha\n"
+        "      exit 0\n"
+        "    fi\n"
         "    case \"$2\" in\n"
         "      origin/main) printf '%s\\n' main-sha ;;\n"
         "      refs/tags/v1.5.0\u005e{commit}) printf '%s\\n' release-sha ;;\n"
@@ -543,6 +543,7 @@ def run_release_tag_step(
         release_tag_step_shell()
         .replace("'${{ steps.meta.outputs.release_tag }}'", "'v1.5.0'")
         .replace("'${{ steps.meta.outputs.release_target }}'", repr(target))
+        .replace("'${{ steps.release_gate.outputs.release_sha }}'", "'main-sha'")
     )
     return subprocess.run(
         ["bash", "-c", shell],
@@ -624,6 +625,10 @@ def run_release_tag_step_in_git_fixture(repository: Path) -> subprocess.Complete
         release_tag_step_shell()
         .replace("'${{ steps.meta.outputs.release_tag }}'", "'v1.5.0'")
         .replace("'${{ steps.meta.outputs.release_target }}'", "'production'")
+        .replace(
+            "'${{ steps.release_gate.outputs.release_sha }}'",
+            repr(git_fixture_command(repository, "rev-parse", "origin/main")),
+        )
     )
     return subprocess.run(
         ["bash", "-c", shell],
@@ -953,6 +958,7 @@ def test_no_single_repo_concerns_leak_into_kit_workflows_actions_or_scripts() ->
         "bootstrap_sc_compose.py",
         "release_artifacts.py",
         "release_manifest.py",
+        "release_registry.py",
         "release_gate.sh",
     )
     github_root = repo_root() / ".github"
@@ -1109,6 +1115,7 @@ def test_crates_already_published_detection_uses_exact_version_lookup() -> None:
     release_text = release_workflow_text()
     crates_text = crates_publish_workflow_text()
     script_text = (scripts_root() / "release_artifacts.py").read_text(encoding="utf-8")
+    registry_script_text = (scripts_root() / "release_registry.py").read_text(encoding="utf-8")
     manifest_module_text = (scripts_root() / "release_manifest.py").read_text(encoding="utf-8")
 
     for text in (release_text, crates_text):
@@ -1117,9 +1124,12 @@ def test_crates_already_published_detection_uses_exact_version_lookup() -> None:
         assert "version_lookup_url" in text
         assert "publish-channel-contracts.toml" in text
         assert "indeterminate" in text
+        assert "registry-status --url" in text
+        assert "--write-out '%{http_code}'" not in text
 
     assert "cargo search" not in script_text
-    assert "check_version_publication" in script_text
+    assert "cmd_check_version_unpublished" in script_text
+    assert "check_version_publication" in registry_script_text
     assert "registry_version_state" in manifest_module_text
     assert "must_be_absent" not in release_text  # policy lives in the contract
     assert "registry lookup failed" in manifest_module_text
@@ -1992,6 +2002,27 @@ def test_public_registry_inquiry_plan_is_contract_derived_and_read_only() -> Non
     assert all(entry["version_lookup_url"] is None for entry in pypi_checks)
 
 
+def test_registry_status_cli_uses_the_fail_closed_shared_registry_probe(
+    published_registry_url: str,
+) -> None:
+    """The workflow-facing command exposes the shared successful lookup state."""
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(scripts_root() / "release_artifacts.py"),
+            "registry-status",
+            "--url",
+            published_registry_url,
+        ],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "published\n"
+
+
 def test_release_workflow_enforces_python_release_invariants() -> None:
     text = release_workflow_text()
     pypi_text = pypi_publish_workflow_text()
@@ -2066,7 +2097,7 @@ def test_release_preflight_requires_each_standardized_secret() -> None:
     assert "Environment-secret metadata is unavailable to GITHUB_TOKEN" in text
     assert "Verify repository credential liveness" in text
     assert "https://crates.io/api/v1/me" not in text
-    assert 'User-Agent: sc-publish-release-preflight' in text
+    assert 'Authorization: Bearer ${token}' in text
     assert "https://api.github.com/user" in text
     assert "rotate or replace it" not in text
     assert 'echo "${token}"' not in text
@@ -2295,6 +2326,9 @@ def test_root_release_workflow_threads_retry_provenance_and_builds_from_main() -
     assert "already_published_channels:" in workflow
     assert "ALREADY_PUBLISHED_CHANNELS: ${{ inputs.already_published_channels }}" in workflow
     assert '"${ALREADY_PUBLISHED_CHANNELS}"' in workflow
+    assert "id: release_gate" in workflow
+    assert "main_sha='${{ steps.release_gate.outputs.release_sha }}'" in workflow
+    assert 'git tag "$tag" "$main_sha"' in workflow
     assert "build_ref: ${{ steps.release-ref.outputs.build_ref }}" in workflow
     assert workflow.count('echo "build_ref=$main_sha" >> "$GITHUB_OUTPUT"') == 1
     assert workflow.count("needs.gate-and-tag.outputs.build_ref") == 9
@@ -2765,6 +2799,10 @@ def test_release_preflight_collects_independent_failures_before_denial() -> None
     assert "steps.secret_plan.outcome == 'success'" in preflight_text
     assert "Verify registry versions and new names" in preflight_text
     assert "public-registry-check-plan" in preflight_text
+    assert preflight_text.count("registry-status --url") == 2
+    assert "status_code()" not in preflight_text
+    assert "published:published:informational" in preflight_text
+    assert "200:200:informational" not in preflight_text
     assert "REGISTRY_STATE" in preflight_text
 
 
