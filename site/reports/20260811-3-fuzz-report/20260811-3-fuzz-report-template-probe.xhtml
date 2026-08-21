@@ -1,0 +1,59 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260811-3 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;context_text&quot;:&quot;Ran render/validate --json across the template-probe corpus partition (32 real-world .j2 files spanning nested {% for %}/{% if %}, includes, and custom delimiters) plus targeted CLI argument-shape probes. Missing-required-variable/undeclared-token diagnostics on real corpus files were treated as expected baseline noise. Found one confirmed bug shared with boundary-probe&#x27;s finding (clap&#x27;s conflicts_with_all argument-group enforcement bypasses the --json output contract, filed as FUZZ-003) and reclassified one initial candidate (--pass scoped inputs invisible in --help) as an intentional boundary once traced to README.md&#x27;s documented --pass N --var table row.&quot;,&quot;failed&quot;:2,&quot;findings&quot;:[{&quot;expected_oracle&quot;:&quot;Per FR-8a, all CLI --json output, including CLI-usage/argument errors, must be delivered as the versioned DiagnosticEnvelope on stdout.&quot;,&quot;finding_id&quot;:&quot;FUZZ-003&quot;,&quot;minimal_input&quot;:&quot;sc-compose render --json --all --brace-count 3 --file t.j2 --root &lt;fixture&gt;&quot;,&quot;minimal_template&quot;:&quot;t.j2: \&quot;Hello {{ name }}\\n\&quot;&quot;,&quot;observed_result&quot;:&quot;--all is declared conflicts_with_all against --brace-count and --variable-delimiters in crates/sc-compose/src/cli/schema.rs. clap enforces that conflict before sc-compose&#x27;s application layer runs, printing plain-text usage text to stderr and leaving stdout completely empty, even though --json was explicitly requested. Reproduced deterministically 3/3 runs.&quot;,&quot;recommended_fix&quot;:&quot;Detect --json early (from raw argv, before/alongside the existing --pass pre-scan) and, on any clap::Error, wrap the rendered clap usage text inside a DiagnosticEnvelope with an appropriate ErrConfigParse-family diagnostic code instead of letting clap print and exit directly. Shared fix target with FUZZ-002 (same root-cause family: clap error path bypasses --json).&quot;,&quot;reproduction_count&quot;:3,&quot;requirement_follow_up&quot;:&quot;No new requirement or ADR is needed; FR-8a already covers this case as written. The gap is a missing test/implementation guard, not a documentation gap.&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-8a: \&quot;CLI --json output must use the versioned DiagnosticEnvelope as the canonical transport format\&quot; -- stated without a carve-out for CLI-usage/argument-parsing errors.&quot;,&quot;root_cause&quot;:&quot;clap&#x27;s own error-printing path (triggered by a conflicts_with_all argument-group violation, declared in crates/sc-compose/src/cli/schema.rs on RenderArgs.brace_count/variable_delimiters) runs and exits before sc-compose&#x27;s application-layer --json rendering logic in main.rs ever executes, so the error never passes through the DiagnosticEnvelope wrapper.&quot;}],&quot;fuzz_run_description&quot;:&quot;Nested loops, control flow, includes, delimiters, and output against the corpus partition&quot;,&quot;iterations&quot;:100,&quot;passed&quot;:98,&quot;result&quot;:&quot;FAIL&quot;,&quot;session_id&quot;:&quot;sc-compose-fuzz-20260811-3&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-003&quot;,&quot;description&quot;:&quot;render --json --all --brace-count 3 --file t.j2 --root &lt;root&gt;&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;t.j2: Hello {{ name }}&quot;,&quot;outcome&quot;:&quot;FAIL: --all conflicts_with_all --brace-count triggers clap&#x27;s own error path; empty stdout, plain-text stderr, --json ignored&quot;,&quot;passed&quot;:false},{&quot;case_id&quot;:&quot;template-probe-001&quot;,&quot;description&quot;:&quot;--pass N --var/--var-file scoped inputs do not appear in `sc-compose render --help`&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;n/a&quot;,&quot;outcome&quot;:&quot;INTENTIONAL BOUNDARY: --pass is parsed from raw argv via parse_pass_inputs and stripped before clap ever sees it (filtered_args_for_clap), by design; documented in README.md&#x27;s --pass N --var table row, just help-text-omitted -- not filed as a bug&quot;,&quot;passed&quot;:true}],&quot;worker_correlation_id&quot;:&quot;template-probe&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Ran render/validate --json across the template-probe corpus partition (32 real-world .j2 files spanning nested {% for %}/{% if %}, includes, and custom delimiters) plus targeted CLI argument-shape probes. Missing-required-variable/undeclared-token diagnostics on real corpus files were treated as expected baseline noise. Found one confirmed bug shared with boundary-probe&#x27;s finding (clap&#x27;s conflicts_with_all argument-group enforcement bypasses the --json output contract, filed as FUZZ-003) and reclassified one initial candidate (--pass scoped inputs invisible in --help) as an intentional boundary once traced to README.md&#x27;s documented --pass N --var table row.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Nested loops, control flow, includes, delimiters, and output against the corpus partition</th>
+        <td>100</td>
+        <td>98/100</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-003</th><td><code>render --json --all --brace-count 3 --file t.j2 --root &lt;root&gt;</code></td><td>FAIL: --all conflicts_with_all --brace-count triggers clap&#x27;s own error path; empty stdout, plain-text stderr, --json ignored</td></tr>
+        <tr><th scope="row">template-probe-001</th><td><code>--pass N --var/--var-file scoped inputs do not appear in `sc-compose render --help`</code></td><td>INTENTIONAL BOUNDARY: --pass is parsed from raw argv via parse_pass_inputs and stripped before clap ever sees it (filtered_args_for_clap), by design; documented in README.md&#x27;s --pass N --var table row, just help-text-omitted -- not filed as a bug</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-003</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>t.j2: &quot;Hello {{ name }}\n&quot;</code></dd>
+        <dt>Input</dt><dd><code>sc-compose render --json --all --brace-count 3 --file t.j2 --root &lt;fixture&gt;</code></dd>
+        <dt>Expected</dt><dd>Per FR-8a, all CLI --json output, including CLI-usage/argument errors, must be delivered as the versioned DiagnosticEnvelope on stdout.</dd>
+        <dt>Observed</dt><dd>--all is declared conflicts_with_all against --brace-count and --variable-delimiters in crates/sc-compose/src/cli/schema.rs. clap enforces that conflict before sc-compose&#x27;s application layer runs, printing plain-text usage text to stderr and leaving stdout completely empty, even though --json was explicitly requested. Reproduced deterministically 3/3 runs.</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-8a: &quot;CLI --json output must use the versioned DiagnosticEnvelope as the canonical transport format&quot; -- stated without a carve-out for CLI-usage/argument-parsing errors.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new requirement or ADR is needed; FR-8a already covers this case as written. The gap is a missing test/implementation guard, not a documentation gap.</dd>
+        <dt>Root cause</dt><dd>clap&#x27;s own error-printing path (triggered by a conflicts_with_all argument-group violation, declared in crates/sc-compose/src/cli/schema.rs on RenderArgs.brace_count/variable_delimiters) runs and exits before sc-compose&#x27;s application-layer --json rendering logic in main.rs ever executes, so the error never passes through the DiagnosticEnvelope wrapper.</dd>
+        <dt>Recommended fix</dt><dd>Detect --json early (from raw argv, before/alongside the existing --pass pre-scan) and, on any clap::Error, wrap the rendered clap usage text inside a DiagnosticEnvelope with an appropriate ErrConfigParse-family diagnostic code instead of letting clap print and exit directly. Shared fix target with FUZZ-002 (same root-cause family: clap error path bypasses --json).</dd>
+      </dl>
+    </article>
+  </section>
+</section>

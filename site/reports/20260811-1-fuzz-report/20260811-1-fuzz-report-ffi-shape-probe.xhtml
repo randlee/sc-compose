@@ -1,0 +1,76 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-fail">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>ffi-shape-probe</h2>
+      <p class="agent-meta">Session 20260811-1 · Worker ffi-shape-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;ffi-shape-probe&quot;,&quot;findings&quot;:[&quot;FUZZ-SCSHA-001&quot;,&quot;FUZZ-SCSHA-002&quot;]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Worker ffi-shape-probe ran 52 bounded cases (seed 157) against bindings/sc-sha-python/src/lib.rs&#x27;s calculate_hash/calculate_composition_hash Python entry points, built via `maturin develop --release` from a disposable venv against worktree /Users/randlee/Documents/github/sc-compose-worktrees/integrate/phase-M at commit 47572e9. No crashes, panics, or unhandled Python exception types were found across type-confusion, malformed-manifest, malformed-digest, control-character, oversized-input, or self-referential-structure cases -- the pyo3 boundary is defensively typed end to end. Two confirmed, reproducible drift/UX findings were found in error-shape stability.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">sc-sha-python FFI boundary: malformed/adversarial inputs across calculate_hash/calculate_composition_hash, result/error mapping vs sc-sha error codes</th>
+        <td>52</td>
+        <td>50/52</td>
+        <td>
+          <span class="status status-error">2 confirmed bugs (1 important, 1 minor)</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">hash_invalid_utf8</th><td><code>calculate_hash({utf8_file_bytes: b&#x27;\xff\xfe&#x27;})</code></td><td>ScShaError SC_SHA_INVALID_UTF8 (correct)</td></tr>
+        <tr><th scope="row">hash_str_value</th><td><code>calculate_hash({utf8_file_bytes: &#x27;hello&#x27;})</code></td><td>ScShaError SC_SHA_INVALID_INPUT (correct)</td></tr>
+        <tr><th scope="row">manifest_digest_non_hex</th><td><code>calculate_composition_hash(node.sha256=&#x27;z&#x27;*64)</code></td><td>ScShaError code=SC_SHA_INVALID_MANIFEST, expected SC_SHA_INVALID_DIGEST per docs/error-code-registry.md -- FUZZ-SCSHA-001</td></tr>
+        <tr><th scope="row">manifest_self_referential</th><td><code>manifest dict with edges key aliased back to the manifest dict itself</code></td><td>ScShaError SC_SHA_INVALID_MANIFEST, no panic (correct)</td></tr>
+        <tr><th scope="row">manifest_large_nodes</th><td><code>2000-node manifest, no recursion/DoS</code></td><td>ok, bounded time (correct)</td></tr>
+        <tr><th scope="row">hash_error_str_repr</th><td><code>str(ScShaError) after calculate_hash({utf8_file_bytes: &#x27;nope&#x27;})</code></td><td>str(e) == &quot;(&#x27;SC_SHA_INVALID_INPUT&#x27;, &#x27;utf8_file_bytes must be bytes; encode text as UTF-8 explicitly&#x27;)&quot; (tuple repr, not the message) -- FUZZ-SCSHA-002</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-SCSHA-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>n/a (Python FFI call, no template)</code></dd>
+        <dt>Input</dt><dd><code>sc_sha.calculate_composition_hash({&#x27;schema&#x27;: &#x27;sc-sha/manifest/v1&#x27;, &#x27;nodes&#x27;: [{&#x27;source&#x27;: {&#x27;kind&#x27;: &#x27;local_path&#x27;, &#x27;value&#x27;: &#x27;a&#x27;}, &#x27;sha256&#x27;: &#x27;not-hex&#x27;}], &#x27;edges&#x27;: []})</code></dd>
+        <dt>Expected</dt><dd>docs/error-code-registry.md lines 55-57 documents SC_SHA_INVALID_DIGEST as the stable machine-readable code for &#x27;a manifest digest is not exactly 64 hexadecimal characters&#x27;, sourced from TemplateSha256::from_hex(). bindings/sc-sha-python/src/lib.rs&#x27;s own parse_digest() (added in QA round R1/QM-004) delegates directly to that same TemplateSha256::from_hex(), so its ShaError::InvalidDigestHex.code() == &quot;SC_SHA_INVALID_DIGEST&quot; is the correct, already-defined stable code for this condition.</dd>
+        <dt>Observed</dt><dd>Raised sc_sha.ScShaError with .code == &quot;SC_SHA_INVALID_MANIFEST&quot; and .message == &quot;sha256 must contain exactly 64 hexadecimal characters&quot;. Any Python caller branching on error.code per the documented registry contract (e.g. to retry, log a metric, or surface a specific UI message for a corrupt digest) receives the generic manifest-shape code instead, indistinguishable from a missing/wrong-typed field.</dd>
+        <dt>Requirement / ADR</dt><dd>docs/error-code-registry.md rows for SC_SHA_INVALID_DIGEST (line 56) and ADR-0018 (sc-sha hash ownership) SHA-R-series stable-error-code requirements; also directly regresses the intent of QM-004&#x27;s fix (delegate parse_digest to sc_sha::TemplateSha256::from_hex so the adapter stops duplicating hex-decode logic) by discarding the resulting error code at the call site.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR/requirement needed -- this is a contract the repo already documents and already fixed the duplication for; the mapping in bindings/sc-sha-python/src/lib.rs simply needs to stop overwriting it.</dd>
+        <dt>Root cause</dt><dd>bindings/sc-sha-python/src/lib.rs::parse_digest (lines 99-106) maps sc_sha::ShaError to a bare &amp;&#x27;static str message and drops error.code() entirely. Its sole caller, parse_nodes (line 133-134), then wraps that message with a hardcoded &quot;SC_SHA_INVALID_MANIFEST&quot; code: `parse_digest(&amp;string_field(py, node, &quot;sha256&quot;)?).map_err(|message| error(py, &quot;SC_SHA_INVALID_MANIFEST&quot;, message))?;`. This is inconsistent with calculate_hash_py/calculate_composition_hash_py, which both correctly forward `e.code()` from ShaError/CompositionError to the Python exception.</dd>
+        <dt>Recommended fix</dt><dd>Change parse_digest to return Result&lt;TemplateSha256, sc_sha::ShaError&gt; (preserving the typed error), and have parse_nodes call `error(py, e.code(), e.to_string())` the same way calculate_hash_py does, instead of hardcoding SC_SHA_INVALID_MANIFEST. Add a regression test in bindings/sc-sha-python/tests/test_compatibility.py asserting error.code == &quot;SC_SHA_INVALID_DIGEST&quot; for an invalid-hex sha256 field inside a manifest node.</dd>
+      </dl>
+    </article>
+    <article class="finding">
+      <h4>FUZZ-SCSHA-002</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>n/a (Python FFI call, no template)</code></dd>
+        <dt>Input</dt><dd><code>try: sc_sha.calculate_hash({&#x27;utf8_file_bytes&#x27;: &#x27;nope&#x27;})\nexcept sc_sha.ScShaError as e: str(e)</code></dd>
+        <dt>Expected</dt><dd>No explicit requirement pins str(ScShaError)&#x27;s exact format; the reasonable expectation for a public exception type exposing a stable .message attribute is that str(e) is at least as readable as .message, matching ordinary Python exception ergonomics (e.g. requests.HTTPError, json.JSONDecodeError) where str(e) is the human-readable message, not a raw args tuple.</dd>
+        <dt>Observed</dt><dd>str(e) == &quot;(&#x27;SC_SHA_INVALID_INPUT&#x27;, &#x27;utf8_file_bytes must be bytes; encode text as UTF-8 explicitly&#x27;)&quot; -- Python&#x27;s default BaseException.__str__ renders the 2-tuple args as its repr, since ScShaError.__new__ passes (code, message) straight through to PyException&#x27;s args. Code that does `except ScShaError as e: log.error(str(e))` or relies on unittest/pytest&#x27;s default failure formatting gets this tuple-repr instead of a clean sentence.</dd>
+        <dt>Requirement / ADR</dt><dd>No ADR/requirement explicitly covers ScShaError&#x27;s __str__ contract; bindings/sc-sha-python/python/sc_sha/__init__.pyi only declares .code and .message as typed attributes and is silent on __str__.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Recommend adding one sentence to bindings/sc-sha-python&#x27;s README/.pyi docstring documenting str(ScShaError) as the tuple-repr and directing callers to .message for a plain-text string, or fixing __str__ directly (see recommended fix) and then documenting the resulting format -- either is acceptable, but the current silent gap should close one way or the other.</dd>
+        <dt>Root cause</dt><dd>ScShaError (bindings/sc-sha-python/src/lib.rs lines 12-27) is a #[pyclass(extends = PyException)] whose #[new] takes (code, message) and stores both as PyO3-managed extra fields, but never overrides __str__/__repr__ at the Python level, so PyException&#x27;s default __str__ (str(self.args) when len(args) != 1) takes over.</dd>
+        <dt>Recommended fix</dt><dd>Add a #[pymethods] fn __str__(&amp;self) -&gt; String { self.message.clone() } (and optionally __repr__ mirroring code+message) to ScShaError in bindings/sc-sha-python/src/lib.rs, and add a Python-side regression test asserting str(err) == err.message for at least one raised ScShaError.</dd>
+      </dl>
+    </article>
+  </section>
+</section>

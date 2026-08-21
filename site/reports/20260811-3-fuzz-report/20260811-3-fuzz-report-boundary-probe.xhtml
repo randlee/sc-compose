@@ -1,0 +1,59 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>boundary-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260811-3 · Worker boundary-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;agent_id&quot;:&quot;boundary-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;context_text&quot;:&quot;Probed malformed --var/--var-file inputs, path-confinement boundaries (symlink escapes, ../ escapes), and stable-diagnostic-code invariants across the boundary-probe corpus partition (25 real-world .j2 files) plus direct CLI-argument-shape fuzzing. Path-confinement checks all held correctly (symlink and ../ escape attempts were rejected with the expected ERR_INCLUDE_ESCAPE-family diagnostics). Found one confirmed bug sharing its root cause with template-probe&#x27;s FUZZ-003: a malformed --var value triggers clap&#x27;s own value-parser error path, which also bypasses the --json output contract.&quot;,&quot;failed&quot;:1,&quot;findings&quot;:[{&quot;expected_oracle&quot;:&quot;Per FR-8a, all CLI --json output, including CLI-usage/argument errors, must be delivered as the versioned DiagnosticEnvelope on stdout.&quot;,&quot;finding_id&quot;:&quot;FUZZ-002&quot;,&quot;minimal_input&quot;:&quot;sc-compose validate --json --var novalue&quot;,&quot;minimal_template&quot;:&quot;n/a (no template needed; CLI argument parsing only)&quot;,&quot;observed_result&quot;:&quot;crates/sc-compose/src/cli/pass_input.rs&#x27;s parse_var (registered as CommonArgs.vars&#x27;s clap value_parser) rejects novalue with a plain \&quot;expected key=value\&quot; error. This is clap&#x27;s own custom-value_parser error-printing path, which runs and exits before the application&#x27;s --json layer, so stdout is completely empty and stderr carries plain clap usage text. Reproduced deterministically 3/3 runs.&quot;,&quot;recommended_fix&quot;:&quot;Detect --json early from raw argv and, on any clap::Error (covering both custom value_parser failures and argument-group conflicts), wrap the rendered clap usage text inside a DiagnosticEnvelope with an appropriate ErrConfigParse-family diagnostic code instead of letting clap print and exit directly. Shared fix target with FUZZ-003.&quot;,&quot;reproduction_count&quot;:3,&quot;requirement_follow_up&quot;:&quot;No new requirement or ADR is needed; FR-8a already covers this case as written. The gap is a missing test/implementation guard, not a documentation gap.&quot;,&quot;requirement_trace&quot;:&quot;docs/requirements.md FR-8a: \&quot;CLI --json output must use the versioned DiagnosticEnvelope as the canonical transport format\&quot; -- stated without a carve-out for CLI-usage/argument-parsing errors.&quot;,&quot;root_cause&quot;:&quot;clap&#x27;s own value_parser error path (crates/sc-compose/src/cli/pass_input.rs::parse_var, invoked directly by clap during argument parsing for --var) runs and exits before sc-compose&#x27;s application-layer --json rendering logic ever executes, so the error never passes through the DiagnosticEnvelope wrapper. Same root-cause family as FUZZ-003 (clap error path bypasses --json), triggered via a different clap mechanism (custom value_parser vs. conflicts_with_all).&quot;}],&quot;fuzz_run_description&quot;:&quot;Malformed inputs, stable diagnostics, and path boundaries against the corpus partition&quot;,&quot;iterations&quot;:85,&quot;passed&quot;:84,&quot;result&quot;:&quot;FAIL&quot;,&quot;session_id&quot;:&quot;sc-compose-fuzz-20260811-3&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-002&quot;,&quot;description&quot;:&quot;validate --json --var novalue (missing key=value separator)&quot;,&quot;minimal_input&quot;:&quot;novalue&quot;,&quot;minimal_template&quot;:&quot;n/a&quot;,&quot;outcome&quot;:&quot;FAIL: clap&#x27;s custom value_parser (parse_var) error path bypasses --json; empty stdout, plain-text stderr&quot;,&quot;passed&quot;:false},{&quot;case_id&quot;:&quot;boundary-baseline-path-confinement&quot;,&quot;description&quot;:&quot;Symlink and ../ escape attempts against corpus roots&quot;,&quot;minimal_input&quot;:&quot;n/a&quot;,&quot;minimal_template&quot;:&quot;n/a (real corpus roots)&quot;,&quot;outcome&quot;:&quot;PASS: all escape attempts rejected with ERR_INCLUDE_ESCAPE-family diagnostics, no existence-oracle leak&quot;,&quot;passed&quot;:true}],&quot;worker_correlation_id&quot;:&quot;boundary-probe&quot;}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Probed malformed --var/--var-file inputs, path-confinement boundaries (symlink escapes, ../ escapes), and stable-diagnostic-code invariants across the boundary-probe corpus partition (25 real-world .j2 files) plus direct CLI-argument-shape fuzzing. Path-confinement checks all held correctly (symlink and ../ escape attempts were rejected with the expected ERR_INCLUDE_ESCAPE-family diagnostics). Found one confirmed bug sharing its root cause with template-probe&#x27;s FUZZ-003: a malformed --var value triggers clap&#x27;s own value-parser error path, which also bypasses the --json output contract.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Malformed inputs, stable diagnostics, and path boundaries against the corpus partition</th>
+        <td>85</td>
+        <td>84/85</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-002</th><td><code>validate --json --var novalue (missing key=value separator)</code></td><td>FAIL: clap&#x27;s custom value_parser (parse_var) error path bypasses --json; empty stdout, plain-text stderr</td></tr>
+        <tr><th scope="row">boundary-baseline-path-confinement</th><td><code>Symlink and ../ escape attempts against corpus roots</code></td><td>PASS: all escape attempts rejected with ERR_INCLUDE_ESCAPE-family diagnostics, no existence-oracle leak</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-002</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>n/a (no template needed; CLI argument parsing only)</code></dd>
+        <dt>Input</dt><dd><code>sc-compose validate --json --var novalue</code></dd>
+        <dt>Expected</dt><dd>Per FR-8a, all CLI --json output, including CLI-usage/argument errors, must be delivered as the versioned DiagnosticEnvelope on stdout.</dd>
+        <dt>Observed</dt><dd>crates/sc-compose/src/cli/pass_input.rs&#x27;s parse_var (registered as CommonArgs.vars&#x27;s clap value_parser) rejects novalue with a plain &quot;expected key=value&quot; error. This is clap&#x27;s own custom-value_parser error-printing path, which runs and exits before the application&#x27;s --json layer, so stdout is completely empty and stderr carries plain clap usage text. Reproduced deterministically 3/3 runs.</dd>
+        <dt>Requirement / ADR</dt><dd>docs/requirements.md FR-8a: &quot;CLI --json output must use the versioned DiagnosticEnvelope as the canonical transport format&quot; -- stated without a carve-out for CLI-usage/argument-parsing errors.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new requirement or ADR is needed; FR-8a already covers this case as written. The gap is a missing test/implementation guard, not a documentation gap.</dd>
+        <dt>Root cause</dt><dd>clap&#x27;s own value_parser error path (crates/sc-compose/src/cli/pass_input.rs::parse_var, invoked directly by clap during argument parsing for --var) runs and exits before sc-compose&#x27;s application-layer --json rendering logic ever executes, so the error never passes through the DiagnosticEnvelope wrapper. Same root-cause family as FUZZ-003 (clap error path bypasses --json), triggered via a different clap mechanism (custom value_parser vs. conflicts_with_all).</dd>
+        <dt>Recommended fix</dt><dd>Detect --json early from raw argv and, on any clap::Error (covering both custom value_parser failures and argument-group conflicts), wrap the rendered clap usage text inside a DiagnosticEnvelope with an appropriate ErrConfigParse-family diagnostic code instead of letting clap print and exit directly. Shared fix target with FUZZ-003.</dd>
+      </dl>
+    </article>
+  </section>
+</section>

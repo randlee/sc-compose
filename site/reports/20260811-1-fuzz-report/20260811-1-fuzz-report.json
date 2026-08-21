@@ -1,0 +1,187 @@
+{
+  "schema_version": "adversarial-fuzzing/v1",
+  "campaign": {
+    "campaign_id": "m2-scsha-20260811-1",
+    "worktree_path": "/Users/randlee/Documents/github/sc-compose-worktrees/integrate/phase-M",
+    "target": "sc-sha-python-ffi-boundary",
+    "baseline_ref": "47572e9",
+    "seed": 157,
+    "max_workers": 2,
+    "cases_per_worker": 55,
+    "per_worker_timeout_s": 120,
+    "promote_regressions": false,
+    "execution_mode": "bounded local probes run directly by the coordinator (no background Agent workers spawned this session)",
+    "fuzz_plan": "docs/phase-M/fuzz-plan-m-2-sc-compose-integration.md (PR #369)",
+    "qa_followup": "M.2 QA finding QM-014 (PR #368) spot-check for a genuinely new SCB-DEPENDENCY-001 bypass"
+  },
+  "workers": [
+    {
+      "correlation_id": "ffi-shape-probe",
+      "agent_id": "ffi-shape-probe",
+      "target": "bindings/sc-sha-python/src/lib.rs",
+      "fuzz_run_description": "malformed/adversarial inputs across calculate_hash/calculate_composition_hash, result/error mapping vs sc-sha error codes",
+      "status": "drift",
+      "classification": "fail",
+      "cases_run": 52,
+      "passed": 50,
+      "failed": 2,
+      "result": "2 confirmed bugs (FUZZ-SCSHA-001 Important, FUZZ-SCSHA-002 Minor)",
+      "command": "python probe.py (venv with maturin-built sc-sha wheel, seed 157)",
+      "finding_ids": [
+        "FUZZ-SCSHA-001",
+        "FUZZ-SCSHA-002"
+      ],
+      "error": null,
+      "context_text": "52 bounded cases against calculate_hash/calculate_composition_hash covering type confusion, malformed manifests, malformed digests, invalid UTF-8, control characters, oversized/self-referential structures. No crashes/panics/unhandled exception types. Two error-shape/UX bugs confirmed.",
+      "test_inputs": [
+        {
+          "case_id": "hash_invalid_utf8",
+          "description": "calculate_hash(utf8_file_bytes=b'\\xff\\xfe')",
+          "minimal_template": "n/a",
+          "minimal_input": "b'\\xff\\xfe'",
+          "passed": true,
+          "outcome": "ScShaError SC_SHA_INVALID_UTF8 (correct)"
+        },
+        {
+          "case_id": "hash_str_value",
+          "description": "calculate_hash(utf8_file_bytes='hello')",
+          "minimal_template": "n/a",
+          "minimal_input": "'hello'",
+          "passed": true,
+          "outcome": "ScShaError SC_SHA_INVALID_INPUT (correct)"
+        },
+        {
+          "case_id": "manifest_digest_non_hex",
+          "description": "calculate_composition_hash node.sha256='z'*64",
+          "minimal_template": "n/a",
+          "minimal_input": "sha256='z'*64",
+          "passed": false,
+          "outcome": "ScShaError code=SC_SHA_INVALID_MANIFEST, expected SC_SHA_INVALID_DIGEST -- FUZZ-SCSHA-001"
+        },
+        {
+          "case_id": "manifest_self_referential",
+          "description": "manifest dict whose edges key aliases the manifest dict itself",
+          "minimal_template": "n/a",
+          "minimal_input": "d={'schema':'sc-sha/manifest/v1','nodes':[]}; d['edges']=d",
+          "passed": true,
+          "outcome": "ScShaError SC_SHA_INVALID_MANIFEST, no panic (correct)"
+        },
+        {
+          "case_id": "manifest_large_nodes",
+          "description": "2000-node manifest",
+          "minimal_template": "n/a",
+          "minimal_input": "2000 nodes, unique local_path sources",
+          "passed": true,
+          "outcome": "ok, bounded time (correct)"
+        },
+        {
+          "case_id": "hash_error_str_repr",
+          "description": "str(ScShaError) after calculate_hash(utf8_file_bytes='nope')",
+          "minimal_template": "n/a",
+          "minimal_input": "'nope'",
+          "passed": false,
+          "outcome": "str(e) renders as args-tuple repr, not .message -- FUZZ-SCSHA-002"
+        }
+      ],
+      "findings": [
+        {
+          "finding_id": "FUZZ-SCSHA-001",
+          "severity": "important",
+          "classification": "confirmed_bug",
+          "minimal_repro": "sc_sha.calculate_composition_hash({'schema': 'sc-sha/manifest/v1', 'nodes': [{'source': {'kind': 'local_path', 'value': 'a'}, 'sha256': 'not-hex'}], 'edges': []})",
+          "expected": "ScShaError.code == 'SC_SHA_INVALID_DIGEST' per docs/error-code-registry.md and sc_sha::ShaError::InvalidDigestHex.code()",
+          "observed": "ScShaError.code == 'SC_SHA_INVALID_MANIFEST'",
+          "root_cause": "bindings/sc-sha-python/src/lib.rs::parse_digest (lines 99-106) discards ShaError::code() and returns a bare &'static str; its caller parse_nodes (lines 133-134) then hardcodes the wrapper code as SC_SHA_INVALID_MANIFEST instead of forwarding the real error code the way calculate_hash_py/calculate_composition_hash_py do.",
+          "recommended_fix": "Return Result<TemplateSha256, sc_sha::ShaError> from parse_digest and call error(py, e.code(), e.to_string()) at the call site; add a regression test asserting code == SC_SHA_INVALID_DIGEST.",
+          "already_tracked": false
+        },
+        {
+          "finding_id": "FUZZ-SCSHA-002",
+          "severity": "minor",
+          "classification": "confirmed_bug",
+          "minimal_repro": "try: sc_sha.calculate_hash({'utf8_file_bytes': 'nope'})\nexcept sc_sha.ScShaError as e: str(e)",
+          "expected": "str(e) is a readable message (or documented otherwise)",
+          "observed": "str(e) == \"('SC_SHA_INVALID_INPUT', 'utf8_file_bytes must be bytes; encode text as UTF-8 explicitly')\"",
+          "root_cause": "ScShaError extends PyException and passes (code, message) straight into args without a custom __str__, so Python's default BaseException.__str__ renders the args tuple's repr.",
+          "recommended_fix": "Add #[pymethods] fn __str__(&self) -> String { self.message.clone() } to ScShaError.",
+          "already_tracked": false
+        }
+      ]
+    },
+    {
+      "correlation_id": "boundary-differential-probe",
+      "agent_id": "boundary-differential-probe",
+      "target": "boundaries/sc-sha-python/python-adapter.toml (SCB-DEPENDENCY-001)",
+      "fuzz_run_description": "novel SCB-DEPENDENCY-001 bypass attempts beyond QM-014's 4-class fixture",
+      "status": "success",
+      "classification": "pass",
+      "cases_run": 3,
+      "passed": 3,
+      "failed": 0,
+      "result": "PASS -- no bypass found",
+      "command": "sc-lint --json --root <scratch-fixture> lint sc-boundary (real installed sc-lint 0.4.0 binary, not mocked)",
+      "finding_ids": [],
+      "error": null,
+      "context_text": "Copied tests/fixtures/sc-lint/sc-boundary/sc-sha-python-dependency-violation into 3 scratch variants exercising vectors not covered by any existing fixture: Cargo dependency-key renaming via package=\"...\", moving forbidden edges into [dev-dependencies], and target-cfg-gated dependency tables. All 3 were still caught by SCB-DEPENDENCY-001 with correct owner_ids.",
+      "test_inputs": [
+        {
+          "case_id": "bypass-alias",
+          "description": "dependency renamed via package=\"sc-compose\"/package=\"sc-composer\" key aliasing",
+          "minimal_template": "n/a",
+          "minimal_input": "composer_util = { path=\"../sc-composer\", package=\"sc-composer\" }",
+          "passed": true,
+          "outcome": "SCB-DEPENDENCY-001 still fires for both sc-compose and sc-composer"
+        },
+        {
+          "case_id": "bypass-devdep",
+          "description": "forbidden deps moved to [dev-dependencies] only",
+          "minimal_template": "n/a",
+          "minimal_input": "[dev-dependencies] sc-composer, sc-compose, atmcore, unrelated-runtime",
+          "passed": true,
+          "outcome": "all 4 SCB-DEPENDENCY-001 findings still fire"
+        },
+        {
+          "case_id": "bypass-target",
+          "description": "forbidden deps split across target-cfg dependency tables",
+          "minimal_template": "n/a",
+          "minimal_input": "[target.'cfg(unix)'.dependencies] / [target.'cfg(windows)'.dependencies]",
+          "passed": true,
+          "outcome": "all 4 SCB-DEPENDENCY-001 findings still fire"
+        }
+      ],
+      "findings": []
+    }
+  ],
+  "findings": [
+    "FUZZ-SCSHA-001",
+    "FUZZ-SCSHA-002"
+  ],
+  "promoted_tests": [],
+  "preventive_coverage": [],
+  "unresolved_candidates": [],
+  "summary": {
+    "all_successful": true,
+    "confirmed_bugs": 2,
+    "intentional_boundaries": 0,
+    "inconclusive": 0,
+    "failed_workers": 0,
+    "workers": 2,
+    "cases_run": 55,
+    "passed": 53,
+    "failed": 2
+  },
+  "gh_issue_search": {
+    "queries": [
+      "fuzz",
+      "sc-sha",
+      "ScShaError",
+      "SC_SHA",
+      "SC_SHA_INVALID_DIGEST",
+      "parse_digest",
+      "error code drift sc-sha"
+    ],
+    "matches": [],
+    "conclusion": "no existing tracked issue for either finding; both are new"
+  },
+  "note": "promote_regressions was not requested for this session (no coordinator JSON contract with promote_regressions:true was supplied); no test files were added or modified. Recommended regression tests are named in each finding's recommended_fix for a maintainer/comp follow-up PR."
+}
