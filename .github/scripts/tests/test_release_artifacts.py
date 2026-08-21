@@ -1122,7 +1122,6 @@ def test_manifest_drives_non_disclosing_preflight_secret_plan() -> None:
         {"environment": "testpypi", "name": "TEST_PYPI_API_TOKEN"},
     ]
     assert plan["liveness_channel_checks"] == [
-        {"channel": "crates_io", "name": "CARGO_REGISTRY_TOKEN", "kind": "crates_io"},
         {"channel": "homebrew", "name": "HOMEBREW_TAP_TOKEN", "kind": "github"},
         {"channel": "winget", "name": "WINGET_GITHUB_TOKEN", "kind": "github"},
         {"channel": "scoop", "name": "SCOOP_BUCKET_TOKEN", "kind": "github"},
@@ -1140,6 +1139,7 @@ def test_manifest_drives_non_disclosing_preflight_secret_plan() -> None:
         "scoop": "scoop-publisher",
     }
     assert contracts["crates_io"]["public_registry_checks"] is True
+    assert contracts["crates_io"]["liveness_checks"] == []
     assert contracts["pypi"]["public_registry_checks"] is True
     assert contracts["github_release"]["github_actions_permissions"] == ["contents:write"]
     assert contracts["pypi"]["credential_rehearsal"] == {
@@ -1622,16 +1622,17 @@ def test_release_preflight_requires_each_standardized_secret() -> None:
     assert "preflight-secret-plan" in text
     assert '--manifest "${RELEASE_ARTIFACT_MANIFEST}"' in text
     assert '\\"${RELEASE_ARTIFACT_MANIFEST}\\"' not in text
-    assert "Verify protected Python environment secret metadata" in text
+    assert "Inspect protected Python environment secret metadata (informational)" in text
     assert ".environment_secrets[]" in text
     assert "environments/${environment_name}/secrets" in text
     assert "permissions: read-all" in text
     assert "environment:" not in text
+    assert "Environment-secret metadata is unavailable to GITHUB_TOKEN" in text
     assert "Verify repository credential liveness" in text
-    assert "https://crates.io/api/v1/me" in text
+    assert "https://crates.io/api/v1/me" not in text
     assert 'User-Agent: sc-publish-release-preflight' in text
     assert "https://api.github.com/user" in text
-    assert "rotate or replace it" in text
+    assert "rotate or replace it" not in text
     assert 'echo "${token}"' not in text
     assert 'echo "${!secret_name}"' not in text
     assert '${REPOSITORY_SECRET_CHANNELS:-{}}' not in text
