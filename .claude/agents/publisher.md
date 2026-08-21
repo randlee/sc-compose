@@ -182,6 +182,10 @@ exist; run `Release Preflight` and report its sanitized result.
    preflight, record `git diff --name-status release-candidate-vX.Y.Z..<release-ref>`.
    Flag non-trivial implementation or dependency changes to the named
    coordinator; do not silently classify them as release metadata.
+   The candidate tag is the release's minimum baseline, not its exact shipping
+   snapshot: every fix committed to `release/*` after the candidate cut is
+   mandatory content for the final `main` release. Never drop, reset, or bypass
+   such a fix by publishing the originally tagged commit alone.
 2. Validate the manifest and candidate tag, then run `Release Preflight` with
    the assigned version. A candidate-tag validation failure is a failed
    `release_authorization` check for every affected channel. Launch the

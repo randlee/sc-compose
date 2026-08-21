@@ -34,6 +34,12 @@ jobs:
           [[ '${{ github.event.inputs.run_by_agent }}' == 'publisher' ]] \
             || { echo "Release candidate must be created by publisher." >&2; exit 1; }
 
+      - name: Configure release-candidate tag identity
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
       - id: candidate
         name: Reuse or create release-candidate tag from develop
         shell: bash
