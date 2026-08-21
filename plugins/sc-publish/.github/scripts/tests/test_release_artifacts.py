@@ -242,6 +242,58 @@ def release_workflow_text() -> str:
     return (repo_root() / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
 
 
+def release_archive_packager_python() -> str:
+    """Extract the Python executed by the release archive-packaging workflow step."""
+    workflow = release_workflow_text()
+    step = workflow.split("      - name: Package manifest-declared release archive\n", 1)[
+        1
+    ].split("      - name: Upload artifact\n", 1)[0]
+    script = step.split("          python3 - <<'PY'\n", 1)[1].split("          PY\n", 1)[0]
+    lines = script.splitlines()
+    assert all(not line or line.startswith("          ") for line in lines)
+    return "\n".join(line[10:] if line else "" for line in lines)
+
+
+def run_release_archive_packager(
+    tmp_path: Path, *, target_name: str, expected_filename: str
+) -> subprocess.CompletedProcess[str]:
+    scripts_dir = tmp_path / ".github" / "scripts"
+    scripts_dir.mkdir(parents=True)
+    (scripts_dir / "release_artifacts.py").write_text(
+        "import json\n"
+        "print(json.dumps({\n"
+        "    'project': {'archive_prefix': 'fixture'},\n"
+        "    'target': {'archive': 'zip'},\n"
+        "    'binaries': [{'name': 'fixture'}],\n"
+        "}))\n",
+        encoding="utf-8",
+    )
+    release_dir = tmp_path / "target" / target_name / "release"
+    release_dir.mkdir(parents=True)
+    (release_dir / expected_filename).write_text("fixture", encoding="utf-8")
+    output = tmp_path / "github-env"
+    script = release_archive_packager_python().replace(
+        'target_name = "${{ matrix.target }}"', f"target_name = {target_name!r}"
+    ).replace(
+        'version = "${{ needs.gate-and-tag.outputs.release_version }}"',
+        'version = "1.5.0"',
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=tmp_path,
+        env={
+            **os.environ,
+            "RELEASE_ARTIFACT_MANIFEST": str(tmp_path / "release" / "manifest.toml"),
+            "GITHUB_ENV": str(output),
+        },
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert output.read_text(encoding="utf-8").startswith("ARCHIVE=fixture_1.5.0_")
+    return result
+
+
 def pypi_publish_workflow_text() -> str:
     return (repo_root() / ".github" / "workflows" / "pypi-publish.yml").read_text(encoding="utf-8")
 
@@ -494,6 +546,30 @@ def test_crates_leg_is_separate_and_independently_retryable() -> None:
     assert "list-publish-plan" in crates_text
     assert "gate-and-tag" not in crates_text
     assert "CARGO_REGISTRY_TOKEN" in crates_text
+
+
+@pytest.mark.parametrize(
+    ("target_name", "expected_filename"),
+    (
+        ("x86_64-pc-windows-gnu", "fixture.exe"),
+        ("x86_64-pc-windows-msvc", "fixture.exe"),
+        ("x86_64-unknown-linux-gnu", "fixture"),
+    ),
+)
+def test_release_archive_packager_executes_windows_suffix_logic(
+    tmp_path: Path, target_name: str, expected_filename: str
+) -> None:
+    """Execute the exact workflow Python against Windows GNU, MSVC, and Linux."""
+    result = run_release_archive_packager(
+        tmp_path, target_name=target_name, expected_filename=expected_filename
+    )
+
+    assert result.returncode == 0, result.stderr
+    archive = tmp_path / f"fixture_1.5.0_{target_name}.zip"
+    with zipfile.ZipFile(archive) as packaged:
+        assert packaged.namelist() == [
+            f"fixture_1.5.0_{target_name}/bin/{expected_filename}"
+        ]
 
 
 def test_github_release_leg_is_detect_and_skip(tmp_path: Path) -> None:
