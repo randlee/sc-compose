@@ -4,7 +4,7 @@ title: Beads Python Bindings
 status: planned
 branch: sprint/r-3-beads-python-bindings
 target: integrate/phase-r
-depends_on: R.1
+depends_on: [R.1, R.2]
 ---
 
 # Sprint R.3 — Beads Python Bindings
@@ -15,8 +15,9 @@ Deliver a dedicated Maturin/PyO3 package so Python extensions call the same
 `sc-composer-beads` operations, request validation, authorization guard, and
 receipts as Rust and the CLI.
 
-R.3 may begin after R.1, but cannot close until R.2's CLI JSON contract is
-available for the required cross-surface conformance fixture.
+R.3 may be developed in parallel with R.2 after R.1, but it cannot close until
+R.2's CLI JSON contract is available for the required cross-surface conformance
+fixture.
 
 ## Exact targets
 
@@ -26,11 +27,11 @@ available for the required cross-surface conformance fixture.
 - `bindings/sc-composer-beads-python/src/lib.rs`
 - `bindings/sc-composer-beads-python/python/sc_composer_beads/{__init__.py,_native.pyi,py.typed}`
 - `bindings/sc-composer-beads-python/tests/{test_smoke,test_contract}.py`
+- `crates/sc-composer-beads/tests/fixtures/beads/`
 - `.github/workflows/ci.yml`
 - `.github/scripts/release_artifacts.py` and its tests
+- `release/publish-artifacts.toml`
 - `release/sc-publish-install.json`
-- `docs/architecture.md`
-- `docs/requirements.md`
 
 ## Public Python contract
 
@@ -60,29 +61,38 @@ Rust crate waits for `bd`.
    request/receipt types without reimplementing rendering or process logic.
    Conversion failures map to a crate-owned Python exception with the stable
    Rust error code and stage, never a raw Rust panic.
-3. Add installed-wheel smoke tests and contract tests. They prove the same
-   fixture yields equivalent Rust, CLI JSON, and Python receipts; normalize
-   only documented absolute-path differences.
+3. Add installed-wheel smoke tests and contract tests. They load the canonical
+   `crates/sc-composer-beads/tests/fixtures/beads/` fixture directly and prove
+   it yields equivalent Rust, CLI JSON, and Python receipts; normalize only
+   documented absolute-path differences. R.1 owns updates to that fixture when
+   the shared contract changes.
 4. Extend CI to build and install wheels on Linux, macOS, and Windows, execute
    the pinned-Beads integration fixture through the wheel, and run ordinary
    workspace tests without requiring an extension-module feature for `cargo
    test`.
-5. Add this wheel as a separately named release artifact in the repository
-   manifest and version verification path. Package publication itself remains
-   subject to the existing explicit release authorization workflow.
+5. Add this wheel as a separately named release artifact in both
+   `release/publish-artifacts.toml` and `release/sc-publish-install.json`: each
+   manifest must contain a `crates` entry for `sc-composer-beads` and a
+   `python_packages` entry for `sc-composer-beads-python`. Wire both entries
+   into the existing version verification path. Package publication itself
+   remains subject to the existing explicit release authorization workflow.
 
 ## Acceptance criteria
 
 - [ ] `import sc_composer_beads` works from an installed wheel on all three CI
       platforms, and `.pyi`/`py.typed` ship in the wheel and sdist.
 - [ ] Python `validate` and `preview_pour` produce the same stage outcomes and
-      Beads argv evidence as the Rust library/CLI fixture.
+      Beads argv evidence as the Rust library/CLI fixture, using the
+      `BeadStageReceipt`, `BeadOutcome`, and `BeadComposeError` definitions from
+      ADR-0021 without Python-local variants.
 - [ ] Python cannot bypass `PourAuthorization::CreatePersistentBeads`; tests
       prove refusal occurs before subprocess execution.
 - [ ] The binding package has no dependency on `sc-compose`, the existing
       `bindings/python` package, ATM, or Beads source/database code.
 - [ ] Release metadata validates the new package's version lockstep without
-      changing the existing `sc-compose` Python package identity.
+      changing the existing `sc-compose` Python package identity. The R.3
+      closeout must run `verify-version-lockstep` against the release manifest
+      and workspace manifest.
 
 ## Required validation
 
@@ -93,6 +103,7 @@ cargo test --workspace
 maturin build --manifest-path bindings/sc-composer-beads-python/Cargo.toml --out dist
 python3 -m pytest -q bindings/sc-composer-beads-python/tests
 python3 .github/scripts/release_artifacts.py validate-manifest --manifest release/publish-artifacts.toml --workspace-toml Cargo.toml
+python3 .github/scripts/release_artifacts.py verify-version-lockstep --manifest release/publish-artifacts.toml --workspace-toml Cargo.toml
 ```
 
 Also require `git diff --check`.

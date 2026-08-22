@@ -59,10 +59,12 @@ library.
    expose only stable Rust contract types and direct library functions; it
    must not expose CLI structs.
 2. Define `sc-compose/beads/v1` request/receipt/error types exactly as
-   ADR-0021 describes. Reject an unknown schema, a non-file formula extension,
-   duplicate or malformed Beads variable keys, a template escaping the working
-   directory, an output outside the operation's allowed location, and a
-   missing/invalid pour authorization before spawning `bd`.
+   ADR-0021 describes, including its complete `BeadStageReceipt`,
+   `BeadOutcome`, and `BeadComposeError` stable-code table. Reject an unknown
+   schema, a non-file formula extension, duplicate or malformed Beads variable
+   keys, a template escaping the working directory, an output outside the
+   operation's allowed location, and a missing/invalid pour authorization
+   before spawning `bd`.
 3. Implement rendering through `sc-composer` with fixed triple-brace variable
    delimiters. Compose variables are structured `serde_json::Value` values;
    Beads runtime variables are sorted scalar `--var key=value` arguments.
@@ -105,6 +107,9 @@ Pydantic issue models: neither defines a formula schema.
       or an ambiguous same-name TOML/JSON entry.
 - [ ] An absent `PourAuthorization::CreatePersistentBeads` returns a stable
       refusal receipt/error and spawns no non-dry-run command.
+- [ ] `BeadStageReceipt`, `BeadOutcome`, and every `BeadComposeError` variant
+      and stable code match the single definitions in ADR-0021; no adapter
+      surface needs to infer or rename an R.1 condition.
 - [ ] The crate boundary is documented and rejected dependency directions have
       a negative sc-lint fixture.
 

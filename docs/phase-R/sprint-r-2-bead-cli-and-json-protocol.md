@@ -23,8 +23,6 @@ policy in the CLI.
 - `crates/sc-compose/docs/manual/bead.md`
 - `crates/sc-compose/src/help_topics.rs`
 - `crates/sc-compose/tests/cli/bead.rs`
-- `docs/requirements.md`
-- `docs/architecture.md`
 
 ## Deliverables
 
@@ -37,7 +35,8 @@ policy in the CLI.
    and per-stage state. Machine output is exactly one existing diagnostic JSON
    envelope whose payload is the `sc-compose/beads/v1` receipt.
 3. Map invalid request, render failure, unavailable `bd`, failed `cook`, failed
-   preview, and refused/failed pour to stable CLI diagnostics and non-zero exit
+   preview, and refused/failed pour to the `BeadComposeError` stable codes and
+   `BeadOutcome`/`BeadStageReceipt` defined in ADR-0021, with non-zero exit
    codes. Do not print raw subprocess output outside the JSON envelope or
    human diagnostic stream.
 4. Add a manual that documents the two variable namespaces, triple braces for
@@ -46,7 +45,9 @@ policy in the CLI.
    authorized `pour`.
 5. Add CLI tests that use the R.1 fake runner to prove request loading,
    envelope shape, exit mapping, and no execution past a failed stage; retain
-   one pinned-`bd` end-to-end CLI fixture in CI.
+   one pinned-`bd` end-to-end CLI fixture in CI. The test loads the canonical
+   `crates/sc-composer-beads/tests/fixtures/beads/` files directly; R.1 owns
+   updates when the shared contract changes.
 
 ## Acceptance criteria
 
@@ -59,6 +60,9 @@ policy in the CLI.
 - [ ] The CLI contains no Beads argv construction, formula parsing, or
       duplicated stage logic; it only deserializes, calls R.1, and presents the
       resulting receipt.
+- [ ] CLI success and failure envelopes preserve the ADR-0021
+      `BeadStageReceipt`, `BeadOutcome`, and `BeadComposeError` definitions
+      without introducing CLI-local error variants or codes.
 - [ ] The manual is reachable through `sc-compose help bead`.
 
 ## Required validation
@@ -68,8 +72,8 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test -p sc-compose --test bead
 cargo test --workspace
-sc-compose bead validate --request crates/sc-compose/tests/fixtures/bead/request.json --json
-sc-compose bead preview-pour --request crates/sc-compose/tests/fixtures/bead/request.json --json
+sc-compose bead validate --request crates/sc-composer-beads/tests/fixtures/beads/request.json --json
+sc-compose bead preview-pour --request crates/sc-composer-beads/tests/fixtures/beads/request.json --json
 ```
 
 Also require `git diff --check`.

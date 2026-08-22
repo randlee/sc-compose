@@ -79,6 +79,108 @@ pub fn execute_bead_request(
 ) -> Result<BeadComposeReceipt, BeadComposeError>;
 ```
 
+The receipt and error surfaces are fixed for `sc-compose/beads/v1`; adapters
+must not invent narrower or differently named variants. The normative Rust
+shapes are:
+
+```rust
+pub enum BeadStage {
+    Render,
+    Validate,
+    ResolveActiveRegistry,
+    PreviewPour,
+    Pour,
+}
+
+pub enum BeadStageOutcome {
+    Succeeded,
+    Skipped,
+    Failed { code: String },
+}
+
+pub struct BeadStageReceipt {
+    pub stage: BeadStage,
+    pub argv: Vec<String>,
+    pub exit_status: Option<i32>,
+    pub elapsed_ms: u64,
+    pub stdout_excerpt: String,
+    pub stderr_excerpt: String,
+    pub outcome: BeadStageOutcome,
+}
+
+pub enum BeadOutcome {
+    Succeeded,
+    Refused { code: String },
+    Failed { code: String },
+}
+
+pub enum BeadComposeError {
+    UnknownSchema { actual: String },
+    FormulaPathNotFile { path: PathBuf },
+    FormulaExtensionUnsupported { path: PathBuf },
+    TemplatePathInvalid { path: PathBuf },
+    TemplateOutsideWorkingDirectory { path: PathBuf },
+    OutputOutsideWorkingDirectory { path: PathBuf },
+    BeadVariableKeyInvalid { key: String },
+    BeadVariableKeyDuplicate { key: String },
+    FormulaNameRequired,
+    PourAuthorizationRequired,
+    PourAuthorizationInvalid,
+    BdUnavailable { executable: PathBuf },
+    RenderFailed { message: String },
+    CookFailed { exit_status: Option<i32> },
+    ActiveRegistryResolutionFailed { exit_status: Option<i32> },
+    FormulaOutsideActiveRegistry { path: PathBuf },
+    FormulaRegistryAmbiguous { formula_name: String },
+    PreviewPourFailed { exit_status: Option<i32> },
+    PourFailed { exit_status: Option<i32> },
+}
+```
+
+`BeadStageReceipt` records every attempted process stage and bounded output
+evidence. Validation failures that occur before spawning `bd` return
+`Err(BeadComposeError)` without a process-stage receipt; adapters expose the
+corresponding refused error code in their diagnostic envelope.
+`BeadComposeError::code()` returns exactly one of these stable machine-readable
+codes:
+
+| Error variant | Stable code | Rejection or failure condition |
+| --- | --- | --- |
+| `UnknownSchema` | `BEADS_UNKNOWN_SCHEMA` | Request schema is not `sc-compose/beads/v1`. |
+| `FormulaPathNotFile` | `BEADS_FORMULA_NOT_FILE` | Template or rendered formula path is not a regular file. |
+| `FormulaExtensionUnsupported` | `BEADS_FORMULA_EXTENSION_UNSUPPORTED` | Formula is not `.formula.toml` or `.formula.json`. |
+| `TemplatePathInvalid` | `BEADS_TEMPLATE_PATH_INVALID` | Template path is missing, malformed, or cannot be resolved. |
+| `TemplateOutsideWorkingDirectory` | `BEADS_TEMPLATE_OUTSIDE_WORKING_DIR` | Template escapes `working_directory`. |
+| `OutputOutsideWorkingDirectory` | `BEADS_OUTPUT_OUTSIDE_WORKING_DIR` | Rendered output escapes the permitted working directory. |
+| `BeadVariableKeyInvalid` | `BEADS_VARIABLE_KEY_INVALID` | A Beads runtime-variable key is empty or malformed. |
+| `BeadVariableKeyDuplicate` | `BEADS_VARIABLE_KEY_DUPLICATE` | A Beads runtime-variable key is supplied more than once. |
+| `FormulaNameRequired` | `BEADS_FORMULA_NAME_REQUIRED` | Preview or pour has no formula name. |
+| `PourAuthorizationRequired` | `BEADS_POUR_AUTH_REQUIRED` | Persistent pour lacks the explicit authorization sentinel. |
+| `PourAuthorizationInvalid` | `BEADS_POUR_AUTH_INVALID` | Authorization is present but is not `CreatePersistentBeads`. |
+| `BdUnavailable` | `BEADS_BD_UNAVAILABLE` | The configured `bd` executable cannot be started. |
+| `RenderFailed` | `BEADS_RENDER_FAILED` | Formula rendering failed before `bd` validation. |
+| `CookFailed` | `BEADS_COOK_FAILED` | `bd cook --dry-run` failed. |
+| `ActiveRegistryResolutionFailed` | `BEADS_WHERE_FAILED` | `bd where --json` failed or returned unusable registry data. |
+| `FormulaOutsideActiveRegistry` | `BEADS_FORMULA_OUTSIDE_ACTIVE_REGISTRY` | Formula path is not the active registry path for its name and extension. |
+| `FormulaRegistryAmbiguous` | `BEADS_FORMULA_REGISTRY_AMBIGUOUS` | Same-name TOML and JSON formulas coexist in the active registry. |
+| `PreviewPourFailed` | `BEADS_PREVIEW_POUR_FAILED` | `bd mol pour --dry-run` failed. |
+| `PourFailed` | `BEADS_POUR_FAILED` | Authorized persistent `bd mol pour` failed. |
+
+The `BeadComposeError` variants, their stable codes, `BeadStageReceipt`, and
+`BeadOutcome` are the single definition consumed by R.1, R.2, and R.3. A
+surface may add presentation fields around this contract but may not rename,
+split, or silently collapse these conditions.
+
+### Cross-surface fixture ownership
+
+The canonical cross-surface fixture source is
+`crates/sc-composer-beads/tests/fixtures/beads/`. It contains the request and
+formula inputs used by the R.1 library, R.2 CLI, and R.3 Python contract tests.
+R.1 owns creation and updates whenever the versioned request, receipt, error,
+or formula contract changes; R.2 and R.3 load the canonical files directly (or
+through a documented, deterministic generation step) and must not maintain
+copies.
+
 All paths resolve relative to `working_directory`; receipts contain normalized
 absolute paths. The template path is confined to that directory. `Render` and
 `Validate` write only an explicit output within it; `PreviewPour` and `Pour`
