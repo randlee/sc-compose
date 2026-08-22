@@ -13,6 +13,14 @@ This document is the authoritative release plan. It replaces the earlier
 implementation-history view with one sprint sequence that contains all work
 required to ship.
 
+## Follow-on Phase R
+
+The post-release Beads formula-composition integration is planned separately
+in [Phase R — Beads Formula Composition Integration](phase-R/phase-R-plan.md).
+It is an additive adapter track: it does not reopen or redefine this release
+plan's core renderer contract. ADR-0021 and the Phase R pre-source boundary
+gate are authoritative for that work.
+
 ## Release Rules
 
 - `requirements.md`, `architecture.md`, and this plan are the release source of

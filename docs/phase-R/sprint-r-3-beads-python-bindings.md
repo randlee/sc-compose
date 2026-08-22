@@ -1,0 +1,104 @@
+---
+id: R.3
+title: Beads Python Bindings
+status: planned
+branch: sprint/r-3-beads-python-bindings
+target: integrate/phase-r
+depends_on: R.1
+---
+
+# Sprint R.3 — Beads Python Bindings
+
+## Goal
+
+Deliver a dedicated Maturin/PyO3 package so Python extensions call the same
+`sc-composer-beads` operations, request validation, authorization guard, and
+receipts as Rust and the CLI.
+
+R.3 may begin after R.1, but cannot close until R.2's CLI JSON contract is
+available for the required cross-surface conformance fixture.
+
+## Exact targets
+
+- `Cargo.toml`
+- `bindings/sc-composer-beads-python/Cargo.toml`
+- `bindings/sc-composer-beads-python/pyproject.toml`
+- `bindings/sc-composer-beads-python/src/lib.rs`
+- `bindings/sc-composer-beads-python/python/sc_composer_beads/{__init__.py,_native.pyi,py.typed}`
+- `bindings/sc-composer-beads-python/tests/{test_smoke,test_contract}.py`
+- `.github/workflows/ci.yml`
+- `.github/scripts/release_artifacts.py` and its tests
+- `release/sc-publish-install.json`
+- `docs/architecture.md`
+- `docs/requirements.md`
+
+## Public Python contract
+
+The distribution is `sc-composer-beads`; its import package is
+`sc_composer_beads`. It offers a faithful, typed representation of the R.1
+request/receipt contract plus the library operation and convenience methods:
+
+```python
+def execute(request: BeadComposeRequest) -> BeadComposeReceipt: ...
+def render(request: BeadComposeRequest) -> BeadComposeReceipt: ...
+def validate(request: BeadComposeRequest) -> BeadComposeReceipt: ...
+def preview_pour(request: BeadComposeRequest) -> BeadComposeReceipt: ...
+def pour(request: BeadComposeRequest) -> BeadComposeReceipt: ...
+```
+
+`pour()` requires the same explicit enum/sentinel in the request. The adapter
+does not shell out to `sc-compose`, does not accept arbitrary commands, and
+does not expose an authorization bypass. It releases the Python GIL while the
+Rust crate waits for `bd`.
+
+## Deliverables
+
+1. Add the independent workspace/member package with `cdylib` and `rlib`,
+   PyO3 `0.29`, Maturin `>=1.9.4,<2.0`, Python `>=3.11`, typed package files,
+   and a dependency only on `sc-composer-beads` plus adapter dependencies.
+2. Convert Python dictionaries/lists/scalars to and from the versioned Rust
+   request/receipt types without reimplementing rendering or process logic.
+   Conversion failures map to a crate-owned Python exception with the stable
+   Rust error code and stage, never a raw Rust panic.
+3. Add installed-wheel smoke tests and contract tests. They prove the same
+   fixture yields equivalent Rust, CLI JSON, and Python receipts; normalize
+   only documented absolute-path differences.
+4. Extend CI to build and install wheels on Linux, macOS, and Windows, execute
+   the pinned-Beads integration fixture through the wheel, and run ordinary
+   workspace tests without requiring an extension-module feature for `cargo
+   test`.
+5. Add this wheel as a separately named release artifact in the repository
+   manifest and version verification path. Package publication itself remains
+   subject to the existing explicit release authorization workflow.
+
+## Acceptance criteria
+
+- [ ] `import sc_composer_beads` works from an installed wheel on all three CI
+      platforms, and `.pyi`/`py.typed` ship in the wheel and sdist.
+- [ ] Python `validate` and `preview_pour` produce the same stage outcomes and
+      Beads argv evidence as the Rust library/CLI fixture.
+- [ ] Python cannot bypass `PourAuthorization::CreatePersistentBeads`; tests
+      prove refusal occurs before subprocess execution.
+- [ ] The binding package has no dependency on `sc-compose`, the existing
+      `bindings/python` package, ATM, or Beads source/database code.
+- [ ] Release metadata validates the new package's version lockstep without
+      changing the existing `sc-compose` Python package identity.
+
+## Required validation
+
+```text
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace
+maturin build --manifest-path bindings/sc-composer-beads-python/Cargo.toml --out dist
+python3 -m pytest -q bindings/sc-composer-beads-python/tests
+python3 .github/scripts/release_artifacts.py validate-manifest --manifest release/publish-artifacts.toml --workspace-toml Cargo.toml
+```
+
+Also require `git diff --check`.
+
+## Out of scope
+
+Combining this package with `sc-compose`, adding a Go binding, publishing a
+wheel without the normal release gate, or a non-dry-run Beads creation test is
+not part of R.3.
