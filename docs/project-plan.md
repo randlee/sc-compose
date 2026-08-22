@@ -904,6 +904,22 @@ Sprint entries:
 - [Sprint Q.3 — Consume sc-publish Develop Update](phase-Q/sprint-q-3-sc-publish-consume-update.md)
 - [Sprint Q.4 — Consume sc-publish Release-Candidate Provenance Update](phase-Q/sprint-q-4-sc-publish-rc-provenance-consume.md)
 
+### Phase R Sprint Plans
+
+Status:
+
+- planned: Phase R is the ADR-0021-gated, host-neutral Beads
+  formula-composition track; R.1 gates R.2 and R.3, which may proceed in
+  parallel after R.1;
+- target: `integrate/phase-r`
+
+Sprint entries:
+
+- [Phase R plan](phase-R/phase-R-plan.md)
+- [Sprint R.1 — Beads contract and execution engine](phase-R/sprint-r-1-beads-contract-and-engine.md)
+- [Sprint R.2 — Bead CLI and JSON protocol](phase-R/sprint-r-2-bead-cli-and-json-protocol.md)
+- [Sprint R.3 — Beads Python bindings](phase-R/sprint-r-3-beads-python-bindings.md)
+
 ### Follow-on Chore: CI UniFFI Artifact Consumption
 
 - [CHORE.CI-UNIFFI-CONSUME — CI UniFFI Artifact Consumption](sprints/chore-ci-uniffi-artifact-consumption.md)
