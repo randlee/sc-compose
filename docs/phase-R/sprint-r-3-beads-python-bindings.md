@@ -30,8 +30,11 @@ fixture.
 - `crates/sc-composer-beads/tests/fixtures/beads/`
 - `.github/workflows/ci.yml`
 - `.github/scripts/release_artifacts.py` and its tests
-- `release/publish-artifacts.toml`
-- `release/sc-publish-install.json`
+- `release/publish-artifacts.toml` (including matching `crates`,
+  `python_packages`, and `[[python_distributions]]` entries for the new
+  package)
+- `release/sc-publish-install.json` (including matching `crates`,
+  `python_packages`, and `python_distributions` entries for the new package)
 
 ## Public Python contract
 
@@ -71,11 +74,21 @@ Rust crate waits for `bd`.
    workspace tests without requiring an extension-module feature for `cargo
    test`.
 5. Add this wheel as a separately named release artifact in both
-   `release/publish-artifacts.toml` and `release/sc-publish-install.json`: each
-   manifest must contain a `crates` entry for `sc-composer-beads` and a
-   `python_packages` entry for `sc-composer-beads-python`. Wire both entries
-   into the existing version verification path. Package publication itself
-   remains subject to the existing explicit release authorization workflow.
+   `release/publish-artifacts.toml` and `release/sc-publish-install.json`.
+   Each manifest must contain a `crates` entry for `sc-composer-beads`, a
+   `python_packages` entry for `sc-composer-beads-python`, and a matching
+   `[[python_distributions]]`/`python_distributions` entry consumed by the
+   release wheel and sdist matrices. The TOML entry must use
+   `name = "sc-composer-beads"`, `source =
+   "bindings/sc-composer-beads-python"`,
+   `cargo_manifest = "bindings/sc-composer-beads-python/Cargo.toml"`,
+   `module_path = "bindings/sc-composer-beads-python/python/sc_composer_beads"`,
+   `sdist = true`, and `wheels = ["ubuntu-latest", "macos-latest",
+   "windows-latest"]`; the JSON entry must carry the matching field values.
+   Wire all three entries into the existing version verification path;
+   `verify-version-lockstep` alone is not a substitute for matrix coverage.
+   Package publication itself remains subject to the existing explicit release
+   authorization workflow.
 
 ## Acceptance criteria
 
@@ -93,6 +106,10 @@ Rust crate waits for `bd`.
       changing the existing `sc-compose` Python package identity. The R.3
       closeout must run `verify-version-lockstep` against the release manifest
       and workspace manifest.
+- [ ] Both release manifests contain a matching
+      `[[python_distributions]]`/`python_distributions` entry named
+      `sc-composer-beads`; the Python wheel and sdist matrix commands each
+      emit that distribution name.
 
 ## Required validation
 
@@ -104,6 +121,8 @@ maturin build --manifest-path bindings/sc-composer-beads-python/Cargo.toml --out
 python3 -m pytest -q bindings/sc-composer-beads-python/tests
 python3 .github/scripts/release_artifacts.py validate-manifest --manifest release/publish-artifacts.toml --workspace-toml Cargo.toml
 python3 .github/scripts/release_artifacts.py verify-version-lockstep --manifest release/publish-artifacts.toml --workspace-toml Cargo.toml
+python3 .github/scripts/release_artifacts.py python-wheel-matrix --manifest release/publish-artifacts.toml | python3 -c 'import json,sys; names={entry["name"] for entry in json.load(sys.stdin)["include"]}; raise SystemExit("sc-composer-beads missing from wheel matrix") if "sc-composer-beads" not in names else None'
+python3 .github/scripts/release_artifacts.py python-sdist-matrix --manifest release/publish-artifacts.toml | python3 -c 'import json,sys; names={entry["name"] for entry in json.load(sys.stdin)["include"]}; raise SystemExit("sc-composer-beads missing from sdist matrix") if "sc-composer-beads" not in names else None'
 ```
 
 Also require `git diff --check`.
