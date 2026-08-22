@@ -79,8 +79,7 @@ Rust crate waits for `bd`.
    `python_packages` entry for `sc-composer-beads-python`, and a matching
    `[[python_distributions]]`/`python_distributions` entry consumed by the
    release wheel and sdist matrices. The TOML entry must use
-   `name = "sc-composer-beads"`, `source =
-   "bindings/sc-composer-beads-python"`,
+   `name = "sc-composer-beads"`, `source = "bindings/sc-composer-beads-python"`,
    `cargo_manifest = "bindings/sc-composer-beads-python/Cargo.toml"`,
    `module_path = "bindings/sc-composer-beads-python/python/sc_composer_beads"`,
    `sdist = true`, and `wheels = ["ubuntu-latest", "macos-latest",
