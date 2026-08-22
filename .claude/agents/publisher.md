@@ -197,6 +197,13 @@ exist; run `Release Preflight` and report its sanitized result.
    child-task and result references, and stop. A completed
    passed preflight without explicit release authorization follows that same
    read-only fanout path; it is `blocked`, not `failed`.
+   For an authorized `channel_retry`, derive `already_published_channels` only
+   from manifest channels that are absent from the assignment's
+   `failed_channels` list and have a passed result for this exact tag from a
+   prior root release. Pass that comma-separated value to both the Release
+   Preflight and root Release `already_published_channels` workflow inputs.
+   Do not infer it from a registry lookup or include a channel without that
+   prior passed evidence; leave the input empty when no channel qualifies.
 3. Run the root release workflow only when explicitly assigned and only after
    the shared release-state policy's final `main` preflight passes. It owns tag
    creation and produces the immutable GitHub Release assets.
