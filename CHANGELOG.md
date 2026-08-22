@@ -14,6 +14,16 @@ All notable changes to this project will be documented in this file.
   conformance-vector handoff for Go consumers. See
   `docs/integrations/sc-sha-go.md` for the module path, release tags, and
   supported targets.
+- Added Hermes as a first-class `RuntimeKind`, with its own `.hermes/agents`,
+  `.hermes/commands`, and `.hermes/skills` resolver search chains (falling
+  back to `.agents/` then `.claude/`), a `--runtime hermes` CLI value, and
+  matching Python bindings (`RuntimeKind.HERMES`). Closes #146.
+- Added fixed-shape TOML array-of-table extraction support, matching the
+  existing JSON/YAML `ArrayIndex` structural-recursion approach: repeated
+  `[[table]]` blocks now extract per-element values with a dedicated
+  cardinality diagnostic on length mismatch. Flat scalar TOML extraction is
+  unchanged; Jinja-loop-driven (variable-cardinality) array-of-table
+  generation remains unsupported by design. Closes #511.
 
 ### Changed
 
