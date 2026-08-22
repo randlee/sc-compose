@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import subprocess
 import sys
 import tempfile
@@ -156,6 +157,14 @@ class ReleaseScriptTests(unittest.TestCase):
             self._git(repo, "commit", "-m", "post-cut develop work")
             self._git(repo, "push", "origin", "develop")
             self._git(repo, "checkout", "main")
+            release_sha = subprocess.run(
+                ["git", "rev-parse", "origin/main"],
+                cwd=repo,
+                text=True,
+                capture_output=True,
+                check=True,
+            ).stdout.strip()
+            gate_output = root / "github-output"
 
             result = subprocess.run(
                 [
@@ -169,13 +178,16 @@ class ReleaseScriptTests(unittest.TestCase):
                     "Cargo.toml",
                 ],
                 cwd=repo,
+                env={**os.environ, "GITHUB_OUTPUT": str(gate_output)},
                 text=True,
                 capture_output=True,
                 check=False,
             )
+            emitted_output = gate_output.read_text(encoding="utf-8")
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("PASS - release gate checks satisfied", result.stdout)
+        self.assertEqual(emitted_output, f"release_sha={release_sha}\n")
 
     def test_release_gate_rejects_candidate_outside_release_history(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -250,6 +262,7 @@ class ReleaseScriptTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("public-registry-inquiry-plan", result.stdout)
         self.assertIn("preflight-secret-plan", result.stdout)
+        self.assertIn("registry-status", result.stdout)
 
     def test_bootstrap_enforces_the_documented_renderer_version_floor(self) -> None:
         script = SCRIPTS / "bootstrap_sc_compose.py"

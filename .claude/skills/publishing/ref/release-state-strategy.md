@@ -69,3 +69,10 @@ For a partial crates.io publication, keep the same tag and release ref. The
 manifest-ordered crates.io job skips crates already live and retries only the
 missing crate set. Do not bump a version or replay successful channels solely
 because a newly added crate was missing on the first attempt.
+
+For an authorized channel retry, the root Release workflow reuses an existing
+production tag only after proving that the tag is an ancestor of `origin/main`
+and descends from the matching release-candidate tag. The tag remains
+immutable; asset-building and remaining channel publication check out the
+newer authorized `origin/main` commit. Pass the exact prior successful channel
+set to both Release Preflight and Release as `already_published_channels`.

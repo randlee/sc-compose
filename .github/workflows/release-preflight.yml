@@ -290,10 +290,12 @@ jobs:
         name: Verify release-candidate provenance
         if: ${{ always() && steps.meta.outcome == 'success' }}
         continue-on-error: true
+        env:
+          ALREADY_PUBLISHED_CHANNELS: ${{ inputs.already_published_channels }}
         run: |
           .github/scripts/release_gate.sh readiness HEAD "release-candidate-${{ steps.meta.outputs.release_tag }}" \
             '${{ steps.meta.outputs.release_version }}' "${RELEASE_ARTIFACT_MANIFEST}" \
-            '${{ steps.build_plan.outputs.workspace_toml }}'
+            '${{ steps.build_plan.outputs.workspace_toml }}' "${ALREADY_PUBLISHED_CHANNELS}"
 
       - id: unpublished
         name: Verify release version is unpublished on crates.io
@@ -303,27 +305,10 @@ jobs:
         env:
           ALREADY_PUBLISHED_CHANNELS: ${{ inputs.already_published_channels }}
         run: |
-          set -euo pipefail
-          channel_is_preserved() {
-            local expected="$1" channel
-            IFS=',' read -r -a channels <<<"${ALREADY_PUBLISHED_CHANNELS:-}"
-            for channel in "${channels[@]}"; do
-              channel="$(tr -d '[:space:]' <<<"${channel}")"
-              [[ "${channel}" == "${expected}" ]] && return 0
-            done
-            return 1
-          }
-          if result="$(python3 .github/scripts/release_artifacts.py check-version-unpublished \
+          python3 .github/scripts/release_artifacts.py check-version-unpublished \
             --manifest "${RELEASE_ARTIFACT_MANIFEST}" \
-            --version '${{ steps.meta.outputs.release_version }}' 2>&1)"; then
-            printf '%s\n' "${result}"
-          elif channel_is_preserved crates_io \
-            && [[ "${result}" == release\ version\ already\ published\ for:* ]]; then
-            printf 'crates_io is preserved from a prior release run; already-published version is expected for this retry.\n'
-          else
-            printf '%s\n' "${result}" >&2
-            exit 1
-          fi
+            --version '${{ steps.meta.outputs.release_version }}' \
+            --already-published-channels "${ALREADY_PUBLISHED_CHANNELS}"
 
       - id: registry_state
         name: Verify registry versions and new names
@@ -344,31 +329,19 @@ jobs:
             done
             return 1
           }
-          status_code() {
-            local status
-            status="$(curl --location --max-time 20 --silent --show-error --output /dev/null \
-              --write-out '%{http_code}' \
-              --header 'User-Agent: sc-publish-release-preflight' \
-              "$1" || true)"
-            case "${status}" in
-              200|404) printf '%s' "${status}" ;;
-              *) printf '000' ;;
-            esac
-          }
-
           while IFS=$'\t' read -r channel agent registry name normalized_name expected_version project_url version_url version_policy; do
-            project_status="$(status_code "${project_url}")"
-            version_status="$(status_code "${version_url}")"
-            case "${project_status}:${version_status}:${version_policy}" in
-              404:404:*)
+            project_state="$(python3 .github/scripts/release_artifacts.py registry-status --url "${project_url}")"
+            version_state="$(python3 .github/scripts/release_artifacts.py registry-status --url "${version_url}")"
+            case "${project_state}:${version_state}:${version_policy}" in
+              absent:absent:*)
                 printf '%s: %s name %s is apparently available (not a reservation).\n' \
                   "${agent}" "${registry}" "${normalized_name}"
                 ;;
-              200:404:*)
+              published:absent:*)
                 printf '%s: %s project %s exists; version %s is not published.\n' \
                   "${agent}" "${registry}" "${normalized_name}" "${expected_version}"
                 ;;
-              200:200:must_be_absent)
+              published:published:must_be_absent)
                 if channel_is_preserved "${channel}"; then
                   printf '%s: %s version %s@%s is preserved from a prior release run.\n' \
                     "${agent}" "${registry}" "${normalized_name}" "${expected_version}"
@@ -376,12 +349,12 @@ jobs:
                   failures+=("${channel}/${registry}: ${normalized_name}@${expected_version} is already published.")
                 fi
                 ;;
-              200:200:informational)
+              published:published:informational)
                 printf '%s: %s rehearsal version %s@%s already exists (informational).\n' \
                   "${agent}" "${registry}" "${normalized_name}" "${expected_version}"
                 ;;
               *)
-                failures+=("${channel}/${registry}: registry state for ${normalized_name}@${expected_version} is indeterminate (project=${project_status}, version=${version_status}).")
+                failures+=("${channel}/${registry}: registry state for ${normalized_name}@${expected_version} is indeterminate (project=${project_state}, version=${version_state}).")
                 ;;
             esac
           done < <(python3 .github/scripts/release_artifacts.py public-registry-check-plan \
