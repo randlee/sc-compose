@@ -1,0 +1,21 @@
+[workspace]
+members = [
+  "crates/sc-composer-beads",
+  "crates/sc-composer",
+  "crates/sc-compose",
+  "crates/atmcore",
+  "crates/beads-source",
+  "crates/filesystem-support",
+  "crates/sc-composer-beads-python",
+  "crates/serde",
+  "crates/serde-json",
+  "crates/thiserror",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.94.1"
+authors = ["sc-compose"]
+license = "MIT"
