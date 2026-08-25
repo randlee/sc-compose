@@ -2,8 +2,10 @@
 
 ## Status
 
-Proposed. This ADR must be accepted and its boundary amendments approved before
-Phase R implementation source is authored.
+Accepted (2026-08-24, by Rand Lee). Phase R implementation source may not be
+authored until the remaining pre-source gate items (CLAUDE.md/architecture.md
+boundary amendment, sc-lint negative boundary fixture) are separately
+satisfied per sprint R.1's pre-source gate.
 
 ## Context
 
