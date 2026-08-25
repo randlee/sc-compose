@@ -1,0 +1,36 @@
+boundary_id = "BOUNDARY-ScComposerBeadsPython"
+owner_package = "sc-composer-beads-python"
+owner_crate_path = "sc_composer_beads_python"
+name = "ScComposerBeadsPythonAdapter"
+
+[public]
+facade = "execute_bead_request"
+
+[implementation]
+type = "python_extension_adapter"
+module = "sc_composer_beads"
+visibility = "public"
+constructor = "none"
+
+[composition]
+roots = ["execute_bead_request"]
+
+[dependencies]
+allowed_dependents = []
+allowed_dependencies = ["sc-composer-beads", "pyo3", "serde", "serde_json"]
+forbidden_edges = []
+
+[references]
+scope = "outside_owner_crate"
+forbidden = ["ATM_HOME", "agent_team_mail", "atm_core", "sc_compose", "sc_composer"]
+
+[testing]
+allowed_test_double_paths = []
+forbidden_test_bypasses = []
+
+[enforcement]
+lint_rules = ["LINT-SC-COMPOSER-BEADS-PYTHON-THIN-ADAPTER"]
+review_gates = ["beads_python_adapter_boundary"]
+
+[status]
+state = "planned"
