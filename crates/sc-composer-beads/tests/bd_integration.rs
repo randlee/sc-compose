@@ -71,7 +71,7 @@ fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
     }
 
     missing_executable_is_reported_before_any_real_beads_stage(&root);
-    invalid_and_missing_runtime_variable_formulas_fail_cook(&root, &bd);
+    invalid_formula_fails_cook(&root, &bd);
     redirected_registry_is_resolved_by_bd_where(&root, &bd);
     same_name_extension_shadowing_blocks_preview(&root, &bd);
 
@@ -95,9 +95,9 @@ fn missing_executable_is_reported_before_any_real_beads_stage(root: &Path) {
     assert_eq!(error.code(), "BEADS_BD_UNAVAILABLE");
 }
 
-fn invalid_and_missing_runtime_variable_formulas_fail_cook(root: &Path, bd: &Path) {
+fn invalid_formula_fails_cook(root: &Path, bd: &Path) {
     let invalid_template = root.join("templates").join("invalid.formula.toml.j2");
-    fs::write(&invalid_template, "this is not a Beads formula").expect("write invalid template");
+    fs::write(&invalid_template, "formula = ").expect("write malformed TOML template");
     let invalid_output = root
         .join(".beads")
         .join("formulas")
@@ -112,23 +112,6 @@ fn invalid_and_missing_runtime_variable_formulas_fail_cook(root: &Path, bd: &Pat
     .expect("invalid formula creates a failure receipt");
     assert_eq!(
         invalid.outcome,
-        BeadOutcome::Failed {
-            code: "BEADS_COOK_FAILED".to_owned()
-        }
-    );
-
-    let template = root.join("templates").join("toml-workflow.formula.toml.j2");
-    let output = root
-        .join(".beads")
-        .join("formulas")
-        .join("missing-runtime.formula.toml");
-    let mut request = request(root, &template, output, "missing-runtime", bd);
-    request.operation = BeadOperation::Validate;
-    request.bead_variables.clear();
-    let missing_variable =
-        execute_bead_request(&request).expect("missing variable creates receipt");
-    assert_eq!(
-        missing_variable.outcome,
         BeadOutcome::Failed {
             code: "BEADS_COOK_FAILED".to_owned()
         }

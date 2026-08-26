@@ -786,6 +786,41 @@ mod tests {
     }
 
     #[test]
+    fn request_preconditions_reject_without_spawning_bd() {
+        let root = workspace();
+        let assert_rejected = |request: &BeadComposeRequest, expected_code: &str| {
+            let runner = FakeRunner::default();
+            let error = execute_bead_request_with_runner(request, &runner)
+                .expect_err("request precondition must be rejected");
+            assert_eq!(error.code(), expected_code);
+            assert!(runner.calls.lock().expect("calls lock").is_empty());
+        };
+
+        let mut unknown_schema = request(&root, BeadOperation::PreviewPour);
+        unknown_schema.schema = String::from("unsupported/v1");
+        assert_rejected(&unknown_schema, "BEADS_UNKNOWN_SCHEMA");
+
+        let mut missing_name = request(&root, BeadOperation::PreviewPour);
+        missing_name.formula_name = None;
+        assert_rejected(&missing_name, "BEADS_FORMULA_NAME_REQUIRED");
+
+        let mut malformed_key = request(&root, BeadOperation::PreviewPour);
+        malformed_key
+            .bead_variables
+            .insert(String::from("?bad"), String::from("value"));
+        assert_rejected(&malformed_key, "BEADS_VARIABLE_KEY_INVALID");
+
+        let mut unsupported_extension = request(&root, BeadOperation::PreviewPour);
+        unsupported_extension.rendered_formula = root.join("example.invalid");
+        assert_rejected(
+            &unsupported_extension,
+            "BEADS_FORMULA_EXTENSION_UNSUPPORTED",
+        );
+
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
     fn template_outside_working_directory_is_rejected() {
         let root = workspace();
         let outside = workspace();

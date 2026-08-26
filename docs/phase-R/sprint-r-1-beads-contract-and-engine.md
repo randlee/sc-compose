@@ -1,7 +1,7 @@
 ---
 id: R.1
 title: Beads Contract and Execution Engine
-status: planned
+status: complete
 branch: sprint/r-1-beads-contract-and-engine
 target: integrate/phase-r
 ---
@@ -95,22 +95,22 @@ Pydantic issue models: neither defines a formula schema.
 
 ## Acceptance criteria
 
-- [ ] `cargo test -p sc-composer-beads` proves every request validation and
+- [x] `cargo test -p sc-composer-beads` proves every request validation and
       stage transition, including exact `bd` argv, without invoking a shell.
-- [ ] Real CI runs the pinned Beads binary on Linux, macOS, and Windows and
+- [x] Real CI runs the pinned Beads binary on Linux, macOS, and Windows and
       proves both `bd cook --dry-run` and `bd mol pour --dry-run` on rendered
       TOML and JSON fixtures.
-- [ ] A request using structured JSON personae renders all expected steps and
+- [x] A request using structured JSON personae renders all expected steps and
       leaves Beads double-brace runtime placeholders unchanged.
-- [ ] A request may write only its explicit output; preview/pour reject an
+- [x] A request may write only its explicit output; preview/pour reject an
       output outside the `bd where` active registry, a mismatched formula name,
       or an ambiguous same-name TOML/JSON entry.
-- [ ] An absent `PourAuthorization::CreatePersistentBeads` returns a stable
+- [x] An absent `PourAuthorization::CreatePersistentBeads` returns a stable
       refusal receipt/error and spawns no non-dry-run command.
-- [ ] `BeadStageReceipt`, `BeadOutcome`, and every `BeadComposeError` variant
+- [x] `BeadStageReceipt`, `BeadOutcome`, and every `BeadComposeError` variant
       and stable code match the single definitions in ADR-0021; no adapter
       surface needs to infer or rename an R.1 condition.
-- [ ] The crate boundary is documented and rejected dependency directions have
+- [x] The crate boundary is documented and rejected dependency directions have
       a negative sc-lint fixture.
 
 ## Required validation
