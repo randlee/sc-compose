@@ -11,8 +11,11 @@ use crate::contract::{
     BeadStageOutcome, BeadStageReceipt, PourAuthorization,
 };
 use crate::error::BeadComposeError;
-use crate::render::render_formula;
-use crate::runner::{CommandSpec, ProcessOutput, ProcessRunner, StdProcessRunner};
+use crate::render::{render_formula, validate_output_destination};
+use crate::runner::{
+    CommandSpec, PROCESS_OUTPUT_LIMIT_BYTES, ProcessOutput, ProcessRunner, StdProcessRunner,
+    is_process_output_limit_error,
+};
 
 const OUTPUT_EXCERPT_LIMIT: usize = 16 * 1024;
 
@@ -228,6 +231,8 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
             path: request.template.clone(),
         }
     })?;
+    validate_utf8_path(&working_directory)?;
+    validate_utf8_path(&template)?;
     if !template.is_file() {
         return Err(BeadComposeError::FormulaPathNotFile { path: template });
     }
@@ -235,6 +240,10 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
         return Err(BeadComposeError::TemplateOutsideWorkingDirectory { path: template });
     }
     let rendered_formula = normalize_output(&request.rendered_formula)?;
+    validate_utf8_path(&rendered_formula)?;
+    if let Some(executable) = &request.bd_executable {
+        validate_utf8_path(executable)?;
+    }
     if !is_formula_path(&rendered_formula) {
         return Err(BeadComposeError::FormulaExtensionUnsupported {
             path: rendered_formula,
@@ -249,11 +258,20 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
             path: rendered_formula,
         });
     }
+    validate_output_destination(&rendered_formula)?;
     Ok(NormalizedRequest {
         working_directory,
         template,
         rendered_formula,
     })
+}
+
+fn validate_utf8_path(path: &Path) -> Result<(), BeadComposeError> {
+    if path.to_str().is_some() {
+        Ok(())
+    } else {
+        Err(BeadComposeError::PathNotUtf8 { path: path.into() })
+    }
 }
 
 fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
@@ -332,11 +350,18 @@ fn run_stage_with_output(
     template_error: BeadComposeError,
     stages: &mut Vec<BeadStageReceipt>,
 ) -> Result<Result<ProcessOutput, BeadOutcome>, BeadComposeError> {
-    let output = runner
-        .run(spec)
-        .map_err(|_error| BeadComposeError::BdUnavailable {
-            executable: spec.executable.clone(),
-        })?;
+    let output = runner.run(spec).map_err(|error| {
+        if is_process_output_limit_error(&error) {
+            BeadComposeError::ProcessOutputLimitExceeded {
+                stage,
+                limit_bytes: PROCESS_OUTPUT_LIMIT_BYTES,
+            }
+        } else {
+            BeadComposeError::BdUnavailable {
+                executable: spec.executable.clone(),
+            }
+        }
+    })?;
     let successful = output.exit_status == Some(0);
     let code = error_with_status(template_error, output.exit_status)
         .code()
@@ -526,6 +551,14 @@ mod tests {
     impl ProcessRunner for UnavailableRunner {
         fn run(&self, _spec: &CommandSpec) -> io::Result<ProcessOutput> {
             Err(io::Error::new(io::ErrorKind::NotFound, "bd not found"))
+        }
+    }
+
+    struct OutputLimitRunner;
+
+    impl ProcessRunner for OutputLimitRunner {
+        fn run(&self, _spec: &CommandSpec) -> io::Result<ProcessOutput> {
+            Err(crate::runner::process_output_limit_error())
         }
     }
 
@@ -775,6 +808,24 @@ mod tests {
     }
 
     #[test]
+    fn bounded_process_output_failure_is_typed_and_names_the_stage() {
+        let root = workspace();
+        let error = execute_bead_request_with_runner(
+            &request(&root, BeadOperation::Validate),
+            &OutputLimitRunner,
+        )
+        .expect_err("output limit must be a typed failure");
+        assert!(matches!(
+            error,
+            BeadComposeError::ProcessOutputLimitExceeded {
+                stage: crate::BeadStage::Validate,
+                limit_bytes: crate::runner::PROCESS_OUTPUT_LIMIT_BYTES,
+            }
+        ));
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
     fn persistent_pour_without_authorization_spawns_nothing() {
         let root = workspace();
         let runner = FakeRunner::default();
@@ -835,5 +886,84 @@ mod tests {
         ));
         fs::remove_dir_all(root).expect("cleanup root");
         fs::remove_dir_all(outside).expect("cleanup outside");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn final_output_symlink_is_rejected_without_touching_its_target() {
+        use std::os::unix::fs::symlink;
+
+        let root = workspace();
+        let outside = workspace();
+        let target = outside.join("outside.formula.toml");
+        fs::write(&target, "keep this content").expect("write target");
+        let request = request(&root, BeadOperation::Render);
+        symlink(&target, &request.rendered_formula).expect("create output symlink");
+
+        let runner = FakeRunner::default();
+        let error = execute_bead_request_with_runner(&request, &runner)
+            .expect_err("final output symlink must be rejected");
+
+        assert!(matches!(error, BeadComposeError::OutputPathSymlink { .. }));
+        assert_eq!(
+            fs::read_to_string(&target).expect("read target"),
+            "keep this content"
+        );
+        assert!(runner.calls.lock().expect("calls lock").is_empty());
+        fs::remove_dir_all(root).expect("cleanup root");
+        fs::remove_dir_all(outside).expect("cleanup outside");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn final_output_symlink_is_rejected_without_touching_its_target() {
+        use std::os::windows::fs::symlink_file;
+
+        let root = workspace();
+        let outside = workspace();
+        let target = outside.join("outside.formula.toml");
+        fs::write(&target, "keep this content").expect("write target");
+        let request = request(&root, BeadOperation::Render);
+        if let Err(error) = symlink_file(&target, &request.rendered_formula) {
+            eprintln!(
+                "skipping Windows symlink assertion because the test account lacks symlink permission: {error}"
+            );
+            fs::remove_dir_all(root).expect("cleanup root");
+            fs::remove_dir_all(outside).expect("cleanup outside");
+            return;
+        }
+
+        let runner = FakeRunner::default();
+        let error = execute_bead_request_with_runner(&request, &runner)
+            .expect_err("final output symlink must be rejected");
+
+        assert!(matches!(error, BeadComposeError::OutputPathSymlink { .. }));
+        assert_eq!(
+            fs::read_to_string(&target).expect("read target"),
+            "keep this content"
+        );
+        assert!(runner.calls.lock().expect("calls lock").is_empty());
+        fs::remove_dir_all(root).expect("cleanup root");
+        fs::remove_dir_all(outside).expect("cleanup outside");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn direct_rust_non_utf8_path_is_rejected_before_rendering() {
+        use std::ffi::OsString;
+        use std::os::unix::ffi::OsStringExt;
+
+        let root = workspace();
+        let mut request = request(&root, BeadOperation::Render);
+        request.rendered_formula =
+            root.join(OsString::from_vec(b"output-\xff.formula.toml".to_vec()));
+
+        let runner = FakeRunner::default();
+        let error = execute_bead_request_with_runner(&request, &runner)
+            .expect_err("non-UTF-8 direct Rust path must be rejected");
+
+        assert!(matches!(error, BeadComposeError::PathNotUtf8 { .. }));
+        assert!(runner.calls.lock().expect("calls lock").is_empty());
+        fs::remove_dir_all(root).expect("cleanup");
     }
 }

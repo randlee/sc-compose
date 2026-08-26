@@ -4,6 +4,8 @@ use std::path::PathBuf;
 
 use thiserror::Error;
 
+use crate::contract::BeadStage;
+
 /// Stable errors returned before or during Beads composition.
 #[derive(Debug, Error)]
 pub enum BeadComposeError {
@@ -49,6 +51,19 @@ pub enum BeadComposeError {
         /// Canonical ordinary output path outside the configured working directory.
         path: PathBuf,
     },
+    /// The final output path is a symbolic link and cannot be written safely.
+    #[error("rendered output path is a symbolic link: {path}")]
+    OutputPathSymlink {
+        /// Final output path that resolved to a symbolic link.
+        path: PathBuf,
+    },
+    /// A direct-Rust request supplied a path that cannot be represented in a
+    /// direct UTF-8 `bd` argument.
+    #[error("Beads composition paths must be valid UTF-8: {path}")]
+    PathNotUtf8 {
+        /// Non-UTF-8 request path rejected before rendering or process launch.
+        path: PathBuf,
+    },
     /// A Beads variable key is malformed.
     #[error("invalid Beads variable key `{key}`")]
     BeadVariableKeyInvalid {
@@ -75,6 +90,14 @@ pub enum BeadComposeError {
     BdUnavailable {
         /// Configured executable that could not be started.
         executable: PathBuf,
+    },
+    /// A `bd` stage exceeded the per-stream output capture policy.
+    #[error("Beads {stage:?} output exceeded the {limit_bytes}-byte capture limit")]
+    ProcessOutputLimitExceeded {
+        /// Stage whose child process exceeded the capture bound.
+        stage: BeadStage,
+        /// Per-stream hard output capture limit in bytes.
+        limit_bytes: usize,
     },
     /// Formula rendering failed before Beads validation.
     #[error("formula rendering failed: {message}")]
@@ -132,12 +155,15 @@ impl BeadComposeError {
             Self::TemplatePathInvalid { .. } => "BEADS_TEMPLATE_PATH_INVALID",
             Self::TemplateOutsideWorkingDirectory { .. } => "BEADS_TEMPLATE_OUTSIDE_WORKING_DIR",
             Self::OutputOutsideWorkingDirectory { .. } => "BEADS_OUTPUT_OUTSIDE_WORKING_DIR",
+            Self::OutputPathSymlink { .. } => "BEADS_OUTPUT_PATH_SYMLINK",
+            Self::PathNotUtf8 { .. } => "BEADS_PATH_NOT_UTF8",
             Self::BeadVariableKeyInvalid { .. } => "BEADS_VARIABLE_KEY_INVALID",
             Self::BeadVariableKeyDuplicate { .. } => "BEADS_VARIABLE_KEY_DUPLICATE",
             Self::FormulaNameRequired => "BEADS_FORMULA_NAME_REQUIRED",
             Self::PourAuthorizationRequired => "BEADS_POUR_AUTH_REQUIRED",
             Self::PourAuthorizationInvalid => "BEADS_POUR_AUTH_INVALID",
             Self::BdUnavailable { .. } => "BEADS_BD_UNAVAILABLE",
+            Self::ProcessOutputLimitExceeded { .. } => "BEADS_PROCESS_OUTPUT_LIMIT",
             Self::RenderFailed { .. } => "BEADS_RENDER_FAILED",
             Self::CookFailed { .. } => "BEADS_COOK_FAILED",
             Self::ActiveRegistryResolutionFailed { .. } => "BEADS_WHERE_FAILED",

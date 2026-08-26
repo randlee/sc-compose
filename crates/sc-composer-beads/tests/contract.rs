@@ -75,6 +75,14 @@ fn every_advertised_error_has_its_stable_code() {
             "BEADS_OUTPUT_OUTSIDE_WORKING_DIR",
         ),
         (
+            BeadComposeError::OutputPathSymlink { path: path.clone() },
+            "BEADS_OUTPUT_PATH_SYMLINK",
+        ),
+        (
+            BeadComposeError::PathNotUtf8 { path: path.clone() },
+            "BEADS_PATH_NOT_UTF8",
+        ),
+        (
             BeadComposeError::BeadVariableKeyInvalid {
                 key: "?".to_owned(),
             },
@@ -103,6 +111,13 @@ fn every_advertised_error_has_its_stable_code() {
                 executable: path.clone(),
             },
             "BEADS_BD_UNAVAILABLE",
+        ),
+        (
+            BeadComposeError::ProcessOutputLimitExceeded {
+                stage: BeadStage::Validate,
+                limit_bytes: 64 * 1024,
+            },
+            "BEADS_PROCESS_OUTPUT_LIMIT",
         ),
         (
             BeadComposeError::RenderFailed {

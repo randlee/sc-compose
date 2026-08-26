@@ -40,7 +40,9 @@ implementation can invoke it without a Rust reverse dependency.
   or determine Beads closure criteria.
 - Add a formula-specific renderer mode, hidden copy into `.beads/formulas`, or
   a custom list/foreach language.
-- Publish Python packages or execute a real non-dry-run pour as part of a test.
+- Publish Python packages or execute a real non-dry-run pour as part of a
+  test, except an isolated, explicitly authorized negative-path pour that is
+  expected to fail validation before any bead can persist.
 
 ## Architecture
 
@@ -127,6 +129,14 @@ rejected rather than silently shadowed.
   non-blocking R.3 residual fast-follow. It adds sdist marker/stub coverage
   and direct in-process parity coverage; it is not part of the source commit
   used to close this phase.
+- Phase R merged as [PR #562](https://github.com/randlee/sc-compose/pull/562)
+  at `8920f62`.
+- A dedicated post-close production-readiness review found a Blocking
+  symlink-escape/TOCTOU output-write defect. It is resolved by
+  [PR #563](https://github.com/randlee/sc-compose/pull/563), implementation
+  commit `74956cf`, which rejects final-component symlinks and uses a sibling
+  temporary file plus replacement rename; the same fix also bounds `bd`
+  output and rejects non-UTF-8 `bd` argument paths.
 
 ## Sprint index
 

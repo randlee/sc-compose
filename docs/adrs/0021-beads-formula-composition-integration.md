@@ -126,12 +126,15 @@ pub enum BeadComposeError {
     TemplatePathInvalid { path: PathBuf },
     TemplateOutsideWorkingDirectory { path: PathBuf },
     OutputOutsideWorkingDirectory { path: PathBuf },
+    OutputPathSymlink { path: PathBuf },
+    PathNotUtf8 { path: PathBuf },
     BeadVariableKeyInvalid { key: String },
     BeadVariableKeyDuplicate { key: String },
     FormulaNameRequired,
     PourAuthorizationRequired,
     PourAuthorizationInvalid,
     BdUnavailable { executable: PathBuf },
+    ProcessOutputLimitExceeded { stage: BeadStage, limit_bytes: usize },
     RenderFailed { message: String },
     CookFailed { exit_status: Option<i32> },
     ActiveRegistryResolutionFailed { exit_status: Option<i32> },
@@ -143,7 +146,9 @@ pub enum BeadComposeError {
 ```
 
 `BeadStageReceipt` records every attempted process stage and bounded output
-evidence. Validation failures that occur before spawning `bd` return
+evidence. Each child stream is capped at 64 KiB; an over-limit child is
+terminated and returns `ProcessOutputLimitExceeded` rather than consuming
+unbounded memory. Validation failures that occur before spawning `bd` return
 `Err(BeadComposeError)` without a process-stage receipt; adapters expose the
 corresponding refused error code in their diagnostic envelope.
 `BeadComposeError::code()` returns exactly one of these stable machine-readable
@@ -158,12 +163,15 @@ codes:
 | `TemplatePathInvalid` | `BEADS_TEMPLATE_PATH_INVALID` | Template path is missing, malformed, or cannot be resolved. |
 | `TemplateOutsideWorkingDirectory` | `BEADS_TEMPLATE_OUTSIDE_WORKING_DIR` | Template escapes `working_directory`. |
 | `OutputOutsideWorkingDirectory` | `BEADS_OUTPUT_OUTSIDE_WORKING_DIR` | Rendered output escapes the permitted working directory. |
+| `OutputPathSymlink` | `BEADS_OUTPUT_PATH_SYMLINK` | Final rendered output component is a symbolic link. |
+| `PathNotUtf8` | `BEADS_PATH_NOT_UTF8` | A direct-Rust request path cannot be represented safely in the UTF-8 `bd` argv contract. |
 | `BeadVariableKeyInvalid` | `BEADS_VARIABLE_KEY_INVALID` | A Beads runtime-variable key is empty or malformed. |
 | `BeadVariableKeyDuplicate` | `BEADS_VARIABLE_KEY_DUPLICATE` | `parse_request` detects that a Beads runtime-variable key is supplied more than once. |
 | `FormulaNameRequired` | `BEADS_FORMULA_NAME_REQUIRED` | Preview or pour has no formula name. |
 | `PourAuthorizationRequired` | `BEADS_POUR_AUTH_REQUIRED` | Persistent pour lacks the explicit authorization sentinel. |
 | `PourAuthorizationInvalid` | `BEADS_POUR_AUTH_INVALID` | Authorization is present but is not `CreatePersistentBeads`. |
 | `BdUnavailable` | `BEADS_BD_UNAVAILABLE` | The configured `bd` executable cannot be started. |
+| `ProcessOutputLimitExceeded` | `BEADS_PROCESS_OUTPUT_LIMIT` | A `bd` stage exceeded the per-stream output capture limit and was terminated. |
 | `RenderFailed` | `BEADS_RENDER_FAILED` | Formula rendering failed before `bd` validation. |
 | `CookFailed` | `BEADS_COOK_FAILED` | `bd cook --dry-run` failed. |
 | `ActiveRegistryResolutionFailed` | `BEADS_WHERE_FAILED` | `bd where --json` failed or returned unusable registry data. |
@@ -188,8 +196,12 @@ through a documented, deterministic generation step) and must not maintain
 copies.
 
 All paths resolve relative to `working_directory`; receipts contain normalized
-absolute paths. The template path is confined to that directory. `Render` and
-`Validate` write only an explicit output within it; `PreviewPour` and `Pour`
+absolute paths. Direct Rust callers must provide UTF-8 paths because `bd` argv
+is a string contract. The template path is confined to that directory. `Render`
+and `Validate` write only an explicit output within it. The final output
+component must not be a symbolic link; rendering writes a fresh sibling file
+and replaces the destination without following that component. `PreviewPour`
+and `Pour`
 are the deliberate exception because their output must be in the active Beads
 registry resolved by `bd where`. `compose_variables` remain structured JSON so
 authors can use normal Jinja lists and objects. `bead_variables` remain ordered
@@ -198,7 +210,13 @@ Beads' own runtime-variable contract.
 
 The only schema interpretation is the request/receipt protocol. `bd` stdout
 and stderr are recorded as bounded diagnostic evidence, not reparsed into an
-independent Beads schema.
+independent Beads schema. Version 1 does not impose an elapsed-process timeout:
+the caller owns cancellation or an outer deadline. The runner does impose the
+64 KiB-per-stream memory limit described above.
+
+The symbolic-link regression test runs on Unix and Windows. Windows accounts
+without the OS symbolic-link privilege explicitly skip that one assertion; the
+production destination check remains platform-independent.
 
 ### Rendering and Beads operations
 

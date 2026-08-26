@@ -10,7 +10,8 @@ use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use sc_composer_beads::{
-    BEADS_SCHEMA_V1, BeadComposeRequest, BeadOperation, BeadOutcome, execute_bead_request,
+    BEADS_SCHEMA_V1, BeadComposeRequest, BeadOperation, BeadOutcome, PourAuthorization,
+    execute_bead_request,
 };
 use serde_json::{Map, json};
 
@@ -79,6 +80,50 @@ fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
     redirected_registry_is_resolved_by_bd_where(&root, &bd);
     same_name_extension_shadowing_blocks_preview(&root, &bd);
 
+    remove_temporary_workspace(&root).expect("remove temporary Beads workspace");
+}
+
+#[test]
+fn pinned_bd_missing_required_release_name_returns_a_failure_receipt() {
+    let Some(pinned_bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
+        eprintln!("skipping real Beads integration: BD_EXECUTABLE is not configured");
+        return;
+    };
+    let root = temporary_workspace();
+    let bd = isolated_bd(&root, &pinned_bd);
+    initialize_beads(&bd, &root);
+    let template = root
+        .join("templates")
+        .join("missing-release-name.formula.toml.j2");
+    fs::create_dir_all(template.parent().expect("template parent")).expect("create template dir");
+    fs::write(
+        &template,
+        "formula = \"missing-release-name\"\ndescription = \"Missing runtime variable proof\"\nversion = 1\ntype = \"workflow\"\n\n[vars.release_name]\nrequired = true\n\n[[steps]]\nid = \"proof\"\ntitle = \"Release {{release_name}}\"\n",
+    )
+    .expect("write required-variable template");
+    let output = root
+        .join(".beads")
+        .join("formulas")
+        .join("missing-release-name.formula.toml");
+    let mut missing_variable = request(&root, &template, output, "missing-release-name", &bd);
+    // `bd` v1.2.2 permits unresolved placeholders for cook and dry-run pour.
+    // The real missing-required-variable rejection occurs before a persistent
+    // pour; this isolated temporary registry prevents any lasting state.
+    missing_variable.operation = BeadOperation::Pour;
+    missing_variable.bead_variables.clear();
+    missing_variable.pour_authorization = Some(PourAuthorization::CreatePersistentBeads);
+
+    let receipt = execute_bead_request(&missing_variable)
+        .expect("a required Beads variable failure must return a receipt");
+
+    assert_eq!(
+        receipt.outcome,
+        BeadOutcome::Failed {
+            code: "BEADS_POUR_FAILED".to_owned()
+        },
+        "pinned bd must reject a formula whose required release_name was not supplied: {receipt:#?}"
+    );
+    assert_eq!(receipt.stages.len(), 4, "{receipt:#?}");
     remove_temporary_workspace(&root).expect("remove temporary Beads workspace");
 }
 
