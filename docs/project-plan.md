@@ -916,9 +916,9 @@ Sprint entries:
 
 Status:
 
-- planned: Phase R is the ADR-0021-gated, host-neutral Beads
-  formula-composition track; R.1 gates R.2 and R.3, which may proceed in
-  parallel after R.1;
+- in progress: Phase R is the ADR-0021-gated, host-neutral Beads
+  formula-composition track; R.1 is complete and R.2 and R.3 may proceed in
+  parallel;
 - R.1 pre-source gate: ADR-0021 is accepted; the architecture, CLAUDE, and
   sc-lint boundary inventories must record and enforce
   `sc-compose -> sc-composer-beads -> sc-composer` and
