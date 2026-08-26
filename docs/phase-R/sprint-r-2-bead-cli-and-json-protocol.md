@@ -95,8 +95,9 @@ Also require `git diff --check`.
 
 ## Validation evidence
 
-Validated on 2026-08-25 against source commit `081be14`; this evidence update
-changes only this sprint document.
+Validated on 2026-08-25 against source commit `081be14`. Closing commit
+`b255694` is a documentation-only follow-up with no source changes relative
+to that validated code and CI state.
 
 - `cargo fmt --all --check` and
   `cargo clippy --workspace --all-targets --all-features -- -D warnings`
