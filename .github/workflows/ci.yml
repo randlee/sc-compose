@@ -122,6 +122,10 @@ jobs:
           toolchain: 1.94.1
           components: rustfmt, clippy
 
+      - id: beads
+        name: Install pinned Beads
+        uses: ./.github/actions/setup-beads
+
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
@@ -142,6 +146,8 @@ jobs:
 
       - name: Run workspace tests
         run: cargo test --workspace
+        env:
+          BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
 
       - name: Install just
         uses: taiki-e/install-action@just

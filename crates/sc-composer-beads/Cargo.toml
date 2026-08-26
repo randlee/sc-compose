@@ -8,6 +8,9 @@ rust-version.workspace = true
 repository.workspace = true
 homepage.workspace = true
 description = "Host-neutral Beads formula composition and validation library."
+readme = "README.md"
+keywords = ["beads", "template", "jinja", "workflow"]
+categories = ["development-tools", "template-engine"]
 
 [dependencies]
 sc-composer.workspace = true

@@ -33,4 +33,4 @@ lint_rules = ["LINT-SC-COMPOSER-BEADS-HOST-NEUTRAL"]
 review_gates = ["beads_host_neutral_library_boundary"]
 
 [status]
-state = "planned"
+state = "concrete_landed"

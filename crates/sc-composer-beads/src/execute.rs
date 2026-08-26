@@ -34,6 +34,10 @@ pub fn execute_bead_request(
 ///
 /// Returns a stable error for rejected request preconditions or an unavailable
 /// executable. Process failures return a failed receipt with stage evidence.
+#[allow(
+    clippy::too_many_lines,
+    reason = "The receipt-producing render, validate, registry, and pour progression is intentionally visible in one ordered function."
+)]
 pub fn execute_bead_request_with_runner(
     request: &BeadComposeRequest,
     runner: &dyn ProcessRunner,
@@ -107,7 +111,7 @@ pub fn execute_bead_request_with_runner(
     let formula_name = request
         .formula_name
         .as_deref()
-        .expect("validated preview/pour requires formula name");
+        .ok_or(BeadComposeError::FormulaNameRequired)?;
     let where_spec = CommandSpec {
         executable: bd.clone(),
         args: vec![String::from("where"), String::from("--json")],
@@ -130,13 +134,28 @@ pub fn execute_bead_request_with_runner(
             ));
         }
     };
-    let active_beads_dir = parse_active_beads_dir(&where_output.stdout)
-        .ok_or(BeadComposeError::ActiveRegistryResolutionFailed { exit_status: None })?;
-    validate_active_registry_path(
+    let Some(active_beads_dir) =
+        parse_active_beads_dir(&where_output.stdout).and_then(|path| fs::canonicalize(path).ok())
+    else {
+        return Ok(failed_last_stage_receipt(
+            request,
+            normalized.rendered_formula,
+            stages,
+            &BeadComposeError::ActiveRegistryResolutionFailed { exit_status: None },
+        ));
+    };
+    if let Err(error) = validate_active_registry_path(
         formula_name,
         &normalized.rendered_formula,
         &active_beads_dir,
-    )?;
+    ) {
+        return Ok(failed_last_stage_receipt(
+            request,
+            normalized.rendered_formula,
+            stages,
+            &error,
+        ));
+    }
 
     let preview = request.operation == BeadOperation::PreviewPour;
     let pour = CommandSpec {
@@ -199,15 +218,16 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
             return Err(BeadComposeError::BeadVariableKeyInvalid { key: key.clone() });
         }
     }
-    let working_directory = fs::canonicalize(&request.working_directory).map_err(|_| {
+    let working_directory = fs::canonicalize(&request.working_directory).map_err(|_error| {
         BeadComposeError::TemplatePathInvalid {
             path: request.working_directory.clone(),
         }
     })?;
-    let template =
-        fs::canonicalize(&request.template).map_err(|_| BeadComposeError::TemplatePathInvalid {
+    let template = fs::canonicalize(&request.template).map_err(|_error| {
+        BeadComposeError::TemplatePathInvalid {
             path: request.template.clone(),
-        })?;
+        }
+    })?;
     if !template.is_file() {
         return Err(BeadComposeError::FormulaPathNotFile { path: template });
     }
@@ -241,7 +261,7 @@ fn normalize_output(path: &Path) -> Result<PathBuf, BeadComposeError> {
         .parent()
         .ok_or_else(|| BeadComposeError::TemplatePathInvalid { path: path.into() })?;
     let parent = fs::canonicalize(parent)
-        .map_err(|_| BeadComposeError::TemplatePathInvalid { path: path.into() })?;
+        .map_err(|_error| BeadComposeError::TemplatePathInvalid { path: path.into() })?;
     let name = path
         .file_name()
         .ok_or_else(|| BeadComposeError::TemplatePathInvalid { path: path.into() })?;
@@ -314,7 +334,7 @@ fn run_stage_with_output(
 ) -> Result<Result<ProcessOutput, BeadOutcome>, BeadComposeError> {
     let output = runner
         .run(spec)
-        .map_err(|_| BeadComposeError::BdUnavailable {
+        .map_err(|_error| BeadComposeError::BdUnavailable {
             executable: spec.executable.clone(),
         })?;
     let successful = output.exit_status == Some(0);
@@ -396,6 +416,28 @@ fn process_receipt(
     }
 }
 
+fn mark_last_stage_failed(stages: &mut [BeadStageReceipt], code: String) {
+    if let Some(receipt) = stages.last_mut() {
+        receipt.outcome = BeadStageOutcome::Failed { code };
+    }
+}
+
+fn failed_last_stage_receipt(
+    request: &BeadComposeRequest,
+    rendered_formula: PathBuf,
+    mut stages: Vec<BeadStageReceipt>,
+    error: &BeadComposeError,
+) -> BeadComposeReceipt {
+    let code = error.code().to_owned();
+    mark_last_stage_failed(&mut stages, code.clone());
+    receipt(
+        request,
+        rendered_formula,
+        stages,
+        BeadOutcome::Failed { code },
+    )
+}
+
 fn elapsed_ms(duration: std::time::Duration) -> u64 {
     duration.as_millis().try_into().unwrap_or(u64::MAX)
 }
@@ -406,10 +448,7 @@ fn excerpt(value: &str) -> String {
 
 fn parse_active_beads_dir(stdout: &str) -> Option<PathBuf> {
     let value: Value = serde_json::from_str(stdout).ok()?;
-    ["beads_dir", "beadsDir", "path", "root"]
-        .iter()
-        .find_map(|key| value.get(*key).and_then(Value::as_str))
-        .map(PathBuf::from)
+    value.get("path").and_then(Value::as_str).map(PathBuf::from)
 }
 
 fn validate_active_registry_path(
@@ -443,6 +482,7 @@ mod tests {
     use std::io;
     use std::path::{Path, PathBuf};
     use std::sync::Mutex;
+    use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     use serde_json::{Map, json};
@@ -452,6 +492,8 @@ mod tests {
         BeadComposeError, BeadComposeRequest, BeadOperation, BeadOutcome, CommandSpec,
         ProcessOutput, ProcessRunner,
     };
+
+    static WORKSPACE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
     #[derive(Default)]
     struct FakeRunner {
@@ -479,6 +521,14 @@ mod tests {
         }
     }
 
+    struct UnavailableRunner;
+
+    impl ProcessRunner for UnavailableRunner {
+        fn run(&self, _spec: &CommandSpec) -> io::Result<ProcessOutput> {
+            Err(io::Error::new(io::ErrorKind::NotFound, "bd not found"))
+        }
+    }
+
     fn success(stdout: &str) -> ProcessOutput {
         ProcessOutput {
             exit_status: Some(0),
@@ -497,14 +547,19 @@ mod tests {
         }
     }
 
+    fn where_output(active_beads_dir: &Path) -> ProcessOutput {
+        success(&serde_json::json!({ "path": active_beads_dir }).to_string())
+    }
+
     fn workspace() -> PathBuf {
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("clock")
             .as_nanos();
+        let sequence = WORKSPACE_SEQUENCE.fetch_add(1, Ordering::Relaxed);
         let root = std::env::temp_dir().join(format!(
-            "sc-composer-beads-test-{}-{unique}",
-            std::process::id()
+            "sc-composer-beads-test-{}-{unique}-{sequence}",
+            std::process::id(),
         ));
         fs::create_dir_all(&root).expect("create test workspace");
         root
@@ -595,6 +650,127 @@ mod tests {
         );
         assert_eq!(result.stages.len(), 2);
         assert_eq!(runner.calls.lock().expect("calls lock").len(), 1);
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn malformed_where_output_marks_the_attempted_stage_failed() {
+        let root = workspace();
+        let active_registry = root.join(".beads").join("formulas");
+        fs::create_dir_all(&active_registry).expect("create active registry");
+        let mut request = request(&root, BeadOperation::PreviewPour);
+        request.rendered_formula = active_registry.join("example.formula.toml");
+        let runner = FakeRunner::with_outputs([success("{}"), success("{\"not_path\":true}")]);
+
+        let result = execute_bead_request_with_runner(&request, &runner).expect("receipt");
+        assert_eq!(
+            result.outcome,
+            BeadOutcome::Failed {
+                code: String::from("BEADS_WHERE_FAILED")
+            }
+        );
+        assert_eq!(result.stages.len(), 3);
+        assert_eq!(
+            result.stages[2].outcome,
+            crate::BeadStageOutcome::Failed {
+                code: String::from("BEADS_WHERE_FAILED")
+            }
+        );
+        assert_eq!(runner.calls.lock().expect("calls lock").len(), 2);
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn preview_uses_the_canonical_active_registry_and_direct_pour_argv() {
+        let root = workspace();
+        let active_beads_dir = root.join(".beads");
+        let registry = active_beads_dir.join("formulas");
+        fs::create_dir_all(&registry).expect("create active registry");
+        let mut request = request(&root, BeadOperation::PreviewPour);
+        request.rendered_formula = registry.join("example.formula.toml");
+        let runner = FakeRunner::with_outputs([
+            success("{}"),
+            where_output(&active_beads_dir),
+            success("{}"),
+        ]);
+
+        let receipt = execute_bead_request_with_runner(&request, &runner).expect("receipt");
+        assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+        assert_eq!(receipt.stages.len(), 4);
+        let calls = runner.calls.lock().expect("calls lock");
+        assert_eq!(calls.len(), 3);
+        assert_eq!(
+            calls[2].args,
+            vec![
+                "mol",
+                "pour",
+                "example",
+                "--dry-run",
+                "--json",
+                "--var",
+                "alpha=first",
+                "--var",
+                "zebra=last",
+            ]
+        );
+        drop(calls);
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn same_name_toml_json_pair_blocks_preview_before_pour() {
+        let root = workspace();
+        let active_beads_dir = root.join(".beads");
+        let registry = active_beads_dir.join("formulas");
+        fs::create_dir_all(&registry).expect("create active registry");
+        let toml = registry.join("example.formula.toml");
+        let json = registry.join("example.formula.json");
+        fs::write(&toml, "formula = \"example\"").expect("write TOML shadow");
+        fs::write(&json, "{\"formula\":\"example\"}").expect("write JSON shadow");
+        let mut request = request(&root, BeadOperation::PreviewPour);
+        request.rendered_formula = toml;
+        let runner = FakeRunner::with_outputs([success("{}"), where_output(&active_beads_dir)]);
+
+        let receipt = execute_bead_request_with_runner(&request, &runner).expect("receipt");
+        assert_eq!(
+            receipt.outcome,
+            BeadOutcome::Failed {
+                code: String::from("BEADS_FORMULA_REGISTRY_AMBIGUOUS")
+            }
+        );
+        assert_eq!(runner.calls.lock().expect("calls lock").len(), 2);
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn preview_rejects_an_output_outside_the_active_registry_before_pour() {
+        let root = workspace();
+        let active_beads_dir = root.join(".beads");
+        fs::create_dir_all(active_beads_dir.join("formulas")).expect("create active registry");
+        let runner = FakeRunner::with_outputs([success("{}"), where_output(&active_beads_dir)]);
+
+        let receipt =
+            execute_bead_request_with_runner(&request(&root, BeadOperation::PreviewPour), &runner)
+                .expect("receipt");
+        assert_eq!(
+            receipt.outcome,
+            BeadOutcome::Failed {
+                code: String::from("BEADS_FORMULA_OUTSIDE_ACTIVE_REGISTRY")
+            }
+        );
+        assert_eq!(runner.calls.lock().expect("calls lock").len(), 2);
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn unavailable_bd_returns_a_stable_error_before_a_process_receipt() {
+        let root = workspace();
+        let error = execute_bead_request_with_runner(
+            &request(&root, BeadOperation::Validate),
+            &UnavailableRunner,
+        )
+        .expect_err("missing executable must fail");
+        assert_eq!(error.code(), "BEADS_BD_UNAVAILABLE");
         fs::remove_dir_all(root).expect("cleanup");
     }
 
