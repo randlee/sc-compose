@@ -27,6 +27,10 @@ policy in the CLI.
 - `crates/sc-composer-beads/tests/fixtures/beads/request.json` — R.2-owned
   canonical CLI-request fixture; additive only, with no R.1 formula fixture
   changed.
+- `crates/sc-composer-beads/tests/bd_integration.rs` — CI-only Windows cleanup
+  retry adjustment for the existing pinned-`bd` integration fixture, required
+  to complete R.2's cross-platform CLI verification without changing the R.1
+  contract.
 - `docs/{requirements,architecture}.md` — normative CLI surface and command
   mapping for the shipped `bead` command.
 
