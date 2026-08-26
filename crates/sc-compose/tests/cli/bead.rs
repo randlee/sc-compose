@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use sc_composer_beads::{BeadOperation, parse_request};
 use serde_json::json;
 
 use crate::support::{TempFixture, sc_compose, write_file};
@@ -111,6 +112,24 @@ fn write_fake_bd(root: &Path, cook_exit: i32, pour_exit: i32) -> (PathBuf, PathB
     )
     .expect("write fake bd");
     (executable, trace)
+}
+
+#[test]
+fn canonical_cli_request_fixture_is_a_complete_v1_request() {
+    let request = fs::read_to_string(canonical_template("request.json"))
+        .expect("read canonical R.2 request fixture");
+    let request = parse_request(&request).expect("parse canonical R.2 request fixture");
+
+    assert_eq!(request.schema, BEADS_SCHEMA);
+    assert_eq!(request.operation, BeadOperation::Validate);
+    assert_eq!(request.formula_name.as_deref(), Some("toml-workflow"));
+    assert_eq!(
+        request
+            .bead_variables
+            .get("release_name")
+            .map(String::as_str),
+        Some("1.5.0")
+    );
 }
 
 #[test]

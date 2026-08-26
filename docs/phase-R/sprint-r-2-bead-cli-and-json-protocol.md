@@ -1,8 +1,9 @@
 ---
 id: R.2
 title: Bead CLI and JSON Protocol
-status: planned
+status: complete
 branch: sprint/r-2-bead-cli-and-json-protocol
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/r-2-bead-cli-and-json-protocol
 target: integrate/phase-r
 depends_on: R.1
 ---

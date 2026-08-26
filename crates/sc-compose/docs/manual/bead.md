@@ -33,3 +33,8 @@ request contains the exact `CreatePersistentBeads` authorization value.
 Use `--json` for the standard sc-compose diagnostic envelope. On success its
 payload is the versioned `sc-compose/beads/v1` receipt. On pre-execution
 failure its payload preserves the stable Beads error code and message.
+
+Human output is deliberately receipt-derived and does not include a Beads
+executable version in protocol v1. Adding that value requires a future R.1
+receipt-contract amendment; this adapter does not run an extra `bd` command to
+derive it.
