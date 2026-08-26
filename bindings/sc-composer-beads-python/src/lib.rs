@@ -580,3 +580,89 @@ fn native(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(pour, module)?)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use super::*;
+    use serde_json::json;
+
+    fn temporary_root() -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock must be after the Unix epoch")
+            .as_nanos();
+        std::env::temp_dir().join(format!("sc-composer-beads-python-{nonce}"))
+    }
+
+    #[test]
+    fn adapter_matches_the_in_process_rust_render_receipt() {
+        let root = temporary_root();
+        let templates = root.join("templates");
+        let template = templates.join("toml-workflow.formula.toml.j2");
+        let rendered_formula = root.join(".beads/formulas/toml-workflow.formula.toml");
+        fs::create_dir_all(&templates).expect("test template directory must be created");
+        fs::create_dir_all(
+            rendered_formula
+                .parent()
+                .expect("rendered formula must have a parent directory"),
+        )
+        .expect("test formula directory must be created");
+        fs::copy(
+            concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../crates/sc-composer-beads/tests/fixtures/beads/toml-workflow.formula.toml.j2"
+            ),
+            &template,
+        )
+        .expect("canonical Beads fixture must be copied");
+
+        let request = BeadComposeRequest {
+            schema: BEADS_SCHEMA_V1.to_owned(),
+            operation: BeadOperation::Render,
+            working_directory: root.clone(),
+            template,
+            rendered_formula,
+            compose_variables: json!({
+                "project": {"name": "sc-compose", "notes": "in-process parity"},
+                "reviewers": [{"id": "ada", "name": "Ada"}],
+            })
+            .as_object()
+            .expect("JSON fixture must be an object")
+            .clone(),
+            formula_name: None,
+            bead_variables: BTreeMap::new(),
+            bd_executable: None,
+            pour_authorization: None,
+        };
+
+        let rust_receipt = execute_bead_request(&request).expect("direct Rust render must succeed");
+        Python::initialize();
+        Python::attach(|py| {
+            let python_receipt = execute_with_operation(
+                py,
+                &PyBeadComposeRequest {
+                    inner: request.clone(),
+                },
+                Some(BeadOperation::Render),
+            )
+            .expect("Python adapter render must succeed");
+
+            assert_eq!(python_receipt.schema, rust_receipt.schema);
+            assert_eq!(
+                python_receipt.operation,
+                operation_name(rust_receipt.operation)
+            );
+            assert_eq!(
+                python_receipt.rendered_formula,
+                rust_receipt.rendered_formula.display().to_string()
+            );
+            assert_eq!(python_receipt.stages.len(), rust_receipt.stages.len());
+            assert_eq!(python_receipt.outcome.kind, "succeeded");
+        });
+
+        fs::remove_dir_all(root).expect("test workspace must be removed");
+    }
+}
