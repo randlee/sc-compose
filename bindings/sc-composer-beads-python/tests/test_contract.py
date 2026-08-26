@@ -159,6 +159,15 @@ def test_pour_refuses_before_starting_the_runner(tmp_path: Path) -> None:
     assert not trace.exists()
 
 
+def test_execute_preserves_the_request_operation(tmp_path: Path) -> None:
+    executable, _trace = _write_fake_bd(tmp_path)
+
+    receipt = beads.execute(_request(tmp_path, executable, operation="preview_pour"))
+
+    assert receipt.operation == "preview_pour"
+    assert receipt.stages[-1].stage == "preview_pour"
+
+
 @pytest.mark.skipif(
     "BD_EXECUTABLE" not in os.environ,
     reason="the pinned Beads executable is configured by the CI wheel job",

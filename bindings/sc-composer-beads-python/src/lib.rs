@@ -5,13 +5,13 @@ use std::path::PathBuf;
 
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
-use pyo3::types::{PyBool, PyDict, PyList};
+use pyo3::types::PyDict;
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError as RustBeadComposeError, BeadComposeReceipt,
     BeadComposeRequest, BeadOperation, BeadOutcome, BeadStage, BeadStageOutcome, BeadStageReceipt,
     PourAuthorization, execute_bead_request,
 };
-use serde_json::{Map, Number, Value};
+use serde_json::Value;
 
 const REQUEST_STAGE: &str = "request";
 
@@ -112,89 +112,21 @@ fn coerce_path(py: Python<'_>, value: &Bound<'_, PyAny>, field: &str) -> PyResul
 }
 
 fn py_to_json(py: Python<'_>, value: &Bound<'_, PyAny>) -> PyResult<Value> {
-    if value.is_none() {
-        return Ok(Value::Null);
-    }
-    if let Ok(value) = value.extract::<bool>() {
-        return Ok(Value::Bool(value));
-    }
-    if let Ok(value) = value.extract::<i64>() {
-        return Ok(Value::Number(value.into()));
-    }
-    if let Ok(value) = value.extract::<u64>() {
-        return Ok(Value::Number(value.into()));
-    }
-    if let Ok(value) = value.extract::<f64>() {
-        return Number::from_f64(value).map_or_else(
-            || {
-                Err(request_error(
-                    py,
-                    "compose_variables floating-point values must be finite",
-                ))
-            },
-            |number| Ok(Value::Number(number)),
-        );
-    }
-    if let Ok(value) = value.extract::<String>() {
-        return Ok(Value::String(value));
-    }
-    if let Ok(dict) = value.cast::<PyDict>() {
-        let mut result = Map::new();
-        for (key, item) in dict.iter() {
-            let key = key.extract::<String>().map_err(|_error| {
-                request_error(py, "compose_variables object keys must be strings")
-            })?;
-            result.insert(key, py_to_json(py, &item)?);
-        }
-        return Ok(Value::Object(result));
-    }
-    if let Ok(sequence) = value.try_iter() {
-        let mut result = Vec::new();
-        for item in sequence {
-            result.push(py_to_json(py, &item?)?);
-        }
-        return Ok(Value::Array(result));
-    }
-    Err(request_error(
-        py,
-        format!(
-            "unsupported compose_variables value type: {}",
-            value.get_type().name()?
-        ),
-    ))
+    let serialized = py
+        .import("json")?
+        .call_method1("dumps", (value,))?
+        .extract::<String>()
+        .map_err(|error| request_error(py, error.to_string()))?;
+    serde_json::from_str(&serialized).map_err(|error| request_error(py, error.to_string()))
 }
 
 fn json_to_py(py: Python<'_>, value: &Value) -> PyResult<Py<PyAny>> {
-    match value {
-        Value::Null => Ok(py.None()),
-        Value::Bool(value) => Ok(PyBool::new(py, *value).to_owned().into_any().unbind()),
-        Value::Number(value) => {
-            if let Some(value) = value.as_i64() {
-                Ok(value.into_pyobject(py)?.unbind().into_any())
-            } else if let Some(value) = value.as_u64() {
-                Ok(value.into_pyobject(py)?.unbind().into_any())
-            } else if let Some(value) = value.as_f64() {
-                Ok(value.into_pyobject(py)?.unbind().into_any())
-            } else {
-                Ok(py.None())
-            }
-        }
-        Value::String(value) => Ok(value.into_pyobject(py)?.unbind().into_any()),
-        Value::Array(values) => {
-            let list = PyList::empty(py);
-            for value in values {
-                list.append(json_to_py(py, value)?)?;
-            }
-            Ok(list.into_any().unbind())
-        }
-        Value::Object(values) => {
-            let dict = PyDict::new(py);
-            for (key, value) in values {
-                dict.set_item(key, json_to_py(py, value)?)?;
-            }
-            Ok(dict.into_any().unbind())
-        }
-    }
+    let serialized =
+        serde_json::to_string(value).map_err(|error| request_error(py, error.to_string()))?;
+    Ok(py
+        .import("json")?
+        .call_method1("loads", (serialized,))?
+        .unbind())
 }
 
 fn operation_from_str(py: Python<'_>, value: &str) -> PyResult<BeadOperation> {
@@ -542,7 +474,7 @@ fn execute(
     py: Python<'_>,
     request: PyRef<'_, PyBeadComposeRequest>,
 ) -> PyResult<PyBeadComposeReceipt> {
-    execute_with_operation(py, &request, None)
+    execute_with_operation(py, &request, Some(request.inner.operation))
 }
 
 #[pyfunction]
