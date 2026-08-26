@@ -128,18 +128,20 @@ Also require `git diff --check`.
 
 ## Validation evidence
 
-Validated on 2026-08-26 at `27a3a12` and the subsequent QA-findings fix
-commit:
+Validated on 2026-08-26 across the R.3 closing commit chain:
 
-- CI run [32944509101](https://github.com/randlee/sc-compose/actions/runs/32944509101)
-  passed all 17 checks, including the installed wheel matrix on Linux, macOS,
-  and Windows.
+- `285c23c` closed the initial QA findings; `0fc1d2b` restored typed JSON
+  conversion errors; and `9e1bfa2` completed the schema-valid boundary record.
+- CI run [32947283597](https://github.com/randlee/sc-compose/actions/runs/32947283597)
+  passed all 17 checks for `9e1bfa2`, including the installed wheel matrix on
+  Linux, macOS, and Windows.
 - Installed-wheel smoke and contract tests cover the canonical R.1/R.2
   fixture, Python-to-CLI stage receipts, authorization refusal before process
-  execution, and the pinned-`bd` fixture.
+  execution, the pinned-`bd` fixture, and wheel/sdist typing-marker contents.
 - `cargo fmt --all --check`, workspace clippy, full workspace tests, Maturin
-  build/install tests, release-manifest validation, version lockstep, wheel and
-  sdist matrix checks, and `git diff --check` passed locally.
+  wheel/sdist build/install tests, release-manifest validation, version
+  lockstep, wheel and sdist matrix checks, and `git diff --check` passed
+  locally.
 
 ## Out of scope
 

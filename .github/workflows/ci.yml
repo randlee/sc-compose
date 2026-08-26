@@ -297,7 +297,9 @@ jobs:
         shell: bash
 
       - name: Build Beads wheel
-        run: maturin build --manifest-path bindings/sc-composer-beads-python/Cargo.toml --out dist
+        run: |
+          maturin build --manifest-path bindings/sc-composer-beads-python/Cargo.toml --out dist
+          maturin sdist --manifest-path bindings/sc-composer-beads-python/Cargo.toml --out dist
 
       - name: Install built wheel
         run: |
@@ -308,6 +310,7 @@ jobs:
         run: python -m pytest -q tests
         env:
           BD_EXECUTABLE: ${{ steps.beads.outputs.bd-path }}
+          SC_COMPOSER_BEADS_ARTIFACT_DIR: ${{ github.workspace }}/dist
 
   sc-sha-go-plan:
     name: sc-sha Go native target plan
