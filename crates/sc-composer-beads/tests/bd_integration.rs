@@ -17,11 +17,12 @@ static WORKSPACE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 #[test]
 fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
-    let Some(bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
+    let Some(pinned_bd) = std::env::var_os("BD_EXECUTABLE").map(PathBuf::from) else {
         eprintln!("skipping real Beads integration: BD_EXECUTABLE is not configured");
         return;
     };
     let root = temporary_workspace();
+    let bd = isolated_bd(&root, &pinned_bd);
     initialize_beads(&bd, &root);
 
     for (fixture, formula_name, extension, has_markdown_value) in [
@@ -77,6 +78,41 @@ fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
     same_name_extension_shadowing_blocks_preview(&root, &bd);
 
     fs::remove_dir_all(root).expect("remove temporary Beads workspace");
+}
+
+#[cfg(unix)]
+fn isolated_bd(root: &Path, bd: &Path) -> PathBuf {
+    use std::os::unix::fs::PermissionsExt;
+
+    let wrapper = root.join("bd-no-daemon");
+    fs::write(
+        &wrapper,
+        format!(
+            "#!/bin/sh\nexport BEADS_NO_DAEMON=1\nexec {} \"$@\"\n",
+            shell_quote(bd)
+        ),
+    )
+    .expect("write no-daemon Beads wrapper");
+    let mut permissions = fs::metadata(&wrapper)
+        .expect("no-daemon wrapper metadata")
+        .permissions();
+    permissions.set_mode(0o755);
+    fs::set_permissions(&wrapper, permissions).expect("make no-daemon wrapper executable");
+    wrapper
+}
+
+#[cfg(windows)]
+fn isolated_bd(root: &Path, bd: &Path) -> PathBuf {
+    let wrapper = root.join("bd-no-daemon.cmd");
+    fs::write(
+        &wrapper,
+        format!(
+            "@echo off\r\nsetlocal\r\nset \"BEADS_NO_DAEMON=1\"\r\n\"{}\" %*\r\nexit /b %ERRORLEVEL%\r\n",
+            bd.display()
+        ),
+    )
+    .expect("write no-daemon Beads wrapper");
+    wrapper
 }
 
 fn unauthorized_pour_does_not_start_the_pinned_beads_binary(root: &Path, bd: &Path) {
