@@ -128,4 +128,5 @@ git diff --check
 
 CLI argument parsing, Python packaging, package publication, `bd compose`,
 formula-schema reimplementation, and a real non-dry-run pour are not R.1
-deliverables.
+deliverables, except an isolated, explicitly authorized negative-path pour
+attempt that is expected to fail validation before any bead can persist.
