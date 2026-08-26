@@ -224,6 +224,26 @@ fn malformed_request_preserves_the_r1_deserialization_code() {
 }
 
 #[test]
+fn unreadable_request_preserves_the_r1_deserialization_code() {
+    let fixture = TempFixture::new("bead-unreadable-request");
+    let request = fixture.path.join("missing-request.json");
+
+    let command = sc_compose()
+        .args(["bead", "validate", "--request"])
+        .arg(&request)
+        .arg("--json")
+        .output()
+        .expect("run unreadable request");
+
+    assert_eq!(command.status.code(), Some(3), "{command:?}");
+    let envelope: serde_json::Value = serde_json::from_slice(&command.stdout).expect("envelope");
+    assert_eq!(
+        envelope["payload"]["error"]["code"],
+        "BEADS_REQUEST_DESERIALIZATION_FAILED"
+    );
+}
+
+#[test]
 fn render_failure_uses_the_r1_receipt_code_and_nonzero_exit() {
     let fixture = TempFixture::new("bead-render-failed");
     let template = copy_canonical_template(&fixture.path, "toml-workflow.formula.toml.j2");

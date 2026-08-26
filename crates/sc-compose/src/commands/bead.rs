@@ -2,7 +2,6 @@
 
 use std::fs;
 
-use anyhow::anyhow;
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError, BeadComposeReceipt, BeadOperation, BeadOutcome,
     BeadStageOutcome, execute_bead_request, parse_request,
@@ -21,12 +20,15 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
         BeadSubcommand::PreviewPour(args) => (&args.request, BeadOperation::PreviewPour, args.json),
         BeadSubcommand::Pour(args) => (&args.request, BeadOperation::Pour, args.json),
     };
-    let input = fs::read_to_string(request_path).map_err(|error| {
-        CommandError::usage(anyhow!(
-            "read Beads request {}: {error}",
-            request_path.display()
-        ))
-    })?;
+    let input = match fs::read_to_string(request_path) {
+        Ok(input) => input,
+        Err(error) => {
+            let error = BeadComposeError::RequestDeserializationFailed {
+                message: format!("read {}: {error}", request_path.display()),
+            };
+            return print_bead_error(&error, operation, json);
+        }
+    };
     let mut request = match parse_request(&input) {
         Ok(request) => request,
         Err(error) => return print_bead_error(&error, operation, json),
