@@ -955,6 +955,7 @@ Command mapping:
 - `render` -> `compose`
 - `resolve` -> `resolve_profile`
 - `validate` -> `validate`
+- `bead` -> `execute_bead_request`
 - `frontmatter-init` -> `frontmatter_init`
 - `template-init` -> CLI-owned `template_init_file` rewrite path
 - `init` -> `init_workspace`

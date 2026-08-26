@@ -84,7 +84,7 @@ fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
 
 fn remove_temporary_workspace(root: &Path) -> io::Result<()> {
     #[cfg(windows)]
-    const ATTEMPTS: usize = 10;
+    const ATTEMPTS: usize = 50;
     #[cfg(not(windows))]
     const ATTEMPTS: usize = 1;
 
