@@ -1,7 +1,7 @@
 ---
 id: R.2
 title: Bead CLI and JSON Protocol
-status: in_progress
+status: complete
 branch: sprint/r-2-bead-cli-and-json-protocol
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/r-2-bead-cli-and-json-protocol
 target: integrate/phase-r
@@ -57,22 +57,19 @@ policy in the CLI.
 
 ## Acceptance criteria
 
-- [ ] `sc-compose bead validate --request fixture.json --json` produces a
+- [x] `sc-compose bead validate --request fixture.json --json` produces a
       receipt matching the R.1 library result.
-- [ ] `preview-pour` cannot run before a successful validation and reports
+- [x] `preview-pour` cannot run before a successful validation and reports
       exactly which Beads stage failed.
-- [ ] `pour` without the typed authorization value refuses before starting
+- [x] `pour` without the typed authorization value refuses before starting
       `bd`; CLI tests prove it.
-- [ ] The CLI contains no Beads argv construction, formula parsing, or
+- [x] The CLI contains no Beads argv construction, formula parsing, or
       duplicated stage logic; it only deserializes, calls R.1, and presents the
       resulting receipt.
-- [ ] CLI success and failure envelopes preserve the ADR-0021
+- [x] CLI success and failure envelopes preserve the ADR-0021
       `BeadStageReceipt`, `BeadOutcome`, and `BeadComposeError` definitions
       without introducing CLI-local error variants or codes.
-- [ ] The manual is reachable through `sc-compose help bead`.
-
-The criteria remain unchecked until the validation evidence below is refreshed
-after the Windows fixture repair.
+- [x] The manual is reachable through `sc-compose help bead`.
 
 ## Required validation
 
@@ -86,6 +83,25 @@ sc-compose bead preview-pour --request crates/sc-composer-beads/tests/fixtures/b
 ```
 
 Also require `git diff --check`.
+
+## Validation evidence
+
+Validated on 2026-08-25 at `e221919` before this evidence-only update:
+
+- `cargo fmt --all --check` and
+  `cargo clippy --workspace --all-targets --all-features -- -D warnings`
+  passed.
+- `cargo test -p sc-compose --test bead` passed all 11 CLI-request and
+  error-envelope tests, including the Windows-portable fake-`bd` harness.
+- `SC_LINT_SOURCE_ROOT=/Users/randlee/Documents/github/sc-lint cargo test
+  --workspace` passed. The explicit source-root setting supplies the existing
+  external sc-lint Python utilities required by the workspace test harness.
+- In an isolated `bd init` workspace with the pinned local `bd`, the built
+  `sc-compose` binary successfully ran `bead validate --request request.json
+  --json` and `bead preview-pour --request request.json --json`. The receipts
+  confirmed the expected render, cook, active-registry, and dry-run-pour
+  stages.
+- `git diff --check` passed.
 
 ## Out of scope
 
