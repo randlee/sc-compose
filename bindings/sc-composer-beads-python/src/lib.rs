@@ -93,11 +93,11 @@ fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
     }
 }
 
-fn rust_error_to_pyerr(py: Python<'_>, error_kind: RustBeadComposeError) -> PyErr {
+fn rust_error_to_pyerr(py: Python<'_>, error_kind: &RustBeadComposeError) -> PyErr {
     error(
         py,
         error_kind.code(),
-        Some(rust_error_stage(&error_kind)),
+        Some(rust_error_stage(error_kind)),
         error_kind.to_string(),
     )
 }
@@ -427,7 +427,7 @@ impl PyBeadComposeRequest {
         formula_name: Option<String>,
         bead_variables: Option<&Bound<'_, PyAny>>,
         bd_executable: Option<&Bound<'_, PyAny>>,
-        pour_authorization: Option<String>,
+        pour_authorization: Option<&str>,
         schema: &str,
     ) -> PyResult<Self> {
         let compose_variables = py_to_json(py, compose_variables)?;
@@ -435,7 +435,7 @@ impl PyBeadComposeRequest {
             .as_object()
             .cloned()
             .ok_or_else(|| request_error(py, "compose_variables must be a string-keyed mapping"))?;
-        let pour_authorization = match pour_authorization.as_deref() {
+        let pour_authorization = match pour_authorization {
             None => None,
             Some("CreatePersistentBeads") => Some(PourAuthorization::CreatePersistentBeads),
             Some(_) => {
@@ -530,10 +530,14 @@ fn execute_with_operation(
     }
     py.detach(|| execute_bead_request(&request))
         .map(PyBeadComposeReceipt::from)
-        .map_err(|error_kind| rust_error_to_pyerr(py, error_kind))
+        .map_err(|error_kind| rust_error_to_pyerr(py, &error_kind))
 }
 
 #[pyfunction]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracts the Python-owned request through a PyRef argument."
+)]
 fn execute(
     py: Python<'_>,
     request: PyRef<'_, PyBeadComposeRequest>,
@@ -542,6 +546,10 @@ fn execute(
 }
 
 #[pyfunction]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracts the Python-owned request through a PyRef argument."
+)]
 fn render(
     py: Python<'_>,
     request: PyRef<'_, PyBeadComposeRequest>,
@@ -550,6 +558,10 @@ fn render(
 }
 
 #[pyfunction]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracts the Python-owned request through a PyRef argument."
+)]
 fn validate(
     py: Python<'_>,
     request: PyRef<'_, PyBeadComposeRequest>,
@@ -558,6 +570,10 @@ fn validate(
 }
 
 #[pyfunction]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracts the Python-owned request through a PyRef argument."
+)]
 fn preview_pour(
     py: Python<'_>,
     request: PyRef<'_, PyBeadComposeRequest>,
@@ -566,6 +582,10 @@ fn preview_pour(
 }
 
 #[pyfunction]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "PyO3 extracts the Python-owned request through a PyRef argument."
+)]
 fn pour(
     py: Python<'_>,
     request: PyRef<'_, PyBeadComposeRequest>,

@@ -45,11 +45,18 @@ publish = true
 publish_order = 2
 wait_after_publish_seconds = 30
 [[crates]]
+artifact = "sc-composer-beads"
+package = "sc-composer-beads"
+cargo_toml = "crates/sc-composer-beads/Cargo.toml"
+publish = true
+publish_order = 3
+wait_after_publish_seconds = 30
+[[crates]]
 artifact = "sc-compose"
 package = "sc-compose"
 cargo_toml = "crates/sc-compose/Cargo.toml"
 publish = true
-publish_order = 3
+publish_order = 4
 wait_after_publish_seconds = 0
 
 [[release_binaries]]
@@ -68,6 +75,12 @@ package = "sc-compose"
 manifest = "bindings/python/pyproject.toml"
 module = "sc_compose"
 publish = "pypi"
+[[python_packages]]
+artifact = "sc-composer-beads-python"
+package = "sc-composer-beads"
+manifest = "bindings/sc-composer-beads-python/pyproject.toml"
+module = "sc_composer_beads"
+publish = "pypi"
 
 [[python_distributions]]
 name = "sc-sha"
@@ -81,6 +94,13 @@ name = "sc-compose"
 source = "bindings/python"
 cargo_manifest = "bindings/python/Cargo.toml"
 module_path = "bindings/python/python/sc_compose"
+sdist = true
+wheels = ["ubuntu-latest", "macos-latest", "windows-latest"]
+[[python_distributions]]
+name = "sc-composer-beads"
+source = "bindings/sc-composer-beads-python"
+cargo_manifest = "bindings/sc-composer-beads-python/Cargo.toml"
+module_path = "bindings/sc-composer-beads-python/python/sc_composer_beads"
 sdist = true
 wheels = ["ubuntu-latest", "macos-latest", "windows-latest"]
 
