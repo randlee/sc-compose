@@ -70,7 +70,129 @@ fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
         assert!(rendered.contains("Ada"), "{fixture}");
     }
 
+    missing_executable_is_reported_before_any_real_beads_stage(&root);
+    invalid_and_missing_runtime_variable_formulas_fail_cook(&root, &bd);
+    redirected_registry_is_resolved_by_bd_where(&root, &bd);
+    same_name_extension_shadowing_blocks_preview(&root, &bd);
+
     fs::remove_dir_all(root).expect("remove temporary Beads workspace");
+}
+
+fn missing_executable_is_reported_before_any_real_beads_stage(root: &Path) {
+    let template = root.join("templates").join("toml-workflow.formula.toml.j2");
+    let output = root
+        .join(".beads")
+        .join("formulas")
+        .join("unavailable.formula.toml");
+    let error = execute_bead_request(&request(
+        root,
+        &template,
+        output,
+        "unavailable",
+        Path::new("missing-bd-executable"),
+    ))
+    .expect_err("a missing executable must not be treated as a process failure receipt");
+    assert_eq!(error.code(), "BEADS_BD_UNAVAILABLE");
+}
+
+fn invalid_and_missing_runtime_variable_formulas_fail_cook(root: &Path, bd: &Path) {
+    let invalid_template = root.join("templates").join("invalid.formula.toml.j2");
+    fs::write(&invalid_template, "this is not a Beads formula").expect("write invalid template");
+    let invalid_output = root
+        .join(".beads")
+        .join("formulas")
+        .join("invalid.formula.toml");
+    let invalid = execute_bead_request(&request(
+        root,
+        &invalid_template,
+        invalid_output,
+        "invalid",
+        bd,
+    ))
+    .expect("invalid formula creates a failure receipt");
+    assert_eq!(
+        invalid.outcome,
+        BeadOutcome::Failed {
+            code: "BEADS_COOK_FAILED".to_owned()
+        }
+    );
+
+    let template = root.join("templates").join("toml-workflow.formula.toml.j2");
+    let output = root
+        .join(".beads")
+        .join("formulas")
+        .join("missing-runtime.formula.toml");
+    let mut request = request(root, &template, output, "missing-runtime", bd);
+    request.operation = BeadOperation::Validate;
+    request.bead_variables.clear();
+    let missing_variable =
+        execute_bead_request(&request).expect("missing variable creates receipt");
+    assert_eq!(
+        missing_variable.outcome,
+        BeadOutcome::Failed {
+            code: "BEADS_COOK_FAILED".to_owned()
+        }
+    );
+}
+
+fn redirected_registry_is_resolved_by_bd_where(root: &Path, bd: &Path) {
+    let redirected_worktree = root.join("redirected-worktree");
+    let redirect_dir = redirected_worktree.join(".beads");
+    fs::create_dir_all(&redirect_dir).expect("create redirect directory");
+    fs::write(
+        redirect_dir.join("redirect"),
+        format!("{}\n", root.join(".beads").display()),
+    )
+    .expect("write Beads redirect");
+    let template = redirected_worktree
+        .join("templates")
+        .join("redirect-workflow.formula.toml.j2");
+    fs::create_dir_all(template.parent().expect("template parent"))
+        .expect("create template parent");
+    fs::write(
+        &template,
+        "formula = \"redirect-workflow\"\ndescription = \"redirect proof\"\nversion = 1\ntype = \"workflow\"\n\n[[steps]]\nid = \"step\"\ntitle = \"Redirect {{ release_name }}\"\n",
+    )
+    .expect("write redirect template");
+    let output = root
+        .join(".beads")
+        .join("formulas")
+        .join("redirect-workflow.formula.toml");
+    let receipt = execute_bead_request(&request(
+        &redirected_worktree,
+        &template,
+        output,
+        "redirect-workflow",
+        bd,
+    ))
+    .expect("redirected registry request");
+    assert_eq!(receipt.outcome, BeadOutcome::Succeeded);
+}
+
+fn same_name_extension_shadowing_blocks_preview(root: &Path, bd: &Path) {
+    let shadow = root
+        .join(".beads")
+        .join("formulas")
+        .join("toml-workflow.formula.json");
+    fs::write(
+        &shadow,
+        r#"{"formula":"toml-workflow","version":1,"type":"workflow","steps":[]}"#,
+    )
+    .expect("write shadow formula");
+    let template = root.join("templates").join("toml-workflow.formula.toml.j2");
+    let output = root
+        .join(".beads")
+        .join("formulas")
+        .join("toml-workflow.formula.toml");
+    let receipt = execute_bead_request(&request(root, &template, output, "toml-workflow", bd))
+        .expect("shadowing creates a failure receipt");
+    assert_eq!(
+        receipt.outcome,
+        BeadOutcome::Failed {
+            code: "BEADS_FORMULA_REGISTRY_AMBIGUOUS".to_owned()
+        }
+    );
+    assert_eq!(receipt.stages.len(), 3);
 }
 
 fn request(

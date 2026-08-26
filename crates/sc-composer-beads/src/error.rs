@@ -7,6 +7,12 @@ use thiserror::Error;
 /// Stable errors returned before or during Beads composition.
 #[derive(Debug, Error)]
 pub enum BeadComposeError {
+    /// The JSON request did not deserialize into the versioned contract.
+    #[error("invalid Beads composition request: {message}")]
+    RequestDeserializationFailed {
+        /// Serializer diagnostic retained for callers and logs.
+        message: String,
+    },
     /// The request selected an unsupported protocol schema.
     #[error("unsupported Beads composition schema `{actual}`")]
     UnknownSchema {
@@ -119,6 +125,7 @@ impl BeadComposeError {
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
+            Self::RequestDeserializationFailed { .. } => "BEADS_REQUEST_DESERIALIZATION_FAILED",
             Self::UnknownSchema { .. } => "BEADS_UNKNOWN_SCHEMA",
             Self::FormulaPathNotFile { .. } => "BEADS_FORMULA_NOT_FILE",
             Self::FormulaExtensionUnsupported { .. } => "BEADS_FORMULA_EXTENSION_UNSUPPORTED",

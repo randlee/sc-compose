@@ -18,7 +18,7 @@ pub mod runner;
 #[doc(inline)]
 pub use contract::{
     BEADS_SCHEMA_V1, BeadComposeReceipt, BeadComposeRequest, BeadOperation, BeadOutcome, BeadStage,
-    BeadStageOutcome, BeadStageReceipt, PourAuthorization,
+    BeadStageOutcome, BeadStageReceipt, PourAuthorization, parse_request,
 };
 #[doc(inline)]
 pub use error::BeadComposeError;

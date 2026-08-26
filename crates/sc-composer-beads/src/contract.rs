@@ -7,8 +7,12 @@ use serde::de::{Error as _, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value};
 
+use crate::error::BeadComposeError;
+
 /// Stable schema identifier for the Beads composition protocol.
 pub const BEADS_SCHEMA_V1: &str = "sc-compose/beads/v1";
+
+const DUPLICATE_BEAD_VARIABLE_PREFIX: &str = "duplicate Beads variable key \u{1f}";
 
 /// Requested Beads composition operation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -80,7 +84,7 @@ where
             while let Some((key, value)) = map.next_entry::<String, String>()? {
                 if variables.insert(key.clone(), value).is_some() {
                     return Err(A::Error::custom(format!(
-                        "duplicate Beads variable key `{key}`"
+                        "{DUPLICATE_BEAD_VARIABLE_PREFIX}{key}"
                     )));
                 }
             }
@@ -89,6 +93,37 @@ where
     }
 
     deserializer.deserialize_map(UniqueBeadVariables)
+}
+
+/// Parse a JSON request into the stable Beads composition contract.
+///
+/// This boundary preserves duplicate runtime-variable keys as
+/// [`BeadComposeError::BeadVariableKeyDuplicate`] instead of exposing a
+/// serializer-specific error to adapters.
+///
+/// # Errors
+///
+/// Returns a stable [`BeadComposeError`] when the input is malformed or does
+/// not deserialize into the v1 request contract.
+pub fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadComposeError> {
+    serde_json::from_str(input).map_err(|error| {
+        let message = error.to_string();
+        duplicate_bead_variable_key(&message).map_or_else(
+            || BeadComposeError::RequestDeserializationFailed { message },
+            |key| BeadComposeError::BeadVariableKeyDuplicate { key },
+        )
+    })
+}
+
+fn duplicate_bead_variable_key(message: &str) -> Option<String> {
+    message
+        .strip_prefix(DUPLICATE_BEAD_VARIABLE_PREFIX)
+        .map(|key_with_location| {
+            key_with_location
+                .split_once(" at line ")
+                .map_or(key_with_location, |(key, _)| key)
+                .to_owned()
+        })
 }
 
 /// Completed host-neutral Beads composition operation.
