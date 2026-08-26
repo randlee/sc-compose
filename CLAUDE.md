@@ -32,7 +32,7 @@ This repo is intentionally independent from ATM. Do not introduce
 ## Boundary Rules
 
 1. `sc-composer` must remain a pure library.
-2. `sc-compose` may depend on `sc-composer` and standalone observability crates only.
+2. `sc-compose` may depend on `sc-composer`, `sc-composer-beads`, and standalone observability crates only.
 3. `bindings/python` is a Python-facing adapter package that may depend on `sc-composer` only.
 4. `bindings/python` must not depend on `sc-compose`, `sc-observability`, or ATM-specific crates.
 5. `sc-composer` must not depend on `bindings/python`.
@@ -51,6 +51,19 @@ This repo is intentionally independent from ATM. Do not introduce
     filesystem/resolver policy, or another adapter. `sc-sha` must not depend
     on it. See [ADR-0018](./docs/adrs/0018-sc-sha-hash-ownership.md) and
     [ADR-0020](./docs/adrs/0020-generated-go-binding-strategy.md).
+11. `sc-composer-beads` is the host-neutral Beads formula-composition library.
+    It may depend only on `sc-composer`, workspace serde/error dependencies,
+    and Rust standard-library filesystem/process APIs. It must not depend on
+    `sc-compose`, a foreign-language adapter, Beads source or database
+    libraries, or ATM/runtime code. See
+    [ADR-0021](./docs/adrs/0021-beads-formula-composition-integration.md).
+12. `sc-compose` is the CLI adapter over `sc-composer-beads`; the Beads
+    library must not depend on the CLI.
+13. `bindings/sc-composer-beads-python` is the Python-facing adapter for
+    `sc-composer-beads` only. It may depend on that crate plus approved
+    PyO3/maturin/serde dependencies. It must not depend on `sc-compose`,
+    `sc-composer`, a Beads source/database library, ATM/runtime code, or
+    another adapter.
 
 ## Team Communication
 

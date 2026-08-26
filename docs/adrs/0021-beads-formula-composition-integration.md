@@ -2,8 +2,10 @@
 
 ## Status
 
-Proposed. This ADR must be accepted and its boundary amendments approved before
-Phase R implementation source is authored.
+Accepted (2026-08-24, by Rand Lee). Phase R implementation source may not be
+authored until the remaining pre-source gate items (CLAUDE.md/architecture.md
+boundary amendment, sc-lint negative boundary fixture) are separately
+satisfied per sprint R.1's pre-source gate.
 
 ## Context
 
@@ -77,6 +79,8 @@ pub struct BeadComposeReceipt {
 pub fn execute_bead_request(
     request: &BeadComposeRequest,
 ) -> Result<BeadComposeReceipt, BeadComposeError>;
+
+pub fn parse_request(input: &str) -> Result<BeadComposeRequest, BeadComposeError>;
 ```
 
 The receipt and error surfaces are fixed for `sc-compose/beads/v1`; adapters
@@ -115,6 +119,7 @@ pub enum BeadOutcome {
 }
 
 pub enum BeadComposeError {
+    RequestDeserializationFailed { message: String },
     UnknownSchema { actual: String },
     FormulaPathNotFile { path: PathBuf },
     FormulaExtensionUnsupported { path: PathBuf },
@@ -146,6 +151,7 @@ codes:
 
 | Error variant | Stable code | Rejection or failure condition |
 | --- | --- | --- |
+| `RequestDeserializationFailed` | `BEADS_REQUEST_DESERIALIZATION_FAILED` | Request JSON cannot deserialize into the v1 contract. |
 | `UnknownSchema` | `BEADS_UNKNOWN_SCHEMA` | Request schema is not `sc-compose/beads/v1`. |
 | `FormulaPathNotFile` | `BEADS_FORMULA_NOT_FILE` | Template or rendered formula path is not a regular file. |
 | `FormulaExtensionUnsupported` | `BEADS_FORMULA_EXTENSION_UNSUPPORTED` | Formula is not `.formula.toml` or `.formula.json`. |
@@ -153,7 +159,7 @@ codes:
 | `TemplateOutsideWorkingDirectory` | `BEADS_TEMPLATE_OUTSIDE_WORKING_DIR` | Template escapes `working_directory`. |
 | `OutputOutsideWorkingDirectory` | `BEADS_OUTPUT_OUTSIDE_WORKING_DIR` | Rendered output escapes the permitted working directory. |
 | `BeadVariableKeyInvalid` | `BEADS_VARIABLE_KEY_INVALID` | A Beads runtime-variable key is empty or malformed. |
-| `BeadVariableKeyDuplicate` | `BEADS_VARIABLE_KEY_DUPLICATE` | A Beads runtime-variable key is supplied more than once. |
+| `BeadVariableKeyDuplicate` | `BEADS_VARIABLE_KEY_DUPLICATE` | `parse_request` detects that a Beads runtime-variable key is supplied more than once. |
 | `FormulaNameRequired` | `BEADS_FORMULA_NAME_REQUIRED` | Preview or pour has no formula name. |
 | `PourAuthorizationRequired` | `BEADS_POUR_AUTH_REQUIRED` | Persistent pour lacks the explicit authorization sentinel. |
 | `PourAuthorizationInvalid` | `BEADS_POUR_AUTH_INVALID` | Authorization is present but is not `CreatePersistentBeads`. |

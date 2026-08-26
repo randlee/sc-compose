@@ -1,0 +1,36 @@
+boundary_id = "BOUNDARY-ScComposerBeads"
+owner_package = "sc-composer-beads"
+owner_crate_path = "sc_composer_beads"
+name = "ScComposerBeadsHostNeutralLibrary"
+
+[public]
+facade = "execute_bead_request"
+
+[implementation]
+type = "host_neutral_beads_composition_library"
+module = "sc_composer_beads"
+visibility = "public"
+constructor = "none"
+
+[composition]
+roots = ["execute_bead_request"]
+
+[dependencies]
+allowed_dependents = ["sc-compose", "sc-composer-beads-python"]
+allowed_dependencies = ["sc-composer", "serde", "serde_json", "thiserror"]
+forbidden_edges = []
+
+[references]
+scope = "outside_owner_crate"
+forbidden = ["ATM_HOME", "agent_team_mail", "atm_core", "sc_compose"]
+
+[testing]
+allowed_test_double_paths = []
+forbidden_test_bypasses = []
+
+[enforcement]
+lint_rules = ["LINT-SC-COMPOSER-BEADS-HOST-NEUTRAL"]
+review_gates = ["beads_host_neutral_library_boundary"]
+
+[status]
+state = "concrete_landed"

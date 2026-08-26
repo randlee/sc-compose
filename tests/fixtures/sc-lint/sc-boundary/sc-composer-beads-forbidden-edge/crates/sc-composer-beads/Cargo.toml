@@ -1,0 +1,16 @@
+[package]
+name = "sc-composer-beads"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+sc-composer = { path = "../sc-composer" }
+serde = { path = "../serde" }
+serde-json = { path = "../serde-json" }
+thiserror = { path = "../thiserror" }
+sc-compose = { path = "../sc-compose" }
+atmcore = { path = "../atmcore" }
+beads-source = { path = "../beads-source" }
+filesystem-support = { path = "../filesystem-support" }
+sc-composer-beads-python = { path = "../sc-composer-beads-python" }

@@ -16,7 +16,7 @@ constructor = "none"
 roots = []
 
 [dependencies]
-allowed_dependents = ["sc-compose", "sc-compose-py"]
+allowed_dependents = ["sc-compose", "sc-compose-py", "sc-composer-beads"]
 allowed_dependencies = ["sc-sha"]
 forbidden_edges = []
 
