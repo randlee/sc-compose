@@ -1,7 +1,7 @@
 ---
 id: R.2
 title: Bead CLI and JSON Protocol
-status: complete
+status: in_progress
 branch: sprint/r-2-bead-cli-and-json-protocol
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/r-2-bead-cli-and-json-protocol
 target: integrate/phase-r
@@ -57,19 +57,22 @@ policy in the CLI.
 
 ## Acceptance criteria
 
-- [x] `sc-compose bead validate --request fixture.json --json` produces a
+- [ ] `sc-compose bead validate --request fixture.json --json` produces a
       receipt matching the R.1 library result.
-- [x] `preview-pour` cannot run before a successful validation and reports
+- [ ] `preview-pour` cannot run before a successful validation and reports
       exactly which Beads stage failed.
-- [x] `pour` without the typed authorization value refuses before starting
+- [ ] `pour` without the typed authorization value refuses before starting
       `bd`; CLI tests prove it.
-- [x] The CLI contains no Beads argv construction, formula parsing, or
+- [ ] The CLI contains no Beads argv construction, formula parsing, or
       duplicated stage logic; it only deserializes, calls R.1, and presents the
       resulting receipt.
-- [x] CLI success and failure envelopes preserve the ADR-0021
+- [ ] CLI success and failure envelopes preserve the ADR-0021
       `BeadStageReceipt`, `BeadOutcome`, and `BeadComposeError` definitions
       without introducing CLI-local error variants or codes.
-- [x] The manual is reachable through `sc-compose help bead`.
+- [ ] The manual is reachable through `sc-compose help bead`.
+
+The acceptance criteria will be checked again after the repaired Windows
+fake-`bd` fixture has passed its hosted CI rerun.
 
 ## Required validation
 
@@ -92,7 +95,8 @@ Validated on 2026-08-25 at `e221919` before this evidence-only update:
   `cargo clippy --workspace --all-targets --all-features -- -D warnings`
   passed.
 - `cargo test -p sc-compose --test bead` passed all 11 CLI-request and
-  error-envelope tests, including the Windows-portable fake-`bd` harness.
+  error-envelope tests. The Windows-specific fake-`bd` recheck is pending the
+  current hosted CI rerun.
 - `SC_LINT_SOURCE_ROOT=/Users/randlee/Documents/github/sc-lint cargo test
   --workspace` passed. The explicit source-root setting supplies the existing
   external sc-lint Python utilities required by the workspace test harness.

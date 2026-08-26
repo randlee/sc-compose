@@ -102,12 +102,13 @@ fn write_fake_bd(root: &Path, cook_exit: i32, pour_exit: i32) -> (PathBuf, PathB
 fn write_fake_bd(root: &Path, cook_exit: i32, pour_exit: i32) -> (PathBuf, PathBuf) {
     let trace = root.join("bd.trace");
     let executable = root.join("fake-bd.cmd");
+    let active_registry = root.join(".beads").to_string_lossy().replace('\\', "/");
     fs::write(
         &executable,
         format!(
             "@echo off\r\nset \"stage=%~1\"\r\necho %stage%>>\"{}\"\r\nif /I \"%stage%\"==\"cook\" exit /b {cook_exit}\r\nif /I \"%stage%\"==\"where\" (\r\n  echo {{\"path\":\"{}\"}}\r\n  exit /b 0\r\n)\r\nif /I \"%stage%\"==\"mol\" exit /b {pour_exit}\r\nexit /b 0\r\n",
             trace.display(),
-            root.join(".beads").display(),
+            active_registry,
         ),
     )
     .expect("write fake bd");
