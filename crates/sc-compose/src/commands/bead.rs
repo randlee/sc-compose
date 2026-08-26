@@ -69,12 +69,15 @@ fn print_bead_error(
         | BeadComposeError::TemplatePathInvalid { .. }
         | BeadComposeError::TemplateOutsideWorkingDirectory { .. }
         | BeadComposeError::OutputOutsideWorkingDirectory { .. }
+        | BeadComposeError::OutputPathSymlink { .. }
+        | BeadComposeError::PathNotUtf8 { .. }
         | BeadComposeError::BeadVariableKeyInvalid { .. }
         | BeadComposeError::BeadVariableKeyDuplicate { .. }
         | BeadComposeError::FormulaNameRequired
         | BeadComposeError::PourAuthorizationRequired
         | BeadComposeError::PourAuthorizationInvalid => exit_codes::USAGE_FAIL,
         BeadComposeError::BdUnavailable { .. }
+        | BeadComposeError::ProcessOutputLimitExceeded { .. }
         | BeadComposeError::RenderFailed { .. }
         | BeadComposeError::CookFailed { .. }
         | BeadComposeError::ActiveRegistryResolutionFailed { .. }

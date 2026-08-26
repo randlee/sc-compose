@@ -1,11 +1,16 @@
 //! Fixed-delimiter formula rendering.
 
-use std::fs;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Map;
 
 use crate::error::BeadComposeError;
+
+static TEMPORARY_OUTPUT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 /// Render one Beads formula template with triple-brace composition delimiters.
 ///
@@ -15,7 +20,8 @@ use crate::error::BeadComposeError;
 /// # Errors
 ///
 /// Returns [`BeadComposeError::RenderFailed`] when the input cannot be read,
-/// rendered, or written.
+/// rendered, or written. Final-component symbolic links are rejected before
+/// the rendered data is written.
 pub fn render_formula(
     template: &Path,
     rendered_formula: &Path,
@@ -40,9 +46,91 @@ pub fn render_formula(
     .map_err(|error| BeadComposeError::RenderFailed {
         message: error.to_string(),
     })?;
-    fs::write(rendered_formula, rendered).map_err(|error| BeadComposeError::RenderFailed {
+    atomic_write(rendered_formula, rendered.as_bytes())
+}
+
+/// Reject a final output component that would redirect a renderer write.
+///
+/// The caller must invoke this after normalizing the output parent directory.
+/// The subsequent write uses a fresh sibling temporary file and rename, so it
+/// never follows the final path component.
+pub(crate) fn validate_output_destination(path: &Path) -> Result<(), BeadComposeError> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_symlink() => {
+            Err(BeadComposeError::OutputPathSymlink { path: path.into() })
+        }
+        Ok(_) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(_error) => Err(BeadComposeError::TemplatePathInvalid { path: path.into() }),
+    }
+}
+
+fn atomic_write(path: &Path, contents: &[u8]) -> Result<(), BeadComposeError> {
+    validate_output_destination(path)?;
+    let temporary = temporary_output_path(path)?;
+    let result = (|| {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+            .map_err(|error| render_error(&error))?;
+        file.write_all(contents)
+            .map_err(|error| render_error(&error))?;
+        file.sync_all().map_err(|error| render_error(&error))?;
+        drop(file);
+        replace_output(&temporary, path)
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(&temporary);
+    }
+    result
+}
+
+fn temporary_output_path(path: &Path) -> Result<std::path::PathBuf, BeadComposeError> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| BeadComposeError::TemplatePathInvalid { path: path.into() })?;
+    let name = path
+        .file_name()
+        .ok_or_else(|| BeadComposeError::TemplatePathInvalid { path: path.into() })?;
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| BeadComposeError::RenderFailed {
+            message: error.to_string(),
+        })?
+        .as_nanos();
+    let sequence = TEMPORARY_OUTPUT_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    Ok(parent.join(format!(
+        ".{}.sc-compose-{}-{timestamp}-{sequence}.tmp",
+        name.to_string_lossy(),
+        std::process::id(),
+    )))
+}
+
+#[cfg(unix)]
+fn replace_output(temporary: &Path, path: &Path) -> Result<(), BeadComposeError> {
+    fs::rename(temporary, path).map_err(|error| render_error(&error))
+}
+
+#[cfg(windows)]
+fn replace_output(temporary: &Path, path: &Path) -> Result<(), BeadComposeError> {
+    // Windows cannot atomically replace an existing destination with
+    // `std::fs::rename`. Rechecking and removing the final component still
+    // prevents following a symbolic link; a racing replacement causes rename
+    // to fail instead of redirecting the temporary file write.
+    validate_output_destination(path)?;
+    match fs::remove_file(path) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(render_error(&error)),
+    }
+    fs::rename(temporary, path).map_err(|error| render_error(&error))
+}
+
+fn render_error(error: &std::io::Error) -> BeadComposeError {
+    BeadComposeError::RenderFailed {
         message: error.to_string(),
-    })
+    }
 }
 
 fn json_escape_mode(template: &Path) -> sc_composer::JsonEscapeMode {

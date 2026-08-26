@@ -70,6 +70,7 @@ fn request_error(py: Python<'_>, message: impl Into<String>) -> PyErr {
 fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
     match error_kind {
         RustBeadComposeError::RenderFailed { .. } => "render",
+        RustBeadComposeError::ProcessOutputLimitExceeded { stage, .. } => stage_name(*stage),
         RustBeadComposeError::CookFailed { .. } | RustBeadComposeError::BdUnavailable { .. } => {
             "validate"
         }
@@ -85,6 +86,8 @@ fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
         | RustBeadComposeError::TemplatePathInvalid { .. }
         | RustBeadComposeError::TemplateOutsideWorkingDirectory { .. }
         | RustBeadComposeError::OutputOutsideWorkingDirectory { .. }
+        | RustBeadComposeError::OutputPathSymlink { .. }
+        | RustBeadComposeError::PathNotUtf8 { .. }
         | RustBeadComposeError::BeadVariableKeyInvalid { .. }
         | RustBeadComposeError::BeadVariableKeyDuplicate { .. }
         | RustBeadComposeError::FormulaNameRequired
