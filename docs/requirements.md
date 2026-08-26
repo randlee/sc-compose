@@ -529,6 +529,7 @@ Each block may be empty. Ordering is never caller-defined.
 - `render`
 - `resolve`
 - `validate`
+- `bead {render|validate|preview-pour|pour} --request <JSON> --json`
 - `frontmatter-init`
 - `template-init`
 - `init`

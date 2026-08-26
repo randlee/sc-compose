@@ -105,13 +105,21 @@ fn write_fake_bd(root: &Path, cook_exit: i32, pour_exit: i32) -> (PathBuf, PathB
     fs::write(
         &executable,
         format!(
-            "@echo off\r\necho %1>>\"{}\"\r\nif \"%1\"==\"cook\" exit /b {cook_exit}\r\nif \"%1\"==\"where\" echo {{\"path\":\"{}\"}}\r\nif \"%1\"==\"mol\" exit /b {pour_exit}\r\nexit /b 0\r\n",
+            "@echo off\r\nset \"stage=%~1\"\r\necho %stage%>>\"{}\"\r\nif /I \"%stage%\"==\"cook\" exit /b {cook_exit}\r\nif /I \"%stage%\"==\"where\" (\r\n  echo {{\"path\":\"{}\"}}\r\n  exit /b 0\r\n)\r\nif /I \"%stage%\"==\"mol\" exit /b {pour_exit}\r\nexit /b 0\r\n",
             trace.display(),
             root.join(".beads").display(),
         ),
     )
     .expect("write fake bd");
     (executable, trace)
+}
+
+fn trace_stages(trace: &Path) -> Vec<String> {
+    fs::read_to_string(trace)
+        .expect("read bd trace")
+        .lines()
+        .map(str::to_owned)
+        .collect()
 }
 
 #[test]
@@ -157,7 +165,7 @@ fn validate_loads_the_complete_request_and_emits_the_receipt_envelope() {
         envelope["payload"]["stages"].as_array().map(Vec::len),
         Some(2)
     );
-    assert_eq!(fs::read_to_string(trace).expect("trace"), "cook\n");
+    assert_eq!(trace_stages(&trace), ["cook"]);
 }
 
 #[test]
@@ -190,7 +198,7 @@ fn failed_validation_stops_preview_before_registry_or_pour() {
         envelope["payload"]["stages"].as_array().map(Vec::len),
         Some(2)
     );
-    assert_eq!(fs::read_to_string(trace).expect("trace"), "cook\n");
+    assert_eq!(trace_stages(&trace), ["cook"]);
 }
 
 #[test]
@@ -345,10 +353,7 @@ fn failed_preview_reports_its_exact_r1_stage_code() {
         envelope["payload"]["outcome"]["failed"]["code"],
         "BEADS_PREVIEW_POUR_FAILED"
     );
-    assert_eq!(
-        fs::read_to_string(trace).expect("trace"),
-        "cook\nwhere\nmol\n"
-    );
+    assert_eq!(trace_stages(&trace), ["cook", "where", "mol"]);
 }
 
 #[test]
@@ -383,10 +388,7 @@ fn authorized_failed_pour_reports_its_exact_r1_stage_code() {
         envelope["payload"]["outcome"]["failed"]["code"],
         "BEADS_POUR_FAILED"
     );
-    assert_eq!(
-        fs::read_to_string(trace).expect("trace"),
-        "cook\nwhere\nmol\n"
-    );
+    assert_eq!(trace_stages(&trace), ["cook", "where", "mol"]);
 }
 
 #[test]

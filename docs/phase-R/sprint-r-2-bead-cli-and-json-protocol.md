@@ -1,7 +1,7 @@
 ---
 id: R.2
 title: Bead CLI and JSON Protocol
-status: complete
+status: in_progress
 branch: sprint/r-2-bead-cli-and-json-protocol
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/r-2-bead-cli-and-json-protocol
 target: integrate/phase-r
@@ -24,6 +24,11 @@ policy in the CLI.
 - `crates/sc-compose/docs/manual/bead.md`
 - `crates/sc-compose/src/help_topics.rs`
 - `crates/sc-compose/tests/cli/bead.rs`
+- `crates/sc-composer-beads/tests/fixtures/beads/request.json` — R.2-owned
+  canonical CLI-request fixture; additive only, with no R.1 formula fixture
+  changed.
+- `docs/{requirements,architecture}.md` — normative CLI surface and command
+  mapping for the shipped `bead` command.
 
 ## Deliverables
 
@@ -65,6 +70,9 @@ policy in the CLI.
       `BeadStageReceipt`, `BeadOutcome`, and `BeadComposeError` definitions
       without introducing CLI-local error variants or codes.
 - [ ] The manual is reachable through `sc-compose help bead`.
+
+The criteria remain unchecked until the validation evidence below is refreshed
+after the Windows fixture repair.
 
 ## Required validation
 
