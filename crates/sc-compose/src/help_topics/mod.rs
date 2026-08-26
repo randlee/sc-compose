@@ -27,6 +27,7 @@ pub(crate) const TOPICS: &[(&str, &str)] = &[
     ("examples", include_str!("../../docs/manual/examples.md")),
     ("templates", include_str!("../../docs/manual/templates.md")),
     ("reports", include_str!("../../docs/manual/reports.md")),
+    ("bead", include_str!("../../docs/manual/bead.md")),
     (
         "observability-health",
         include_str!("../../docs/manual/observability-health.md"),
