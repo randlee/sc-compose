@@ -71,11 +71,72 @@ fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
     }
 
     missing_executable_is_reported_before_any_real_beads_stage(&root);
+    unauthorized_pour_does_not_start_the_pinned_beads_binary(&root, &bd);
     invalid_formula_fails_cook(&root, &bd);
     redirected_registry_is_resolved_by_bd_where(&root, &bd);
     same_name_extension_shadowing_blocks_preview(&root, &bd);
 
     fs::remove_dir_all(root).expect("remove temporary Beads workspace");
+}
+
+fn unauthorized_pour_does_not_start_the_pinned_beads_binary(root: &Path, bd: &Path) {
+    let marker = root.join("unauthorized-pour-started");
+    let probe = process_probe(root, bd, &marker);
+    let template = root.join("templates").join("toml-workflow.formula.toml.j2");
+    let output = root
+        .join(".beads")
+        .join("formulas")
+        .join("unauthorized-pour.formula.toml");
+    let mut request = request(root, &template, output, "unauthorized-pour", &probe);
+    request.operation = BeadOperation::Pour;
+
+    let error = execute_bead_request(&request)
+        .expect_err("persistent pour without authorization must be refused");
+    assert_eq!(error.code(), "BEADS_POUR_AUTH_REQUIRED");
+    assert!(
+        !marker.exists(),
+        "the process probe delegates to pinned bd only if composition tried to spawn it"
+    );
+}
+
+#[cfg(unix)]
+fn process_probe(root: &Path, bd: &Path, marker: &Path) -> PathBuf {
+    use std::os::unix::fs::PermissionsExt;
+
+    let probe = root.join("bd-process-probe");
+    fs::write(
+        &probe,
+        format!(
+            "#!/bin/sh\nprintf 'started\\n' > {}\nexec {} \"$@\"\n",
+            shell_quote(marker),
+            shell_quote(bd)
+        ),
+    )
+    .expect("write process probe");
+    let mut permissions = fs::metadata(&probe).expect("probe metadata").permissions();
+    permissions.set_mode(0o755);
+    fs::set_permissions(&probe, permissions).expect("make process probe executable");
+    probe
+}
+
+#[cfg(unix)]
+fn shell_quote(path: &Path) -> String {
+    format!("'{}'", path.to_string_lossy().replace('\'', "'\\\"'\\\"'"))
+}
+
+#[cfg(windows)]
+fn process_probe(root: &Path, bd: &Path, marker: &Path) -> PathBuf {
+    let probe = root.join("bd-process-probe.cmd");
+    fs::write(
+        &probe,
+        format!(
+            "@echo off\r\necho started>\"{}\"\r\n\"{}\" %*\r\n",
+            marker.display(),
+            bd.display()
+        ),
+    )
+    .expect("write process probe");
+    probe
 }
 
 fn missing_executable_is_reported_before_any_real_beads_stage(root: &Path) {
