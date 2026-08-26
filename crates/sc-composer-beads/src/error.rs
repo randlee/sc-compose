@@ -8,7 +8,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum BeadComposeError {
     /// The request selected an unsupported protocol schema.
-    #[error("unsupported Beads composition schema `{actual}")]
+    #[error("unsupported Beads composition schema `{actual}`")]
     UnknownSchema {
         /// Unsupported schema value supplied by the caller.
         actual: String,
@@ -44,13 +44,13 @@ pub enum BeadComposeError {
         path: PathBuf,
     },
     /// A Beads variable key is malformed.
-    #[error("invalid Beads variable key `{key}")]
+    #[error("invalid Beads variable key `{key}`")]
     BeadVariableKeyInvalid {
         /// Malformed runtime-variable key.
         key: String,
     },
     /// A Beads variable key was supplied more than once.
-    #[error("duplicate Beads variable key `{key}")]
+    #[error("duplicate Beads variable key `{key}`")]
     BeadVariableKeyDuplicate {
         /// Duplicate runtime-variable key.
         key: String,
@@ -95,7 +95,7 @@ pub enum BeadComposeError {
         path: PathBuf,
     },
     /// Both TOML and JSON formulas exist for the requested name.
-    #[error("active Beads registry has ambiguous formula `{formula_name}")]
+    #[error("active Beads registry has ambiguous formula `{formula_name}`")]
     FormulaRegistryAmbiguous {
         /// Formula name with both TOML and JSON entries in the active registry.
         formula_name: String,

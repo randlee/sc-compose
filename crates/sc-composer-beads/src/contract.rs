@@ -3,7 +3,8 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use serde::{Deserialize, Serialize};
+use serde::de::{Error as _, MapAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value};
 
 /// Stable schema identifier for the Beads composition protocol.
@@ -48,11 +49,46 @@ pub struct BeadComposeRequest {
     /// Required active-registry formula name for preview and persistent pour.
     pub formula_name: Option<String>,
     /// Sorted scalar variables supplied to Beads as `--var key=value`.
+    #[serde(deserialize_with = "deserialize_unique_bead_variables")]
     pub bead_variables: BTreeMap<String, String>,
     /// Optional direct path to the `bd` executable; defaults to `bd`.
     pub bd_executable: Option<PathBuf>,
     /// Required sentinel for [`BeadOperation::Pour`].
     pub pour_authorization: Option<PourAuthorization>,
+}
+
+fn deserialize_unique_bead_variables<'de, D>(
+    deserializer: D,
+) -> Result<BTreeMap<String, String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct UniqueBeadVariables;
+
+    impl<'de> Visitor<'de> for UniqueBeadVariables {
+        type Value = BTreeMap<String, String>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            formatter.write_str("a JSON object with unique Beads variable keys")
+        }
+
+        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+        where
+            A: MapAccess<'de>,
+        {
+            let mut variables = BTreeMap::new();
+            while let Some((key, value)) = map.next_entry::<String, String>()? {
+                if variables.insert(key.clone(), value).is_some() {
+                    return Err(A::Error::custom(format!(
+                        "duplicate Beads variable key `{key}`"
+                    )));
+                }
+            }
+            Ok(variables)
+        }
+    }
+
+    deserializer.deserialize_map(UniqueBeadVariables)
 }
 
 /// Completed host-neutral Beads composition operation.
