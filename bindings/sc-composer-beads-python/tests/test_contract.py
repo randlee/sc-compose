@@ -168,6 +168,57 @@ def test_execute_preserves_the_request_operation(tmp_path: Path) -> None:
     assert receipt.stages[-1].stage == "preview_pour"
 
 
+def test_compose_variables_reject_unsupported_python_values(tmp_path: Path) -> None:
+    executable, _trace = _write_fake_bd(tmp_path)
+
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeRequest(
+            tmp_path,
+            tmp_path / "template.toml.j2",
+            tmp_path / "output.toml",
+            {"unsupported": {1, 2, 3}},
+            bd_executable=executable,
+        )
+
+    assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
+    assert raised.value.stage == "request"
+
+
+def test_compose_variables_reject_non_string_object_keys(tmp_path: Path) -> None:
+    executable, _trace = _write_fake_bd(tmp_path)
+
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeRequest(
+            tmp_path,
+            tmp_path / "template.toml.j2",
+            tmp_path / "output.toml",
+            {"nested": {1: "value"}},
+            bd_executable=executable,
+        )
+
+    assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
+    assert raised.value.stage == "request"
+    assert raised.value.message == "compose_variables object keys must be strings"
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
+def test_compose_variables_reject_non_finite_floats(tmp_path: Path, value: float) -> None:
+    executable, _trace = _write_fake_bd(tmp_path)
+
+    with pytest.raises(beads.BeadComposeError) as raised:
+        beads.BeadComposeRequest(
+            tmp_path,
+            tmp_path / "template.toml.j2",
+            tmp_path / "output.toml",
+            {"value": value},
+            bd_executable=executable,
+        )
+
+    assert raised.value.code == "BEADS_REQUEST_DESERIALIZATION_FAILED"
+    assert raised.value.stage == "request"
+    assert raised.value.message == "compose_variables floating-point values must be finite"
+
+
 @pytest.mark.skipif(
     "BD_EXECUTABLE" not in os.environ,
     reason="the pinned Beads executable is configured by the CI wheel job",

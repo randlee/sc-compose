@@ -128,7 +128,8 @@ Also require `git diff --check`.
 
 ## Validation evidence
 
-Validated on 2026-08-26 at `27a3a12` and its documentation-only follow-up:
+Validated on 2026-08-26 at `27a3a12` and the subsequent QA-findings fix
+commit:
 
 - CI run [32944509101](https://github.com/randlee/sc-compose/actions/runs/32944509101)
   passed all 17 checks, including the installed wheel matrix on Linux, macOS,

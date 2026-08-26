@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
+use pyo3::types::{PyDict, PyFloat, PyList, PyTuple};
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeError as RustBeadComposeError, BeadComposeReceipt,
     BeadComposeRequest, BeadOperation, BeadOutcome, BeadStage, BeadStageOutcome, BeadStageReceipt,
@@ -111,10 +111,41 @@ fn coerce_path(py: Python<'_>, value: &Bound<'_, PyAny>, field: &str) -> PyResul
     Ok(PathBuf::from(path))
 }
 
+fn validate_json_input(py: Python<'_>, value: &Bound<'_, PyAny>) -> PyResult<()> {
+    if let Ok(dict) = value.cast::<PyDict>() {
+        for (key, item) in dict.iter() {
+            key.extract::<String>().map_err(|_error| {
+                request_error(py, "compose_variables object keys must be strings")
+            })?;
+            validate_json_input(py, &item)?;
+        }
+    } else if let Ok(items) = value.cast::<PyList>() {
+        for item in items.iter() {
+            validate_json_input(py, &item)?;
+        }
+    } else if let Ok(items) = value.cast::<PyTuple>() {
+        for item in items.iter() {
+            validate_json_input(py, &item)?;
+        }
+    } else if let Ok(number) = value.cast::<PyFloat>()
+        && !number.value().is_finite()
+    {
+        return Err(request_error(
+            py,
+            "compose_variables floating-point values must be finite",
+        ));
+    }
+    Ok(())
+}
+
 fn py_to_json(py: Python<'_>, value: &Bound<'_, PyAny>) -> PyResult<Value> {
-    let serialized = py
-        .import("json")?
-        .call_method1("dumps", (value,))?
+    validate_json_input(py, value)?;
+    let json = py
+        .import("json")
+        .map_err(|error| request_error(py, error.to_string()))?;
+    let serialized = json
+        .call_method1("dumps", (value,))
+        .map_err(|error| request_error(py, error.to_string()))?
         .extract::<String>()
         .map_err(|error| request_error(py, error.to_string()))?;
     serde_json::from_str(&serialized).map_err(|error| request_error(py, error.to_string()))
@@ -123,10 +154,14 @@ fn py_to_json(py: Python<'_>, value: &Bound<'_, PyAny>) -> PyResult<Value> {
 fn json_to_py(py: Python<'_>, value: &Value) -> PyResult<Py<PyAny>> {
     let serialized =
         serde_json::to_string(value).map_err(|error| request_error(py, error.to_string()))?;
-    Ok(py
-        .import("json")?
-        .call_method1("loads", (serialized,))?
-        .unbind())
+    let json_module = py
+        .import("json")
+        .map_err(|error| request_error(py, error.to_string()))?;
+    let json = json_module
+        .call_method1("loads", (serialized,))
+        .map_err(|error| request_error(py, error.to_string()))?
+        .unbind();
+    Ok(json)
 }
 
 fn operation_from_str(py: Python<'_>, value: &str) -> PyResult<BeadOperation> {
