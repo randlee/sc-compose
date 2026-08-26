@@ -3,8 +3,8 @@
 use std::path::PathBuf;
 
 use sc_composer_beads::{
-    BEADS_SCHEMA_V1, BeadComposeError, BeadComposeRequest, BeadOperation, BeadOutcome, BeadStage,
-    BeadStageOutcome,
+    BEADS_SCHEMA_V1, BeadComposeError, BeadOperation, BeadOutcome, BeadStage, BeadStageOutcome,
+    parse_request,
 };
 
 #[test]
@@ -42,6 +42,12 @@ fn protocol_types_serialize_with_stable_names() {
 fn every_advertised_error_has_its_stable_code() {
     let path = PathBuf::from("formula.formula.toml");
     let examples = [
+        (
+            BeadComposeError::RequestDeserializationFailed {
+                message: "invalid JSON".to_owned(),
+            },
+            "BEADS_REQUEST_DESERIALIZATION_FAILED",
+        ),
         (
             BeadComposeError::UnknownSchema {
                 actual: "v0".to_owned(),
@@ -146,7 +152,7 @@ fn every_advertised_error_has_its_stable_code() {
 }
 
 #[test]
-fn duplicate_bead_variables_are_rejected_during_request_deserialization() {
+fn duplicate_bead_variables_are_rejected_with_a_stable_contract_error() {
     let request = r#"{
         "schema":"sc-compose/beads/v1",
         "operation":"validate",
@@ -160,11 +166,17 @@ fn duplicate_bead_variables_are_rejected_during_request_deserialization() {
         "pour_authorization":null
     }"#;
 
-    let error = serde_json::from_str::<BeadComposeRequest>(request)
+    let error = parse_request(request)
         .expect_err("duplicate Beads variables must not collapse before execution");
-    assert!(
-        error
-            .to_string()
-            .contains("duplicate Beads variable key `release`")
-    );
+    assert!(matches!(
+        error,
+        BeadComposeError::BeadVariableKeyDuplicate { ref key } if key == "release"
+    ));
+    assert_eq!(error.code(), "BEADS_VARIABLE_KEY_DUPLICATE");
+}
+
+#[test]
+fn malformed_request_json_has_a_stable_contract_error() {
+    let error = parse_request("{").expect_err("malformed request JSON must be rejected");
+    assert_eq!(error.code(), "BEADS_REQUEST_DESERIALIZATION_FAILED");
 }
