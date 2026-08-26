@@ -2,10 +2,12 @@
 
 use std::collections::BTreeMap;
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::thread;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use sc_composer_beads::{
     BEADS_SCHEMA_V1, BeadComposeRequest, BeadOperation, BeadOutcome, execute_bead_request,
@@ -77,7 +79,58 @@ fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
     redirected_registry_is_resolved_by_bd_where(&root, &bd);
     same_name_extension_shadowing_blocks_preview(&root, &bd);
 
-    fs::remove_dir_all(root).expect("remove temporary Beads workspace");
+    remove_temporary_workspace(&root).expect("remove temporary Beads workspace");
+}
+
+fn remove_temporary_workspace(root: &Path) -> io::Result<()> {
+    #[cfg(windows)]
+    const ATTEMPTS: usize = 10;
+    #[cfg(not(windows))]
+    const ATTEMPTS: usize = 1;
+
+    remove_dir_all_with_retry(root, ATTEMPTS, Duration::from_millis(100), |path| {
+        fs::remove_dir_all(path)
+    })
+}
+
+fn remove_dir_all_with_retry<F>(
+    root: &Path,
+    attempts: usize,
+    retry_delay: Duration,
+    mut remove_dir_all: F,
+) -> io::Result<()>
+where
+    F: FnMut(&Path) -> io::Result<()>,
+{
+    debug_assert!(attempts > 0, "cleanup must make at least one attempt");
+    let mut last_error = None;
+
+    for attempt in 0..attempts {
+        match remove_dir_all(root) {
+            Ok(()) => return Ok(()),
+            Err(error) => last_error = Some(error),
+        }
+        if attempt + 1 < attempts {
+            thread::sleep(retry_delay);
+        }
+    }
+
+    Err(last_error.expect("cleanup attempted at least once"))
+}
+
+#[test]
+fn cleanup_retries_transient_file_locks() {
+    let mut calls = 0;
+    remove_dir_all_with_retry(Path::new("temporary-workspace"), 3, Duration::ZERO, |_| {
+        calls += 1;
+        if calls < 3 {
+            Err(io::Error::from(io::ErrorKind::PermissionDenied))
+        } else {
+            Ok(())
+        }
+    })
+    .expect("transient cleanup failure is retried");
+    assert_eq!(calls, 3);
 }
 
 #[cfg(unix)]
