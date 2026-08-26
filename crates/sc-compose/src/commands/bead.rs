@@ -29,13 +29,13 @@ pub(crate) fn run_bead(args: &BeadArgs) -> Result<i32, CommandError> {
     })?;
     let mut request = match parse_request(&input) {
         Ok(request) => request,
-        Err(error) => return print_bead_error(error, operation, json),
+        Err(error) => return print_bead_error(&error, operation, json),
     };
     request.operation = operation;
 
     match execute_bead_request(&request) {
         Ok(receipt) => print_receipt(receipt, json),
-        Err(error) => print_bead_error(error, operation, json),
+        Err(error) => print_bead_error(&error, operation, json),
     }
 }
 
@@ -55,7 +55,7 @@ fn print_receipt(receipt: BeadComposeReceipt, json: bool) -> Result<i32, Command
 }
 
 fn print_bead_error(
-    error: BeadComposeError,
+    error: &BeadComposeError,
     operation: BeadOperation,
     json: bool,
 ) -> Result<i32, CommandError> {
