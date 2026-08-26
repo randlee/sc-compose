@@ -24,9 +24,19 @@ fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
     let root = temporary_workspace();
     initialize_beads(&bd, &root);
 
-    for (fixture, formula_name, extension) in [
-        ("toml-workflow.formula.toml.j2", "toml-workflow", "toml"),
-        ("json-workflow.formula.json.j2", "json-workflow", "json"),
+    for (fixture, formula_name, extension, has_markdown_value) in [
+        (
+            "toml-workflow.formula.toml.j2",
+            "toml-workflow",
+            "toml",
+            true,
+        ),
+        (
+            "json-workflow.formula.json.j2",
+            "json-workflow",
+            "json",
+            false,
+        ),
     ] {
         let output = root
             .join(".beads")
@@ -50,7 +60,13 @@ fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
         assert_eq!(receipt.stages.len(), 4, "{fixture}");
         let rendered = fs::read_to_string(output).expect("rendered formula");
         assert!(rendered.contains("{{ release_name }}"), "{fixture}");
-        assert!(rendered.contains("café"), "{fixture}");
+        if has_markdown_value {
+            assert!(rendered.contains("café"), "{fixture}");
+            assert!(
+                rendered.contains("multiline Markdown evidence"),
+                "{fixture}"
+            );
+        }
         assert!(rendered.contains("Ada"), "{fixture}");
     }
 
