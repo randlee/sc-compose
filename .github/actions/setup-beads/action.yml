@@ -46,9 +46,9 @@ runs:
           exit 1
         fi
         if command -v sha256sum >/dev/null 2>&1; then
-          actual_sha="$(sha256sum "${download_dir}/${archive}" | awk '{ print $1 }')"
+          actual_sha="$(sha256sum -b "${download_dir}/${archive}" | awk '{ print $1 }')"
         elif command -v shasum >/dev/null 2>&1; then
-          actual_sha="$(shasum -a 256 "${download_dir}/${archive}" | awk '{ print $1 }')"
+          actual_sha="$(shasum -a 256 -b "${download_dir}/${archive}" | awk '{ print $1 }')"
         else
           echo "No SHA-256 checksum utility is available" >&2
           exit 1
