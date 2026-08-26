@@ -52,10 +52,45 @@ pub(crate) enum Command {
     Templates(TemplatesArgs),
     #[command(about = "Initialize and run shared report scaffolds")]
     Reports(ReportsArgs),
+    #[command(about = "Render, validate, preview, or persist a Beads formula request")]
+    Bead(BeadArgs),
     #[command(hide = true, name = "report-render-many")]
     ReportRenderMany(ReportRenderManyArgs),
     #[command(hide = true, name = "report-catalog")]
     ReportCatalog(ReportCatalogArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct BeadArgs {
+    #[command(subcommand)]
+    pub(crate) command: BeadSubcommand,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+pub(crate) enum BeadSubcommand {
+    #[command(about = "Render a Beads formula request without invoking bd")]
+    Render(BeadRequestArgs),
+    #[command(about = "Render and validate a Beads formula request")]
+    Validate(BeadRequestArgs),
+    #[command(about = "Render, validate, and preview a Beads formula pour")]
+    PreviewPour(BeadRequestArgs),
+    #[command(about = "Render, validate, and persist an authorized Beads formula pour")]
+    Pour(BeadRequestArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+pub(crate) struct BeadRequestArgs {
+    #[arg(
+        long,
+        value_name = "JSON",
+        help = "Complete sc-compose/beads/v1 request file"
+    )]
+    pub(crate) request: PathBuf,
+    #[arg(
+        long,
+        help = "Emit the Beads receipt in the standard diagnostic JSON envelope"
+    )]
+    pub(crate) json: bool,
 }
 
 #[derive(Debug, Clone, Args)]

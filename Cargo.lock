@@ -690,6 +690,7 @@ dependencies = [
  "glob",
  "mimalloc",
  "sc-composer",
+ "sc-composer-beads",
  "sc-observability",
  "sc-observability-types",
  "serde",

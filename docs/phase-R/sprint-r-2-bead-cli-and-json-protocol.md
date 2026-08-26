@@ -1,8 +1,9 @@
 ---
 id: R.2
 title: Bead CLI and JSON Protocol
-status: planned
+status: complete
 branch: sprint/r-2-bead-cli-and-json-protocol
+worktree: /Users/randlee/Documents/github/sc-compose-worktrees/sprint/r-2-bead-cli-and-json-protocol
 target: integrate/phase-r
 depends_on: R.1
 ---
@@ -23,6 +24,15 @@ policy in the CLI.
 - `crates/sc-compose/docs/manual/bead.md`
 - `crates/sc-compose/src/help_topics.rs`
 - `crates/sc-compose/tests/cli/bead.rs`
+- `crates/sc-composer-beads/tests/fixtures/beads/request.json` — R.2-owned
+  canonical CLI-request fixture; additive only, with no R.1 formula fixture
+  changed.
+- `crates/sc-composer-beads/tests/bd_integration.rs` — CI-only Windows cleanup
+  retry adjustment for the existing pinned-`bd` integration fixture, required
+  to complete R.2's cross-platform CLI verification without changing the R.1
+  contract.
+- `docs/{requirements,architecture}.md` — normative CLI surface and command
+  mapping for the shipped `bead` command.
 
 ## Deliverables
 
@@ -51,19 +61,24 @@ policy in the CLI.
 
 ## Acceptance criteria
 
-- [ ] `sc-compose bead validate --request fixture.json --json` produces a
+- [x] `sc-compose bead validate --request fixture.json --json` produces a
       receipt matching the R.1 library result.
-- [ ] `preview-pour` cannot run before a successful validation and reports
+- [x] `preview-pour` cannot run before a successful validation and reports
       exactly which Beads stage failed.
-- [ ] `pour` without the typed authorization value refuses before starting
+- [x] `pour` without the typed authorization value refuses before starting
       `bd`; CLI tests prove it.
-- [ ] The CLI contains no Beads argv construction, formula parsing, or
+- [x] The CLI contains no Beads argv construction, formula parsing, or
       duplicated stage logic; it only deserializes, calls R.1, and presents the
       resulting receipt.
-- [ ] CLI success and failure envelopes preserve the ADR-0021
+- [x] CLI success and failure envelopes preserve the ADR-0021
       `BeadStageReceipt`, `BeadOutcome`, and `BeadComposeError` definitions
       without introducing CLI-local error variants or codes.
-- [ ] The manual is reachable through `sc-compose help bead`.
+- [x] The manual is reachable through `sc-compose help bead`.
+
+All six criteria are evidenced by hosted CI run
+[32937676190](https://github.com/randlee/sc-compose/actions/runs/32937676190):
+the required `test (windows-latest)` job passed on `081be14`, as did the
+macOS and Ubuntu test jobs.
 
 ## Required validation
 
@@ -77,6 +92,37 @@ sc-compose bead preview-pour --request crates/sc-composer-beads/tests/fixtures/b
 ```
 
 Also require `git diff --check`.
+
+## Validation evidence
+
+Validated on 2026-08-25 against source commit `081be14`. Closing commit
+`b255694` is a documentation-only follow-up with no source changes relative
+to that validated code and CI state.
+
+- `cargo fmt --all --check` and
+  `cargo clippy --workspace --all-targets --all-features -- -D warnings`
+  passed.
+- `cargo test -p sc-compose --test bead` passed all 12 CLI-request and
+  error-envelope tests.
+- `SC_LINT_SOURCE_ROOT=/Users/randlee/Documents/github/sc-lint cargo test
+  --workspace` passed. The explicit source-root setting supplies the existing
+  external sc-lint Python utilities required by the workspace test harness.
+- In an isolated `bd init` workspace with the pinned local `bd`, the built
+  `sc-compose` binary successfully ran `bead validate --request request.json
+  --json` and `bead preview-pour --request request.json --json`. The receipts
+  confirmed the expected render, cook, active-registry, and dry-run-pour
+  stages.
+- Hosted CI run
+  [32937676190](https://github.com/randlee/sc-compose/actions/runs/32937676190)
+  passed the required `test (windows-latest)`, `test (macos-latest)`, and
+  `test (ubuntu-latest)` jobs on `081be14`.
+- The Windows failure was a temporary-workspace cleanup race: pinned `bd.exe`
+  could retain a file handle after exit, producing OS error 32 at
+  `bd_integration.rs` cleanup. The existing fail-closed
+  `#[cfg(windows)]` cleanup retry was widened from 10 × 100 ms to 50 × 100 ms
+  (one to five seconds). It does not alter the R.1 request, execution, or
+  receipt contract.
+- `git diff --check` passed.
 
 ## Out of scope
 
