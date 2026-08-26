@@ -1,7 +1,7 @@
 ---
 id: R.3
 title: Beads Python Bindings
-status: planned
+status: complete
 branch: sprint/r-3-beads-python-bindings
 target: integrate/phase-r
 depends_on: [R.1, R.2]
@@ -91,21 +91,21 @@ Rust crate waits for `bd`.
 
 ## Acceptance criteria
 
-- [ ] `import sc_composer_beads` works from an installed wheel on all three CI
+- [x] `import sc_composer_beads` works from an installed wheel on all three CI
       platforms, and `.pyi`/`py.typed` ship in the wheel and sdist.
-- [ ] Python `validate` and `preview_pour` produce the same stage outcomes and
+- [x] Python `validate` and `preview_pour` produce the same stage outcomes and
       Beads argv evidence as the Rust library/CLI fixture, using the
       `BeadStageReceipt`, `BeadOutcome`, and `BeadComposeError` definitions from
       ADR-0021 without Python-local variants.
-- [ ] Python cannot bypass `PourAuthorization::CreatePersistentBeads`; tests
+- [x] Python cannot bypass `PourAuthorization::CreatePersistentBeads`; tests
       prove refusal occurs before subprocess execution.
-- [ ] The binding package has no dependency on `sc-compose`, the existing
+- [x] The binding package has no dependency on `sc-compose`, the existing
       `bindings/python` package, ATM, or Beads source/database code.
-- [ ] Release metadata validates the new package's version lockstep without
+- [x] Release metadata validates the new package's version lockstep without
       changing the existing `sc-compose` Python package identity. The R.3
       closeout must run `verify-version-lockstep` against the release manifest
       and workspace manifest.
-- [ ] Both release manifests contain a matching
+- [x] Both release manifests contain a matching
       `[[python_distributions]]`/`python_distributions` entry named
       `sc-composer-beads`; the Python wheel and sdist matrix commands each
       emit that distribution name.
@@ -125,6 +125,23 @@ python3 .github/scripts/release_artifacts.py python-sdist-matrix --manifest rele
 ```
 
 Also require `git diff --check`.
+
+## Validation evidence
+
+Validated on 2026-08-26 across the R.3 closing commit chain:
+
+- `285c23c` closed the initial QA findings; `0fc1d2b` restored typed JSON
+  conversion errors; and `9e1bfa2` completed the schema-valid boundary record.
+- CI run [32947283597](https://github.com/randlee/sc-compose/actions/runs/32947283597)
+  passed all 17 checks for `9e1bfa2`, including the installed wheel matrix on
+  Linux, macOS, and Windows.
+- Installed-wheel smoke and contract tests cover the canonical R.1/R.2
+  fixture, Python-to-CLI stage receipts, authorization refusal before process
+  execution, the pinned-`bd` fixture, and wheel/sdist typing-marker contents.
+- `cargo fmt --all --check`, workspace clippy, full workspace tests, Maturin
+  wheel/sdist build/install tests, release-manifest validation, version
+  lockstep, wheel and sdist matrix checks, and `git diff --check` passed
+  locally.
 
 ## Out of scope
 

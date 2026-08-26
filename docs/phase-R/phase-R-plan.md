@@ -1,7 +1,7 @@
 ---
 phase: R
 title: Beads Formula Composition Integration
-status: planned
+status: complete
 branch: integrate/phase-r
 target: develop
 related_issue: https://github.com/randlee/sc-compose/issues/551
@@ -70,18 +70,18 @@ against the pinned Beads release binary on supported platforms.
 
 ## Phase acceptance criteria
 
-- [ ] Boundary documents and sc-lint rules prohibit reverse, ATM, CLI, and
+- [x] Boundary documents and sc-lint rules prohibit reverse, ATM, CLI, and
       adapter dependencies before core source is added.
-- [ ] A host-neutral request can render a Beads formula with structured values
+- [x] A host-neutral request can render a Beads formula with structured values
       while retaining Beads `{{ runtime_var }}` placeholders.
-- [ ] `Validate` runs real `bd cook --dry-run`; `PreviewPour` runs real
+- [x] `Validate` runs real `bd cook --dry-run`; `PreviewPour` runs real
       `bd mol pour --dry-run` after validation and active-registry resolution;
       failure prevents later stages.
-- [ ] `Pour` cannot run unless its explicit authorization sentinel is present,
+- [x] `Pour` cannot run unless its explicit authorization sentinel is present,
       and it never runs in CI.
-- [ ] CLI JSON and Python return the same versioned request/receipt semantics
+- [x] CLI JSON and Python return the same versioned request/receipt semantics
       as the Rust library.
-- [ ] The exact pinned Beads binary is verified on Linux, macOS, and Windows;
+- [x] The exact pinned Beads binary is verified on Linux, macOS, and Windows;
       `cargo test --workspace`, Python tests, formatting, clippy, and boundary
       checks pass.
 
@@ -104,6 +104,29 @@ missing `bd`, invalid formula output, missing runtime variables, and a
 refused unauthorized pour. It must also prove that `bd where --json` selects
 the target formula directory and that same-name TOML/JSON registry entries are
 rejected rather than silently shadowed.
+
+## Phase-close evidence
+
+- R.1 merged as [PR #558](https://github.com/randlee/sc-compose/pull/558)
+  at `b3180ab`. Its hosted CI run
+  [32922056920](https://github.com/randlee/sc-compose/actions/runs/32922056920)
+  passed formatting, clippy, manifest validation, and the Linux, macOS, and
+  Windows workspace-test jobs that execute the pinned Beads integration
+  fixture.
+- R.2 merged as [PR #559](https://github.com/randlee/sc-compose/pull/559)
+  at `4d5d1c2`. Its hosted CI run
+  [32939409974](https://github.com/randlee/sc-compose/actions/runs/32939409974)
+  passed those same three platform test jobs, including the CLI receipt and
+  authorization coverage.
+- R.3 merged as [PR #560](https://github.com/randlee/sc-compose/pull/560)
+  at `372930e`. Its hosted CI run
+  [32947283597](https://github.com/randlee/sc-compose/actions/runs/32947283597)
+  passed all 17 required checks, including the installed
+  `sc-composer-beads` wheel on Linux, macOS, and Windows.
+- [PR #561](https://github.com/randlee/sc-compose/pull/561) is the explicitly
+  non-blocking R.3 residual fast-follow. It adds sdist marker/stub coverage
+  and direct in-process parity coverage; it is not part of the source commit
+  used to close this phase.
 
 ## Sprint index
 

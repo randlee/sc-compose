@@ -136,14 +136,40 @@ which is **Accepted**. Consumers download and extract the target-specific
 release bundle before building; `go get` alone does not provide the native
 library.
 
-### 3.6 Dependency Direction
+### 3.6 `sc-composer-beads`
+
+`sc-composer-beads` is the host-neutral Beads formula-composition library. It
+owns the versioned request/receipt contract, deterministic render-to-`bd`
+stage ordering, authorization checks, and direct executable invocation. It
+depends on `sc-composer`, workspace serde/error support, and Rust standard
+library filesystem/process APIs only. Beads formula parsing, validation,
+runtime-variable semantics, and persistent state remain owned by the `bd`
+executable.
+
+It must not depend on `sc-compose`, a Python or Go adapter, Beads source or a
+Beads database library, ATM/runtime code, or any CLI argument type. The CLI
+and foreign-language bindings are callers of this library, never dependencies.
+
+### 3.7 `bindings/sc-composer-beads-python`
+
+`bindings/sc-composer-beads-python` is a thin Maturin/PyO3 adapter over
+`sc-composer-beads`. It owns only Python conversion, packaging, and the
+versioned request/receipt presentation surface. It must not reimplement Beads
+formula validation or process execution, and must not depend on `sc-compose`,
+`sc-composer`, a Beads source/database library, ATM/runtime code, or another
+adapter.
+
+### 3.8 Dependency Direction
 
 Required dependency direction:
 
 - `sc-compose` -> `sc-composer`
+- `sc-compose` -> `sc-composer-beads`
 - `sc-compose` -> `sc-observability`
 - `sc-composer` -> `sc-sha`
+- `sc-composer-beads` -> `sc-composer`
 - `bindings/python` -> `sc-composer`
+- `bindings/sc-composer-beads-python` -> `sc-composer-beads`
 - `bindings/sc-sha-python` -> `sc-sha`
 - `bindings/sc-sha-go` -> `sc-sha`
 - `sc-observability` -> `sc-observability-types`
@@ -156,6 +182,10 @@ Required observability split:
 Forbidden dependency direction:
 
 - `sc-composer` -> `sc-compose`
+- `sc-composer-beads` -> `sc-compose`
+- `sc-composer-beads` -> foreign-language adapters
+- `sc-composer-beads` -> Beads source/database libraries
+- `sc-composer-beads` -> orchestration-specific runtime crates
 - `sc-composer` -> `bindings/python`
 - `sc-composer` -> `sc-observability`
 - `bindings/python` -> `sc-compose`
@@ -165,7 +195,7 @@ Forbidden dependency direction:
 - `sc-composer` -> mailbox helpers, daemon helpers, team-state helpers, or
   runtime-specific home-resolution helpers
 
-### 3.6 ATM Integration Model
+### 3.9 ATM Integration Model
 
 ATM integration is an adapter concern outside this repository.
 
@@ -925,6 +955,7 @@ Command mapping:
 - `render` -> `compose`
 - `resolve` -> `resolve_profile`
 - `validate` -> `validate`
+- `bead` -> `execute_bead_request`
 - `frontmatter-init` -> `frontmatter_init`
 - `template-init` -> CLI-owned `template_init_file` rewrite path
 - `init` -> `init_workspace`

@@ -17,7 +17,7 @@ roots = []
 
 [dependencies]
 allowed_dependents = []
-allowed_dependencies = ["sc-composer"]
+allowed_dependencies = ["sc-composer", "sc-composer-beads"]
 forbidden_edges = []
 
 [references]

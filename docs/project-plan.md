@@ -33,13 +33,21 @@ gate are authoritative for that work.
 - Deferred work is allowed only when it is explicitly out of scope for the
   initial release and does not reduce production readiness.
 - `sc-composer` remains a pure library.
-- `sc-compose` may depend on `sc-composer` and standalone observability crates
-  only.
+- `sc-compose` may depend on `sc-composer`, `sc-composer-beads`, and
+  standalone observability crates only.
 - `bindings/python` is a Python-facing adapter package that may depend on
   `sc-composer` only.
 - `bindings/python` must not depend on `sc-compose`, `sc-observability`, or
   ATM-specific crates.
 - `sc-composer` must not depend on `bindings/python`.
+- `sc-composer-beads` may depend only on `sc-composer`, workspace serde/error
+  dependencies, and Rust standard-library filesystem/process APIs. It must not
+  depend on the CLI, a foreign-language adapter, Beads source/database
+  libraries, or ATM/runtime code.
+- `bindings/sc-composer-beads-python` may depend only on
+  `sc-composer-beads` plus approved PyO3/maturin/serde dependencies; it must
+  not depend on the CLI, `sc-composer`, Beads source/database libraries, or
+  ATM/runtime code.
 - No ATM-specific runtime assumptions may enter code or manifests.
 
 ## Release Blocker Inventory
@@ -908,9 +916,14 @@ Sprint entries:
 
 Status:
 
-- planned: Phase R is the ADR-0021-gated, host-neutral Beads
-  formula-composition track; R.1 gates R.2 and R.3, which may proceed in
-  parallel after R.1;
+- in progress: Phase R is the ADR-0021-gated, host-neutral Beads
+  formula-composition track; R.1 is complete and R.2 and R.3 may proceed in
+  parallel;
+- R.1 pre-source gate: ADR-0021 is accepted; the architecture, CLAUDE, and
+  sc-lint boundary inventories must record and enforce
+  `sc-compose -> sc-composer-beads -> sc-composer` and
+  `bindings/sc-composer-beads-python -> sc-composer-beads` before R.1 source
+  is authored;
 - target: `integrate/phase-r`
 
 Sprint entries:
