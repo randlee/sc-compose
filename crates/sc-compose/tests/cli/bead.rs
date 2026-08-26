@@ -102,7 +102,7 @@ fn write_fake_bd(root: &Path, cook_exit: i32, pour_exit: i32) -> (PathBuf, PathB
 fn write_fake_bd(root: &Path, cook_exit: i32, pour_exit: i32) -> (PathBuf, PathBuf) {
     let trace = root.join("bd.trace");
     let executable = root.join("fake-bd.cmd");
-    let active_registry = root.join(".beads").to_string_lossy().replace('\\', "/");
+    let active_registry = json_safe_path(&root.join(".beads"));
     fs::write(
         &executable,
         format!(
@@ -115,12 +115,24 @@ fn write_fake_bd(root: &Path, cook_exit: i32, pour_exit: i32) -> (PathBuf, PathB
     (executable, trace)
 }
 
+fn json_safe_path(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
+}
+
 fn trace_stages(trace: &Path) -> Vec<String> {
     fs::read_to_string(trace)
         .expect("read bd trace")
         .lines()
         .map(str::to_owned)
         .collect()
+}
+
+#[test]
+fn fake_bd_registry_path_uses_json_safe_separators() {
+    assert_eq!(
+        json_safe_path(Path::new(r"C:\workspace\.beads")),
+        "C:/workspace/.beads"
+    );
 }
 
 #[test]
