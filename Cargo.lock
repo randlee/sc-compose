@@ -737,6 +737,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sc-composer-beads-python"
+version = "1.5.0"
+dependencies = [
+ "pyo3",
+ "sc-composer-beads",
+ "serde_json",
+]
+
+[[package]]
 name = "sc-observability"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

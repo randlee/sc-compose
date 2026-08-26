@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/sc-composer", "crates/sc-composer-beads", "crates/sc-compose", "crates/sc-sha", "bindings/python", "bindings/sc-sha-python", "bindings/sc-sha-go"]
+members = ["crates/sc-composer", "crates/sc-composer-beads", "crates/sc-compose", "crates/sc-sha", "bindings/python", "bindings/sc-composer-beads-python", "bindings/sc-sha-python", "bindings/sc-sha-go"]
 resolver = "2"
 
 [workspace.package]
