@@ -1,5 +1,3 @@
-#[path = "cli/bead.rs"]
-mod bead;
 #[path = "cli/extract.rs"]
 mod extract;
 #[path = "cli/help.rs"]
