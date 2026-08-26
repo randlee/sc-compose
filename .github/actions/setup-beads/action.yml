@@ -55,6 +55,8 @@ runs:
         fi
         if [[ "${actual_sha}" != "${expected_sha}" ]]; then
           echo "Checksum verification failed for ${archive}" >&2
+          echo "Expected SHA-256: ${expected_sha}" >&2
+          echo "Actual SHA-256:   ${actual_sha}" >&2
           exit 1
         fi
 

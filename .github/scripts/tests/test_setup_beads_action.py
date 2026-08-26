@@ -21,3 +21,5 @@ def test_setup_beads_uses_a_portable_fail_closed_sha256_probe() -> None:
     assert 'shasum -a 256 -b "${download_dir}/${archive}"' in action
     assert "No SHA-256 checksum utility is available" in action
     assert 'echo "Checksum verification failed for ${archive}" >&2' in action
+    assert 'echo "Expected SHA-256: ${expected_sha}" >&2' in action
+    assert 'echo "Actual SHA-256:   ${actual_sha}" >&2' in action
