@@ -239,6 +239,82 @@ mod tests {
         fs::remove_dir_all(root).expect("cleanup");
     }
 
+    // FUZZ-4177-OUT-01 (adversarial fuzz campaign 20260817-2, output-bound-probe):
+    // confirmed bug, not yet fixed. `StdProcessRunner::run` kills only the direct
+    // child process (`Child::kill`, one pid) once the 64 KiB per-stream output
+    // limit is exceeded. If that child has already spawned a detached descendant
+    // that inherited the piped stdout file descriptor (a `&`-backgrounded
+    // subshell, reparented once its parent exits), that descriptor stays open
+    // even after the direct child is killed and reaped. The reader thread's
+    // blocking `read()` never observes EOF until every process holding the
+    // write end closes it, so `join_capture` -- and therefore `run()` -- blocks
+    // for as long as the orphaned descendant stays alive. This defeats the
+    // bounded-capture guarantee ("an over-limit child is terminated ... rather
+    // than consuming unbounded memory", ADR-0021) in practice: the child is
+    // reaped, but the call still hangs. This test bounds the orphan's lifetime
+    // to ~1s (via `sleep 1` rather than an unbounded flood) so the suite stays
+    // fast and deterministic, while still proving the runner remains blocked
+    // well past the point a process-group-aware kill would have returned.
+    // Update this test once the runner terminates the whole process group
+    // instead of only the direct child pid.
+    #[cfg(unix)]
+    #[test]
+    fn orphaned_descendant_holding_the_output_pipe_open_hangs_the_runner() {
+        use std::os::unix::fs::PermissionsExt;
+        use std::time::{Duration, Instant};
+
+        let root = temporary_directory();
+        let script = root.join("orphan-flood.sh");
+        fs::write(
+            &script,
+            "#!/bin/sh\n( sleep 1 ) &\nwhile :; do printf 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'; done\n",
+        )
+        .expect("write orphan-descendant overflow process");
+        let mut permissions = fs::metadata(&script)
+            .expect("script metadata")
+            .permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&script, permissions).expect("make script executable");
+        let spec = CommandSpec {
+            executable: script,
+            args: Vec::new(),
+            working_directory: root.clone(),
+        };
+
+        let (sender, receiver) = mpsc::channel();
+        let started = Instant::now();
+        std::thread::spawn(move || {
+            let result = StdProcessRunner.run(&spec);
+            let _ = sender.send(result.is_err());
+        });
+
+        // A runner that terminated the whole process group would return almost
+        // immediately once the flooding direct child is killed. Give it a
+        // generous margin short of the orphan's ~1s held-open descriptor.
+        let quick = receiver.recv_timeout(Duration::from_millis(400));
+        assert!(
+            quick.is_err(),
+            "expected the runner to still be blocked on the orphaned \
+             descendant's open descriptor at 400ms, but it returned early -- \
+             the hang may have been fixed; update this regression test"
+        );
+
+        let eventually = receiver
+            .recv_timeout(Duration::from_secs(5))
+            .expect("the orphan's ~1s sleep must eventually close the descriptor");
+        assert!(
+            eventually,
+            "the overflowed run must still resolve to an error"
+        );
+        assert!(
+            started.elapsed() >= Duration::from_millis(400),
+            "run() should have blocked past the direct child's kill until the \
+             orphaned descendant exited"
+        );
+
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
     #[cfg(unix)]
     fn temporary_directory() -> PathBuf {
         let unique = SystemTime::now()
