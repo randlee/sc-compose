@@ -23,12 +23,17 @@ pub fn temp_root(label: &str) -> PathBuf {
 }
 
 fn temp_root_with_prefix(label: &str, prefix: &str) -> PathBuf {
+    temp_root_with_prefix_in(&std::env::temp_dir(), label, prefix)
+}
+
+fn temp_root_with_prefix_in(parent: &Path, label: &str, prefix: &str) -> PathBuf {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
     let sequence = TEMP_ROOT_COUNTER.fetch_add(1, Ordering::Relaxed);
-    let root = std::env::temp_dir().join(format!(
+    fs::create_dir_all(parent).unwrap();
+    let root = parent.join(format!(
         "{prefix}-{label}-{}-{nanos}-{sequence}",
         std::process::id()
     ));
@@ -58,6 +63,16 @@ impl TempFixture {
     pub fn new(label: &str) -> Self {
         Self {
             path: temp_root_with_prefix(label, "sc-compose-fixture"),
+        }
+    }
+
+    /// Creates a disposable fixture below `parent`.
+    ///
+    /// Tests use this when the fixture must inherit repository-local tool
+    /// configuration while still being removed automatically on drop.
+    pub fn new_in(parent: &Path, label: &str) -> Self {
+        Self {
+            path: temp_root_with_prefix_in(parent, label, "sc-compose-fixture"),
         }
     }
 
