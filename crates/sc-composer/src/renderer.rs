@@ -202,9 +202,10 @@ fn yaml_safe_filter(value: &str) -> String {
 }
 
 fn json_string_contents(value: &JinjaValue) -> String {
-    let value = value
-        .as_str()
-        .map_or_else(|| value.to_string(), ToOwned::to_owned);
+    let value = value.as_str().map_or_else(
+        || serde_json::to_string(value).unwrap_or_else(|_| value.to_string()),
+        ToOwned::to_owned,
+    );
     let encoded =
         serde_json::to_string(&value).expect("serializing a Rust string to JSON cannot fail");
     encoded
@@ -729,15 +730,8 @@ mod tests {
     }
 
     // FUZZ-SHAPE-001 (adversarial fuzz campaign 20260817-1, shape-probe):
-    // confirmed bug, not yet fixed. Under Legacy JSON escape mode, a JSON
-    // `null` leaf's rendered text depends on nesting depth: a top-level
-    // null is coerced to an empty string, but the same null one level
-    // deeper (inside an array or object) falls through to minijinja's
-    // Python-style `none` token, which is not a valid JSON literal. This
-    // test pins the current (buggy) output so the divergence cannot widen
-    // silently; update it once the render pipeline serializes `null`
-    // consistently (e.g. via serde_json's canonical `null` keyword at every
-    // depth) and remove this comment.
+    // Legacy JSON mode serializes every interpolation through serde_json so a
+    // `null` leaf keeps the canonical `null` token at every nesting depth.
     #[test]
     fn renderer_json_legacy_mode_null_representation_diverges_by_nesting_depth() {
         let renderer = Renderer::with_json_escape_mode(JsonEscapeMode::Legacy);
@@ -753,9 +747,9 @@ mod tests {
             .render_named("payload.json.j2", template, json!({"n": {"x": null}}))
             .unwrap();
 
-        assert_eq!(top_level, r#"{ "n": "" }"#);
-        assert_eq!(nested_in_array, r#"{ "n": "[none]" }"#);
-        assert_eq!(nested_in_object, "{ \"n\": \"{\\\"x\\\": none}\" }");
+        assert_eq!(top_level, r#"{ "n": "null" }"#);
+        assert_eq!(nested_in_array, r#"{ "n": "[null]" }"#);
+        assert_eq!(nested_in_object, "{ \"n\": \"{\\\"x\\\":null}\" }");
     }
 
     // FUZZ-001 (adversarial fuzz campaign 20260811-3, shape-probe): JSON
