@@ -1,0 +1,29 @@
+[package]
+name = "sc-composer-beads-python"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Maturin adapter for host-neutral sc-composer-beads operations."
+readme = "README.md"
+keywords = ["beads", "python", "template", "bindings"]
+categories = ["api-bindings", "development-tools"]
+
+[lib]
+name = "sc_composer_beads_native"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python-extension = ["pyo3/extension-module"]
+
+[dependencies]
+pyo3 = "0.29"
+sc-composer-beads = { path = "../../crates/sc-composer-beads", version = "1.5.0" }
+serde_json.workspace = true
+
+[lints]
+workspace = true

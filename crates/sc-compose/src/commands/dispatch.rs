@@ -4,6 +4,7 @@ use sc_composer::CompositionObserver;
 
 use crate::CommandError;
 use crate::cli::{Cli, Command, ExamplesSubcommand, TemplatesSubcommand};
+use crate::commands::bead::run_bead;
 use crate::commands::compose::{run_render, run_resolve, run_validate};
 use crate::commands::examples::{run_examples_list, run_examples_render};
 use crate::commands::extract::run_extract;
@@ -66,6 +67,7 @@ pub(crate) fn run(cli: Cli, observer: &mut CliObserver) -> Result<i32, CommandEr
         Command::Examples(args) => run_examples_command(&args, observer),
         Command::Templates(args) => run_templates_command(&args, observer),
         Command::Reports(args) => run_reports_command(&args, observer),
+        Command::Bead(args) => run_bead(&args),
         Command::ReportRenderMany(args) => {
             observe_command(observer, "report-render-many", args.json, |_observer| {
                 run_report_render_many(&args)

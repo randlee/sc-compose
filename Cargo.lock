@@ -690,6 +690,7 @@ dependencies = [
  "glob",
  "mimalloc",
  "sc-composer",
+ "sc-composer-beads",
  "sc-observability",
  "sc-observability-types",
  "serde",
@@ -724,6 +725,25 @@ dependencies = [
  "thiserror",
  "time",
  "toml",
+]
+
+[[package]]
+name = "sc-composer-beads"
+version = "1.5.0"
+dependencies = [
+ "sc-composer",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "sc-composer-beads-python"
+version = "1.5.0"
+dependencies = [
+ "pyo3",
+ "sc-composer-beads",
+ "serde_json",
 ]
 
 [[package]]

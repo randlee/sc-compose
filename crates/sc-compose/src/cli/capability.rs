@@ -35,6 +35,12 @@ pub(crate) fn command_wants_json(command: &Command) -> bool {
             super::ReportsSubcommand::Verify(args) => args.json,
             super::ReportsSubcommand::PublishManifest(args) => args.json,
         },
+        Command::Bead(args) => match &args.command {
+            super::BeadSubcommand::Render(args)
+            | super::BeadSubcommand::Validate(args)
+            | super::BeadSubcommand::PreviewPour(args)
+            | super::BeadSubcommand::Pour(args) => args.json,
+        },
         Command::ReportRenderMany(args) => args.json,
         Command::ReportCatalog(args) => args.json,
     }
