@@ -129,11 +129,11 @@ fn pinned_bd_missing_required_release_name_returns_a_failure_receipt() {
 
 fn remove_temporary_workspace(root: &Path) -> io::Result<()> {
     #[cfg(windows)]
-    const ATTEMPTS: usize = 50;
+    const ATTEMPTS: usize = 120;
     #[cfg(not(windows))]
     const ATTEMPTS: usize = 1;
 
-    remove_dir_all_with_retry(root, ATTEMPTS, Duration::from_millis(100), |path| {
+    remove_dir_all_with_retry(root, ATTEMPTS, Duration::from_millis(250), |path| {
         fs::remove_dir_all(path)
     })
 }
@@ -148,19 +148,26 @@ where
     F: FnMut(&Path) -> io::Result<()>,
 {
     debug_assert!(attempts > 0, "cleanup must make at least one attempt");
-    let mut last_error = None;
 
     for attempt in 0..attempts {
         match remove_dir_all(root) {
             Ok(()) => return Ok(()),
-            Err(error) => last_error = Some(error),
-        }
-        if attempt + 1 < attempts {
-            thread::sleep(retry_delay);
+            Err(error)
+                if is_retryable_workspace_cleanup_error(&error) && attempt + 1 < attempts =>
+            {
+                thread::sleep(retry_delay);
+            }
+            Err(error) => return Err(error),
         }
     }
 
-    Err(last_error.expect("cleanup attempted at least once"))
+    unreachable!("the final cleanup attempt returns or propagates its error")
+}
+
+fn is_retryable_workspace_cleanup_error(error: &io::Error) -> bool {
+    // Windows reports a sharing violation as raw OS error 32 when `bd` has
+    // only just released a file in the isolated test workspace.
+    error.raw_os_error() == Some(32)
 }
 
 #[test]
@@ -169,13 +176,27 @@ fn cleanup_retries_transient_file_locks() {
     remove_dir_all_with_retry(Path::new("temporary-workspace"), 3, Duration::ZERO, |_| {
         calls += 1;
         if calls < 3 {
-            Err(io::Error::from(io::ErrorKind::PermissionDenied))
+            Err(io::Error::from_raw_os_error(32))
         } else {
             Ok(())
         }
     })
     .expect("transient cleanup failure is retried");
     assert_eq!(calls, 3);
+}
+
+#[test]
+fn cleanup_does_not_retry_unrelated_errors() {
+    let mut calls = 0;
+    let error =
+        remove_dir_all_with_retry(Path::new("temporary-workspace"), 3, Duration::ZERO, |_| {
+            calls += 1;
+            Err(io::Error::from(io::ErrorKind::PermissionDenied))
+        })
+        .expect_err("non-sharing cleanup failures must not be hidden by retries");
+
+    assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);
+    assert_eq!(calls, 1);
 }
 
 #[cfg(unix)]

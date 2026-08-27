@@ -89,19 +89,18 @@ fn sc_lint_discovers_repository_and_fixture_roots_without_config_error() {
 fn sc_lint_bootstrap_lock_matches_cargo_metadata_regeneration() {
     let repository = repo_root();
     let checked_in_fixture = repository.join("tests/fixtures/sc-lint/bootstrap");
-    let fixture = TempFixture::new_in(
-        &repository.join("target"),
-        "sc-lint-bootstrap-lock-regeneration",
-    );
+    let fixture = TempFixture::new("sc-lint-bootstrap-lock-regeneration");
     copy_directory(&checked_in_fixture, &fixture.path);
+    fs::remove_file(fixture.path.join("Cargo.lock"))
+        .expect("remove copied bootstrap fixture lockfile before regeneration");
 
     let output = Command::new("cargo")
         .current_dir(&repository)
         .args([
             "metadata",
+            "--offline",
             "--format-version",
             "1",
-            "--no-deps",
             "--manifest-path",
         ])
         .arg(fixture.path.join("Cargo.toml"))
@@ -119,7 +118,7 @@ fn sc_lint_bootstrap_lock_matches_cargo_metadata_regeneration() {
         .expect("read regenerated bootstrap fixture lockfile");
     assert_eq!(
         actual, expected,
-        "tests/fixtures/sc-lint/bootstrap/Cargo.lock is stale; regenerate it with `cargo metadata --manifest-path tests/fixtures/sc-lint/bootstrap/Cargo.toml --format-version 1 --no-deps`"
+        "tests/fixtures/sc-lint/bootstrap/Cargo.lock is stale; regenerate it with `cargo metadata --offline --format-version 1 --manifest-path tests/fixtures/sc-lint/bootstrap/Cargo.toml`"
     );
 }
 
