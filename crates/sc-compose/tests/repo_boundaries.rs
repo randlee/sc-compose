@@ -85,6 +85,43 @@ fn sc_lint_discovers_repository_and_fixture_roots_without_config_error() {
     );
 }
 
+#[test]
+fn sc_lint_bootstrap_lock_matches_cargo_metadata_regeneration() {
+    let repository = repo_root();
+    let checked_in_fixture = repository.join("tests/fixtures/sc-lint/bootstrap");
+    let fixture = TempFixture::new("sc-lint-bootstrap-lock-regeneration");
+    copy_directory(&checked_in_fixture, &fixture.path);
+    fs::remove_file(fixture.path.join("Cargo.lock"))
+        .expect("remove copied bootstrap fixture lockfile before regeneration");
+
+    let output = Command::new("cargo")
+        .current_dir(&repository)
+        .args([
+            "metadata",
+            "--offline",
+            "--format-version",
+            "1",
+            "--manifest-path",
+        ])
+        .arg(fixture.path.join("Cargo.toml"))
+        .output()
+        .expect("Cargo metadata must regenerate the copied bootstrap fixture lockfile");
+    assert!(
+        output.status.success(),
+        "Cargo metadata failed while regenerating the bootstrap fixture lockfile: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let expected = fs::read_to_string(checked_in_fixture.join("Cargo.lock"))
+        .expect("read checked-in bootstrap fixture lockfile");
+    let actual = fs::read_to_string(fixture.path.join("Cargo.lock"))
+        .expect("read regenerated bootstrap fixture lockfile");
+    assert_eq!(
+        actual, expected,
+        "tests/fixtures/sc-lint/bootstrap/Cargo.lock is stale; regenerate it with `cargo metadata --offline --format-version 1 --manifest-path tests/fixtures/sc-lint/bootstrap/Cargo.toml`"
+    );
+}
+
 fn walk_files(root: &Path, files: &mut Vec<PathBuf>) {
     for entry in fs::read_dir(root).expect("read dir") {
         let entry = entry.expect("dir entry");

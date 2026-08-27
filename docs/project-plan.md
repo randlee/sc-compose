@@ -937,6 +937,22 @@ Sprint entries:
 
 - [CHORE.CI-UNIFFI-CONSUME — CI UniFFI Artifact Consumption](sprints/chore-ci-uniffi-artifact-consumption.md)
 
+### Follow-on Fix Sprint: FIX-554
+
+Status:
+
+- implementation complete on `fix/sc-lint-bootstrap-fixture-version-drift` at
+  `c558613`; awaiting PR #554 merge into `develop`
+
+Sprint entry:
+
+- [Sprint FIX-554 — sc-lint Bootstrap Lockfile Regeneration](sprints/fix-554-sc-lint-bootstrap-lock-regeneration.md)
+
+FIX-554 regenerates the `sc-lint` bootstrap fixture lockfile from the current
+workspace patches and verifies that the committed lockfile matches an offline
+Cargo metadata regeneration. It also hardens temporary Beads workspace cleanup
+against transient Windows sharing violations.
+
 ### Follow-on Fix Sprint: FIX-O13
 
 Status:
