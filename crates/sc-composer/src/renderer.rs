@@ -369,6 +369,10 @@ impl Renderer {
     }
 
     /// Create a renderer using an explicit caller-selected escaping policy.
+    ///
+    /// # Panics
+    ///
+    /// Panics only if the renderer's built-in configuration becomes invalid.
     #[must_use]
     pub fn with_escape_mode(escape_mode: TemplateEscapeMode) -> Self {
         Self::try_with_escape_mode(escape_mode, |_| Ok(()))
