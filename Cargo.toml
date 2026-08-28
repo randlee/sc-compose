@@ -3,7 +3,7 @@ members = ["crates/sc-composer", "crates/sc-composer-beads", "crates/sc-compose"
 resolver = "2"
 
 [workspace.package]
-version = "1.5.0"
+version = "1.6.0"
 authors = ["Randlee"]
 edition = "2024"
 license = "MIT"
@@ -24,8 +24,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
 quick-xml = "0.41"
-sc-sha = { path = "crates/sc-sha", version = "1.5.0" }
-sc-composer = { path = "crates/sc-composer", version = "1.5.0" }
+sc-sha = { path = "crates/sc-sha", version = "1.6.0" }
+sc-composer = { path = "crates/sc-composer", version = "1.6.0" }
 sha2 = "0.10"
 similar = "2"
 time = { version = "0.3", features = ["formatting", "macros"] }
