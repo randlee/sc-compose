@@ -1,0 +1,136 @@
+{
+  "schema_version": "fuzz-session/v1",
+  "campaign": {
+    "session_id": "sc-compose-fuzz-20260817-1",
+    "date": "2026-08-17",
+    "seed": null,
+    "target": "sc-composer-beads rendering and diagnostic boundaries",
+    "provenance": "post_hoc_reconstruction",
+    "provenance_note": "The original campaign sprint document and report package were not committed. This package reconstructs durable evidence from the promoted regression tests and their source comments at commit 12cfef8; it is not an original worker transcript."
+  },
+  "summary": {
+    "status": "FAIL",
+    "description": "Three promoted 20260817-1 findings remain documented as historical fuzz evidence.",
+    "iterations": 4,
+    "passed": 0,
+    "failed": 4
+  },
+  "workers": [
+    {
+      "session_id": "sc-compose-fuzz-20260817-1",
+      "agent_id": "shape-probe",
+      "worker_correlation_id": "shape-probe",
+      "classification": "confirmed_bug",
+      "fuzz_run_description": "Legacy JSON null representation at different nesting depths",
+      "iterations": 1,
+      "passed": 0,
+      "failed": 1,
+      "result": "FAIL",
+      "command": "cargo test -p sc-composer renderer_json_legacy_mode_null_representation_diverges_by_nesting_depth",
+      "context_text": "Post-hoc reconstruction from the promoted test and its 20260817-1 source comment. The test demonstrates that Legacy JSON rendering emits different textual null representations by nesting depth.",
+      "test_inputs": [
+        {
+          "case_id": "FUZZ-SHAPE-001",
+          "description": "Render `{ \"n\": \"{{ n }}\" }` under Legacy mode with top-level, array-nested, and object-nested JSON null values.",
+          "minimal_template": "{ \"n\": \"{{ n }}\" }",
+          "minimal_input": "n=null; n=[null]; n={\"x\":null}",
+          "passed": false,
+          "outcome": "FAIL: output diverges as empty string, `[none]`, and `{\\\"x\\\": none}` rather than one JSON-safe null representation."
+        }
+      ],
+      "findings": [
+        {
+          "finding_id": "FUZZ-SHAPE-001",
+          "minimal_template": "{ \"n\": \"{{ n }}\" }",
+          "minimal_input": "n=null; n=[null]; n={\"x\":null}",
+          "expected_oracle": "A JSON null leaf has one consistent JSON-safe representation regardless of structured nesting.",
+          "observed_result": "Legacy mode emits an empty string for a top-level null but minijinja-style `none` for nested null values.",
+          "requirement_trace": "No requirement or ADR currently covers this Legacy-mode null rendering invariant.",
+          "requirement_follow_up": "Treat as a renderer compatibility decision; preserve the minimized regression until the intended Legacy representation is selected.",
+          "root_cause": "Nested values reach minijinja's Python-style null formatting while a top-level null takes a separate coercion path.",
+          "recommended_fix": "Serialize JSON null consistently at every nesting depth, then update this test to the selected contract.",
+          "reproduction_count": 3
+        }
+      ]
+    },
+    {
+      "session_id": "sc-compose-fuzz-20260817-1",
+      "agent_id": "template-probe",
+      "worker_correlation_id": "template-probe",
+      "classification": "confirmed_bug",
+      "fuzz_run_description": "TOML formula interpolation containing quotes and backslashes",
+      "iterations": 1,
+      "passed": 0,
+      "failed": 1,
+      "result": "FAIL",
+      "command": "cargo test -p sc-composer-beads toml_formula_templates_embed_unescaped_quotes_and_backslashes",
+      "context_text": "Post-hoc reconstruction from the promoted test and its 20260817-1 source comment. The template probe shows that TOML formula suffixes do not receive string-safe escaping.",
+      "test_inputs": [
+        {
+          "case_id": "FUZZ-TEMPLATE-001",
+          "description": "Render TOML template `a = \"{{{ x }}}\"` with literal quotes and a backslash in `x`.",
+          "minimal_template": "a = \"{{{ x }}}\"",
+          "minimal_input": "x=has \"quotes\" and \\backslash",
+          "passed": false,
+          "outcome": "FAIL: interpolated quotes and backslashes are unescaped, producing invalid quoted TOML."
+        }
+      ],
+      "findings": [
+        {
+          "finding_id": "FUZZ-TEMPLATE-001",
+          "minimal_template": "a = \"{{{ x }}}\"",
+          "minimal_input": "x=has \"quotes\" and \\backslash",
+          "expected_oracle": "A quoted TOML formula value either renders as valid TOML or fails with an explicit diagnostic.",
+          "observed_result": "The value is embedded without TOML string escaping.",
+          "requirement_trace": "ADR-0021 makes formula rendering a sc-composer-beads responsibility but does not define TOML escaping semantics.",
+          "requirement_follow_up": "Define the intended TOML formula rendering contract before implementing format-aware escaping or a fail-closed validation error.",
+          "root_cause": "`.formula.toml.j2` receives the generic auto-escape mode, which has no TOML string-safety branch.",
+          "recommended_fix": "Add a TOML-aware render path or reject unsafe interpolated TOML strings before emitting a formula.",
+          "reproduction_count": 3
+        }
+      ]
+    },
+    {
+      "session_id": "sc-compose-fuzz-20260817-1",
+      "agent_id": "boundary-probe",
+      "worker_correlation_id": "boundary-probe",
+      "classification": "confirmed_bug",
+      "fuzz_run_description": "Distinct formula render failures retain distinguishable diagnostics",
+      "iterations": 2,
+      "passed": 0,
+      "failed": 2,
+      "result": "FAIL",
+      "command": "cargo test -p sc-composer-beads render_failed_message_is_identical_for_distinct_failure_causes",
+      "context_text": "Post-hoc reconstruction from the promoted test and its 20260817-1 source comment. Two structurally different render errors collapse into one opaque message.",
+      "test_inputs": [
+        {
+          "case_id": "FUZZ-4177-BOUNDARY-01",
+          "description": "Compare malformed-template and missing-variable formula render failures.",
+          "minimal_template": "An unterminated triple-brace expression and a separate missing-variable expression.",
+          "minimal_input": "No additional compose variables for the missing-variable case.",
+          "passed": false,
+          "outcome": "FAIL: both conditions report the same fixed `template rendering failed` message."
+        }
+      ],
+      "findings": [
+        {
+          "finding_id": "FUZZ-4177-BOUNDARY-01",
+          "minimal_template": "hello {{{ unterminated; and a separate template referencing a missing value",
+          "minimal_input": "structured compose variables lacking the referenced value",
+          "expected_oracle": "Distinct render failures retain cause-specific details for diagnostics.",
+          "observed_result": "`RenderError::Display` collapses both causes to the same opaque text.",
+          "requirement_trace": "ADR-0021 requires retained rendering failure details for Beads diagnostics.",
+          "requirement_follow_up": "No new ADR is needed; implementation must satisfy the existing retained-detail contract.",
+          "root_cause": "The adapter uses `RenderError::to_string()` instead of its cause-specific `message()` accessor.",
+          "recommended_fix": "Use the cause-specific render error message when constructing `BeadComposeError::RenderFailed`.",
+          "reproduction_count": 3
+        }
+      ]
+    }
+  ],
+  "promoted_tests": [
+    "crates/sc-composer/src/renderer.rs::renderer_json_legacy_mode_null_representation_diverges_by_nesting_depth",
+    "crates/sc-composer-beads/src/render.rs::toml_formula_templates_embed_unescaped_quotes_and_backslashes",
+    "crates/sc-composer-beads/src/render.rs::render_failed_message_is_identical_for_distinct_failure_causes"
+  ]
+}

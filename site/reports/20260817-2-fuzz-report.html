@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>20260817-2 Beads Fuzz Campaign</title>
+  <style type="text/css">
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #ffffff; line-height: 1.5; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #0b1220; color: #e5e7eb; }
+      .section { background: #111827; border-color: #1f2937; }
+      table { background: #0f172a; }
+      th, td { border-color: #1f2937 !important; }
+      .icon-button { background: #1f2937; color: #cbd5e1; border-color: #374151; }
+      code { background: #1f2937; color: #e5e7eb; }
+      a { color: #93c5fd; }
+    }
+    :root[data-theme="dark"] body { background: #0b1220; color: #e5e7eb; }
+    :root[data-theme="dark"] .section { background: #111827; border-color: #1f2937; }
+    :root[data-theme="light"] body { background: #ffffff; color: #1f2937; }
+    header { border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 20px; }
+    h1 { margin: 0 0 6px 0; font-size: 1.6rem; }
+    .subtitle { margin: 0 0 4px 0; color: #6b7280; }
+    .generated-at, .source-label { margin: 2px 0; font-size: 0.85rem; color: #6b7280; }
+    .status { font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-block; font-size: 0.85em; border: 1px solid transparent; }
+    .status-pass { color: #065f46; background: #d1fae5; border-color: #6ee7b7; }
+    .status-drift { color: #92400e; background: #fef3c7; border-color: #f59e0b; }
+    .status-error { color: #991b1b; background: #fee2e2; border-color: #ef4444; }
+    .status-fail { color: #991b1b; background: #fee2e2; border-color: #ef4444; }
+    .status-info { color: #1e40af; background: #dbeafe; border-color: #3b82f6; }
+    .top-status { margin-top: 8px; }
+    nav.toc { margin: 16px 0; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 10px; }
+    nav.toc ul { margin: 8px 0 0 0; padding-left: 20px; }
+    .summary-block { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin: 16px 0; }
+    .section { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-top: 16px; }
+    .section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .section-head h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 10px; }
+    .section-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .icon-button { width: 30px; height: 30px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 14px; cursor: pointer; }
+    .icon-button:hover { filter: brightness(0.95); }
+    .section-summary { color: #374151; font-style: italic; }
+    .fragment-link { font-size: 0.9rem; }
+    .fragment-source { color: #6b7280; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; vertical-align: top; font-size: 0.9rem; }
+    thead th { background: #f3f4f6; }
+    :root[data-theme="dark"] thead th { background: #1f2937; }
+    @media (prefers-color-scheme: dark) { thead th { background: #1f2937; } }
+    code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 0.9em; white-space: pre-wrap; word-break: break-word; }
+    .finding { border-top: 1px dashed #e5e7eb; padding-top: 10px; margin-top: 10px; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; }
+    dt { font-weight: 600; }
+    dd { margin: 0; }
+    .scratchpad { background: #f9fafb; border-left: 4px solid #3b82f6; padding: 12px; margin-top: 12px; border-radius: 4px; }
+    :root[data-theme="dark"] .scratchpad { background: #0f172a; }
+    .recommendations ul { padding-left: 20px; }
+    .metadata-table th { width: 260px; }
+    footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 0.85rem; color: #6b7280; }
+    table { display: block; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>20260817-2 Beads Fuzz Campaign</h1>
+    <p class="subtitle">Post-hoc durable evidence reconstruction</p>
+    <p class="generated-at">Generated: 2026-08-28</p>
+    <p class="source-label">Source: Promoted regression tests at commit 12cfef8</p>
+    <div class="top-status"><span class="status status-fail">FAIL</span></div>
+  </header>
+
+  <section class="summary-block">
+    <div class="section-head">
+      <h2>Summary</h2>
+    </div>
+    <p>The original campaign report was not committed. This durable reconstruction preserves the two promoted execution findings and their minimized reproducers without claiming to reproduce missing worker transcripts.</p>
+    <table class="session-summary">
+      <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">Embedded NUL in Beads variable value is attributed to an unavailable executable</th>
+          <td>1</td>
+          <td>0/1</td>
+          <td><span class="status status-fail">FAIL</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Output limit terminates a descendant holding the inherited pipe open</th>
+          <td>1</td>
+          <td>0/1</td>
+          <td><span class="status status-fail">FAIL</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <nav class="toc">
+    <strong>Worker Sections</strong>
+    <ul>
+      <li><a href="#path-encoding-probe">path-encoding-probe</a> <span class="status status-fail">FAIL</span></li>
+      <li><a href="#output-bound-probe">output-bound-probe</a> <span class="status status-fail">FAIL</span></li>
+    </ul>
+  </nav>
+
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>path-encoding-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260817-2 · Worker path-encoding-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;sc-compose-fuzz-20260817-2&quot;,&quot;agent_id&quot;:&quot;path-encoding-probe&quot;,&quot;worker_correlation_id&quot;:&quot;path-encoding-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;fuzz_run_description&quot;:&quot;Embedded NUL in Beads variable value is attributed to an unavailable executable&quot;,&quot;iterations&quot;:1,&quot;passed&quot;:0,&quot;failed&quot;:1,&quot;result&quot;:&quot;FAIL&quot;,&quot;command&quot;:&quot;cargo test -p sc-composer-beads nul_byte_poisoned_bead_variable_value_is_misreported_as_bd_unavailable&quot;,&quot;context_text&quot;:&quot;Post-hoc reconstruction from the promoted test and its 20260817-2 source comment. A valid UTF-8 value containing U+0000 poisons argv construction before the configured executable can start.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-4177-ENC-01&quot;,&quot;description&quot;:&quot;Run Validate with `/bin/echo` and bead variable `payload=legit\\u0000withnul`.&quot;,&quot;minimal_template&quot;:&quot;A valid in-workspace formula template.&quot;,&quot;minimal_input&quot;:&quot;bead_variables.payload contains U+0000; bd_executable=/bin/echo&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;FAIL: OS argv construction rejects the NUL, but the receipt code is BEADS_BD_UNAVAILABLE.&quot;}],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;FUZZ-4177-ENC-01&quot;,&quot;minimal_template&quot;:&quot;valid formula template; no template defect required&quot;,&quot;minimal_input&quot;:&quot;payload=legit\\u0000withnul; bd_executable=/bin/echo&quot;,&quot;expected_oracle&quot;:&quot;An invalid Beads variable value is rejected before spawn or receives a cause-specific argv-construction diagnostic.&quot;,&quot;observed_result&quot;:&quot;`Command::spawn` returns InvalidInput for an interior NUL and the stage maps it to BEADS_BD_UNAVAILABLE.&quot;,&quot;requirement_trace&quot;:&quot;ADR-0021 defines BEADS_BD_UNAVAILABLE as inability to start the configured executable.&quot;,&quot;requirement_follow_up&quot;:&quot;No new ADR is needed; validate variable values before spawn or add a distinct stable argv-construction code.&quot;,&quot;root_cause&quot;:&quot;Only Beads variable keys are validated; values reach `Command::args` unchecked and the generic I/O mapping erases the cause.&quot;,&quot;recommended_fix&quot;:&quot;Reject control bytes in Beads variable values before process creation, or map argv construction errors separately.&quot;,&quot;reproduction_count&quot;:3}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Post-hoc reconstruction from the promoted test and its 20260817-2 source comment. A valid UTF-8 value containing U+0000 poisons argv construction before the configured executable can start.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Embedded NUL in Beads variable value is attributed to an unavailable executable</th>
+        <td>1</td>
+        <td>0/1</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-4177-ENC-01</th><td><code>Run Validate with `/bin/echo` and bead variable `payload=legit\u0000withnul`.</code></td><td>FAIL: OS argv construction rejects the NUL, but the receipt code is BEADS_BD_UNAVAILABLE.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-4177-ENC-01</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>valid formula template; no template defect required</code></dd>
+        <dt>Input</dt><dd><code>payload=legit\u0000withnul; bd_executable=/bin/echo</code></dd>
+        <dt>Expected</dt><dd>An invalid Beads variable value is rejected before spawn or receives a cause-specific argv-construction diagnostic.</dd>
+        <dt>Observed</dt><dd>`Command::spawn` returns InvalidInput for an interior NUL and the stage maps it to BEADS_BD_UNAVAILABLE.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0021 defines BEADS_BD_UNAVAILABLE as inability to start the configured executable.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR is needed; validate variable values before spawn or add a distinct stable argv-construction code.</dd>
+        <dt>Root cause</dt><dd>Only Beads variable keys are validated; values reach `Command::args` unchecked and the generic I/O mapping erases the cause.</dd>
+        <dt>Recommended fix</dt><dd>Reject control bytes in Beads variable values before process creation, or map argv construction errors separately.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>output-bound-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260817-2 · Worker output-bound-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;sc-compose-fuzz-20260817-2&quot;,&quot;agent_id&quot;:&quot;output-bound-probe&quot;,&quot;worker_correlation_id&quot;:&quot;output-bound-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;fuzz_run_description&quot;:&quot;Output limit terminates a descendant holding the inherited pipe open&quot;,&quot;iterations&quot;:1,&quot;passed&quot;:0,&quot;failed&quot;:1,&quot;result&quot;:&quot;FAIL&quot;,&quot;command&quot;:&quot;cargo test -p sc-composer-beads orphaned_descendant_holding_the_output_pipe_open_hangs_the_runner&quot;,&quot;context_text&quot;:&quot;Post-hoc reconstruction from the promoted test and its 20260817-2 source comment. The test was later replaced by the cross-platform process-tree regression after the production fix.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-4177-OUT-01&quot;,&quot;description&quot;:&quot;A shell starts `( sleep 1 ) &amp;` then floods stdout past the cap, leaving the descendant with the inherited stdout descriptor.&quot;,&quot;minimal_template&quot;:&quot;not applicable; subprocess runner probe&quot;,&quot;minimal_input&quot;:&quot;#!/bin/sh; ( sleep 1 ) &amp;; while :; do printf X; done&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;FAIL: killing only the direct child leaves the reader blocked until the descendant exits.&quot;}],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;FUZZ-4177-OUT-01&quot;,&quot;minimal_template&quot;:&quot;not applicable; subprocess runner probe&quot;,&quot;minimal_input&quot;:&quot;background descendant inherits stdout, direct child floods past the 64 KiB cap&quot;,&quot;expected_oracle&quot;:&quot;An over-limit command terminates every descendant holding captured output pipes and returns promptly.&quot;,&quot;observed_result&quot;:&quot;The original runner killed only the direct PID, so the pipe remained open until the orphaned descendant exited.&quot;,&quot;requirement_trace&quot;:&quot;ADR-0021 requires bounded captured stdout/stderr and termination after an output cap breach.&quot;,&quot;requirement_follow_up&quot;:&quot;No new ADR is needed; the production fix must retain process-tree termination on Unix and Job Object containment on Windows.&quot;,&quot;root_cause&quot;:&quot;Direct-child-only termination did not close inherited pipe descriptors held by descendants.&quot;,&quot;recommended_fix&quot;:&quot;Terminate the process group on Unix and the assigned Job Object on Windows, with a regression proving prompt return.&quot;,&quot;reproduction_count&quot;:3}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Post-hoc reconstruction from the promoted test and its 20260817-2 source comment. The test was later replaced by the cross-platform process-tree regression after the production fix.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Output limit terminates a descendant holding the inherited pipe open</th>
+        <td>1</td>
+        <td>0/1</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-4177-OUT-01</th><td><code>A shell starts `( sleep 1 ) &amp;` then floods stdout past the cap, leaving the descendant with the inherited stdout descriptor.</code></td><td>FAIL: killing only the direct child leaves the reader blocked until the descendant exits.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-4177-OUT-01</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>not applicable; subprocess runner probe</code></dd>
+        <dt>Input</dt><dd><code>background descendant inherits stdout, direct child floods past the 64 KiB cap</code></dd>
+        <dt>Expected</dt><dd>An over-limit command terminates every descendant holding captured output pipes and returns promptly.</dd>
+        <dt>Observed</dt><dd>The original runner killed only the direct PID, so the pipe remained open until the orphaned descendant exited.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0021 requires bounded captured stdout/stderr and termination after an output cap breach.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR is needed; the production fix must retain process-tree termination on Unix and Job Object containment on Windows.</dd>
+        <dt>Root cause</dt><dd>Direct-child-only termination did not close inherited pipe descriptors held by descendants.</dd>
+        <dt>Recommended fix</dt><dd>Terminate the process group on Unix and the assigned Job Object on Windows, with a regression proving prompt return.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
+
+
+  <section class="section metadata">
+    <h2>Metadata</h2>
+    <table class="metadata-table"><tbody>
+      <tr><th scope="row">Session</th><td>sc-compose-fuzz-20260817-2</td></tr>
+      <tr><th scope="row">Seed</th><td>4177</td></tr>
+      <tr><th scope="row">Provenance</th><td>post_hoc_reconstruction</td></tr>
+      <tr><th scope="row">Promoted tests</th><td>crates/sc-composer-beads/src/execute.rs::nul_byte_poisoned_bead_variable_value_is_misreported_as_bd_unavailable; crates/sc-composer-beads/src/runner.rs::orphaned_descendant_holding_the_output_pipe_open_hangs_the_runner</td></tr>
+    </tbody></table>
+  </section>
+
+  <footer>
+    <p>Post-hoc evidence reconstruction; see the JSON sidecar for complete worker envelopes.</p>
+  </footer>
+
+  <script>
+    document.addEventListener("click", async function (event) {
+      var button = event.target.closest("[data-copy-text]");
+      if (!button) return;
+      var text = button.getAttribute("data-copy-text") || "";
+      try {
+        await navigator.clipboard.writeText(text);
+        button.setAttribute("title", "Copied");
+      } catch (err) {
+        button.setAttribute("title", "Copy failed");
+      }
+    });
+  </script>
+</body>
+</html>
