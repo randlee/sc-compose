@@ -44,7 +44,7 @@ pub fn render_formula(
         )
     })
     .map_err(|error| BeadComposeError::RenderFailed {
-        message: error.to_string(),
+        message: error.message().to_owned(),
     })?;
     atomic_write(rendered_formula, rendered.as_bytes())
 }
@@ -213,20 +213,11 @@ mod tests {
     }
 
     // FUZZ-4177-BOUNDARY-01 (adversarial fuzz campaign 20260817-1,
-    // boundary-probe): confirmed bug, not yet fixed. `BeadComposeError::
-    // RenderFailed`'s doc comment promises "rendering failure details
-    // retained for diagnostics", but `render_formula` builds the message
-    // with `error.to_string()` against `sc_composer::RenderError`, whose
-    // `Display` is a fixed, opaque "template rendering failed" string by
-    // design (see crates/sc-composer/src/error/render.rs). The
-    // cause-specific detail is only reachable via `RenderError::message()`,
-    // which this call site never invokes, so two structurally distinct
-    // render failures collapse to the identical generic message. This test
-    // pins that collapse; update it once `render_formula` surfaces
-    // cause-specific detail (e.g. by calling `.message()` instead of
-    // `.to_string()`).
+    // boundary-probe): regression coverage for preserving the distinct
+    // cause-specific messages exposed by `RenderError::message()` instead of
+    // its intentionally opaque `Display` implementation.
     #[test]
-    fn render_failed_message_is_identical_for_distinct_failure_causes() {
+    fn render_failed_message_is_specific_for_distinct_failure_causes() {
         let root = temporary_directory();
         let vars: Map<String, serde_json::Value> =
             Map::from_iter([(String::from("x"), json!("v"))]);
@@ -247,11 +238,15 @@ mod tests {
         let err2 =
             render_formula(&unknown_filter, &out2, &vars).expect_err("unknown filter must fail");
 
-        assert_eq!(
+        assert_ne!(err1.to_string(), err2.to_string());
+        assert_ne!(
             err1.to_string(),
             "formula rendering failed: template rendering failed"
         );
-        assert_eq!(err1.to_string(), err2.to_string());
+        assert_ne!(
+            err2.to_string(),
+            "formula rendering failed: template rendering failed"
+        );
 
         fs::remove_dir_all(root).expect("cleanup");
     }
