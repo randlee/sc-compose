@@ -91,19 +91,14 @@ impl ProcessRunner for StdProcessRunner {
 
         let mut exceeded_limit = false;
         let mut terminated_for_limit = false;
-        let mut status = None;
         let mut stdout = None;
         let mut stderr = None;
         loop {
-            if status.is_none() {
-                status = child.try_wait()?;
-            }
-
             match capture_receiver.recv_timeout(Duration::from_millis(10)) {
                 Ok(CaptureEvent::ExceededLimit) => {
                     exceeded_limit = true;
                     if !terminated_for_limit {
-                        status = Some(child.terminate()?);
+                        child.terminate()?;
                         terminated_for_limit = true;
                     }
                 }
@@ -121,7 +116,7 @@ impl ProcessRunner for StdProcessRunner {
                 }
             }
 
-            if status.is_some() && stdout.is_some() && stderr.is_some() {
+            if stdout.is_some() && stderr.is_some() {
                 break;
             }
         }
@@ -134,9 +129,7 @@ impl ProcessRunner for StdProcessRunner {
             return Err(process_output_limit_error());
         }
         Ok(ProcessOutput {
-            exit_status: status
-                .expect("child status checked before loop exit")
-                .code(),
+            exit_status: child.wait()?.code(),
             stdout: String::from_utf8_lossy(&stdout.bytes).into_owned(),
             stderr: String::from_utf8_lossy(&stderr.bytes).into_owned(),
             elapsed: started.elapsed(),
@@ -147,7 +140,7 @@ impl ProcessRunner for StdProcessRunner {
 trait ManagedChild {
     fn take_stdout(&mut self) -> Option<ChildStdout>;
     fn take_stderr(&mut self) -> Option<ChildStderr>;
-    fn try_wait(&mut self) -> io::Result<Option<ExitStatus>>;
+    fn wait(&mut self) -> io::Result<ExitStatus>;
     fn terminate(&mut self) -> io::Result<ExitStatus>;
 }
 
@@ -160,8 +153,8 @@ impl ManagedChild for std::process::Child {
         self.stderr.take()
     }
 
-    fn try_wait(&mut self) -> io::Result<Option<ExitStatus>> {
-        std::process::Child::try_wait(self)
+    fn wait(&mut self) -> io::Result<ExitStatus> {
+        std::process::Child::wait(self)
     }
 
     fn terminate(&mut self) -> io::Result<ExitStatus> {
@@ -180,8 +173,8 @@ impl ManagedChild for Box<dyn ChildWrapper> {
         ChildWrapper::stderr(self.as_mut()).take()
     }
 
-    fn try_wait(&mut self) -> io::Result<Option<ExitStatus>> {
-        ChildWrapper::try_wait(self.as_mut())
+    fn wait(&mut self) -> io::Result<ExitStatus> {
+        ChildWrapper::wait(self.as_mut())
     }
 
     fn terminate(&mut self) -> io::Result<ExitStatus> {

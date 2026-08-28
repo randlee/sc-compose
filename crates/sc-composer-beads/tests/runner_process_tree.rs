@@ -12,6 +12,23 @@ const FIXTURE: &str = env!("CARGO_BIN_EXE_sc-composer-beads-runner-fixture");
 const MAX_RUN_DURATION: Duration = Duration::from_secs(3);
 
 #[test]
+fn normal_nonzero_exit_status_is_preserved() {
+    let root = temporary_directory();
+    let spec = CommandSpec {
+        executable: PathBuf::from(FIXTURE),
+        args: vec!["exit".to_owned(), "9".to_owned()],
+        working_directory: root.clone(),
+    };
+
+    let output = StdProcessRunner
+        .run(&spec)
+        .expect("run nonzero-exit fixture");
+
+    assert_eq!(output.exit_status, Some(9));
+    fs::remove_dir_all(root).expect("cleanup fixture directory");
+}
+
+#[test]
 fn output_cap_terminates_a_pipe_holding_descendant() {
     let root = temporary_directory();
     let state_file = root.join("descendant-state");

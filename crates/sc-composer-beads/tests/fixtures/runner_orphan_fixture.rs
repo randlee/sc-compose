@@ -12,11 +12,21 @@ fn main() -> io::Result<()> {
     match arguments.next().as_deref() {
         Some("root") => run_root(arguments),
         Some("descendant") => run_descendant(arguments),
+        Some("exit") => exit_with(arguments),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "expected `root <overflow-bytes>` or `descendant`",
+            "expected `root <overflow-bytes>`, `descendant`, or `exit <status>`",
         )),
     }
+}
+
+fn exit_with(mut arguments: impl Iterator<Item = String>) -> io::Result<()> {
+    let code = arguments
+        .next()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "missing exit status"))?
+        .parse::<i32>()
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+    std::process::exit(code);
 }
 
 fn run_root(mut arguments: impl Iterator<Item = String>) -> io::Result<()> {
