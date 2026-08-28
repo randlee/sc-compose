@@ -53,9 +53,9 @@ This repo is intentionally independent from ATM. Do not introduce
     [ADR-0020](./docs/adrs/0020-generated-go-binding-strategy.md).
 11. `sc-composer-beads` is the host-neutral Beads formula-composition library.
     It may depend only on `sc-composer`, workspace serde/error dependencies,
-    and Rust standard-library filesystem/process APIs. It must not depend on
-    `sc-compose`, a foreign-language adapter, Beads source or database
-    libraries, or ATM/runtime code. See
+    and the approved `process-wrap` platform-containment dependency. It must
+    not depend on `sc-compose`, a foreign-language adapter, Beads source or
+    database libraries, or ATM/runtime code. See
     [ADR-0021](./docs/adrs/0021-beads-formula-composition-integration.md).
 12. `sc-compose` is the CLI adapter over `sc-composer-beads`; the Beads
     library must not depend on the CLI.

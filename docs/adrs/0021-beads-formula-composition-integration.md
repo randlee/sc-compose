@@ -146,11 +146,15 @@ pub enum BeadComposeError {
 ```
 
 `BeadStageReceipt` records every attempted process stage and bounded output
-evidence. Each child stream is capped at 64 KiB; an over-limit child is
-terminated and returns `ProcessOutputLimitExceeded` rather than consuming
-unbounded memory. Validation failures that occur before spawning `bd` return
-`Err(BeadComposeError)` without a process-stage receipt; adapters expose the
-corresponding refused error code in their diagnostic envelope.
+evidence. Each child stream is capped at 64 KiB; an over-limit stage terminates
+its process tree and returns `ProcessOutputLimitExceeded` rather than
+consuming unbounded memory or waiting for a normal pipe-inheriting descendant.
+The runner uses `process-wrap`: Unix children lead a dedicated process group
+and Windows children are created suspended, assigned to a Job Object, then
+resumed. Cap termination kills that group or Job Object respectively.
+Validation failures that occur before spawning `bd` return `Err(BeadComposeError)`
+without a process-stage receipt; adapters expose the corresponding refused
+error code in their diagnostic envelope.
 `BeadComposeError::code()` returns exactly one of these stable machine-readable
 codes:
 
@@ -212,7 +216,7 @@ The only schema interpretation is the request/receipt protocol. `bd` stdout
 and stderr are recorded as bounded diagnostic evidence, not reparsed into an
 independent Beads schema. Version 1 does not impose an elapsed-process timeout:
 the caller owns cancellation or an outer deadline. The runner does impose the
-64 KiB-per-stream memory limit described above.
+64 KiB-per-stream memory limit and process-tree containment described above.
 
 The symbolic-link regression test runs on Unix and Windows. Windows accounts
 without the OS symbolic-link privilege explicitly skip that one assertion; the
@@ -261,7 +265,7 @@ Before source is authored, update `docs/architecture.md`, `CLAUDE.md`, and
 the sc-lint boundary inventory so that:
 
 - `sc-composer-beads` may depend only on `sc-composer`, serde/error support,
-  and Rust standard-library process/filesystem APIs;
+  and the approved `process-wrap` platform-containment dependency;
 - `sc-compose` may additionally depend on `sc-composer-beads`;
 - `bindings/sc-composer-beads-python` may depend only on
   `sc-composer-beads` plus approved PyO3/maturin/serde dependencies; and

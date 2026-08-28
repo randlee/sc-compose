@@ -5,7 +5,10 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{
+    Mutex,
+    atomic::{AtomicU64, Ordering},
+};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -17,6 +20,10 @@ use serde_json::{Map, json};
 
 const FIXTURES: &str = "tests/fixtures/beads";
 static WORKSPACE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+// The pinned `bd` executable is a single mutable external tool installation.
+// Run its real integration scenarios serially so concurrent `bd init` calls
+// cannot contend with the executable or its shared tool state in CI.
+static PINNED_BD_TEST_LOCK: Mutex<()> = Mutex::new(());
 
 #[test]
 fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
@@ -24,6 +31,9 @@ fn pinned_bd_cooks_and_previews_rendered_toml_and_json_formulas() {
         eprintln!("skipping real Beads integration: BD_EXECUTABLE is not configured");
         return;
     };
+    let _guard = PINNED_BD_TEST_LOCK
+        .lock()
+        .expect("lock pinned bd scenarios");
     let root = temporary_workspace();
     let bd = isolated_bd(&root, &pinned_bd);
     initialize_beads(&bd, &root);
@@ -89,6 +99,9 @@ fn pinned_bd_missing_required_release_name_returns_a_failure_receipt() {
         eprintln!("skipping real Beads integration: BD_EXECUTABLE is not configured");
         return;
     };
+    let _guard = PINNED_BD_TEST_LOCK
+        .lock()
+        .expect("lock pinned bd scenarios");
     let root = temporary_workspace();
     let bd = isolated_bd(&root, &pinned_bd);
     initialize_beads(&bd, &root);
