@@ -76,6 +76,14 @@ pub enum BeadComposeError {
         /// Duplicate runtime-variable key.
         key: String,
     },
+    /// A Beads variable value contains a byte that cannot be passed in argv.
+    #[error("invalid Beads variable value for `{key}`: {value:?}")]
+    BeadVariableValueInvalid {
+        /// Runtime-variable key whose value was rejected.
+        key: String,
+        /// Rejected runtime-variable value, rendered with escapes for control bytes.
+        value: String,
+    },
     /// Preview or persistent pour omitted the formula name.
     #[error("formula name is required for pour operations")]
     FormulaNameRequired,
@@ -90,6 +98,14 @@ pub enum BeadComposeError {
     BdUnavailable {
         /// Configured executable that could not be started.
         executable: PathBuf,
+    },
+    /// A process argument could not be represented by the operating system.
+    #[error("invalid argument for Beads executable `{executable}`: {message}")]
+    ProcessArgumentInvalid {
+        /// Configured executable receiving the invalid argument.
+        executable: PathBuf,
+        /// Operating-system diagnostic describing the invalid argument.
+        message: String,
     },
     /// A `bd` stage exceeded the per-stream output capture policy.
     #[error("Beads {stage:?} output exceeded the {limit_bytes}-byte capture limit")]
@@ -159,10 +175,12 @@ impl BeadComposeError {
             Self::PathNotUtf8 { .. } => "BEADS_PATH_NOT_UTF8",
             Self::BeadVariableKeyInvalid { .. } => "BEADS_VARIABLE_KEY_INVALID",
             Self::BeadVariableKeyDuplicate { .. } => "BEADS_VARIABLE_KEY_DUPLICATE",
+            Self::BeadVariableValueInvalid { .. } => "BEADS_VARIABLE_VALUE_INVALID",
             Self::FormulaNameRequired => "BEADS_FORMULA_NAME_REQUIRED",
             Self::PourAuthorizationRequired => "BEADS_POUR_AUTH_REQUIRED",
             Self::PourAuthorizationInvalid => "BEADS_POUR_AUTH_INVALID",
             Self::BdUnavailable { .. } => "BEADS_BD_UNAVAILABLE",
+            Self::ProcessArgumentInvalid { .. } => "BEADS_PROCESS_ARGUMENT_INVALID",
             Self::ProcessOutputLimitExceeded { .. } => "BEADS_PROCESS_OUTPUT_LIMIT",
             Self::RenderFailed { .. } => "BEADS_RENDER_FAILED",
             Self::CookFailed { .. } => "BEADS_COOK_FAILED",

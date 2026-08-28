@@ -95,6 +95,13 @@ fn every_advertised_error_has_its_stable_code() {
             "BEADS_VARIABLE_KEY_DUPLICATE",
         ),
         (
+            BeadComposeError::BeadVariableValueInvalid {
+                key: "name".to_owned(),
+                value: "bad\0value".to_owned(),
+            },
+            "BEADS_VARIABLE_VALUE_INVALID",
+        ),
+        (
             BeadComposeError::FormulaNameRequired,
             "BEADS_FORMULA_NAME_REQUIRED",
         ),
@@ -111,6 +118,13 @@ fn every_advertised_error_has_its_stable_code() {
                 executable: path.clone(),
             },
             "BEADS_BD_UNAVAILABLE",
+        ),
+        (
+            BeadComposeError::ProcessArgumentInvalid {
+                executable: path.clone(),
+                message: "invalid argument".to_owned(),
+            },
+            "BEADS_PROCESS_ARGUMENT_INVALID",
         ),
         (
             BeadComposeError::ProcessOutputLimitExceeded {

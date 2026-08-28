@@ -2083,6 +2083,7 @@ boundary defined by:
 - `docs/sprints/fix-283-unbound-variable-policy-noop.md`
 - `docs/sprints/fix-372-chained-ternary-dynamic-classification.md`
 - `docs/sprints/fix-386-cli-json-envelope-clap-bypass.md`
+- `docs/sprints/fix-beads-nul-byte-argv-misattribution.md`
 
 The current follow-on implementation track is:
 
