@@ -1,0 +1,58 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>output-bound-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260817-2 · Worker output-bound-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;sc-compose-fuzz-20260817-2&quot;,&quot;agent_id&quot;:&quot;output-bound-probe&quot;,&quot;worker_correlation_id&quot;:&quot;output-bound-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;fuzz_run_description&quot;:&quot;Output limit terminates a descendant holding the inherited pipe open&quot;,&quot;iterations&quot;:1,&quot;passed&quot;:0,&quot;failed&quot;:1,&quot;result&quot;:&quot;FAIL&quot;,&quot;command&quot;:&quot;cargo test -p sc-composer-beads orphaned_descendant_holding_the_output_pipe_open_hangs_the_runner&quot;,&quot;context_text&quot;:&quot;Post-hoc reconstruction from the promoted test and its 20260817-2 source comment. The test was later replaced by the cross-platform process-tree regression after the production fix.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-4177-OUT-01&quot;,&quot;description&quot;:&quot;A shell starts `( sleep 1 ) &amp;` then floods stdout past the cap, leaving the descendant with the inherited stdout descriptor.&quot;,&quot;minimal_template&quot;:&quot;not applicable; subprocess runner probe&quot;,&quot;minimal_input&quot;:&quot;#!/bin/sh; ( sleep 1 ) &amp;; while :; do printf X; done&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;FAIL: killing only the direct child leaves the reader blocked until the descendant exits.&quot;}],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;FUZZ-4177-OUT-01&quot;,&quot;minimal_template&quot;:&quot;not applicable; subprocess runner probe&quot;,&quot;minimal_input&quot;:&quot;background descendant inherits stdout, direct child floods past the 64 KiB cap&quot;,&quot;expected_oracle&quot;:&quot;An over-limit command terminates every descendant holding captured output pipes and returns promptly.&quot;,&quot;observed_result&quot;:&quot;The original runner killed only the direct PID, so the pipe remained open until the orphaned descendant exited.&quot;,&quot;requirement_trace&quot;:&quot;ADR-0021 requires bounded captured stdout/stderr and termination after an output cap breach.&quot;,&quot;requirement_follow_up&quot;:&quot;No new ADR is needed; the production fix must retain process-tree termination on Unix and Job Object containment on Windows.&quot;,&quot;root_cause&quot;:&quot;Direct-child-only termination did not close inherited pipe descriptors held by descendants.&quot;,&quot;recommended_fix&quot;:&quot;Terminate the process group on Unix and the assigned Job Object on Windows, with a regression proving prompt return.&quot;,&quot;reproduction_count&quot;:3}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Post-hoc reconstruction from the promoted test and its 20260817-2 source comment. The test was later replaced by the cross-platform process-tree regression after the production fix.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Output limit terminates a descendant holding the inherited pipe open</th>
+        <td>1</td>
+        <td>0/1</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-4177-OUT-01</th><td><code>A shell starts `( sleep 1 ) &amp;` then floods stdout past the cap, leaving the descendant with the inherited stdout descriptor.</code></td><td>FAIL: killing only the direct child leaves the reader blocked until the descendant exits.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-4177-OUT-01</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>not applicable; subprocess runner probe</code></dd>
+        <dt>Input</dt><dd><code>background descendant inherits stdout, direct child floods past the 64 KiB cap</code></dd>
+        <dt>Expected</dt><dd>An over-limit command terminates every descendant holding captured output pipes and returns promptly.</dd>
+        <dt>Observed</dt><dd>The original runner killed only the direct PID, so the pipe remained open until the orphaned descendant exited.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0021 requires bounded captured stdout/stderr and termination after an output cap breach.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>No new ADR is needed; the production fix must retain process-tree termination on Unix and Job Object containment on Windows.</dd>
+        <dt>Root cause</dt><dd>Direct-child-only termination did not close inherited pipe descriptors held by descendants.</dd>
+        <dt>Recommended fix</dt><dd>Terminate the process group on Unix and the assigned Job Object on Windows, with a regression proving prompt return.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
