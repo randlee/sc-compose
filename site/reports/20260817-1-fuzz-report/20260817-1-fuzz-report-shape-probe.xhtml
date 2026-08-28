@@ -1,0 +1,58 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>shape-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260817-1 · Worker shape-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;sc-compose-fuzz-20260817-1&quot;,&quot;agent_id&quot;:&quot;shape-probe&quot;,&quot;worker_correlation_id&quot;:&quot;shape-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;fuzz_run_description&quot;:&quot;Legacy JSON null representation at different nesting depths&quot;,&quot;iterations&quot;:1,&quot;passed&quot;:0,&quot;failed&quot;:1,&quot;result&quot;:&quot;FAIL&quot;,&quot;command&quot;:&quot;cargo test -p sc-composer renderer_json_legacy_mode_null_representation_diverges_by_nesting_depth&quot;,&quot;context_text&quot;:&quot;Post-hoc reconstruction from the promoted test and its 20260817-1 source comment. The test demonstrates that Legacy JSON rendering emits different textual null representations by nesting depth.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-SHAPE-001&quot;,&quot;description&quot;:&quot;Render `{ \&quot;n\&quot;: \&quot;{{ n }}\&quot; }` under Legacy mode with top-level, array-nested, and object-nested JSON null values.&quot;,&quot;minimal_template&quot;:&quot;{ \&quot;n\&quot;: \&quot;{{ n }}\&quot; }&quot;,&quot;minimal_input&quot;:&quot;n=null; n=[null]; n={\&quot;x\&quot;:null}&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;FAIL: output diverges as empty string, `[none]`, and `{\\\&quot;x\\\&quot;: none}` rather than one JSON-safe null representation.&quot;}],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;FUZZ-SHAPE-001&quot;,&quot;minimal_template&quot;:&quot;{ \&quot;n\&quot;: \&quot;{{ n }}\&quot; }&quot;,&quot;minimal_input&quot;:&quot;n=null; n=[null]; n={\&quot;x\&quot;:null}&quot;,&quot;expected_oracle&quot;:&quot;A JSON null leaf has one consistent JSON-safe representation regardless of structured nesting.&quot;,&quot;observed_result&quot;:&quot;Legacy mode emits an empty string for a top-level null but minijinja-style `none` for nested null values.&quot;,&quot;requirement_trace&quot;:&quot;No requirement or ADR currently covers this Legacy-mode null rendering invariant.&quot;,&quot;requirement_follow_up&quot;:&quot;Treat as a renderer compatibility decision; preserve the minimized regression until the intended Legacy representation is selected.&quot;,&quot;root_cause&quot;:&quot;Nested values reach minijinja&#x27;s Python-style null formatting while a top-level null takes a separate coercion path.&quot;,&quot;recommended_fix&quot;:&quot;Serialize JSON null consistently at every nesting depth, then update this test to the selected contract.&quot;,&quot;reproduction_count&quot;:3}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Post-hoc reconstruction from the promoted test and its 20260817-1 source comment. The test demonstrates that Legacy JSON rendering emits different textual null representations by nesting depth.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">Legacy JSON null representation at different nesting depths</th>
+        <td>1</td>
+        <td>0/1</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-SHAPE-001</th><td><code>Render `{ &quot;n&quot;: &quot;{{ n }}&quot; }` under Legacy mode with top-level, array-nested, and object-nested JSON null values.</code></td><td>FAIL: output diverges as empty string, `[none]`, and `{\&quot;x\&quot;: none}` rather than one JSON-safe null representation.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-SHAPE-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>{ &quot;n&quot;: &quot;{{ n }}&quot; }</code></dd>
+        <dt>Input</dt><dd><code>n=null; n=[null]; n={&quot;x&quot;:null}</code></dd>
+        <dt>Expected</dt><dd>A JSON null leaf has one consistent JSON-safe representation regardless of structured nesting.</dd>
+        <dt>Observed</dt><dd>Legacy mode emits an empty string for a top-level null but minijinja-style `none` for nested null values.</dd>
+        <dt>Requirement / ADR</dt><dd>No requirement or ADR currently covers this Legacy-mode null rendering invariant.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Treat as a renderer compatibility decision; preserve the minimized regression until the intended Legacy representation is selected.</dd>
+        <dt>Root cause</dt><dd>Nested values reach minijinja&#x27;s Python-style null formatting while a top-level null takes a separate coercion path.</dd>
+        <dt>Recommended fix</dt><dd>Serialize JSON null consistently at every nesting depth, then update this test to the selected contract.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
