@@ -2067,6 +2067,7 @@ boundary defined by:
 
 ## Fuzz-Queue Fix Sprint Index
 
+- `docs/sprints/fix-beads-legacy-json-null-depth.md`
 - `docs/sprints/fix-homebrew-publish-asset-shape.md`
 - `docs/sprints/cleanup-293-frontmatter-yaml-filter-chain.md`
 - `docs/sprints/cleanup-298-path-containment-centralize.md`
