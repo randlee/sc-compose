@@ -71,9 +71,9 @@ fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
     match error_kind {
         RustBeadComposeError::RenderFailed { .. } => "render",
         RustBeadComposeError::ProcessOutputLimitExceeded { stage, .. } => stage_name(*stage),
-        RustBeadComposeError::CookFailed { .. } | RustBeadComposeError::BdUnavailable { .. } => {
-            "validate"
-        }
+        RustBeadComposeError::CookFailed { .. }
+        | RustBeadComposeError::BdUnavailable { .. }
+        | RustBeadComposeError::ProcessArgumentInvalid { .. } => "validate",
         RustBeadComposeError::ActiveRegistryResolutionFailed { .. }
         | RustBeadComposeError::FormulaOutsideActiveRegistry { .. }
         | RustBeadComposeError::FormulaRegistryAmbiguous { .. } => "resolve_active_registry",
@@ -90,6 +90,7 @@ fn rust_error_stage(error_kind: &RustBeadComposeError) -> &'static str {
         | RustBeadComposeError::PathNotUtf8 { .. }
         | RustBeadComposeError::BeadVariableKeyInvalid { .. }
         | RustBeadComposeError::BeadVariableKeyDuplicate { .. }
+        | RustBeadComposeError::BeadVariableValueInvalid { .. }
         | RustBeadComposeError::FormulaNameRequired
         | RustBeadComposeError::PourAuthorizationRequired
         | RustBeadComposeError::PourAuthorizationInvalid => REQUEST_STAGE,

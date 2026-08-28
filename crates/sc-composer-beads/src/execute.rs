@@ -221,6 +221,14 @@ fn validate_request(request: &BeadComposeRequest) -> Result<NormalizedRequest, B
             return Err(BeadComposeError::BeadVariableKeyInvalid { key: key.clone() });
         }
     }
+    for (key, value) in &request.bead_variables {
+        if value.contains('\0') {
+            return Err(BeadComposeError::BeadVariableValueInvalid {
+                key: key.clone(),
+                value: value.clone(),
+            });
+        }
+    }
     let working_directory = fs::canonicalize(&request.working_directory).map_err(|_error| {
         BeadComposeError::TemplatePathInvalid {
             path: request.working_directory.clone(),
@@ -355,6 +363,11 @@ fn run_stage_with_output(
             BeadComposeError::ProcessOutputLimitExceeded {
                 stage,
                 limit_bytes: PROCESS_OUTPUT_LIMIT_BYTES,
+            }
+        } else if error.kind() == std::io::ErrorKind::InvalidInput {
+            BeadComposeError::ProcessArgumentInvalid {
+                executable: spec.executable.clone(),
+                message: error.to_string(),
             }
         } else {
             BeadComposeError::BdUnavailable {
@@ -553,6 +566,17 @@ mod tests {
     impl ProcessRunner for UnavailableRunner {
         fn run(&self, _spec: &CommandSpec) -> io::Result<ProcessOutput> {
             Err(io::Error::new(io::ErrorKind::NotFound, "bd not found"))
+        }
+    }
+
+    struct InvalidInputRunner;
+
+    impl ProcessRunner for InvalidInputRunner {
+        fn run(&self, _spec: &CommandSpec) -> io::Result<ProcessOutput> {
+            Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "argument cannot be represented",
+            ))
         }
     }
 
@@ -810,6 +834,24 @@ mod tests {
     }
 
     #[test]
+    fn invalid_process_arguments_are_not_misattributed_as_bd_unavailable() {
+        let root = workspace();
+        let error = execute_bead_request_with_runner(
+            &request(&root, BeadOperation::Validate),
+            &InvalidInputRunner,
+        )
+        .expect_err("invalid process arguments must fail distinctly");
+        assert!(matches!(
+            error,
+            BeadComposeError::ProcessArgumentInvalid { ref executable, ref message }
+                if executable == Path::new("fake-bd")
+                    && message == "argument cannot be represented"
+        ));
+        assert_eq!(error.code(), "BEADS_PROCESS_ARGUMENT_INVALID");
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
     fn bounded_process_output_failure_is_typed_and_names_the_stage() {
         let root = workspace();
         let error = execute_bead_request_with_runner(
@@ -950,26 +992,11 @@ mod tests {
     }
 
     // FUZZ-4177-ENC-01 (adversarial fuzz campaign 20260817-2, path-encoding-probe):
-    // confirmed bug, not yet fixed. `bead_variables` VALUES are never checked for
-    // embedded control bytes (only KEYS are restricted, by `valid_bead_key`). A
-    // value containing an embedded NUL byte is valid UTF-8 (U+0000 is a legal
-    // codepoint), so it passes every existing validation and reaches
-    // `append_variables`, which formats it into a `--var key=value` argv entry
-    // handed to `std::process::Command::args`. The OS-level `Command::spawn`
-    // rejects any argument containing an interior NUL with
-    // `io::ErrorKind::InvalidInput`, and `run_stage_with_output`'s error mapping
-    // treats every non-output-limit `io::Error` from the runner as
-    // `BeadComposeError::BdUnavailable`. ADR-0021 defines that code as "The
-    // configured `bd` executable cannot be started" -- but here a real, present,
-    // executable `bd_executable` (`/bin/echo`) is misreported as unavailable; the
-    // actual cause is an uncontrolled `bead_variable` value poisoning argv
-    // construction. This test pins the misattributed diagnostic; update it once
-    // `bead_variables` values are validated pre-spawn (or the argv-construction
-    // failure gets its own distinct error code) instead of collapsing into
-    // `BdUnavailable`.
+    // regression coverage for rejecting an argv-illegal value before process
+    // launch and reporting the offending variable rather than bd unavailability.
     #[cfg(unix)]
     #[test]
-    fn nul_byte_poisoned_bead_variable_value_is_misreported_as_bd_unavailable() {
+    fn nul_byte_poisoned_bead_variable_value_is_rejected_as_invalid() {
         let root = workspace();
         let mut request = request(&root, BeadOperation::Validate);
         request.bd_executable = Some(PathBuf::from("/bin/echo"));
@@ -978,9 +1005,14 @@ mod tests {
             .insert(String::from("payload"), String::from("legit\u{0}withnul"));
 
         let error = execute_bead_request_with_runner(&request, &StdProcessRunner)
-            .expect_err("a NUL-poisoned bead variable value must currently be misreported");
+            .expect_err("a NUL-poisoned bead variable value must be rejected");
 
-        assert_eq!(error.code(), "BEADS_BD_UNAVAILABLE");
+        assert!(matches!(
+            error,
+            BeadComposeError::BeadVariableValueInvalid { ref key, ref value }
+                if key == "payload" && value == "legit\u{0}withnul"
+        ));
+        assert_eq!(error.code(), "BEADS_VARIABLE_VALUE_INVALID");
         fs::remove_dir_all(root).expect("cleanup");
     }
 

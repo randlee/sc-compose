@@ -73,10 +73,12 @@ fn print_bead_error(
         | BeadComposeError::PathNotUtf8 { .. }
         | BeadComposeError::BeadVariableKeyInvalid { .. }
         | BeadComposeError::BeadVariableKeyDuplicate { .. }
+        | BeadComposeError::BeadVariableValueInvalid { .. }
         | BeadComposeError::FormulaNameRequired
         | BeadComposeError::PourAuthorizationRequired
         | BeadComposeError::PourAuthorizationInvalid => exit_codes::USAGE_FAIL,
         BeadComposeError::BdUnavailable { .. }
+        | BeadComposeError::ProcessArgumentInvalid { .. }
         | BeadComposeError::ProcessOutputLimitExceeded { .. }
         | BeadComposeError::RenderFailed { .. }
         | BeadComposeError::CookFailed { .. }
