@@ -141,10 +141,10 @@ library.
 `sc-composer-beads` is the host-neutral Beads formula-composition library. It
 owns the versioned request/receipt contract, deterministic render-to-`bd`
 stage ordering, authorization checks, and direct executable invocation. It
-depends on `sc-composer`, workspace serde/error support, and Rust standard
-library filesystem/process APIs only. Beads formula parsing, validation,
-runtime-variable semantics, and persistent state remain owned by the `bd`
-executable.
+depends on `sc-composer`, workspace serde/error support, and the approved
+`process-wrap` platform-containment dependency. Beads formula parsing,
+validation, runtime-variable semantics, and persistent state remain owned by
+the `bd` executable.
 
 It must not depend on `sc-compose`, a Python or Go adapter, Beads source or a
 Beads database library, ATM/runtime code, or any CLI argument type. The CLI

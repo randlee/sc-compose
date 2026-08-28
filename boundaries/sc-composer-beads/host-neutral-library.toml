@@ -17,7 +17,7 @@ roots = ["execute_bead_request"]
 
 [dependencies]
 allowed_dependents = ["sc-compose", "sc-composer-beads-python"]
-allowed_dependencies = ["sc-composer", "serde", "serde_json", "thiserror"]
+allowed_dependencies = ["sc-composer", "serde", "serde_json", "thiserror", "process-wrap"]
 forbidden_edges = []
 
 [references]

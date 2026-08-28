@@ -513,9 +513,11 @@ mod tests {
     use serde_json::{Map, json};
 
     use super::{BEADS_SCHEMA_V1, execute_bead_request_with_runner};
+    #[cfg(unix)]
+    use crate::StdProcessRunner;
     use crate::{
         BeadComposeError, BeadComposeRequest, BeadOperation, BeadOutcome, CommandSpec,
-        ProcessOutput, ProcessRunner, StdProcessRunner,
+        ProcessOutput, ProcessRunner,
     };
 
     static WORKSPACE_SEQUENCE: AtomicU64 = AtomicU64::new(0);

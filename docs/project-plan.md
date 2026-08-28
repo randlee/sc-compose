@@ -41,9 +41,9 @@ gate are authoritative for that work.
   ATM-specific crates.
 - `sc-composer` must not depend on `bindings/python`.
 - `sc-composer-beads` may depend only on `sc-composer`, workspace serde/error
-  dependencies, and Rust standard-library filesystem/process APIs. It must not
-  depend on the CLI, a foreign-language adapter, Beads source/database
-  libraries, or ATM/runtime code.
+  dependencies, and the approved `process-wrap` platform-containment
+  dependency. It must not depend on the CLI, a foreign-language adapter, Beads
+  source/database libraries, or ATM/runtime code.
 - `bindings/sc-composer-beads-python` may depend only on
   `sc-composer-beads` plus approved PyO3/maturin/serde dependencies; it must
   not depend on the CLI, `sc-composer`, Beads source/database libraries, or
@@ -932,6 +932,7 @@ Sprint entries:
 - [Sprint R.1 — Beads contract and execution engine](phase-R/sprint-r-1-beads-contract-and-engine.md)
 - [Sprint R.2 — Bead CLI and JSON protocol](phase-R/sprint-r-2-bead-cli-and-json-protocol.md)
 - [Sprint R.3 — Beads Python bindings](phase-R/sprint-r-3-beads-python-bindings.md)
+- [FIX-BEADS-FUZZ-OUT-001 — Orphaned descendant output-cap containment](sprints/fix-beads-output-cap-orphan-descendant.md)
 
 ### Follow-on Chore: CI UniFFI Artifact Consumption
 
