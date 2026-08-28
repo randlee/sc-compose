@@ -1,5 +1,5 @@
 ---
-status: complete
+status: in_progress
 branch: fix/beads-toml-formula-escaping
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/beads-toml-formula-escaping
 ---
@@ -21,15 +21,20 @@ JSON extensions but had no TOML-aware path.
 
 ## Fix
 
-Formula TOML templates now select a dedicated auto-escape path that emits
-TOML basic-string escapes for quotes, backslashes, and control characters.
-The pinned regression test parses the rendered formula with the TOML parser and
-asserts the original hostile string round-trips unchanged.
+Formula TOML templates now select a caller-supplied, generic TOML escape mode.
+The shared renderer only consumes that mode and has no knowledge of Beads
+filenames; `sc-composer-beads` selects it for `.formula.toml.j2` templates.
+The pinned regression test parses both single-line and triple-quoted multiline
+rendered values with the TOML parser and asserts the original hostile string
+round-trips unchanged.
 
 ## Acceptance Criteria
 
 - [x] Formula values containing quotes and/or backslashes render as valid TOML.
-- [x] The pinned test parses the rendered output and verifies round-tripping.
+- [x] The pinned test parses single-line and multiline rendered output and
+  verifies round-tripping.
+- [x] TOML mode is caller-selected and contains no Beads filename logic in
+  `sc-composer`.
 - [x] `cargo test --workspace` passes.
 - [x] `cargo clippy --all-targets --all-features -- -D warnings` passes.
 - [x] `cargo fmt --all --check` passes.
@@ -41,3 +46,12 @@ asserts the original hostile string round-trips unchanged.
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo test --workspace`
 - `git diff --check`
+
+## FIX-PR566-ARCH-001-TOML-BOUNDARY follow-up
+
+The original implementation selected TOML escaping by matching
+`.formula.toml` inside `crates/sc-composer/src/renderer.rs`. That violated the
+shared-library boundary. The corrected implementation exposes the generic
+`TemplateEscapeMode::Toml` policy and leaves the filename decision in
+`sc-composer-beads/src/render.rs`, matching the existing caller-decides JSON
+pattern.
