@@ -368,17 +368,6 @@ impl Renderer {
         Ok(Self { env })
     }
 
-    /// Create a renderer using an explicit caller-selected escaping policy.
-    ///
-    /// # Panics
-    ///
-    /// Panics only if the renderer's built-in configuration becomes invalid.
-    #[must_use]
-    pub fn with_escape_mode(escape_mode: TemplateEscapeMode) -> Self {
-        Self::try_with_escape_mode(escape_mode, |_| Ok(()))
-            .expect("default renderer options must stay valid")
-    }
-
     /// Create a renderer using the requested JSON interpolation mode.
     ///
     /// # Panics
@@ -522,22 +511,8 @@ pub fn render_loaded_template_with_json_escape_mode(
     request: LoadedTemplateRequest,
     json_escape_mode: JsonEscapeMode,
 ) -> Result<RenderedArtifact, RenderError> {
-    render_loaded_template_with_escape_mode(request, TemplateEscapeMode::Json(json_escape_mode))
-}
-
-/// Render pre-loaded template content with an explicit caller-selected
-/// escaping policy.
-///
-/// # Errors
-///
-/// Returns [`RenderError`] when a supporting template cannot be compiled or
-/// the requested template cannot be rendered.
-pub fn render_loaded_template_with_escape_mode(
-    request: LoadedTemplateRequest,
-    escape_mode: TemplateEscapeMode,
-) -> Result<RenderedArtifact, RenderError> {
     let mut env = Environment::new();
-    configure_environment(&mut env, escape_mode);
+    configure_environment(&mut env, TemplateEscapeMode::Json(json_escape_mode));
     for asset in request.supporting_templates {
         env.add_template_owned(asset.template_name, asset.template_text)
             .map_err(RenderError::render)?;

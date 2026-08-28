@@ -104,8 +104,7 @@ pub use render_check::{
 pub use renderer::{
     JSON_LEGACY_WARNING, JsonEscapeMode, LoadedTemplateRequest, NamedTemplateAsset,
     RenderedArtifact, Renderer, TemplateEscapeMode, render_loaded_template,
-    render_loaded_template_with_escape_mode, render_loaded_template_with_json_escape_mode,
-    render_template, resolve_json_escape_mode,
+    render_loaded_template_with_json_escape_mode, render_template, resolve_json_escape_mode,
 };
 #[doc(inline)]
 pub use resolver::{resolve_profile, resolve_profile_with_observer, resolve_template_path};
