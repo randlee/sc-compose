@@ -1,5 +1,5 @@
 ---
-status: in_progress
+status: complete
 branch: fix/beads-toml-formula-escaping
 worktree: /Users/randlee/Documents/github/sc-compose-worktrees/fix/beads-toml-formula-escaping
 ---
