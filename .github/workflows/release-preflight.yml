@@ -374,8 +374,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # --no-verify: preflight runs before any crate in this release has
+          # actually been published, so a later crate's isolated verification
+          # build cannot resolve an earlier crate's not-yet-live path+version
+          # dependency (e.g. sc-compose -> sc-composer-beads on a first
+          # release of a new intermediate crate). The real `cargo publish`
+          # step still verifies fully, in manifest publish_order, against the
+          # registry state that exists at that point.
           while IFS='|' read -r package _; do
-            cargo package -p "$package" --locked --allow-dirty
+            cargo package -p "$package" --locked --allow-dirty --no-verify
           done < <(python3 .github/scripts/release_artifacts.py list-publish-plan --manifest "${RELEASE_ARTIFACT_MANIFEST}")
 
       - id: github_release_permissions
