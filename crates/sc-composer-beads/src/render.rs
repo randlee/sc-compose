@@ -180,15 +180,8 @@ mod tests {
     }
 
     // FUZZ-TEMPLATE-001 (adversarial fuzz campaign 20260817-1,
-    // template-probe): confirmed bug, not yet fixed. `.formula.toml.j2`
-    // resolves to `JsonEscapeMode::Auto`, which only escapes html/xml/json
-    // content (see `auto_escape_callback` in crates/sc-composer); TOML gets
-    // no string-safety handling at all, unlike its `.formula.json.j2`
-    // sibling above. A compose value containing a literal `"` or `\`
-    // therefore corrupts the rendered TOML document instead of producing a
-    // valid quoted string. This test pins the current corrupted output so
-    // the gap is visible; update it once TOML formulas gain an escaping
-    // path (or an explicit validation error) for such values.
+    // template-probe): TOML formula interpolation uses TOML basic-string
+    // escaping, so quotes and backslashes remain data in the rendered value.
     #[test]
     fn toml_formula_templates_embed_unescaped_quotes_and_backslashes() {
         let root = temporary_directory();
@@ -203,11 +196,10 @@ mod tests {
         .expect("render TOML formula");
 
         let rendered = fs::read_to_string(&output).expect("read output");
-        assert_eq!(rendered, "a = \"has \"quotes\" and \\backslash\"");
-        assert!(
-            rendered.matches('"').count() > 2,
-            "a syntactically valid single quoted TOML string has exactly \
-             2 quote characters; got: {rendered:?}"
+        let parsed: toml::Value = toml::from_str(&rendered).expect("valid TOML");
+        assert_eq!(
+            parsed.get("a").and_then(toml::Value::as_str),
+            Some("has \"quotes\" and \\backslash")
         );
         fs::remove_dir_all(root).expect("cleanup");
     }

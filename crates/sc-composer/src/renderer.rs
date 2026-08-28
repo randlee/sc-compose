@@ -1,6 +1,7 @@
 //! Template renderer wrapper.
 
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 
 use minijinja::value::ValueKind;
 use minijinja::{
@@ -9,7 +10,7 @@ use minijinja::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{RenderError, template_content_extension};
+use crate::{RenderError, strip_all_template_suffixes, template_content_extension};
 
 const XML_REPLACEMENT_NCR: &str = "&#xfffd;";
 
@@ -94,8 +95,19 @@ fn auto_escape_callback(name: &str, json_escape_mode: JsonEscapeMode) -> AutoEsc
             JsonEscapeMode::Legacy => AutoEscape::Custom("sc-compose-json-legacy"),
             JsonEscapeMode::Auto => AutoEscape::Json,
         },
+        Some(extension)
+            if extension.eq_ignore_ascii_case("toml") && is_formula_toml_template(name) =>
+        {
+            AutoEscape::Custom("sc-compose-toml")
+        }
         _ => AutoEscape::None,
     }
+}
+
+fn is_formula_toml_template(name: &str) -> bool {
+    strip_all_template_suffixes(name)
+        .to_ascii_lowercase()
+        .ends_with(".formula.toml")
 }
 
 fn cdata_escape_filter(value: &str) -> JinjaValue {
@@ -201,6 +213,30 @@ fn yaml_safe_filter(value: &str) -> String {
     format!("\"{escaped}\"")
 }
 
+fn toml_string_contents(value: &JinjaValue) -> String {
+    let rendered = value
+        .as_str()
+        .map_or_else(|| value.to_string(), ToOwned::to_owned);
+    let mut escaped = String::with_capacity(rendered.len());
+    for character in rendered.chars() {
+        match character {
+            '\\' => escaped.push_str("\\\\"),
+            '"' => escaped.push_str("\\\""),
+            '\u{0008}' => escaped.push_str("\\b"),
+            '\t' => escaped.push_str("\\t"),
+            '\n' => escaped.push_str("\\n"),
+            '\u{000c}' => escaped.push_str("\\f"),
+            '\r' => escaped.push_str("\\r"),
+            character if character.is_control() => {
+                write!(escaped, "\\u{:04X}", character as u32)
+                    .expect("writing to a String cannot fail");
+            }
+            character => escaped.push(character),
+        }
+    }
+    escaped
+}
+
 fn json_string_contents(value: &JinjaValue) -> String {
     let value = value
         .as_str()
@@ -228,6 +264,11 @@ fn format_sc_compose_markup(
         if state.auto_escape() == AutoEscape::Custom("sc-compose-json-legacy") {
             return out
                 .write_str(&json_string_contents(value))
+                .map_err(Error::from);
+        }
+        if state.auto_escape() == AutoEscape::Custom("sc-compose-toml") {
+            return out
+                .write_str(&toml_string_contents(value))
                 .map_err(Error::from);
         }
         return escape_formatter(out, state, value);
