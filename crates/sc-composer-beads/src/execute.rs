@@ -515,7 +515,7 @@ mod tests {
     use super::{BEADS_SCHEMA_V1, execute_bead_request_with_runner};
     use crate::{
         BeadComposeError, BeadComposeRequest, BeadOperation, BeadOutcome, CommandSpec,
-        ProcessOutput, ProcessRunner,
+        ProcessOutput, ProcessRunner, StdProcessRunner,
     };
 
     static WORKSPACE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
@@ -945,6 +945,41 @@ mod tests {
         assert!(runner.calls.lock().expect("calls lock").is_empty());
         fs::remove_dir_all(root).expect("cleanup root");
         fs::remove_dir_all(outside).expect("cleanup outside");
+    }
+
+    // FUZZ-4177-ENC-01 (adversarial fuzz campaign 20260817-2, path-encoding-probe):
+    // confirmed bug, not yet fixed. `bead_variables` VALUES are never checked for
+    // embedded control bytes (only KEYS are restricted, by `valid_bead_key`). A
+    // value containing an embedded NUL byte is valid UTF-8 (U+0000 is a legal
+    // codepoint), so it passes every existing validation and reaches
+    // `append_variables`, which formats it into a `--var key=value` argv entry
+    // handed to `std::process::Command::args`. The OS-level `Command::spawn`
+    // rejects any argument containing an interior NUL with
+    // `io::ErrorKind::InvalidInput`, and `run_stage_with_output`'s error mapping
+    // treats every non-output-limit `io::Error` from the runner as
+    // `BeadComposeError::BdUnavailable`. ADR-0021 defines that code as "The
+    // configured `bd` executable cannot be started" -- but here a real, present,
+    // executable `bd_executable` (`/bin/echo`) is misreported as unavailable; the
+    // actual cause is an uncontrolled `bead_variable` value poisoning argv
+    // construction. This test pins the misattributed diagnostic; update it once
+    // `bead_variables` values are validated pre-spawn (or the argv-construction
+    // failure gets its own distinct error code) instead of collapsing into
+    // `BdUnavailable`.
+    #[cfg(unix)]
+    #[test]
+    fn nul_byte_poisoned_bead_variable_value_is_misreported_as_bd_unavailable() {
+        let root = workspace();
+        let mut request = request(&root, BeadOperation::Validate);
+        request.bd_executable = Some(PathBuf::from("/bin/echo"));
+        request
+            .bead_variables
+            .insert(String::from("payload"), String::from("legit\u{0}withnul"));
+
+        let error = execute_bead_request_with_runner(&request, &StdProcessRunner)
+            .expect_err("a NUL-poisoned bead variable value must currently be misreported");
+
+        assert_eq!(error.code(), "BEADS_BD_UNAVAILABLE");
+        fs::remove_dir_all(root).expect("cleanup");
     }
 
     #[cfg(unix)]

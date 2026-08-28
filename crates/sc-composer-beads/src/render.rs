@@ -179,6 +179,83 @@ mod tests {
         fs::remove_dir_all(root).expect("cleanup");
     }
 
+    // FUZZ-TEMPLATE-001 (adversarial fuzz campaign 20260817-1,
+    // template-probe): confirmed bug, not yet fixed. `.formula.toml.j2`
+    // resolves to `JsonEscapeMode::Auto`, which only escapes html/xml/json
+    // content (see `auto_escape_callback` in crates/sc-composer); TOML gets
+    // no string-safety handling at all, unlike its `.formula.json.j2`
+    // sibling above. A compose value containing a literal `"` or `\`
+    // therefore corrupts the rendered TOML document instead of producing a
+    // valid quoted string. This test pins the current corrupted output so
+    // the gap is visible; update it once TOML formulas gain an escaping
+    // path (or an explicit validation error) for such values.
+    #[test]
+    fn toml_formula_templates_embed_unescaped_quotes_and_backslashes() {
+        let root = temporary_directory();
+        let template = root.join("example.formula.toml.j2");
+        let output = root.join("example.formula.toml");
+        fs::write(&template, "a = \"{{{ x }}}\"").expect("write template");
+        render_formula(
+            &template,
+            &output,
+            &Map::from_iter([(String::from("x"), json!("has \"quotes\" and \\backslash"))]),
+        )
+        .expect("render TOML formula");
+
+        let rendered = fs::read_to_string(&output).expect("read output");
+        assert_eq!(rendered, "a = \"has \"quotes\" and \\backslash\"");
+        assert!(
+            rendered.matches('"').count() > 2,
+            "a syntactically valid single quoted TOML string has exactly \
+             2 quote characters; got: {rendered:?}"
+        );
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    // FUZZ-4177-BOUNDARY-01 (adversarial fuzz campaign 20260817-1,
+    // boundary-probe): confirmed bug, not yet fixed. `BeadComposeError::
+    // RenderFailed`'s doc comment promises "rendering failure details
+    // retained for diagnostics", but `render_formula` builds the message
+    // with `error.to_string()` against `sc_composer::RenderError`, whose
+    // `Display` is a fixed, opaque "template rendering failed" string by
+    // design (see crates/sc-composer/src/error/render.rs). The
+    // cause-specific detail is only reachable via `RenderError::message()`,
+    // which this call site never invokes, so two structurally distinct
+    // render failures collapse to the identical generic message. This test
+    // pins that collapse; update it once `render_formula` surfaces
+    // cause-specific detail (e.g. by calling `.message()` instead of
+    // `.to_string()`).
+    #[test]
+    fn render_failed_message_is_identical_for_distinct_failure_causes() {
+        let root = temporary_directory();
+        let vars: Map<String, serde_json::Value> =
+            Map::from_iter([(String::from("x"), json!("v"))]);
+
+        let unterminated = root.join("unterminated.formula.toml.j2");
+        fs::write(&unterminated, "hello {{{ unterminated").expect("write template");
+        let out1 = root.join("unterminated.formula.toml");
+        let err1 = render_formula(&unterminated, &out1, &vars)
+            .expect_err("unterminated expression must fail");
+
+        let unknown_filter = root.join("unknown_filter.formula.toml.j2");
+        fs::write(
+            &unknown_filter,
+            "{{{ x | this_filter_does_not_exist_anywhere }}}",
+        )
+        .expect("write template");
+        let out2 = root.join("unknown_filter.formula.toml");
+        let err2 =
+            render_formula(&unknown_filter, &out2, &vars).expect_err("unknown filter must fail");
+
+        assert_eq!(
+            err1.to_string(),
+            "formula rendering failed: template rendering failed"
+        );
+        assert_eq!(err1.to_string(), err2.to_string());
+
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
     fn temporary_directory() -> PathBuf {
         let unique = SystemTime::now()
             .duration_since(UNIX_EPOCH)

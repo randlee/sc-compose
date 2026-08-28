@@ -1,0 +1,58 @@
+<section xmlns="http://www.w3.org/1999/xhtml" class="fuzz-agent fuzz-agent-confirmed_bug">
+  <header class="agent-header fuzz-agent-header">
+    <div>
+      <p class="eyebrow">Adversarial fuzz worker</p>
+      <h2>template-probe</h2>
+      <p class="agent-meta">Session sc-compose-fuzz-20260817-1 · Worker template-probe</p>
+    </div>
+    <div class="agent-actions" role="group" aria-label="Copy worker data">
+      <button type="button" class="icon-button" title="Copy JSON" data-copy-text="{&quot;session_id&quot;:&quot;sc-compose-fuzz-20260817-1&quot;,&quot;agent_id&quot;:&quot;template-probe&quot;,&quot;worker_correlation_id&quot;:&quot;template-probe&quot;,&quot;classification&quot;:&quot;confirmed_bug&quot;,&quot;fuzz_run_description&quot;:&quot;TOML formula interpolation containing quotes and backslashes&quot;,&quot;iterations&quot;:1,&quot;passed&quot;:0,&quot;failed&quot;:1,&quot;result&quot;:&quot;FAIL&quot;,&quot;command&quot;:&quot;cargo test -p sc-composer-beads toml_formula_templates_embed_unescaped_quotes_and_backslashes&quot;,&quot;context_text&quot;:&quot;Post-hoc reconstruction from the promoted test and its 20260817-1 source comment. The template probe shows that TOML formula suffixes do not receive string-safe escaping.&quot;,&quot;test_inputs&quot;:[{&quot;case_id&quot;:&quot;FUZZ-TEMPLATE-001&quot;,&quot;description&quot;:&quot;Render TOML template `a = \&quot;{{{ x }}}\&quot;` with literal quotes and a backslash in `x`.&quot;,&quot;minimal_template&quot;:&quot;a = \&quot;{{{ x }}}\&quot;&quot;,&quot;minimal_input&quot;:&quot;x=has \&quot;quotes\&quot; and \\backslash&quot;,&quot;passed&quot;:false,&quot;outcome&quot;:&quot;FAIL: interpolated quotes and backslashes are unescaped, producing invalid quoted TOML.&quot;}],&quot;findings&quot;:[{&quot;finding_id&quot;:&quot;FUZZ-TEMPLATE-001&quot;,&quot;minimal_template&quot;:&quot;a = \&quot;{{{ x }}}\&quot;&quot;,&quot;minimal_input&quot;:&quot;x=has \&quot;quotes\&quot; and \\backslash&quot;,&quot;expected_oracle&quot;:&quot;A quoted TOML formula value either renders as valid TOML or fails with an explicit diagnostic.&quot;,&quot;observed_result&quot;:&quot;The value is embedded without TOML string escaping.&quot;,&quot;requirement_trace&quot;:&quot;ADR-0021 makes formula rendering a sc-composer-beads responsibility but does not define TOML escaping semantics.&quot;,&quot;requirement_follow_up&quot;:&quot;Define the intended TOML formula rendering contract before implementing format-aware escaping or a fail-closed validation error.&quot;,&quot;root_cause&quot;:&quot;`.formula.toml.j2` receives the generic auto-escape mode, which has no TOML string-safety branch.&quot;,&quot;recommended_fix&quot;:&quot;Add a TOML-aware render path or reject unsafe interpolated TOML strings before emitting a formula.&quot;,&quot;reproduction_count&quot;:3}]}">{}</button>
+      <button type="button" class="icon-button" title="Copy Context" data-copy-text="Post-hoc reconstruction from the promoted test and its 20260817-1 source comment. The template probe shows that TOML formula suffixes do not receive string-safe escaping.">⎘</button>
+    </div>
+  </header>
+
+  <p class="status">
+    <span class="status status-error">FAIL</span>
+  </p>
+
+  <table class="agent-results">
+    <thead><tr><th scope="col">Fuzz run description</th><th scope="col">Iterations</th><th scope="col">Pass</th><th scope="col">Result</th></tr></thead>
+    <tbody>
+      <tr>
+        <th scope="row">TOML formula interpolation containing quotes and backslashes</th>
+        <td>1</td>
+        <td>0/1</td>
+        <td>
+          <span class="status status-error">FAIL</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <section class="test-inputs">
+    <h3>Inputs exercised</h3>
+    <table>
+      <thead><tr><th scope="col">Case</th><th scope="col">Template / input</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">FUZZ-TEMPLATE-001</th><td><code>Render TOML template `a = &quot;{{{ x }}}&quot;` with literal quotes and a backslash in `x`.</code></td><td>FAIL: interpolated quotes and backslashes are unescaped, producing invalid quoted TOML.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="findings">
+    <h3>Findings</h3>
+    <article class="finding">
+      <h4>FUZZ-TEMPLATE-001</h4>
+      <dl>
+        <dt>Minimal template / frontmatter</dt><dd><code>a = &quot;{{{ x }}}&quot;</code></dd>
+        <dt>Input</dt><dd><code>x=has &quot;quotes&quot; and \backslash</code></dd>
+        <dt>Expected</dt><dd>A quoted TOML formula value either renders as valid TOML or fails with an explicit diagnostic.</dd>
+        <dt>Observed</dt><dd>The value is embedded without TOML string escaping.</dd>
+        <dt>Requirement / ADR</dt><dd>ADR-0021 makes formula rendering a sc-composer-beads responsibility but does not define TOML escaping semantics.</dd>
+        <dt>Requirement / ADR follow-up</dt><dd>Define the intended TOML formula rendering contract before implementing format-aware escaping or a fail-closed validation error.</dd>
+        <dt>Root cause</dt><dd>`.formula.toml.j2` receives the generic auto-escape mode, which has no TOML string-safety branch.</dd>
+        <dt>Recommended fix</dt><dd>Add a TOML-aware render path or reject unsafe interpolated TOML strings before emitting a formula.</dd>
+      </dl>
+    </article>
+  </section>
+</section>
