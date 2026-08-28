@@ -18,5 +18,17 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 
+[target.'cfg(unix)'.dependencies]
+process-wrap = { version = "=10.0.0", default-features = false, features = ["std", "process-group"] }
+
+[target.'cfg(windows)'.dependencies]
+process-wrap = { version = "=10.0.0", default-features = false, features = ["std", "job-object"] }
+
 [lints]
 workspace = true
+
+[[bin]]
+name = "sc-composer-beads-runner-fixture"
+path = "tests/fixtures/runner_orphan_fixture.rs"
+test = false
+bench = false

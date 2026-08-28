@@ -32,9 +32,9 @@ bindings/sc-composer-beads-python -> sc-composer-beads
 ```
 
 `sc-composer-beads` may use only `sc-composer`, workspace serde/error
-dependencies, and Rust standard-library filesystem/process APIs. It may not
-depend on `sc-compose`, an adapter, Beads source, ATM, or a Beads database
-library.
+dependencies, and the approved `process-wrap` platform-containment dependency.
+It may not depend on `sc-compose`, an adapter, Beads source, ATM, or a Beads
+database library.
 
 ## Exact targets
 
