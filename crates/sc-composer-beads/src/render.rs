@@ -31,21 +31,18 @@ pub fn render_formula(
         fs::read_to_string(template).map_err(|error| BeadComposeError::RenderFailed {
             message: error.to_string(),
         })?;
-    let rendered = sc_composer::Renderer::with_delimiters_and_json_escape_mode(
-        "{{{",
-        "}}}",
-        json_escape_mode(template),
-    )
-    .and_then(|renderer| {
-        renderer.render_named(
-            &template.to_string_lossy(),
-            &template_text,
-            compose_variables,
-        )
-    })
-    .map_err(|error| BeadComposeError::RenderFailed {
-        message: error.message().to_owned(),
-    })?;
+    let rendered =
+        sc_composer::Renderer::with_delimiters_and_escape_mode("{{{", "}}}", escape_mode(template))
+            .and_then(|renderer| {
+                renderer.render_named(
+                    &template.to_string_lossy(),
+                    &template_text,
+                    compose_variables,
+                )
+            })
+            .map_err(|error| BeadComposeError::RenderFailed {
+                message: error.message().to_owned(),
+            })?;
     atomic_write(rendered_formula, rendered.as_bytes())
 }
 
@@ -133,14 +130,16 @@ fn render_error(error: &std::io::Error) -> BeadComposeError {
     }
 }
 
-fn json_escape_mode(template: &Path) -> sc_composer::JsonEscapeMode {
+fn escape_mode(template: &Path) -> sc_composer::TemplateEscapeMode {
     if template.to_string_lossy().ends_with(".formula.json.j2") {
         // Formula templates retain their literal JSON quotes.  This mirrors
         // the documented sc-compose legacy JSON shape while the deliberately
         // distinct triple braces preserve Beads runtime placeholders.
-        sc_composer::JsonEscapeMode::Legacy
+        sc_composer::TemplateEscapeMode::Json(sc_composer::JsonEscapeMode::Legacy)
+    } else if template.to_string_lossy().ends_with(".formula.toml.j2") {
+        sc_composer::TemplateEscapeMode::Toml
     } else {
-        sc_composer::JsonEscapeMode::Auto
+        sc_composer::TemplateEscapeMode::Json(sc_composer::JsonEscapeMode::Auto)
     }
 }
 
@@ -180,34 +179,36 @@ mod tests {
     }
 
     // FUZZ-TEMPLATE-001 (adversarial fuzz campaign 20260817-1,
-    // template-probe): confirmed bug, not yet fixed. `.formula.toml.j2`
-    // resolves to `JsonEscapeMode::Auto`, which only escapes html/xml/json
-    // content (see `auto_escape_callback` in crates/sc-composer); TOML gets
-    // no string-safety handling at all, unlike its `.formula.json.j2`
-    // sibling above. A compose value containing a literal `"` or `\`
-    // therefore corrupts the rendered TOML document instead of producing a
-    // valid quoted string. This test pins the current corrupted output so
-    // the gap is visible; update it once TOML formulas gain an escaping
-    // path (or an explicit validation error) for such values.
+    // template-probe): TOML formula interpolation uses TOML basic-string
+    // escaping, so quotes and backslashes remain data in both single-line and
+    // triple-quoted multiline rendered values.
     #[test]
     fn toml_formula_templates_embed_unescaped_quotes_and_backslashes() {
         let root = temporary_directory();
         let template = root.join("example.formula.toml.j2");
         let output = root.join("example.formula.toml");
-        fs::write(&template, "a = \"{{{ x }}}\"").expect("write template");
+        fs::write(
+            &template,
+            "single = \"{{{ x }}}\"\nmultiline = \"\"\"{{{ x }}}\"\"\"",
+        )
+        .expect("write template");
+        let hostile = "has \"quotes\" and \\backslash\nwith a second line";
         render_formula(
             &template,
             &output,
-            &Map::from_iter([(String::from("x"), json!("has \"quotes\" and \\backslash"))]),
+            &Map::from_iter([(String::from("x"), json!(hostile))]),
         )
         .expect("render TOML formula");
 
         let rendered = fs::read_to_string(&output).expect("read output");
-        assert_eq!(rendered, "a = \"has \"quotes\" and \\backslash\"");
-        assert!(
-            rendered.matches('"').count() > 2,
-            "a syntactically valid single quoted TOML string has exactly \
-             2 quote characters; got: {rendered:?}"
+        let parsed: toml::Value = toml::from_str(&rendered).expect("valid TOML");
+        assert_eq!(
+            parsed.get("single").and_then(toml::Value::as_str),
+            Some(hostile)
+        );
+        assert_eq!(
+            parsed.get("multiline").and_then(toml::Value::as_str),
+            Some(hostile)
         );
         fs::remove_dir_all(root).expect("cleanup");
     }

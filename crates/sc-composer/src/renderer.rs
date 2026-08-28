@@ -1,6 +1,7 @@
 //! Template renderer wrapper.
 
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 
 use minijinja::value::ValueKind;
 use minijinja::{
@@ -25,6 +26,19 @@ pub enum JsonEscapeMode {
     Legacy,
     /// Render complete JSON values, including string delimiters.
     Auto,
+}
+
+/// Output escaping policy selected by the caller for a template render.
+///
+/// The renderer only consumes this opaque policy. Callers remain responsible
+/// for deciding which policy applies to a particular template path or
+/// application-specific format.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TemplateEscapeMode {
+    /// Apply the requested JSON interpolation policy to JSON templates.
+    Json(JsonEscapeMode),
+    /// Apply TOML basic-string escaping to TOML templates.
+    Toml,
 }
 
 /// Resolve JSON interpolation mode using CLI override, root frontmatter, and
@@ -81,7 +95,7 @@ pub struct Renderer {
     env: Environment<'static>,
 }
 
-fn auto_escape_callback(name: &str, json_escape_mode: JsonEscapeMode) -> AutoEscape {
+fn auto_escape_callback(name: &str, escape_mode: TemplateEscapeMode) -> AutoEscape {
     match template_content_extension(name) {
         Some(extension)
             if ["html", "htm", "xml", "xhtml"]
@@ -90,10 +104,20 @@ fn auto_escape_callback(name: &str, json_escape_mode: JsonEscapeMode) -> AutoEsc
         {
             AutoEscape::Custom("sc-compose-html")
         }
-        Some(extension) if extension.eq_ignore_ascii_case("json") => match json_escape_mode {
-            JsonEscapeMode::Legacy => AutoEscape::Custom("sc-compose-json-legacy"),
-            JsonEscapeMode::Auto => AutoEscape::Json,
+        Some(extension) if extension.eq_ignore_ascii_case("json") => match escape_mode {
+            TemplateEscapeMode::Json(JsonEscapeMode::Legacy) => {
+                AutoEscape::Custom("sc-compose-json-legacy")
+            }
+            TemplateEscapeMode::Json(JsonEscapeMode::Auto) | TemplateEscapeMode::Toml => {
+                AutoEscape::Json
+            }
         },
+        Some(extension)
+            if extension.eq_ignore_ascii_case("toml")
+                && matches!(escape_mode, TemplateEscapeMode::Toml) =>
+        {
+            AutoEscape::Custom("sc-compose-toml")
+        }
         _ => AutoEscape::None,
     }
 }
@@ -201,6 +225,30 @@ fn yaml_safe_filter(value: &str) -> String {
     format!("\"{escaped}\"")
 }
 
+fn toml_string_contents(value: &JinjaValue) -> String {
+    let rendered = value
+        .as_str()
+        .map_or_else(|| value.to_string(), ToOwned::to_owned);
+    let mut escaped = String::with_capacity(rendered.len());
+    for character in rendered.chars() {
+        match character {
+            '\\' => escaped.push_str("\\\\"),
+            '"' => escaped.push_str("\\\""),
+            '\u{0008}' => escaped.push_str("\\b"),
+            '\t' => escaped.push_str("\\t"),
+            '\n' => escaped.push_str("\\n"),
+            '\u{000c}' => escaped.push_str("\\f"),
+            '\r' => escaped.push_str("\\r"),
+            character if character.is_control() => {
+                write!(escaped, "\\u{:04X}", character as u32)
+                    .expect("writing to a String cannot fail");
+            }
+            character => escaped.push(character),
+        }
+    }
+    escaped
+}
+
 fn json_string_contents(value: &JinjaValue) -> String {
     let value = value.as_str().map_or_else(
         || serde_json::to_string(value).unwrap_or_else(|_| value.to_string()),
@@ -229,6 +277,11 @@ fn format_sc_compose_markup(
         if state.auto_escape() == AutoEscape::Custom("sc-compose-json-legacy") {
             return out
                 .write_str(&json_string_contents(value))
+                .map_err(Error::from);
+        }
+        if state.auto_escape() == AutoEscape::Custom("sc-compose-toml") {
+            return out
+                .write_str(&toml_string_contents(value))
                 .map_err(Error::from);
         }
         return escape_formatter(out, state, value);
@@ -266,12 +319,12 @@ fn map_get_unknown_method_callback(
     }
 }
 
-fn configure_environment(env: &mut Environment<'static>, json_escape_mode: JsonEscapeMode) {
+fn configure_environment(env: &mut Environment<'static>, escape_mode: TemplateEscapeMode) {
     env.set_trim_blocks(true);
     env.set_lstrip_blocks(true);
     // Keep sc-compose's historical extension policy when Minijinja's `json`
     // feature is enabled. JSON/YAML/JS templates are text outputs, not HTML.
-    env.set_auto_escape_callback(move |name| auto_escape_callback(name, json_escape_mode));
+    env.set_auto_escape_callback(move |name| auto_escape_callback(name, escape_mode));
     env.set_formatter(format_sc_compose_markup);
     env.add_filter("cdata_escape", cdata_escape_filter);
     env.add_filter("turtle_escape", turtle_escape_filter);
@@ -303,8 +356,15 @@ impl Renderer {
         json_escape_mode: JsonEscapeMode,
         configure: impl FnOnce(&mut Environment<'static>) -> Result<(), RenderError>,
     ) -> Result<Self, RenderError> {
+        Self::try_with_escape_mode(TemplateEscapeMode::Json(json_escape_mode), configure)
+    }
+
+    fn try_with_escape_mode(
+        escape_mode: TemplateEscapeMode,
+        configure: impl FnOnce(&mut Environment<'static>) -> Result<(), RenderError>,
+    ) -> Result<Self, RenderError> {
         let mut env = Environment::new();
-        configure_environment(&mut env, json_escape_mode);
+        configure_environment(&mut env, escape_mode);
         configure(&mut env)?;
         Ok(Self { env })
     }
@@ -344,6 +404,30 @@ impl Renderer {
         let open = open.to_owned();
         let close = close.to_owned();
         Self::try_with_json_escape_mode(json_escape_mode, |env| {
+            let syntax = minijinja::syntax::SyntaxConfig::builder()
+                .variable_delimiters(open, close)
+                .build()
+                .map_err(RenderError::render)?;
+            env.set_syntax(syntax);
+            Ok(())
+        })
+    }
+
+    /// Create a renderer with non-default variable delimiters and an explicit
+    /// caller-selected escaping policy.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RenderError`] when `open` or `close` are not valid delimiter
+    /// tokens accepted by the underlying template engine.
+    pub fn with_delimiters_and_escape_mode(
+        open: &str,
+        close: &str,
+        escape_mode: TemplateEscapeMode,
+    ) -> Result<Self, RenderError> {
+        let open = open.to_owned();
+        let close = close.to_owned();
+        Self::try_with_escape_mode(escape_mode, |env| {
             let syntax = minijinja::syntax::SyntaxConfig::builder()
                 .variable_delimiters(open, close)
                 .build()
@@ -429,7 +513,7 @@ pub fn render_loaded_template_with_json_escape_mode(
     json_escape_mode: JsonEscapeMode,
 ) -> Result<RenderedArtifact, RenderError> {
     let mut env = Environment::new();
-    configure_environment(&mut env, json_escape_mode);
+    configure_environment(&mut env, TemplateEscapeMode::Json(json_escape_mode));
     for asset in request.supporting_templates {
         env.add_template_owned(asset.template_name, asset.template_text)
             .map_err(RenderError::render)?;

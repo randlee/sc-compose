@@ -18,6 +18,9 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 
+[dev-dependencies]
+toml.workspace = true
+
 [target.'cfg(unix)'.dependencies]
 process-wrap = { version = "=10.0.0", default-features = false, features = ["std", "process-group"] }
 
