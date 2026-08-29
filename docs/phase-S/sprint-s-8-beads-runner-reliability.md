@@ -49,6 +49,9 @@ contract and platform-specific containment strategy. This closes S-T8.
 - Follow `CLAUDE.md` Rule 11: only already-approved `process-wrap` is allowed;
   the crate remains host-neutral with no CLI, adapter, ATM, or Beads source
   dependency.
+- **Production-ready closure:** every listed capture/containment state and its
+  committed supported-platform proof must land in this sprint; partial
+  platform coverage does not close S-T8.
 
 ## Explicit Code Samples
 

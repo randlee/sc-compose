@@ -38,6 +38,9 @@ S-T10.
 - Preserve CLI ownership of path policy; do not move it into `sc-composer`.
 - Do not change serialized path output, error strings, or public report schema.
 - Follow `CLAUDE.md` Rule 2: no dependency-direction change or new adapter.
+- **Production-ready closure:** every listed normalization and serialization
+  regression case must land in this sprint; partial edge-path coverage does not
+  close S-T10.
 
 ## Explicit Code Samples
 

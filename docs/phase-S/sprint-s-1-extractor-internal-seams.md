@@ -46,6 +46,9 @@ dependency. This closes S-T1, S-T2, and S-T3.
 - Compare serialized extraction reports on the existing corpus before/after.
 - Follow `CLAUDE.md` Rule 1: this remains pure-library work with no CLI,
   adapter, process, filesystem-policy, or ATM dependency.
+- **Production-ready closure:** every listed seam and its committed regression
+  coverage must land in this sprint; partial extraction-format coverage does
+  not close S-T1, S-T2, or S-T3.
 
 ## Explicit Code Samples
 
@@ -59,8 +62,9 @@ JSON/YAML/XML diagnostic identity at the caller boundary.
 
 ## This Sprint Does Not Close
 
-- CLI lint/refactoring work (S.2).
-- Beads process-runner lifecycle changes (S.8).
+- CLI lint (S.2), checked validation (S.3), and JSON-capability work (S.4).
+- Boundary invariants (S.5), diagnostics facade coverage (S.6), path
+  normalization coverage (S.7), and Beads process-runner lifecycle work (S.8).
 - A public extraction API redesign or format-unifying trait.
 
 ## Acceptance Criteria

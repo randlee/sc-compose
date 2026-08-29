@@ -40,6 +40,9 @@ dependency assertion. This closes S-T7.
   the refactor may strengthen failures but may not loosen them.
 - This is test-only organization; do not modify production dependency direction
   or public API behavior.
+- **Production-ready closure:** every named invariant-family assertion and its
+  committed negative regression coverage must land in this sprint; partial
+  rule coverage does not close S-T7.
 
 ## Explicit Code Samples
 

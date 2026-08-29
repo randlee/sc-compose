@@ -42,6 +42,9 @@ byte-for-byte compatible text/JSON results. This closes S-T5.
 - Do not change validation semantics, report schema, CLI flags, or exit codes.
 - Follow `CLAUDE.md` Rule 2: `sc-compose` remains an adapter over
   `sc-composer`.
+- **Production-ready closure:** every listed report/presentation/exit seam and
+  its committed regression coverage must land in this sprint; partial report
+  state coverage does not close S-T5.
 
 ## Explicit Code Samples
 

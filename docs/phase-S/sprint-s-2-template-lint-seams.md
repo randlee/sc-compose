@@ -40,6 +40,9 @@ command grammar, and output. This closes S-T4.
   lint policy into `sc-composer`.
 - Follow `CLAUDE.md` Rule 2: `sc-compose` remains an adapter and must not
   reverse the `sc-composer` dependency.
+- **Production-ready closure:** every listed lint seam and its committed
+  regression coverage must land in this sprint; partial source, traversal, or
+  report coverage does not close S-T4.
 
 ## Explicit Code Samples
 

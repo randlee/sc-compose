@@ -24,7 +24,9 @@ This closes S-T9.
 ## Exact Targets
 
 - `crates/sc-composer/src/diagnostics.rs`
-- `crates/sc-composer/src/diagnostics/{envelope,record,schema}.rs`
+- `crates/sc-composer/src/diagnostics/envelope.rs`
+- `crates/sc-composer/src/diagnostics/record.rs`
+- `crates/sc-composer/src/diagnostics/schema.rs`
 - existing diagnostics unit-test locations only
 - `docs/plans/phase-S.md`
 
@@ -39,6 +41,9 @@ This closes S-T9.
   fields, or a new diagnostics abstraction.
 - Follow `CLAUDE.md` Rule 1: remain pure `sc-composer` library work with no
   CLI, adapter, filesystem-policy, or ATM dependency.
+- **Production-ready closure:** every listed facade assertion and envelope
+  default regression must land in this sprint; partial export or schema-default
+  coverage does not close S-T9.
 
 ## Explicit Code Samples
 

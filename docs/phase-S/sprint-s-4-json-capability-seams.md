@@ -39,6 +39,9 @@ or JSON-mode behavior. This closes S-T6.
 - Do not change CLI flags, `Command` variants, clap configuration, or the
   existing JSON-mode decision for any command.
 - Follow `CLAUDE.md` Rule 2: remain in the CLI adapter with no new dependency.
+- **Production-ready closure:** every listed capability helper and every
+  committed command-matrix regression case must land in this sprint; a partial
+  subcommand matrix does not close S-T6.
 
 ## Explicit Code Samples
 
