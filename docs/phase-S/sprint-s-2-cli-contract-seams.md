@@ -26,7 +26,10 @@ and exit codes. This closes S-T4, S-T5, and S-T6.
 - `crates/sc-compose/src/commands/template_lint.rs`
 - `crates/sc-compose/src/commands/compose.rs`
 - `crates/sc-compose/src/cli/capability.rs`
-- existing `crates/sc-compose` CLI and command tests
+- `crates/sc-compose/src/cli/mod.rs`
+- `crates/sc-compose/tests/cli/validate.rs`
+- `crates/sc-compose/tests/json_cli/validate.rs`
+- `crates/sc-compose/tests/template_contracts_cli.rs`
 - `docs/plans/phase-S.md`
 
 ## Deliverables
@@ -71,6 +74,8 @@ trait or clap argument redesign is authorized merely to reduce CCN.
 - [ ] Every command variant has a JSON-capability regression case.
 - [ ] `template_lint` uses exactly the existing scanner and retains diagnostic
   codes/locations.
+- [ ] Checked-validation report construction, presentation, and exit choice
+  have independently exercisable tests with the existing report states.
 - [ ] No `sc-composer` public API or dependency direction changes.
 
 ## gh-stack Workflow

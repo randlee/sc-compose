@@ -26,7 +26,7 @@ contract and platform-specific containment strategy. This closes S-T8.
 - `crates/sc-composer-beads/src/runner.rs`
 - `crates/sc-composer-beads/tests/runner.rs`
 - `crates/sc-composer-beads/tests/bd_integration.rs`
-- `.github/workflows/ci.yml` only if a real platform fixture is required
+- `.github/workflows/ci.yml`
 - `docs/plans/phase-S.md`
 
 ## Deliverables
@@ -90,7 +90,7 @@ git pull --ff-only origin integrate/phase-s
 git config rerere.enabled true
 git config remote.pushDefault origin
 gh stack init --base integrate/phase-s sprint/s-4-beads-runner-reliability
-git add crates/sc-composer-beads/src/runner.rs crates/sc-composer-beads/tests .github/workflows/ci.yml docs/plans/phase-S.md docs/phase-S/sprint-s-4-beads-runner-reliability.md
+git add crates/sc-composer-beads/src/runner.rs crates/sc-composer-beads/tests/runner.rs crates/sc-composer-beads/tests/bd_integration.rs .github/workflows/ci.yml docs/plans/phase-S.md docs/phase-S/sprint-s-4-beads-runner-reliability.md
 git commit -m "refactor(beads): isolate bounded runner lifecycle"
 gh stack submit --auto
 gh stack view --json

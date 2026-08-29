@@ -26,9 +26,10 @@ those checks enforce.
 ## Exact Targets
 
 - `crates/sc-compose/tests/repo_boundaries.rs`
-- `crates/sc-composer/src/diagnostics.rs` and its colocated module tests
-- `crates/sc-compose/src/path_utils.rs` and its colocated tests
-- existing boundary and manifest fixtures only
+- `crates/sc-composer/src/diagnostics.rs`
+- `crates/sc-composer/src/diagnostics/{envelope,filesystem,record,schema}.rs`
+- `crates/sc-compose/src/path_utils.rs`
+- `crates/sc-compose/src/reporting/publish_manifest/tests.rs`
 - `docs/plans/phase-S.md`
 
 ## Deliverables
@@ -71,6 +72,8 @@ fn assert_manifest_boundary_rules(root: &Path, violations: &mut Vec<String>);
   exactly as before.
 - [ ] Diagnostics and path edge tests cover empty, absolute, parent, platform
   separator, and normalized relative paths as applicable.
+- [ ] Diagnostic facade/schema coverage freezes exported schema version,
+  spelling, and envelope defaults without adding public APIs.
 - [ ] No production dependency, public API, or serialized-format changes.
 
 ## gh-stack Workflow
