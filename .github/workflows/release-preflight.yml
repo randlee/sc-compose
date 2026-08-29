@@ -374,8 +374,36 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # cargo package must rewrite path+version dependencies to
+          # registry-resolvable versions during its manifest-prepare phase,
+          # before any verification build runs -- --no-verify does not skip
+          # this. So packaging a crate whose dependency is another
+          # manifest-declared sibling that hasn't been published yet always
+          # fails here, even though the real `cargo publish` step (which runs
+          # for real, in manifest publish_order) will succeed once that
+          # sibling is actually live. Treat that specific, identified failure
+          # as non-blocking; any other cargo package failure still fails this
+          # step.
+          mapfile -t manifest_packages < <(python3 .github/scripts/release_artifacts.py list-publish-plan --manifest "${RELEASE_ARTIFACT_MANIFEST}" | cut -d'|' -f1)
           while IFS='|' read -r package _; do
-            cargo package -p "$package" --locked --allow-dirty
+            if ! output="$(cargo package -p "$package" --locked --allow-dirty 2>&1)"; then
+              skip=false
+              for sibling in "${manifest_packages[@]}"; do
+                [[ "${sibling}" == "${package}" ]] && continue
+                if grep -qF "no matching package named \`${sibling}\`" <<<"${output}"; then
+                  skip=true
+                  break
+                fi
+              done
+              if [[ "${skip}" == true ]]; then
+                echo "::warning::cargo package -p ${package} failed only because manifest sibling crate has not published yet (expected for a new intermediate crate's first release; the real cargo publish step runs in manifest publish_order and will succeed). Treating as non-blocking."
+                echo "${output}"
+                continue
+              fi
+              echo "${output}" >&2
+              exit 1
+            fi
+            echo "${output}"
           done < <(python3 .github/scripts/release_artifacts.py list-publish-plan --manifest "${RELEASE_ARTIFACT_MANIFEST}")
 
       - id: github_release_permissions
