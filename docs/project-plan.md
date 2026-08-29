@@ -934,6 +934,24 @@ Sprint entries:
 - [Sprint R.3 — Beads Python bindings](phase-R/sprint-r-3-beads-python-bindings.md)
 - [FIX-BEADS-FUZZ-OUT-001 — Orphaned descendant output-cap containment](sprints/fix-beads-output-cap-orphan-descendant.md)
 
+### Phase S Sprint Plans
+
+Status:
+
+- planned: Phase S is the behavior-preserving hotspot remediation track based
+  on issue #572 and repowise evidence; it partitions safe private refactors
+  from intentionally vendored `sc-publish` release-package copies;
+- target: `integrate/phase-s`, with the phase integration PR as the only
+  Phase S PR targeting `develop`.
+
+Sprint entries:
+
+- [Phase S plan](plans/phase-S.md)
+- [Sprint S.1 — Extractor Internal Seams](phase-S/sprint-s-1-extractor-internal-seams.md)
+- [Sprint S.2 — CLI Contract Seams](phase-S/sprint-s-2-cli-contract-seams.md)
+- [Sprint S.3 — Boundary and Path Guardrails](phase-S/sprint-s-3-boundary-and-path-guardrails.md)
+- [Sprint S.4 — Beads Runner Reliability](phase-S/sprint-s-4-beads-runner-reliability.md)
+
 ### Follow-on Chore: CI UniFFI Artifact Consumption
 
 - [CHORE.CI-UNIFFI-CONSUME — CI UniFFI Artifact Consumption](sprints/chore-ci-uniffi-artifact-consumption.md)
